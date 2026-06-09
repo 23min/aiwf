@@ -55,6 +55,10 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `refs-resolve/unresolved-milestone` | The composite-id reference's milestone half (`M-NNN/AC-N`) names a milestone that does not exist. | Fix the milestone id or create the milestone. |
 | `refs-resolve/unresolved-ac` | The composite-id reference's AC half (`M-NNN/AC-N`) names an AC that does not exist on the milestone. | Fix the AC number or add the missing AC. |
 | `refs-resolve/wrong-kind` | A reference points at an entity of the wrong kind. | A milestone's `parent` must be an epic; an ADR's `supersedes` must be ADRs; etc. |
+| `body-prose-id/malformed-shape` | An entity's body prose contains an id-shaped token whose suffix isn't a valid id (letter suffix `M-a`, uppercase placeholder `M-NNNN`, or narrow-numeric `M-1`). | Replace with the canonical allocated id (`M-0001`), or wrap in backticks if the prose is discussing id syntax. Conversational sequential labels like `M-1`/`M-2` belong in chat, not committed prose. |
+| `body-prose-id/unresolved` | An entity's body prose references a well-formed id (`M-9999`) that resolves to no entity. | Fix the spelling, or wrap in backticks if the prose is discussing a hypothetical id rather than a real reference. |
+| `body-prose-id/unresolved-milestone` | A composite id in body prose (`M-NNNN/AC-N`) names a milestone that does not exist. | Fix the milestone id or remove the reference. |
+| `body-prose-id/unresolved-ac` | A composite id in body prose names an AC that does not exist on the parent milestone. | Fix the AC number or add the AC. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
 | `no-cycles/depends_on` | The cycle is in milestone `depends_on` edges. | Break a back-edge in the milestone DAG. |
 | `no-cycles/supersedes` | The cycle is in ADR `supersedes` edges. | Break the chain — an ADR cannot transitively supersede itself. |

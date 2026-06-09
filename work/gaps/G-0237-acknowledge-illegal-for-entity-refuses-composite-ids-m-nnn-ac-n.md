@@ -1,6 +1,6 @@
 ---
 id: G-0237
-title: acknowledge-illegal --for-entity refuses composite ids (M-NNN/AC-N)
+title: acknowledge-illegal --for-entity refuses composite ids (`M-NNN/AC-N`)
 status: open
 ---
 ## What's missing
@@ -15,7 +15,7 @@ Acks against acceptance criteria are a real use case. A historical commit that i
 
 ## How to fix
 
-One line: add `compositeRoot(forEntity)` (or `entity.Canonicalize(compositeRoot(forEntity))`) before the loop in `verifySHATouchesEntity` so the verb compares parent-against-parent. The same `compositeRoot` helper the rule's emission side uses (`internal/check/provenance.go`) is the right call. Add two tests: composite-id positive control (M-NNN/AC-N succeeds when SHA touched M-NNN-foo.md), and a negative control confirming the wrong parent still fails.
+One line: add `compositeRoot(forEntity)` (or `entity.Canonicalize(compositeRoot(forEntity))`) before the loop in `verifySHATouchesEntity` so the verb compares parent-against-parent. The same `compositeRoot` helper the rule's emission side uses (`internal/check/provenance.go`) is the right call. Add two tests: composite-id positive control (`M-NNN/AC-N` succeeds when SHA touched `M-NNN`-foo.md), and a negative control confirming the wrong parent still fails.
 
 If `compositeRoot` is internal to `internal/check`, lift it to `internal/entity` (its natural home) and call from both sides — this also closes the silent-skew failure mode where the two roll-up implementations could drift.
 

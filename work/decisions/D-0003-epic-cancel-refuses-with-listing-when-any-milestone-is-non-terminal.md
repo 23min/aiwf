@@ -17,7 +17,7 @@ Adopt refuse-with-listing pattern, mirroring `MilestoneCanGoDone` (transition.go
 Rationale:
 
 - Mirrors the existing kernel pattern for completion-coherence (`milestone-done-incomplete-acs`): same shape, same UX, same listing-of-offenders affordance. Uniform mental model across the kernel for *"cancel/done a parent with non-terminal children → refuse."*
-- Auto-cascade was considered and rejected: a multi-entity verb violates the *"one verb operates on one entity"* idiom that holds elsewhere; auto-cascade also loses per-milestone audit narrative (each child's history would show "cancelled as part of E-NNNN cancel" rather than a deliberate per-entity disposition).
+- Auto-cascade was considered and rejected: a multi-entity verb violates the *"one verb operates on one entity"* idiom that holds elsewhere; auto-cascade also loses per-milestone audit narrative (each child's history would show "cancelled as part of `E-NNNN` cancel" rather than a deliberate per-entity disposition).
 - No-cascade silence was considered and rejected: leaves the tree in inconsistent state (cancelled epic owning non-terminal milestones) with no kernel chokepoint.
 - Warn-and-proceed was considered and rejected: weaker than refuse; the chokepoint should be at write-time, not after.
 

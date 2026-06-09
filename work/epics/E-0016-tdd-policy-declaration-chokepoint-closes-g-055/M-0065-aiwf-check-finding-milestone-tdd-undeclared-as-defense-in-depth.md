@@ -55,7 +55,7 @@ For any milestone whose frontmatter has `tdd:` set to one of the three closed-se
 
 ### AC-4 — Finding does not retroactively engage acs-tdd-audit
 
-The grandfather rule from G-0055 is preserved: for a milestone that surfaces `milestone-tdd-undeclared`, the milestone's existing ACs are *not* retroactively re-audited against `acs-tdd-audit`'s "AC `met` requires `tdd_phase: done`" rule. In practice: the historical E-0014 milestones (M-0049 through M-0055), all `met` with no `tdd_phase`, will produce one `milestone-tdd-undeclared` warning each but **zero** `acs-tdd-audit` findings. Tested with a fixture that mirrors the historical shape — every AC `status: met` and no `tdd_phase` — and asserted that only the M-tdd-undeclared finding fires.
+The grandfather rule from G-0055 is preserved: for a milestone that surfaces `milestone-tdd-undeclared`, the milestone's existing ACs are *not* retroactively re-audited against `acs-tdd-audit`'s "AC `met` requires `tdd_phase: done`" rule. In practice: the historical E-0014 milestones (M-0049 through M-0055), all `met` with no `tdd_phase`, will produce one `milestone-tdd-undeclared` warning each but **zero** `acs-tdd-audit` findings. Tested with a fixture that mirrors the historical shape — every AC `status: met` and no `tdd_phase` — and asserted that only the `M-tdd`-undeclared finding fires.
 
 ### AC-5 — Finding code documented in aiwf-check skill
 

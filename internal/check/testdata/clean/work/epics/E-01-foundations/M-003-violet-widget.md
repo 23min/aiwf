@@ -39,7 +39,7 @@ Pack target receives an OpResult shaped per ADR-0001.
 
 ### AC-3 — Reviewer notes are exported
 
-Deferred to the next milestone; see body of M-004 when it lands.
+Deferred to the next milestone; see body of `M-004` when it lands.
 
 ## Work Log
 
@@ -56,7 +56,7 @@ The pack-receiving path landed; tests pass. Phase advanced to done.
 
 ## Deferrals
 
-- AC-3 deferred; will pick up in M-004.
+- AC-3 deferred; will pick up in `M-004`.
 
 ## Reviewer notes
 

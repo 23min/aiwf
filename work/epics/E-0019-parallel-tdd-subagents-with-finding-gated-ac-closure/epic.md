@@ -46,7 +46,7 @@ Together with the AC closure chokepoint (`aiwf promote AC met` refuses on open l
 - **AC closure chokepoint.** `aiwf promote M-NNN/AC-N met` reads the finding tree, refuses with `findings-block-met` when any `open` finding has the AC in its `linked_acs`. Override via `--force` (human-only by existing rule).
 - **`aiwf check` integration.** New finding code `ac-has-open-findings` lifts AC findings into the unified report.
 - **Initial finding-code set** finalized: `branch-coverage-gap`, `weak-assertion`, `scope-leak`, `audit-skipped`, `convention-violation`, `discovery-gap`, `discovery-decision`, `ac-split-suggested`. Each code emits to a known finding shape (linked AC, severity, recommended remediation).
-- **Dogfooding.** The kernel's own ongoing milestones become the canonical fixture; once landed, M-NNN milestones with multi-AC structure start using the parallel flow.
+- **Dogfooding.** The kernel's own ongoing milestones become the canonical fixture; once landed, `M-NNN` milestones with multi-AC structure start using the parallel flow.
 
 ## Dependencies
 
@@ -67,7 +67,7 @@ Optional but compatible:
 ## Out of scope
 
 - **Body-section validator generalization for findings** (analogous to M-0066's `entity-body-empty` for milestones). F-NNN bodies will eventually require structured `## Resolution` / `## Waiver` sections on terminal promotion, enforced by `aiwf check`. Wait for M-0066's pattern to settle and generalize first; soft check on missing fix link covers the immediate need.
-- **`aiwf reframe F-007 --as-gap` verb.** "This finding really wants to be a gap" — would resolve F-0007 and pre-fill a G-NNN with linked context. Nice-to-have. Filed as a follow-up gap if friction shows up; cross-references between F-NNN and G-NNN already work via `linked_entities` without a dedicated verb.
+- **`aiwf reframe F-007 --as-gap` verb.** "This finding really wants to be a gap" — would resolve F-0007 and pre-fill a `G-NNN` with linked context. Nice-to-have. Filed as a follow-up gap if friction shows up; cross-references between F-NNN and `G-NNN` already work via `linked_entities` without a dedicated verb.
 - **Multi-host adapter for the `tdd-cycle` agent.** PoC targets Claude Code only. If a non-Claude consumer adopts the framework, the agent definition gets ported then.
 - **Heuristic auto-detection of independent ACs.** The parent orchestrator initially relies on the milestone spec declaring AC filesets explicitly (or the conservative default of "serialize unless declared disjoint"). Inferring independence from the AC body prose is a future optimization once usage shows what shapes are common.
 - **Subagent observability beyond the JSON return.** When a subagent does the wrong thing, the parent currently sees the result, not the reasoning. Richer introspection (subagent transcripts surfaced into `aiwf history`) is deferred until real friction shows up.

@@ -8,7 +8,7 @@ status: accepted
 `work/gaps/` already has 80+ entries — most in terminal status. The directory is unwieldy today, both at `ls`-time and on GitHub's tree view. The same shape is coming for other kinds:
 
 - ADRs accumulate over the framework's life; older ones in `superseded` or `rejected` clutter the active set.
-- Decisions (D-NNN) start small but grow as the project matures.
+- Decisions (`D-NNN`) start small but grow as the project matures.
 - The proposed `finding` entity kind (companion ADR-0003) is highest-volume: every TDD cycle could produce 1-3 findings, terminal-resolving on triage. Without an archive convention, `work/findings/` would bloat fastest of any kind.
 - Epics and milestones don't have the same volume problem today, but the principle should hold uniformly across kinds rather than carving exceptions per-kind.
 
@@ -60,7 +60,7 @@ Concretely, `aiwf archive --apply` walks each kind, finds entities whose status 
 
 **You don't, deliberately.** The FSM is one-directional ("there is no 'demote'. Edit frontmatter directly if you need to back out a transition; markdown is the source of truth" — `internal/entity/transition.go`); archive is the structural projection of FSM-terminality. The kernel does not provide an `aiwf reactivate`, `aiwf un-archive`, or any reverse sweep.
 
-The canonical pattern when a closed entity needs revisiting is to **file a new entity that references the archived one**. `Resolves: G-018` from a new G-NNN remains valid because the loader resolves ids across both active and archive directories — references stay live indefinitely.
+The canonical pattern when a closed entity needs revisiting is to **file a new entity that references the archived one**. `Resolves: G-018` from a new `G-NNN` remains valid because the loader resolves ids across both active and archive directories — references stay live indefinitely.
 
 If a contributor hand-edits frontmatter to take a status off terminal (legal at the markdown layer; status is the source of truth), the next `aiwf check` surfaces an `archived-entity-not-terminal` finding. The remediation is to revert the hand-edit, not to relocate the file. There is no auto-reconciliation in the active→terminal direction triggered by hand-edits in the reverse direction.
 

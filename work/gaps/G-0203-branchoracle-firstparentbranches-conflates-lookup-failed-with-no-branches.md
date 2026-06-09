@@ -96,6 +96,6 @@ surfaces in practice.
 
 The fail-shut vs fail-open question is the bigger design
 decision. This gap names the surface; the choice between (a) and
-(b) above lives in a subsequent ADR or D-NNN. The sub-concern
+(b) above lives in a subsequent ADR or `D-NNN`. The sub-concern
 above narrows the question for the gather-side fault-tolerance
 axis specifically.

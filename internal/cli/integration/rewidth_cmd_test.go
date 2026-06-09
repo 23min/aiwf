@@ -61,7 +61,7 @@ func seedNarrowFixture(t *testing.T, root string) {
 	mustWrite("work/epics/E-22-mixed-widths/epic.md",
 		"---\nid: E-22\ntitle: Mixed widths\nstatus: active\n---\n## Goal\n\nDeals with M-077 and refs E-22 itself.\n")
 	mustWrite("work/epics/E-22-mixed-widths/M-077-some-milestone.md",
-		"---\nid: M-077\ntitle: Some milestone\nstatus: in_progress\nparent: E-22\n---\n## Goal\n\nLink: [parent epic](work/epics/E-22-mixed-widths/epic.md). Composite ref: M-077/AC-1.\n")
+		"---\nid: M-077\ntitle: Some milestone\nstatus: in_progress\nparent: E-22\ntdd: none\nacs:\n  - id: AC-1\n    title: First criterion\n    status: open\n---\n## Goal\n\nLink: [parent epic](work/epics/E-22-mixed-widths/epic.md). Composite ref: M-077/AC-1.\n\n## Approach\n\nApproach prose.\n\n## Acceptance criteria\n\n### AC-1 — First criterion\n\nAC-1 prose.\n")
 
 	// Gap.
 	mustWrite("work/gaps/G-099-some-gap.md",

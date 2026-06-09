@@ -24,7 +24,7 @@ Add **`finding`** as a seventh entity kind.
 
 ### Id and storage
 
-- Id pattern: **F-NNNN** (zero-padded to 4 digits; same family as G-NNNN, D-NNNN). Per [ADR-0008](ADR-0008-canonicalize-kernel-ids-to-4-digits.md), every kernel id kind canonicalizes to a uniform 4-digit width on emission and display; parsers accept narrower legacy widths on input. Finding inherits this policy by default — F is born at canonical width when this ADR's implementing epic lands, with no separate width decision needed.
+- Id pattern: **F-NNNN** (zero-padded to 4 digits; same family as `G-NNNN`, `D-NNNN`). Per [ADR-0008](ADR-0008-canonicalize-kernel-ids-to-4-digits.md), every kernel id kind canonicalizes to a uniform 4-digit width on emission and display; parsers accept narrower legacy widths on input. Finding inherits this policy by default — F is born at canonical width when this ADR's implementing epic lands, with no separate width decision needed.
 - Allocated via the kernel's standard allocator. If [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) is accepted, F-NNNN inherits the inbox/mint model uniformly with the other monotonic-id kinds — no special case.
 - Stored at `work/findings/F-NNNN-<slug>.md`. Terminal-status entries move to `work/findings/archive/` per the companion archive ADR.
 
@@ -83,7 +83,7 @@ Per Fork 3 of the design conversation, dedicated `aiwf finding {resolve,waive,in
 
 > **Six entity kinds** → **Seven entity kinds** — epic, milestone, ADR, gap, decision, contract, **finding** — each with a closed status set and one Go function for legal transitions. Hardcoded; not driven by external YAML.
 
-The closure-by-vocabulary remains intact; the set grows by one with explicit ADR-level rationale, setting the precedent for how future kinds get added. The `story`/`task` exclusion documented in CLAUDE.md and the framework_entity_vocabulary memory continues to hold — finding is a *governance* artifact, not an execution unit.
+The closure-by-vocabulary remains intact; the set grows by one with explicit `ADR-level` rationale, setting the precedent for how future kinds get added. The `story`/`task` exclusion documented in CLAUDE.md and the framework_entity_vocabulary memory continues to hold — finding is a *governance* artifact, not an execution unit.
 
 ## Consequences
 

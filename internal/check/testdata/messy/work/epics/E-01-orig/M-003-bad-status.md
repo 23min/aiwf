@@ -5,4 +5,4 @@ status: bogus
 parent: E-99
 ---
 
-parent E-99 is unresolved (refs-resolve/unresolved); status bogus is not a valid milestone status (status-valid).
+parent `E-99` is unresolved (refs-resolve/unresolved); status bogus is not a valid milestone status (status-valid).

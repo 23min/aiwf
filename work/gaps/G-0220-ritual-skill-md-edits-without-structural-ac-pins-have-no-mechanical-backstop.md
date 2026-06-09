@@ -56,7 +56,7 @@ This is a mechanical chokepoint: it can't catch every semantic drift (a test tha
 
 ## Status
 
-**Interim work landed in M-0160 wrap cycle**: commit `5cf007f5` made the skill edit; this gap (G-0220) records the missing-AC-pin discipline failure; a structural test (the `TestAiwfxWrapMilestone_*` shape mirroring `aiwfx_wrap_epic_test.go`) lands in the same wrap cycle as the C-option follow-up to the user's discipline call.
+**Interim work landed in M-0160 wrap cycle**: commit `5cf007f5` made the skill edit; this gap (G-0220) records the missing-AC-pin discipline failure; a structural test (the `TestAiwfxWrapMilestone_*` shape mirroring `aiwfx_wrap_epic_test.go`) lands in the same wrap cycle as the `C-option` follow-up to the user's discipline call.
 
 ## Test surface
 

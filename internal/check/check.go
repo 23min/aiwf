@@ -48,6 +48,10 @@ const (
 	CodeTitlesNonempty          = "titles-nonempty"
 	CodeADRSupersessionMutual   = "adr-supersession-mutual"
 	CodeGapAddressedHasResolver = "gap-addressed-has-resolver"
+	// CodeBodyProseID is the G-0184 body-prose id-shape rule. Subcodes:
+	// malformed-shape, unresolved, unresolved-milestone, unresolved-ac.
+	// See internal/check/body_prose_id.go for the classifier shape.
+	CodeBodyProseID = "body-prose-id"
 )
 
 // Finding is one structured report from a check. The finder fills in
@@ -101,6 +105,8 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapAddressedHasResolver(t)...)
+	// G-0184: id-shape chokepoint at the committed body-prose layer.
+	findings = append(findings, bodyProseID(t)...)
 	// M-0094: epic-active preflight signal per G-0063.
 	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
 	// I2: AC and TDD checks.

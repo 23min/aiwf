@@ -18,11 +18,24 @@ var hintTable = map[string]string{
 	"refs-resolve/wrong-kind":           "use a reference of the expected kind",
 	"refs-resolve/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or create the milestone",
 	"refs-resolve/unresolved-ac":        "the parent milestone exists but has no AC with that id; add it to acs[] or fix the reference",
-	"no-cycles/depends_on":              "remove one edge in the cycle to keep the milestone DAG acyclic",
-	"no-cycles/supersedes":              "remove the loop in the supersedes/superseded_by chain",
-	"titles-nonempty":                   "set a non-empty `title:` in the frontmatter",
-	"adr-supersession-mutual":           "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
-	"gap-addressed-has-resolver":        "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
+
+	// G-0184: body-prose-id chokepoint. The check scans entity body
+	// prose (frontmatter is covered by refs-resolve) for id-shaped
+	// tokens that are either malformed or unallocated. The hints point
+	// to the canonical fix per subcode; both shapes are silenced by
+	// wrapping the token in backticks when the prose is discussing id
+	// syntax rather than referencing a real entity. The bare-code hint
+	// is the catch-all when the subcode lookup misses.
+	"body-prose-id":                      "the body prose contains an id-shaped token that is either malformed or unallocated; reference real entities by their canonical id (e.g. `M-0001`), and wrap hypothetical or syntax-discussion tokens in backticks",
+	"body-prose-id/malformed-shape":      "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form). If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists.",
+	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
+	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or remove the reference",
+	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; check the AC number or add the AC entry to acs[]",
+	"no-cycles/depends_on":               "remove one edge in the cycle to keep the milestone DAG acyclic",
+	"no-cycles/supersedes":               "remove the loop in the supersedes/superseded_by chain",
+	"titles-nonempty":                    "set a non-empty `title:` in the frontmatter",
+	"adr-supersession-mutual":            "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
+	"gap-addressed-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
 	// G-0155: misset core.worktree silently redirects every git op
 	// against the wrong worktree. The hint points at the precise

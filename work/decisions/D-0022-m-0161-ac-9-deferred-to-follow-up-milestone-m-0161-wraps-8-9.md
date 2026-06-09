@@ -36,9 +36,9 @@ Rationale:
 
 3. **No load-bearing behavioral gap today.** The current 9-cell catalog (1 cell per AC + M-0158's retained 7) satisfies the M-0158/AC-6 ClassBranchChoreography drift invariant — every kernel ClassBranchChoreography code is referenced by at least one cell. The keyword-set meta-coverage policy at `internal/policies/m0158_ac5_meta_coverage_test.go` continues to enforce "each cell has at least one paired test". The behavioral guarantees AC-9 promises (1:1 bijection vs keyword-set's "≥1") are quality improvements, not load-bearing safety properties.
 
-4. **Pattern precedent.** AC-5's cell-5 (D-0020) and AC-7's doctor JSON envelope (D-0021) used the same shape: a portion of the AC's spec defers to a follow-up milestone with a D-NNN naming the carve-out. AC-9's whole-scope deferral is the same pattern at a different cardinality.
+4. **Pattern precedent.** AC-5's cell-5 (D-0020) and AC-7's doctor JSON envelope (D-0021) used the same shape: a portion of the AC's spec defers to a follow-up milestone with a `D-NNN` naming the carve-out. AC-9's whole-scope deferral is the same pattern at a different cardinality.
 
-5. **The milestone-wrap honest closure.** M-0161 ships at 8/9 with AC-9 as the named residual. The follow-up milestone (call it M-016X-spec-catalog-refactor) scopes the AC-9 work explicitly: 76-cell expansion, Pin registry shape decision, bijection meta-test, keyword-set retirement. The follow-up milestone references G-0210 directly as its target gap; G-0210 stays open until then.
+5. **The milestone-wrap honest closure.** M-0161 ships at 8/9 with AC-9 as the named residual. The follow-up milestone (call it `M-016X`-spec-catalog-refactor) scopes the AC-9 work explicitly: 76-cell expansion, Pin registry shape decision, bijection meta-test, keyword-set retirement. The follow-up milestone references G-0210 directly as its target gap; G-0210 stays open until then.
 
 ## Concrete sequencing
 

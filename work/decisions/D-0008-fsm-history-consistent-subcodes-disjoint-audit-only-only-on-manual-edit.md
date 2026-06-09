@@ -59,4 +59,4 @@ What this means for the M-0130 sub-ACs:
 
 A future ADR may want to generalize *"subcodes within a check rule are disjoint by construction, not by precedence"* as a kernel-wide design rule, once a second check rule encounters the same design choice. For now this decision is rule-specific.
 
-The sovereign-act-shape enumeration that AC-3 needs is itself an implementation decision (which transitions count as sovereign-act-shape?) and may warrant its own D-NNNN. ADR-0007 (epic ratification) provides the canonical example (epic `proposed → active`); whether others exist is for AC-3's implementer to audit.
+The sovereign-act-shape enumeration that AC-3 needs is itself an implementation decision (which transitions count as sovereign-act-shape?) and may warrant its own `D-NNNN`. ADR-0007 (epic ratification) provides the canonical example (epic `proposed → active`); whether others exist is for AC-3's implementer to audit.

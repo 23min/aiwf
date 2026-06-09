@@ -103,6 +103,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 - *Front-loading detail.* Don't write 10 fully-specced milestones up front. Spec details rot fast; AC definitions written 6 weeks before the work starts are usually wrong.
 - *Inventing global ordering when only local matters.* If M-0003 and M-0004 don't depend on each other, leave their order soft.
 - *Scope creep mid-decomposition.* If decomposition surfaces work that wasn't in the epic, decide: amend the epic spec (and re-confirm with the user) or capture as a gap (`aiwf add gap`) for later.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md and G-0184: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Next step
 

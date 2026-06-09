@@ -135,6 +135,12 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// the rule is built to recognise. Same shape as the M-082
 		// rewidth-verb tests.
 		"internal/check/entity_id_narrow_width_test.go": "M-083 AC-1 drift-check rule: narrow ids are the rule's classification input space",
+
+		// G-0184 body-prose-id rule: narrow-numeric ids (`M-1`, `E-1`)
+		// are the rule's malformed-shape input space — the conversational-
+		// leak case the rule catches. Same shape as the entity-grammar
+		// tests above.
+		"internal/check/body_prose_id_test.go": "G-0184 body-prose-id rule: narrow-numeric ids are the malformed-shape input space",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so

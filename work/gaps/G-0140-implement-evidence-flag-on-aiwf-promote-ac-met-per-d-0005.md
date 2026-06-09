@@ -10,7 +10,7 @@ Per **D-0005** (committed in M-0123 phase 1), `aiwf promote <id>/AC-N met`
 under a milestone with `tdd: required` should require a `--evidence
 <test-symbol>` flag binding the AC's "met" claim to a concrete test that
 exercises the AC's assertion. The verb today accepts `aiwf promote
-M-NNNN/AC-N met` with no evidence binding.
+`M-NNNN/AC-N` met` with no evidence binding.
 
 The spec's `acRules()` in `internal/workflows/spec/rules.go` encodes:
 

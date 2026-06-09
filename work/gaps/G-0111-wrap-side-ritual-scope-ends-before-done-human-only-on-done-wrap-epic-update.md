@@ -26,6 +26,6 @@ Without this work, the start-side and wrap-side of the epic ritual are asymmetri
 
 ## Resolution paths
 
-- **Own epic.** This is one cohesive work unit: verb change + ADR + skill update + (now) gap-closure sweep. Recommend a fresh epic (E-NNNN) rather than a milestone under E-0028, since E-0028 is closed and the change set spans both kernel and rituals.
+- **Own epic.** This is one cohesive work unit: verb change + ADR + skill update + (now) gap-closure sweep. Recommend a fresh epic (`E-NNNN`) rather than a milestone under E-0028, since E-0028 is closed and the change set spans both kernel and rituals.
 - **Order:** ADR first (locks the timing decision, cross-verb composition, *and* the gap-closure mechanism choice — declarative vs skill-driven), then the kernel verb edit + human-only chokepoint + the gap-closure sweep wiring, then the `aiwfx-wrap-epic` skill update. Cross-repo coupling pattern from M-0090 / M-0096 applies — author the skill body in `internal/policies/testdata/aiwfx-wrap-epic/SKILL.md` and copy at wrap.
 - **Migration concern.** The behavior change is observable to any caller relying on `aiwf promote E-NN done`'s auto-end-scope. The ADR should explicitly note the backwards-compatibility shape (likely: the next aiwf release surfaces it as a behavior change in `CHANGELOG.md`, with a deprecation window if anyone is actually depending on auto-end). The gap-closure sweep is additive — no caller depends on the *absence* of an auto-flip today — so no migration concern there.

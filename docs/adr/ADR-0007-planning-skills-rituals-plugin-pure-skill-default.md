@@ -51,7 +51,7 @@ Until these conditions are observed, the pure-skill form is preferred. This matc
 
 The deferred follow-on for `aiwfx-whiteboard` is a backing kernel verb `aiwf whiteboard` that would return the tiered open-work structure as JSON for the skill to narrate. The verb keeps the skill's name so the surface stays unified — no `aiwf landscape` / `aiwfx-whiteboard` split between layers. **It is not filed by E-0021.** The trigger for filing it is the conditions above — concretely, repeated runs of `aiwfx-whiteboard` on real planning sessions where the operator can name the structured data the skill keeps re-deriving.
 
-This rule closes E-0021 success criterion #7 (*"An ADR or D-NNN captures the design choice between pure-skill (this epic) and skill+verb (the deferred follow-on), with the rationale for starting pure-skill."*).
+This rule closes E-0021 success criterion #7 (*"An ADR or `D-NNN` captures the design choice between pure-skill (this epic) and skill+verb (the deferred follow-on), with the rationale for starting pure-skill."*).
 
 ### Name — `aiwfx-whiteboard`, with rejected alternatives
 

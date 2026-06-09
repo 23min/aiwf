@@ -72,6 +72,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 - *Planning the epic and immediately starting work.* Don't skip review. The epic spec is the place where scope changes are cheap; once milestones are running, scope changes are expensive.
 - *Hand-writing scalar counts.* "5 milestones" rots; "every milestone listed below" doesn't.
 - *Treating "Open questions" as scratch.* If a question is blocking, state how it gets resolved.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md and G-0184: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids (`M-0001`+) by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Closing the planning session
 

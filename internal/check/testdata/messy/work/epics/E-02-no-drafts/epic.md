@@ -5,4 +5,4 @@ status: active
 ---
 
 Active epic with no children — exercises the
-`epic-active-no-drafted-milestones` warning (M-0094 / G-0063).
+`epic-active-no-drafted-milestones` warning (`M-0094` / `G-0063`).

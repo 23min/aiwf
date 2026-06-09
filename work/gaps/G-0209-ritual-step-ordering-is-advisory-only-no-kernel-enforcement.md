@@ -32,7 +32,7 @@ flow but not the ordering itself.
 ## Concrete failure mode
 
 An AI assistant misreads the SKILL.md (or operates from a stale
-version) and cuts `epic/E-NN-foo` first, THEN promotes E-NN active
+version) and cuts `epic/E-NN-foo` first, THEN promotes `E-NN` active
 ON the epic branch, THEN authorizes on the epic branch.
 
 The promote commit lands on the epic branch instead of main.

@@ -26,7 +26,7 @@ Staging suggestion: land a `aiwf render json` verb first (project the tree once 
 Two real costs to weigh:
 
 - **Permalink shape changes**: `E-0030.html` → `index.html#/E-0030`. Cross-references in `docs/`, skills, and CHANGELOG entries need a sweep before flipping.
-- **JS as a dependency**: the kernel is currently zero-JS by design (CSS `:target` + `:has()` does tab switching). Introducing a JS file is a real category shift — small, but worth an ADR-shaped note in the rationale.
+- **JS as a dependency**: the kernel is currently zero-JS by design (CSS `:target` + `:has()` does tab switching). Introducing a JS file is a real category shift — small, but worth an `ADR-shaped` note in the rationale.
 
 Embedding the JSON (rather than fetching a sibling `data.json` at runtime) sidesteps the `file://` CORS block — browsers refuse `fetch()` over `file://`, but inline `<script type="application/json">` reads from the DOM with no fetch.
 

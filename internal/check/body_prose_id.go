@@ -1,0 +1,171 @@
+package check
+
+// G-0184: body-prose-id rule.
+//
+// Walks every active entity's body prose for tokens that look like
+// aiwf ids and classifies each into one of three failure modes:
+//
+//   - malformed-shape — the token has a known prefix (E-/M-/G-/D-/C-/
+//     ADR-) but the suffix is not a valid id shape. Catches the literal
+//     LLM Phase-A/B labeling anti-pattern (M-a, M-alpha), uppercase
+//     placeholder leaks (M-NNNN, E-NN), compound English-word suffixes
+//     (ADR-shaped, C-option), and narrow-numeric forms (M-1, E-1) that
+//     don't match the kind's strict pattern. The narrow-numeric case
+//     covers conversational labels that leak from chat into a committed
+//     body without being upgraded to the allocator-assigned canonical id.
+//
+//   - unresolved — the token matches the kind's strict pattern but
+//     resolves to no entity in the tree. Catches fabricated canonical-
+//     width tokens (M-9999) and stale references to deleted entities.
+//
+//   - unresolved-milestone / unresolved-ac — composite ids (M-NNN/AC-N)
+//     whose parent milestone is missing, or whose parent is present but
+//     has no AC at the named position. Mirror the subcodes refsResolve
+//     emits for the structured-frontmatter composite case.
+//
+// Backtick exemption: inline code spans (`...`) and fenced code blocks
+// (```...``` and ~~~...~~~) are stripped before the scan, so prose
+// discussing id syntax (`M-NNN` in CLAUDE.md prose, `^M-\d{3,}$` regex
+// quotes, command examples) does not self-trip.
+//
+// Archive scoping: archive entities are skipped, mirroring refsResolve
+// per ADR-0004 §"Check shape rules".
+//
+// Frontmatter is split off via entity.Split before the scan; structured
+// frontmatter references are already covered by refsResolve.
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
+)
+
+// The CodeBodyProseID constant is declared in check.go alongside the
+// other finding codes per the closed-set convention (G-0129).
+
+// idTokenPattern picks up any token shaped like an aiwf id: a known
+// prefix followed by an alphanumeric suffix, with an optional
+// composite `/AC-<suffix>` tail. Loose by design — the classifier
+// below decides malformed-shape vs strict-form-unresolved vs silent.
+//
+// The trailing `\b` boundary matches at the transition between a word
+// character (digit/letter) and a non-word character, so tokens
+// embedded in URL paths or sentence punctuation are picked up cleanly.
+var idTokenPattern = regexp.MustCompile(`\b(?:E|M|G|D|C|ADR)-[A-Za-z0-9_]+(?:/AC-[A-Za-z0-9_]+)?\b`)
+
+// strictBareIDPattern matches strict-form bare ids per kind. Anchored
+// for whole-token matching after idTokenPattern picks the candidate.
+// Widths mirror entity.idPatterns: E ≥ 2 digits, M/G/D/C ≥ 3, ADR ≥ 4.
+var strictBareIDPattern = regexp.MustCompile(`^(?:E-\d{2,}|M-\d{3,}|G-\d{3,}|D-\d{3,}|C-\d{3,}|ADR-\d{4,})$`)
+
+// strictCompositeIDPattern matches strict-form composite ids.
+// Mirrors entity.compositeIDPattern.
+var strictCompositeIDPattern = regexp.MustCompile(`^M-\d{3,}/AC-\d+$`)
+
+// backtickFencePattern matches ```...``` fenced blocks.
+// tildeFencePattern matches ~~~...~~~ fenced blocks.
+// Split into two patterns because RE2 has no backreferences; a fence
+// opened with ``` only closes on ```, never on ~~~.
+var (
+	backtickFencePattern = regexp.MustCompile("(?s)```.*?```")
+	tildeFencePattern    = regexp.MustCompile("(?s)~~~.*?~~~")
+)
+
+// codeSpanPattern matches a single-backtick inline code span on one
+// line. CommonMark allows multi-backtick spans, but the single-tick
+// form covers every id-syntax discussion in the live tree.
+var codeSpanPattern = regexp.MustCompile("`[^`\n]*`")
+
+// bodyProseID emits one finding per (entity, token, subcode) for any
+// id-shaped token in entity body prose that does not resolve to an
+// allocated entity. Dedupe is per-token-per-entity so repeated
+// mentions of the same bad token in one body produce one finding,
+// not one per occurrence.
+func bodyProseID(t *tree.Tree) []Finding {
+	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
+	for _, e := range t.Entities {
+		key := entity.Canonicalize(e.ID)
+		if _, exists := idx[key]; exists {
+			continue
+		}
+		idx[key] = e
+	}
+	for _, e := range t.Stubs {
+		key := entity.Canonicalize(e.ID)
+		if _, exists := idx[key]; exists {
+			continue
+		}
+		idx[key] = e
+	}
+
+	var findings []Finding
+	for _, e := range t.Entities {
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(t.Root, e.Path))
+		if err != nil {
+			continue
+		}
+		_, body, ok := entity.Split(raw)
+		if !ok {
+			continue
+		}
+		stripped := backtickFencePattern.ReplaceAllString(string(body), "")
+		stripped = tildeFencePattern.ReplaceAllString(stripped, "")
+		stripped = codeSpanPattern.ReplaceAllString(stripped, "")
+
+		seen := map[string]bool{}
+		for _, m := range idTokenPattern.FindAllStringIndex(stripped, -1) {
+			tok := stripped[m[0]:m[1]]
+			subcode, msg := classifyBodyToken(tok, idx)
+			if subcode == "" {
+				continue
+			}
+			key := tok + ":" + subcode
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			findings = append(findings, Finding{
+				Code:     CodeBodyProseID,
+				Severity: SeverityError,
+				Subcode:  subcode,
+				Message:  fmt.Sprintf("%s body prose contains %s", e.ID, msg),
+				Path:     e.Path,
+				EntityID: e.ID,
+				Field:    "body",
+			})
+		}
+	}
+	return findings
+}
+
+// classifyBodyToken returns the finding subcode and detail message for
+// a candidate token, or ("", "") if the token resolves cleanly.
+func classifyBodyToken(tok string, idx map[string]*entity.Entity) (subcode, msg string) {
+	if strictCompositeIDPattern.MatchString(tok) {
+		parent, sub, _ := entity.ParseCompositeID(tok)
+		parentEntity, ok := idx[entity.Canonicalize(parent)]
+		if !ok {
+			return "unresolved-milestone", fmt.Sprintf("composite id %q whose parent %q is not allocated", tok, parent)
+		}
+		for _, ac := range parentEntity.ACs {
+			if ac.ID == sub {
+				return "", ""
+			}
+		}
+		return "unresolved-ac", fmt.Sprintf("composite id %q but %s has no %s in acs[]", tok, parent, sub)
+	}
+	if strictBareIDPattern.MatchString(tok) {
+		if _, ok := idx[entity.Canonicalize(tok)]; ok {
+			return "", ""
+		}
+		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
+	}
+	return "malformed-shape", fmt.Sprintf("id-shaped token %q that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)", tok)
+}

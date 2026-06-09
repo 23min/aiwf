@@ -129,11 +129,31 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	}
 	var introduced []check.Finding
 	for i := range post {
+		if skipDuringProjection(post[i].Code) {
+			// G-0184: body-prose-id reads body content from disk;
+			// projection models update in-memory entity frontmatter but
+			// don't reflect verb-side body rewrites (e.g. `aiwf
+			// reallocate`'s prose-rewrite step). The rule still gates at
+			// `aiwf check` post-apply; skipping it here avoids the
+			// reallocate verb refusing to plan because the intermediate
+			// projected state shows an id that the rewrite will fix.
+			continue
+		}
 		if !seen[findingKey(&post[i])] {
 			introduced = append(introduced, post[i])
 		}
 	}
 	return introduced
+}
+
+// skipDuringProjection reports whether a finding code should be filtered
+// out of the projectionFindings diff. Codes here are checks that read
+// content the projection model does not represent — typically body
+// bytes — so the projection cannot accurately predict their post-apply
+// state. The on-disk `aiwf check` (pre-push hook) is the authoritative
+// gate for these.
+func skipDuringProjection(code string) bool {
+	return code == check.CodeBodyProseID
 }
 
 func findingKey(f *check.Finding) string {

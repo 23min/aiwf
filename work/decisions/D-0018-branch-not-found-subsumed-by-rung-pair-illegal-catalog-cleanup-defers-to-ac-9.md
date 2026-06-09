@@ -40,7 +40,7 @@ Rationale:
 
 ## Concrete sequencing
 
-- **Now (AC-2 wrap):** add this D-NNN to the milestone's `## Decisions made during implementation` section.
+- **Now (AC-2 wrap):** add this `D-NNN` to the milestone's `## Decisions made during implementation` section.
 - **AC-9 cycle (catalog refactor):** the `branch-not-found` cell and its policy keyword-mapping are explicitly retired as part of the 9-cell drop M-0161/AC-9 enumerates. Per the AC-9 body table, `branch-cell-2` is a Legal-illegal cell (currently "illegal: branch-not-found"); AC-9's refactor either re-maps it to `rung-pair-illegal` (preserving the semantic with the new code) or drops it entirely if rung-pair-illegal's cell coverage subsumes it.
 - **Future deprecation pass:** if a future release decides the verb-side type/code should be removed entirely, file a separate gap. Not in scope for E-0030.
 

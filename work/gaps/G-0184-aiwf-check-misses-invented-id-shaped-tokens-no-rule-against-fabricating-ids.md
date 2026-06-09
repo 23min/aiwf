@@ -32,7 +32,7 @@ The triggering instance: while sequencing not-yet-allocated milestones in an
 epic-planning conversation, the assistant labeled them `M-a … M-e` — a generic
 "Phase A/B" pattern — despite having just read the `epic-spec.md` template
 (`M-NNNN` placeholders) and the `aiwf-add` skill's explicit "Milestone ids are
-global (M-NNNN), not epic-scoped." Had those labels been written into the epic
+global (`M-NNNN`), not epic-scoped." Had those labels been written into the epic
 spec and committed, `aiwf check` would not have flagged them.
 
 ## Why it matters

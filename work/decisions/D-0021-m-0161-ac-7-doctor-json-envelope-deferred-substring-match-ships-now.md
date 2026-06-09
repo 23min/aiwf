@@ -53,7 +53,7 @@ Rationale for deferring rather than expanding AC-7 to include `--format=json`:
 
 - **Alternative A: implement `aiwf doctor --format=json` under M-0161/AC-7.** Rejected — conflates the detached-HEAD detection scope (the load-bearing claim of AC-7) with a separate doctor-emission-shape concern that touches ~12 unrelated checks.
 - **Alternative B: drop the doctor surface from AC-7 entirely.** Rejected — the detached-HEAD detection genuinely belongs in `aiwf doctor` as a proactive surface. The substring-match assertion is weaker than structural but is the tightest pin available without expanding scope.
-- **Alternative C: write the AC-7 body to not promise JSON envelope.** Rejected — the body was written before the implementation revealed the doctor-shape constraint. Updating the body in-flight with a strikethrough + D-NNN pointer (the AC-5 cell-5 pattern) is the honest closure.
+- **Alternative C: write the AC-7 body to not promise JSON envelope.** Rejected — the body was written before the implementation revealed the doctor-shape constraint. Updating the body in-flight with a strikethrough + `D-NNN` pointer (the AC-5 cell-5 pattern) is the honest closure.
 
 ## References
 
@@ -62,4 +62,4 @@ Rationale for deferring rather than expanding AC-7 to include `--format=json`:
 - M-0161/AC-7 body line 498 — the existing substring-exception framing this decision extends to the doctor surface
 - [`internal/cli/doctor/doctor.go`](../../internal/cli/doctor/doctor.go) DoctorReport — the verb that needs the future JSON output
 - D-0019 (AC-3 oracle contract) — fail-shut-on-correctness pattern this composes with
-- D-0020 (AC-5 cell-5 deferral) — the precedent of deferring a sub-AC scope claim via D-NNN
+- D-0020 (AC-5 cell-5 deferral) — the precedent of deferring a sub-AC scope claim via `D-NNN`

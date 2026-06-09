@@ -82,7 +82,7 @@ conditions arrive. Until then, the current shape stays.
 
 This is a tactical implementation-level choice, not a
 kernel-architecture commitment. ADRs name architectural choices
-the kernel commits to long-term; D-NNN records a deliberate
+the kernel commits to long-term; `D-NNN` records a deliberate
 implementation-time decision that may be revisited as the
 codebase evolves. The choice between options 1, 2, and 3 here
 is reversible by any future refactor; it does not constrain
