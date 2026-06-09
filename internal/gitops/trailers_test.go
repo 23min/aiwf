@@ -302,6 +302,33 @@ func TestParseTrailers_ToleratesAbsentI25Keys(t *testing.T) {
 	}
 }
 
+// TestCanonicalTrailerKeys_DerivesFromTrailerOrder pins G-0195's
+// structural invariant: the membership view CanonicalTrailerKeys()
+// returns is derived from trailerOrder, not hand-maintained. Asserts
+// the shape contract via two anchors:
+//
+//   - every key in trailerOrder is present in the returned map
+//     (the load-bearing direction — a new constant added to
+//     trailerOrder is automatically considered canonical);
+//   - the map's size equals len(trailerOrder), so an added or
+//     dropped trailer is mechanically visible at this seam.
+//
+// Forward-compatibility with new trailers — the explicit point of
+// G-0195 — is what makes this test cheap. No new entry needs to be
+// added here when trailerOrder grows.
+func TestCanonicalTrailerKeys_DerivesFromTrailerOrder(t *testing.T) {
+	t.Parallel()
+	got := CanonicalTrailerKeys()
+	if len(got) != len(trailerOrder) {
+		t.Errorf("CanonicalTrailerKeys() returned %d entries; trailerOrder has %d", len(got), len(trailerOrder))
+	}
+	for _, key := range trailerOrder {
+		if !got[key] {
+			t.Errorf("CanonicalTrailerKeys() missing %q (present in trailerOrder)", key)
+		}
+	}
+}
+
 // TestParseTrailers_ToleratesUnknownFutureKeys: a commit with a
 // trailer key the binary doesn't know about (a future-version
 // trailer landing on a developer's machine that hasn't upgraded yet)

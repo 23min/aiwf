@@ -58,39 +58,13 @@ import (
 //     `aiwf-entity` trailer per imported entity — the way
 //     `aiwf history` discovers the entity-set on a bundled commit.
 
-// canonicalTrailerKeys is the snapshot of the kernel's canonical
-// trailer-key set at the time this test is wired. It mirrors the
-// `trailerOrder` slice in `internal/gitops/trailers.go`. When a new
-// trailer is added there, this slice gets a row; when one is
-// removed (deprecation), this slice loses one. Drift is the
-// regression we want to catch — see G-0195 for the mirror-validity
-// guard that would mechanize this drift detection.
-//
-// G-0231 item 4: TrailerBranchSHA and TrailerForceFor are mirrored
-// here so the trailer-shape test covers `aiwf authorize --branch`
-// (M-0161/AC-6) and `aiwf acknowledge-illegal` respectively. They
-// were missing pre-G-0231 because no case in this test exercised
-// the verbs that emit them.
-var canonicalTrailerKeys = map[string]bool{
-	gitops.TrailerVerb:         true,
-	gitops.TrailerEntity:       true,
-	gitops.TrailerActor:        true,
-	gitops.TrailerTo:           true,
-	gitops.TrailerForce:        true,
-	gitops.TrailerPriorEntity:  true,
-	gitops.TrailerPriorParent:  true,
-	gitops.TrailerTests:        true,
-	gitops.TrailerPrincipal:    true,
-	gitops.TrailerOnBehalfOf:   true,
-	gitops.TrailerAuthorizedBy: true,
-	gitops.TrailerScope:        true,
-	gitops.TrailerBranch:       true,
-	gitops.TrailerBranchSHA:    true,
-	gitops.TrailerScopeEnds:    true,
-	gitops.TrailerReason:       true,
-	gitops.TrailerAuditOnly:    true,
-	gitops.TrailerForceFor:     true,
-}
+// canonicalTrailerKeys is the kernel's canonical trailer-key set,
+// derived from trailerOrder in internal/gitops/trailers.go via the
+// gitops.CanonicalTrailerKeys() accessor. A new trailer added to
+// trailerOrder is automatically considered canonical here; the
+// drift class G-0195 named (hand-maintained mirror going stale
+// silently) is now structurally impossible.
+var canonicalTrailerKeys = gitops.CanonicalTrailerKeys()
 
 // entityIDPattern matches the `aiwf-entity` trailer values aiwf
 // history relies on. Composite ids (M-NNN/AC-N) and plain entity ids
@@ -277,8 +251,8 @@ entities:
 
 	// acknowledge-illegal: needs an existing SHA. Use HEAD at this
 	// point (the audit-only commit just landed). Trailers include
-	// aiwf-force-for + aiwf-reason; both are mirrored into
-	// canonicalTrailerKeys above per G-0231 item 4.
+	// aiwf-force-for + aiwf-reason; both ride through the derived
+	// canonicalTrailerKeys (G-0195: derived from gitops.trailerOrder).
 	headSHA, err := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
 	if err != nil {
 		t.Fatalf("git rev-parse HEAD: %v", err)
@@ -320,7 +294,8 @@ entities:
 //   - aiwf-entity present at least wantEntities times, each value a
 //     valid entity-id pattern;
 //   - every trailer key on the commit is a member of
-//     canonicalTrailerKeys (which mirrors gitops.trailerOrder).
+//     canonicalTrailerKeys (derived from gitops.trailerOrder via
+//     gitops.CanonicalTrailerKeys() — G-0195).
 func assertTrailerShape(t *testing.T, root, wantVerb string, wantEntities int) {
 	t.Helper()
 	tr, err := gitops.HeadTrailers(context.Background(), root)

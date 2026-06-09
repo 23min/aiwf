@@ -556,6 +556,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Every `internal/*` test-bearing package has a `setup_test.go` with `TestMain` | `internal/policies/test_setup_presence.go` — runs as a Go test (M-0093) | Blocking via CI test    |
 | Race-mode `go test` invocations carry `-parallel 8` uniformly across Makefile + workflows | `internal/policies/race_parallel_cap.go` — runs as a Go test (M-0091/AC-1) | Blocking via CI test    |
 | Closed-set `Status*` constants are used at comparison sites (no `s == "open"` outside `internal/entity/`) | `internal/policies/enum_literal_adoption.go` — runs as a Go test (M-0119) | Blocking via CI test    |
+| `Trailer*` constants and `trailerOrder` slice stay in sync in `internal/gitops/trailers.go` | `internal/policies/trailer_order_matches_constants.go` — runs as a Go test (G-0195) | Blocking via CI test    |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |
 | Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |

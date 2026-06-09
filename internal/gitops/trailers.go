@@ -98,6 +98,41 @@ var trailerOrderIndex = func() map[string]int {
 	return m
 }()
 
+// canonicalTrailerKeysSet is the shared membership view of
+// trailerOrder, built once at package init. Returned by
+// CanonicalTrailerKeys as a read-only map.
+var canonicalTrailerKeysSet = func() map[string]bool {
+	m := make(map[string]bool, len(trailerOrder))
+	for _, k := range trailerOrder {
+		m[k] = true
+	}
+	return m
+}()
+
+// CanonicalTrailerKeys returns the kernel's canonical trailer-key
+// set as a membership map derived from trailerOrder. Callers — most
+// notably TestTrailerShapePerMutatingVerb in internal/cli/integration
+// — assert that every trailer key on a verb's commit is a member.
+//
+// Why an accessor rather than exporting trailerOrder: the write-order
+// slice is an implementation detail of SortedTrailers; the membership
+// view is the public contract. G-0195 named the drift class — a
+// hand-maintained mirror of trailerOrder in the test package — and
+// this accessor eliminates the parallel source of truth. A new
+// trailer added to trailerOrder is automatically considered canonical
+// by every caller; the drift class becomes structurally impossible.
+//
+// const-block ↔ trailerOrder drift is policed by
+// internal/policies/PolicyTrailerOrderMatchesConstants — adding a
+// Trailer* constant without appending to trailerOrder (or vice
+// versa) fails CI with the offending identifier named.
+//
+// The returned map is shared. Callers that need to mutate it (e.g.,
+// to scratch-augment with a synthetic key) must copy first.
+func CanonicalTrailerKeys() map[string]bool {
+	return canonicalTrailerKeysSet
+}
+
 // SortedTrailers returns a copy of trailers in canonical write order.
 // Known keys come first in trailerOrder sequence; unknown keys come
 // last in lexicographic order. Repeated keys (e.g. multiple

@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0195: canonical trailer-key set derived from `trailerOrder`; const ↔ order drift policed
+
+`internal/cli/integration/trailer_shape_test.go::canonicalTrailerKeys` was a hand-maintained mirror of `trailerOrder` in `internal/gitops/trailers.go`. The whole point of the mirror was to detect "new trailer landed without a `Trailer*` constant" — but the membership set itself drifted silently (G-0231 backfilled the specific gaps it had accumulated for `TrailerForceFor` / `TrailerBranchSHA`). This release closes the drift class structurally on both sides: `gitops.CanonicalTrailerKeys()` is the new accessor returning the membership view derived from `trailerOrder` at package init, and the integration test now reads through it. A new `internal/policies/trailer_order_matches_constants.go` AST policy asserts set-equality between the `Trailer*` const block and identifiers inside `trailerOrder` so the next-layer-up drift (a new constant added to the block but not appended to the slice) fails CI with the offending identifier named.
+
 ### Fixed — G-0236: `aiwf acknowledge-illegal` now accepts orphan SHAs
 
 The verb's M-0136/AC-4 reachability check (`git merge-base --is-ancestor <sha> HEAD`) refused acks against `isolation-escape-orphaned-ai-commit` findings because the rule's offending SHAs are by construction unreachable from HEAD — they're force-pushed-away tips surfaced via the reflog walker. The asymmetry mirrors G-0214 (which closed the same shape for `forced-untrailered`): the rule consumed the ack-set map, but the verb refused to mint the ack commit. The fix adds a fallback path: when reachability fails, the verb checks `git rev-parse --verify <sha>^{commit}` and accepts if the SHA exists in the local object DB. Typo guard preserved — a SHA that resolves to no commit at all fails both checks. Per-SHA closed-set scoping unchanged. The `acknowledge-illegal --help` and skill body list every rule the ack-set now covers (FSM-history, isolation-escape, orphaned-ai-commit, promote-on-wrong-branch, id-rename-untrailered, trailer-verb-unknown).
