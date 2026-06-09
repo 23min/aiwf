@@ -131,12 +131,16 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	for i := range post {
 		if skipDuringProjection(post[i].Code) {
 			// G-0184: body-prose-id reads body content from disk;
-			// projection models update in-memory entity frontmatter but
-			// don't reflect verb-side body rewrites (e.g. `aiwf
-			// reallocate`'s prose-rewrite step). The rule still gates at
-			// `aiwf check` post-apply; skipping it here avoids the
-			// reallocate verb refusing to plan because the intermediate
-			// projected state shows an id that the rewrite will fix.
+			// projection models update in-memory entity frontmatter
+			// but don't reflect verb-side body content changes
+			// (e.g. add --body-file's not-yet-written file,
+			// edit-body's new content, reallocate's prose rewrites).
+			// Each body-supplying verb runs its own verb-time
+			// ScanBodyProseID against the planned-write bytes
+			// directly (see add.go / editbody.go / import.go /
+			// reallocate.go / rewidth.go), which IS the gate; the
+			// projection-time skip here just avoids false-positive
+			// findings against the stale-or-absent on-disk content.
 			continue
 		}
 		if !seen[findingKey(&post[i])] {
@@ -146,12 +150,15 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 	return introduced
 }
 
-// skipDuringProjection reports whether a finding code should be filtered
-// out of the projectionFindings diff. Codes here are checks that read
-// content the projection model does not represent — typically body
-// bytes — so the projection cannot accurately predict their post-apply
-// state. The on-disk `aiwf check` (pre-push hook) is the authoritative
-// gate for these.
+// skipDuringProjection reports whether a finding code should be
+// filtered out of the projectionFindings diff. Codes here are check
+// rules that read body bytes from disk; verb-time scans of the
+// planned-write content (run inside each body-supplying verb before
+// the Plan is returned — see G-0184's verb-time scan in add.go /
+// editbody.go / import.go / reallocate.go / rewidth.go) are the
+// authoritative gate for these rules. The projection-time diff stays
+// silent here to avoid noisy false-positive findings on stale on-disk
+// bytes that the verb's planned-write content fixes.
 func skipDuringProjection(code string) bool {
 	return code == check.CodeBodyProseID
 }

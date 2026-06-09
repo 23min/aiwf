@@ -10,8 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // Rewidth sweeps a consumer's active planning tree from narrow legacy
@@ -58,7 +60,6 @@ import (
 // commit; spurious mid-verb check noise from a tree mid-rename is not
 // what we want.
 func Rewidth(ctx context.Context, root, actor string) (*Result, error) {
-	_ = ctx
 	plan, err := planRewidth(root)
 	if err != nil { //coverage:ignore filesystem read errors at the verb's top level — the underlying os.ReadDir/os.ReadFile paths bubble up here, but tempdir-based tests don't reproduce real ENOENT/EACCES races without invasive setup
 		return nil, err
@@ -70,7 +71,91 @@ func Rewidth(ctx context.Context, root, actor string) (*Result, error) {
 		{Key: gitops.TrailerVerb, Value: "rewidth"},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
+
+	// G-0184 verb-time scan: vet each rewritten body for malformed or
+	// unallocated id-shaped tokens. Rewidth is purely structural (no
+	// projection check); the scan catches bad ids in the rewritten
+	// bodies before the commit lands. Build a forward-projected tree
+	// whose entity IDs and paths are at canonical width — the rewritten
+	// bodies refer to ids at canonical width, so the index must too.
+	// entity.Canonicalize doesn't widen below-grammar narrow ids (`M-77`
+	// → `M-77` unchanged); padToCanonical is the verb's own widener.
+	tr, _, loadErr := tree.Load(ctx, root)
+	if loadErr != nil { //coverage:ignore tree.Load errors are filesystem-level (root missing, permission denied) — already covered by Rewidth's parent verb-dispatch error handling and the planRewidth path above
+		return nil, loadErr
+	}
+	projected := projectRewidthTree(tr)
+	bpidx := check.BodyProseIDIndex(projected)
+	var bpidFindings []check.Finding
+	for _, op := range plan.Ops {
+		if op.Type != OpWrite || len(op.Content) == 0 {
+			continue
+		}
+		// Parse the op's frontmatter to read the post-rewidth entity
+		// ID directly from the bytes about to be written, rather than
+		// path-matching against the tree (the rewrites land at post-
+		// rename paths and the projected tree carries pre-rename
+		// paths). The body bytes the scan consumes come from the same
+		// content the parser just read.
+		parsed, parseErr := entity.Parse(op.Path, op.Content)
+		if parseErr != nil { //coverage:ignore op.Content always parses — the verb just constructed it; defensive in case planRewidthRewrites grows a future op shape that doesn't carry parseable frontmatter
+			continue
+		}
+		_, body, ok := entity.Split(op.Content)
+		if !ok { //coverage:ignore identical to parseErr branch — op.Content is freshly serialized by planRewidthRewrites
+			continue
+		}
+		bpidFindings = append(bpidFindings,
+			check.ScanBodyProseID(body, parsed.ID, op.Path, bpidx)...)
+	}
+	if check.HasErrors(bpidFindings) {
+		return findings(bpidFindings), nil
+	}
+
 	return &Result{Plan: plan}, nil
+}
+
+// projectRewidthTree returns a copy of tr whose entity IDs and Paths
+// have been forward-canonicalized to the post-rewidth widths. The
+// returned tree shares no Entity backing array with tr — each Entity
+// is a value copy so callers (verb-time check rules) see post-rewidth
+// shapes without mutating the loader's tree.
+//
+// padToCanonical (not entity.Canonicalize) widens narrow-below-grammar
+// ids (`M-77` → `M-0077`); entity.Canonicalize requires the kind's
+// strict pattern and passes below-grammar ids through unchanged, which
+// would leave the index keyed at the wrong width.
+func projectRewidthTree(tr *tree.Tree) *tree.Tree {
+	out := *tr
+	out.Entities = make([]*entity.Entity, len(tr.Entities))
+	for i, e := range tr.Entities {
+		widened := *e
+		widened.ID = widenEntityID(e.ID)
+		out.Entities[i] = &widened
+	}
+	out.Stubs = make([]*entity.Entity, len(tr.Stubs))
+	for i, e := range tr.Stubs {
+		widened := *e
+		widened.ID = widenEntityID(e.ID)
+		out.Stubs[i] = &widened
+	}
+	return &out
+}
+
+// widenIDExtractor matches a bare entity id and captures (prefix, digits).
+// Composite ids and unrecognized shapes fall through unchanged.
+var widenIDExtractor = regexp.MustCompile(`^(E|M|G|D|C|F|ADR)-(\d+)$`)
+
+// widenEntityID returns the canonical-width form of id, handling the
+// below-grammar narrow case (`M-77` → `M-0077`) that entity.Canonicalize
+// passes through unchanged. Inputs that don't match the bare id shape
+// (composite ids, non-id strings) are returned verbatim.
+func widenEntityID(id string) string {
+	m := widenIDExtractor.FindStringSubmatch(id)
+	if m == nil {
+		return id
+	}
+	return padToCanonical(m[1], m[2])
 }
 
 // planRewidth computes the rename + body-rewrite ops over the active

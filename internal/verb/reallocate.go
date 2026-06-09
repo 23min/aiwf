@@ -178,6 +178,39 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		ops = append(ops, FileOp{Type: OpWrite, Path: writePath, Content: content})
 	}
 
+	// G-0184 verb-time scan: vet every planned-write body for
+	// malformed or unallocated id-shaped tokens against the post-
+	// reallocation index. The projection-time bodyProseID rule is
+	// skipped (skipDuringProjection) precisely because the on-disk
+	// bodies still carry oldID until Apply runs; this scan reads the
+	// in-memory rewritten bodies the verb just computed, so it sees
+	// the post-rewrite state the operator is about to commit. Each
+	// op's entity ID is parsed directly from its frontmatter so the
+	// finding carries the correct EntityID regardless of how the op's
+	// path was projected (some prose-only entities inside a moved
+	// epic dir write at a post-rename path that doesn't match their
+	// projected-tree Path field).
+	bpidx := check.BodyProseIDIndex(proj)
+	var bpidFindings []check.Finding
+	for _, op := range ops {
+		if op.Type != OpWrite || len(op.Content) == 0 {
+			continue
+		}
+		parsed, parseErr := entity.Parse(op.Path, op.Content)
+		if parseErr != nil { //coverage:ignore op.Content always parses — the verb just serialized it; defensive in case future op shapes carry non-parseable content
+			continue
+		}
+		_, body, ok := entity.Split(op.Content)
+		if !ok { //coverage:ignore identical to parseErr branch — op.Content is freshly serialized
+			continue
+		}
+		bpidFindings = append(bpidFindings,
+			check.ScanBodyProseID(body, parsed.ID, op.Path, bpidx)...)
+	}
+	if check.HasErrors(bpidFindings) {
+		return findings(bpidFindings), nil
+	}
+
 	// Canonicalize trailer values per AC-1 in M-081: new commits
 	// always carry canonical-width trailers, even when the renumbered
 	// entity's old id was at narrow legacy width on disk. Lookup at

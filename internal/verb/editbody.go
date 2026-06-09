@@ -83,6 +83,13 @@ func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason
 		return findings(fs), nil
 	}
 
+	// G-0184 verb-time scan: vet the new body bytes for malformed or
+	// unallocated id-shaped tokens. Catches operator-supplied content
+	// (--body-file / stdin) before the commit lands.
+	if fs := check.ScanBodyProseID(body, e.ID, e.Path, check.BodyProseIDIndex(t)); check.HasErrors(fs) {
+		return findings(fs), nil
+	}
+
 	return plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
@@ -141,6 +148,15 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	modified := *e
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
+		return findings(fs), nil
+	}
+
+	// G-0184 verb-time scan: vet the working-copy body bytes for
+	// malformed or unallocated id-shaped tokens. Bless mode commits
+	// whatever the user edited, so the working-copy bytes are what
+	// will land; scanning here catches a malformed id-shape edit
+	// before the commit lands.
+	if fs := check.ScanBodyProseID(workingBody, e.ID, e.Path, check.BodyProseIDIndex(t)); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
 

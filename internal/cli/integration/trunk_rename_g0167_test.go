@@ -282,7 +282,7 @@ the same branch.
 Both unit and binary-level coverage land alongside the fix:
 
   - Unit: TestRenamesFromRef_DetectsTrailerDrivenRenameAcrossBodyEdits
-    constructs the M-0125/G-0139 shape against the live git
+    constructs the ` + "`M-0125`/`G-0139`" + ` shape against the live git
     helper and asserts the rename is detected.
   - Unit: TestRenamesFromRef_ChainsForwardThroughMultipleRetitles
     pins the chain-forward property across two retitles in the
@@ -290,26 +290,26 @@ Both unit and binary-level coverage land alongside the fix:
   - Unit: TestRenamesFromRef_IgnoresUncommittedRename pins the
     negative case (un-committed rename does not register).
   - Unit: TestRenamesFromRef_IgnoresParallelClonesG37Case pins
-    the G-0109 / G37 case where two parallel clones each created
+    the ` + "`G-0109`" + ` / G37 case where two parallel clones each created
     a fresh entity at the same id; git's rename detection must
     NOT pair them (different bodies, different intent).
   - Binary E2E: this scenario.
 
 ## History
 
-The failure mode was first surfaced on the epic/E-0033 push
-during M-0125 wrap. The operator workaround at the time was
+The failure mode was first surfaced on the epic/` + "`E-0033`" + ` push
+during ` + "`M-0125`" + ` wrap. The operator workaround at the time was
 git push --no-verify, which bypasses the pre-push hook and
 defeats the framework's correctness guarantees. The fix landed
-shortly after as commit 8b56ba1c, closing G-0167. The binary-
-level regression pin (this scenario) lands at M-0160/AC-2 as
+shortly after as commit 8b56ba1c, closing ` + "`G-0167`" + `. The binary-
+level regression pin (this scenario) lands at ` + "`M-0160/AC-2`" + ` as
 part of the operational-pain regression milestone.
 
 ## Workaround (historical)
 
 Pre-fix, operators encountering this pushed their work with
 git push --no-verify (explicit human approval per CLAUDE.md).
-The first epic/E-0033 push to origin used this workaround.
+The first epic/` + "`E-0033`" + ` push to origin used this workaround.
 Post-fix, the workaround is no longer needed; the kernel
 detects the rename via the operator-intent trailer.
 
@@ -328,6 +328,6 @@ right remediation).
 This body is intentionally long to push the file's content
 several multiples beyond the original stub. The diff against
 origin/main is dominated by added prose, not by the slug
-rename — exactly the M-0125/G-0139 shape that defeats default
+rename — exactly the ` + "`M-0125`/`G-0139`" + ` shape that defeats default
 git rename detection.
 `

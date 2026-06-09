@@ -86,6 +86,36 @@ var codeSpanPattern = regexp.MustCompile("`[^`\n]*`")
 // mentions of the same bad token in one body produce one finding,
 // not one per occurrence.
 func bodyProseID(t *tree.Tree) []Finding {
+	idx := BodyProseIDIndex(t)
+	var findings []Finding
+	for _, e := range t.Entities {
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(t.Root, e.Path))
+		if err != nil {
+			continue
+		}
+		_, body, ok := entity.Split(raw)
+		if !ok {
+			continue
+		}
+		findings = append(findings, ScanBodyProseID(body, e.ID, e.Path, idx)...)
+	}
+	return findings
+}
+
+// BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
+// consumes: canonicalized id → entity. Includes stubs so a body
+// referencing an entity whose file failed to parse resolves silently
+// (the parse failure is already reported as a load-error finding;
+// re-reporting via body-prose-id would be noise).
+//
+// Exposed so verbs that scan planned-write body content at verb time
+// (G-0184 verb-time scan) share the index with the tree-walking
+// bodyProseID rule. Verbs should build the index once before the loop
+// over planned files, then pass it to ScanBodyProseID per file.
+func BodyProseIDIndex(t *tree.Tree) map[string]*entity.Entity {
 	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
 	for _, e := range t.Entities {
 		key := entity.Canonicalize(e.ID)
@@ -101,46 +131,51 @@ func bodyProseID(t *tree.Tree) []Finding {
 		}
 		idx[key] = e
 	}
+	return idx
+}
+
+// ScanBodyProseID classifies every id-shaped token in body (the bytes
+// after the YAML frontmatter delimiter) and returns one finding per
+// unique (token, subcode) pair, deduped within this body. Path and
+// entityID are used only to populate the Finding's locator fields —
+// the scanner is otherwise stateless, so it can run against on-disk
+// content (the tree-walking bodyProseID rule) or against planned-
+// write bytes that don't yet exist on disk (verb-time pre-flight).
+//
+// Code spans (`...`) and fenced blocks (``` and ~~~) are stripped
+// before scanning, so prose discussing id syntax does not self-trip.
+// Caller is responsible for handling whether to invoke this at all
+// (archive scoping, terminal-status gating) — the helper just scans.
+//
+// The idx parameter is the resolution index from BodyProseIDIndex;
+// callers that scan multiple bodies should build it once and reuse.
+func ScanBodyProseID(body []byte, entityID, path string, idx map[string]*entity.Entity) []Finding {
+	stripped := backtickFencePattern.ReplaceAllString(string(body), "")
+	stripped = tildeFencePattern.ReplaceAllString(stripped, "")
+	stripped = codeSpanPattern.ReplaceAllString(stripped, "")
 
 	var findings []Finding
-	for _, e := range t.Entities {
-		if entity.IsArchivedPath(e.Path) {
+	seen := map[string]bool{}
+	for _, m := range idTokenPattern.FindAllStringIndex(stripped, -1) {
+		tok := stripped[m[0]:m[1]]
+		subcode, msg := classifyBodyToken(tok, idx)
+		if subcode == "" {
 			continue
 		}
-		raw, err := os.ReadFile(filepath.Join(t.Root, e.Path))
-		if err != nil {
+		key := tok + ":" + subcode
+		if seen[key] {
 			continue
 		}
-		_, body, ok := entity.Split(raw)
-		if !ok {
-			continue
-		}
-		stripped := backtickFencePattern.ReplaceAllString(string(body), "")
-		stripped = tildeFencePattern.ReplaceAllString(stripped, "")
-		stripped = codeSpanPattern.ReplaceAllString(stripped, "")
-
-		seen := map[string]bool{}
-		for _, m := range idTokenPattern.FindAllStringIndex(stripped, -1) {
-			tok := stripped[m[0]:m[1]]
-			subcode, msg := classifyBodyToken(tok, idx)
-			if subcode == "" {
-				continue
-			}
-			key := tok + ":" + subcode
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
-			findings = append(findings, Finding{
-				Code:     CodeBodyProseID,
-				Severity: SeverityError,
-				Subcode:  subcode,
-				Message:  fmt.Sprintf("%s body prose contains %s", e.ID, msg),
-				Path:     e.Path,
-				EntityID: e.ID,
-				Field:    "body",
-			})
-		}
+		seen[key] = true
+		findings = append(findings, Finding{
+			Code:     CodeBodyProseID,
+			Severity: SeverityError,
+			Subcode:  subcode,
+			Message:  fmt.Sprintf("%s body prose contains %s", entityID, msg),
+			Path:     path,
+			EntityID: entityID,
+			Field:    "body",
+		})
 	}
 	return findings
 }

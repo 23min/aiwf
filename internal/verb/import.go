@@ -212,6 +212,27 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 		return &ImportResult{Findings: fs}, nil
 	}
 
+	// G-0184 verb-time scan: vet each manifest entry's body content
+	// for malformed or unallocated id-shaped tokens. The projection-
+	// time bodyProseID rule reads from disk and the files don't exist
+	// yet (or carry pre-import content); this catches bad ids before
+	// the commits land. Build the index once from the projected tree
+	// so self-references and cross-references among manifest entries
+	// resolve cleanly.
+	bpidx := check.BodyProseIDIndex(proj)
+	var importBPFindings []check.Finding
+	for i := range plannedEntries {
+		body := plannedEntries[i].entry.Body
+		if body == "" {
+			continue
+		}
+		importBPFindings = append(importBPFindings, check.ScanBodyProseID(
+			[]byte(body), entities[i].ID, entities[i].Path, bpidx)...)
+	}
+	if check.HasErrors(importBPFindings) {
+		return &ImportResult{Findings: importBPFindings}, nil
+	}
+
 	// Step 7: assemble plans.
 	plans := buildImportPlans(m, plannedEntries, entities, ops, actor)
 	return &ImportResult{Plans: plans}, nil

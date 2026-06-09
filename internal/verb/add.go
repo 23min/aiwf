@@ -131,6 +131,18 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		return nil, err
 	}
 
+	// G-0184 verb-time scan: vet operator-supplied body content before
+	// constructing the Plan. The projection-time bodyProseID rule reads
+	// from disk and the new file doesn't exist yet, so this is the
+	// chokepoint that catches malformed/unallocated id-shaped tokens in
+	// --body-file content before the commit lands. Include the just-
+	// allocated entity in the index so self-references resolve cleanly.
+	bpidx := check.BodyProseIDIndex(t)
+	bpidx[entity.Canonicalize(e.ID)] = e
+	if fs := check.ScanBodyProseID(body, e.ID, e.Path, bpidx); check.HasErrors(fs) {
+		return findings(fs), nil
+	}
+
 	ops, err := buildAddOps(e, body)
 	if err != nil {
 		return nil, err

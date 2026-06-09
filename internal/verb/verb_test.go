@@ -475,16 +475,16 @@ func TestReallocate_RewritesProseReferences(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mentions M-001 in prose", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 
 	m2Path := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0002-mentions-m-001-in-prose.md")
-	if err := os.WriteFile(m2Path, []byte(`---
-id: M-002
-title: Mentions M-001 in prose
-status: draft
-parent: E-01
----
-
-This depends on M-001 (mentioned in prose).
-M-001 again, and a longer id M-0010 that must NOT match.
-`), 0o644); err != nil {
+	if err := os.WriteFile(m2Path, []byte("---\n"+
+		"id: M-002\n"+
+		"title: Mentions M-001 in prose\n"+
+		"status: draft\n"+
+		"parent: E-01\n"+
+		"---\n"+
+		"\n"+
+		"This depends on M-001 (mentioned in prose).\n"+
+		"M-001 again, and a longer id `M-0010` that must NOT match.\n",
+	), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -523,8 +523,10 @@ M-001 again, and a longer id M-0010 that must NOT match.
 	if !strings.Contains(body, "depends on M-0003 (mentioned in prose).") {
 		t.Errorf("body should mention new id M-0003:\n%s", body)
 	}
-	// The longer id M-0010 must remain untouched (word boundary).
-	if !strings.Contains(body, "M-0010 that must NOT match") {
+	// The longer id `M-0010` (backticked to satisfy G-0184's body-prose-id
+	// rule — it's a test-only token that does not resolve) must remain
+	// untouched (word boundary).
+	if !strings.Contains(body, "`M-0010` that must NOT match") {
 		t.Errorf("M-0010 should be left alone; word-boundary regex required:\n%s", body)
 	}
 }
