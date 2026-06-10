@@ -112,10 +112,11 @@ var ac2KnownImplGaps = map[string]string{
 	// runNegativeVerbTimeCell, asserting the refusal end-to-end via the
 	// errorSubstringsFor mappings below.
 	//
-	// CancelTarget(ADR/Decision, accepted) returns "rejected" but the
-	// FSM forbids accepted→rejected. The verb's cancel path bypasses
-	// FSM. Tracked by G-0163.
-	"adr-accepted-cancel": "G-0163",
+	// adr-accepted-cancel graduated to live coverage when G-0163 landed:
+	// CancelTarget(ADR/Decision, accepted) now returns "" instead of the
+	// FSM-illegal "rejected", and verb.Cancel surfaces "no cancel target"
+	// — which errorSubstringsFor("fsm-transition-illegal") matches.
+	//
 	// ac-evidence-missing is unsupported by the verb — no --evidence
 	// flag, no PromoteOptions.Evidence, no validation. Tracked by G-0140
 	// (filed at M-0123 wrap referencing D-0005; G-0164 was a duplicate

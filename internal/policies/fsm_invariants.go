@@ -91,24 +91,23 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 		}
 
 		// Drift mode 3: CancelTarget pins the cancel verb's commitment
-		// that "any non-terminal entity can be cancelled to a terminal
-		// state in one step." Since M-0131 the signature is
+		// that any cancel projection routed through the verb lands on a
+		// legal terminal state. Since M-0131 the signature is
 		// state-aware (`(kind, currentStatus) string`); walk every
-		// non-terminal status of the kind and assert the returned
-		// target is (a) non-empty, (b) in AllowedStatuses, and (c)
-		// itself terminal. Terminal current-states are skipped — the
-		// verb's "already at target" guard handles them and an empty
-		// return there is correct.
+		// non-terminal status of the kind and, when the returned target
+		// is non-empty, assert it is (a) in AllowedStatuses and (b)
+		// itself terminal. An empty return is permitted — the FSM may
+		// have no cancel target from a particular non-terminal state
+		// (ADR.accepted and Decision.accepted exit only via promote →
+		// superseded; G-0163). The verb surfaces the empty case to the
+		// operator as "no cancel target." Terminal current-states are
+		// skipped — the verb's IsTerminal pre-flight guard handles them.
 		for _, from := range statuses {
 			if entity.IsTerminal(kind, from) {
 				continue
 			}
 			target := entity.CancelTarget(kind, from)
 			if target == "" {
-				out = append(out, Violation{
-					Policy: "fsm-invariants",
-					Detail: fmt.Sprintf("kind %q at %q: CancelTarget returns empty; cancel verb has no terminal to project to from this status", kind, from),
-				})
 				continue
 			}
 			if !entity.IsAllowedStatus(kind, target) {

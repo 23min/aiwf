@@ -140,24 +140,28 @@ func IsTerminal(k Kind, status string) bool {
 }
 
 // CancelTarget returns the kind's terminal-cancel status — the one
-// `aiwf cancel` promotes any non-terminal entity to. Used by the
-// cancel verb to know which terminal status maps to "discarded".
+// `aiwf cancel` promotes a non-terminal entity to. Used by the cancel
+// verb to know which terminal status maps to "discarded".
 //
-// Five kinds are status-agnostic; their `currentStatus` argument is
+// Three kinds are status-agnostic; their `currentStatus` argument is
 // ignored:
 //   - epic / milestone → "cancelled"
-//   - adr / decision   → "rejected"
 //   - gap              → "wontfix"
 //
-// Contract is state-aware (M-0131 / G-0131): its FSM has no
-// `deprecated → rejected` edge, so cancelling a deprecated contract
-// must target `retired` (the natural lifecycle terminal from
-// `deprecated`), not `rejected`. The earlier status-agnostic shape
-// returned "rejected" unconditionally and left operators unable to
-// cancel a deprecated contract through the verb.
+// ADR, Decision, and Contract are state-aware. The FSM does not permit
+// every non-terminal state to be cancelled — ADR and Decision's
+// `accepted` exits only via `promote → superseded`, and Contract's
+// `deprecated` exits via `retired` (not `rejected`). Returning the
+// FSM-illegal target unconditionally would route an illegal projection
+// through the cancel verb (G-0131 for Contract, G-0163 for ADR/Decision);
+// returning "" surfaces it to the caller as "no cancel target."
 //
-//	contract.proposed   → rejected
-//	contract.accepted   → rejected
+//	adr.proposed       → rejected
+//	adr.accepted       → ""   (exits only via promote → superseded)
+//	decision.proposed  → rejected
+//	decision.accepted  → ""   (exits only via promote → superseded)
+//	contract.proposed  → rejected
+//	contract.accepted  → rejected
 //	contract.deprecated → retired
 //	contract.{retired,rejected,unknown} → ""  (caller surfaces "no
 //	    cancel target" rather than picking an FSM-illegal target)
@@ -169,7 +173,10 @@ func CancelTarget(k Kind, currentStatus string) string {
 	case KindEpic, KindMilestone:
 		return StatusCancelled
 	case KindADR, KindDecision:
-		return StatusRejected
+		if currentStatus == StatusProposed {
+			return StatusRejected
+		}
+		return ""
 	case KindGap:
 		return StatusWontfix
 	case KindContract:

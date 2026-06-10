@@ -70,11 +70,14 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 }
 
 // TestCancelTarget covers the (kind, currentStatus) → terminal-cancel
-// mapping. Five kinds are status-agnostic (the second arg is ignored);
-// Contract is state-aware (M-0131 / G-0131): cancelling a deprecated
-// contract lands at `retired`, not the FSM-illegal `rejected`. Terminal
-// states return "" — there's no cancel target for an already-terminal
-// entity.
+// mapping. Epic, Milestone, and Gap are status-agnostic (the second
+// arg is ignored). ADR and Decision are state-aware (G-0163): only
+// `proposed` has a cancel target (`rejected`); `accepted` exits only
+// via `promote → superseded`, so CancelTarget returns "" rather than
+// projecting the FSM-illegal `accepted → rejected` edge. Contract is
+// state-aware (M-0131 / G-0131): cancelling a deprecated contract
+// lands at `retired`, not the FSM-illegal `rejected`. Terminal states
+// return "" — there's no cancel target for an already-terminal entity.
 func TestCancelTarget(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -83,29 +86,38 @@ func TestCancelTarget(t *testing.T) {
 		currentStatus string
 		want          string
 	}{
-		// Epic / Milestone / ADR / Decision / Gap — status-agnostic;
-		// the second arg is ignored. The verb's `if e.Status == target`
-		// guard handles "already at target"; FSM legality of the move
-		// is upstream of CancelTarget's contract.
+		// Epic / Milestone / Gap — status-agnostic; the second arg is
+		// ignored. The verb's `if e.Status == target` guard handles
+		// "already at target"; FSM legality of the move is upstream of
+		// CancelTarget's contract.
 		{"epic-from-proposed", KindEpic, StatusProposed, StatusCancelled},
 		{"epic-from-active", KindEpic, StatusActive, StatusCancelled},
 		{"milestone-from-draft", KindMilestone, StatusDraft, StatusCancelled},
 		{"milestone-from-in_progress", KindMilestone, StatusInProgress, StatusCancelled},
-		{"adr-from-proposed", KindADR, StatusProposed, StatusRejected},
-		{"adr-from-accepted", KindADR, StatusAccepted, StatusRejected},
-		{"decision-from-proposed", KindDecision, StatusProposed, StatusRejected},
-		{"decision-from-accepted", KindDecision, StatusAccepted, StatusRejected},
 		{"gap-from-open", KindGap, StatusOpen, StatusWontfix},
+		// ADR — state-aware (G-0163). proposed → rejected is legal;
+		// accepted → rejected is FSM-illegal (the only outgoing edge
+		// from accepted is supersession via promote), so CancelTarget
+		// returns "" and the verb surfaces "no cancel target."
+		{"adr-from-proposed", KindADR, StatusProposed, StatusRejected},
+		{"adr-from-accepted", KindADR, StatusAccepted, ""},
+		// Decision — symmetric FSM to ADR (G-0163).
+		{"decision-from-proposed", KindDecision, StatusProposed, StatusRejected},
+		{"decision-from-accepted", KindDecision, StatusAccepted, ""},
 		// Contract — state-aware (M-0131 / G-0131). The deprecated-
 		// from case is the bug-fix; the others match historical
 		// behavior.
 		{"contract-from-proposed", KindContract, StatusProposed, StatusRejected},
 		{"contract-from-accepted", KindContract, StatusAccepted, StatusRejected},
 		{"contract-from-deprecated", KindContract, StatusDeprecated, StatusRetired},
-		// Contract terminal-or-unknown current status — no cancel
-		// target. The verb caller surfaces the absence as "no cancel
-		// target for this kind/status" rather than picking an
-		// FSM-illegal projection.
+		// Terminal current-status across state-aware kinds — no
+		// cancel target. The verb's pre-flight IsTerminal guard would
+		// short-circuit before reaching CancelTarget in practice; the
+		// "" return is the defensive default.
+		{"adr-already-superseded", KindADR, StatusSuperseded, ""},
+		{"adr-already-rejected", KindADR, StatusRejected, ""},
+		{"decision-already-superseded", KindDecision, StatusSuperseded, ""},
+		{"decision-already-rejected", KindDecision, StatusRejected, ""},
 		{"contract-already-retired", KindContract, StatusRetired, ""},
 		{"contract-already-rejected", KindContract, StatusRejected, ""},
 		{"contract-unknown-status", KindContract, "junk", ""},
