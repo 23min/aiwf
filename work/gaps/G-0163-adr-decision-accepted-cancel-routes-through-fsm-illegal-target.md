@@ -1,7 +1,9 @@
 ---
 id: G-0163
 title: ADR/Decision accepted cancel routes through FSM-illegal target
-status: open
+status: addressed
+addressed_by_commit:
+    - 9a4f5a764b55ef69bbef9631140d2959a972e5c3
 ---
 ## Problem
 
