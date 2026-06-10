@@ -7,6 +7,14 @@ description: One-off branch-and-merge ritual for fixes, chores, or tweaks too sm
 
 A lightweight ritual for changes too small to be a milestone but too significant to lose in a careless commit. The branch + explicit-merge shape is the audit trail; the commit and merge gates are the safety net.
 
+## Gate discipline
+
+Per CLAUDE.md §"Working with the user," every mutating action this skill walks you through — commit, push, merge, deleting a remote branch — is its own gate. The numbered steps below list when each gate fires; the standing invariant is **one approval per action, no bundling**.
+
+If you find yourself authoring a single approval prompt that combines "commit + push" or "merge + delete branch," the prompt is wrong; split it. The temptation to bundle is strongest at the end of the procedure when the path forward looks obvious — that is exactly when each gate matters most.
+
+This applies regardless of any cadence pattern inherited from a prior session's summary across `/compact`.
+
 ## When to use
 
 The user describes a single focused change that:
@@ -36,13 +44,17 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 6. 🛑 **Commit gate.** Show the user the staged diff and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
 
-7. **After commit approval:** commit, push.
+7. **After commit approval:** commit.
 
-8. 🛑 **Merge gate.** Confirm with the user before merging the patch back to mainline. The mechanism — open a PR, fast-forward main to the patch branch, cherry-pick onto main, rebase-and-merge, etc. — follows the consuming project's `CLAUDE.md` §"Working in this repo" policy (or equivalent). Reference the issue if one exists. The skill does not prescribe the mechanism; the project does.
+8. 🛑 **Push gate.** Show the local commit. Stop and wait for explicit "push" approval — even immediately after a clean commit.
 
-9. **After merge:** delete the branch locally and on the remote, confirm the change is on mainline.
+9. **After push approval:** push to the remote.
 
-10. **Reflection (optional).** If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, record it where the project records such things. If the project has no such habit, skip — don't invent file conventions on the fly.
+10. 🛑 **Merge gate.** Confirm with the user before merging the patch back to mainline. The mechanism — open a PR, fast-forward main to the patch branch, cherry-pick onto main, rebase-and-merge, etc. — follows the consuming project's `CLAUDE.md` §"Working in this repo" policy (or equivalent). Reference the issue if one exists. The skill does not prescribe the mechanism; the project does.
+
+11. **After merge:** delete the local branch. Confirm with the user before deleting the remote branch — local deletes are recoverable from `origin`, remote deletes are not.
+
+12. **Reflection (optional).** If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, record it where the project records such things. If the project has no such habit, skip — don't invent file conventions on the fly.
 
 ## What this skill explicitly does not do
 
@@ -59,6 +71,6 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 ## Constraints
 
-- 🛑 Never commit, push, or merge without explicit human approval (steps 6, 7, 8).
+- 🛑 Never commit, push, merge, or delete a remote branch without explicit human approval. Each is its own gate; see steps 6, 8, 10, and 11.
 - Tests must be green before the commit gate.
 - Branch prefixes are `fix/`, `patch/`, `chore/`. No other prefixes for this skill.

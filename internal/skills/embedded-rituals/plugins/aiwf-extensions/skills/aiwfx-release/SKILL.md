@@ -13,6 +13,14 @@ An epic has been wrapped (`aiwfx-wrap-epic` ran, status is `done`, integration b
 
 If the epic isn't wrapped yet, run `aiwfx-wrap-epic` first.
 
+## Gate discipline
+
+Per CLAUDE.md §"Working with the user," every mutating action this skill walks you through — committing the CHANGELOG, creating the tag, pushing commits, pushing the tag — is its own gate. The standing invariant is **one approval per action, no bundling**.
+
+A release ritual is the highest-blast-radius sequence aiwf walks you through: a single bundled "tag and push" approval is the difference between a recoverable local mistake and a published artifact every downstream consumer's `aiwf upgrade` will see. Never collapse tag-creation into tag-push. Never collapse "push the commit" into "push the tag" without naming both in the prompt.
+
+This applies regardless of any cadence pattern inherited from a prior session's summary across `/compact`.
+
 ## Workflow
 
 ### 1. Pre-release checks
@@ -71,33 +79,44 @@ git commit -m "docs(changelog): vX.Y.Z"
 
 ### 5. 🛑 Tag gate
 
-Confirm with the user: *"Tag as vX.Y.Z and push?"*
+Confirm with the user: *"Create annotated tag vX.Y.Z?"* Show the commit the tag will point at.
 
 ```bash
 git tag -a vX.Y.Z -m "Release vX.Y.Z: <one-line summary>"
+```
+
+The tag is local-only at this point — `git tag -d vX.Y.Z` reverses it cleanly.
+
+### 6. 🛑 Push gate
+
+Show the local state: the release-prep commit on the release branch, the new tag pointing at it. Confirm with the user: *"Push the commit and the tag to origin?"*
+
+```bash
 git push origin main
 git push origin vX.Y.Z
 ```
 
-### 6. Post-release verification
+Push is the irreversible boundary. The tag becomes visible to every downstream consumer the moment the push succeeds.
+
+### 7. Post-release verification
 
 - If CI/CD auto-publishes on tag push (npm, PyPI, container registry, GitHub Release), watch the pipeline. On success, confirm the artifact is consumable.
 - Run any project-specific health check (smoke test, canary, rollback drill).
 - If a deployment failed: assess whether to rollback the tag (rare — usually fix-forward is safer). Don't reuse the version number.
 
-### 7. Optional: link the release to the epic
+### 8. Optional: link the release to the epic
 
 If the project records release ↔ epic linkage somewhere (a release notes doc, an external tracker), update it now.
 
 The aiwf epic stays `done`. There's no separate "released" status — the git tag and CHANGELOG entry are the durable record of the release.
 
-### 8. Capture any release-time decision
+### 9. Capture any release-time decision
 
 If a notable release-time decision was made (rolled back, hotfixed, deferred a feature out of the cut), capture it via `aiwfx-record-decision`.
 
 ## Constraints
 
-- 🛑 **Never tag or push without explicit human approval** (steps 4, 5).
+- 🛑 **Never commit, tag, or push without explicit human approval** — each is its own gate (steps 4, 5, 6).
 - Releases run on green commits only. No "release this with the failing test, we'll fix in a patch."
 - Versions are immutable. If `vX.Y.Z` has a problem, the next release is `vX.Y.(Z+1)` — don't move the tag.
 - Don't skip CHANGELOG. Future-you and downstream consumers depend on it.

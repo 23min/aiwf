@@ -33,6 +33,12 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
 - **Never suggest the user pause.** Do not propose pausing, stopping, breaking, "banking progress and resuming later," picking this up in a fresh session, or any variant. When to stop is the user's call alone — they will decide and say so. Keep working until the user directs otherwise or the requested work is genuinely complete. If you believe there is a real risk in continuing (accumulated context, an unresolved decision, a sequencing hazard), state the risk plainly and keep going / ask what they want next — never frame it as "we should pause." Surface the *information*; the user owns the *decision to stop*.
 
+- **Gate discipline survives compaction.** Each mutating action — commit, push, merge, promote, archive, tag, `gh pr create`, deleting a branch — is its own gate. Prior approvals never carry forward, including across `/compact`. The default is to ask before each action, even when the next step looks like an obvious continuation of an approved sequence — obviousness is when the temptation to bundle is strongest, and bundling is when the user loses the ability to redirect mid-sequence.
+
+  Don't collapse multiple mutating actions into a single `AskUserQuestion`. If the option label reads "Yes — commit + push + merge + promote (Recommended)," the question is wrong; split it. One mutating action per gate, one gate per question.
+
+  Compaction preserves *that* something was approved, not the *granularity* at which approvals fired. After `/compact`, re-read this rule; never infer cadence from the summary.
+
 ---
 
 ## Authoring an ADR
