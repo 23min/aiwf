@@ -1,7 +1,9 @@
 ---
 id: G-0242
 title: Per-action gate discipline absent from CLAUDE.md; rule does not survive /compact
-status: open
+status: addressed
+addressed_by_commit:
+    - 8792600c451050f7f745709f823d457a7f9d9ddd
 ---
 ## What's missing
 
