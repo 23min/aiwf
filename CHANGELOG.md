@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-06-11
+
 ### Changed — G-0242: gate-discipline rule lifted into CLAUDE.md and the mutating-walker ritual skills
 
 Closes the gap where the rule "each mutating action is its own approval gate" lived only in advisory-skill bodies (encoded as per-step 🛑 markers) and the agent's general-purpose system prompt — surfaces that either load only when the skill is invoked or remain general-purpose. Neither survived `/compact` cleanly: post-compaction summaries preserve *that* approvals were given but not the *granularity* at which they fired, and the agent reads the summary as cadence rather than history. Discovery case: the G-0163 wf-patch close-out bundled five distinct mutating actions (commit + push + merge + promote + archive) into a single approval prompt because that was the inherited shape from a prior session's summary.
