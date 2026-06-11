@@ -1,7 +1,9 @@
 ---
 id: G-0244
 title: aiwfx-release lacks CI-green precondition; vuln + lint red on main
-status: open
+status: addressed
+addressed_by_commit:
+    - 4108a87ccacb9b3449840f960b240dae02542bba
 ---
 ## What's missing
 
