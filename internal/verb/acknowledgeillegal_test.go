@@ -368,6 +368,66 @@ func TestAcknowledgeIllegal_G0237_ForEntityAcceptsCompositeID(t *testing.T) {
 	}
 }
 
+// TestAcknowledgeIllegal_G0238_ForEntityResolvesArchivePaths pins
+// G-0238: --for-entity verification resolves archive-path entities. An
+// entity that was active at the original commit may since have been
+// swept into work/<kind>/archive/ (ADR-0004); the ack mechanism's whole
+// point is letting operators ack such historical SHAs. entity.PathKind
+// strips the archive segment up front (stripArchiveSegment), so both
+// the active-path commit and the archive-move commit resolve to the
+// same bare id (G-0001).
+//
+// No-op insurance test today — the underlying IDFromPath already
+// handles archive paths — but it guards against a future archive-
+// convention tweak (different prefix, nested kind dirs) silently
+// breaking verifySHATouchesEntity with no regression catching it.
+func TestAcknowledgeIllegal_G0238_ForEntityResolvesArchivePaths(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	if err := os.MkdirAll(filepath.Join(r.root, "work", "gaps"), 0o755); err != nil {
+		t.Fatalf("mkdir gaps: %v", err)
+	}
+	// Commit 1: gap at the active path.
+	activePath := filepath.Join("work", "gaps", "G-0001-leak.md")
+	activeSHA := commitOne(t, r.root, activePath, "---\nid: G-0001\nstatus: open\n---\n", "add G-0001")
+
+	// Commit 2: archive sweep — git mv the file into work/gaps/archive/.
+	archivePath := filepath.Join("work", "gaps", "archive", "G-0001-leak.md")
+	archiveSHA := gitMoveCommit(t, r.root, activePath, archivePath, "aiwf archive G-0001")
+
+	// Active-path SHA resolves to G-0001.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, activeSHA, "G-0001", testActor, "ack active-path edit"); err != nil {
+		t.Errorf("ack against active-path SHA must succeed; got %v", err)
+	}
+	// Archive-move SHA also resolves to G-0001 — the move commit's diff
+	// names work/gaps/archive/G-0001-leak.md, which PathKind strips to
+	// the gap kind and IDFromPath resolves to G-0001.
+	if _, err := verb.AcknowledgeIllegal(r.ctx, r.root, archiveSHA, "G-0001", testActor, "ack archive move"); err != nil {
+		t.Errorf("ack against archive-move SHA must succeed (PathKind strips the archive segment); got %v", err)
+	}
+}
+
+// gitMoveCommit renames a tracked file via `git mv` and commits the
+// move, returning the move commit's SHA. Used to simulate an ADR-0004
+// archive sweep in acknowledge-illegal archive-path tests. The
+// destination directory is created first — `git mv` does not create
+// missing parent directories.
+func gitMoveCommit(t *testing.T, root, from, to, subject string) string {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(root, filepath.Dir(to)), 0o755); err != nil {
+		t.Fatalf("mkdir move dest for %s: %v", to, err)
+	}
+	mv := exec.CommandContext(context.Background(), "git", "mv", from, to)
+	mv.Dir = root
+	if out, err := mv.CombinedOutput(); err != nil {
+		t.Fatalf("git mv %s %s: %v\n%s", from, to, err, out)
+	}
+	if err := gitops.Commit(context.Background(), root, subject, "", nil); err != nil {
+		t.Fatalf("git commit (move): %v", err)
+	}
+	return resolveHeadSHA(t, root)
+}
+
 // TestAcknowledgeIllegal_G0226_OrphanAckPreservesSovereignGate is
 // a belt-and-braces guard against a future refactor that splits
 // orphan-ack into a parallel code path bypassing the sovereign gate.
