@@ -39,6 +39,8 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
   Compaction preserves *that* something was approved, not the *granularity* at which approvals fired. After `/compact`, re-read this rule; never infer cadence from the summary.
 
+- **Finish in-context, don't paper over.** When you notice a closely-related issue in the file or text you're editing — especially one you just authored — fix it inline, not as a new gap. Filing-and-patch ceremony for a 5-line correction is churn: the original gap shipped half-baked, and "two gaps closed" is not progress over "one closed completely." File a separate gap only when the issue is *architecturally distinct* (different subsystem, different design question). Surface what you noticed plainly ("X is also wrong here, fixing inline"); don't silently defer.
+
 ---
 
 ## Authoring an ADR
