@@ -734,6 +734,164 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		})
 	}
 
+	// G-0239: extend the same single-compute / one-consumer / no-rule-
+	// internal-recompute contract to WalkAcknowledgedSHAEntities — the
+	// per-(SHA, entity) ack walker added by G-0231 item 3 and consumed
+	// by the provenance-untrailered-entity-commit rule.
+	entViolations, eerr := policeEntitiesWalkerSingleCompute(acksFile, cliCheckProdFiles, checkInternalProd)
+	if eerr != nil {
+		return nil, eerr
+	}
+	out = append(out, entViolations...)
+
+	return out, nil
+}
+
+// policeEntitiesWalkerSingleCompute extends the acks-helper-lift
+// chokepoint to WalkAcknowledgedSHAEntities, the per-(SHA, entity) ack
+// walker added by G-0231 item 3 and consumed by the provenance-
+// untrailered-entity-commit rule. It pins the SAME single-compute /
+// one-consumer / no-recompute contract WalkAcknowledgedSHAs carries,
+// scoped to the three structural classes that apply to a single-
+// consumer walker (G-0239):
+//
+//	E1. internal/check/acks.go must declare WalkAcknowledgedSHAEntities
+//	    as a top-level exported FuncDecl — the CLI gather layer consumes
+//	    it across the package boundary exactly as WalkAcknowledgedSHAs.
+//
+//	E2. The CLI gather layer (internal/cli/check/) must call
+//	    check.WalkAcknowledgedSHAEntities exactly once. Zero means the
+//	    per-(SHA, entity) ack map is never computed and the
+//	    provenance-untrailered rule degrades to "nil map → no
+//	    suppression", re-firing historical findings as errors; more
+//	    than one is a redundant recompute.
+//
+//	E3. No internal/check/ non-test file except acks.go may call
+//	    WalkAcknowledgedSHAEntities (bare identifier, same package) — a
+//	    rule recomputing the map internally defeats the single-compute
+//	    claim.
+//
+// Unlike WalkAcknowledgedSHAs (four consumers), the entities walker has
+// a SINGLE consumer (RunProvenanceCheck), so the four-consumer
+// provenance-wiring classes (4a-4e) do not apply here; the parameter
+// flow into RunProvenanceCheck is policed by that rule's behavioral ack
+// tests. A future second consumer or a relocation of the walker
+// requires updating this helper in the same commit — that visibility is
+// the chokepoint.
+func policeEntitiesWalkerSingleCompute(acksFile *FileEntry, cliCheckProdFiles, checkInternalProd []*FileEntry) ([]Violation, error) {
+	const walker = "WalkAcknowledgedSHAEntities"
+	var out []Violation
+
+	// E1: acks.go declares the walker as a top-level FuncDecl.
+	// (acksFile == nil is already flagged by the SHA-walker class 1;
+	// don't duplicate the missing-file violation here.)
+	if acksFile != nil {
+		fset := token.NewFileSet()
+		astFile, perr := parser.ParseFile(fset, acksFile.AbsPath, acksFile.Contents, parser.AllErrors)
+		if perr != nil {
+			return nil, perr
+		}
+		found := false
+		for _, decl := range astFile.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil {
+				continue
+			}
+			if fn.Name.Name == walker {
+				found = true
+				break
+			}
+		}
+		if !found {
+			out = append(out, Violation{
+				Policy: "acks-helper-lift",
+				File:   "internal/check/acks.go",
+				Detail: "G-0239 requires acks.go to declare " + walker + " as a top-level exported function (the per-(SHA, entity) ack walker added by G-0231 item 3; the CLI gather layer consumes it across the package boundary, exactly as WalkAcknowledgedSHAs)",
+			})
+		}
+	}
+
+	// E3: no rule-internal recompute. Scan internal/check/ non-test
+	// files (acks.go is already excluded from checkInternalProd) for a
+	// bare-identifier call to the walker (same-package call shape).
+	for _, f := range checkInternalProd {
+		fset := token.NewFileSet()
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil {
+			return nil, perr
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			id, ok := call.Fun.(*ast.Ident)
+			if !ok || id.Name != walker {
+				return true
+			}
+			out = append(out, Violation{
+				Policy: "acks-helper-lift",
+				File:   f.Path,
+				Line:   fset.Position(call.Pos()).Line,
+				Detail: "G-0239 forbids rule-internal recompute of " + walker + " (the call must come from the CLI gather layer ONCE so the per-(SHA, entity) map flows in through the ackedSHAEntities parameter); this call recomputes the map and defeats the single-compute claim",
+			})
+			return true
+		})
+	}
+
+	// E2: exactly one gather-layer call. Scan internal/cli/check/ non-
+	// test files for the cross-package selector call
+	// check.WalkAcknowledgedSHAEntities.
+	type gatherCall struct {
+		file string
+		line int
+	}
+	var gatherCalls []gatherCall
+	for _, f := range cliCheckProdFiles {
+		fset := token.NewFileSet()
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil {
+			return nil, perr
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			sel, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			pkg, ok := sel.X.(*ast.Ident)
+			if !ok {
+				return true
+			}
+			if pkg.Name == "check" && sel.Sel.Name == walker {
+				gatherCalls = append(gatherCalls, gatherCall{f.Path, fset.Position(call.Pos()).Line})
+			}
+			return true
+		})
+	}
+	switch len(gatherCalls) {
+	case 0:
+		out = append(out, Violation{
+			Policy: "acks-helper-lift",
+			File:   "internal/cli/check/",
+			Detail: "G-0239 requires the CLI gather layer to call check." + walker + " exactly once; found zero call sites — the per-(SHA, entity) ack map is never computed and provenance-untrailered-entity-commit degrades to 'nil map → no suppression', re-firing acknowledged historical findings as errors",
+		})
+	case 1:
+		// happy path
+	default:
+		for _, cs := range gatherCalls {
+			out = append(out, Violation{
+				Policy: "acks-helper-lift",
+				File:   cs.file,
+				Line:   cs.line,
+				Detail: "G-0239 requires the CLI gather layer to call check." + walker + " exactly once (single-compute claim); this is one of multiple call sites — consolidate",
+			})
+		}
+	}
+
 	return out, nil
 }
 
