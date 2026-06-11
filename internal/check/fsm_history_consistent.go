@@ -502,7 +502,7 @@ func manualEditFindings(observations []statusChange, ackedObs map[string]bool) [
 // and returns entity ID → list of ack commit SHAs (deduplicated). The
 // entity ID keys are canonicalized with composite roots rolled up
 // (`M-001/AC-1` rolls up to `M-0001`), mirroring the existing
-// provenance audit's compositeRoot+Canonicalize discipline.
+// provenance audit's entity.CompositeRoot+Canonicalize discipline.
 //
 // computeAckedObservations consumes the per-entity ack lists and
 // performs the per-(obs, ack) ancestor check to produce the
@@ -553,7 +553,7 @@ func walkAuditOnlyAcksByEntity(ctx context.Context, root string) map[string][]st
 		if !hasAuditOnly || entID == "" {
 			continue
 		}
-		canonID := entity.Canonicalize(compositeRoot(entID))
+		canonID := entity.Canonicalize(entity.CompositeRoot(entID))
 		acks[canonID] = append(acks[canonID], sha)
 	}
 	return acks
@@ -590,7 +590,7 @@ func computeAckedObservations(ctx context.Context, root string, observations []s
 	ackedObs := make(map[string]bool)
 	for i := range observations {
 		o := &observations[i]
-		canonID := entity.Canonicalize(compositeRoot(o.EntityID))
+		canonID := entity.Canonicalize(entity.CompositeRoot(o.EntityID))
 		acks := acksByEntity[canonID]
 		for _, ackSHA := range acks {
 			ancestors, cached := ancestorCache[ackSHA]

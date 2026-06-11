@@ -607,7 +607,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 		r := newRepoFixture(t)
 		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
 		// Audit-only on M-0001/AC-1 should map to M-0001 in the ack map
-		// (mirrors the existing RunUntrailedAudit's compositeRoot rollup).
+		// (mirrors the existing RunUntrailedAudit's entity.CompositeRoot rollup).
 		r.gitCommitWithTrailers("aiwf promote M-0001/AC-1 met [audit-only]",
 			map[string]string{
 				gitops.TrailerVerb:      "promote",

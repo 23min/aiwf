@@ -234,6 +234,23 @@ func ParseCompositeID(s string) (parent, sub string, ok bool) {
 	return m[1], m[2], true
 }
 
+// CompositeRoot rolls a composite id (M-NNN/AC-N) up to its parent id
+// so callers that resolve a touched milestone file to its bare parent
+// (PathKind + IDFromPath) can compare parent-against-parent. Bare ids
+// and non-composite inputs pass through unchanged.
+//
+// This is the single roll-up implementation shared by the provenance
+// audit (internal/check) and the acknowledge-illegal verb
+// (internal/verb): both sides must agree on "what is this composite
+// id's parent" or a per-AC ack silently mis-binds. Keeping one
+// implementation closes that skew (G-0237).
+func CompositeRoot(id string) string {
+	if parent, _, ok := ParseCompositeID(id); ok {
+		return parent
+	}
+	return id
+}
+
 // KindFromID returns the kind matching the id's format. The second
 // return is false if the id matches no kind's format. Useful for
 // reverse-lookup when validating cross-kind references.

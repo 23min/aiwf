@@ -134,7 +134,13 @@ func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) er
 	if err != nil {
 		return fmt.Errorf("diff-tree for %s: %w", sha, err)
 	}
-	want := entity.Canonicalize(forEntity)
+	// Roll a composite forEntity (M-NNN/AC-N) up to its parent before
+	// comparing: the diff-walking side below resolves a touched
+	// milestone path to its bare parent id (M-NNN via IDFromPath), so
+	// the comparison must be parent-against-parent or every per-AC ack
+	// misses (G-0237). The emitted aiwf-entity trailer keeps the full
+	// composite — only this touches-the-file check rolls up.
+	want := entity.Canonicalize(entity.CompositeRoot(forEntity))
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		path := strings.TrimSpace(line)
 		if path == "" {

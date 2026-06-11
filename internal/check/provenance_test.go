@@ -1291,7 +1291,7 @@ func TestRunProvenance_WrapBundleExceptionScoped_PriorIDsRenameResolves(t *testi
 
 // TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp covers
 // composite-id rollup: a wrap-bundle commit on `M-0001/AC-1` should
-// match a scope-ender on `M-0001` after compositeRoot rollup. Mirrors
+// match a scope-ender on `M-0001` after entity.CompositeRoot rollup. Mirrors
 // the existing out-of-scope rollup behavior.
 func TestRunProvenance_WrapBundleExceptionScoped_CompositeRolledUp(t *testing.T) {
 	t.Parallel()

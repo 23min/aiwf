@@ -316,6 +316,58 @@ func TestAcknowledgeIllegal_G0231_ForEntityEmitsEntityTrailer(t *testing.T) {
 	mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerEntity, "G-0001")
 }
 
+// TestAcknowledgeIllegal_G0237_ForEntityAcceptsCompositeID pins G-0237:
+// --for-entity accepts a composite acceptance-criterion id
+// (M-NNNN/AC-N) and binds it to the parent milestone file the SHA
+// touched. The diff-walking side resolves a touched milestone path to
+// its bare parent id (M-NNNN via IDFromPath), so the verification must
+// roll the composite forEntity up to its parent before comparing.
+// Before the fix, verifySHATouchesEntity compared the composite id
+// verbatim against the parent id, so the comparison always missed and
+// the verb refused legitimate per-AC acks (the only available
+// mechanism for acking a provenance-untrailered finding raised against
+// a composite M-NNNN/AC-N id).
+//
+// The emitted aiwf-entity trailer keeps the FULL composite id — the
+// rollup applies only to the touches-the-file comparison, not to the
+// recorded binding — so per-AC granularity survives.
+func TestAcknowledgeIllegal_G0237_ForEntityAcceptsCompositeID(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	// Milestone path: work/epics/<E-dir>/M-*.md (PathKind's 4-part
+	// milestone shape). IDFromPath resolves the file to the bare
+	// parent id M-0001.
+	msDir := filepath.Join(r.root, "work", "epics", "E-0001-auth")
+	if err := os.MkdirAll(msDir, 0o755); err != nil {
+		t.Fatalf("mkdir milestone dir: %v", err)
+	}
+	msPath := filepath.Join("work", "epics", "E-0001-auth", "M-0001-login.md")
+	historicalSHA := commitOne(t, r.root, msPath, "---\nid: M-0001\nstatus: drafted\n---\n", "inline edit of M-0001/AC-1 body")
+
+	// Positive control: composite id rolls up to the parent the SHA
+	// touched. RED before the fix (M-0001/AC-1 != M-0001).
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "M-0001/AC-1", testActor, "ack inline AC body edit")
+	if err != nil {
+		t.Errorf("ack with composite id M-0001/AC-1 must succeed when SHA touched the M-0001 file; got %v", err)
+	} else {
+		// Trailer preserves the full composite — per-AC granularity.
+		mustHaveTrailerInPlanList(t, res.Plan.Trailers, gitops.TrailerEntity, "M-0001/AC-1")
+	}
+
+	// Negative control: composite id whose PARENT the SHA did not
+	// touch still refuses. Guards against the rollup over-accepting.
+	_, err = verb.AcknowledgeIllegal(r.ctx, r.root, historicalSHA, "M-0002/AC-1", testActor, "wrong parent")
+	if err == nil {
+		t.Fatal("ack with composite id under a different parent must be refused; got nil (SHA touched M-0001, not M-0002)")
+	}
+	if !strings.Contains(err.Error(), "does not touch entity") {
+		t.Errorf("error should mention 'does not touch entity'; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "M-0002") {
+		t.Errorf("error should name the rolled-up parent M-0002; got %v", err)
+	}
+}
+
 // TestAcknowledgeIllegal_G0226_OrphanAckPreservesSovereignGate is
 // a belt-and-braces guard against a future refactor that splits
 // orphan-ack into a parallel code path bypassing the sovereign gate.

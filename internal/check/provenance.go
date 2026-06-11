@@ -321,8 +321,8 @@ func provenanceAuthorizationFindings(
 	scopeEntity = resolveViaPriorIDs(scopeEntity, t)
 	target := idx[gitops.TrailerEntity]
 	if scopeEntity != "" && target != "" && t != nil {
-		from := resolveViaPriorIDs(compositeRoot(target), t)
-		to := compositeRoot(scopeEntity)
+		from := resolveViaPriorIDs(entity.CompositeRoot(target), t)
+		to := entity.CompositeRoot(scopeEntity)
 		if from != to && !t.ReachesScope(from, to) {
 			findings = append(findings, Finding{
 				Code:     CodeProvenanceAuthorizationOutOfScope.ID,
@@ -479,7 +479,7 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 		if entID == "" {
 			continue
 		}
-		entID = entity.Canonicalize(compositeRoot(entID))
+		entID = entity.Canonicalize(entity.CompositeRoot(entID))
 		auditAt[entID] = i
 	}
 
@@ -587,7 +587,7 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 // Canonicalizes id before lookup so a query at one width matches a
 // stored audit-only at another (AC-2 in M-081).
 func isEntityCoveredByLaterAudit(id string, manualIdx int, auditAt map[string]int) bool {
-	laterIdx, ok := auditAt[entity.Canonicalize(compositeRoot(id))]
+	laterIdx, ok := auditAt[entity.Canonicalize(entity.CompositeRoot(id))]
 	return ok && laterIdx > manualIdx
 }
 
@@ -611,7 +611,7 @@ func isShaEntityAcked(commitSHA, entityID string, acked map[string]map[string]bo
 	if !ok {
 		return false
 	}
-	return inner[entity.Canonicalize(compositeRoot(entityID))]
+	return inner[entity.Canonicalize(entity.CompositeRoot(entityID))]
 }
 
 // buildAuthOpenerIndex maps every authorize-opener commit's SHA to a
@@ -745,8 +745,8 @@ func isWrapBundleCommit(
 	// Resolve both sides through the same lineage helpers the out-of-
 	// scope rule uses, so a reallocate across the wrap window doesn't
 	// defeat the same-entity match.
-	wrapRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(wrapEntity), renameChain), t)
-	endRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(endEntity), renameChain), t)
+	wrapRoot := resolveViaPriorIDs(walkRenameChain(entity.CompositeRoot(wrapEntity), renameChain), t)
+	endRoot := resolveViaPriorIDs(walkRenameChain(entity.CompositeRoot(endEntity), renameChain), t)
 	if wrapRoot != endRoot {
 		return false
 	}
@@ -758,7 +758,7 @@ func isWrapBundleCommit(
 	if opener != nil {
 		openerEnt := indexCommitTrailersForProvenance(opener.Trailers)[gitops.TrailerEntity]
 		if openerEnt != "" {
-			openerRoot := resolveViaPriorIDs(walkRenameChain(compositeRoot(openerEnt), renameChain), t)
+			openerRoot := resolveViaPriorIDs(walkRenameChain(entity.CompositeRoot(openerEnt), renameChain), t)
 			if openerRoot != wrapRoot {
 				return false
 			}
@@ -840,17 +840,6 @@ func indexCommitTrailersForProvenance(trailers []gitops.Trailer) map[string]stri
 		out[tr.Key] = tr.Value
 	}
 	return out
-}
-
-// compositeRoot rolls a composite id (M-NNN/AC-N) up to its parent so
-// reachability runs against the parent milestone. Plain ids pass
-// through unchanged.
-func compositeRoot(id string) string {
-	if entity.IsCompositeID(id) {
-		parent, _, _ := entity.ParseCompositeID(id)
-		return parent
-	}
-	return id
 }
 
 // roleIDOK is the same regex gitops.ValidateTrailer uses, exposed for
