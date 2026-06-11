@@ -156,7 +156,8 @@ func (e *ScenarioEnv) MustRunGit(args ...string) string {
 // asserts Expect.
 func RunScenarios(t *testing.T, scenarios []Scenario) {
 	t.Helper()
-	for _, sc := range scenarios {
+	for i := range scenarios {
+		sc := &scenarios[i]
 		t.Run(sc.Name, func(t *testing.T) {
 			t.Parallel()
 			// Record the cell pin in the branchtest registry

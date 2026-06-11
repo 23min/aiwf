@@ -16,7 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
-## [0.12.0] — 2026-06-11
+### Fixed — G-0244: aiwfx-release gains a CI-green precondition; vuln + lint findings cleared on main
+
+Closes the gap where the `aiwfx-release` ritual's Constraints section asserted *"releases ride on green commits"* but the procedural Pre-release checks (step 1) never verified CI green on the target commit — only local test/build green. Discovery case: an earlier v0.12.0 tag was cut against pre-existing red CI on main (the `vuln` and `lint` jobs in `go.yml` had been failing across the last 10+ commits back to E-0030's wrap) because the operator (Claude in this session) confused locally-green with CI-green. The tag was yanked from origin and re-cut after this patch landed.
+
+The fix carries three coordinated changes. **`aiwfx-release` skill** — Pre-release checks step 1 gains an explicit "CI is green on the target commit" sub-bullet pointing operators at `gh run list --workflow=go.yml --branch=main --limit 1`; the Constraints line strengthens to *"Green is CI-green, not just locally-green"* with the discovery-case citation. **`.github/workflows/go.yml`** — six `go-version: "1.25.10"` pins bumped to `"1.25.11"` to pick up the stdlib patches for `GO-2026-5039` (`net/textproto` error escaping) and `GO-2026-5037` (`crypto/x509` candidate hostname parsing); both were reachable from `gitops.BlobReader.Read` and `status.RenderWorktreeViews`. **Lint findings** — six pre-existing gocritic / gofumpt / govet findings cleared across five files (`authorize_scenarios_test.go` ×2 `appendAssign`, `branch_scenarios_helpers_test.go` `rangeValCopy`, `m0162_ac4_pin_call_shape_test.go` gofumpt, `trailer_order_matches_constants.go` gofumpt comment spacing, `m0162_ac2_build_tag_test.go` `shadow err`).
+
+The closure evidence is the next release ritual exercising the new step — if the operator forgets the `gh run list` check, the local-vs-CI distinction is now explicit in the Constraints line they're reading at the Tag gate.
 
 ### Changed — G-0242: gate-discipline rule lifted into CLAUDE.md and the mutating-walker ritual skills
 

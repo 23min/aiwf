@@ -70,7 +70,7 @@ func PolicyTrailerOrderMatchesConstants(root string) ([]Violation, error) {
 		}}, nil
 	}
 
-	consts := map[string]int{}  // identifier → line
+	consts := map[string]int{}   // identifier → line
 	orderIDs := map[string]int{} // identifier → line
 	var orderLine int
 

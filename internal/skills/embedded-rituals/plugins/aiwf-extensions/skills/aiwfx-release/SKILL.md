@@ -29,6 +29,15 @@ This applies regardless of any cadence pattern inherited from a prior session's 
 - Working tree clean.
 - All tests pass.
 - Build is green.
+- **CI is green on the target commit.** Run
+  `gh run list --workflow=go.yml --branch=main --limit 1` (or the
+  project's primary workflow file) and confirm the conclusion column
+  reads `success`. If it reads `failure` or anything else, **stop**
+  and resolve before crossing the Commit gate. The Constraints
+  section asserts "releases ride on green commits"; this step is
+  where the assertion binds. Local `go test` green is necessary but
+  not sufficient — `vuln`, `lint`, and any project-specific jobs
+  also need to pass at the CI level.
 - The epic that justifies this release has `status: done`.
 
 If anything is red, stop. Releases ride on green commits.
@@ -117,7 +126,7 @@ If a notable release-time decision was made (rolled back, hotfixed, deferred a f
 ## Constraints
 
 - 🛑 **Never commit, tag, or push without explicit human approval** — each is its own gate (steps 4, 5, 6).
-- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch."
+- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch." **Green is CI-green, not just locally-green** — step 1's `gh run list` check is where this binds; a local `go test ./...` pass does not substitute for it. See G-0244 for the discovery case.
 - Versions are immutable. If `vX.Y.Z` has a problem, the next release is `vX.Y.(Z+1)` — don't move the tag.
 - Don't skip CHANGELOG. Future-you and downstream consumers depend on it.
 

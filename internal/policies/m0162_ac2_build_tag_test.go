@@ -73,8 +73,8 @@ func TestM0162_AC2_BuildTagExclusion(t *testing.T) {
 	testBuild := exec.Command("go", "test", "-tags", "testpins", "-c", "-o", testBinary, "./internal/workflows/spec/branch/branchtest")
 	testBuild.Dir = root
 	testBuild.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if out, err := testBuild.CombinedOutput(); err != nil {
-		t.Fatalf("go test -tags testpins -c (positive control) failed: %v\n%s", err, out)
+	if tbOut, tbErr := testBuild.CombinedOutput(); tbErr != nil {
+		t.Fatalf("go test -tags testpins -c (positive control) failed: %v\n%s", tbErr, tbOut)
 	}
 	nmPos := exec.Command("go", "tool", "nm", testBinary)
 	posOut, err := nmPos.CombinedOutput()

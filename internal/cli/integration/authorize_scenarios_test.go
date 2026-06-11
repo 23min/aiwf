@@ -162,8 +162,8 @@ func TestAuthorize_AC1_NonMainTrunkNames_Accept(t *testing.T) {
 			if readErr != nil {
 				t.Fatalf("read aiwf.yaml: %v", readErr)
 			}
-			amended := append(cfgBytes, []byte("\nallocate:\n  trunk: "+tc.trunkRef+"\n")...)
-			if writeErr := os.WriteFile(cfgPath, amended, 0o644); writeErr != nil {
+			cfgBytes = append(cfgBytes, []byte("\nallocate:\n  trunk: "+tc.trunkRef+"\n")...)
+			if writeErr := os.WriteFile(cfgPath, cfgBytes, 0o644); writeErr != nil {
 				t.Fatalf("rewrite aiwf.yaml: %v", writeErr)
 			}
 
@@ -464,8 +464,8 @@ func setupAC2RungPairFixture(t *testing.T, bin, binDir, currentBranch string) st
 	if readErr != nil {
 		t.Fatalf("read aiwf.yaml: %v", readErr)
 	}
-	amended := append(cfgBytes, []byte("\nallocate:\n  trunk: refs/heads/main\n")...)
-	if writeErr := os.WriteFile(cfgPath, amended, 0o644); writeErr != nil {
+	cfgBytes = append(cfgBytes, []byte("\nallocate:\n  trunk: refs/heads/main\n")...)
+	if writeErr := os.WriteFile(cfgPath, cfgBytes, 0o644); writeErr != nil {
 		t.Fatalf("rewrite aiwf.yaml: %v", writeErr)
 	}
 	// Create the epic entity + activate (so authorize has a target).
