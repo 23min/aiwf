@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-06-11
+
 ### Fixed — G-0244: aiwfx-release gains a CI-green precondition; vuln + lint findings cleared on main
 
 Closes the gap where the `aiwfx-release` ritual's Constraints section asserted *"releases ride on green commits"* but the procedural Pre-release checks (step 1) never verified CI green on the target commit — only local test/build green. Discovery case: an earlier v0.12.0 tag was cut against pre-existing red CI on main (the `vuln` and `lint` jobs in `go.yml` had been failing across the last 10+ commits back to E-0030's wrap) because the operator (Claude in this session) confused locally-green with CI-green. The tag was yanked from origin and re-cut after this patch landed.
