@@ -1,7 +1,9 @@
 ---
 id: G-0239
 title: PolicyAcksHelperLift omits WalkAcknowledgedSHAEntities
-status: open
+status: addressed
+addressed_by_commit:
+    - 0228c5b1b8d3d52d190b9e91e95c166bde9a45dd
 ---
 ## What's missing
 
