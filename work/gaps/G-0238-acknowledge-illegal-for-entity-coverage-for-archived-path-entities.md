@@ -1,7 +1,9 @@
 ---
 id: G-0238
 title: acknowledge-illegal --for-entity coverage for archived-path entities
-status: open
+status: addressed
+addressed_by_commit:
+    - 6c1f8ff22ac3ffa2db633fa1373ba34874ea20ba
 ---
 ## What's missing
 
