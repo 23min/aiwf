@@ -1,7 +1,9 @@
 ---
 id: G-0237
 title: acknowledge-illegal --for-entity refuses composite ids (M-NNN/AC-N)
-status: open
+status: addressed
+addressed_by_commit:
+    - 440bf1a3dbf16d756b76aa04e26135397ee40535
 ---
 ## What's missing
 
