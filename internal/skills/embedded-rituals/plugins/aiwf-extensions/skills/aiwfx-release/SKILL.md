@@ -29,15 +29,24 @@ This applies regardless of any cadence pattern inherited from a prior session's 
 - Working tree clean.
 - All tests pass.
 - Build is green.
-- **CI is green on the target commit.** Run
-  `gh run list --workflow=go.yml --branch=main --limit 1` (or the
-  project's primary workflow file) and confirm the conclusion column
-  reads `success`. If it reads `failure` or anything else, **stop**
-  and resolve before crossing the Commit gate. The Constraints
-  section asserts "releases ride on green commits"; this step is
-  where the assertion binds. Local `go test` green is necessary but
-  not sufficient — `vuln`, `lint`, and any project-specific jobs
-  also need to pass at the CI level.
+- **CI is green on the last Go-affecting commit reachable from HEAD.**
+  Run `gh api "repos/<org>/<repo>/actions/runs?head_sha=$(git rev-parse HEAD)" --jq '.workflow_runs[] | "\(.conclusion // .status) \(.name)"'`
+  to see every workflow run on the current HEAD. If the project's
+  primary Go workflow (e.g. `go.yml`) isn't in the list, the path
+  filter excluded HEAD — typical when HEAD is a markdown-only commit
+  (`aiwf promote`, `aiwf archive`, `aiwf edit-body`, the
+  `release(aiwf): vX.Y.Z` prep commit itself). In that case walk
+  back to the most recent Go-affecting commit
+  (`git log --oneline -- '**/*.go' 'go.mod' 'go.sum' | head -1`)
+  and verify it ran green via
+  `gh run list --workflow=go.yml --commit <sha> --limit 1`.
+  If any reachable Go-affecting commit's most recent run is `failure`
+  or anything other than `success`, **stop** and resolve before
+  crossing the Commit gate. The Constraints section asserts
+  "releases ride on green commits"; this step is where the assertion
+  binds. Local `go test` green is necessary but not sufficient —
+  `vuln`, `lint`, and any project-specific jobs also need to pass
+  at the CI level.
 - The epic that justifies this release has `status: done`.
 
 If anything is red, stop. Releases ride on green commits.
