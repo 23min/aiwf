@@ -100,7 +100,7 @@ The branch operation does not produce an aiwf commit; it is plain git plumbing. 
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section). There is no separate tracking doc — `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
+AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section). The v1 separate tracking doc is gone — `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
 
 For each AC, in sequence:
 

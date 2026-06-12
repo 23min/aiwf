@@ -110,7 +110,7 @@ The two-commit shape is intentional: the first commit is "id allocated"; the sec
 
 ### 8. Mirror the id back to the caller's context
 
-If invoked from `aiwfx-start-milestone` mid-flight: add the new id under `## Decisions made during implementation` in the tracking doc.
+If invoked from `aiwfx-start-milestone` mid-flight: add the new id under `## Decisions made during implementation` in the milestone spec.
 If from `aiwfx-wrap-epic`'s ADR harvest: add to `## ADRs ratified` or `## Decisions captured` in `wrap.md`.
 If from `wf-review-code`: list it under "Track for later" in the review report.
 
@@ -131,7 +131,7 @@ Same for D-NNN. aiwf validates each transition; illegal moves error out.
 ## Anti-patterns
 
 - *Capturing implementation details as decisions.* "We named the variable foo" is not a decision; "we chose to model auth as a service rather than a library" is.
-- *Writing a long prose decision in the tracking doc body.* Those should live in an ADR or D-NNN. The tracking doc just points at the id.
+- *Writing a long prose decision under the milestone spec's `## Decisions made during implementation`.* Those should live in an ADR or D-NNN. The spec section just points at the id.
 - *Skipping the supersession edit.* A supersession is two-sided: the new entry says what it supersedes; the old entry's status flips to `superseded` and gets a `superseded_by:` pointer. Both edits.
 - *Writing the decision but never promoting it past `proposed`.* If it's in force, promote to `accepted`. Otherwise it never feels "decided."
 

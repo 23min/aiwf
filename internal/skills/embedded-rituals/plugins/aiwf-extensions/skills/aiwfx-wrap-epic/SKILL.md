@@ -11,7 +11,7 @@ Closes an epic. The epic itself is a coordination unit — closing it means: eve
 
 - **Wrap is closure, not release.** Tagging, packaging, publishing — those are `aiwfx-release`. This skill ends the planning unit.
 - **Branch cleanup is opt-in.** Local branches are preserved (so `tig` / `gitk` keep labelling history); origin branches for completed milestones are deleted to reduce remote refname clutter.
-- **Nothing is deleted at wrap.** Specs, tracking docs, the wrap artefact — all stay readable forever. Closure is a status change, not a deletion.
+- **Nothing is deleted at wrap.** Specs (with their work-log sections), the wrap artefact — all stay readable forever. Closure is a status change, not a deletion.
 - **The merge commit is trailered.** The integration-target merge commit carries `aiwf-verb: wrap-epic`, `aiwf-entity: E-NNNN`, `aiwf-actor: human/<id>` trailers — exactly the keys the kernel's `provenance-untrailered-entity-commit` finding expects. Without the trailers, the rule fires once per entity file touched by the merge.
 
 ## Precondition

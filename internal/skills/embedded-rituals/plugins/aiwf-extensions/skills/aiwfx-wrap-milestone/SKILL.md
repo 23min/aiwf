@@ -1,11 +1,11 @@
 ---
 name: aiwfx-wrap-milestone
-description: Closes an aiwf milestone — verifies all ACs met, runs scoped doc-lint, finalizes the tracking doc, promotes status to done, prepares the wrap commit. Use when the user says "wrap M-NNNN" or "finish the cache milestone" and self-review per `aiwfx-start-milestone` has passed. Commit and push require explicit human approval.
+description: Closes an aiwf milestone — verifies all ACs met, runs scoped doc-lint, finalizes the milestone spec's wrap-side sections, promotes status to done, prepares the wrap commit. Use when the user says "wrap M-NNNN" or "finish the cache milestone" and self-review per `aiwfx-start-milestone` has passed. Commit and push require explicit human approval.
 ---
 
 # aiwfx-wrap-milestone
 
-Closes a milestone. Verifies completeness, reconciles the tracking doc, promotes the milestone to `done`, prepares the single wrap commit.
+Closes a milestone. Verifies completeness, finalizes the milestone spec's wrap-side sections, promotes the milestone to `done`, prepares the single wrap commit.
 
 ## When to use
 

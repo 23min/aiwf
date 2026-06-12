@@ -60,7 +60,7 @@ A structured review pass over a diff. Produces a verdict and a list of findings 
 
 - Public-API change → README, reference docs, or whatever the project uses to publish surface.
 - Comments explain *why* where non-obvious — hidden constraint, subtle invariant, workaround for a specific bug. Comments that re-describe *what* the code does are noise; flag them.
-- If the project keeps a tracking doc, work log, or change log alongside the diff, the entry is present and accurate.
+- If the project keeps a work log or change log alongside the diff, the entry is present and accurate.
 
 ### 8. Verdict
 
