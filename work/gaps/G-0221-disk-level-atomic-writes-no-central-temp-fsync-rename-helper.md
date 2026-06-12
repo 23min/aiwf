@@ -1,7 +1,9 @@
 ---
 id: G-0221
 title: 'Disk-level atomic writes: no central temp+fsync+rename helper'
-status: open
+status: addressed
+addressed_by_commit:
+    - 1aba9334
 ---
 ## What's missing
 
