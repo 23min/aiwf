@@ -16,6 +16,32 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-06-12
+
+### Added — G-0179: pre-push golangci-lint boundary gate; rituals name the full local CI gate
+
+Long-lived unpushed branches accumulated `golangci-lint` debt invisibly: CI only lints on push, and per-milestone validation as practiced ran `go vet` + `go test`, not the full lint set — the discovery evidence was 9 CI-blocking findings spanning three milestone wraps on E-0038's epic branch. Two layers close it. **Mechanical (kernel repo):** `scripts/git-hooks/pre-push` runs the same linter CI runs, locally, before any push whose range touches Go surfaces (`*.go`, `go.mod`, `go.sum`, `.golangci.yml`); planning-tree pushes short-circuit in ~25 ms, warm-cache code pushes pay ~2–3 s. Installed as the G45 chain target `.git/hooks/pre-push.local` via `make install-hooks`; a missing linter warns rather than blocks (CI remains the backstop); `git push --no-verify` is the deliberate escape hatch; the lint runs against the checked-out working tree (documented approximation — CI, which lints the pushed sha, remains authoritative). Decision logic is pinned branch-by-branch in `internal/policies/prepush_lint_hook_test.go` via the `AIWF_PREPUSH_LINT_CMD` override. **Ritual (consumer-facing):** `wf-patch`'s verify step, `aiwfx-wrap-milestone`'s verify-completion step, and a new `aiwfx-wrap-epic` precondition now name the project's full local CI gate (e.g. `make ci`), not a subset — the prior "any project-specific lint" phrasing was vague enough that `go vet` read as satisfying it. Per-wrap enforcement on a still-unpushed branch remains ritual-level; the hook guarantees the machine boundary.
+
+### Changed — wf-patch gates consolidate to commit / wrap / push, with a declared-sequence wrap gate
+
+A full `wf-patch` under per-action gating cost ~7 approvals (commit, branch push, merge, mainline push, promote, promote push, cleanup) — disproportionate for the low-stakes surface now that mechanical gates carry the safety load (full local CI gate at the verify step, the G-0179 pre-push lint hook, `aiwf check` pre-push). The skill restructures to three gates: **commit gate** (now preceded by an explicit self-review step in the `wf-review-code` checklist shape, so the gate presents a reviewed diff with green-gate evidence), **wrap gate** (one approval covering the patch's *enumerated* terminal sequence — local merge to mainline, tracker closure, cleanup — binding to exactly the verbatim list, with partial approval honored and any deviation re-gating), and **push gate** (push to origin is never part of the wrap sequence; it always stands alone). PR-flow projects keep the prior shape — the declared sequence assumes local merge. The kernel repo's CLAUDE.md gains the matching sanctioned exception, scoped to wf-patch only; milestone and epic wraps keep per-action gates.
+
+### Fixed — G-0245: embedded ritual agents no longer instruct the retired work/tracking-doc convention
+
+Thirteen stale lines across five embedded ritual artifacts (`builder` and `reviewer` agents, `aiwfx-record-decision`, `aiwfx-wrap-milestone` — including the `description:` line Claude Code surfaces in skill discovery — and `aiwfx-wrap-epic`) still instructed the v1 separate tracking-doc convention the snapshot itself had retired, so a builder agent following its own instructions recreated the retired `work/tracking/` directory and nothing mechanical objected. All thirteen now point at the in-spec replacements (frontmatter `acs[]`, the milestone spec's `## Work log` and `## Decisions made during implementation` sections). A new `internal/policies/` chokepoint (`embedded-rituals-no-retired-tracking-doc`) fails CI on any `work/tracking/` path reference, or any "tracking doc" phrasing outside explicit v1-historical context, anywhere in the embedded snapshot — the retired convention cannot be silently reintroduced by a future ritual edit.
+
+### Fixed — G-0240 + G-0241: `body-prose-id` false-positive classes (CommonMark-aware mask, trunk resolution tier)
+
+The rule's code-span stripper is now CommonMark-aware (multi-backtick spans, indented code blocks, link destinations, multi-line spans) per G-0240, so prose discussing id syntax inside those constructs no longer self-trips. Id resolution gains a trunk tier per G-0241, so trunk-only ids referenced in body prose no longer surface as `unresolved` on feature branches with stale trunk awareness.
+
+### Fixed — G-0237: `aiwf acknowledge-illegal --for-entity` accepts composite AC ids
+
+The flag previously rejected `M-NNNN/AC-N` composite ids. Companion hardening: archive-path resolution for `--for-entity` is pinned by test (G-0238), and the acks-helper-lift policy now also polices `WalkAcknowledgedSHAEntities` (G-0239).
+
+### Changed — G-0244 follow-up: `aiwfx-release` CI-green check is path-filter-aware
+
+The skill's Pre-release checks step now explains how to verify CI green when HEAD is a markdown-only commit excluded by workflow path filters: walk back to the most recent Go-affecting commit and verify that commit's run, rather than concluding from an empty run list.
+
 ## [0.12.0] — 2026-06-11
 
 ### Fixed — G-0244: aiwfx-release gains a CI-green precondition; vuln + lint findings cleared on main
