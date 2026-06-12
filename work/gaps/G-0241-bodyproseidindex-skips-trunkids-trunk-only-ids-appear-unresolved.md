@@ -1,7 +1,9 @@
 ---
 id: G-0241
 title: BodyProseIDIndex skips TrunkIDs; trunk-only ids appear unresolved
-status: open
+status: addressed
+addressed_by_commit:
+    - 56eba164
 ---
 ## What's missing
 
