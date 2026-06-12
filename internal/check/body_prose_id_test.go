@@ -331,6 +331,103 @@ func TestBodyProseID_MultipleEntitiesEachReportSeparately(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_CommonMarkShapes_G0240 pins the CommonMark-aware
+// masking contract (G-0240): the scanner sees only what CommonMark
+// renders as prose. Each case names one of the shapes the regex-based
+// masker got wrong — multi-backtick spans, indented code blocks, link
+// URLs, unclosed-span chew-through — plus the deliberate behavior
+// pins that came with the parser swap: unclosed fences run to EOF
+// (CommonMark semantics), link LABELS stay scanned (they're prose),
+// and bare URLs in prose stay scanned (no Linkify extension).
+func TestBodyProseID_CommonMarkShapes_G0240(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		body        string
+		wantSubcode string
+		silent      bool
+	}{
+		{
+			name:   "double-backtick code span silent",
+			body:   "The shape ``M-a`` is under discussion.",
+			silent: true,
+		},
+		{
+			name:   "double-backtick span embedding a backticked id silent",
+			body:   "The shape `` `M-a` `` embeds backticks in a span.",
+			silent: true,
+		},
+		{
+			name:   "indented code block silent",
+			body:   "Example follows:\n\n    M-a inside indented code\n\nDone.",
+			silent: true,
+		},
+		{
+			name:   "link destination silent",
+			body:   "[the old gap](work/gaps/G-9999-old.md) was deleted.",
+			silent: true,
+		},
+		{
+			name:        "link label is prose and still scanned",
+			body:        "[see M-a for details](https://example.com/page) anchors prose.",
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:   "link title silent",
+			body:   "[label](https://example.com \"about G-9999\") has a title.",
+			silent: true,
+		},
+		{
+			name:   "reference-link definition silent",
+			body:   "See [the gap][ref].\n\n[ref]: work/gaps/G-9999-old.md",
+			silent: true,
+		},
+		{
+			name:   "autolink silent",
+			body:   "<https://example.com/G-9999.md> is an autolink URL.",
+			silent: true,
+		},
+		{
+			name:        "unclosed backtick does not chew through following prose",
+			body:        "An unclosed ` tick ends this line.\nNext line M-a must still fire.",
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:   "unclosed fence runs to EOF per CommonMark — content silent",
+			body:   "Prose before.\n\n```\nM-a inside a fence nobody closed\n",
+			silent: true,
+		},
+		{
+			name:        "bare URL in prose still scanned (no Linkify, deliberate)",
+			body:        "See https://example.com/G-9999.md pasted bare into prose.",
+			wantSubcode: "unresolved",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			ents := writeBodyProseFixture(t, root, tc.body)
+			tr := &tree.Tree{Root: root, Entities: ents}
+
+			got := bodyProseID(tr)
+			if tc.silent {
+				if len(got) != 0 {
+					t.Fatalf("expected silent, got %d findings: %+v", len(got), got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+			}
+			if got[0].Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+		})
+	}
+}
+
 // TestBodyProseID_TrunkTier_G0241 pins the second-tier trunk
 // resolution (G-0241): a strict-form token that misses the working-
 // tree index but appears in Tree.TrunkIDs is silent — the id IS

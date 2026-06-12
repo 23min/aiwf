@@ -23,10 +23,14 @@ package check
 //     has no AC at the named position. Mirror the subcodes refsResolve
 //     emits for the structured-frontmatter composite case.
 //
-// Backtick exemption: inline code spans (`...`) and fenced code blocks
-// (```...``` and ~~~...~~~) are stripped before the scan, so prose
-// discussing id syntax (`M-NNN` in CLAUDE.md prose, `^M-\d{3,}$` regex
-// quotes, command examples) does not self-trip.
+// Code exemption (G-0240): the body is masked through a CommonMark
+// parse (goldmark) before the scan, so only prose-visible text is
+// scanned. Tokens inside any code construct — inline code spans of
+// any backtick count, fenced blocks (``` and ~~~), indented code
+// blocks — and inside non-prose link carriers (destinations,
+// reference-link definitions, autolinks) are exempt by construction,
+// so prose discussing id syntax (`M-NNN` in CLAUDE.md prose,
+// `^M-\d{3,}$` regex quotes, command examples) does not self-trip.
 //
 // Archive scoping: archive entities are skipped, mirroring refsResolve
 // per ADR-0004 §"Check shape rules".
@@ -40,7 +44,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -68,19 +75,14 @@ var strictBareIDPattern = regexp.MustCompile(`^(?:E-\d{2,}|M-\d{3,}|G-\d{3,}|D-\
 // Mirrors entity.compositeIDPattern.
 var strictCompositeIDPattern = regexp.MustCompile(`^M-\d{3,}/AC-\d+$`)
 
-// backtickFencePattern matches ```...``` fenced blocks.
-// tildeFencePattern matches ~~~...~~~ fenced blocks.
-// Split into two patterns because RE2 has no backreferences; a fence
-// opened with ``` only closes on ```, never on ~~~.
-var (
-	backtickFencePattern = regexp.MustCompile("(?s)```.*?```")
-	tildeFencePattern    = regexp.MustCompile("(?s)~~~.*?~~~")
-)
-
-// codeSpanPattern matches a single-backtick inline code span on one
-// line. CommonMark allows multi-backtick spans, but the single-tick
-// form covers every id-syntax discussion in the live tree.
-var codeSpanPattern = regexp.MustCompile("`[^`\n]*`")
+// proseMaskEngine is the package-level goldmark instance whose parser
+// decides what counts as prose for the body-prose-id scan. Plain
+// CommonMark, no extensions — deliberately narrower than htmlrender's
+// render engine: its Linkify extension would turn bare URLs into
+// autolinks and silently exempt id-shaped tokens inside them, which
+// the rule scans as prose today. Immutable after init, same idiom as
+// a compiled regexp (and as htmlrender.markdownEngine).
+var proseMaskEngine = goldmark.New()
 
 // bodyProseID emits one finding per (entity, token, subcode) for any
 // id-shaped token in entity body prose that does not resolve to an
@@ -182,22 +184,17 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 // content (the tree-walking bodyProseID rule) or against planned-
 // write bytes that don't yet exist on disk (verb-time pre-flight).
 //
-// Code spans (`...`) and fenced blocks (``` and ~~~) are masked (not
-// stripped) before scanning, so byte offsets in the input remain
-// stable across the masking step. Finding.Line is set to the 1-based
-// line number within body where the matched token starts; callers
-// that want file-relative Line (the bodyProseID tree-walk rule) add
-// the body's start-of-file line offset themselves.
+// Non-prose content is masked (not stripped) via proseMask before
+// scanning, so byte offsets in the input remain stable across the
+// masking step. Finding.Line is set to the 1-based line number within
+// body where the matched token starts; callers that want
+// file-relative Line (the bodyProseID tree-walk rule) add the body's
+// start-of-file line offset themselves.
 //
 // The idx parameter is the resolution index from BodyProseIDIndex;
 // callers that scan multiple bodies should build it once and reuse.
 func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []Finding {
-	// Mask code spans and fences with same-length runs of spaces so the
-	// regex doesn't match tokens inside them but byte offsets stay
-	// aligned with the original body for line-number resolution.
-	masked := maskSameLength(backtickFencePattern, string(body))
-	masked = maskSameLength(tildeFencePattern, masked)
-	masked = maskSameLength(codeSpanPattern, masked)
+	masked := proseMask(body)
 
 	var findings []Finding
 	seen := map[string]bool{}
@@ -227,14 +224,75 @@ func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []F
 	return findings
 }
 
-// maskSameLength replaces every match of re in s with a run of spaces
-// of the same length as the match. Used by ScanBodyProseID so byte
-// offsets in the input stay aligned after code-span and code-fence
-// suppression — line-number resolution depends on the alignment.
-func maskSameLength(re *regexp.Regexp, s string) string {
-	return re.ReplaceAllStringFunc(s, func(m string) string {
-		return strings.Repeat(" ", len(m))
+// proseMask returns a same-length copy of body in which every byte
+// CommonMark does not render as prose text is replaced with a space
+// (newlines preserved, so line-number resolution downstream stays
+// exact). The scanner then runs against prose only: tokens inside ANY
+// code construct — inline code spans of any backtick count, fenced
+// blocks (``` and ~~~), indented code blocks — and inside non-prose
+// link carriers (destinations, titles, reference-link definitions,
+// autolinks) are exempt by construction rather than by per-shape
+// regex (G-0240). Link/image LABEL text is prose and stays scanned.
+//
+// Two deliberate inclusions keep the scan surface equal to the
+// pre-G-0240 behavior outside the fixed shapes: HTML blocks and
+// inline raw HTML are copied through as prose, because CommonMark
+// passes raw HTML to the renderer verbatim — its text content is
+// user-visible (`<p>M-foo</p>` displays M-foo). The pre-existing
+// edge-case test pins this.
+//
+// CommonMark quirk worth naming: an unclosed fence runs to the end of
+// the document, so everything after a typo'd ``` opener is code and
+// exempt. That matches what a rendered page shows — the masking
+// failure mode is "the body LOOKS wrong when rendered", not a silent
+// divergence between the masker and CommonMark semantics.
+func proseMask(body []byte) string {
+	masked := make([]byte, len(body))
+	for i, b := range body {
+		if b == '\n' {
+			masked[i] = '\n'
+		} else {
+			masked[i] = ' '
+		}
+	}
+	copySeg := func(seg text.Segment) {
+		if seg.Start < 0 || seg.Stop > len(body) || seg.Start >= seg.Stop {
+			return
+		}
+		copy(masked[seg.Start:seg.Stop], body[seg.Start:seg.Stop])
+	}
+	doc := proseMaskEngine.Parser().Parse(text.NewReader(body))
+	// The walker never returns an error: the callback below has no
+	// error path.
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch v := n.(type) {
+		case *ast.CodeSpan:
+			// Children are Text nodes carrying the span's content —
+			// code, not prose. Skip so they stay masked. Fenced and
+			// indented code blocks need no case of their own: their
+			// content lives in block Lines(), never in Text children,
+			// so it stays masked by default.
+			return ast.WalkSkipChildren, nil
+		case *ast.Text:
+			copySeg(v.Segment)
+		case *ast.HTMLBlock:
+			for i := 0; i < v.Lines().Len(); i++ {
+				copySeg(v.Lines().At(i))
+			}
+			if v.HasClosure() {
+				copySeg(v.ClosureLine)
+			}
+		case *ast.RawHTML:
+			for i := 0; i < v.Segments.Len(); i++ {
+				copySeg(v.Segments.At(i))
+			}
+		}
+		return ast.WalkContinue, nil
 	})
+	return string(masked)
 }
 
 // classifyBodyToken returns the finding subcode and detail message for
