@@ -15,7 +15,6 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/manifest"
 	"github.com/23min/aiwf/internal/render"
-	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -103,7 +102,12 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 	}
 
 	ctx := context.Background()
-	tr, _, err := tree.Load(ctx, rootDir)
+	// LoadTreeWithTrunk (not bare tree.Load) so the verb-time
+	// body-prose-id scan sees TrunkIDs: an imported body referencing an
+	// entity allocated on trunk but absent from this branch's tree must
+	// not refuse the import (G-0241). Matches add/check/reallocate/
+	// rewidth.
+	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf import: loading tree: %v\n", err)
 		return cliutil.ExitInternal

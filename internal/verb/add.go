@@ -138,7 +138,7 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	// --body-file content before the commit lands. Include the just-
 	// allocated entity in the index so self-references resolve cleanly.
 	bpidx := check.BodyProseIDIndex(t)
-	bpidx[entity.Canonicalize(e.ID)] = e
+	bpidx.ByID[entity.Canonicalize(e.ID)] = e
 	if fs := check.ScanBodyProseID(body, e.ID, e.Path, bpidx); check.HasErrors(fs) {
 		return findings(fs), nil
 	}

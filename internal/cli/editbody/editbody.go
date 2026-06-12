@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -94,7 +93,11 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 	defer release()
 
 	ctx := context.Background()
-	tr, _, err := tree.Load(ctx, rootDir)
+	// LoadTreeWithTrunk (not bare tree.Load) so the verb-time
+	// body-prose-id scan sees TrunkIDs: a body referencing an entity
+	// allocated on trunk but absent from this branch's tree must not
+	// refuse the write (G-0241). Matches add/check/reallocate/rewidth.
+	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf edit-body: loading tree: %v\n", err)
 		return cliutil.ExitInternal

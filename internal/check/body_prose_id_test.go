@@ -8,6 +8,7 @@ import (
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // TestBodyProseID_Matrix walks the rule's classification space:
@@ -327,6 +328,102 @@ func TestBodyProseID_MultipleEntitiesEachReportSeparately(t *testing.T) {
 	got := bodyProseID(tr)
 	if len(got) != 2 {
 		t.Fatalf("per-entity finding broken: got %d, want 2: %+v", len(got), got)
+	}
+}
+
+// TestBodyProseID_TrunkTier_G0241 pins the second-tier trunk
+// resolution (G-0241): a strict-form token that misses the working-
+// tree index but appears in Tree.TrunkIDs is silent — the id IS
+// allocated, just not visible on this branch. The negative cases pin
+// that the trunk tier does not widen anything else: truly-unknown ids
+// still fire with a populated trunk set, malformed shapes are never
+// laundered by trunk membership, and a locally-visible parent stays
+// authoritative for AC validation even when its id also appears on
+// trunk. All pre-existing tests in this file run with TrunkIDs nil
+// and pin the degraded (primary-tier-only) behavior.
+func TestBodyProseID_TrunkTier_G0241(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		body        string
+		trunkIDs    []string
+		wantSubcode string
+		silent      bool
+	}{
+		{
+			name:     "bare trunk-only id silent",
+			body:     "Depends on G-0500 which was filed on trunk.",
+			trunkIDs: []string{"G-0500"},
+			silent:   true,
+		},
+		{
+			name:     "composite with trunk-only parent silent (AC position unverifiable without the file)",
+			body:     "Per M-0500/AC-1, the contract holds.",
+			trunkIDs: []string{"M-0500"},
+			silent:   true,
+		},
+		{
+			name:     "narrow-legacy trunk id resolves canonical-width token",
+			body:     "Depends on G-0500 from a pre-rewidth trunk.",
+			trunkIDs: []string{"G-500"},
+			silent:   true,
+		},
+		{
+			name:     "narrow token resolves canonical-width trunk id",
+			body:     "Depends on G-500 (narrow legacy form).",
+			trunkIDs: []string{"G-0500"},
+			silent:   true,
+		},
+		{
+			name:        "truly-unknown id still fires with populated trunk set",
+			body:        "See M-9999 for the proposed rule.",
+			trunkIDs:    []string{"G-0500"},
+			wantSubcode: "unresolved",
+		},
+		{
+			name:        "truly-unknown composite parent still fires with populated trunk set",
+			body:        "See M-9999/AC-1.",
+			trunkIDs:    []string{"G-0500"},
+			wantSubcode: "unresolved-milestone",
+		},
+		{
+			name:        "malformed shape never laundered by trunk membership",
+			body:        "We depend on the milestone M-a.",
+			trunkIDs:    []string{"G-0500"},
+			wantSubcode: "malformed-shape",
+		},
+		{
+			name:        "local parent stays authoritative for AC validation despite trunk membership",
+			body:        "Per M-0001/AC-9, the gap is closed.",
+			trunkIDs:    []string{"M-0001"},
+			wantSubcode: "unresolved-ac",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			ents := writeBodyProseFixture(t, root, tc.body)
+			tr := &tree.Tree{Root: root, Entities: ents}
+			for _, id := range tc.trunkIDs {
+				tr.TrunkIDs = append(tr.TrunkIDs, trunk.ID{ID: id})
+			}
+
+			got := bodyProseID(tr)
+			if tc.silent {
+				if len(got) != 0 {
+					t.Fatalf("expected silent, got %d findings: %+v", len(got), got)
+				}
+				return
+			}
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+			}
+			if got[0].Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+		})
 	}
 }
 

@@ -117,31 +117,59 @@ func bodyProseID(t *tree.Tree) []Finding {
 	return findings
 }
 
+// BodyProseIndex is the two-tier id-resolution view ScanBodyProseID
+// consults.
+//
+// ByID is the primary tier: canonicalized id → entity for every
+// working-tree entity (active + archive) and stub. Stubs are included
+// so a body referencing an entity whose file failed to parse resolves
+// silently (the parse failure is already reported as a load-error
+// finding; re-reporting via body-prose-id would be noise).
+//
+// Trunk is the second tier (G-0241): the canonicalized id set observed
+// on the configured trunk ref. A strict-form token that misses ByID
+// but hits Trunk is silent — the id IS allocated, just not visible in
+// this branch's working tree (typical case: an entity filed on trunk
+// in another session while this branch is in flight). Resolution is
+// thereby symmetric with allocation, where AllocateID already treats
+// trunk ids as authoritative. Nil Trunk (in-memory test trees,
+// no-remote repos, dispatchers that load without a trunk read)
+// degrades to primary-tier-only behavior — the pre-G-0241 default.
+type BodyProseIndex struct {
+	ByID  map[string]*entity.Entity
+	Trunk map[string]bool
+}
+
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
-// consumes: canonicalized id → entity. Includes stubs so a body
-// referencing an entity whose file failed to parse resolves silently
-// (the parse failure is already reported as a load-error finding;
-// re-reporting via body-prose-id would be noise).
+// consumes from the tree's entities, stubs, and trunk-id set.
 //
 // Exposed so verbs that scan planned-write body content at verb time
 // (G-0184 verb-time scan) share the index with the tree-walking
 // bodyProseID rule. Verbs should build the index once before the loop
 // over planned files, then pass it to ScanBodyProseID per file.
-func BodyProseIDIndex(t *tree.Tree) map[string]*entity.Entity {
-	idx := make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs))
+func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
+	idx := BodyProseIndex{
+		ByID: make(map[string]*entity.Entity, len(t.Entities)+len(t.Stubs)),
+	}
 	for _, e := range t.Entities {
 		key := entity.Canonicalize(e.ID)
-		if _, exists := idx[key]; exists {
+		if _, exists := idx.ByID[key]; exists {
 			continue
 		}
-		idx[key] = e
+		idx.ByID[key] = e
 	}
 	for _, e := range t.Stubs {
 		key := entity.Canonicalize(e.ID)
-		if _, exists := idx[key]; exists {
+		if _, exists := idx.ByID[key]; exists {
 			continue
 		}
-		idx[key] = e
+		idx.ByID[key] = e
+	}
+	if len(t.TrunkIDs) > 0 {
+		idx.Trunk = make(map[string]bool, len(t.TrunkIDs))
+		for _, tid := range t.TrunkIDs {
+			idx.Trunk[entity.Canonicalize(tid.ID)] = true
+		}
 	}
 	return idx
 }
@@ -163,7 +191,7 @@ func BodyProseIDIndex(t *tree.Tree) map[string]*entity.Entity {
 //
 // The idx parameter is the resolution index from BodyProseIDIndex;
 // callers that scan multiple bodies should build it once and reuse.
-func ScanBodyProseID(body []byte, entityID, path string, idx map[string]*entity.Entity) []Finding {
+func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []Finding {
 	// Mask code spans and fences with same-length runs of spaces so the
 	// regex doesn't match tokens inside them but byte offsets stay
 	// aligned with the original body for line-number resolution.
@@ -211,11 +239,28 @@ func maskSameLength(re *regexp.Regexp, s string) string {
 
 // classifyBodyToken returns the finding subcode and detail message for
 // a candidate token, or ("", "") if the token resolves cleanly.
-func classifyBodyToken(tok string, idx map[string]*entity.Entity) (subcode, msg string) {
+//
+// Resolution order per tier: the working-tree index (idx.ByID) is
+// authoritative when it has the id — a locally-visible milestone with
+// a missing AC fires unresolved-ac even if the id also appears on
+// trunk. The trunk tier (idx.Trunk) is consulted only on a ByID miss
+// (G-0241): a strict-form token known on trunk is silent. For a
+// composite token whose parent is trunk-only, the AC position cannot
+// be validated without the parent's file, so the whole token is
+// silent — refusing would re-create the verb-time refusal G-0241
+// fixes, and the position is validated by the tree-walking rule once
+// the file is visible (post rebase/merge). Malformed-shape tokens
+// never reach the trunk tier: trunk ids are strict-form by
+// construction, so trunk membership cannot launder a malformed token.
+func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 	if strictCompositeIDPattern.MatchString(tok) {
 		parent, sub, _ := entity.ParseCompositeID(tok)
-		parentEntity, ok := idx[entity.Canonicalize(parent)]
+		canonParent := entity.Canonicalize(parent)
+		parentEntity, ok := idx.ByID[canonParent]
 		if !ok {
+			if idx.Trunk[canonParent] {
+				return "", ""
+			}
 			return "unresolved-milestone", fmt.Sprintf("composite id %q whose parent %q is not allocated", tok, parent)
 		}
 		for _, ac := range parentEntity.ACs {
@@ -226,7 +271,11 @@ func classifyBodyToken(tok string, idx map[string]*entity.Entity) (subcode, msg 
 		return "unresolved-ac", fmt.Sprintf("composite id %q but %s has no %s in acs[]", tok, parent, sub)
 	}
 	if strictBareIDPattern.MatchString(tok) {
-		if _, ok := idx[entity.Canonicalize(tok)]; ok {
+		canon := entity.Canonicalize(tok)
+		if _, ok := idx.ByID[canon]; ok {
+			return "", ""
+		}
+		if idx.Trunk[canon] {
 			return "", ""
 		}
 		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
