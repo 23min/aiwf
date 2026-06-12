@@ -1,8 +1,10 @@
 ---
 id: G-0179
 title: Enforce full local CI gate (golangci-lint) at wrap on unpushed branches
-status: open
+status: addressed
 discovered_in: M-0151
+addressed_by_commit:
+    - 3f5f075b
 ---
 ## What
 
