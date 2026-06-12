@@ -22,7 +22,7 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 - Run `aiwf check`. **Zero error-severity findings on the milestone.** The relevant codes: `acs-shape`, `acs-tdd-audit`, `milestone-done-incomplete-acs`, `acs-body-coherence`. Warnings (e.g. `acs-body-coherence`) are advisory but worth resolving before wrap.
 - Run the full test suite. **All pass.**
 - Run the project's build. **Green.**
-- Run any project-specific lint or type-check. Clean.
+- Run the project's full lint gate — the same linter set CI runs on push (e.g. a `make ci` target), not a subset like `go vet` alone. **Clean.** Unpushed branches accumulate lint debt invisibly; the wrap is the cheap moment to catch it.
 
 If anything is red, stop and report. Wrap does not paper over failure.
 

@@ -573,6 +573,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Mutating-verb commits carry `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers | `internal/policies/trailer_keys.go` + the `principal_write_sites` policy + the untrailered-entity audit (G24, G31, G32) | Blocking via CI test    |
 | Bumping the Go floor in `go.mod`                             | Deliberate decision; document rationale in commit message        | Advisory                |
 | Contributor-state / path-leak in committed text (`/Users/<name>/`, `/home/<name>/`, `C:\Users\<name>\`) | `gitleaks git --staged --config=.gitleaks.toml` — pre-commit hook (G-0103) | Blocking pre-commit     |
+| Lint debt crossing the push boundary (`golangci-lint` on pushed Go changes) | `scripts/git-hooks/pre-push` → `.git/hooks/pre-push.local` via `make install-hooks`; contract pinned by `internal/policies/prepush_lint_hook_test.go` (G-0179) | Blocking pre-push (per-clone install) |
 
 The four advisory lines are the items where mechanical enforcement is either too noisy (context.Context first arg — generics make a literal regex unreliable), too contextual (package-level mutable state — sometimes legitimate behind a guard), or self-policing (dep justification, deliberate floor bumps). Reviewers and the `Go conventions` section above are the chokepoint there.
 

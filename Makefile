@@ -107,15 +107,19 @@ ci: vet lint test-race coverage selfcheck
 clean:
 	rm -rf bin coverage.out
 
-# install-hooks symlinks the tracked policy-lint hook into
-# .git/hooks/pre-commit.local — the G45 chain target invoked by
-# aiwf's chain-aware pre-commit hook. Idempotent: ln -sf overwrites
-# any prior symlink and updates to scripts/git-hooks/pre-commit
-# propagate immediately (the symlink resolves at hook-fire time).
+# install-hooks symlinks the tracked kernel hooks into their
+# .git/hooks/<name>.local chain targets — the G45 seam invoked by
+# aiwf's chain-aware hooks. Idempotent: ln -sfn overwrites any
+# prior symlink and updates to scripts/git-hooks/* propagate
+# immediately (the symlink resolves at hook-fire time).
 #
-# Run once after a fresh clone. The aiwf-managed hook itself is
-# materialized by `aiwf init`/`aiwf update`, which write the
-# chain-aware pre-commit hook at .git/hooks/pre-commit.
+#   pre-commit — kernel policy lint + gitleaks path-leak gate.
+#   pre-push   — golangci-lint boundary gate on pushed Go changes
+#                (G-0179); runs before aiwf's `aiwf check`.
+#
+# Run once after a fresh clone. The aiwf-managed hooks themselves
+# are materialized by `aiwf init`/`aiwf update`, which write the
+# chain-aware hooks at .git/hooks/<name>.
 #
 # Pre-G38 this target set `core.hooksPath = scripts/git-hooks`. That
 # overrode git's default hooks dir, which collided with aiwf's own
@@ -126,8 +130,10 @@ install-hooks:
 	@HOOKS_DIR=$$(git rev-parse --git-path hooks); \
 	mkdir -p "$$HOOKS_DIR"; \
 	ln -sfn ../../scripts/git-hooks/pre-commit "$$HOOKS_DIR/pre-commit.local"; \
-	echo "Symlinked scripts/git-hooks/pre-commit -> $$HOOKS_DIR/pre-commit.local"
-	@echo "Run 'aiwf init' (if not already done) so the chain-aware aiwf hook calls it."
+	ln -sfn ../../scripts/git-hooks/pre-push "$$HOOKS_DIR/pre-push.local"; \
+	echo "Symlinked scripts/git-hooks/pre-commit -> $$HOOKS_DIR/pre-commit.local"; \
+	echo "Symlinked scripts/git-hooks/pre-push   -> $$HOOKS_DIR/pre-push.local"
+	@echo "Run 'aiwf init' (if not already done) so the chain-aware aiwf hooks call them."
 
 # Playwright browser-level tests for the HTML render. Opt-in: not
 # run by `make ci` because they require Node + a 100MB Chromium

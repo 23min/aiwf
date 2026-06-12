@@ -38,7 +38,7 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 3. **Implement the change.** Touch only what's needed. Resist refactoring along the way — that's what a milestone is for, not a patch.
 
-4. **Verify locally.** Run the project's test suite and any linter the project has wired up. Confirm green before staging.
+4. **Verify locally.** Run the project's full local CI gate — the same checks CI runs on push (e.g. a `make ci` target), not a subset. A linter that only runs in CI is debt waiting at the push boundary. Confirm green before staging.
 
 5. **Stage the change** and draft a commit message: one-line subject, optional body explaining *why*.
 

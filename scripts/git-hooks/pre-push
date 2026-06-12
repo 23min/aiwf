@@ -1,0 +1,101 @@
+#!/bin/sh
+# pre-push (kernel lint-boundary hook). G-0179.
+#
+# Blocks a push that would carry unlinted Go changes across the
+# machine boundary. Long-lived branches accumulate golangci-lint
+# debt invisibly: CI only lints on push, and per-milestone
+# validation as practiced ran `go vet` + `go test`, not the full
+# lint set — G-0179's evidence was 9 CI-blocking findings spanning
+# three milestone wraps, all invisible until the epic branch was
+# finally pushed. This hook runs the same linter CI runs, locally,
+# before the push leaves the machine.
+#
+# Install: `make install-hooks` symlinks this file into
+# .git/hooks/pre-push.local — the G45 chain target invoked by
+# aiwf's chain-aware pre-push hook before `aiwf check`. Updates to
+# this file propagate immediately (the symlink resolves at
+# hook-fire time).
+#
+# Short-circuit: only fires when a pushed range touches Go
+# surfaces (*.go, go.mod, go.sum, .golangci.yml). Planning-tree
+# pushes (gap adds, promotes, archive sweeps) pay zero.
+#
+# Scope approximation: when triggered, the linter runs against the
+# checked-out working tree, not the pushed commits themselves —
+# checking out the pushed sha into a temp worktree per push would
+# be disproportionate (KISS). Two consequences, both acceptable:
+# a dirty tree can block a push whose commits are clean (fix or
+# stash, then push), and a tree-side fix can mask debt inside the
+# pushed commits (CI, which lints the pushed sha, remains the
+# backstop — same as before this hook existed).
+#
+# Tolerant by design: missing golangci-lint on PATH is a warning,
+# not a block — same shape as the pre-commit hook's missing-go
+# branch. CI runs the linter independently. Escape hatch for a
+# deliberate unlinted push: `git push --no-verify` (sovereign,
+# visible, human-initiated).
+#
+# Test override: AIWF_PREPUSH_LINT_CMD replaces the lint command
+# (default: "golangci-lint run"). The policy tests in
+# internal/policies/prepush_lint_hook_test.go use it to pin the
+# trigger/skip decision without running the real linter.
+
+set -e
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+lint_cmd="${AIWF_PREPUSH_LINT_CMD:-golangci-lint run}"
+
+zero="0000000000000000000000000000000000000000"
+needs_lint=0
+
+# Stdin: one line per ref being pushed,
+# "<local-ref> <local-sha> <remote-ref> <remote-sha>".
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "$local_sha" ] || continue
+    # Deleting a remote ref pushes no content — nothing to lint.
+    [ "$local_sha" = "$zero" ] && continue
+    if [ "$remote_sha" = "$zero" ]; then
+        # New ref on the remote: no prior remote state to diff
+        # against. Diff from the merge-base with origin/main when
+        # one exists; otherwise be conservative and lint.
+        if base="$(git merge-base "$local_sha" origin/main 2>/dev/null)"; then
+            range="$base..$local_sha"
+        else
+            needs_lint=1
+            continue
+        fi
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    if ! changed="$(git diff --name-only "$range" -- '*.go' go.mod go.sum .golangci.yml 2>/dev/null)"; then
+        # Range not resolvable locally (e.g. remote sha not
+        # fetched) — be conservative and lint.
+        needs_lint=1
+        continue
+    fi
+    [ -n "$changed" ] && needs_lint=1
+done
+
+[ "$needs_lint" -eq 1 ] || exit 0
+
+lint_bin="${lint_cmd%% *}"
+if ! command -v "$lint_bin" >/dev/null 2>&1; then
+    echo "pre-push.local: $lint_bin not on PATH — lint boundary gate skipped." >&2
+    echo "                CI runs golangci-lint independently. Install:" >&2
+    echo "                https://golangci-lint.run/welcome/install/" >&2
+    exit 0
+fi
+
+# Word-splitting of $lint_cmd is intentional (command + args).
+if ! $lint_cmd >&2; then
+    echo "" >&2
+    echo "pre-push.local: lint failed — push blocked (G-0179)." >&2
+    echo "                Note: lint runs against the checked-out working tree," >&2
+    echo "                so uncommitted edits count. Fix the findings, or for a" >&2
+    echo "                deliberate unlinted push: git push --no-verify" >&2
+    exit 1
+fi
+
+exit 0

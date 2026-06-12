@@ -20,6 +20,7 @@ Closes an epic. The epic itself is a coordination unit — closing it means: eve
 2. The epic branch (if used) is up to date — every milestone's final merge commit is on it.
 3. Working tree clean.
 4. Integration target identified (usually `main`).
+5. The project's full local CI gate is green on the epic branch — the same checks CI runs on push (e.g. a `make ci` target), not a subset. Long-lived epic branches accumulate lint debt invisibly across milestone wraps; the merge to mainline is the last local moment to catch it.
 
 If any precondition fails, stop and report. Do not improvise around an unfinished epic.
 
