@@ -1,7 +1,9 @@
 ---
 id: G-0240
 title: body-prose-id stripper is not CommonMark-aware
-status: open
+status: addressed
+addressed_by_commit:
+    - 8b18ca7b
 ---
 ## What's missing
 
