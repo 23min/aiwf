@@ -1,7 +1,9 @@
 ---
 id: G-0245
 title: embedded ritual agents still instruct the retired work/tracking doc convention
-status: open
+status: addressed
+addressed_by_commit:
+    - 38ff079c
 ---
 ## What's missing
 
