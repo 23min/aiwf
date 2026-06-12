@@ -22,6 +22,7 @@
 package htmlrender
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"os"
@@ -30,6 +31,7 @@ import (
 	"time"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -315,28 +317,25 @@ func sortedByID(entities []*entity.Entity) []*entity.Entity {
 	return out
 }
 
-// executeToFile renders tmplName with data and writes the result to
-// path. Truncates any existing file. Failure to render or write
-// surfaces as a wrapped error naming the path.
+// executeToFile renders tmplName with data into memory and writes the
+// result to path atomically (temp + fsync + rename), so a render
+// killed mid-run never leaves a truncated page at path. Failure to
+// render or write surfaces as a wrapped error naming the path.
 func executeToFile(tmpls *template.Template, tmplName, path string, data any) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("creating %s: %w", path, err)
-	}
-	if err := tmpls.ExecuteTemplate(f, tmplName, data); err != nil {
-		_ = f.Close()
+	var buf bytes.Buffer
+	if err := tmpls.ExecuteTemplate(&buf, tmplName, data); err != nil {
 		return fmt.Errorf("rendering %s into %s: %w", tmplName, path, err)
 	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("closing %s: %w", path, err)
+	if err := pathutil.AtomicWriteFile(path, buf.Bytes(), 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil
 }
 
 // writeAssetFile writes a static asset file with stable permissions,
-// truncating any existing file at path.
+// replacing any existing file at path atomically.
 func writeAssetFile(path string, content []byte) error {
-	if err := os.WriteFile(path, content, 0o644); err != nil {
+	if err := pathutil.AtomicWriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil

@@ -30,6 +30,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // embedFS holds the canonical SKILL.md content for every aiwf-* skill.
@@ -352,7 +354,7 @@ func MaterializeTo(root string, target Target) error {
 		if mkErr := os.MkdirAll(dir, 0o755); mkErr != nil {
 			return fmt.Errorf("creating %s: %w", dir, mkErr)
 		}
-		if wErr := os.WriteFile(filepath.Join(dir, "SKILL.md"), s.Content, 0o644); wErr != nil {
+		if wErr := pathutil.AtomicWriteFile(filepath.Join(dir, "SKILL.md"), s.Content, 0o644); wErr != nil {
 			return fmt.Errorf("writing %s/SKILL.md: %w", s.Name, wErr)
 		}
 	}
@@ -360,7 +362,7 @@ func MaterializeTo(root string, target Target) error {
 	if wmErr := writeManifest(skillsRoot, skills); wmErr != nil {
 		return wmErr
 	}
-	if rErr := os.WriteFile(filepath.Join(skillsRoot, ProvenanceReadme), []byte(provenanceReadmeBody), 0o644); rErr != nil {
+	if rErr := pathutil.AtomicWriteFile(filepath.Join(skillsRoot, ProvenanceReadme), []byte(provenanceReadmeBody), 0o644); rErr != nil {
 		return fmt.Errorf("writing %s/%s: %w", target.SkillsDir, ProvenanceReadme, rErr)
 	}
 
@@ -462,7 +464,7 @@ func materializeFlatFiles(root, destDir string, files []Skill) error {
 		}
 	}
 	for _, f := range files {
-		if err := os.WriteFile(filepath.Join(dir, f.Name), f.Content, 0o644); err != nil {
+		if err := pathutil.AtomicWriteFile(filepath.Join(dir, f.Name), f.Content, 0o644); err != nil {
 			return fmt.Errorf("writing %s/%s: %w", destDir, f.Name, err)
 		}
 	}
@@ -492,7 +494,16 @@ func readManifest(skillsRoot string) ([]string, error) {
 }
 
 // writeManifest records the names of the currently-embedded skills as
-// the new ownership set. Atomic via temp-file + rename.
+// the new ownership set. Atomic via pathutil.AtomicWriteFile.
+//
+// Per-file atomicity is deliberate (G-0221 candidate path step 3
+// proposed an all-or-nothing staging-directory swap instead): a
+// directory swap would clobber user-owned content sharing the dir,
+// and os.Rename onto a non-empty directory fails on POSIX anyway. A
+// crash between the skill writes and this manifest write can leave
+// the pair momentarily disagreeing; the next `aiwf update` rewrites
+// both idempotently, so per-file atomic writes are the simpler
+// correct shape.
 func writeManifest(skillsRoot string, skills []Skill) error {
 	var b strings.Builder
 	for _, s := range skills {
@@ -500,13 +511,8 @@ func writeManifest(skillsRoot string, skills []Skill) error {
 		b.WriteByte('\n')
 	}
 	path := filepath.Join(skillsRoot, ManifestFile)
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(b.String()), 0o644); err != nil {
+	if err := pathutil.AtomicWriteFile(path, []byte(b.String()), 0o644); err != nil {
 		return fmt.Errorf("writing manifest: %w", err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("renaming manifest: %w", err)
 	}
 	return nil
 }

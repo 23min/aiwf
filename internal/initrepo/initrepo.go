@@ -22,6 +22,7 @@ import (
 
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/pathutil"
 	"github.com/23min/aiwf/internal/skills"
 )
 
@@ -869,7 +870,7 @@ func ensureGitignore(root string, statusMdAutoUpdate, dryRun bool) (StepResult, 
 		action = ActionCreated
 	}
 	if !dryRun {
-		if err := os.WriteFile(path, out, 0o644); err != nil {
+		if err := pathutil.AtomicWriteFile(path, out, 0o644); err != nil {
 			return StepResult{}, fmt.Errorf("writing .gitignore: %w", err)
 		}
 	}
@@ -1025,7 +1026,7 @@ func ensureClaudeMd(root string, dryRun bool) (StepResult, error) {
 		return StepResult{}, fmt.Errorf("statting CLAUDE.md: %w", err)
 	}
 	if !dryRun {
-		if err := os.WriteFile(path, []byte(CLAUDETemplate), 0o644); err != nil {
+		if err := pathutil.AtomicWriteFile(path, []byte(CLAUDETemplate), 0o644); err != nil {
 			return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", err)
 		}
 	}
@@ -1095,7 +1096,7 @@ func ensurePreHook(ctx context.Context, root string, dryRun bool) (StepResult, b
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(preHookScript()), 0o755); err != nil {
+		if err := pathutil.AtomicWriteFile(hookPath, []byte(preHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing pre-push hook: %w", err)
 		}
 	}
@@ -1202,7 +1203,7 @@ func ensurePreCommitHook(ctx context.Context, root string, dryRun bool) (StepRes
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(preCommitHookScript()), 0o755); err != nil {
+		if err := pathutil.AtomicWriteFile(hookPath, []byte(preCommitHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing pre-commit hook: %w", err)
 		}
 	}
@@ -1277,7 +1278,7 @@ func ensureCommitMsgHook(ctx context.Context, root string, dryRun bool) (StepRes
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(commitMsgHookScript()), 0o755); err != nil {
+		if err := pathutil.AtomicWriteFile(hookPath, []byte(commitMsgHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing commit-msg hook: %w", err)
 		}
 	}
@@ -1393,7 +1394,7 @@ func ensurePostCommitHook(ctx context.Context, root string, regenStatus, dryRun 
 		action = ActionUpdated
 	}
 	if !dryRun {
-		if err := os.WriteFile(hookPath, []byte(postCommitHookScript()), 0o755); err != nil {
+		if err := pathutil.AtomicWriteFile(hookPath, []byte(postCommitHookScript()), 0o755); err != nil {
 			return StepResult{}, false, fmt.Errorf("writing post-commit hook: %w", err)
 		}
 	}

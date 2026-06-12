@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // Apply executes a verb's Plan against the consumer repo at root: it
-// runs every OpMove via `git mv`, every OpWrite directly to disk
-// (creating parent directories as needed), stages the writes with
-// `git add`, then creates the single commit with the plan's subject
-// and trailers.
+// runs every OpMove via `git mv`, every OpWrite atomically to disk
+// via pathutil.AtomicWriteFile (creating parent directories as
+// needed), stages the writes with `git add`, then creates the single
+// commit with the plan's subject and trailers.
 //
 // Moves run before writes so that when a verb (notably reallocate)
 // renames a file/dir and also rewrites files inside that dir, the
@@ -137,7 +138,7 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		if mkdirErr := os.MkdirAll(filepath.Dir(full), 0o755); mkdirErr != nil {
 			return fmt.Errorf("creating %s: %w", filepath.Dir(op.Path), mkdirErr)
 		}
-		if writeErr := os.WriteFile(full, op.Content, 0o644); writeErr != nil {
+		if writeErr := pathutil.AtomicWriteFile(full, op.Content, 0o644); writeErr != nil {
 			return fmt.Errorf("writing %s: %w", op.Path, writeErr)
 		}
 		writtenPaths = append(writtenPaths, op.Path)
@@ -446,7 +447,7 @@ func (t *applyTx) rollback() error {
 			if mkErr := os.MkdirAll(filepath.Dir(full), 0o755); mkErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the parent was readable at capture time
 				firstErr = fmt.Errorf("creating parent of %s on rollback: %w", p, mkErr)
 			}
-			if wErr := os.WriteFile(full, captured, 0o644); wErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the path was a regular file readable at capture time
+			if wErr := pathutil.AtomicWriteFile(full, captured, 0o644); wErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the path was a regular file readable at capture time
 				firstErr = fmt.Errorf("restoring %s to pre-apply state: %w", p, wErr)
 			}
 		}

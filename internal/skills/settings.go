@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // SettingsWriteResult reports what WireStatuslineSettings did.
@@ -70,7 +72,7 @@ func WireStatuslineSettings(settingsPath, cmdPath string) (SettingsWriteResult, 
 
 	if len(existing) > 0 {
 		bakPath := settingsPath + ".bak"
-		if wErr := os.WriteFile(bakPath, existing, 0o644); wErr != nil {
+		if wErr := pathutil.AtomicWriteFile(bakPath, existing, 0o644); wErr != nil {
 			return res, fmt.Errorf("writing backup %s: %w", bakPath, wErr)
 		}
 		res.BackupPath = bakPath
@@ -92,7 +94,7 @@ func WireStatuslineSettings(settingsPath, cmdPath string) (SettingsWriteResult, 
 	if mkErr := os.MkdirAll(filepath.Dir(settingsPath), 0o755); mkErr != nil {
 		return res, fmt.Errorf("creating directory for %s: %w", settingsPath, mkErr)
 	}
-	if wErr := os.WriteFile(settingsPath, out, 0o644); wErr != nil {
+	if wErr := pathutil.AtomicWriteFile(settingsPath, out, 0o644); wErr != nil {
 		return res, fmt.Errorf("writing %s: %w", settingsPath, wErr)
 	}
 	res.Wrote = true

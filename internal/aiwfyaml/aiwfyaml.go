@@ -37,6 +37,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // Contracts is the typed shape of the aiwf.yaml `contracts:` block.
@@ -183,15 +185,11 @@ func (d *Doc) Bytes() []byte {
 	return d.raw
 }
 
-// Write atomically writes the doc's bytes to path.
+// Write atomically writes the doc's bytes to path via
+// pathutil.AtomicWriteFile (temp + fsync + rename).
 func (d *Doc) Write(path string) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, d.raw, 0o644); err != nil {
-		return fmt.Errorf("writing %s: %w", tmp, err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("renaming %s -> %s: %w", tmp, path, err)
+	if err := pathutil.AtomicWriteFile(path, d.raw, 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil
 }

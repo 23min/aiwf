@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0221: disk-level atomic writes via a central temp+fsync+rename helper
+
+Every kernel write to a persistent file now routes through `pathutil.AtomicWriteFile` (sibling temp file → `fsync` → `os.Rename`), so an OS crash or hard kill mid-write can no longer leave a half-written entity file, `aiwf.yaml`, settings file, git hook, or rendered HTML page behind. Rerouted sites: the verb mutation writer (`verb.Apply`, including its rollback restore), the three `aiwf.yaml` rewrites in `internal/config`, the statusline settings/scaffold/gitignore writes, the skill/agent/template materialization and ownership manifests, `aiwfyaml.Doc.Write` (previously temp+rename without fsync), the htmlrender per-page emit (renders to memory first — a render killed mid-run no longer truncates pages), and the `aiwf init` artifact writes (`.gitignore`, CLAUDE.md template, all four git hooks). The new `atomic-write-chokepoint` policy test blocks future raw `os.WriteFile` / `os.Create` / write-mode `os.OpenFile` calls in production code; the two allowlisted exceptions are `aiwf doctor --self-check` (sandbox-confined writes) and the repo lockfile (fd carries flock only, never content). As a side effect of the buffer-first render, a template error during `aiwf render` no longer destroys the existing page it was about to replace.
+
 ## [0.13.0] — 2026-06-12
 
 ### Added — G-0179: pre-push golangci-lint boundary gate; rituals name the full local CI gate

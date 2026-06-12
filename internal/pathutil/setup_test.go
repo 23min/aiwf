@@ -15,8 +15,9 @@ import (
 // out via gitops downstream get a sane environment without each
 // test caring. Harmless where it isn't needed.
 //
-// Serial tests: none. Every Test* function in this package is
-// pure path/symlink reasoning with no shared state or env mutation.
+// Serial tests: none. Every Test* function in this package either
+// does pure path/symlink reasoning or file IO confined to its own
+// t.TempDir — no shared state or env mutation.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

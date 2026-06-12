@@ -34,6 +34,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // FileName is the canonical filename at the consumer repo root.
@@ -376,7 +378,7 @@ func StripLegacyActor(root string) (changed bool, err error) {
 	if !changed {
 		return false, nil
 	}
-	if writeErr := os.WriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
+	if writeErr := pathutil.AtomicWriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
 		return false, fmt.Errorf("writing %s: %w", FileName, writeErr)
 	}
 	return true, nil
@@ -433,7 +435,7 @@ func StripLegacyAiwfVersion(root string) (changed bool, err error) {
 	if !changed {
 		return false, nil
 	}
-	if writeErr := os.WriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
+	if writeErr := pathutil.AtomicWriteFile(path, []byte(strings.Join(out, "")), 0o644); writeErr != nil {
 		return false, fmt.Errorf("writing %s: %w", FileName, writeErr)
 	}
 	return true, nil
@@ -499,7 +501,7 @@ func Write(root string, cfg *Config) error {
 	if strings.TrimSpace(string(out)) == "{}" {
 		out = []byte("# aiwf consumer-repo config. Append top-level keys (e.g. html: { commit_output: true })\n# to opt into framework features. See `aiwf doctor` and the README for the full list.\n")
 	}
-	if err := os.WriteFile(path, out, 0o644); err != nil {
+	if err := pathutil.AtomicWriteFile(path, out, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", FileName, err)
 	}
 	return nil

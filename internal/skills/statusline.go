@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/23min/aiwf/internal/pathutil"
 )
 
 // StatuslineScope names which Claude Code settings tree a `--statusline`
@@ -107,7 +109,7 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return res, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
 	}
-	if err := os.WriteFile(dest, statuslineEmbed, 0o755); err != nil {
+	if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil {
 		return res, fmt.Errorf("writing %s: %w", dest, err)
 	}
 	res.Wrote = true
@@ -178,7 +180,7 @@ func ensureStatuslineGitignoreEntry(root string) (appended bool, err error) {
 	}
 	b.WriteString(want)
 	b.WriteByte('\n')
-	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
+	if err := pathutil.AtomicWriteFile(path, []byte(b.String()), 0o644); err != nil {
 		return false, fmt.Errorf("writing %s: %w", path, err)
 	}
 	return true, nil
