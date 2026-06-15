@@ -1,7 +1,7 @@
 ---
 id: M-0164
 title: Wire the CLAUDE.md guidance import with consent
-status: in_progress
+status: done
 parent: E-0040
 depends_on:
     - M-0163
