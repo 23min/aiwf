@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: init and update materialize the gitignored guidance file idempotently
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Guidance fragment stays within its per-turn line budget
       status: open
