@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: init and update wire the import by default; --no-wire-claudemd opts out
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Content outside the markers is preserved; CLAUDE.md is created if absent
       status: open
