@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Materialized guidance file contains every full-set rule and the id-shape line
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Materialized guidance file declares the aiwf version it was generated from
       status: open
