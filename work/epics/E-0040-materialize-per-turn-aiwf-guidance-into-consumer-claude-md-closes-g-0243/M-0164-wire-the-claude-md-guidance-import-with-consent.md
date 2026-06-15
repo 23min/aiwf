@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: The inserted import line resolves to the materialized guidance file
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: A damaged marker block is handled per the hook-marker policy
       status: open
