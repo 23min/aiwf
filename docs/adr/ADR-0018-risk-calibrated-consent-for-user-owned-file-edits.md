@@ -1,7 +1,7 @@
 ---
 id: ADR-0018
 title: Risk-calibrated consent for user-owned file edits
-status: proposed
+status: accepted
 ---
 ## Context
 
