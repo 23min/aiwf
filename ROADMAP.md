@@ -486,3 +486,18 @@ editing a settings file.
 | M-0156 | Consent-gated statusline settings wiring | done |
 | M-0157 | aiwf doctor statusline block | done |
 
+## E-0040 — Materialize per-turn aiwf guidance into consumer CLAUDE.md (closes G-0243) (proposed)
+
+### Goal
+
+Give aiwf a consent-gated write channel into the one consumer surface that is
+re-injected on every turn and survives `/compact` — the consumer's `CLAUDE.md` —
+so that the advisory rules aiwf cannot mechanically enforce actually bind in
+consumer trees, not just in this repo.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0163 | Embed and materialize the guidance fragment | draft |
+| M-0164 | Wire the CLAUDE.md guidance import with consent | draft |
+| M-0165 | Surface unwired CLAUDE.md guidance in aiwf doctor | draft |
+
