@@ -499,5 +499,5 @@ consumer trees, not just in this repo.
 |---|---|---|
 | M-0163 | Embed and materialize the guidance fragment | done |
 | M-0164 | Wire the CLAUDE.md guidance import with consent | done |
-| M-0165 | Surface unwired CLAUDE.md guidance in aiwf doctor | draft |
+| M-0165 | Surface unwired CLAUDE.md guidance in aiwf doctor | done |
 
