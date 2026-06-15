@@ -1,7 +1,7 @@
 ---
 id: M-0163
 title: Embed and materialize the guidance fragment
-status: in_progress
+status: done
 parent: E-0040
 tdd: required
 acs:
