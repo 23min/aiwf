@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Content outside the markers is preserved; CLAUDE.md is created if absent
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Re-running is idempotent; a removed import line is reported, not re-added
       status: open
