@@ -86,8 +86,9 @@ enough to re-anchor on every turn.
 
 ## Surfaces touched
 
-- `internal/skills/embedded-rituals/` — the authored fragment source.
-- `internal/skills/` — the materialization manifest / writer.
+- `internal/skills/embedded-guidance/aiwf-guidance.md` — the authored fragment source.
+- `internal/skills/guidance.go` — the embed + `RenderGuidance` / `MaterializeGuidance`.
+- `internal/initrepo/initrepo.go` — `ensureGuidance` wired into the init/update pipeline.
 
 ## Out of scope
 
@@ -111,7 +112,29 @@ enough to re-anchor on every turn.
 
 ## Work log
 
-<!-- One entry per AC or unit of work; append-only. -->
+<!-- Phase/met timeline per AC is authoritative in `aiwf history M-0163/AC-<N>`;
+     the implementation landed in this milestone's single wrap commit. -->
+
+### AC-1 — Fragment contains every rule
+
+`RenderGuidance` returns the embedded 31-line fragment (7 rules + id-shape line);
+asserted against embedded bytes. · tests 1/1 · `aiwf history M-0163/AC-1`
+
+### AC-2 — Materialized file declares the binary version
+
+`RenderGuidance` substitutes the `__AIWF_VERSION__` sentinel; `MaterializeGuidance`
+stamps `version.Current()`. · tests 2/2 · `aiwf history M-0163/AC-2`
+
+### AC-3 — init/update materialize the gitignored file, idempotently
+
+`ensureGuidance` wired into the init/update pipeline; `.claude/aiwf-guidance.md`
+added to `GitignorePatterns()`; seam test + both IO error branches. · tests 5/5 ·
+`aiwf history M-0163/AC-3`
+
+### AC-4 — Fragment within the per-turn line budget
+
+Line-budget guard over `GuidanceBytes()` (31/50 lines). · tests 1/1 ·
+`aiwf history M-0163/AC-4`
 
 ## Decisions made during implementation
 
@@ -119,10 +142,30 @@ enough to re-anchor on every turn.
 
 ## Validation
 
+- `go build ./...` — green; `golangci-lint run` (full module) — 0 issues; `go vet` — clean.
+- `go test ./internal/skills/ ./internal/initrepo/` — green. `guidance.go` and
+  `ensureGuidance` at 100% line coverage; every reachable branch (both IO error
+  paths and the error-wrap) has an explicit test.
+- Full `go test ./...` — green; `internal/cli/integration` flaked on the known
+  TempDir-cleanup race under the parallel full run but passes isolated (~79s).
+- `aiwf check` — 0 errors (3 pre-existing / worktree-benign warnings:
+  archive-sweep-pending, terminal-entity-not-archived, untrailered-scope-undefined).
+
 ## Deferrals
 
 - (none)
 
 ## Reviewer notes
 
-- (none)
+- AC-2 (version marker) and AC-4 (line budget) are verification + regression
+  guards, not test-driven REDs — their behavior was realized in AC-1/AC-3's
+  GREEN. This is inherent to content-property ACs on an artifact created earlier
+  in the same milestone.
+- The consumer-facing CLAUDE.md / design-doc description of "what aiwf
+  materializes" is intentionally NOT updated here: the guidance file is inert
+  until M-0164 wires the import line, so that doc-completeness update belongs with
+  M-0164 / the epic wrap.
+- `MaterializeGuidance` mirrors the `ScaffoldStatusline` IO pattern and
+  `ensureGuidance` mirrors `ensureSkills`; the difference is the guidance file is
+  byte-refreshed on every update (in `GitignorePatterns` + the refresh pipeline),
+  unlike the scaffold-once statusline.

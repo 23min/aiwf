@@ -553,6 +553,7 @@ func GitignorePatterns() ([]string, error) {
 		SkillsDir + "/" + ManifestFile,
 		SkillsDir + "/" + ProvenanceReadme,
 		"/aiwf",
+		GuidanceFile,
 	}
 	agents, err := ListRitualAgents()
 	if err != nil {
