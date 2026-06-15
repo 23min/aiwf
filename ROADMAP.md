@@ -486,7 +486,7 @@ editing a settings file.
 | M-0156 | Consent-gated statusline settings wiring | done |
 | M-0157 | aiwf doctor statusline block | done |
 
-## E-0040 — Materialize per-turn aiwf guidance into consumer CLAUDE.md (closes G-0243) (proposed)
+## E-0040 — Materialize per-turn aiwf guidance into consumer CLAUDE.md (closes G-0243) (active)
 
 ### Goal
 
@@ -497,7 +497,7 @@ consumer trees, not just in this repo.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0163 | Embed and materialize the guidance fragment | draft |
+| M-0163 | Embed and materialize the guidance fragment | done |
 | M-0164 | Wire the CLAUDE.md guidance import with consent | draft |
 | M-0165 | Surface unwired CLAUDE.md guidance in aiwf doctor | draft |
 
