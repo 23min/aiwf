@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Materialized guidance file contains every full-set rule and the id-shape line
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Materialized guidance file declares the aiwf version it was generated from
