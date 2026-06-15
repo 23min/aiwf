@@ -456,6 +456,12 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 	}
 	steps = append(steps, skillsStep)
 
+	guidanceStep, err := ensureGuidance(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, guidanceStep)
+
 	legacyStep, err := ensureLegacyActorClean(root, opts.DryRun)
 	if err != nil {
 		return nil, false, err
@@ -681,6 +687,29 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 		What:   ".claude/skills/aiwf-*",
 		Action: ActionUpdated,
 		Detail: "materialized from embedded skills",
+	}, nil
+}
+
+// ensureGuidance materializes the consumer CLAUDE.md guidance fragment
+// to .claude/aiwf-guidance.md, version-stamped from the running binary.
+// Unlike the scaffold-once statusline, it is byte-refreshed on every
+// init/update (M-0163). In dry-run mode, returns the would-be ledger
+// entry without touching disk.
+func ensureGuidance(root string, dryRun bool) (StepResult, error) {
+	if dryRun {
+		return StepResult{
+			What:   skills.GuidanceFile,
+			Action: ActionUpdated,
+			Detail: "would materialize the CLAUDE.md guidance fragment",
+		}, nil
+	}
+	if err := skills.MaterializeGuidance(root); err != nil {
+		return StepResult{}, fmt.Errorf("materializing guidance fragment: %w", err)
+	}
+	return StepResult{
+		What:   skills.GuidanceFile,
+		Action: ActionUpdated,
+		Detail: "materialized from embedded guidance",
 	}, nil
 }
 

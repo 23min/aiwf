@@ -789,16 +789,17 @@ func TestGitignorePatterns(t *testing.T) {
 		t.Fatalf("GitignorePatterns: %v", err)
 	}
 
-	// Expected set: the 5 static entries (3 skill wildcards + skills
-	// manifest + binary) plus the enumerated agent/template files and
-	// their per-dir manifests, derived from the embed exactly as the
-	// production helper does.
+	// Expected set: the static entries (3 skill wildcards + skills
+	// manifest + provenance readme + binary + guidance fragment) plus the
+	// enumerated agent/template files and their per-dir manifests, derived
+	// from the embed exactly as the production helper does.
 	wantVerbWildcard := SkillsDir + "/aiwf-*/"
 	wantAiwfxWildcard := SkillsDir + "/aiwfx-*/"
 	wantWfWildcard := SkillsDir + "/wf-*/"
 	wantManifest := SkillsDir + "/" + ManifestFile
 	wantReadme := SkillsDir + "/" + ProvenanceReadme
 	wantBinary := "/aiwf"
+	wantGuidance := GuidanceFile
 
 	want := map[string]bool{
 		wantVerbWildcard:  true,
@@ -807,6 +808,7 @@ func TestGitignorePatterns(t *testing.T) {
 		wantManifest:      true,
 		wantReadme:        true,
 		wantBinary:        true,
+		wantGuidance:      true,
 	}
 	agents, err := ListRitualAgents()
 	if err != nil {
