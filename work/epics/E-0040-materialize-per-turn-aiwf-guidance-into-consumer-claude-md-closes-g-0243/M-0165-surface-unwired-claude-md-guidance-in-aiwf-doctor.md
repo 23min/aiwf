@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Fixtures cover the wired, unwired, and file-absent states
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 # M-0165 — Surface unwired CLAUDE.md guidance in aiwf doctor
 
