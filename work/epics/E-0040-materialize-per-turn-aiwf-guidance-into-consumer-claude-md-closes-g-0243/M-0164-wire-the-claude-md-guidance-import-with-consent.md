@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: init and update wire the import by default; --no-wire-claudemd opts out
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Content outside the markers is preserved; CLAUDE.md is created if absent
