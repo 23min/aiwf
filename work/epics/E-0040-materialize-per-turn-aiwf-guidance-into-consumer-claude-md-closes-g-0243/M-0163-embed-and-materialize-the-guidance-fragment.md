@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Guidance fragment stays within its per-turn line budget
-      status: open
+      status: met
       tdd_phase: done
 ---
 # M-0163 — Embed and materialize the guidance fragment
