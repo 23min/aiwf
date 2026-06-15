@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: A printed notice announces the CLAUDE.md edit and names the opt-out
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: The inserted import line resolves to the materialized guidance file
