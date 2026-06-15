@@ -34,10 +34,11 @@ import (
 // `aiwf init`'s conflict path.
 func NewCmd() *cobra.Command {
 	var (
-		root         string
-		statusline   bool
-		scope        string
-		wireSettings bool
+		root           string
+		statusline     bool
+		scope          string
+		wireSettings   bool
+		noWireClaudeMd bool
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -53,7 +54,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, noWireClaudeMd))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -64,6 +65,7 @@ func NewCmd() *cobra.Command {
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
+	cmd.Flags().BoolVar(&noWireClaudeMd, "no-wire-claudemd", false, "do not wire/refresh the aiwf guidance import in CLAUDE.md (default-on per ADR-0018)")
 	return cmd
 }
 
@@ -72,7 +74,7 @@ func NewCmd() *cobra.Command {
 // (scope-appropriate destination, scaffold-if-absent — never clobbers
 // a pre-existing copy). The scaffold action runs after the artifact
 // refresh succeeds.
-func Run(root string, statusline bool, scope string, wireSettings bool) int {
+func Run(root string, statusline bool, scope string, wireSettings, noWireClaudeMd bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
@@ -93,6 +95,9 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 
 	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
+		NoWireClaudeMd:     noWireClaudeMd,
+		// WireClaudeMdIfAbsent stays false: update refreshes a present
+		// block but nudges (does not re-add) a removed one (M-0164/AC-3).
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)

@@ -1,7 +1,7 @@
 ---
 id: M-0164
 title: Wire the CLAUDE.md guidance import with consent
-status: in_progress
+status: done
 parent: E-0040
 depends_on:
     - M-0163
@@ -9,28 +9,28 @@ tdd: required
 acs:
     - id: AC-1
       title: init and update wire the import by default; --no-wire-claudemd opts out
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Content outside the markers is preserved; CLAUDE.md is created if absent
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Re-running is idempotent; a removed import line is reported, not re-added
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: A printed notice announces the CLAUDE.md edit and names the opt-out
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: The inserted import line resolves to the materialized guidance file
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: A damaged marker block is handled per the hook-marker policy
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 # M-0164 — Wire the CLAUDE.md guidance import with consent
 
@@ -46,9 +46,9 @@ non-TTY contexts — with `--no-wire-claudemd` to decline.
 M-0163 leaves the guidance file on disk but unimported. This milestone is the
 activation step. The consent stance is fixed by ADR-0018: default-on for
 `CLAUDE.md`, a deliberate departure from ADR-0015's settings.json default
-(opt-in / refuse-in-non-TTY), licensed by the lower risk profile. The wiring
-reuses the consent machinery built for the statusline in E-0039 rather than
-forking a parallel flow.
+(opt-in / refuse-in-non-TTY), licensed by the lower risk profile. Default-on
+needs no interactive prompt, so the statusline's opt-in consent machinery does
+not apply — the wiring is a focused `ensureGuidanceImport` step (see *Decisions*).
 
 ## Acceptance criteria
 
@@ -83,30 +83,33 @@ it imports.
 
 ### AC-6 — A damaged marker block is handled per the hook-marker policy
 
-A `CLAUDE.md` with a missing or malformed END marker is handled by the same
-policy aiwf already applies to its git-hook markers (recreate / refuse), not left
-in an ambiguous state.
+A `CLAUDE.md` with only one of the two markers is refused: aiwf cannot safely
+determine the block's extent in a user-owned file, so it leaves the file
+untouched and reports the damage (the refuse-on-ambiguity stance the git-hook
+marker policy takes).
 
 ## Constraints
 
-- Reuse E-0039's consent machinery (`internal/cli/cliutil/statusline.go`,
-  `internal/skills/settings.go`); do not fork a parallel consent flow.
 - Default-on per ADR-0018; the edit is marker-scoped and never clobbers
   outside-marker content.
+- Default-on needs no interactive prompt, so there is no statusline-style consent
+  *flow* to reuse; the wiring is a focused `ensureGuidanceImport` step in the
+  init/update pipeline, not a parallel prompt-consent path (see *Decisions* below).
 - The imported path is the in-repo `.claude/aiwf-guidance.md` only (ADR-0018).
 
 ## Design notes
 
 - ADR-0018 — the default-on consent decision this milestone implements.
-- ADR-0015 / E-0039 — the settings.json consent precedent and the machinery
-  reused here.
+- ADR-0015 / E-0039 — the settings.json consent *precedent* (its opt-in prompt
+  machinery does not apply to default-on; see *Decisions*).
 
 ## Surfaces touched
 
-- `internal/cli/initcmd/`, `internal/cli/update/` — the `--no-wire-claudemd`
-  flag and the wiring call.
-- `internal/cli/cliutil/`, `internal/skills/` — the consent + marker-write
-  helpers.
+- `internal/initrepo/initrepo.go` — `ensureGuidanceImport`, the marker constants,
+  `guidanceImportBlock` / `replaceGuidanceBlock`, and the init/update pipeline
+  wiring (plus the `Options` / `RefreshOptions` fields).
+- `internal/cli/initcmd/`, `internal/cli/update/` — the `--no-wire-claudemd` flag,
+  threaded through.
 
 ## Out of scope
 
@@ -128,18 +131,72 @@ in an ambiguous state.
 
 ## Work log
 
-<!-- One entry per AC or unit of work; append-only. -->
+<!-- Phase/met timeline per AC is authoritative in `aiwf history M-0164/AC-<N>`;
+     the implementation landed in this milestone's single wrap commit. -->
+
+### AC-1 — default-on wiring + opt-out
+
+`ensureGuidanceImport` wires the marker block on init (`WireClaudeMdIfAbsent`);
+`--no-wire-claudemd` on both `init` and `update` opts out. · `aiwf history M-0164/AC-1`
+
+### AC-2 — preserve outside content + create-if-absent
+
+Block appended preserving user content; CLAUDE.md created when absent. ·
+`aiwf history M-0164/AC-2`
+
+### AC-3 — idempotent / refresh / nudge
+
+Re-run with the block present is a no-op diff; a stale block is refreshed in
+place; on update an absent block is reported, not re-added. · `aiwf history M-0164/AC-3`
+
+### AC-4 — notice names the opt-out
+
+The import ledger step's Detail names `--no-wire-claudemd`. · `aiwf history M-0164/AC-4`
+
+### AC-5 — import resolves to the materialized file
+
+The `@…` line is built from `skills.GuidanceFile`, so it can't drift. ·
+`aiwf history M-0164/AC-5`
+
+### AC-6 — damaged marker refused
+
+A one-sided marker pair leaves the file untouched and reports the damage. ·
+`aiwf history M-0164/AC-6`
 
 ## Decisions made during implementation
 
-- (none)
+- **Consent-machinery reuse did not apply.** The spec assumed reusing E-0039's
+  consent machinery (`cliutil/statusline.go`, `skills/settings.go`). That code is
+  the *opt-in* TTY-prompt / `--wire-settings` flow for the statusline. CLAUDE.md is
+  *default-on* (ADR-0018): there is no prompt flow to share — "consent" is the
+  default plus a `--no-wire-claudemd` opt-out. Implemented a focused
+  `ensureGuidanceImport` step in `internal/initrepo` instead; no statusline-consent
+  code was touched, and no parallel prompt-consent flow was created.
 
 ## Validation
 
+- `go build ./...` — green; `golangci-lint run` (full module) — 0 issues; `go vet` — clean.
+- `go test ./internal/initrepo/ ./internal/skills/ ./internal/cli/initcmd/ ./internal/cli/update/` — green.
+  `ensureGuidanceImport`, `replaceGuidanceBlock`, `guidanceImportBlock` at 100% branch coverage.
+- Full `go test ./...` — green (integration's TempDir-cleanup flake notwithstanding; isolated-passes).
+- `aiwf check` — 0 errors (3 pre-existing / worktree-benign warnings).
+
 ## Deferrals
 
-- (none)
+- None. (The narrative-doc update describing the new consumer-CLAUDE.md wiring in
+  the repo's own CLAUDE.md "marker-managed artifacts" section + design docs is
+  deferred to the epic wrap, when the whole feature — incl. M-0165's doctor
+  finding — has landed; noted under Reviewer notes, not a separate gap.)
 
 ## Reviewer notes
 
-- (none)
+- Init/update behavior is asymmetric by design (ADR-0018 + AC-3): `init` adds the
+  block; `update` refreshes a present block but *nudges rather than re-adds* a
+  removed one. The split is carried by `RefreshOptions.WireClaudeMdIfAbsent`
+  (true for init, false for update).
+- Damaged/reversed markers are refused (left untouched), never auto-repaired —
+  the conservative choice for a user-owned file.
+- The consumer-facing narrative docs (repo CLAUDE.md materialized-artifacts list,
+  design-decisions.md) are intentionally not updated in this milestone; that
+  description belongs with the epic wrap once M-0165 lands too. `--help` text +
+  ADR-0018 carry discoverability in the meantime.

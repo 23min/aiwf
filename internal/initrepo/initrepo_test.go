@@ -186,8 +186,13 @@ func TestInit_PreservesExistingClaudeMd(t *testing.T) {
 		t.Fatalf("Init: %v", err)
 	}
 	got, _ := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if !bytes.Equal(got, custom) {
-		t.Error("CLAUDE.md overwritten despite being preserved")
+	// The user's content is preserved verbatim (outside the markers)...
+	if !bytes.Contains(got, custom) {
+		t.Error("existing CLAUDE.md content not preserved")
+	}
+	// ...and the guidance import block is wired in by default (M-0164/AC-2).
+	if !bytes.Contains(got, []byte("@.claude/aiwf-guidance.md")) {
+		t.Error("guidance import not wired into existing CLAUDE.md")
 	}
 }
 
