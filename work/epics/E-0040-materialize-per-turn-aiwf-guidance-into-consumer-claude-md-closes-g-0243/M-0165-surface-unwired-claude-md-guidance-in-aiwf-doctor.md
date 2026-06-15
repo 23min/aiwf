@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A wired tree or an absent guidance file yields no finding
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Fixtures cover the wired, unwired, and file-absent states
       status: open
