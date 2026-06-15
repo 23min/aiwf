@@ -152,22 +152,17 @@ for out-of-repo paths. That is why the imported file must stay in-repo under
 
 ## Milestones
 
-<!-- Candidates; ids are allocated by aiwfx-plan-milestones, which fills this list
-     with real milestone links and dependency edges. Execution order top to bottom. -->
+<!-- Execution order top to bottom. Status lives in each milestone's frontmatter, not here. -->
 
-- Embedded guidance artifact (full-set fragment, version-pinned) + the documented
-  inclusion principle; AC tests assert content against the embedded bytes.
-- Consent-gated `CLAUDE.md` wiring on `aiwf init` / `aiwf update` (the
-  `--no-wire-claudemd` flag, marker insert/refresh, create-if-absent, default-on
-  including non-TTY, idempotency, materialize the file + import line, printed
-  notice); the new consent ADR ratified here.
-- `aiwf doctor` `claudemd-guidance-unwired` advisory finding + fixtures.
+- [M-0163](work/epics/E-0040-materialize-per-turn-aiwf-guidance-into-consumer-claude-md-closes-g-0243/M-0163-embed-and-materialize-the-guidance-fragment.md) — Embed and materialize the version-pinned guidance fragment; `init`/`update` write the gitignored `.claude/aiwf-guidance.md` · depends on: —
+- [M-0164](work/epics/E-0040-materialize-per-turn-aiwf-guidance-into-consumer-claude-md-closes-g-0243/M-0164-wire-the-claude-md-guidance-import-with-consent.md) — Wire the `CLAUDE.md` import with consent (default-on incl. non-TTY, `--no-wire-claudemd`, idempotent, announced) · depends on: M-0163
+- [M-0165](work/epics/E-0040-materialize-per-turn-aiwf-guidance-into-consumer-claude-md-closes-g-0243/M-0165-surface-unwired-claude-md-guidance-in-aiwf-doctor.md) — Surface unwired guidance via the advisory `aiwf doctor` `claudemd-guidance-unwired` finding · depends on: M-0164
 
 ## ADRs produced
 
-- New consent ADR — aiwf does not edit user-owned consumer files without
-  risk-calibrated consent; cites ADR-0015 (the settings.json instance) and sets
-  `CLAUDE.md` to default-on. Id allocated when the ADR is authored.
+- ADR-0018 — Risk-calibrated consent for user-owned file edits; generalizes
+  ADR-0015 (the settings.json instance) and sets `CLAUDE.md` to default-on.
+  Status: accepted.
 
 ## References
 
