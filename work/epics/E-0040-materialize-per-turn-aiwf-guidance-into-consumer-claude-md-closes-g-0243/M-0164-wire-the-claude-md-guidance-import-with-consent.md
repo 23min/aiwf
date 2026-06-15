@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Re-running is idempotent; a removed import line is reported, not re-added
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: A printed notice announces the CLAUDE.md edit and names the opt-out
       status: open
