@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Unwired tree yields an advisory finding naming the exact fix command
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A wired tree or an absent guidance file yields no finding
