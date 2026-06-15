@@ -259,6 +259,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 	lines = appendMaterializedRitualsReport(lines, rootDir)
 	lines = appendStatuslineReport(lines, rootDir)
+	lines = appendGuidanceImportReport(lines, rootDir)
 
 	return lines, problems
 }
