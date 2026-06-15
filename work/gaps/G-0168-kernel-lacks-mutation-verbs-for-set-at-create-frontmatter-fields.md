@@ -144,3 +144,55 @@ frontmatter fields lack mutation verbs" surfaced the broader pattern.
 - G-0141 (Phase 2 — structured-code emission for verb errors; tangentially
   related, since `aiwf milestone tdd` would emit structured errors for
   invalid policy values).
+
+## Downstream report (2026-06-12): FSM-coupled amend + the generic-verb fork
+
+A downstream consumer's audit re-surfaced this gap from a wider angle.
+Two refinements to record.
+
+### The set-at-transition fields also lack an editor
+
+The report flagged `gap.addressed_by` and `adr.superseded_by` as
+"no post-creation editor" alongside `decision.relates_to`. The first
+two are not in the "missing" table above because they *do* have a set
+path — but only as a **side effect of the FSM transition** that writes
+them:
+
+- `aiwf promote <gap> addressed --by <id>` sets `addressed_by` at the
+  `open → addressed` step.
+- `aiwf promote <adr> superseded --superseded-by <id>` sets
+  `superseded_by` at the `accepted → superseded` step.
+
+There is no way to **amend, add to, or clear** either field after the
+transition without hand-editing frontmatter — the same chokepoint
+violation this gap is about, on fields the table marked "covered." So
+the real split is set-at-create (this gap's four fields, no path at
+all) vs set-at-transition (`addressed_by`, `superseded_by` — written
+once at the FSM step, no amend afterward). Both want an editor; the
+FSM-coupled pair needs one that does **not** let the relation field be
+written independently of its transition.
+
+### Design fork: generic `aiwf relate` vs per-kind subverbs
+
+The report proposed a single generic verb —
+`aiwf relate <id> --field <name> --add/--set/--clear` — as an
+alternative to the per-kind subverbs this gap proposes
+(`aiwf decision relates-to`, `aiwf gap discovered-in`, …). The fork is
+genuine and should be settled before any verb lands:
+
+- **Per-kind subverbs** (this gap's shape) mirror the established
+  `aiwf milestone depends-on` idiom and can stay FSM-aware — the
+  gap/adr verbs can refuse to set the coupled field out of band and
+  only `--add`/`--clear` an already-transitioned entity.
+- **Generic `aiwf relate`** is more uniform but risks becoming a
+  blessed "edit any relation field" escape hatch. Critically, it would
+  let an operator set `superseded_by` *without* the
+  `accepted → superseded` transition — re-introducing exactly the
+  inconsistent state the FSM back-edge was designed to prevent.
+
+Lean: per-kind subverbs (or a field-aware generic verb that hard-refuses
+FSM-coupled fields out of band). The decision is worth an
+`aiwfx-record-decision` before the implementing milestone, and it pairs
+with the ADR `relates_to` schema question filed as its sibling gap.
+
+Source: downstream consumer feedback, 2026-06-12.
