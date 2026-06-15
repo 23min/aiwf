@@ -93,18 +93,53 @@ absent-finding branches are each traversed.
 
 ## Work log
 
-<!-- One entry per AC or unit of work; append-only. -->
+<!-- Phase/met timeline per AC is authoritative in `aiwf history M-0165/AC-<N>`;
+     the implementation landed in this milestone's single wrap commit. -->
+
+### AC-1 — unwired tree → advisory naming the fix
+
+`appendGuidanceImportReport` emits `guidance: claudemd-guidance-unwired:
+advisory — … run \`aiwf init\` to wire it` when the fragment exists but CLAUDE.md
+lacks the import line. · `aiwf history M-0165/AC-1`
+
+### AC-2 — wired / absent → no finding
+
+Wired → `guidance: ok`; fragment absent → no line. · `aiwf history M-0165/AC-2`
+
+### AC-3 — fixtures cover all states
+
+A table test exercises unwired / wired / absent (plus the CLAUDE.md-absent
+branch); `appendGuidanceImportReport` at 100% coverage. · `aiwf history M-0165/AC-3`
 
 ## Decisions made during implementation
 
-- (none)
+- **The remediation command is `aiwf init`, not `aiwf update`.** M-0164's
+  `update` *nudges* rather than re-adds a removed import block (AC-3), so it
+  cannot re-wire; `init` adds by default. The finding therefore names `aiwf init`
+  as the exact fix (per G-0199). If a lighter re-wire affordance (e.g.
+  `aiwf update --wire-claudemd`) is wanted later, that's a follow-up.
 
 ## Validation
 
+- `go build ./...` — green; `golangci-lint run` (full module) — 0 issues; `go vet` — clean.
+- `go test ./internal/cli/doctor/` — green; `appendGuidanceImportReport` at 100%
+  coverage (every branch: absent / wired / unwired / CLAUDE.md-absent).
+- Rendered output human-verified via a worktree-built binary: unwired prints the
+  advisory + `aiwf init`; wired prints `guidance: ok`.
+- `aiwf check` — 0 errors (pre-existing / worktree-benign warnings only).
+
 ## Deferrals
 
-- (none)
+- None. (The `aiwf doctor --format=json` envelope remains out of scope, tracked
+  by the pre-existing G-0070.)
 
 ## Reviewer notes
 
-- (none)
+- Advisory only: the finding never increments doctor's problem count / exit code,
+  matching the ADR-0018 stance (surface, don't block).
+- The wired state emits an informational `guidance: ok` row (not a finding),
+  consistent with the other doctor rows; the absent state emits nothing.
+- Detection keys on the import *line* (`@.claude/aiwf-guidance.md`, built from
+  `skills.GuidanceFile`) rather than importing M-0164's package-private marker
+  constants — the line is the user-visible contract and avoids cross-package
+  coupling.
