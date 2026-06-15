@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: A wired tree or an absent guidance file yields no finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Fixtures cover the wired, unwired, and file-absent states
