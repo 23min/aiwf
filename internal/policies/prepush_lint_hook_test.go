@@ -84,13 +84,32 @@ func newPrepushFixture(t *testing.T) prepushFixture {
 
 // runPrepushHook executes the hook script with the given pre-push
 // stdin lines and lint-command override, returning the exit code
-// and combined stderr.
-func runPrepushHook(t *testing.T, repoDir, stdin, lintCmd string) (exitCode int, stderr string) {
+// and combined stderr. extraEnv entries ("KEY=value") override any
+// same-keyed variable inherited from the test process — duplicates
+// are filtered out rather than appended, because which duplicate
+// getenv returns is libc-dependent.
+func runPrepushHook(t *testing.T, repoDir, stdin, lintCmd string, extraEnv ...string) (exitCode int, stderr string) {
 	t.Helper()
 	cmd := exec.Command(prepushHookPath(t))
 	cmd.Dir = repoDir
 	cmd.Stdin = strings.NewReader(stdin)
-	cmd.Env = append(os.Environ(), "AIWF_PREPUSH_LINT_CMD="+lintCmd)
+	overrides := append([]string{"AIWF_PREPUSH_LINT_CMD=" + lintCmd}, extraEnv...)
+	env := os.Environ()[:0:0]
+	for _, kv := range os.Environ() {
+		key, _, _ := strings.Cut(kv, "=")
+		overridden := false
+		for _, o := range overrides {
+			if oKey, _, _ := strings.Cut(o, "="); oKey == key {
+				overridden = true
+				break
+			}
+		}
+		if !overridden {
+			env = append(env, kv)
+		}
+	}
+	env = append(env, overrides...)
+	cmd.Env = env
 	var errb bytes.Buffer
 	cmd.Stderr = &errb
 	if err := cmd.Run(); err != nil {
@@ -241,4 +260,64 @@ func TestPrepushLintHook_InstallWiring(t *testing.T) {
 	if !strings.Contains(string(makefile), wantLine) {
 		t.Errorf("Makefile install-hooks must symlink the pre-push hook into the G45 chain target; missing line: %s", wantLine)
 	}
+}
+
+// TestPrepushLintHook_CacheIsolation pins the per-working-tree
+// GOLANGCI_LINT_CACHE scoping. golangci-lint's default user-level
+// cache replays raw issues carrying the absolute paths of whichever
+// checkout linted a content-identical package; once that worktree is
+// deleted, the nolint/filter processors can't re-read the files,
+// fail open, and leak suppressed findings into the gate (observed
+// false-blocking a main push after the G-0221 worktree was removed).
+// The hook must derive a cache under the checkout's own git dir when
+// the variable is unset, and respect an operator-set value.
+func TestPrepushLintHook_CacheIsolation(t *testing.T) {
+	t.Parallel()
+	fx := newPrepushFixture(t)
+
+	// Stub linter that reports the cache env var it saw. A script
+	// (not an inline sh -c) because the hook word-splits $lint_cmd.
+	stub := filepath.Join(fx.dir, "lintstub.sh")
+	stubBody := "#!/bin/sh\necho \"stub-cache=$GOLANGCI_LINT_CACHE\" >&2\nexit 0\n"
+	if err := os.WriteFile(stub, []byte(stubBody), 0o755); err != nil {
+		t.Fatalf("writing lint stub: %v", err)
+	}
+
+	// Stdin that triggers the lint path (go change in range).
+	stdin := "refs/heads/main " + fx.goChange + " refs/heads/main " + fx.docs + "\n"
+
+	t.Run("unset derives per-git-dir cache", func(t *testing.T) {
+		t.Parallel()
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, stub, "GOLANGCI_LINT_CACHE=")
+		if exitCode != 0 {
+			t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
+		}
+		want := "stub-cache=" + gitInFixture(t, fx.dir, "rev-parse", "--absolute-git-dir") + "/golangci-lint-cache"
+		if !strings.Contains(stderr, want) {
+			t.Errorf("hook must export a per-git-dir GOLANGCI_LINT_CACHE; want %q in stderr:\n%s", want, stderr)
+		}
+	})
+
+	t.Run("pre-set value is respected", func(t *testing.T) {
+		t.Parallel()
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, stub, "GOLANGCI_LINT_CACHE=/tmp/operator-cache-7d3f")
+		if exitCode != 0 {
+			t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stderr, "stub-cache=/tmp/operator-cache-7d3f") {
+			t.Errorf("hook must respect a pre-set GOLANGCI_LINT_CACHE; stderr:\n%s", stderr)
+		}
+	})
+
+	t.Run("Makefile lint target carries the same scoping", func(t *testing.T) {
+		t.Parallel()
+		makefile, err := os.ReadFile(filepath.Join(repoRootForHook(t), "Makefile"))
+		if err != nil {
+			t.Fatalf("reading Makefile: %v", err)
+		}
+		wantLine := `GOLANGCI_LINT_CACHE="$${GOLANGCI_LINT_CACHE:-$$(git rev-parse --absolute-git-dir)/golangci-lint-cache}" golangci-lint run`
+		if !strings.Contains(string(makefile), wantLine) {
+			t.Errorf("Makefile lint recipe must scope the lint cache per working tree; missing line: %s", wantLine)
+		}
+	})
 }

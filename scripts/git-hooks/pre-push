@@ -88,6 +88,21 @@ if ! command -v "$lint_bin" >/dev/null 2>&1; then
     exit 0
 fi
 
+# Scope the lint cache per working tree. golangci-lint's default
+# user-level cache stores raw issues keyed by package content hash
+# but carrying the absolute paths of whichever checkout linted the
+# package; a hit from another worktree replays those paths, and once
+# that worktree is deleted the nolint/filter processors cannot
+# re-read the files, fail open, and leak suppressed findings into
+# this gate — false-blocking the push. A cache under this checkout's
+# own git dir (.git/, or .git/worktrees/<name>/ — removed by `git
+# worktree remove`) makes cross-worktree replay impossible. A
+# pre-set GOLANGCI_LINT_CACHE is respected as an operator override.
+if [ -z "${GOLANGCI_LINT_CACHE:-}" ]; then
+    GOLANGCI_LINT_CACHE="$(git rev-parse --absolute-git-dir)/golangci-lint-cache"
+    export GOLANGCI_LINT_CACHE
+fi
+
 # Word-splitting of $lint_cmd is intentional (command + args).
 if ! $lint_cmd >&2; then
     echo "" >&2

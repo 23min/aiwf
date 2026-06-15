@@ -85,8 +85,12 @@ test-pins:
 vet:
 	go vet ./...
 
+# Lint cache is scoped per working tree (same rationale as the
+# pre-push hook): the shared user-level cache replays issues carrying
+# other worktrees' absolute paths, which fail open once that worktree
+# is deleted. A pre-set GOLANGCI_LINT_CACHE is respected.
 lint:
-	golangci-lint run
+	GOLANGCI_LINT_CACHE="$${GOLANGCI_LINT_CACHE:-$$(git rev-parse --absolute-git-dir)/golangci-lint-cache}" golangci-lint run
 
 fmt:
 	gofumpt -l -w .
