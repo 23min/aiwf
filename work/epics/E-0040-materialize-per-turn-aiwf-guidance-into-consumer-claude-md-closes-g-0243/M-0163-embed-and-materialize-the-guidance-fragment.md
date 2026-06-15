@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Guidance fragment stays within its per-turn line budget
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 # M-0163 — Embed and materialize the guidance fragment
 
