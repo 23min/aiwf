@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: A damaged marker block is handled per the hook-marker policy
-      status: open
+      status: met
       tdd_phase: done
 ---
 # M-0164 — Wire the CLAUDE.md guidance import with consent
