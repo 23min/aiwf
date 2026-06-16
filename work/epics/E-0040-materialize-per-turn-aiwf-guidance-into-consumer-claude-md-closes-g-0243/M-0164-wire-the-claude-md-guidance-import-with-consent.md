@@ -20,7 +20,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-4
-      title: A printed notice announces the CLAUDE.md edit and names the opt-out
+      title: A printed notice announces the CLAUDE.md edit
       status: met
       tdd_phase: done
     - id: AC-5
@@ -70,7 +70,7 @@ A second `aiwf update` against an already-wired `CLAUDE.md` produces no diff. A
 `CLAUDE.md` whose import line was hand-removed is reported (printed nudge), not
 silently re-added — the operator's removal is respected.
 
-### AC-4 — A printed notice announces the CLAUDE.md edit and names the opt-out
+### AC-4 — A printed notice announces the CLAUDE.md edit
 
 The wiring is never silent: a printed notice names the file edited and the
 `--no-wire-claudemd` opt-out.
@@ -149,7 +149,7 @@ Block appended preserving user content; CLAUDE.md created when absent. ·
 Re-run with the block present is a no-op diff; a stale block is refreshed in
 place; on update an absent block is reported, not re-added. · `aiwf history M-0164/AC-3`
 
-### AC-4 — notice names the opt-out
+### AC-4 — A printed notice announces the CLAUDE.md edit
 
 The import ledger step's Detail names `--no-wire-claudemd`. · `aiwf history M-0164/AC-4`
 
