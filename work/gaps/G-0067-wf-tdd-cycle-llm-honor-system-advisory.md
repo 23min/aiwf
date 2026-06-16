@@ -1,8 +1,10 @@
 ---
 id: G-0067
 title: wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard
-status: open
+status: addressed
 discovered_in: M-0066
+addressed_by_commit:
+    - df73aa00
 ---
 ## Resolution
 
