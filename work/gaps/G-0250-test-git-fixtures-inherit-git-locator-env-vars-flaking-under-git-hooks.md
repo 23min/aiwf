@@ -68,15 +68,15 @@ packages do not, including: `internal/check`, `internal/cli/integration`,
 
 ## Proposed fix
 
-1. Factor the scrub into a shared helper (e.g. `internal/testsupport`):
-   a `ScrubGitLocatorEnv()` that unsets the five vars. Each git-shelling
+1. Factor the hardening into a shared helper
+   `internal/testsupport.HardenGitTestEnv()` that scrubs the five locator vars
+   (and, folded in per G-0251, disables git auto-gc). Each git-shelling
    package's `TestMain` calls it (one line), replacing the inline block in
    `internal/policies/setup_test.go`.
-2. Add an `internal/policies/` chokepoint asserting every test-bearing package
-   that shells out to `git` either calls the scrub in `TestMain` or is on a
-   rationale'd allowlist — mirrors `test_setup_presence.go`. Without the
-   chokepoint, the next git-shelling package forgets the scrub and the flake
-   returns.
+2. Add an `internal/policies/` chokepoint (`PolicyGitTestEnvHardened`) asserting
+   every test-bearing package whose `*_test.go` shells a subprocess calls the
+   helper in `TestMain`. Without the chokepoint, the next git-shelling package
+   forgets the call and the flake returns.
 
 ## Out of scope / follow-up
 
