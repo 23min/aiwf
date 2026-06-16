@@ -486,7 +486,7 @@ editing a settings file.
 | M-0156 | Consent-gated statusline settings wiring | done |
 | M-0157 | aiwf doctor statusline block | done |
 
-## E-0040 — Materialize per-turn aiwf guidance into consumer CLAUDE.md (closes G-0243) (active)
+## E-0040 — Materialize per-turn aiwf guidance into consumer CLAUDE.md (closes G-0243) (done)
 
 ### Goal
 
