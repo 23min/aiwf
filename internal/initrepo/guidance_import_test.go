@@ -10,47 +10,6 @@ import (
 	"github.com/23min/aiwf/internal/skills"
 )
 
-// TestInit_WiresGuidanceImport: `aiwf init` wires the marker-wrapped
-// `@.claude/aiwf-guidance.md` import line into CLAUDE.md by default
-// (M-0164/AC-1).
-func TestInit_WiresGuidanceImport(t *testing.T) {
-	t.Parallel()
-	root := freshGitRepo(t)
-	res, err := Init(context.Background(), root, Options{})
-	if err != nil {
-		t.Fatalf("Init: %v", err)
-	}
-	data, err := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if err != nil {
-		t.Fatalf("reading CLAUDE.md: %v", err)
-	}
-	if !strings.Contains(string(data), "@.claude/aiwf-guidance.md") {
-		t.Errorf("AC-1: CLAUDE.md missing guidance import line; got:\n%s", data)
-	}
-	// AC-4: the wiring is announced as a ledger step (which init/update
-	// print), and the notice names the opt-out.
-	step := findStep(t, res.Steps, "CLAUDE.md (aiwf guidance import)")
-	if !strings.Contains(step.Detail, "--no-wire-claudemd") {
-		t.Errorf("AC-4: import notice should name the opt-out; got Detail=%q", step.Detail)
-	}
-}
-
-// TestInit_NoWireClaudeMd_SkipsImport: --no-wire-claudemd opts out of
-// wiring the import (M-0164/AC-1).
-func TestInit_NoWireClaudeMd_SkipsImport(t *testing.T) {
-	t.Parallel()
-	root := freshGitRepo(t)
-	if _, err := Init(context.Background(), root, Options{NoWireClaudeMd: true}); err != nil {
-		t.Fatalf("Init: %v", err)
-	}
-	data, _ := os.ReadFile(filepath.Join(root, "CLAUDE.md"))
-	if strings.Contains(string(data), "@.claude/aiwf-guidance.md") {
-		t.Errorf("AC-1: --no-wire-claudemd should skip wiring; got:\n%s", data)
-	}
-}
-
-// --- direct ensureGuidanceImport branch coverage (M-0164/AC-2..AC-6) ---
-
 func writeClaudeMd(t *testing.T, root, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, "CLAUDE.md"), []byte(content), 0o644); err != nil {
@@ -67,40 +26,72 @@ func readClaudeMd(t *testing.T, root string) string {
 	return string(b)
 }
 
-// AC-1 opt-out at the function level: no write, skipped+declined.
-func TestEnsureGuidanceImport_NoWire(t *testing.T) {
+// TestInit_WiresGuidanceImport: `aiwf init` wires the marker-wrapped
+// import automatically (default-on, no flag) and announces it (M-0164/AC-1, AC-4).
+func TestInit_WiresGuidanceImport(t *testing.T) {
 	t.Parallel()
-	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{NoWireClaudeMd: true, WireClaudeMdIfAbsent: true})
+	root := freshGitRepo(t)
+	res, err := Init(context.Background(), root, Options{})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Init: %v", err)
 	}
-	if st.Action != ActionSkipped || !strings.Contains(st.Detail, "--no-wire-claudemd") {
-		t.Errorf("expected skipped+declined, got %+v", st)
+	if !strings.Contains(readClaudeMd(t, root), "@.claude/aiwf-guidance.md") {
+		t.Errorf("AC-1: CLAUDE.md missing guidance import line")
 	}
-	if _, statErr := os.Stat(filepath.Join(root, "CLAUDE.md")); !os.IsNotExist(statErr) {
-		t.Error("--no-wire-claudemd must not create CLAUDE.md")
+	// AC-4: the wiring is announced as a ledger step (which init/update print).
+	step := findStep(t, res.Steps, "CLAUDE.md (aiwf guidance import)")
+	if step.Action == "" || step.Detail == "" {
+		t.Errorf("AC-4: import wiring not announced as a ledger step; got %+v", step)
 	}
 }
 
-// AC-2 (created-if-absent) + AC-5 (import resolves to the materialized file)
-// + AC-4 (notice names the opt-out).
+// TestInit_GuidanceOptOutViaConfig: a consumer who sets
+// guidance.wire_claudemd: false in aiwf.yaml is not wired (M-0164/AC-1, opt-out).
+func TestInit_GuidanceOptOutViaConfig(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  wire_claudemd: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	if strings.Contains(readClaudeMd(t, root), "@.claude/aiwf-guidance.md") {
+		t.Errorf("opt-out: CLAUDE.md should not be wired when guidance.wire_claudemd=false")
+	}
+}
+
+// --- direct ensureGuidanceImport branch coverage (M-0164) ---
+
+// Opt-out at the function level: no write, skipped.
+func TestEnsureGuidanceImport_OptOut(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Action != ActionSkipped || !strings.Contains(st.Detail, "guidance.wire_claudemd") {
+		t.Errorf("expected skipped via config knob, got %+v", st)
+	}
+	if _, statErr := os.Stat(filepath.Join(root, "CLAUDE.md")); !os.IsNotExist(statErr) {
+		t.Error("opt-out must not create CLAUDE.md")
+	}
+}
+
+// AC-2 (created-if-absent) + AC-5 (import resolves to the materialized file).
 func TestEnsureGuidanceImport_CreatesWhenAbsent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if st.Action != ActionCreated {
 		t.Errorf("AC-2: expected created, got %q", st.Action)
 	}
-	got := readClaudeMd(t, root)
-	if want := "@" + skills.GuidanceFile; !strings.Contains(got, want) {
-		t.Errorf("AC-5: import line %q not present in:\n%s", want, got)
-	}
-	if !strings.Contains(st.Detail, "--no-wire-claudemd") {
-		t.Errorf("AC-4: notice must name the opt-out; got Detail=%q", st.Detail)
+	if want := "@" + skills.GuidanceFile; !strings.Contains(readClaudeMd(t, root), want) {
+		t.Errorf("AC-5: import line %q not present", want)
 	}
 }
 
@@ -109,7 +100,7 @@ func TestEnsureGuidanceImport_PreservesOutsideContent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# My project\n\nSome notes.\n")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err != nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	got := readClaudeMd(t, root)
@@ -126,11 +117,11 @@ func TestEnsureGuidanceImport_Idempotent(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# u\n")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err != nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	first := readClaudeMd(t, root)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,14 +133,39 @@ func TestEnsureGuidanceImport_Idempotent(t *testing.T) {
 	}
 }
 
-// AC-3 (refresh) + AC-2 (preserve on refresh): a stale block in place is
-// refreshed to the canonical import without touching outside content.
+// AC-3 (self-heal): a removed block is RE-ADDED on the next run — the
+// automagical replacement for the old nudge-not-re-add behavior.
+func TestEnsureGuidanceImport_SelfHealsRemovedBlock(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
+		t.Fatal(err)
+	}
+	// Operator removes the block entirely.
+	writeClaudeMd(t, root, "# just my notes\n")
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Action != ActionUpdated {
+		t.Errorf("AC-3 self-heal: expected updated (re-added), got %q", st.Action)
+	}
+	got := readClaudeMd(t, root)
+	if !strings.Contains(got, "@"+skills.GuidanceFile) {
+		t.Error("AC-3 self-heal: removed block was not re-added")
+	}
+	if !strings.Contains(got, "# just my notes") {
+		t.Error("AC-3 self-heal: user content lost during re-add")
+	}
+}
+
+// AC-3 (refresh): a stale block in place is refreshed without touching outside content.
 func TestEnsureGuidanceImport_RefreshesStaleBlock(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	stale := "# u\n\n" + guidanceImportStartMarker + "\n@.claude/OLD.md\n" + guidanceImportEndMarker + "\n"
 	writeClaudeMd(t, root, stale)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: false})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,31 +181,54 @@ func TestEnsureGuidanceImport_RefreshesStaleBlock(t *testing.T) {
 	}
 }
 
-// AC-3 (nudge): on update, an absent block is reported, not re-added.
-func TestEnsureGuidanceImport_UpdateNudgesWhenAbsent(t *testing.T) {
+// Review-hardening: marker strings inside a PROSE line are inert
+// (line-anchored), so user text is never clobbered (ADR-0018 "clobbers nothing").
+func TestEnsureGuidanceImport_MarkersInProseAreInert(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	writeClaudeMd(t, root, "# u, block was removed\n")
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: false})
-	if err != nil {
+	prose := "We wrap regions with " + guidanceImportStartMarker + " then text then " + guidanceImportEndMarker + " inline.\n"
+	writeClaudeMd(t, root, prose)
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
-	if st.Action != ActionSkipped || !strings.Contains(st.Detail, "not re-adding") {
-		t.Errorf("AC-3: update should nudge, not re-add; got %+v", st)
+	got := readClaudeMd(t, root)
+	if !strings.Contains(got, "then text then") {
+		t.Errorf("prose between marker mentions was clobbered:\n%s", got)
 	}
-	if strings.Contains(readClaudeMd(t, root), "@"+skills.GuidanceFile) {
-		t.Error("AC-3: update must not re-add a removed block")
+	if !strings.Contains(got, "@"+skills.GuidanceFile) {
+		t.Errorf("block should have been appended below the prose:\n%s", got)
 	}
 }
 
-// AC-6: a damaged marker pair (only one of START/END) is refused and the
-// file is left untouched.
+// Review-hardening (F2): a pre-existing bare import line (no markers) is
+// wrapped in markers, not duplicated.
+func TestEnsureGuidanceImport_WrapsBareImportLine(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	writeClaudeMd(t, root, "# u\n@.claude/aiwf-guidance.md\n")
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Action != ActionUpdated {
+		t.Errorf("expected updated (wrapped), got %q", st.Action)
+	}
+	got := readClaudeMd(t, root)
+	if n := strings.Count(got, "@.claude/aiwf-guidance.md"); n != 1 {
+		t.Errorf("expected exactly one import line after wrapping, got %d:\n%s", n, got)
+	}
+	if !strings.Contains(got, guidanceImportStartMarker) {
+		t.Errorf("bare line not wrapped in markers:\n%s", got)
+	}
+}
+
+// AC-6: a one-sided (damaged) marker pair is refused and the file is untouched.
 func TestEnsureGuidanceImport_DamagedMarkerRefused(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	damaged := "# u\n\n" + guidanceImportStartMarker + "\n@.claude/aiwf-guidance.md\n" // START, no END
 	writeClaudeMd(t, root, damaged)
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,13 +240,31 @@ func TestEnsureGuidanceImport_DamagedMarkerRefused(t *testing.T) {
 	}
 }
 
+// AC-6: reversed markers (END before START) are also refused, untouched.
+func TestEnsureGuidanceImport_ReversedMarkersRefused(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	reversed := guidanceImportEndMarker + "\nstuff\n" + guidanceImportStartMarker + "\n"
+	writeClaudeMd(t, root, reversed)
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Action != ActionSkipped || !strings.Contains(st.Detail, "damaged") {
+		t.Errorf("reversed markers should be refused; got %+v", st)
+	}
+	if readClaudeMd(t, root) != reversed {
+		t.Errorf("reversed markers must be left untouched; got:\n%s", readClaudeMd(t, root))
+	}
+}
+
 // Branch coverage: content without a trailing newline takes the
-// double-newline separator arm when appending the block.
+// double-newline separator arm.
 func TestEnsureGuidanceImport_NoTrailingNewline(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeClaudeMd(t, root, "# no newline at end")
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err != nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err != nil {
 		t.Fatal(err)
 	}
 	got := readClaudeMd(t, root)
@@ -216,15 +273,14 @@ func TestEnsureGuidanceImport_NoTrailingNewline(t *testing.T) {
 	}
 }
 
-// Branch coverage: a read error that is not fs.ErrNotExist (here CLAUDE.md
-// is a directory) propagates.
+// Branch coverage: a read error that is not fs.ErrNotExist (CLAUDE.md is a dir).
 func TestEnsureGuidanceImport_ReadError(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	if err := os.Mkdir(filepath.Join(root, "CLAUDE.md"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err == nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
 		t.Error("expected a read error when CLAUDE.md is a directory")
 	}
 }
@@ -233,7 +289,7 @@ func TestEnsureGuidanceImport_ReadError(t *testing.T) {
 func TestEnsureGuidanceImport_DryRunAddDoesNotWrite(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true, DryRun: true})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true, DryRun: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +307,7 @@ func TestEnsureGuidanceImport_DryRunRefreshDoesNotWrite(t *testing.T) {
 	root := t.TempDir()
 	stale := guidanceImportStartMarker + "\n@.claude/OLD.md\n" + guidanceImportEndMarker + "\n"
 	writeClaudeMd(t, root, stale)
-	st, err := ensureGuidanceImport(root, RefreshOptions{DryRun: true})
+	st, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true, DryRun: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,21 +319,6 @@ func TestEnsureGuidanceImport_DryRunRefreshDoesNotWrite(t *testing.T) {
 	}
 }
 
-// Branch coverage: reversed markers (END before START) can't be safely
-// parsed by replaceGuidanceBlock — left untouched, not corrupted.
-func TestEnsureGuidanceImport_ReversedMarkers(t *testing.T) {
-	t.Parallel()
-	root := t.TempDir()
-	reversed := guidanceImportEndMarker + "\nstuff\n" + guidanceImportStartMarker + "\n"
-	writeClaudeMd(t, root, reversed)
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err != nil {
-		t.Fatal(err)
-	}
-	if readClaudeMd(t, root) != reversed {
-		t.Errorf("reversed markers must be left untouched; got:\n%s", readClaudeMd(t, root))
-	}
-}
-
 // Branch coverage: AtomicWriteFile error in the add path (read-only root).
 func TestEnsureGuidanceImport_AddWriteError(t *testing.T) {
 	t.Parallel()
@@ -286,8 +327,32 @@ func TestEnsureGuidanceImport_AddWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
-	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMdIfAbsent: true}); err == nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
 		t.Error("expected a write error into a read-only root")
+	}
+}
+
+// Branch coverage: loadWireClaudeMd defaults to true when aiwf.yaml is absent.
+func TestLoadWireClaudeMd_DefaultsWhenNoConfig(t *testing.T) {
+	t.Parallel()
+	got, err := loadWireClaudeMd(t.TempDir())
+	if err != nil {
+		t.Fatalf("loadWireClaudeMd: %v", err)
+	}
+	if !got {
+		t.Error("no aiwf.yaml should default WireClaudeMd to true")
+	}
+}
+
+// Branch coverage: loadWireClaudeMd propagates a non-ErrNotFound parse error.
+func TestLoadWireClaudeMd_PropagatesParseError(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance: [not a map\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadWireClaudeMd(root); err == nil {
+		t.Error("malformed aiwf.yaml should propagate an error")
 	}
 }
 
@@ -304,7 +369,7 @@ func TestEnsureGuidanceImport_RefreshWriteError(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
-	if _, err := ensureGuidanceImport(root, RefreshOptions{}); err == nil {
+	if _, err := ensureGuidanceImport(root, RefreshOptions{WireClaudeMd: true}); err == nil {
 		t.Error("expected a write error refreshing into a read-only root")
 	}
 }

@@ -413,6 +413,54 @@ func TestStatusMdAutoUpdate_BlockEmpty(t *testing.T) {
 	}
 }
 
+// TestWireClaudeMd_Default: no `guidance:` block → default-on (the
+// framework's opt-out semantics; ADR-0018).
+func TestWireClaudeMd_Default(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.WireClaudeMd() {
+		t.Errorf("default: WireClaudeMd() = false, want true")
+	}
+	if cfg.Guidance.WireClaudeMd != nil {
+		t.Errorf("Guidance.WireClaudeMd = %v, want nil (absent)", *cfg.Guidance.WireClaudeMd)
+	}
+}
+
+// TestWireClaudeMd_ExplicitFalse: the load-bearing opt-out — round-trips.
+func TestWireClaudeMd_ExplicitFalse(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("guidance:\n  wire_claudemd: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.WireClaudeMd() {
+		t.Errorf("explicit-false: WireClaudeMd() = true, want false")
+	}
+}
+
+// TestWireClaudeMd_NilReceiver: the getter tolerates a nil Config so
+// callers can invoke before a Config is loaded.
+func TestWireClaudeMd_NilReceiver(t *testing.T) {
+	t.Parallel()
+	var cfg *Config
+	if !cfg.WireClaudeMd() {
+		t.Errorf("nil receiver: WireClaudeMd() = false, want true")
+	}
+}
+
 // TestStatusMdAutoUpdate_ExplicitFalse: the load-bearing opt-out
 // case. The getter returns false; the round-trip preserves the
 // explicit setting.

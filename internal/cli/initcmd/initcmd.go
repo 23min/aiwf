@@ -23,14 +23,13 @@ import (
 // --skip-hook performs every other step but omits hook installation.
 func NewCmd() *cobra.Command {
 	var (
-		root           string
-		actor          string
-		dryRun         bool
-		skipHook       bool
-		statusline     bool
-		scope          string
-		wireSettings   bool
-		noWireClaudeMd bool
+		root         string
+		actor        string
+		dryRun       bool
+		skipHook     bool
+		statusline   bool
+		scope        string
+		wireSettings bool
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -48,7 +47,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, noWireClaudeMd))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -62,7 +61,6 @@ func NewCmd() *cobra.Command {
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
-	cmd.Flags().BoolVar(&noWireClaudeMd, "no-wire-claudemd", false, "do not wire the aiwf guidance import into CLAUDE.md (default-on per ADR-0018)")
 	return cmd
 }
 
@@ -72,7 +70,7 @@ func NewCmd() *cobra.Command {
 // clobbers a pre-existing copy). The scaffold action runs after the
 // main init pipeline succeeds; a `--dry-run` init reports without
 // scaffolding.
-func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, noWireClaudeMd bool) int {
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings bool) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -88,10 +86,9 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	}
 
 	res, err := initrepo.Init(context.Background(), rootDir, initrepo.Options{
-		ActorOverride:  actor,
-		DryRun:         dryRun,
-		SkipHook:       skipHook,
-		NoWireClaudeMd: noWireClaudeMd,
+		ActorOverride: actor,
+		DryRun:        dryRun,
+		SkipHook:      skipHook,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)

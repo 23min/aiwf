@@ -39,8 +39,22 @@ func TestGuidanceImportReport_UnwiredEmitsAdvisory(t *testing.T) {
 	if !strings.Contains(out, "claudemd-guidance-unwired") {
 		t.Errorf("AC-1: expected the unwired advisory; got:\n%s", out)
 	}
-	if !strings.Contains(out, "aiwf init") {
-		t.Errorf("AC-1: advisory must name the exact fix command `aiwf init`; got:\n%s", out)
+	if !strings.Contains(out, "aiwf update") {
+		t.Errorf("AC-1: advisory must name the exact fix command `aiwf update`; got:\n%s", out)
+	}
+}
+
+// Opt-out: when guidance.wire_claudemd=false in aiwf.yaml, doctor does not
+// nag even on an unwired tree (M-0165).
+func TestGuidanceImportReport_RespectsOptOut(t *testing.T) {
+	t.Parallel()
+	root := guidanceFixture(t, true, false) // fragment present, not imported (would be unwired)
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  wire_claudemd: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := strings.Join(appendGuidanceImportReport(nil, root), "\n")
+	if strings.Contains(out, "claudemd-guidance-unwired") {
+		t.Errorf("opt-out: doctor should not nag when wiring is disabled; got:\n%s", out)
 	}
 }
 

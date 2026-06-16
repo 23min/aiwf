@@ -351,9 +351,6 @@ type Options struct {
 	ActorOverride string
 	DryRun        bool
 	SkipHook      bool
-	// NoWireClaudeMd opts out of wiring the guidance import into
-	// CLAUDE.md (default-on per ADR-0018; M-0164).
-	NoWireClaudeMd bool
 }
 
 // RefreshOptions carries the inputs that drive RefreshArtifacts —
@@ -372,14 +369,12 @@ type RefreshOptions struct {
 	DryRun             bool
 	SkipHooks          bool
 	StatusMdAutoUpdate bool
-	// NoWireClaudeMd opts out of wiring the guidance import into
-	// CLAUDE.md (default-on per ADR-0018; M-0164).
-	NoWireClaudeMd bool
-	// WireClaudeMdIfAbsent adds the guidance import block when it is
-	// absent. `aiwf init` sets it true (adoption wires by default);
-	// `aiwf update` leaves it false so a removed block is nudged, not
-	// silently re-added (M-0164/AC-3).
-	WireClaudeMdIfAbsent bool
+	// WireClaudeMd controls whether aiwf maintains its guidance import in
+	// the consumer's CLAUDE.md. Default-on, opt-out via aiwf.yaml
+	// `guidance.wire_claudemd: false` (ADR-0018; M-0164). When true,
+	// init/update add, refresh, and self-heal the marker block — there is
+	// no CLI flag.
+	WireClaudeMd bool
 }
 
 // Init runs the documented setup steps in order. Returns a Result that
@@ -422,12 +417,16 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 		return nil, err
 	}
 
+	wireClaudeMd, err := loadWireClaudeMd(root)
+	if err != nil {
+		return nil, err
+	}
+
 	refreshSteps, conflict, err := RefreshArtifacts(ctx, root, RefreshOptions{
-		DryRun:               opts.DryRun,
-		SkipHooks:            opts.SkipHook,
-		StatusMdAutoUpdate:   statusMdAutoUpdate,
-		NoWireClaudeMd:       opts.NoWireClaudeMd,
-		WireClaudeMdIfAbsent: true,
+		DryRun:             opts.DryRun,
+		SkipHooks:          opts.SkipHook,
+		StatusMdAutoUpdate: statusMdAutoUpdate,
+		WireClaudeMd:       wireClaudeMd,
 	})
 	if err != nil {
 		return nil, err
@@ -585,6 +584,21 @@ func loadStatusMdAutoUpdate(root string) (bool, error) {
 		return false, fmt.Errorf("loading aiwf.yaml for refresh: %w", err)
 	}
 	return cfg.StatusMdAutoUpdate(), nil
+}
+
+// loadWireClaudeMd reads aiwf.yaml at root and returns whether aiwf
+// should maintain its guidance import in CLAUDE.md. Default true (the
+// framework's opt-out per ADR-0018); a missing aiwf.yaml is treated as
+// default-on, matching loadStatusMdAutoUpdate.
+func loadWireClaudeMd(root string) (bool, error) {
+	cfg, err := config.Load(root)
+	if err != nil {
+		if errors.Is(err, config.ErrNotFound) {
+			return true, nil
+		}
+		return false, fmt.Errorf("loading aiwf.yaml for refresh: %w", err)
+	}
+	return cfg.WireClaudeMd(), nil
 }
 
 func ensureConfig(root string, opts Options) (StepResult, error) {
@@ -748,32 +762,45 @@ func guidanceImportBlock() string {
 	return guidanceImportStartMarker + "\n@" + skills.GuidanceFile + "\n" + guidanceImportEndMarker + "\n"
 }
 
-// replaceGuidanceBlock swaps the existing START..END region (inclusive)
-// for block, preserving everything outside it. Returns changed=false
-// when the content already matches (idempotent refresh; M-0164/AC-3).
-func replaceGuidanceBlock(content, block string) (string, bool) {
-	start := strings.Index(content, guidanceImportStartMarker)
-	endIdx := strings.Index(content, guidanceImportEndMarker)
-	if start == -1 || endIdx == -1 || endIdx < start {
-		return content, false
+// guidanceMarkerLineIdx returns the index of the first line that, once
+// trimmed, equals marker — or -1. Line-anchored: a marker string that
+// appears inside a prose line is NOT matched, so user text mentioning the
+// markers is never treated as a block boundary (review-hardening for the
+// "clobbers nothing" guarantee in ADR-0018).
+func guidanceMarkerLineIdx(lines []string, marker string) int {
+	for i, ln := range lines {
+		if strings.TrimSpace(ln) == marker {
+			return i
+		}
 	}
-	endClose := endIdx + len(guidanceImportEndMarker)
-	rebuilt := content[:start] + strings.TrimRight(block, "\n") + content[endClose:]
-	if rebuilt == content {
-		return content, false
-	}
-	return rebuilt, true
+	return -1
 }
 
-// ensureGuidanceImport wires the marker-wrapped guidance import line
-// into <root>/CLAUDE.md. Default-on per ADR-0018; opts.NoWireClaudeMd
-// (the --no-wire-claudemd flag) opts out. On init (WireClaudeMdIfAbsent)
-// an absent block is added; on update an absent block is nudged, not
-// re-added (M-0164/AC-3). A damaged marker pair is refused (AC-6).
+// spliceGuidanceLines replaces lines[lo:hi+1] with repl and rejoins,
+// preserving every line outside [lo,hi].
+func spliceGuidanceLines(lines []string, lo, hi int, repl []string) string {
+	out := make([]string, 0, len(lines)-(hi-lo+1)+len(repl))
+	out = append(out, lines[:lo]...)
+	out = append(out, repl...)
+	out = append(out, lines[hi+1:]...)
+	return strings.Join(out, "\n")
+}
+
+// ensureGuidanceImport maintains the marker-wrapped guidance import in
+// <root>/CLAUDE.md. Automatic and self-healing per ADR-0018: on every
+// `aiwf init` / `aiwf update` it adds the block when absent, refreshes it
+// when present, and re-adds it when a prior block was removed — there is
+// no CLI flag, mirroring how skills/hooks are materialized. The consumer
+// opts out via aiwf.yaml `guidance.wire_claudemd: false` (opts.WireClaudeMd).
+//
+// Detection is line-anchored (a line that, trimmed, equals a marker), so
+// marker text in user prose is inert and outside-marker content is
+// preserved verbatim. A one-sided or reversed marker pair is refused; a
+// pre-existing bare import line is wrapped in markers rather than duplicated.
 func ensureGuidanceImport(root string, opts RefreshOptions) (StepResult, error) {
 	const what = "CLAUDE.md (aiwf guidance import)"
-	if opts.NoWireClaudeMd {
-		return StepResult{What: what, Action: ActionSkipped, Detail: "declined via --no-wire-claudemd"}, nil
+	if !opts.WireClaudeMd {
+		return StepResult{What: what, Action: ActionSkipped, Detail: "disabled via aiwf.yaml guidance.wire_claudemd"}, nil
 	}
 
 	path := filepath.Join(root, "CLAUDE.md")
@@ -783,58 +810,62 @@ func ensureGuidanceImport(root string, opts RefreshOptions) (StepResult, error) 
 		return StepResult{}, fmt.Errorf("reading CLAUDE.md: %w", err)
 	}
 	content := string(existing)
+	lines := strings.Split(content, "\n")
 
-	hasStart := strings.Contains(content, guidanceImportStartMarker)
-	hasEnd := strings.Contains(content, guidanceImportEndMarker)
+	startIdx := guidanceMarkerLineIdx(lines, guidanceImportStartMarker)
+	endIdx := guidanceMarkerLineIdx(lines, guidanceImportEndMarker)
+	hasStart := startIdx != -1
+	hasEnd := endIdx != -1
 
-	// Damaged marker pair: exactly one present. Refuse — don't guess the
-	// block's extent in a user-owned file (M-0164/AC-6).
-	if hasStart != hasEnd {
+	// One-sided or reversed markers: aiwf cannot determine the block's
+	// extent in a user-owned file. Refuse, leave untouched (M-0164/AC-6).
+	if hasStart != hasEnd || (hasStart && hasEnd && endIdx < startIdx) {
 		return StepResult{What: what, Action: ActionSkipped, Detail: "damaged aiwf:guidance marker block; left untouched"}, nil
 	}
 
-	block := guidanceImportBlock()
+	blockLines := strings.Split(strings.TrimRight(guidanceImportBlock(), "\n"), "\n")
 
-	// Both markers present → refresh in place (idempotent if unchanged).
+	// Both markers present → refresh the block in place (idempotent if unchanged).
 	if hasStart && hasEnd {
-		rebuilt, changed := replaceGuidanceBlock(content, block)
-		if !changed {
+		rebuilt := spliceGuidanceLines(lines, startIdx, endIdx, blockLines)
+		if rebuilt == content {
 			return StepResult{What: what, Action: ActionPreserved, Detail: "guidance import already wired"}, nil
 		}
-		if !opts.DryRun {
-			if wErr := pathutil.AtomicWriteFile(path, []byte(rebuilt), 0o644); wErr != nil {
-				return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", wErr)
-			}
-		}
-		return StepResult{What: what, Action: ActionUpdated, Detail: "refreshed guidance import"}, nil
+		return writeGuidanceImport(path, rebuilt, opts.DryRun, what, ActionUpdated, "refreshed guidance import")
 	}
 
-	// No block present.
-	if !opts.WireClaudeMdIfAbsent {
-		// update path: nudge, don't re-add a removed block (M-0164/AC-3).
-		return StepResult{What: what, Action: ActionSkipped, Detail: "guidance import absent; not re-adding (run `aiwf init` to re-wire)"}, nil
+	// No marker block → self-heal (re-)add. A pre-existing bare import line
+	// (no markers) is wrapped in place rather than duplicated.
+	if bareIdx := guidanceMarkerLineIdx(lines, "@"+skills.GuidanceFile); bareIdx != -1 {
+		rebuilt := spliceGuidanceLines(lines, bareIdx, bareIdx, blockLines)
+		return writeGuidanceImport(path, rebuilt, opts.DryRun, what, ActionUpdated, "wrapped existing guidance import in markers")
 	}
 
-	// init path: add the block, preserving any existing content (AC-1/AC-2).
 	var rebuilt string
 	switch {
 	case fileAbsent || content == "":
-		rebuilt = block
+		rebuilt = guidanceImportBlock()
 	case strings.HasSuffix(content, "\n"):
-		rebuilt = content + "\n" + block
+		rebuilt = content + "\n" + guidanceImportBlock()
 	default:
-		rebuilt = content + "\n\n" + block
-	}
-	if !opts.DryRun {
-		if wErr := pathutil.AtomicWriteFile(path, []byte(rebuilt), 0o644); wErr != nil {
-			return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", wErr)
-		}
+		rebuilt = content + "\n\n" + guidanceImportBlock()
 	}
 	action := ActionUpdated
 	if fileAbsent {
 		action = ActionCreated
 	}
-	return StepResult{What: what, Action: action, Detail: "wired the guidance import; opt out with --no-wire-claudemd"}, nil
+	return writeGuidanceImport(path, rebuilt, opts.DryRun, what, action, "wired guidance import")
+}
+
+// writeGuidanceImport writes the rebuilt CLAUDE.md (unless dryRun) and
+// returns the ledger step. Factored so each call site is one line.
+func writeGuidanceImport(path, rebuilt string, dryRun bool, what string, action Action, detail string) (StepResult, error) {
+	if !dryRun {
+		if err := pathutil.AtomicWriteFile(path, []byte(rebuilt), 0o644); err != nil {
+			return StepResult{}, fmt.Errorf("writing CLAUDE.md: %w", err)
+		}
+	}
+	return StepResult{What: what, Action: action, Detail: detail}, nil
 }
 
 // ensureLegacyActorClean strips the deprecated top-level `actor:`

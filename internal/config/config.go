@@ -74,6 +74,7 @@ type Config struct {
 	Tree              Tree     `yaml:"tree,omitempty"`
 	Archive           Archive  `yaml:"archive,omitempty"`
 	Entities          Entities `yaml:"entities,omitempty"`
+	Guidance          Guidance `yaml:"guidance,omitempty"`
 }
 
 // Tree is the consumer's policy for what may live under `work/`.
@@ -298,6 +299,32 @@ func (c *Config) StatusMdAutoUpdate() bool {
 		return true
 	}
 	return *c.StatusMd.AutoUpdate
+}
+
+// Guidance carries the consumer's opt-out for aiwf maintaining its
+// per-turn LLM guidance import in the repo-root `CLAUDE.md` (ADR-0018).
+// WireClaudeMd is a tristate via *bool mirroring StatusMd.AutoUpdate:
+// nil → default (true), &false → explicit opt-out, &true → explicit
+// opt-in. Use the getter Config.WireClaudeMd, not the pointer.
+//
+// Default behavior (empty Guidance block, or absent
+// guidance.wire_claudemd): aiwf wires and self-heals the marker-wrapped
+// `@.claude/aiwf-guidance.md` import on every `aiwf init` / `aiwf
+// update` — the framework's opt-out, not opt-in. There is deliberately
+// no CLI flag; the wiring is automatic, like skill/hook materialization.
+type Guidance struct {
+	WireClaudeMd *bool `yaml:"wire_claudemd,omitempty"`
+}
+
+// WireClaudeMd returns whether aiwf should maintain its guidance import
+// in the consumer's `CLAUDE.md`. Default true (opt-out, not opt-in).
+// Tolerant of a nil receiver so callers can invoke before / without a
+// loaded Config.
+func (c *Config) WireClaudeMd() bool {
+	if c == nil || c.Guidance.WireClaudeMd == nil {
+		return true
+	}
+	return *c.Guidance.WireClaudeMd
 }
 
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is
