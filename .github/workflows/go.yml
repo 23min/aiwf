@@ -45,7 +45,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 gives the diff-scoped coverage gate (below) the
+      # full history it needs to resolve the merge-base with origin/main
+      # (PRs) or reach github.event.before (trunk pushes). G-0067.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25.11"
@@ -69,9 +74,34 @@ jobs:
       # invariant 1). With the tag, the sabotage subtests run their
       # synthetic-data assertions per AC-4 body §"Mechanical
       # assertions" item 4.
-      - run: go test -tags testpins -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -coverprofile=coverage.out -coverpkg=./internal/... ./...
+      # -race forces -covermode=atomic; the profile feeds both the
+      # informational summary and the diff-scoped gate below.
+      - run: go test -tags testpins -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
+      # Diff-scoped coverage gate (G-0067): fail the job if any statement
+      # on a line changed vs the base is neither exercised by a test nor
+      # annotated //coverage:ignore. The base is the merge-base with
+      # origin/main on a PR, or github.event.before on a trunk push; an
+      # all-zero before-SHA (a brand-new branch) makes the audit no-op.
+      # Re-runs only TestPolicy_BranchCoverageAudit with the profile +
+      # base in the environment — fast, and the broad test run above
+      # skips that test (no profile env), so the audit fires exactly once
+      # with the complete profile.
+      - name: Resolve coverage base ref
+        id: covbase
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=200 origin main || true
+            echo "base=$(git merge-base origin/main HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Diff-scoped coverage gate
+        env:
+          AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
+          AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_BranchCoverageAudit$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

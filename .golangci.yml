@@ -59,8 +59,10 @@ linters:
           - gosec
         path: _test\.go
       # gosec noise that doesn't apply to a developer-CLI threat model:
-      # - G204: subprocess via variable (gitops shells out to git with
-      #         controlled args; that's its whole purpose)
+      # - G204/G702: subprocess via variable / command injection via taint
+      #         (gitops and the branch-coverage-audit policy shell out to
+      #         git with controlled args — a base ref / SHA from CI or a
+      #         Make target on the developer's own repo; that's the point)
       # - G304: file inclusion via variable (the loader and verbs read
       #         user-named entity files; that's their whole purpose)
       # - G301/G302/G306: 0755 dirs, 0o755 chmod (hooks need exec bit),
@@ -73,7 +75,7 @@ linters:
       #         walk-up). Same threat model as G304: developer CLI on
       #         the developer's own repo.
       - linters: [gosec]
-        text: "G204|G304|G301|G302|G306|G122|G703"
+        text: "G204|G702|G304|G301|G302|G306|G122|G703"
       # forbidigo: panic/os.Exit are forbidden in library code, but two
       # paths are sanctioned (per CLAUDE.md § Go conventions and G2's design):
       #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.

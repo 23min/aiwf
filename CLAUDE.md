@@ -439,12 +439,21 @@ Why this discipline: G-0097 measured ~4× wall-time headroom in `internal/verb` 
 
 ### Coverage
 
-- **High coverage on `internal/...` packages.** PoC target is 90%; failing checks for low coverage are advisory at this stage.
+- **High coverage on `internal/...` packages.** PoC target is 90%; the *total*-coverage check is advisory. The *diff-scoped* gate below is blocking — it polices coverage on the lines a change touches, not the whole tree.
 - **Exclusions** (intentionally small):
   - `cmd/aiwf/main.go` — covered by integration tests against the binary, not unit tests.
   - Generated code.
   - Specific lines marked `//coverage:ignore <reason>`.
 - The PoC is small enough that 100% coverage on internal packages is realistic; aim for it but don't block on it.
+
+#### Diff-scoped coverage gate (G-0067)
+
+The `wf-tdd-cycle` skill calls branch coverage a HARD RULE, but a skill is advisory — under load the LLM drifts off it and nothing notices. The diff-scoped coverage gate makes that rule mechanical for aiwf's own Go code: **every statement on a line changed since the base ref must be exercised by a test or annotated `//coverage:ignore <reason>`.** A change that adds an untested branch fails CI, naming the `file:line`.
+
+- The engine is `internal/policies/branch_coverage_audit.go` (`PolicyBranchCoverageAudit`), run as the `TestPolicy_BranchCoverageAudit` Go test. It intersects the uncovered blocks of a `go test -coverprofile` with the lines `git diff`'d against the base, applying the `//coverage:ignore` escape. It reads the profile path from `AIWF_COVERAGE_PROFILE` and the base ref from `AIWF_COVERAGE_BASE`; with no profile env set (the default in the broad `go test ./...` run) it skips, so the audit fires exactly once, in CI's dedicated coverage-gate step, with the complete profile.
+- **What it actually enforces:** Go's `-cover` is *statement* coverage, not *branch* coverage — the profile records how often a basic block ran, not which arm of an `if`/`switch` was taken. So the v1 gate is *diff-scoped statement coverage with the `//coverage:ignore` escape*. True per-arm branch correlation is a strictly stronger property this version does not provide; it is tracked as a follow-up gap.
+- **Run it locally** with `make coverage-gate` (resolves the base as the merge-base with `origin/main`). It compares committed `HEAD` to the base, so run it *after* committing — uncommitted changes are invisible to the gate.
+- The chokepoint is the CI test job's coverage-gate step (`.github/workflows/go.yml`). On a PR the base is the merge-base with `origin/main`; on a trunk push it is `github.event.before`; an all-zero before-SHA (a brand-new branch) makes the audit no-op.
 
 #### Beyond line coverage: fuzz, property, and mutation testing
 
@@ -574,6 +583,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | `Trailer*` constants and `trailerOrder` slice stay in sync in `internal/gitops/trailers.go` | `internal/policies/trailer_order_matches_constants.go` — runs as a Go test (G-0195) | Blocking via CI test    |
 | Persistent-file writes route through `pathutil.AtomicWriteFile` (no raw `os.WriteFile` / `os.Create` / write-mode `os.OpenFile` in production code) | `internal/policies/atomic_write_chokepoint.go` — runs as a Go test (G-0221) | Blocking via CI test    |
 | Exec-bearing `internal/*` test packages call `testsupport.HardenGitTestEnv()` in TestMain (scrub git locator vars + disable auto-gc) | `internal/policies/git_test_env_harden.go` — runs as a Go test (G-0250/G-0251) | Blocking via CI test    |
+| Diff-scoped statement coverage: every changed line is tested or `//coverage:ignore`'d | `internal/policies/branch_coverage_audit.go` via the CI test job's coverage-gate step + `make coverage-gate` (G-0067) | Blocking via CI |
 | Entity body prose contains no malformed or unallocated id-shaped tokens outside backticks | `internal/check/body_prose_id.go` — runs as `aiwf check` (G-0184) | Blocking pre-push       |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |

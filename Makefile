@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test test-race test-pins lint fmt vet coverage selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test test-race test-pins lint fmt vet coverage coverage-gate selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Falls back to "dev" when not in a git checkout (e.g. an extracted source tarball).
@@ -25,6 +25,7 @@ help:
 	@echo "  fmt       - apply gofumpt formatting"
 	@echo "  vet       - run go vet"
 	@echo "  coverage  - run tests with coverage; print summary"
+	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage + selfcheck)"
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
@@ -98,6 +99,20 @@ fmt:
 coverage:
 	go test -exec=$(TEST_EXEC) -coverprofile=coverage.out -coverpkg=./internal/... ./...
 	go tool cover -func=coverage.out | tail -n 1
+
+# coverage-gate is the diff-scoped coverage audit (G-0067): every
+# statement on a line changed since origin/main must be exercised by a
+# test or annotated //coverage:ignore. It generates a fresh atomic-mode
+# profile, resolves the base as the merge-base with origin/main, then
+# runs the branch-coverage-audit policy with that profile + base. Run
+# this after committing your work; it compares committed HEAD to the
+# base, so uncommitted changes are not seen. CI runs the same gate in
+# the test job.
+coverage-gate:
+	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
+	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
+	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_BranchCoverageAudit$$' -count=1 ./internal/policies/
 
 # selfcheck builds the binary and drives every verb against a temp
 # repo via `aiwf doctor --self-check`. Catches end-to-end regressions
