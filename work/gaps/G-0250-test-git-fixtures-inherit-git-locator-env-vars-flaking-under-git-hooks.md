@@ -1,8 +1,10 @@
 ---
 id: G-0250
 title: Test git fixtures inherit git-locator env vars, flaking under git hooks
-status: open
+status: addressed
 discovered_in: E-0040
+addressed_by_commit:
+    - b53360c5
 ---
 ## Problem
 
