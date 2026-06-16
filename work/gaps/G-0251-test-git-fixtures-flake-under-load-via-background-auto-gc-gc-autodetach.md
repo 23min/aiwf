@@ -1,8 +1,10 @@
 ---
 id: G-0251
 title: Test git fixtures flake under load via background auto-gc (gc.autoDetach)
-status: open
+status: addressed
 discovered_in: E-0040
+addressed_by_commit:
+    - b53360c5
 ---
 ## Problem
 
