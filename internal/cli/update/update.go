@@ -93,6 +93,7 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 
 	steps, conflict, err := initrepo.RefreshArtifacts(context.Background(), rootDir, initrepo.RefreshOptions{
 		StatusMdAutoUpdate: cfg.StatusMdAutoUpdate(),
+		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
