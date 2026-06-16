@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: init and update wire the import by default; --no-wire-claudemd opts out
+      title: init and update wire the import automatically; aiwf.yaml opts out
       status: met
       tdd_phase: done
     - id: AC-2
@@ -52,7 +52,7 @@ not apply — the wiring is a focused `ensureGuidanceImport` step (see *Decision
 
 ## Acceptance criteria
 
-### AC-1 — init and update wire the import by default; --no-wire-claudemd opts out
+### AC-1 — init and update wire the import automatically; aiwf.yaml opts out
 
 `aiwf init` and `aiwf update` insert the marker-wrapped import line without a
 flag, including in non-TTY contexts (the deliberate departure from ADR-0015's
@@ -134,7 +134,7 @@ marker policy takes).
 <!-- Phase/met timeline per AC is authoritative in `aiwf history M-0164/AC-<N>`;
      the implementation landed in this milestone's single wrap commit. -->
 
-### AC-1 — default-on wiring + opt-out
+### AC-1 — init and update wire the import automatically; aiwf.yaml opts out
 
 `ensureGuidanceImport` wires the marker block on init (`WireClaudeMdIfAbsent`);
 `--no-wire-claudemd` on both `init` and `update` opts out. · `aiwf history M-0164/AC-1`
