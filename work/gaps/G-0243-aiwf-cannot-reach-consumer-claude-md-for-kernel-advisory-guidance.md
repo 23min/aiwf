@@ -1,7 +1,9 @@
 ---
 id: G-0243
 title: aiwf cannot reach consumer CLAUDE.md for kernel advisory guidance
-status: open
+status: addressed
+addressed_by_commit:
+    - 7532a5d9
 ---
 ## What's missing
 
