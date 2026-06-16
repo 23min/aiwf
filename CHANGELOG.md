@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0040: per-turn LLM guidance auto-wired into the consumer's CLAUDE.md
+
+`aiwf init`/`update` now materialize a version-pinned guidance fragment (`.claude/aiwf-guidance.md`) and automatically maintain a marker-wrapped `@.claude/aiwf-guidance.md` import in the consumer's root `CLAUDE.md` — so the advisory rules aiwf can't mechanically enforce (per-action gate discipline, never-suggest-pause, collision→`reallocate`, AC-evidence, …) load on every turn and survive `/compact`. The wiring is self-healing (re-added on the next `update` if removed), line-anchored (touches only its own marker block; surrounding content preserved verbatim), and default-on with an `aiwf.yaml` opt-out (`guidance.wire_claudemd: false`) — no CLI flag, mirroring how skills/hooks are materialized. An advisory `aiwf doctor` finding (`claudemd-guidance-unwired`) surfaces an unwired tree and names `aiwf update` as the fix. Ratified in ADR-0018 (risk-calibrated consent for user-owned file edits); closes G-0243. Delivers every milestone listed in `work/epics/E-0040-*/wrap.md`.
+
 ### Fixed — pre-push lint gate: per-working-tree golangci-lint cache
 
 The G-0179 pre-push lint hook (and `make lint` / `make ci`) now scope `GOLANGCI_LINT_CACHE` to the checkout's own git dir (`.git/`, or `.git/worktrees/<name>/` for worktrees — removed automatically with the worktree) instead of golangci-lint's shared user-level cache. The shared cache stores raw issues keyed by package content hash but carrying the absolute paths of whichever checkout linted the package; a cache hit from a since-deleted worktree replays paths the nolint/filter processors can no longer read, so they fail open and leak suppressed findings — observed false-blocking a `main` push with `gosec` ghosts from a removed worktree. An operator-set `GOLANGCI_LINT_CACHE` is still respected. Contract pinned in `internal/policies/prepush_lint_hook_test.go`.
