@@ -398,7 +398,7 @@ Why this rule exists: M-0090's first archive sweep aborted because `TestAiwfxWra
 
 Test files in this module run **parallel-by-default**. After M-0091 + M-0092 the convention is established across `internal/*` and `cmd/aiwf/`; new test files in any module package follow it by default.
 
-The five load-bearing rules:
+The six load-bearing rules:
 
 - **`setup_test.go` per package.** Every test-bearing package has a `setup_test.go` (uniform filename — mechanical, AI-discoverable) containing a `TestMain(m *testing.M)`. The TestMain calls `os.Setenv` for the four GIT identity vars (`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL`) once at startup, then `os.Exit(m.Run())`. The shape:
 
@@ -429,7 +429,11 @@ The five load-bearing rules:
 
 - **`-race -parallel 8` cap.** `Makefile`'s `test-race`, `.github/workflows/go.yml`'s race-coverage step, and `.github/workflows/flake-hunt.yml`'s race-detector sweep all carry `-parallel 8`. Rationale: race + heavy git-subprocess fan-out flakes on macOS at default `-parallel=GOMAXPROCS` (~50% of runs at GOMAXPROCS=20 in the G-0097 spike). CI Linux is less affected but the cap stays uniform across host shapes. Drift-prevention: `internal/policies/race_parallel_cap.go` (M-0091/AC-1) — drop the cap from one surface and the policy fires on that file at that line.
 
+- **`testsupport.HardenGitTestEnv()` in exec-bearing TestMains.** Every test-bearing package whose tests shell out to a subprocess (any `exec.Command` / `exec.CommandContext`) calls `testsupport.HardenGitTestEnv()` in its `TestMain`, after the GIT identity seeding and before `m.Run()`. The helper (a) scrubs the git locator env vars a parent git hook exports — `GIT_DIR`/`GIT_INDEX_FILE`/`GIT_OBJECT_DIRECTORY`/… — which otherwise steer fixture git commands into the parent repo's gitdir/index (G-0250), and (b) disables git auto-gc (`gc.auto=0`/`gc.autoDetach=false`, injected via `GIT_CONFIG_COUNT`) so a detached background `git gc` can't race fixture commits or `t.TempDir` cleanup (G-0251). Both failures surface as the same `invalid object / Error building trees` / `directory not empty` flake that "passes isolated, fails under full-suite/hook load." The call is harmless where git isn't used, but is required only for exec-bearing packages.
+
 The presence-of-`setup_test.go` chokepoint is `internal/policies/test_setup_presence.go` (M-0093/AC-2): an AST-level walk of every test-bearing package under `internal/` that fails CI if the package omits `setup_test.go` or its `setup_test.go` lacks a `func TestMain(m *testing.M)` declaration. **Scope is `internal/*`** — `cmd/aiwf/` has a more nuanced per-file audit shape (the captureStdout/Stderr/Run helpers force most callers serial; the per-file skip-list lives in `cmd/aiwf/setup_test.go`'s comment block, not a Go policy). If `cmd/aiwf/` should also be guarded, that's a future gap.
+
+The git-test-env-harden chokepoint is `internal/policies/git_test_env_harden.go` (G-0250/G-0251): it walks the same `internal/*` test-bearing packages and, for any whose `*_test.go` files contain an `exec.Command`/`exec.CommandContext` call, asserts the package's `TestMain` calls `testsupport.HardenGitTestEnv()`. It keys on exec usage rather than a literal `"git"` first argument because `internal/check`'s test fixtures shell git via `exec.Command(args[0], …)` (where `args[0]` is `"git"` passed by callers) — a literal-arg scan would miss it. No allowlist: every exec-bearing package hardens today, and the call is a no-op where unneeded. Accepted detection limits (no occurrence today): an aliased `os/exec` import evades the scan, and a package that shells git only through a cross-package helper (no `exec.Command` in its own `*_test.go`) isn't flagged — wire the call by hand there.
 
 Why this discipline: G-0097 measured ~4× wall-time headroom in `internal/verb` from parallel execution; M-0091's full rollout produced a 2.2× speedup at default parallelism across `internal/*` (53.6s → 24.5s); M-0092's cmd/aiwf rollout produced a 47% wall-time reduction on the cmd/* surface. Without the discipline + the chokepoint, future test files copy whichever shape was last touched and the parallelism rots package-by-package.
 
@@ -569,6 +573,7 @@ The kernel's "framework correctness must not depend on LLM behavior" principle a
 | Closed-set `Status*` constants are used at comparison sites (no `s == "open"` outside `internal/entity/`) | `internal/policies/enum_literal_adoption.go` — runs as a Go test (M-0119) | Blocking via CI test    |
 | `Trailer*` constants and `trailerOrder` slice stay in sync in `internal/gitops/trailers.go` | `internal/policies/trailer_order_matches_constants.go` — runs as a Go test (G-0195) | Blocking via CI test    |
 | Persistent-file writes route through `pathutil.AtomicWriteFile` (no raw `os.WriteFile` / `os.Create` / write-mode `os.OpenFile` in production code) | `internal/policies/atomic_write_chokepoint.go` — runs as a Go test (G-0221) | Blocking via CI test    |
+| Exec-bearing `internal/*` test packages call `testsupport.HardenGitTestEnv()` in TestMain (scrub git locator vars + disable auto-gc) | `internal/policies/git_test_env_harden.go` — runs as a Go test (G-0250/G-0251) | Blocking via CI test    |
 | Entity body prose contains no malformed or unallocated id-shaped tokens outside backticks | `internal/check/body_prose_id.go` — runs as `aiwf check` (G-0184) | Blocking pre-push       |
 | `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
 | No new package-level mutable state                           | Code review                                                      | Advisory                |
