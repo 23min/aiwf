@@ -4,6 +4,28 @@ title: wf-tdd-cycle is LLM-honor-system advisory; no mechanical RED-first guard
 status: open
 discovered_in: M-0066
 ---
+## Resolution
+
+Sub-goal (a) — the diff-scoped coverage gate plus the `branch-coverage-audit`
+policy for aiwf's own Go code — is addressed (see `addressed_by_commit`). The
+gate lives at `internal/policies/branch_coverage_audit.go`, runs as the CI test
+job's coverage-gate step and via `make coverage-gate`, and enforces diff-scoped
+*statement* coverage on changed lines with the `//coverage:ignore` escape (Go
+`-cover` is statement-level, not per-arm).
+
+The two remaining concerns were split out so (a) could close cleanly:
+
+- **G-0252** — sub-goal (b): a mechanical RED-first ordering guard for consumer
+  `tdd: required` AC cycles (the `aiwf promote --phase green` / `aiwf-red-commit`
+  trailer mechanisms surveyed below).
+- **G-0253** — deepening (a) from statement-scoped coverage to true per-arm
+  branch coverage.
+
+The original problem statement and candidate-mechanism survey are preserved
+below for the record.
+
+---
+
 ## What's missing
 
 A mechanical chokepoint that enforces TDD's red-first ordering and branch-coverage HARD RULE so the kernel's correctness stops depending on LLM behavior under load. Today both rules live only inside the `wf-tdd-cycle` skill — advisory text the assistant is asked to follow. When session context grows or an AC's setup is heavy, the assistant drifts off the discipline and nothing notices: tests get written after the implementation; defensive branches ship untested; the cycle ends green on output but red on process.
