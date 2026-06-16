@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-06-16
+
 ### Added — E-0040: per-turn LLM guidance auto-wired into the consumer's CLAUDE.md
 
 `aiwf init`/`update` now materialize a version-pinned guidance fragment (`.claude/aiwf-guidance.md`) and automatically maintain a marker-wrapped `@.claude/aiwf-guidance.md` import in the consumer's root `CLAUDE.md` — so the advisory rules aiwf can't mechanically enforce (per-action gate discipline, never-suggest-pause, collision→`reallocate`, AC-evidence, …) load on every turn and survive `/compact`. The wiring is self-healing (re-added on the next `update` if removed), line-anchored (touches only its own marker block; surrounding content preserved verbatim), and default-on with an `aiwf.yaml` opt-out (`guidance.wire_claudemd: false`) — no CLI flag, mirroring how skills/hooks are materialized. An advisory `aiwf doctor` finding (`claudemd-guidance-unwired`) surfaces an unwired tree and names `aiwf update` as the fix. Ratified in ADR-0018 (risk-calibrated consent for user-owned file edits); closes G-0243. Delivers every milestone listed in `work/epics/E-0040-*/wrap.md`.
