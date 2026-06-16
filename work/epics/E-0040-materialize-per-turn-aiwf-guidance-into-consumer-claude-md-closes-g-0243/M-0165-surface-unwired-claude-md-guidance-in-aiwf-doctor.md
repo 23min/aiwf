@@ -26,53 +26,56 @@ acs:
 
 Add an advisory `aiwf doctor` finding, `claudemd-guidance-unwired`, that fires
 when `.claude/aiwf-guidance.md` exists but the consumer's `CLAUDE.md` does not
-import it — naming the exact command to fix it. This is the recurring safety net
-that makes a declined or hand-removed wiring self-healing without aiwf
-re-fighting the operator's choice.
+import it — naming the exact fix (`aiwf update`, which self-heals the import). It
+is the surface that tells an operator their tree is currently unwired, before the
+next `update` fixes it.
 
 ## Context
 
-M-0164 wires the import by default, but an operator can decline
-(`--no-wire-claudemd`) or later remove the line, and a `git pull` of a tree whose
-guidance file is gitignored arrives unwired until the next `aiwf update`. A
-silent unwired state would defeat E-0040's purpose; an advisory `doctor` finding
-surfaces it on the next routine run — the pressure level ADR-0018 chose over
-either silence or a blocking error.
+M-0164 wires and self-heals the import automatically (default-on; opt out via
+`aiwf.yaml` `guidance.wire_claudemd: false`). Between a hand-removal and the next
+`aiwf update`, or on a fresh clone before `update` regenerates the gitignored
+fragment, a tree can be transiently unwired. `aiwf doctor` surfaces that state
+(advisory) and names `aiwf update` as the fix — the pressure level ADR-0018 chose
+over silence or a blocking error. When the consumer has opted out, doctor stays
+silent.
 
 ## Acceptance criteria
 
 ### AC-1 — Unwired tree yields an advisory finding naming the exact fix command
 
-When `.claude/aiwf-guidance.md` exists and `CLAUDE.md` lacks the import marker,
-`aiwf doctor` emits an advisory `claudemd-guidance-unwired` finding whose hint
-names the exact remediation command (per G-0199), not a vague "wire it up".
+When `.claude/aiwf-guidance.md` exists and `CLAUDE.md` does not import it
+(line-anchored check), `aiwf doctor` emits an advisory `claudemd-guidance-unwired`
+finding whose hint names the exact command — `aiwf update` (per G-0199) — not a
+vague "wire it up".
 
 ### AC-2 — A wired tree or an absent guidance file yields no finding
 
-When `CLAUDE.md` already imports the guidance, or the guidance file is absent
-(nothing to wire), the finding does not fire.
+When `CLAUDE.md` imports the guidance, or the fragment is absent (nothing to
+wire), or the consumer opted out via `aiwf.yaml`, the finding does not fire.
 
 ### AC-3 — Fixtures cover the wired, unwired, and file-absent states
 
-A fixture-tree test exercises all three states, so the present and both
-absent-finding branches are each traversed.
+A table test exercises unwired / wired / absent (plus the CLAUDE.md-absent and
+opt-out branches); `appendGuidanceImportReport` is at 100% coverage.
 
 ## Constraints
 
 - Advisory severity — the finding never blocks `aiwf check`'s push gate.
 - The hint names the exact command (G-0199).
+- Respects the `aiwf.yaml` opt-out (`guidance.wire_claudemd: false` → no finding).
 - Text output only; an `aiwf doctor --format=json` envelope is tracked separately
   (G-0070) and is out of scope here.
 
 ## Design notes
 
-- ADR-0018 — the finding is the recurring safety net for the default-on consent
-  stance.
+- ADR-0018 — the finding is the safety-net surface for the automatic wiring stance.
 - G-0199 — findings must name the exact remediation command.
 
 ## Surfaces touched
 
-- `internal/cli/doctor/` — the new finding and its fixtures.
+- `internal/cli/doctor/guidance.go` — `appendGuidanceImportReport` (opt-out check,
+  line-anchored detection, `aiwf update` remediation) and its fixtures.
 
 ## Out of scope
 
@@ -85,7 +88,7 @@ absent-finding branches are each traversed.
 
 ## References
 
-- ADR-0018 — risk-calibrated consent; the finding as safety net.
+- ADR-0018 — automatic CLAUDE.md wiring; the finding as safety net.
 - G-0199 — exact-remediation-command rule.
 - G-0243 — the gap E-0040 closes.
 
@@ -93,53 +96,51 @@ absent-finding branches are each traversed.
 
 ## Work log
 
-<!-- Phase/met timeline per AC is authoritative in `aiwf history M-0165/AC-<N>`;
-     the implementation landed in this milestone's single wrap commit. -->
+<!-- Phase/met timeline per AC is authoritative in `aiwf history M-0165/AC-<N>`. -->
 
-### AC-1 — unwired tree → advisory naming the fix
+### AC-1 — unwired → advisory naming `aiwf update`
 
-`appendGuidanceImportReport` emits `guidance: claudemd-guidance-unwired:
-advisory — … run \`aiwf init\` to wire it` when the fragment exists but CLAUDE.md
-lacks the import line. · `aiwf history M-0165/AC-1`
+`appendGuidanceImportReport` emits the advisory with the exact `aiwf update`
+remediation. · `aiwf history M-0165/AC-1`
 
-### AC-2 — wired / absent → no finding
+### AC-2 — wired / absent / opted-out → no finding
 
-Wired → `guidance: ok`; fragment absent → no line. · `aiwf history M-0165/AC-2`
+`guidance: ok` when wired; nothing when the fragment is absent or wiring is
+disabled. · `aiwf history M-0165/AC-2`
 
 ### AC-3 — fixtures cover all states
 
-A table test exercises unwired / wired / absent (plus the CLAUDE.md-absent
-branch); `appendGuidanceImportReport` at 100% coverage. · `aiwf history M-0165/AC-3`
+Table test over unwired / wired / absent (+ CLAUDE.md-absent + opt-out); 100%
+coverage. · `aiwf history M-0165/AC-3`
 
 ## Decisions made during implementation
 
-- **The remediation command is `aiwf init`, not `aiwf update`.** M-0164's
-  `update` *nudges* rather than re-adds a removed import block (AC-3), so it
-  cannot re-wire; `init` adds by default. The finding therefore names `aiwf init`
-  as the exact fix (per G-0199). If a lighter re-wire affordance (e.g.
-  `aiwf update --wire-claudemd`) is wanted later, that's a follow-up.
+- **The remediation command is `aiwf update`, not `aiwf init`.** Under the
+  automagical model (M-0164), `update` re-adds a removed block, so it is the
+  correct idempotent-friendly fix. This supersedes the flag-era design where
+  `update` nudged and the finding had to name `aiwf init` (changed in E-0040
+  review along with the rest of the automatic-wiring rework).
+- **The finding respects the opt-out.** When `guidance.wire_claudemd` is false the
+  consumer chose not to wire, so doctor does not nag.
 
 ## Validation
 
-- `go build ./...` — green; `golangci-lint run` (full module) — 0 issues; `go vet` — clean.
-- `go test ./internal/cli/doctor/` — green; `appendGuidanceImportReport` at 100%
-  coverage (every branch: absent / wired / unwired / CLAUDE.md-absent).
+- `go build ./...` — green; `golangci-lint run` (full module) — 0 issues.
+- `go test ./internal/cli/doctor/` — green; `appendGuidanceImportReport` and
+  `guidanceImportLinePresent` at 100% coverage (unwired / wired / absent /
+  CLAUDE.md-absent / opt-out).
 - Rendered output human-verified via a worktree-built binary: unwired prints the
-  advisory + `aiwf init`; wired prints `guidance: ok`.
-- `aiwf check` — 0 errors (pre-existing / worktree-benign warnings only).
+  advisory + `aiwf update`; wired prints `guidance: ok`.
+- `aiwf check` — 0 errors.
 
 ## Deferrals
 
-- None. (The `aiwf doctor --format=json` envelope remains out of scope, tracked
-  by the pre-existing G-0070.)
+- None. (The `aiwf doctor --format=json` envelope remains out of scope, tracked by
+  the pre-existing G-0070.)
 
 ## Reviewer notes
 
-- Advisory only: the finding never increments doctor's problem count / exit code,
-  matching the ADR-0018 stance (surface, don't block).
-- The wired state emits an informational `guidance: ok` row (not a finding),
-  consistent with the other doctor rows; the absent state emits nothing.
-- Detection keys on the import *line* (`@.claude/aiwf-guidance.md`, built from
-  `skills.GuidanceFile`) rather than importing M-0164's package-private marker
-  constants — the line is the user-visible contract and avoids cross-package
-  coupling.
+- Advisory only: the finding never increments doctor's problem count / exit code.
+- Respects the `aiwf.yaml` opt-out; detection is line-anchored, consistent with
+  `ensureGuidanceImport`, so a prose mention of the import path is not counted as
+  wired.
