@@ -16,7 +16,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-3
-      title: Re-running is idempotent; a removed import line is reported, not re-added
+      title: Re-running is idempotent; a removed import line is self-healed
       status: met
       tdd_phase: done
     - id: AC-4
@@ -64,7 +64,7 @@ the TTY, non-TTY, and declined paths.
 An existing `CLAUDE.md` keeps every byte outside the marker block verbatim; an
 absent `CLAUDE.md` is created containing only the marker block.
 
-### AC-3 — Re-running is idempotent; a removed import line is reported, not re-added
+### AC-3 — Re-running is idempotent; a removed import line is self-healed
 
 A second `aiwf update` against an already-wired `CLAUDE.md` produces no diff. A
 `CLAUDE.md` whose import line was hand-removed is reported (printed nudge), not
@@ -144,7 +144,7 @@ marker policy takes).
 Block appended preserving user content; CLAUDE.md created when absent. ·
 `aiwf history M-0164/AC-2`
 
-### AC-3 — idempotent / refresh / nudge
+### AC-3 — Re-running is idempotent; a removed import line is self-healed
 
 Re-run with the block present is a no-op diff; a stale block is refreshed in
 place; on update an absent block is reported, not re-added. · `aiwf history M-0164/AC-3`
