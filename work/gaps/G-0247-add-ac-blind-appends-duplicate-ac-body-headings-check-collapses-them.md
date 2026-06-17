@@ -1,7 +1,9 @@
 ---
 id: G-0247
 title: add ac blind-appends duplicate AC body headings; check collapses them
-status: open
+status: addressed
+addressed_by_commit:
+    - fec1db93
 ---
 ## The defect
 
