@@ -70,17 +70,18 @@ var hintTable = map[string]string{
 	// remediation.
 	"archive-sweep-pending": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings",
 
-	"acs-shape/id":                       "fix the AC's id to match `AC-N` and equal its position+1 (cancelled entries count toward position)",
-	"acs-shape/title":                    "set a non-empty `title:` on the AC entry",
-	"acs-shape/status":                   "use one of the allowed AC statuses listed above",
-	"acs-shape/tdd-phase":                "set tdd_phase to one of red|green|refactor|done (required when the milestone is tdd: required)",
-	"acs-shape/tdd-policy":               "set the milestone's tdd: to one of required|advisory|none (or omit to default to none)",
-	"acs-body-coherence/missing-heading": "add a `### AC-<N> — <title>` heading in the milestone body for this AC, or remove it from acs[]",
-	"acs-body-coherence/orphan-heading":  "add the AC to the milestone's frontmatter acs[], or remove the body heading",
-	"acs-tdd-audit":                      "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting",
-	"acs-tdd-tests-missing":              "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
-	"acs-title-prose":                    "shorten the AC title to a single short label and move the detail prose into the body section under `### AC-N`; titles render as one big heading",
-	"milestone-done-incomplete-acs":      "promote the open ACs to met / deferred / cancelled, or use --force --reason to override (the standing check still surfaces this)",
+	"acs-shape/id":                         "fix the AC's id to match `AC-N` and equal its position+1 (cancelled entries count toward position)",
+	"acs-shape/title":                      "set a non-empty `title:` on the AC entry",
+	"acs-shape/status":                     "use one of the allowed AC statuses listed above",
+	"acs-shape/tdd-phase":                  "set tdd_phase to one of red|green|refactor|done (required when the milestone is tdd: required)",
+	"acs-shape/tdd-policy":                 "set the milestone's tdd: to one of required|advisory|none (or omit to default to none)",
+	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body for this AC, or remove it from acs[]",
+	"acs-body-coherence/orphan-heading":    "add the AC to the milestone's frontmatter acs[], or remove the body heading",
+	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading in the `## Acceptance criteria` section; keep exactly one per AC",
+	"acs-tdd-audit":                        "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting",
+	"acs-tdd-tests-missing":                "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
+	"acs-title-prose":                      "shorten the AC title to a single short label and move the detail prose into the body section under `### AC-N`; titles render as one big heading",
+	"milestone-done-incomplete-acs":        "promote the open ACs to met / deferred / cancelled, or use --force --reason to override (the standing check still surfaces this)",
 
 	// M-066 entity-body-empty: each kind's load-bearing body sections
 	// must contain non-empty prose. AC bodies have a verb-side shortcut

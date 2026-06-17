@@ -557,6 +557,84 @@ no frontmatter entry for this one
 	}
 }
 
+// TestScanACHeadings_CountsDuplicates pins the count semantics G-0247
+// relies on: scanACHeadings reports how many heading lines carry each
+// id, not just whether the id is present, so acsBodyCoherence can flag
+// a duplicated `### AC-N` heading.
+func TestScanACHeadings_CountsDuplicates(t *testing.T) {
+	t.Parallel()
+	body := []byte("### AC-1 — first\n### AC-1 — dup\n### AC-2 — second\n")
+	got := scanACHeadings(body)
+	if got["AC-1"] != 2 {
+		t.Errorf("AC-1 count = %d, want 2", got["AC-1"])
+	}
+	if got["AC-2"] != 1 {
+		t.Errorf("AC-2 count = %d, want 1", got["AC-2"])
+	}
+}
+
+// TestAcsBodyCoherence_DuplicateHeading is the G-0247 check-side guard:
+// a body with two `### AC-1` headings for an id that IS in frontmatter
+// is neither missing- nor orphan-heading, so the set-collapse used to
+// pass it clean. The duplicate-heading subcode flags it.
+func TestAcsBodyCoherence_DuplicateHeading(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-01/M-007.md"
+	abs := filepath.Join(root, filepath.FromSlash(mPath))
+	_ = os.MkdirAll(filepath.Dir(abs), 0o755)
+	content := `---
+id: M-007
+title: Foo
+status: in_progress
+parent: E-01
+acs:
+  - id: AC-1
+    title: First
+    status: open
+---
+
+## Acceptance criteria
+
+### AC-1 — <observable behavior>
+
+placeholder prose
+
+### AC-1 — First
+
+the real one
+`
+	_ = os.WriteFile(abs, []byte(content), 0o644)
+
+	tr := &tree.Tree{
+		Root: root,
+		Entities: []*entity.Entity{{
+			ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+			Status: "in_progress", Parent: "E-0001",
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "First", Status: "open"},
+			},
+			Path: mPath,
+		}},
+	}
+	got := acsBodyCoherence(tr)
+	f := findingByCode(got, CodeACsBodyCoherence, "duplicate-heading")
+	if f == nil {
+		t.Fatalf("expected acs-body-coherence/duplicate-heading; got: %+v", got)
+	}
+	if f.EntityID != "M-0007/AC-1" {
+		t.Errorf("entityID = %q, want M-0007/AC-1", f.EntityID)
+	}
+	// A duplicate of a frontmatter id must not also masquerade as a
+	// missing- or orphan-heading.
+	if findingByCode(got, CodeACsBodyCoherence, "missing-heading") != nil {
+		t.Errorf("duplicate of a frontmatter id should not also be missing-heading: %+v", got)
+	}
+	if findingByCode(got, CodeACsBodyCoherence, "orphan-heading") != nil {
+		t.Errorf("duplicate of a frontmatter id should not also be orphan-heading: %+v", got)
+	}
+}
+
 func TestAcsBodyCoherence_PermissiveSeparator(t *testing.T) {
 	t.Parallel()
 	// All four heading shapes are accepted; the coherence check pairs

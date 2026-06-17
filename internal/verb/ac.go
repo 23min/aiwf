@@ -128,10 +128,12 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 		return nil, err
 	}
 	for i, ac := range newACs {
-		body = appendACHeading(body, ac.ID, ac.Title)
-		if i < len(bodies) {
-			body = appendACBody(body, bodies[i])
+		var content []byte
+		hasBody := i < len(bodies)
+		if hasBody {
+			content = bodies[i]
 		}
+		body = upsertACSection(body, ac.ID, ac.Title, content, hasBody)
 	}
 
 	content, err := entity.Serialize(&modified, body)
@@ -409,6 +411,55 @@ func standardTrailers(verbName, id, actor string) []gitops.Trailer {
 	}
 }
 
+// upsertACSection places a new AC's `### AC-N — title` heading (and any
+// supplied body content) into the milestone body. When the body already
+// carries a `### AC-N` heading for this id — the placeholder the ritual
+// milestone template ships, for instance — the heading is rewritten in
+// place and any content injected directly beneath it, instead of
+// appending a second heading. A blind append would create a duplicate
+// `### AC-N` that aiwf check's set-collapse used to hide (G-0247).
+// Otherwise the heading (and content) are appended at the end of the
+// body — the historical behavior, preserved exactly for the common
+// no-placeholder path.
+//
+// This prevents *new* duplicates; it does not repair a body that
+// already carries two `### AC-N` headings (a hand-edit, or debt from
+// the pre-G-0247 verb). Surfacing those is the check's job — the
+// acs-body-coherence/duplicate-heading finding flags them.
+func upsertACSection(body []byte, acID, title string, content []byte, hasBody bool) []byte {
+	if !acHeadingExists(body, acID) {
+		body = appendACHeading(body, acID, title)
+		if hasBody {
+			body = appendACBody(body, content)
+		}
+		return body
+	}
+	repl := fmt.Sprintf("### %s — %s", acID, title)
+	if hasBody {
+		if trimmed := strings.TrimRight(string(content), "\n"); trimmed != "" {
+			repl += "\n\n" + trimmed
+		}
+	}
+	replBytes := []byte(repl)
+	return acHeadingLinePattern.ReplaceAllFunc(body, func(line []byte) []byte {
+		if !headingLineMatchesID(line, acID) {
+			return line
+		}
+		return replBytes
+	})
+}
+
+// acHeadingExists reports whether body already contains a `### AC-N`
+// heading line for acID (any separator/title form).
+func acHeadingExists(body []byte, acID string) bool {
+	for _, sm := range acHeadingLinePattern.FindAllSubmatch(body, -1) {
+		if "AC-"+string(sm[1]) == acID {
+			return true
+		}
+	}
+	return false
+}
+
 // appendACHeading scaffolds a `### AC-<N> — <title>` heading at the
 // end of the body so the new AC has prose anchor. The em-dash form
 // is the canonical scaffold; the validator's coherence check accepts
@@ -444,26 +495,21 @@ var acHeadingLinePattern = regexp.MustCompile(`(?m)^### AC-(\d+)(?:\s*[—\-:]\s
 // `acs-body-coherence` warning will surface the missing heading on
 // the next aiwf check, which is the user's signal to add one.
 func rewriteACHeading(body []byte, acID, newTitle string) []byte {
-	replacement := fmt.Sprintf("### %s — %s", acID, newTitle)
+	replacement := fmt.Appendf(nil, "### %s — %s", acID, newTitle)
 	return acHeadingLinePattern.ReplaceAllFunc(body, func(line []byte) []byte {
-		// The regex matches any AC-N heading; only rewrite the one
-		// whose AC id equals acID.
-		s := string(line)
-		idx := strings.Index(s, "AC-")
-		if idx < 0 {
+		if !headingLineMatchesID(line, acID) {
 			return line
 		}
-		rest := s[idx:]
-		end := len(rest)
-		for j, r := range rest {
-			if r != 'A' && r != 'C' && r != '-' && (r < '0' || r > '9') {
-				end = j
-				break
-			}
-		}
-		if rest[:end] != acID {
-			return line
-		}
-		return []byte(replacement)
+		return replacement
 	})
+}
+
+// headingLineMatchesID reports whether an `### AC-N` heading line
+// carries the given acID. The pattern matches any AC-N heading; callers
+// (ReplaceAllFunc closures) use this to act only on the one whose id
+// equals acID. Callers pass lines already matched by the pattern, so
+// the nil short-circuit is belt-and-braces.
+func headingLineMatchesID(line []byte, acID string) bool {
+	sm := acHeadingLinePattern.FindSubmatch(line)
+	return len(sm) > 1 && "AC-"+string(sm[1]) == acID
 }

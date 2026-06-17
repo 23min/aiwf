@@ -52,6 +52,143 @@ func TestAddAC_AppendsACAndScaffoldsHeading(t *testing.T) {
 	}
 }
 
+// TestAddAC_RewritesPlaceholderHeadingInPlace is the G-0247 verb-side
+// guard: when the milestone body already carries a `### AC-N` heading
+// for the id being allocated — the placeholder the ritual milestone
+// template ships — `aiwf add ac` rewrites it in place instead of
+// appending a second `### AC-1` heading that aiwf check's set-collapse
+// used to hide.
+func TestAddAC_RewritesPlaceholderHeadingInPlace(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	// Simulate the ritual template: placeholder AC-1 and AC-2 headings
+	// already anchor the body before any AC exists in frontmatter.
+	m := r.tree().ByID("M-0001")
+	abs := filepath.Join(r.root, m.Path)
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	withPlaceholder := string(raw) +
+		"\n### AC-1 — <observable behavior>\n\n<Prose: examples.>\n" +
+		"\n### AC-2 — <observable behavior>\n\n<Prose…>\n"
+	if err = os.WriteFile(abs, []byte(withPlaceholder), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	// Anchor on the `—` separator so the count can't be fooled by an
+	// `### AC-10`-style prefix collision (CLAUDE.md §"Substring
+	// assertions are not structural assertions").
+	if n := strings.Count(body, "### AC-1 —"); n != 1 {
+		t.Errorf("expected exactly one `### AC-1 —` heading, got %d:\n%s", n, body)
+	}
+	if !strings.Contains(body, "### AC-1 — Real criterion") {
+		t.Errorf("placeholder heading not rewritten to the real title:\n%s", body)
+	}
+	// The unclaimed AC-2 placeholder is left untouched (the closure's
+	// non-matching branch).
+	if !strings.Contains(body, "### AC-2 — <observable behavior>") {
+		t.Errorf("unrelated AC-2 placeholder should be untouched:\n%s", body)
+	}
+}
+
+// TestAddAC_AppendsBodyContentWhenNoPlaceholder: with no `### AC-N`
+// placeholder present, the heading and supplied body content are
+// appended at the end of the body — the historical path, preserved.
+func TestAddAC_AppendsBodyContentWhenNoPlaceholder(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001",
+		[]string{"Real criterion"}, [][]byte{[]byte("The contract prose.")}, testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	hi := strings.Index(body, "### AC-1 — Real criterion")
+	ci := strings.Index(body, "The contract prose.")
+	if hi < 0 || ci < 0 || ci < hi {
+		t.Errorf("body content should follow the appended heading; heading@%d prose@%d:\n%s", hi, ci, body)
+	}
+}
+
+// TestRename_CompositeLeavesSiblingHeadings: renaming one AC's heading
+// in a multi-AC body rewrites only the targeted `### AC-N` and leaves
+// sibling headings untouched (the rewrite closure's non-matching
+// branch).
+func TestRename_CompositeLeavesSiblingHeadings(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Second criterion", testActor, nil))
+	r.must(verb.Rename(r.ctx, r.tree(), "M-0001/AC-2", "Renamed second", testActor, 0))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	if !strings.Contains(body, "### AC-1 — First criterion") {
+		t.Errorf("sibling AC-1 heading should be untouched:\n%s", body)
+	}
+	if !strings.Contains(body, "### AC-2 — Renamed second") {
+		t.Errorf("AC-2 heading should be rewritten:\n%s", body)
+	}
+}
+
+// TestAddAC_PlaceholderHeadingCoLocatesBodyContent: when a placeholder
+// heading is rewritten in place AND the operator supplies AC body
+// content (--body-file), the content lands beneath the rewritten
+// heading rather than orphaned at the end of the document.
+func TestAddAC_PlaceholderHeadingCoLocatesBodyContent(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	m := r.tree().ByID("M-0001")
+	abs := filepath.Join(r.root, m.Path)
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	withPlaceholder := string(raw) + "\n### AC-1 — <observable behavior>\n\n<Prose.>\n"
+	if err = os.WriteFile(abs, []byte(withPlaceholder), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001",
+		[]string{"Real criterion"}, [][]byte{[]byte("The contract prose.")}, testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	// Anchor on the `—` separator so the count can't be fooled by an
+	// `### AC-10`-style prefix collision (CLAUDE.md §"Substring
+	// assertions are not structural assertions").
+	if n := strings.Count(body, "### AC-1 —"); n != 1 {
+		t.Errorf("expected exactly one `### AC-1 —` heading, got %d:\n%s", n, body)
+	}
+	hi := strings.Index(body, "### AC-1 — Real criterion")
+	ci := strings.Index(body, "The contract prose.")
+	if hi < 0 || ci < 0 || ci < hi {
+		t.Errorf("contract prose should appear beneath the rewritten heading; heading@%d prose@%d:\n%s", hi, ci, body)
+	}
+}
+
 // TestAddAC_SeedsRedPhaseUnderTDDRequired: when the parent milestone
 // is tdd: required, the verb writes tdd_phase: red as part of the
 // same commit. The kernel never makes a TDD-policy decision — it just

@@ -350,9 +350,15 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 // on purpose; aiwf add ac scaffolds em-dash by default, but a hand-
 // typed hyphen should not produce a noisy warning.
 //
-// Two subcodes:
-//   - missing-heading: frontmatter has an AC the body has no heading for.
-//   - orphan-heading:  body has a heading the frontmatter has no AC for.
+// Three subcodes:
+//   - missing-heading:   frontmatter has an AC the body has no heading for.
+//   - orphan-heading:    body has a heading the frontmatter has no AC for.
+//   - duplicate-heading: the `## Acceptance criteria` section repeats a
+//     `### AC-N` heading. A duplicate of an id that is also in
+//     frontmatter is neither missing nor orphan, so without this subcode
+//     the set-collapse hid it entirely (G-0247). Scoped to the AC
+//     section so the `## Work log` convention (which repeats
+//     `### AC-N — <outcome>` headings) is not a false positive.
 func acsBodyCoherence(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
@@ -392,7 +398,7 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 			if ac.ID == "" {
 				continue
 			}
-			if !bodyIDs[ac.ID] {
+			if bodyIDs[ac.ID] == 0 {
 				findings = append(findings, Finding{
 					Code:     CodeACsBodyCoherence,
 					Severity: SeverityWarning,
@@ -421,6 +427,33 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 				})
 			}
 		}
+
+		// A repeated `### AC-N` heading inside the `## Acceptance
+		// criteria` section is neither missing nor orphan (the id is in
+		// both body and frontmatter), so the present/absent checks above
+		// let it pass — flag the count explicitly (G-0247). Scope to the
+		// AC section: the `## Work log` convention legitimately repeats
+		// `### AC-N — <outcome>` headings, so a whole-body count would
+		// false-positive on every wrapped milestone.
+		acSection := ""
+		if secs := entity.ParseBodySections(body); secs != nil {
+			acSection = secs["acceptance_criteria"]
+		}
+		for id, count := range scanACHeadings([]byte(acSection)) {
+			if count <= 1 {
+				continue
+			}
+			findings = append(findings, Finding{
+				Code:     CodeACsBodyCoherence,
+				Severity: SeverityWarning,
+				Subcode:  "duplicate-heading",
+				Message: fmt.Sprintf("the `## Acceptance criteria` section has %d `### %s` headings; keep exactly one",
+					count, id),
+				Path:     e.Path,
+				EntityID: e.ID + "/" + id,
+				Field:    "acs",
+			})
+		}
 	}
 	return findings
 }
@@ -431,14 +464,15 @@ func acsBodyCoherence(t *tree.Tree) []Finding {
 // aiwf show; the coherence check itself only consults the id.
 var acHeadingPattern = regexp.MustCompile(`^### AC-(\d+)(?:\s*[—\-:]\s*(.+))?$`)
 
-// scanACHeadings walks body bytes line by line and returns the set
-// of AC ids that appear as a heading. Duplicate headings collapse
-// (the set holds one entry per id); duplicates are not flagged here
-// because acsShape's position rule already disallows a duplicate id
-// in the frontmatter, and an extra body heading without a frontmatter
-// match shows up as an orphan-heading warning.
-func scanACHeadings(body []byte) map[string]bool {
-	out := map[string]bool{}
+// scanACHeadings walks body bytes line by line and returns, per AC id,
+// the number of `### AC-N` heading lines that carry it. The count (not
+// a bare set) is what lets acsBodyCoherence flag a duplicated heading:
+// two `### AC-2` lines for an id that is also in frontmatter are neither
+// missing nor orphan, so a set would silently collapse them and the
+// duplicate would pass clean (G-0247). An id absent from the body has
+// no key (callers read a zero count as "no heading").
+func scanACHeadings(body []byte) map[string]int {
+	out := map[string]int{}
 	scanner := bufio.NewScanner(bytes.NewReader(body))
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	for scanner.Scan() {
@@ -447,7 +481,7 @@ func scanACHeadings(body []byte) map[string]bool {
 		if m == nil {
 			continue
 		}
-		out["AC-"+m[1]] = true
+		out["AC-"+m[1]]++
 	}
 	return out
 }
