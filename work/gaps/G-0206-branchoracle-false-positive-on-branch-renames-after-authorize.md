@@ -1,8 +1,10 @@
 ---
 id: G-0206
 title: BranchOracle false-positive on branch renames after authorize
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0161
 ---
 M-0103's `aiwf authorize --branch <name>` records the named branch
 in the `aiwf-branch:` trailer on the authorize commit. The trailer
