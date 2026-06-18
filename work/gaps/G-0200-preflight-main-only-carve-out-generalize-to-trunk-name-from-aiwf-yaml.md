@@ -1,8 +1,10 @@
 ---
 id: G-0200
 title: 'preflight main-only carve-out: generalize to trunk-name from aiwf.yaml'
-status: open
+status: addressed
 discovered_in: M-0104
+addressed_by:
+    - M-0161
 ---
 M-0104's AC-4 carve-out hardcodes `CurrentBranch == "main"` literally
 ([`internal/verb/authorize.go:300`](../../internal/verb/authorize.go)):
