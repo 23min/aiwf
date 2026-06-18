@@ -1,8 +1,10 @@
 ---
 id: G-0202
 title: 'isolation-escape cherry-pick gather-side: implement CLI detection'
-status: open
+status: addressed
 discovered_in: M-0106
+addressed_by:
+    - M-0159
 ---
 M-0106's `isolation-escape` rule supports cherry-pick suppression
 via a `cherryPicked map[string]bool` parameter on `RunIsolationEscape`
