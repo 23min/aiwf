@@ -1,7 +1,9 @@
 ---
 id: G-0256
 title: no wf-* ritual for re-evaluating a design unit against pinned obligations
-status: open
+status: addressed
+addressed_by_commit:
+    - aa47f430
 ---
 ## What's missing
 
