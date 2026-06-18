@@ -1,8 +1,10 @@
 ---
 id: G-0203
 title: BranchOracle FirstParentBranches conflates lookup-failed with no-branches
-status: open
+status: addressed
 discovered_in: M-0106
+addressed_by:
+    - M-0161
 ---
 M-0106's [`BranchOracle.FirstParentBranches`](../../internal/check/isolation_escape.go)
 returns `[]string` with the documented contract: *"An empty/nil
