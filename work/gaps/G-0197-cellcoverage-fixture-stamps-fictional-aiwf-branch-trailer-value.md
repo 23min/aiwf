@@ -1,8 +1,10 @@
 ---
 id: G-0197
 title: cellcoverage fixture stamps fictional aiwf-branch trailer value
-status: open
+status: addressed
 discovered_in: M-0103
+addressed_by:
+    - M-0159
 ---
 ## What's missing
 
