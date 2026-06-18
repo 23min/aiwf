@@ -12,28 +12,37 @@ import (
 	"strings"
 )
 
-// branchEntityPattern matches the conventional ritual-branch prefixes:
+// branchEntityPattern matches the conventional ritual-branch prefixes,
+// enforcing prefix-id coherence (G-0198): each prefix accepts only its
+// own id kind.
 //
 //	epic/E-NNNN-<slug>          → E-NNNN
 //	milestone/M-NNNN-<slug>     → M-NNNN
-//	patch/g-NNNN-<slug>         → G-NNNN (case-insensitive id segment)
+//	patch/g-NNNN-<slug>         → G-NNNN (id segment is case-insensitive)
 //
-// Other shapes (fix/*, chore/*, patch/<topic-without-id>) yield "".
+// Incoherent combinations (epic/M-..., milestone/E-..., patch/E-...) and
+// other shapes (fix/*, chore/*, patch/<topic-without-id>) yield "" — the
+// prefix and the id kind must agree. The three alternation groups are
+// mutually exclusive, so exactly one is non-empty on a match.
 // Narrow-legacy id widths (E-01, M-007) are preserved as-typed on output;
 // canonicalization is a downstream concern handled by entity.Canonicalize
 // at the consumer's discretion (e.g. when stamping a trailer).
-var branchEntityPattern = regexp.MustCompile(`^(?:epic|milestone|patch)/([EeMmGg]-\d+)(?:-|$)`)
+var branchEntityPattern = regexp.MustCompile(`^(?:epic/([Ee]-\d+)|milestone/([Mm]-\d+)|patch/([Gg]-\d+))(?:-|$)`)
 
 // ParseEntityFromBranch tries to derive an entity id from a ritual-shape
-// branch name. Honors the conventional `epic/E-NNNN-...`,
-// `milestone/M-NNNN-...`, `patch/g-NNNN-...` shapes. Returns "" on no
-// match — the caller treats that as "not a ritual branch."
+// branch name, requiring the prefix and id kind to agree:
+// `epic/E-NNNN-...`, `milestone/M-NNNN-...`, `patch/g-NNNN-...`. Returns
+// "" on no match or on a prefix-id mismatch (G-0198) — the caller treats
+// that as "not a ritual branch."
 func ParseEntityFromBranch(branch string) string {
 	m := branchEntityPattern.FindStringSubmatch(branch)
 	if m == nil {
 		return ""
 	}
-	return strings.ToUpper(m[1])
+	// Exactly one of the three alternation groups (epic/E-, milestone/M-,
+	// patch/G-) matched; the other two are empty, so concatenation yields
+	// the single id segment.
+	return strings.ToUpper(m[1] + m[2] + m[3])
 }
 
 // branchRungPattern recognizes the kind segment of a ritual-shape

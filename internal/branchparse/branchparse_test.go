@@ -4,8 +4,10 @@ import "testing"
 
 // TestParseEntityFromBranch covers the ritual-shape branch grammar
 // defined by ADR-0010: `epic/E-NNNN-<slug>`, `milestone/M-NNNN-<slug>`,
-// `patch/g-NNNN-<slug>` (case-insensitive id segment). Other shapes
-// yield "". This is the source of truth M-0102 lifts out of
+// `patch/g-NNNN-<slug>` (case-insensitive id segment). The prefix and
+// the id kind must agree (G-0198) — `epic/M-...`, `milestone/E-...`,
+// `patch/E-...` and other incoherent or non-ritual shapes yield "".
+// This is the source of truth M-0102 lifts out of
 // internal/cli/status/worktrees.go so M-0103's preflight and the
 // existing aiwf status --worktrees correlation share one regex set.
 func TestParseEntityFromBranch(t *testing.T) {
@@ -26,7 +28,19 @@ func TestParseEntityFromBranch(t *testing.T) {
 		{"chore prefix returns empty", "chore/something", ""},
 		{"patch without id segment returns empty", "patch/some-topic", ""},
 		{"epic without id segment returns empty", "epic/no-id-here", ""},
-		{"wrong kind id (E- under milestone/) accepted by id-shape", "milestone/E-0010-mismatch", "E-0010"},
+		// G-0198: prefix and id kind must agree. Incoherent
+		// combinations parse to "" so the status --worktrees correlator
+		// surfaces the typo instead of silently miscorrelating a
+		// hand-created branch to the wrong entity.
+		{"milestone/ with E- id rejected (prefix-id mismatch)", "milestone/E-0010-mismatch", ""},
+		{"epic/ with M- id rejected (prefix-id mismatch)", "epic/M-0001-foo", ""},
+		{"patch/ with M- id rejected (prefix-id mismatch)", "patch/M-0042-foo", ""},
+		{"patch/ with E- id rejected (prefix-id mismatch)", "patch/E-0042-foo", ""},
+		{"epic/ with G- id rejected (prefix-id mismatch)", "epic/G-0001-foo", ""},
+		{"milestone/ with G- id rejected (prefix-id mismatch)", "milestone/G-0001-foo", ""},
+		// Per-prefix case-insensitivity of the id segment is preserved
+		// (G-0198 constrains the kind letter, not its case).
+		{"epic/ lowercase e- id still accepted (case-insensitive)", "epic/e-0001-x", "E-0001"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
