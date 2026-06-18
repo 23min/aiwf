@@ -1,8 +1,10 @@
 ---
 id: G-0207
 title: Detached HEAD handling untested in preflight and oracle
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0161
 ---
 M-0103's preflight and M-0106's `BranchOracle` both query the
 current branch via `git symbolic-ref --short HEAD`. In a detached
