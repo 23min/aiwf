@@ -1,8 +1,10 @@
 ---
 id: G-0213
 title: Cellcoverage fixture writes fictional aiwf-branch values (latent landmine)
-status: open
+status: addressed
 discovered_in: M-0159
+addressed_by:
+    - M-0159
 ---
 ## What's missing
 
