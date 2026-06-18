@@ -1,7 +1,9 @@
 ---
 id: G-0255
 title: promote --superseded-by writes only one side of the supersession link
-status: open
+status: addressed
+addressed_by_commit:
+    - 3c6cde37
 ---
 ## What's missing
 
