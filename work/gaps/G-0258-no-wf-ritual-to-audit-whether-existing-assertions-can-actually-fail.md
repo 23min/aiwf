@@ -1,7 +1,9 @@
 ---
 id: G-0258
 title: no wf-* ritual to audit whether existing assertions can actually fail
-status: open
+status: addressed
+addressed_by_commit:
+    - 2e86d469
 ---
 ## What's missing
 
