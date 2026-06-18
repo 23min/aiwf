@@ -1,8 +1,10 @@
 ---
 id: G-0198
 title: branchparse regex accepts prefix-id mismatch (epic/M-..., milestone/E-...)
-status: open
+status: addressed
 discovered_in: M-0103
+addressed_by_commit:
+    - 8f1227c72ac932d49cbb0710eedfcc0382898288
 ---
 ## What's missing
 
