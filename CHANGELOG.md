@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-06-18
+
+### Fixed — diff-scoped coverage gate marker placement (no functional changes)
+
+The `//coverage:ignore` annotation on `readBuildInfoVersion`'s unreachable degenerate-build `return` was moved inline onto the statement so the diff-scoped coverage gate (G-0067) recognizes it within the statement's coverage block; the v0.15.0 push otherwise failed CI on that line. No functional or behavioral change versus v0.15.0 — the annotated line is the unreachable `runtime/debug.ReadBuildInfo` fallback, and the moved marker is a comment.
+
 ## [0.15.0] — 2026-06-18
 
 ### Added — three new engineering ritual skills (wf-rethink, wf-property-test, wf-vacuity)
