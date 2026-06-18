@@ -45,6 +45,23 @@ import (
 // for binaries built from a working tree (`go build`, `go run`).
 const DevelVersion = "(devel)"
 
+// Stamp is the ldflags-injected version string for the running
+// binary. The Makefile's `make build` / `make install` targets set it
+// to `<branch>@<short-sha>[-dirty]` via
+// `-X github.com/23min/aiwf/internal/version.Stamp=…`; a plain
+// `go install <module>@v0.1.0` leaves it empty and Current falls back
+// to runtime/debug.ReadBuildInfo.
+//
+// Stamp is the single source of truth for the binary's reported
+// version: every surface (the `version` verb, the JSON envelope's
+// Version field, `aiwf doctor`'s binary row) resolves through
+// Current(), so one binary always reports one string. It is set once
+// at link time and never mutated at runtime — the package-level var is
+// an ldflags target, not mutable program state.
+// PolicyVersionSingleSource forbids a parallel version global from
+// reappearing outside this package.
+var Stamp string
+
 // Info is a parsed version with a flag for whether it identifies a
 // concrete tagged release (vs. devel or a pseudo-version).
 type Info struct {
@@ -104,17 +121,37 @@ var pseudoVersionRE = regexp.MustCompile(`[-.]\d{14}-[0-9a-f]{12}$`)
 // are surfaced separately by Compare via the SkewUnknown fallback.
 var taggedSemverRE = regexp.MustCompile(`^v\d+\.\d+\.\d+([-+].*)?$`)
 
-// Current returns the running binary's version Info, read from
-// runtime/debug.ReadBuildInfo. Binaries built without module info
-// report DevelVersion with Tagged=false.
+// Current returns the running binary's version Info. An ldflags Stamp
+// (the `make install` path) is authoritative; absent a stamp, the
+// value is read from runtime/debug.ReadBuildInfo. Binaries built
+// without module info and without a stamp report DevelVersion with
+// Tagged=false.
 func Current() Info {
+	return resolveVersion(Stamp, readBuildInfoVersion())
+}
+
+// resolveVersion picks the authoritative version string: a non-empty
+// ldflags stamp wins over the buildinfo value (which is DevelVersion
+// for a working-tree build even when a stamp was injected). It is a
+// pure function so the stamp-precedence branch is unit-testable
+// without mutating the package-level Stamp.
+func resolveVersion(stamp, buildInfoVersion string) Info {
+	if stamp != "" {
+		return Parse(stamp)
+	}
+	return Parse(buildInfoVersion)
+}
+
+// readBuildInfoVersion returns bi.Main.Version, or "" when build info
+// is unavailable.
+func readBuildInfoVersion() string {
 	if bi, ok := debug.ReadBuildInfo(); ok {
-		return Parse(bi.Main.Version)
+		return bi.Main.Version
 	}
 	//coverage:ignore ReadBuildInfo only returns ok=false in
 	// degenerate builds (e.g. CGO-stripped binaries with no module
 	// info embedded); not reachable from `go test` or `go install`.
-	return Parse("")
+	return ""
 }
 
 // ModulePath returns the module path of the running aiwf binary,

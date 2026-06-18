@@ -68,7 +68,7 @@ func TestRun_DoctorReportsLegacyActor(t *testing.T) {
 		t.Fatalf("init: %d", rc)
 	}
 	// Append the legacy `actor:` line to simulate a pre-I2.5 repo.
-	contents := []byte("aiwf_version: " + cli.Version + "\nactor: human/legacy\n")
+	contents := []byte("aiwf_version: " + "v0.1.0" + "\nactor: human/legacy\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -497,10 +497,12 @@ func TestDoctorReport_PreCommitHookOK(t *testing.T) {
 func TestDoctorReport_PreCommitHookGateOnly(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
-	// Pre-write aiwf.yaml with the same Version the binary will
-	// stamp on init, so the version-skew check doesn't add a
-	// confounding problem to the count.
-	yaml := []byte("aiwf_version: " + cli.Version + "\nactor: human/test\nstatus_md:\n  auto_update: false\n")
+	// Pre-write aiwf.yaml carrying the deprecated legacy aiwf_version
+	// field; init strips it (ensureLegacyAiwfVersionClean), so it does
+	// not add a confounding problem to the count. The value is
+	// immaterial — the field is legacy and version state is now
+	// derived from the binary.
+	yaml := []byte("aiwf_version: v0.1.0\nactor: human/test\nstatus_md:\n  auto_update: false\n")
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), yaml, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -676,7 +678,7 @@ func TestDoctorReport_ValidatorAvailability_Warning(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+cli.Version+`
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+"v0.1.0"+`
 actor: human/test
 contracts:
   validators:
@@ -714,7 +716,7 @@ func TestDoctorReport_ValidatorAvailability_StrictIncrementsProblems(t *testing.
 	}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+cli.Version+`
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte(`aiwf_version: `+"v0.1.0"+`
 actor: human/test
 contracts:
   strict_validators: true

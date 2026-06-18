@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,8 +14,8 @@ import (
 // Binary integration tests close G27's bug class: they build the
 // actual cmd binary and run verbs as subprocesses so the production
 // path — `runtime/debug.ReadBuildInfo` plus the ldflags-stamped
-// Version global — is exercised the way a user's installed binary
-// would be.
+// version.Stamp global — is exercised the way a user's installed
+// binary would be.
 //
 // `go test` on its own cannot catch the v0.1.0 bug class
 // (`aiwf version` returning "dev" while doctor read buildinfo
@@ -27,21 +28,22 @@ import (
 // in, faster local iterations skip via `-short`.
 
 // TestBinary_VersionVerb_RespectsLdflags pins the ldflags-stamped
-// path: a binary built with `-ldflags="-X .../internal/cli.Version=v0.99.0-…"`
+// path: a binary built with `-ldflags="-X .../internal/version.Stamp=v0.99.0-…"`
 // must report that exact value from `aiwf version`. This is the
 // `make install` path the kernel-dev repo uses today.
 //
 // The ldflags target moved from `main.Version` to
-// `github.com/23min/aiwf/internal/cli.Version` in M-0118/AC-1
-// when newRootCmd and the Version package-global both relocated to
-// internal/cli/root.go (the cmd-package is entry-only now and has
-// no Version global of its own).
+// `github.com/23min/aiwf/internal/cli.Version` in M-0118/AC-1, then to
+// `github.com/23min/aiwf/internal/version.Stamp` (G-0235 candidate B)
+// so the human-facing print and the JSON envelope resolve the stamp
+// through the same version.Current() reader — a single binary reports
+// one version string on every surface.
 func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
 	const stampedVersion = "v0.99.0-binary-integration-test"
-	bin := testutil.BuildBinary(t, tmp, "-ldflags=-X github.com/23min/aiwf/internal/cli.Version="+stampedVersion)
+	bin := testutil.BuildBinary(t, tmp, "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stampedVersion)
 
 	out, err := testutil.RunBinary(bin, "version")
 	if err != nil {
@@ -50,6 +52,50 @@ func TestBinary_VersionVerb_RespectsLdflags(t *testing.T) {
 	got := strings.TrimSpace(out)
 	if got != stampedVersion {
 		t.Errorf("aiwf version = %q, want %q\n(G27: ldflags-stamped value did not reach the verb)", got, stampedVersion)
+	}
+}
+
+// TestBinary_VersionVerb_AndEnvelopeAgree_WhenStamped is the direct
+// end-to-end proof of the C1 convergence (G-0235 candidate B): for a
+// single ldflags-stamped binary, the human-facing `aiwf version`
+// output and the JSON envelope's `version` field must report the SAME
+// string. Pre-fix, the human path read the stamp via ResolvedVersion
+// while the envelope read buildinfo via version.Current() — so a
+// `make install` binary printed the stamp but emitted "(devel)" in
+// JSON. `schema --format json` is used because it emits an envelope
+// without needing an aiwf repo on disk.
+func TestBinary_VersionVerb_AndEnvelopeAgree_WhenStamped(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+	tmp := t.TempDir()
+	const stampedVersion = "v0.99.0-envelope-agreement-test"
+	bin := testutil.BuildBinary(t, tmp, "-ldflags=-X github.com/23min/aiwf/internal/version.Stamp="+stampedVersion)
+
+	verOut, err := testutil.RunBinary(bin, "version")
+	if err != nil {
+		t.Fatalf("aiwf version: %v\n%s", err, verOut)
+	}
+	humanVersion := strings.TrimSpace(verOut)
+
+	jsonOut, err := testutil.RunBinary(bin, "schema", "--format", "json")
+	if err != nil {
+		t.Fatalf("aiwf schema --format json: %v\n%s", err, jsonOut)
+	}
+	var env struct {
+		Version string `json:"version"`
+	}
+	if jerr := json.Unmarshal([]byte(jsonOut), &env); jerr != nil {
+		t.Fatalf("unmarshal envelope: %v\nraw: %s", jerr, jsonOut)
+	}
+
+	if humanVersion != stampedVersion {
+		t.Errorf("aiwf version = %q, want %q", humanVersion, stampedVersion)
+	}
+	if env.Version != stampedVersion {
+		t.Errorf("envelope.version = %q, want %q", env.Version, stampedVersion)
+	}
+	if humanVersion != env.Version {
+		t.Errorf("human-print and envelope diverged on a stamped binary: %q vs %q", humanVersion, env.Version)
 	}
 }
 

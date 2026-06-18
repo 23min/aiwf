@@ -51,7 +51,7 @@ func TestExecute_Version(t *testing.T) {
 }
 
 // TestExecute_VersionVerb asserts that `aiwf version` (the verb) emits
-// the same string as `aiwf --version` — both go through ResolvedVersion.
+// the same string as `aiwf --version` — both go through version.Current.
 func TestExecute_VersionVerb(t *testing.T) {
 	outFlag, codeFlag := captureExecuteOutput(t, []string{"--version"})
 	if codeFlag != cliutil.ExitOK {
@@ -139,25 +139,5 @@ func TestNewRootCmd_AnnotationRecordsExplicitVerbs(t *testing.T) {
 		if got[autoAdd] {
 			t.Errorf("annotation contains Cobra auto-add %q; the snapshot must run before Execute", autoAdd)
 		}
-	}
-}
-
-// TestResolvedVersion_FallsBackToBuildInfo: when the package-level
-// Version is at its default sentinel "dev", ResolvedVersion returns
-// the buildinfo-derived value. Catches the bug class where
-// resolvedVersion shorts to the wrong field.
-func TestResolvedVersion_FallsBackToBuildInfo(t *testing.T) {
-	t.Parallel()
-	// Save and restore Version since this test can't run parallel
-	// with TestResolvedVersion_PrefersStampedValue (both mutate it).
-	// The two are also mutually exclusive with anything that calls
-	// Execute (which reads Version via the root RunE).
-	orig := Version
-	defer func() { Version = orig }()
-
-	Version = "dev"
-	got := ResolvedVersion()
-	if got == "" || got == "dev" {
-		t.Errorf("with Version=dev expected buildinfo fallback (e.g. (devel) or a tag); got %q", got)
 	}
 }

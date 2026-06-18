@@ -52,17 +52,6 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// Version is the binary's reported version. The ldflags-stamped value
-// (set by `make install` to `<branch>@<short-sha>[-dirty]`) takes
-// precedence; when left at the default sentinel `"dev"`, the
-// `aiwf version` verb falls back to runtime/debug.ReadBuildInfo via
-// version.Current() so a `go install …@v0.1.0` binary correctly
-// reports its tag.
-//
-// The Makefile pins the ldflags target as
-// `-X github.com/23min/aiwf/internal/cli.Version=…`.
-var Version = "dev"
-
 // init wires the doctor package's in-process Dispatcher seam to
 // Execute. The doctor package's --self-check mode drives every aiwf
 // verb against a throwaway repo and cannot import this package
@@ -70,21 +59,6 @@ var Version = "dev"
 // package-level variable assignment.
 func init() {
 	doctor.Dispatcher = Execute
-}
-
-// ResolvedVersion returns the version to display in user output.
-// Prefers the ldflags-stamped Version global when set to anything
-// other than the default sentinel, otherwise defers to buildinfo via
-// version.Current. The two paths surface different conventions for
-// "no version known" (Version="dev" vs DevelVersion="(devel)"); we
-// normalize by always returning the buildinfo-style value when no
-// ldflags stamp is present, so `aiwf version` and `aiwf doctor`'s
-// binary: row stay byte-coherent for the same binary.
-func ResolvedVersion() string {
-	if Version != "dev" && Version != "" {
-		return Version
-	}
-	return version.Current().Version
 }
 
 // Execute is the in-process dispatcher: builds the Cobra root command
@@ -145,7 +119,7 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if v, _ := c.Flags().GetBool("version"); v {
-				fmt.Println(ResolvedVersion())
+				fmt.Println(version.Current().Version)
 				return nil
 			}
 			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
@@ -234,7 +208,7 @@ func NewRootCmd() *cobra.Command {
 // newVersionCmd is the M-049 reference shape: a native Cobra command
 // whose RunE writes a single-line version string to stdout. It must
 // stay byte-coherent with `aiwf -v` / `aiwf --version` (both backed by
-// ResolvedVersion via the root RunE).
+// version.Current via the root RunE).
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
@@ -245,7 +219,7 @@ func newVersionCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			fmt.Println(ResolvedVersion())
+			fmt.Println(version.Current().Version)
 			return nil
 		},
 	}

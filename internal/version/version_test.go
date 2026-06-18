@@ -287,6 +287,67 @@ func TestCurrent_DevelInTestBinary(t *testing.T) {
 	}
 }
 
+// TestResolveVersion pins the stamp-precedence contract: a non-empty
+// ldflags stamp is authoritative over the buildinfo value (which is
+// "(devel)" for a stamped working-tree build — the `make install`
+// path). Exercising the pure helper covers both branches in-process;
+// the end-to-end stamped path is pinned by
+// TestBinary_VersionVerb_RespectsLdflags, but a subprocess build's
+// coverage does not reach this package's profile.
+func TestResolveVersion(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name             string
+		stamp            string
+		buildInfoVersion string
+		wantVersion      string
+		wantTagged       bool
+	}{
+		{
+			name:             "stamp wins over devel buildinfo",
+			stamp:            "main@abc1234",
+			buildInfoVersion: DevelVersion,
+			wantVersion:      "main@abc1234",
+			wantTagged:       false,
+		},
+		{
+			name:             "tagged stamp is tagged",
+			stamp:            "v0.99.0",
+			buildInfoVersion: DevelVersion,
+			wantVersion:      "v0.99.0",
+			wantTagged:       true,
+		},
+		{
+			name:             "no stamp falls back to buildinfo",
+			stamp:            "",
+			buildInfoVersion: "v0.1.0",
+			wantVersion:      "v0.1.0",
+			wantTagged:       true,
+		},
+		{
+			name:             "no stamp, empty buildinfo is devel",
+			stamp:            "",
+			buildInfoVersion: "",
+			wantVersion:      DevelVersion,
+			wantTagged:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := resolveVersion(tt.stamp, tt.buildInfoVersion)
+			if got.Version != tt.wantVersion {
+				t.Errorf("resolveVersion(%q, %q).Version = %q, want %q",
+					tt.stamp, tt.buildInfoVersion, got.Version, tt.wantVersion)
+			}
+			if got.Tagged != tt.wantTagged {
+				t.Errorf("resolveVersion(%q, %q).Tagged = %v, want %v",
+					tt.stamp, tt.buildInfoVersion, got.Tagged, tt.wantTagged)
+			}
+		})
+	}
+}
+
 func TestModulePath_TestBinary(t *testing.T) {
 	t.Parallel()
 	// Under `go test`, ModulePath returns the module of the test
