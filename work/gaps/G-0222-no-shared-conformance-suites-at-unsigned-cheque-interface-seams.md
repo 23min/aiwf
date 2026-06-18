@@ -1,7 +1,7 @@
 ---
 id: G-0222
 title: No shared conformance suites at unsigned-cheque interface seams
-status: open
+status: wontfix
 ---
 ## What's missing
 
