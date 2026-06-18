@@ -68,7 +68,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for a phase promotion (composite + --phase only); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	cmd.Flags().StringVar(&by, "by", "", "comma-separated entity ids to write into addressed_by (gap → addressed only); satisfies gap-addressed-has-resolver atomically with the status change")
 	cmd.Flags().StringVar(&byCommit, "by-commit", "", "comma-separated commit SHAs to write into addressed_by_commit (gap → addressed only); use when the gap was closed by a specific commit rather than a milestone")
-	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); satisfies adr-supersession-mutual atomically with the status change")
+	cmd.Flags().StringVar(&supersededBy, "superseded-by", "", "ADR id to write into superseded_by (adr → superseded only); also records the reciprocal supersedes on that ADR, satisfying adr-supersession-mutual atomically with the status change")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)

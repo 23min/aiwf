@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -146,7 +147,27 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
 	}
 
+	ops := []FileOp{{Type: OpWrite, Path: e.Path, Content: content}}
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
+
+	// Reciprocal supersedes back-link (G-0255): when --superseded-by
+	// names another ADR present in the tree, record this ADR in that
+	// ADR's supersedes set so adr-supersession-mutual is satisfied on
+	// both sides within this one commit. Without the back-link the verb
+	// breaks its own promise — requireResolverForResolutionClass demands
+	// --superseded-by "so the adr-supersession-mutual rule is satisfied",
+	// yet the rule checks a two-sided invariant. Multi-file single-commit
+	// mirrors reallocate's cross-reference rewrites.
+	recOp, recModified, err := reciprocalSupersedesOp(t, modified.ID, opts.SupersededBy)
+	if err != nil {
+		//coverage:ignore defensive: reciprocalSupersedesOp errors only on read/serialize of an entity that already round-tripped through the loader
+		return nil, err
+	}
+	if recOp != nil {
+		ops = append(ops, *recOp)
+		proj = projectReplace(proj, recModified, filepath.ToSlash(recOp.Path))
+	}
+
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
 		return findings(fs), nil
 	}
@@ -156,7 +177,7 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		Subject:  subject,
 		Body:     reason,
 		Trailers: transitionTrailers("promote", id, actor, reason, newStatus, force),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Ops:      ops,
 	}), nil
 }
 
@@ -416,6 +437,51 @@ func applyResolverFlags(e *entity.Entity, opts PromoteOptions) {
 	if opts.SupersededBy != "" {
 		e.SupersededBy = opts.SupersededBy
 	}
+}
+
+// reciprocalSupersedesOp returns the file write and the projected
+// entity that records the back-link `supersedes` entry on the
+// superseding ADR named by supersededBy, so a
+// `promote <supersededID> superseded --superseded-by <supersededBy>`
+// records the link on both ADRs in the verb's single commit (G-0255).
+//
+// Returns (nil, nil, nil) — no reciprocal write — when:
+//   - supersededBy is empty (no flag passed);
+//   - the named entity is absent, is not an ADR, or names the
+//     superseded entity itself — the refs-resolve and no-cycles checks
+//     surface those at projection time; skipping here avoids a nil-deref
+//     and a self-write that would clobber the status-change op; or
+//   - the superseding ADR already lists supersededID in its supersedes
+//     set (idempotent: nothing to add).
+func reciprocalSupersedesOp(t *tree.Tree, supersededID, supersededBy string) (*FileOp, *entity.Entity, error) {
+	if supersededBy == "" {
+		return nil, nil, nil
+	}
+	b := t.ByID(supersededBy)
+	if b == nil || b.Kind != entity.KindADR || b.ID == supersededID {
+		return nil, nil, nil
+	}
+	if slices.Contains(b.Supersedes, supersededID) {
+		return nil, nil, nil
+	}
+
+	modified := *b
+	// Clone before append so the loaded tree's slice is not mutated in
+	// place — projectReplace swaps the entity pointer, but the backing
+	// array would otherwise be shared with the original entity.
+	modified.Supersedes = append(slices.Clone(b.Supersedes), supersededID)
+
+	body, err := readBody(t.Root, b.Path)
+	if err != nil {
+		//coverage:ignore defensive: b.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
+		return nil, nil, fmt.Errorf("reading body of %s: %w", b.ID, err)
+	}
+	content, err := entity.Serialize(&modified, body)
+	if err != nil {
+		//coverage:ignore defensive: Serialize fails only on a malformed entity; b already round-tripped through the loader
+		return nil, nil, fmt.Errorf("serializing %s: %w", b.ID, err)
+	}
+	return &FileOp{Type: OpWrite, Path: b.Path, Content: content}, &modified, nil
 }
 
 // readBody reads the body bytes from an existing entity file. Returns

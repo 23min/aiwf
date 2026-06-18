@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -76,10 +77,18 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	}
 }
 
-// TestPromote_SupersededByFlag_BinaryEndToEnd is the ADR analogue —
-// the dispatcher accepts --superseded-by, threads it through, and
-// the post-promote tree validates clean (mutual link satisfied via
-// supersedes on ADR-0002, written via the same flag below).
+// TestPromote_SupersededByFlag_BinaryEndToEnd is the ADR analogue of
+// TestPromote_ByFlag_BinaryEndToEnd: the dispatcher accepts
+// --superseded-by, threads it through, and the post-promote tree
+// validates clean of adr-supersession-mutual because the verb records
+// BOTH sides of the link in one commit — superseded_by on ADR-0001 and
+// the reciprocal supersedes on ADR-0002 (G-0255).
+//
+// The earlier version asserted only the commit trailers and never ran
+// `aiwf check`; its doc comment claimed the supersedes link was written
+// "via the same flag", which was false — the reciprocal side was never
+// written and the warning fired permanently. This test now drives the
+// real check and pins the reciprocal write.
 func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)
@@ -124,6 +133,28 @@ func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
 	}
 	hasTrailer(t, tr, "aiwf-entity", "ADR-0001")
 	hasTrailer(t, tr, "aiwf-to", "superseded")
+
+	// The reciprocal supersedes back-link is recorded on the superseding
+	// ADR in the same commit — the explicit seam this test now pins.
+	adr2, err := os.ReadFile(filepath.Join(root, "docs", "adr", "ADR-0002-new-call.md"))
+	if err != nil {
+		t.Fatalf("reading ADR-0002: %v", err)
+	}
+	if !strings.Contains(string(adr2), "supersedes:") || !strings.Contains(string(adr2), "ADR-0001") {
+		t.Errorf("ADR-0002 should record supersedes: [ADR-0001]; got:\n%s", adr2)
+	}
+
+	// Headline closure (G-0255): the two-sided link means
+	// adr-supersession-mutual does not fire. `aiwf check` exits 0 — only
+	// advisory warnings (empty bodies, archive-sweep) remain, and that
+	// code is not among them.
+	checkOut, err := testutil.RunBin(t, root, binDir, nil, "check")
+	if err != nil {
+		t.Fatalf("aiwf check after supersession: %v\n%s", err, checkOut)
+	}
+	if strings.Contains(checkOut, check.CodeADRSupersessionMutual) {
+		t.Errorf("post-supersession check still surfaces adr-supersession-mutual:\n%s", checkOut)
+	}
 }
 
 // TestPromote_ByCommitFlag_RejectsUnresolvableSHA_BinaryEndToEnd is
