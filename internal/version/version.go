@@ -148,10 +148,7 @@ func readBuildInfoVersion() string {
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		return bi.Main.Version
 	}
-	//coverage:ignore ReadBuildInfo only returns ok=false in
-	// degenerate builds (e.g. CGO-stripped binaries with no module
-	// info embedded); not reachable from `go test` or `go install`.
-	return ""
+	return "" //coverage:ignore ReadBuildInfo returns ok=false only in degenerate builds (CGO-stripped, no module info); not reachable from `go test` or `go install`.
 }
 
 // ModulePath returns the module path of the running aiwf binary,
