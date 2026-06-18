@@ -1,8 +1,10 @@
 ---
 id: G-0204
 title: BranchOracle silent on shallow clones (CI fetch-depth=1)
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0161
 ---
 M-0106's `BranchOracle` indexes per-commit first-parent
 reachability via `git rev-list --first-parent <branch>` per ritual
