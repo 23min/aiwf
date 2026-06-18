@@ -1,8 +1,10 @@
 ---
 id: G-0201
 title: authorize preflight carve-out accepts cross-rung ritual mismatches
-status: open
+status: addressed
 discovered_in: M-0105
+addressed_by:
+    - M-0161
 ---
 M-0105/AC-6 extended the authorize preflight's future-branch carve-out
 ([`internal/verb/authorize.go`](../../internal/verb/authorize.go)) from
