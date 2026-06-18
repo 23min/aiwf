@@ -1,7 +1,9 @@
 ---
 id: G-0257
 title: no wf-* ritual to turn a crisp invariant into a generative property test
-status: open
+status: addressed
+addressed_by_commit:
+    - afb6ee25
 ---
 ## What's missing
 
