@@ -502,7 +502,7 @@ Commit subject lines follow Conventional Commits (`feat(plan): ...`, `chore(plan
 
 ### Release process
 
-Releases of `aiwf` are git tags on `poc/aiwf-v3` of the form `vX.Y.Z`. The Go module proxy resolves them when a consumer runs `aiwf upgrade` or `go install <pkg>@latest`. There is no separate release artifact to publish, but the user-facing changelog must stay in step.
+Releases of `aiwf` are git tags on `main` (the trunk) of the form `vX.Y.Z`. The Go module proxy resolves them when a consumer runs `aiwf upgrade` or `go install <pkg>@latest`. There is no separate release artifact to publish, but the user-facing changelog must stay in step.
 
 Before tagging `vX.Y.Z`:
 
