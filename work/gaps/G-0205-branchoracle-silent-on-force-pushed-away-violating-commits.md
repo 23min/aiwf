@@ -1,8 +1,10 @@
 ---
 id: G-0205
 title: BranchOracle silent on force-pushed-away violating commits
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0161
 ---
 M-0106's `BranchOracle` indexes commits via
 `git rev-list --first-parent <branch>` at construction time. The
