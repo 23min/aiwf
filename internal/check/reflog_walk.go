@@ -144,11 +144,16 @@ func listRitualHeads(ctx context.Context, root string) ([]string, error) {
 	return ritual, nil
 }
 
-// ritualShape reports whether the branch name matches an aiwf
-// ritual shape (epic/E-NNNN-..., milestone/M-NNNN-...,
-// patch/...). Mirrors branchparse.ParseEntityFromBranch's
-// non-empty check without importing that package — the helper
-// stays leaf relative to the kernel rule.
+// ritualShape reports whether the branch name sits in an aiwf
+// ritual namespace (epic/, milestone/, patch/). This is a
+// deliberately loose prefix-only check — looser than
+// branchparse.ParseEntityFromBranch, which since G-0198 also
+// requires a coherent id segment (epic/E-, milestone/M-, patch/g-).
+// The reflog orphan-walk wants to scan every ritual-namespace branch
+// for force-pushed-away AI commits, including malformed ones
+// (e.g. epic/typo), so it intentionally does not require a parseable
+// id here. Kept inline rather than importing branchparse so the
+// helper stays leaf relative to the kernel rule.
 func ritualShape(branch string) bool {
 	for _, prefix := range []string{"epic/", "milestone/", "patch/"} {
 		if strings.HasPrefix(branch, prefix) {
