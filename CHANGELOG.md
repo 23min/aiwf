@@ -16,6 +16,40 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-06-18
+
+### Added — three new engineering ritual skills (wf-rethink, wf-property-test, wf-vacuity)
+
+`aiwf init`/`update` now materialize three more `wf-*` engineering rituals. **`wf-rethink`** (G-0256) re-evaluates one unit's design by reconstructing it from intent against a list of pinned obligations, then keeps or rewrites — biased to keep, with any rewrite gated behind explicit human approval. **`wf-property-test`** (G-0257) turns a unit's crisp invariant (conservation, round-trip, idempotence, monotonicity) into a generative or metamorphic property test instead of a single example — and unlike the design-quality ritual the artifact is a real CI gate. **`wf-vacuity`** (G-0258) adversarially audits whether a unit's existing tests can actually fail: a mutation probe (break the implementation, confirm a test goes red) plus a tautology/over-narrowing probe that flags assertions passing for the wrong reason.
+
+### Added — G-0067: diff-scoped coverage gate for changed Go code
+
+`wf-tdd-cycle`'s branch-coverage HARD RULE is now mechanical for aiwf's own Go code: every statement on a line changed since the base ref must be exercised by a test or annotated `//coverage:ignore <reason>`, else CI fails the job naming the `file:line`. The engine is `internal/policies/branch_coverage_audit.go` (`PolicyBranchCoverageAudit`), run in the CI coverage-gate step and locally via `make coverage-gate`. Honest limit: Go's `-cover` is statement coverage, so this is diff-scoped *statement* coverage with the `//coverage:ignore` escape — true per-arm branch correlation is tracked as a follow-up (G-0253).
+
+### Fixed — G-0235 candidate B: single-source binary version
+
+A `make install` / ldflags-stamped binary reported two different version strings — `aiwf version` printed the stamp while the JSON envelope and `aiwf doctor`'s binary row read buildinfo (`(devel)` for a working-tree build). The ldflags stamp moved from `internal/cli.Version` into `internal/version.Stamp` so every surface resolves through `version.Current()` and one binary reports one string. A new `version-single-source` policy test blocks a parallel version global from reappearing outside `internal/version`.
+
+### Fixed — G-0255: `promote --superseded-by` writes the reciprocal supersedes link
+
+`aiwf promote <old> superseded --superseded-by <new>` wrote `superseded_by` on the superseded ADR but never the reciprocal `supersedes` on the superseding ADR, and no other verb could. The two-sided `adr-supersession-mutual` check therefore fired permanently with no CLI path to clear it; the verb now writes both sides in the one commit.
+
+### Fixed — G-0198: branch-id prefix coherence in `ParseEntityFromBranch`
+
+The ritual-branch parser matched any `E-`/`M-`/`G-` id under any prefix, so a typo'd `epic/M-0001-foo` parsed to `M-0001` and silently miscorrelated in `aiwf status --worktrees`. The pattern now scopes each prefix to its own id family.
+
+### Fixed — G-0247: `aiwf add ac` no longer duplicates AC body headings
+
+On a milestone scaffolded from the ritual template (which ships placeholder `### AC-1`/`### AC-2` headings), `aiwf add ac` appended a second `### AC-N`; the `acs-body-coherence` check collapsed body headings to a set and passed the duplicate clean. The verb is now idempotent on headings and the check flags duplicates.
+
+### Fixed — G-0250 / G-0251: git test-fixture hardening
+
+Test fixtures that shell out to git inherited the ambient environment (a parent git hook's `GIT_DIR`/`GIT_INDEX_FILE` retargeted them at the parent repo) and allowed background auto-gc to race fixture commits and `t.TempDir` cleanup — both surfacing as the recurring "invalid object / Error building trees" / "directory not empty" flake. New `testsupport.HardenGitTestEnv()` scrubs the locator vars and disables auto-gc; `PolicyGitTestEnvHardened` enforces the call in every exec-bearing `internal/*` test package's `TestMain`.
+
+### Fixed — `aiwf init` gitignore block label
+
+The aiwf-managed `.gitignore` block is now labeled "marker-managed framework artifacts" — accurately covering the materialized agents, templates, and guidance fragment, not just skills.
+
 ## [0.14.0] — 2026-06-16
 
 ### Added — E-0040: per-turn LLM guidance auto-wired into the consumer's CLAUDE.md
