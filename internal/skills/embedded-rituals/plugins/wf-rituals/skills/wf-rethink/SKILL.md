@@ -9,6 +9,16 @@ A design-quality audit for one unit. An LLM coding agent behaves like a greedy o
 
 This is a **design-quality ritual, not a correctness gate.** Passing a rethink says nothing about whether the code satisfies a stated specification — that is an orthogonal property a test suite or verifier checks. The ritual's only safety mechanism is the obligation list you pin in step 1; it is self-graded, so its strength is bounded by how completely you can name what the unit owes. On code with no tests and no written invariants it still partly trusts the agent's own judgment — the very thing it is trying to discipline. Treat that as a known limit, not a solved problem.
 
+## Independence — the author cannot reconstruct from intent
+
+This ritual is worth far more run by a **fresh agent that has not seen the implementation** than by the author who wrote the unit — and the reason is sharper than it is for review (`wf-review-code` §"Independence"). Step 2 asks you to reconstruct the design *from intent, deliberately not referencing the current structure* — and the author cannot. They hold the implementation in working memory; their "from-scratch" design paraphrases what they already built (the exact failure the workflow warns against), because the same greedy optimizer that accreted the local optimum is now being asked to imagine away its own residue. Self-rethink reliably returns `keep` — not because the design is sound, but because the reconstruction never escaped it.
+
+Independence fixes the central step. Hand a fresh agent the **obligation list from step 1** (behavior, interface, invariants, tests) and the underlying problem — but *not* the implementation — and let it reconstruct cold; only then show it the current code for the step-3 diff. The author's job narrows to the part they *can* do honestly: pinning a trustworthy obligation list. That division is the point — the author owns the obligations, the fresh agent owns the reconstruction.
+
+But independence does not move the safety mechanism. The rewrite is still gated by the obligation list alone — step 1's 🛑 stands (obligations you cannot pin from tests, types, or written invariants → `keep`), and that list is self-graded no matter who reconstructs. A fresh agent with a weak obligation list is still an ungated rewrite: independence sharpens the *reconstruction*, the obligation gate still governs the *rewrite*. Don't let a confident outsider substitute for the gate.
+
+A calling ritual that invokes `wf-rethink` should dispatch it to a fresh-context subagent — handing over the named unit and the obligations, not running the reconstruction in the author's own head. Resource that agent to the stakes: a design rewrite is expensive to get wrong, so reach for the most capable reasoner the host offers (don't name a model — identifiers age, and consumers run different tiers). A dispatched subagent inherits the orchestrator's model by default, so the session's own capability is already the floor.
+
 ## When to use
 
 - The user invokes `wf-rethink`, or names a unit and asks you to reconsider its design.
@@ -19,7 +29,7 @@ Don't reach for it for naming or micro-style (that is review — see `wf-review-
 
 ## Scope
 
-Operate on **one unit** named by the user — a file, module, function, or design decision. If none is given, infer it from the just-completed work and state your choice in one line before proceeding. The bound is the point: a rethink with no edges is a rewrite-everything licence.
+Operate on **one unit** named by the user — a file, module, function, or design decision. If none is given, infer it from the just-completed work and state your choice in one line before proceeding. When the rethink is dispatched independently (§"Independence"), that naming is the author's or calling ritual's act: the fresh agent reconstructs the unit it is handed, it does not pick its own from whatever it happens to recall. The bound is the point: a rethink with no edges is a rewrite-everything licence.
 
 ## Workflow
 
@@ -38,7 +48,7 @@ Do this *first*, from intent and from callers — not by reading the current imp
 
 ### 2. Reconstruct from intent
 
-Describe how you would build this from scratch to satisfy the underlying problem, deliberately *not* referencing the current structure while you do it. Work at the level of data model, control flow, and the core abstraction — not naming or micro-style. The point is a genuinely non-local view; a reconstruction that paraphrases the current code has skipped the step.
+Describe how you would build this from scratch to satisfy the underlying problem, deliberately *not* referencing the current structure while you do it. Work at the level of data model, control flow, and the core abstraction — not naming or micro-style. The point is a genuinely non-local view; a reconstruction that paraphrases the current code has skipped the step. This is the step the unit's author cannot perform honestly (see §"Independence"): when the rethink is dispatched independently, the fresh agent reconstructs from the obligation list alone, with the implementation out of view.
 
 ### 3. Diff essential vs. incidental
 
@@ -89,6 +99,7 @@ If the project records design decisions (an ADR, a work log, the `aiwfx-record-d
 
 - *Judging "cleaner" with the same optimizer that built the mess.* Without the obligation gate, a from-scratch rewrite is just a *differently*-local optimum shipped with a fresh regression. The gate is the whole point.
 - *Reading the implementation first, then "deriving" obligations from it.* That back-fits the gate to the code and defeats it.
+- *Self-rethink — reconstructing your own unit from memory.* The author holds the implementation in mind, so the "from-scratch" design paraphrases it and the verdict is a false `keep`. Dispatch a fresh agent (see §"Independence").
 - *Auto-applying a `rewrite` verdict.* The rewrite is gated; report and wait.
 - *Weakening or dropping an obligation to make the rewrite look better.* If an obligation seems wrong, flag it for the human — never silently relax it.
 - *Rethinking the whole codebase.* One bounded unit at a time.
