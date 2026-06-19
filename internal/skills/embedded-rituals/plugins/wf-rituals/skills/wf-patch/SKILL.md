@@ -5,13 +5,13 @@ description: One-off branch-and-merge ritual for fixes, chores, or tweaks too sm
 
 # wf-patch
 
-A lightweight ritual for changes too small to be a milestone but too significant to lose in a careless commit. The branch + explicit-merge shape is the audit trail; the self-review and the three gates — commit, wrap, push — are the safety net.
+A lightweight ritual for changes too small to be a milestone but too significant to lose in a careless commit. The branch + explicit-merge shape is the audit trail; the independent review and the three gates — commit, wrap, push — are the safety net.
 
 ## Gate discipline
 
 Per CLAUDE.md §"Working with the user," mutating actions are gated behind explicit human approval. This skill fires three gates:
 
-1. **Commit gate** — after self-review, before the commit lands.
+1. **Commit gate** — after the independent review, before the commit lands.
 2. **Wrap gate (declared sequence)** — one approval covering the patch's *enumerated* terminal sequence: local merge to mainline, tracker closure (e.g. `aiwf promote G-NNNN addressed --by-commit <sha>`) when the patch closes a tracked item, and cleanup (local branch deletion, worktree removal). The gate question lists every action verbatim; approval binds to exactly that list, and the user may approve a subset. Any deviation — merge conflict, check finding, unexpected dirty state, anything not on the list — aborts the sequence and re-gates from the point of deviation.
 3. **Push gate** — push to origin is never part of the wrap sequence. It is the only action that leaves the machine; it always stands alone.
 
@@ -46,11 +46,13 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 4. **Verify locally.** Run the project's full local CI gate — the same checks CI runs on push (e.g. a `make ci` target), not a subset. A linter that only runs in CI is debt waiting at the push boundary. Confirm green before staging.
 
-5. **Self-review the diff.** Walk the full diff with reviewer eyes (the `wf-review-code` checklist shape): correctness, untested branches, conventions, documentation impact. Fix findings inline and re-run step 4 if code changed. This is the user's review moment too — the commit gate presents the reviewed diff, not a raw one.
+5. **Independent review of the diff — not self-review.** Dispatch a *fresh-context* reviewer (a subagent with no authorship attachment) over the staged diff, briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run the **code-quality lens** (`wf-review-code`: correctness, untested branches, conventions, documentation); if the patch introduced a non-trivial design — a new module boundary, a core abstraction, a data model — also run the **design-quality lens** (`wf-rethink`) on that unit. Fix every blocking finding inline; re-run step 4 if code changed; then **confirm the fixes** — mechanically for mechanical findings (re-run the gate/scan), by re-dispatching a fresh reviewer for judgment-level ones. The author re-reading their own diff is *not* a substitute — it is the failure mode this step exists to close. The commit gate presents the independently-reviewed diff and the review outcome, not a raw one.
+
+   *The one carve-out:* a change with no logic to review — a typo, whitespace, a dependency-version bump, a pure-config nudge — may rely on the mechanical gates plus a self-skim, **but only if you state that explicitly at the commit gate** ("no independent review: <reason>"), so the skip is the human's to veto rather than a silent default.
 
 6. **Stage the change** and draft a commit message: one-line subject, optional body explaining *why*.
 
-7. 🛑 **Commit gate.** Show the user the staged diff, the self-review outcome, the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
+7. 🛑 **Commit gate.** Show the user the staged diff, the independent-review outcome (or the named carve-out from step 5), the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
 
 8. **After commit approval:** commit. The patch branch is normally never pushed — the merge in step 9 is local, so the branch lives and dies on this machine.
 
@@ -83,6 +85,7 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 - *"While I was in there I also fixed X"* — split into two patches.
 - *"It's just one line, no need for a separate branch"* — every patch goes through a branch and an explicit merge. The branch is the audit trail; the merge mechanism is project-specific.
 - *"The wrap was approved, so I'll push too"* — the wrap gate never covers the push. Outward actions stand alone.
+- *"I reviewed it myself, it looks fine"* — self-review is not the gate. Step 5 dispatches a fresh-context reviewer; the author cannot see their own blind spots. The only exception is the explicitly-stated no-logic carve-out.
 - *"I'll update the roadmap from this patch"* — never.
 
 ## Constraints

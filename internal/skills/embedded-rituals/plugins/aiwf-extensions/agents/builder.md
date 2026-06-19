@@ -55,7 +55,7 @@ Before declaring ready, run a self-review pass:
 
    *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, self-review passed. Ready for `aiwfx-wrap-milestone`."*
 
-Hand off to **reviewer** for an external review pass, or proceed directly to `aiwfx-wrap-milestone` if the project's flow is self-review-only.
+Hand off to **reviewer** for an external review pass now, or proceed to `aiwfx-wrap-milestone` — its wrap dispatches an independent review (step 2) before closing, so the milestone gets an external pass either way.
 
 ## Constraints
 

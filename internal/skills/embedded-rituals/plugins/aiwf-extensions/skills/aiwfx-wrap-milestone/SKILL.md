@@ -9,7 +9,7 @@ Closes a milestone. Verifies completeness, finalizes the milestone spec's wrap-s
 
 ## When to use
 
-The milestone's implementation is complete and self-reviewed (`aiwfx-start-milestone` step 6 ran clean). The user says: *"wrap M-NNNN"*, *"finish M-0007"*, *"close out the cache milestone"*.
+The milestone's implementation is complete and self-reviewed (`aiwfx-start-milestone` step 7 ran clean). The user says: *"wrap M-NNNN"*, *"finish M-0007"*, *"close out the cache milestone"*.
 
 If the milestone isn't actually done — failing tests, unmet ACs, broken build — stop and report. Don't paper over.
 
@@ -26,7 +26,18 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 
 If anything is red, stop and report. Wrap does not paper over failure.
 
-### 2. Final code review
+### 2. Independent two-lens review — before the wrap
+
+This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 8). The review feeds the human gate; it does not replace it.
+
+Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment) over the milestone's full change-set (`git diff <base>..HEAD`), briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run two lenses:
+
+- **Code-quality** (`wf-review-code`): correctness, AC coverage, branch-coverage discipline, conventions, docs. For a large milestone, *slice the review by concern or file group* — one agent over thousands of lines goes shallow, the exact failure independence is meant to avoid.
+- **Design-quality** (`wf-rethink`): run on the design unit(s) the milestone introduced. `wf-rethink` is per-unit by rule ("never run it over the whole codebase at once"), so **name the unit(s)** — the new module boundary, the core abstraction, the data model — rather than pointing it at the whole diff.
+
+Handle the verdict: fix every blocking finding as a corrective commit on the milestone branch; re-verify (re-run step 1's gates) if code changed; confirm judgment-level fixes by re-dispatching a fresh reviewer *scoped to the changed surface* (mechanical fixes can be confirmed mechanically — re-run the gate or scan). Record the review outcome under the spec's `## Reviewer notes` (step 4).
+
+Then the residual self-checks — cheap, and *not* a substitute for the independent pass above:
 
 - Skim for `TODO` / `FIXME` left behind. If they're intentional, document them in the milestone spec's `## Reviewer notes` section. If they're unintentional, fix or open as gaps (`aiwf add gap --title "..." --discovered-in M-NNNN`).
 - Skim for debug code, commented-out blocks, scratch logging. Remove.
