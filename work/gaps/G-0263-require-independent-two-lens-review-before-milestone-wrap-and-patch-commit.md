@@ -1,7 +1,9 @@
 ---
 id: G-0263
 title: require independent two-lens review before milestone wrap and patch commit
-status: open
+status: addressed
+addressed_by_commit:
+    - 0fabc0b5
 ---
 ## What's missing
 
