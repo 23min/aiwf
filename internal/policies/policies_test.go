@@ -163,6 +163,11 @@ func TestPolicy_AtomicWriteChokepoint(t *testing.T) {
 	runPolicy(t, PolicyAtomicWriteChokepoint)
 }
 
+func TestPolicy_ValidateCheckIsNeverWrites(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyValidateCheckIsNeverWrites)
+}
+
 func TestPolicy_NoActorFieldsInAiwfYAML(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyNoActorFieldsInAiwfYAML)
