@@ -58,6 +58,15 @@ type Plan struct {
 }
 
 // OpType discriminates between file operations.
+//
+// The set is deliberately closed to OpWrite and OpMove — there is no
+// OpDelete, by design, not omission. aiwf never deletes an entity
+// file: "removal" is a status flip to a terminal value (cancelled /
+// wontfix / rejected / retired) followed by an archive sweep that
+// OpMoves the file into its per-kind archive/ subdirectory (ADR-0004).
+// A verb that needs to "remove" something promotes it to a terminal
+// status and lets `aiwf archive` relocate it; nothing in the kernel
+// unlinks a tracked entity.
 type OpType int
 
 const (
