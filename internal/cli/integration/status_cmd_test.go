@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
@@ -18,6 +19,33 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
+
+// TestBuildStatus_DateFromInjectedClock proves BuildStatus stamps
+// StatusReport.Date from the injected now — the determinism the
+// clock-injection (G-0235 no-time-now) buys — and normalizes to UTC: a
+// non-UTC now near midnight rolls to the UTC date, so a dropped .UTC()
+// would fail the second case.
+func TestBuildStatus_DateFromInjectedClock(t *testing.T) {
+	t.Parallel()
+	westOfUTC := time.FixedZone("UTC-6", -6*60*60)
+	cases := []struct {
+		name string
+		now  time.Time
+		want string
+	}{
+		{"utc", time.Date(2024, 1, 15, 9, 30, 0, 0, time.UTC), "2024-01-15"},
+		{"non-utc rolls forward to utc date", time.Date(2024, 1, 15, 22, 0, 0, 0, westOfUTC), "2024-01-16"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := status.BuildStatus(&tree.Tree{}, nil, tc.now)
+			if r.Date != tc.want {
+				t.Errorf("Date = %q, want %q", r.Date, tc.want)
+			}
+		})
+	}
+}
 
 // TestBuildStatus_FiltersToInFlight verifies the in-flight rules:
 // only `active` epics in InFlightEpics, only `proposed` epics in
@@ -48,7 +76,7 @@ func TestBuildStatus_FiltersToInFlight(t *testing.T) {
 			{Kind: entity.KindGap, ID: "G-0002", Title: "Addressed gap", Status: "addressed"},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 
 	if len(r.InFlightEpics) != 1 || r.InFlightEpics[0].ID != "E-0001" {
 		t.Errorf("InFlightEpics: only E-01 expected, got %+v", r.InFlightEpics)
@@ -96,7 +124,7 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 			{Kind: entity.KindMilestone, ID: "M-0002", Title: "Second", Status: "in_progress", Parent: "E-0001"},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 
 	got := []string{}
 	for _, m := range r.InFlightEpics[0].Milestones {
@@ -114,7 +142,7 @@ func TestBuildStatus_MilestoneOrder(t *testing.T) {
 // health has zero counts. No panic.
 func TestBuildStatus_EmptyTree(t *testing.T) {
 	t.Parallel()
-	r := status.BuildStatus(&tree.Tree{}, nil)
+	r := status.BuildStatus(&tree.Tree{}, nil, time.Now())
 	if len(r.InFlightEpics) != 0 || len(r.PlannedEpics) != 0 ||
 		len(r.OpenDecisions) != 0 || len(r.OpenGaps) != 0 ||
 		len(r.Warnings) != 0 {
@@ -215,7 +243,7 @@ func TestBuildStatus_SweepPendingPopulatedWhenTerminalsLiveInActive(t *testing.T
 			},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 
 	if r.SweepPending == nil {
 		t.Fatalf("SweepPending = nil, want non-nil (2 terminal entities in active dirs)")
@@ -250,7 +278,7 @@ func TestBuildStatus_SweepPendingNilWhenNoTerminalsInActive(t *testing.T) {
 			{Kind: entity.KindGap, ID: "G-0002", Title: "Done", Status: "addressed", Path: "work/gaps/archive/G-0002-done.md", AddressedBy: []string{"M-0001"}},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 
 	if r.SweepPending != nil {
 		t.Fatalf("SweepPending = %+v, want nil (no terminals in active dirs)", r.SweepPending)
@@ -402,7 +430,7 @@ func TestBuildStatus_Warnings(t *testing.T) {
 			},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 
 	if r.Health.Warnings != 1 {
 		t.Fatalf("Health.Warnings = %d, want 1", r.Health.Warnings)
@@ -642,7 +670,7 @@ func TestRenderStatusText_ACProgressInline(t *testing.T) {
 			},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 	var b strings.Builder
 	if err := status.RenderStatusText(&b, &r, 0, false); err != nil {
 		t.Fatalf("status.RenderStatusText: %v", err)
@@ -674,7 +702,7 @@ func TestRenderStatusMarkdown_MermaidACBadge(t *testing.T) {
 			},
 		},
 	}
-	r := status.BuildStatus(tr, nil)
+	r := status.BuildStatus(tr, nil, time.Now())
 	var b strings.Builder
 	if err := status.RenderStatusMarkdown(&b, &r); err != nil {
 		t.Fatalf("status.RenderStatusMarkdown: %v", err)

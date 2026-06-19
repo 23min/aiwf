@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
@@ -377,7 +378,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 		listIDs = append(listIDs, r.ID)
 	}
 
-	report := status.BuildStatus(tr, nil)
+	report := status.BuildStatus(tr, nil, time.Now())
 	statusIDs := make([]string, 0, len(report.OpenGaps))
 	for _, g := range report.OpenGaps {
 		statusIDs = append(statusIDs, g.ID)

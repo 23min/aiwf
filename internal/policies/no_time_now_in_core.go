@@ -56,11 +56,11 @@ var noTimeNowExempt = map[string]string{
 // time that is operational, not logical — and the high-visibility
 // allowlist keeps the bar to add another exemption deliberate.
 //
-// Not in scope here: BuildStatus (internal/cli/status, tier 1) stamps a
-// logical StatusReport.Date from time.Now. That is the one place ambient
-// time leaks into *reported state*, but it sits at the edge so this
-// policy does not flag it; it is corrected by injecting the clock at that
-// call site rather than by widening this policy to the CLI layer.
+// Not in scope here: the StatusReport.Date stamp in BuildStatus
+// (internal/cli/status, tier 1) — the one logical-time-into-state use at
+// the CLI edge. It is handled by injecting the clock at that call site
+// (BuildStatus takes a now parameter; the status handler supplies
+// time.Now), not by widening this policy to the CLI layer.
 //
 // Blind spots match the sibling AST policies: an aliased time import
 // (`t "time"`) evades the selector match. Comments and strings do not, by

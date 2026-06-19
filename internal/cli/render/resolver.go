@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/history"
@@ -382,7 +383,7 @@ func (r *Resolver) sidebarWithStatus(activeEpicID, activeMilestoneID string, cur
 // power the `aiwf status` verb) and projects the result into the
 // renderer-facing types.
 func (r *Resolver) StatusData() (*htmlrender.StatusData, error) {
-	report := status.BuildStatus(r.tree, nil)
+	report := status.BuildStatus(r.tree, nil, time.Now())
 	if recent, err := status.ReadRecentActivity(r.ctx, r.root, status.RecentActivityLimit); err == nil {
 		report.RecentActivity = recent
 	}

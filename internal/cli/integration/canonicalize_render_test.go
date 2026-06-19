@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/render"
@@ -224,7 +225,7 @@ func TestStatus_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	report := status.BuildStatus(tr, loadErrs)
+	report := status.BuildStatus(tr, loadErrs, time.Now())
 
 	// Marshal to JSON and parse it back to assert structural shape
 	// without coupling the test to the Go struct field order.

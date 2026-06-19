@@ -254,7 +254,7 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitInternal
 	}
 
-	report := BuildStatus(tr, loadErrs)
+	report := BuildStatus(tr, loadErrs, time.Now())
 
 	recent, err := ReadRecentActivity(ctx, rootDir, RecentActivityLimit)
 	if err != nil {
@@ -318,12 +318,15 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 }
 
 // BuildStatus returns the project status payload for tree tr, with
-// loadErrs surfaced as part of the health counts. The returned report
-// has RecentActivity unset; the caller fills it via ReadRecentActivity
-// (which needs git access; this function stays pure for testability).
-func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError) StatusReport {
+// loadErrs surfaced as part of the health counts, stamped with the
+// supplied now. The caller acquires the clock at the edge and passes it
+// in, so the report is a pure function of its inputs — StatusReport.Date
+// is deterministic under test. The returned report has RecentActivity
+// unset; the caller fills it via ReadRecentActivity, which needs git
+// access.
+func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) StatusReport {
 	r := StatusReport{
-		Date: time.Now().UTC().Format("2006-01-02"),
+		Date: now.UTC().Format("2006-01-02"),
 	}
 
 	// In-flight epics: active or proposed. The shared filter helper
