@@ -101,19 +101,21 @@ coverage:
 	go test -exec=$(TEST_EXEC) -coverprofile=coverage.out -coverpkg=./internal/... ./...
 	go tool cover -func=coverage.out | tail -n 1
 
-# coverage-gate is the diff-scoped coverage audit (G-0067): every
-# statement on a line changed since origin/main must be exercised by a
-# test or annotated //coverage:ignore. It generates a fresh atomic-mode
-# profile, resolves the base as the merge-base with origin/main, then
-# runs the branch-coverage-audit policy with that profile + base. Run
-# this after committing your work; it compares committed HEAD to the
-# base, so uncommitted changes are not seen. CI runs the same gate in
-# the test job.
+# coverage-gate runs the profile-driven policy gates: the diff-scoped
+# branch-coverage audit (G-0067 — every statement on a line changed
+# since origin/main is tested or //coverage:ignore'd) and the total
+# firing-fixture-presence meta-gate (G-0259 — every non-grandfathered
+# policy has a test that covers its firing branch), plus the no-stale
+# allowlist check. It generates a fresh atomic-mode profile, resolves
+# the base as the merge-base with origin/main, then runs all three with
+# that profile + base. Run this after committing your work; the branch
+# audit compares committed HEAD to the base, so uncommitted changes are
+# not seen. CI runs the same gates in the test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_BranchCoverageAudit$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$$' -count=1 ./internal/policies/
 
 # selfcheck builds the binary and drives every verb against a temp
 # repo via `aiwf doctor --self-check`. Catches end-to-end regressions

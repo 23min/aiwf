@@ -79,15 +79,17 @@ jobs:
       - run: go test -tags testpins -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
-      # Diff-scoped coverage gate (G-0067): fail the job if any statement
-      # on a line changed vs the base is neither exercised by a test nor
-      # annotated //coverage:ignore. The base is the merge-base with
-      # origin/main on a PR, or github.event.before on a trunk push; an
-      # all-zero before-SHA (a brand-new branch) makes the audit no-op.
-      # Re-runs only TestPolicy_BranchCoverageAudit with the profile +
-      # base in the environment — fast, and the broad test run above
-      # skips that test (no profile env), so the audit fires exactly once
-      # with the complete profile.
+      # Profile-driven policy gates. Two gates read the coverage profile
+      # built above; both skip in the broad test run (no profile env), so
+      # they fire exactly once here with the complete profile:
+      #   - Diff-scoped coverage gate (G-0067): fail if any statement on a
+      #     line changed vs the base is neither tested nor //coverage:ignore'd.
+      #   - Firing-fixture-presence meta-gate (G-0259): fail if any
+      #     non-grandfathered policy has a firing branch no test covers,
+      #     and keep the grandfatherDark ledger free of stale entries.
+      # The base is the merge-base with origin/main on a PR, or
+      # github.event.before on a trunk push; an all-zero before-SHA (a
+      # brand-new branch) makes the diff-scoped audit no-op.
       - name: Resolve coverage base ref
         id: covbase
         run: |
@@ -97,11 +99,11 @@ jobs:
           else
             echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
           fi
-      - name: Diff-scoped coverage gate
+      - name: Profile-driven coverage gates
         env:
           AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
           AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_BranchCoverageAudit$' -count=1 ./internal/policies/
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

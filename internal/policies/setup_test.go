@@ -18,8 +18,15 @@ import (
 // (e.g. log queries for the design-doc anchor and SHA-recording
 // audits); a stable identity keeps those reproducible.
 //
-// Serial tests: none. Every Test* function reads-only against the
-// shared *Tree (do not mutate) or uses t.TempDir for fixture work.
+// Serial tests (must not call t.Parallel — they use t.Setenv, which
+// panics under t.Parallel):
+//   - TestPolicyBranchCoverageAudit_Env — sets AIWF_COVERAGE_PROFILE /
+//     _BASE to drive the env-fed coverage-audit entry point.
+//   - TestPolicyFiringFixturePresence_Env — sets AIWF_COVERAGE_PROFILE
+//     to drive the env-fed firing-fixture-presence entry point.
+//
+// Every other Test* function reads-only against the shared *Tree (do
+// not mutate) or uses t.TempDir for fixture work.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
