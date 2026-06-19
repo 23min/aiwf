@@ -173,6 +173,11 @@ func TestPolicy_LayeringDirection(t *testing.T) {
 	runPolicy(t, PolicyLayeringDirection)
 }
 
+func TestPolicy_NoTimeNowInCore(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyNoTimeNowInCore)
+}
+
 func TestPolicy_NoActorFieldsInAiwfYAML(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyNoActorFieldsInAiwfYAML)
