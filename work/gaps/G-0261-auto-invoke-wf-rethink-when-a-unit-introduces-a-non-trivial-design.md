@@ -1,7 +1,9 @@
 ---
 id: G-0261
 title: auto-invoke wf-rethink when a unit introduces a non-trivial design
-status: open
+status: addressed
+addressed_by_commit:
+    - 9a4bd65d
 ---
 ## What's missing
 
