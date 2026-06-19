@@ -168,6 +168,11 @@ func TestPolicy_ValidateCheckIsNeverWrites(t *testing.T) {
 	runPolicy(t, PolicyValidateCheckIsNeverWrites)
 }
 
+func TestPolicy_LayeringDirection(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyLayeringDirection)
+}
+
 func TestPolicy_NoActorFieldsInAiwfYAML(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyNoActorFieldsInAiwfYAML)
