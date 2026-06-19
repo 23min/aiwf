@@ -23,9 +23,26 @@ A calling ritual that invokes `wf-rethink` should dispatch it to a fresh-context
 
 - The user invokes `wf-rethink`, or names a unit and asks you to reconsider its design.
 - Code works but feels over-complex, accreted, or shaped by its edit history rather than by its problem.
-- Before committing a non-trivial design — a new module boundary, a core abstraction, a data model — while it is still cheap to change.
+- Before committing a **non-trivial design**, while it is still cheap to change — see §"The non-trivial-design trigger" for what qualifies. This is the criterion the engineering rituals auto-invoke on.
 
 Don't reach for it for naming or micro-style (that is review — see `wf-review-code`), and never run it over the whole codebase at once.
+
+## The non-trivial-design trigger
+
+`wf-rethink` is worth running — and the engineering rituals **auto-invoke** it — when a change introduces a **new design surface**, concretely one of:
+
+- a **new module or package boundary**;
+- a **core abstraction** — a new type or interface other code is meant to build on;
+- a **data model** — the shape of the state a unit owns.
+
+It is **not** warranted when the change is mechanical or local: a bug fix, a config nudge, a dependency bump, a single-call-site tweak, a test-only change, a rename, or prose. Auto-invoking on those is the churn this trigger exists to avoid — the same instinct as the skill's own "never run it over the whole codebase at once." When in doubt, ask *"would I have to explain this design to a reviewer?"* — if there is nothing to explain, there is nothing to rethink.
+
+The calling rituals fire `wf-rethink` on exactly this trigger, each on the **named unit** the change introduced:
+
+- `wf-patch` — at its commit gate (step 5), when the patch introduced one of the surfaces above.
+- `aiwfx-wrap-milestone` — at its pre-wrap review (step 2), on the design unit(s) the milestone introduced.
+
+It is deliberately **not** wired per-AC inside `wf-tdd-cycle`: mid-cycle the design is still in flux, so a rethink there is premature and churny. The before-wrap review is the right moment — the design is settled, but still cheap to change.
 
 ## Scope
 
