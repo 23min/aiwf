@@ -4,6 +4,13 @@ title: Firing tests for linter-config rules and the dormant forbidigo fix
 status: in_progress
 parent: E-0042
 tdd: none
+acs:
+    - id: AC-1
+      title: Fix the dormant forbidigo panic/os.Exit patterns
+      status: open
+    - id: AC-2
+      title: Execution firing harness for linter-config rules, wired into the lint job
+      status: open
 ---
 ## Deliverable
 
@@ -46,3 +53,8 @@ vacuity theme). This milestone addresses G-0264.
 ## Acceptance criteria
 
 Pinned when the milestone starts.
+
+### AC-1 — Fix the dormant forbidigo panic/os.Exit patterns
+
+### AC-2 — Execution firing harness for linter-config rules, wired into the lint job
+
