@@ -193,12 +193,11 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 // monotonically toward zero.
 var grandfatherDark = map[string]bool{
 	// Seeded from the G-0259 audit (44 policies with >=1 dark
-	// construction line). Burned down by G-0262; keep sorted.
-	// M-0166/AC-1 lit the 25 single-dark-site policies
-	// (firing_fixtures_single_site_test.go); AC-2 lit the 16 multi-site
-	// policies (firing_fixtures_multi_site_test.go) — every dark class
-	// covered by its own fixture. What remains: acks-helper-lift (AC-3,
-	// in progress) and the lone structure-auditor fsm-invariants (permanent).
-	"acks-helper-lift": true,
-	"fsm-invariants":   true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
+	// construction line), burned down to empty-but-one by G-0262 / M-0166:
+	// AC-1 lit the 25 single-dark-site policies, AC-2 the 16 multi-site
+	// policies, AC-3 the 11-site acks-helper-lift — each via a firing
+	// fixture (firing_fixtures_{single,multi}_site_test.go,
+	// firing_fixtures_acks_helper_test.go). Only fsm-invariants remains: a
+	// structure-auditor no fixture can reach.
+	"fsm-invariants": true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
 }
