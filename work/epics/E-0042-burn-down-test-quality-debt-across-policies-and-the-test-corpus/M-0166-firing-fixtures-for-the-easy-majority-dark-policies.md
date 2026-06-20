@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Firing fixtures for acks-helper-lift; ledger reduced to fsm-invariants
-      status: open
+      status: met
 ---
 ## Deliverable
 
