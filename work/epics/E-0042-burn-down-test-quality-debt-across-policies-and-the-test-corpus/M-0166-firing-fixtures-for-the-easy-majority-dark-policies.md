@@ -7,33 +7,44 @@ tdd: none
 ---
 ## Deliverable
 
-A firing test beside each "easy-majority" dark policy — a policy that fires by
-scanning a fixture, file, or tree — so its `Violation` construction line is
-covered by a test that drives it to return at least one violation. Each policy
-so covered is removed from the `grandfatherDark` ledger in
+A firing test for every dark construction **site** across the fixture-able
+policies — a fixture (or input) that drives the policy to return ≥1 violation,
+asserted end-to-end (not merely line-covered). Each policy whose every
+construction site is covered is removed from the `grandfatherDark` ledger in
 `internal/policies/firing_fixture_presence.go`.
+
+## The meta-gate stays (decided empirically — see D-0025)
+
+The firing-fixture meta-gate (`firing_fixture_presence` + `grandfatherDark`) is
+**kept**, not retired. An adversarial empirical verify showed that the
+alternative — a per-policy table-test ("fixture → ≥1 violation") — is strictly
+*weaker*: darkness is **per-construction-site**, so a multi-site policy can hide
+a dark site behind a single passing assertion (measured: ~106 sites across 51
+policies, 19 multi-site), and the table-test loses the `-coverpkg` fail-closed
+guard. So fixtures are written to **assert** (stronger than bare coverage) *and*
+the coverage gate stays (per-site totality). They compose; neither alone is
+complete.
 
 ## Scope
 
-The dark policies split into two families (G-0259):
+43 of the 44 ledger policies are fixture-able (verified: they scan files under
+`root`). The 44th, `fsm-invariants`, is unreachable by any fixture (it
+introspects compiled-in `entity` FSM symbols) and is handled in the sibling
+milestone, not here.
 
-- **Easy majority** — fixture/file/tree-scanning policies whose firing path is
-  reached by handing them a crafted input. These are this milestone's target:
-  write a fixture that violates the rule, assert the policy returns ≥1 violation.
-- **Structure-auditors** — policies that fire only by mutating a hardcoded Go
-  structure. Those are out of scope here; they are the next milestone's work.
-
-The exact split is established by classifying the 44 ledger entries before the
-acceptance criteria are pinned.
+The unit of work is the dark **site**, not the policy: a policy with multiple
+construction sites (e.g. `trailer-order-matches-constants` has 6,
+`acks-helper-lift` 16) needs fixtures covering every site, including the
+defensive file-not-found fallbacks. Sizing follows the dark-site count, which is
+larger than "43 fixtures."
 
 ## Mechanical evidence
 
-`tdd: none` does not waive the evidence rule. Per policy, the evidence is the
-firing test itself (passes only because the policy fires on the fixture), plus
-two existing gates that confirm the ledger shrank honestly: the firing-fixture
-meta-gate (the construction line is now covered) and
+`tdd: none` does not waive the evidence rule. Per policy: the firing test itself
+(fails if the policy stops firing on its fixture), the meta-gate confirming
+every construction site is now covered, and
 `TestPolicy_FiringFixtureNoStaleAllowlist` (every removed id is genuinely lit).
 
 ## Acceptance criteria
 
-Pinned after the classification pass.
+Pinned after a per-site enumeration of the dark set.
