@@ -1,7 +1,7 @@
 ---
 id: M-0166
 title: Firing fixtures for the easy-majority dark policies
-status: draft
+status: in_progress
 parent: E-0042
 tdd: none
 ---
