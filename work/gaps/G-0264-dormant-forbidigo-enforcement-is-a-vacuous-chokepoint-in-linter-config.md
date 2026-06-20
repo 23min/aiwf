@@ -1,8 +1,10 @@
 ---
 id: G-0264
 title: Dormant forbidigo enforcement is a vacuous chokepoint in linter config
-status: open
+status: addressed
 discovered_in: M-0167
+addressed_by_commit:
+    - 337c0869
 ---
 ## What's missing
 
