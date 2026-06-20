@@ -1,7 +1,7 @@
 ---
 id: M-0170
 title: Firing tests for linter-config rules and the dormant forbidigo fix
-status: draft
+status: in_progress
 parent: E-0042
 tdd: none
 ---
