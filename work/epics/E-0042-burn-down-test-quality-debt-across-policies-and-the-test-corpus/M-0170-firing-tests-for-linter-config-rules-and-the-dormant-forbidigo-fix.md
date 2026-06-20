@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Execution firing harness for linter-config rules, wired into the lint job
-      status: open
+      status: met
 ---
 ## Deliverable
 
