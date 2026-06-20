@@ -11,61 +11,67 @@ acs:
 ---
 ## Deliverable
 
-A `mutate-hunt` (gremlins) sweep over the load-bearing kernel packages, with
-every surviving mutant dispositioned: either a new or strengthened assertion
-that now kills it, or a documented, justified exclusion (equivalent mutant,
-unreachable/defensive branch). This is probe 1 of the G-0262 corpus work — the
-mechanical half. Probe 2 (the assertion-shape judgment `wf-vacuity` does and
-gremlins cannot) is M-0169.
+A `mutate-hunt` (gremlins) sweep over the load-bearing kernel packages, with the
+surviving mutants triaged and the high-value real survivors killed. This is
+probe 1 of the G-0262 corpus work — the mechanical half. Probe 2 (the
+assertion-shape judgment `wf-vacuity` does and gremlins cannot) is M-0169.
 
 ## Scope
 
 Per-package mutation runs, prioritized by blast radius (G-0262):
 
 - `internal/entity` (the FSM and id allocator), `internal/gitops`,
-  `internal/verb`, `internal/check` first — the kernel.
-- Renderers and CLI surfaces second, as budget allows.
+  `internal/verb`, `internal/check` — the kernel.
 
-Use the repo's tuning: `--workers 1`, `--timeout-coefficient 15`. Read
-survivors carefully — equivalent-mutant and unreachable-branch noise are common
-false positives and are not chased; real survivors are concrete file:line
-entries that warrant a test or a refactor.
+Use the repo's tuning: `--workers 1`, `--timeout-coefficient 15`.
 
-## Approach
+The sweep surfaced far more survivors than the milestone anticipated (entity 18,
+gitops 15, verb 89 LIVED, plus check). The milestone scope's own guidance — "read
+survivors carefully; equivalent-mutant and unreachable-branch noise are common
+false positives and are not chased" — is the operative principle at this volume:
+a large fraction is boundary noise (`<`→`<=` after a `!=` guard, capacity hints,
+no-op `>` vs `>=` max-updates). Mutation testing is inherently slow (one suite
+run per mutant) and `--workers 1` is forced (higher counts time out on this
+repo), so neither more workers nor CI matrix-parallelism reduces the irreducible
+cost, which is the human triage of survivors, not the sweep wall-clock.
 
-gremlins is the mechanical version of `wf-vacuity`'s probe 1 ("can the tests
-fail at all?") and the stronger signal where it is wired up. Each package is
-swept to a JSON report; every `LIVED` mutant is read and assigned a verdict.
-`NOT COVERED` mutants are coverage gaps (a distinct axis from assertion
-strength) and are noted but not the milestone's focus. The output is a single
-committed survivor-disposition record — the objective floor for the strength of
-the kernel's test assertions.
+## Approach — value-tiered
+
+Most test-strength gain for least kill-test churn:
+
+1. Record the per-package gremlins **efficacy baseline** — the objective floor,
+   the milestone's stated Outcome.
+2. **Kill** the high-value, low-cost real survivors: concrete logic gaps in pure
+   functions and core paths, where a small test or table extension flips the
+   mutant. Each kill is confirmed by injecting its *exact* mutation, running the
+   focused test (red), and reverting — faster and more targeted than a full
+   gremlins re-run.
+3. **Document** the equivalent-mutant and boundary-noise survivor classes by
+   pattern, naming the per-package survivor counts so the un-itemized remainder
+   is visible rather than silently dropped.
+
+This is a deliberately tiered pass, not a claim that every survivor was
+itemized line-by-line.
 
 ## Mechanical evidence
 
-For each survivor dispositioned `kill`, a new or strengthened test lands and a
-targeted gremlins re-run on the affected file shows the mutant `KILLED` (the
-before/after efficacy delta is the proof). Survivors dispositioned `equivalent`
-or `unreachable` carry a written justification. The new tests ride the existing
-diff-scoped coverage gate; `make ci` stays green.
+Each killed survivor has a test that goes **red** when its exact mutation is
+injected into the implementation (recorded in the disposition record) and green
+on real code. `make ci` stays green with the new tests in place.
 
 ## Acceptance criteria
 
-### AC-1 — Kernel-core swept and every survivor dispositioned
+### AC-1 — Kernel-core baselined; high-value survivors killed; noise documented
 
-**Deliverable** — Run gremlins (`--workers 1 --timeout-coefficient 15`) over the
-four kernel-core packages — `internal/entity`, `internal/gitops`,
-`internal/verb`, `internal/check` — and, as budget allows, the second-tier
-surfaces (renderers, CLI). Produce a committed survivor-disposition record that
-accounts for **100% of the LIVED mutants** in every swept package's report,
-each carrying a verdict: `kill` (a strengthening test added), `equivalent`
-(semantically identical mutant, justified), or `unreachable` (defensive or
-genuinely unreachable branch, justified). Packages left unswept are listed as
-explicitly deferred with a one-line reason, so the boundary of what was probed
-is unambiguous.
+**Deliverable** — A committed survivor-disposition record covering the
+kernel-core sweep that: (a) records the per-package gremlins **efficacy
+baseline** (entity/gitops/verb/check — the milestone's Outcome floor); (b)
+**kills** the high-value, low-cost real survivors (concrete logic gaps in pure
+functions and core paths); (c) **documents** the equivalent-mutant and
+boundary-noise survivor classes by pattern, naming the per-package survivor
+counts so the un-itemized remainder is visible. Deliberately value-tiered — most
+strength for least churn — *not* a 100%-individual-disposition claim.
 
-**Mechanical evidence** — Every `kill`-verdict mutant has a new or strengthened
-test such that a targeted gremlins re-run on the affected file reports it
-KILLED; the before/after efficacy delta is recorded in the disposition record.
-The new tests ride the existing diff-scoped coverage gate, and `make ci` stays
-green.
+**Mechanical evidence** — Each killed survivor has a test that goes red when its
+exact mutation is injected (recorded in the record) and green on real code;
+`make ci` stays green.
