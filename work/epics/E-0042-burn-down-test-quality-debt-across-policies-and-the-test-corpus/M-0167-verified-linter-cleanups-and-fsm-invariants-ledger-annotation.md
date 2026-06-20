@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Migrate no-time-now-in-core to forbidigo, delete the bespoke policy
-      status: open
+      status: cancelled
     - id: AC-2
       title: Delete filepath-join-segment-by-segment; annotate fsm-invariants in ledger
       status: open
