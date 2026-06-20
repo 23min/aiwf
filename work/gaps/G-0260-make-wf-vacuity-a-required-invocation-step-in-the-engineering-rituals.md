@@ -1,7 +1,9 @@
 ---
 id: G-0260
 title: make wf-vacuity a required invocation step in the engineering rituals
-status: open
+status: addressed
+addressed_by_commit:
+    - 3fc831da
 ---
 ## What's missing
 
