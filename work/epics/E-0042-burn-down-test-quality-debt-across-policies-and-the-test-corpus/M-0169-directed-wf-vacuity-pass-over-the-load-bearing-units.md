@@ -13,7 +13,8 @@ acs:
 
 A directed `wf-vacuity` pass — the assertion-shape probe that mutation testing
 cannot perform — over the highest-value units, with each finding dispositioned
-into a strengthened assertion or an acknowledged non-issue.
+into a strengthened assertion or an acknowledged non-issue. This is probe 2 of
+the G-0262 corpus work; M-0168 is the mechanical probe-1 half (gremlins).
 
 ## Scope
 
@@ -30,12 +31,27 @@ whole-tree pass:
 - the check rules;
 - the renderers.
 
-## Outcome
+## Approach
 
-A vacuity-finding disposition list over the directed set, completing the
-corpus-wide portion of G-0262.
+Where the mechanical tool already covers probe 1 ("can the tests fail at all?"),
+M-0168 carries it; this milestone leans into probe 2 (the assertion-shape
+reading the tool cannot do) and applies probe 1 only where the reading raises a
+specific doubt. Each finding pairs a weak assertion with the bug that survives
+it (or the reason it is tautological / over-narrowed), then routes to a
+strengthened assertion or an acknowledged non-issue. Per the ritual's
+constraints, every injected bug is reverted — the tree ends byte-identical — and
+the audit reports rather than rewriting blindly; each strengthening is a real,
+reviewed test change.
 
-*Draft stub — acceptance criteria pinned when the milestone starts.*
+## Mechanical evidence
+
+Each `strengthen`-dispositioned finding lands a new or changed assertion that
+goes red when the targeted bug is injected (recorded per finding), and the
+strengthened suite stays green under `make ci`. The audit is LLM-judged by
+nature, so the claim is sized to that: a clean unit means "no weakness found,"
+not "verified correct."
+
+## Acceptance criteria
 
 ### AC-1 — Directed vacuity audit complete with every finding dispositioned
 
@@ -54,4 +70,3 @@ changed assertion that goes **red** when the targeted bug is injected into the
 implementation (the probe-1 confirmation, recorded per finding in the report);
 the bug is reverted so the tree is byte-identical after. `make ci` stays green
 with the strengthened assertions in place.
-
