@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Firing fixtures for the multi-site dark policies (every dark site)
-      status: open
+      status: met
     - id: AC-3
       title: Firing fixtures for acks-helper-lift; ledger reduced to fsm-invariants
       status: open
