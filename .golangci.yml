@@ -36,10 +36,14 @@ linters:
       #      calls os.Exit." (§Error handling)
       #   - The verb/apply.go re-panic in G2's atomic-rollback path is the
       #      single sanctioned panic site; exempted via exclusions below.
+      # forbidigo v2 matches the bare qualified name (no trailing call
+      # paren); the legacy '^panic\(' / '^os\.Exit\(' forms matched zero
+      # sites and went dormant on a toolchain bump (G-0264). The '$'
+      # anchor on the bare name is what fires.
       forbid:
-        - pattern: '^panic\('
+        - pattern: '^panic$'
           msg: "library code must not panic; the only sanctioned site is verb/apply.go's controlled re-panic after rollback (G2)"
-        - pattern: '^os\.Exit\('
+        - pattern: '^os\.Exit$'
           msg: "library code must not call os.Exit; only cmd/aiwf/main.go does"
     revive:
       rules:
@@ -76,10 +80,18 @@ linters:
       #         the developer's own repo.
       - linters: [gosec]
         text: "G204|G702|G304|G301|G302|G306|G122|G703"
-      # forbidigo: panic/os.Exit are forbidden in library code, but two
-      # paths are sanctioned (per CLAUDE.md § Go conventions and G2's design):
+      # forbidigo: panic/os.Exit are forbidden in *library* (production)
+      # code, with sanctioned exceptions (per CLAUDE.md § Go conventions
+      # and G2's design):
+      #   - _test.go:         test code legitimately calls os.Exit(m.Run())
+      #                       in every setup_test.go TestMain (and may panic
+      #                       in helpers); the rule targets shipped library
+      #                       code, so test files are excluded like
+      #                       errcheck/gosec above (G-0264).
       #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.
       #   - verb/apply.go:    the controlled re-panic after atomic rollback.
+      - linters: [forbidigo]
+        path: _test\.go
       - linters: [forbidigo]
         path: cmd/aiwf/main\.go
       - linters: [forbidigo]
