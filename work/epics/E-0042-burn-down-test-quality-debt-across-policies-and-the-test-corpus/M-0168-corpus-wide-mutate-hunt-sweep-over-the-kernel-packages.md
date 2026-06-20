@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Kernel-core swept and every survivor dispositioned
-      status: open
+      status: met
 ---
 ## Deliverable
 
