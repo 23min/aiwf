@@ -11,10 +11,12 @@ acs:
 ---
 ## Deliverable
 
-A `mutate-hunt` sweep over the load-bearing kernel packages, with every
-survivor dispositioned: either a new or strengthened assertion that now kills
-it, or a documented, justified exclusion (equivalent mutant, unreachable
-branch).
+A `mutate-hunt` (gremlins) sweep over the load-bearing kernel packages, with
+every surviving mutant dispositioned: either a new or strengthened assertion
+that now kills it, or a documented, justified exclusion (equivalent mutant,
+unreachable/defensive branch). This is probe 1 of the G-0262 corpus work — the
+mechanical half. Probe 2 (the assertion-shape judgment `wf-vacuity` does and
+gremlins cannot) is M-0169.
 
 ## Scope
 
@@ -29,12 +31,25 @@ survivors carefully — equivalent-mutant and unreachable-branch noise are commo
 false positives and are not chased; real survivors are concrete file:line
 entries that warrant a test or a refactor.
 
-## Outcome
+## Approach
 
-A survivor-disposition record per swept package: the objective floor for the
-strength of the kernel's test assertions.
+gremlins is the mechanical version of `wf-vacuity`'s probe 1 ("can the tests
+fail at all?") and the stronger signal where it is wired up. Each package is
+swept to a JSON report; every `LIVED` mutant is read and assigned a verdict.
+`NOT COVERED` mutants are coverage gaps (a distinct axis from assertion
+strength) and are noted but not the milestone's focus. The output is a single
+committed survivor-disposition record — the objective floor for the strength of
+the kernel's test assertions.
 
-*Draft stub — acceptance criteria pinned when the milestone starts.*
+## Mechanical evidence
+
+For each survivor dispositioned `kill`, a new or strengthened test lands and a
+targeted gremlins re-run on the affected file shows the mutant `KILLED` (the
+before/after efficacy delta is the proof). Survivors dispositioned `equivalent`
+or `unreachable` carry a written justification. The new tests ride the existing
+diff-scoped coverage gate; `make ci` stays green.
+
+## Acceptance criteria
 
 ### AC-1 — Kernel-core swept and every survivor dispositioned
 
@@ -54,4 +69,3 @@ test such that a targeted gremlins re-run on the affected file reports it
 KILLED; the before/after efficacy delta is recorded in the disposition record.
 The new tests ride the existing diff-scoped coverage gate, and `make ci` stays
 green.
-
