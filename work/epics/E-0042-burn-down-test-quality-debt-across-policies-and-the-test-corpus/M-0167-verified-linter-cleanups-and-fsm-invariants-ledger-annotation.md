@@ -10,7 +10,7 @@ acs:
       status: cancelled
     - id: AC-2
       title: Delete filepath-join-segment-by-segment; annotate fsm-invariants in ledger
-      status: open
+      status: met
 ---
 ## Deliverable
 
