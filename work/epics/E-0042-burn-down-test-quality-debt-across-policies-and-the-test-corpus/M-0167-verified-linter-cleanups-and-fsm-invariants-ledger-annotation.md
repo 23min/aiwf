@@ -1,7 +1,7 @@
 ---
 id: M-0167
 title: Verified linter cleanups and fsm-invariants ledger annotation
-status: in_progress
+status: done
 parent: E-0042
 tdd: none
 acs:
