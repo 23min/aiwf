@@ -41,6 +41,9 @@ guarantee while detecting nothing.
 - AC-1: the AC-2 harness's `forbidigo`-`panic` and `forbidigo`-`os.Exit` rows
   pass with the corrected patterns and fail if either reverts to the `\(` form
   (verified: old patterns 0 hits, new patterns 1 hit each on a library probe).
+  Enabling the corrected patterns surfaced 58 legitimate `os.Exit(m.Run())`
+  hits in `setup_test.go` files and zero in production, so AC-1 also scopes
+  `forbidigo` off `_test.go` — after which a production-wide run is clean.
 - AC-2: the harness runs in CI's lint job (where `golangci-lint` is on PATH),
   fail-closed when `golangci-lint` is required-but-absent; each row fails if its
   rule stops firing (config drift, a toolchain bump that changes matching, or a
@@ -54,10 +57,15 @@ guarantee while detecting nothing.
 `^panic\(` → `^panic$` and `^os\.Exit\(` → `^os\.Exit$`. forbidigo v2 matches
 the bare qualified function name (no trailing call paren), so the `\(` form
 matched nothing — empirically, a library `panic`/`os.Exit` probe produced 0
-issues under the old patterns and 1 each under the new. The existing `forbidigo`
-exclusions for `cmd/aiwf/main.go` (the sanctioned `os.Exit`) and
-`internal/verb/apply.go` (the sanctioned re-panic) remain, so those sites still
-pass.
+issues under the old patterns and 1 each under the new. Because the patterns
+were dormant, enabling them surfaces 58 legitimate hits — all `os.Exit(m.Run())`
+in `TestMain` across the `setup_test.go` files (the repo's own mandated
+test-discipline pattern); production code has zero. So also add a `_test.go`
+path exclusion for `forbidigo` — the rule targets production library code, and
+`errcheck`/`gosec` already exclude `_test.go`. The existing `cmd/aiwf/main.go`
+(the sanctioned `os.Exit`) and `internal/verb/apply.go` (the sanctioned
+re-panic) exclusions remain. After the change, a production-wide `forbidigo` run
+is clean (verified).
 
 **Mechanical evidence** — The AC-2 harness carries rows for `forbidigo`-`panic`
 and `forbidigo`-`os.Exit` that run `golangci-lint` against a fixture holding a
