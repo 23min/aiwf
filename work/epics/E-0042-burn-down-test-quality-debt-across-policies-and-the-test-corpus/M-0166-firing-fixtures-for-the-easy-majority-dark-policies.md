@@ -4,6 +4,16 @@ title: Firing fixtures for the easy-majority dark policies
 status: in_progress
 parent: E-0042
 tdd: none
+acs:
+    - id: AC-1
+      title: Firing fixtures for the single-site dark policies
+      status: open
+    - id: AC-2
+      title: Firing fixtures for the multi-site dark policies (every dark site)
+      status: open
+    - id: AC-3
+      title: Firing fixtures for acks-helper-lift; ledger reduced to fsm-invariants
+      status: open
 ---
 ## Deliverable
 
@@ -48,3 +58,10 @@ every construction site is now covered, and
 ## Acceptance criteria
 
 Pinned after a per-site enumeration of the dark set.
+
+### AC-1 — Firing fixtures for the single-site dark policies
+
+### AC-2 — Firing fixtures for the multi-site dark policies (every dark site)
+
+### AC-3 — Firing fixtures for acks-helper-lift; ledger reduced to fsm-invariants
+
