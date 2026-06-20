@@ -14,24 +14,16 @@ acs:
 ---
 ## Deliverable
 
-The two empirically-verified policy cleanups from the E-0042 rethink (see
-D-0025), plus the ledger annotation for the lone true structure-auditor.
+M-0167 carries one verified cleanup plus a ledger annotation. The `forbidigo`
+migration originally planned as AC-1 was **reversed** after an independent
+`wf-rethink` (config cannot satisfy the no-time-now obligations; the bespoke
+policy is kept) — see D-0025 and G-0264.
 
-1. **Migrate `no-time-now-in-core` to `forbidigo`.** Default-forbid
-   `time.Now`/`time.Since`/`time.Until` repo-wide, then exclude the edge tiers
-   (`internal/cli`, `cmd`) and the two allowlisted core packages (`repolock`,
-   `htmlrender`), with `analyze-types: true`. Verified to preserve "no silent
-   escape" (a new core package is forbidden by default) and to additionally
-   catch the aliased-import blind spot the bespoke AST policy misses. Delete the
-   bespoke policy once the `forbidigo` rule is proven to fire on a fixture and
-   CI stays green.
-
-2. **Delete `filepath-join-segment-by-segment`.** gocritic's `filepathJoin`
+1. **Delete `filepath-join-segment-by-segment`.** gocritic's `filepathJoin`
    checker is active and a clean superset; the repo has zero first-argument
    violations. Removing the bespoke policy and its `grandfatherDark` entry loses
    nothing.
-
-3. **Annotate `fsm-invariants` in `grandfatherDark`.** It is the one policy no
+2. **Annotate `fsm-invariants` in `grandfatherDark`.** It is the one policy no
    fixture can reach — it introspects compiled-in `entity` FSM symbols and
    discards `root`. Keep its ledger entry with a note that it routes through
    `mutate-hunt`, not a firing fixture.
@@ -39,45 +31,47 @@ D-0025), plus the ledger annotation for the lone true structure-auditor.
 ## Why this milestone shrank
 
 Its original premise — "the ~8 structure-auditors" — was wrong: there is exactly
-one (`fsm-invariants`). The broader `depguard`/`ruleguard` migrations it might
-have carried were evaluated and rejected on empirical grounds (D-0025); only
-these two cleanups survived.
+one (`fsm-invariants`), and the broader `depguard`/`ruleguard` migrations were
+rejected on empirical grounds (D-0025). The one surviving migration
+(`no-time-now-in-core` → `forbidigo`) was then **reversed** by an independent
+`wf-rethink` during this milestone: config path-scoping is per-linter (it would
+silence the sibling `panic`/`os.Exit` rules) and a YAML rule supplies no
+mechanical firing evidence. So M-0167 reduced to the single `filepath-join`
+delete plus the annotation — and the rethink's testing surfaced a separate live
+vacuous chokepoint (the dormant `panic`/`os.Exit` forbidigo rules), filed as
+G-0264 and addressed by its own milestone.
 
 ## Mechanical evidence
 
-- `forbidigo` migration: a `golangci-lint` run over a fixture proving the rule
-  fires on a new core package and stays silent on the edge/allowlisted packages;
-  deleting the bespoke policy leaves CI green.
-- `filepath-join` delete: gocritic `filepathJoin` firing on the same fixture
-  shape; CI green after deletion.
+- `filepath-join` delete: a gocritic fixture test confirming `filepathJoin`
+  fires on an embedded-separator `filepath.Join` argument; CI green after
+  deletion; `TestPolicy_FiringFixtureNoStaleAllowlist` green (the deleted id is
+  gone from both the policy corpus and the ledger).
 - `fsm-invariants`: the annotation present in `grandfatherDark`;
   `TestPolicy_FiringFixtureNoStaleAllowlist` still green (it stays legitimately
   dark).
 
 ## Acceptance criteria
 
-Pinned when the milestone starts.
-
 ### AC-1 — Migrate no-time-now-in-core to forbidigo, delete the bespoke policy
+
+**[Cancelled — D-0025: the forbidigo migration was reversed after an independent
+`wf-rethink`; `no-time-now-in-core` is kept bespoke. The dormant-forbidigo
+finding the rethink surfaced is tracked as G-0264.]**
 
 **Deliverable** — Replace the bespoke `no-time-now-in-core` policy with a
 `forbidigo` rule in `.golangci.yml`: default-forbid `time.Now`/`time.Since`/
 `time.Until` repo-wide with `analyze-types: true`, then exclude the edge tiers
 (`internal/cli`, `cmd`) and the two allowlisted core packages
 (`internal/repolock`, `internal/htmlrender`). Delete the bespoke policy, its
-registration, and its `grandfatherDark` entry.
+registration, and its firing-fixture test.
 
-**Why** — Empirically verified (D-0025, round 2): the `forbidigo` rule preserves
-"no silent escape" — a new core package is forbidden by default — and
-additionally catches an aliased-import (`t "time"; t.Now()`) blind spot the
-bespoke AST policy misses.
-
-**Mechanical evidence** — A structural assertion that `.golangci.yml` carries
-the rule (the default-forbid `time.{Now,Since,Until}` pattern,
-`analyze-types: true`, and the exclude list of edge tiers + allowlisted core),
-mirroring how `race-parallel-cap` asserts the Makefile and workflows carry
-`-parallel 8`. The one-time "it fires" proof is recorded in the round-2 verify.
-The lint job stays green.
+**Why reversed** — An independent `wf-rethink` reconstructed the enforcement from
+intent and tested the integration end-to-end: forbidigo's per-linter path
+scoping would silence the sibling `panic`/`os.Exit` rules on the edge; a YAML
+rule has no `Violation` construction line, so the firing-fixture meta-gate has no
+evidence it can fire; and the scope would decouple from `layerTier`, losing the
+"no silent escape" guarantee. Verdict: keep the bespoke policy.
 
 ### AC-2 — Delete filepath-join-segment-by-segment; annotate fsm-invariants in ledger
 
@@ -91,7 +85,6 @@ compiled-in `entity` FSM symbols, so no fixture can reach it.
 **Mechanical evidence** — A gocritic fixture test confirming `filepathJoin`
 fires on a `filepath.Join` argument with an embedded separator (a
 failing-if-gocritic-disabled assertion), and
-`TestPolicy_FiringFixtureNoStaleAllowlist` staying green — the deleted id is
-gone from both the policy corpus and the ledger, and `fsm-invariants` stays
+`TestPolicy_FiringFixtureNoStaleAllowlist` staying green — the deleted id is gone
+from both the policy corpus and the ledger, and `fsm-invariants` stays
 legitimately dark with its explanatory note.
-
