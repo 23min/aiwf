@@ -205,11 +205,10 @@ var grandfatherDark = map[string]bool{
 	"design-doc-anchors-valid":                 true,
 	"embedded-rituals-no-retired-tracking-doc": true,
 	"empty-diff-commits-carry-marker":          true,
-	"filepath-join-segment-by-segment":         true,
 	"finding-codes-are-discoverable":           true,
 	"finding-codes-have-hints":                 true,
 	"finding-codes-have-tests":                 true,
-	"fsm-invariants":                           true,
+	"fsm-invariants":                           true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
 	"integration-tests-assert-trailers":        true,
 	"m0132-claude-md-devcontainer-section":     true,
 	"m0132-devcontainer-lock":                  true,

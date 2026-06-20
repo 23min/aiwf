@@ -218,11 +218,6 @@ func TestPolicy_DesignDocAnchors(t *testing.T) {
 	runPolicy(t, PolicyDesignDocAnchors)
 }
 
-func TestPolicy_FilepathJoinSegmentBySegment(t *testing.T) {
-	t.Parallel()
-	runPolicy(t, PolicyFilepathJoinSegmentBySegment)
-}
-
 func TestPolicy_NoHardcodedEntityPaths(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyNoHardcodedEntityPaths)
