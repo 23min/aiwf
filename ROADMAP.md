@@ -501,3 +501,21 @@ consumer trees, not just in this repo.
 | M-0164 | Wire the CLAUDE.md guidance import with consent | done |
 | M-0165 | Surface unwired CLAUDE.md guidance in aiwf doctor | done |
 
+## E-0041 — Seam conformance suites for multi-implementation kernel interfaces (cancelled)
+
+### Goal
+
+Make every kernel "unsigned-cheque" interface seam — a `type Foo interface { … }` that admits more than one implementation claiming interchangeability — own a single conformance matrix that proves the implementations actually agree, so silent drift between a production impl and its test double (or between two production impls) fails CI instead of shipping. This converts the kernel's per-implementation-isolated-test posture into the rubric's "one suite, parameterized over implementations" pattern (D2 §"Equivalence tests at seams"), and adds the drift policy that keeps the discipline mechanical for future seams. Closes [G-0222](work/gaps/archive/G-0222-no-shared-conformance-suites-at-unsigned-cheque-interface-seams.md).
+
+_No milestones yet._
+
+## E-0042 — Burn down test-quality debt across policies and the test corpus (done)
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0166 | Firing fixtures for the easy-majority dark policies | done |
+| M-0167 | Verified linter cleanups and fsm-invariants ledger annotation | done |
+| M-0168 | Corpus-wide mutate-hunt sweep over the kernel packages | done |
+| M-0169 | Directed wf-vacuity pass over the load-bearing units | done |
+| M-0170 | Firing tests for linter-config rules and the dormant forbidigo fix | done |
+
