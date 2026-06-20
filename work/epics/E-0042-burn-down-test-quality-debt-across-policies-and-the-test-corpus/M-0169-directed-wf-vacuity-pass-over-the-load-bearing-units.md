@@ -1,7 +1,7 @@
 ---
 id: M-0169
 title: Directed wf-vacuity pass over the load-bearing units
-status: in_progress
+status: done
 parent: E-0042
 tdd: none
 acs:
