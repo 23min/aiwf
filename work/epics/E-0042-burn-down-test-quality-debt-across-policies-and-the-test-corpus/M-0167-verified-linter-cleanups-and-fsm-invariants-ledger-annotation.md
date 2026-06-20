@@ -1,6 +1,6 @@
 ---
 id: M-0167
-title: Mutate-hunt corroboration for the structure-auditor policies
+title: Verified linter cleanups and fsm-invariants ledger annotation
 status: draft
 parent: E-0042
 tdd: none
