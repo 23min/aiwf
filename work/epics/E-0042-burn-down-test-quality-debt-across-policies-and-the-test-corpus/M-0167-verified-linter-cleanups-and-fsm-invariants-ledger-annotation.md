@@ -43,10 +43,15 @@ G-0264 and addressed by its own milestone.
 
 ## Mechanical evidence
 
-- `filepath-join` delete: a gocritic fixture test confirming `filepathJoin`
-  fires on an embedded-separator `filepath.Join` argument; CI green after
-  deletion; `TestPolicy_FiringFixtureNoStaleAllowlist` green (the deleted id is
-  gone from both the policy corpus and the ledger).
+- `filepath-join` delete: `TestGocriticFilepathJoinConfigured` — a structural
+  guard that parses `.golangci.yml` and asserts `gocritic` is enabled, the
+  `diagnostic` tag is on, and `filepathJoin` is not in `disabled-checks` (the
+  three conditions under which `filepathJoin` fires, verified empirically against
+  golangci-lint v2.12.2). It fails if the config drops the checker; CI green
+  after deletion; `TestPolicy_FiringFixtureNoStaleAllowlist` green (the deleted
+  id is gone from both the policy corpus and the ledger). Execution-firing —
+  running `golangci-lint` against a fixture — is the structural guard's residual
+  gap and is deferred to M-0170.
 - `fsm-invariants`: the annotation present in `grandfatherDark`;
   `TestPolicy_FiringFixtureNoStaleAllowlist` still green (it stays legitimately
   dark).
@@ -82,9 +87,14 @@ edit, annotate the kept `fsm-invariants` entry in `grandfatherDark` with a note
 that it routes through `mutate-hunt`, not a firing fixture: it introspects
 compiled-in `entity` FSM symbols, so no fixture can reach it.
 
-**Mechanical evidence** — A gocritic fixture test confirming `filepathJoin`
-fires on a `filepath.Join` argument with an embedded separator (a
-failing-if-gocritic-disabled assertion), and
-`TestPolicy_FiringFixtureNoStaleAllowlist` staying green — the deleted id is gone
-from both the policy corpus and the ledger, and `fsm-invariants` stays
-legitimately dark with its explanatory note.
+**Mechanical evidence** — `TestGocriticFilepathJoinConfigured`, a structural
+guard that parses `.golangci.yml` and asserts `gocritic` is enabled, the
+`diagnostic` tag is on, and `filepathJoin` is not in `disabled-checks` — the
+three conditions under which `filepathJoin` fires (verified empirically against
+golangci-lint v2.12.2). All three branches fail on a broken config, so the delete
+cannot silently lose coverage. `TestPolicy_FiringFixtureNoStaleAllowlist` stays
+green — the deleted id is gone from both the policy corpus and the ledger, and
+`fsm-invariants` stays legitimately dark with its explanatory note. This is the
+**structural** guard chosen at AC implementation (E-0042 planning); execution
+firing — running `golangci-lint` against a fixture — is the residual gap M-0170
+closes, generalizing it across `gocritic` and the dormant `forbidigo` rules.
