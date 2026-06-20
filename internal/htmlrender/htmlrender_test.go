@@ -76,9 +76,21 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 		t.Errorf("M-001.html missing link to parent E-01.html\n%s", mHTML)
 	}
 
-	// AC anchors land as id attributes.
-	if !strings.Contains(mHTML, `id="ac-1"`) {
-		t.Errorf("M-001.html missing AC-1 anchor\n%s", mHTML)
+	// AC anchors land as id attributes INSIDE the manifest tab — not
+	// merely somewhere on the page (the `#ac-1` fragment also appears as
+	// href references in the build and tests tabs). Scoping the assertion
+	// to the manifest section is the structural form CLAUDE.md's
+	// substring-vs-structural lesson requires: a bug that rendered the AC
+	// <section> under the wrong tab would pass a bare Contains but fail
+	// this. M-0169 (vacuity strengthening).
+	manifest := sectionByTab(t, mHTML, "manifest")
+	if !strings.Contains(manifest, `id="ac-1"`) {
+		t.Errorf("manifest tab missing AC-1 anchor section\n%s", manifest)
+	}
+	for _, other := range []string{"overview", "build", "tests"} {
+		if strings.Contains(sectionByTab(t, mHTML, other), `id="ac-1"`) {
+			t.Errorf("AC-1 id anchor leaked into the %q tab", other)
+		}
 	}
 
 	// Link integrity: every internal href on a rendered page must
@@ -205,6 +217,26 @@ func snippetAround(s, want string) string {
 		end = len(s)
 	}
 	return s[start:end]
+}
+
+// sectionByTab returns the slice of html belonging to the
+// <section data-tab="<tab>" …> element: from that opening tag up to the
+// next `<section data-tab=` (or end of document). It lets a test assert
+// WHERE a literal renders, not merely that it renders somewhere — the
+// structural assertion CLAUDE.md's "substring assertions are not structural
+// assertions" lesson requires for the milestone page's tabbed layout.
+func sectionByTab(t *testing.T, html, tab string) string {
+	t.Helper()
+	open := `<section data-tab="` + tab + `"`
+	start := strings.Index(html, open)
+	if start < 0 {
+		t.Fatalf("section data-tab=%q not found in page", tab)
+	}
+	rest := html[start+len(open):]
+	if end := strings.Index(rest, `<section data-tab=`); end >= 0 {
+		return html[start : start+len(open)+end]
+	}
+	return html[start:]
 }
 
 // bodyAwareResolver is a test-only PageDataResolver that wraps

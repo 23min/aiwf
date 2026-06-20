@@ -292,11 +292,27 @@ body unchanged
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(out), "status: in_progress") {
-		t.Errorf("missing new status: %q", out)
+	// Round-trip the serialized bytes and pin the actual values — that the
+	// modified field changed AND every untouched field survived the marshal
+	// — rather than asserting a substring is present somewhere. A serializer
+	// that dropped `parent` or `title` would pass a Contains check on
+	// status+body but is a real bug. M-0169 (vacuity strengthening).
+	got, err := Parse("test.md", out)
+	if err != nil {
+		t.Fatalf("re-parse serialized output: %v", err)
 	}
-	if !strings.Contains(string(out), "body unchanged") {
-		t.Errorf("body lost: %q", out)
+	if got.Status != "in_progress" {
+		t.Errorf("round-trip status = %q, want in_progress", got.Status)
+	}
+	if got.ID != "M-007" || got.Title != "Cache warmup" || got.Parent != "E-01" {
+		t.Errorf("modify-and-write dropped an untouched field: %+v", got)
+	}
+	_, gotBody, ok := Split(out)
+	if !ok {
+		t.Fatal("re-split serialized output: not ok")
+	}
+	if strings.TrimSpace(string(gotBody)) != "body unchanged" {
+		t.Errorf("round-trip body = %q, want %q", gotBody, "body unchanged")
 	}
 }
 
