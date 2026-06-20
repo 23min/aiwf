@@ -7,31 +7,46 @@ tdd: none
 ---
 ## Deliverable
 
-Every structure-auditor policy left in `grandfatherDark` after the first
-milestone is accounted for: corroborated by a `mutate-hunt` run that confirms
-the auditor catches a mutation of the structure it guards, and its kept ledger
-entry carries a one-line note explaining why it stays (it fires only by
-mutating a hardcoded Go structure, so a fixture cannot reach its firing path).
+The two empirically-verified policy cleanups from the E-0042 rethink (see
+D-0025), plus the ledger annotation for the lone true structure-auditor.
 
-## Scope
+1. **Migrate `no-time-now-in-core` to `forbidigo`.** Default-forbid
+   `time.Now`/`time.Since`/`time.Until` repo-wide, then exclude the edge tiers
+   (`internal/cli`, `cmd`) and the two allowlisted core packages (`repolock`,
+   `htmlrender`), with `analyze-types: true`. Verified to preserve "no silent
+   escape" (a new core package is forbidden by default) and to additionally
+   catch the aliased-import blind spot the bespoke AST policy misses. Delete the
+   bespoke policy once the `forbidigo` rule is proven to fire on a fixture and
+   CI stays green.
 
-The ~8 structure-auditors — for example `fsm-invariants`,
-`trailer-order-matches-constants`, `closed-set-status-via-constants`,
-`trailer-keys-via-constants`, `trailer-parser-uniqueness` — fire only when the
-Go structure they audit is itself broken. Per policy, choose the cheapest
-sound option (G-0259):
+2. **Delete `filepath-join-segment-by-segment`.** gocritic's `filepathJoin`
+   checker is active and a clean superset; the repo has zero first-argument
+   violations. Removing the bespoke policy and its `grandfatherDark` entry loses
+   nothing.
 
-- Refactor to input-driven (accept the structure as a parameter so a broken
-  fixture can be injected) where the refactor is cheap and clarifying. Any such
-  refactor runs its own `wf-tdd-cycle` on this milestone branch.
-- Otherwise corroborate via `mutate-hunt` and keep the `grandfatherDark` entry
-  with the explanatory note.
+3. **Annotate `fsm-invariants` in `grandfatherDark`.** It is the one policy no
+   fixture can reach — it introspects compiled-in `entity` FSM symbols and
+   discards `root`. Keep its ledger entry with a note that it routes through
+   `mutate-hunt`, not a firing fixture.
 
-## Outcome
+## Why this milestone shrank
 
-The ledger is "burned down" in the honest sense: nothing dark is unaccounted
-for. Every remaining entry is a structure-auditor with a documented reason and
-mutate-hunt corroboration; every other entry has been deleted because a firing
-fixture now lights it.
+Its original premise — "the ~8 structure-auditors" — was wrong: there is exactly
+one (`fsm-invariants`). The broader `depguard`/`ruleguard` migrations it might
+have carried were evaluated and rejected on empirical grounds (D-0025); only
+these two cleanups survived.
 
-*Draft stub — acceptance criteria pinned when the milestone starts.*
+## Mechanical evidence
+
+- `forbidigo` migration: a `golangci-lint` run over a fixture proving the rule
+  fires on a new core package and stays silent on the edge/allowlisted packages;
+  deleting the bespoke policy leaves CI green.
+- `filepath-join` delete: gocritic `filepathJoin` firing on the same fixture
+  shape; CI green after deletion.
+- `fsm-invariants`: the annotation present in `grandfatherDark`;
+  `TestPolicy_FiringFixtureNoStaleAllowlist` still green (it stays legitimately
+  dark).
+
+## Acceptance criteria
+
+Pinned when the milestone starts.
