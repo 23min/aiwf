@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Directed vacuity audit complete with every finding dispositioned
-      status: open
+      status: met
 ---
 ## Deliverable
 
