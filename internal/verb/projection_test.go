@@ -79,7 +79,19 @@ func TestProjectionFindings_NewErrorIntroduced(t *testing.T) {
 
 	got := projectionFindings(original, projected)
 	if !check.HasErrors(got) {
-		t.Errorf("expected introduced error, got: %+v", got)
+		t.Fatalf("expected introduced error, got: %+v", got)
+	}
+	// Pin that the introduced finding is the bad-parent ref on M-0001, not
+	// merely "some error" — a projection bug surfacing an unrelated finding
+	// (or one scoped to the wrong entity) would pass HasErrors. M-0169.
+	var found bool
+	for _, f := range got {
+		if f.Code == check.CodeRefsResolve && f.Subcode == "unresolved" && f.EntityID == "M-0001" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected a refs-resolve/unresolved finding scoped to M-0001, got: %+v", got)
 	}
 }
 

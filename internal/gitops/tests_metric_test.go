@@ -64,6 +64,18 @@ func TestParseTestMetrics(t *testing.T) {
 			wantOK: true,
 		},
 		{
+			// M-0168 kill-test for tests_metric.go:59 (`n < 0` boundary):
+			// a sole zero-value key parses to a zero struct but must still
+			// report ok=true. The `n <= 0` mutant skips it and returns
+			// ok=false. Existing zero cases (e.g. "pass=12 fail=0 skip=0")
+			// can't catch this — pass=12 already sets ok, and Fail=0/Skip=0
+			// collapse into the zero-value struct either way.
+			name:   "sole zero-value key still reports ok",
+			input:  "pass=0",
+			want:   TestMetrics{},
+			wantOK: true,
+		},
+		{
 			name:   "empty input",
 			input:  "",
 			want:   TestMetrics{},

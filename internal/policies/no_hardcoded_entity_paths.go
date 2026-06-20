@@ -42,7 +42,7 @@ var entitySlugLiteralPat = regexp.MustCompile(`^(E|M|G|D|C|ADR)-\d+-`)
 // value starts with an entity-slug prefix (E-/M-/G-/D-/C-/ADR-)
 // followed by digits and a dash. The first arg is exempt — it's
 // almost always a `root` variable or an absolute path, matching the
-// scope-narrowing precedent in PolicyFilepathJoinSegmentBySegment.
+// first-argument exemption gocritic's filepathJoin checker applies.
 //
 // Why scoped to internal/policies/: that package is where
 // fixture-shaped tests over the planning tree live; it's the

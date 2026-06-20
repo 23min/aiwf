@@ -193,49 +193,11 @@ func lineInZeroBlock(fileBlocks []coverBlock, line int) bool {
 // monotonically toward zero.
 var grandfatherDark = map[string]bool{
 	// Seeded from the G-0259 audit (44 policies with >=1 dark
-	// construction line). Burned down by G-0262; keep sorted.
-	"acks-helper-lift":                         true,
-	"apply-callers-acquire-lock":               true,
-	"authorized-by-via-allow":                  true,
-	"capture-stdout-singleton":                 true,
-	"claude-md-test-discipline-section":        true,
-	"cli-helper-locations":                     true,
-	"closed-set-status-via-constants":          true,
-	"config-fields-discoverable":               true,
-	"design-doc-anchors-valid":                 true,
-	"embedded-rituals-no-retired-tracking-doc": true,
-	"empty-diff-commits-carry-marker":          true,
-	"filepath-join-segment-by-segment":         true,
-	"finding-codes-are-discoverable":           true,
-	"finding-codes-have-hints":                 true,
-	"finding-codes-have-tests":                 true,
-	"fsm-invariants":                           true,
-	"integration-tests-assert-trailers":        true,
-	"m0132-claude-md-devcontainer-section":     true,
-	"m0132-devcontainer-lock":                  true,
-	"m0132-devcontainer-readme":                true,
-	"m0132-devcontainer-shape":                 true,
-	"m0132-initialize-script":                  true,
-	"m0132-init-script":                        true,
-	"m0134-claude-md-test-running-sections":    true,
-	"m0137-ac3-batched-walker":                 true,
-	"no-actor-fields-in-aiwfyaml":              true,
-	"no-hardcoded-entity-paths":                true,
-	"no-history-rewrites":                      true,
-	"no-retry-loops-on-git-errors":             true,
-	"no-signature-bypass":                      true,
-	"no-silent-fallback":                       true,
-	"no-timestamp-manipulation":                true,
-	"no-trailer-string-composition":            true,
-	"principal-write-sites-guard-human":        true,
-	"race-parallel-cap":                        true,
-	"read-only-verbs-do-not-mutate":            true,
-	"role-id-regex-centralized":                true,
-	"sovereign-dispatchers-guard-human-actor":  true,
-	"test-setup-presence":                      true,
-	"tests-real-clone-not-update-ref":          true,
-	"trailer-keys-via-constants":               true,
-	"trailer-order-matches-constants":          true,
-	"trailer-parser-uniqueness":                true,
-	"verbs-validate-then-write":                true,
+	// construction line), burned down to empty-but-one by G-0262 / M-0166:
+	// AC-1 lit the 25 single-dark-site policies, AC-2 the 16 multi-site
+	// policies, AC-3 the 11-site acks-helper-lift — each via a firing
+	// fixture (firing_fixtures_{single,multi}_site_test.go,
+	// firing_fixtures_acks_helper_test.go). Only fsm-invariants remains: a
+	// structure-auditor no fixture can reach.
+	"fsm-invariants": true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
 }

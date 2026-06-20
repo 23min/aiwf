@@ -205,6 +205,29 @@ func TestSplit_NoFrontmatter(t *testing.T) {
 	}
 }
 
+// TestSplit_BlankLineInFrontmatter pins the M-0168 kill for serialize.go:32
+// and :43 (the two `idx < 0` boundaries in Split's frontmatter scan). A blank
+// line inside the frontmatter makes bytes.IndexByte return 0; the `idx <= 0`
+// mutants treat that empty line as "no more newlines" and abort the scan,
+// returning ok=false. The original keeps scanning across the blank line and
+// finds the closing delimiter, preserving every field.
+func TestSplit_BlankLineInFrontmatter(t *testing.T) {
+	t.Parallel()
+	original := []byte("---\nid: M-007\n\nstatus: draft\n---\nbody text\n")
+	fm, body, ok := Split(original)
+	if !ok {
+		t.Fatal("Split returned !ok on frontmatter containing a blank line")
+	}
+	if string(body) != "body text\n" {
+		t.Errorf("body = %q, want %q", body, "body text\n")
+	}
+	for _, want := range []string{"id: M-007", "status: draft"} {
+		if !strings.Contains(string(fm), want) {
+			t.Errorf("frontmatter lost %q across the blank line: %q", want, fm)
+		}
+	}
+}
+
 func TestSerialize_RoundTrip(t *testing.T) {
 	t.Parallel()
 	original := []byte(`---
@@ -269,11 +292,27 @@ body unchanged
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(out), "status: in_progress") {
-		t.Errorf("missing new status: %q", out)
+	// Round-trip the serialized bytes and pin the actual values — that the
+	// modified field changed AND every untouched field survived the marshal
+	// — rather than asserting a substring is present somewhere. A serializer
+	// that dropped `parent` or `title` would pass a Contains check on
+	// status+body but is a real bug. M-0169 (vacuity strengthening).
+	got, err := Parse("test.md", out)
+	if err != nil {
+		t.Fatalf("re-parse serialized output: %v", err)
 	}
-	if !strings.Contains(string(out), "body unchanged") {
-		t.Errorf("body lost: %q", out)
+	if got.Status != "in_progress" {
+		t.Errorf("round-trip status = %q, want in_progress", got.Status)
+	}
+	if got.ID != "M-007" || got.Title != "Cache warmup" || got.Parent != "E-01" {
+		t.Errorf("modify-and-write dropped an untouched field: %+v", got)
+	}
+	_, gotBody, ok := Split(out)
+	if !ok {
+		t.Fatal("re-split serialized output: not ok")
+	}
+	if strings.TrimSpace(string(gotBody)) != "body unchanged" {
+		t.Errorf("round-trip body = %q, want %q", gotBody, "body unchanged")
 	}
 }
 

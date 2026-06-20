@@ -41,6 +41,21 @@ jobs:
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.11.4
+      # Execution firing harness for the golangci-lint config rules
+      # (G-0264 / M-0170). The action above does not put golangci-lint on
+      # PATH for later steps, so install the binary here — version sourced
+      # from the action pin above so there is a single source of truth.
+      # AIWF_REQUIRE_GOLANGCI=1 makes the harness fail (not skip) if
+      # golangci-lint is somehow absent: no silent vacuous skip.
+      - name: Linter-config rule firing harness
+        env:
+          AIWF_REQUIRE_GOLANGCI: "1"
+        run: |
+          ver=$(grep -A2 'golangci/golangci-lint-action@v7' .github/workflows/go.yml | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "installing golangci-lint $ver (sourced from the action pin)"
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" "$ver"
+          golangci-lint version
+          go test -run '^TestGolangciConfigRulesFire$' -count=1 ./internal/policies/
 
   test:
     runs-on: ubuntu-latest

@@ -481,12 +481,62 @@ func TestIsProseyTitle(t *testing.T) {
 			"**Full embedment inventory.** A machine-reviewable table in the milestone tracking doc enumerates every rule",
 			true,
 		},
+		// M-0168 kill-tests for the multi-sentence detector's surviving
+		// mutants: '?' and '!' as sentence marks (negation survivors at
+		// entity.go:342), a 'Z'-initial second sentence (the `<= 'Z'`
+		// upper-boundary survivor at entity.go:349), and a mark+space at
+		// the very end (the loop-boundary survivor at entity.go:340 — the
+		// original loop guard stops before reading past the slice; the
+		// `i <= len-2` mutant reads runes[len] and panics).
+		{"question-mark multi-sentence", "Does it work? Yes it does indeed.", true},
+		{"exclamation multi-sentence", "Stop right there! Now please leave.", true},
+		{"capital Z opens the second sentence", "Watch your step. Zebras roam here.", true},
+		{"sentence mark and space at the very end", "All done. ", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			if got := IsProseyTitle(tt.title); got != tt.want {
 				t.Errorf("IsProseyTitle(%q) = %v, want %v", tt.title, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestStripArchiveSegment exercises every per-kind branch of the archive-path
+// normalizer — M-0168 kills for the CONDITIONALS_NEGATION survivors at
+// entity.go:667/671/675/686 (the per-kind k-guard disjuncts). Each kind is
+// stripped both when the kind is unspecified (k=="", the PathKind caller) and
+// when it matches (the IDFromPath caller); a non-matching kind must leave the
+// path untouched. The `len(parts) >= 3` boundary survivors (entity.go:664/685)
+// are equivalent and intentionally not targeted here: a real archive entity
+// path always has >= 4 segments, so the exact-3 boundary is unreachable.
+func TestStripArchiveSegment(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		parts []string
+		k     Kind
+		want  []string
+	}{
+		{"epics k empty", []string{"work", "epics", "archive", "E-01", "epic.md"}, "", []string{"work", "epics", "E-01", "epic.md"}},
+		{"epics k epic", []string{"work", "epics", "archive", "E-01", "epic.md"}, KindEpic, []string{"work", "epics", "E-01", "epic.md"}},
+		{"epics k milestone", []string{"work", "epics", "archive", "E-01", "M-001.md"}, KindMilestone, []string{"work", "epics", "E-01", "M-001.md"}},
+		{"epics k mismatch leaves path untouched", []string{"work", "epics", "archive", "E-01", "epic.md"}, KindGap, []string{"work", "epics", "archive", "E-01", "epic.md"}},
+		{"gaps k empty", []string{"work", "gaps", "archive", "G-001.md"}, "", []string{"work", "gaps", "G-001.md"}},
+		{"gaps k gap", []string{"work", "gaps", "archive", "G-001.md"}, KindGap, []string{"work", "gaps", "G-001.md"}},
+		{"decisions k empty", []string{"work", "decisions", "archive", "D-001.md"}, "", []string{"work", "decisions", "D-001.md"}},
+		{"decisions k decision", []string{"work", "decisions", "archive", "D-001.md"}, KindDecision, []string{"work", "decisions", "D-001.md"}},
+		{"contracts k contract", []string{"work", "contracts", "archive", "C-001", "contract.md"}, KindContract, []string{"work", "contracts", "C-001", "contract.md"}},
+		{"adr k empty", []string{"docs", "adr", "archive", "ADR-0001.md"}, "", []string{"docs", "adr", "ADR-0001.md"}},
+		{"adr k adr", []string{"docs", "adr", "archive", "ADR-0001.md"}, KindADR, []string{"docs", "adr", "ADR-0001.md"}},
+		{"adr k mismatch leaves path untouched", []string{"docs", "adr", "archive", "ADR-0001.md"}, KindGap, []string{"docs", "adr", "archive", "ADR-0001.md"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if diff := cmp.Diff(tc.want, stripArchiveSegment(tc.parts, tc.k)); diff != "" {
+				t.Errorf("stripArchiveSegment(%v, %q) mismatch (-want +got):\n%s", tc.parts, tc.k, diff)
 			}
 		})
 	}
