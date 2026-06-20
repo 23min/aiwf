@@ -1,7 +1,7 @@
 ---
 id: E-0042
 title: Burn down test-quality debt across policies and the test corpus
-status: proposed
+status: active
 ---
 ## Intent
 
