@@ -1,11 +1,11 @@
 ---
 name: wf-tdd-cycle
-description: Red/green/refactor for a single acceptance criterion or feature unit, ending with a hard-rule branch-coverage audit. Write a failing test, write the minimum code to pass, refactor, then walk every reachable conditional branch and confirm an explicit test exercises it. Use during milestone implementation and inside `wf-patch` when the change touches logic.
+description: Red/green/refactor for a single acceptance criterion or feature unit, ending with a hard-rule branch-coverage audit and a required vacuity check (does a covered assertion actually catch the bug). Write a failing test, write the minimum code to pass, refactor, then walk every reachable conditional branch and confirm an explicit test exercises it. Use during milestone implementation and inside `wf-patch` when the change touches logic.
 ---
 
 # wf-tdd-cycle
 
-A single iteration of test-first development for one acceptance criterion or one focused feature unit. Ends with a branch-coverage audit that is a **hard rule**, not a guideline.
+A single iteration of test-first development for one acceptance criterion or one focused feature unit. Ends with a branch-coverage audit that is a **hard rule**, not a guideline — then a required `wf-vacuity` check on whether those now-covered assertions can actually fail.
 
 ## When to use
 
@@ -97,6 +97,16 @@ Before declaring this cycle complete, you walk every reachable conditional branc
 
 A branch is reachable if any caller of the function — direct or transitive — can produce inputs that select it. The compiler can't prove unreachability for most defensive code. **Default to reachable; require a written reason to call something unreachable.**
 
+## Vacuity check (required invocation — runs right after the branch-coverage audit)
+
+Branch coverage proves each line *ran*; it does not prove an assertion would *catch a bug* on that line. Immediately after the branch-coverage audit, **invoke `wf-vacuity`** on the unit just built — the invocation is required, not optional. The same agent wrote the implementation and its tests and is graded on them passing, so the suite is suspect by construction; `wf-vacuity` is the adversarial sufficiency check coverage can't give you.
+
+- **Defer probe 1 to a mechanical mutation tool where one is wired up** — a `mutate-hunt` / gremlins workflow, Stryker, mutmut, PIT. It is the stronger signal; the manual mutation probe is the stop-gap for units, languages, or repos without one.
+- **Scope is the unit just built**, never the whole tree (per the skill).
+- **The invocation is mandatory; the output is advisory.** A surviving mutant or a weak-assertion finding routes back into this cycle as a fresh RED → GREEN — strengthen the assertion, then confirm it goes red on the mutant — or, if you judge it out of scope, it is surfaced at the calling skill's commit gate for the human to weigh. It is *not* an automatic block: the assertion-shape probe is LLM-judged and cannot be a hard gate (a gating mutation-testing step is a separate, mechanical concern).
+
+Skipping the invocation because "the tests look fine" is the failure mode this step exists to prevent — the same shape as declaring branch coverage without performing the audit.
+
 ## Anti-patterns
 
 - *Writing code before the test.* The test that comes after the code is verification, not specification.
@@ -118,5 +128,6 @@ Before declaring done, every new test passes:
 ## Constraints
 
 - 🛑 **Branch-coverage audit is a hard rule.** It runs before the commit-approval prompt of whatever calling skill invoked this cycle, not after a human asks. If the calling skill (e.g., `wf-patch`) is about to ask "commit?", the audit must already be complete.
+- 🛑 **`wf-vacuity` invocation is required; its output is advisory.** The vacuity check is invoked on the unit after the branch-coverage audit and before the cycle is declared done — the invocation is mandatory. Its findings inform (strengthen a weak assertion, or surface a survivor at the commit gate); they do not mechanically block.
 - Tests must be deterministic. No flakes shipped.
 - The cycle ends green. Never leave a branch with a red test you'll "fix in the next cycle."
