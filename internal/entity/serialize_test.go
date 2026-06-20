@@ -205,6 +205,29 @@ func TestSplit_NoFrontmatter(t *testing.T) {
 	}
 }
 
+// TestSplit_BlankLineInFrontmatter pins the M-0168 kill for serialize.go:32
+// and :43 (the two `idx < 0` boundaries in Split's frontmatter scan). A blank
+// line inside the frontmatter makes bytes.IndexByte return 0; the `idx <= 0`
+// mutants treat that empty line as "no more newlines" and abort the scan,
+// returning ok=false. The original keeps scanning across the blank line and
+// finds the closing delimiter, preserving every field.
+func TestSplit_BlankLineInFrontmatter(t *testing.T) {
+	t.Parallel()
+	original := []byte("---\nid: M-007\n\nstatus: draft\n---\nbody text\n")
+	fm, body, ok := Split(original)
+	if !ok {
+		t.Fatal("Split returned !ok on frontmatter containing a blank line")
+	}
+	if string(body) != "body text\n" {
+		t.Errorf("body = %q, want %q", body, "body text\n")
+	}
+	for _, want := range []string{"id: M-007", "status: draft"} {
+		if !strings.Contains(string(fm), want) {
+			t.Errorf("frontmatter lost %q across the blank line: %q", want, fm)
+		}
+	}
+}
+
 func TestSerialize_RoundTrip(t *testing.T) {
 	t.Parallel()
 	original := []byte(`---
