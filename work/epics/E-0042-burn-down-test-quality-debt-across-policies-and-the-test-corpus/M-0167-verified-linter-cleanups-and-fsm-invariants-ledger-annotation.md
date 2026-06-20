@@ -4,6 +4,13 @@ title: Verified linter cleanups and fsm-invariants ledger annotation
 status: in_progress
 parent: E-0042
 tdd: none
+acs:
+    - id: AC-1
+      title: Migrate no-time-now-in-core to forbidigo, delete the bespoke policy
+      status: open
+    - id: AC-2
+      title: Delete filepath-join-segment-by-segment; annotate fsm-invariants in ledger
+      status: open
 ---
 ## Deliverable
 
@@ -50,3 +57,41 @@ these two cleanups survived.
 ## Acceptance criteria
 
 Pinned when the milestone starts.
+
+### AC-1 — Migrate no-time-now-in-core to forbidigo, delete the bespoke policy
+
+**Deliverable** — Replace the bespoke `no-time-now-in-core` policy with a
+`forbidigo` rule in `.golangci.yml`: default-forbid `time.Now`/`time.Since`/
+`time.Until` repo-wide with `analyze-types: true`, then exclude the edge tiers
+(`internal/cli`, `cmd`) and the two allowlisted core packages
+(`internal/repolock`, `internal/htmlrender`). Delete the bespoke policy, its
+registration, and its `grandfatherDark` entry.
+
+**Why** — Empirically verified (D-0025, round 2): the `forbidigo` rule preserves
+"no silent escape" — a new core package is forbidden by default — and
+additionally catches an aliased-import (`t "time"; t.Now()`) blind spot the
+bespoke AST policy misses.
+
+**Mechanical evidence** — A structural assertion that `.golangci.yml` carries
+the rule (the default-forbid `time.{Now,Since,Until}` pattern,
+`analyze-types: true`, and the exclude list of edge tiers + allowlisted core),
+mirroring how `race-parallel-cap` asserts the Makefile and workflows carry
+`-parallel 8`. The one-time "it fires" proof is recorded in the round-2 verify.
+The lint job stays green.
+
+### AC-2 — Delete filepath-join-segment-by-segment; annotate fsm-invariants in ledger
+
+**Deliverable** — Delete the bespoke `filepath-join-segment-by-segment` policy,
+its registration, and its `grandfatherDark` entry — gocritic's `filepathJoin`
+checker (active under the `diagnostic` tag) is a clean superset. In the same
+edit, annotate the kept `fsm-invariants` entry in `grandfatherDark` with a note
+that it routes through `mutate-hunt`, not a firing fixture: it introspects
+compiled-in `entity` FSM symbols, so no fixture can reach it.
+
+**Mechanical evidence** — A gocritic fixture test confirming `filepathJoin`
+fires on a `filepath.Join` argument with an embedded separator (a
+failing-if-gocritic-disabled assertion), and
+`TestPolicy_FiringFixtureNoStaleAllowlist` staying green — the deleted id is
+gone from both the policy corpus and the ledger, and `fsm-invariants` stays
+legitimately dark with its explanatory note.
+
