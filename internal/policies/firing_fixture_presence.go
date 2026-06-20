@@ -195,25 +195,10 @@ var grandfatherDark = map[string]bool{
 	// Seeded from the G-0259 audit (44 policies with >=1 dark
 	// construction line). Burned down by G-0262; keep sorted.
 	// M-0166/AC-1 lit the 25 single-dark-site policies
-	// (firing_fixtures_single_site_test.go) and removed them. What
-	// remains: the multi-site policies (AC-2), acks-helper-lift (AC-3),
-	// and the lone structure-auditor fsm-invariants (permanent).
-	"acks-helper-lift":                         true,
-	"capture-stdout-singleton":                 true,
-	"design-doc-anchors-valid":                 true,
-	"embedded-rituals-no-retired-tracking-doc": true,
-	"finding-codes-have-tests":                 true,
-	"fsm-invariants":                           true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
-	"m0132-claude-md-devcontainer-section":     true,
-	"m0132-devcontainer-lock":                  true,
-	"m0132-devcontainer-readme":                true,
-	"m0132-devcontainer-shape":                 true,
-	"m0132-initialize-script":                  true,
-	"m0132-init-script":                        true,
-	"m0134-claude-md-test-running-sections":    true,
-	"m0137-ac3-batched-walker":                 true,
-	"race-parallel-cap":                        true,
-	"read-only-verbs-do-not-mutate":            true,
-	"test-setup-presence":                      true,
-	"trailer-order-matches-constants":          true,
+	// (firing_fixtures_single_site_test.go); AC-2 lit the 16 multi-site
+	// policies (firing_fixtures_multi_site_test.go) — every dark class
+	// covered by its own fixture. What remains: acks-helper-lift (AC-3,
+	// in progress) and the lone structure-auditor fsm-invariants (permanent).
+	"acks-helper-lift": true,
+	"fsm-invariants":   true, // structure-auditor: routes through mutate-hunt, not a firing fixture — introspects compiled-in entity FSM tables (discards root), so no fixture reaches its construction line; stays grandfathered permanently (G-0262 exempts this class).
 }
