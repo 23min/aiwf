@@ -16,6 +16,10 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0042: test-quality debt burned down across policies and the kernel corpus (internal)
+
+No user-visible behavior change. The firing-fixture-presence meta-gate's `grandfatherDark` ledger went from 43 entries to its irreducible 1 (`fsm-invariants`) — every policy now carries mechanical evidence it can fire (M-0166). The dormant forbidigo lint enforcement was revived with an execution firing harness, and a redundant policy now covered by gocritic was removed (M-0167, M-0170). Two complementary probes ran over the kernel: a gremlins mutation sweep (M-0168) and a directed wf-vacuity assertion-shape audit (M-0169), killing 11 mutation survivors and strengthening 3 vacuous test assertions; per-package mutation-efficacy baselines (entity 85.5% / gitops 91.9% / verb 86.2% / check 88.5%) are recorded in `docs/pocv3/`.
+
 ## [0.15.1] — 2026-06-18
 
 ### Fixed — diff-scoped coverage gate marker placement (no functional changes)
