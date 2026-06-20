@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Fix the dormant forbidigo panic/os.Exit patterns
-      status: open
+      status: met
     - id: AC-2
       title: Execution firing harness for linter-config rules, wired into the lint job
       status: open
