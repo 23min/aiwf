@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Firing fixtures for the single-site dark policies
-      status: open
+      status: met
     - id: AC-2
       title: Firing fixtures for the multi-site dark policies (every dark site)
       status: open
