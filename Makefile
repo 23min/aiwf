@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test test-race test-pins lint fmt vet coverage coverage-gate selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -20,15 +20,17 @@ help:
 	@echo "  install   - go install the aiwf binary into \$$GOBIN (with embedded version)"
 	@echo "  diag-aiwf - build a worktree-scoped binary at ./bin/aiwf-diag and print its absolute path (G-0147)"
 	@echo "  test      - run unit tests"
+	@echo "  check-fast - inner-loop gate: vet + lint + test (no race/coverage/selfcheck); run before each commit"
 	@echo "  test-race - run unit tests with -race"
 	@echo "  test-pins - run unit tests with -tags testpins (exercises Pin registry + bijection meta-test; M-0162/AC-2)"
 	@echo "  lint      - run golangci-lint"
 	@echo "  fmt       - apply gofumpt formatting"
 	@echo "  vet       - run go vet"
 	@echo "  coverage  - run tests with coverage; print summary"
+	@echo "  test-cov  - combined race+coverage pass (one suite run); what 'ci' uses"
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
-	@echo "  ci        - the full CI suite (vet + lint + test-race + coverage + selfcheck)"
+	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + selfcheck); run once before pushing, not per commit"
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
@@ -60,6 +62,13 @@ diag-aiwf:
 
 test:
 	go test -exec=$(TEST_EXEC) -parallel 8 ./...
+
+# check-fast is the inner-loop gate: vet + lint + the full test suite
+# WITHOUT the race detector, coverage instrumentation, or the selfcheck
+# binary build. Run it before each commit. The full `make ci` (race +
+# coverage + selfcheck) is the pre-push / CI-parity gate — run it once
+# before pushing, not per commit.
+check-fast: vet lint test
 
 test-race:
 	go test -exec=$(TEST_EXEC) -race -parallel 8 ./...
@@ -98,7 +107,15 @@ fmt:
 	gofumpt -l -w .
 
 coverage:
-	go test -exec=$(TEST_EXEC) -coverprofile=coverage.out -coverpkg=./internal/... ./...
+	go test -exec=$(TEST_EXEC) -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
+	go tool cover -func=coverage.out | tail -n 1
+
+# test-cov is the combined race+coverage pass `make ci` uses: one suite
+# run yields both the race signal and the coverage profile (-race forces
+# -covermode=atomic), instead of the two separate full passes the split
+# test-race + coverage targets cost. Mirrors CI's go.yml test step.
+test-cov:
+	go test -exec=$(TEST_EXEC) -race -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
 	go tool cover -func=coverage.out | tail -n 1
 
 # coverage-gate runs the profile-driven policy gates: the diff-scoped
@@ -112,7 +129,7 @@ coverage:
 # audit compares committed HEAD to the base, so uncommitted changes are
 # not seen. CI runs the same gates in the test job.
 coverage-gate:
-	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
+	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$$' -count=1 ./internal/policies/
@@ -124,7 +141,7 @@ coverage-gate:
 selfcheck: build
 	./bin/aiwf doctor --self-check
 
-ci: vet lint test-race coverage selfcheck
+ci: vet lint test-cov selfcheck
 
 clean:
 	rm -rf bin coverage.out
