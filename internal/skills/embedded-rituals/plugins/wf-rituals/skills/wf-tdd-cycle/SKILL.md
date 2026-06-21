@@ -47,6 +47,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - Remove duplication introduced by the green step.
 - Improve names that became wrong as the code grew.
 - Extract methods or types if shape demands it.
+- When the refactor reshapes structure — a new type, boundary, or module — consult `wf-codebase-health` for the forces that should guide the shape (cohesion, coupling, single-source-of-truth).
 - Run tests after every meaningful refactor. Stay green.
 - If the project uses aiwf and the milestone is `tdd: required` and the refactor was non-trivial:
 

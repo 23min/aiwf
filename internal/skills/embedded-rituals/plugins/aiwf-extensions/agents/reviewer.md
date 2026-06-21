@@ -19,7 +19,8 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 
 ## Skills you use
 
-- `wf-review-code` — the structured review checklist and verdict format.
+- `wf-review-code` — the structured review checklist and verdict format (the per-diff gate).
+- `wf-codebase-health` — the whole-codebase code-health rubric; reach for it on a large or boundary-introducing diff to assess the structure the change lands in, not just the change.
 - `wf-doc-lint` — mechanical doc-hygiene check on the diff (broken refs, removed-feature docs, orphans, TODOs).
 - `aiwfx-record-decision` — when the review surfaces a decision worth recording that the author hasn't yet captured.
 

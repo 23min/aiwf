@@ -27,6 +27,8 @@ And resource the reviewer to match the stakes — this is the highest-leverage g
 - A review pass is needed before declaring implementation complete — a calling ritual (a patch workflow, a milestone-wrap workflow, etc.) invokes this near the end of its sequence, ideally as an independent pass (see §"Independence").
 - A change is ready for review — in PR form, on a branch about to be merged, or in any other shape the consuming project's flow uses.
 
+This skill is the **per-diff gate**. For whole-codebase structural and operational health — the design properties a single diff review doesn't reach (module boundaries, single-source-of-truth, atomic writes, observability) — use `wf-codebase-health`, the code-health rubric. On a large or boundary-introducing diff, run both: this skill on the change, `wf-codebase-health` on the structure it lands in.
+
 ## Workflow
 
 ### 1. Understand the scope

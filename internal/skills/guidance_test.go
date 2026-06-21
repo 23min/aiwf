@@ -82,6 +82,28 @@ func TestGuidance_WithinLineBudget(t *testing.T) {
 	}
 }
 
+// TestGuidance_ContainsCodeHealthDigest pins the every-turn code-health priming
+// digest (G-0265 / ADR-0019): the fragment carries the five highest-leverage
+// forces inline so they prime code-writing without reaching for the full
+// wf-codebase-health skill. Drift in the digest fails the build.
+func TestGuidance_ContainsCodeHealthDigest(t *testing.T) {
+	t.Parallel()
+	got := string(GuidanceBytes())
+	for _, anchor := range []string{
+		"## Code-health priming",
+		"wf-codebase-health",
+		"D1 — pin behavior, not implementation",
+		"C1 — single source of truth",
+		"C3 — atomic writes",
+		"B1/B2 — typed interfaces and validated schemas",
+		"E1 — structured logs",
+	} {
+		if !strings.Contains(got, anchor) {
+			t.Errorf("guidance fragment missing code-health digest anchor %q", anchor)
+		}
+	}
+}
+
 // TestMaterializeGuidance_WritesFile covers the success path directly
 // (the initrepo seam test exercises it cross-package; this pins it in
 // the skills layer too) (M-0163/AC-3).

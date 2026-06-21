@@ -22,6 +22,7 @@ You are the **builder**. You write code and tests. You follow TDD. You implement
 
 - `aiwfx-start-milestone` — preflight, branch setup, promote `draft → in_progress`, begin implementation.
 - `wf-tdd-cycle` — red/green/refactor for one AC, with the branch-coverage hard rule.
+- `wf-codebase-health` — the code-health rubric; consult it *as you design and write*, especially when introducing a module or boundary. It shapes the code so it comes out right the first time; the review only checks it after. (The five highest-leverage forces are also in your standing guidance.)
 - `wf-patch` — one-off fixes, chores, tweaks too small for a milestone.
 - `aiwfx-wrap-milestone` — verify ACs, finalize the spec's wrap-side sections, doc-lint, promote `in_progress → done`, prepare the wrap commit.
 - `aiwfx-record-decision` — when a decision surfaces mid-implementation that's worth keeping.

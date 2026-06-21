@@ -3,8 +3,10 @@
 
 These rules govern how you operate aiwf and work with the human in this repo.
 They have no mechanical chokepoint, so they bind only if you follow them every
-turn. They are about operating aiwf and collaborating — not about this project's
-own code.
+turn. They are mostly about operating aiwf and collaborating; the one exception
+is the **Code-health priming** section at the end — a minimal digest of the
+highest-leverage code-quality forces, with the full rubric in the
+`wf-codebase-health` skill.
 
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
@@ -29,3 +31,14 @@ own code.
 - **Never write a fake id-shaped token in committed prose** (`M-alpha`, a number
   for an entity that doesn't exist); wrap an id-shape in backticks when discussing
   syntax. `aiwf check`'s `body-prose-id` rule enforces this.
+
+## Code-health priming — for the code you write here
+
+Hold these highest-leverage forces *while writing code*; reach for the full
+`wf-codebase-health` skill when designing a module or reviewing a non-trivial diff:
+
+- **D1 — pin behavior, not implementation.** Tests assert what the code does for given inputs, not which internals ran.
+- **C1 — single source of truth.** Each fact lives in one place; derive the rest with pure functions.
+- **C3 — atomic writes.** A crash leaves persisted state fully-old or fully-new, never half-written.
+- **B1/B2 — typed interfaces and validated schemas at boundaries**, not loose maps or unchecked shapes.
+- **E1 — structured logs.** Events with a name and fields, not interpolated strings.
