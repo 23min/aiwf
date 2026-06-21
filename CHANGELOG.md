@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-06-21
+
+### Added — `wf-codebase-health` code-health rubric, shipped to consumers
+
+`aiwf init` / `aiwf update` now materialize a new advisory engineering skill, `wf-codebase-health`, into `.claude/skills/` — a stack-agnostic code-health rubric (24 principles, A1–G3, spanning module boundaries, contracts, data discipline, tests, errors, reasoning aids, and operational properties). It has two faces: it **primes** code as it is written — the five highest-leverage forces (D1, C1, C3, B1/B2, E1) are injected into the per-turn guidance fragment, and the `builder`/`planner` agents and `wf-tdd-cycle` point to the full rubric at build time — and it **scores** an existing codebase Strong/Weak/Missing via `wf-review-code` and the `reviewer` agent. It is advisory, not a check: it prescribes nothing, and the consumer's own conventions win. Decision recorded in ADR-0019 (G-0265).
+
+### Changed — stronger ritual review and design discipline
+
+The embedded rituals (refreshed on `aiwf update`) gained: `wf-vacuity` as a required invocation step in the TDD cycle (G-0260); a defined auto-invoke trigger and an §Independence section for `wf-rethink` (G-0261); and a requirement to run an independent two-lens review before a commit or wrap (G-0263).
+
+### Changed — kernel hardening: new mechanical chokepoints (internal)
+
+No user-visible behavior change. New `internal/policies/` gates: mechanically-pinned import-direction layering (G-0227); a ban on ambient wall-clock reads in the domain core, a validate-never-writes guard, and single-source version stamping (G-0235); and a firing-fixture-presence meta-gate that fails CI for any policy lacking evidence it can fire (G-0259).
+
 ### Changed — E-0042: test-quality debt burned down across policies and the kernel corpus (internal)
 
 No user-visible behavior change. The firing-fixture-presence meta-gate's `grandfatherDark` ledger went from 43 entries to its irreducible 1 (`fsm-invariants`) — every policy now carries mechanical evidence it can fire (M-0166). The dormant forbidigo lint enforcement was revived with an execution firing harness, and a redundant policy now covered by gocritic was removed (M-0167, M-0170). Two complementary probes ran over the kernel: a gremlins mutation sweep (M-0168) and a directed wf-vacuity assertion-shape audit (M-0169), killing 11 mutation survivors and strengthening 3 vacuous test assertions; per-package mutation-efficacy baselines (entity 85.5% / gitops 91.9% / verb 86.2% / check 88.5%) are recorded in `docs/pocv3/`.
