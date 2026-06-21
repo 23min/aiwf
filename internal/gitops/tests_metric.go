@@ -51,7 +51,10 @@ func ParseTestMetrics(value string) (TestMetrics, bool) {
 	var seen bool
 	for _, tok := range strings.Fields(v) {
 		eq := strings.IndexByte(tok, '=')
-		if eq <= 0 || eq == len(tok)-1 {
+		// Skip tokens with no '=' (eq<0) or a leading '=' (eq==0). A
+		// trailing '=' (empty value) needs no guard here — the
+		// strconv.Atoi("") check below rejects it.
+		if eq <= 0 {
 			continue
 		}
 		key, raw := tok[:eq], tok[eq+1:]

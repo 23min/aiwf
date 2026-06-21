@@ -64,6 +64,16 @@ func TestParseTestMetrics(t *testing.T) {
 			wantOK: true,
 		},
 		{
+			// A sole trailing-'=' token (empty value) reports not-ok. This is
+			// the behavior the now-removed `eq == len(tok)-1` guard provided
+			// explicitly; strconv.Atoi("") below rejects the empty value, so
+			// the guard was redundant. Pins that equivalence.
+			name:   "sole trailing-equals key reports not-ok",
+			input:  "pass=",
+			want:   TestMetrics{},
+			wantOK: false,
+		},
+		{
 			// M-0168 kill-test for tests_metric.go:59 (`n < 0` boundary):
 			// a sole zero-value key parses to a zero struct but must still
 			// report ok=true. The `n <= 0` mutant skips it and returns
