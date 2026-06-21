@@ -1,7 +1,9 @@
 ---
 id: G-0265
 title: Ship code-health principles as wf-codebase-health advisory ritual skill
-status: open
+status: addressed
+addressed_by_commit:
+    - c7ede9c3
 ---
 Downstream aiwf consumers get the kernel's mechanical guarantees and the
 ritual skills on `aiwf init` / `aiwf update`, but they do **not** get the
