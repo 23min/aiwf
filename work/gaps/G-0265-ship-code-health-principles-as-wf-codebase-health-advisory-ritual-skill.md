@@ -46,5 +46,8 @@ write code — which aiwf does not do.
   (per-diff gate to whole-codebase rubric).
 - A structural test asserting the skill materializes and carries the
   principle sections.
-- A `CLAUDE.md` line in the engineering-skills list.
 - A companion ADR recording the vehicle decision above.
+
+No `CLAUDE.md` edit is needed: it names the engineering skills collectively
+as `wf-*` (no per-skill enumeration), so the new skill is already covered —
+adding a bespoke per-skill list would invent a doc convention against KISS.
