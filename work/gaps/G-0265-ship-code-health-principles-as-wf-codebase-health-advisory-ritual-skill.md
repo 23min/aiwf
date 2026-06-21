@@ -12,42 +12,53 @@ distribution vehicle.
 
 ## Decision
 
-Ship the rubric as a new advisory **ritual skill**, `wf-codebase-health`,
-in the `wf-rituals` plugin. It materializes into the consumer's
-`.claude/skills/` on `init` / `update` exactly like the other `wf-*`
-engineering skills — gitignored, marker-managed, versioned with the binary,
-AI-discoverable. The assistant consults it when designing a module, planning
-a refactor, reviewing a non-trivial diff, or running a scorecard.
+Ship the rubric as a new advisory **ritual skill**, `wf-codebase-health`, in
+the `wf-rituals` plugin, materialized into the consumer's `.claude/skills/`
+on `init` / `update` like the other `wf-*` engineering skills.
 
-This places the principles in aiwf's **advisory** half (rituals), not its
-**mechanical** half (check rules / hooks). That is deliberate: the
-principles are judgment forces, not pass/fail rules; mechanizing them would
-be impossible for a language-agnostic tool and would prescribe how consumers
-write code — which aiwf does not do.
+The rubric has two faces, and the patch wires both — **priming primary**:
+
+- **Prime ("do it this way")** — a minimal 5-force digest (D1, C1, C3,
+  B1/B2, E1) primes *every turn* via the guidance fragment, and the
+  `builder` / `planner` agents and `wf-tdd-cycle` point to the full skill at
+  build/design time.
+- **Score ("did we do it this way")** — `wf-review-code` and the `reviewer`
+  agent point to the full skill for the whole-codebase review pass.
+
+This places the principles in aiwf's **advisory** half (rituals + guidance),
+not its **mechanical** half (check rules / hooks): the principles are
+judgment forces, not pass/fail rules, and mechanizing them would prescribe
+how consumers write code — which aiwf does not do.
 
 ## Vehicle — roads not taken
 
-- **Inject into the per-turn guidance fragment** — rejected. That fragment
-  is scoped to *operating aiwf*, explicitly "not about this project's own
-  code"; code-health principles are the opposite, and per-turn context
-  should stay lean.
-- **Opt-in materialization of a tracked doc** into the consumer's `docs/`
-  — deferred (YAGNI). aiwf does not write tracked files without explicit
-  per-invocation consent; if a consumer wants the rubric committed for human
-  readers, that is a future consent-gated knob, not part of this change.
-- **A `check` rule or git hook over consumer code** — rejected. Prescribes,
-  cannot be language-agnostic, and removes the freedom this design preserves.
+- **Inject the *full* rubric into the per-turn guidance fragment** — rejected;
+  it would blow the fragment's line budget and dilute the operating rules.
+  Only the minimal digest goes there.
+- **A separate dedicated every-turn fragment** — deferred (YAGNI); a fenced
+  section in the existing fragment primes every turn at far lower cost than a
+  new artifact + wiring.
+- **Opt-in materialization of a tracked doc** into the consumer's `docs/` —
+  deferred (YAGNI); a future consent-gated knob if a consumer wants it
+  committed for human readers.
+- **A `check` rule or git hook over consumer code** — rejected; prescribes,
+  cannot be language-agnostic, removes the freedom this design preserves.
+
+Full rationale: ADR-0019.
 
 ## Scope of the closing patch
 
 - `wf-codebase-health/SKILL.md` (embedded; auto-picked-up by the
-  `embedded-rituals` tree embed).
-- One-line pointers from `wf-review-code` and the `reviewer` agent
-  (per-diff gate to whole-codebase rubric).
+  `embedded-rituals` tree embed), reframed to lead with the priming face.
+- Minimal code-health digest appended to the guidance fragment
+  (`aiwf-guidance.md`), within its line-budget guard, with its scope line
+  reworded and a presence test.
+- Prime-side pointers from the `builder` / `planner` agents and
+  `wf-tdd-cycle`; score-side pointers from `wf-review-code` and the
+  `reviewer` agent.
 - A structural test asserting the skill materializes and carries the
   principle sections.
-- A companion ADR recording the vehicle decision above.
+- A companion ADR (ADR-0019) recording the vehicle decision.
 
 No `CLAUDE.md` edit is needed: it names the engineering skills collectively
-as `wf-*` (no per-skill enumeration), so the new skill is already covered —
-adding a bespoke per-skill list would invent a doc convention against KISS.
+as `wf-*` (no per-skill enumeration), so the new skill is already covered.
