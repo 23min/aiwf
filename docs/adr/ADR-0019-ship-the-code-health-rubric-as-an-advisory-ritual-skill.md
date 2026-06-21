@@ -74,8 +74,9 @@ hook, and adds no kernel surface. This is the central decision:
   "opinion-free kernel" framing — but only in the advisory layer, which
   already carries opinions (`wf-tdd-cycle`, `wf-rethink`). The mechanical
   layer stays opinion-free.
-- The in-repo authoring doc
-  (`docs/pocv3/design/healthy-codebase-principles.md`) and the embedded
-  `SKILL.md` are two roles of the same content — authoring reference vs.
-  distributable form — mirroring the source-vs-render pattern aiwf already
-  uses for `ROADMAP.md` and the embedded rituals.
+- The embedded `SKILL.md` is the *distributable* form of a rubric that also
+  has a human-readable *authoring/reference* form as a project field guide;
+  the two are roles of the same content, mirroring the source-vs-render
+  pattern aiwf already uses for `ROADMAP.md` and the embedded rituals. (The
+  authoring doc is maintained separately from this patch, so this ADR does
+  not pin its repo path.)
