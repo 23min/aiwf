@@ -103,7 +103,16 @@ golangci-lint run                    # linters
 go build -o /tmp/aiwf ./cmd/aiwf     # binary builds
 ```
 
-All three should pass before committing. CI runs all of them on every push.
+`make check-fast` bundles the first two plus `go vet` for the inner loop; `make ci` runs the full CI-parity gate (adds the race detector, coverage, and the end-to-end self-check). CI runs the full gate on every push.
+
+### Local validation cadence
+
+`make ci` gates the **integration boundaries** — the merge to mainline and the push — and must be green there. It does **not** need to run before every local commit:
+
+- **Inner loop.** While iterating (milestone work on an epic branch, a `wf-patch` branch before its wrap), use `make check-fast` for fast feedback. The full gate confirms before the commit/merge that integrates the work.
+- **Skip the redundant run.** When no Go/build input (`*.go`, `go.mod`, `go.sum`, `Makefile`, `.github/workflows/*`) has changed since the last green `make ci`, the gate is still green — don't re-run it. Planning-state commits — `aiwf promote` / `edit-body` / `add` touch entity markdown (and, for `aiwf add` with a contract bind, `aiwf.yaml`), never Go/build inputs — do not invalidate a prior green run. This is the waste that made the epic wrap re-run the full gate when only milestone `promote`s (frontmatter) had landed since the last green run.
+
+The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance, so it belongs at the boundary that integrates or leaves the machine — not at each commit. This specializes the `wf-patch` / `aiwfx-wrap-*` rituals' "full local CI gate" step for this repo.
 
 ---
 
