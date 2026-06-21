@@ -1,7 +1,7 @@
 ---
 id: ADR-0019
 title: Ship the code-health rubric as an advisory ritual skill
-status: proposed
+status: accepted
 ---
 ## Context
 
