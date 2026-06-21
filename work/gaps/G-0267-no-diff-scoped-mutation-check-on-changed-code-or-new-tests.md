@@ -1,7 +1,9 @@
 ---
 id: G-0267
 title: No diff-scoped mutation check on changed code or new tests
-status: open
+status: addressed
+addressed_by_commit:
+    - 5b0ed86a
 ---
 ## What's missing
 
