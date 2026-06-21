@@ -20,7 +20,7 @@ It needs assertions to audit — run it on a unit that already has tests, not be
 
 ## Defer to a real tool first
 
-If the project has a mutation-testing harness — the repo's `mutate-hunt` workflow / gremlins, or Stryker / mutmut / PIT — run it and read its survivors. It is the mechanical version of probe 1, and it is the stronger signal. The manual probes below are the stop-gap for the units, languages, or repos where no such tool is wired up, plus the assertion-shape reasoning (probe 2) that mutation tools don't do.
+If the project has a mutation-testing harness — the repo's `mutate-hunt` workflow / gremlins, or Stryker / mutmut / PIT — run it and read its survivors. It is the mechanical version of probe 1, and it is the stronger signal. Where a *diff-scoped* variant exists (e.g. a `make mutate-diff` target that mutates only the packages you changed), prefer it after a `wf-tdd-cycle` — it is the fast companion to this manual probe, scoped to the unit you just touched rather than the whole tree. The manual probes below are the stop-gap for the units, languages, or repos where no such tool is wired up, plus the assertion-shape reasoning (probe 2) that mutation tools don't do.
 
 ## Workflow
 

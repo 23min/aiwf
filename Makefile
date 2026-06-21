@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -29,6 +29,7 @@ help:
 	@echo "  coverage  - run tests with coverage; print summary"
 	@echo "  test-cov  - combined race+coverage pass (one suite run); what 'ci' uses"
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
+	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + selfcheck); run once before pushing, not per commit"
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
@@ -133,6 +134,18 @@ coverage-gate:
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$$' -count=1 ./internal/policies/
+
+# mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
+# just the internal/ packages changed since the merge-base with
+# origin/main, the wf-vacuity / mutate-hunt companion scoped to your
+# diff instead of the whole kernel. Advisory — it prints surviving
+# mutants for triage and always exits 0; mutation is slow and
+# equivalent-mutant noise makes "0 survivors" un-gateable. Override the
+# base with MUTATE_DIFF_BASE=<ref> and the per-mutant timeout with
+# MUTATE_DIFF_COEFFICIENT=<n>. Requires gremlins + jq (absence is
+# reported, not fatal). See scripts/mutate-diff.sh.
+mutate-diff:
+	@scripts/mutate-diff.sh
 
 # selfcheck builds the binary and drives every verb against a temp
 # repo via `aiwf doctor --self-check`. Catches end-to-end regressions
