@@ -116,6 +116,9 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, acsTitleProse(t)...)
 	findings = append(findings, milestoneDoneIncompleteACs(t)...)
 	findings = append(findings, entityBodyEmpty(t)...)
+	// G-0268: defense-in-depth backstop for the hard --tdd creation
+	// requirement — fires on non-archived milestones lacking tdd:.
+	findings = append(findings, milestoneTDDUndeclared(t)...)
 	// M-083 AC-1: drift-check rule for narrow-width ids in a mixed-
 	// state active tree. Per ADR-0008 §"Drift control", uniform trees
 	// (either all-narrow or all-canonical) are silent; only the mixed

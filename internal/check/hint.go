@@ -98,6 +98,13 @@ var hintTable = map[string]string{
 	"entity-body-empty/decision":  "write prose for the named section in the decision body via `aiwf edit-body D-NNN`; Question/Decision/Reasoning are the load-bearing record",
 	"entity-body-empty/contract":  "write prose for the named section in the contract body via `aiwf edit-body C-NNN`; Purpose/Stability are the load-bearing record",
 
+	// G-0268 milestone-tdd-undeclared: the milestone has no tdd: policy
+	// and absent is silently treated as tdd: none. New milestones get
+	// the policy from the required `--tdd` flag at create time; an
+	// existing/grandfathered milestone is fixed by a frontmatter edit
+	// (there is no post-create --tdd verb — tdd is creation-set).
+	"milestone-tdd-undeclared": "declare the milestone's TDD policy — create with `aiwf add milestone --tdd <required|advisory|none>`, or for an existing milestone add `tdd: required` (or advisory/none) to the frontmatter; absent `tdd:` is silently treated as `tdd: none`",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition

@@ -200,10 +200,9 @@ func (c *Config) HTMLOutDir() string {
 // governance opt in at the project level.
 //
 // Strict promotes a defined set of TDD-related findings from warning
-// to error so the pre-push hook blocks the push. Today the bumper
-// covers `entity-body-empty` (M-066/AC-2); M-065's
-// `milestone-tdd-undeclared` will join the same bumper when its rule
-// lands. Single source of truth for the project's TDD strictness
+// to error so the pre-push hook blocks the push. The bumper covers
+// `entity-body-empty` (M-066/AC-2) and `milestone-tdd-undeclared`
+// (G-0268). Single source of truth for the project's TDD strictness
 // posture — no parallel field, no second config knob. Default false.
 // See check.ApplyTDDStrict for the precise set of codes covered.
 type TDD struct {

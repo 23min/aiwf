@@ -131,13 +131,15 @@ completed: 2026-04-30
 	// 5 milestones under E-01. Status is non-terminal so the
 	// M-0086 terminal-entity-not-archived rule doesn't fire on
 	// them — this fixture's narrative is the refs-resolve cascade,
-	// not archive sweep state.
+	// not archive sweep state. tdd: none keeps milestone-tdd-undeclared
+	// (G-0268) silent so the cascade is the only thing under test.
 	for i := 1; i <= 5; i++ {
 		writeFile(t, root, fmt.Sprintf("work/epics/E-01-platform/M-%03d.md", i), fmt.Sprintf(`---
 id: M-%03d
 title: Milestone %d
 status: in_progress
 parent: E-01
+tdd: none
 ---
 `, i, i))
 	}

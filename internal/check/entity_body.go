@@ -74,14 +74,13 @@ var h2Heading = regexp.MustCompile(`^##\s+(.+?)\s*$`)
 // acsBodyCoherence's locator). Capture: AC id integer.
 var h3ACHeading = regexp.MustCompile(`^###\s+AC-(\d+)(?:\s*[—\-:]\s*(.+))?$`)
 
-// ApplyTDDStrict bumps every entity-body-empty finding's severity
-// from warning to error when strict=true (M-066/AC-2). Mutates the
-// findings slice in place. The function is the single source of
-// truth for which codes are covered by `aiwf.yaml: tdd.strict` —
-// today only entity-body-empty; M-065's `milestone-tdd-undeclared`
-// will be added to the same bumper when its rule lands. The bumper
-// is intentionally narrow: codes outside this set pass through
-// unchanged regardless of the flag.
+// ApplyTDDStrict bumps the severity of the TDD-strictness finding set
+// from warning to error when strict=true (M-066/AC-2, G-0268).
+// Mutates the findings slice in place. The function is the single
+// source of truth for which codes are covered by `aiwf.yaml:
+// tdd.strict`: `entity-body-empty` (M-066) and `milestone-tdd-
+// undeclared` (G-0268). The bumper is intentionally narrow: codes
+// outside this set pass through unchanged regardless of the flag.
 //
 // Callers run this AFTER `Run` (or after appending the rule's
 // findings to their own slice) so the rule's emission stays
@@ -92,7 +91,8 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 		return
 	}
 	for i := range findings {
-		if findings[i].Code == CodeEntityBodyEmpty {
+		switch findings[i].Code {
+		case CodeEntityBodyEmpty, CodeMilestoneTDDUndeclared:
 			findings[i].Severity = SeverityError
 		}
 	}

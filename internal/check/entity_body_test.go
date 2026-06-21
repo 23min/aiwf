@@ -468,33 +468,33 @@ acs:
 	}
 }
 
-// TestApplyTDDStrict_EscalatesEntityBodyEmpty pins M-066/AC-2: when
-// strict=true, every `entity-body-empty` finding (any subcode) is
-// bumped from warning to error. When strict=false, all severities
-// pass through unchanged. The bumper is the chokepoint that
-// projects with `aiwf.yaml: tdd.strict: true` use to make body
-// emptiness a push-blocker rather than a notice.
+// TestApplyTDDStrict_EscalatesEntityBodyEmpty pins M-066/AC-2 and
+// G-0268: when strict=true, every finding in the TDD-strictness set
+// — `entity-body-empty` (any subcode) and `milestone-tdd-undeclared`
+// — is bumped from warning to error. When strict=false, all
+// severities pass through unchanged. The bumper is the chokepoint
+// that projects with `aiwf.yaml: tdd.strict: true` use to make these
+// push-blockers rather than notices.
 //
-// The bumper is scoped to entity-body-empty only — other findings
-// pass through untouched. M-065's `milestone-tdd-undeclared` will
-// be added to the same bumper when its rule lands; today the
-// bumper handles only this code, but the function is the single
-// source of truth for which codes the strict flag covers.
+// The bumper is scoped to exactly those two codes — other findings
+// pass through untouched. ApplyTDDStrict is the single source of
+// truth for which codes the strict flag covers.
 func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 	t.Parallel()
 	build := func() []Finding {
 		return []Finding{
 			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning, Subcode: "milestone", EntityID: "M-0001"},
 			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning, Subcode: "ac", EntityID: "M-0001/AC-1"},
+			{Code: CodeMilestoneTDDUndeclared, Severity: SeverityWarning, EntityID: "M-0003"},
 			{Code: CodeACsBodyCoherence, Severity: SeverityWarning, Subcode: "missing-heading", EntityID: "M-0001/AC-2"},
 			{Code: CodeRefsResolve, Severity: SeverityError, Subcode: "unresolved", EntityID: "M-0002"},
 		}
 	}
 
-	t.Run("strict=true bumps entity-body-empty to error", func(t *testing.T) {
+	t.Run("strict=true bumps the TDD-strictness set to error", func(t *testing.T) {
 		findings := build()
 		ApplyTDDStrict(findings, true)
-		var sawMilestone, sawAC bool
+		var sawMilestone, sawAC, sawUndeclared bool
 		for _, f := range findings {
 			if f.Code == CodeEntityBodyEmpty {
 				if f.Severity != SeverityError {
@@ -508,8 +508,15 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 					sawAC = true
 				}
 			}
+			if f.Code == CodeMilestoneTDDUndeclared {
+				if f.Severity != SeverityError {
+					t.Errorf("milestone-tdd-undeclared %s severity = %v, want error under strict",
+						f.EntityID, f.Severity)
+				}
+				sawUndeclared = true
+			}
 			if f.Code == CodeACsBodyCoherence && f.Severity != SeverityWarning {
-				t.Errorf("acs-body-coherence severity = %v, want warning unchanged (strict only escalates entity-body-empty)",
+				t.Errorf("acs-body-coherence severity = %v, want warning unchanged (strict only escalates the TDD-strictness set)",
 					f.Severity)
 			}
 			if f.Code == CodeRefsResolve && f.Severity != SeverityError {
@@ -517,7 +524,10 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 			}
 		}
 		if !sawMilestone || !sawAC {
-			t.Errorf("expected both milestone- and ac-subcoded findings to escalate")
+			t.Errorf("expected both milestone- and ac-subcoded entity-body-empty findings to escalate")
+		}
+		if !sawUndeclared {
+			t.Errorf("expected milestone-tdd-undeclared finding to escalate")
 		}
 	})
 
@@ -527,6 +537,10 @@ func TestApplyTDDStrict_EscalatesEntityBodyEmpty(t *testing.T) {
 		for _, f := range findings {
 			if f.Code == CodeEntityBodyEmpty && f.Severity != SeverityWarning {
 				t.Errorf("entity-body-empty %s severity = %v, want warning unchanged when strict=false",
+					f.EntityID, f.Severity)
+			}
+			if f.Code == CodeMilestoneTDDUndeclared && f.Severity != SeverityWarning {
+				t.Errorf("milestone-tdd-undeclared %s severity = %v, want warning unchanged when strict=false",
 					f.EntityID, f.Severity)
 			}
 			if f.Code == CodeRefsResolve && f.Severity != SeverityError {
