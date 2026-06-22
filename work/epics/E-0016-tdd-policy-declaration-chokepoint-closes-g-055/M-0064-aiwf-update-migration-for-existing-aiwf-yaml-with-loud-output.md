@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'aiwf update inserts tdd.default: required when missing'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-2
       title: aiwf update leaves an existing tdd.default value unchanged
