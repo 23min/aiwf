@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf.yaml areas block declares member set + optional default label, validated
-      status: met
+      status: open
       tdd_phase: done
     - id: AC-3
       title: Milestone and AC derive area from parent epic at load, exposed in model
