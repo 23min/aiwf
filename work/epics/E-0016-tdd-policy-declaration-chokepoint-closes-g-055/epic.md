@@ -1,7 +1,7 @@
 ---
 id: E-0016
 title: TDD policy declaration chokepoint (closes G-0055)
-status: proposed
+status: cancelled
 ---
 
 ## Goal
