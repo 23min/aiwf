@@ -31,7 +31,7 @@ acs:
       tdd_phase: red
     - id: AC-7
       title: Doctor goldens updated with rationale for tdd.default
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 
