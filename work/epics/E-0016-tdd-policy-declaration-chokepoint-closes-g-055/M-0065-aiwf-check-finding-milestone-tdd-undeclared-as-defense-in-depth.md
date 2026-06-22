@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'milestone-tdd-undeclared (warning) when tdd: is absent'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-2
       title: Severity escalates to error under aiwf.yaml tdd.strict true
