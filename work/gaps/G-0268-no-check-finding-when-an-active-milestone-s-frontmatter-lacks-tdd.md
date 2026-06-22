@@ -1,8 +1,10 @@
 ---
 id: G-0268
 title: 'No check finding when an active milestone''s frontmatter lacks tdd:'
-status: open
+status: addressed
 discovered_in: E-0016
+addressed_by_commit:
+    - 9b0c66e7
 ---
 ## What's missing
 
