@@ -9,7 +9,7 @@ discovered_in: E-0043
 `aiwf check` has no rule that flags an epic `proposed → active` activation commit
 that landed on a non-trunk branch. Per ADR-0010, epic activation is a sovereign
 act that lands on `main` before the epic branch is cut. When a shared-worktree
-HEAD-drift race (its sibling gap, the prevention half) or plain operator error
+HEAD-drift race (its sibling gap G-0269, the prevention half) or plain operator error
 lands the activation on a feature branch instead, nothing detects it post-hoc —
 the misplaced commit validates fine in isolation.
 
@@ -32,4 +32,4 @@ trunk-only sovereign transitions or just epic activation to start.
 ## Provenance
 
 Discovered while starting E-0043. This is the detection half of the lesson; the
-prevention half is its sibling gap (the HEAD-drift guard on mutating verbs).
+prevention half is its sibling gap G-0269 (the HEAD-drift guard on mutating verbs).
