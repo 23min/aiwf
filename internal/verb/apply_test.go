@@ -81,6 +81,17 @@ func readFile(t *testing.T, path string) []byte {
 	return b
 }
 
+func stashList(t *testing.T, root string) string {
+	t.Helper()
+	cmd := exec.Command("git", "stash", "list")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git stash list: %v", err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // --- happy path regression ---
 
 // TestApply_HappyPath_OneCommitNoExtraIndexChurn proves the
@@ -650,5 +661,64 @@ func TestApply_AllowEmptyOnCleanIndex(t *testing.T) {
 	}
 	if got := strings.TrimSpace(string(out)); got != "" {
 		t.Errorf("allow-empty commit captured paths: %q", got)
+	}
+}
+
+// TestApply_StashFailureCleansUpAndRefuses pins G-0275: when the
+// pre-verb `git stash push --staged` aborts *after* creating its entry
+// — a staged rename whose old path is squatted by an untracked file, so
+// the stash's worktree revert can't recreate it — Apply must (a) refuse
+// with an actionable message, (b) leave no dangling stash, and (c) not
+// advance HEAD or write the verb's file. Before the fix the verb
+// surfaced a raw `git stash: exit status 1` and left the entry behind,
+// accumulating one dangling stash per attempt.
+func TestApply_StashFailureCleansUpAndRefuses(t *testing.T) {
+	t.Parallel()
+	r := newApplyTestRepo(t)
+
+	// Toxic shape: stage a rename of the seed file, then drop an
+	// untracked file at the old path.
+	moved := "work/epics/E-0001-foo/moved.md"
+	if err := gitops.Mv(r.ctx, r.root, r.trackedPath, moved); err != nil {
+		t.Fatalf("git mv: %v", err)
+	}
+	shim := filepath.Join(r.root, r.trackedPath)
+	if err := os.WriteFile(shim, []byte("untracked shim\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verb writes an unrelated path → triggers the stash-isolation path.
+	verbPath := "work/epics/E-0002-bar/epic.md"
+	plan := &verb.Plan{
+		Subject:  "test stash-failure cleanup",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{
+			{Type: verb.OpWrite, Path: verbPath, Content: []byte("---\nid: E-0002\n---\n")},
+		},
+	}
+
+	err := verb.Apply(r.ctx, r.root, plan)
+	if err == nil {
+		t.Fatal("expected Apply to refuse when stash isolation fails; got nil")
+	}
+	for _, want := range []string{"couldn't set aside your pre-staged changes", "commit or unstage"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error missing %q; got: %v", want, err)
+		}
+	}
+
+	// No dangling stash left behind — the load-bearing G-0275 assertion.
+	if list := stashList(t, r.root); list != "" {
+		t.Errorf("dangling stash after failed isolation: %q", list)
+	}
+
+	// HEAD did not advance — the mutation did not land.
+	if got := headSHA(t, r.root); got != r.preCommit {
+		t.Error("HEAD advanced despite stash-isolation failure")
+	}
+
+	// The verb's write was never put on disk (we bail before phase 2).
+	if _, statErr := os.Stat(filepath.Join(r.root, verbPath)); !os.IsNotExist(statErr) {
+		t.Errorf("verb write present after stash-isolation failure: stat err = %v", statErr)
 	}
 }

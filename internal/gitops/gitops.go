@@ -185,6 +185,41 @@ func StashPop(ctx context.Context, workdir string) error {
 	return run(ctx, workdir, "stash", "pop", "--quiet")
 }
 
+// StashTopRef returns the commit SHA at the top of the stash stack
+// (`refs/stash`), or "" when the stack is empty. verb.Apply uses it to
+// detect a stash entry that `git stash push --staged` created *before*
+// aborting its worktree reset, so the dangling entry can be dropped
+// rather than left behind (G-0275).
+//
+// Mirrors ReadFromHEAD's existence-probe shape: `--verify --quiet`
+// exits 1 with empty output when the ref is absent, which maps to
+// ("", nil); any other failure is wrapped and returned.
+func StashTopRef(ctx context.Context, workdir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "refs/stash")
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return "", nil
+		}
+		return "", fmt.Errorf("git rev-parse refs/stash: %w", err) //coverage:ignore requires git rev-parse to fail with a non-exit-1 error (git missing or repo corruption mid-call)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// StashDrop removes the entry at the top of the stash stack
+// (`stash@{0}`) without applying it. Pairs with StashTopRef in
+// verb.Apply's failure path: when a `git stash push --staged` aborts
+// after creating its entry, that entry is a redundant snapshot of work
+// still present in the index and worktree, so dropping it (not popping
+// it) is the correct cleanup — a pop would re-trigger the same conflict
+// that failed the push (G-0275).
+func StashDrop(ctx context.Context, workdir string) error {
+	return run(ctx, workdir, "stash", "drop", "--quiet")
+}
+
 // IsRepo reports whether workdir is inside a git working tree.
 func IsRepo(ctx context.Context, workdir string) bool {
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--is-inside-work-tree")
