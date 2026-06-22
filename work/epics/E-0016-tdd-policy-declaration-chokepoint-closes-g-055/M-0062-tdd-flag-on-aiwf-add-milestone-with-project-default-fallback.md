@@ -27,7 +27,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: 'aiwf add ac still seeds tdd_phase: red for tdd: required parents'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-7
       title: Subprocess integration test covers all four resolution paths
