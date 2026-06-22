@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Milestone and AC derive area from parent epic at load, exposed in model
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: 'With no areas block the area field is inert: parses but nothing validates'
       status: open
