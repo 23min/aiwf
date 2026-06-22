@@ -1,7 +1,7 @@
 ---
 id: M-0171
 title: Area field on root kinds and aiwf.yaml areas block with validation
-status: draft
+status: in_progress
 parent: E-0043
 tdd: required
 acs:
