@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: Init'd aiwf.yaml is consumed by M-0062 resolver as fallback
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-6
       title: aiwf doctor --self-check passes after init in fresh tempdir
