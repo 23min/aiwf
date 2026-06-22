@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Five root kinds accept optional area frontmatter field; absent parses clean
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: aiwf.yaml areas block declares member set + optional default label, validated
       status: open
