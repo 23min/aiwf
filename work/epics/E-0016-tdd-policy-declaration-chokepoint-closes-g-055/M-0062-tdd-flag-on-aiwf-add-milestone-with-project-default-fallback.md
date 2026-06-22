@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: Invalid --tdd values exit with code 2 and usage error
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-5
       title: --tdd value tab-completes the closed set
