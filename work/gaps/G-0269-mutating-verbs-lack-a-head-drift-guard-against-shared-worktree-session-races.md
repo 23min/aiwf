@@ -47,6 +47,6 @@ instead.**
 
 Discovered while starting E-0043 (sibling-worktree activation). This is the
 prevention half of the lesson; the post-hoc detection half is its sibling gap
-(the "epic activation on a non-trunk branch" check finding). Cousin of M-0106's
+G-0270 (the "epic activation on a non-trunk branch" check finding). Cousin of M-0106's
 `isolation-escape` finding, which catches branch-binding drift for authorize
 scopes.
