@@ -24,7 +24,7 @@ M-0171 makes the field exist; the area-unknown check-finding milestone catches u
 - **AC-2 candidate** — `--area` is rejected (usage error, no entity created) when the value is not in the declared `areas` set, or when no `areas` block exists; the error names the value and the declared set. (Single source of truth: the same accessor M-0171/M-0172 use.)
 - **AC-3 candidate** — `--area` is invalid for the non-root kinds (milestone derives from parent); passing it there errors.
 - **AC-4 candidate** — `--area <TAB>` tab-completes exactly the declared `areas` members, wired the same way other closed-set flags are (Cobra `RegisterFlagCompletionFunc`); the completion-drift policy passes.
-- **AC-5 candidate** — `aiwf add gap --discovered-in <id>` derives the gap's `area` from the discovered-in entity when `--area` is omitted and the source carries one (Open Question 1 in the epic; lean: derive-on-omit).
+- **AC-5 candidate** — `aiwf add gap --discovered-in <id>` derives the gap's `area` from the discovered-in entity's **effective** area when `--area` is omitted (an epic carries `area` directly; a milestone target is a two-hop derivation through its parent epic, since milestones don't store `area`). Open Question 1 in the epic; lean: derive-on-omit.
 - **AC-6 candidate** — Subprocess integration test covers set / reject / derive paths (test-the-seam).
 
 ## Constraints
