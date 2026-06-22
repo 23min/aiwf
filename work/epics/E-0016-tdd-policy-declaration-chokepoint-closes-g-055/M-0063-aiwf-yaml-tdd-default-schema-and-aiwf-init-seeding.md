@@ -1,7 +1,7 @@
 ---
 id: M-0063
 title: aiwf.yaml tdd.default schema and aiwf init seeding
-status: draft
+status: cancelled
 parent: E-0016
 tdd: required
 acs:
