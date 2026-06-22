@@ -25,6 +25,21 @@ For the lifecycle diagrams and the per-kind state machines, see [`docs/pocv3/ove
 
 ---
 
+## aiwf and spec-driven development
+
+aiwf is **not** a spec-driven-development tool, and it isn't a reaction to one. Spec-driven development, vibe coding, TDD-with-AI, issue-driven, pair-programming — these are *operating models*: how a team gets work done with an LLM. aiwf is the layer *underneath* all of them — the validated, git-native record of what's planned, decided, and done, and who is accountable for each change. Run whichever operating model you like on top; aiwf's job is to keep its state honest.
+
+Where it does touch spec-driven development, it does so deliberately. aiwf embodies the one durable rung of the SDD ladder — a spec as a *verifiable contract* (the `contract` kind, checked mechanically by `aiwf check`) — and it refuses the heavyweight rungs (spec → plan → tasks → code handoffs), which carry waterfall's defining property: phased artifacts, gated transitions, downstream re-flow when an upstream artifact changes. What aiwf is built around instead is *continuous ratification* — judgments accumulating on a single converging artifact over time, not handoffs between artifacts.
+
+The full argument, from first principles:
+
+- [`docs/research/07-state-not-workflow.md`](docs/research/07-state-not-workflow.md) — aiwf as a state model with workflow as an optional render, not a workflow engine.
+- [`docs/research/10-spec-based-as-waterfall.md`](docs/research/10-spec-based-as-waterfall.md) — why heavyweight spec-driven development is waterfall in disguise, and what continuous ratification replaces it with.
+- [`docs/research/12-operating-model-agnostic.md`](docs/research/12-operating-model-agnostic.md) — why aiwf sits underneath *any* operating model (SDD included), composing rather than competing.
+- [`docs/research/surveys/understanding-spec-driven-development.md`](docs/research/surveys/understanding-spec-driven-development.md) — a field map of what "SDD" actually means: taxonomy, history, tooling.
+
+---
+
 ## Status
 
 | Phase | Status | What shipped |
