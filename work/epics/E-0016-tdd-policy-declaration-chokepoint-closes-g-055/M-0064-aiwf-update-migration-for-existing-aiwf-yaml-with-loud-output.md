@@ -1,7 +1,7 @@
 ---
 id: M-0064
 title: aiwf update migration for existing aiwf.yaml with loud output
-status: draft
+status: cancelled
 parent: E-0016
 tdd: required
 acs:
