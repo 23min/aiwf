@@ -31,7 +31,7 @@ acs:
       tdd_phase: red
     - id: AC-7
       title: No-change runs surface tdd.default presence (not silent)
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-8
       title: Subprocess integration test covers insert, skip, idempotent
