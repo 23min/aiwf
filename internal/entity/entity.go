@@ -373,6 +373,17 @@ type Entity struct {
 	// can resolve lineage without re-walking git log.
 	PriorIDs []string `yaml:"prior_ids,omitempty"`
 
+	// Grouping (E-0043). Optional `area` tag on the five root kinds (epic,
+	// ADR, gap, decision, contract); milestones and ACs derive their area
+	// from the parent epic and never store it. Inert until an `areas` block
+	// is declared in aiwf.yaml. Forward-compat: a pre-`area` binary rejects a
+	// file using this field via the generic KnownFields(true) strict-decoder
+	// window, exactly as for every prior frontmatter field — not special to
+	// `area`. The `omitempty` here is load-bearing beyond brevity: the tree
+	// loader blanks a milestone's stored area (M-0171/AC-3), and omitempty is
+	// what drops the cleared key from disk on the next write-verb.
+	Area string `yaml:"area,omitempty"`
+
 	// Milestone references.
 	Parent    string   `yaml:"parent,omitempty"`
 	DependsOn []string `yaml:"depends_on,omitempty"`
