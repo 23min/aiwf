@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: tdd.default field accepted in aiwf.yaml schema
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-2
       title: Schema rejects values outside required, advisory, none
