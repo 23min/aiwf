@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: --tdd value tab-completes the closed set
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-6
       title: 'aiwf add ac still seeds tdd_phase: red for tdd: required parents'
