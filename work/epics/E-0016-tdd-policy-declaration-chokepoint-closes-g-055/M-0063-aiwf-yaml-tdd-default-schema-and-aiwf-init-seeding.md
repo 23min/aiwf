@@ -27,7 +27,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: aiwf doctor --self-check passes after init in fresh tempdir
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-7
       title: Doctor goldens updated with rationale for tdd.default
