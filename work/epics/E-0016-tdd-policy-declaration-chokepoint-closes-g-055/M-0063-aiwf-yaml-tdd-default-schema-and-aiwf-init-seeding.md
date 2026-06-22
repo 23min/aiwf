@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: Seeded comment names override paths and closed set
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-5
       title: Init'd aiwf.yaml is consumed by M-0062 resolver as fallback
