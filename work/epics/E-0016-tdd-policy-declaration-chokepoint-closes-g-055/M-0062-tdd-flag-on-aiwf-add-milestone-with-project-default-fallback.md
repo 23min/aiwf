@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: --tdd flag writes resolved value to milestone frontmatter
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-2
       title: Project default from aiwf.yaml tdd.default applies when --tdd omitted
