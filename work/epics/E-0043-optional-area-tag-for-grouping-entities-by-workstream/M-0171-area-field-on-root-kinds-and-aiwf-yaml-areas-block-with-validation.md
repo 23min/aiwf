@@ -4,6 +4,23 @@ title: Area field on root kinds and aiwf.yaml areas block with validation
 status: draft
 parent: E-0043
 tdd: required
+acs:
+    - id: AC-1
+      title: Five root kinds accept optional area frontmatter field; absent parses clean
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf.yaml areas block declares member set + optional default label, validated
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Milestone and AC derive area from parent epic at load, exposed in model
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: 'With no areas block the area field is inert: parses but nothing validates'
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -46,3 +63,12 @@ Milestones and ACs do **not** store `area`; they derive it from their parent epi
 
 - [E-0043 epic](epic.md) — converged design and scope.
 - [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md) — the gap this epic implements.
+
+### AC-1 — Five root kinds accept optional area frontmatter field; absent parses clean
+
+### AC-2 — aiwf.yaml areas block declares member set + optional default label, validated
+
+### AC-3 — Milestone and AC derive area from parent epic at load, exposed in model
+
+### AC-4 — With no areas block the area field is inert: parses but nothing validates
+
