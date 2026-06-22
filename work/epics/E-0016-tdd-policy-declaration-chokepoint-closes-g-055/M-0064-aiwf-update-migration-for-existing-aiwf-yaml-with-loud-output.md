@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: aiwf update leaves an existing tdd.default value unchanged
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-3
       title: Comments and key order in aiwf.yaml preserved across update
