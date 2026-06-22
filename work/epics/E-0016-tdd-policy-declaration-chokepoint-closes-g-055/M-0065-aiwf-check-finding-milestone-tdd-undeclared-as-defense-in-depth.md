@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: 'Milestones with tdd: set produce no finding'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-4
       title: Finding does not retroactively engage acs-tdd-audit
