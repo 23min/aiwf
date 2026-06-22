@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: Project default from aiwf.yaml tdd.default applies when --tdd omitted
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-3
       title: Verb refuses when neither --tdd nor tdd.default is set
