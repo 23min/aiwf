@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: Finding code documented in aiwf-check skill
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 
