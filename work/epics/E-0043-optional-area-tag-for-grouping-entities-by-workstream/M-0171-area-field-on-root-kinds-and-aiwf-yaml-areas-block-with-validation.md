@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: 'With no areas block the area field is inert: parses but nothing validates'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
