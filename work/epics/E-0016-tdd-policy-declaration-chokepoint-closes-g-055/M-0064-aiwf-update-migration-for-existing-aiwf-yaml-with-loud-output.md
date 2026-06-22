@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: 'Text output includes aiwf.yaml: section listing changes'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-6
       title: JSON envelope mirrors changes in result.changes[]
