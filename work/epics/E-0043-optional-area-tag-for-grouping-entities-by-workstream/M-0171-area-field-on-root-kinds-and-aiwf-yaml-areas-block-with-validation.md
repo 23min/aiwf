@@ -34,14 +34,31 @@ Milestones and ACs do **not** store `area`; they derive it from their parent epi
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac` against this milestone.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
+### AC-1 — Five root kinds accept optional area frontmatter field; absent parses clean
 
-- **AC-1 candidate** — The five root kinds (epic, ADR, gap, decision, contract) accept an optional `area:` string field in frontmatter; absent/empty parses cleanly (no error, no default written).
-- **AC-2 candidate** — `aiwf.yaml` accepts an `areas` block: a closed member set plus an optional `default:` key that is a display label only (never a member, never written to an entity). Schema validation rejects a malformed block (non-string members, etc.) at config-load time.
-- **AC-3 candidate** — A milestone (and an AC) resolves its `area` by deriving from its parent epic at load time — not stored on the milestone — exposed through the loaded model so downstream read surfaces can group without re-deriving.
-- **AC-4 candidate** — With no `areas` block in `aiwf.yaml`, the `area` field is inert: present values parse but nothing validates or groups (validation lands as the `area-unknown` finding in the next milestone).
-- **AC-5 candidate** — Strict-decoder forward-compat is documented at the field site (a pre-`area` binary rejects a file using it — the generic `KnownFields(true)` window, not special to `area`).
+The five root kinds (epic, ADR, gap, decision, contract) accept an optional `area:` string field in frontmatter. Absent or empty parses cleanly — no error, and no default value is written back.
+
+Forward-compat note (folded from the fifth candidate criterion in the original draft): the field site documents that a pre-`area` binary rejects a file using `area` via the generic `KnownFields(true)` strict-decoder window — the same behavior as every prior frontmatter field, not special to `area`.
+
+Evidence: a parse test over all five kinds (present / absent / empty); a strict-decode test asserting an unknown sibling field is rejected; a structural assertion that the field-site doc comment names the forward-compat window.
+
+### AC-2 — aiwf.yaml areas block declares member set + optional default label, validated
+
+`aiwf.yaml` accepts an `areas` block: a closed member set plus an optional `default:` key that is a display label only (never a member of the tag set, never written to an entity). Schema validation rejects a malformed block (non-string members, wrong shape) at config-load time.
+
+Evidence: config-load tests over a valid block, a malformed block (rejected with a clear error), and an absent block.
+
+### AC-3 — Milestone and AC derive area from parent epic at load, exposed in model
+
+A milestone (and an AC) resolves its `area` by deriving from its parent epic at load time — the field is not stored on the milestone — and the derived value is exposed through the loaded model so downstream read surfaces can group without re-deriving.
+
+Evidence: a loader test asserting a milestone under an epic carrying an `area` reports that area, and one under an epic with none reports none.
+
+### AC-4 — With no areas block the area field is inert: parses but nothing validates
+
+With no `areas` block in `aiwf.yaml`, the `area` field is inert: present values parse but nothing validates or groups. (Validation lands as the `area-unknown` finding in the next milestone.)
+
+Evidence: a test that an entity carrying `area` with no `areas` block configured loads with no finding.
 
 ## Constraints
 
@@ -64,11 +81,6 @@ Milestones and ACs do **not** store `area`; they derive it from their parent epi
 - [E-0043 epic](epic.md) — converged design and scope.
 - [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md) — the gap this epic implements.
 
-### AC-1 — Five root kinds accept optional area frontmatter field; absent parses clean
+## Work log
 
-### AC-2 — aiwf.yaml areas block declares member set + optional default label, validated
-
-### AC-3 — Milestone and AC derive area from parent epic at load, exposed in model
-
-### AC-4 — With no areas block the area field is inert: parses but nothing validates
-
+<!-- One entry per AC as it completes: ### AC-N — <title> · <outcome> · commit <SHA> · tests <N/M>. -->
