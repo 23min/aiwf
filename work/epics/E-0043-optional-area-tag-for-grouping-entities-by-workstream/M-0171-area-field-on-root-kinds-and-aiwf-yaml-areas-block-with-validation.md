@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Five root kinds accept optional area frontmatter field; absent parses clean
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: aiwf.yaml areas block declares member set + optional default label, validated
