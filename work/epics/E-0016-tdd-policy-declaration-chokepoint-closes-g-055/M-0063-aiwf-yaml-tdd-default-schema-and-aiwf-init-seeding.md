@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: Schema rejects values outside required, advisory, none
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-3
       title: 'aiwf init seeds tdd.default: required into new aiwf.yaml'
