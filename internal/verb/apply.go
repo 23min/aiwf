@@ -59,8 +59,11 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 	tx := &applyTx{root: root, ctx: ctx, preApply: make(map[string][]byte)}
 	if len(staged) > 0 {
 		stashMsg := fmt.Sprintf("aiwf pre-verb stash: %s", p.Subject)
+		// Capture the stash top before the push so the failure path can
+		// tell whether git created an entry before aborting (G-0275).
+		beforeRef, _ := gitops.StashTopRef(ctx, root)
 		if stashErr := gitops.StashStaged(ctx, root, stashMsg); stashErr != nil {
-			return fmt.Errorf("stashing pre-staged changes for verb isolation: %w", stashErr)
+			return stashIsolationError(ctx, root, beforeRef, stashErr)
 		}
 		tx.stashed = true
 	}
@@ -224,6 +227,33 @@ func checkStagedConflict(staged, verbPaths []string) error {
 			"  then re-run the verb — unrelated staged paths survive the verb's commit",
 		strings.Join(conflicts, ", "),
 		strings.Join(conflicts, " "),
+	)
+}
+
+// stashIsolationError turns a failed pre-verb StashStaged into a
+// transactional, actionable error (G-0275). `git stash push --staged`
+// can abort *after* creating its stash entry — notably when a staged
+// rename's old path is occupied by an untracked file, so reverting the
+// rename can't recreate the old path. Left alone, that entry dangles on
+// the stack and the verb's mutation never lands: a silent half-state.
+//
+// We drop the entry git created — detected by comparing the current
+// stash top against beforeRef — so no residue is left, then return a
+// message naming the likely cause and the fix. Dropping (not popping)
+// is correct: the entry is a redundant snapshot of work still present
+// in the index and worktree; a pop would re-trigger the conflict that
+// failed the push. Cleanup is best-effort — a probe/drop error does not
+// mask the original stash failure the caller needs to see.
+func stashIsolationError(ctx context.Context, root, beforeRef string, stashErr error) error {
+	if afterRef, refErr := gitops.StashTopRef(ctx, root); refErr == nil && afterRef != "" && afterRef != beforeRef {
+		_ = gitops.StashDrop(ctx, root)
+	}
+	return fmt.Errorf(
+		"couldn't set aside your pre-staged changes to isolate this verb's commit: %w\n"+
+			"  this usually means a staged rename has an untracked file at its old path\n"+
+			"  (git stash can't recreate the old path over the untracked file)\n"+
+			"  commit or unstage your pending changes, then re-run the verb",
+		stashErr,
 	)
 }
 

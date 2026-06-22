@@ -373,6 +373,69 @@ func TestStashStaged_PushPopRoundTrip(t *testing.T) {
 	}
 }
 
+// TestStashTopRefAndDrop pins the G-0275 cleanup primitives:
+// StashTopRef reports "" on an empty stack and the top commit SHA when
+// an entry exists; StashDrop removes the top entry without applying it.
+// verb.Apply composes these to drop a stash that `git stash push
+// --staged` created before aborting, so no dangling entry is left.
+func TestStashTopRefAndDrop(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "seed.md"); err != nil {
+		t.Fatalf("add seed: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("seed commit: %v", err)
+	}
+
+	// Empty stack → "".
+	if top, err := StashTopRef(ctx, root); err != nil {
+		t.Fatalf("StashTopRef (empty): %v", err)
+	} else if top != "" {
+		t.Errorf("StashTopRef on empty stack = %q, want \"\"", top)
+	}
+
+	// Create a stash entry from a staged file.
+	if err := os.WriteFile(filepath.Join(root, "wip.md"), []byte("wip\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "wip.md"); err != nil {
+		t.Fatalf("add wip: %v", err)
+	}
+	if err := StashStaged(ctx, root, "test entry"); err != nil {
+		t.Fatalf("StashStaged: %v", err)
+	}
+
+	// Populated stack → top SHA matches `git rev-parse refs/stash`.
+	wantSHA, shaErr := output(ctx, root, "rev-parse", "refs/stash")
+	if shaErr != nil {
+		t.Fatalf("rev-parse refs/stash: %v", shaErr)
+	}
+	if top, err := StashTopRef(ctx, root); err != nil {
+		t.Fatalf("StashTopRef (populated): %v", err)
+	} else if want := strings.TrimSpace(wantSHA); top == "" || top != want {
+		t.Errorf("StashTopRef (populated) = %q, want %q", top, want)
+	}
+
+	// Drop removes the entry without applying it.
+	if err := StashDrop(ctx, root); err != nil {
+		t.Fatalf("StashDrop: %v", err)
+	}
+	if top, err := StashTopRef(ctx, root); err != nil {
+		t.Fatalf("StashTopRef (after drop): %v", err)
+	} else if top != "" {
+		t.Errorf("StashTopRef after drop = %q, want \"\"", top)
+	}
+}
+
 // TestStagedPaths reports paths in the index that differ from HEAD.
 // Used by Apply's conflict guard; the load-bearing assertions are
 // "clean index → nil/empty" and "staged file → file's path returned."
