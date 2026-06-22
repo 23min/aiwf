@@ -1,7 +1,7 @@
 ---
 id: ADR-0015
 title: Settings.json edits require explicit per-invocation consent
-status: proposed
+status: accepted
 ---
 ## Context
 
