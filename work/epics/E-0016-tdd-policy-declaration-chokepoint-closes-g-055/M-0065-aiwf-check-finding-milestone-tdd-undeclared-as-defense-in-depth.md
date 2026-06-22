@@ -1,7 +1,7 @@
 ---
 id: M-0065
 title: aiwf check finding milestone-tdd-undeclared as defense-in-depth
-status: draft
+status: cancelled
 parent: E-0016
 tdd: required
 acs:
