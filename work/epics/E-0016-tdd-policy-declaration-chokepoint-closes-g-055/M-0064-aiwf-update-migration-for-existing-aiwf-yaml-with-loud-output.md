@@ -35,7 +35,7 @@ acs:
       tdd_phase: red
     - id: AC-8
       title: Subprocess integration test covers insert, skip, idempotent
-      status: open
+      status: cancelled
       tdd_phase: red
 ---
 
