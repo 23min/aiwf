@@ -61,13 +61,13 @@ The concrete trigger: an internal tool developed in parallel beside the product 
 
 ## Milestones
 
-Candidate decomposition (sequenced; refined and id-allocated via `aiwfx-plan-milestones`):
+Sequenced. The data + config core is foundational; the other four depend only on it and are mutually parallelizable:
 
-1. **Data + config core** — the optional `area` field on the five root kinds (+ parent-derivation for milestones/ACs) and the `aiwf.yaml: areas` block with closed-set validation. Foundation for everything below.
-2. **`area-unknown` check finding** — the present-⇒-declared chokepoint. Depends on the data + config core.
-3. **Write path** — `aiwf add --area` with config-sourced completion and `discovered_in` derivation. Depends on the core.
-4. **Read filter** — `--area` on `list` / `show` / `status`. Depends on the core; independent of the write path.
-5. **Read grouping** — per-area sections in `status`, `render roadmap`, and `render --format=html`. Depends on the core.
+1. [M-0171](M-0171-area-field-on-root-kinds-and-aiwf-yaml-areas-block-with-validation.md) — Area field on the five root kinds (+ parent-derivation) and the `aiwf.yaml: areas` block with validation. *(No deps — foundation.)*
+2. [M-0172](M-0172-area-unknown-check-finding-for-undeclared-area-values.md) — `area-unknown` check finding (present ⇒ declared). *(Depends on M-0171.)*
+3. [M-0173](M-0173-aiwf-add-area-write-path-with-completion-and-discovered-in-derivation.md) — `aiwf add --area` write path + completion + `discovered_in` derivation. *(Depends on M-0171.)*
+4. [M-0174](M-0174-area-filter-on-list-show-and-status.md) — `--area` filter on `list` / `show` / `status`. *(Depends on M-0171.)*
+5. [M-0175](M-0175-area-grouping-in-status-render-roadmap-and-render-html.md) — Area grouping in `status`, `render roadmap`, and `render --format=html`. *(Depends on M-0171.)*
 
 ## Supersedes
 
