@@ -31,7 +31,7 @@ acs:
       tdd_phase: red
     - id: AC-7
       title: Subprocess integration test covers all four resolution paths
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-8
       title: aiwf-add skill documents --tdd flag and resolution order
