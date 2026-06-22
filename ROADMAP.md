@@ -145,7 +145,7 @@ Add batching capabilities to the `aiwf add` family so a planning session produce
 | M-0059 | Add resolver-pointer flags to status-transition verbs | done |
 | M-0060 | Bless-current-edits mode for aiwf edit-body | done |
 
-## E-0016 — TDD policy declaration chokepoint (closes G-0055) (proposed)
+## E-0016 — TDD policy declaration chokepoint (closes G-0055) (cancelled)
 
 ### Goal
 
@@ -155,10 +155,10 @@ End state: `aiwf add milestone --tdd required|advisory|none` is the chokepoint; 
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0062 | tdd flag on aiwf add milestone with project-default fallback | draft |
-| M-0063 | aiwf.yaml tdd.default schema and aiwf init seeding | draft |
-| M-0064 | aiwf update migration for existing aiwf.yaml with loud output | draft |
-| M-0065 | aiwf check finding milestone-tdd-undeclared as defense-in-depth | draft |
+| M-0062 | tdd flag on aiwf add milestone with project-default fallback | cancelled |
+| M-0063 | aiwf.yaml tdd.default schema and aiwf init seeding | cancelled |
+| M-0064 | aiwf update migration for existing aiwf.yaml with loud output | cancelled |
+| M-0065 | aiwf check finding milestone-tdd-undeclared as defense-in-depth | cancelled |
 
 ## E-0017 — Entity body prose chokepoint (closes G-0058) (done)
 
@@ -518,4 +518,12 @@ _No milestones yet._
 | M-0168 | Corpus-wide mutate-hunt sweep over the kernel packages | done |
 | M-0169 | Directed wf-vacuity pass over the load-bearing units | done |
 | M-0170 | Firing tests for linter-config rules and the dormant forbidigo fix | done |
+
+## E-0043 — Optional area tag for grouping entities by workstream (proposed)
+
+### Goal
+
+Let a single repo hold more than one workstream — a product plus a co-developed internal tool, or a monorepo of several packages — by tagging entities with a validated, optional `area`. Roadmaps, status, and checks become scopeable per workstream, while the flat, globally-unique id space stays exactly as it is today.
+
+_No milestones yet._
 
