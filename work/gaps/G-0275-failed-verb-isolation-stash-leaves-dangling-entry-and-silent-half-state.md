@@ -1,7 +1,9 @@
 ---
 id: G-0275
 title: Failed verb-isolation stash leaves dangling entry and silent half-state
-status: open
+status: addressed
+addressed_by_commit:
+    - ace29e37
 ---
 ## Problem
 
