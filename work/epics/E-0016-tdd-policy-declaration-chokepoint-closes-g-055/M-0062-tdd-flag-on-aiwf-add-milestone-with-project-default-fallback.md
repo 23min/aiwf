@@ -1,7 +1,7 @@
 ---
 id: M-0062
 title: tdd flag on aiwf add milestone with project-default fallback
-status: draft
+status: cancelled
 parent: E-0016
 tdd: required
 acs:
