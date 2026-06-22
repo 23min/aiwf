@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: Severity escalates to error under aiwf.yaml tdd.strict true
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-3
       title: 'Milestones with tdd: set produce no finding'
