@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: 'aiwf init seeds tdd.default: required into new aiwf.yaml'
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-4
       title: Seeded comment names override paths and closed set
