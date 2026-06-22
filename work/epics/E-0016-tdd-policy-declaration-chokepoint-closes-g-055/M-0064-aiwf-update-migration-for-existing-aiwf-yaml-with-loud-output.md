@@ -27,7 +27,7 @@ acs:
       tdd_phase: red
     - id: AC-6
       title: JSON envelope mirrors changes in result.changes[]
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-7
       title: No-change runs surface tdd.default presence (not silent)
