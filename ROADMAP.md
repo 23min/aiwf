@@ -525,5 +525,11 @@ _No milestones yet._
 
 Let a single repo hold more than one workstream — a product plus a co-developed internal tool, or a monorepo of several packages — by tagging entities with a validated, optional `area`. Roadmaps, status, and checks become scopeable per workstream, while the flat, globally-unique id space stays exactly as it is today.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0171 | Area field on root kinds and aiwf.yaml areas block with validation | draft |
+| M-0172 | area-unknown check finding for undeclared area values | draft |
+| M-0173 | aiwf add --area write path with completion and discovered-in derivation | draft |
+| M-0174 | --area filter on list, show, and status | draft |
+| M-0175 | Area grouping in status, render roadmap, and render html | draft |
 
