@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: Re-running aiwf update is a no-op (idempotent)
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-5
       title: 'Text output includes aiwf.yaml: section listing changes'
