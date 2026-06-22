@@ -75,6 +75,81 @@ type Config struct {
 	Archive           Archive  `yaml:"archive,omitempty"`
 	Entities          Entities `yaml:"entities,omitempty"`
 	Guidance          Guidance `yaml:"guidance,omitempty"`
+	Areas             Areas    `yaml:"areas,omitempty"`
+}
+
+// Areas declares the closed set of workstream area tags (E-0043). Members is
+// the closed member set the optional `area` frontmatter field validates
+// against (the `area-unknown` finding lands in the next milestone). Default is
+// a DISPLAY LABEL ONLY for the untagged complement in grouped views — never a
+// member of the tag set, never written to an entity. An empty block (no
+// members) leaves the `area` field inert.
+type Areas struct {
+	Members []string `yaml:"members,omitempty"`
+	Default string   `yaml:"default,omitempty"`
+}
+
+// UnmarshalYAML decodes the areas block and rejects non-string members.
+// yaml.v3 would otherwise silently coerce an unquoted scalar (`42`, `true`, a
+// null) into the []string, admitting a non-string member; decoding members
+// through yaml.Node lets us assert each is a string scalar, per AC-2 ("schema
+// validation rejects non-string members"). A quoted numeric (`"42"`) is a
+// string and is accepted. Semantic rules (emptiness, whitespace, uniqueness,
+// default) live in validate().
+func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
+	var raw struct {
+		Members []yaml.Node `yaml:"members"`
+		Default string      `yaml:"default"`
+	}
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	a.Default = raw.Default
+	a.Members = make([]string, 0, len(raw.Members))
+	for i := range raw.Members {
+		n := &raw.Members[i]
+		if n.Kind != yaml.ScalarNode || n.Tag != "!!str" {
+			return fmt.Errorf("areas.members: %q is not a string member", n.Value)
+		}
+		a.Members = append(a.Members, n.Value)
+	}
+	return nil
+}
+
+// validate enforces the areas-block schema. Members must be non-empty,
+// free of leading/trailing whitespace, and unique; default (if set) must be a
+// non-empty, whitespace-clean label that names a non-empty member set and is
+// not itself a member — it labels the untagged complement, which is disjoint
+// from every declared area.
+func (a Areas) validate() error {
+	seen := make(map[string]bool, len(a.Members))
+	for _, m := range a.Members {
+		if strings.TrimSpace(m) == "" {
+			return fmt.Errorf("areas.members contains an empty member")
+		}
+		if m != strings.TrimSpace(m) {
+			return fmt.Errorf("areas.members member %q has leading or trailing whitespace", m)
+		}
+		if seen[m] {
+			return fmt.Errorf("areas.members contains duplicate member %q", m)
+		}
+		seen[m] = true
+	}
+	if a.Default != "" {
+		if strings.TrimSpace(a.Default) == "" {
+			return fmt.Errorf("areas.default is whitespace-only")
+		}
+		if a.Default != strings.TrimSpace(a.Default) {
+			return fmt.Errorf("areas.default %q has leading or trailing whitespace", a.Default)
+		}
+		if len(a.Members) == 0 {
+			return fmt.Errorf("areas.default %q is set but no members are declared", a.Default)
+		}
+		if seen[a.Default] {
+			return fmt.Errorf("areas.default %q must not also be a member; it labels the untagged complement", a.Default)
+		}
+	}
+	return nil
 }
 
 // Tree is the consumer's policy for what may live under `work/`.
@@ -361,10 +436,10 @@ func Load(root string) (*Config, error) {
 // load fine; the legacy value is captured into LegacyAiwfVersion and
 // stripped on `aiwf update` via StripLegacyAiwfVersion.
 //
-// There are currently no cross-field constraints. The method is
-// retained as the validation entry point for future rules.
+// The areas block (E-0043) is the first cross-field constraint validated
+// here; the method remains the entry point for future rules.
 func (c *Config) Validate() error {
-	return nil
+	return c.Areas.validate()
 }
 
 // StripLegacyActor removes any top-level `actor:` line from

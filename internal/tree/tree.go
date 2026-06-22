@@ -230,6 +230,16 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 				return nil
 			}
 			e.Kind = kind
+			// Milestones derive their area from the parent epic and never
+			// store their own (E-0043, M-0171/AC-3). Blank any stored value
+			// at load so the in-memory model never shows a milestone with its
+			// own area — "milestone disagrees with its epic" is
+			// unrepresentable. Read the resolved value via Tree.ResolvedArea;
+			// omitempty drops the cleared key on the next write-verb,
+			// auto-stripping the invalid value.
+			if kind == entity.KindMilestone {
+				e.Area = ""
+			}
 			tree.Entities = append(tree.Entities, e)
 			return nil
 		})
@@ -409,6 +419,38 @@ func (t *Tree) ByID(id string) *entity.Entity {
 		}
 	}
 	return nil
+}
+
+// ResolvedArea returns the area an entity belongs to for grouping and
+// filtering (E-0043, M-0171/AC-3). Root kinds (epic, ADR, gap, decision,
+// contract) carry their own `area`; a milestone derives its area from its
+// parent epic and never stores its own (the loader blanks any stored value).
+// An acceptance criterion's area is its parent milestone's resolved area —
+// callers resolve the milestone and call this. Returns "" when no area applies:
+// an untagged entity, or a milestone whose parent epic is untagged or does not
+// resolve.
+func (t *Tree) ResolvedArea(e *entity.Entity) string {
+	if e == nil {
+		return ""
+	}
+	if e.Kind == entity.KindMilestone {
+		parent := t.ByID(e.Parent)
+		if parent == nil {
+			return ""
+		}
+		return parent.Area
+	}
+	return e.Area
+}
+
+// ResolvedAreaByID resolves the effective area for any id, including a
+// composite acceptance-criterion id (M-NNNN/AC-N rolls up to the parent
+// milestone's resolved area via entity.CompositeRoot). A bare id passes
+// through unchanged. Returns "" when the id does not resolve. This is the
+// single entry point downstream filter and grouping consume, so AC area is not
+// re-derived per verb (E-0043, M-0171/AC-3).
+func (t *Tree) ResolvedAreaByID(id string) string {
+	return t.ResolvedArea(t.ByID(entity.CompositeRoot(id)))
 }
 
 // ByIDAll returns every entity matching the id, in tree-walk order.
