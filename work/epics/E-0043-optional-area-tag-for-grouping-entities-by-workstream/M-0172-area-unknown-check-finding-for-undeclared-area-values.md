@@ -24,7 +24,7 @@ M-0171 makes the `area` field and the `aiwf.yaml: areas` block exist and parse, 
 - **AC-2 candidate** — An entity whose `area` is present, non-empty, and *not* in the declared set produces an `area-unknown` finding naming the entity id, the offending value, and the declared set.
 - **AC-3 candidate** — An entity with no `area`, empty `area`, or explicit null never produces the finding (absence is never evaluated).
 - **AC-4 candidate** — With no `areas` block in `aiwf.yaml`, the rule is inert (no findings regardless of entity `area` values).
-- **AC-5 candidate** — Archive-scoped per ADR-0004 §"Check shape rules" (archived entities don't fire), consistent with the other shape-and-health rules.
+- **AC-5 candidate** — Archive-scoped per ADR-0004 §"`aiwf check` shape rules" (archived entities don't fire), consistent with the other shape-and-health rules.
 - **AC-6 candidate** — The finding code is discoverable (aiwf-check skill row) and carries a hint; the three finding-code policies (tests, discoverability, hints) pass.
 
 ## Constraints
