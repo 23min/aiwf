@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: Verb refuses when neither --tdd nor tdd.default is set
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-4
       title: Invalid --tdd values exit with code 2 and usage error
