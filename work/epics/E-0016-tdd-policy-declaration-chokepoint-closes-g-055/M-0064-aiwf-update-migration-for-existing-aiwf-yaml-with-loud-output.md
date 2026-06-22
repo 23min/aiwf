@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: Comments and key order in aiwf.yaml preserved across update
-      status: open
+      status: cancelled
       tdd_phase: red
     - id: AC-4
       title: Re-running aiwf update is a no-op (idempotent)
