@@ -1,7 +1,7 @@
 ---
 id: M-0174
 title: --area filter on list, show, and status
-status: draft
+status: in_progress
 parent: E-0043
 depends_on:
     - M-0171
