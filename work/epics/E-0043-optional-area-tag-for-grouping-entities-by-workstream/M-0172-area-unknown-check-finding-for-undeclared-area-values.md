@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Finding code carries a hint and is discoverable
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
