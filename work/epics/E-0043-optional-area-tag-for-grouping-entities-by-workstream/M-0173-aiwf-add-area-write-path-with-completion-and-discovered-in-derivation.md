@@ -6,6 +6,31 @@ parent: E-0043
 depends_on:
     - M-0171
 tdd: required
+acs:
+    - id: AC-1
+      title: --area writes area into new entity frontmatter
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: --area rejected when value undeclared or no areas block
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: --area is invalid for non-root kinds
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: --area tab-completes declared members
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: gap derives area from discovered-in when --area omitted
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: integration seam test covers set, reject, and derive paths
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,3 +69,16 @@ M-0171 makes the field exist; the area-unknown check-finding milestone catches u
 ## References
 
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
+
+### AC-1 — --area writes area into new entity frontmatter
+
+### AC-2 — --area rejected when value undeclared or no areas block
+
+### AC-3 — --area is invalid for non-root kinds
+
+### AC-4 — --area tab-completes declared members
+
+### AC-5 — gap derives area from discovered-in when --area omitted
+
+### AC-6 — integration seam test covers set, reject, and derive paths
+
