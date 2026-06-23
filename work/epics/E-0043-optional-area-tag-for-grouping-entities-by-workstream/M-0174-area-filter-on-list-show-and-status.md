@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: an undeclared --area value prints a note and yields an empty result
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: untagged entities are excluded from a specific --area filter
       status: open
