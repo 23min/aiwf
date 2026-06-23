@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: --area is invalid for non-root kinds
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: --area tab-completes declared members
       status: open
