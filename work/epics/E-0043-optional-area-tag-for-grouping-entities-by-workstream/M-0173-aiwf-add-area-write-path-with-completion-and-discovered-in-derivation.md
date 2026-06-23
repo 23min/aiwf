@@ -38,47 +38,63 @@ Add the write path for `area`: an `--area <name>` flag on `aiwf add` (the five r
 
 ## Context
 
-M-0171 makes the field exist; the area-unknown check-finding milestone catches undeclared values at check time. This milestone gives the operator the loud, completion-assisted way to *set* the field at creation — so a carve-out workstream is tagged in the same atomic commit that creates the entity, not by a later hand-edit.
+M-0171 makes the field exist; M-0172's `area-unknown` check finding catches undeclared values at check time. This milestone gives the operator the loud, completion-assisted way to *set* the field at creation — so a carve-out workstream is tagged in the same atomic commit that creates the entity, not by a later hand-edit. The write-time validation is the verb-time twin of the `area-unknown` check, reading the same declared set through the M-0171 accessor.
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac` against this milestone.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
+### AC-1 — --area writes area into new entity frontmatter
 
-- **AC-1 candidate** — `aiwf add <root-kind> --area <name> ...` writes `area: <name>` into the new entity's frontmatter in the creating commit.
-- **AC-2 candidate** — `--area` is rejected (usage error, no entity created) when the value is not in the declared `areas` set, or when no `areas` block exists; the error names the value and the declared set. (Single source of truth: the same accessor M-0171/M-0172 use.)
-- **AC-3 candidate** — `--area` is invalid for the non-root kinds (milestone derives from parent); passing it there errors.
-- **AC-4 candidate** — `--area <TAB>` tab-completes exactly the declared `areas` members, wired the same way other closed-set flags are (Cobra `RegisterFlagCompletionFunc`); the completion-drift policy passes.
-- **AC-5 candidate** — `aiwf add gap --discovered-in <id>` derives the gap's `area` from the discovered-in entity's **effective** area when `--area` is omitted (an epic carries `area` directly; a milestone target is a two-hop derivation through its parent epic, since milestones don't store `area`). Open Question 1 in the epic; lean: derive-on-omit.
-- **AC-6 candidate** — Subprocess integration test covers set / reject / derive paths (test-the-seam).
+`aiwf add <root-kind> --area <name> ...` (epic, ADR, gap, decision, contract) writes `area: <name>` into the new entity's frontmatter in the same atomic creating commit.
+
+Evidence: a dispatcher test per/over the root kinds asserting the created entity's frontmatter carries the area; the seam path is also exercised in AC-6.
+
+### AC-2 — --area rejected when value undeclared or no areas block
+
+`--area <name>` is rejected with a usage error (exit 2, **no entity created**) when the value is not a member of the declared `aiwf.yaml: areas` set, or when no `areas` block exists. The error names the offending value and the declared set. Validation uses the M-0171 config accessor — the same declared set the `area-unknown` check reads (single source of truth, no parallel validator).
+
+Evidence: dispatcher tests for the undeclared-value case and the no-block case, each asserting a non-zero exit, that no entity file was created, and that the message names the value and the declared members.
+
+### AC-3 — --area is invalid for non-root kinds
+
+`--area` is not accepted for a milestone, which derives its area from its parent epic and never stores its own. Passing `--area` to a non-root kind errors (usage error, no entity created).
+
+Evidence: a dispatcher test asserting `aiwf add milestone --area <name> ...` errors and creates nothing.
+
+### AC-4 — --area tab-completes declared members
+
+`aiwf add <root-kind> --area <TAB>` completes exactly the declared `areas.members`, wired via Cobra `RegisterFlagCompletionFunc` the same way other closed-set flags are. The completion-drift policy (`cmd/aiwf/completion_drift_test.go`) stays green — the flag is registered for completion or carries an explicit opt-out entry.
+
+Evidence: a completion test asserting the registered completion function returns the declared members for a tree with an `areas` block; the completion-drift test passes.
+
+### AC-5 — gap derives area from discovered-in when --area omitted
+
+`aiwf add gap --discovered-in <id>` derives the gap's `area` from the discovered-in entity's **effective** area when `--area` is omitted and that entity has one — an epic carries `area` directly; a milestone target is a two-hop derivation through its parent epic (milestones don't store `area`), via the M-0171 `ResolvedAreaByID` seam. If the discovered-in entity has no effective area, the gap is left untagged. An explicit `--area` always takes precedence over derivation.
+
+Decision: this resolves the epic's Open Question 1 — **derive-on-omit**.
+
+Evidence: dispatcher tests for derive-from-epic, derive-from-milestone (two-hop), no-area-source (untagged), and explicit-`--area`-overrides-derivation.
+
+### AC-6 — integration seam test covers set, reject, and derive paths
+
+An integration test drives the real dispatcher end-to-end (test-the-seam) so the flag wiring, config validation, and derivation are proven together, not just at the unit layer: `add --area <declared>` (set), `add --area <undeclared>` (reject), and `add gap --discovered-in <id>` (derive).
+
+Evidence: a dispatcher/subprocess integration test in the established integration home covering the set / reject / derive paths.
 
 ## Constraints
 
-- **Validate against config at write time** using the M-0171 accessor — no parallel validator. (This is the verb-time twin of the area-unknown check-time finding; both read the same declared set.)
-- **Reversible by the same verb** — re-running with a different `--area` (or the post-create field mutation surface, if one exists) changes the tag; no bespoke "unset area" verb invented unless needed.
+- **Validate against config at write time** using the M-0171 accessor — no parallel validator. This is the verb-time twin of the `area-unknown` check-time finding; both read the same declared set.
+- **Reversible by the same verb** — re-running with a different `--area` (or the post-create field-mutation surface, if one exists) changes the tag; no bespoke "unset area" verb invented unless real friction needs it.
 
 ## Out of scope
 
-- The area-unknown check finding and read surfaces (filter/grouping milestones).
+- The `area-unknown` check finding (M-0172, done) and read surfaces (filter/grouping milestones M-0174–M-0175).
 - A bulk re-tagging verb across many entities.
 
 ## Dependencies
 
-- M-0171 — the `area` field, `aiwf.yaml: areas` block, and config accessor.
+- M-0171 — the `area` field, `aiwf.yaml: areas` block, and config accessor (`ResolvedArea` / `ResolvedAreaByID`).
 
 ## References
 
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
-
-### AC-1 — --area writes area into new entity frontmatter
-
-### AC-2 — --area rejected when value undeclared or no areas block
-
-### AC-3 — --area is invalid for non-root kinds
-
-### AC-4 — --area tab-completes declared members
-
-### AC-5 — gap derives area from discovered-in when --area omitted
-
-### AC-6 — integration seam test covers set, reject, and derive paths
-
+- M-0172 — the `area-unknown` check finding; this milestone is its write-time twin.
