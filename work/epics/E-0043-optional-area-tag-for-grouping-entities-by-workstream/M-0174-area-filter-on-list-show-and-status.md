@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: status --area scopes epics, decisions, and gaps to one area
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: show --area shows the entity only when its effective area matches
       status: open
