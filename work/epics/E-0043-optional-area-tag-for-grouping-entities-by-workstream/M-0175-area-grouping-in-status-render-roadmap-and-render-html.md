@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: render --format=html groups epic sections by area, asserted DOM-structurally
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: empty declared areas suppressed; default complement always shown
       status: open
