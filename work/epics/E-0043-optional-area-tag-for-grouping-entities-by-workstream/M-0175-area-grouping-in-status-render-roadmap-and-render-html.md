@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: status groups in-flight and planned epics by area when areas declared
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: render roadmap groups its epics by area when areas declared
       status: open
