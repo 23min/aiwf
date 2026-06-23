@@ -1,7 +1,7 @@
 ---
 id: M-0172
 title: area-unknown check finding for undeclared area values
-status: in_progress
+status: done
 parent: E-0043
 depends_on:
     - M-0171
