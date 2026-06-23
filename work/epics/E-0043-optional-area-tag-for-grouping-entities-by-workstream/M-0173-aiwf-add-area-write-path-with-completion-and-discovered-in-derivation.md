@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: integration seam test covers set, reject, and derive paths
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
