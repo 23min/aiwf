@@ -6,6 +6,31 @@ parent: E-0043
 depends_on:
     - M-0171
 tdd: required
+acs:
+    - id: AC-1
+      title: Declared area produces no finding
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Undeclared area fires area-unknown naming id, value, and set
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Absent, empty, or null area never fires
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Inert when no areas block is declared
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Archived entities never fire
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Finding code carries a hint and is discoverable
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -46,3 +71,16 @@ M-0171 makes the `area` field and the `aiwf.yaml: areas` block exist and parse, 
 
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
 - G-0268's `milestone-tdd-undeclared` — the archive-scoped check-finding pattern this rule follows.
+
+### AC-1 — Declared area produces no finding
+
+### AC-2 — Undeclared area fires area-unknown naming id, value, and set
+
+### AC-3 — Absent, empty, or null area never fires
+
+### AC-4 — Inert when no areas block is declared
+
+### AC-5 — Archived entities never fire
+
+### AC-6 — Finding code carries a hint and is discoverable
+
