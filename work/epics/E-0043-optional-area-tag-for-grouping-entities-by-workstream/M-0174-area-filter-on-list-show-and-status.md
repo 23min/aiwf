@@ -27,6 +27,10 @@ acs:
       title: an undeclared --area value prints a note and yields an empty result
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: untagged entities are excluded from a specific --area filter
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -75,4 +79,6 @@ M-0171 exposes each entity's effective `area` through the loaded model. This mil
 ### AC-4 — --area tab-completes the declared areas.members on list/show/status
 
 ### AC-5 — an undeclared --area value prints a note and yields an empty result
+
+### AC-6 — untagged entities are excluded from a specific --area filter
 
