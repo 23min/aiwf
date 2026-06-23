@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: --area tab-completes declared members
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: gap derives area from discovered-in when --area omitted
       status: open
