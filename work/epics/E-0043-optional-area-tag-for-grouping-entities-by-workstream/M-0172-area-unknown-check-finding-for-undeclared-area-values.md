@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: Finding code carries a hint and is discoverable
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
