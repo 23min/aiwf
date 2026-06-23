@@ -15,6 +15,10 @@ acs:
       title: status groups in-flight and planned epics by area when areas declared
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: render roadmap groups its epics by area when areas declared
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -58,4 +62,6 @@ M-0171 exposes each entity's effective area; the filter milestone narrows a view
 ### AC-1 — a shared Partition helper groups items by area, complement always last
 
 ### AC-2 — status groups in-flight and planned epics by area when areas declared
+
+### AC-3 — render roadmap groups its epics by area when areas declared
 
