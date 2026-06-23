@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Inert when no areas block is declared
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Archived entities never fire
       status: open
