@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: with no areas block, all three surfaces render exactly as today
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
