@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Inert when no areas block is declared
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: Archived entities never fire
