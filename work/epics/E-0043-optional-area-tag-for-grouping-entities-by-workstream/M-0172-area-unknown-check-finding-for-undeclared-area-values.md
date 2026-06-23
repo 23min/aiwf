@@ -100,3 +100,38 @@ Evidence: `PolicyFindingCodesHaveTests` / `PolicyFindingCodesHaveHints` / `Polic
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
 - G-0268's `milestone-tdd-undeclared` — the archive-scoped check-finding pattern this rule follows.
 - `check.TreeDiscipline` — the config-dependent tree rule composed at the CLI layer that this rule mirrors.
+
+## Work log
+
+Implementation landed as a single `feat(check)` commit on the milestone branch; the per-AC TDD phase timeline (red→green→done→met) is in `aiwf history M-0172/AC-<N>`.
+
+- **AC-1** — `AreaUnknown` returns no finding when the entity's stored `area` is a declared member. · `TestAreaUnknown_DeclaredArea_NoFinding`
+- **AC-2** — undeclared present area emits one warning naming id, value, and declared set. · `TestAreaUnknown_UndeclaredArea_Fires`
+- **AC-3** — empty / absent / null area (all `""`) never fires, even with a declared set present (traverses the empty-guard, not the inert short-circuit). · `TestAreaUnknown_AbsentOrEmpty_NeverFires`
+- **AC-4** — empty declared set (nil and `{}`) is inert. · `TestAreaUnknown_NoAreasBlock_Inert` (+ M-0171/AC-4's metamorphic `check.Run` guard)
+- **AC-5** — archived entities never fire; active twin does. · `TestAreaUnknown_ArchivedEntity_NeverFires`
+- **AC-6** — `CodeAreaUnknown` const + hint + aiwf-check skill row + CLI seam wiring (`cfg.Areas.Members → check.AreaUnknown`). · `TestRunCheck_AreaUnknownSurfacesViaDispatcher` + the three finding-code policies
+
+## Decisions made during implementation
+
+- **Severity = warning, no strictness knob.** Took the spec's lean and the YAGNI "don't invent a knob speculatively" constraint. Escalation can be added later under an existing/new knob if real friction shows. A local default — recorded here; no separate architectural-decision record warranted.
+- **Composed at the CLI layer, not in pure `check.Run`.** `AreaUnknown(t, declared)` mirrors `check.TreeDiscipline` — a config-dependent tree rule invoked from `internal/cli/check` with `cfg.Areas.Members`. Keeps `check.Run` config-agnostic, the boundary M-0171/AC-4's metamorphic guard pins.
+- **Reads the stored `area`, not `ResolvedArea`.** Only root kinds that declare their own `area` fire; a milestone (area blanked at load) never double-reports under a bad-area epic.
+
+## Validation
+
+- `make check-fast` (go vet + all `internal/...` tests + golangci-lint full set): green.
+- `go build ./...` (CGO_ENABLED=0): green.
+- `aiwf check` (worktree diag binary): 0 errors (only the benign `provenance-untrailered-scope-undefined` warning — no upstream on the milestone branch).
+- Unit coverage: `AreaUnknown` 100% statements, every branch traversed; vacuity-proven by 6/6 mutation probes going red. CLI wiring lines covered by the dispatcher seam test (cross-package `-coverpkg`). CI diff-scoped coverage-gate confirms on push.
+- `make ci` (race + coverage-gate + end-to-end self-check) at the merge boundary: green.
+
+## Reviewer notes
+
+- **Independent two-lens review (wrap step 2).** A fresh-context `reviewer` subagent (`wf-review-code`) returned **APPROVE**, verifying every AC by measurement (running tests, building an epic+milestone double-report fixture that confirmed only the epic fires, and severing the CLI wiring to prove the seam test non-vacuous). `wf-rethink` was not run: the milestone introduces no new package / abstraction / data model — it mirrors the existing `TreeDiscipline` CLI-composition seam, so there is nothing to rethink.
+- **Non-blocking observations (no action taken):** (1) the seam test uses raw `os.WriteFile` — acceptable in test code (the `atomic_write_chokepoint` policy scopes to production); (2) `finding-codes-have-tests` is a presence policy, not a firing check — its documented limitation, with real firing coverage supplied by the unit tests (100%).
+- Self-review caught one real govet `shadow` finding in the seam test (`err` re-declaration), fixed inline before declaring complete.
+
+## Deferrals
+
+None. The `aiwf add --area` write path and the read-surface filter / grouping are out of scope by design — E-0043's subsequent milestones M-0173–M-0175.
