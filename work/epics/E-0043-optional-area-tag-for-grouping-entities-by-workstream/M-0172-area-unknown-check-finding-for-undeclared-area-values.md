@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Absent, empty, or null area never fires
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Inert when no areas block is declared
       status: open
