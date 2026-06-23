@@ -531,5 +531,5 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 | M-0172 | area-unknown check finding for undeclared area values | done |
 | M-0173 | aiwf add --area write path with completion and discovered-in derivation | done |
 | M-0174 | --area filter on list, show, and status | done |
-| M-0175 | Area grouping in status, render roadmap, and render html | draft |
+| M-0175 | Area grouping in status, render roadmap, and render html | done |
 
