@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: gap derives area from discovered-in when --area omitted
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: integration seam test covers set, reject, and derive paths
       status: open
