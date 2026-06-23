@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: untagged entities are excluded from a specific --area filter
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
