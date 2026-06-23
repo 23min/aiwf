@@ -152,12 +152,14 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	tddStrict := false
 	archiveThreshold := 0
 	archiveThresholdSet := false
+	var areaMembers []string
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
+		areaMembers = cfg.Areas.Members
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -172,6 +174,12 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	findings = append(findings, RunGitConfigCheck(ctx, resolved)...)
 
 	findings = append(findings, check.TreeDiscipline(tr, treeAllow, treeStrict)...)
+
+	// M-0172: area-unknown is a config-dependent tree rule composed here
+	// (not in the pure check.Run) with the declared set from aiwf.yaml:
+	// areas.members — the same CLI-layer seam TreeDiscipline uses. Inert
+	// when no areas block is declared (empty member set).
+	findings = append(findings, check.AreaUnknown(tr, areaMembers)...)
 
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to
