@@ -19,6 +19,10 @@ acs:
       title: render roadmap groups its epics by area when areas declared
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: render --format=html groups epic sections by area, asserted DOM-structurally
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -64,4 +68,6 @@ M-0171 exposes each entity's effective area; the filter milestone narrows a view
 ### AC-2 — status groups in-flight and planned epics by area when areas declared
 
 ### AC-3 — render roadmap groups its epics by area when areas declared
+
+### AC-4 — render --format=html groups epic sections by area, asserted DOM-structurally
 
