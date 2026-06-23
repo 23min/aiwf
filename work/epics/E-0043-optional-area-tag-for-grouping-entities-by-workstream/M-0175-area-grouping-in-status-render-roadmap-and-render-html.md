@@ -27,6 +27,10 @@ acs:
       title: empty declared areas suppressed; default complement always shown
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: with no areas block, all three surfaces render exactly as today
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -76,4 +80,6 @@ M-0171 exposes each entity's effective area; the filter milestone narrows a view
 ### AC-4 — render --format=html groups epic sections by area, asserted DOM-structurally
 
 ### AC-5 — empty declared areas suppressed; default complement always shown
+
+### AC-6 — with no areas block, all three surfaces render exactly as today
 
