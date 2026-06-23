@@ -1,7 +1,7 @@
 ---
 id: M-0175
 title: Area grouping in status, render roadmap, and render html
-status: draft
+status: in_progress
 parent: E-0043
 depends_on:
     - M-0171
