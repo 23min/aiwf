@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: --area tab-completes the declared areas.members on list/show/status
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: an undeclared --area value prints a note and yields an empty result
