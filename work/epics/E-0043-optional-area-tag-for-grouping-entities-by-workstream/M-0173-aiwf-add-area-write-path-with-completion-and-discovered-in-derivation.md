@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: --area rejected when value undeclared or no areas block
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: --area is invalid for non-root kinds
       status: open
