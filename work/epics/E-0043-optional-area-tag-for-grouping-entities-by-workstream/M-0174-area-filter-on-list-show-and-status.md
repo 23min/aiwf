@@ -11,6 +11,10 @@ acs:
       title: list --area returns only entities whose effective area matches
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: status --area scopes epics, decisions, and gaps to one area
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -51,4 +55,6 @@ M-0171 exposes each entity's effective `area` through the loaded model. This mil
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
 
 ### AC-1 — list --area returns only entities whose effective area matches
+
+### AC-2 — status --area scopes epics, decisions, and gaps to one area
 
