@@ -178,7 +178,16 @@ func RunRoadmap(root string, write bool, actor string) int {
 		return cliutil.ExitInternal
 	}
 
-	content := roadmap.Render(tr)
+	// Group the roadmap by area when an areas block is declared (M-0175);
+	// flat (today's output) otherwise. Single source of the declared set
+	// is the same cliutil accessor status reads.
+	areaMembers, areaDefault := cliutil.ConfiguredAreas(rootDir)
+	var content []byte
+	if len(areaMembers) == 0 {
+		content = roadmap.Render(tr)
+	} else {
+		content = roadmap.RenderGrouped(tr, areaMembers, areaDefault)
+	}
 
 	// Reconcile the on-disk roadmap filename across case-sensitive and
 	// case-insensitive filesystems (G-0185). A consumer that tracks a
