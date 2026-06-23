@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: a shared Partition helper groups items by area, complement always last
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: status groups in-flight and planned epics by area when areas declared
