@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: render roadmap groups its epics by area when areas declared
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: render --format=html groups epic sections by area, asserted DOM-structurally
       status: open
