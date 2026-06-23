@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: empty declared areas suppressed; default complement always shown
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: with no areas block, all three surfaces render exactly as today
       status: open
