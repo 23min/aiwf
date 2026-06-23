@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: integration seam test covers set, reject, and derive paths
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
