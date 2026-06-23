@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Archived entities never fire
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: Finding code carries a hint and is discoverable
       status: open
