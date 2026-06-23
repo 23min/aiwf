@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/23min/aiwf/internal/areagroup"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/show"
@@ -396,11 +397,13 @@ func (r *Resolver) StatusData() (*htmlrender.StatusData, error) {
 			Warnings: report.Health.Warnings,
 		},
 	}
+	var epicViews []htmlrender.StatusEpicView
 	for _, e := range report.InFlightEpics {
 		ev := htmlrender.StatusEpicView{
 			ID:       e.ID,
 			Title:    e.Title,
 			Status:   e.Status,
+			Area:     e.Area,
 			FileName: idToHTMLFile(e.ID),
 		}
 		for _, m := range e.Milestones {
@@ -418,7 +421,23 @@ func (r *Resolver) StatusData() (*htmlrender.StatusData, error) {
 			}
 			ev.Milestones = append(ev.Milestones, mv)
 		}
-		out.InFlightEpics = append(out.InFlightEpics, ev)
+		epicViews = append(epicViews, ev)
+	}
+	// Group the in-flight epics per area when an areas block is declared
+	// (M-0175/AC-4); otherwise the flat list (zero-migration, AC-6). One
+	// helper (areagroup.Partition) drives all three render surfaces.
+	if r.cfg != nil && len(r.cfg.Areas.Members) > 0 {
+		for _, g := range areagroup.Partition(epicViews,
+			func(ev htmlrender.StatusEpicView) string { return ev.Area },
+			r.cfg.Areas.Members, r.cfg.Areas.Default) {
+			out.InFlightAreas = append(out.InFlightAreas, htmlrender.StatusAreaView{
+				Label: g.Label,
+				Area:  g.Area,
+				Epics: g.Items,
+			})
+		}
+	} else {
+		out.InFlightEpics = epicViews
 	}
 	for _, d := range report.OpenDecisions {
 		out.OpenDecisions = append(out.OpenDecisions, htmlrender.StatusEntityLink{

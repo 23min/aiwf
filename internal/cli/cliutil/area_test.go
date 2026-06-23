@@ -24,6 +24,36 @@ func writeAreaConfig(t *testing.T, root string, members ...string) {
 	}
 }
 
+// TestConfiguredAreas pins the M-0175 accessor the grouping renderers
+// read: it returns the declared members + default label, and (nil, "")
+// when no aiwf.yaml is present (the graceful path that yields flat
+// rendering).
+func TestConfiguredAreas(t *testing.T) {
+	t.Parallel()
+	t.Run("returns members and default label", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
+			[]byte("areas:\n  members:\n    - platform\n    - billing\n  default: Backlog\n"), 0o644); err != nil {
+			t.Fatalf("write aiwf.yaml: %v", err)
+		}
+		members, def := cliutil.ConfiguredAreas(root)
+		if len(members) != 2 || members[0] != "platform" || members[1] != "billing" {
+			t.Errorf("members = %v, want [platform billing]", members)
+		}
+		if def != "Backlog" {
+			t.Errorf("default = %q, want Backlog", def)
+		}
+	})
+	t.Run("nil and empty when no aiwf.yaml", func(t *testing.T) {
+		t.Parallel()
+		members, def := cliutil.ConfiguredAreas(t.TempDir())
+		if members != nil || def != "" {
+			t.Errorf("ConfiguredAreas(empty) = (%v, %q), want (nil, \"\")", members, def)
+		}
+	})
+}
+
 // TestUndeclaredAreaNote pins M-0174/AC-5's advisory-note logic, the
 // single source the three read verbs share: an empty area is silent; a
 // declared area is silent; an undeclared area names the value and the

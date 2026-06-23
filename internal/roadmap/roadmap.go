@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/23min/aiwf/internal/areagroup"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -35,6 +36,25 @@ import (
 // don't disappear from the report. (`aiwf check` is the place to
 // fix the underlying reference; render just doesn't hide it.)
 func Render(t *tree.Tree) []byte {
+	return render(t, nil, "")
+}
+
+// RenderGrouped renders the roadmap with epics grouped into per-area
+// sections (E-0043, M-0175/AC-3): declared members appear in order (empty
+// declared areas suppressed), and the untagged/undeclared complement is
+// always last under defaultLabel (a built-in fallback when empty). Within
+// a group each epic is demoted to an h3 heading under the area's h2, so
+// the area → epic → milestone hierarchy nests correctly. Callers pass the
+// `aiwf.yaml: areas` config; an empty member set yields output
+// byte-identical to the flat Render (zero-migration, M-0175/AC-6).
+func RenderGrouped(t *tree.Tree, members []string, defaultLabel string) []byte {
+	return render(t, members, defaultLabel)
+}
+
+// render is the shared roadmap builder. members empty => flat (epics at
+// h2, today's output); members non-empty => per-area grouping (areas at
+// h2, epics at h3).
+func render(t *tree.Tree, members []string, defaultLabel string) []byte {
 	epics := append([]*entity.Entity(nil), t.ByKind(entity.KindEpic)...)
 	sort.SliceStable(epics, func(i, j int) bool { return epics[i].ID < epics[j].ID })
 
@@ -61,33 +81,24 @@ func Render(t *tree.Tree) []byte {
 		knownEpic[entity.Canonicalize(e.ID)] = true
 	}
 
-	for _, e := range epics {
-		canonE := entity.Canonicalize(e.ID)
-		fmt.Fprintf(&buf, "## %s — %s (%s)\n\n", canonE, escape(e.Title), e.Status)
-		if goal := readEpicGoal(t.Root, e.Path); goal != nil {
-			buf.WriteString("### Goal\n\n")
-			buf.Write(normalizeEntityLinks(goal, t))
-			buf.WriteString("\n\n")
+	if len(members) == 0 {
+		for _, e := range epics {
+			writeEpicSection(&buf, t, e, 2)
 		}
-		// byParent is keyed by the milestone's on-disk Parent; collect
-		// milestones whose canonicalized parent matches this epic.
-		var ms []*entity.Entity
-		for _, m := range t.ByKind(entity.KindMilestone) {
-			if entity.Canonicalize(m.Parent) == canonE {
-				ms = append(ms, m)
+	} else {
+		groups := areagroup.Partition(epics,
+			func(e *entity.Entity) string { return t.ResolvedArea(e) },
+			members, defaultLabel)
+		for _, g := range groups {
+			fmt.Fprintf(&buf, "## %s\n\n", escape(g.Label))
+			if len(g.Items) == 0 {
+				buf.WriteString("_No epics in this area._\n\n")
+				continue
+			}
+			for _, e := range g.Items {
+				writeEpicSection(&buf, t, e, 3)
 			}
 		}
-		sort.SliceStable(ms, func(i, j int) bool { return ms[i].ID < ms[j].ID })
-		if len(ms) == 0 {
-			buf.WriteString("_No milestones yet._\n\n")
-			continue
-		}
-		buf.WriteString("| Milestone | Title | Status |\n")
-		buf.WriteString("|---|---|---|\n")
-		for _, m := range ms {
-			fmt.Fprintf(&buf, "| %s | %s | %s |\n", entity.Canonicalize(m.ID), escape(m.Title), m.Status)
-		}
-		buf.WriteString("\n")
 	}
 
 	var orphans []*entity.Entity
@@ -111,6 +122,38 @@ func Render(t *tree.Tree) []byte {
 	}
 	buf.WriteString("\n")
 	return buf.Bytes()
+}
+
+// writeEpicSection writes one epic — heading, optional Goal, milestone
+// table — at the given heading level (2 for flat, 3 when nested under an
+// area heading). The Goal sub-heading is one level deeper. At level 2 the
+// output is byte-identical to the pre-M-0175 per-epic emission.
+func writeEpicSection(buf *bytes.Buffer, t *tree.Tree, e *entity.Entity, level int) {
+	h := strings.Repeat("#", level)
+	canonE := entity.Canonicalize(e.ID)
+	fmt.Fprintf(buf, "%s %s — %s (%s)\n\n", h, canonE, escape(e.Title), e.Status)
+	if goal := readEpicGoal(t.Root, e.Path); goal != nil {
+		fmt.Fprintf(buf, "%s# Goal\n\n", h)
+		buf.Write(normalizeEntityLinks(goal, t))
+		buf.WriteString("\n\n")
+	}
+	var ms []*entity.Entity
+	for _, m := range t.ByKind(entity.KindMilestone) {
+		if entity.Canonicalize(m.Parent) == canonE {
+			ms = append(ms, m)
+		}
+	}
+	sort.SliceStable(ms, func(i, j int) bool { return ms[i].ID < ms[j].ID })
+	if len(ms) == 0 {
+		buf.WriteString("_No milestones yet._\n\n")
+		return
+	}
+	buf.WriteString("| Milestone | Title | Status |\n")
+	buf.WriteString("|---|---|---|\n")
+	for _, m := range ms {
+		fmt.Fprintf(buf, "| %s | %s | %s |\n", entity.Canonicalize(m.ID), escape(m.Title), m.Status)
+	}
+	buf.WriteString("\n")
 }
 
 // readEpicGoal reads the epic file at root+relPath and returns the body

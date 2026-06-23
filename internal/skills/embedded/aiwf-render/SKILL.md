@@ -19,6 +19,10 @@ Walks the planning tree, then writes:
 
 Read-only — no commit. Re-running into the same out_dir overwrites the files; rendering twice produces byte-identical output.
 
+## Area grouping (E-0043)
+
+When `aiwf.yaml` declares an `areas` block, both `aiwf render roadmap` and `aiwf render --format=html` group their epic sections per workstream: one section per declared `areas.members` value (in declared order; an area with no epics is omitted), then an always-shown untagged/undeclared complement labelled by `areas.default` (or a built-in `Uncategorized` fallback). In the HTML status page each area is a `<section class="area-group" data-area="…">` container; in the markdown roadmap each area is an `##` heading with its epics demoted to `###`. With no `areas` block, both surfaces render exactly as before (zero-migration). The partition is shared with `aiwf status` (one helper, three surfaces); the complementary `aiwf list --area` / `aiwf status --area` *filter* a view to one area, whereas grouping *partitions* the whole view.
+
 ## When to use
 
 | User says | Run |

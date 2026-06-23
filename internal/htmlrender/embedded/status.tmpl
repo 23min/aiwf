@@ -21,30 +21,21 @@
 </p>
 
 <h2>In-flight work</h2>
-{{- if .InFlightEpics}}
-{{- range .InFlightEpics}}
-<section class="status-epic">
-<h3><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status status-{{.Status}}">{{.Status}}</span></h3>
-{{- if .Milestones}}
-<table class="milestones">
-<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>TDD</th><th>ACs met</th></tr></thead>
-<tbody>
-{{- range .Milestones}}
-<tr>
-<td><a href="{{.FileName}}">{{.ID}}</a></td>
-<td>{{.Title}}</td>
-<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
-<td>{{if .TDD}}{{.TDD}}{{else}}—{{end}}</td>
-<td>
-{{- if .ACTotal}}{{.ACMet}}/{{.ACTotal}}{{if .OpenACs}} ({{.OpenACs}} open){{end}}
-{{- else}}—{{end}}
-</td>
-</tr>
+{{- if .InFlightAreas}}
+{{- range .InFlightAreas}}
+<section class="area-group" data-area="{{.Area}}">
+<h3 class="area-heading">{{.Label}}</h3>
+{{- range .Epics}}
+{{- template "statusEpic" .}}
 {{- end}}
-</tbody>
-</table>
+{{- if not .Epics}}
+<p class="area-empty">No epics in this area.</p>
 {{- end}}
 </section>
+{{- end}}
+{{- else if .InFlightEpics}}
+{{- range .InFlightEpics}}
+{{- template "statusEpic" .}}
 {{- end}}
 {{- else}}
 <p>No in-flight epics.</p>
@@ -114,3 +105,27 @@
 </div>
 </body>
 </html>
+{{- define "statusEpic"}}
+<section class="status-epic">
+<h3><a href="{{.FileName}}">{{.ID}} — {{.Title}}</a> <span class="status status-{{.Status}}">{{.Status}}</span></h3>
+{{- if .Milestones}}
+<table class="milestones">
+<thead><tr><th>Id</th><th>Title</th><th>Status</th><th>TDD</th><th>ACs met</th></tr></thead>
+<tbody>
+{{- range .Milestones}}
+<tr>
+<td><a href="{{.FileName}}">{{.ID}}</a></td>
+<td>{{.Title}}</td>
+<td><span class="status status-{{.Status}}">{{.Status}}</span></td>
+<td>{{if .TDD}}{{.TDD}}{{else}}—{{end}}</td>
+<td>
+{{- if .ACTotal}}{{.ACMet}}/{{.ACTotal}}{{if .OpenACs}} ({{.OpenACs}} open){{end}}
+{{- else}}—{{end}}
+</td>
+</tr>
+{{- end}}
+</tbody>
+</table>
+{{- end}}
+</section>
+{{- end}}
