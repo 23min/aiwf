@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Declared area produces no finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Undeclared area fires area-unknown naming id, value, and set
