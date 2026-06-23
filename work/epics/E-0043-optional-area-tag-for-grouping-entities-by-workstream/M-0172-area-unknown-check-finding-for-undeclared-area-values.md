@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Undeclared area fires area-unknown naming id, value, and set
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Absent, empty, or null area never fires
