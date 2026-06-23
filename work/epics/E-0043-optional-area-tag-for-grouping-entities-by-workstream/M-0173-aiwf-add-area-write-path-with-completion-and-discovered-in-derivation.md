@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: --area rejected when value undeclared or no areas block
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: --area is invalid for non-root kinds
