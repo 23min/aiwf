@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: list --area returns only entities whose effective area matches
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: status --area scopes epics, decisions, and gaps to one area
       status: open
