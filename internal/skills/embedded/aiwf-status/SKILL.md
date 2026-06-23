@@ -21,6 +21,10 @@ A one-screen project snapshot for human readers. Reach for this whenever the use
 
 By design, the verb shows *only in-flight state* at the top level — closed epics, accepted ADRs, addressed gaps, and cancelled work are not surfaced. The view is forward-looking. For history of a specific entity, use `aiwf history <id>`.
 
+## Scoping to one workstream (`--area`)
+
+`aiwf status --area <A>` scopes the snapshot to a single workstream (E-0043): the **entity-derived** sections — in-flight epics (and their milestones), planned epics, open decisions, open gaps — keep only entities whose effective area equals `<A>` (root kinds by their own field, epics carrying their milestones along). Recent activity, warnings, and health stay **global** — they are cross-cutting tree-health signals, not per-area concepts. An undeclared `--area` value prints a one-line note to stderr and scopes everything out (reads never reject). Reach for it when the user asks *"what's in flight in the platform workstream?"*.
+
 ## When to use
 
 When the user asks about state but doesn't name a specific entity:

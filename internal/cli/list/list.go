@@ -48,6 +48,7 @@ func NewCmd() *cobra.Command {
 		kind     string
 		status   string
 		parent   string
+		area     string
 		archived bool
 		format   string
 		pretty   bool
@@ -77,13 +78,14 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, kind, status, parent, archived, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, archived, format, pretty, noTrunc))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&kind, "kind", "", "filter by entity kind (epic, milestone, adr, gap, decision, contract)")
 	cmd.Flags().StringVar(&status, "status", "", "filter by entity status (kind-aware)")
 	cmd.Flags().StringVar(&parent, "parent", "", "filter to entities whose parent is this id (e.g., milestones under E-13)")
+	cmd.Flags().StringVar(&area, "area", "", "filter to entities whose effective area equals this workstream tag (E-0043)")
 	cmd.Flags().BoolVar(&archived, "archived", false, "include terminal-status entities (default: hide them)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
@@ -101,6 +103,7 @@ func NewCmd() *cobra.Command {
 		return entity.AllowedStatuses(entity.Kind(k)), cobra.ShellCompDirectiveNoFileComp
 	})
 	_ = cmd.RegisterFlagCompletionFunc("parent", cliutil.CompleteEntityIDFlag(""))
+	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
 	cliutil.RegisterFormatCompletion(cmd)
 
 	return cmd
@@ -126,7 +129,7 @@ func UnionAllStatuses() []string {
 }
 
 // Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
-func Run(root, kind, status, parent string, archived bool, format string, pretty, noTrunc bool) int {
+func Run(root, kind, status, parent, area string, archived bool, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -142,13 +145,21 @@ func Run(root, kind, status, parent string, archived bool, format string, pretty
 		return cliutil.ExitUsage
 	}
 
+	// Advisory note when --area names a value that isn't declared
+	// (E-0043, M-0174/AC-5). The filter below stays mechanical; the note
+	// only tells the operator the value they typed isn't one they
+	// declared. To stderr so it never pollutes the (stdout) result.
+	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
+		fmt.Fprintln(os.Stderr, note)
+	}
+
 	tr, _, err := tree.Load(context.Background(), rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf list: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
-	noArgs := kind == "" && status == "" && parent == "" && !archived
+	noArgs := kind == "" && status == "" && parent == "" && area == "" && !archived
 	if noArgs {
 		counts := BuildListCounts(tr)
 		switch format {
@@ -172,7 +183,7 @@ func Run(root, kind, status, parent string, archived bool, format string, pretty
 		return cliutil.ExitOK
 	}
 
-	rows := BuildListRows(tr, kind, status, parent, archived)
+	rows := BuildListRows(tr, kind, status, parent, area, archived)
 	switch format {
 	case "text":
 		w := termTitleBudget(os.Stdout, noTrunc)
@@ -214,7 +225,13 @@ func IsKnownKind(s string) bool {
 // The kind+status filter routes through tree.FilterByKindStatuses so
 // `aiwf list --kind gap --status open` and `aiwf status`'s Open gaps
 // section share one source of truth (M-072 AC-6).
-func BuildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []ListSummary {
+//
+// The area axis (E-0043, M-0174/AC-1) is an independent AND-ed filter:
+// when non-empty, only entities whose effective area (tree.ResolvedArea
+// — root kinds by their own field, milestones by parent-epic derivation)
+// equals area survive. Untagged entities (effective area "") never match
+// a specific area, so they are excluded from `--area X` (AC-6).
+func BuildListRows(tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
 	var statuses []string
 	if status != "" {
 		statuses = []string{status}
@@ -228,6 +245,9 @@ func BuildListRows(tr *tree.Tree, kind, status, parent string, archived bool) []
 			continue
 		}
 		if !archived && entity.IsTerminal(e.Kind, e.Status) {
+			continue
+		}
+		if area != "" && tr.ResolvedArea(e) != area {
 			continue
 		}
 		// Emitted ids are canonical per AC-3 in M-081 — display
