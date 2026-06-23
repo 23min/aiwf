@@ -21,9 +21,12 @@ aiwf show <M-id>/AC-N                       # composite id: just that AC's recor
 aiwf show <id> --format=json --pretty       # JSON envelope; carries body sections too
 aiwf show <id> --history=0                  # suppress the history section
 aiwf show <id> --history=-1                 # render the full timeline (no cap)
+aiwf show <id> --area <A>                    # predicate: shown only if effective area matches, else a one-line note (exit 0)
 ```
 
 The composite-id pattern `M-NNN/AC-N` is not obvious from `--help`. Use it whenever the user names a specific AC — the JSON output for a composite id carries just that AC's slice (id, title, status, tdd_phase, body description, tests).
+
+`--area <A>` (E-0043) makes `show` a single-entity predicate: it renders the entity only when its effective area equals `<A>` (composite AC ids roll up to the parent epic's area); otherwise it prints a one-line `<id> is in area "X", not "<A>"` note and exits 0 (the entity is hidden, like an empty filter — not an error). It exists so a script can apply one `--area` filter uniformly across `list`, `status`, and `show`.
 
 ## Output shape
 

@@ -1,6 +1,6 @@
 ---
 name: aiwf-list
-description: Use to filter the planning tree by kind, status, parent, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under E-13", "filter milestones by parent epic", "every gap that's still open", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
+description: Use to filter the planning tree by kind, status, parent, area, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under E-13", "filter milestones by parent epic", "everything in the platform workstream", "every gap that's still open", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
 ---
 
 # aiwf-list
@@ -18,6 +18,7 @@ V1 filter axes:
 | `--kind <K>` | one of `epic`, `milestone`, `adr`, `gap`, `decision`, `contract` |
 | `--status <S>` | a status valid under `--kind` (or any kind's status set if `--kind` is omitted) |
 | `--parent <id>` | entities whose `parent:` field is this id (e.g., milestones under an epic) |
+| `--area <A>` | entities whose effective area equals `<A>` — root kinds by their own field, milestones by parent-epic derivation; declared in `aiwf.yaml: areas` (E-0043) |
 | `--archived` | include terminal-status entities (the default hides them) |
 | `--format=text\|json` | output shape; `--pretty` indents JSON |
 
@@ -45,6 +46,7 @@ For machine consumption: append `--format=json [--pretty]`. The envelope's `resu
 - **All milestones under an epic** — `aiwf list --kind milestone --parent E-13`. Drops `--status` to see every status; add `--status in_progress` to narrow.
 - **Every open gap** — `aiwf list --kind gap --status open`. Same data the *Open gaps* slice in `aiwf status` shows; both routes share one filter helper.
 - **Every contract entity** — `aiwf list --kind contract`. Pair with `aiwf show <C-id>` for the full record.
+- **One workstream** — `aiwf list --area platform`. Filters to entities whose effective area is `platform` (E-0043); combine with `--kind` / `--status` to narrow further. Untagged entities are excluded; an undeclared `--area` value prints a one-line note to stderr and matches nothing (reads never reject — only the `aiwf add --area` write path does).
 - **All terminal-status entities** — `aiwf list --archived`. The `--archived` name is locked: ADR-0004 (proposed) names this verbatim and once that ADR ships, the same flag walks the archive directories without a list-side change.
 - **Pipe to tooling** — `aiwf list --kind milestone --status done --format=json --pretty | jq '.result[].id'`.
 

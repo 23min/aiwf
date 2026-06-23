@@ -19,6 +19,19 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
+// AreaMissLine is the one-line text rendered when `aiwf show <id>
+// --area <name>` filters the named entity out because its effective area
+// differs (E-0043, M-0174/AC-3). `show` is single-entity, so the
+// predicate hides the one entity (like an empty list) rather than listing
+// — the line tells the operator the entity exists but lives elsewhere.
+// An untagged entity (actual == "") gets its own wording.
+func AreaMissLine(id, actual, requested string) string {
+	if actual == "" {
+		return fmt.Sprintf("%s is untagged; not in area %q", id, requested)
+	}
+	return fmt.Sprintf("%s is in area %q, not %q", id, actual, requested)
+}
+
 // ReadEntityBody reads the entity file at root/relPath and returns the
 // body bytes (the prose after the closing `---`). Errors are
 // swallowed — `aiwf show` already emits findings for unreadable /
@@ -61,6 +74,7 @@ func NewCmd() *cobra.Command {
 		format       string
 		pretty       bool
 		historyLimit int
+		area         string
 	)
 	cmd := &cobra.Command{
 		Use:   "show <id>",
@@ -77,20 +91,22 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], root, format, pretty, historyLimit))
+			return cliutil.WrapExitCode(Run(args[0], root, format, area, pretty, historyLimit))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().StringVar(&area, "area", "", "show the entity only when its effective area equals this workstream tag (E-0043)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().IntVar(&historyLimit, "history", 10, "max recent history events to render (0 = none, -1 = all)")
 	cliutil.RegisterFormatCompletion(cmd)
+	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
 
 // Run executes `aiwf show`. Returns one of the cliutil.Exit* codes.
-func Run(id, root, format string, pretty bool, historyLimit int) int {
+func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
@@ -100,6 +116,11 @@ func Run(id, root, format string, pretty bool, historyLimit int) int {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
 		return cliutil.ExitUsage
+	}
+
+	// Advisory note when --area names an undeclared value (M-0174/AC-5).
+	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
+		fmt.Fprintln(os.Stderr, note)
 	}
 
 	ctx := context.Background()
@@ -113,6 +134,40 @@ func Run(id, root, format string, pretty bool, historyLimit int) int {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "aiwf show: %s not found\n", id)
 		return cliutil.ExitUsage
+	}
+
+	// Predicate filter (M-0174/AC-3): `show` names one entity, so --area
+	// hides it (like an empty list) when its effective area differs,
+	// rather than listing. ResolvedAreaByID handles composite AC ids
+	// (roll up to the parent epic). Exit 0 — the entity exists, it is
+	// just out of the requested workstream.
+	if area != "" {
+		actual := tr.ResolvedAreaByID(id)
+		if actual != area {
+			switch format {
+			case "text":
+				fmt.Println(AreaMissLine(view.ID, actual, area))
+			case "json":
+				env := render.Envelope{
+					Tool:    "aiwf",
+					Version: version.Current().Version,
+					Status:  "ok",
+					Result:  nil,
+					Metadata: map[string]any{
+						"root":         rootDir,
+						"id":           id,
+						"filtered_out": true,
+						"area":         area,
+						"actual_area":  actual,
+					},
+				}
+				if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
+					fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
+					return cliutil.ExitInternal
+				}
+			}
+			return cliutil.ExitOK
+		}
 	}
 
 	switch format {

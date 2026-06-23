@@ -194,6 +194,7 @@ func NewCmd() *cobra.Command {
 		pretty    bool
 		noTrunc   bool
 		worktrees bool
+		area      string
 	)
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -215,11 +216,12 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, pretty, noTrunc, worktrees))
+			return cliutil.WrapExitCode(Run(root, format, area, pretty, noTrunc, worktrees))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
+	cmd.Flags().StringVar(&area, "area", "", "scope the snapshot to one workstream by effective area (E-0043)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
 	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls (G-0122)")
@@ -227,6 +229,7 @@ func NewCmd() *cobra.Command {
 		[]string{"text", "json", "md"},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
+	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
 	return cmd
 }
 
@@ -235,7 +238,7 @@ func NewCmd() *cobra.Command {
 // organized layout (text format only renders the worktree sections;
 // json format adds a `worktrees` key to the result envelope; md
 // format ignores the flag for now).
-func Run(root, format string, pretty, noTrunc, worktrees bool) int {
+func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return cliutil.ExitUsage
@@ -247,6 +250,12 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitUsage
 	}
 
+	// Advisory note when --area names an undeclared value (M-0174/AC-5);
+	// to stderr so it never pollutes the (stdout) report.
+	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
+		fmt.Fprintln(os.Stderr, note)
+	}
+
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -255,6 +264,11 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 	}
 
 	report := BuildStatus(tr, loadErrs, time.Now())
+	// Scope the entity-derived sections to one workstream when --area is
+	// set (M-0174/AC-2). Recent activity, warnings, and health stay
+	// global — they are cross-cutting tree-health signals, not per-area
+	// concepts. A no-op when area is empty.
+	FilterStatusByArea(tr, &report, area)
 
 	recent, err := ReadRecentActivity(ctx, rootDir, RecentActivityLimit)
 	if err != nil {
@@ -435,6 +449,56 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 	r.Health.Entities = len(tr.Entities)
 
 	return r
+}
+
+// FilterStatusByArea scopes a status report's entity-derived sections to
+// a single workstream (E-0043, M-0174/AC-2): in-flight epics, planned
+// epics, open decisions, and open gaps are kept only when their effective
+// area (tree.ResolvedAreaByID — root kinds by their own field, epics
+// carrying their derived milestones) equals area. Untagged entities
+// (effective area "") never match a named area, so they drop out (AC-6).
+//
+// A no-op when area is empty. Recent activity, warnings, health, the
+// sweep-pending one-liner, and the worktree views are left untouched —
+// they are cross-cutting tree-health signals, not per-area concepts.
+// Mutates r in place; the caller (Run) passes &report, and the render
+// resolver never calls this (it wants the full report).
+func FilterStatusByArea(tr *tree.Tree, r *StatusReport, area string) {
+	if area == "" {
+		return
+	}
+	r.InFlightEpics = keepEpicsInArea(tr, r.InFlightEpics, area)
+	r.PlannedEpics = keepEpicsInArea(tr, r.PlannedEpics, area)
+
+	decisions := r.OpenDecisions[:0:0]
+	for _, d := range r.OpenDecisions {
+		if tr.ResolvedAreaByID(d.ID) == area {
+			decisions = append(decisions, d)
+		}
+	}
+	r.OpenDecisions = decisions
+
+	gaps := r.OpenGaps[:0:0]
+	for _, g := range r.OpenGaps {
+		if tr.ResolvedAreaByID(g.ID) == area {
+			gaps = append(gaps, g)
+		}
+	}
+	r.OpenGaps = gaps
+}
+
+// keepEpicsInArea returns the epics whose effective area equals area.
+// Milestones ride along with their kept epic — an epic's area is the
+// single source for its milestones' derived area, so no per-milestone
+// filtering is needed.
+func keepEpicsInArea(tr *tree.Tree, epics []StatusEpic, area string) []StatusEpic {
+	kept := epics[:0:0]
+	for _, e := range epics {
+		if tr.ResolvedAreaByID(e.ID) == area {
+			kept = append(kept, e)
+		}
+	}
+	return kept
 }
 
 // ParseSweepPending extracts the count from an `archive-sweep-pending`
