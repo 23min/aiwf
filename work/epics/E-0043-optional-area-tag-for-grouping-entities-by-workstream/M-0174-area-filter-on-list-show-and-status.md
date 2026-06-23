@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: list --area returns only entities whose effective area matches
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: status --area scopes epics, decisions, and gaps to one area
