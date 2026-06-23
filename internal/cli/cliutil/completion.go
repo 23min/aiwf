@@ -88,6 +88,23 @@ func CompleteEntityIDFlag(filter entity.Kind) func(*cobra.Command, []string, str
 	}
 }
 
+// CompleteAreaFlag is the Cobra flag-completion adapter for `aiwf add
+// --area`: it offers exactly the declared `aiwf.yaml: areas.members`
+// (E-0043, M-0173/AC-4), the same closed set the write-time validation
+// and the M-0172 area-unknown check read. Failures (no aiwf.yaml, no
+// areas block) collapse to an empty list rather than erroring in the
+// shell, matching the graceful-no-op rule the entity-id completions
+// follow.
+func CompleteAreaFlag() func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		rootDir, err := ResolveRoot("")
+		if err != nil { //coverage:ignore ResolveRoot("") only errors if os.Getwd fails (unreachable in practice; it falls back to cwd on a missing aiwf.yaml); mirrors CompleteEntityIDs
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return ConfiguredAreaMembers(rootDir), cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 // CompleteEntityIDArg is the standard Cobra positional-arg completion
 // adapter over CompleteEntityIDs. Callers assign it as a command's
 // ValidArgsFunction. Unlike the flag adapter, this version respects

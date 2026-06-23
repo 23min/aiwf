@@ -36,6 +36,7 @@ func NewCmd() *cobra.Command {
 		tddPolicy     string
 		dependsOn     string
 		discoveredIn  string
+		area          string
 		relatesTo     string
 		linkedADRs    string
 		bindValidator string
@@ -79,7 +80,7 @@ func NewCmd() *cobra.Command {
 				title = titles[0]
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
-				epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
+				epicID, tddPolicy, dependsOn, discoveredIn, area, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile, *out))
 		},
 	}
@@ -94,6 +95,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&tddPolicy, "tdd", "", "milestone TDD policy: required|advisory|none — required at creation time for kind=milestone (G-055 layer 1)")
 	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone (M-076)")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
+	cmd.Flags().StringVar(&area, "area", "", "workstream area tag (root kinds only); validated against aiwf.yaml: areas.members; a gap with --discovered-in derives it when omitted (E-0043)")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
 	cmd.Flags().StringVar(&bindValidator, "validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
@@ -114,6 +116,7 @@ func NewCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("tdd", cobra.FixedCompletions(entity.AllowedTDDPolicies(), cobra.ShellCompDirectiveNoFileComp))
 	_ = cmd.RegisterFlagCompletionFunc("depends-on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
 	_ = cmd.RegisterFlagCompletionFunc("discovered-in", cliutil.CompleteEntityIDFlag(""))
+	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", cliutil.CompleteEntityIDFlag(entity.KindADR))
 
@@ -123,7 +126,7 @@ func NewCmd() *cobra.Command {
 
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
-	epicID, tddPolicy, dependsOn, discoveredIn, relatesTo, linkedADRs,
+	epicID, tddPolicy, dependsOn, discoveredIn, area, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile string, out cliutil.OutputFormat,
 ) int {
 	rootDir, err := cliutil.ResolveRoot(root)
@@ -150,10 +153,30 @@ func Run(k entity.Kind, title, actor, principal, root,
 		return cliutil.ExitInternal
 	}
 
+	// E-0043 / M-0173: resolve the area write path. An explicit --area is
+	// validated at write time against the declared set (root kinds only;
+	// kind=milestone is rejected by the verb with a clear flag-vs-kind
+	// error, so we skip the member check there and let the verb speak).
+	// A gap with --discovered-in and no explicit --area derives its area
+	// from the discovered-in entity's effective area — an epic carries it
+	// directly, a milestone target is a two-hop derivation through its
+	// parent epic (ResolvedAreaByID). Explicit --area always wins.
+	resolvedArea := area
+	if area != "" {
+		if k != entity.KindMilestone {
+			if rc := validateAreaMember(rootDir, area); rc != cliutil.ExitOK {
+				return rc
+			}
+		}
+	} else if k == entity.KindGap && discoveredIn != "" {
+		resolvedArea = tr.ResolvedAreaByID(discoveredIn)
+	}
+
 	opts := verb.AddOptions{
 		EpicID:         epicID,
 		TDD:            tddPolicy,
 		DiscoveredIn:   discoveredIn,
+		Area:           resolvedArea,
 		BindValidator:  bindValidator,
 		BindSchema:     bindSchema,
 		BindFixtures:   bindFixtures,
@@ -191,6 +214,30 @@ func Run(k entity.Kind, title, actor, principal, root,
 		CreationRefs: addCreationRefs(k, opts),
 	}
 	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
+}
+
+// validateAreaMember enforces the M-0173/AC-2 write-time rule: an
+// explicit --area must be a member of the declared `aiwf.yaml:
+// areas.members` set (the M-0171 accessor — the same closed set the
+// M-0172 area-unknown check reads). Returns cliutil.ExitOK when the
+// value is declared; otherwise prints a usage error naming the offending
+// value (and, when a block exists, the declared set) and returns
+// cliutil.ExitUsage so the caller aborts before any entity is created.
+// An absent areas block is its own rejection — the field is inert until
+// a block is declared (M-0171), so an explicit --area is a usage error.
+func validateAreaMember(rootDir, area string) int {
+	members := cliutil.ConfiguredAreaMembers(rootDir)
+	if len(members) == 0 {
+		fmt.Fprintf(os.Stderr, "aiwf add: --area %q given but no `areas` block is declared in aiwf.yaml; declare areas.members or omit --area\n", area)
+		return cliutil.ExitUsage
+	}
+	for _, m := range members {
+		if m == area {
+			return cliutil.ExitOK
+		}
+	}
+	fmt.Fprintf(os.Stderr, "aiwf add: --area %q is not a declared area; declared: %s\n", area, strings.Join(members, ", "))
+	return cliutil.ExitUsage
 }
 
 // addCreationRefs returns the new entity's outbound references for

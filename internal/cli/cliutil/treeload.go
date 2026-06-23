@@ -71,6 +71,21 @@ func ConfiguredTitleMaxLength(rootDir string) int {
 	return cfg.EntityTitleMaxLength()
 }
 
+// ConfiguredAreaMembers returns the consumer's declared workstream
+// area tags from `aiwf.yaml: areas.members` (E-0043), or nil when no
+// areas block is declared (or aiwf.yaml is absent/unreadable). This is
+// the single source of truth the `aiwf add --area` write-time validation
+// and the `--area` shell completion both read — the same declared set
+// the M-0172 area-unknown check consults. Tolerant of a missing
+// aiwf.yaml so dispatchers and completion funcs call it unconditionally.
+func ConfiguredAreaMembers(rootDir string) []string {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return nil
+	}
+	return cfg.Areas.Members
+}
+
 // ConfiguredTrunkBranchShortName returns the consumer's trunk short
 // name derived from `aiwf.yaml.allocate.trunk` via
 // `Config.TrunkBranchShortName()`. Used by `aiwf authorize`'s
