@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: --area tab-completes the declared areas.members on list/show/status
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: an undeclared --area value prints a note and yields an empty result
       status: open
