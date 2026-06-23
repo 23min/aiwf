@@ -19,6 +19,10 @@ acs:
       title: show --area shows the entity only when its effective area matches
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: --area tab-completes the declared areas.members on list/show/status
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -63,4 +67,6 @@ M-0171 exposes each entity's effective `area` through the loaded model. This mil
 ### AC-2 — status --area scopes epics, decisions, and gaps to one area
 
 ### AC-3 — show --area shows the entity only when its effective area matches
+
+### AC-4 — --area tab-completes the declared areas.members on list/show/status
 
