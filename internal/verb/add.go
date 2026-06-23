@@ -72,6 +72,16 @@ type AddOptions struct {
 	// policy. Verbs reject titles over this length so the on-disk
 	// slug, frontmatter title, and rendered surfaces stay in sync.
 	TitleMaxLength int
+	// Area is the optional workstream grouping tag (E-0043, M-0173)
+	// for the five root kinds (epic, ADR, gap, decision, contract).
+	// A milestone derives its area from its parent epic and never
+	// stores one, so a non-empty Area on kind=milestone is rejected by
+	// validateAddOptsForKind. The CLI dispatcher validates the value
+	// against `aiwf.yaml: areas.members` (the M-0171 accessor) before
+	// setting it — the verb-time twin of the M-0172 area-unknown check
+	// — and, for a gap with --discovered-in and no explicit --area,
+	// derives it from the discovered-in entity's effective area.
+	Area string
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -231,6 +241,13 @@ func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 		if !entity.IsAllowedTDDPolicy(opts.TDD) {
 			return fmt.Errorf("--tdd %q is not a recognized policy; allowed: required, advisory, none", opts.TDD)
 		}
+		// E-0043 / M-0173 AC-3: a milestone derives its area from its
+		// parent epic and never stores one; --area on a milestone is a
+		// flag-vs-kind error, the same shape as the --tdd / --depends-on
+		// guards.
+		if opts.Area != "" {
+			return fmt.Errorf("--area is only valid for root kinds (epic, ADR, gap, decision, contract); a milestone derives its area from its parent epic")
+		}
 	} else if opts.TDD != "" {
 		return fmt.Errorf("--tdd is only valid for kind=milestone")
 	}
@@ -357,6 +374,11 @@ func newEntityPath(t *tree.Tree, kind entity.Kind, id, slug string, opts AddOpti
 
 // applyAddOpts copies kind-specific options from opts onto the entity.
 func applyAddOpts(e *entity.Entity, opts AddOptions) {
+	// Area (E-0043, M-0173) applies to the five root kinds. A milestone
+	// never stores one — validateAddOptsForKind rejects a non-empty Area
+	// on kind=milestone, so by the time we get here opts.Area is "" for a
+	// milestone and this assignment is a no-op for it.
+	e.Area = opts.Area
 	switch e.Kind {
 	case entity.KindMilestone:
 		e.Parent = opts.EpicID
