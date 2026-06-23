@@ -6,6 +6,11 @@ parent: E-0043
 depends_on:
     - M-0171
 tdd: required
+acs:
+    - id: AC-1
+      title: a shared Partition helper groups items by area, complement always last
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -45,3 +50,6 @@ M-0171 exposes each entity's effective area; the filter milestone narrows a view
 ## References
 
 - [E-0043 epic](epic.md) · [G-0266](../../gaps/G-0266-optional-area-tag-for-grouping-entities-by-workstream.md)
+
+### AC-1 — a shared Partition helper groups items by area, complement always last
+
