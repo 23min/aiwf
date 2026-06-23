@@ -1,7 +1,7 @@
 ---
 id: M-0173
 title: aiwf add --area write path with completion and discovered-in derivation
-status: draft
+status: in_progress
 parent: E-0043
 depends_on:
     - M-0171
