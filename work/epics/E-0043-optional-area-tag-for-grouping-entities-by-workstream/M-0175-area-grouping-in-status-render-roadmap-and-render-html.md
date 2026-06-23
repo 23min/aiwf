@@ -23,6 +23,10 @@ acs:
       title: render --format=html groups epic sections by area, asserted DOM-structurally
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: empty declared areas suppressed; default complement always shown
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -70,4 +74,6 @@ M-0171 exposes each entity's effective area; the filter milestone narrows a view
 ### AC-3 — render roadmap groups its epics by area when areas declared
 
 ### AC-4 — render --format=html groups epic sections by area, asserted DOM-structurally
+
+### AC-5 — empty declared areas suppressed; default complement always shown
 
