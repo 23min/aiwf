@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: status --area scopes epics, decisions, and gaps to one area
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: show --area shows the entity only when its effective area matches
