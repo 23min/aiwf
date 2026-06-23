@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: --area writes area into new entity frontmatter
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: --area rejected when value undeclared or no areas block
