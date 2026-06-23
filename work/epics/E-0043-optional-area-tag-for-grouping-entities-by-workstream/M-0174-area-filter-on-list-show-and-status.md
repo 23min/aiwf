@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: show --area shows the entity only when its effective area matches
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: --area tab-completes the declared areas.members on list/show/status
