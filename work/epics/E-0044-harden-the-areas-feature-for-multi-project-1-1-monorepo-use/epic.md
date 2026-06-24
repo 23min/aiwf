@@ -91,25 +91,24 @@ The work is three tiers with a hard dependency spine: Tier 0 is independent labe
 
 ## Milestones
 
-<!-- Candidate decomposition, refined and id-allocated by aiwfx-plan-milestones. Ordered by
-     execution sequence; the path oracle is the foundation the Tier-2 work depends on. The
-     two Tier-0 config/verb items may merge during decomposition. -->
+<!-- Allocated and sequenced by aiwfx-plan-milestones. Status lives in each milestone's
+     frontmatter, not here. The path oracle (M-0179) is the keystone Tier 2 depends on. -->
 
 Tier 0 (label-only hardening — independent of the oracle, mutually parallelizable):
 
-- Partition totality / disjointness property test on `internal/areagroup`. *(No deps.)*
-- `aiwf rename-area` verb — atomic cross-entity + `aiwf.yaml` rewrite in one trailered commit. *(No deps.)*
-- `areas.required` knob — promote the untagged condition from advisory to blocking. *(No deps.)*
+- [M-0176](M-0176-partition-totality-and-disjointness-property-test-for-areagroup.md) — partition totality / disjointness property test on `internal/areagroup`. · depends on: —
+- [M-0177](M-0177-aiwf-rename-area-verb-with-atomic-cross-entity-rewrite.md) — `aiwf rename-area` verb: atomic cross-entity + `aiwf.yaml` rewrite in one trailered commit. · depends on: —
+- [M-0178](M-0178-areas-required-knob-promoting-untagged-entities-to-a-blocking-finding.md) — `areas.required` knob: promote untagged to a blocking finding. · depends on: —
 
 Tier 1 (the oracle — the keystone):
 
-- `paths:` per-area config evolution with a backward-compatible dual-form `Areas` unmarshaler. *(No deps — foundation for all of Tier 1–2.)*
-- Bijection / coverage check — declared glob ⇒ real directory, and project directory ⇒ exactly one area. *(Depends on the `paths:` keystone.)*
+- [M-0179](M-0179-paths-per-area-config-evolution-with-backward-compatible-unmarshaler.md) — `paths:` per-area config evolution with a backward-compatible dual-form `Areas` unmarshaler (**keystone**). · depends on: —
+- [M-0180](M-0180-area-path-bijection-and-coverage-check.md) — bijection / coverage check: declared glob ⇒ real directory, project directory ⇒ exactly one area. · depends on: M-0179
 
-Tier 2 (exploit the oracle — depends entirely on the keystone):
+Tier 2 (exploit the oracle — depends on the keystone):
 
-- Mistag detection — landed entity's touched files vs its area glob, with an acknowledge path. *(Depends on the `paths:` keystone.)*
-- Auto-derive / suggest area from a path hint at `aiwf add` / wrap. *(Depends on the `paths:` keystone.)*
+- [M-0181](M-0181-mistag-detection-via-aiwf-entity-trailer-with-acknowledge-path.md) — mistag detection: landed entity's touched files vs its area glob, with an acknowledge path. · depends on: M-0179
+- [M-0182](M-0182-auto-derive-or-suggest-area-from-path-hint-at-add-and-wrap.md) — auto-derive / suggest area from a path hint at `aiwf add` / wrap. · depends on: M-0179
 
 ## ADRs produced (optional)
 
