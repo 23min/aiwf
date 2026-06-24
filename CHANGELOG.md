@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-06-24
+
 ### Added — E-0043: optional `area` tag for grouping entities by workstream
 
 One repo can now hold more than one workstream via an optional, validated `area` tag — letting a co-developed internal tool or a monorepo of packages share a tree while the flat, globally-unique id space stays unchanged.
