@@ -54,10 +54,12 @@ The concrete trigger: an internal tool developed in parallel beside the product 
 
 ## Open questions
 
-| Question | Blocking? | Resolution path |
+Both resolved at wrap (decisions recorded in the named milestone specs):
+
+| Question | Blocking? | Resolution |
 |---|---|---|
-| Does `aiwf add gap --discovered-in <id>` auto-derive `area` from the discovered-in entity, or only set it on explicit `--area`? | no | Decided at the write-path milestone; lean: derive when `--area` is omitted and the discovered-in entity has one, else leave unset. |
-| When the `areas` block is present but a render surface has zero tagged entities, is the per-area grouping suppressed or shown empty? | no | Decided at the read-grouping milestone; lean: suppress empty area sections, always show the default complement. |
+| Does `aiwf add gap --discovered-in <id>` auto-derive `area` from the discovered-in entity, or only set it on explicit `--area`? | no | **Resolved (M-0173):** derive-on-omit — a gap derives its area from the discovered-in entity's effective area when `--area` is omitted (epic direct, milestone two-hop via `ResolvedAreaByID`); an explicit `--area` always wins; an untagged source leaves the gap untagged. |
+| When the `areas` block is present but a render surface has zero tagged entities, is the per-area grouping suppressed or shown empty? | no | **Resolved (M-0175):** suppress empty *declared* area sections; always render the untagged/default complement (with a "(none)" / "no epics" placeholder when empty), so a grouped view always surfaces where un-triaged work lives. |
 
 ## Milestones
 

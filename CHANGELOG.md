@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0043: optional `area` tag for grouping entities by workstream
+
+One repo can now hold more than one workstream via an optional, validated `area` tag — letting a co-developed internal tool or a monorepo of packages share a tree while the flat, globally-unique id space stays unchanged.
+
+- **Field + config (M-0171):** an optional `area` frontmatter field on the five root kinds (epic, ADR, gap, decision, contract); milestones/ACs derive theirs from the parent epic. An `aiwf.yaml: areas` block declares the closed member set plus an optional `default:` label for the untagged complement. Inert when no block is declared.
+- **`area-unknown` check (M-0172):** a present-but-undeclared `area` value is flagged; absence is never flagged.
+- **Write path (M-0173):** `aiwf add --area <name>` writes, validates against the declared set, and tab-completes the value; a gap derives its area from `--discovered-in` when `--area` is omitted.
+- **Read filter (M-0174):** an `--area` flag on `list`, `show`, and `status` scopes a view to one workstream (an undeclared value notes and yields empty — reads never reject).
+- **Read grouping (M-0175):** `status`, `render roadmap`, and `render --format=html` group their epic sections per area when an `areas` block exists; with no block, all surfaces render exactly as before (zero migration).
+
 ## [0.16.0] — 2026-06-21
 
 ### Added — `wf-codebase-health` code-health rubric, shipped to consumers
