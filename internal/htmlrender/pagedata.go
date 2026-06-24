@@ -323,14 +323,30 @@ type TestsPolicy struct {
 // was built; Health rolls up the project-wide entity / error /
 // warning counts.
 type StatusData struct {
-	Sidebar        SidebarData
-	GeneratedAt    string
-	Health         StatusHealth
+	Sidebar     SidebarData
+	GeneratedAt string
+	Health      StatusHealth
+	// InFlightEpics is the flat in-flight epic list, used when no areas
+	// block is declared (zero-migration; M-0175/AC-6). InFlightAreas is
+	// the per-area grouping, populated instead when an areas block exists
+	// (M-0175/AC-4). Exactly one is non-empty; the template branches on
+	// InFlightAreas.
 	InFlightEpics  []StatusEpicView
+	InFlightAreas  []StatusAreaView
 	OpenDecisions  []StatusEntityLink
 	OpenGaps       []StatusGapView
 	Warnings       []StatusFinding
 	RecentActivity []HistoryRow
+}
+
+// StatusAreaView is one per-area section of in-flight epics on the status
+// page (E-0043, M-0175). Label is the displayed area name (or the
+// default-complement label); Area is the declared area key, "" for the
+// untagged/undeclared complement.
+type StatusAreaView struct {
+	Label string
+	Area  string
+	Epics []StatusEpicView
 }
 
 // StatusHealth rolls up counts surfaced in the report header.
@@ -348,6 +364,7 @@ type StatusEpicView struct {
 	ID         string
 	Title      string
 	Status     string
+	Area       string
 	FileName   string
 	Milestones []StatusMilestoneView
 }

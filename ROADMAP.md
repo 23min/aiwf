@@ -519,7 +519,7 @@ _No milestones yet._
 | M-0169 | Directed wf-vacuity pass over the load-bearing units | done |
 | M-0170 | Firing tests for linter-config rules and the dormant forbidigo fix | done |
 
-## E-0043 — Optional area tag for grouping entities by workstream (proposed)
+## E-0043 — Optional area tag for grouping entities by workstream (active)
 
 ### Goal
 
@@ -527,9 +527,9 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0171 | Area field on root kinds and aiwf.yaml areas block with validation | draft |
-| M-0172 | area-unknown check finding for undeclared area values | draft |
-| M-0173 | aiwf add --area write path with completion and discovered-in derivation | draft |
-| M-0174 | --area filter on list, show, and status | draft |
-| M-0175 | Area grouping in status, render roadmap, and render html | draft |
+| M-0171 | Area field on root kinds and aiwf.yaml areas block with validation | done |
+| M-0172 | area-unknown check finding for undeclared area values | done |
+| M-0173 | aiwf add --area write path with completion and discovered-in derivation | done |
+| M-0174 | --area filter on list, show, and status | done |
+| M-0175 | Area grouping in status, render roadmap, and render html | done |
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/areagroup"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
@@ -50,6 +51,15 @@ type StatusReport struct {
 	// Always omitted from the JSON envelope when nil so the default
 	// shape stays unchanged for existing JSON consumers.
 	Worktrees []WorktreeView `json:"worktrees,omitempty"`
+
+	// AreaMembers / AreaDefault carry the aiwf.yaml: areas config to the
+	// text and markdown renderers so they group the epic sections by area
+	// when an areas block exists (E-0043, M-0175). Render hints, not report
+	// data — excluded from the JSON envelope (json:"-"); JSON consumers read
+	// each epic's `area` field instead. Empty AreaMembers => flat rendering
+	// (zero-migration; AC-6).
+	AreaMembers []string `json:"-"`
+	AreaDefault string   `json:"-"`
 }
 
 // StatusSweepPending is the tree-health one-liner for terminal-status
@@ -83,6 +93,7 @@ type StatusEpic struct {
 	ID         string            `json:"id"`
 	Title      string            `json:"title"`
 	Status     string            `json:"status"`
+	Area       string            `json:"area,omitempty"`
 	Milestones []StatusMilestone `json:"milestones"`
 }
 
@@ -194,6 +205,7 @@ func NewCmd() *cobra.Command {
 		pretty    bool
 		noTrunc   bool
 		worktrees bool
+		area      string
 	)
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -215,11 +227,12 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, pretty, noTrunc, worktrees))
+			return cliutil.WrapExitCode(Run(root, format, area, pretty, noTrunc, worktrees))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
+	cmd.Flags().StringVar(&area, "area", "", "scope the snapshot to one workstream by effective area (E-0043)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
 	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls (G-0122)")
@@ -227,6 +240,7 @@ func NewCmd() *cobra.Command {
 		[]string{"text", "json", "md"},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
+	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
 	return cmd
 }
 
@@ -235,7 +249,7 @@ func NewCmd() *cobra.Command {
 // organized layout (text format only renders the worktree sections;
 // json format adds a `worktrees` key to the result envelope; md
 // format ignores the flag for now).
-func Run(root, format string, pretty, noTrunc, worktrees bool) int {
+func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return cliutil.ExitUsage
@@ -247,6 +261,12 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitUsage
 	}
 
+	// Advisory note when --area names an undeclared value (M-0174/AC-5);
+	// to stderr so it never pollutes the (stdout) report.
+	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
+		fmt.Fprintln(os.Stderr, note)
+	}
+
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
@@ -255,6 +275,19 @@ func Run(root, format string, pretty, noTrunc, worktrees bool) int {
 	}
 
 	report := BuildStatus(tr, loadErrs, time.Now())
+	// Scope the entity-derived sections to one workstream when --area is
+	// set (M-0174/AC-2). Recent activity, warnings, and health stay
+	// global — they are cross-cutting tree-health signals, not per-area
+	// concepts. A no-op when area is empty.
+	FilterStatusByArea(tr, &report, area)
+
+	// Area-grouping config for the text/md renderers (M-0175). Empty
+	// members => flat rendering (zero-migration). Skipped under --area:
+	// a filter already narrows to one workstream, so grouping is moot
+	// (filter and grouping are alternative views, not combined).
+	if area == "" {
+		report.AreaMembers, report.AreaDefault = cliutil.ConfiguredAreas(rootDir)
+	}
 
 	recent, err := ReadRecentActivity(ctx, rootDir, RecentActivityLimit)
 	if err != nil {
@@ -354,6 +387,7 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 			ID:     canonEpic,
 			Title:  e.Title,
 			Status: e.Status,
+			Area:   tr.ResolvedArea(e),
 		}
 		for _, m := range milestonesByParent[canonEpic] {
 			se.Milestones = append(se.Milestones, StatusMilestone{
@@ -435,6 +469,56 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 	r.Health.Entities = len(tr.Entities)
 
 	return r
+}
+
+// FilterStatusByArea scopes a status report's entity-derived sections to
+// a single workstream (E-0043, M-0174/AC-2): in-flight epics, planned
+// epics, open decisions, and open gaps are kept only when their effective
+// area (tree.ResolvedAreaByID — root kinds by their own field, epics
+// carrying their derived milestones) equals area. Untagged entities
+// (effective area "") never match a named area, so they drop out (AC-6).
+//
+// A no-op when area is empty. Recent activity, warnings, health, the
+// sweep-pending one-liner, and the worktree views are left untouched —
+// they are cross-cutting tree-health signals, not per-area concepts.
+// Mutates r in place; the caller (Run) passes &report, and the render
+// resolver never calls this (it wants the full report).
+func FilterStatusByArea(tr *tree.Tree, r *StatusReport, area string) {
+	if area == "" {
+		return
+	}
+	r.InFlightEpics = keepEpicsInArea(tr, r.InFlightEpics, area)
+	r.PlannedEpics = keepEpicsInArea(tr, r.PlannedEpics, area)
+
+	decisions := r.OpenDecisions[:0:0]
+	for _, d := range r.OpenDecisions {
+		if tr.ResolvedAreaByID(d.ID) == area {
+			decisions = append(decisions, d)
+		}
+	}
+	r.OpenDecisions = decisions
+
+	gaps := r.OpenGaps[:0:0]
+	for _, g := range r.OpenGaps {
+		if tr.ResolvedAreaByID(g.ID) == area {
+			gaps = append(gaps, g)
+		}
+	}
+	r.OpenGaps = gaps
+}
+
+// keepEpicsInArea returns the epics whose effective area equals area.
+// Milestones ride along with their kept epic — an epic's area is the
+// single source for its milestones' derived area, so no per-milestone
+// filtering is needed.
+func keepEpicsInArea(tr *tree.Tree, epics []StatusEpic, area string) []StatusEpic {
+	kept := epics[:0:0]
+	for _, e := range epics {
+		if tr.ResolvedAreaByID(e.ID) == area {
+			kept = append(kept, e)
+		}
+	}
+	return kept
 }
 
 // ParseSweepPending extracts the count from an `archive-sweep-pending`
@@ -547,6 +631,43 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 	return events, nil
 }
 
+// statusEpicArea is the area accessor the grouping helper uses; an epic
+// carries its effective area (populated in BuildStatus).
+func statusEpicArea(e StatusEpic) string { return e.Area }
+
+// writeStatusEpicsText renders a section's epics, grouped per area when
+// members is non-empty (E-0043, M-0175/AC-2), else flat — today's output
+// (AC-6). In grouped mode each area is a bold subheading; a declared area
+// with no epics is suppressed and the untagged complement is always shown
+// (AC-5, via areagroup.Partition). emptyMsg is the flat-mode "(none)"-style
+// line shown when the whole section is empty.
+func writeStatusEpicsText(b *strings.Builder, epics []StatusEpic, members []string, defaultLabel string, termWidth int, colorEnabled bool, emptyMsg string) {
+	if len(members) == 0 {
+		if len(epics) == 0 {
+			b.WriteString("  " + emptyMsg + "\n")
+			return
+		}
+		for _, e := range epics {
+			WriteStatusEpicText(b, e, termWidth)
+		}
+		return
+	}
+	for _, g := range areagroup.Partition(epics, statusEpicArea, members, defaultLabel) {
+		// "▸ " marks the line as an area heading independently of color, so
+		// the grouping survives piped / no-color output (the status palette
+		// treats glyphs as content, not style — G-0080); the epic rows below
+		// carry their own "E-NNNN … [status]" shape.
+		b.WriteString("  " + render.Bold("▸ "+g.Label, colorEnabled) + "\n")
+		if len(g.Items) == 0 {
+			b.WriteString("    (none)\n")
+			continue
+		}
+		for _, e := range g.Items {
+			WriteStatusEpicText(b, e, termWidth)
+		}
+	}
+}
+
 // WriteStatusEpicText writes one epic plus its milestones in the
 // terminal-friendly shape shared by the In flight and Roadmap sections.
 // termWidth caps title widths so long titles don't wrap into the next
@@ -624,12 +745,7 @@ func RenderStatusText(w io.Writer, r *StatusReport, termWidth int, colorEnabled 
 	fmt.Fprintf(&b, "aiwf status — %s\n\n", r.Date)
 
 	b.WriteString(render.Bold("In flight", colorEnabled) + "\n")
-	if len(r.InFlightEpics) == 0 {
-		b.WriteString("  (no active epics)\n")
-	}
-	for _, e := range r.InFlightEpics {
-		WriteStatusEpicText(&b, e, termWidth)
-	}
+	writeStatusEpicsText(&b, r.InFlightEpics, r.AreaMembers, r.AreaDefault, termWidth, colorEnabled, "(no active epics)")
 
 	// Worktrees: one-line-per-worktree short view, placed directly
 	// under "In flight" since both sections answer "what's being
@@ -645,12 +761,7 @@ func RenderStatusText(w io.Writer, r *StatusReport, termWidth int, colorEnabled 
 	b.WriteByte('\n')
 
 	b.WriteString(render.Bold("Roadmap", colorEnabled) + "\n")
-	if len(r.PlannedEpics) == 0 {
-		b.WriteString("  (nothing planned)\n")
-	}
-	for _, e := range r.PlannedEpics {
-		WriteStatusEpicText(&b, e, termWidth)
-	}
+	writeStatusEpicsText(&b, r.PlannedEpics, r.AreaMembers, r.AreaDefault, termWidth, colorEnabled, "(nothing planned)")
 	b.WriteByte('\n')
 
 	b.WriteString(render.Bold("Open decisions", colorEnabled) + "\n")
@@ -751,20 +862,10 @@ func RenderStatusMarkdown(w io.Writer, r *StatusReport) error {
 	}
 
 	b.WriteString("## In flight\n\n")
-	if len(r.InFlightEpics) == 0 {
-		b.WriteString("_(no active epics)_\n\n")
-	}
-	for _, e := range r.InFlightEpics {
-		WriteStatusEpicMarkdown(&b, e)
-	}
+	writeStatusEpicsMarkdown(&b, r.InFlightEpics, r.AreaMembers, r.AreaDefault, "_(no active epics)_")
 
 	b.WriteString("## Roadmap\n\n")
-	if len(r.PlannedEpics) == 0 {
-		b.WriteString("_(nothing planned)_\n\n")
-	}
-	for _, e := range r.PlannedEpics {
-		WriteStatusEpicMarkdown(&b, e)
-	}
+	writeStatusEpicsMarkdown(&b, r.PlannedEpics, r.AreaMembers, r.AreaDefault, "_(nothing planned)_")
 
 	b.WriteString("## Open decisions\n\n")
 	if len(r.OpenDecisions) == 0 {
@@ -825,6 +926,34 @@ func RenderStatusMarkdown(w io.Writer, r *StatusReport) error {
 
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// writeStatusEpicsMarkdown renders a section's epics, grouped per area
+// when members is non-empty (E-0043, M-0175/AC-2), else flat — today's
+// output (AC-6). Grouped mode emits a bold area label before each group
+// (keeping the h2→h3 epic hierarchy intact); a declared area with no epics
+// is suppressed and the complement is always shown (AC-5). emptyMsg is the
+// flat-mode placeholder shown when the section has no epics.
+func writeStatusEpicsMarkdown(b *strings.Builder, epics []StatusEpic, members []string, defaultLabel, emptyMsg string) {
+	if len(members) == 0 {
+		if len(epics) == 0 {
+			b.WriteString(emptyMsg + "\n\n")
+		}
+		for _, e := range epics {
+			WriteStatusEpicMarkdown(b, e)
+		}
+		return
+	}
+	for _, g := range areagroup.Partition(epics, statusEpicArea, members, defaultLabel) {
+		fmt.Fprintf(b, "**%s**\n\n", MdEscape(g.Label))
+		if len(g.Items) == 0 {
+			b.WriteString("_(none)_\n\n")
+			continue
+		}
+		for _, e := range g.Items {
+			WriteStatusEpicMarkdown(b, e)
+		}
+	}
 }
 
 // WriteStatusEpicMarkdown writes one epic — header, milestone list, and

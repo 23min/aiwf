@@ -105,6 +105,13 @@ var hintTable = map[string]string{
 	// (there is no post-create --tdd verb — tdd is creation-set).
 	"milestone-tdd-undeclared": "declare the milestone's TDD policy — create with `aiwf add milestone --tdd <required|advisory|none>`, or for an existing milestone add `tdd: required` (or advisory/none) to the frontmatter; absent `tdd:` is silently treated as `tdd: none`",
 
+	// M-0172 area-unknown: the entity's `area` value is present but not
+	// a member of the aiwf.yaml: areas set (typo protection). Absence is
+	// never flagged and the rule is inert when no areas block exists, so
+	// the only remediation paths are fixing the typo, declaring the value,
+	// or removing the field.
+	"area-unknown": "the entity's `area` is not in the declared set — fix the typo to match a member of `aiwf.yaml: areas.members`, add the value to that member set if it's a legitimate new workstream, or remove the `area` field; absence and an absent `areas` block are never flagged",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition
