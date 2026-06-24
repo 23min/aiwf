@@ -1,7 +1,9 @@
 ---
 id: G-0266
 title: optional area tag for grouping entities by workstream
-status: open
+status: addressed
+addressed_by_commit:
+    - e3168394
 ---
 ## What's missing
 
