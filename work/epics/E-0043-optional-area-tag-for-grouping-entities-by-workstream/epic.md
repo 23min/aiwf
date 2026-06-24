@@ -1,7 +1,7 @@
 ---
 id: E-0043
 title: Optional area tag for grouping entities by workstream
-status: active
+status: done
 ---
 ## Goal
 
