@@ -519,7 +519,7 @@ _No milestones yet._
 | M-0169 | Directed wf-vacuity pass over the load-bearing units | done |
 | M-0170 | Firing tests for linter-config rules and the dormant forbidigo fix | done |
 
-## E-0043 — Optional area tag for grouping entities by workstream (active)
+## E-0043 — Optional area tag for grouping entities by workstream (done)
 
 ### Goal
 
