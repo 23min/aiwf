@@ -533,3 +533,19 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 | M-0174 | --area filter on list, show, and status | done |
 | M-0175 | Area grouping in status, render roadmap, and render html | done |
 
+## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (proposed)
+
+### Goal
+
+Make `--area` filtering **trustworthy** for the multi-project monorepo — the area feature's primary intended use — by anchoring each area to the path glob of the project it represents. Once an area knows where its project lives, the kernel regains an oracle (the project's paths) it structurally lacks for a purely semantic boundary, and the checks aiwf "can't have" for a label-only tag all become buildable. The payoff: `aiwf list --area app-a` becomes a reliable "all app-a work," promoting the filter from convenience to load-bearing.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0176 | Partition totality and disjointness property test for areagroup | draft |
+| M-0177 | aiwf rename-area verb with atomic cross-entity rewrite | draft |
+| M-0178 | areas.required knob promoting untagged entities to a blocking finding | draft |
+| M-0179 | paths per-area config evolution with backward-compatible unmarshaler | draft |
+| M-0180 | Area path bijection and coverage check | draft |
+| M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | draft |
+| M-0182 | Auto-derive or suggest area from path hint at add and wrap | draft |
+
