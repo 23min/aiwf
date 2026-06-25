@@ -26,13 +26,11 @@ E-0043 shipped `areagroup.Partition` as the single source of the area-partition 
 
 ## Acceptance criteria
 
-<!-- Candidate ACs, formalized via `aiwf add ac M-0176 --title "..."` at start-milestone. -->
+Formalized at start-milestone as AC-1–AC-3 (frontmatter `acs[]`; full statements and their pinning tests are under the AC sections below). Summary:
 
-Candidate properties to formalize at start-milestone:
-
-- **Totality + disjointness** — every input item appears in exactly one output group (count-in == count-out; no item in two groups; none dropped).
-- **Complement correctness** — the complement group (Area "") holds exactly the items whose area is "" or not a declared member, and nothing else.
-- **Declared order + suppression** — declared areas appear in `members` order; an empty declared area is suppressed; the complement is always emitted last.
+- **AC-1 · Totality + disjointness** — every input item appears in exactly one output group (count-in == count-out; no item in two groups; none dropped).
+- **AC-2 · Complement correctness** — the complement group (Area "") holds exactly the items whose area is "" or not a declared member, and nothing else.
+- **AC-3 · Declared order + suppression** — declared areas appear in `members` order; an empty declared area is suppressed; the complement is always emitted last.
 
 ## Constraints
 
@@ -55,7 +53,29 @@ Candidate properties to formalize at start-milestone:
 
 ### AC-1 — Partition is total and disjoint: every item in exactly one group
 
+**Property.** For any input, the multiset of items across all output groups equals the input multiset: every item appears in exactly one group — none dropped, none duplicated, none fabricated (`count-in == count-out`).
+
+**Mechanical assertion.** `TestPartition_Property_TotalAndDisjoint` in [`internal/areagroup/partition_property_test.go`](../../../internal/areagroup/partition_property_test.go) drives `testing/quick` over 2000 generated inputs (deterministic, fixed seed), flattens the groups, and asserts each input id occurs exactly once. Vacuity-checked: deleting an item from the complement (`count-out 3 != 7`) and emitting a declared group twice (`count-out 9 != 7`) each turn it red.
+
 ### AC-2 — Complement holds exactly the untagged and undeclared items
 
+**Property.** Exactly one group carries the complement marker (`Area ""`); it holds exactly the items whose area is `""` or not a declared member, in input order; and its label is the configured `areas.default` — or the built-in `DefaultComplementLabel` fallback when that is empty.
+
+**Mechanical assertion.** `TestPartition_Property_ComplementCorrect` derives the expected complement independently from the member set and asserts membership (by id, in input order), single-complement-ness, and label correctness across the generated inputs. Vacuity-checked: dropping complement items and emitting the complement twice each turn it red.
+
 ### AC-3 — Declared areas keep members order; empty suppressed; complement last
+
+**Property.** Declared areas appear in `members` order, each carrying its items in input order and labelling itself with its area; a declared area with no items is suppressed; the complement is always the final group.
+
+**Mechanical assertion.** `TestPartition_Property_DeclaredOrderAndComplementLast` reconstructs the expected declared sequence (members order, non-empty only) and asserts the emitted order, per-group items, `Label == Area`, and complement-last. Vacuity-checked: emitting the complement first rather than last (`found 2 complement groups`) and duplicating a declared group each turn it red.
+
+## Work log
+
+### AC-1 / AC-2 / AC-3 — partition property tests
+
+Added [`internal/areagroup/partition_property_test.go`](../../../internal/areagroup/partition_property_test.go): a `testing/quick` generator (`partitionInput.Generate` — deterministic fixed seed, 2000 cases per property) and three property tests, one per AC. **No production change** — `Partition` already satisfies all three properties; this milestone replaces example-only pinning with a generative floor (per the `wf-property-test` skill). Vacuity confirmed by three deliberate mutations (item drop, duplicate declared group, complement-first); each is caught by the expected property and the originals stay green.
+
+- tests: 3 property tests green; full-package `go test -race` green
+- lint: `golangci-lint run ./internal/areagroup/...` → 0 issues
+- commit: implementation bundled at wrap per `aiwfx-start-milestone` step 8
 
