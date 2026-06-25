@@ -1,7 +1,7 @@
 ---
 id: M-0176
 title: Partition totality and disjointness property test for areagroup
-status: in_progress
+status: done
 parent: E-0044
 tdd: advisory
 acs:
