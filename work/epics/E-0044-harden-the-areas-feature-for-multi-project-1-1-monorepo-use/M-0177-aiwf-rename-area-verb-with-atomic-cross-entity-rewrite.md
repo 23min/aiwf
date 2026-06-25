@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: rename-area <new> <old> reverses a prior rename
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: rename-area ships tab-completion for old, a skill, and --help
       status: open
