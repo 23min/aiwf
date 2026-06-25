@@ -4,6 +4,16 @@ title: Partition totality and disjointness property test for areagroup
 status: draft
 parent: E-0044
 tdd: advisory
+acs:
+    - id: AC-1
+      title: 'Partition is total and disjoint: every item in exactly one group'
+      status: open
+    - id: AC-2
+      title: Complement holds exactly the untagged and undeclared items
+      status: open
+    - id: AC-3
+      title: Declared areas keep members order; empty suppressed; complement last
+      status: open
 ---
 
 ## Goal
@@ -42,3 +52,10 @@ Candidate properties to formalize at start-milestone:
 
 - `internal/areagroup/areagroup.go` — the `Partition` helper under test.
 - `wf-property-test` skill — the generative-property discipline this milestone applies.
+
+### AC-1 — Partition is total and disjoint: every item in exactly one group
+
+### AC-2 — Complement holds exactly the untagged and undeclared items
+
+### AC-3 — Declared areas keep members order; empty suppressed; complement last
+
