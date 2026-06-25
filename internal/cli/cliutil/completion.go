@@ -105,6 +105,29 @@ func CompleteAreaFlag() func(*cobra.Command, []string, string) ([]string, cobra.
 	}
 }
 
+// CompleteAreaArg is the positional-arg completion adapter for `aiwf
+// rename-area <old> <new>`: it offers exactly the declared
+// `aiwf.yaml: areas.members` at the given position and nothing
+// elsewhere. Wired as `cmd.ValidArgsFunction = cliutil.CompleteAreaArg(0)`,
+// it completes `<old>` (position 0) to the declared member set and
+// offers nothing for `<new>` (position 1) — a brand-new name has no
+// closed set to suggest. Mirrors CompleteEntityIDArg's position-
+// respecting shape and CompleteAreaFlag's member source; failures (no
+// aiwf.yaml, no areas block) collapse to an empty list rather than
+// erroring in the shell.
+func CompleteAreaArg(position int) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) != position {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		rootDir, err := ResolveRoot("")
+		if err != nil { //coverage:ignore ResolveRoot("") only errors if os.Getwd fails (unreachable in practice; it falls back to cwd on a missing aiwf.yaml); mirrors CompleteAreaFlag
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return ConfiguredAreaMembers(rootDir), cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 // CompleteEntityIDArg is the standard Cobra positional-arg completion
 // adapter over CompleteEntityIDs. Callers assign it as a command's
 // ValidArgsFunction. Unlike the flag adapter, this version respects

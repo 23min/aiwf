@@ -84,13 +84,22 @@ type Entry struct {
 // against the in-memory tree happen elsewhere).
 var idPattern = regexp.MustCompile(`^C-\d{3,}$`)
 
-// Doc is a parsed aiwf.yaml plus the byte range of its `contracts:`
-// block. Doc carries enough information to write an updated contracts
-// block back without round-tripping the rest of the file.
+// Doc is a parsed aiwf.yaml plus the byte ranges of the blocks aiwf
+// owns — the `contracts:` block and the `areas:` block. Doc carries
+// enough information to write an updated block back without round-
+// tripping the rest of the file.
+//
+// areasAt / hasAreas mirror contractsAt / hasContracts for the
+// `areas:` block (E-0044, M-0177): `aiwf rename-area` splices a
+// rewritten areas block back into the source bytes, leaving every
+// other byte — comments, blank lines, key ordering, the rest of the
+// file — untouched, exactly as SetContracts does for contracts.
 type Doc struct {
 	raw          []byte
 	contractsAt  byteRange
 	hasContracts bool
+	areasAt      byteRange
+	hasAreas     bool
 }
 
 // byteRange names a half-open [start, end) byte interval inside Doc.raw.
@@ -120,13 +129,32 @@ func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 	if err := yaml.Unmarshal(raw, &root); err != nil {
 		return nil, nil, fmt.Errorf("parsing aiwf.yaml: %w", err)
 	}
-	doc := &Doc{raw: raw, contractsAt: byteRange{start: len(raw), end: len(raw)}}
+	doc := &Doc{
+		raw:         raw,
+		contractsAt: byteRange{start: len(raw), end: len(raw)},
+		areasAt:     byteRange{start: len(raw), end: len(raw)},
+	}
 	if root.Kind == 0 || len(root.Content) == 0 {
 		return doc, nil, nil
 	}
 	top := root.Content[0]
 	if top.Kind != yaml.MappingNode {
 		return nil, nil, fmt.Errorf("aiwf.yaml: top-level must be a YAML mapping, got %s", kindName(top.Kind))
+	}
+
+	// Detect the `areas:` block byte range for the area-member writer
+	// (E-0044, M-0177). Independent of the contracts: block — a repo may
+	// declare areas without contracts, and the contracts handling below
+	// returns early when no contracts: key is present, so areas detection
+	// must run first to survive that early return.
+	if areasIdx := findMappingKey(top, "areas"); areasIdx >= 0 {
+		areasKeyNode := top.Content[areasIdx]
+		start, end, err := blockByteRange(raw, top, areasKeyNode, areasIdx)
+		if err != nil { //coverage:ignore blockByteRange only errors when lineToByteOffset does, which it never does in practice (it returns len(raw) past EOF); defensive, mirrors the contracts path
+			return nil, nil, err
+		}
+		doc.areasAt = byteRange{start: start, end: end}
+		doc.hasAreas = true
 	}
 
 	keyIdx := findMappingKey(top, "contracts")
@@ -176,6 +204,27 @@ func (d *Doc) SetContracts(c *Contracts) error {
 	} else {
 		d.appendContracts(block)
 	}
+	return nil
+}
+
+// SetAreas splices a rewritten `areas:` block into the doc's source
+// bytes, replacing the existing one. members is the full member list
+// in display order (callers supply the post-rename slice); defaultLabel
+// is the optional `default:` display label for the untagged complement
+// (empty omits the field). Comments, blank lines, and every other
+// top-level key survive byte-for-byte — only the `areas:` block's bytes
+// change, exactly as SetContracts does for contracts.
+//
+// SetAreas requires an existing `areas:` block: the sole caller
+// (`aiwf rename-area`) renames a declared member, so the block is
+// always present by the time it writes. Returns an error when no
+// `areas:` block was found at parse time rather than fabricating one —
+// there is no "create the block" path for this verb (E-0044, M-0177).
+func (d *Doc) SetAreas(members []string, defaultLabel string) error {
+	if !d.hasAreas {
+		return fmt.Errorf("no areas: block in aiwf.yaml to update")
+	}
+	d.replaceAreas(marshalAreasBlock(members, defaultLabel))
 	return nil
 }
 
@@ -431,6 +480,45 @@ func marshalContractsBlock(c *Contracts) []byte {
 	}
 
 	return []byte(b.String())
+}
+
+// marshalAreasBlock serializes an areas block beginning with the line
+// `areas:` and ending with a trailing newline. Members are emitted as a
+// two-space-indented YAML sequence in the supplied order (the verb
+// preserves the original member order, swapping only the renamed
+// entry); the optional `default:` display label follows when non-empty.
+//
+// Mirrors marshalContractsBlock: scalars route through yamlScalar so a
+// member that needs quoting is quoted, and the block is canonical YAML
+// the strict config loader round-trips. Comments and other top-level
+// keys are preserved by the byte-range splice in replaceAreas, not by
+// this function — same guarantee SetContracts gives.
+func marshalAreasBlock(members []string, defaultLabel string) []byte {
+	var b strings.Builder
+	b.WriteString("areas:\n")
+	if len(members) > 0 {
+		b.WriteString("  members:\n")
+		for _, m := range members {
+			fmt.Fprintf(&b, "    - %s\n", yamlScalar(m))
+		}
+	}
+	if defaultLabel != "" {
+		fmt.Fprintf(&b, "  default: %s\n", yamlScalar(defaultLabel))
+	}
+	return []byte(b.String())
+}
+
+// replaceAreas substitutes the block bytes in d.raw at the recorded
+// areas byte range. The range is updated so a subsequent SetAreas call
+// on the same Doc sees the new layout. Mirrors replaceContracts.
+func (d *Doc) replaceAreas(block []byte) {
+	out := make([]byte, 0, len(d.raw)-(d.areasAt.end-d.areasAt.start)+len(block))
+	out = append(out, d.raw[:d.areasAt.start]...)
+	out = append(out, block...)
+	out = append(out, d.raw[d.areasAt.end:]...)
+	d.raw = out
+	d.areasAt = byteRange{start: d.areasAt.start, end: d.areasAt.start + len(block)}
+	d.hasAreas = true
 }
 
 // sortedKeys returns the keys of m in ascending order. Used to make
