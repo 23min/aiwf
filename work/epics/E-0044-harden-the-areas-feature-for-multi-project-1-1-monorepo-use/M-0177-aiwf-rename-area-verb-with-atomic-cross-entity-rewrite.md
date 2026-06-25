@@ -22,7 +22,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-5
-      title: rename-area ships tab-completion for old, a skill, and --help
+      title: rename-area ships tab-completion for old, --help, and skill-coverage
       status: open
       tdd_phase: done
 ---
@@ -79,5 +79,5 @@ Candidate behaviors to formalize at start-milestone:
 
 ### AC-4 — rename-area <new> <old> reverses a prior rename
 
-### AC-5 — rename-area ships tab-completion for old, a skill, and --help
+### AC-5 — rename-area ships tab-completion for old, --help, and skill-coverage
 
