@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: rename-area <new> <old> reverses a prior rename
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: rename-area ships tab-completion for old, a skill, and --help
