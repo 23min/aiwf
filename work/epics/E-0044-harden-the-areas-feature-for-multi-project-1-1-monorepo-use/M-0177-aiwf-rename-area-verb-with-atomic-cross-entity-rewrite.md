@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: rename-area rewrites the member and all referencing entities atomically
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: the rename commit carries rename-area trailers and aiwf history renders it
       status: open
