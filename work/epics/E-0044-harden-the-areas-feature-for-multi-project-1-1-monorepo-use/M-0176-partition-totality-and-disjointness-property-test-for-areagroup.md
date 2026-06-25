@@ -77,5 +77,27 @@ Added [`internal/areagroup/partition_property_test.go`](../../../internal/areagr
 
 - tests: 3 property tests green; full-package `go test -race` green
 - lint: `golangci-lint run ./internal/areagroup/...` → 0 issues
-- commit: implementation bundled at wrap per `aiwfx-start-milestone` step 8
+- commit: `adc65280` (`test(areagroup): generative property tests for Partition totality/disjointness`)
+
+## Decisions made during implementation
+
+No architectural decisions — the milestone is a local test addition. One implementation choice worth recording: the generator uses stdlib `testing/quick` with a fixed-seed `*rand.Rand` rather than native Go fuzzing (`Fuzz*`). Rationale: `testing/quick` runs the full 2000-case sample on every `go test`, so the Tier-0 floor bites on every CI run, whereas a `Fuzz*` test exercises only its seed corpus in routine CI (broad exploration happens just in the scheduled `fuzz` workflow). Deterministic-by-seed satisfies the repo's no-wall-clock test rule, and no new dependency is added. Not worth an architectural decision record — no cross-cutting contract.
+
+## Validation
+
+- `make ci` (vet + lint + race-coverage + self-check) — green; `aiwf doctor --self-check` 29/29.
+- `go test -race ./internal/areagroup/...` — green (pre-existing 4 example tests + 3 new property tests).
+- `golangci-lint run ./internal/areagroup/...` — 0 issues.
+- `aiwf check` — 0 errors. Remaining findings are advisory: `acs-tdd-audit` × 3 (ACs `met` under `tdd: advisory` with `tdd_phase` absent — expected for characterization testing of already-green code, see Reviewer notes) and one environmental `provenance-untrailered-scope-undefined` (no upstream ref configured in the epic worktree).
+- `Partition` production code byte-identical to base — pure characterization hardening, no behavior change.
+
+## Deferrals
+
+None.
+
+## Reviewer notes
+
+- **Independent two-lens review: APPROVE.** A fresh-context reviewer (no authorship attachment) verified every load-bearing claim by measuring, not reasoning. It ran 11 deliberate `Partition` mutations — the 3 documented in the Work log plus 8 of its own (mis-bucketing, suppression-drop, label/order breaks, broken empty-default fallback) — and each was caught by the expected property. Tautology was ruled out: when production routed all items into the complement, AC-2's independent oracle still caught it. Generator breadth was instrumented across 2000×3 cases (declared buckets populated in ~60% of cases; no category starved). `wf-rethink` was not run — the milestone introduces no new module, abstraction, or data model, only a local test-only generator.
+- **TDD posture.** The milestone is `tdd: advisory`, and this characterizes already-correct code, so there is no red→green production cycle and the ACs are `met` with `tdd_phase` absent. The resulting `acs-tdd-audit` warnings are advisory by design and accepted as the honest record; clearing them via the full phase progression (~15 commits) would be disproportionate, and `tdd: none` has no clean verb path.
+- **Non-blocking, left as-is** (reviewer-flagged): the illustrative failure-count literals in the AC bodies are example shapes, not pinned assertions; the generator ceilings (5 members / 12 items) are modest but adequate for a Tier-0 floor.
 
