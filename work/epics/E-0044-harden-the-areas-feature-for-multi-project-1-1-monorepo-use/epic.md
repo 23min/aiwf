@@ -1,7 +1,7 @@
 ---
 id: E-0044
 title: Harden the areas feature for multi-project (1:1) monorepo use
-status: proposed
+status: active
 ---
 
 # E-0044 — Harden the areas feature for multi-project (1:1) monorepo use
