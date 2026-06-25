@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: the rename commit carries rename-area trailers and aiwf history renders it
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: rename-area refuses undeclared old or already-declared new; no partial write
       status: open
