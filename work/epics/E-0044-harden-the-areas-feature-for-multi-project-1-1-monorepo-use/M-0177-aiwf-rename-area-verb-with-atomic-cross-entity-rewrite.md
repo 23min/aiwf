@@ -1,7 +1,7 @@
 ---
 id: M-0177
 title: aiwf rename-area verb with atomic cross-entity rewrite
-status: draft
+status: in_progress
 parent: E-0044
 tdd: required
 acs:
