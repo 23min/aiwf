@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: 'Partition is total and disjoint: every item in exactly one group'
-      status: open
+      status: met
     - id: AC-2
       title: Complement holds exactly the untagged and undeclared items
       status: open
