@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Complement holds exactly the untagged and undeclared items
-      status: open
+      status: met
     - id: AC-3
       title: Declared areas keep members order; empty suppressed; complement last
       status: open
