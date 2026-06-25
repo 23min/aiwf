@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Declared areas keep members order; empty suppressed; complement last
-      status: open
+      status: met
 ---
 
 ## Goal
