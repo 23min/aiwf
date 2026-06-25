@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: rename-area refuses undeclared old or already-declared new; no partial write
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: rename-area <new> <old> reverses a prior rename
       status: open
