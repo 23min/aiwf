@@ -4,6 +4,27 @@ title: aiwf rename-area verb with atomic cross-entity rewrite
 status: draft
 parent: E-0044
 tdd: required
+acs:
+    - id: AC-1
+      title: rename-area rewrites the member and all referencing entities atomically
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: the rename commit carries rename-area trailers and aiwf history renders it
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: rename-area refuses undeclared old or already-declared new; no partial write
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: rename-area <new> <old> reverses a prior rename
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: rename-area ships tab-completion for old, a skill, and --help
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -49,3 +70,14 @@ Candidate behaviors to formalize at start-milestone:
 - `internal/config/config.go` — the `Areas` member set rewritten.
 - `aiwf reallocate` — the precedent for atomic cross-tree reference rewrite + trailers.
 - ADR-0006 — skills policy (the new verb needs a skill or allowlist entry).
+
+### AC-1 — rename-area rewrites the member and all referencing entities atomically
+
+### AC-2 — the rename commit carries rename-area trailers and aiwf history renders it
+
+### AC-3 — rename-area refuses undeclared old or already-declared new; no partial write
+
+### AC-4 — rename-area <new> <old> reverses a prior rename
+
+### AC-5 — rename-area ships tab-completion for old, a skill, and --help
+
