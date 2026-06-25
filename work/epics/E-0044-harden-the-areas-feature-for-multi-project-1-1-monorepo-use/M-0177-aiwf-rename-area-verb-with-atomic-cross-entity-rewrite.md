@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: rename-area ships tab-completion for old, --help, and skill-coverage
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
