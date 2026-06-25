@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: rename-area ships tab-completion for old, a skill, and --help
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
