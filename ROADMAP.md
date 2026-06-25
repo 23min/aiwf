@@ -533,7 +533,7 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 | M-0174 | --area filter on list, show, and status | done |
 | M-0175 | Area grouping in status, render roadmap, and render html | done |
 
-## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (proposed)
+## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (active)
 
 ### Goal
 
@@ -541,7 +541,7 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0176 | Partition totality and disjointness property test for areagroup | draft |
+| M-0176 | Partition totality and disjointness property test for areagroup | done |
 | M-0177 | aiwf rename-area verb with atomic cross-entity rewrite | draft |
 | M-0178 | areas.required knob promoting untagged entities to a blocking finding | draft |
 | M-0179 | paths per-area config evolution with backward-compatible unmarshaler | draft |
