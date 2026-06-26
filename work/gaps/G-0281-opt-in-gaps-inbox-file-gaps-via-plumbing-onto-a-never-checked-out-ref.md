@@ -1,7 +1,9 @@
 ---
-id: G-0280
+id: G-0281
 title: 'Opt-in gaps inbox: file gaps via plumbing onto a never-checked-out ref'
 status: open
+prior_ids:
+    - G-0280
 ---
 ## Problem
 
