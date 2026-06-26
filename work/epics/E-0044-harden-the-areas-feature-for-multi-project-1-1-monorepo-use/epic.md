@@ -98,7 +98,8 @@ Tier 0 (label-only hardening — independent of the oracle, mutually paralleliza
 
 - [M-0176](M-0176-partition-totality-and-disjointness-property-test-for-areagroup.md) — partition totality / disjointness property test on `internal/areagroup`. · depends on: —
 - [M-0177](M-0177-aiwf-rename-area-verb-with-atomic-cross-entity-rewrite.md) — `aiwf rename-area` verb: atomic cross-entity + `aiwf.yaml` rewrite in one trailered commit. · depends on: —
-- [M-0178](M-0178-areas-required-knob-promoting-untagged-entities-to-a-blocking-finding.md) — `areas.required` knob: promote untagged to a blocking finding. · depends on: —
+- [M-0183](M-0183-aiwf-set-area-verb-to-tag-one-entity-to-a-declared-area-member.md) — `aiwf set-area` verb: tag one entity to a declared area member (the `required` remediation path). · depends on: —
+- [M-0178](M-0178-areas-required-knob-promoting-untagged-entities-to-a-blocking-finding.md) — `areas.required` knob: promote untagged to a blocking finding (all five root kinds; add-time refusal). · depends on: M-0183 (its `set-area` remediation must ship first)
 
 Tier 1 (the oracle — the keystone):
 
