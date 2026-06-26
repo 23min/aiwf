@@ -43,3 +43,42 @@ Deliberately NOT in scope: a policy that *reasons about whether the inverse actu
 - `internal/check/provenance.go` (~488-490) — the untrailered-entity audit that makes a hand-edit inverse a trap.
 - G-0022 (item 1) — the `authorize` scope-revoke gap this policy would flag (YAGNI-deferred).
 - M-0183 — the `set-area --clear` work whose design surfaced this audit.
+
+## Refinement (2026-06-26): an inverse can be *governance-weighted*, not just present
+
+A sibling design session on the `tdd:` set-policy verb (the missing-verb side is
+folded into G-0168 on main) surfaced a property this registry's A/B/C/D model
+does not yet capture. The registry classifies an inverse by **existence** —
+self-inverse, terminal transition, documented one-way, or new-entity. But `tdd:`
+shows a fifth axis orthogonal to existence: **directionality of integrity.**
+
+- The undo of "set tdd required" is "set tdd advisory" — a clean class-A
+  self-inverse by *existence*.
+- Yet the directions are not equivalent: the upgrade *strengthens* the
+  "met requires `tdd_phase: done`" gate (benign, should be frictionless), while
+  the downgrade *weakens* it — exactly the integrity-loosening act aiwf routes
+  through a sovereign `--reason` (and human actor) elsewhere
+  (`acknowledge-illegal`, `--force`).
+
+So a verb can have a perfectly *present* inverse that is nonetheless
+**governance-weighted in one direction.** The registry catches "no usable
+inverse"; it does not yet catch "the inverse exists but the weakening direction
+must be gated and isn't."
+
+### Proposed extension to the registry model
+
+For class-A (self-inverse) entries, allow an optional **`gated` annotation**
+naming the direction/condition that must carry `--reason` (and, where applicable,
+a human actor), and assert mechanically that the verb requires it on that path.
+Same shape as the existing "class-A names its reversing flag, policy asserts the
+flag exists" wall — extended from *"the reversing input exists"* to *"the
+weakening reversing input is gated."* A `tdd:` policy verb that lets
+`required → advisory` through without `--reason` would then be either
+mis-declared or caught mechanically.
+
+This makes `tdd:` the **third** instance of the audit's shape (after `set-area`
+and `authorize`), but the first that is *gated-asymmetric* rather than simply
+*missing* — so it argues the registry needs the directional-gating axis, not just
+existence classification.
+
+Source: design session, 2026-06-26 (sibling to the G-0168 `tdd:` fold on main).
