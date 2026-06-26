@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: area-required errors on every untagged root entity across all five kinds
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: required off or absent leaves area-required inert (pre-knob parity)
