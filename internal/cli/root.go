@@ -44,6 +44,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
+	"github.com/23min/aiwf/internal/cli/setarea"
 	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/cli/template"
@@ -167,6 +168,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(cancel.NewCmd())
 	cmd.AddCommand(rename.NewCmd())
 	cmd.AddCommand(renamearea.NewCmd())
+	cmd.AddCommand(setarea.NewCmd())
 	cmd.AddCommand(retitle.NewCmd())
 	cmd.AddCommand(editbody.NewCmd())
 	cmd.AddCommand(move.NewCmd())

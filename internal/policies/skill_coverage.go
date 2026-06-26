@@ -215,6 +215,7 @@ var skillCoverageAllowlist = map[string]string{
 	"move":        "rare cross-epic milestone move; --help + the `aiwf-promote`/`aiwf-add` skills cover the surrounding flow",
 	"rewidth":     "one-shot migration ritual per ADR-0008; --help is sufficient discovery surface (ADR-0006 'no skill when --help suffices' case)",
 	"rename-area": "config-mutation verb; --help + area-member completion cover the surface; the orphan-trap warning lives in --help (E-0044, M-0177)",
+	"set-area":    "single-entity area-tag mutation; --help + entity-id/area-member completion cover the surface; the orphan-trap framing lives in --help (E-0044, M-0183)",
 
 	// Kind-namespace parent commands — non-Runnable; subverbs are documented elsewhere.
 	"milestone": "kind-namespace parent (subverb `depends-on` for cross-milestone deps); the surrounding `aiwf-add` and `aiwf-promote` skills cover the flow",
