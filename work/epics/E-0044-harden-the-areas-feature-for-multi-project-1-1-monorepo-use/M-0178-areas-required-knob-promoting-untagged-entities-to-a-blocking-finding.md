@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: areas.required escalates an undeclared area (area-unknown) to a blocking error
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
