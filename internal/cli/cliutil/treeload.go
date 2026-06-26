@@ -83,6 +83,21 @@ func ConfiguredAreaMembers(rootDir string) []string {
 	if err != nil || cfg == nil {
 		return nil
 	}
+	return cfg.Areas.MemberNames()
+}
+
+// ConfiguredAreaMembersFull returns the consumer's declared workstream areas
+// with their full label+location shape (E-0044, M-0179) — the member set the
+// `aiwf rename-area` writer needs so it can preserve each member's `paths`
+// across a rename. Returns nil when no areas block is declared (or aiwf.yaml is
+// absent/unreadable). The name-only readers stay on ConfiguredAreaMembers /
+// ConfiguredAreas (derived via MemberNames); only rename-area, which writes the
+// block back, reads the full members.
+func ConfiguredAreaMembersFull(rootDir string) []config.Member {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return nil
+	}
 	return cfg.Areas.Members
 }
 
@@ -110,7 +125,7 @@ func ConfiguredAreas(rootDir string) (members []string, defaultLabel string) {
 	if err != nil || cfg == nil {
 		return nil, ""
 	}
-	return cfg.Areas.Members, cfg.Areas.Default
+	return cfg.Areas.MemberNames(), cfg.Areas.Default
 }
 
 // ConfiguredTrunkBranchShortName returns the consumer's trunk short

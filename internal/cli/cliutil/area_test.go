@@ -54,6 +54,37 @@ func TestConfiguredAreas(t *testing.T) {
 	})
 }
 
+// TestConfiguredAreaMembersFull pins the E-0044/M-0179 accessor the
+// rename-area writer reads: it returns the full label+location member shape
+// (so paths survive a rename), and nil when no aiwf.yaml is present.
+func TestConfiguredAreaMembersFull(t *testing.T) {
+	t.Parallel()
+	t.Run("returns full members with paths", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
+			[]byte("areas:\n  members:\n    - name: app-a\n      paths:\n        - projects/app-a/**\n    - billing\n"), 0o644); err != nil {
+			t.Fatalf("write aiwf.yaml: %v", err)
+		}
+		members := cliutil.ConfiguredAreaMembersFull(root)
+		if len(members) != 2 {
+			t.Fatalf("members = %v, want 2", members)
+		}
+		if members[0].Name != "app-a" || len(members[0].Paths) != 1 || members[0].Paths[0] != "projects/app-a/**" {
+			t.Errorf("members[0] = %+v, want app-a with [projects/app-a/**]", members[0])
+		}
+		if members[1].Name != "billing" || members[1].Paths != nil {
+			t.Errorf("members[1] = %+v, want billing with nil paths", members[1])
+		}
+	})
+	t.Run("nil when no aiwf.yaml", func(t *testing.T) {
+		t.Parallel()
+		if got := cliutil.ConfiguredAreaMembersFull(t.TempDir()); got != nil {
+			t.Errorf("ConfiguredAreaMembersFull(empty) = %v, want nil", got)
+		}
+	})
+}
+
 // TestUndeclaredAreaNote pins M-0174/AC-5's advisory-note logic, the
 // single source the three read verbs share: an empty area is silent; a
 // declared area is silent; an undeclared area names the value and the

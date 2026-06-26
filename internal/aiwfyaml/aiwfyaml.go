@@ -84,6 +84,17 @@ type Entry struct {
 // against the in-memory tree happen elsewhere).
 var idPattern = regexp.MustCompile(`^C-\d{3,}$`)
 
+// AreaMember is the label+location shape SetAreas writes back (E-0044,
+// M-0179): a Name and an optional Paths list. Duplicated here (rather than
+// importing config.Member) so this package keeps its zero-dependency-on-config
+// layering — mirroring the duplicated idPattern precedent above. A member with
+// no Paths is emitted in the bare string form; one with Paths is emitted in the
+// `name`/`paths` mapping form.
+type AreaMember struct {
+	Name  string
+	Paths []string
+}
+
 // Doc is a parsed aiwf.yaml plus the byte ranges of the blocks aiwf
 // owns — the `contracts:` block and the `areas:` block. Doc carries
 // enough information to write an updated block back without round-
@@ -220,7 +231,7 @@ func (d *Doc) SetContracts(c *Contracts) error {
 // always present by the time it writes. Returns an error when no
 // `areas:` block was found at parse time rather than fabricating one —
 // there is no "create the block" path for this verb (E-0044, M-0177).
-func (d *Doc) SetAreas(members []string, defaultLabel string) error {
+func (d *Doc) SetAreas(members []AreaMember, defaultLabel string) error {
 	if !d.hasAreas {
 		return fmt.Errorf("no areas: block in aiwf.yaml to update")
 	}
@@ -488,18 +499,32 @@ func marshalContractsBlock(c *Contracts) []byte {
 // preserves the original member order, swapping only the renamed
 // entry); the optional `default:` display label follows when non-empty.
 //
-// Mirrors marshalContractsBlock: scalars route through yamlScalar so a
-// member that needs quoting is quoted, and the block is canonical YAML
-// the strict config loader round-trips. Comments and other top-level
-// keys are preserved by the byte-range splice in replaceAreas, not by
+// Each member is emitted in the form that matches its shape (E-0044, M-0179):
+// a member with no Paths is a bare string (`- app-a`); a member with Paths is a
+// `name`/`paths` mapping (`- name: app-a` followed by an indented `paths:`
+// list). This keeps a paths-less config byte-identical to the legacy E-0043
+// shape while letting located members carry their paths through a rename.
+//
+// Mirrors marshalContractsBlock: scalars (names and path entries) route through
+// yamlScalar so a value that needs quoting is quoted, and the block is
+// canonical YAML the strict config loader round-trips. Comments and other
+// top-level keys are preserved by the byte-range splice in replaceAreas, not by
 // this function — same guarantee SetContracts gives.
-func marshalAreasBlock(members []string, defaultLabel string) []byte {
+func marshalAreasBlock(members []AreaMember, defaultLabel string) []byte {
 	var b strings.Builder
 	b.WriteString("areas:\n")
 	if len(members) > 0 {
 		b.WriteString("  members:\n")
 		for _, m := range members {
-			fmt.Fprintf(&b, "    - %s\n", yamlScalar(m))
+			if len(m.Paths) == 0 {
+				fmt.Fprintf(&b, "    - %s\n", yamlScalar(m.Name))
+				continue
+			}
+			fmt.Fprintf(&b, "    - name: %s\n", yamlScalar(m.Name))
+			b.WriteString("      paths:\n")
+			for _, p := range m.Paths {
+				fmt.Fprintf(&b, "        - %s\n", yamlScalar(p))
+			}
 		}
 	}
 	if defaultLabel != "" {

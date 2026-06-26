@@ -92,7 +92,12 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		return cliutil.ExitInternal
 	}
 
-	members, defaultLabel := cliutil.ConfiguredAreas(rootDir)
+	// The full member shape (label + paths) so the rename preserves each
+	// member's paths (E-0044, M-0179); the default label still comes through
+	// ConfiguredAreas (name-only). The handler has no *config.Config in scope,
+	// so it reads through the cliutil helpers rather than config directly.
+	members := cliutil.ConfiguredAreaMembersFull(rootDir)
+	_, defaultLabel := cliutil.ConfiguredAreas(rootDir)
 	doc, _, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)

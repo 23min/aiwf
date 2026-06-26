@@ -33,8 +33,8 @@ func TestLoad_AreasBlockRoundTrip(t *testing.T) {
 		t.Fatalf("Areas.Members = %v, want %v", cfg.Areas.Members, want)
 	}
 	for i, w := range want {
-		if cfg.Areas.Members[i] != w {
-			t.Errorf("Areas.Members[%d] = %q, want %q", i, cfg.Areas.Members[i], w)
+		if cfg.Areas.Members[i].Name != w {
+			t.Errorf("Areas.Members[%d].Name = %q, want %q", i, cfg.Areas.Members[i].Name, w)
 		}
 	}
 	if cfg.Areas.Default != "Uncategorized" {
@@ -90,12 +90,12 @@ func TestLoad_AreasBlockMalformed(t *testing.T) {
 		{
 			name:    "non-string member",
 			block:   []string{"areas:", "  members:", "    - platform", "    - 42"},
-			wantSub: "not a string",
+			wantSub: "neither a string",
 		},
 		{
 			name:    "null member",
 			block:   []string{"areas:", "  members:", "    - platform", "    - ~"},
-			wantSub: "not a string",
+			wantSub: "neither a string",
 		},
 		{
 			name:    "members not a sequence",
@@ -155,7 +155,7 @@ func TestLoad_AreasBlockQuotedNumericMemberAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(cfg.Areas.Members) != 2 || cfg.Areas.Members[0] != "42" || cfg.Areas.Members[1] != "platform" {
+	if len(cfg.Areas.Members) != 2 || cfg.Areas.Members[0].Name != "42" || cfg.Areas.Members[1].Name != "platform" {
 		t.Errorf("Members = %v, want [42 platform]", cfg.Areas.Members)
 	}
 }
