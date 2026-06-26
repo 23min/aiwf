@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: set-area ships tab-completion, --help, and skill-coverage
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
