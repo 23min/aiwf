@@ -196,3 +196,72 @@ FSM-coupled fields out of band). The decision is worth an
 with the ADR `relates_to` schema question filed as its sibling gap.
 
 Source: downstream consumer feedback, 2026-06-12.
+
+## Re-discovery (2026-06-26): the `tdd:` field, from the upgrade direction
+
+A fresh session hit this gap again — the opposite direction to the M-0120 case
+above: *strengthening* a milestone from `tdd: advisory` to `tdd: required` after
+establishing its ACs were genuinely testable. Same missing verb, but the upgrade
+direction surfaced two things the original downgrade case did not.
+
+### The two directions are not symmetric — `tdd:` has directional integrity semantics
+
+- **Upgrade** (`advisory → required`, `none → advisory`) *strengthens* the
+  "met requires `tdd_phase: done`" gate. A normal, desirable mid-flight decision;
+  it should be frictionless.
+- **Downgrade** (`required → advisory|none`) *weakens* that gate — the class of
+  act aiwf elsewhere routes through a sovereign `--reason` (and human actor) path
+  (`acknowledge-illegal`, `--force`).
+
+This sharpens the verb shape proposed above: the `--reason` should not be uniform
+"trail clarity" (as the table suggests for all four fields) but **directional** —
+required on the weakening direction, optional on the strengthening one. It also
+sharpens the inverse-coverage-policy gap filed on the `epic/E-0044` worktree (its
+id is unsettled cross-branch until that epic merges): that registry classifies an
+inverse by *existence* (A/B/C/D), but `tdd:` shows a verb can need a fifth
+property — *the inverse exists but is governance-weighted*. The undo of
+"set tdd required" is "set tdd advisory", and that undo is the gated one.
+
+### The friction has a deeper root than the missing verb — an over-strict check rule
+
+Even with a perfect verb, the upgrade breaks the tree today. ACs added under an
+`advisory` milestone carry no `tdd_phase`; the moment the milestone becomes
+`required`, `internal/check/acs.go` (~line 153, `ac.TDDPhase == "" && tddRequired`)
+errors `acs-shape/tdd-phase` on **every** phaseless AC, regardless of status. The
+phase enum is `red|green|refactor|done`, with no "not started" member — so the
+only way to clear the tree is to seed untouched ACs to `red`, which *lies*
+(`red` means "failing test written").
+
+But the design commits (CLAUDE.md #8) only to **"AC `met` requires
+`tdd_phase: done`"** — not to "every AC has a phase." So `acs.go:153` is
+**stricter than the commitment**; it over-demands. The cleaner fix is therefore
+two-part, and the check half may matter more than the verb:
+
+- **Relax `acs-shape/tdd-phase`** so an absent phase is legal until an AC is `met`
+  (absent = "not started"). Then `advisory → required` is non-disruptive, the
+  verb's "auto-seed to `red` vs refuse" question *evaporates*, and the real gate
+  (met → done) is untouched — bringing the check back in line with #8.
+- **Add the verb** for the trailered policy flip.
+
+If the strict reading is instead kept deliberately (`required` means "every AC is
+phase-tracked from creation"), the verb must **refuse with an actionable hint**
+naming the ACs to seed — never auto-seed to `red`, which manufactures false state.
+
+### Prerequisites for closing (the rest of today's verb-surface cluster)
+
+When the `tdd:` verb lands as a `milestone` subverb, two sibling gaps gate its
+discoverability and coverage:
+
+- **G-0285** (root `--help` banner drift) — the banner omits the entire
+  `milestone` namespace today, so the new subverb would be invisible there until
+  G-0285's chokepoint lands. This same omission is *why* the verb felt missing:
+  `aiwf milestone depends-on` already ships but the banner hides it.
+- **G-0284** (skill-coverage subverb blind spot) — namespace subverbs escape the
+  skill-coverage policy today, so the new verb could ship uncovered; G-0284 names
+  exactly this class.
+
+Verb-name convergence: the re-discovery proposed `aiwf milestone set-tdd`; the
+table above proposes `aiwf milestone tdd --policy <…>`. Pick one shape when
+implementing.
+
+Source: design session, 2026-06-26.
