@@ -39,6 +39,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/promote"
 	"github.com/23min/aiwf/internal/cli/reallocate"
 	"github.com/23min/aiwf/internal/cli/rename"
+	"github.com/23min/aiwf/internal/cli/renamearea"
 	"github.com/23min/aiwf/internal/cli/render"
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
@@ -165,6 +166,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(promote.NewCmd())
 	cmd.AddCommand(cancel.NewCmd())
 	cmd.AddCommand(rename.NewCmd())
+	cmd.AddCommand(renamearea.NewCmd())
 	cmd.AddCommand(retitle.NewCmd())
 	cmd.AddCommand(editbody.NewCmd())
 	cmd.AddCommand(move.NewCmd())
@@ -239,6 +241,7 @@ Verbs:
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/
