@@ -6,6 +6,31 @@ parent: E-0044
 depends_on:
     - M-0183
 tdd: required
+acs:
+    - id: AC-1
+      title: areas.required parses as a bool; required with zero members is rejected
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: area-required errors on every untagged root entity across all five kinds
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: required off or absent leaves area-required inert (pre-knob parity)
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: a milestone never fires area-required; an untagged epic reports once
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: aiwf add refuses an untagged create when areas.required is true
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: area-required ships SKILL.md discoverability and a set-area hint
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,3 +69,16 @@ Candidate behaviors to formalize at start-milestone:
 
 - `internal/check/area_unknown.go` — the sibling present ⇒ declared finding this sits beside (not modified).
 - `internal/config/config.go` — the `Areas` schema the knob extends.
+
+### AC-1 — areas.required parses as a bool; required with zero members is rejected
+
+### AC-2 — area-required errors on every untagged root entity across all five kinds
+
+### AC-3 — required off or absent leaves area-required inert (pre-knob parity)
+
+### AC-4 — a milestone never fires area-required; an untagged epic reports once
+
+### AC-5 — aiwf add refuses an untagged create when areas.required is true
+
+### AC-6 — area-required ships SKILL.md discoverability and a set-area hint
+
