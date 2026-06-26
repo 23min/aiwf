@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: area-required ships SKILL.md discoverability and a set-area hint
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
