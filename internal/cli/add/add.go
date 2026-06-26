@@ -163,7 +163,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// parent epic (ResolvedAreaByID). Explicit --area always wins.
 	resolvedArea := area
 	if area != "" {
-		if k != entity.KindMilestone {
+		if entity.CarriesOwnArea(k) {
 			if rc := validateAreaMember(rootDir, area); rc != cliutil.ExitOK {
 				return rc
 			}
@@ -180,7 +180,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// rejects --area on a milestone). A gap whose --discovered-in derived a
 	// non-empty area above is unaffected — only a genuinely empty resolved
 	// area trips the refusal.
-	if resolvedArea == "" && k != entity.KindMilestone && cliutil.ConfiguredAreaRequired(rootDir) {
+	if resolvedArea == "" && entity.CarriesOwnArea(k) && cliutil.ConfiguredAreaRequired(rootDir) {
 		members := cliutil.ConfiguredAreaMembers(rootDir)
 		fmt.Fprintf(os.Stderr, "aiwf add: aiwf.yaml: areas.required is set — %s requires an --area; declared: %s\n", k, strings.Join(members, ", "))
 		return cliutil.ExitUsage

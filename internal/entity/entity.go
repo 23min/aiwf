@@ -34,6 +34,16 @@ func AllKinds() []Kind {
 	return []Kind{KindEpic, KindMilestone, KindADR, KindGap, KindDecision, KindContract}
 }
 
+// CarriesOwnArea reports whether a kind stores its own `area` frontmatter
+// versus deriving it from a parent. It is the single source of truth for
+// that distinction (E-0043): a milestone derives its area from its parent
+// epic and never stores its own (the loader blanks any stored value); the
+// five other root kinds — epic, gap, ADR, decision, contract — self-tag.
+// Returns true for every kind except KindMilestone.
+func CarriesOwnArea(k Kind) bool {
+	return k != KindMilestone
+}
+
 // Status constants for the closed sets. Hardcoded; see
 // docs/pocv3/design/design-decisions.md and the schemas table for
 // per-kind allowance. Use these constants instead of bare string

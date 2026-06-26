@@ -47,7 +47,7 @@ func AreaRequired(t *tree.Tree, declared []string, required bool) []Finding {
 	}
 	var findings []Finding
 	for _, e := range t.Entities {
-		if e.Kind == entity.KindMilestone {
+		if !entity.CarriesOwnArea(e.Kind) {
 			continue
 		}
 		if entity.IsArchivedPath(e.Path) {

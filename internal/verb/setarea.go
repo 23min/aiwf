@@ -18,8 +18,10 @@ import (
 // It is the guaranteed remediation for `areas.required` (M-0178): when
 // the knob flags an untagged entity, `aiwf set-area <id> <member>` is
 // the one-command unblock. It also owns the inverse — `aiwf set-area
-// <id> --clear` untags an entity back to the (legitimate, never-flagged)
-// untagged state, the clean correction for a mis-tag.
+// <id> --clear` untags an entity back to the untagged state (legitimate
+// and never-flagged unless `areas.required` is set, under which an
+// untagged entity is itself flagged by area-required), the clean
+// correction for a mis-tag.
 //
 // Two modes, dispatched on `clear`:
 //
@@ -74,7 +76,7 @@ func SetArea(
 	if e == nil {
 		return nil, fmt.Errorf("unknown id %q", id)
 	}
-	if entity.IsCompositeID(id) || e.Kind == entity.KindMilestone {
+	if entity.IsCompositeID(id) || !entity.CarriesOwnArea(e.Kind) {
 		return nil, fmt.Errorf(
 			"%s derives its area from parent epic %s; run: aiwf set-area %s %s",
 			id, e.Parent, e.Parent, areaArgHint(member, clearTag),

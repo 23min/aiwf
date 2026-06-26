@@ -92,3 +92,19 @@ func TestParse_AreaKnownButUnknownSiblingRejected(t *testing.T) {
 		t.Errorf("err = %v, want a 'field bogus' rejection", err)
 	}
 }
+
+// TestCarriesOwnArea pins the single-source-of-truth predicate for which
+// kinds store their own `area` versus derive it from a parent (E-0043):
+// a milestone derives from its parent epic and never self-tags; the five
+// other root kinds carry their own area.
+func TestCarriesOwnArea(t *testing.T) {
+	t.Parallel()
+	if CarriesOwnArea(KindMilestone) {
+		t.Errorf("CarriesOwnArea(KindMilestone) = true, want false (derives from parent epic)")
+	}
+	for _, k := range []Kind{KindEpic, KindGap, KindADR, KindDecision, KindContract} {
+		if !CarriesOwnArea(k) {
+			t.Errorf("CarriesOwnArea(%v) = false, want true (self-tagging root kind)", k)
+		}
+	}
+}
