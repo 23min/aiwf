@@ -108,3 +108,37 @@ Formalized at start-milestone as AC-1–AC-5 (frontmatter `acs[]`; full statemen
 **Property.** `<id>` tab-completes to entity ids and `<member>` (position 1) to the declared `areas.members`; `aiwf set-area --help` ships (documenting `<member>` and `--clear`); and the verb satisfies the skill-coverage chokepoint via a `skillCoverageAllowlist` entry (ADR-0006 "--help suffices"). The provenance posture (authorized-AI-eligible) is pinned by `TestSetArea_AuthorizedAIWithinScope` (a scoped `ai/<id>` actor whose scope reaches the target is *allowed* — the positive inverse of `TestRenameArea_AuthorizedAIRefused`).
 
 **Mechanical assertion.** `TestSetArea_AC5_Discoverability` (integration) asserts the composed `ValidArgsFunction` returns entity ids at position 0 and declared members at position 1, and that the allowlist entry is present; the `skill_coverage` and completion-drift policy tests fail CI if the verb lacks coverage or a non-nil completion function. `TestNewCmd_SmokeShape` pins the command shape + `--help` (including the `--clear` flag). `TestSetArea_AuthorizedAIWithinScope` pins the AI-eligible posture.
+
+## Work log
+
+### AC-1 / AC-2 / AC-3 / AC-4 / AC-5 — set-area verb
+
+Implemented `aiwf set-area <id> <member> [--clear]` mirroring `rename-area` (atomic single-entity frontmatter edit) + `retitle` (composite/AC-id refusal) + `milestone depends-on --clear` (the `--clear`/positional mutex pattern). New: `internal/verb/setarea.go`, `internal/cli/setarea/`, a composed `ValidArgsFunction` (entity ids at position 0, declared members at position 1); allowlist entries in `skill_coverage.go` + `m0123_ac5_drift_test.go`.
+
+- implementation commit: `d007054c` (`feat(set-area): atomic single-entity area tag/retag/untag verb`)
+- tests: verb + cli integration + policies green; `go build ./...` clean; `golangci-lint` 0 issues on touched packages
+- coverage: `SetArea` 97.4% (one `//coverage:ignore` defensive serialize path, mirroring `rename-area`)
+- per-AC phase timeline lives in `aiwf history M-0183/AC-<N>`
+
+## Decisions made during implementation
+
+- **`--clear` first-class (untag in scope).** Reversed the initial "untagging out of scope" stance after an independent YAGNI + LLM-UX review. Excluding untag reintroduced the very `provenance-untrailered-entity-commit` catch-22 the verb exists to kill (for the untag direction — a hand-edit would trip it), forced an asymmetric "reversal only for retag", and made the verb's mental model ("owns the `area` field") incoherent for an AI agent. `--clear` mirrors `milestone depends-on --clear` (zero new machinery — `modified.Area = ""`, `omitempty` drops the key) and makes reversal total. The spec got *smaller* (the one-way/out-of-scope prose deleted).
+- **Provenance posture: authorized-AI-eligible.** Routed through the scope-gated finish with a NON-empty `TargetID` (the entity), so a scoped `ai/<id>` agent whose scope reaches the entity may run it — the inverse of `rename-area`'s human-only empty-target posture. Rationale: set-area has a single target entity (scope-reachable), and tagging supplies a true missing fact bounded by scope reachability; filters are non-gating, and wrong-area tagging is the Tier-2 mistag check's job. Tier-0 limit: until the `paths:` oracle lands (M-0179/M-0181), nothing verifies the *correct* area is chosen, only that it is *a* declared member. Pinned by `TestSetArea_AuthorizedAIWithinScope` (positive — scoped AI allowed; reddens if `TargetID` is emptied).
+- **`clear` → `clearTag` identifier.** `clear` is a Go builtin; `gocritic builtinShadow` (a blocking lint gate) flags shadowing it. Mirrors `milestone_depends_on`'s `clearList`. The `--clear` flag name and behavior are unchanged.
+
+## Validation
+
+- `go build ./...` clean; `go test` on `internal/verb`, `internal/cli/integration`, `internal/policies` green; `golangci-lint` 0 issues on all touched packages.
+- Branch coverage clean — `SetArea` 97.4%, the sole uncovered line the annotated defensive `entity.Serialize` path.
+- Two independent fresh-context reviews. (1) Pre-build design review returned REQUEST-CHANGES → AC contract tightened (both AC-1 directions exercised, AC-3 composite/absent-block refusals + epic-named milestone message, AC-4 total reversal, `--clear` first-class) → re-reviewed APPROVE. (2) Post-build implementation review — APPROVE; six mutation probes each reddened the right test (both AC-1 directions, AC-3 guards, AC-4 `--clear`, the provenance pin), no scope creep, working tree left byte-identical.
+- AC-2's `aiwf history` assertion was tightened from a substring match to a structural JSON `result.events[].verb == "set-area"` assertion (CLAUDE.md §"Substring assertions are not structural assertions") before AC-2 was promoted `met`.
+
+## Deferrals
+
+- None for set-area itself. The cross-cutting **inverse-coverage policy** surfaced during this milestone's verb audit is filed as **G-0282** (a mechanical per-verb "what-undoes-this" chokepoint, mirroring `skill_coverage.go`). The `authorize` scope-revoke gap the same audit named is already tracked by **G-0022** (item 1).
+
+## Reviewer notes
+
+- **Two-lens review: APPROVE.** The pre-build design lens caught that mirroring `rename-area`'s test shape would exercise only the already-tagged case (the untagged remediation direction would ship untested) and surfaced the untag/`--clear` decision. The post-build implementation lens mutation-verified every AC pin and confirmed the AI-eligible provenance posture reddens when `TargetID` is emptied.
+- **Non-blocking, accepted:** the orphan-milestone refusal message (empty parent epic) is unreachable in a valid tree (`aiwf check` enforces the milestone parent ref) — left unguarded per YAGNI.
+- **Build process:** the verb was authored by a builder subagent against the conversation-locked AC contract, then independently reviewed; the red→green cycle ran in that session and phases were recorded red→green→done per AC.
