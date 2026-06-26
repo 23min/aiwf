@@ -111,3 +111,75 @@ func TestAdd_UntaggedAllowedWhenRequiredOff(t *testing.T) {
 	root := setupAreaRepo(t) // members declared, required not set → false
 	mustRun(t, "add", "epic", "--title", "Untagged", "--actor", "human/test", "--root", root)
 }
+
+// TestCheck_AreaUnknownErrorsUnderRequired pins M-0178/AC-7 (end-to-end
+// seam): a gap carrying a present-but-undeclared (typo'd) area under
+// `areas.required: true` makes `aiwf check` exit ExitFindings with
+// area-unknown escalated to error; with `required` off the same tree
+// exits ExitOK (area-unknown stays a warning). Catches the bug class
+// where check.ApplyAreaRequiredStrict exists and is unit-tested but the
+// CLI Run forgets to compose it (or passes the wrong config field).
+func TestCheck_AreaUnknownErrorsUnderRequired(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--title", "Leak", "--actor", "human/test", "--root", root)
+
+	// Hand-edit the gap to carry an undeclared area (a typo of "platform").
+	// Non-empty area, so area-required never fires — this isolates the
+	// area-unknown escalation.
+	matches, err := filepath.Glob(filepath.Join(root, "work", "gaps", "G-0001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("locate gap file: matches=%v err=%v", matches, err)
+	}
+	gapRaw, err := os.ReadFile(matches[0])
+	if err != nil {
+		t.Fatalf("read gap: %v", err)
+	}
+	gapPatched := strings.Replace(string(gapRaw), "status: open\n", "status: open\narea: platfrm\n", 1)
+	if gapPatched == string(gapRaw) {
+		t.Fatalf("failed to inject area into gap frontmatter:\n%s", gapRaw)
+	}
+	if err = os.WriteFile(matches[0], []byte(gapPatched), 0o644); err != nil {
+		t.Fatalf("write gap: %v", err)
+	}
+
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+
+	// 1. required OFF (members declared, `required` absent → false): the
+	//    typo'd area fires area-unknown at warning. check exits ExitOK.
+	off := string(raw) + "areas:\n  members:\n    - platform\n    - billing\n"
+	if err = os.WriteFile(yamlPath, []byte(off), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml (off): %v", err)
+	}
+	rc, stdout, _ := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"check", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Errorf("required off: rc = %d, want ExitOK (%d) — area-unknown must stay a warning\n%s",
+			rc, cliutil.ExitOK, stdout)
+	}
+	if !strings.Contains(stdout, "area-unknown") {
+		t.Errorf("required off: expected area-unknown in output; got:\n%s", stdout)
+	}
+
+	// 2. required ON: the same typo'd area escalates to error. check exits
+	//    ExitFindings.
+	on := string(raw) + "areas:\n  required: true\n  members:\n    - platform\n    - billing\n"
+	if err = os.WriteFile(yamlPath, []byte(on), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml (on): %v", err)
+	}
+	rc, stdout, _ = testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"check", "--root", root})
+	})
+	if rc != cliutil.ExitFindings {
+		t.Errorf("required on: rc = %d, want ExitFindings (%d) — area-unknown must escalate to error\n%s",
+			rc, cliutil.ExitFindings, stdout)
+	}
+	if !strings.Contains(stdout, "area-unknown") {
+		t.Errorf("required on: expected area-unknown in output; got:\n%s", stdout)
+	}
+}

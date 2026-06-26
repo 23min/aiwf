@@ -195,6 +195,13 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// error so the pre-push hook blocks the push.
 	check.ApplyTDDStrict(findings, tddStrict)
 
+	// M-0178/AC-7: aiwf.yaml: areas.required bumps area-unknown from
+	// warning to error so the pre-push hook blocks a present-but-
+	// undeclared area too. Composed here (not in the pure check.Run)
+	// where areaRequired is in scope — the same seam ApplyTDDStrict
+	// uses. With required off, area-unknown stays a warning.
+	check.ApplyAreaRequiredStrict(findings, areaRequired)
+
 	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
 	// aggregate `archive-sweep-pending` finding from warning to
 	// error when the pending-sweep count exceeds the consumer's

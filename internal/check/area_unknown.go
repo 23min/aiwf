@@ -13,6 +13,31 @@ import (
 // and tests.
 const CodeAreaUnknown = "area-unknown"
 
+// ApplyAreaRequiredStrict bumps the severity of the `area-unknown`
+// finding from warning to error when required=true (M-0178/AC-7).
+// Mutates the findings slice in place. The escalation mirrors
+// ApplyTDDStrict: AreaUnknown stays config-agnostic (always emits at
+// warning), and the strictness bump is a separate, testable post-pass
+// composed at the CLI layer where `areas.required` is in scope.
+//
+// The semantics this completes: under `areas.required: true`, an entity
+// must carry a *declared* area, not merely a non-empty one. Empty area
+// fires area-required (error); present-but-undeclared fires area-unknown
+// — escalated here to error so the pre-push hook blocks it too. With
+// required off, area-unknown stays a warning (byte-for-byte today). The
+// bumper is intentionally narrow: codes outside CodeAreaUnknown pass
+// through unchanged regardless of the flag.
+func ApplyAreaRequiredStrict(findings []Finding, required bool) {
+	if !required {
+		return
+	}
+	for i := range findings {
+		if findings[i].Code == CodeAreaUnknown {
+			findings[i].Severity = SeverityError
+		}
+	}
+}
+
 // AreaUnknown (warning) reports any non-archived entity whose `area`
 // frontmatter value is present and non-empty but not a member of the
 // declared set (`aiwf.yaml: areas.members`). It is the present-⇒-declared
