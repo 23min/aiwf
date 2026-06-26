@@ -163,13 +163,27 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// parent epic (ResolvedAreaByID). Explicit --area always wins.
 	resolvedArea := area
 	if area != "" {
-		if k != entity.KindMilestone {
+		if entity.CarriesOwnArea(k) {
 			if rc := validateAreaMember(rootDir, area); rc != cliutil.ExitOK {
 				return rc
 			}
 		}
 	} else if k == entity.KindGap && discoveredIn != "" {
 		resolvedArea = tr.ResolvedAreaByID(discoveredIn)
+	}
+
+	// M-0178: under `aiwf.yaml: areas.required: true`, a self-tagging root
+	// kind whose resolved area is empty is refused at creation — fail-fast
+	// before any entity is written, rather than waiting for the next push's
+	// area-required check. A milestone derives its area from its parent epic
+	// and is never directly tagged, so it is exempt (the verb already
+	// rejects --area on a milestone). A gap whose --discovered-in derived a
+	// non-empty area above is unaffected — only a genuinely empty resolved
+	// area trips the refusal.
+	if resolvedArea == "" && entity.CarriesOwnArea(k) && cliutil.ConfiguredAreaRequired(rootDir) {
+		members := cliutil.ConfiguredAreaMembers(rootDir)
+		fmt.Fprintf(os.Stderr, "aiwf add: aiwf.yaml: areas.required is set — %s requires an --area; declared: %s\n", k, strings.Join(members, ", "))
+		return cliutil.ExitUsage
 	}
 
 	opts := verb.AddOptions{

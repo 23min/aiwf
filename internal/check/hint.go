@@ -112,6 +112,13 @@ var hintTable = map[string]string{
 	// or removing the field.
 	"area-unknown": "the entity's `area` is not in the declared set — fix the typo to match a member of `aiwf.yaml: areas.members`, add the value to that member set if it's a legitimate new workstream, or remove the `area` field; absence and an absent `areas` block are never flagged",
 
+	// M-0178 area-required: the entity has no `area` but the consumer opted
+	// into strictness via `aiwf.yaml: areas.required: true`. The remediation
+	// is the M-0183 tag verb (`aiwf set-area <id> <member>`) or relaxing the
+	// knob. Distinct from area-unknown (present-⇒-declared); this is
+	// present-at-all.
+	"area-required": "the entity has no `area` but `aiwf.yaml: areas.required` is set — tag it with `aiwf set-area <id> <member>` (a declared member of areas.members), or remove `areas.required` from aiwf.yaml if untagged entities are acceptable",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition

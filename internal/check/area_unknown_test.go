@@ -102,3 +102,63 @@ func TestAreaUnknown_ArchivedEntity_NeverFires(t *testing.T) {
 		t.Errorf("fired for %q, want active G-0001", got[0].EntityID)
 	}
 }
+
+// TestApplyAreaRequiredStrict_EscalatesAreaUnknown pins M-0178/AC-7:
+// when required=true, every `area-unknown` finding is bumped from warning
+// to error so the pre-push hook blocks a present-but-undeclared area.
+// When required=false, all severities pass through unchanged (byte-for-
+// byte today). The bumper is scoped to exactly CodeAreaUnknown — other
+// findings pass through untouched. ApplyAreaRequiredStrict mirrors
+// ApplyTDDStrict: AreaUnknown stays warning-emitting; the escalation is a
+// separate, testable post-pass.
+func TestApplyAreaRequiredStrict_EscalatesAreaUnknown(t *testing.T) {
+	t.Parallel()
+	build := func() []Finding {
+		return []Finding{
+			{Code: CodeAreaUnknown, Severity: SeverityWarning, EntityID: "G-0001"},
+			{Code: CodeAreaUnknown, Severity: SeverityWarning, EntityID: "E-0002"},
+			{Code: CodeAreaRequired, Severity: SeverityError, EntityID: "G-0003"},
+			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning, EntityID: "M-0001"},
+		}
+	}
+
+	t.Run("required=true bumps area-unknown to error", func(t *testing.T) {
+		findings := build()
+		ApplyAreaRequiredStrict(findings, true)
+		var saw int
+		for _, f := range findings {
+			if f.Code == CodeAreaUnknown {
+				saw++
+				if f.Severity != SeverityError {
+					t.Errorf("area-unknown %s severity = %v, want error under required",
+						f.EntityID, f.Severity)
+				}
+			}
+			if f.Code == CodeAreaRequired && f.Severity != SeverityError {
+				t.Errorf("area-required severity = %v, want error preserved", f.Severity)
+			}
+			if f.Code == CodeEntityBodyEmpty && f.Severity != SeverityWarning {
+				t.Errorf("entity-body-empty severity = %v, want warning unchanged (required only escalates area-unknown)",
+					f.Severity)
+			}
+		}
+		if saw != 2 {
+			t.Errorf("expected both area-unknown findings present, saw %d", saw)
+		}
+	})
+
+	t.Run("required=false passes severities through", func(t *testing.T) {
+		findings := build()
+		ApplyAreaRequiredStrict(findings, false)
+		for _, f := range findings {
+			if f.Code == CodeAreaUnknown && f.Severity != SeverityWarning {
+				t.Errorf("area-unknown %s severity = %v, want warning unchanged when required=false",
+					f.EntityID, f.Severity)
+			}
+		}
+	})
+
+	t.Run("nil findings slice is a no-op", func(t *testing.T) {
+		ApplyAreaRequiredStrict(nil, true)
+	})
+}

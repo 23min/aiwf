@@ -87,6 +87,13 @@ type Config struct {
 type Areas struct {
 	Members []string `yaml:"members,omitempty"`
 	Default string   `yaml:"default,omitempty"`
+	// Required (M-0178) opts the 1:1 monorepo into strictness: when true,
+	// an untagged entity of a self-tagging root kind is a blocking
+	// `area-required` (error) finding. Default false (absent) leaves the
+	// pre-knob (E-0043) behavior byte-for-byte unchanged. validate()
+	// rejects required:true with zero members (an unsatisfiable "every
+	// entity must be a member of the empty set").
+	Required bool `yaml:"required,omitempty"`
 }
 
 // UnmarshalYAML decodes the areas block and rejects non-string members.
@@ -98,13 +105,15 @@ type Areas struct {
 // default) live in validate().
 func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
 	var raw struct {
-		Members []yaml.Node `yaml:"members"`
-		Default string      `yaml:"default"`
+		Members  []yaml.Node `yaml:"members"`
+		Default  string      `yaml:"default"`
+		Required bool        `yaml:"required"`
 	}
 	if err := value.Decode(&raw); err != nil {
 		return err
 	}
 	a.Default = raw.Default
+	a.Required = raw.Required
 	a.Members = make([]string, 0, len(raw.Members))
 	for i := range raw.Members {
 		n := &raw.Members[i]
@@ -148,6 +157,12 @@ func (a Areas) validate() error {
 		if seen[a.Default] {
 			return fmt.Errorf("areas.default %q must not also be a member; it labels the untagged complement", a.Default)
 		}
+	}
+	// M-0178: `required: true` asserts "every entity belongs to a declared
+	// area", which is unsatisfiable with an empty member set. Mirrors the
+	// `default`-needs-members rejection above.
+	if a.Required && len(a.Members) == 0 {
+		return fmt.Errorf("areas.required is set but no members are declared")
 	}
 	return nil
 }

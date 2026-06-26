@@ -1006,6 +1006,69 @@ func TestEntityTitleMaxLength_NilReceiver(t *testing.T) {
 	}
 }
 
+// TestConfig_AreasRequired_ParsesAndValidates pins M-0178/AC-1:
+// `areas.required` decodes as a bool (default false when absent), and
+// config.Load rejects `required: true` with an empty members set —
+// mirroring the existing `default`-needs-members rejection. Dropping the
+// new validate guard reddens the last case.
+func TestConfig_AreasRequired_ParsesAndValidates(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		yaml      string
+		wantErr   bool
+		wantField string // substring expected in the error message
+		wantReq   bool   // expected Required value when no error
+	}{
+		{
+			name:    "absent defaults to false",
+			yaml:    "hosts: [claude-code]\n",
+			wantReq: false,
+		},
+		{
+			name:    "required true with members is ok",
+			yaml:    "areas:\n  required: true\n  members:\n    - platform\n    - billing\n",
+			wantReq: true,
+		},
+		{
+			name:    "required false with no members is ok",
+			yaml:    "areas:\n  required: false\n",
+			wantReq: false,
+		},
+		{
+			name:      "required true with zero members is rejected",
+			yaml:      "areas:\n  required: true\n",
+			wantErr:   true,
+			wantField: "required",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(root)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil (cfg=%+v)", cfg)
+				}
+				if !strings.Contains(err.Error(), tc.wantField) {
+					t.Errorf("error %q does not name %q", err, tc.wantField)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.Areas.Required != tc.wantReq {
+				t.Errorf("Areas.Required = %v, want %v", cfg.Areas.Required, tc.wantReq)
+			}
+		})
+	}
+}
+
 // TestWrite_OmitsArchiveByDefault: a default Config must not emit
 // an `archive:` block on Write — mirrors the StatusMd default-shape
 // guarantee. Otherwise `aiwf init` would surprise the operator
