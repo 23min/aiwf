@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: a milestone never fires area-required; an untagged epic reports once
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: aiwf add refuses an untagged create when areas.required is true
       status: open
