@@ -548,4 +548,5 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0180 | Area path bijection and coverage check | draft |
 | M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | draft |
 | M-0182 | Auto-derive or suggest area from path hint at add and wrap | draft |
+| M-0183 | aiwf set-area verb to tag one entity to a declared area member | done |
 
