@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: the set-area commit carries trailers and aiwf history renders the retag
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: set-area refuses unknown id, undeclared member, milestone target, and no-op
       status: open
