@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Dual-form unmarshal parses string, object, mixed, and no-paths members
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: 'Legacy string-form parity: zero migration at the parse layer'
       status: open
