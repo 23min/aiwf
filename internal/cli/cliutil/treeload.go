@@ -86,6 +86,19 @@ func ConfiguredAreaMembers(rootDir string) []string {
 	return cfg.Areas.Members
 }
 
+// ConfiguredAreaRequired returns the consumer's `aiwf.yaml: areas.required`
+// flag (M-0178), or false when no areas block is declared (or aiwf.yaml is
+// absent/unreadable). The single source of truth the `aiwf add` write-time
+// refusal reads — the verb-time twin of the M-0178 area-required check.
+// Tolerant of a missing aiwf.yaml so the dispatcher calls it unconditionally.
+func ConfiguredAreaRequired(rootDir string) bool {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return false
+	}
+	return cfg.Areas.Required
+}
+
 // ConfiguredAreas returns the consumer's declared workstream areas from
 // `aiwf.yaml: areas` (E-0043, M-0175): the member set and the optional
 // `default:` display label for the untagged complement. Both are zero

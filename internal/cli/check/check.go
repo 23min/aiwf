@@ -153,6 +153,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	archiveThreshold := 0
 	archiveThresholdSet := false
 	var areaMembers []string
+	areaRequired := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		treeAllow = cfg.Tree.AllowPaths
@@ -160,6 +161,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 		areaMembers = cfg.Areas.Members
+		areaRequired = cfg.Areas.Required
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -180,6 +182,13 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// areas.members — the same CLI-layer seam TreeDiscipline uses. Inert
 	// when no areas block is declared (empty member set).
 	findings = append(findings, check.AreaUnknown(tr, areaMembers)...)
+
+	// M-0178: area-required is the present-at-all chokepoint for the 1:1
+	// monorepo — a config-dependent tree rule composed here (not in the
+	// pure check.Run) with the declared set and the `areas.required` bool
+	// from aiwf.yaml. Inert (emits nothing) when required is false or no
+	// areas block is declared.
+	findings = append(findings, check.AreaRequired(tr, areaMembers, areaRequired)...)
 
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to
