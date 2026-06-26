@@ -18,7 +18,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-4
-      title: set-area with the prior member reverses a previous set-area
+      title: set-area reverses totally via the same verb, including untag via --clear
       status: open
       tdd_phase: red
     - id: AC-5
