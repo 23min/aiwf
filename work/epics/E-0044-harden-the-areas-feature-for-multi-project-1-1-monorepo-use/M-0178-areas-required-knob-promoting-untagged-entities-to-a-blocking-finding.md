@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: aiwf add refuses an untagged create when areas.required is true
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: area-required ships SKILL.md discoverability and a set-area hint
       status: open
