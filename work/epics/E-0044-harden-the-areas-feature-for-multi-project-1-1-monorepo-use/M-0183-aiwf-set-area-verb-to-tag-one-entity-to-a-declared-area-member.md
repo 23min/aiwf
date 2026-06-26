@@ -1,7 +1,7 @@
 ---
 id: M-0183
 title: aiwf set-area verb to tag one entity to a declared area member
-status: draft
+status: in_progress
 parent: E-0044
 tdd: required
 acs:
