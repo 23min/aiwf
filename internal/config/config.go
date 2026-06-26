@@ -84,6 +84,13 @@ type Config struct {
 // strings only at this layer — glob matching against them is deferred to
 // M-0180, where the first match call site lives. A member declared in the
 // legacy string form (`members: [app-a]`) decodes with Name set and Paths nil.
+//
+// LOCKSTEP: aiwfyaml.AreaMember mirrors this struct field-for-field (the
+// comment-preserving writer is deliberately zero-dependency on config), and
+// verb.RenameArea copies Member → AreaMember by hand. The two are not
+// compile-linked: adding a field here means also adding it to
+// aiwfyaml.AreaMember and its copy site in renamearea.go, or the new field is
+// silently dropped on rename.
 type Member struct {
 	Name  string   `yaml:"name"`
 	Paths []string `yaml:"paths,omitempty"`
@@ -165,7 +172,7 @@ func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
 		case yaml.MappingNode:
 			var m Member
 			if err := n.Decode(&m); err != nil {
-				return fmt.Errorf("areas.members: member %q: %w", memberNodeName(n), err)
+				return fmt.Errorf("areas.members[%d]: member %q: %w", i, memberNodeName(n), err)
 			}
 			if len(m.Paths) == 0 {
 				// yaml.v3 decodes `paths: []` to a non-nil empty slice;
@@ -678,6 +685,14 @@ func splitKeepEOL(s string) []string {
 // Write marshals cfg to root/aiwf.yaml. Refuses to overwrite an
 // existing file — callers (notably `aiwf init`) decide what to do
 // when one is already there.
+//
+// Empty-config-only by contract. The sole caller is `aiwf init`, which
+// writes an empty &Config{} (areas omitted). Write must NOT be used to
+// serialize a populated areas block: yaml.Marshal would emit every Member
+// in mapping form (`- name: app-a`), churning a legacy bare-string member
+// and breaking the M-0179 zero-migration parity. Post-init edits to the
+// areas block route through the comment-preserving aiwfyaml writer
+// (aiwfyaml.SetAreas), which emits bare strings for paths-less members.
 func Write(root string, cfg *Config) error {
 	if err := cfg.Validate(); err != nil {
 		return err

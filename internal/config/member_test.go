@@ -173,9 +173,9 @@ func TestAreas_RejectsMalformed(t *testing.T) {
 			wantSub: "app-a", // wrapped decode error names the member
 		},
 		{
-			name:    "a2 paths not a list with no name (decode, empty member context)",
+			name:    "a2 paths not a list with no name (decode, index locator)",
 			body:    "  members:\n    - paths: notalist\n",
-			wantSub: "members: member", // memberNodeName returns "" when no name key
+			wantSub: "members[0]:", // no name key → index is the operator's locator
 		},
 		{
 			name:    "a3 empty path entry",
