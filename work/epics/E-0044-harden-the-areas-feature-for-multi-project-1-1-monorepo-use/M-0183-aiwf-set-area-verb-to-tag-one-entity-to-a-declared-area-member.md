@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: set-area rewrites the target entity's area to the member in one commit
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: the set-area commit carries trailers and aiwf history renders the retag
