@@ -4,6 +4,27 @@ title: aiwf set-area verb to tag one entity to a declared area member
 status: draft
 parent: E-0044
 tdd: required
+acs:
+    - id: AC-1
+      title: set-area rewrites the target entity's area to the member in one commit
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: the set-area commit carries trailers and aiwf history renders the retag
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: set-area refuses unknown id, undeclared member, milestone target, and no-op
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: set-area with the prior member reverses a previous set-area
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: set-area ships tab-completion, --help, and skill-coverage
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -56,3 +77,14 @@ Candidate behaviors to formalize at start-milestone:
 - `internal/check/area_unknown.go` — the declared-member validation reused for `<member>`.
 - M-0178 — the `areas.required` knob whose remediation path this verb is.
 - ADR-0006 — skills policy (allowlist / "--help suffices" case).
+
+### AC-1 — set-area rewrites the target entity's area to the member in one commit
+
+### AC-2 — the set-area commit carries trailers and aiwf history renders the retag
+
+### AC-3 — set-area refuses unknown id, undeclared member, milestone target, and no-op
+
+### AC-4 — set-area with the prior member reverses a previous set-area
+
+### AC-5 — set-area ships tab-completion, --help, and skill-coverage
+
