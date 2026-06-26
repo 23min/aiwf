@@ -31,6 +31,10 @@ acs:
       title: area-required ships SKILL.md discoverability and a set-area hint
       status: met
       tdd_phase: done
+    - id: AC-7
+      title: areas.required escalates an undeclared area (area-unknown) to a blocking error
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -122,3 +126,6 @@ Formalized at start-milestone as AC-1–AC-6 (frontmatter `acs[]`; full statemen
 **Property.** `area-required` appears verbatim in the `aiwf-check` SKILL.md (the `PolicyFindingCodesAreDiscoverable` haystack) and carries a `hint.go` remediation line pointing operators at `aiwf set-area <id> <member>`.
 
 **Mechanical assertion.** `TestPolicy_FindingCodesAreDiscoverable` (existing, `internal/policies/`) fails CI if `area-required` lacks a SKILL.md row — adding the row is the pin. `TestHint_AreaRequired` (`internal/check/hint_test.go`, or the existing hint-presence policy) asserts the `area-required` hint exists and mentions `set-area`. Vacuity: the discoverability policy reddens if the SKILL.md row is removed.
+
+### AC-7 — areas.required escalates an undeclared area (area-unknown) to a blocking error
+
