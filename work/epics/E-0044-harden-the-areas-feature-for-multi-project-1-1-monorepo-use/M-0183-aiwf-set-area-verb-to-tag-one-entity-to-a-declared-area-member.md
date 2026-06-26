@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: set-area refuses unknown id, undeclared member, milestone target, and no-op
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: set-area reverses totally via the same verb, including untag via --clear
       status: open
