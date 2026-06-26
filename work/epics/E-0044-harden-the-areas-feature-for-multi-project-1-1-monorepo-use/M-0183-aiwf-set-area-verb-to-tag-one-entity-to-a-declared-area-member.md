@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: set-area reverses totally via the same verb, including untag via --clear
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: set-area ships tab-completion, --help, and skill-coverage
