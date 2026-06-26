@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: areas.required parses as a bool; required with zero members is rejected
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: area-required errors on every untagged root entity across all five kinds
       status: open
