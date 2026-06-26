@@ -3,6 +3,8 @@ id: M-0178
 title: areas.required knob promoting untagged entities to a blocking finding
 status: draft
 parent: E-0044
+depends_on:
+    - M-0183
 tdd: required
 ---
 ## Goal
