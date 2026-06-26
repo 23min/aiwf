@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: area-required ships SKILL.md discoverability and a set-area hint
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
