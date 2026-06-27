@@ -4,6 +4,13 @@ title: Pin that the loader ignores in-repo worktrees under .claude/worktrees
 status: in_progress
 parent: E-0046
 tdd: none
+acs:
+    - id: AC-1
+      title: Loader ignores a nested checkout under .claude/worktrees
+      status: open
+    - id: AC-2
+      title: In-scope duplicate id is still reported as a collision
+      status: open
 ---
 
 # M-0188 — Pin that the loader ignores in-repo worktrees under .claude/worktrees
@@ -50,3 +57,8 @@ pins the result — it must not remain an assumption.
 ## References
 
 - E-0046 epic spec; CLAUDE.md "Subagent worktree isolation".
+
+### AC-1 — Loader ignores a nested checkout under .claude/worktrees
+
+### AC-2 — In-scope duplicate id is still reported as a collision
+
