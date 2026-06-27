@@ -104,7 +104,8 @@ Tier 0 (label-only hardening — independent of the oracle, mutually paralleliza
 Tier 1 (the oracle — the keystone):
 
 - [M-0179](M-0179-paths-per-area-config-evolution-with-backward-compatible-unmarshaler.md) — `paths:` per-area config evolution with a backward-compatible dual-form `Areas` unmarshaler (**keystone**). · depends on: —
-- [M-0180](M-0180-area-path-bijection-and-coverage-check.md) — bijection / coverage check: declared glob ⇒ real directory, project directory ⇒ exactly one area. · depends on: M-0179
+- [M-0184](M-0184-reserved-global-area-value-predicate-whitelist-and-verb-acceptance.md) — reserved `global` area value: SSOT predicate, `area-unknown` whitelist (incl. under `areas.required`), `set-area`/`add` acceptance, reserved-name guard (per ADR-0021). The not-1:1 escape valve M-0180 excludes from its domain. · depends on: —
+- [M-0180](M-0180-area-path-bijection-and-coverage-check.md) — bijection / coverage check: declared glob ⇒ real directory, project directory ⇒ exactly one area. · depends on: M-0179, M-0184
 
 Tier 2 (exploit the oracle — depends on the keystone):
 
