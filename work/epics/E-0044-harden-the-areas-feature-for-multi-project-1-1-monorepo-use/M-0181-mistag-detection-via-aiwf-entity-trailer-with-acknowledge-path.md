@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: No finding when some touched paths land in the entity's own area
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Inert with no paths, no linked commits, global area, or archived entity
       status: open
