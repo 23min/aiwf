@@ -153,6 +153,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	archiveThreshold := 0
 	archiveThresholdSet := false
 	var areaMembers []string
+	var areaPaths []check.AreaPaths
 	areaRequired := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
@@ -162,6 +163,12 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 		areaMembers = cfg.Areas.MemberNames()
 		areaRequired = cfg.Areas.Required
+		// Project the declared members to the check package's
+		// config-agnostic AreaPaths so the path-axis rules (dead-glob)
+		// stay free of any aiwf.yaml type, the M-0171/AC-4 boundary.
+		for _, m := range cfg.Areas.Members {
+			areaPaths = append(areaPaths, check.AreaPaths{Name: m.Name, Paths: m.Paths})
+		}
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -189,6 +196,20 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// from aiwf.yaml. Inert (emits nothing) when required is false or no
 	// areas block is declared.
 	findings = append(findings, check.AreaRequired(tr, areaMembers, areaRequired)...)
+
+	// M-0180: area-dead-glob is the path-claim half of the area matrix —
+	// a config-dependent tree rule composed here (not in the pure
+	// check.Run) with the declared areas' path globs from aiwf.yaml. It
+	// reads the filesystem read-only and fires when a declared glob locates
+	// nothing. Inert when no member declares a `paths:` glob.
+	findings = append(findings, check.AreaDeadGlob(tr, areaPaths)...)
+
+	// M-0180: area-overlap is the row-disjointness half of the path-claim
+	// axis — two areas' globs claiming one directory. Config-dependent, so
+	// composed here (not in pure check.Run) with the same declared area
+	// paths. Reads the filesystem read-only; inert with <2 paths-carrying
+	// areas.
+	findings = append(findings, check.AreaOverlap(tr, areaPaths)...)
 
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to

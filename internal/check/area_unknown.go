@@ -13,26 +13,32 @@ import (
 // and tests.
 const CodeAreaUnknown = "area-unknown"
 
-// ApplyAreaRequiredStrict bumps the severity of the `area-unknown`
-// finding from warning to error when required=true (M-0178/AC-7).
-// Mutates the findings slice in place. The escalation mirrors
-// ApplyTDDStrict: AreaUnknown stays config-agnostic (always emits at
-// warning), and the strictness bump is a separate, testable post-pass
-// composed at the CLI layer where `areas.required` is in scope.
+// ApplyAreaRequiredStrict bumps the severity of the area-axis findings from
+// warning to error when required=true. Mutates the findings slice in place.
+// The escalation mirrors ApplyTDDStrict: the rules stay config-agnostic
+// (always emit at warning), and the strictness bump is a separate, testable
+// post-pass composed at the CLI layer where `areas.required` is in scope.
 //
-// The semantics this completes: under `areas.required: true`, an entity
-// must carry a *declared* area, not merely a non-empty one. Empty area
-// fires area-required (error); present-but-undeclared fires area-unknown
-// — escalated here to error so the pre-push hook blocks it too. With
-// required off, area-unknown stays a warning (byte-for-byte today). The
-// bumper is intentionally narrow: codes outside CodeAreaUnknown pass
+// Two axes escalate together under `areas.required: true`:
+//   - the entity-tag axis (M-0178/AC-7): present-but-undeclared `area`
+//     fires area-unknown — escalated here so the pre-push hook blocks it
+//     too. (Empty area is the separate area-required error.)
+//   - the path-claim axis (M-0180): a dead path glob fires area-dead-glob
+//     and two areas claiming one directory fire area-overlap — both
+//     escalated here so a monorepo that opted into strictness cannot push an
+//     area pointing at nothing or an ambiguous path oracle.
+//
+// With required off, all stay warnings (byte-for-byte the pre-knob
+// behavior). The bumper is intentionally scoped: codes outside the
+// escalated area set (area-unknown, area-dead-glob, area-overlap) pass
 // through unchanged regardless of the flag.
 func ApplyAreaRequiredStrict(findings []Finding, required bool) {
 	if !required {
 		return
 	}
 	for i := range findings {
-		if findings[i].Code == CodeAreaUnknown {
+		switch findings[i].Code {
+		case CodeAreaUnknown, CodeAreaDeadGlob, CodeAreaOverlap:
 			findings[i].Severity = SeverityError
 		}
 	}

@@ -156,7 +156,7 @@ func layerTier(pkg string) (tier int, known bool) {
 		return 6, true
 	case "internal/codes", "internal/pathutil", "internal/version",
 		"internal/branchparse", "internal/repolock", "internal/pluginstate",
-		"internal/areagroup":
+		"internal/areagroup", "internal/areamatch":
 		return 7, true
 	}
 	// Prefix bands: the CLI ring (cli + every cli/* adapter, incl. the

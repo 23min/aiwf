@@ -35,6 +35,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/pathutil"
 )
@@ -91,7 +92,8 @@ type Config struct {
 // verb.RenameArea copies Member → AreaMember by hand. The two are not
 // compile-linked: adding a field here means also adding it to
 // aiwfyaml.AreaMember and its copy site in renamearea.go, or the new field is
-// silently dropped on rename.
+// silently dropped on rename. Adding a field here also means adding its key to
+// knownMemberKeys, or the strict-key guard (G-0287) rejects it as unknown.
 type Member struct {
 	Name  string   `yaml:"name"`
 	Paths []string `yaml:"paths,omitempty"`
@@ -171,6 +173,13 @@ func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
 			}
 			a.Members = append(a.Members, Member{Name: n.Value})
 		case yaml.MappingNode:
+			// Strict-key guard (G-0287): yaml.v3's Node.Decode is non-strict
+			// and silently drops unknown keys, so a typo like `pathz:` would
+			// vanish and feed the path-axis checks a false "no paths". Reject
+			// it at decode, naming the bad key.
+			if bad := unknownMemberKey(n); bad != "" {
+				return fmt.Errorf("areas.members[%d]: member %q has unknown key %q (allowed: name, paths)", i, memberNodeName(n), bad)
+			}
 			var m Member
 			if err := n.Decode(&m); err != nil {
 				return fmt.Errorf("areas.members[%d]: member %q: %w", i, memberNodeName(n), err)
@@ -208,10 +217,29 @@ func memberNodeName(n *yaml.Node) string {
 	return ""
 }
 
+// knownMemberKeys is the closed set of keys a mapping member may declare. It
+// mirrors the Member struct's yaml tags and must be kept in sync by hand when a
+// field is added to Member (see the Member doc comment).
+var knownMemberKeys = map[string]bool{"name": true, "paths": true}
+
+// unknownMemberKey returns the first key in the mapping node that is not a
+// recognized member field, or "" when every key is known. It is the strict-key
+// guard the non-strict yaml.v3 Node.Decode lacks (G-0287).
+func unknownMemberKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownMemberKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
 // validate enforces the areas-block schema. Member names must be non-empty,
 // free of leading/trailing whitespace, and unique across both declaration
-// forms; each path entry must be non-empty and whitespace-clean (string
-// hygiene only — glob validation is deferred to M-0180); default (if set) must
+// forms; each path entry must be non-empty, whitespace-clean, and a
+// syntactically well-formed glob (the Tier-1 gate, M-0180 — a malformed glob
+// is a hard error at load naming the bad glob, rather than being silently
+// skipped by the dead-glob/overlap checks at runtime); default (if set) must
 // be a non-empty, whitespace-clean label that names a non-empty member set and
 // is not itself a member — it labels the untagged complement, which is
 // disjoint from every declared area.
@@ -243,6 +271,13 @@ func (a Areas) validate() error {
 			}
 			if p != strings.TrimSpace(p) {
 				return fmt.Errorf("areas.members member %q path %q has leading or trailing whitespace", name, p)
+			}
+			// Tier-1 glob-syntax gate (M-0180): route the check through the
+			// areamatch SSOT so config-load owns malformed globs and never
+			// imports doublestar directly. A bad glob is a hard load error,
+			// not a silently-skipped runtime no-op.
+			if err := areamatch.Validate(p); err != nil {
+				return fmt.Errorf("areas.members member %q path %q is not a valid glob: %w", name, p, err)
 			}
 		}
 	}

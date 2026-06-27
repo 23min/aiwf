@@ -157,10 +157,12 @@ func TestAreaUnknown_GlobalNotBlockedUnderStrict(t *testing.T) {
 // when required=true, every `area-unknown` finding is bumped from warning
 // to error so the pre-push hook blocks a present-but-undeclared area.
 // When required=false, all severities pass through unchanged (byte-for-
-// byte today). The bumper is scoped to exactly CodeAreaUnknown — other
-// findings pass through untouched. ApplyAreaRequiredStrict mirrors
-// ApplyTDDStrict: AreaUnknown stays warning-emitting; the escalation is a
-// separate, testable post-pass.
+// byte today). The bumper is scoped to the area-axis codes — area-unknown
+// here, and area-dead-glob pinned separately by
+// TestApplyAreaRequiredStrict_EscalatesDeadGlob — while unrelated findings
+// (entity-body-empty) pass through untouched. ApplyAreaRequiredStrict
+// mirrors ApplyTDDStrict: the rules stay warning-emitting; the escalation
+// is a separate, testable post-pass.
 func TestApplyAreaRequiredStrict_EscalatesAreaUnknown(t *testing.T) {
 	t.Parallel()
 	build := func() []Finding {
