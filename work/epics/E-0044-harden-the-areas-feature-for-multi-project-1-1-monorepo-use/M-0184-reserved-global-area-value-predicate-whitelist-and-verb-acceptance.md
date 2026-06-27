@@ -17,6 +17,10 @@ acs:
       title: set-area accepts the reserved global value
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: add --area accepts the reserved global value
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -101,4 +105,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-2 — area-unknown treats global as known, including under areas.required
 
 ### AC-3 — set-area accepts the reserved global value
+
+### AC-4 — add --area accepts the reserved global value
 
