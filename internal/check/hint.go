@@ -125,6 +125,11 @@ var hintTable = map[string]string{
 	// remediation is fixing the glob, recreating the path, or dropping it.
 	"area-dead-glob": "an `aiwf.yaml: areas.members` path glob matches no file or directory — correct the glob to the path's real location, recreate the moved/renamed directory, or remove the dead glob from that member's `paths:`",
 
+	// M-0180 area-overlap: two declared areas' `paths:` globs both claim the
+	// same directory — ambiguous attribution. Warning by default, error under
+	// areas.required. The remediation is to make the globs disjoint.
+	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition

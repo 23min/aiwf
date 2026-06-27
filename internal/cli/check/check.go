@@ -204,6 +204,13 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// nothing. Inert when no member declares a `paths:` glob.
 	findings = append(findings, check.AreaDeadGlob(tr, areaPaths)...)
 
+	// M-0180: area-overlap is the row-disjointness half of the path-claim
+	// axis — two areas' globs claiming one directory. Config-dependent, so
+	// composed here (not in pure check.Run) with the same declared area
+	// paths. Reads the filesystem read-only; inert with <2 paths-carrying
+	// areas.
+	findings = append(findings, check.AreaOverlap(tr, areaPaths)...)
+
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to
 	// error so the pre-push hook blocks the push.

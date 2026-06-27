@@ -23,21 +23,22 @@ const CodeAreaUnknown = "area-unknown"
 //   - the entity-tag axis (M-0178/AC-7): present-but-undeclared `area`
 //     fires area-unknown — escalated here so the pre-push hook blocks it
 //     too. (Empty area is the separate area-required error.)
-//   - the path-claim axis (M-0180): a dead path glob fires area-dead-glob —
+//   - the path-claim axis (M-0180): a dead path glob fires area-dead-glob
+//     and two areas claiming one directory fire area-overlap — both
 //     escalated here so a monorepo that opted into strictness cannot push an
-//     area pointing at nothing.
+//     area pointing at nothing or an ambiguous path oracle.
 //
 // With required off, all stay warnings (byte-for-byte the pre-knob
 // behavior). The bumper is intentionally scoped: codes outside the
-// escalated area set (area-unknown, area-dead-glob) pass through unchanged
-// regardless of the flag.
+// escalated area set (area-unknown, area-dead-glob, area-overlap) pass
+// through unchanged regardless of the flag.
 func ApplyAreaRequiredStrict(findings []Finding, required bool) {
 	if !required {
 		return
 	}
 	for i := range findings {
 		switch findings[i].Code {
-		case CodeAreaUnknown, CodeAreaDeadGlob:
+		case CodeAreaUnknown, CodeAreaDeadGlob, CodeAreaOverlap:
 			findings[i].Severity = SeverityError
 		}
 	}
