@@ -11,21 +11,50 @@
 # .git/hooks/pre-commit.local. Updates to this file propagate
 # immediately (the symlink resolves at hook-fire time).
 #
-# Tolerant by design: missing `go` on PATH is silently ignored. A
-# contributor without a Go toolchain shouldn't be blocked from a
-# doc-only commit; CI runs the full pass independently.
+# Tolerant by design: a missing Go toolchain never blocks a commit — a
+# doc-only commit skips the suite outright (the G-0280 gate below), and a
+# Go-staged commit without `go` is tolerated with a warning. CI runs the
+# full pass independently.
 
 set -e
 
 repo_root="$(git rev-parse --show-toplevel)"
 
-if command -v go >/dev/null 2>&1; then
-    if ! (cd "$repo_root" && go test -count=1 ./internal/policies/... >&2); then
-        echo "" >&2
-        echo "pre-commit.local: policies failed — see violations above." >&2
-        echo "                  Either fix the offender or adjust the policy" >&2
-        echo "                  in internal/policies/." >&2
-        exit 1
+# G-0280: skip the (~70s) policy suite on commits whose staged paths are
+# very unlikely to change its verdict — planning-only commits (entity
+# markdown, ROADMAP.md) pay zero. The pattern is a pragmatic PROXY for the
+# highest-value / highest-frequency verdict-changing inputs: Go source, the
+# root build files (go.mod / go.sum / Makefile — single-module repo, so
+# root-anchored), the embedded ritual skills (frequent edits, policed by
+# skill_coverage), and the kernel hook scripts (so editing this gate re-runs
+# its own test). It is deliberately NOT a complete map of every file a policy
+# reads — other policy inputs are CI-delegated: CLAUDE.md, docs/,
+# .devcontainer/, .golangci.yml, .gitleaks.toml, the other *_hook-tested
+# scripts (scripts/mutate-diff.sh, .claude/hooks/*, .claude/statusline.sh),
+# and notably ROADMAP.md (read by the dangling-ref rule yet skipped here,
+# since it is renderer-generated and re-rendered often). Editing any of those
+# forgoes local fast feedback and falls through to CI's unconditional run:
+# fast feedback lost, never the gate — the pre-commit suite is convenience,
+# CI on push is the authoritative chokepoint.
+#
+# Test override: AIWF_PRECOMMIT_POLICY_CMD replaces the policy command
+# (default below). The policy tests in
+# internal/policies/precommit_policy_hook_test.go use it to pin the
+# run/skip decision without running the real suite.
+if git diff --cached --name-only | grep -qE '\.go$|^go\.mod$|^go\.sum$|^Makefile$|^\.github/workflows/|^scripts/git-hooks/|^internal/skills/'; then
+    policy_cmd="${AIWF_PRECOMMIT_POLICY_CMD:-go test -count=1 ./internal/policies/...}"
+    policy_bin="${policy_cmd%% *}"
+    if command -v "$policy_bin" >/dev/null 2>&1; then
+        # Word-splitting of $policy_cmd is intentional (command + args).
+        if ! (cd "$repo_root" && $policy_cmd >&2); then
+            echo "" >&2
+            echo "pre-commit.local: policies failed — see violations above." >&2
+            echo "                  Either fix the offender or adjust the policy" >&2
+            echo "                  in internal/policies/." >&2
+            exit 1
+        fi
+    else
+        echo "pre-commit.local: $policy_bin not on PATH — policy lint skipped." >&2
     fi
 fi
 
