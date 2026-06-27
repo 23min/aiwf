@@ -14,7 +14,7 @@ import "strings"
 // empty verb shapes the kernel ships:
 //   - `aiwf authorize` (TrailerScope: opened/paused/resumed/ended)
 //   - `aiwf <verb> --audit-only` (TrailerAuditOnly + reason)
-//   - `aiwf acknowledge-illegal` (TrailerForceFor: <historical-sha>)
+//   - `aiwf acknowledge illegal` (TrailerForceFor: <historical-sha>)
 //
 // File scope (vs function scope) accounts for verbs that delegate
 // trailer assembly to a helper in the same file (e.g.

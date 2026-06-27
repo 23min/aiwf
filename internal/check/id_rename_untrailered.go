@@ -84,7 +84,7 @@ type UntrailedIDRename struct {
 // all git work and filtering; the rule itself just maps records to
 // findings. Same shape as the M-0159/AC-3 ack-helper-lift pattern:
 // `ackedSHAs map[string]bool` carries the set of commits
-// retroactively acknowledged via `aiwf acknowledge-illegal`; per-
+// retroactively acknowledged via `aiwf acknowledge illegal`; per-
 // SHA closed-set scoping; nil or empty map is "no acknowledgments."
 //
 // Each record produces its own finding (no per-entity aggregation,

@@ -259,7 +259,7 @@ entities:
 	}
 	ackSHA := strings.TrimSpace(string(headSHA))
 	ackSteps := []step{
-		{"acknowledge-illegal HEAD", []string{"acknowledge-illegal", ackSHA, "--reason", "trailer-shape test", "--actor", "human/test", "--root", root}, "acknowledge-illegal", 0},
+		{"acknowledge illegal HEAD", []string{"acknowledge", "illegal", ackSHA, "--reason", "trailer-shape test", "--actor", "human/test", "--root", root}, "acknowledge-illegal", 0},
 	}
 	for _, s := range ackSteps {
 		t.Run(s.name, func(t *testing.T) {

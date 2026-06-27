@@ -69,10 +69,10 @@ import (
 // the human gate clears.
 func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason string) (*Result, error) {
 	if strings.TrimSpace(reason) == "" {
-		return nil, fmt.Errorf("aiwf acknowledge-illegal: --reason is required (non-empty after trim)")
+		return nil, fmt.Errorf("aiwf acknowledge illegal: --reason is required (non-empty after trim)")
 	}
 	if !strings.HasPrefix(actor, "human/") {
-		return nil, fmt.Errorf("aiwf acknowledge-illegal: --actor must be human/<name> (got %q; sovereign acts trace to a named human)", actor)
+		return nil, fmt.Errorf("aiwf acknowledge illegal: --actor must be human/<name> (got %q; sovereign acts trace to a named human)", actor)
 	}
 	cleanedReason := strings.TrimSpace(reason)
 	cleanedEntity := strings.TrimSpace(forEntity)
@@ -90,15 +90,15 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	}
 	for _, tr := range trailers {
 		if err := gitops.ValidateTrailer(tr.Key, tr.Value); err != nil {
-			return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+			return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 		}
 	}
 	if err := shaAckable(ctx, root, sha); err != nil {
-		return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+		return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 	}
 	if cleanedEntity != "" {
 		if err := verifySHATouchesEntity(ctx, root, sha, cleanedEntity); err != nil {
-			return nil, fmt.Errorf("aiwf acknowledge-illegal: %w", err)
+			return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 		}
 	}
 	short := sha
@@ -106,7 +106,7 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 		short = short[:8]
 	}
 	return plan(&Plan{
-		Subject:    fmt.Sprintf("aiwf acknowledge-illegal %s", short),
+		Subject:    fmt.Sprintf("aiwf acknowledge illegal %s", short),
 		Body:       cleanedReason,
 		Trailers:   trailers,
 		AllowEmpty: true,

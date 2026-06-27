@@ -288,7 +288,7 @@ func RunOrphanedAICommits(orphans []OrphanedAICommit, ackedSHAs map[string]bool)
 				shortHash(o.SHA), o.Branch, o.ReflogDate, o.EntityID, o.Actor,
 			),
 			Hint: fmt.Sprintf(
-				"inspect with `git reflog show %s | grep %s` and either restore the commit (`git update-ref refs/heads/%s <pre-push-sha>` or cherry-pick onto the correct branch) or, if the force-push was deliberate sovereign cleanup, document with `aiwf acknowledge-illegal %s --reason \"...\"`",
+				"inspect with `git reflog show %s | grep %s` and either restore the commit (`git update-ref refs/heads/%s <pre-push-sha>` or cherry-pick onto the correct branch) or, if the force-push was deliberate sovereign cleanup, document with `aiwf acknowledge illegal %s --reason \"...\"`",
 				o.Branch, shortHash(o.SHA), o.Branch, shortHash(o.SHA),
 			),
 			EntityID: o.EntityID,

@@ -154,7 +154,7 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 
 // TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences pins
 // the M-0159/AC-3 ack-helper-lift integration for the new rule:
-// driving `aiwf acknowledge-illegal <sha> --reason "..."` against
+// driving `aiwf acknowledge illegal <sha> --reason "..."` against
 // the violating commit silences the rule's finding without
 // rewriting history. The unit-level pin lives at
 // TestIDRenameUntrailered_AckedSHAExempted; this binary-level
@@ -167,7 +167,7 @@ func TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences(t *testing.T) {
 	RunScenarios(t, []Scenario{
 		{
 			CellID: "branch-cell-m0160-ac4-c3",
-			Name:   "aiwf acknowledge-illegal silences id-rename-untrailered for the specific SHA (M-0160/AC-4: ack-helper-lift integration)",
+			Name:   "aiwf acknowledge illegal silences id-rename-untrailered for the specific SHA (M-0160/AC-4: ack-helper-lift integration)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
@@ -187,13 +187,13 @@ func TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences(t *testing.T) {
 				env.MustRunGit("commit", "-m", "chore: rename G-0001 slug (will be acked)")
 
 				// Capture the violating commit's SHA — this is the
-				// argument `aiwf acknowledge-illegal` consumes.
+				// argument `aiwf acknowledge illegal` consumes.
 				violatingSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 
 				// Sovereign-human acknowledgment via the kernel verb.
 				// AcknowledgeIllegal (the M-0159 helper at
 				// branch_scenarios_helpers_test.go:954) wraps
-				// `aiwf acknowledge-illegal <sha> --reason "..."`
+				// `aiwf acknowledge illegal <sha> --reason "..."`
 				// — same shape M-0159/AC-4 established for the
 				// three pre-existing ack-consuming rules.
 				AcknowledgeIllegal(t, env, violatingSHA,

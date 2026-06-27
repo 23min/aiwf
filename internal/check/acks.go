@@ -28,7 +28,7 @@ import (
 // illegalTransitionFindings, RunIsolationEscape,
 // RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4)
 // to exempt commits that have been retroactively acknowledged via
-// `aiwf acknowledge-illegal`.
+// `aiwf acknowledge illegal`.
 //
 // Returns nil for non-git directories and empty histories; the
 // consumers treat nil and an empty map identically (no

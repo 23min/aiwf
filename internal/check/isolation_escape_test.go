@@ -521,7 +521,7 @@ func TestIsolationEscape_AC11_SeverityIsWarning(t *testing.T) {
 
 // TestIsolationEscape_AC12_HintTextNamesAllOverridePaths pins
 // M-0106/AC-12 + M-0159/AC-9: the finding's hint text names the
-// sovereign override paths — (a) `aiwf acknowledge-illegal` (the
+// sovereign override paths — (a) `aiwf acknowledge illegal` (the
 // canonical kernel-native invocation, added by M-0159/AC-9 once
 // the verb's silencing surface covered isolation-escape via the
 // AC-3 ack-helper lift + AC-4 wiring), (b) `git cherry-pick -x`
@@ -570,7 +570,7 @@ func TestIsolationEscape_AC12_HintTextNamesAllOverridePaths(t *testing.T) {
 		name string
 		s    string
 	}{
-		{"acknowledge-illegal canonical path (M-0159/AC-9)", "aiwf acknowledge-illegal"},
+		{"acknowledge-illegal canonical path (M-0159/AC-9)", "aiwf acknowledge illegal"},
 		{"cherry-pick -x path", "cherry-pick -x"},
 		{"aiwf-force trailer path", "aiwf-force"},
 		{"human/ actor requirement", "human/"},

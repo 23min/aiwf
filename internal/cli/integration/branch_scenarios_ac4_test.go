@@ -8,7 +8,7 @@ import (
 )
 
 // branch_scenarios_ac4_test.go — M-0159/AC-4: real-git E2E
-// coverage of `aiwf acknowledge-illegal` silencing both
+// coverage of `aiwf acknowledge illegal` silencing both
 // isolation-escape (M-0106) and forced-untrailered
 // (fsm-history-consistent subcode) findings. Closes G-0208 +
 // G-0214 + G-0196 — the asymmetry where acknowledge-illegal
@@ -19,7 +19,7 @@ import (
 //
 //	"acknowledge-illegal extended to cover isolation-escape
 //	 AND forced-untrailered subcodes via the shared helper.
-//	 Real-git E2E: AI escape → aiwf acknowledge-illegal <sha>
+//	 Real-git E2E: AI escape → aiwf acknowledge illegal <sha>
 //	 --reason → aiwf check silent; AI authorship preserved on
 //	 original commit."
 //
@@ -43,7 +43,7 @@ import (
 //     commit's aiwf-actor trailer still reads "ai/claude" — the
 //     no-history-rewrite principle in concrete form.
 //
-// All scenarios use the real `aiwf acknowledge-illegal` verb;
+// All scenarios use the real `aiwf acknowledge illegal` verb;
 // no fake fixture for the trailer. The acknowledgment commit's
 // aiwf-force-for trailer is what the gather-layer's
 // WalkAcknowledgedSHAs picks up; this surface tests the

@@ -31,7 +31,7 @@ import (
 //
 //	"acknowledge-illegal extended to cover isolation-escape AND
 //	 forced-untrailered subcodes via the shared helper. Real-git
-//	 E2E: AI escape → aiwf acknowledge-illegal <sha> --reason →
+//	 E2E: AI escape → aiwf acknowledge illegal <sha> --reason →
 //	 aiwf check silent; AI authorship preserved on original
 //	 commit."
 //

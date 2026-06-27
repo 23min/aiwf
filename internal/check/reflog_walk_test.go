@@ -89,7 +89,7 @@ func TestRunOrphanedAICommits_AC5_SingleOrphan_EmitsWarningWithHint(t *testing.T
 	if !strings.Contains(f.Message, date) {
 		t.Errorf("Message %q does not contain reflog date %q", f.Message, date)
 	}
-	if !strings.Contains(f.Hint, "aiwf acknowledge-illegal") {
+	if !strings.Contains(f.Hint, "aiwf acknowledge illegal") {
 		t.Errorf("Hint %q does not name the acknowledge-illegal recovery path", f.Hint)
 	}
 	if !strings.Contains(f.Hint, "git update-ref") {

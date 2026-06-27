@@ -13,7 +13,7 @@ import (
 // the orphaned tip, and surfaces AI-actor commits as the new
 // isolation-escape-orphaned-ai-commit warning. The hint names
 // SHA + branch + reflog date and the
-// `aiwf acknowledge-illegal <sha>` sovereign-override path.
+// `aiwf acknowledge illegal <sha>` sovereign-override path.
 //
 // AC-5 composes with AC-3: `core.logAllRefUpdates=false` flips
 // `OracleErr{Capability="reflog-disabled"}` → AC-3's
@@ -132,7 +132,7 @@ func TestForcePushOrphan_AC5_Matrix(t *testing.T) {
 				env.MustRunBin("add", "epic", "--title", "Engine")
 				OpenBoundScope(t, env, "E-0001", "epic/E-0001-engine")
 				orphanSHA := orphanAIOnBoundBranch(t, env, "E-0001", "epic/E-0001-engine")
-				env.MustRunBin("acknowledge-illegal", orphanSHA,
+				env.MustRunBin("acknowledge", "illegal", orphanSHA,
 					"--reason", "G-0226 test: rebase cleanup of an AI-actor commit; benign orphan",
 				)
 			},

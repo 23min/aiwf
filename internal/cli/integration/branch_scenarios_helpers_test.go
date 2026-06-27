@@ -902,7 +902,7 @@ func firstNBytes(b []byte, n int) []byte {
 // Returns the commit SHA. Used by AC-5's real-git E2E to convert
 // the docstring promise at trailer_verb_unknown.go:25-29
 // ("Promotion to error is contingent on cleaning history first
-// — potentially via `aiwf acknowledge-illegal`") into mechanical
+// — potentially via `aiwf acknowledge illegal`") into mechanical
 // truth: stray commit + acknowledge-illegal → check silent.
 func SimulateStrayVerbCommit(t *testing.T, env *ScenarioEnv, fabricatedVerb, subjectText string) string {
 	t.Helper()
@@ -971,7 +971,7 @@ func sanitizeForFilename(s string) string {
 	return slug
 }
 
-// AcknowledgeIllegal runs `aiwf acknowledge-illegal <targetSHA>
+// AcknowledgeIllegal runs `aiwf acknowledge illegal <targetSHA>
 // --reason <reason>` which produces a current-day empty commit
 // carrying:
 //
@@ -998,7 +998,7 @@ func sanitizeForFilename(s string) string {
 // verify the previously-firing finding is now silent.
 func AcknowledgeIllegal(t *testing.T, env *ScenarioEnv, targetSHA, reason string) string {
 	t.Helper()
-	env.MustRunBin("acknowledge-illegal", targetSHA, "--reason", reason)
+	env.MustRunBin("acknowledge", "illegal", targetSHA, "--reason", reason)
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 

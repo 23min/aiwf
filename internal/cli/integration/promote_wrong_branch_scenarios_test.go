@@ -21,7 +21,7 @@ import (
 //     accepted, etc.) — silent regardless of branch.
 //
 // Sovereign overrides shared with AC-5 + AC-6:
-//   - `aiwf acknowledge-illegal <sha>` silences post-hoc.
+//   - `aiwf acknowledge illegal <sha>` silences post-hoc.
 //   - per-commit `aiwf-force: "..."` trailer silences via
 //     `--force --reason` on the promote.
 //
@@ -79,7 +79,7 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 			Expect: Expectation{
 				FindingPresent:         "promote-on-wrong-branch",
 				FindingSeverity:        "warning",
-				FindingHintContainsAll: []string{"aiwf acknowledge-illegal"},
+				FindingHintContainsAll: []string{"aiwf acknowledge illegal"},
 			},
 		},
 
@@ -142,7 +142,7 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 		// Cell 8: wrong-branch promote + ack → silent.
 		{
 			CellID: "branch-cell-m0161-ac8-c7",
-			Name:   "AC-8 cell 8: wrong-branch promote + aiwf acknowledge-illegal → silent",
+			Name:   "AC-8 cell 8: wrong-branch promote + aiwf acknowledge illegal → silent",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")

@@ -263,7 +263,7 @@ func TestRunTrailerVerbUnknown_PreCutoffStaysWarning(t *testing.T) {
 
 // TestRunTrailerVerbUnknown_AckedSilencesEvenPostCutoff guards the
 // composition order documented in the rule's docstring: an explicit
-// `aiwf acknowledge-illegal <sha>` silences the finding regardless
+// `aiwf acknowledge illegal <sha>` silences the finding regardless
 // of post-cutoff status. The ack is sovereign; severity tightening
 // does not bypass it.
 func TestRunTrailerVerbUnknown_AckedSilencesEvenPostCutoff(t *testing.T) {

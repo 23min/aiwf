@@ -83,7 +83,7 @@ func TestPromoteOnWrongBranch_AC8_EpicWrongBranch_Fires(t *testing.T) {
 	if !strings.Contains(f.Message, "epic/E-0001-engine") {
 		t.Errorf("Message %q does not name actual branch", f.Message)
 	}
-	if !strings.Contains(f.Hint, "aiwf acknowledge-illegal") {
+	if !strings.Contains(f.Hint, "aiwf acknowledge illegal") {
 		t.Errorf("Hint %q does not name the acknowledge-illegal recovery path", f.Hint)
 	}
 	if !strings.Contains(f.Hint, "aiwf-force:") {

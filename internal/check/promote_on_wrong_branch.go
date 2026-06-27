@@ -52,7 +52,7 @@ import (
 // firing a false positive.
 //
 // Override paths (shared with AC-5 and AC-6):
-//   - `aiwf acknowledge-illegal <sha> --reason "..."` silences
+//   - `aiwf acknowledge illegal <sha> --reason "..."` silences
 //     post-hoc via the shared ackedSHAs map.
 //   - `aiwf-force: <reason>` trailer on the promote commit
 //     itself silences per-commit (existing override pattern).
@@ -113,7 +113,7 @@ func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string
 				shortHash(c.SHA), entityID, targetStatus, strings.Join(actualBranches, ","), expected,
 			),
 			Hint: fmt.Sprintf(
-				"the ADR-0010 branch model requires sovereign activating-promote commits on the parent branch (%q) BEFORE the ritual branch is cut. If the order was deliberate (re-activating from a ritual branch, or rebuilding a historical scope), silence with `aiwf acknowledge-illegal %s --reason \"...\"`; or amend the promote commit with `git commit --amend --trailer 'aiwf-force: <reason>'` as a sovereign per-commit override.",
+				"the ADR-0010 branch model requires sovereign activating-promote commits on the parent branch (%q) BEFORE the ritual branch is cut. If the order was deliberate (re-activating from a ritual branch, or rebuilding a historical scope), silence with `aiwf acknowledge illegal %s --reason \"...\"`; or amend the promote commit with `git commit --amend --trailer 'aiwf-force: <reason>'` as a sovereign per-commit override.",
 				expected, shortHash(c.SHA),
 			),
 			EntityID: entityID,

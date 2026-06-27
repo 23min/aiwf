@@ -209,7 +209,7 @@ func ac3ExpandedCells() []spec.Rule {
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-m0160-ac4-c3 — id_rename_untrailered_scenarios: aiwf acknowledge-illegal silences id-rename-untrailered for the specific SHA (M-…
+		// branch-cell-m0160-ac4-c3 — id_rename_untrailered_scenarios: aiwf acknowledge illegal silences id-rename-untrailered for the specific SHA (M-…
 		{
 			ID:      "branch-cell-m0160-ac4-c3",
 			Outcome: spec.OutcomeLegal,
@@ -689,7 +689,7 @@ func ac3ExpandedCells() []spec.Rule {
 			Outcome: spec.OutcomeLegal,
 			Sources: spec.RuleSource{Decision: "ADR-0010"},
 		},
-		// branch-cell-m0161-ac8-c7 — promote_wrong_branch_scenarios: AC-8 cell 8: wrong-branch promote + aiwf acknowledge-illegal → silent
+		// branch-cell-m0161-ac8-c7 — promote_wrong_branch_scenarios: AC-8 cell 8: wrong-branch promote + aiwf acknowledge illegal → silent
 		{
 			ID:      "branch-cell-m0161-ac8-c7",
 			Outcome: spec.OutcomeLegal,

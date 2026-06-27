@@ -71,7 +71,7 @@ const HookInstallSHA = "0baed90b951f3d6e755a44ca427b7e01e90c2f5c"
 // `add`/`promote`/etc. verbs still resolve via registeredVerbs.
 //
 // M-0159/AC-3: ackedSHAs carries the set of commit SHAs that have
-// been retroactively acknowledged via `aiwf acknowledge-illegal`.
+// been retroactively acknowledged via `aiwf acknowledge illegal`.
 // The CLI gather layer computes the map once per check invocation
 // (via WalkAcknowledgedSHAs in acks.go) and passes it here so
 // historical stray commits with `aiwf-verb: <fabricated>` trailers

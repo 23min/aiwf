@@ -1,11 +1,13 @@
 ---
-name: aiwf-acknowledge-illegal
+name: aiwf-acknowledge
 description: Use when `aiwf check` reports `fsm-history-consistent/illegal-transition` errors against historical commits (typically pre-`fsm-history-consistent`-era squash-merges that collapsed legal feature-branch progressions into a single FSM-illegal commit). The verb records a current-day empty commit carrying `aiwf-force-for: <historical-sha>` plus `aiwf-actor: human/...` and `aiwf-reason: "..."`, which the rule's predicate walks at check time to exempt the named SHA. Requires a `human/...` actor and a non-empty `--reason` — sovereign acts trace to a named human with written rationale.
 ---
 
-# aiwf-acknowledge-illegal
+# aiwf-acknowledge
 
-The `aiwf acknowledge-illegal <sha>` verb is the retroactive sovereign-override mechanism for the `fsm-history-consistent` rule's `illegal-transition` subcode. It exists for historical commits that violate the per-kind FSM but cannot be cleanly fixed (squash-merges from the pre-rule era; force-pushed history; etc.) — running it produces a separate empty commit with a special trailer set, and the rule's predicate walks HEAD's history for those trailers to exempt the named SHAs.
+`aiwf acknowledge` is the sovereign-acknowledgement verb group: each subcommand records a human-authored, reasoned acceptance of something a kernel audit rule flagged. This skill documents the `illegal` subcommand; the `mistag` sibling (`aiwf acknowledge mistag`, accepting an intentional cross-cutting area-mistag) lands alongside it in M-0181/AC-6.
+
+The `aiwf acknowledge illegal <sha>` verb is the retroactive sovereign-override mechanism for the `fsm-history-consistent` rule's `illegal-transition` subcode. It exists for historical commits that violate the per-kind FSM but cannot be cleanly fixed (squash-merges from the pre-rule era; force-pushed history; etc.) — running it produces a separate empty commit with a special trailer set, and the rule's predicate walks HEAD's history for those trailers to exempt the named SHAs.
 
 The verb is the answer to the design question: *"In the future, we should not have illegal transitions. But for the legacy commits that pre-date the rule, do we really want to list SHAs in `aiwf.yaml`? Can we solve it in a better way?"* — yes: the acknowledgment lives in git (queryable via `aiwf history`), aligns with the existing `--force` sovereign-act semantics, and doesn't pollute `aiwf.yaml`.
 
@@ -25,13 +27,13 @@ The verb is the answer to the design question: *"In the future, we should not ha
 
 ```bash
 # Acknowledge a historical illegal commit with a written rationale.
-aiwf acknowledge-illegal f4ea7329 \
+aiwf acknowledge illegal f4ea7329 \
   --reason "pre-AC-2 era squash-merge from epic/E-21; intermediate FSM progression existed on the feature branch but was lost to the squash"
 
 # The verb derives --actor from `git config user.email` by default
 # (must resolve to a human/... identity); pass --actor human/<name> explicitly
 # when needed.
-aiwf acknowledge-illegal f4ea7329 \
+aiwf acknowledge illegal f4ea7329 \
   --actor human/peter \
   --reason "..."
 ```
@@ -48,7 +50,7 @@ The verb refuses with a typed error when:
 One empty commit (`git commit --allow-empty`) carrying:
 
 ```
-aiwf acknowledge-illegal <short-sha>
+aiwf acknowledge illegal <short-sha>
 
 <your reason text>
 
