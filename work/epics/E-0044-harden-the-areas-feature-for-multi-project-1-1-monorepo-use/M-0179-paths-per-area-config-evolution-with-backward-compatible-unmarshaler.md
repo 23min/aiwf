@@ -208,3 +208,71 @@ directly asserted here, but the `[]string`→`[]Member` type change makes their 
 compile errors, and the diff-scoped coverage gate (G-0067) forces those lines under test at
 wrap. Do not `//coverage:ignore` them — write the covering case.
 
+## Work log
+
+Implementation landed as one coherent TDD pass (the `[]string`→`[]Member` type change forces
+the readers and `area_test.go` to migrate together, so it could not land piecemeal).
+
+- **AC-1** Dual-form unmarshal — `config.Member` + `[]Member` + dual-form `UnmarshalYAML`
+  (scalar/mapping, `paths:[]`→nil). `TestAreas_UnmarshalDualForm`. · commit `395492d6`
+- **AC-2** Legacy string-form parity — derived `MemberNames()`; migrated `area_test.go`
+  accessors. `TestAreas_StringFormParity` + existing E-0043 suite. · commit `395492d6`
+- **AC-3** Malformed-member rejection — per-arm a1–a5 + cross-form duplicate; decode errors
+  wrapped with member context. `TestAreas_RejectsMalformed`. · commit `395492d6`
+  (decode-error index polish · commit `a4e8f78e`)
+- **AC-4** rename-area preserves paths — `aiwfyaml.AreaMember` writer + `verb.RenameArea`
+  `[]config.Member` plumbing + `ConfiguredAreaMembersFull`. `TestRenameArea_PreservesPaths`
+  (structural) + `TestRenameArea_PreservesMemberPaths`. · commit `395492d6`
+- **AC-5** MemberNames SSOT seam — readers switched to `MemberNames()`.
+  `TestObjectFormConfig_NameReadersWork` (absolute-set assertion). · commit `395492d6`
+
+Per-AC TDD phase timeline (red→green→done→met) is in `aiwf history M-0179/AC-<N>`.
+
+## Decisions made during implementation
+
+- **ADR-0020** — Dual-form `areas.members` schema: backward-compatible label+location
+  evolution. The signature architectural decision; written and accepted at wrap.
+- **Glob matcher dependency deferred to M-0180** (the first path-matching call site); `paths`
+  validated as well-formed strings only here. Matcher leans `doublestar/v4`, justified there
+  per Go conventions rather than imported ahead of its consumer.
+- **No custom `Areas.MarshalYAML` (AC-6 cut).** A YAGNI analysis established that `config.Write`
+  is create-once at init with an empty config and refuses to overwrite, so it is structurally
+  incapable of serializing a populated areas block; a marshaler would be dead code. The
+  comment-preserving `aiwfyaml` writer owns populated-areas serialization. `config.Write` is
+  documented empty-config-only.
+
+## Validation
+
+Full `make ci` gate green on the clean tree at wrap (the integration-boundary gate):
+
+- `go test -race ./...` — all packages pass, no data races.
+- `golangci-lint run` — 0 issues.
+- Diff-scoped coverage gate (G-0067) + firing-fixture meta-gate — pass.
+- `aiwf doctor --self-check` — self-check passed (29 steps).
+- Total statement coverage 84.8% (advisory; diff-scoped gate is the blocking one).
+
+## Deferrals
+
+- **G-0287** — a mistyped member key (`pathz:`) silently drops paths under the config-wide
+  non-strict decode; harden (strict decode / key allowlist) when paths become load-bearing in
+  M-0180. Discovered by the wrap reviews.
+- **G-0288** — the `areas:` config-block schema has no AI-discoverable doc surface (predates
+  M-0179); lands with a user-facing schema doc when `paths` gains observable behavior.
+
+## Reviewer notes
+
+- Plan reviewed in three independent rounds before any code (request-changes → request-changes
+  → approve); the implementation was independently **mutation-verified** (every AC test reddens
+  when its pinned behavior is broken, and only the intended rows); the wrap ran a two-lens pass
+  — `wf-review-code` (APPROVE) and `wf-rethink` on the `config.Areas` data model (KEEP, design
+  sound). All non-blocking findings were either fixed inline (`a4e8f78e`) or filed (G-0287,
+  G-0288).
+- The verb-leg paths test was strengthened from a substring check to a structural
+  parse-and-assert-association (per CLAUDE.md "substring ≠ structural") and mutation-verified to
+  catch a cross-association bug.
+- `aiwfyaml` keeps its deliberate zero-dependency-on-`config` layering via a local `AreaMember`
+  mirror of `config.Member`; a lockstep comment on `config.Member` flags the hand-copy site so a
+  future third field is not silently dropped on rename.
+- The reserved `global` area value (a separate, proposed decision) is orthogonal to this
+  member schema and lands as its own milestone before M-0180.
+
