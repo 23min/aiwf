@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: read-filter note and --area completion recognize the global value
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
