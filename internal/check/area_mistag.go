@@ -67,13 +67,20 @@ func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[
 		if len(touched) == 0 {
 			continue // no linked commits / no touched paths
 		}
-		// Collect the foreign (paths-carrying, non-own) areas whose globs
-		// claim some path this entity's commits touched. Paths matching no
-		// declared glob (planning files, docs, unclaimed code) never
-		// participate — the "area-claimed space" guard that keeps the rule
-		// from firing on every entity's own planning commit.
+		// Classify the touched paths against the declared areas. Paths matching
+		// no declared glob (planning files, docs, unclaimed code) never
+		// participate — the "area-claimed space" guard that keeps the rule from
+		// firing on every entity's own planning commit. A path in the entity's
+		// OWN area marks the work cross-cutting; foreign-area paths are
+		// collected for the message.
+		ownGlobs := globsByArea[area]
 		foreign := map[string]bool{}
+		insideOwn := false
 		for p := range touched {
+			if matchesAnyGlob(p, ownGlobs) {
+				insideOwn = true
+				continue // own-area path: can't also be foreign; next path
+			}
 			for name, globs := range globsByArea {
 				if name == area {
 					continue
@@ -83,8 +90,12 @@ func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[
 				}
 			}
 		}
-		if len(foreign) == 0 {
-			continue // no area-claimed work in a foreign area
+		// Cross-cutting is tolerated (M-0181/AC-3): if any work landed in the
+		// entity's own area, do not fire even when other work landed elsewhere.
+		// Otherwise fire only when some area-claimed work landed in a foreign
+		// area (M-0181/AC-2).
+		if insideOwn || len(foreign) == 0 {
+			continue
 		}
 		foreignNames := make([]string, 0, len(foreign))
 		for n := range foreign {
@@ -95,7 +106,7 @@ func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[
 			Code:     CodeAreaMistag,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
-				"%s resolves to area %q but its commits touched the %s area(s) — mis-tagged, or cross-cutting work to acknowledge",
+				"%s resolves to area %q but its area-claimed work landed entirely in the %s area(s), none in its own — mis-tagged, or cross-cutting work to acknowledge",
 				e.ID, area, strings.Join(foreignNames, ", ")),
 			Path:     e.Path,
 			EntityID: e.ID,

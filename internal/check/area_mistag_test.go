@@ -141,6 +141,31 @@ func TestAreaMistag_FiresOnForeignAreaWork(t *testing.T) {
 	}
 }
 
+// TestAreaMistag_TolerantOfCrossCutting pins M-0181/AC-3: an entity whose
+// commits touched BOTH its own area and a foreign area produces no finding —
+// cross-cutting is tolerated, not policed. This refines the crude AC-2
+// predicate, which fired on any foreign-area work regardless of own-area work.
+func TestAreaMistag_TolerantOfCrossCutting(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-0001-x.md", Area: "app-a"},
+	)
+	areas := []AreaPaths{
+		{Name: "app-a", Paths: []string{"projects/app-a/**"}},
+		{Name: "billing", Paths: []string{"projects/billing/**"}},
+	}
+	touched := map[string]map[string]bool{
+		"G-0001": {
+			"projects/app-a/main.go":      true, // own-area work
+			"projects/billing/invoice.go": true, // foreign work too → cross-cutting
+		},
+	}
+	got := AreaMistag(tr, areas, touched)
+	if len(got) != 0 {
+		t.Fatalf("cross-cutting work (own + foreign) must not fire, got %d: %+v", len(got), got)
+	}
+}
+
 // TestAreaMistag_NoFinding pins every no-fire guard of AreaMistag (M-0181/AC-2),
 // one case per branch. These are mandatory unit cases: the CLI seam gates the
 // gather behind AnyAreaHasPaths, so the guards no longer get incidental coverage
@@ -200,6 +225,12 @@ func TestAreaMistag_NoFinding(t *testing.T) {
 			entity:  &entity.Entity{ID: "G-0006", Kind: entity.KindGap, Path: "work/gaps/G-0006-x.md", Area: "app-a"},
 			areas:   withPaths,
 			touched: map[string]map[string]bool{"G-0006": {"projects/app-a/x.go": true, "work/gaps/G-0006-x.md": true}},
+		},
+		{
+			name:    "work landed only in unclaimed paths (no area glob matches)",
+			entity:  &entity.Entity{ID: "G-0007", Kind: entity.KindGap, Path: "work/gaps/G-0007-x.md", Area: "app-a"},
+			areas:   withPaths,
+			touched: map[string]map[string]bool{"G-0007": {"docs/notes.md": true, "work/gaps/G-0007-x.md": true}},
 		},
 	}
 	for _, tc := range cases {
