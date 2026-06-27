@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Gather an entity's commits and touched paths via the aiwf-entity trailer
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: area-mistag fires when all area-claimed work lands in foreign areas
