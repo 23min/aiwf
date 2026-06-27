@@ -47,7 +47,7 @@ re-tag with aiwf set-area instead — the mistag then no longer fires.
 Both --reason (non-empty after trim) and a human/... actor are required —
 sovereign acts trace to a named human with written rationale.`,
 		Example: `  aiwf acknowledge mistag G-0301 \
-    --reason "migrating billing's auth into the shared platform lib; cross-cutting by design"`,
+    --reason "moving billing's auth into the shared platform lib; cross-cutting by design"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,

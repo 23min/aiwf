@@ -62,7 +62,7 @@ The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers
 
 ## aiwf acknowledge mistag
 
-The `aiwf acknowledge mistag <id>` verb (M-0181) records a sovereign acceptance that an entity's `area` tag and its commits' landing zone legitimately disagree — suppressing the `area-mistag` warning for that entity. Mistag fires when an entity's area-claimed work landed entirely in a *foreign* area's `paths:` territory; sometimes that is genuinely intentional (e.g. migrating code into a shared area), not a mis-file.
+The `aiwf acknowledge mistag <id>` verb (M-0181) records a sovereign acceptance that an entity's `area` tag and its commits' landing zone legitimately disagree — suppressing the `area-mistag` warning for that entity. Mistag fires when an entity's area-claimed work landed entirely in a *foreign* area's `paths:` territory; sometimes that is genuinely intentional (e.g. moving code into a shared area), not a mis-file.
 
 ### When to use
 
@@ -73,7 +73,7 @@ The `aiwf acknowledge mistag <id>` verb (M-0181) records a sovereign acceptance 
 
 ```bash
 aiwf acknowledge mistag G-0301 \
-  --reason "migrating billing's auth into the shared platform lib; cross-cutting by design"
+  --reason "moving billing's auth into the shared platform lib; cross-cutting by design"
 ```
 
 The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, or `<id>` resolves to no entity in the tree (the typo guard — a composite `M-NNNN/AC-N` id rolls up to its milestone).
