@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: a global-tagged entity satisfies areas.required
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: read-filter note and --area completion recognize the global value
       status: open
