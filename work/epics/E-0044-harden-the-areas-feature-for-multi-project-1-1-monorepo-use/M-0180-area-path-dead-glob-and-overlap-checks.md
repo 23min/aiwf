@@ -10,7 +10,7 @@ tdd: required
 acs:
     - id: AC-1
       title: areamatch is the SSOT path-glob matcher (doublestar-backed)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: dead-glob fires for a glob matching no real path; escalates under required
