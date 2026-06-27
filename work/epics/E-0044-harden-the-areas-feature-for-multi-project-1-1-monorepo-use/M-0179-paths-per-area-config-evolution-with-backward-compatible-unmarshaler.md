@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: MemberNames is the single source of truth for name-based readers
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
