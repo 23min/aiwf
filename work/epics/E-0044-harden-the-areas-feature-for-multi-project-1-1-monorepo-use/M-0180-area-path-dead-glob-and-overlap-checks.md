@@ -30,7 +30,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: the new findings are AI-discoverable; paths gets a schema-doc note
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
