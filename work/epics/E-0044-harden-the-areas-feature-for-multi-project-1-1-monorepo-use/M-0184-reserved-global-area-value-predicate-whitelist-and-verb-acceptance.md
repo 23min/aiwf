@@ -55,23 +55,50 @@ surface they build on.
 
 ## Acceptance criteria
 
-<!-- Candidate ACs, formalized via `aiwf add ac <id> --title "..."` at start-milestone. -->
+Each AC pins one observable behavior; the mechanical evidence that fails if the claim breaks is
+named per AC. AC-1's predicate is the SSOT keystone — AC-2/3/4/7 route their "is this a valid
+area value?" decision through it.
 
-Candidate behaviors to formalize at start-milestone:
+### AC-1 — IsValidAreaValue predicate classifies global, members, and unknown values
 
-- A single SSOT predicate `IsValidAreaValue(v, members) = v == "global" || isMember(v, members)`
-  is the one definition of "valid area value"; the reserved token is defined once, not
-  re-litigated per rule.
-- The `area-unknown` present-⇒-declared check treats `global` as known — **including under
-  `areas.required`**, where that finding escalates to error. The load-bearing AC: a
-  `global`-tagged entity is NOT blocked under strict mode.
-- `aiwf set-area <id> global` accepts the reserved value and tags the entity `global`.
-- `aiwf add --area global` accepts the reserved value at creation (for the self-tagging root
-  kinds), including under `areas.required`.
-- `config.Areas.validate()` rejects a declared `areas.members` entry named `global` (the
-  reserved-name guard), so a real project cannot shadow the sentinel.
-- A `global`-tagged entity satisfies `areas.required` — pin that the present-at-all
-  (`area-required`) finding does not fire for it.
+`entity.IsValidAreaValue(v, members)` returns true for `global` and for any declared member,
+false otherwise. Pinned by a table-driven unit test in `internal/entity`. A `D-NNNN` recorded
+during implementation documents why no literal-adoption policy is added now.
+
+### AC-2 — area-unknown treats global as known, including under areas.required
+
+`check.AreaUnknown` emits no finding for a `global`-tagged entity, so `ApplyAreaRequiredStrict`
+has nothing to escalate — a `global` entity is not blocked under `areas.required: true`. Pinned
+by a check test with `required:true` asserting zero findings for the global entity.
+**Load-bearing.**
+
+### AC-3 — set-area accepts the reserved global value
+
+`aiwf set-area <id> global` tags the entity `global`, routing its declared-member check through
+the predicate. Pinned by a verb/integration test.
+
+### AC-4 — add --area accepts the reserved global value
+
+`aiwf add --area global` creates a root-kind entity tagged `global`, including under
+`areas.required` (the predicate is the validation site). Pinned by an add-cmd test.
+
+### AC-5 — validate() and rename-area reject a declared member named global
+
+`config.Areas.validate()` rejects a declared `areas.members` entry named `global`, and
+`aiwf rename-area <old> global` refuses up front (the symmetric write path). Pinned by a config
+unit test and a rename-area verb test.
+
+### AC-6 — a global-tagged entity satisfies areas.required
+
+The present-at-all `area-required` finding does not fire for a `global`-tagged entity (its area
+is non-empty). Behavior already holds (`AreaRequired` skips non-empty areas); pinned by a check
+test so a regression reddens.
+
+### AC-7 — read-filter note and --area completion recognize the global value
+
+`UndeclaredAreaNote` returns no "not a declared area" note for `global` (`aiwf list/show/status
+--area global`), and `--area` completion offers `global` for `add`/`set-area` (not for
+`rename-area <old>`). Pinned by cliutil + completion tests.
 
 ## Constraints
 
@@ -90,13 +117,29 @@ Candidate behaviors to formalize at start-milestone:
 - Mistag-detection's skip of `global` entities — that lands in the mistag milestone.
 - The stronger seam check (a `global` seam contract's paths within the bridged union) — a
   later idea, deferred in ADR-0021.
+- The grouping/render resolver: a `global`-tagged entity falls into the "Uncategorized"
+  complement in grouped views (it is not a declared member), so a global ADR renders there
+  until M-0180/M-0181 give the oracle a domain that excludes `global` cleanly. A recognized,
+  scoped limitation — not fixed in this milestone.
 
 ## Design notes
 
-- The SSOT predicate's home is `internal/config` (or `internal/entity`) beside the area
-  vocabulary; the `area-unknown` check, `set-area`, and `add --area` all route their
-  "is this a valid area value?" decision through it — no parallel "is global" checks.
-- The reserved-name guard is a small addition to `config.Areas.validate()`.
+- The SSOT predicate's home is `internal/entity`: `entity.AreaGlobal = "global"` plus
+  `entity.IsValidAreaValue(v, members)`. It must be `entity`, not `config` — the pure
+  `internal/check` is config-agnostic by contract (M-0171/AC-4), so the `area-unknown` site
+  cannot reach a token defined in `config`. `entity` is the lowest tier every consumer already
+  reaches (`check`, `add`, `set-area` import it; `config` imports it sideways for the
+  reserved-name guard — verified acyclic, `entity` imports only `codes`). The `area-unknown`
+  check, `set-area`, `add --area`, and the read-filter note all route their "is this a valid
+  area value?" decision through the predicate — no parallel `== "global"` checks.
+- The reserved-name guard lives in `config.Areas.validate()` (rejecting a declared member
+  named `global`) and is mirrored in `aiwf rename-area`'s newName guard — the second write path
+  that could otherwise inject a `global` member behind `validate()`'s back.
+- SSOT enforcement depth (AC-1): the predicate is unit-tested behaviorally; a literal-adoption
+  policy (à la `enum_literal_adoption` / `closed_set_status_constants`) is deliberately *not*
+  added now — one reserved token, one definition site, an area comparison has no clean
+  syntactic marker to scan. A `D-NNNN` recorded during implementation captures the rationale
+  and the revisit trigger (a third reserved area value → add the policy).
 - Independent of the `paths:` schema — this is the area *value* layer, orthogonal to the
   member *location* schema; the two only meet in the consumers (bijection, mistag).
 
@@ -111,18 +154,4 @@ Candidate behaviors to formalize at start-milestone:
 - [ADR-0021](../../../docs/adr/ADR-0021-sanctioned-global-area-value-for-inherently-cross-cutting-entities.md) — the decision this implements.
 - M-0179 — the dual-form member schema (the `config.Areas` code this sits beside).
 - M-0180 — the bijection/coverage check that depends on this milestone.
-
-### AC-1 — IsValidAreaValue predicate classifies global, members, and unknown values
-
-### AC-2 — area-unknown treats global as known, including under areas.required
-
-### AC-3 — set-area accepts the reserved global value
-
-### AC-4 — add --area accepts the reserved global value
-
-### AC-5 — validate() and rename-area reject a declared member named global
-
-### AC-6 — a global-tagged entity satisfies areas.required
-
-### AC-7 — read-filter note and --area completion recognize the global value
 
