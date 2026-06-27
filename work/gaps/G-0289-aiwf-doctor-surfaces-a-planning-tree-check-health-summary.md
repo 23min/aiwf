@@ -1,7 +1,9 @@
 ---
-id: G-0287
+id: G-0289
 title: aiwf doctor surfaces a planning-tree check-health summary
 status: open
+prior_ids:
+    - G-0287
 ---
 ## Problem
 
