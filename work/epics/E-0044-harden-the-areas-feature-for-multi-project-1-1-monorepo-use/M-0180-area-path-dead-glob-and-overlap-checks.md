@@ -1,7 +1,7 @@
 ---
 id: M-0180
 title: Area-path dead-glob and overlap checks
-status: draft
+status: in_progress
 parent: E-0044
 depends_on:
     - M-0179
