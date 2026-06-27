@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Start rituals retain the per-invocation worktree placement override
       status: open
+    - id: AC-3
+      title: Start rituals record the sandbox rationale citing ADR-0023
+      status: open
 ---
 
 # M-0190 — Default the start rituals to in-repo worktree placement
@@ -65,4 +68,6 @@ authoring"; AC tests assert against the embedded bytes.
 ### AC-1 — Start-epic worktree step defaults to in-repo placement via worktree.dir
 
 ### AC-2 — Start rituals retain the per-invocation worktree placement override
+
+### AC-3 — Start rituals record the sandbox rationale citing ADR-0023
 
