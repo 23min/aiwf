@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: MemberNames is the single source of truth for name-based readers
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
