@@ -88,14 +88,22 @@ func SetArea(
 	}
 
 	if !clearTag {
-		declared := false
-		for _, m := range members {
-			if m == member {
-				declared = true
-				break
-			}
+		// Position A — `global` is feature-gated: with no areas block
+		// declared the `area` field is inert (M-0171), so a SET of any value
+		// (a member OR the reserved global sentinel) is refused up front.
+		// This guard precedes the membership check so global cannot slip
+		// through IsValidAreaValue (which accepts it regardless of the
+		// declared set), and it replaces the confusing empty "declared
+		// areas: (none)" message a member would otherwise hit. The --clear
+		// path is deliberately NOT gated: untagging a hand-edited tag must
+		// still work with no block.
+		if len(members) == 0 {
+			return nil, fmt.Errorf("%s: no areas block is declared in aiwf.yaml; declare areas.members before tagging an entity", id)
 		}
-		if !declared {
+		// The reserved `global` sentinel and any declared member are both
+		// valid set targets (M-0184); the membership decision routes through
+		// the SSOT predicate so there is no parallel `== global` check here.
+		if !entity.IsValidAreaValue(member, members) {
 			return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", member, declaredList(members))
 		}
 	}

@@ -84,6 +84,31 @@ func TestSetArea_AC1_RewritesUntaggedAndRetag(t *testing.T) {
 	})
 }
 
+// TestSetArea_GlobalEndToEnd pins M-0184/AC-3 through the full dispatcher:
+// on a repo WITH a declared areas block, `aiwf set-area <id> global`
+// succeeds end-to-end (exit OK) and writes `area: global` into the target's
+// frontmatter. The verb layer (verb.SetArea) and the no-block refusal are
+// already covered; this exercises the CLI Run seam for the success path so
+// the reserved sentinel reaches disk through the real command.
+func TestSetArea_GlobalEndToEnd(t *testing.T) {
+	root := setAreaRepo(t) // declares {platform, billing}, E-0001 untagged
+	before := revCount(t, root)
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"set-area", "E-0001", "global", "--actor", "human/test", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want ExitOK (%d); stderr=%q", rc, cliutil.ExitOK, stderr)
+	}
+	fm := frontmatterOf(epicFile(t, root, "E-0001"))
+	if !strings.Contains(fm, "area: global") {
+		t.Errorf("E-0001 not tagged the reserved global sentinel:\n%s", fm)
+	}
+	if after := revCount(t, root); after != before+1 {
+		t.Errorf("commit count = %d, want %d (+1)", after, before+1)
+	}
+}
+
 // TestSetArea_AC2_TrailersAndHistory pins AC-2: the commit carries the
 // set-area trailers, `aiwf history` renders the change for both a set and
 // a --clear, and `aiwf check` reports no provenance-untrailered finding.
@@ -256,8 +281,11 @@ func TestSetArea_AC3_Refusals(t *testing.T) {
 		if rc == cliutil.ExitOK {
 			t.Errorf("rc = ExitOK, want a refusal with no areas block")
 		}
-		if !strings.Contains(stderr, "not a declared member") {
-			t.Errorf("stderr %q should name the (empty) declared set", stderr)
+		// Position A — global is feature-gated: with no areas block, a SET
+		// of any value is refused with the no-block guard message (M-0184
+		// follow-up), not the confusing empty "declared areas: (none)".
+		if !strings.Contains(stderr, "no areas block is declared") {
+			t.Errorf("stderr %q should name the missing areas block", stderr)
 		}
 		if after := revCount(t, root); after != before {
 			t.Errorf("commit count = %d, want unchanged %d", after, before)
@@ -306,9 +334,10 @@ func TestSetArea_AC4_TotalReversal(t *testing.T) {
 	})
 }
 
-// TestSetArea_AC5_Discoverability pins AC-5: the composed
-// ValidArgsFunction offers entity ids at position 0 and declared members
-// at position 1, and the command is registered in the root tree.
+// TestSetArea_AC5_Discoverability pins AC-5 + M-0184/AC-7: the composed
+// ValidArgsFunction offers entity ids at position 0 and settable area
+// values (declared members PLUS the reserved `global` sentinel) at
+// position 1, and the command is registered in the root tree.
 func TestSetArea_AC5_Discoverability(t *testing.T) {
 	t.Run("entity ids at position 0", func(t *testing.T) {
 		root := setAreaRepo(t)
@@ -331,7 +360,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 		}
 	})
 
-	t.Run("declared members at position 1", func(t *testing.T) {
+	t.Run("settable area values at position 1", func(t *testing.T) {
 		root := setAreaRepo(t)
 		t.Chdir(root)
 		cmd := setarea.NewCmd()
@@ -339,13 +368,13 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 		if directive != cobraNoFileComp {
 			t.Errorf("directive = %d, want ShellCompDirectiveNoFileComp", directive)
 		}
-		want := map[string]bool{"platform": true, "billing": true}
+		want := map[string]bool{"platform": true, "billing": true, "global": true}
 		if len(got) != len(want) {
-			t.Fatalf("position-1 completion = %v, want exactly platform, billing", got)
+			t.Fatalf("position-1 completion = %v, want exactly platform, billing, global", got)
 		}
 		for _, g := range got {
 			if !want[g] {
-				t.Errorf("unexpected completion %q at position 1 (want declared members)", g)
+				t.Errorf("unexpected completion %q at position 1 (want declared members + global)", g)
 			}
 		}
 	})

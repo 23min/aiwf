@@ -60,6 +60,22 @@ func TestAreaRequired_FiresForAllRootKinds(t *testing.T) {
 	}
 }
 
+// TestAreaRequired_GlobalSatisfies pins M-0184/AC-6: a `global`-tagged
+// root entity carries a non-empty area, so area-required never fires for
+// it even under required:true — the cross-cutting sentinel satisfies the
+// present-at-all chokepoint exactly like any declared member. Pure
+// regression pin (AreaRequired already short-circuits on a non-empty
+// area); guards against a future change that special-cases global.
+func TestAreaRequired_GlobalSatisfies(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Path: "docs/adr/ADR-0001-x.md", Area: entity.AreaGlobal},
+	)
+	if got := AreaRequired(tr, []string{"platform"}, true); len(got) != 0 {
+		t.Errorf("global-tagged entity must satisfy area-required, got %+v", got)
+	}
+}
+
 // TestAreaRequired_InertWhenOff pins M-0178/AC-3: with required false the
 // rule returns nil (pre-knob parity), and a direct call with no declared
 // members covers the defensive empty-declared guard. Making the rule fire

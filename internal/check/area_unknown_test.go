@@ -103,6 +103,56 @@ func TestAreaUnknown_ArchivedEntity_NeverFires(t *testing.T) {
 	}
 }
 
+// TestAreaUnknown_GlobalIsKnown pins M-0184/AC-2: the reserved `global`
+// sentinel is a valid area value even when it is NOT among the declared
+// members, so a global-tagged entity never fires area-unknown. The
+// undeclared sibling on the same tree still fires, proving the rule still
+// polices typos.
+func TestAreaUnknown_GlobalIsKnown(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Path: "docs/adr/ADR-0001-x.md", Area: entity.AreaGlobal},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-0001-x.md", Area: "platfrm"},
+	)
+	got := AreaUnknown(tr, []string{"platform", "billing"})
+	if len(got) != 1 {
+		t.Fatalf("expected exactly 1 finding (the typo), got %d: %+v", len(got), got)
+	}
+	if got[0].EntityID != "G-0001" {
+		t.Errorf("fired for %q, want only the undeclared G-0001 (global is recognized)", got[0].EntityID)
+	}
+}
+
+// TestAreaUnknown_GlobalNotBlockedUnderStrict is the load-bearing half of
+// M-0184/AC-2: under `areas.required: true`, the strictness post-pass
+// escalates area-unknown to error. A global-tagged entity must not be
+// blocked — and it isn't, because AreaUnknown never emitted a finding for
+// it (nothing to escalate). Pins that the cross-cutting escape valve
+// survives strict mode.
+//
+// Only meaningful paired with TestAreaUnknown_GlobalIsKnown: this test
+// asserts an EMPTY finding set is not escalated, which a rule that never
+// fires at all would also satisfy vacuously. The sibling independently
+// proves the rule still fires for a real mistag, so "global produced no
+// finding" here means "recognized", not "rule is dead". Do not delete the
+// sibling without replacing that guarantee.
+func TestAreaUnknown_GlobalNotBlockedUnderStrict(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Path: "docs/adr/ADR-0001-x.md", Area: entity.AreaGlobal},
+	)
+	findings := AreaUnknown(tr, []string{"platform", "billing"})
+	ApplyAreaRequiredStrict(findings, true)
+	for _, f := range findings {
+		if f.EntityID == "ADR-0001" {
+			t.Errorf("global entity must never be blocked under strict mode, got finding: %+v", f)
+		}
+	}
+	if len(findings) != 0 {
+		t.Errorf("expected no findings for a global-only tree, got %+v", findings)
+	}
+}
+
 // TestApplyAreaRequiredStrict_EscalatesAreaUnknown pins M-0178/AC-7:
 // when required=true, every `area-unknown` finding is bumped from warning
 // to error so the pre-push hook blocks a present-but-undeclared area.

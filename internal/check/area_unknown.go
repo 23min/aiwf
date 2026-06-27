@@ -70,10 +70,6 @@ func AreaUnknown(t *tree.Tree, declared []string) []Finding {
 	if len(declared) == 0 {
 		return nil
 	}
-	set := make(map[string]struct{}, len(declared))
-	for _, m := range declared {
-		set[m] = struct{}{}
-	}
 	var findings []Finding
 	for _, e := range t.Entities {
 		if e.Area == "" {
@@ -82,7 +78,10 @@ func AreaUnknown(t *tree.Tree, declared []string) []Finding {
 		if entity.IsArchivedPath(e.Path) {
 			continue
 		}
-		if _, ok := set[e.Area]; ok {
+		// The reserved `global` sentinel and any declared member are both
+		// valid (M-0184); membership routes through the SSOT predicate so
+		// there is no parallel `== global` check here.
+		if entity.IsValidAreaValue(e.Area, declared) {
 			continue
 		}
 		findings = append(findings, Finding{

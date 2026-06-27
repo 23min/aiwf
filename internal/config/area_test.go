@@ -140,6 +140,26 @@ func TestLoad_AreasBlockMalformed(t *testing.T) {
 	}
 }
 
+// TestLoad_AreasMemberNamedGlobalRejected pins M-0184/AC-5(a): a member
+// declared with the reserved name `global` is rejected at config-load time
+// with an error naming the reserved value — areas.members may not declare
+// the cross-cutting sentinel (ADR-0021).
+func TestLoad_AreasMemberNamedGlobalRejected(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	contents := []byte("areas:\n  members:\n    - platform\n    - global\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(root)
+	if err == nil {
+		t.Fatal("Load: want error for a member named the reserved `global`, got nil")
+	}
+	if !strings.Contains(err.Error(), "global") || !strings.Contains(err.Error(), "reserved") {
+		t.Errorf("error = %q, want it to name the reserved %q value", err.Error(), "global")
+	}
+}
+
 // TestLoad_AreasBlockQuotedNumericMemberAccepted pins that the non-string
 // rejection (AC-2) keys on the YAML node type, not on appearance: a quoted
 // numeric is a string member and is accepted, while only an unquoted non-string

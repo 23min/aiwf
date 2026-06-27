@@ -3,6 +3,8 @@ package cliutil
 import (
 	"fmt"
 	"strings"
+
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // UndeclaredAreaNote returns a one-line advisory note for a read verb's
@@ -29,13 +31,18 @@ func UndeclaredAreaNote(rootDir, area string) string {
 		return ""
 	}
 	members := ConfiguredAreaMembers(rootDir)
-	for _, m := range members {
-		if m == area {
-			return ""
-		}
-	}
+	// Position A — `global` is feature-gated: with no areas block the field
+	// is inert (M-0171), so EVERY value (including the reserved global
+	// sentinel) is "not a declared area" and gets the advisory note. This
+	// no-block branch precedes the IsValidAreaValue check so global cannot
+	// slip through it (the predicate accepts global regardless of the
+	// declared set). With a block declared, global and any declared member
+	// return "" (no note) — the note is advisory only.
 	if len(members) == 0 {
 		return fmt.Sprintf("note: %q is not a declared area (no areas declared in aiwf.yaml)", area)
+	}
+	if entity.IsValidAreaValue(area, members) {
+		return ""
 	}
 	return fmt.Sprintf("note: %q is not a declared area (declared: %s)", area, strings.Join(members, ", "))
 }

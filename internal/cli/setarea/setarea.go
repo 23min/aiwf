@@ -75,13 +75,15 @@ a retag with the prior member.`,
 	cmd.Flags().BoolVar(&clearTag, "clear", false, "clear the entity's area tag (mutually exclusive with <member>)")
 	out = cliutil.AddFormatFlags(cmd)
 	// Composed positional completion: neither CompleteEntityIDArg nor
-	// CompleteAreaArg composes two positions, so dispatch on len(args) —
-	// position 0 offers entity ids, position 1 offers declared members.
+	// CompleteAreaValueArg composes two positions, so dispatch on len(args)
+	// — position 0 offers entity ids, position 1 offers settable area
+	// values (declared members PLUS the reserved `global` sentinel, since
+	// set-area accepts global — M-0184).
 	cmd.ValidArgsFunction = func(c *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
 			return cliutil.CompleteEntityIDArg("", 0)(c, args, toComplete)
 		}
-		return cliutil.CompleteAreaArg(1)(c, args, toComplete)
+		return cliutil.CompleteAreaValueArg(1)(c, args, toComplete)
 	}
 	return cmd
 }

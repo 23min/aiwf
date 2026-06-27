@@ -93,6 +93,54 @@ func TestParse_AreaKnownButUnknownSiblingRejected(t *testing.T) {
 	}
 }
 
+// TestIsValidAreaValue pins AC-1 of M-0184: the single definition of "valid
+// non-empty area value" — the reserved AreaGlobal sentinel, or any declared
+// member. Empty is not valid here (absence is area-required's concern). The
+// global sentinel is valid regardless of the declared set, including a nil
+// member list.
+func TestIsValidAreaValue(t *testing.T) {
+	t.Parallel()
+	members := []string{"platform", "billing"}
+	cases := []struct {
+		name    string
+		value   string
+		members []string
+		want    bool
+	}{
+		{"reserved global sentinel", AreaGlobal, members, true},
+		{"declared member", "platform", members, true},
+		{"another declared member", "billing", members, true},
+		{"undeclared value", "tooling", members, false},
+		{"empty value", "", members, false},
+		// Position A (M-0184): with no declared members the area dimension
+		// is inert (M-0171), so NOTHING is valid — not even the reserved
+		// global sentinel. The predicate is THE definition of "valid area
+		// value", so it gates global here rather than relying on each
+		// caller's pre-guard.
+		{"global with nil members is inert", AreaGlobal, nil, false},
+		{"global with empty members is inert", AreaGlobal, []string{}, false},
+		{"member-looking value with nil members", "platform", nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := IsValidAreaValue(tc.value, tc.members); got != tc.want {
+				t.Errorf("IsValidAreaValue(%q, %v) = %v, want %v", tc.value, tc.members, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestAreaGlobal_Value pins the reserved sentinel literal so a rename of the
+// constant surfaces here rather than silently shifting the wire value every
+// other call site routes through.
+func TestAreaGlobal_Value(t *testing.T) {
+	t.Parallel()
+	if AreaGlobal != "global" {
+		t.Errorf("AreaGlobal = %q, want %q", AreaGlobal, "global")
+	}
+}
+
 // TestCarriesOwnArea pins the single-source-of-truth predicate for which
 // kinds store their own `area` versus derive it from a parent (E-0043):
 // a milestone derives from its parent epic and never self-tags; the five

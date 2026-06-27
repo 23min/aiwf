@@ -267,6 +267,28 @@ func TestRenameArea_UndeclaredErrorNamesDeclaredSet(t *testing.T) {
 	}
 }
 
+// TestRenameArea_RefusesGlobalNewName pins M-0184/AC-5(b): renaming a
+// declared member to the reserved `global` sentinel is refused up front,
+// before any write — symmetric to config.validate()'s reserved-name guard,
+// so `rename-area <old> global` cannot inject a global member behind
+// validate()'s back. The refusal names the reserved value and produces no
+// Plan.
+func TestRenameArea_RefusesGlobalNewName(t *testing.T) {
+	t.Parallel()
+	tr := areaTree(t, map[string]string{"E-0001": "platform"})
+	res, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", entity.AreaGlobal, "human/test")
+	if err == nil {
+		t.Fatalf("expected refusal renaming to the reserved %q, got Plan=%v", entity.AreaGlobal, res)
+	}
+	if !strings.Contains(err.Error(), "global") || !strings.Contains(err.Error(), "reserved") {
+		t.Errorf("error %q must name the reserved %q value", err.Error(), entity.AreaGlobal)
+	}
+	if res != nil {
+		t.Errorf("result should be nil on refusal, got %v", res)
+	}
+}
+
 // TestRenameArea_DocWithoutAreasBlockErrors covers the SetAreas
 // refusal seam: validation passes (members says the area is declared)
 // but the loaded doc carries no areas block, so the splice errors and
