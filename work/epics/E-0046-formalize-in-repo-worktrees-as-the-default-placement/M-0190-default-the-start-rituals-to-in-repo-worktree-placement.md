@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Start rituals record the sandbox rationale citing ADR-0023
       status: open
+    - id: AC-4
+      title: WorktreeDir rejects a repo-escaping path and falls back to default
+      status: open
 ---
 
 # M-0190 — Default the start rituals to in-repo worktree placement
@@ -70,4 +73,6 @@ authoring"; AC tests assert against the embedded bytes.
 ### AC-2 — Start rituals retain the per-invocation worktree placement override
 
 ### AC-3 — Start rituals record the sandbox rationale citing ADR-0023
+
+### AC-4 — WorktreeDir rejects a repo-escaping path and falls back to default
 
