@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: rename-area preserves paths through a lossless round-trip
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: MemberNames is the single source of truth for name-based readers
