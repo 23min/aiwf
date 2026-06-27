@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: 'Legacy string-form parity: zero migration at the parse layer'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Schema validation rejects malformed members with clear per-arm errors
