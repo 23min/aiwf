@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: add --area accepts the reserved global value
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: validate() and rename-area reject a declared member named global
