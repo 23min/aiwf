@@ -1,7 +1,7 @@
 ---
 id: M-0179
 title: paths per-area config evolution with backward-compatible unmarshaler
-status: in_progress
+status: done
 parent: E-0044
 tdd: required
 acs:
