@@ -21,6 +21,10 @@ acs:
       title: add --area accepts the reserved global value
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: validate() and rename-area reject a declared member named global
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -107,4 +111,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-3 — set-area accepts the reserved global value
 
 ### AC-4 — add --area accepts the reserved global value
+
+### AC-5 — validate() and rename-area reject a declared member named global
 
