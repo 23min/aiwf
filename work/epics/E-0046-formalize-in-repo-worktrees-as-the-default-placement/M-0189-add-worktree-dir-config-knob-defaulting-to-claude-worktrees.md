@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf.yaml worktree.dir is parsed and exposed through config
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Unset, empty, or invalid worktree.dir defaults to .claude/worktrees
