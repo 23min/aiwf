@@ -9,6 +9,10 @@ acs:
       title: IsValidAreaValue predicate classifies global, members, and unknown values
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: area-unknown treats global as known, including under areas.required
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -89,4 +93,6 @@ Candidate behaviors to formalize at start-milestone:
 - M-0180 — the bijection/coverage check that depends on this milestone.
 
 ### AC-1 — IsValidAreaValue predicate classifies global, members, and unknown values
+
+### AC-2 — area-unknown treats global as known, including under areas.required
 
