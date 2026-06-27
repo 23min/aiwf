@@ -564,6 +564,15 @@ func TestPathKind(t *testing.T) {
 		{"work/gaps/random.md", "", false},
 		{"work/contracts/C-001-orders/schema/api.yaml", "", false},
 		{"docs/adr/notes.md", "", false},
+		// A nested in-repo worktree checkout (.claude/worktrees/<branch>/...,
+		// ADR-0023) embeds a full work/epics/... path under a non-work
+		// prefix. PathKind requires parts[0] == "work"/"docs", so the
+		// embedded entity path is structurally unrecognizable — the
+		// backstop (beyond tree.Load's walk-scoping) that keeps an in-repo
+		// worktree from surfacing phantom duplicate entities. Loosening
+		// this to a substring match would reintroduce the collision the
+		// in-repo-worktree default depends on not happening. M-0188.
+		{".claude/worktrees/epic-E-0046/work/epics/E-0001-real/epic.md", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
