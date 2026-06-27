@@ -1,7 +1,7 @@
 ---
 id: E-0046
 title: Formalize in-repo worktrees as the default placement
-status: proposed
+status: active
 ---
 
 # E-0046 — Formalize in-repo worktrees as the default placement
