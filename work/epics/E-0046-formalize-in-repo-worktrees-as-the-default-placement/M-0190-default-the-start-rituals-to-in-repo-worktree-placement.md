@@ -1,7 +1,7 @@
 ---
 id: M-0190
 title: Default the start rituals to in-repo worktree placement
-status: draft
+status: in_progress
 parent: E-0046
 depends_on:
     - M-0189
