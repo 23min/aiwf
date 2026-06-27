@@ -4,6 +4,11 @@ title: 'Reserved global area value: predicate, whitelist, and verb acceptance'
 status: draft
 parent: E-0044
 tdd: required
+acs:
+    - id: AC-1
+      title: IsValidAreaValue predicate classifies global, members, and unknown values
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -82,3 +87,6 @@ Candidate behaviors to formalize at start-milestone:
 - [ADR-0021](../../../docs/adr/ADR-0021-sanctioned-global-area-value-for-inherently-cross-cutting-entities.md) — the decision this implements.
 - M-0179 — the dual-form member schema (the `config.Areas` code this sits beside).
 - M-0180 — the bijection/coverage check that depends on this milestone.
+
+### AC-1 — IsValidAreaValue predicate classifies global, members, and unknown values
+
