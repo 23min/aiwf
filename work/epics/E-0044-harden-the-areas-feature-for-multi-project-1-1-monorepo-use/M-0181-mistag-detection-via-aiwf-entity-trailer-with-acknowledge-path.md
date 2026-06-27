@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: area-mistag fires when all area-claimed work lands in foreign areas
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: No finding when some touched paths land in the entity's own area
       status: open
