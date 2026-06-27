@@ -533,7 +533,7 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 | M-0174 | --area filter on list, show, and status | done |
 | M-0175 | Area grouping in status, render roadmap, and render html | done |
 
-## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (proposed)
+## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (active)
 
 ### Goal
 
@@ -548,4 +548,30 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0180 | Area path bijection and coverage check | draft |
 | M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | draft |
 | M-0182 | Auto-derive or suggest area from path hint at add and wrap | draft |
+
+## E-0045 — Plumbing-based commit construction for aiwf verbs (proposed)
+
+### Goal
+
+Replace aiwf's fragile `git stash`-based per-verb commit isolation with a plumbing-based commit-construction primitive (temp index + `commit-tree`) that never mutates the live index or worktree — making per-verb commit atomicity robust by construction, and giving aiwf a single, reusable commit-construction substrate.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0186 | gitops commit primitive via temp-index and commit-tree | draft |
+| M-0187 | Opt-in gaps inbox on a never-checked-out ref | draft |
+
+## E-0046 — Formalize in-repo worktrees as the default placement (proposed)
+
+### Goal
+
+Make in-repo worktrees (`.claude/worktrees/<branch>/`) aiwf's default placement for
+ritual worktrees, so a Claude session inside a sandboxed devcontainer can root in its
+worktree — and record the non-obvious rationale so the default is not reverted to the
+sibling-worktree git convention.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0188 | Pin that the loader ignores in-repo worktrees under .claude/worktrees | draft |
+| M-0189 | Add worktree.dir config knob defaulting to .claude/worktrees | draft |
+| M-0190 | Default the start rituals to in-repo worktree placement | draft |
 
