@@ -7,6 +7,31 @@ depends_on:
     - M-0179
     - M-0178
 tdd: required
+acs:
+    - id: AC-1
+      title: areamatch is the SSOT path-glob matcher (doublestar-backed)
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: dead-glob fires for a glob matching no real path; escalates under required
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: overlap fires when two areas claim one directory; escalates under required
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: strict member decode rejects unknown keys (addresses G-0287)
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: path-axis checks skip paths-less members (no-paths config stays inert)
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: the new findings are AI-discoverable; paths gets a schema-doc note
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -141,3 +166,16 @@ in-binary.
 - [ADR-0020](../../../docs/adr/ADR-0020-dual-form-areas-members-schema-backward-compatible-label-location-evolution.md),
   [ADR-0021](../../../docs/adr/ADR-0021-sanctioned-global-area-value-for-inherently-cross-cutting-entities.md).
 - M-0181 (mistag) and M-0182 (auto-derive) — the Tier-2 consumers of the `areamatch` matcher.
+
+### AC-1 — areamatch is the SSOT path-glob matcher (doublestar-backed)
+
+### AC-2 — dead-glob fires for a glob matching no real path; escalates under required
+
+### AC-3 — overlap fires when two areas claim one directory; escalates under required
+
+### AC-4 — strict member decode rejects unknown keys (addresses G-0287)
+
+### AC-5 — path-axis checks skip paths-less members (no-paths config stays inert)
+
+### AC-6 — the new findings are AI-discoverable; paths gets a schema-doc note
+
