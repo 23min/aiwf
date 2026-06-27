@@ -1,7 +1,7 @@
 ---
 id: M-0184
 title: 'Reserved global area value: predicate, whitelist, and verb acceptance'
-status: draft
+status: in_progress
 parent: E-0044
 tdd: required
 acs:
