@@ -1,7 +1,7 @@
 ---
 id: ADR-0020
 title: 'Dual-form areas.members schema: backward-compatible label+location evolution'
-status: proposed
+status: accepted
 ---
 ## Context
 
