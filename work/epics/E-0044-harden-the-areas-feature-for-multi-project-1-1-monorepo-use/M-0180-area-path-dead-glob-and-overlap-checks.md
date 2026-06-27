@@ -23,7 +23,7 @@ acs:
     - id: AC-4
       title: strict member decode rejects unknown keys (addresses G-0287)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: path-axis checks skip paths-less members (no-paths config stays inert)
       status: open
