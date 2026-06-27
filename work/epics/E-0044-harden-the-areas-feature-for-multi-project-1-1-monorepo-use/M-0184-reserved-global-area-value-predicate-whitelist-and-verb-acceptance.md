@@ -29,6 +29,10 @@ acs:
       title: a global-tagged entity satisfies areas.required
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: read-filter note and --area completion recognize the global value
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -119,4 +123,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-5 — validate() and rename-area reject a declared member named global
 
 ### AC-6 — a global-tagged entity satisfies areas.required
+
+### AC-7 — read-filter note and --area completion recognize the global value
 
