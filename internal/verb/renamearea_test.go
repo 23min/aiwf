@@ -7,7 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -71,7 +74,7 @@ func TestRenameArea_RewritesMemberAndEntities(t *testing.T) {
 	doc := mustReadAreaDoc(t)
 
 	res, err := RenameArea(context.Background(), tr, doc,
-		[]string{"platform", "billing"}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -116,13 +119,62 @@ func TestRenameArea_RewritesMemberAndEntities(t *testing.T) {
 	}
 }
 
+// TestRenameArea_PreservesMemberPaths pins the verb-leg of AC-4 (E-0044,
+// M-0179): the order-preserving rebuild renames only the matching member's
+// name and retains every member's paths, mapping config.Member to
+// aiwfyaml.AreaMember at the SetAreas call. The rewritten aiwf.yaml carries the
+// renamed member's paths under its new name and the non-renamed member's paths
+// untouched.
+func TestRenameArea_PreservesMemberPaths(t *testing.T) {
+	t.Parallel()
+	tr := areaTree(t, map[string]string{"E-0001": "platform"})
+	d, _, err := aiwfyaml.ReadBytes([]byte("areas:\n  members:\n    - name: platform\n      paths:\n        - projects/platform/**\n    - name: billing\n      paths:\n        - svc/billing/**\n"))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	members := []config.Member{
+		{Name: "platform", Paths: []string{"projects/platform/**"}},
+		{Name: "billing", Paths: []string{"svc/billing/**"}},
+	}
+	res, err := RenameArea(context.Background(), tr, d, members, "", "platform", "infra", "human/test")
+	if err != nil {
+		t.Fatalf("RenameArea: %v", err)
+	}
+	// Structural assertion: write the rewritten aiwf.yaml and re-load it through
+	// the real config parser, then assert the name→paths ASSOCIATION. A substring
+	// check would pass even if a member's paths were emitted under the wrong
+	// member's name (per CLAUDE.md "substring assertions are not structural").
+	dir := t.TempDir()
+	if werr := os.WriteFile(filepath.Join(dir, config.FileName), res.Plan.Ops[0].Content, 0o644); werr != nil {
+		t.Fatalf("write aiwf.yaml: %v", werr)
+	}
+	cfg, err := config.Load(dir)
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	got := make(map[string][]string, len(cfg.Areas.Members))
+	for _, m := range cfg.Areas.Members {
+		got[m.Name] = m.Paths
+	}
+	if _, stale := got["platform"]; stale {
+		t.Errorf("old member name still present: %+v", cfg.Areas.Members)
+	}
+	want := map[string][]string{
+		"infra":   {"projects/platform/**"},
+		"billing": {"svc/billing/**"},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("member name→paths association mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestRenameArea_NoReferencingEntities(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{"E-0003": "billing"})
 	doc := mustReadAreaDoc(t)
 
 	res, err := RenameArea(context.Background(), tr, doc,
-		[]string{"platform", "billing"}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -149,7 +201,7 @@ func TestRenameArea_PreservesDefaultLabel(t *testing.T) {
 		t.Fatalf("ReadBytes: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, d,
-		[]string{"platform", "billing"}, "untagged", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "untagged", "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -160,7 +212,7 @@ func TestRenameArea_PreservesDefaultLabel(t *testing.T) {
 
 func TestRenameArea_ValidationRefusals(t *testing.T) {
 	t.Parallel()
-	members := []string{"platform", "billing"}
+	members := []config.Member{{Name: "platform"}, {Name: "billing"}}
 	cases := []struct {
 		name        string
 		nilDoc      bool
@@ -204,7 +256,7 @@ func TestRenameArea_UndeclaredErrorNamesDeclaredSet(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{"E-0001": "platform"})
 	_, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
-		[]string{"platform", "billing"}, "", "nope", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "nope", "infra", "human/test")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -228,7 +280,7 @@ func TestRenameArea_DocWithoutAreasBlockErrors(t *testing.T) {
 		t.Fatalf("ReadBytes: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, d,
-		[]string{"platform", "billing"}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
 	if err == nil {
 		t.Fatalf("expected error, got Plan=%v", res)
 	}
@@ -247,7 +299,7 @@ func TestRenameArea_MissingEntityFileErrors(t *testing.T) {
 		t.Fatalf("remove entity file: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
-		[]string{"platform", "billing"}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
 	if err == nil {
 		t.Fatalf("expected error for missing entity file, got Plan=%v", res)
 	}

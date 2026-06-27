@@ -48,7 +48,7 @@ func RenameArea(
 	ctx context.Context,
 	t *tree.Tree,
 	doc *aiwfyaml.Doc,
-	members []string,
+	members []config.Member,
 	defaultLabel, oldName, newName, actor string,
 ) (*Result, error) {
 	_ = ctx
@@ -65,26 +65,30 @@ func RenameArea(
 		return nil, fmt.Errorf("rename-area: <old> and <new> are identical (%q); nothing to rename", oldName)
 	}
 
+	names := make([]string, len(members))
 	declared := make(map[string]bool, len(members))
-	for _, m := range members {
-		declared[m] = true
+	for i, m := range members {
+		names[i] = m.Name
+		declared[m.Name] = true
 	}
 	if !declared[oldName] {
-		return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", oldName, declaredList(members))
+		return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", oldName, declaredList(names))
 	}
 	if declared[newName] {
-		return nil, fmt.Errorf("area %q is already a declared member; declared areas: %s", newName, declaredList(members))
+		return nil, fmt.Errorf("area %q is already a declared member; declared areas: %s", newName, declaredList(names))
 	}
 
-	// Rewrite the member set, preserving display order — only the
-	// renamed entry changes position-in-place.
-	next := make([]string, len(members))
+	// Rewrite the member set, preserving display order AND each member's
+	// paths — only the renamed entry's name changes, in place. Map to the
+	// aiwfyaml writer's local member shape at the splice (config stays the
+	// single source of truth; aiwfyaml keeps its zero-dep-on-config layering).
+	next := make([]aiwfyaml.AreaMember, len(members))
 	for i, m := range members {
-		if m == oldName {
-			next[i] = newName
-		} else {
-			next[i] = m
+		name := m.Name
+		if name == oldName {
+			name = newName
 		}
+		next[i] = aiwfyaml.AreaMember{Name: name, Paths: m.Paths}
 	}
 	if err := doc.SetAreas(next, defaultLabel); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)

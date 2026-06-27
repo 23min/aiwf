@@ -544,7 +544,7 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0176 | Partition totality and disjointness property test for areagroup | done |
 | M-0177 | aiwf rename-area verb with atomic cross-entity rewrite | done |
 | M-0178 | areas.required knob promoting untagged entities to a blocking finding | done |
-| M-0179 | paths per-area config evolution with backward-compatible unmarshaler | draft |
+| M-0179 | paths per-area config evolution with backward-compatible unmarshaler | done |
 | M-0180 | Area path bijection and coverage check | draft |
 | M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | draft |
 | M-0182 | Auto-derive or suggest area from path hint at add and wrap | draft |

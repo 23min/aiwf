@@ -160,7 +160,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 		treeStrict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
-		areaMembers = cfg.Areas.Members
+		areaMembers = cfg.Areas.MemberNames()
 		areaRequired = cfg.Areas.Required
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)

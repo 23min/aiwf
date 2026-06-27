@@ -429,7 +429,7 @@ func (r *Resolver) StatusData() (*htmlrender.StatusData, error) {
 	if r.cfg != nil && len(r.cfg.Areas.Members) > 0 {
 		for _, g := range areagroup.Partition(epicViews,
 			func(ev htmlrender.StatusEpicView) string { return ev.Area },
-			r.cfg.Areas.Members, r.cfg.Areas.Default) {
+			r.cfg.Areas.MemberNames(), r.cfg.Areas.Default) {
 			out.InFlightAreas = append(out.InFlightAreas, htmlrender.StatusAreaView{
 				Label: g.Label,
 				Area:  g.Area,

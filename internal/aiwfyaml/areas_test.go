@@ -24,7 +24,7 @@ areas:
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{"infra", "billing"}, ""); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
 		t.Fatalf("SetAreas: %v", err)
 	}
 	got := string(doc.Bytes())
@@ -42,6 +42,46 @@ areas:
 	}
 }
 
+// TestSetAreas_EmitsObjectFormForMembersWithPaths pins AC-4's writer leg
+// (E-0044, M-0179): a member carrying Paths is emitted in the `name`/`paths`
+// mapping form (with path scalars routed through yamlScalar), while a
+// paths-less member stays a bare string — so a paths-less config round-trips
+// byte-identical to the legacy shape and located members keep their paths.
+func TestSetAreas_EmitsObjectFormForMembersWithPaths(t *testing.T) {
+	t.Parallel()
+	src := `areas:
+  members:
+    - app-a
+`
+	doc, _, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	members := []AreaMember{
+		{Name: "app-a", Paths: []string{"projects/app-a/**", "shared/**"}},
+		{Name: "plat"},
+	}
+	if err := doc.SetAreas(members, ""); err != nil {
+		t.Fatalf("SetAreas: %v", err)
+	}
+	got := string(doc.Bytes())
+	// Path scalars route through yamlScalar; a `**`-containing glob is quoted
+	// (the `*` is YAML-significant) so it round-trips safely. The config loader
+	// unquotes it back to the bare value on read (asserted in the integration
+	// AC-4 test via a structural parse).
+	want := `areas:
+  members:
+    - name: app-a
+      paths:
+        - "projects/app-a/**"
+        - "shared/**"
+    - plat
+`
+	if got != want {
+		t.Errorf("object-form emission mismatch\n got: %q\nwant: %q", got, want)
+	}
+}
+
 // TestSetAreas_PreservesDefaultLabel pins that the `default:` display
 // label survives a member rename when carried back through SetAreas.
 func TestSetAreas_PreservesDefaultLabel(t *testing.T) {
@@ -56,7 +96,7 @@ func TestSetAreas_PreservesDefaultLabel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{"infra", "billing"}, "untagged"); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, "untagged"); err != nil {
 		t.Fatalf("SetAreas: %v", err)
 	}
 	got := string(doc.Bytes())
@@ -86,7 +126,7 @@ html:
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{"infra", "billing"}, ""); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
 		t.Fatalf("SetAreas: %v", err)
 	}
 	got := string(doc.Bytes())
@@ -110,7 +150,7 @@ func TestSetAreas_NoAreasBlockErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{"platform"}, ""); err == nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "platform"}}, ""); err == nil {
 		t.Fatal("SetAreas on a doc with no areas block should error")
 	}
 }
@@ -128,7 +168,7 @@ func TestSetAreas_QuotesMemberNeedingQuoting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{`"true"`}, ""); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: `"true"`}}, ""); err != nil {
 		t.Fatalf("SetAreas: %v", err)
 	}
 	// The member value is the literal string `"true"` — yamlScalar
@@ -160,7 +200,7 @@ areas:
 		t.Errorf("contracts = %+v, want nil", contracts)
 	}
 	// SetAreas succeeding proves the areas block was located.
-	if err := doc.SetAreas([]string{"infra", "billing"}, ""); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
 		t.Fatalf("SetAreas after areas-only read: %v", err)
 	}
 	if !strings.Contains(string(doc.Bytes()), "- infra") {
@@ -185,7 +225,7 @@ contracts:
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]string{"infra", "billing"}, ""); err != nil {
+	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
 		t.Fatalf("SetAreas: %v", err)
 	}
 	got := string(doc.Bytes())
