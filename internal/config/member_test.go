@@ -188,6 +188,11 @@ func TestAreas_RejectsMalformed(t *testing.T) {
 			wantSub: "whitespace",
 		},
 		{
+			name:    "a3 malformed glob (unterminated character class)",
+			body:    "  members:\n    - name: app-a\n      paths:\n        - \"projects/[app\"\n",
+			wantSub: "not a valid glob",
+		},
+		{
 			name:    "a4 non-!!str scalar member (decode)",
 			body:    "  members:\n    - app-a\n    - 42\n",
 			wantSub: "neither a string",

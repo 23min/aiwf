@@ -119,6 +119,12 @@ var hintTable = map[string]string{
 	// present-at-all.
 	"area-required": "the entity has no `area` but `aiwf.yaml: areas.required` is set — tag it with `aiwf set-area <id> <member>` (a declared member of areas.members), or remove `areas.required` from aiwf.yaml if untagged entities are acceptable",
 
+	// M-0180 area-dead-glob: a declared area's `paths:` glob matches no real
+	// file or directory — dead config (a renamed / deleted / typo'd path).
+	// Per-glob; warning by default, error under areas.required. The
+	// remediation is fixing the glob, recreating the path, or dropping it.
+	"area-dead-glob": "an `aiwf.yaml: areas.members` path glob matches no file or directory — correct the glob to the path's real location, recreate the moved/renamed directory, or remove the dead glob from that member's `paths:`",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition

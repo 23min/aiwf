@@ -35,6 +35,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/pathutil"
 )
@@ -210,8 +211,10 @@ func memberNodeName(n *yaml.Node) string {
 
 // validate enforces the areas-block schema. Member names must be non-empty,
 // free of leading/trailing whitespace, and unique across both declaration
-// forms; each path entry must be non-empty and whitespace-clean (string
-// hygiene only — glob validation is deferred to M-0180); default (if set) must
+// forms; each path entry must be non-empty, whitespace-clean, and a
+// syntactically well-formed glob (the Tier-1 gate, M-0180 — a malformed glob
+// is a hard error at load naming the bad glob, rather than being silently
+// skipped by the dead-glob/overlap checks at runtime); default (if set) must
 // be a non-empty, whitespace-clean label that names a non-empty member set and
 // is not itself a member — it labels the untagged complement, which is
 // disjoint from every declared area.
@@ -243,6 +246,13 @@ func (a Areas) validate() error {
 			}
 			if p != strings.TrimSpace(p) {
 				return fmt.Errorf("areas.members member %q path %q has leading or trailing whitespace", name, p)
+			}
+			// Tier-1 glob-syntax gate (M-0180): route the check through the
+			// areamatch SSOT so config-load owns malformed globs and never
+			// imports doublestar directly. A bad glob is a hard load error,
+			// not a silently-skipped runtime no-op.
+			if err := areamatch.Validate(p); err != nil {
+				return fmt.Errorf("areas.members member %q path %q is not a valid glob: %w", name, p, err)
 			}
 		}
 	}
