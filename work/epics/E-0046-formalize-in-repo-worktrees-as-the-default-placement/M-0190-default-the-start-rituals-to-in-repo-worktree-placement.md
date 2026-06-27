@@ -6,6 +6,10 @@ parent: E-0046
 depends_on:
     - M-0189
 tdd: none
+acs:
+    - id: AC-1
+      title: Start-epic worktree step defaults to in-repo placement via worktree.dir
+      status: open
 ---
 
 # M-0190 — Default the start rituals to in-repo worktree placement
@@ -54,3 +58,6 @@ authoring"; AC tests assert against the embedded bytes.
 ## References
 
 - E-0046 epic spec; CLAUDE.md "Ritual content authoring".
+
+### AC-1 — Start-epic worktree step defaults to in-repo placement via worktree.dir
+
