@@ -1,7 +1,9 @@
 ---
-id: G-0292
+id: G-0293
 title: Promote tdd_phase live, not in a burst at milestone wrap
 status: open
+prior_ids:
+    - G-0292
 discovered_in: M-0189
 ---
 ## Problem
