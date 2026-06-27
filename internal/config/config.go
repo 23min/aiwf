@@ -420,15 +420,25 @@ const DefaultWorktreeDir = ".claude/worktrees"
 
 // WorktreeDir returns the configured ritual-worktree placement directory or
 // the kernel default when unset. Only a single repo-relative directory is
-// honored (E-0046 YAGNI): an empty, whitespace-only, or absolute value falls
-// back to DefaultWorktreeDir. Tolerant of a nil receiver so callers can
-// invoke before / without a loaded Config.
+// honored (E-0046 YAGNI): an empty, whitespace-only, absolute, or
+// repo-escaping (`../…`) value falls back to DefaultWorktreeDir. The escape
+// rejection keeps the value the start rituals consume in-repo, so a
+// configured worktree.dir can never place a worktree outside the repo and
+// defeat ADR-0023 / the M-0188 loader guard. Tolerant of a nil receiver so
+// callers can invoke before / without a loaded Config.
 func (c *Config) WorktreeDir() string {
 	if c == nil {
 		return DefaultWorktreeDir
 	}
 	dir := strings.TrimSpace(c.Worktree.Dir)
 	if dir == "" || filepath.IsAbs(dir) {
+		return DefaultWorktreeDir
+	}
+	// Reject a repo-relative path that escapes the repo root. filepath.Clean
+	// collapses any interior traversal; a cleaned value of ".." or one with a
+	// "../" prefix climbs above root and would place a worktree outside the
+	// repo — defeating the in-repo guarantee ADR-0023 rests on.
+	if cleaned := filepath.Clean(dir); cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 		return DefaultWorktreeDir
 	}
 	return dir
