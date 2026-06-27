@@ -13,6 +13,10 @@ acs:
       title: area-unknown treats global as known, including under areas.required
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: set-area accepts the reserved global value
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -95,4 +99,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-1 — IsValidAreaValue predicate classifies global, members, and unknown values
 
 ### AC-2 — area-unknown treats global as known, including under areas.required
+
+### AC-3 — set-area accepts the reserved global value
 
