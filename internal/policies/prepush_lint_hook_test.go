@@ -93,7 +93,30 @@ func runPrepushHook(t *testing.T, repoDir, stdin, lintCmd string, extraEnv ...st
 	cmd := exec.Command(prepushHookPath(t))
 	cmd.Dir = repoDir
 	cmd.Stdin = strings.NewReader(stdin)
-	overrides := append([]string{"AIWF_PREPUSH_LINT_CMD=" + lintCmd}, extraEnv...)
+	// Both pre-push gates default to no-op stand-ins so a test exercises
+	// exactly the gate it overrides: the lint cases don't trip the
+	// (ungated) gitleaks scan, and the gitleaks cases don't trip the lint
+	// gate. A caller's extraEnv entry for either key wins via the
+	// last-occurrence dedup below.
+	overrides := append([]string{
+		"AIWF_PREPUSH_LINT_CMD=" + lintCmd,
+		"AIWF_PREPUSH_GITLEAKS_CMD=true",
+	}, extraEnv...)
+	// Collapse duplicate keys, last occurrence winning, so a caller's
+	// extraEnv replaces a default rather than both landing in env (which
+	// duplicate getenv returns is libc-dependent).
+	seen := map[string]int{}
+	deduped := overrides[:0:0]
+	for _, o := range overrides {
+		key, _, _ := strings.Cut(o, "=")
+		if i, ok := seen[key]; ok {
+			deduped[i] = o
+			continue
+		}
+		seen[key] = len(deduped)
+		deduped = append(deduped, o)
+	}
+	overrides = deduped
 	env := os.Environ()[:0:0]
 	for _, kv := range os.Environ() {
 		key, _, _ := strings.Cut(kv, "=")
@@ -233,6 +256,173 @@ func TestPrepushLintHook_Decision(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestPrepushSecretScanHook_Decision pins the G-0291 secret-scan gate
+// added to the same hook. Unlike the lint gate it is UNGATED — it scans
+// every pushed range regardless of file type — so a docs-only push that
+// skips lint still runs gitleaks. The AIWF_PREPUSH_GITLEAKS_CMD override
+// stands in for the real gitleaks run (`true` clean / `false` finding).
+func TestPrepushSecretScanHook_Decision(t *testing.T) {
+	t.Parallel()
+	fx := newPrepushFixture(t) // shared read-only across subtests — do not mutate
+
+	const zero = "0000000000000000000000000000000000000000"
+	refLine := func(localSha, remoteSha string) string {
+		return "refs/heads/main " + localSha + " refs/heads/main " + remoteSha + "\n"
+	}
+
+	tests := []struct {
+		name        string
+		stdin       string
+		gitleaksCmd string
+		// setup, when set, builds a private fixture and returns
+		// (dir, stdin), overriding the shared fixture and the stdin
+		// field — for cases that must mutate repo state.
+		setup      func(t *testing.T) (dir, stdin string)
+		wantExit   int
+		wantStderr []string
+	}{
+		{
+			// The defining behavior: the scan is ungated. A docs-only
+			// range skips lint but still scans for secrets — red blocks.
+			name:        "docs-only range still scans, red blocks",
+			stdin:       refLine(fx.docs, fx.base),
+			gitleaksCmd: "false",
+			wantExit:    1,
+			wantStderr:  []string{"G-0291", "--no-verify"},
+		},
+		{
+			name:        "docs-only range, green passes",
+			stdin:       refLine(fx.docs, fx.base),
+			gitleaksCmd: "true",
+			wantExit:    0,
+		},
+		{
+			name:        "go change range scans too, red blocks",
+			stdin:       refLine(fx.goChange, fx.docs),
+			gitleaksCmd: "false",
+			wantExit:    1,
+		},
+		{
+			name:        "remote ref delete skips the scan",
+			stdin:       refLine(zero, fx.goChange),
+			gitleaksCmd: "false",
+			wantExit:    0,
+		},
+		{
+			name:        "new ref without origin/main scans full history",
+			stdin:       refLine(fx.goChange, zero),
+			gitleaksCmd: "false",
+			wantExit:    1,
+		},
+		{
+			name:        "new ref with empty merge-base range skips the scan",
+			gitleaksCmd: "false",
+			setup: func(t *testing.T) (string, string) {
+				// Own fixture: with origin/main at the docs commit, a new
+				// ref at docs has an empty range — no commits to scan.
+				t.Helper()
+				own := newPrepushFixture(t)
+				gitInFixture(t, own.dir, "update-ref", "refs/remotes/origin/main", own.docs)
+				return own.dir, refLine(own.docs, zero)
+			},
+			wantExit: 0,
+		},
+		{
+			name:        "unresolvable range scans full history",
+			stdin:       refLine(fx.goChange, strings.Repeat("deadbeef", 5)),
+			gitleaksCmd: "false",
+			wantExit:    1,
+		},
+		{
+			name:        "missing gitleaks tolerated with warning",
+			stdin:       refLine(fx.docs, fx.base),
+			gitleaksCmd: "aiwf-no-such-gitleaks-7d3f run",
+			wantExit:    0,
+			wantStderr:  []string{"local secret-scan skipped"},
+		},
+		{
+			name:        "blank stdin lines ignored",
+			stdin:       "\n" + refLine(zero, fx.goChange),
+			gitleaksCmd: "false",
+			wantExit:    0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			dir, stdin := fx.dir, tt.stdin
+			if tt.setup != nil {
+				dir, stdin = tt.setup(t)
+			}
+			exitCode, stderr := runPrepushHook(t, dir, stdin, "true", "AIWF_PREPUSH_GITLEAKS_CMD="+tt.gitleaksCmd)
+			if exitCode != tt.wantExit {
+				t.Errorf("exit code = %d, want %d\nstderr: %s", exitCode, tt.wantExit, stderr)
+			}
+			for _, want := range tt.wantStderr {
+				if !strings.Contains(stderr, want) {
+					t.Errorf("stderr should mention %q; got: %s", want, stderr)
+				}
+			}
+		})
+	}
+}
+
+// TestPrepushSecretScanHook_ScanScope pins WHAT gitleaks is told to
+// scan, which the decision table above cannot: its true/false stand-ins
+// ignore their arguments. A normal push must scan only the pushed range
+// (via --log-opts); the conservative fallback (new ref without
+// origin/main) must scan the full history (no --log-opts). Without this,
+// a mutant that drops --log-opts — scanning full history on every push,
+// defeating the per-push performance goal — survives the table green.
+// Uses an arg-recording stub, like TestPrepushLintHook_CacheIsolation.
+func TestPrepushSecretScanHook_ScanScope(t *testing.T) {
+	t.Parallel()
+	fx := newPrepushFixture(t)
+
+	const zero = "0000000000000000000000000000000000000000"
+	refLine := func(localSha, remoteSha string) string {
+		return "refs/heads/main " + localSha + " refs/heads/main " + remoteSha + "\n"
+	}
+
+	// Stub that records the gitleaks args it saw. A script (not an inline
+	// sh -c) because the hook word-splits $gitleaks_cmd.
+	stub := filepath.Join(fx.dir, "gitleaksstub.sh")
+	stubBody := "#!/bin/sh\necho \"stub-args=$*\" >&2\nexit 0\n"
+	if err := os.WriteFile(stub, []byte(stubBody), 0o755); err != nil {
+		t.Fatalf("writing gitleaks stub: %v", err)
+	}
+
+	t.Run("range push scans only the pushed range", func(t *testing.T) {
+		t.Parallel()
+		stdin := refLine(fx.goChange, fx.docs)
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true", "AIWF_PREPUSH_GITLEAKS_CMD="+stub)
+		if exitCode != 0 {
+			t.Fatalf("exit = %d, want 0\nstderr: %s", exitCode, stderr)
+		}
+		want := "stub-args=--log-opts=" + fx.docs + ".." + fx.goChange
+		if !strings.Contains(stderr, want) {
+			t.Errorf("range push must scan the pushed range via --log-opts;\nwant %q in stderr:\n%s", want, stderr)
+		}
+	})
+
+	t.Run("conservative fallback scans full history without --log-opts", func(t *testing.T) {
+		t.Parallel()
+		// New ref, no origin/main → scan_all → full-history scan.
+		stdin := refLine(fx.goChange, zero)
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true", "AIWF_PREPUSH_GITLEAKS_CMD="+stub)
+		if exitCode != 0 {
+			t.Fatalf("exit = %d, want 0\nstderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stderr, "stub-args=") {
+			t.Fatalf("stub should have run; stderr:\n%s", stderr)
+		}
+		if strings.Contains(stderr, "--log-opts") {
+			t.Errorf("full-history fallback must NOT pass --log-opts; stderr:\n%s", stderr)
+		}
+	})
 }
 
 // TestPrepushLintHook_InstallWiring pins the install path: the

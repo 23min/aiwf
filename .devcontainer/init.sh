@@ -116,6 +116,16 @@ if ! command -v govulncheck >/dev/null 2>&1; then
   go install golang.org/x/vuln/cmd/govulncheck@latest
 fi
 
+# gitleaks version must match .github/workflows/gitleaks.yml so the local
+# pre-push secret-scan and the CI gate agree (cross-file consistency
+# asserted by the gitleaks-enforcement policy test). Installing it here is
+# what makes the local pre-push hook actually fire (G-0292).
+GITLEAKS_VERSION="v8.30.1"
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "==> Installing gitleaks ${GITLEAKS_VERSION}"
+  go install "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}"
+fi
+
 # --- Claude Code CLI -----------------------------------------------
 # The native installer lands `claude` at ~/.local/bin/claude. The
 # devcontainer.json PATH already includes ~/.local/bin via the

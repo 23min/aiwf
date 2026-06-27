@@ -165,9 +165,10 @@ clean:
 # prior symlink and updates to scripts/git-hooks/* propagate
 # immediately (the symlink resolves at hook-fire time).
 #
-#   pre-commit — kernel policy lint + gitleaks path-leak gate.
+#   pre-commit — kernel policy lint (gated on Go/build inputs, G-0280).
 #   pre-push   — golangci-lint boundary gate on pushed Go changes
-#                (G-0179); runs before aiwf's `aiwf check`.
+#                (G-0179) + gitleaks secret-scan over the pushed
+#                range (G-0291); runs before aiwf's `aiwf check`.
 #
 # Run once after a fresh clone. The aiwf-managed hooks themselves
 # are materialized by `aiwf init`/`aiwf update`, which write the

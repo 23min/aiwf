@@ -1,0 +1,77 @@
+# .gitleaksignore — historical path-leak findings accepted by fingerprint.
+#
+# Pre-existing /Users/<name>/ occurrences in git HISTORY (the maintainer's
+# own home path + the codified test placeholder), committed while the
+# gitleaks gate was unenforced (see G-0292). History rewrite is forbidden
+# (it would break every SHA, aiwf history, and trailers), so these exact
+# past findings are accepted here by fingerprint. This is NOT a pattern
+# allowlist: a NEW /Users/<name>/ leak still fails the gate. HEAD is clean.
+#
+# Each line below is a gitleaks fingerprint: <commit>:<file>:<rule>:<line>.
+# Regenerate after an intentional history change with:
+#   gitleaks git --config=.gitleaks.toml --report-format json --report-path r.json
+#   jq -r '.[].Fingerprint' r.json | sort -u
+180c4085b0d43e6495f361e2e18ad3e0b38abeaa:work/gaps/G-064-kernel-repo-dogfooding-closed-partial-g-038-without-installing-the-ritual-plugins-aiwf-extensions-wf-rituals-operator-side-surface-incomplete-here-despite-framework-design-assuming-rituals-are-present.md:path-leak-darwin-home:15
+31c7b437a101f397eca6202ba140387776ac2886:CLAUDE.md:path-leak-darwin-home:122
+3b76321658a3677aee1ded7224f0845e8f5c526d:work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md:path-leak-darwin-home:140
+40a9443ea163b17077c8802120ef4e1595a3b164:work/epics/E-23-uniform-4-digit-kernel-id-width-closes-g-093/M-083-drift-check-normative-doc-amendments-and-skill-content-refresh.md:path-leak-darwin-home:155
+47075d3495d87bf933fd52d0705815390c0e23e9:work/epics/E-18-operator-side-dogfooding-completion-closes-g-062-g-064/M-071-install-ritual-plugins-in-kernel-repo-document-operator-setup-path.md:path-leak-darwin-home:82
+4866b4c6d33617f02a895a66a5ce7bdc5bd6afce:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md:path-leak-darwin-home:31
+4866b4c6d33617f02a895a66a5ce7bdc5bd6afce:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md:path-leak-darwin-home:53
+48933680893dcbfc194552c7ec2851653181f463:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md:path-leak-darwin-home:136
+4dffb9f8e70caa94aee3ba02a366488190256f1e:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/epic.md:path-leak-darwin-home:19
+61977151eb1efe636040046e28b7a300a9d08cfe:work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/wrap.md:path-leak-darwin-home:7
+96e16aa68532ab3adbdc870f7c38356aa790cf01:work/epics/E-18-operator-side-dogfooding-completion-closes-g-062-g-064/M-070-aiwf-doctor-warning-for-missing-recommended-plugins.md:path-leak-darwin-home:112
+a39d7f2219d049a0a8daf8e4e70d04741b547ca9:internal/cli/doctor/env_pathhint_internal_test.go:path-leak-darwin-home:129
+a39d7f2219d049a0a8daf8e4e70d04741b547ca9:internal/cli/doctor/env_pathhint_internal_test.go:path-leak-darwin-home:182
+a39d7f2219d049a0a8daf8e4e70d04741b547ca9:internal/cli/doctor/env_pathhint_internal_test.go:path-leak-darwin-home:57
+a39d7f2219d049a0a8daf8e4e70d04741b547ca9:internal/cli/doctor/env_pathhint_internal_test.go:path-leak-darwin-home:82
+ad60e3d6753369d2148229aa4c210abbcd70ac5d:work/epics/E-18-operator-side-dogfooding-completion-closes-g-062-g-064/M-070-aiwf-doctor-warning-for-missing-recommended-plugins.md:path-leak-darwin-home:80
+b49a620dbeb09f93e30551e8971563c426bda4f8:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md:path-leak-darwin-home:114
+b49a620dbeb09f93e30551e8971563c426bda4f8:work/epics/E-0027-trailered-merge-commits-from-aiwfx-wrap-epic-closes-g-0100/M-0090-aiwfx-wrap-epic-emits-trailered-merge-commits-fixture-drift-check-tests.md:path-leak-darwin-home:133
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:116
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:117
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:118
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:119
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:120
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:121
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:122
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:123
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:129
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:130
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:131
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:132
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:133
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:141
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:154
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:155
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:156
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:157
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:158
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:159
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/00-survey.md:path-leak-darwin-home:4
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/10-ai-scaffolding-policies.md:path-leak-darwin-home:3
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/20-project-docs-policies.md:path-leak-darwin-home:6
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:104
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:115
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:116
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:123
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:137
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:14
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:148
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:28
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:35
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:42
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/30-enforcement-mechanisms.md:path-leak-darwin-home:53
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/README.md:path-leak-darwin-home:3
+b6922511ad484da389c6e9055f33b19f2e7ddaba:docs/explorations/surveys/liminara/README.md:path-leak-darwin-home:55
+bf270e8ff42db1ab554256bd8e350082ece4ef8c:work/epics/E-0029-glanceable-governance-html-render-layout-sidebar-chips-closes-g-0114/M-0102-repair-playwright-e2e-suite-for-current-kernel-state.md:path-leak-darwin-home:103
+c73cde75f9ac5304e7856d2f872451777732e4d0:work/epics/E-21-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/M-079-aiwfx-whiteboard-skill-classification-rubric-output-template-q-a-gate.md:path-leak-darwin-home:202
+c950e4eb620982a3b84f545e7444051be2d20f44:work/epics/E-0028-start-epic-ritual-sovereign-activation-with-preflight-branch-worktree-choice-and-optional-delegation-closes-g-0063-start-side/M-0096-ship-aiwfx-start-epic-skill-with-worktree-and-branch-preflight-prompts.md:path-leak-darwin-home:33
+d482fbc4e77303b04fa1333cd4952517500376ef:work/gaps/G-0138-aiwf-doctor-recommended-plugin-check-false-positives-across-multi-context-dev.md:path-leak-darwin-home:19
+ed81a2c943034157988a7605c4cf9a3881c74922:work/epics/E-23-uniform-4-digit-kernel-id-width-closes-g-093/M-083-drift-check-normative-doc-amendments-and-skill-content-refresh.md:path-leak-darwin-home:68
+f93728893a6caf2d13b2e437af1cc529512cb666:work/epics/E-0018-operator-side-dogfooding-completion-closes-g-062-g-064/M-0071-install-ritual-plugins-in-kernel-repo-document-operator-setup-path.md:path-leak-darwin-home:82
+f93728893a6caf2d13b2e437af1cc529512cb666:work/epics/E-0021-open-work-synthesis-recommended-sequence-skill-replaces-critical-path-md/wrap.md:path-leak-darwin-home:7
+f93728893a6caf2d13b2e437af1cc529512cb666:work/gaps/G-0064-kernel-repo-dogfooding-closed-partial-g-038-without-installing-the-ritual-plugins-aiwf-extensions-wf-rituals-operator-side-surface-incomplete-here-despite-framework-design-assuming-rituals-are-present.md:path-leak-darwin-home:17
+fa2d43057d274ec0c6ed9da2e354bf2b97b8c4c7:work/gaps/G-0135-hook-path-hardcoded-at-install-time-breaks-across-gopath-environments.md:path-leak-darwin-home:10
+fa2d43057d274ec0c6ed9da2e354bf2b97b8c4c7:work/gaps/G-0135-hook-path-hardcoded-at-install-time-breaks-across-gopath-environments.md:path-leak-darwin-home:8

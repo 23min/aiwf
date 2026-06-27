@@ -30,11 +30,9 @@ func precommitHookPath(t *testing.T) string {
 // runPrecommitHook stages the given files in a fresh fixture repo and
 // runs the pre-commit hook with the policy-command override, returning
 // the exit code and combined stderr. Each stage entry is a
-// "relpath=content" pair. The repo's .gitleaks.toml is copied in so the
-// hook's (untouched-by-G-0280) gitleaks block has a valid config and
-// never false-blocks an exit-0 case on a machine that has gitleaks
-// installed; where gitleaks is absent the block self-skips with a
-// warning.
+// "relpath=content" pair. (G-0291 removed the pre-commit gitleaks block
+// — secret scanning moved to pre-push — so the fixture no longer needs
+// a .gitleaks.toml.)
 func runPrecommitHook(t *testing.T, policyCmd string, stage ...string) (exitCode int, stderr string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -46,12 +44,6 @@ func runPrecommitHook(t *testing.T, policyCmd string, stage ...string) (exitCode
 		}
 	}
 	runGit("init", "-q", "-b", "main")
-
-	if cfg, err := os.ReadFile(filepath.Join(repoRootForHook(t), ".gitleaks.toml")); err == nil {
-		if err := os.WriteFile(filepath.Join(dir, ".gitleaks.toml"), cfg, 0o644); err != nil {
-			t.Fatalf("writing fixture .gitleaks.toml: %v", err)
-		}
-	}
 
 	for _, pair := range stage {
 		rel, content, _ := strings.Cut(pair, "=")
@@ -160,8 +152,10 @@ func TestPrecommitPolicyHook_GateDecision(t *testing.T) {
 			wantExit:  1,
 		},
 		{
-			// wantErr is "policy lint skipped", not bare "skipped" — the
-			// gitleaks-absent branch also prints "…skipped" (T2).
+			// Asserts the precise "policy lint skipped" message. (Before
+			// G-0291 a bare "skipped" could also come from the pre-commit
+			// gitleaks branch; that branch is gone, but the precise
+			// assertion stays.)
 			name:      "missing policy tool tolerated with warning",
 			policyCmd: "aiwf-no-such-tool-7d3f run",
 			stage:     []string{"foo.go=package main\n"},
