@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: aiwf acknowledge mistag records a sovereign ack the check suppresses
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: area-mistag and the acknowledge surface are discoverable and pinned
       status: open
