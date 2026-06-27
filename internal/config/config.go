@@ -76,6 +76,7 @@ type Config struct {
 	Entities          Entities `yaml:"entities,omitempty"`
 	Guidance          Guidance `yaml:"guidance,omitempty"`
 	Areas             Areas    `yaml:"areas,omitempty"`
+	Worktree          Worktree `yaml:"worktree,omitempty"`
 }
 
 // Areas declares the closed set of workstream area tags (E-0043). Members is
@@ -399,6 +400,38 @@ func (c *Config) WireClaudeMd() bool {
 		return true
 	}
 	return *c.Guidance.WireClaudeMd
+}
+
+// Worktree carries the consumer's default placement for the git
+// worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)
+// create. Dir is a single repo-relative directory; the kernel default is
+// DefaultWorktreeDir. See ADR-0023 and E-0046 for why in-repo placement is
+// the default (a sandboxed devcontainer session can only root in a worktree
+// under the mounted workspace).
+type Worktree struct {
+	Dir string `yaml:"dir,omitempty"`
+}
+
+// DefaultWorktreeDir is the repo-relative directory the start rituals place
+// worktrees under when aiwf.yaml.worktree.dir is unset. In-repo placement
+// (ADR-0023): reachable as a session cwd inside a sandboxed devcontainer,
+// persistent under the mounted workspace, and gitignored via `.claude/*`.
+const DefaultWorktreeDir = ".claude/worktrees"
+
+// WorktreeDir returns the configured ritual-worktree placement directory or
+// the kernel default when unset. Only a single repo-relative directory is
+// honored (E-0046 YAGNI): an empty, whitespace-only, or absolute value falls
+// back to DefaultWorktreeDir. Tolerant of a nil receiver so callers can
+// invoke before / without a loaded Config.
+func (c *Config) WorktreeDir() string {
+	if c == nil {
+		return DefaultWorktreeDir
+	}
+	dir := strings.TrimSpace(c.Worktree.Dir)
+	if dir == "" || filepath.IsAbs(dir) {
+		return DefaultWorktreeDir
+	}
+	return dir
 }
 
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is

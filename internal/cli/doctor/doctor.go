@@ -180,6 +180,19 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		}
 	}
 
+	// worktree-dir: line (M-0189) — the resolved ritual-worktree
+	// placement directory the start rituals (M-0190) read to honor
+	// aiwf.yaml worktree.dir. Informational; never increments problems.
+	// Annotated (configured) when the consumer's knob is honored,
+	// (default) when falling back to the kernel default. cfg may be nil
+	// here (config load failed above); WorktreeDir() is nil-tolerant.
+	worktreeDir := cfg.WorktreeDir()
+	worktreeAnnot := "default"
+	if worktreeDir != config.DefaultWorktreeDir {
+		worktreeAnnot = "configured"
+	}
+	lines = append(lines, fmt.Sprintf("%s%s (%s)", label("worktree-dir:"), worktreeDir, worktreeAnnot))
+
 	if actor, source, actorErr := cliutil.ResolveActorWithSource("", rootDir); actorErr != nil {
 		lines = append(lines, label("actor:")+actorErr.Error())
 		problems++
