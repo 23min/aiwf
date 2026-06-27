@@ -38,7 +38,9 @@ func TestRunCheck_AreaOverlapSurfacesViaDispatcher(t *testing.T) {
 	}
 
 	captured := testutil.CaptureStdout(t, func() {
-		// rc=1 expected: the warning fires (check exits 1 on any findings).
+		// A warning-only check exits 0 (HasErrors counts errors, not
+		// warnings); the seam claim under test is that the finding code
+		// surfaces in stdout, which the assertions below verify.
 		_ = cli.Execute([]string{"check", "--root", root})
 	})
 	out := string(captured)

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -35,6 +36,36 @@ func TestAreaOverlap(t *testing.T) {
 			if !strings.Contains(hits[0].Message, want) {
 				t.Errorf("message %q does not name %q", hits[0].Message, want)
 			}
+		}
+	})
+
+	t.Run("representative path is the lexically-smallest shared path", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		mkAreaDir(t, root, "projects/shared")
+		// Files make the shared set multi-element ({projects/shared,
+		// projects/shared/a.txt, projects/shared/b.txt}), so firstSharedPath's
+		// sort actually orders. The representative must be the lexically-
+		// smallest (projects/shared) — a regression to "largest" or map-order
+		// would name a deeper .txt path instead.
+		for _, f := range []string{"a.txt", "b.txt"} {
+			if err := os.WriteFile(filepath.Join(root, "projects", "shared", f), []byte("x\n"), 0o644); err != nil {
+				t.Fatalf("write %s: %v", f, err)
+			}
+		}
+		got := AreaOverlap(&tree.Tree{Root: root}, []AreaPaths{
+			{Name: "left", Paths: []string{"projects/shared/**"}},
+			{Name: "right", Paths: []string{"projects/shared/**"}},
+		})
+		hits := findByCode(got, CodeAreaOverlap)
+		if len(hits) != 1 {
+			t.Fatalf("want 1 overlap finding, got %d: %+v", len(hits), got)
+		}
+		if !strings.Contains(hits[0].Message, `"projects/shared"`) {
+			t.Errorf("representative should be the lexically-smallest \"projects/shared\"; message = %q", hits[0].Message)
+		}
+		if strings.Contains(hits[0].Message, ".txt") {
+			t.Errorf("representative must not be a deeper path; message = %q", hits[0].Message)
 		}
 	})
 
