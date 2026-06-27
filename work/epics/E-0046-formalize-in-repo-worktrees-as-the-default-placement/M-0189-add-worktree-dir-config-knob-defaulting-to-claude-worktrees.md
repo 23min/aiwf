@@ -4,6 +4,19 @@ title: Add worktree.dir config knob defaulting to .claude/worktrees
 status: in_progress
 parent: E-0046
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf.yaml worktree.dir is parsed and exposed through config
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Unset, empty, or invalid worktree.dir defaults to .claude/worktrees
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: aiwf doctor surfaces the resolved worktree.dir (human + JSON)
+      status: open
+      tdd_phase: red
 ---
 
 # M-0189 — Add worktree.dir config knob defaulting to .claude/worktrees
@@ -47,3 +60,10 @@ rituals consume it in M-0190.
 ## References
 
 - E-0046 epic spec; `aiwf.yaml` `tree:` key precedent.
+
+### AC-1 — aiwf.yaml worktree.dir is parsed and exposed through config
+
+### AC-2 — Unset, empty, or invalid worktree.dir defaults to .claude/worktrees
+
+### AC-3 — aiwf doctor surfaces the resolved worktree.dir (human + JSON)
+
