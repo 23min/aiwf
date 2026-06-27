@@ -14,7 +14,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: dead-glob fires for a glob matching no real path; escalates under required
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: overlap fires when two areas claim one directory; escalates under required
