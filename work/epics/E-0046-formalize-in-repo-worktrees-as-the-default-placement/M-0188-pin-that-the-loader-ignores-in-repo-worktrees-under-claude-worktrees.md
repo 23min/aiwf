@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: In-scope duplicate id is still reported as a collision
-      status: open
+      status: met
 ---
 
 # M-0188 — Pin that the loader ignores in-repo worktrees under .claude/worktrees
