@@ -130,6 +130,13 @@ var hintTable = map[string]string{
 	// areas.required. The remediation is to make the globs disjoint.
 	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
 
+	// M-0181 area-mistag: an entity's linked commits (via the aiwf-entity
+	// trailer) touched only a DIFFERENT area's `paths:` territory than the one
+	// the entity is tagged to. Warning only — never escalated, because
+	// cross-cutting work is legitimate. The remediation is to retag the entity
+	// (`aiwf set-area`) or, if the work really is cross-cutting, acknowledge it.
+	"area-mistag": "the entity's `area` tag and its commits disagree — its work landed entirely in another area's `paths:` territory; fix the tag with `aiwf set-area`, or if the work is genuinely cross-cutting, acknowledge it (the acknowledge path, M-0181)",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition

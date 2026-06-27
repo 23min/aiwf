@@ -211,6 +211,23 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// areas.
 	findings = append(findings, check.AreaOverlap(tr, areaPaths)...)
 
+	// M-0181: area-mistag is the path-vs-tag consistency half of the area
+	// matrix — it reads each entity's linked commits (via the aiwf-entity
+	// trailer, gathered once) and flags an entity whose area-claimed work
+	// landed entirely in a foreign area's path territory. Composed here (the
+	// per-entity git walk is too heavy for the shape-only pre-commit path,
+	// like FSMHistoryConsistent) with the same declared area paths the
+	// dead-glob / overlap rules use. Warning only — deliberately NOT escalated
+	// by ApplyAreaRequiredStrict (cross-cutting is legitimate; the acknowledge
+	// path is the sanctioned escape valve, not a strictness bump). The gather
+	// is a full-history git-log walk, so it is gated behind a paths-carrying
+	// area: with no area declaring `paths:` (the common default) mistag is
+	// inert anyway, and the walk would be pure waste.
+	if check.AnyAreaHasPaths(areaPaths) {
+		touchedByEntity := check.GatherEntityPaths(ctx, resolved)
+		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity)...)
+	}
+
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to
 	// error so the pre-push hook blocks the push.
