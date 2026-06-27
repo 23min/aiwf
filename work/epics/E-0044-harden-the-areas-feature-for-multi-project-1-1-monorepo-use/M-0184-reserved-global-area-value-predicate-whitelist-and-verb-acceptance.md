@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: set-area accepts the reserved global value
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: add --area accepts the reserved global value
