@@ -92,7 +92,8 @@ type Config struct {
 // verb.RenameArea copies Member → AreaMember by hand. The two are not
 // compile-linked: adding a field here means also adding it to
 // aiwfyaml.AreaMember and its copy site in renamearea.go, or the new field is
-// silently dropped on rename.
+// silently dropped on rename. Adding a field here also means adding its key to
+// knownMemberKeys, or the strict-key guard (G-0287) rejects it as unknown.
 type Member struct {
 	Name  string   `yaml:"name"`
 	Paths []string `yaml:"paths,omitempty"`
@@ -172,6 +173,13 @@ func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
 			}
 			a.Members = append(a.Members, Member{Name: n.Value})
 		case yaml.MappingNode:
+			// Strict-key guard (G-0287): yaml.v3's Node.Decode is non-strict
+			// and silently drops unknown keys, so a typo like `pathz:` would
+			// vanish and feed the path-axis checks a false "no paths". Reject
+			// it at decode, naming the bad key.
+			if bad := unknownMemberKey(n); bad != "" {
+				return fmt.Errorf("areas.members[%d]: member %q has unknown key %q (allowed: name, paths)", i, memberNodeName(n), bad)
+			}
 			var m Member
 			if err := n.Decode(&m); err != nil {
 				return fmt.Errorf("areas.members[%d]: member %q: %w", i, memberNodeName(n), err)
@@ -204,6 +212,23 @@ func memberNodeName(n *yaml.Node) string {
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		if n.Content[i].Value == "name" {
 			return n.Content[i+1].Value
+		}
+	}
+	return ""
+}
+
+// knownMemberKeys is the closed set of keys a mapping member may declare. It
+// mirrors the Member struct's yaml tags and must be kept in sync by hand when a
+// field is added to Member (see the Member doc comment).
+var knownMemberKeys = map[string]bool{"name": true, "paths": true}
+
+// unknownMemberKey returns the first key in the mapping node that is not a
+// recognized member field, or "" when every key is known. It is the strict-key
+// guard the non-strict yaml.v3 Node.Decode lacks (G-0287).
+func unknownMemberKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownMemberKeys[n.Content[i].Value] {
+			return n.Content[i].Value
 		}
 	}
 	return ""

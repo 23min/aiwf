@@ -193,6 +193,16 @@ func TestAreas_RejectsMalformed(t *testing.T) {
 			wantSub: "not a valid glob",
 		},
 		{
+			name:    "a6 unknown member key (the pathz typo, G-0287)",
+			body:    "  members:\n    - name: app-a\n      pathz:\n        - x/**\n",
+			wantSub: "pathz",
+		},
+		{
+			name:    "a6 unknown member key (an unrelated key)",
+			body:    "  members:\n    - name: app-a\n      color: blue\n",
+			wantSub: "color",
+		},
+		{
 			name:    "a4 non-!!str scalar member (decode)",
 			body:    "  members:\n    - app-a\n    - 42\n",
 			wantSub: "neither a string",
