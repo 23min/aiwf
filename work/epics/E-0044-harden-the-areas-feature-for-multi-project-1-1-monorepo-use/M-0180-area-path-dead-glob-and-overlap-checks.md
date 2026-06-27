@@ -1,6 +1,6 @@
 ---
 id: M-0180
-title: Area path bijection and coverage check
+title: Area-path dead-glob and overlap checks
 status: draft
 parent: E-0044
 depends_on:
