@@ -73,6 +73,65 @@ func TestRunCheck_AreaMistagSurfacesViaDispatcher(t *testing.T) {
 	}
 }
 
+// TestRunCheck_AreaMistag_AcknowledgeSuppresses pins M-0181/AC-6 end-to-end: an
+// entity that fires area-mistag is suppressed after `aiwf acknowledge mistag`.
+// This is the drift guard tying the verb's emitted `aiwf-verb: acknowledge-mistag`
+// trailer to the check's WalkAcknowledgedMistags reader — if the two literals
+// disagreed, the post-ack check would still fire. The pre-ack check firing is
+// the positive control.
+func TestRunCheck_AreaMistag_AcknowledgeSuppresses(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	for _, dir := range []string{"projects/app-a", "projects/billing"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", dir, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "projects", "app-a", "keep.txt"), []byte("x\n"), 0o644); err != nil {
+		t.Fatalf("write keep: %v", err)
+	}
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	patched := string(raw) + "areas:\n  members:\n" +
+		"    - {name: app-a, paths: [projects/app-a/**]}\n" +
+		"    - {name: billing, paths: [projects/billing/**]}\n"
+	if err = os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+
+	mustRun(t, "add", "gap", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login timeout fix")
+	if err = os.WriteFile(filepath.Join(root, "projects", "billing", "invoice.go"), []byte("package billing\n"), 0o644); err != nil {
+		t.Fatalf("write invoice: %v", err)
+	}
+	if err = osExec(t, root, "git", "add", "projects/billing/invoice.go"); err != nil {
+		t.Fatalf("git add: %v", err)
+	}
+	if err = osExec(t, root, "git", "commit", "-q", "-m", "billing work", "--trailer", "aiwf-entity: G-0001"); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+
+	before := testutil.CaptureStdout(t, func() {
+		_ = cli.Execute([]string{"check", "--root", root})
+	})
+	if !strings.Contains(string(before), "area-mistag") {
+		t.Fatalf("precondition: expected area-mistag to fire before the ack; got:\n%s", string(before))
+	}
+
+	mustRun(t, "acknowledge", "mistag", "G-0001", "--root", root, "--actor", "human/test",
+		"--reason", "intentional cross-cutting work into billing")
+
+	after := testutil.CaptureStdout(t, func() {
+		_ = cli.Execute([]string{"check", "--root", root})
+	})
+	if strings.Contains(string(after), "area-mistag") {
+		t.Errorf("area-mistag must be suppressed after `aiwf acknowledge mistag`; got:\n%s", string(after))
+	}
+}
+
 // TestRunCheck_AreaMistag_InertWhenNoAreaDeclaresPaths pins M-0181/AC-4 at the
 // seam: with areas declared but NONE carrying `paths:` (label-only / legacy
 // string form), the AnyAreaHasPaths gate skips the gather entirely, so

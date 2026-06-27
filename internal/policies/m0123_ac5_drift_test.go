@@ -138,7 +138,7 @@ var nonLegalityVerbAllowlist = map[string]string{
 	"contract":    "topical verb group; sub-verbs handle their own non-FSM lifecycle",
 	"milestone":   "topical verb group for sub-verbs (depends-on); each sub-verb has its own non-FSM mutation",
 
-	"acknowledge": "topical verb group for sovereign acknowledgements (M-0181); the illegal sub-verb (M-0136) records an empty acknowledgement commit and operates on a check rule's finding stream, not on entity FSM state",
+	"acknowledge": "topical verb group for sovereign acknowledgements (M-0181); the illegal (M-0136) and mistag (M-0181) sub-verbs each record an empty acknowledgement commit and operate on a check rule's finding stream, not on entity FSM state",
 }
 
 // TestM0123_AC5_ImplToSpec_VerbsCovered asserts every top-level Cobra verb

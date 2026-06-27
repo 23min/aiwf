@@ -117,7 +117,7 @@ func TestAreaMistag_FiresOnForeignAreaWork(t *testing.T) {
 			"work/gaps/G-0001-x.md":       true, // planning file: matches no area glob
 		},
 	}
-	got := AreaMistag(tr, areas, touched)
+	got := AreaMistag(tr, areas, touched, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected exactly 1 area-mistag finding, got %d: %+v", len(got), got)
 	}
@@ -141,6 +141,32 @@ func TestAreaMistag_FiresOnForeignAreaWork(t *testing.T) {
 	}
 }
 
+// TestAreaMistag_SuppressedByAcknowledgement pins M-0181/AC-6: an entity that
+// would otherwise fire (its area-claimed work is all foreign) produces no
+// finding once its canonical id is in the acknowledged-mistags set — the
+// sovereign cross-cutting escape valve. The same fixture firing without the ack
+// is the positive control.
+func TestAreaMistag_SuppressedByAcknowledgement(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-0001-x.md", Area: "app-a"},
+	)
+	areas := []AreaPaths{
+		{Name: "app-a", Paths: []string{"projects/app-a/**"}},
+		{Name: "billing", Paths: []string{"projects/billing/**"}},
+	}
+	touched := map[string]map[string]bool{
+		"G-0001": {"projects/billing/invoice.go": true},
+	}
+	if got := AreaMistag(tr, areas, touched, nil); len(got) != 1 {
+		t.Fatalf("control: expected exactly 1 finding without ack, got %d: %+v", len(got), got)
+	}
+	acked := map[string]bool{"G-0001": true}
+	if got := AreaMistag(tr, areas, touched, acked); len(got) != 0 {
+		t.Errorf("acknowledged entity must be suppressed, got %d: %+v", len(got), got)
+	}
+}
+
 // TestAreaMistag_TolerantOfCrossCutting pins M-0181/AC-3: an entity whose
 // commits touched BOTH its own area and a foreign area produces no finding —
 // cross-cutting is tolerated, not policed. This refines the crude AC-2
@@ -160,7 +186,7 @@ func TestAreaMistag_TolerantOfCrossCutting(t *testing.T) {
 			"projects/billing/invoice.go": true, // foreign work too → cross-cutting
 		},
 	}
-	got := AreaMistag(tr, areas, touched)
+	got := AreaMistag(tr, areas, touched, nil)
 	if len(got) != 0 {
 		t.Fatalf("cross-cutting work (own + foreign) must not fire, got %d: %+v", len(got), got)
 	}
@@ -236,7 +262,7 @@ func TestAreaMistag_NoFinding(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := AreaMistag(makeTree(tc.entity), tc.areas, tc.touched)
+			got := AreaMistag(makeTree(tc.entity), tc.areas, tc.touched, nil)
 			if len(got) != 0 {
 				t.Errorf("expected no findings, got %d: %+v", len(got), got)
 			}
@@ -292,6 +318,61 @@ func TestMatchesAnyGlob(t *testing.T) {
 	// and is treated as no-match, exercising the defensive err branch.
 	if matchesAnyGlob("anything", []string{"projects/[app"}) {
 		t.Error("malformed glob must be treated as no-match, not a match")
+	}
+}
+
+// TestWalkAcknowledgedMistags pins M-0181/AC-6: the walker collects the
+// canonical entity ids acknowledged by `aiwf-verb: acknowledge-mistag` commits,
+// canonicalizes narrow widths, skips empty-valued entity trailers, and ignores
+// commits whose verb is anything else.
+func TestWalkAcknowledgedMistags(t *testing.T) {
+	t.Parallel()
+	f := newWalkerFixture(t)
+
+	f.writeFile("a.txt", "1\n")
+	f.commit("aiwf acknowledge mistag G-0001",
+		"aiwf-verb: acknowledge-mistag", "aiwf-entity: G-0001", "aiwf-actor: human/test")
+
+	// A non-mistag commit carrying aiwf-entity must NOT be collected.
+	f.writeFile("b.txt", "1\n")
+	f.commit("unrelated", "aiwf-verb: promote", "aiwf-entity: G-0002")
+
+	// A narrow-width mistag ack canonicalizes.
+	f.writeFile("c.txt", "1\n")
+	f.commit("ack narrow", "aiwf-verb: acknowledge-mistag", "aiwf-entity: M-123")
+
+	// A mistag ack with an empty entity value contributes no key.
+	f.writeFile("d.txt", "1\n")
+	f.commit("ack blank", "aiwf-verb: acknowledge-mistag", "aiwf-entity:")
+
+	got := WalkAcknowledgedMistags(context.Background(), f.root)
+	if !got["G-0001"] {
+		t.Errorf("expected G-0001 acknowledged; got %v", got)
+	}
+	if got["G-0002"] {
+		t.Errorf("G-0002 (promote, not a mistag ack) must not be collected; got %v", got)
+	}
+	if !got["M-0123"] {
+		t.Errorf("narrow M-123 should canonicalize to M-0123; got %v", got)
+	}
+	if _, ok := got[""]; ok {
+		t.Errorf("empty-valued entity trailer must not create a \"\" key; got %v", got)
+	}
+}
+
+// TestWalkAcknowledgedMistags_Inert pins the early-return arms: an empty root,
+// a non-git directory, and a git repo with no mistag acks all yield nil.
+func TestWalkAcknowledgedMistags_Inert(t *testing.T) {
+	t.Parallel()
+	if got := WalkAcknowledgedMistags(context.Background(), ""); got != nil {
+		t.Errorf("empty root: want nil, got %v", got)
+	}
+	if got := WalkAcknowledgedMistags(context.Background(), t.TempDir()); got != nil {
+		t.Errorf("non-git dir: want nil, got %v", got)
+	}
+	f := newWalkerFixture(t) // only an untrailered seed commit
+	if got := WalkAcknowledgedMistags(context.Background(), f.root); got != nil {
+		t.Errorf("no mistag acks: want nil, got %v", got)
 	}
 }
 

@@ -164,7 +164,7 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 
 		// `aiwf contract` and `aiwf contract recipe` are non-Runnable
 		// parent commands — they dispatch to children, args don't apply.
-		"aiwf acknowledge":      "non-Runnable parent; dispatches to children (illegal)",
+		"aiwf acknowledge":      "non-Runnable parent; dispatches to children (illegal, mistag)",
 		"aiwf contract":         "non-Runnable parent; dispatches to children",
 		"aiwf contract recipe":  "non-Runnable parent; dispatches to children",
 		"aiwf contract verify":  "no positional args",

@@ -225,7 +225,8 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// inert anyway, and the walk would be pure waste.
 	if check.AnyAreaHasPaths(areaPaths) {
 		touchedByEntity := check.GatherEntityPaths(ctx, resolved)
-		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity)...)
+		ackedMistags := check.WalkAcknowledgedMistags(ctx, resolved)
+		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity, ackedMistags)...)
 	}
 
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty

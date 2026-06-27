@@ -35,5 +35,6 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 	}
 	cmd.AddCommand(newIllegalCmd())
+	cmd.AddCommand(newMistagCmd())
 	return cmd
 }

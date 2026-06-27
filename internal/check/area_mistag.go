@@ -41,7 +41,13 @@ const CodeAreaMistag = "area-mistag"
 // cross-cutting work exists and the acknowledge path (M-0181/AC-6) is the
 // sanctioned escape valve, not a strictness bump. Composed at the CLI layer
 // with the gathered paths and declared areas, like the other path-axis rules.
-func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[string]bool) []Finding {
+//
+// ackedMistags is the set of canonical entity ids that have a sovereign
+// `aiwf acknowledge mistag` commit in history (gathered by
+// WalkAcknowledgedMistags, M-0181/AC-6); those entities are exempted — the
+// operator has affirmed the cross-cutting work is intentional. A nil set
+// exempts nothing.
+func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[string]bool, ackedMistags map[string]bool) []Finding {
 	globsByArea := map[string][]string{}
 	for _, a := range areas {
 		if len(a.Paths) > 0 {
@@ -62,6 +68,9 @@ func AreaMistag(t *tree.Tree, areas []AreaPaths, touchedByEntity map[string]map[
 		}
 		if len(globsByArea[area]) == 0 {
 			continue // the entity's own area declares no paths → can't check
+		}
+		if ackedMistags[entity.Canonicalize(e.ID)] {
+			continue // sovereign-acknowledged as intentional cross-cutting (M-0181/AC-6)
 		}
 		touched := touchedByEntity[entity.Canonicalize(e.ID)]
 		if len(touched) == 0 {
@@ -129,6 +138,63 @@ func AnyAreaHasPaths(areas []AreaPaths) bool {
 		}
 	}
 	return false
+}
+
+// WalkAcknowledgedMistags walks HEAD-reachable history for commits carrying
+// `aiwf-verb: acknowledge-mistag` and returns the set of canonical entity ids
+// those commits acknowledge (via their `aiwf-entity:` trailer). AreaMistag
+// exempts these entities — the sovereign-traced escape valve for legitimate
+// cross-cutting work (M-0181/AC-6, written by `aiwf acknowledge mistag`).
+//
+// Returns nil for a non-git root or empty history. Entity ids are rolled up to
+// their root and canonicalized at ingest, so a narrow-legacy trailer and a
+// canonical-width entity lookup agree (the WalkAcknowledgedSHAEntities ingest
+// convention). The verb-value match is the contract this shares with the verb
+// that emits it; the M-0181/AC-6 end-to-end test (ack → suppressed) is the
+// drift guard tying the two literals together.
+func WalkAcknowledgedMistags(ctx context.Context, root string) map[string]bool {
+	if root == "" || !hasGitCommits(ctx, root) {
+		return nil
+	}
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"--pretty=format:%H%x00%(trailers:unfold=true)%x00", "HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil //coverage:ignore git log on a hasGitCommits-verified repo fails only on exotic IO; not deterministically reproducible.
+	}
+	acked := map[string]bool{}
+	parts := strings.Split(string(out), "\x00")
+	for i := 0; i+1 < len(parts); i += 2 {
+		block := parts[i+1]
+		if block == "" {
+			continue
+		}
+		isMistagAck := false
+		var ids []string
+		for _, tr := range gitops.ParseTrailers(block) {
+			switch tr.Key {
+			case gitops.TrailerVerb:
+				if strings.TrimSpace(tr.Value) == "acknowledge-mistag" {
+					isMistagAck = true
+				}
+			case gitops.TrailerEntity:
+				if v := strings.TrimSpace(tr.Value); v != "" {
+					ids = append(ids, v)
+				}
+			}
+		}
+		if !isMistagAck {
+			continue
+		}
+		for _, id := range ids {
+			acked[entity.Canonicalize(entity.CompositeRoot(id))] = true
+		}
+	}
+	if len(acked) == 0 {
+		return nil
+	}
+	return acked
 }
 
 // matchesAnyGlob reports whether path matches at least one of globs via the
