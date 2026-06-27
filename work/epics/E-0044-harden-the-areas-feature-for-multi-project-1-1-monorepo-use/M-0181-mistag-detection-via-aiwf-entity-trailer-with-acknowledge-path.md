@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Inert with no paths, no linked commits, global area, or archived entity
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Regroup acknowledge-illegal into the aiwf acknowledge illegal subverb
       status: open
