@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Schema validation rejects malformed members with clear per-arm errors
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: rename-area preserves paths through a lossless round-trip
