@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Unset, empty, or invalid worktree.dir defaults to .claude/worktrees
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: aiwf doctor surfaces the resolved worktree.dir line
       status: open
