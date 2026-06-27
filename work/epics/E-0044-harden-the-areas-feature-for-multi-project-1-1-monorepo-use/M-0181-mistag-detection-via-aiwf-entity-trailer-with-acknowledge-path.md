@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: area-mistag and the acknowledge surface are discoverable and pinned
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
