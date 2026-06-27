@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: aiwf doctor surfaces the resolved worktree.dir (human + JSON)
+      title: aiwf doctor surfaces the resolved worktree.dir line
       status: open
       tdd_phase: red
 ---
@@ -65,5 +65,5 @@ rituals consume it in M-0190.
 
 ### AC-2 — Unset, empty, or invalid worktree.dir defaults to .claude/worktrees
 
-### AC-3 — aiwf doctor surfaces the resolved worktree.dir (human + JSON)
+### AC-3 — aiwf doctor surfaces the resolved worktree.dir line
 
