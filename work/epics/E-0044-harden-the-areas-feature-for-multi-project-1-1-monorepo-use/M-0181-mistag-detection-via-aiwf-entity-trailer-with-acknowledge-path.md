@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Regroup acknowledge-illegal into the aiwf acknowledge illegal subverb
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: aiwf acknowledge mistag records a sovereign ack the check suppresses
       status: open
