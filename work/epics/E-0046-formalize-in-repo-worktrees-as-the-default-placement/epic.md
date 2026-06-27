@@ -115,8 +115,7 @@ session/epic worktrees, makes it a configurable default, and records the reasoni
 
 ## ADRs produced
 
-- An ADR recording the in-repo-worktree-default decision and its devcontainer-sandbox
-  rationale (allocated during this epic).
+- ADR-0023 — Default to in-repo worktree placement under `.claude/worktrees`.
 
 ## References
 
