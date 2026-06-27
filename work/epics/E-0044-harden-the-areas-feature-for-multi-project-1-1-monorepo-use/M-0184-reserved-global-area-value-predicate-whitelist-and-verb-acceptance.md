@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: area-unknown treats global as known, including under areas.required
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: set-area accepts the reserved global value
