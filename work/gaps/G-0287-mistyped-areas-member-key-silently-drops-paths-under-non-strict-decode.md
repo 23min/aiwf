@@ -1,8 +1,10 @@
 ---
 id: G-0287
 title: Mistyped areas member key silently drops paths under non-strict decode
-status: open
+status: addressed
 discovered_in: M-0179
+addressed_by_commit:
+    - d944b07d
 ---
 ## Problem
 
