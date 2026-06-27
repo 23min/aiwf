@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf doctor surfaces the resolved worktree.dir line
-      status: open
+      status: met
       tdd_phase: done
 ---
 
