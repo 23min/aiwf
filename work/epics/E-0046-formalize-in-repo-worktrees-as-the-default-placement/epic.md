@@ -109,15 +109,9 @@ session/epic worktrees, makes it a configurable default, and records the reasoni
 
 ## Milestones
 
-<!-- Candidate milestones; canonical milestone ids are allocated by aiwfx-plan-milestones. -->
-
-- **Loader-guard regression test** — verify `aiwf check` / the loader ignores
-  `.claude/worktrees/`; pin with a nested-checkout fixture. · depends on: —
-- **`worktree.dir` config knob** — `aiwf.yaml` key, default `.claude/worktrees`, surfaced
-  to the rituals. · depends on: —
-- **Rituals default to in-repo** — `aiwfx-start-epic` / `aiwfx-start-milestone` read the
-  knob and default to in-repo, retaining the per-invocation override. · depends on: the
-  config-knob milestone
+- [M-0188](work/epics/E-0046-formalize-in-repo-worktrees-as-the-default-placement/M-0188-pin-that-the-loader-ignores-in-repo-worktrees-under-claude-worktrees.md) — pin that the loader ignores in-repo worktrees under `.claude/worktrees`. · depends on: —
+- [M-0189](work/epics/E-0046-formalize-in-repo-worktrees-as-the-default-placement/M-0189-add-worktree-dir-config-knob-defaulting-to-claude-worktrees.md) — add the `worktree.dir` config knob, default `.claude/worktrees`. · depends on: —
+- [M-0190](work/epics/E-0046-formalize-in-repo-worktrees-as-the-default-placement/M-0190-default-the-start-rituals-to-in-repo-worktree-placement.md) — default the start rituals to in-repo placement, reading the knob. · depends on: M-0189
 
 ## ADRs produced
 
