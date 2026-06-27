@@ -35,7 +35,8 @@ The work is three tiers with a hard dependency spine: Tier 0 is independent labe
 **Tier 1 — the oracle (the keystone):**
 
 - **`paths:` per area member**: evolve `config.Areas` from a flat label list to label+location — `members: [{name: app-a, paths: ["projects/app-a/**"]}]`. The existing custom `Areas` unmarshaler accepts both the old string form and the new object form (backward compatible — zero migration for existing configs). Everything in Tier 2 depends on this.
-- A **bijection / coverage check**: every declared area's glob matches a real directory (no dead config), and every project directory maps to exactly one area (no project nobody slotted). The reverse direction — a project directory with no area — is the monorepo-specific catch for a newly-added project that fell off the map.
+- **Dead-glob + overlap checks** (M-0180): every declared area's glob matches a real directory (no dead config), and no directory is claimed by two areas (unambiguous attribution). Plus the shared `areamatch` matcher the Tier-2 checks reuse.
+- A **scoped-coverage check** (M-0185): within an operator-declared coverage root, every project directory maps to some area — the monorepo-specific catch for a newly-added project that fell off the map. Opt-in (no coverage root ⇒ inert), so the single-project / semantic-section case is never flagged wholesale.
 
 **Tier 2 — exploit the oracle:**
 
@@ -64,7 +65,7 @@ The work is three tiers with a hard dependency spine: Tier 0 is independent labe
 <!-- Observable outcomes at epic close, not tests. -->
 
 - [ ] An `aiwf.yaml: areas` block can declare a `paths:` glob per member using the object form, and a config using the legacy string-only form parses and behaves unchanged.
-- [ ] `aiwf check` flags a declared area whose glob matches no directory (dead config) and a project directory that maps to no area (unslotted project), in the 1:1 monorepo fixture.
+- [ ] `aiwf check` flags a declared area whose glob matches no directory (dead config), a directory claimed by two areas (overlap), and — within a declared coverage root — a project directory that maps to no area (unslotted project), in the 1:1 monorepo fixture.
 - [ ] `aiwf rename-area <old> <new>` renames the member in `aiwf.yaml` and rewrites every referencing entity in one trailered commit; no entity is left orphaned into the complement.
 - [ ] With `areas.required: true`, an untagged entity raises a blocking finding; with the knob absent or false, behavior is exactly as E-0043 shipped.
 - [ ] A landed entity whose commits touch only another area's paths surfaces a mistag finding, and an operator can acknowledge a legitimate cross-cutting case with a named, reasoned act.
@@ -78,8 +79,8 @@ The work is three tiers with a hard dependency spine: Tier 0 is independent labe
 |---|---|---|
 | Default-on auto-derive (silently set `area` from a path hint) vs suggest-only (warn/hint, human confirms)? | no | Resolved at the auto-derive milestone. Lean: derive at `aiwf add` when a single unambiguous path hint is given; otherwise suggest, never silently overwrite an explicit `--area`. Keep the human in the loop for ambiguous diffs. |
 | Does the `paths:` flat-list → object schema evolution warrant an ADR? | no | Harvested at wrap via `aiwfx-record-decision`. Lean yes: it is a backward-compat schema contract with a forward-compat window, exactly the shape prior ADRs captured. |
-| Glob semantics + dependency: which matcher (`**` doublestar) backs `paths:`, and does it add a dependency? | no | Resolved at the `paths:` keystone milestone; each new dep carries a one-line justification per Go conventions. Prefer an already-vendored matcher if one fits. |
-| Bijection severity: is "a project directory with no area" a warning always, or an error only under `areas.required`? | no | Resolved at the bijection-check milestone. Lean: warning by default, escalating to blocking under `areas.required`, consistent with the Tier-0 knob. |
+| Glob semantics + dependency: which matcher (`**` doublestar) backs `paths:`, and does it add a dependency? | no | **Resolved (M-0180):** `internal/areamatch` wraps `doublestar/v4` (a new dep — stdlib `filepath.Match` can't evaluate `**`); introduced as the SSOT matcher M-0181/M-0182 reuse. |
+| Bijection severity: is "a project directory with no area" a warning always, or an error only under `areas.required`? | no | **Resolved (M-0180):** warning by default, escalating to error under `areas.required`, uniformly across dead-glob, overlap, and (in M-0185) scoped-coverage — consistent with `area-unknown`. |
 
 ## Risks
 
@@ -104,8 +105,9 @@ Tier 0 (label-only hardening — independent of the oracle, mutually paralleliza
 Tier 1 (the oracle — the keystone):
 
 - [M-0179](M-0179-paths-per-area-config-evolution-with-backward-compatible-unmarshaler.md) — `paths:` per-area config evolution with a backward-compatible dual-form `Areas` unmarshaler (**keystone**). · depends on: —
-- [M-0184](M-0184-reserved-global-area-value-predicate-whitelist-and-verb-acceptance.md) — reserved `global` area value: SSOT predicate, `area-unknown` whitelist (incl. under `areas.required`), `set-area`/`add` acceptance, reserved-name guard (per ADR-0021). The not-1:1 escape valve M-0180 excludes from its domain. · depends on: —
-- [M-0180](M-0180-area-path-bijection-and-coverage-check.md) — bijection / coverage check: declared glob ⇒ real directory, project directory ⇒ exactly one area. · depends on: M-0179, M-0184
+- [M-0184](M-0184-reserved-global-area-value-predicate-whitelist-and-verb-acceptance.md) — reserved `global` area value: SSOT predicate, `area-unknown` whitelist (incl. under `areas.required`), `set-area`/`add` acceptance, reserved-name guard (per ADR-0021). The not-1:1 escape valve the mistag check (M-0181) excludes from its domain. · depends on: —
+- [M-0180](M-0180-area-path-dead-glob-and-overlap-checks.md) — dead-glob (declared glob ⇒ a real directory) + overlap (no directory claimed by two areas) + the shared `areamatch` matcher. · depends on: M-0179, M-0178
+- [M-0185](M-0185-area-path-scoped-coverage-check-unslotted-project-detection.md) — scoped-coverage / unslotted-project: within an operator-declared coverage root, every project directory is claimed by some area. The covering law M-0180 defers. · depends on: M-0179, M-0180, M-0178
 
 Tier 2 (exploit the oracle — depends on the keystone):
 
