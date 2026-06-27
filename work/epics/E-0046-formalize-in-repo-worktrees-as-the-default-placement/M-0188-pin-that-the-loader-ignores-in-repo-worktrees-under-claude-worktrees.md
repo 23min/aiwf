@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Loader ignores a nested checkout under .claude/worktrees
-      status: open
+      status: met
     - id: AC-2
       title: In-scope duplicate id is still reported as a collision
       status: open
