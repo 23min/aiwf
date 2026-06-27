@@ -1,7 +1,9 @@
 ---
-id: G-0288
+id: G-0290
 title: aiwf statusline shows a warning indicator when check reports findings
 status: open
+prior_ids:
+    - G-0288
 ---
 ## Problem
 
