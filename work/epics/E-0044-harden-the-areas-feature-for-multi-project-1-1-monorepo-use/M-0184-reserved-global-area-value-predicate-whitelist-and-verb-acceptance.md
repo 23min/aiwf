@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: IsValidAreaValue predicate classifies global, members, and unknown values
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: area-unknown treats global as known, including under areas.required
       status: open
