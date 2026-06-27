@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: validate() and rename-area reject a declared member named global
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: a global-tagged entity satisfies areas.required
       status: open
