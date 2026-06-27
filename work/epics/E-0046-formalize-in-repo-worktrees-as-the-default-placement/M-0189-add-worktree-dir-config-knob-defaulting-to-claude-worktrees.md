@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: aiwf doctor surfaces the resolved worktree.dir line
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0189 — Add worktree.dir config knob defaulting to .claude/worktrees
