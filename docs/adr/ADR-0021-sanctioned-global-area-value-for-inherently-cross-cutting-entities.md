@@ -1,7 +1,7 @@
 ---
 id: ADR-0021
 title: Sanctioned global area value for inherently-cross-cutting entities
-status: proposed
+status: accepted
 prior_ids:
     - ADR-0020
 ---
