@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: area-mistag and the acknowledge surface are discoverable and pinned
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
