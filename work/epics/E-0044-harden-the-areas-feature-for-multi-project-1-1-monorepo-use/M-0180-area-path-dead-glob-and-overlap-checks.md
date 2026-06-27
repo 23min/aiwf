@@ -26,7 +26,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: path-axis checks skip paths-less members (no-paths config stays inert)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: the new findings are AI-discoverable; paths gets a schema-doc note
