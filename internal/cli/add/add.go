@@ -241,14 +241,21 @@ func Run(k entity.Kind, title, actor, principal, root,
 // a block is declared (M-0171), so an explicit --area is a usage error.
 func validateAreaMember(rootDir, area string) int {
 	members := cliutil.ConfiguredAreaMembers(rootDir)
+	// The no-block guard stays AHEAD of the value check, deliberately: the
+	// `area` field is inert until an areas block is declared (M-0171), so
+	// even the reserved `global` sentinel is a usage error with no block
+	// (M-0184/AC-4). This is the one write path where global is not a
+	// recognized value — every other surface routes through
+	// entity.IsValidAreaValue, which accepts global regardless of the
+	// declared set.
 	if len(members) == 0 {
 		fmt.Fprintf(os.Stderr, "aiwf add: --area %q given but no `areas` block is declared in aiwf.yaml; declare areas.members or omit --area\n", area)
 		return cliutil.ExitUsage
 	}
-	for _, m := range members {
-		if m == area {
-			return cliutil.ExitOK
-		}
+	// With a block declared, the reserved `global` sentinel or any declared
+	// member is valid — the SSOT predicate, not a parallel `== global`.
+	if entity.IsValidAreaValue(area, members) {
+		return cliutil.ExitOK
 	}
 	fmt.Fprintf(os.Stderr, "aiwf add: --area %q is not a declared area; declared: %s\n", area, strings.Join(members, ", "))
 	return cliutil.ExitUsage

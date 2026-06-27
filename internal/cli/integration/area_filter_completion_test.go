@@ -10,13 +10,15 @@ import (
 	"github.com/23min/aiwf/internal/cli/status"
 )
 
-// TestAreaCompletion_WiredOnReadVerbs pins M-0174/AC-4: the --area flag
-// on list, show, and status each has a completion function wired that
-// offers exactly the declared areas.members. This is the focused
-// companion to the live-tree TestPolicy_FlagsHaveCompletion drift gate —
-// that gate proves *a* func is registered; this proves it returns the
-// declared set. Serial: t.Chdir mutates process-wide cwd, which
-// CompleteAreaFlag reads via ResolveRoot("").
+// TestAreaCompletion_WiredOnReadVerbs pins M-0174/AC-4 + M-0184/AC-7: the
+// --area flag on list, show, and status each has a completion function
+// wired that offers the declared areas.members PLUS the reserved `global`
+// sentinel (a valid read-filter value, recognized by UndeclaredAreaNote).
+// This is the focused companion to the live-tree
+// TestPolicy_FlagsHaveCompletion drift gate — that gate proves *a* func is
+// registered; this proves it returns the expected set. Serial: t.Chdir
+// mutates process-wide cwd, which CompleteAreaFlag reads via
+// ResolveRoot("").
 func TestAreaCompletion_WiredOnReadVerbs(t *testing.T) {
 	root := setupAreaRepo(t) // declares {platform, billing}
 	t.Chdir(root)
@@ -39,13 +41,13 @@ func TestAreaCompletion_WiredOnReadVerbs(t *testing.T) {
 			if directive != cobra.ShellCompDirectiveNoFileComp {
 				t.Errorf("%s --area directive = %d, want ShellCompDirectiveNoFileComp", tc.name, directive)
 			}
-			want := map[string]bool{"platform": true, "billing": true}
+			want := map[string]bool{"platform": true, "billing": true, "global": true}
 			if len(got) != len(want) {
-				t.Fatalf("%s --area completion = %v, want exactly platform, billing", tc.name, got)
+				t.Fatalf("%s --area completion = %v, want exactly platform, billing, global", tc.name, got)
 			}
 			for _, g := range got {
 				if !want[g] {
-					t.Errorf("%s --area offered unexpected %q (want only platform, billing)", tc.name, g)
+					t.Errorf("%s --area offered unexpected %q (want only platform, billing, global)", tc.name, g)
 				}
 			}
 		})

@@ -70,6 +70,44 @@ func TestRunAdd_AreaSetViaDispatcher(t *testing.T) {
 	}
 }
 
+// TestRunAdd_AreaGlobalAccepted pins M-0184/AC-4: with a declared areas
+// block, `aiwf add <kind> --area global` succeeds (the reserved
+// cross-cutting sentinel is a valid area value even though it is not a
+// declared member) and the created entity carries `area: global`. Driven
+// through the real dispatcher so the validateAreaMember seam is exercised,
+// not just the predicate.
+func TestRunAdd_AreaGlobalAccepted(t *testing.T) {
+	root := setupAreaRepo(t)
+	mustRun(t, "add", "adr", "--title", "Cross-cutting decision", "--area", "global", "--actor", "human/test", "--root", root)
+	fm := frontmatterOf(readOne(t, root, "docs/adr/ADR-*.md"))
+	if !strings.Contains(fm, "area: global") {
+		t.Errorf("ADR frontmatter missing `area: global`:\n%s", fm)
+	}
+}
+
+// TestRunAdd_AreaGlobalNoBlockRejected pins the deliberate M-0184/AC-4
+// asymmetry: --area stays inert until an areas block is declared, so even
+// the reserved `global` sentinel is a usage error with no block (consistent
+// with M-0171's "the field is inert until a block is declared"). This is
+// the one place global is NOT accepted as a value — the add write path
+// keeps the no-block guard ahead of the value check.
+func TestRunAdd_AreaGlobalNoBlockRejected(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"add", "adr", "--title", "X", "--area", "global", "--actor", "human/test", "--root", root})
+	})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
+	}
+	if !strings.Contains(stderr, "areas") {
+		t.Errorf("stderr %q should mention the missing areas block", stderr)
+	}
+	if matches, _ := filepath.Glob(filepath.Join(root, "docs", "adr", "ADR-*.md")); len(matches) != 0 {
+		t.Errorf("no entity should be created on rejection; found %v", matches)
+	}
+}
+
 // TestRunAdd_AreaRejected pins M-0173/AC-2: an undeclared --area, and an
 // --area with no areas block, are both usage errors (exit 2) that create
 // no entity and name the offending value (and the declared set).
@@ -211,25 +249,26 @@ func TestRunAdd_GapDerivesUndeclaredAreaAsIs(t *testing.T) {
 	}
 }
 
-// TestRunAdd_AreaCompletion pins M-0173/AC-4: the --area completion
-// function offers exactly the declared areas.members, and gracefully
-// returns nothing when no config is discoverable. Serial (t.Chdir
-// mutates process-wide cwd, which ResolveRoot("") reads).
+// TestRunAdd_AreaCompletion pins M-0173/AC-4 + M-0184/AC-7: the --area
+// completion function offers the declared areas.members PLUS the reserved
+// `global` sentinel (a settable area value), and gracefully returns nothing
+// when no config is discoverable. Serial (t.Chdir mutates process-wide cwd,
+// which ResolveRoot("") reads).
 func TestRunAdd_AreaCompletion(t *testing.T) {
-	t.Run("offers declared members", func(t *testing.T) {
+	t.Run("offers declared members and global", func(t *testing.T) {
 		root := setupAreaRepo(t)
 		t.Chdir(root)
 		got, directive := cliutil.CompleteAreaFlag()(nil, nil, "")
 		if directive != cobra.ShellCompDirectiveNoFileComp {
 			t.Errorf("directive = %d, want ShellCompDirectiveNoFileComp", directive)
 		}
-		want := map[string]bool{"platform": true, "billing": true}
+		want := map[string]bool{"platform": true, "billing": true, "global": true}
 		if len(got) != len(want) {
-			t.Fatalf("completion = %v, want exactly platform, billing", got)
+			t.Fatalf("completion = %v, want exactly platform, billing, global", got)
 		}
 		for _, g := range got {
 			if !want[g] {
-				t.Errorf("unexpected completion %q (want only platform, billing)", g)
+				t.Errorf("unexpected completion %q (want only platform, billing, global)", g)
 			}
 		}
 	})

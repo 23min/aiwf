@@ -35,6 +35,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/pathutil"
 )
 
@@ -223,6 +224,14 @@ func (a Areas) validate() error {
 		}
 		if name != strings.TrimSpace(name) {
 			return fmt.Errorf("areas.members member %q has leading or trailing whitespace", name)
+		}
+		// `global` is the reserved cross-cutting sentinel (ADR-0021,
+		// M-0184), not a declarable member: it is one value of the area
+		// dimension, never a second axis. Reject it here so the only way
+		// an entity carries `area: global` is the affirmative escape valve,
+		// not a member set that shadows the sentinel.
+		if name == entity.AreaGlobal {
+			return fmt.Errorf("areas.members may not declare the reserved %q area; it is the cross-cutting sentinel (ADR-0021)", entity.AreaGlobal)
 		}
 		if seen[name] {
 			return fmt.Errorf("areas.members contains duplicate member %q", name)

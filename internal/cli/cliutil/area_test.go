@@ -125,6 +125,30 @@ func TestUndeclaredAreaNote(t *testing.T) {
 		}
 	})
 
+	t.Run("reserved global sentinel is silent even with a block", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		writeAreaConfig(t, root, "platform", "billing")
+		if note := cliutil.UndeclaredAreaNote(root, "global"); note != "" {
+			t.Errorf("global note = %q, want empty (global is a recognized cross-cutting sentinel)", note)
+		}
+	})
+
+	t.Run("reserved global sentinel gets the no-block note with no block at all", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir() // no aiwf.yaml
+		note := cliutil.UndeclaredAreaNote(root, "global")
+		// Position A — global is feature-gated: with no areas block, every
+		// value (including global) is not a declared area, so the advisory
+		// note fires and names the missing block.
+		if !strings.Contains(note, "global") {
+			t.Errorf("global note (no block) = %q, should name the requested value", note)
+		}
+		if !strings.Contains(note, "areas") {
+			t.Errorf("global note (no block) = %q, should mention the missing areas block", note)
+		}
+	})
+
 	t.Run("undeclared area with no areas block names the missing block", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir() // no aiwf.yaml at all

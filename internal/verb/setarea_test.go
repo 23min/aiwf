@@ -130,6 +130,59 @@ func TestSetArea_RewritesSingleEntity(t *testing.T) {
 	}
 }
 
+// TestSetArea_AcceptsGlobal pins M-0184/AC-3: the reserved `global`
+// sentinel is a valid set-area target even when it is NOT among the
+// declared members — it is the affirmative cross-cutting escape valve. The
+// Plan tags the entity `area: global` and carries the set-area trailers. A
+// still-undeclared value on the same fixture remains rejected, proving the
+// membership decision now routes through the SSOT predicate without
+// loosening typo protection.
+func TestSetArea_AcceptsGlobal(t *testing.T) {
+	t.Parallel()
+	t.Run("global succeeds despite not being a declared member", func(t *testing.T) {
+		t.Parallel()
+		tr := setAreaTree(t, "", nil)
+		res, err := SetArea(context.Background(), tr, setAreaMembers, "E-0001", entity.AreaGlobal, false, "human/test")
+		if err != nil {
+			t.Fatalf("SetArea global: %v", err)
+		}
+		if res.Plan == nil || len(res.Plan.Ops) != 1 {
+			t.Fatalf("expected exactly one OpWrite, got %+v", res.Plan)
+		}
+		if !strings.Contains(string(res.Plan.Ops[0].Content), "area: global") {
+			t.Errorf("expected `area: global` in frontmatter:\n%s", res.Plan.Ops[0].Content)
+		}
+		wantTrailers := []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "set-area"},
+			{Key: gitops.TrailerEntity, Value: "E-0001"},
+			{Key: gitops.TrailerActor, Value: "human/test"},
+		}
+		if len(res.Plan.Trailers) != len(wantTrailers) {
+			t.Fatalf("trailers = %v, want %v", res.Plan.Trailers, wantTrailers)
+		}
+		for i, want := range wantTrailers {
+			if res.Plan.Trailers[i] != want {
+				t.Errorf("trailer[%d] = %v, want %v", i, res.Plan.Trailers[i], want)
+			}
+		}
+	})
+
+	t.Run("still-undeclared value remains rejected", func(t *testing.T) {
+		t.Parallel()
+		tr := setAreaTree(t, "", nil)
+		res, err := SetArea(context.Background(), tr, setAreaMembers, "E-0001", "nonsense", false, "human/test")
+		if err == nil {
+			t.Fatalf("expected refusal for undeclared value, got Plan=%v", res)
+		}
+		if !strings.Contains(err.Error(), "not a declared member") {
+			t.Errorf("error %q should name the undeclared-member refusal", err.Error())
+		}
+		if res != nil {
+			t.Errorf("result should be nil on refusal, got %v", res)
+		}
+	})
+}
+
 // TestSetArea_ValidationRefusals exhausts the refusal paths: unknown id,
 // undeclared member, empty-members (no areas block), and both no-op
 // cases. Each returns an error, a nil result, and writes nothing.
@@ -145,7 +198,13 @@ func TestSetArea_ValidationRefusals(t *testing.T) {
 	}{
 		{name: "unknown id", members: setAreaMembers, id: "E-9999", member: "platform", wantInError: "unknown id"},
 		{name: "undeclared member", members: setAreaMembers, id: "E-0001", member: "nonsense", wantInError: "not a declared member"},
-		{name: "no areas block", members: nil, id: "E-0001", member: "platform", wantInError: "not a declared member"},
+		// No block declared: a regular member AND the reserved global
+		// sentinel both hit the no-block guard (Position A — global is
+		// feature-gated, unavailable until an areas block exists). The
+		// guard also replaces the confusing empty "declared areas: "
+		// message a member would otherwise hit with no block.
+		{name: "no areas block (member)", members: nil, id: "E-0001", member: "platform", wantInError: "no areas block is declared"},
+		{name: "no areas block (global)", members: nil, id: "E-0001", member: entity.AreaGlobal, wantInError: "no areas block is declared"},
 		{name: "no-op already tagged", members: setAreaMembers, startArea: "platform", id: "E-0001", member: "platform", wantInError: "already tagged"},
 		{name: "no-op clear already untagged", members: setAreaMembers, startArea: "", id: "E-0001", clear: true, wantInError: "already untagged"},
 	}

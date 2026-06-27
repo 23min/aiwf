@@ -101,7 +101,11 @@ func CompleteAreaFlag() func(*cobra.Command, []string, string) ([]string, cobra.
 		if err != nil { //coverage:ignore ResolveRoot("") only errors if os.Getwd fails (unreachable in practice; it falls back to cwd on a missing aiwf.yaml); mirrors CompleteEntityIDs
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return ConfiguredAreaMembers(rootDir), cobra.ShellCompDirectiveNoFileComp
+		// The --area value space (set-time and read-filter) is a settable
+		// area value: declared members PLUS the reserved AreaGlobal sentinel
+		// (M-0184). rename-area's <old> is a different space (renameable
+		// members only) and stays on CompleteAreaArg.
+		return areaValueCompletions(rootDir), cobra.ShellCompDirectiveNoFileComp
 	}
 }
 
@@ -116,6 +120,26 @@ func CompleteAreaFlag() func(*cobra.Command, []string, string) ([]string, cobra.
 // aiwf.yaml, no areas block) collapse to an empty list rather than
 // erroring in the shell.
 func CompleteAreaArg(position int) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return completeAreaArg(position, false)
+}
+
+// CompleteAreaValueArg is the positional-arg completion adapter for a
+// settable area VALUE — set-area's `<member>` positional (M-0184). Unlike
+// CompleteAreaArg (renameable members only), it offers the reserved
+// AreaGlobal sentinel alongside the declared members, since set-area
+// accepts `global` as the affirmative cross-cutting escape valve. Wired as
+// `CompleteAreaValueArg(1)` from set-area's composed ValidArgsFunction
+// (position 0 is the entity id). Same position-respecting and
+// graceful-no-op shape as CompleteAreaArg.
+func CompleteAreaValueArg(position int) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return completeAreaArg(position, true)
+}
+
+// completeAreaArg is the shared body for the two positional area completers.
+// includeGlobal toggles whether the reserved AreaGlobal sentinel is offered
+// alongside the declared members: rename-area's <old> (a renameable member)
+// passes false; set-area's <member> (a settable value) passes true.
+func completeAreaArg(position int, includeGlobal bool) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 	return func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		if len(args) != position {
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -124,8 +148,31 @@ func CompleteAreaArg(position int) func(*cobra.Command, []string, string) ([]str
 		if err != nil { //coverage:ignore ResolveRoot("") only errors if os.Getwd fails (unreachable in practice; it falls back to cwd on a missing aiwf.yaml); mirrors CompleteAreaFlag
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
+		if includeGlobal {
+			return areaValueCompletions(rootDir), cobra.ShellCompDirectiveNoFileComp
+		}
 		return ConfiguredAreaMembers(rootDir), cobra.ShellCompDirectiveNoFileComp
 	}
+}
+
+// areaValueCompletions returns the declared members plus the reserved
+// AreaGlobal sentinel — the completion value set for any surface that
+// accepts a settable area value (`add --area`, set-area's `<member>`, and
+// the list/show/status read filters). Keeping the append here means the
+// "global is a valid area value" fact lives next to the SSOT predicate's
+// consumers, not duplicated at each call site (M-0184).
+//
+// global is offered only when an areas block is declared: with no block the
+// `area` field is inert (M-0171) and `add --area global` is a usage error
+// (M-0184/AC-4), so suggesting global there would mislead. No block →
+// nothing, preserving the graceful-no-op completion outside a configured
+// project.
+func areaValueCompletions(rootDir string) []string {
+	members := ConfiguredAreaMembers(rootDir)
+	if len(members) == 0 {
+		return nil
+	}
+	return append(members, entity.AreaGlobal)
 }
 
 // CompleteEntityIDArg is the standard Cobra positional-arg completion

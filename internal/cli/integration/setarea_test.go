@@ -256,8 +256,11 @@ func TestSetArea_AC3_Refusals(t *testing.T) {
 		if rc == cliutil.ExitOK {
 			t.Errorf("rc = ExitOK, want a refusal with no areas block")
 		}
-		if !strings.Contains(stderr, "not a declared member") {
-			t.Errorf("stderr %q should name the (empty) declared set", stderr)
+		// Position A — global is feature-gated: with no areas block, a SET
+		// of any value is refused with the no-block guard message (M-0184
+		// follow-up), not the confusing empty "declared areas: (none)".
+		if !strings.Contains(stderr, "no areas block is declared") {
+			t.Errorf("stderr %q should name the missing areas block", stderr)
 		}
 		if after := revCount(t, root); after != before {
 			t.Errorf("commit count = %d, want unchanged %d", after, before)
@@ -306,9 +309,10 @@ func TestSetArea_AC4_TotalReversal(t *testing.T) {
 	})
 }
 
-// TestSetArea_AC5_Discoverability pins AC-5: the composed
-// ValidArgsFunction offers entity ids at position 0 and declared members
-// at position 1, and the command is registered in the root tree.
+// TestSetArea_AC5_Discoverability pins AC-5 + M-0184/AC-7: the composed
+// ValidArgsFunction offers entity ids at position 0 and settable area
+// values (declared members PLUS the reserved `global` sentinel) at
+// position 1, and the command is registered in the root tree.
 func TestSetArea_AC5_Discoverability(t *testing.T) {
 	t.Run("entity ids at position 0", func(t *testing.T) {
 		root := setAreaRepo(t)
@@ -331,7 +335,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 		}
 	})
 
-	t.Run("declared members at position 1", func(t *testing.T) {
+	t.Run("settable area values at position 1", func(t *testing.T) {
 		root := setAreaRepo(t)
 		t.Chdir(root)
 		cmd := setarea.NewCmd()
@@ -339,13 +343,13 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 		if directive != cobraNoFileComp {
 			t.Errorf("directive = %d, want ShellCompDirectiveNoFileComp", directive)
 		}
-		want := map[string]bool{"platform": true, "billing": true}
+		want := map[string]bool{"platform": true, "billing": true, "global": true}
 		if len(got) != len(want) {
-			t.Fatalf("position-1 completion = %v, want exactly platform, billing", got)
+			t.Fatalf("position-1 completion = %v, want exactly platform, billing, global", got)
 		}
 		for _, g := range got {
 			if !want[g] {
-				t.Errorf("unexpected completion %q at position 1 (want declared members)", g)
+				t.Errorf("unexpected completion %q at position 1 (want declared members + global)", g)
 			}
 		}
 	})
