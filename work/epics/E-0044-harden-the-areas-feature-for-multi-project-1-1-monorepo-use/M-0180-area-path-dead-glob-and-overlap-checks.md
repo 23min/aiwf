@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: overlap fires when two areas claim one directory; escalates under required
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: strict member decode rejects unknown keys (addresses G-0287)
       status: open
