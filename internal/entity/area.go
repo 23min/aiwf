@@ -11,11 +11,24 @@ const AreaGlobal = "global"
 // given the declared member names: the reserved AreaGlobal sentinel, or
 // any declared member. It is the single definition of "valid area value"
 // (ADR-0021, M-0184) — area-unknown, set-area, add --area, and the read-
-// filter note all route their membership decision through it. An empty v
-// is not valid here (absence is area-required's concern, handled before
-// this is called).
+// filter note all route their membership decision through it.
+//
+// With no declared members the area dimension is inert (M-0171), so
+// NOTHING is valid — not even the reserved global sentinel (Position A,
+// M-0184): `global` is feature-gated and unavailable until an areas block
+// exists. This gate lives in the predicate itself, the SSOT, rather than
+// depending on each caller's pre-guard (the callers keep their guards for
+// clearer messages; this is the correctness backstop).
+//
+// An empty v is not valid here (absence is area-required's concern,
+// handled before this is called).
 func IsValidAreaValue(v string, members []string) bool {
 	if v == "" {
+		return false
+	}
+	if len(members) == 0 {
+		// Area dimension inert until an areas block is declared (M-0171);
+		// global included (Position A, M-0184).
 		return false
 	}
 	if v == AreaGlobal {

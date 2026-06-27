@@ -129,6 +129,13 @@ func TestAreaUnknown_GlobalIsKnown(t *testing.T) {
 // blocked — and it isn't, because AreaUnknown never emitted a finding for
 // it (nothing to escalate). Pins that the cross-cutting escape valve
 // survives strict mode.
+//
+// Only meaningful paired with TestAreaUnknown_GlobalIsKnown: this test
+// asserts an EMPTY finding set is not escalated, which a rule that never
+// fires at all would also satisfy vacuously. The sibling independently
+// proves the rule still fires for a real mistag, so "global produced no
+// finding" here means "recognized", not "rule is dead". Do not delete the
+// sibling without replacing that guarantee.
 func TestAreaUnknown_GlobalNotBlockedUnderStrict(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(

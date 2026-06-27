@@ -84,6 +84,31 @@ func TestSetArea_AC1_RewritesUntaggedAndRetag(t *testing.T) {
 	})
 }
 
+// TestSetArea_GlobalEndToEnd pins M-0184/AC-3 through the full dispatcher:
+// on a repo WITH a declared areas block, `aiwf set-area <id> global`
+// succeeds end-to-end (exit OK) and writes `area: global` into the target's
+// frontmatter. The verb layer (verb.SetArea) and the no-block refusal are
+// already covered; this exercises the CLI Run seam for the success path so
+// the reserved sentinel reaches disk through the real command.
+func TestSetArea_GlobalEndToEnd(t *testing.T) {
+	root := setAreaRepo(t) // declares {platform, billing}, E-0001 untagged
+	before := revCount(t, root)
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"set-area", "E-0001", "global", "--actor", "human/test", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want ExitOK (%d); stderr=%q", rc, cliutil.ExitOK, stderr)
+	}
+	fm := frontmatterOf(epicFile(t, root, "E-0001"))
+	if !strings.Contains(fm, "area: global") {
+		t.Errorf("E-0001 not tagged the reserved global sentinel:\n%s", fm)
+	}
+	if after := revCount(t, root); after != before+1 {
+		t.Errorf("commit count = %d, want %d (+1)", after, before+1)
+	}
+}
+
 // TestSetArea_AC2_TrailersAndHistory pins AC-2: the commit carries the
 // set-area trailers, `aiwf history` renders the change for both a set and
 // a --clear, and `aiwf check` reports no provenance-untrailered finding.

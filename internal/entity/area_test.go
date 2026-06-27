@@ -112,7 +112,13 @@ func TestIsValidAreaValue(t *testing.T) {
 		{"another declared member", "billing", members, true},
 		{"undeclared value", "tooling", members, false},
 		{"empty value", "", members, false},
-		{"global with nil members", AreaGlobal, nil, true},
+		// Position A (M-0184): with no declared members the area dimension
+		// is inert (M-0171), so NOTHING is valid — not even the reserved
+		// global sentinel. The predicate is THE definition of "valid area
+		// value", so it gates global here rather than relying on each
+		// caller's pre-guard.
+		{"global with nil members is inert", AreaGlobal, nil, false},
+		{"global with empty members is inert", AreaGlobal, []string{}, false},
 		{"member-looking value with nil members", "platform", nil, false},
 	}
 	for _, tc := range cases {
