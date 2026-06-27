@@ -1,7 +1,7 @@
 ---
 id: M-0189
 title: Add worktree.dir config knob defaulting to .claude/worktrees
-status: in_progress
+status: done
 parent: E-0046
 tdd: required
 acs:
