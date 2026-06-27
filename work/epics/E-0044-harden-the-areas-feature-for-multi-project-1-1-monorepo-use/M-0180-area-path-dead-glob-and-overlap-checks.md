@@ -31,7 +31,7 @@ acs:
     - id: AC-6
       title: the new findings are AI-discoverable; paths gets a schema-doc note
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
