@@ -1,53 +1,48 @@
 ---
 name: aiwf-acknowledge
-description: Use when `aiwf check` reports `fsm-history-consistent/illegal-transition` errors against historical commits (typically pre-`fsm-history-consistent`-era squash-merges that collapsed legal feature-branch progressions into a single FSM-illegal commit). The verb records a current-day empty commit carrying `aiwf-force-for: <historical-sha>` plus `aiwf-actor: human/...` and `aiwf-reason: "..."`, which the rule's predicate walks at check time to exempt the named SHA. Requires a `human/...` actor and a non-empty `--reason` — sovereign acts trace to a named human with written rationale.
+description: Use when `aiwf check` reports a finding you've judged to be intentional and want a sovereign, reasoned exemption recorded in git. Two subverbs — `aiwf acknowledge illegal <sha>` exempts a historical commit from the fsm-history-consistent / provenance audit rules; `aiwf acknowledge mistag <id>` accepts an `area-mistag` warning as legitimate cross-cutting work. Each records a current-day empty commit carrying `aiwf-verb` / `aiwf-actor` / `aiwf-reason` (+ the target trailer) that the matching check rule walks to exempt the named target. Both require a `human/...` actor and a non-empty `--reason` — sovereign acts trace to a named human with written rationale.
 ---
 
 # aiwf-acknowledge
 
-`aiwf acknowledge` is the sovereign-acknowledgement verb group: each subcommand records a human-authored, reasoned acceptance of something a kernel audit rule flagged. This skill documents the `illegal` subcommand; the `mistag` sibling (`aiwf acknowledge mistag`, accepting an intentional cross-cutting area-mistag) lands alongside it in M-0181/AC-6.
+`aiwf acknowledge` is the sovereign-acknowledgement verb group: each subcommand records a human-authored, reasoned acceptance of something a kernel audit rule flagged. Both share one shape — a current-day **empty commit** (`git commit --allow-empty`) carrying `aiwf-verb` / `aiwf-actor: human/...` / `aiwf-reason: "..."` plus a target trailer, which the matching check rule walks at check time to exempt the named target. The acknowledgement lives in git (queryable via `aiwf history`), aligns with the existing `--force` sovereign-act semantics, and does not pollute `aiwf.yaml`.
 
-The `aiwf acknowledge illegal <sha>` verb is the retroactive sovereign-override mechanism for the `fsm-history-consistent` rule's `illegal-transition` subcode. It exists for historical commits that violate the per-kind FSM but cannot be cleanly fixed (squash-merges from the pre-rule era; force-pushed history; etc.) — running it produces a separate empty commit with a special trailer set, and the rule's predicate walks HEAD's history for those trailers to exempt the named SHAs.
+Two subverbs today:
 
-The verb is the answer to the design question: *"In the future, we should not have illegal transitions. But for the legacy commits that pre-date the rule, do we really want to list SHAs in `aiwf.yaml`? Can we solve it in a better way?"* — yes: the acknowledgment lives in git (queryable via `aiwf history`), aligns with the existing `--force` sovereign-act semantics, and doesn't pollute `aiwf.yaml`.
+- **`aiwf acknowledge illegal <sha>`** — exempt a historical commit from the FSM-history / provenance audit rules (M-0136).
+- **`aiwf acknowledge mistag <id>`** — accept an `area-mistag` warning as intentional cross-cutting work (M-0181).
 
-## When to use
+Both refuse a non-`human/` actor and an empty `--reason` at the gate — the judgment is the human's, recorded with a written rationale.
+
+## aiwf acknowledge illegal
+
+The `aiwf acknowledge illegal <sha>` verb is the retroactive sovereign-override mechanism for the `fsm-history-consistent` rule's `illegal-transition` subcode (and the other rules that consume the acknowledged-SHA set). It exists for historical commits that violate the per-kind FSM but cannot be cleanly fixed (squash-merges from the pre-rule era; force-pushed history; etc.).
+
+### When to use
 
 - `aiwf check` reports `fsm-history-consistent/illegal-transition` against a commit you've confirmed is intentional / unfixable (the typical case is a pre-rule squash-merge whose intermediate FSM steps were collapsed away).
 - Pre-push is blocked by the error and rewriting history is wrong (shared trunk, force-push to main is forbidden, etc.).
-- The operator is a named human with written rationale for accepting the violation.
 
-## When NOT to use
+### When NOT to use
 
 - The illegal transition is fresh / fixable — re-route through `aiwf promote` or `aiwf cancel` (which only accept FSM-legal moves), or use `aiwf <verb> --force --reason "..."` at the time of the change.
-- The transition is FSM-legal but lacks an `aiwf-verb:` trailer — that's the `manual-edit` subcode, cleared via `aiwf <verb> <id> --audit-only --reason "..."`. `acknowledge-illegal` is specifically for FSM-illegal flips that need post-hoc sovereign acceptance.
-- You're acting as a non-human actor (LLM, bot) — the verb refuses non-`human/` actors at the gate, by design. If an automated process surfaces an illegal-transition finding, the human reviewing the result decides whether to acknowledge.
+- The transition is FSM-legal but lacks an `aiwf-verb:` trailer — that's the `manual-edit` subcode, cleared via `aiwf <verb> <id> --audit-only --reason "..."`.
 
-## What to run
+### What to run
 
 ```bash
 # Acknowledge a historical illegal commit with a written rationale.
 aiwf acknowledge illegal f4ea7329 \
   --reason "pre-AC-2 era squash-merge from epic/E-21; intermediate FSM progression existed on the feature branch but was lost to the squash"
 
-# The verb derives --actor from `git config user.email` by default
-# (must resolve to a human/... identity); pass --actor human/<name> explicitly
-# when needed.
-aiwf acknowledge illegal f4ea7329 \
-  --actor human/peter \
-  --reason "..."
+# An untrailered entity-edit commit (per-(SHA, entity) ack) needs --for-entity.
+aiwf acknowledge illegal 6a1e70cc --for-entity ADR-0007 \
+  --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"
 ```
 
-The verb refuses with a typed error when:
+The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, `<sha>` doesn't match the 7-40-hex shape, or `<sha>` is **neither** reachable from HEAD **nor** present in the local object database (the M-0136/AC-4 + G-0236 typo guard).
 
-- `--reason` is empty or whitespace-only.
-- `--actor` is not `human/...`.
-- `<sha>` doesn't match the 7-40-hex SHA shape (verified at write time via the trailer validator).
-- (M-0136/AC-4 + G-0236) `<sha>` is **neither** reachable from HEAD **nor** present in the local object database. The primary path (`git merge-base --is-ancestor <sha> HEAD`) covers the FSM-history rules and isolation-escape proper, whose offending SHAs live on trunk; the G-0236 fallback (`git rev-parse --verify <sha>^{commit}`) covers `isolation-escape-orphaned-ai-commit`, whose offending SHAs are by construction unreachable from HEAD because they're force-pushed-away tips the reflog walker surfaces. A typo or wrong-repo SHA fails both checks.
-
-## What the commit looks like
-
-One empty commit (`git commit --allow-empty`) carrying:
+### What the commit looks like
 
 ```
 aiwf acknowledge illegal <short-sha>
@@ -58,40 +53,65 @@ aiwf-verb: acknowledge-illegal
 aiwf-force-for: <historical-sha>
 aiwf-actor: human/<name>
 aiwf-reason: <text>
+aiwf-entity: <id>           (only when --for-entity is supplied)
 ```
 
-The acknowledgment commit's SHA is itself in `aiwf history` going forward — queryable via `aiwf history <historical-sha>` once the cross-reference resolver lands (future scope).
+### Exemption semantics
 
-## Predicate semantics
+The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers and exempt findings whose offending commit appears in that set. The exemption is **DAG-scoped** (only trailers reachable from HEAD count, so a cherry-pick onto a branch lacking the original violation doesn't exempt it) and **per-SHA** (one ack covers every entity the historical SHA touched). The `aiwf-verb: acknowledge-illegal` trailer value is unchanged by the M-0181/AC-5 regroup — the command path `acknowledge illegal` enumerates to the same string, so history validates with no shim.
 
-The `fsm-history-consistent` rule's `illegal-transition` predicate walks HEAD's reachable history at check time and builds a set of SHAs targeted by any `aiwf-force-for:` trailer. For each illegal-transition observation, if the offending commit's SHA appears in that set, the finding is exempted.
+## aiwf acknowledge mistag
 
-Properties of the exemption:
+The `aiwf acknowledge mistag <id>` verb (M-0181) records a sovereign acceptance that an entity's `area` tag and its commits' landing zone legitimately disagree — suppressing the `area-mistag` warning for that entity. Mistag fires when an entity's area-claimed work landed entirely in a *foreign* area's `paths:` territory; sometimes that is genuinely intentional (e.g. migrating code into a shared area), not a mis-file.
 
-- **DAG-scoped**: only `aiwf-force-for` trailers in HEAD's reachable history count. A cherry-picked acknowledgment on a branch that doesn't include the original violation doesn't exempt findings on this branch.
-- **Per-SHA**, not per-entity: one acknowledgment commit covers every entity touched by the historical SHA. A single `f4ea7329` ack clears illegal-transition findings against M-0072, M-0073, M-0074, and E-0020 in one shot.
-- **Disjoint from `manual-edit`**: the `aiwf-audit-only` mechanism still clears the `manual-edit` subcode independently; `aiwf-force-for` clears `illegal-transition` only. The two cover different failure modes (FSM-legal-but-untrailered vs. FSM-illegal-but-sovereign).
-- **Disjoint from `forced-untrailered`**: that subcode catches sovereign-act-shape transitions lacking the inline `aiwf-force:` trailer at the time of the act. Retroactive acknowledgment via `acknowledge-illegal` is for the rarer case where the commit can't be re-done (already merged, force-push forbidden) — typically squash-merges.
+### When to use
+
+- `aiwf check` reports `area-mistag` for an entity whose cross-cutting work you've confirmed is deliberate.
+- The right fix is *not* a re-tag — the work really does span areas. (If the tag is simply wrong, run `aiwf set-area <id> <member>` instead; the mistag then no longer fires, and there's nothing to acknowledge.)
+
+### What to run
+
+```bash
+aiwf acknowledge mistag G-0301 \
+  --reason "migrating billing's auth into the shared platform lib; cross-cutting by design"
+```
+
+The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, or `<id>` resolves to no entity in the tree (the typo guard — a composite `M-NNNN/AC-N` id rolls up to its milestone).
+
+### What the commit looks like
+
+```
+aiwf acknowledge mistag <id>
+
+<your reason text>
+
+aiwf-verb: acknowledge-mistag
+aiwf-entity: <id>
+aiwf-actor: human/<name>
+aiwf-reason: <text>
+```
+
+### Suppression semantics
+
+The `area-mistag` rule walks HEAD's reachable history for `aiwf-verb: acknowledge-mistag` commits and exempts the entities they name (via `aiwf-entity`, canonicalized). The exemption is **per-entity** (not per-SHA): once acknowledged, that entity never fires `area-mistag` again, regardless of which commits its work lands in. `area-mistag` is warning-only and never escalates, so the acknowledge path — not a strictness bump — is the sanctioned escape valve for legitimate cross-cutting work.
 
 ## Why empty-commit + trailer (vs. aiwf.yaml entry)
 
-- **Audit trail is git-native.** `aiwf history` already walks commits for `aiwf-verb:` events; acknowledgments fit naturally. A YAML entry would need a parallel surfacing mechanism.
-- **Per-acknowledgment rationale.** Each ack carries its own `aiwf-reason` — the YAML alternative would either drop the reason (lossy) or replicate the trailer in a comment field (redundant).
-- **Sovereign-act alignment.** Existing `--force --reason "..."` records the human in the commit's trailer block. `acknowledge-illegal` is the same shape, just retroactive.
-- **No allowlist drift.** A YAML allowlist accumulates entries that nobody knows whether they're still needed; a commit-trailer set lives in history and grows monotonically with reasons attached.
+- **Audit trail is git-native.** `aiwf history` already walks commits for `aiwf-verb:` events; acknowledgements fit naturally. A YAML entry would need a parallel surfacing mechanism.
+- **Per-acknowledgement rationale.** Each ack carries its own `aiwf-reason` — a YAML allowlist would either drop the reason or replicate it redundantly.
+- **Sovereign-act alignment.** Existing `--force --reason "..."` records the human in the commit's trailer block; acknowledge is the same shape.
+- **No allowlist drift.** A YAML allowlist accumulates entries nobody knows are still needed; a commit-trailer set lives in history and grows monotonically with reasons attached.
 
-## What can't this verb do
+## What these verbs can't do
 
-- **Reverse itself.** There's no companion "un-acknowledge" verb. If you regret an acknowledgment, your options are: rewrite history (destructive, hostile to shared trunks); add a counter-acknowledgment via a future verb (not designed); or live with it. The verb is one-way by deliberate design — the spec's "What verb undoes this?" answer is *"you can't, and that's deliberate."*
-- **Acknowledge a commit that is neither reachable from HEAD nor in the local object DB.** Per M-0136/AC-4 + G-0236, the verb fails with a typed error rather than silently accumulating no-op acknowledgments. Valid means: either `git merge-base --is-ancestor <sha> HEAD` succeeds (primary case — on-trunk commits) OR `git rev-parse --verify <sha>^{commit}` succeeds (G-0236 fallback — orphans in the local object DB, surfaced via reflog walkers).
-- **Acknowledge findings other than `illegal-transition`.** `forced-untrailered`, `manual-edit`, and `history-walk-error` each have their own resolution paths (`--force --reason` at the time of the act, `--audit-only`, and re-run / fix git store respectively).
+- **Reverse themselves.** There's no companion "un-acknowledge" verb — the acts are one-way by deliberate design (the "What verb undoes this?" answer is *"you can't, and that's deliberate"*). To undo a mistag ack, re-tag with `aiwf set-area` so the finding no longer fires; an illegal ack is lived with or, in extremis, rewritten out of history.
+- **Acknowledge an absent target.** `illegal` refuses a SHA reachable from neither HEAD nor the object DB; `mistag` refuses an id that resolves to no entity — both rather than silently recording a no-op ack.
+- **Acknowledge across rule families.** `illegal` clears the FSM-history / provenance set; `mistag` clears `area-mistag`. Other findings (`forced-untrailered`, `manual-edit`, …) have their own resolution paths.
 
 ## Related
 
-- **M-0136** — this milestone.
-- **M-0130** — implements `fsm-history-consistent` whose findings this verb exempts.
-- **M-0137** — retrofits the rule to batched walker + surfaces walker errors as findings (the silent-swallow fix); a prerequisite to M-0136 so the predicate fires reliably.
-- **D-0010** — merge-commit policy that left these single-parent illegal commits as the residual real-finding class M-0136 addresses.
-- **G-0150** — the design conversation that surfaced the need for this verb (vs. an aiwf.yaml allowlist).
-- **D-0008** — explicitly excluded `illegal-transition` from the existing `audit-only` suppression; M-0136 introduces the separate, more deliberate retroactive-force mechanism.
-- **ADR-0006** — the per-verb-skill / topical-skill / allowlist judgment rule M-0136/AC-6 satisfies via this skill.
+- **M-0136** — `aiwf acknowledge illegal` (then the top-level `acknowledge-illegal` verb).
+- **M-0181** — `aiwf acknowledge mistag` + the regroup of `acknowledge-illegal` into the `aiwf acknowledge` subverb namespace.
+- **M-0130 / M-0137** — implement `fsm-history-consistent` whose findings `illegal` exempts.
+- **G-0150** — the design conversation that surfaced the acknowledge-vs-aiwf.yaml-allowlist decision.
+- **ADR-0006** — the per-verb-skill / topical-skill / allowlist judgment rule this topical skill satisfies.

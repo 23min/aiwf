@@ -7,6 +7,16 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
+// TestMistagCmd_HasPositionalCompletion pins M-0181/AC-7: the `mistag <id>`
+// subcommand wires positional entity-id completion (the id is a closed set,
+// unlike illegal's free-form <sha>). Complements the completion-drift gate.
+func TestMistagCmd_HasPositionalCompletion(t *testing.T) {
+	t.Parallel()
+	if newMistagCmd().ValidArgsFunction == nil {
+		t.Error("mistag command ValidArgsFunction not wired (positional entity-id completion expected)")
+	}
+}
+
 // TestRunMistag_ErrorExits covers runMistag's guard exits (M-0181/AC-6). The
 // happy path is exercised end-to-end by the acknowledge-suppresses integration
 // test (in-process cli.Execute); these pin the error branches:
