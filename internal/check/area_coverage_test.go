@@ -41,6 +41,9 @@ func TestAreaCoverage(t *testing.T) {
 		if hits[0].Path != "projects/app-b" {
 			t.Errorf("Path = %q, want %q", hits[0].Path, "projects/app-b")
 		}
+		if hits[0].Field != "areas.coverage_roots" {
+			t.Errorf("Field = %q, want %q", hits[0].Field, "areas.coverage_roots")
+		}
 	})
 
 	t.Run("fully-slotted root is silent (** glob claims the bare project dir)", func(t *testing.T) {
@@ -108,16 +111,24 @@ func TestAreaCoverage(t *testing.T) {
 		}
 	})
 
-	t.Run("AC-4: no area declares paths is inert", func(t *testing.T) {
+	t.Run("AC-8: coverage_roots declared but no area has paths fires area-coverage-no-paths (not silent)", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir()
-		mkAreaDir(t, root, "projects/app-b") // unclaimed
+		mkAreaDir(t, root, "projects/app-b") // unclaimed, but the path oracle is dormant
 		got := AreaCoverage(&tree.Tree{Root: root},
 			[]AreaPaths{{Name: "label-only", Paths: nil}},
 			[]string{"projects"},
 		)
-		if len(got) != 0 {
-			t.Errorf("a paths-less areas block must keep coverage inert, got %+v", got)
+		hits := findByCode(got, CodeAreaCoverageNoPaths)
+		if len(hits) != 1 {
+			t.Fatalf("want exactly 1 area-coverage-no-paths finding, got %d: %+v", len(hits), got)
+		}
+		if hits[0].Severity != SeverityWarning {
+			t.Errorf("severity = %q, want %q", hits[0].Severity, SeverityWarning)
+		}
+		// It must NOT degenerate into a per-child area-unslotted storm.
+		if u := findByCode(got, CodeAreaUnslotted); len(u) != 0 {
+			t.Errorf("no-paths must not emit area-unslotted, got %+v", u)
 		}
 	})
 
@@ -153,15 +164,78 @@ func TestAreaCoverage(t *testing.T) {
 		}
 	})
 
-	t.Run("AC-6: a missing coverage root is silent (never fails on IO)", func(t *testing.T) {
+	t.Run("dot-prefixed children (.git/.claude) are skipped under a '.' root", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		mkAreaDir(t, root, ".git")
+		mkAreaDir(t, root, ".claude")
+		mkAreaDir(t, root, "app-a")  // claimed
+		mkAreaDir(t, root, "orphan") // unclaimed, a real (non-dot) project
+		got := AreaCoverage(&tree.Tree{Root: root},
+			[]AreaPaths{{Name: "app-a", Paths: []string{"app-a/**"}}},
+			[]string{"."},
+		)
+		hits := findByCode(got, CodeAreaUnslotted)
+		if len(hits) != 1 {
+			t.Fatalf("want exactly 1 unslotted finding (orphan only; .git/.claude must be skipped), got %d: %+v", len(hits), got)
+		}
+		if hits[0].Path != "orphan" {
+			t.Errorf("Path = %q, want %q (dot-prefixed dirs must be skipped)", hits[0].Path, "orphan")
+		}
+	})
+
+	t.Run("AC-8: a non-existent coverage root fires area-coverage-root-missing", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir() // no `projects` dir created
 		got := AreaCoverage(&tree.Tree{Root: root},
 			[]AreaPaths{{Name: "app-a", Paths: []string{"projects/app-a/**"}}},
 			[]string{"projects"},
 		)
+		hits := findByCode(got, CodeAreaCoverageRootMissing)
+		if len(hits) != 1 {
+			t.Fatalf("want exactly 1 area-coverage-root-missing finding, got %d: %+v", len(hits), got)
+		}
+		if !strings.Contains(hits[0].Message, "projects") {
+			t.Errorf("message %q should name the dead root", hits[0].Message)
+		}
+		if hits[0].Severity != SeverityWarning {
+			t.Errorf("severity = %q, want %q", hits[0].Severity, SeverityWarning)
+		}
+		if hits[0].Path != "projects" {
+			t.Errorf("Path = %q, want %q", hits[0].Path, "projects")
+		}
+	})
+
+	t.Run("AC-8: a coverage root that names a file fires area-coverage-root-missing", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		if err := os.WriteFile(filepath.Join(root, "projects"), []byte("not a dir\n"), 0o644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		got := AreaCoverage(&tree.Tree{Root: root},
+			[]AreaPaths{{Name: "app-a", Paths: []string{"projects/app-a/**"}}},
+			[]string{"projects"},
+		)
+		if hits := findByCode(got, CodeAreaCoverageRootMissing); len(hits) != 1 {
+			t.Fatalf("a file coverage root must fire area-coverage-root-missing, got %d: %+v", len(hits), got)
+		}
+	})
+
+	t.Run("AC-6: an indeterminate stat error (root under a file) is skipped, never fails on IO", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		// `afile` is a file; the coverage root `afile/sub` makes os.Stat fail
+		// with ENOTDIR — NOT fs.ErrNotExist — exercising the indeterminate
+		// branch that is skipped silently rather than flagged.
+		if err := os.WriteFile(filepath.Join(root, "afile"), []byte("x\n"), 0o644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		got := AreaCoverage(&tree.Tree{Root: root},
+			[]AreaPaths{{Name: "app-a", Paths: []string{"projects/app-a/**"}}},
+			[]string{"afile/sub"},
+		)
 		if len(got) != 0 {
-			t.Errorf("a missing coverage root must be silent, got %+v", got)
+			t.Errorf("an indeterminate stat error must be skipped (no finding), got %+v", got)
 		}
 	})
 
@@ -194,43 +268,45 @@ func TestAreaCoverage(t *testing.T) {
 	})
 }
 
-// TestApplyAreaRequiredStrict_EscalatesUnslotted pins the M-0185/AC-5 severity
-// contract: under areas.required the area-unslotted warning is bumped to error
-// so the pre-push hook blocks it, mirroring the area-unknown / area-dead-glob /
-// area-overlap escalation. The entity-body-empty control proves the bump stays
-// scoped to the area codes.
-func TestApplyAreaRequiredStrict_EscalatesUnslotted(t *testing.T) {
+// TestApplyAreaRequiredStrict_EscalatesCoverageFindings pins the M-0185 AC-5 +
+// AC-8 severity contract: under areas.required all three coverage findings
+// (area-unslotted, area-coverage-root-missing, area-coverage-no-paths) are
+// bumped to error so the pre-push hook blocks them, mirroring the area-unknown
+// / area-dead-glob / area-overlap escalation. The entity-body-empty control
+// proves the bump stays scoped to the area codes.
+func TestApplyAreaRequiredStrict_EscalatesCoverageFindings(t *testing.T) {
 	t.Parallel()
+	coverageCodes := []string{CodeAreaUnslotted, CodeAreaCoverageRootMissing, CodeAreaCoverageNoPaths}
 	build := func() []Finding {
-		return []Finding{
-			{Code: CodeAreaUnslotted, Severity: SeverityWarning},
-			{Code: CodeEntityBodyEmpty, Severity: SeverityWarning},
+		fs := make([]Finding, 0, len(coverageCodes)+1)
+		for _, c := range coverageCodes {
+			fs = append(fs, Finding{Code: c, Severity: SeverityWarning})
 		}
+		return append(fs, Finding{Code: CodeEntityBodyEmpty, Severity: SeverityWarning})
 	}
 
-	t.Run("required=true bumps unslotted to error", func(t *testing.T) {
+	t.Run("required=true bumps every coverage finding to error, control untouched", func(t *testing.T) {
 		findings := build()
 		ApplyAreaRequiredStrict(findings, true)
 		for _, f := range findings {
-			switch f.Code {
-			case CodeAreaUnslotted:
-				if f.Severity != SeverityError {
-					t.Errorf("unslotted severity = %v, want error under required", f.Severity)
-				}
-			case CodeEntityBodyEmpty:
+			if f.Code == CodeEntityBodyEmpty {
 				if f.Severity != SeverityWarning {
 					t.Errorf("entity-body-empty severity = %v, want warning unchanged", f.Severity)
 				}
+				continue
+			}
+			if f.Severity != SeverityError {
+				t.Errorf("%s severity = %v, want error under required", f.Code, f.Severity)
 			}
 		}
 	})
 
-	t.Run("required=false leaves unslotted a warning", func(t *testing.T) {
+	t.Run("required=false leaves every coverage finding a warning", func(t *testing.T) {
 		findings := build()
 		ApplyAreaRequiredStrict(findings, false)
 		for _, f := range findings {
-			if f.Code == CodeAreaUnslotted && f.Severity != SeverityWarning {
-				t.Errorf("unslotted severity = %v, want warning when required=false", f.Severity)
+			if f.Severity != SeverityWarning {
+				t.Errorf("%s severity = %v, want warning when required=false", f.Code, f.Severity)
 			}
 		}
 	})

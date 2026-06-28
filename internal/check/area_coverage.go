@@ -1,19 +1,35 @@
 package check
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// CodeAreaUnslotted is the finding code emitted by AreaCoverage. Typed per
-// G-0129 so the compiler closes on rename / retire across the emit site and
-// tests.
+// CodeAreaUnslotted is the finding code emitted by AreaCoverage for an
+// unslotted project directory. Typed per G-0129 so the compiler closes on
+// rename / retire across the emit site and tests.
 const CodeAreaUnslotted = "area-unslotted"
+
+// CodeAreaCoverageRootMissing is emitted by AreaCoverage for a declared
+// coverage root that resolves to no directory (the path does not exist, or
+// names a file) — dead config, the coverage analogue of area-dead-glob. A
+// silently-skipped dead root gives the operator false confidence that
+// coverage is active (M-0185/AC-8).
+const CodeAreaCoverageRootMissing = "area-coverage-root-missing"
+
+// CodeAreaCoverageNoPaths is emitted by AreaCoverage when coverage_roots is
+// declared but no area declares any `paths:` — the operator opted into
+// coverage but the path oracle is dormant, so the check is inert. Surfaced
+// rather than silently no-op'd (M-0185/AC-8).
+const CodeAreaCoverageNoPaths = "area-coverage-no-paths"
 
 // AreaCoverage (warning) reports any immediate child directory of an
 // operator-declared coverage root that is claimed by no declared area's
@@ -31,20 +47,27 @@ const CodeAreaUnslotted = "area-unslotted"
 // deliberately not total-partition: the filesystem remainder (README, docs/,
 // top-level config) is legitimately uncovered.
 //
-// Two guards make it inert (M-0185/AC-4):
-//   - no coverage root declared — the knob's presence is the activation
-//     signal, so absence means the law does not apply;
-//   - no area declares any `paths:` — the path axis is dormant (a label-only
-//     / legacy string-form areas block), so coverage has no oracle to test
-//     against and stays silent rather than flagging every child.
+// Activation and the opted-in-but-undeliverable diagnostics:
+//   - no coverage root declared — fully inert; the knob's presence is the
+//     activation signal, so absence means the law does not apply (M-0185/AC-4);
+//   - coverage root declared but no area declares any `paths:` — the path
+//     oracle is dormant, so instead of silently doing nothing the check emits
+//     one area-coverage-no-paths finding: the operator opted in but the
+//     prerequisite is missing (M-0185/AC-8);
+//   - a declared root that resolves to no directory (does not exist, or names
+//     a file) emits area-coverage-root-missing — dead config, the coverage
+//     analogue of area-dead-glob; a silently-skipped dead root would give
+//     false confidence that coverage is active (M-0185/AC-8).
 //
 // Enumeration is single-level (one os.ReadDir per declared root) and reads the
-// filesystem read-only; a missing or unreadable root yields no findings rather
-// than failing (the roadmapCaseCollision precedent). Enumerating only the
-// declared roots — never a blanket walk — sidesteps the .git / node_modules /
-// build-output noise a recursive walk would pick up. The "is this directory
-// claimed?" test routes through the areamatch SSOT (M-0180/AC-1), the same
-// matcher the path-axis checks use — no second matcher.
+// filesystem read-only; a transient/permission IO error yields no findings
+// rather than failing (the roadmapCaseCollision precedent). Dot-prefixed
+// immediate children (.git / .github / .claude / …) are skipped — tooling /
+// VCS artifacts are never projects, so enumerating only the declared roots
+// genuinely sidesteps the .git / node_modules / build-output noise a blanket
+// walk would pick up, even when the declared root is "." (the repo root). The
+// "is this directory claimed?" test routes through the areamatch SSOT
+// (M-0180/AC-1), the same matcher the path-axis checks use — no second matcher.
 //
 // Composed at the CLI layer (internal/cli/check) with the declared areas and
 // coverage roots sourced from config — the same seam AreaDeadGlob and
@@ -54,30 +77,63 @@ func AreaCoverage(t *tree.Tree, areas []AreaPaths, coverageRoots []string) []Fin
 	if t.Root == "" {
 		return nil
 	}
-	// Inert without a declared coverage root: the knob's presence is the
+	// Fully inert without a declared coverage root: the knob's presence is the
 	// activation signal (M-0185/AC-4). Absent, the law does not apply.
 	if len(coverageRoots) == 0 {
 		return nil
 	}
-	// Inert without any declared paths: the path axis is dormant for a
-	// label-only / legacy areas block, so coverage has no oracle and stays
-	// silent rather than flagging every child (M-0185/AC-4).
+	// Opted into coverage but the path oracle is dormant (a label-only /
+	// legacy areas block declares no `paths:`): surface it rather than
+	// silently doing nothing — the operator took an affirmative action whose
+	// prerequisite is missing (M-0185/AC-8). One finding, not per-root.
 	if !AnyAreaHasPaths(areas) {
-		return nil
+		return []Finding{{
+			Code:     CodeAreaCoverageNoPaths,
+			Severity: SeverityWarning,
+			Message: "areas.coverage_roots is declared but no area declares paths — coverage is inert; " +
+				"add paths to a member (areas.members[].paths) or remove the coverage roots",
+			Field: "areas.coverage_roots",
+		}}
 	}
 	var findings []Finding
 	for _, root := range coverageRoots {
-		// Single-level, read-only enumeration of the declared root's
-		// immediate children. Never fail on IO: a missing or unreadable root
-		// yields no findings (the roadmapCaseCollision precedent).
-		entries, err := os.ReadDir(filepath.Join(t.Root, root))
-		if err != nil {
+		rootAbs := filepath.Join(t.Root, root)
+		// Resolve the declared root, distinguishing dead config (warn) from a
+		// transient/permission IO error (skip), mirroring AreaDeadGlob's
+		// os.Stat guard. A non-existent root or one that names a file is dead
+		// config — false confidence that coverage is active (M-0185/AC-8); any
+		// other stat error is indeterminate and skipped (never fail on IO, the
+		// roadmapCaseCollision precedent).
+		info, statErr := os.Stat(rootAbs)
+		if statErr != nil {
+			if errors.Is(statErr, fs.ErrNotExist) {
+				findings = append(findings, coverageRootMissingFinding(root))
+			}
+			continue
+		}
+		if !info.IsDir() {
+			findings = append(findings, coverageRootMissingFinding(root))
+			continue
+		}
+		// Single-level, read-only enumeration of the root's immediate
+		// children. Never fail on IO (the roadmapCaseCollision precedent).
+		entries, readErr := os.ReadDir(rootAbs)
+		if readErr != nil { //coverage:ignore os.ReadDir on a stat-confirmed directory only fails on a transient/permission error; the os.Stat guard above already handles not-exist and not-a-dir, and a dir the test user cannot read is not reproducible (root in the dev container bypasses dir perms)
 			continue
 		}
 		for _, e := range entries {
 			// Only directories are candidate projects; files at the root
 			// (README, top-level config) are never flagged.
 			if !e.IsDir() {
+				continue
+			}
+			// Skip dot-prefixed directories (.git, .github, .claude, …): these
+			// are tooling / VCS artifacts, never projects, and `.claude` is
+			// materialized by aiwf itself. Flagging them is a never-actionable
+			// false positive — this is what makes the "enumerating only
+			// declared roots sidesteps .git/build noise" contract hold even
+			// when the declared root is "." (the repo root).
+			if strings.HasPrefix(e.Name(), ".") {
 				continue
 			}
 			// The child's repo-relative, '/'-separated path — what the area
@@ -107,6 +163,20 @@ func AreaCoverage(t *tree.Tree, areas []AreaPaths, coverageRoots []string) []Fin
 		}
 	}
 	return findings
+}
+
+// coverageRootMissingFinding builds the dead-coverage-root finding for a
+// declared root that resolves to no directory (M-0185/AC-8).
+func coverageRootMissingFinding(root string) Finding {
+	return Finding{
+		Code:     CodeAreaCoverageRootMissing,
+		Severity: SeverityWarning,
+		Message: fmt.Sprintf(
+			"coverage root %q (areas.coverage_roots) resolves to no directory — fix the path or remove the entry",
+			root),
+		Path:  root,
+		Field: "areas.coverage_roots",
+	}
 }
 
 // claimedByAnyArea reports whether the repo-relative directory path is matched

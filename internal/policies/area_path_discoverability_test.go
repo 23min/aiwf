@@ -93,10 +93,15 @@ func TestAreaCoverageFinding_StructurallyDocumented(t *testing.T) {
 	if strings.Contains(warnings, "## Provenance findings") {
 		t.Fatal("warnings section over-extends past `## Provenance findings`: markdownSection scoping regressed, so the table-row assertion below would be vacuous")
 	}
-	// Structural: area-unslotted must be the leading cell of a table row INSIDE
-	// the warnings section, not merely text somewhere in the file.
-	if row := "| `area-unslotted` |"; !strings.Contains(warnings, row) {
-		t.Errorf("aiwf-check `Findings (warnings)` section has no table row for area-unslotted (looked for %q)", row)
+	// Structural: each coverage finding code must be the leading cell of a
+	// table row INSIDE the warnings section, not merely text somewhere in the
+	// file. area-coverage-root-missing / area-coverage-no-paths are the M-0185
+	// AC-8 misconfiguration findings.
+	for _, code := range []string{"area-unslotted", "area-coverage-root-missing", "area-coverage-no-paths"} {
+		row := "| `" + code + "` |"
+		if !strings.Contains(warnings, row) {
+			t.Errorf("aiwf-check `Findings (warnings)` section has no table row for %q (looked for %q)", code, row)
+		}
 	}
 
 	// The coverage_roots schema note (toward G-0288). Scope assertions to the

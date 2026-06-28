@@ -70,12 +70,13 @@ func MatchFS(fsys fs.FS, glob string) ([]string, error) {
 
 // MatchesAny reports whether the glob matches at least one real path under
 // fsys, short-circuiting on the first match. It is the boolean-any primitive
-// the dead-glob check uses (and the M-0185 scoped-coverage check will reuse):
-// unlike MatchFS it does not enumerate the entire subtree of a '**' glob, so
-// it stays cheap on the large monorepo trees the areas feature targets. Same
-// '**' semantics as Match. A malformed glob or a filesystem walk error is
-// returned; callers that must never fail on IO (the check rules) treat any
-// error as "indeterminate" and skip.
+// the dead-glob check uses: unlike MatchFS it does not enumerate the entire
+// subtree of a '**' glob, so it stays cheap on the large monorepo trees the
+// areas feature targets. (The M-0185 scoped-coverage check does NOT use this —
+// it has a concrete child path already and tests it with the pure-predicate
+// Match.) Same '**' semantics as Match. A malformed glob or a filesystem walk
+// error is returned; callers that must never fail on IO (the check rules) treat
+// any error as "indeterminate" and skip.
 func MatchesAny(fsys fs.FS, glob string) (bool, error) {
 	err := doublestar.GlobWalk(fsys, glob, func(string, fs.DirEntry) error {
 		return errStopWalk
