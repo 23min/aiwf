@@ -130,6 +130,24 @@ var hintTable = map[string]string{
 	// areas.required. The remediation is to make the globs disjoint.
 	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
 
+	// M-0185 area-unslotted: an immediate child directory of a declared
+	// coverage root (aiwf.yaml: areas.coverage_roots) is claimed by no area's
+	// `paths:` glob — an unslotted project. Warning by default, error under
+	// areas.required. The remediation is to slot it into an area, narrow the
+	// coverage root, or drop the root.
+	"area-unslotted": "a directory under an `aiwf.yaml: areas.coverage_roots` entry is claimed by no area's `paths:` glob — slot it into an area (add the directory to a member's `paths:`), or remove the coverage root if that subtree is not a project-tiling scope; absence of a coverage root makes this check inert",
+
+	// M-0185 area-coverage-root-missing: a declared coverage root resolves to
+	// no directory (typo, deleted, or a file) — dead config, the coverage
+	// analogue of area-dead-glob. A silently-skipped dead root gives false
+	// confidence that coverage is active.
+	"area-coverage-root-missing": "an `aiwf.yaml: areas.coverage_roots` entry points at no directory — correct the path to the real coverage-scope directory, or remove the dead entry; a dead root silently disables coverage for that scope",
+
+	// M-0185 area-coverage-no-paths: coverage_roots is declared but no area
+	// declares `paths:`, so the path oracle is dormant and coverage is inert.
+	// Surfaced rather than silently no-op'd.
+	"area-coverage-no-paths": "`aiwf.yaml: areas.coverage_roots` is declared but no area declares `paths:`, so coverage has nothing to match against and is inert — add `paths:` to a member (areas.members[].paths), or remove the coverage roots if path-based coverage isn't wanted yet",
+
 	// M-0181 area-mistag: an entity's linked commits (via the aiwf-entity
 	// trailer) touched only a DIFFERENT area's `paths:` territory than the one
 	// the entity is tagged to. Warning only — never escalated, because

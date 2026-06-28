@@ -27,10 +27,17 @@ const CodeAreaUnknown = "area-unknown"
 //     and two areas claiming one directory fire area-overlap — both
 //     escalated here so a monorepo that opted into strictness cannot push an
 //     area pointing at nothing or an ambiguous path oracle.
+//   - the coverage axis (M-0185): an unslotted project directory fires
+//     area-unslotted, a declared root that resolves to no directory fires
+//     area-coverage-root-missing, and coverage declared with no paths fires
+//     area-coverage-no-paths — all escalated here so a monorepo that opted
+//     into strictness cannot push a project that no area claims, nor a
+//     dead/dormant coverage configuration.
 //
 // With required off, all stay warnings (byte-for-byte the pre-knob
 // behavior). The bumper is intentionally scoped: codes outside the
-// escalated area set (area-unknown, area-dead-glob, area-overlap) pass
+// escalated area set (area-unknown, area-dead-glob, area-overlap,
+// area-unslotted, area-coverage-root-missing, area-coverage-no-paths) pass
 // through unchanged regardless of the flag.
 func ApplyAreaRequiredStrict(findings []Finding, required bool) {
 	if !required {
@@ -38,7 +45,8 @@ func ApplyAreaRequiredStrict(findings []Finding, required bool) {
 	}
 	for i := range findings {
 		switch findings[i].Code {
-		case CodeAreaUnknown, CodeAreaDeadGlob, CodeAreaOverlap:
+		case CodeAreaUnknown, CodeAreaDeadGlob, CodeAreaOverlap, CodeAreaUnslotted,
+			CodeAreaCoverageRootMissing, CodeAreaCoverageNoPaths:
 			findings[i].Severity = SeverityError
 		}
 	}

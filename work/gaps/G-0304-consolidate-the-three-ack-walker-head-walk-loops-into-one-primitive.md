@@ -1,10 +1,11 @@
 ---
-id: G-0302
+id: G-0304
 title: Consolidate the three ack-walker HEAD-walk loops into one primitive
 status: open
 prior_ids:
     - G-0294
     - G-0295
+    - G-0302
 discovered_in: M-0181
 ---
 ## Problem

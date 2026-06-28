@@ -550,6 +550,6 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0182 | Area discoverability skill and path-hint derivation at aiwf add | done |
 | M-0183 | aiwf set-area verb to tag one entity to a declared area member | done |
 | M-0184 | Reserved global area value: predicate, whitelist, and verb acceptance | done |
-| M-0185 | Area-path scoped-coverage check (unslotted-project detection) | draft |
+| M-0185 | Area-path scoped-coverage check (unslotted-project detection) | done |
 | M-0208 | rename-area preserves comments and sibling keys in the areas block on rename | done |
 
