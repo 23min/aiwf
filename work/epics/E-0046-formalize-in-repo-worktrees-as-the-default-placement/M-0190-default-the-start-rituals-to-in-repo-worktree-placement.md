@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Start-epic worktree step defaults to in-repo placement via worktree.dir
-      status: open
+      status: met
     - id: AC-2
       title: Start rituals retain the per-invocation worktree placement override
       status: open
