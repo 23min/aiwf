@@ -1,7 +1,9 @@
 ---
 id: G-0292
 title: 'Arm the unenforced gitleaks gate: CI job + devcontainer install'
-status: open
+status: addressed
+addressed_by_commit:
+    - 3115da4e
 ---
 ## Problem
 
