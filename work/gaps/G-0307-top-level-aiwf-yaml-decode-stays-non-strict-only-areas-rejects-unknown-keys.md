@@ -1,7 +1,9 @@
 ---
-id: G-0305
+id: G-0307
 title: top-level aiwf.yaml decode stays non-strict (only areas rejects unknown keys)
 status: open
+prior_ids:
+    - G-0305
 discovered_in: M-0185
 ---
 

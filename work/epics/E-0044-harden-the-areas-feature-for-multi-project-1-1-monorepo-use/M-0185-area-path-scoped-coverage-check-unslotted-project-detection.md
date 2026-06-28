@@ -286,7 +286,7 @@ Lightweight implementation choices (no ADR / `D-NNN` — the area architecture i
 
 ## Deferrals
 
-- **G-0305** — top-level `aiwf.yaml` decode stays non-strict (only the `areas:` block rejects unknown keys). The whole-config strict-decode follow-up; the gap records the legacy-key (`actor:` / `aiwf_version:`) read-tolerance constraint the fix must preserve.
+- **G-0307** — top-level `aiwf.yaml` decode stays non-strict (only the `areas:` block rejects unknown keys). The whole-config strict-decode follow-up; the gap records the legacy-key (`actor:` / `aiwf_version:`) read-tolerance constraint the fix must preserve.
 
 ## Reviewer notes
 
