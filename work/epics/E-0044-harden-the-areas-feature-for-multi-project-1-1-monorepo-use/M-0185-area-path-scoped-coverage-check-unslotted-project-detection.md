@@ -21,6 +21,10 @@ acs:
       title: unslotted child directory under a coverage root raises area-unslotted
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: coverage law is inert without a coverage root or without paths
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -137,4 +141,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-2 — areas block rejects unknown top-level keys at load
 
 ### AC-3 — unslotted child directory under a coverage root raises area-unslotted
+
+### AC-4 — coverage law is inert without a coverage root or without paths
 
