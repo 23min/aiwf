@@ -32,7 +32,7 @@ acs:
     - id: AC-6
       title: coverage enumeration is single-level, bounded, and IO-safe
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: area-unslotted is AI-discoverable and coverage_roots is schema-documented
       status: open
