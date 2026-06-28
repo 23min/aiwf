@@ -230,7 +230,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 				"findings": len(findings),
 			},
 		}
-		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
