@@ -1,7 +1,7 @@
 ---
 id: M-0182
 title: Area discoverability skill and path-hint derivation at aiwf add
-status: in_progress
+status: done
 parent: E-0044
 depends_on:
     - M-0179
