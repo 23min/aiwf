@@ -163,17 +163,19 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- In-flight epic HUD (G-0188) --------------------------------------------
+# --- Branch-contextual epic HUD (G-0188) ------------------------------------
 #
-# Scans work/epics/*/epic.md for non-terminal epics and renders each with a
-# canonical status glyph (→ active, ○ proposed/draft) and color. Shows on
-# every branch — not just ritual branches.
+# The HUD answers a different question depending on where you are:
+#   - Ritual branch (epic/E-*, milestone/M-*): show ONLY the current epic —
+#     the one the branch belongs to — with its status glyph (→ active,
+#     ○ proposed/draft) and color, plus its milestone inline on a milestone
+#     branch. No other epics, no overflow: when you are working inside an epic
+#     the HUD reflects that work, not the whole backlog.
+#   - Main / non-ritual: show the in-flight list — every non-terminal epic with
+#     glyph + color, terminal (done/cancelled) filtered out, capped at 3 with a
+#     +N overflow to stay scannable. This is the anti-blank case G-0188 names.
 #
-# On ritual branches, the current epic is accentuated (bold + ▸ pointer)
-# with its milestone shown inline. Other in-flight epics render alongside
-# but visually secondary.
-#
-# Capped at 3 epics shown; +N for overflow.
+# The ctx_epic_id / ctx_milestone_id derivation below decides which path runs.
 
 status_glyph() {
   case "$1" in
@@ -192,7 +194,10 @@ is_terminal() {
   esac
 }
 
-# Derive the current-branch context (epic id, milestone id).
+# Derive the current-branch context (epic id, milestone id). On a milestone
+# branch the epic id comes from the milestone file (git ls-files), so an
+# as-yet-uncommitted milestone leaves ctx_epic_id empty and the HUD falls back
+# to the list view below — acceptable: the entity is not tracked yet.
 ctx_epic_id=""
 ctx_milestone_id=""
 case "$cur_branch" in
@@ -208,49 +213,54 @@ case "$cur_branch" in
     ;;
 esac
 
-# Collect all non-terminal epics.
-epic_hud_parts=()
-epic_hud_count=0
-epic_hud_cap=3
-epic_hud_total=0
-for epic_file in work/epics/E-*/epic.md; do
-  [ -f "$epic_file" ] || continue
-  e_status="$(read_status "$epic_file")"
-  is_terminal "$e_status" && continue
-  e_id="$(printf '%s' "$epic_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
-  [ -z "$e_id" ] && continue
-  epic_hud_total=$((epic_hud_total + 1))
-  [ "$epic_hud_count" -ge "$epic_hud_cap" ] && continue
-
+epic_hud=""
+if [ -n "$ctx_epic_id" ]; then
+  # Ritual branch: ONLY the current epic, with its milestone inline on a
+  # milestone branch. No list, no overflow. The current epic is shown
+  # regardless of status (you are on its branch); the list path filters
+  # terminal epics, this one does not.
+  e_file="$(git ls-files "work/epics/${ctx_epic_id}-*/epic.md" "work/epics/archive/${ctx_epic_id}-*/epic.md" 2>/dev/null | head -1)"
+  e_status=""
+  [ -n "$e_file" ] && e_status="$(read_status "$e_file")"
   e_clr="$(entity_color "$e_status")"
   e_glyph="$(status_glyph "$e_status")"
-
-  if [ "$e_id" = "$ctx_epic_id" ]; then
-    # Current epic: bold + ▸ pointer. Append milestone inline.
-    entry="${bold}${e_clr}▸ ${e_glyph} ${e_id}${reset}"
-    if [ -n "$ctx_milestone_id" ]; then
-      m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
-      m_status=""
-      [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
-      m_clr="$(entity_color "$m_status")"
-      m_glyph="$(status_glyph "$m_status")"
-      entry="${entry}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
-    fi
-    epic_hud_parts=("$entry" "${epic_hud_parts[@]}")
-  else
-    entry="${e_clr}${e_glyph} ${e_id}${reset}"
-    epic_hud_parts+=("$entry")
+  epic_hud="${bold}${e_clr}▸ ${e_glyph} ${ctx_epic_id}${reset}"
+  if [ -n "$ctx_milestone_id" ]; then
+    m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
+    m_status=""
+    [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
+    m_clr="$(entity_color "$m_status")"
+    m_glyph="$(status_glyph "$m_status")"
+    epic_hud="${epic_hud}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
   fi
-  epic_hud_count=$((epic_hud_count + 1))
-done
+else
+  # Main / non-ritual: the in-flight list — non-terminal epics, capped, +N.
+  epic_hud_parts=()
+  epic_hud_count=0
+  epic_hud_cap=3
+  epic_hud_total=0
+  for epic_file in work/epics/E-*/epic.md; do
+    [ -f "$epic_file" ] || continue
+    e_status="$(read_status "$epic_file")"
+    is_terminal "$e_status" && continue
+    e_id="$(printf '%s' "$epic_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
+    [ -z "$e_id" ] && continue
+    epic_hud_total=$((epic_hud_total + 1))
+    [ "$epic_hud_count" -ge "$epic_hud_cap" ] && continue
 
-# Build the epic HUD segment: join parts with space, add overflow.
-epic_hud=""
-for p in "${epic_hud_parts[@]+"${epic_hud_parts[@]}"}"; do
-  if [ -z "$epic_hud" ]; then epic_hud="$p"; else epic_hud="$epic_hud $p"; fi
-done
-overflow=$((epic_hud_total - epic_hud_count))
-[ "$overflow" -gt 0 ] && epic_hud="${epic_hud} ${gray}+${overflow}${reset}"
+    e_clr="$(entity_color "$e_status")"
+    e_glyph="$(status_glyph "$e_status")"
+    epic_hud_parts+=("${e_clr}${e_glyph} ${e_id}${reset}")
+    epic_hud_count=$((epic_hud_count + 1))
+  done
+
+  # Join parts with space, add overflow.
+  for p in "${epic_hud_parts[@]+"${epic_hud_parts[@]}"}"; do
+    if [ -z "$epic_hud" ]; then epic_hud="$p"; else epic_hud="$epic_hud $p"; fi
+  done
+  overflow=$((epic_hud_total - epic_hud_count))
+  [ "$overflow" -gt 0 ] && epic_hud="${epic_hud} ${gray}+${overflow}${reset}"
+fi
 
 # --- Other in-flight ritual worktrees count (+N⎇) --------------------------
 #
