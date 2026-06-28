@@ -1,7 +1,7 @@
 ---
 id: M-0194
 title: Ship the statusline via aiwf init/update with portability fixes
-status: draft
+status: cancelled
 parent: E-0047
 depends_on:
     - M-0193

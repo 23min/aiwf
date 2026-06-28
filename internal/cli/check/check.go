@@ -27,6 +27,7 @@ func NewCmd() *cobra.Command {
 		pretty    bool
 		since     string
 		shapeOnly bool
+		fast      bool
 		verbose   bool
 		commitMsg string
 	)
@@ -49,7 +50,7 @@ func NewCmd() *cobra.Command {
 			if commitMsg != "" {
 				return cliutil.WrapExitCode(runCommitMsg(commitMsg, verbs, c.ErrOrStderr()))
 			}
-			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, verbose, verbs))
+			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, fast, verbose, verbs))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -57,6 +58,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().StringVar(&since, "since", "", "explicit base ref for the provenance untrailered-entity audit (default: @{u} when set, else skipped)")
 	cmd.Flags().BoolVar(&shapeOnly, "shape-only", false, "run only the tree-discipline rule (skips trunk read, provenance audit, contract validation); used by the pre-commit hook for a fast LLM-loop check")
+	cmd.Flags().BoolVar(&fast, "fast", false, "run the in-memory content rules (refs, status, ids, cycles, body-prose, ACs) plus tree-discipline, skipping the trunk read / provenance / FSM-history / metrics / contract-validation layer; render-safe (sub-second) for the statusline health glyph and CI pre-flight (G-0290)")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print one line per warning instance instead of the per-code summary; errors are always per-instance regardless")
 	cmd.Flags().StringVar(&commitMsg, "commit-msg", "", "validate aiwf-verb trailers in the named commit-message file and exit; refuses values outside the Cobra verb tree ∪ ritualVerbs (used by the .git/hooks/commit-msg hook installed by aiwf init/update — G-0218)")
 	cliutil.RegisterFormatCompletion(cmd)
@@ -67,7 +69,7 @@ func NewCmd() *cobra.Command {
 // (pure-tree + provenance + tests-metrics + contracts + tree
 // discipline), applies aiwf.yaml-driven severity bumps, renders the
 // findings in the chosen format, and returns the exit code.
-func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool, registeredVerbs map[string]struct{}) int {
+func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbose bool, registeredVerbs map[string]struct{}) int {
 	if format != "text" && format != "json" {
 		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -85,6 +87,9 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	ctx := context.Background()
 	if shapeOnly {
 		return runShapeOnly(ctx, resolved, format, pretty)
+	}
+	if fast {
+		return runFast(ctx, resolved, format, pretty)
 	}
 
 	tr, loadErrs, err := cliutil.LoadTreeWithTrunk(ctx, resolved)
@@ -226,6 +231,94 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 			},
 		}
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	}
+
+	if check.HasErrors(findings) {
+		return cliutil.ExitFindings
+	}
+	return cliutil.ExitOK
+}
+
+// runFast runs the in-memory content rules without the git-history
+// layer. It loads the tree WITHOUT the trunk read and runs check.Run
+// (refs-resolve, status-valid, ids-unique, no-cycles, body-prose-id,
+// AC rules, …) plus the cheap config-dependent tree rules
+// (tree-discipline, area-unknown) and the aiwf.yaml severity bumps,
+// skipping the trunk-collision / provenance / FSM-history / metrics
+// layer that makes a full `aiwf check` seconds-to-minutes scale on a
+// large tree (the per-entity git-history walks).
+//
+// Contract validation is also skipped: the verify half shells external
+// validators (not render-safe), and the cheap in-memory config half is
+// left out too for v1 — a contract-config error is a rarer class the
+// full pre-push check still catches. Folding the in-memory half in is a
+// tracked follow-up.
+//
+// It is the render-safe content-health surface G-0290 needs: the
+// statusline runs it on a TTL cache to drive the ⚠ health glyph, and
+// CI scripts can use it as a fast pre-flight. The full `aiwf check`
+// pre-push hook remains the authoritative gate.
+//
+// Exit codes match `aiwf check`'s contract: 0 ok, 1 findings (errors
+// present), 3 internal.
+func runFast(ctx context.Context, root, format string, pretty bool) int {
+	tr, loadErrs, err := tree.Load(ctx, root)
+	if err != nil { //coverage:ignore tree.Load errors only on git/IO failure; a resolved root with a healthy worktree never hits it (mirrors runShapeOnly)
+		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
+	findings := check.Run(tr, loadErrs)
+
+	var allow []string
+	var areaMembers []string
+	strict := false
+	tddStrict := false
+	archiveThreshold := 0
+	archiveThresholdSet := false
+	if cfg, cfgErr := config.Load(root); cfgErr == nil && cfg != nil {
+		allow = cfg.Tree.AllowPaths
+		strict = cfg.Tree.Strict
+		tddStrict = cfg.TDD.Strict
+		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
+		areaMembers = cfg.Areas.Members
+	}
+	// The cheap config-dependent tree rules the full check composes
+	// outside check.Run (check.go's full path) — both are pure in-memory
+	// passes, so they stay render-safe.
+	findings = append(findings, check.TreeDiscipline(tr, allow, strict)...)
+	findings = append(findings, check.AreaUnknown(tr, areaMembers)...)
+	check.ApplyTDDStrict(findings, tddStrict)
+	check.ApplyArchiveSweepThreshold(findings, archiveThreshold, archiveThresholdSet, check.CountPendingSweep(tr))
+
+	contract.ApplyHintsLikeRun(findings)
+	check.SortFindings(findings)
+
+	// --fast uses the concise per-code warning summary (the full check's
+	// default) regardless of --verbose, mirroring runShapeOnly's fixed
+	// rendering: the sub-modes don't wire the verbose toggle.
+	switch format {
+	case "text":
+		if err := baserender.TextSummary(os.Stdout, findings); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
+			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			return cliutil.ExitInternal
+		}
+	case "json":
+		env := baserender.Envelope{
+			Tool:     "aiwf",
+			Version:  version.Current().Version,
+			Status:   baserender.StatusFor(findings),
+			Findings: findings,
+			Metadata: map[string]any{
+				"root":     root,
+				"entities": len(tr.Entities),
+				"fast":     true,
+				"findings": len(findings),
+			},
+		}
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}

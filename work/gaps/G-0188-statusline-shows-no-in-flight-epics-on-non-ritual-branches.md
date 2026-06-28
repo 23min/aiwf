@@ -1,7 +1,9 @@
 ---
 id: G-0188
 title: Statusline shows no in-flight epics on non-ritual branches
-status: open
+status: addressed
+addressed_by:
+    - M-0192
 ---
 ## Problem
 
@@ -15,22 +17,32 @@ most common context (working on `main`).
 
 ## Desired behavior
 
-Show all non-terminal epics (proposed, active) on every branch, using the
-canonical glyph/color language from `aiwf status --worktrees`:
-- `→` active (yellow)
-- `○` proposed/draft (blue)
-- Terminal statuses (`done`, `cancelled`) filtered out.
+The epic HUD is **branch-contextual** — it answers a different question
+depending on where you are:
 
-On ritual branches, accentuate the current epic (the one the branch belongs
-to) — e.g. bold or a `▸` pointer — and show its milestone/gap inline. Other
-in-flight epics render in the same row but visually secondary.
+- **On a ritual branch** (`epic/E-*`, `milestone/M-*`): show **only** the
+  current epic — the one the branch belongs to — with its status glyph/color,
+  and, on a milestone branch, its milestone inline. No other in-flight epics,
+  no overflow. When you are working inside an epic, the HUD reflects *that*
+  work, not the whole backlog.
+- **On `main` / any non-ritual branch**: there is no current epic, so show the
+  in-flight list — all non-terminal epics with the canonical glyph/color
+  language (`→` active yellow, `○` proposed/draft blue; terminal `done` /
+  `cancelled` filtered out), capped at ~3 with a `+N` overflow to stay
+  scannable. This is the anti-blank case the gap was filed for.
 
-Cap at ~3 shown with `+N` overflow to keep the statusline scannable.
+This refines the original "show all epics everywhere, accentuate the current
+one, render the rest as secondary" shape: on a ritual branch the secondary
+list is noise — the `+N` worktree-count segment already signals that parallel
+work exists — and a strict "current-only everywhere" would re-blank `main`,
+defeating the gap's own motivation. Branch-context reconciles both.
 
 ## Performance note
 
-Scanning `work/epics/*/epic.md` means globbing + `awk` per file on every
-render. Should be fine for 1–5 epics; the cap keeps it bounded.
+On `main` the list path globs `work/epics/*/epic.md` plus an `awk` per file
+each render. Fine for 1–5 epics; the cap keeps it bounded. On a ritual branch
+only the single current epic (and its milestone) is read, so the cost is one
+or two files.
 
 ## References
 
