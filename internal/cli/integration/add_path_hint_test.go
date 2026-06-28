@@ -250,3 +250,71 @@ func TestRunAdd_PathHintNormalized(t *testing.T) {
 		}
 	})
 }
+
+// TestRunAdd_PathHintConflictWithExplicitArea pins M-0182/AC-5: an explicit
+// --area always wins, but a --path-hint that unambiguously points to a
+// DIFFERENT area is reported (a cheap at-add mistag-prevention signal) without
+// overriding the explicit choice; an agreeing hint is silent.
+func TestRunAdd_PathHintConflictWithExplicitArea(t *testing.T) {
+	t.Run("conflicting hint is reported, --area still wins", func(t *testing.T) {
+		root := setupPathAreaRepo(t)
+		rc, _, stderr := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{
+				"add", "epic", "--title", "Explicit",
+				"--area", "billing", "--path-hint", "projects/platform/x.go",
+				"--actor", "human/test", "--root", root,
+			})
+		})
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want ExitOK", rc)
+		}
+		for _, want := range []string{"overrides", "billing", "platform"} {
+			if !strings.Contains(stderr, want) {
+				t.Errorf("conflict note missing %q:\n%s", want, stderr)
+			}
+		}
+		if fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md")); !strings.Contains(fm, "area: billing") {
+			t.Errorf("--area must win over the hint; want area: billing:\n%s", fm)
+		}
+	})
+
+	t.Run("agreeing hint is silent", func(t *testing.T) {
+		root := setupPathAreaRepo(t)
+		rc, _, stderr := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{
+				"add", "epic", "--title", "Agree",
+				"--area", "platform", "--path-hint", "projects/platform/x.go",
+				"--actor", "human/test", "--root", root,
+			})
+		})
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want ExitOK", rc)
+		}
+		if strings.Contains(stderr, "overrides") {
+			t.Errorf("an agreeing hint should be silent, got:\n%s", stderr)
+		}
+		if fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md")); !strings.Contains(fm, "area: platform") {
+			t.Errorf("want area: platform:\n%s", fm)
+		}
+	})
+
+	t.Run("ambiguous hint with explicit --area is silent", func(t *testing.T) {
+		root := setupOverlapPathAreaRepo(t) // platform + billing both claim projects/shared/**
+		rc, _, stderr := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{
+				"add", "epic", "--title", "AmbWithArea",
+				"--area", "platform", "--path-hint", "projects/shared/x.go",
+				"--actor", "human/test", "--root", root,
+			})
+		})
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc = %d, want ExitOK", rc)
+		}
+		if strings.Contains(stderr, "overrides") {
+			t.Errorf("an ambiguous hint must not produce a single-area conflict note:\n%s", stderr)
+		}
+		if fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md")); !strings.Contains(fm, "area: platform") {
+			t.Errorf("want area: platform:\n%s", fm)
+		}
+	})
+}

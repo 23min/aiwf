@@ -172,6 +172,12 @@ func Run(k entity.Kind, title, actor, principal, root,
 			if rc := validateAreaMember(rootDir, area); rc != cliutil.ExitOK {
 				return rc
 			}
+			// AC-5: an explicit --area always wins, but report a --path-hint
+			// that unambiguously points elsewhere — a cheap at-add mistag
+			// signal — without overriding the explicit choice.
+			if pathHint != "" {
+				warnAreaHintConflict(rootDir, area, pathHint)
+			}
 		}
 	} else {
 		// M-0182: with --area omitted, derive from a single unambiguous
@@ -318,6 +324,19 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
 	}
 	return ""
+}
+
+// warnAreaHintConflict implements AC-5: when both --area and --path-hint are
+// given, the explicit --area wins (this never changes resolvedArea), but if the
+// hint unambiguously derives a DIFFERENT area, report the disagreement — the
+// cheapest possible at-add mistag-prevention signal. Silent when the hint
+// agrees, is ambiguous, matches nothing, or has no oracle: the operator chose
+// --area deliberately, so only a clear single-area conflict is worth a word.
+func warnAreaHintConflict(rootDir, area, pathHint string) {
+	matched, err := areamatch.Derive(configuredAreaPaths(rootDir), normalizeHint(rootDir, pathHint))
+	if err == nil && len(matched) == 1 && matched[0] != area {
+		fmt.Fprintf(os.Stderr, "aiwf add: note: --area %q overrides --path-hint %q, which points to area %q\n", area, pathHint, matched[0])
+	}
 }
 
 // normalizeHint makes a user-supplied --path-hint comparable to the declared,
