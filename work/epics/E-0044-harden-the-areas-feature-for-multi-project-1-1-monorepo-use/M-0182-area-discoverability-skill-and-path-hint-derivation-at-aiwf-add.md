@@ -1,6 +1,6 @@
 ---
 id: M-0182
-title: Auto-derive or suggest area from path hint at add and wrap
+title: Area discoverability skill and path-hint derivation at aiwf add
 status: draft
 parent: E-0044
 depends_on:
