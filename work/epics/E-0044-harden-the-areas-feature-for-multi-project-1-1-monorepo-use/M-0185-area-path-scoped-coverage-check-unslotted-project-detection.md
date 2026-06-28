@@ -29,6 +29,10 @@ acs:
       title: area-unslotted is warning by default, error under areas.required
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: coverage enumeration is single-level, bounded, and IO-safe
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -149,4 +153,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-4 — coverage law is inert without a coverage root or without paths
 
 ### AC-5 — area-unslotted is warning by default, error under areas.required
+
+### AC-6 — coverage enumeration is single-level, bounded, and IO-safe
 
