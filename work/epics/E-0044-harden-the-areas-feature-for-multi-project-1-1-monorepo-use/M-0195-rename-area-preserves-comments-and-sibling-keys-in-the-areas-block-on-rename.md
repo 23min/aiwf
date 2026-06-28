@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: rename-area preserves an unmodeled areas sub-key (forward-compat)
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
