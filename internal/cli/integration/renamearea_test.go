@@ -102,6 +102,50 @@ func TestRenameArea_M0195AC2_PreservesRequiredAndComments(t *testing.T) {
 	}
 }
 
+// TestRenameArea_M0195AC3_PreservesUnmodeledAreasKey pins M-0195/AC-3: a rename
+// preserves an `areas:` sub-key the current config schema does not model (a
+// pre-landing `coverage_roots:`) and its comment. config.Load tolerates the
+// unknown key (non-strict decode) and the surgical writer never regenerates the
+// block, so M-0185's coverage_roots will round-trip through rename-area with
+// zero writer changes — the structural form of the forward-compat guarantee.
+func TestRenameArea_M0195AC3_PreservesUnmodeledAreasKey(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	patched := string(raw) +
+		"areas:\n" +
+		"  members:\n" +
+		"    - platform\n" +
+		"    - billing\n" +
+		"  # coverage_roots is unmodeled by M-0195; M-0185 will add it\n" +
+		"  coverage_roots:\n" +
+		"    - projects\n"
+	if err := os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+
+	mustRun(t, "rename-area", "platform", "infra", "--actor", "human/test", "--root", root)
+
+	got := readAiwfYAML(t, root)
+	for _, want := range []string{
+		"# coverage_roots is unmodeled by M-0195; M-0185 will add it",
+		"coverage_roots:",
+		"- projects",
+		"- infra",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rename-area dropped %q (forward-compat broken):\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "- platform") {
+		t.Errorf("member not renamed platform->infra:\n%s", got)
+	}
+}
+
 // TestRenameArea_AC1_RewritesMemberAndEntitiesAtomically pins AC-1:
 // `rename-area platform infra` rewrites the aiwf.yaml member and every
 // platform-tagged entity, leaves the billing entity untouched, and
