@@ -35,7 +35,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: area-unslotted is AI-discoverable and coverage_roots is schema-documented
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-8
       title: a dead coverage root or coverage-with-no-paths raises a warning
