@@ -1,7 +1,9 @@
 ---
 id: G-0304
 title: statusline epic HUD should show only the session's epic, not the in-flight list
-status: open
+status: addressed
+addressed_by_commit:
+    - dc9be365
 ---
 ## Problem
 
