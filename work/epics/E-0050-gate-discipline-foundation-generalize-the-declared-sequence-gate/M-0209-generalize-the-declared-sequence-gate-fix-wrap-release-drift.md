@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: aiwfx-release splits the two origin pushes into separate push gates
       status: open
+    - id: AC-3
+      title: aiwfx-wrap-milestone batches its terminal local steps in one gate
+      status: open
 ---
 
 ## Goal
@@ -39,4 +42,6 @@ and E-0049 milestone wraps inherit the corrected gate.
 ### AC-1 — Generalized declared-sequence gate documented in CLAUDE.md and guidance
 
 ### AC-2 — aiwfx-release splits the two origin pushes into separate push gates
+
+### AC-3 — aiwfx-wrap-milestone batches its terminal local steps in one gate
 
