@@ -1,7 +1,7 @@
 ---
 id: E-0047
 title: Harden and ship the aiwf-aware Claude Code statusline
-status: proposed
+status: active
 ---
 ## Deliverable
 
