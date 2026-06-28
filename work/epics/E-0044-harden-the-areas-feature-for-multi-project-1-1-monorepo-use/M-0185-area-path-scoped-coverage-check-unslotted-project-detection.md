@@ -12,7 +12,7 @@ acs:
     - id: AC-1
       title: coverage_roots parses and validates at config load (Tier-1)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: areas block rejects unknown top-level keys at load
       status: open
