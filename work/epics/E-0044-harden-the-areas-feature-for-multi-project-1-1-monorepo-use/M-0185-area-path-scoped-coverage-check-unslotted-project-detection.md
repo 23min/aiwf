@@ -260,3 +260,39 @@ dormant) instead of degenerating into a per-child storm. Both warn by default an
 escalate under `areas.required` (AC-5). *Evidence:* the dead-root, file-root,
 indeterminate-stat, and no-paths cases in `TestAreaCoverage`.
 
+## Work log
+
+- **AC-1 / AC-2** — `coverage_roots` parse+validate and the areas-block strict-key guard · commit `96620ee9`.
+- **AC-3 / AC-4 / AC-5 / AC-6 / AC-7** — `area-unslotted` check + CLI seam + severity + IO-safe single-level enumeration + discoverability · commit `229b1c90`.
+- **AC-8** — `area-coverage-root-missing` + `area-coverage-no-paths` diagnostics + the hidden-dir skip · commit `1f5f8f7e`.
+- **AC bodies + design notes** · commit `776cee6b`; **wrap-review corrections** (honest dot-dir rationale + required-escalation e2e test; AC-6 reword) · commits `b2b984a6` / `e8da91b7`.
+
+Phase timelines are in `aiwf history M-0185/AC-<N>`; not duplicated here.
+
+## Decisions made during implementation
+
+Lightweight implementation choices (no ADR / `D-NNN` — the area architecture is set by ADR-0020 / ADR-0021):
+
+- **Universe = Option A** (literal coverage roots, single-level immediate children, multiple roots for mixed depth). Option B (coverage entries as globs) is deferred as a backward-compatible dual-form evolution; the disambiguation rule and the `app[1]` pathological caveat are pre-pinned in Design notes.
+- **Opted-in-but-undeliverable is surfaced, not silent** (review Obs 1 + Obs 3): a dead coverage root (`area-coverage-root-missing`) and coverage-declared-without-`paths:` (`area-coverage-no-paths`) warn rather than no-op. Folded into AC-8.
+- **Hidden-dir skip** in the enumeration (the Unix dotfile convention), resolving the `.`-root false positive both review lenses converged on.
+
+## Validation
+
+- All 8 ACs `met` / `tdd_phase: done`.
+- `go build ./...` green; `make ci` green (vet + lint + race test-cov + selfcheck); `make coverage-gate` green (diff-scoped coverage + firing-fixture meta-gate).
+- `aiwf check` (worktree binary): **0 errors** (5 benign inherited warnings — `acs-tdd-audit` ×3 on M-0176, `epic-active-no-drafted-milestones`, `provenance-untrailered-scope-undefined`).
+- `internal/check` coverage: `area_coverage.go` 100% modulo one `//coverage:ignore`'d `os.ReadDir`-error branch (unreproducible as the test user); `golangci-lint` 0 issues.
+
+## Deferrals
+
+- **G-0305** — top-level `aiwf.yaml` decode stays non-strict (only the `areas:` block rejects unknown keys). The whole-config strict-decode follow-up; the gap records the legacy-key (`actor:` / `aiwf_version:`) read-tolerance constraint the fix must preserve.
+
+## Reviewer notes
+
+- **Two independent fresh-context two-lens reviews** (code-quality `wf-review-code` + design `wf-rethink`).
+  - **Round 1** (pre-wrap; code `REQUEST-CHANGES`, design `SOUND-WITH-RECOMMENDATIONS`): both lenses converged on a `.`-root false positive (`.git` / `.claude` flagged as unslotted, contradicting the "sidesteps noise" claim) → fixed via the hidden-dir skip; 7 empty AC bodies → filled; Obs 1 (dead root silent) + Obs 3 (no-paths silent) → surfaced as AC-8.
+  - **Round 2** (wrap-stage re-review; code `APPROVE-WITH-NITS`, design `SOUND-WITH-RECOMMENDATIONS`): prior findings confirmed resolved. Load-bearing doc fix — the dot-dir rationale overclaimed "sidesteps `node_modules`/build noise" (false: those are not hidden) → reworded to the hidden-dirs principle, with `.` root framed as a knowingly-opted edge. Nits addressed: the ENOTDIR path-traversal edge commented; an end-to-end `areas.required` escalation test added.
+- **Inherited trunk-collision** (not M-0185 substance): the M-0208-era gap at its old id collided with a different gap that had since landed on trunk → resolved via `aiwf reallocate` (`G-0302` → `G-0304`).
+- **M-0208 latent fix** surfaced during preflight: M-0208's body referenced its reallocate-history ids un-backticked, firing `body-prose-id` in a fresh checkout → backticked (commit `5bc71d6b`).
+
