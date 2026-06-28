@@ -112,7 +112,7 @@ Tier 1 (the oracle — the keystone):
 Tier 2 (exploit the oracle — depends on the keystone):
 
 - [M-0181](M-0181-mistag-detection-via-aiwf-entity-trailer-with-acknowledge-path.md) — mistag detection: landed entity's touched files vs its area glob, with an acknowledge path. · depends on: M-0179
-- [M-0182](M-0182-auto-derive-or-suggest-area-from-path-hint-at-add-and-wrap.md) — auto-derive / suggest area from a path hint at `aiwf add` / wrap. · depends on: M-0179
+- [M-0182](M-0182-area-discoverability-skill-and-path-hint-derivation-at-aiwf-add.md) — topical `aiwf-area` discoverability skill + deterministic `--path-hint` area derivation at `aiwf add` (wrap-time verification stays mistag, M-0181). · depends on: M-0179
 
 ## ADRs produced (optional)
 
