@@ -95,6 +95,11 @@ Candidate behaviors to formalize at start-milestone:
   rule for the law, Tier-3 property test for covering. No external validator (downstream config).
 - `depends_on: M-0179` (paths oracle), `M-0180` (the `areamatch` matcher + the forward laws this
   completes), `M-0178` (the `areas.required` escalation seam).
+- **Areas-block strict-key guard (from the M-0208 review).** When `coverage_roots` becomes a
+  modeled key, also add an areas-block-level strict-key guard mirroring G-0287's member-level
+  `unknownMemberKey` — so a typo'd areas key (e.g. `requried:`) is rejected at load rather than
+  silently ignored. This reframes forward-compat as *explicit schema evolution*: the M-0208
+  surgical writer's byte-preservation survives untouched; only the decode side tightens.
 
 ## Dependencies
 
