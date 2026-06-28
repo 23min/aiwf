@@ -1,9 +1,11 @@
 ---
 id: G-0290
 title: aiwf statusline shows a warning indicator when check reports findings
-status: open
+status: addressed
 prior_ids:
     - G-0288
+addressed_by:
+    - M-0193
 ---
 ## Problem
 
