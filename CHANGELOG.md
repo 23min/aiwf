@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-06-28
+
 ### Added — E-0044: path-backed `area` tags make `--area` filtering trustworthy in the 1:1 monorepo
 
 E-0044 hardens the E-0043 label-only `area` tag into a path-anchored, verifiable grouping for the multi-project (1:1 project↔area) monorepo: each area can declare a `paths:` glob, giving the kernel an oracle to check tags against. `aiwf list --area <name>` becomes a reliable "all work for that project" rather than a convenience a silent mislabel could betray.
@@ -34,6 +36,10 @@ Worktrees the start rituals create now default to in-repo under `.claude/worktre
 - **`worktree.dir` knob (M-0189):** `aiwf.yaml` gains an optional `worktree.dir` key (default `.claude/worktrees`), surfaced on a greppable `aiwf doctor` `worktree-dir:` line; an unset, empty, absolute, or repo-escaping value falls back to the default.
 - **Ritual default (M-0190):** `aiwfx-start-epic` / `aiwfx-start-milestone` recommend in-repo placement as the default (reading the knob), with the per-invocation main-checkout / sibling override retained.
 - **Loader guard (M-0188):** the loader and `aiwf check` are pinned (regression fixture) not to descend into `.claude/worktrees/`, so a nested in-repo checkout cannot surface phantom duplicate entities.
+
+### Added — E-0047: the aiwf-aware Claude Code statusline, hardened and shipped
+
+The aiwf-aware statusline now materializes through `aiwf init` / `aiwf update` (no separate install step) and is portable across checkouts (M-0194). It shows the in-flight epic(s) on every branch (M-0192) and a health glyph derived from a cached `aiwf check`-findings signal (M-0193); a behavioral test harness pins its rendering and fixed a stale-CI-after-push signal (M-0191).
 
 ### Security — the gitleaks secret / path-leak gate is now actually enforced (G-0291, G-0292)
 
