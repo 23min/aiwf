@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -48,6 +49,88 @@ func TestMatch(t *testing.T) {
 			}
 			if got != tc.want {
 				t.Errorf("Match(%q, %q) = %v, want %v", tc.glob, tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDerive pins the M-0182 derivation primitive: a path hint is classified
+// by which areas' path-claims it falls under. Areas come in as name → globs
+// (config-agnostic, keeping areamatch a leaf below config). The result is the
+// sorted, per-area-deduped set of area names whose globs the path matches —
+// len 1 is an unambiguous derive, len 0 is "no area claims it", len ≥2 is
+// ambiguous; a malformed glob errors.
+func TestDerive(t *testing.T) {
+	t.Parallel()
+	// overlap fixture: `shared` deliberately claims the same glob as `platform`.
+	overlap := map[string][]string{
+		"platform": {"projects/platform/**"},
+		"billing":  {"projects/billing/**", "libs/billing/**"},
+		"shared":   {"projects/platform/**"},
+	}
+	cases := []struct {
+		name    string
+		areas   map[string][]string
+		path    string
+		want    []string
+		wantErr bool
+	}{
+		{
+			"single unambiguous match",
+			map[string][]string{"platform": {"projects/platform/**"}, "billing": {"projects/billing/**"}},
+			"projects/platform/auth/login.go",
+			[]string{"platform"},
+			false,
+		},
+		{
+			"no area claims the path",
+			map[string][]string{"platform": {"projects/platform/**"}},
+			"services/other/x.go", nil, false,
+		},
+		{
+			"ambiguous: two areas claim the path (sorted)",
+			overlap, "projects/platform/auth.go",
+			[]string{"platform", "shared"},
+			false,
+		},
+		{
+			"per-area dedup across that area's own globs",
+			map[string][]string{"billing": {"projects/billing/**", "libs/billing/**"}},
+			"libs/billing/core.go",
+			[]string{"billing"},
+			false,
+		},
+		{
+			"empty areas yields no match",
+			map[string][]string{},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"area with no globs is skipped",
+			map[string][]string{"platform": nil},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"malformed glob errors",
+			map[string][]string{"bad": {"a["}},
+			"a", nil, true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Derive(tc.areas, tc.path)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("Derive(%q): want error, got nil", tc.path)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Derive(%q): unexpected error: %v", tc.path, err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("Derive(%q) = %v, want %v", tc.path, got, tc.want)
 			}
 		})
 	}
