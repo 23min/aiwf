@@ -120,6 +120,19 @@ type Areas struct {
 	// rejects required:true with zero members (an unsatisfiable "every
 	// entity must be a member of the empty set").
 	Required bool `yaml:"required,omitempty"`
+	// CoverageRoots (M-0185) opts the multi-project monorepo into the
+	// scoped-coverage law: each listed directory's immediate child
+	// directories are projects expected to be claimed by some area's
+	// `paths:` glob, and an unclaimed child raises area-unslotted. Its
+	// presence is the activation signal — absent, the coverage check is
+	// inert, so the single-project / semantic-section repo is never
+	// flagged wholesale. Each root is a repo-relative directory path
+	// ('/'-separated, no leading slash, no `..` segments); roots may be
+	// nested and several may be declared for a mixed-depth layout (the
+	// immediate-children contract is per declared root). Adding it means
+	// adding `coverage_roots` to knownAreasKeys, or the areas-block
+	// strict-key guard rejects it as unknown on read.
+	CoverageRoots []string `yaml:"coverage_roots,omitempty"`
 }
 
 // MemberNames returns the declared member names in declaration order — the
@@ -152,16 +165,34 @@ func (a Areas) MemberNames() []string {
 // offending member rather than shipping the bare yaml.v3 text. Semantic rules
 // (emptiness, whitespace, uniqueness, path hygiene, default) live in validate().
 func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
+	// Strict-key guard at the areas-block level (M-0185, from the M-0208
+	// review): value.Decode below is non-strict and silently drops unknown
+	// keys, so a typo like `requried:` would vanish rather than error.
+	// Reject it at decode, naming the bad key — the block-level analogue of
+	// unknownMemberKey (G-0287). Skipped for a non-mapping `areas:` value,
+	// which value.Decode reports below.
+	if value.Kind == yaml.MappingNode {
+		if bad := unknownAreasKey(value); bad != "" {
+			return fmt.Errorf("areas: unknown key %q (allowed: members, default, required, coverage_roots)", bad)
+		}
+	}
 	var raw struct {
-		Members  []yaml.Node `yaml:"members"`
-		Default  string      `yaml:"default"`
-		Required bool        `yaml:"required"`
+		Members       []yaml.Node `yaml:"members"`
+		Default       string      `yaml:"default"`
+		Required      bool        `yaml:"required"`
+		CoverageRoots []string    `yaml:"coverage_roots"`
 	}
 	if err := value.Decode(&raw); err != nil {
 		return err
 	}
 	a.Default = raw.Default
 	a.Required = raw.Required
+	a.CoverageRoots = raw.CoverageRoots
+	if len(a.CoverageRoots) == 0 {
+		// yaml.v3 decodes `coverage_roots: []` to a non-nil empty slice;
+		// normalize to nil so explicit-empty equals absent.
+		a.CoverageRoots = nil
+	}
 	a.Members = make([]Member, 0, len(raw.Members))
 	for i := range raw.Members {
 		n := &raw.Members[i]
@@ -227,6 +258,30 @@ var knownMemberKeys = map[string]bool{"name": true, "paths": true}
 func unknownMemberKey(n *yaml.Node) string {
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		if !knownMemberKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
+// knownAreasKeys is the closed set of top-level keys the areas block may
+// declare. It mirrors the Areas struct's yaml tags and must be kept in sync by
+// hand when a field is added to Areas — the block-level analogue of
+// knownMemberKeys (M-0185 strict-key guard).
+var knownAreasKeys = map[string]bool{
+	"members":        true,
+	"default":        true,
+	"required":       true,
+	"coverage_roots": true,
+}
+
+// unknownAreasKey returns the first top-level key in the areas mapping node
+// that is not a recognized field, or "" when every key is known. It is the
+// areas-block-level strict-key guard the non-strict yaml.v3 value.Decode lacks
+// (M-0185), mirroring unknownMemberKey at the member level.
+func unknownAreasKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownAreasKeys[n.Content[i].Value] {
 			return n.Content[i].Value
 		}
 	}
@@ -299,6 +354,23 @@ func (a Areas) validate() error {
 	// `default`-needs-members rejection above.
 	if a.Required && len(a.Members) == 0 {
 		return fmt.Errorf("areas.required is set but no members are declared")
+	}
+	// M-0185: each coverage root must be a non-empty, whitespace-clean,
+	// repo-relative path. fs.ValidPath rejects a leading slash, `.` is
+	// permitted (the repo root as a coverage scope), and `..` segments are
+	// rejected so the single-level enumeration cannot escape the tree. No
+	// coupling to members: coverage_roots without paths is inert, not
+	// unsatisfiable (unlike required), so it is not a load error.
+	for _, r := range a.CoverageRoots {
+		if strings.TrimSpace(r) == "" {
+			return fmt.Errorf("areas.coverage_roots contains an empty entry")
+		}
+		if r != strings.TrimSpace(r) {
+			return fmt.Errorf("areas.coverage_roots entry %q has leading or trailing whitespace", r)
+		}
+		if !fs.ValidPath(r) {
+			return fmt.Errorf("areas.coverage_roots entry %q is not a valid repo-relative path (use '/'-separated, no leading slash, no `..` segments)", r)
+		}
 	}
 	return nil
 }
