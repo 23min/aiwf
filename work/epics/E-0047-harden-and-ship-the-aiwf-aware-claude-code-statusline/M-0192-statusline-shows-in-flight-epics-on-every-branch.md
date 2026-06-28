@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Epic HUD renders the in-flight epic list on a non-ritual branch
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Ritual branch shows only the current epic and its milestone
