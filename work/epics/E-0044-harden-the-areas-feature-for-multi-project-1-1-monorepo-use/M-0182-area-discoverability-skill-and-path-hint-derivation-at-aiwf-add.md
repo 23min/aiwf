@@ -6,6 +6,35 @@ parent: E-0044
 depends_on:
     - M-0179
 tdd: required
+acs:
+    - id: AC-1
+      title: Topical aiwf-area skill exists with valid frontmatter and is discoverable
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: 'Skill teaches the area mental model: operate-everywhere vs aiwf constraints'
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: 'Skill teaches the area lifecycle: add, set-area, mistag, acknowledge'
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Single unambiguous --path-hint derives area when --area is omitted
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: Explicit --area always wins over a conflicting --path-hint
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Ambiguous --path-hint sets no area, prints a suggestion, proceeds untagged
+      status: open
+      tdd_phase: red
+    - id: AC-7
+      title: Inert with no declared paths; areamatch.Derive is the SSOT primitive
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -42,3 +71,18 @@ Candidate behaviors to formalize at start-milestone:
 ## References
 
 - The `aiwf add --area` write path (E-0043 / M-0173) — extended here with derivation.
+
+### AC-1 — Topical aiwf-area skill exists with valid frontmatter and is discoverable
+
+### AC-2 — Skill teaches the area mental model: operate-everywhere vs aiwf constraints
+
+### AC-3 — Skill teaches the area lifecycle: add, set-area, mistag, acknowledge
+
+### AC-4 — Single unambiguous --path-hint derives area when --area is omitted
+
+### AC-5 — Explicit --area always wins over a conflicting --path-hint
+
+### AC-6 — Ambiguous --path-hint sets no area, prints a suggestion, proceeds untagged
+
+### AC-7 — Inert with no declared paths; areamatch.Derive is the SSOT primitive
+
