@@ -1,7 +1,7 @@
 ---
 id: M-0191
 title: Behavioral test harness for the statusline + stale-CI-after-push fix
-status: draft
+status: in_progress
 parent: E-0047
 tdd: required
 acs:
