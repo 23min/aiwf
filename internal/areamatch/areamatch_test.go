@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -50,6 +51,123 @@ func TestMatch(t *testing.T) {
 				t.Errorf("Match(%q, %q) = %v, want %v", tc.glob, tc.path, got, tc.want)
 			}
 		})
+	}
+}
+
+// TestDerive pins the M-0182 derivation primitive: a path hint is classified
+// by which areas' path-claims it falls under. Areas come in as name → globs
+// (config-agnostic, keeping areamatch a leaf below config). The result is the
+// sorted, per-area-deduped set of area names whose globs the path matches —
+// len 1 is an unambiguous derive, len 0 is "no area claims it", len ≥2 is
+// ambiguous; a malformed glob errors.
+func TestDerive(t *testing.T) {
+	t.Parallel()
+	// overlap fixture: four areas deliberately claim the SAME glob, so a hint
+	// under it matches all of them — exercising multi-match classification. This
+	// single-call case asserts sorted order too, but Go's small-map iteration is
+	// rotation-based (not a full shuffle), so a dropped sort.Strings only fails
+	// ~85% of single calls; the sort's determinism is pinned robustly by
+	// TestDeriveMultiMatchSorted, which loops to drive the miss probability to ~0.
+	overlap := map[string][]string{
+		"platform": {"projects/platform/**"},
+		"billing":  {"projects/billing/**", "libs/billing/**"},
+		"shared":   {"projects/platform/**"},
+		"alpha":    {"projects/platform/**"},
+		"omega":    {"projects/platform/**"},
+	}
+	cases := []struct {
+		name    string
+		areas   map[string][]string
+		path    string
+		want    []string
+		wantErr bool
+	}{
+		{
+			"single unambiguous match",
+			map[string][]string{"platform": {"projects/platform/**"}, "billing": {"projects/billing/**"}},
+			"projects/platform/auth/login.go",
+			[]string{"platform"},
+			false,
+		},
+		{
+			"no area claims the path",
+			map[string][]string{"platform": {"projects/platform/**"}},
+			"services/other/x.go", nil, false,
+		},
+		{
+			"ambiguous: several areas claim the path (sorted)",
+			overlap, "projects/platform/auth.go",
+			[]string{"alpha", "omega", "platform", "shared"},
+			false,
+		},
+		{
+			// Both of billing's globs match the path, so the inner break is the
+			// dedup mechanism: without it the name is appended twice. The path
+			// must match BOTH globs for this to exercise the break.
+			"per-area dedup across that area's own globs",
+			map[string][]string{"billing": {"projects/**", "projects/billing/**"}},
+			"projects/billing/core.go",
+			[]string{"billing"},
+			false,
+		},
+		{
+			"empty areas yields no match",
+			map[string][]string{},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"area with no globs is skipped",
+			map[string][]string{"platform": nil},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"malformed glob errors",
+			map[string][]string{"bad": {"a["}},
+			"a", nil, true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Derive(tc.areas, tc.path)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("Derive(%q): want error, got nil", tc.path)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Derive(%q): unexpected error: %v", tc.path, err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("Derive(%q) = %v, want %v", tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDeriveMultiMatchSorted pins the determinism Derive's doc promises: the
+// matched set is sorted regardless of map iteration order. A single Derive call
+// can coincidentally return sorted order even with sort.Strings removed (Go's
+// small-map iteration is rotation-based, ~85% catch per call), so this loops
+// enough times that a dropped sort fails within one run: P(miss) ≈ 0.15^64 ≈ 0.
+func TestDeriveMultiMatchSorted(t *testing.T) {
+	t.Parallel()
+	areas := map[string][]string{
+		"shared":   {"projects/x/**"},
+		"platform": {"projects/x/**"},
+		"omega":    {"projects/x/**"},
+		"alpha":    {"projects/x/**"},
+	}
+	want := []string{"alpha", "omega", "platform", "shared"}
+	for i := 0; i < 64; i++ {
+		got, err := Derive(areas, "projects/x/file.go")
+		if err != nil {
+			t.Fatalf("iteration %d: Derive: %v", i, err)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("iteration %d: Derive = %v, want sorted %v", i, got, want)
+		}
 	}
 }
 

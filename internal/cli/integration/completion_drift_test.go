@@ -56,6 +56,7 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 		{flag: "validator"}:                     "validator name; closed set is not yet authoritative",
 		{flag: "schema"}:                        "filesystem path",
 		{flag: "fixtures"}:                      "filesystem directory path",
+		{cmd: "aiwf add", flag: "path-hint"}:    "repo-relative filesystem path hint; default file completion is correct (M-0182)",
 		{cmd: "aiwf check", flag: "commit-msg"}: "filesystem path to a commit-message file; default file completion is correct (used by the .git/hooks/commit-msg hook — G-0218)",
 		{cmd: "aiwf upgrade", flag: "version"}:  "semver tag string; no closed set",
 

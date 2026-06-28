@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"sort"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
@@ -25,6 +26,35 @@ var errStopWalk = errors.New("areamatch: match found")
 // wrapping doublestar.ErrBadPattern.
 func Match(glob, path string) (bool, error) {
 	return doublestar.Match(glob, path)
+}
+
+// Derive classifies which declared areas' path-claims a repo-relative path
+// hint falls under. areas maps each area name to its path globs — the
+// config-agnostic shape that keeps areamatch a dependency leaf below config
+// (which imports areamatch for Validate, so the reverse import would cycle).
+// It returns the area names whose globs the path matches, sorted and deduped
+// per area: a path matching two globs of the same area yields that name once.
+// The length is the caller's signal — exactly one is an unambiguous derive,
+// zero is "no area claims this path", two or more is ambiguous. A malformed
+// glob returns an error wrapping doublestar.ErrBadPattern, naming the offending
+// area and glob. Same doublestar ('**') semantics as Match; it is the SSOT
+// primitive `aiwf add --path-hint` (M-0182) consumes.
+func Derive(areas map[string][]string, path string) ([]string, error) {
+	var matched []string
+	for name, globs := range areas {
+		for _, g := range globs {
+			ok, err := Match(g, path)
+			if err != nil {
+				return nil, fmt.Errorf("areamatch.Derive: area %q glob %q: %w", name, g, err)
+			}
+			if ok {
+				matched = append(matched, name)
+				break
+			}
+		}
+	}
+	sort.Strings(matched)
+	return matched, nil
 }
 
 // MatchFS returns the repo-relative paths under fsys that the glob matches —
