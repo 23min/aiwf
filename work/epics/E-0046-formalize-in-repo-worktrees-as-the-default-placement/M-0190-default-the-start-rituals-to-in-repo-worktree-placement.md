@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Start rituals retain the per-invocation worktree placement override
-      status: open
+      status: met
     - id: AC-3
       title: Start rituals record the sandbox rationale citing ADR-0023
       status: open
