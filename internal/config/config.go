@@ -167,7 +167,7 @@ func (a Areas) MemberNames() []string {
 func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
 	// Strict-key guard at the areas-block level (M-0185, from the M-0208
 	// review): value.Decode below is non-strict and silently drops unknown
-	// keys, so a typo like `requried:` would vanish rather than error.
+	// keys, so a typo like `coverage_rootz:` would vanish rather than error.
 	// Reject it at decode, naming the bad key — the block-level analogue of
 	// unknownMemberKey (G-0287). Skipped for a non-mapping `areas:` value,
 	// which value.Decode reports below.

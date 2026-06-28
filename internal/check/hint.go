@@ -130,6 +130,13 @@ var hintTable = map[string]string{
 	// areas.required. The remediation is to make the globs disjoint.
 	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
 
+	// M-0185 area-unslotted: an immediate child directory of a declared
+	// coverage root (aiwf.yaml: areas.coverage_roots) is claimed by no area's
+	// `paths:` glob — an unslotted project. Warning by default, error under
+	// areas.required. The remediation is to slot it into an area, narrow the
+	// coverage root, or drop the root.
+	"area-unslotted": "a directory under an `aiwf.yaml: areas.coverage_roots` entry is claimed by no area's `paths:` glob — slot it into an area (add the directory to a member's `paths:`), or remove the coverage root if that subtree is not a project-tiling scope; absence of a coverage root makes this check inert",
+
 	// M-0181 area-mistag: an entity's linked commits (via the aiwf-entity
 	// trailer) touched only a DIFFERENT area's `paths:` territory than the one
 	// the entity is tagged to. Warning only — never escalated, because

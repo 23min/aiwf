@@ -154,6 +154,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	archiveThresholdSet := false
 	var areaMembers []string
 	var areaPaths []check.AreaPaths
+	var coverageRoots []string
 	areaRequired := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
@@ -163,6 +164,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
 		areaMembers = cfg.Areas.MemberNames()
 		areaRequired = cfg.Areas.Required
+		coverageRoots = cfg.Areas.CoverageRoots
 		// Project the declared members to the check package's
 		// config-agnostic AreaPaths so the path-axis rules (dead-glob)
 		// stay free of any aiwf.yaml type, the M-0171/AC-4 boundary.
@@ -210,6 +212,15 @@ func Run(root, format string, pretty bool, since string, shapeOnly, verbose bool
 	// paths. Reads the filesystem read-only; inert with <2 paths-carrying
 	// areas.
 	findings = append(findings, check.AreaOverlap(tr, areaPaths)...)
+
+	// M-0185: area-unslotted is the covering half of the path-claim axis —
+	// within an operator-declared coverage root, every immediate child
+	// directory must be claimed by some area's glob. Config-dependent, so
+	// composed here (not in pure check.Run) with the same declared area
+	// paths plus the coverage_roots knob. Reads the filesystem read-only,
+	// single-level per declared root; inert when no coverage root is
+	// declared or no area declares paths.
+	findings = append(findings, check.AreaCoverage(tr, areaPaths, coverageRoots)...)
 
 	// M-0181: area-mistag is the path-vs-tag consistency half of the area
 	// matrix — it reads each entity's linked commits (via the aiwf-entity

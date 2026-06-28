@@ -274,15 +274,15 @@ func TestConfig_CoverageRoots_ParsesAndValidates(t *testing.T) {
 }
 
 // TestConfig_AreasBlock_RejectsUnknownKey pins M-0185/AC-2: an unknown
-// top-level key in the areas block (e.g. a `requried:` typo) is a load-time
-// error naming the bad key — the areas-block-level strict-key guard mirroring
-// G-0287's member-level guard. Without it, yaml.v3's non-strict decode would
-// silently drop the typo'd key and the operator's intent (here: `required`)
-// would vanish unflagged.
+// top-level key in the areas block (e.g. a `coverage_rootz:` typo) is a
+// load-time error naming the bad key — the areas-block-level strict-key guard
+// mirroring G-0287's member-level guard. Without it, yaml.v3's non-strict
+// decode would silently drop the typo'd key and the operator's intent (here:
+// `coverage_roots`) would vanish unflagged.
 func TestConfig_AreasBlock_RejectsUnknownKey(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	contents := []byte("areas:\n  members:\n    - platform\n  requried: true\n")
+	contents := []byte("areas:\n  members:\n    - platform\n  coverage_rootz:\n    - projects\n")
 	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestConfig_AreasBlock_RejectsUnknownKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("Load: want error for an unknown areas key, got nil")
 	}
-	if !strings.Contains(err.Error(), "requried") || !strings.Contains(err.Error(), "unknown key") {
-		t.Errorf("error = %q, want it to name the unknown key %q", err.Error(), "requried")
+	if !strings.Contains(err.Error(), "coverage_rootz") || !strings.Contains(err.Error(), "unknown key") {
+		t.Errorf("error = %q, want it to name the unknown key %q", err.Error(), "coverage_rootz")
 	}
 }
