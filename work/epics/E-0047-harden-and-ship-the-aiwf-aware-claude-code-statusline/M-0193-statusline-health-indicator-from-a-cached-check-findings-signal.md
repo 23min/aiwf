@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: check --fast runs content rules without the git-history layer
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: statusline prefixes a health glyph from the cached --fast probe
       status: open
