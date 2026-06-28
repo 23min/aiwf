@@ -7,15 +7,16 @@ status: open
 
 Verified factual errors in the `aiwf-*` verb skills (the entity-reference and
 id-placeholder portions of these skills are handled by the strict skill-body
-id-hygiene gap and the placeholder normalization; this gap is the residual
-factual content):
+id-hygiene gap and the placeholder normalization; the finding-code documentation
+drift is owned by G-0283; this gap is the residual factual content):
 
 - **`aiwf-check`** lists the acceptance-criterion status set as
   `{open, met, cancelled}` ("three statuses"). The kernel set is
   `{open, met, deferred, cancelled}` (`internal/entity/entity.go`); `deferred` is
   a live terminal AC state the wrap rituals use, and `aiwf-promote` lists all
-  four. The skill also promises to "explain each finding code" but omits
-  `milestone-done-incomplete-acs` (a real, frequently-hit code).
+  four. (The separate problem that the skill omits emitted finding codes such as
+  `milestone-done-incomplete-acs` is owned by G-0283, which also adds the missing
+  documented-superset-of-emitted chokepoint.)
 - **`aiwf-archive`** says the volume offender is "typically gaps or **findings**."
   `findings` is not an entity kind; `--kind` accepts only
   `epic, contract, gap, decision, adr` (`internal/cli/archive/archive.go`).
@@ -34,7 +35,7 @@ factual content):
 ## Decision
 
 - `aiwf-check`: AC status set -> `{open, met, deferred, cancelled}` ("four
-  statuses"); add a `milestone-done-incomplete-acs` row.
+  statuses"). (Finding-code documentation -> G-0283.)
 - `aiwf-archive`: drop "or findings".
 - `aiwf-contract`: recipe path -> `internal/recipe/embedded/`; add the
   `deprecated -> retired` cancel case.
@@ -47,4 +48,5 @@ factual content):
 
 `aiwf-check`, `aiwf-archive`, `aiwf-contract`, `aiwf-authorize`, `aiwf-add`. The
 entity-reference + placeholder bits of these skills are out of scope here (handled
-by the id-hygiene gap); rebase onto that gap.
+by the id-hygiene gap); the aiwf-check finding-code documentation is out of scope
+here (G-0283). Rebase onto the id-hygiene gap.
