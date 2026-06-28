@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Statusline cache key includes HEAD sha so a push invalidates a stale CI result
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Deliverable
