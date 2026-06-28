@@ -612,16 +612,30 @@ reintroduces drift fails CI.
 
 ### Goal
 
-The ritual lifecycle's gate model and commit/TDD model are coherent and match
-CLAUDE.md: approval gates batch local, reversible mutations safely (and never
-outward or timing-bearing ones), and milestone implementation commits plus TDD
-phase evidence are honest.
+The ritual lifecycle's commit/TDD model is coherent and matches CLAUDE.md:
+milestone implementation commits plus TDD phase evidence are honest, and the
+start/wrap rituals are internally consistent. The gate model itself is delivered
+by the foundation epic E-0050, which this epic builds on.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0203 | Generalize the declared-sequence gate; fix wrap/release drift | draft |
+| M-0203 | Generalize the declared-sequence gate; fix wrap/release drift | cancelled |
 | M-0204 | Model 1: commit implementation per AC; live phase promotes | draft |
 | M-0205 | Milestone review framing and wrap-milestone trailer test | draft |
 | M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
 | M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
+
+## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (proposed)
+
+### Goal
+
+Generalize the wf-patch declared-sequence gate into a general capability for any
+sequence of local, reversible mutations — one gate that enumerates every action
+verbatim, binds approval to exactly that list (subset approval allowed), and
+aborts + re-gates on any deviation — and fix the wrap and release rituals that
+currently violate the gate discipline CLAUDE.md *claims* they already follow.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0209 | Generalize the declared-sequence gate; fix wrap/release drift | draft |
 
