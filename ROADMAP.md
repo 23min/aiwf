@@ -533,7 +533,7 @@ Let a single repo hold more than one workstream — a product plus a co-develope
 | M-0174 | --area filter on list, show, and status | done |
 | M-0175 | Area grouping in status, render roadmap, and render html | done |
 
-## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (active)
+## E-0044 — Harden the areas feature for multi-project (1:1) monorepo use (done)
 
 ### Goal
 
