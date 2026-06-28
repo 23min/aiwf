@@ -33,6 +33,10 @@ acs:
       title: coverage enumeration is single-level, bounded, and IO-safe
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: area-unslotted is AI-discoverable and coverage_roots is schema-documented
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -155,4 +159,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-5 — area-unslotted is warning by default, error under areas.required
 
 ### AC-6 — coverage enumeration is single-level, bounded, and IO-safe
+
+### AC-7 — area-unslotted is AI-discoverable and coverage_roots is schema-documented
 
