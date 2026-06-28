@@ -1,8 +1,10 @@
 ---
 id: G-0278
 title: Harden the areas feature for multi-project (1:1) monorepo use
-status: open
+status: addressed
 discovered_in: E-0043
+addressed_by:
+    - E-0044
 ---
 ## Context
 
