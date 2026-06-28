@@ -95,6 +95,20 @@ func TestAcknowledgeIllegal_RequiresHumanActor(t *testing.T) {
 	}
 }
 
+// TestAcknowledgeIllegal_RejectsMalformedSHAShape pins the trailer-validator
+// gate: a value that doesn't match the 7-40-hex aiwf-force-for shape is refused
+// by gitops.ValidateTrailer (before the shaAckable reachability check runs), so
+// the verb never records an ack with a malformed target. Covers the
+// ValidateTrailer error branch the AC-5 sweep touched.
+func TestAcknowledgeIllegal_RejectsMalformedSHAShape(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, "not-a-hex-sha", "", "human/test", "squash-merge fixup")
+	if err == nil {
+		t.Fatal("expected error for a malformed SHA shape (ValidateTrailer rejects the aiwf-force-for value)")
+	}
+}
+
 // commitOne writes a file and creates one commit, returning the new
 // commit's SHA. Used by acknowledge-illegal tests that need a
 // historical commit to point aiwf-force-for at.

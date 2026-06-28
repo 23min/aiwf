@@ -109,6 +109,7 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
+		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
 		fmt.Fprintf(os.Stderr, "aiwf set-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -127,6 +128,7 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
+		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
 		fmt.Fprintf(os.Stderr, "aiwf set-area: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}

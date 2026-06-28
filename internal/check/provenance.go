@@ -428,7 +428,7 @@ type UntrailedCommit struct {
 // The finding is an ERROR (G-0231 item 3, bumped from WARNING after
 // the merge-commit carveout cleared the historical noise and the
 // remaining direct-edit findings were SHA-verified-acked via
-// `aiwf acknowledge-illegal --for-entity`).
+// `aiwf acknowledge illegal --for-entity`).
 //
 // Two coverage mechanisms suppress findings:
 //
@@ -544,7 +544,7 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 			}
 			canonID := entity.Canonicalize(id)
 			// G-0231 item 3 — per-(SHA, entity) ack via
-			// `aiwf acknowledge-illegal --for-entity`. SHA + entity
+			// `aiwf acknowledge illegal --for-entity`. SHA + entity
 			// both verified by the verb at write time (the verb
 			// walks git diff-tree to confirm the SHA touches the
 			// entity); the rule trusts that write-time check by
@@ -593,7 +593,7 @@ func isEntityCoveredByLaterAudit(id string, manualIdx int, auditAt map[string]in
 
 // isShaEntityAcked reports whether a finding for (commitSHA, entityID)
 // is suppressed by a per-(SHA, entity) ack from
-// `aiwf acknowledge-illegal --for-entity` (G-0231 item 3).
+// `aiwf acknowledge illegal --for-entity` (G-0231 item 3).
 //
 // commitSHA is always a full 40-char hex from %H (ParseUntrailedCommits
 // populates UntrailedCommit.SHA from `git log %H`). The walker also

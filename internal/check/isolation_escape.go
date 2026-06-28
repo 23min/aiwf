@@ -82,7 +82,7 @@ var CodeIsolationEscapeShallowClone = codespkg.Code{ID: "isolation-escape-shallo
 // alone whether it was on the correct branch at force-time
 // (the rewrite removed the audit trail), so the rule surfaces
 // the orphan for operator review with hint text pointing at
-// `aiwf acknowledge-illegal` for deliberate sovereign cleanup.
+// `aiwf acknowledge illegal` for deliberate sovereign cleanup.
 //
 // Severity is warning per the M-0125 ratchet pattern; future
 // D-NNN may tighten to error after one full epic of usage.
@@ -242,7 +242,7 @@ type BranchOracle interface {
 //     evidence.
 //
 // M-0159/AC-3: ackedSHAs carries the set of commit SHAs that have
-// been retroactively acknowledged via `aiwf acknowledge-illegal`.
+// been retroactively acknowledged via `aiwf acknowledge illegal`.
 // The CLI gather layer computes the map once per check invocation
 // (via WalkAcknowledgedSHAs in acks.go) and passes it to all
 // three rules that consume it; rule-internal recompute is
@@ -405,7 +405,7 @@ func RunIsolationEscape(commits []scope.Commit, oracle BranchOracle, cherryPicke
 		}
 
 		// M-0159/AC-3 — retroactive acknowledgment. When an operator
-		// runs `aiwf acknowledge-illegal <escape-sha> --reason "..."`
+		// runs `aiwf acknowledge illegal <escape-sha> --reason "..."`
 		// after the escape has landed, the new commit carries an
 		// aiwf-force-for: <escape-sha> trailer. The CLI gather layer
 		// pre-computed the set of acknowledged SHAs (see

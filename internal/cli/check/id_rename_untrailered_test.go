@@ -37,7 +37,7 @@ import (
 // outer `Run` orchestrator does, and asserts the resulting
 // finding's Hint field is non-empty AND names both the
 // canonical resolution (`aiwf reallocate`) AND the sovereign-
-// human override (`aiwf acknowledge-illegal`).
+// human override (`aiwf acknowledge illegal`).
 func TestRunProvenanceCheck_IDRenameUntrailered_FindingCarriesHint(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -116,7 +116,7 @@ func TestRunProvenanceCheck_IDRenameUntrailered_FindingCarriesHint(t *testing.T)
 	}
 	// The hint names two paths an operator can take:
 	//   - `aiwf reallocate` (canonical resolution)
-	//   - `aiwf acknowledge-illegal` (sovereign-human override)
+	//   - `aiwf acknowledge illegal` (sovereign-human override)
 	// Both must surface so the operator's editor / CI summary
 	// renders the actionable choice inline. A regression that
 	// dropped either path's mention would degrade the chokepoint's
@@ -124,7 +124,7 @@ func TestRunProvenanceCheck_IDRenameUntrailered_FindingCarriesHint(t *testing.T)
 	if !strings.Contains(found.Hint, "aiwf reallocate") {
 		t.Errorf("id-rename-untrailered Hint %q does not name `aiwf reallocate` (canonical resolution)", found.Hint)
 	}
-	if !strings.Contains(found.Hint, "aiwf acknowledge-illegal") {
-		t.Errorf("id-rename-untrailered Hint %q does not name `aiwf acknowledge-illegal` (sovereign-human override)", found.Hint)
+	if !strings.Contains(found.Hint, "aiwf acknowledge illegal") {
+		t.Errorf("id-rename-untrailered Hint %q does not name `aiwf acknowledge illegal` (sovereign-human override)", found.Hint)
 	}
 }

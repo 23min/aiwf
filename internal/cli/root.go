@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/aiwf/internal/cli/acknowledgeillegal"
+	"github.com/23min/aiwf/internal/cli/acknowledge"
 	"github.com/23min/aiwf/internal/cli/add"
 	"github.com/23min/aiwf/internal/cli/archive"
 	"github.com/23min/aiwf/internal/cli/authorize"
@@ -191,7 +191,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(contract.NewCmd())
 	cmd.AddCommand(milestone.NewCmd())
 	cmd.AddCommand(authorize.NewCmd())
-	cmd.AddCommand(acknowledgeillegal.NewCmd())
+	cmd.AddCommand(acknowledge.NewCmd())
 
 	// G-0150: snapshot the explicit verb set into Annotations BEFORE
 	// any caller calls Execute (which is when Cobra's `help` and

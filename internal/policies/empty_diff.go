@@ -4,17 +4,23 @@ import "strings"
 
 // PolicyEmptyDiffCommitsCarryMarker asserts that every Go file in
 // the verb package containing `AllowEmpty: true` (or `AllowEmpty
-// = true`) also references one of the marker trailers
-// (`TrailerScope`, `TrailerAuditOnly`, or `TrailerForceFor`)
-// somewhere in the same file. An empty-diff commit with no marker
-// is indistinguishable from a no-op verb call to a reader of
-// `git log` — exactly the audit-trail hole G24 closed.
+// = true`) also references one of the empty-commit markers somewhere
+// in the same file. An empty-diff commit with no marker is
+// indistinguishable from a no-op verb call to a reader of `git log`
+// — exactly the audit-trail hole G24 closed.
 //
-// The three accepted markers correspond to the three deliberately-
-// empty verb shapes the kernel ships:
+// The accepted markers correspond to the deliberately-empty verb
+// shapes the kernel ships:
 //   - `aiwf authorize` (TrailerScope: opened/paused/resumed/ended)
 //   - `aiwf <verb> --audit-only` (TrailerAuditOnly + reason)
-//   - `aiwf acknowledge-illegal` (TrailerForceFor: <historical-sha>)
+//   - `aiwf acknowledge illegal` (TrailerForceFor: <historical-sha>)
+//   - `aiwf acknowledge mistag` (M-0181/AC-6) — the per-entity sovereign
+//     ack. Its target rides on `aiwf-entity` (shared with non-empty
+//     entity verbs, so not a distinguishing empty-commit marker on its
+//     own), so the distinguishing marker is its UNIQUE verb value
+//     `acknowledge-mistag` — present only in this verb's file. Accepting
+//     that literal keeps the check tight (no broadening via the shared
+//     entity trailer) while recognizing the new shape.
 //
 // File scope (vs function scope) accounts for verbs that delegate
 // trailer assembly to a helper in the same file (e.g.
@@ -36,7 +42,8 @@ func PolicyEmptyDiffCommitsCarryMarker(root string) ([]Violation, error) {
 		}
 		if strings.Contains(body, "TrailerScope") ||
 			strings.Contains(body, "TrailerAuditOnly") ||
-			strings.Contains(body, "TrailerForceFor") {
+			strings.Contains(body, "TrailerForceFor") ||
+			strings.Contains(body, `"acknowledge-mistag"`) {
 			continue
 		}
 		offsets := FindAllOffsets(f.Contents, "AllowEmpty: true")
@@ -51,7 +58,7 @@ func PolicyEmptyDiffCommitsCarryMarker(root string) ([]Violation, error) {
 			Policy: "empty-diff-commits-carry-marker",
 			File:   f.Path,
 			Line:   line,
-			Detail: "file uses Plan.AllowEmpty = true but never references TrailerScope, TrailerAuditOnly, or TrailerForceFor; an unmarked empty-diff commit is indistinguishable from a no-op",
+			Detail: `file uses Plan.AllowEmpty = true but references none of the empty-commit markers (TrailerScope, TrailerAuditOnly, TrailerForceFor, or the "acknowledge-mistag" verb value); an unmarked empty-diff commit is indistinguishable from a no-op`,
 		})
 	}
 	return out, nil
