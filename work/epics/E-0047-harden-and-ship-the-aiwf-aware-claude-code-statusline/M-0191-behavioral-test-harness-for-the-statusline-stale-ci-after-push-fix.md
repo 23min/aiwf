@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Behavioral test runs statusline.sh against a fixture and asserts real output
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: CI segment shows pending when the run's headSha differs from local HEAD
       status: open
