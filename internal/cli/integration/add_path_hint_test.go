@@ -208,3 +208,45 @@ func TestRunAdd_PathHintIgnoredOnMilestone(t *testing.T) {
 		t.Errorf("milestone should be created; found %v", matches)
 	}
 }
+
+// TestRunAdd_PathHintNormalized pins the second-review normalization fixes
+// (M-0182): a hint with ./ or .. segments is path.Clean'd before matching — so
+// it can't lexically derive a confidently-wrong area — and an absolute path
+// under the repo root is relativized first (the LLM primary user carries
+// absolute paths). All three derive the area the resolved path actually lives in.
+func TestRunAdd_PathHintNormalized(t *testing.T) {
+	t.Run("dot-dot segment resolves before matching (no wrong-area derive)", func(t *testing.T) {
+		root := setupPathAreaRepo(t)
+		// Lexically under platform's glob, but resolves into billing's tree.
+		mustRun(t, "add", "epic", "--title", "Dotdot",
+			"--path-hint", "projects/platform/../billing/x.go",
+			"--actor", "human/test", "--root", root)
+		fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md"))
+		if !strings.Contains(fm, "area: billing") {
+			t.Errorf("`..` should resolve to billing before matching, got:\n%s", fm)
+		}
+	})
+
+	t.Run("leading ./ is collapsed and still derives", func(t *testing.T) {
+		root := setupPathAreaRepo(t)
+		mustRun(t, "add", "epic", "--title", "Dotslash",
+			"--path-hint", "./projects/platform/x.go",
+			"--actor", "human/test", "--root", root)
+		fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md"))
+		if !strings.Contains(fm, "area: platform") {
+			t.Errorf("leading ./ should still derive platform, got:\n%s", fm)
+		}
+	})
+
+	t.Run("absolute path under the repo root is relativized and derives", func(t *testing.T) {
+		root := setupPathAreaRepo(t)
+		abs := filepath.Join(root, "projects", "platform", "deep", "x.go")
+		mustRun(t, "add", "epic", "--title", "Absolute",
+			"--path-hint", abs,
+			"--actor", "human/test", "--root", root)
+		fm := frontmatterOf(readOne(t, root, "work/epics/E-*/epic.md"))
+		if !strings.Contains(fm, "area: platform") {
+			t.Errorf("absolute path under root should relativize and derive platform, got:\n%s", fm)
+		}
+	})
+}

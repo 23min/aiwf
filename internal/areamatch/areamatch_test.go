@@ -63,9 +63,11 @@ func TestMatch(t *testing.T) {
 func TestDerive(t *testing.T) {
 	t.Parallel()
 	// overlap fixture: four areas deliberately claim the SAME glob, so a hint
-	// under it matches all of them. Four colliding names make the sort load-
-	// bearing: a dropped sort.Strings fails ~96% of runs under Go's randomized
-	// map iteration (1 - 1/4!), vs only ~50% with two.
+	// under it matches all of them — exercising multi-match classification. This
+	// single-call case asserts sorted order too, but Go's small-map iteration is
+	// rotation-based (not a full shuffle), so a dropped sort.Strings only fails
+	// ~85% of single calls; the sort's determinism is pinned robustly by
+	// TestDeriveMultiMatchSorted, which loops to drive the miss probability to ~0.
 	overlap := map[string][]string{
 		"platform": {"projects/platform/**"},
 		"billing":  {"projects/billing/**", "libs/billing/**"},
@@ -141,6 +143,31 @@ func TestDerive(t *testing.T) {
 				t.Errorf("Derive(%q) = %v, want %v", tc.path, got, tc.want)
 			}
 		})
+	}
+}
+
+// TestDeriveMultiMatchSorted pins the determinism Derive's doc promises: the
+// matched set is sorted regardless of map iteration order. A single Derive call
+// can coincidentally return sorted order even with sort.Strings removed (Go's
+// small-map iteration is rotation-based, ~85% catch per call), so this loops
+// enough times that a dropped sort fails within one run: P(miss) ≈ 0.15^64 ≈ 0.
+func TestDeriveMultiMatchSorted(t *testing.T) {
+	t.Parallel()
+	areas := map[string][]string{
+		"shared":   {"projects/x/**"},
+		"platform": {"projects/x/**"},
+		"omega":    {"projects/x/**"},
+		"alpha":    {"projects/x/**"},
+	}
+	want := []string{"alpha", "omega", "platform", "shared"}
+	for i := 0; i < 64; i++ {
+		got, err := Derive(areas, "projects/x/file.go")
+		if err != nil {
+			t.Fatalf("iteration %d: Derive: %v", i, err)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("iteration %d: Derive = %v, want sorted %v", i, got, want)
+		}
 	}
 }
 

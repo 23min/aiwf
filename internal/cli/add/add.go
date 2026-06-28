@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -298,7 +300,7 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q ignored — no declared area has a paths: glob to match against\n", pathHint)
 		return ""
 	}
-	matched, err := areamatch.Derive(areas, pathHint)
+	matched, err := areamatch.Derive(areas, normalizeHint(rootDir, pathHint))
 	if err != nil { //coverage:ignore unreachable via the public path: area globs are validated at config load (areamatch.Validate via config.Areas.validate), so Derive never sees a malformed glob here; kept as defense-in-depth degrading to no-derivation
 		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint derivation skipped: %v\n", err)
 		return ""
@@ -316,6 +318,25 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
 	}
 	return ""
+}
+
+// normalizeHint makes a user-supplied --path-hint comparable to the declared,
+// repo-relative area globs (M-0182, second-review hardening). An absolute path
+// under the repo root is made relative to it first — the LLM, this milestone's
+// primary user, usually carries absolute paths — then ./, ../, and trailing-
+// slash segments are collapsed via path.Clean. The '..' collapse happens
+// BEFORE glob matching, so a hint like "projects/app-a/../app-b/x" resolves to
+// app-b and cannot lexically derive a confidently-wrong area. A path outside
+// the repo relativizes to a "../"-prefixed form that matches no repo-relative
+// glob — a correct zero-match.
+func normalizeHint(rootDir, pathHint string) string {
+	h := pathHint
+	if filepath.IsAbs(h) {
+		if rel, err := filepath.Rel(rootDir, h); err == nil {
+			h = rel
+		}
+	}
+	return path.Clean(filepath.ToSlash(h))
 }
 
 // configuredAreaPaths projects the declared members into the name → globs map
