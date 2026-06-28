@@ -146,7 +146,7 @@ The per-AC `red → green → done` phase timeline is in `aiwf history M-0208/AC
 - **Future-gap folded into M-0185, not a standalone gap.** The areas-block strict-key guard belongs
   with the milestone that adds `coverage_roots`; recorded as a Design note in M-0185.
 - **Id-collision resolution.** Parallel-branch races against trunk resolved via `aiwf reallocate`
-  (M-0195 → M-0208, G-0295 → G-0302), preserving `prior_ids` and cross-references.
+  (`M-0195` → `M-0208`, `G-0295` → `G-0302`), preserving `prior_ids` and cross-references.
 
 ## Validation
 
