@@ -294,3 +294,191 @@ func TestStatusline_M0191_MainFallbackSkipsStaleness(t *testing.T) {
 		t.Errorf("main-fallback: a branch with no runs should render \"✓ m:ci\" from main\n got: %q", out)
 	}
 }
+
+// --- M-0192 / G-0188: branch-contextual epic HUD ----------------------------
+//
+// The epic HUD answers a different question depending on the branch:
+//   - non-ritual (e.g. main): the in-flight epic list — non-terminal epics
+//     with the canonical glyph, terminal filtered, cap 3 + "+N" overflow.
+//   - ritual (epic/E-*, milestone/M-*): ONLY the current epic — the one the
+//     branch belongs to — plus its milestone inline on a milestone branch.
+//
+// Verifying the shipped "show epics on every branch" code surfaced the defect
+// AC-2 pins: under the old show-all+accentuate shape the current epic was
+// dropped into "+N" overflow whenever it sorted past the cap.
+
+// statuslineEpicEntry matches a rendered epic-HUD entry ("<glyph> E-<n>"). It
+// requires a status glyph before the id so the branch segment (".../E-1005…")
+// is not mistaken for the HUD.
+var statuslineEpicEntry = regexp.MustCompile(`[→○✓✗?] E-\d`)
+
+// statuslineOverflow matches the "+N" epic-overflow marker.
+var statuslineOverflow = regexp.MustCompile(`\+\d`)
+
+// epicHUDSegment returns the " · "-delimited segment carrying the epic HUD, or
+// "" if none is rendered. Scoping assertions to this segment (not the whole
+// line) avoids the false positive where the branch segment itself contains the
+// epic/milestone id (e.g. "epic/E-1005-echo" or "milestone/M-2001-work").
+func epicHUDSegment(out string) string {
+	for seg := range strings.SplitSeq(out, " · ") {
+		if statuslineEpicEntry.MatchString(seg) {
+			return seg
+		}
+	}
+	return ""
+}
+
+// writeEpicFixture scaffolds work/epics/<id>-<slug>/epic.md with the status.
+func writeEpicFixture(t *testing.T, repo, id, slug, status string) {
+	t.Helper()
+	dir := filepath.Join(repo, "work", "epics", id+"-"+slug)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, "epic.md"),
+		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\n---\n## Deliverable\n\nfixture\n")
+}
+
+// writeMilestoneFixture scaffolds a milestone file under its parent epic dir.
+func writeMilestoneFixture(t *testing.T, repo, epicID, epicSlug, id, slug, status string) {
+	t.Helper()
+	dir := filepath.Join(repo, "work", "epics", epicID+"-"+epicSlug)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, id+"-"+slug+".md"),
+		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\nparent: "+epicID+"\n---\n## Deliverable\n\nfixture\n")
+}
+
+// commitFixtures commits scaffolded planning files so the ritual-branch
+// milestone lookup (git ls-files) sees them.
+func commitFixtures(t *testing.T, repo string) {
+	t.Helper()
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-m", "fixtures")
+}
+
+// newEpicHUDRepo builds a repo with five active epics (E-1001..E-1005) and a
+// milestone M-2001 under the last epic. The current epic (E-1005) sorts last,
+// so the pre-reshape cap-3 list drops it into "+2" overflow.
+func newEpicHUDRepo(t *testing.T) string {
+	t.Helper()
+	repo := newStatuslineRepo(t)
+	writeEpicFixture(t, repo, "E-1001", "alpha", "active")
+	writeEpicFixture(t, repo, "E-1002", "bravo", "active")
+	writeEpicFixture(t, repo, "E-1003", "charlie", "active")
+	writeEpicFixture(t, repo, "E-1004", "delta", "active")
+	writeEpicFixture(t, repo, "E-1005", "echo", "active")
+	writeMilestoneFixture(t, repo, "E-1005", "echo", "M-2001", "work", "in_progress")
+	commitFixtures(t, repo)
+	return repo
+}
+
+// TestStatusline_M0192_AC1_NonRitualRendersEpicList: on a non-ritual branch
+// (main) the HUD renders the in-flight list — non-terminal epics with the
+// canonical glyph, terminal epics filtered, and "+N" overflow past the cap.
+func TestStatusline_M0192_AC1_NonRitualRendersEpicList(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t) // stays on main (non-ritual)
+	tr := writeTranscript(t)
+
+	// 4 non-terminal (cap 3 -> one overflow) + 2 terminal (filtered).
+	writeEpicFixture(t, repo, "E-1001", "alpha", "active")
+	writeEpicFixture(t, repo, "E-1002", "bravo", "proposed")
+	writeEpicFixture(t, repo, "E-1003", "charlie", "active")
+	writeEpicFixture(t, repo, "E-1004", "delta", "proposed")
+	writeEpicFixture(t, repo, "E-1005", "echo", "done")
+	writeEpicFixture(t, repo, "E-1006", "foxtrot", "cancelled")
+	commitFixtures(t, repo)
+
+	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	if hud == "" {
+		t.Fatalf("AC-1: expected an epic HUD segment on main")
+	}
+	if !strings.Contains(hud, "→ E-1001") {
+		t.Errorf("AC-1: active epic should render \"→ E-1001\"\n hud: %q", hud)
+	}
+	if !strings.Contains(hud, "○ E-1002") {
+		t.Errorf("AC-1: proposed epic should render \"○ E-1002\"\n hud: %q", hud)
+	}
+	if strings.Contains(hud, "E-1005") {
+		t.Errorf("AC-1: terminal (done) epic E-1005 must be filtered\n hud: %q", hud)
+	}
+	if strings.Contains(hud, "E-1006") {
+		t.Errorf("AC-1: terminal (cancelled) epic E-1006 must be filtered\n hud: %q", hud)
+	}
+	if !strings.Contains(hud, "+1") {
+		t.Errorf("AC-1: 4 non-terminal epics with cap 3 should render \"+1\" overflow\n hud: %q", hud)
+	}
+}
+
+// TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic: on a ritual branch the
+// HUD shows ONLY the current epic (+ milestone inline on a milestone branch) —
+// no other in-flight epic, no overflow — even with >cap epics in flight. Fails
+// against the pre-reshape code, where the current epic (sorting last) is lost
+// to "+2" overflow.
+func TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic(t *testing.T) {
+	t.Parallel()
+
+	others := []string{"E-1001", "E-1002", "E-1003", "E-1004"}
+
+	t.Run("epic branch", func(t *testing.T) {
+		t.Parallel()
+		repo := newEpicHUDRepo(t)
+		tr := writeTranscript(t)
+		gitIn(t, repo, "checkout", "-b", "epic/E-1005-echo")
+
+		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+		if !strings.Contains(hud, "E-1005") {
+			t.Errorf("AC-2 epic branch: HUD must show the current epic E-1005\n hud: %q", hud)
+		}
+		for _, o := range others {
+			if strings.Contains(hud, o) {
+				t.Errorf("AC-2 epic branch: HUD must not show other epic %s\n hud: %q", o, hud)
+			}
+		}
+		if statuslineOverflow.MatchString(hud) {
+			t.Errorf("AC-2 epic branch: ritual HUD must not render overflow\n hud: %q", hud)
+		}
+	})
+
+	t.Run("milestone branch", func(t *testing.T) {
+		t.Parallel()
+		repo := newEpicHUDRepo(t)
+		tr := writeTranscript(t)
+		gitIn(t, repo, "checkout", "-b", "milestone/M-2001-work")
+
+		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+		if !strings.Contains(hud, "E-1005") {
+			t.Errorf("AC-2 milestone branch: HUD must show the parent epic E-1005\n hud: %q", hud)
+		}
+		if !strings.Contains(hud, "M-2001") {
+			t.Errorf("AC-2 milestone branch: HUD must show the milestone M-2001 inline\n hud: %q", hud)
+		}
+		for _, o := range others {
+			if strings.Contains(hud, o) {
+				t.Errorf("AC-2 milestone branch: HUD must not show other epic %s\n hud: %q", o, hud)
+			}
+		}
+		if statuslineOverflow.MatchString(hud) {
+			t.Errorf("AC-2 milestone branch: ritual HUD must not render overflow\n hud: %q", hud)
+		}
+	})
+}
+
+// TestStatusline_M0192_RitualEpicMissingFileFallsBackToUnknownGlyph pins the
+// fail-soft arm of the ritual path: on an epic branch whose epic.md is absent
+// or untracked (a stale or mistyped branch), the HUD still shows the id with
+// the "?" unknown-status glyph rather than breaking under `set -u`. This is the
+// reachable e_file="" branch the reviewer flagged as otherwise unexercised.
+func TestStatusline_M0192_RitualEpicMissingFileFallsBackToUnknownGlyph(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	gitIn(t, repo, "checkout", "-b", "epic/E-9999-ghost") // no epic.md for E-9999
+
+	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	if !strings.Contains(hud, "? E-9999") {
+		t.Errorf("missing epic.md should fall back to \"? E-9999\" (unknown glyph)\n hud: %q", hud)
+	}
+}
