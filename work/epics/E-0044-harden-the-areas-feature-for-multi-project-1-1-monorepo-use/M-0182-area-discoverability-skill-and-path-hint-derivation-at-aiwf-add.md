@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: Ambiguous --path-hint sets no area, prints a suggestion, proceeds untagged
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: Inert with no declared paths; areamatch.Derive is the SSOT primitive
       status: open
