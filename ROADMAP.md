@@ -553,3 +553,75 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0185 | Area-path scoped-coverage check (unslotted-project detection) | done |
 | M-0208 | rename-area preserves comments and sibling keys in the areas block on rename | done |
 
+## E-0045 — Plumbing-based commit construction for aiwf verbs (proposed)
+
+### Goal
+
+Replace aiwf's fragile `git stash`-based per-verb commit isolation with a plumbing-based commit-construction primitive (temp index + `commit-tree`) that never mutates the live index or worktree — making per-verb commit atomicity robust by construction, and giving aiwf a single, reusable commit-construction substrate.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0186 | gitops commit primitive via temp-index and commit-tree | draft |
+| M-0187 | Opt-in gaps inbox on a never-checked-out ref | draft |
+
+## E-0046 — Formalize in-repo worktrees as the default placement (done)
+
+### Goal
+
+Make in-repo worktrees (`.claude/worktrees/<branch>/`) aiwf's default placement for
+ritual worktrees, so a Claude session inside a sandboxed devcontainer can root in its
+worktree — and record the non-obvious rationale so the default is not reverted to the
+sibling-worktree git convention.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0188 | Pin that the loader ignores in-repo worktrees under .claude/worktrees | done |
+| M-0189 | Add worktree.dir config knob defaulting to .claude/worktrees | done |
+| M-0190 | Default the start rituals to in-repo worktree placement | done |
+
+## E-0047 — Harden and ship the aiwf-aware Claude Code statusline (done)
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0191 | Behavioral test harness for the statusline + stale-CI-after-push fix | done |
+| M-0192 | Statusline shows in-flight epics on every branch | done |
+| M-0193 | Statusline health indicator from a cached check-findings signal | done |
+| M-0194 | Ship the statusline via aiwf init/update with portability fixes | cancelled |
+
+## E-0048 — Skill & ritual content integrity (with drift chokepoints) (proposed)
+
+### Goal
+
+Every shipped skill and ritual body is accurate, consistent, and self-contained,
+and mechanical chokepoints prevent future drift. The reader of any `aiwf-*` verb
+skill or `aiwfx-*` / `wf-*` ritual gets correct guidance, and a future edit that
+reintroduces drift fails CI.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0195 | Strict skill-body id-reference discipline, check, and full sweep | draft |
+| M-0196 | Skill-edit structural-test backstop policy | draft |
+| M-0197 | Document aiwf-check finding codes + documented-superset chokepoint | draft |
+| M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | draft |
+| M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | draft |
+| M-0200 | Skill descriptions, whiteboard, and prose polish | draft |
+| M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |
+| M-0202 | Fix devcontainer onboarding banner (retired plugin install) | draft |
+
+## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
+
+### Goal
+
+The ritual lifecycle's gate model and commit/TDD model are coherent and match
+CLAUDE.md: approval gates batch local, reversible mutations safely (and never
+outward or timing-bearing ones), and milestone implementation commits plus TDD
+phase evidence are honest.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0203 | Generalize the declared-sequence gate; fix wrap/release drift | draft |
+| M-0204 | Model 1: commit implementation per AC; live phase promotes | draft |
+| M-0205 | Milestone review framing and wrap-milestone trailer test | draft |
+| M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
+| M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
+

@@ -5,7 +5,8 @@
 # Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
-# Network calls are cached in /tmp with a TTL so the script stays sub-100ms.
+# Network + check-probe calls are cached in /tmp with a TTL so the hot
+# (cache-hit) path stays fast; a cache miss pays one gh + one aiwf check --fast.
 
 set -u
 
@@ -120,8 +121,18 @@ read_status() {
 }
 
 # --- Repo name --------------------------------------------------------------
+#
+# The MAIN repo's name, stable across linked worktrees. A worktree's
+# --show-toplevel is the worktree dir (e.g. .../worktrees/G-0304), which would
+# render the worktree's id as the repo name and duplicate the session-entity HUD
+# (G-0304). --git-common-dir points every worktree at the one shared .git, so
+# its parent is always the main repo root.
 
-repo="$(git rev-parse --show-toplevel 2>/dev/null | xargs -I{} basename {} 2>/dev/null)"
+repo=""
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+[ -n "$common_dir" ] && repo="$(basename "$(dirname "$common_dir")")"
+# Fallbacks: older git without --path-format, then the session's cwd.
+[ -z "$repo" ] && repo="$(git rev-parse --show-toplevel 2>/dev/null | xargs -I{} basename {} 2>/dev/null)"
 [ -z "$repo" ] && repo="$(jq_get '.workspace.current_dir' | xargs -I{} basename {} 2>/dev/null)"
 [ -z "$repo" ] && repo="?"
 
@@ -163,17 +174,18 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- In-flight epic HUD (G-0188) --------------------------------------------
+# --- Session-entity HUD (G-0188, narrowed/extended by G-0304) ---------------
 #
-# Scans work/epics/*/epic.md for non-terminal epics and renders each with a
-# canonical status glyph (→ active, ○ proposed/draft) and color. Shows on
-# every branch — not just ritual branches.
+# Show ONLY the entity the current session is working in, with its status glyph
+# (→ active, ○ proposed/draft/open, ✓ done/addressed, ✗ cancelled/…) and color:
+#   - Ritual branch (epic/E-*, milestone/M-*): the current epic — the one the
+#     branch belongs to — plus its milestone inline on a milestone branch.
+#   - Patch branch (patch/G-NNNN-*): the gap the wf-patch is fixing.
+#   - Anything else (main, gap-less patch/<slug>, …): nothing. The session isn't
+#     in an entity, so the backlog belongs in `aiwf status`, not the statusline
+#     (G-0304, superseding the earlier in-flight-list behavior).
 #
-# On ritual branches, the current epic is accentuated (bold + ▸ pointer)
-# with its milestone shown inline. Other in-flight epics render alongside
-# but visually secondary.
-#
-# Capped at 3 epics shown; +N for overflow.
+# The ctx_* derivation below decides whether — and which — entity renders.
 
 status_glyph() {
   case "$1" in
@@ -185,16 +197,13 @@ status_glyph() {
   esac
 }
 
-is_terminal() {
-  case "$1" in
-    done|addressed|accepted|met|retired|cancelled|wontfix|rejected|superseded) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-# Derive the current-branch context (epic id, milestone id).
+# Derive the current-branch context (epic id, milestone id). On a milestone
+# branch the epic id comes from the milestone file (git ls-files), so an
+# as-yet-uncommitted milestone leaves ctx_epic_id empty and the HUD renders
+# nothing — acceptable: the entity is not tracked yet.
 ctx_epic_id=""
 ctx_milestone_id=""
+ctx_gap_id=""
 case "$cur_branch" in
   milestone/M-*)
     ctx_milestone_id="$(printf '%s' "$cur_branch" | sed -E 's|^milestone/(M-[0-9]+).*|\1|')"
@@ -206,51 +215,41 @@ case "$cur_branch" in
   epic/E-*)
     ctx_epic_id="$(printf '%s' "$cur_branch" | sed -E 's|^epic/(E-[0-9]+).*|\1|')"
     ;;
+  patch/G-*)
+    ctx_gap_id="$(printf '%s' "$cur_branch" | sed -E 's|^patch/(G-[0-9]+).*|\1|')"
+    ;;
 esac
 
-# Collect all non-terminal epics.
-epic_hud_parts=()
-epic_hud_count=0
-epic_hud_cap=3
-epic_hud_total=0
-for epic_file in work/epics/E-*/epic.md; do
-  [ -f "$epic_file" ] || continue
-  e_status="$(read_status "$epic_file")"
-  is_terminal "$e_status" && continue
-  e_id="$(printf '%s' "$epic_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
-  [ -z "$e_id" ] && continue
-  epic_hud_total=$((epic_hud_total + 1))
-  [ "$epic_hud_count" -ge "$epic_hud_cap" ] && continue
-
+ctx_hud=""
+if [ -n "$ctx_epic_id" ]; then
+  # Ritual epic/milestone branch: the current epic, with its milestone inline on
+  # a milestone branch. Shown regardless of status (you are on its branch).
+  e_file="$(git ls-files "work/epics/${ctx_epic_id}-*/epic.md" "work/epics/archive/${ctx_epic_id}-*/epic.md" 2>/dev/null | head -1)"
+  e_status=""
+  [ -n "$e_file" ] && e_status="$(read_status "$e_file")"
   e_clr="$(entity_color "$e_status")"
   e_glyph="$(status_glyph "$e_status")"
-
-  if [ "$e_id" = "$ctx_epic_id" ]; then
-    # Current epic: bold + ▸ pointer. Append milestone inline.
-    entry="${bold}${e_clr}▸ ${e_glyph} ${e_id}${reset}"
-    if [ -n "$ctx_milestone_id" ]; then
-      m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
-      m_status=""
-      [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
-      m_clr="$(entity_color "$m_status")"
-      m_glyph="$(status_glyph "$m_status")"
-      entry="${entry}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
-    fi
-    epic_hud_parts=("$entry" "${epic_hud_parts[@]}")
-  else
-    entry="${e_clr}${e_glyph} ${e_id}${reset}"
-    epic_hud_parts+=("$entry")
+  ctx_hud="${bold}${e_clr}▸ ${e_glyph} ${ctx_epic_id}${reset}"
+  if [ -n "$ctx_milestone_id" ]; then
+    m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
+    m_status=""
+    [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
+    m_clr="$(entity_color "$m_status")"
+    m_glyph="$(status_glyph "$m_status")"
+    ctx_hud="${ctx_hud}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
   fi
-  epic_hud_count=$((epic_hud_count + 1))
-done
-
-# Build the epic HUD segment: join parts with space, add overflow.
-epic_hud=""
-for p in "${epic_hud_parts[@]+"${epic_hud_parts[@]}"}"; do
-  if [ -z "$epic_hud" ]; then epic_hud="$p"; else epic_hud="$epic_hud $p"; fi
-done
-overflow=$((epic_hud_total - epic_hud_count))
-[ "$overflow" -gt 0 ] && epic_hud="${epic_hud} ${gray}+${overflow}${reset}"
+elif [ -n "$ctx_gap_id" ]; then
+  # Patch branch (patch/G-NNNN-*): the gap this wf-patch is fixing, with its
+  # status glyph/color — the same session-entity treatment epics get (G-0304).
+  g_file="$(git ls-files "work/gaps/${ctx_gap_id}-*.md" "work/gaps/archive/${ctx_gap_id}-*.md" 2>/dev/null | head -1)"
+  g_status=""
+  [ -n "$g_file" ] && g_status="$(read_status "$g_file")"
+  g_clr="$(entity_color "$g_status")"
+  g_glyph="$(status_glyph "$g_status")"
+  ctx_hud="${bold}${g_clr}▸ ${g_glyph} ${ctx_gap_id}${reset}"
+fi
+# On a non-ritual / non-patch branch all three ctx ids are empty, so ctx_hud
+# stays empty and no session-entity segment renders (G-0304).
 
 # --- Other in-flight ritual worktrees count (+N⎇) --------------------------
 #
@@ -283,25 +282,40 @@ ci_state="?"
 ci_prefix=""
 if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   ci_branch="${cur_branch:-HEAD}"
-  cache_key="$(printf '%s/%s' "$(git rev-parse --show-toplevel 2>/dev/null)" "$ci_branch" | shasum | awk '{print $1}')"
-  cache_file="/tmp/aiwf-statusline-ci-${cache_key}"
+  # --verify yields "" (not the literal "HEAD") on an unborn branch, so the
+  # staleness guard's emptiness check below stays correct.
+  head_sha="$(git rev-parse --verify HEAD 2>/dev/null)"
+  # HEAD is folded into the cache key so a new commit (or a push that moves
+  # HEAD) invalidates a prior verdict immediately, instead of the TTL serving
+  # the pre-commit result for up to $ttl seconds. (G-0189)
+  cache_key="$(printf '%s/%s/%s' "$(git rev-parse --show-toplevel 2>/dev/null)" "$ci_branch" "$head_sha" | shasum | awk '{print $1}')"
+  # Cache dir is overridable (hermetic tests point it at a temp dir); /tmp
+  # otherwise.
+  cache_dir="${AIWF_STATUSLINE_CACHE_DIR:-/tmp}"
+  cache_file="${cache_dir}/aiwf-statusline-ci-${cache_key}"
   ttl=45
 
   fetch_ci() {
-    local b="$1" out conc status
-    out="$(gh run list --branch "$b" --limit 1 --json conclusion,status 2>/dev/null)" || return 1
+    # $1 = branch, $2 = expected HEAD sha ("" → use the latest run's commit, the
+    # main-fallback proxy). Aggregates ALL workflow runs for the target commit
+    # to the worst state, so one failed workflow is never masked by a passing
+    # sibling that happens to be the most-recent run (G-0303). Returns the stale
+    # glyph (…) when no run exists for the expected HEAD — its verdict would be
+    # for a different commit (G-0189). Any failure → ✗; else any still-running →
+    # →; else any success → ✓ (tolerating benign skipped/neutral siblings from
+    # path-filtered or if:-gated workflows); else ? (e.g. all skipped).
+    local b="$1" expected_sha="$2" out
+    out="$(gh run list --branch "$b" --limit 30 --json conclusion,status,headSha 2>/dev/null)" || return 1
     [ -z "$out" ] || [ "$out" = "[]" ] && return 1
-    conc="$(printf '%s' "$out" | jq -r '.[0].conclusion // empty' 2>/dev/null)"
-    status="$(printf '%s' "$out" | jq -r '.[0].status // empty' 2>/dev/null)"
-    if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "requested" ] || [ "$status" = "waiting" ]; then
-      printf '→'
-    else
-      case "$conc" in
-        success)  printf '✓'    ;;
-        failure|cancelled|timed_out|action_required|startup_failure) printf '✗' ;;
-        *)        printf '?'    ;;
-      esac
-    fi
+    printf '%s' "$out" | jq -r --arg sha "$expected_sha" '
+      (if $sha == "" then (.[0].headSha // "") else $sha end) as $target
+      | map(select(.headSha == $target)) as $runs
+      | if   ($runs | length) == 0 then "…"
+        elif any($runs[]; .conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out" or .conclusion=="action_required" or .conclusion=="startup_failure") then "✗"
+        elif any($runs[]; .status=="in_progress" or .status=="queued" or .status=="requested" or .status=="waiting") then "→"
+        elif any($runs[]; .conclusion=="success") then "✓"
+        else "?"
+        end' 2>/dev/null
   }
 
   use_cache=false
@@ -315,11 +329,13 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
     ci_prefix="${cached%%|*}"
     ci_state="${cached##*|}"
   else
-    s="$(fetch_ci "$ci_branch")"
+    s="$(fetch_ci "$ci_branch" "$head_sha")"
     if [ -z "$s" ] || [ "$s" = "?" ]; then
-      # Fall back to main when the current branch has no runs.
+      # Fall back to main when the current branch has no runs. No staleness
+      # check here: main's HEAD is not the current checkout's HEAD, and the
+      # m: prefix already signals this is a proxy, not your branch.
       if [ "$ci_branch" != "main" ]; then
-        s="$(fetch_ci main)"
+        s="$(fetch_ci main "")"
         [ -n "$s" ] && [ "$s" != "?" ] && ci_prefix="m:"
       fi
     fi
@@ -330,17 +346,76 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   fi
 fi
 
-# CI glyph precedes the label: ✓ ci / ✗ ci / → ci / ? ci.
-# Color matches the glyph's meaning: green ✓, red ✗, yellow →.
-# Main-fallback prefix surfaces as ✓ m:ci.
+# CI glyph precedes the label: ✓ ci / ✗ ci / → ci / … ci / ? ci.
+# Color matches the glyph's meaning: green ✓, red ✗, yellow →, gray … (stale:
+# the latest run is for a different commit than HEAD, so its verdict does not
+# apply to what's checked out). Main-fallback prefix surfaces as ✓ m:ci.
 ci_label="ci"
 [ -n "$ci_prefix" ] && ci_label="${ci_prefix}${ci_label}"
 case "$ci_state" in
   '✓') ci_fmt="${green}${ci_state} ${ci_label}${reset}" ;;
   '✗') ci_fmt="${red}${ci_state} ${ci_label}${reset}" ;;
   '→') ci_fmt="${yellow}${ci_state} ${ci_label}${reset}" ;;
+  '…') ci_fmt="${gray}${ci_state} ${ci_label}${reset}" ;;
   *)   ci_fmt="${ci_state} ${ci_label}" ;;
 esac
+
+# --- Tree health (cached aiwf check --fast) ---------------------------------
+#
+# Prefixes ⚠ when `aiwf check --fast` reports error-severity findings, so the
+# operator gets an ambient signal that the planning tree has drifted into a
+# blocking state without running a verb by hand (G-0290). Hard constraint: the
+# statusline renders every prompt, so it must NOT run a full `aiwf check`
+# (seconds-to-minutes on a large tree — the per-entity git-history walks). It
+# runs the render-safe `--fast` mode (in-memory content rules, no git-history
+# layer) and caches the verdict on a short TTL + HEAD-fold, exactly like the CI
+# segment above — the hot path only reads the cache file.
+#
+# Only error-severity findings light the glyph: `aiwf check` exits 1 iff errors
+# are present, 0 for a clean tree OR one with warnings only, so the repo's
+# always-present benign warnings (archive-sweep-pending, …) never pin it on.
+#
+# Degrades silently (no glyph) when aiwf is absent, the tree is not an aiwf repo
+# (no aiwf.yaml), or the probe errors (exit >1) — e.g. a binary too old for
+# --fast. This is why the non-aiwf statusline fixtures render no health glyph.
+
+health_state=""
+health_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if command -v aiwf >/dev/null 2>&1 && [ -n "$health_root" ] && [ -f "$health_root/aiwf.yaml" ]; then
+  # HEAD-fold mirrors the CI key: a commit invalidates the cached verdict at
+  # once; between commits the TTL bounds staleness for uncommitted edits.
+  h_head="$(git rev-parse --verify HEAD 2>/dev/null)"
+  h_key="$(printf '%s/%s' "$health_root" "$h_head" | shasum | awk '{print $1}')"
+  h_cache_dir="${AIWF_STATUSLINE_CACHE_DIR:-/tmp}"
+  h_cache_file="${h_cache_dir}/aiwf-statusline-health-${h_key}"
+  h_ttl=30
+
+  h_use_cache=false
+  if [ -r "$h_cache_file" ]; then
+    h_age=$(( $(date +%s) - $(stat -c %Y "$h_cache_file" 2>/dev/null || stat -f %m "$h_cache_file" 2>/dev/null || echo 0) ))
+    [ "$h_age" -lt "$h_ttl" ] && h_use_cache=true
+  fi
+
+  if $h_use_cache; then
+    health_state="$(cat "$h_cache_file" 2>/dev/null)"
+  else
+    aiwf check --fast --root "$health_root" >/dev/null 2>&1
+    case $? in
+      0) health_state="ok"   ;;
+      1) health_state="warn" ;;
+      *) health_state=""     ;;  # probe failed (e.g. old binary, no --fast): degrade
+    esac
+    if [ -n "$health_state" ]; then
+      h_tmp="${h_cache_file}.tmp.$$"
+      printf '%s' "$health_state" >"$h_tmp" 2>/dev/null && mv -f "$h_tmp" "$h_cache_file" 2>/dev/null
+    fi
+  fi
+fi
+
+# ⚠ leads the whole line (before the ball) so a findings state is impossible to
+# miss; clean / warnings-only / degraded states render no prefix.
+health_prefix=""
+[ "$health_state" = "warn" ] && health_prefix="${red}⚠${reset} "
 
 # --- Compose ----------------------------------------------------------------
 
@@ -348,7 +423,7 @@ head_seg="$ball $model_short"
 [ -n "$effort" ] && head_seg="$head_seg ${gray}${effort}${reset}"
 head_seg="$head_seg ▸ $tokens_fmt"
 parts=("$head_seg")
-[ -n "$epic_hud" ]      && parts+=("$epic_hud")
+[ -n "$ctx_hud" ]       && parts+=("$ctx_hud")
 parts+=("$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
 [ "$other_wt_count" -gt 0 ] && parts+=("+${other_wt_count}⎇")
@@ -359,4 +434,4 @@ out=""
 for p in "${parts[@]}"; do
   if [ -z "$out" ]; then out="$p"; else out="$out · $p"; fi
 done
-printf '%s' "$out"
+printf '%s%s' "$health_prefix" "$out"

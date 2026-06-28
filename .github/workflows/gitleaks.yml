@@ -1,0 +1,41 @@
+name: gitleaks
+
+# Secret / path-leak scan (G-0103 rules; G-0292 enforcement). This is the
+# operator-independent chokepoint that the local pre-push hook
+# (scripts/git-hooks/pre-push) complements — per the kernel principle that
+# framework correctness must not depend on operator behaviour.
+#
+# Deliberately UNFILTERED — no paths and no branches filter. A secret or
+# contributor path can land in any file, and on a public repo it is exposed
+# at push-to-origin regardless of whether the branch ever merges or opens a
+# PR — so every push (any branch) and every PR is scanned, not just trunk.
+# (This diverges from go.yml's scoped trigger on purpose: the heavy Go
+# matrix can scope to trunk; a secret scan cannot.) Full git-history scan;
+# the committed .gitleaksignore accepts the pre-enforcement historical
+# findings by fingerprint, so any NEW finding (including a new
+# /Users/<name>/ path) fails the gate while the accepted history passes.
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so `gitleaks git` scans every commit
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.11"
+          cache: true
+      # Pinned; version must match .devcontainer/init.sh (cross-file
+      # consistency asserted by the gitleaks-enforcement policy test).
+      - name: Install gitleaks (pinned)
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+      - name: Scan history for secrets / path leaks
+        run: gitleaks git --config=.gitleaks.toml --no-banner

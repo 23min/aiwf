@@ -57,7 +57,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 - **Performance.** When logging is off (the default), the slog handler is a no-op discard handler — zero allocations at the emit site beyond the closed-form `Info` call. The cost is paid only when an operator opts in.
 
-- **Secrets and path-leak hygiene.** Diagnostic logs respect the same path-leak discipline gitleaks polices at the pre-commit hook (CLAUDE.md §What's enforced and where). The logger's `WithVerb` constructor scrubs `os.Args` of `/Users/<name>/` and `/home/<name>/` paths before binding them. Stack traces and full file paths log only at `debug` level.
+- **Secrets and path-leak hygiene.** Diagnostic logs respect the same path-leak discipline gitleaks polices (CLAUDE.md §What's enforced and where). The logger's `WithVerb` constructor scrubs `os.Args` of `/Users/<name>/` and `/home/<name>/` paths before binding them. Stack traces and full file paths log only at `debug` level.
 
 - **No per-invocation log files.** aiwf verbs run frequently inside TDD sessions (dozens of `aiwf check` calls per cycle); per-invocation timestamped log files would litter the directory. Daily rotation gives `grep` a natural shard and bounds the directory size.
 

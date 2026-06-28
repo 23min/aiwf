@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0046: in-repo worktrees are the default ritual-worktree placement
+
+Worktrees the start rituals create now default to in-repo under `.claude/worktrees/<branch>/`, overriding the usual sibling-worktree convention — a sandboxed devcontainer session can only root its cwd in a worktree under the mounted workspace, and `$HOME`-placed worktrees are wiped on container rebuild (rationale in ADR-0023).
+
+- **`worktree.dir` knob (M-0189):** `aiwf.yaml` gains an optional `worktree.dir` key (default `.claude/worktrees`), surfaced on a greppable `aiwf doctor` `worktree-dir:` line; an unset, empty, absolute, or repo-escaping value falls back to the default.
+- **Ritual default (M-0190):** `aiwfx-start-epic` / `aiwfx-start-milestone` recommend in-repo placement as the default (reading the knob), with the per-invocation main-checkout / sibling override retained.
+- **Loader guard (M-0188):** the loader and `aiwf check` are pinned (regression fixture) not to descend into `.claude/worktrees/`, so a nested in-repo checkout cannot surface phantom duplicate entities.
+
+### Security — the gitleaks secret / path-leak gate is now actually enforced (G-0291, G-0292)
+
+The gitleaks gate (G-0103) had never run in practice — gitleaks was not installed by the devcontainer or in CI, so the pre-commit scan self-skipped silently, and 67 contributor-path occurrences had accumulated in git history undetected (HEAD is clean). It is now genuinely enforced:
+
+- **CI chokepoint:** a new `gitleaks` workflow scans full history on every push and PR (pinned to gitleaks v8.30.1) and fails on any new finding — operator-independent, the piece that makes the guarantee real.
+- **Accepted history:** a `.gitleaksignore` accepts the pre-enforcement findings by fingerprint (history rewrite is forbidden); a *new* `/Users/<name>/` leak still fails the gate.
+- **Local gate:** the scan moves from pre-commit to pre-push (the real trust boundary), and the devcontainer now installs gitleaks so the local hook actually fires.
+
 ## [0.17.0] — 2026-06-24
 
 ### Added — E-0043: optional `area` tag for grouping entities by workstream

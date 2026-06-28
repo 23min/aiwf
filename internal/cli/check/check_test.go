@@ -16,7 +16,7 @@ func TestNewCmd_FlagShape(t *testing.T) {
 	if cmd.Use != "check" {
 		t.Errorf("Use = %q, want check", cmd.Use)
 	}
-	expected := []string{"root", "format", "pretty", "since", "shape-only", "verbose"}
+	expected := []string{"root", "format", "pretty", "since", "shape-only", "fast", "verbose"}
 	for _, name := range expected {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Errorf("flag %q missing", name)
@@ -29,7 +29,7 @@ func TestNewCmd_FlagShape(t *testing.T) {
 // without loading the tree.
 func TestRun_BadFormat(t *testing.T) {
 	t.Parallel()
-	code := Run("", "yaml", false, "", false, false, nil)
+	code := Run("", "yaml", false, "", false, false, false, nil)
 	if code != cliutil.ExitUsage {
 		t.Errorf("Run with --format=yaml: got %d, want %d", code, cliutil.ExitUsage)
 	}

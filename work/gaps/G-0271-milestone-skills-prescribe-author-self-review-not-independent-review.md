@@ -20,33 +20,26 @@ author self-review and never reach that step, or reach it with nothing to read.
    hands off to wrap without forward-referencing that wrap step 2 performs a
    *prescribed independent* two-lens review. An operator reading only
    start-milestone reasonably concludes review is the author's self-assessment
-   and is done. (This gap was itself filed on that misreading: the wrap skill had
-   not been consulted before claiming the lifecycle lacked independent review —
-   corrected here.)
+   and is done.
 
 2. **Commit-timing contradiction.** start-milestone step 8 instructs "do not
-   commit the implementation yet" (wrap bundles implementation + spec updates +
-   closure into one approved sequence), but wrap step 2 reviews
+   commit the implementation yet", but wrap step 2 reviews
    `git diff <base>..HEAD` — assuming the implementation is *already committed*.
-   Under the hold-until-wrap model the independent reviewer has no committed diff
-   to read; it must review the working-tree diff (tracked changes + untracked new
-   files) instead. The two skills disagree on when implementation is committed,
-   which undercuts the very step that is supposed to review it.
 
-## Direction (converge at the milestone)
+## Status / scope (reconciled with G-0293)
 
-Make the lifecycle self-consistent:
+**Defect #2 is now subsumed by G-0293's Model 1 decision.** G-0293 ("Promote
+tdd_phase live, not in a burst at milestone wrap") committed to committing the
+implementation incrementally per AC on the milestone branch (phase promotes
+firing live). Under Model 1, `git diff <base>..HEAD` is meaningful at wrap, so
+the commit-timing contradiction that defect #2 describes is resolved there. This
+gap no longer owns the commit-timing reconciliation — it cross-references G-0293.
 
-- start-milestone step 7/8 forward-references wrap step 2 explicitly — "self-
-  review now; an independent two-lens review runs at wrap before closure" — so an
-  operator knows the author pass is not the last word.
-- Reconcile commit timing: either wrap step 2 reviews the working-tree / staged
-  diff under the hold-until-wrap model, or start-milestone commits the
-  implementation incrementally so `git diff <base>..HEAD` is meaningful at wrap.
-  One model, stated in both skills.
-
-The property: a reader of either skill comes away with the same, accurate picture
-of when implementation is committed and when independent review happens.
+**Defect #1 is the residual this gap owns:** make `aiwfx-start-milestone` step 7/8
+forward-reference wrap step 2 explicitly — "self-review now; an independent
+two-lens review runs at wrap before closure" — so an operator knows the author
+pass is not the last word. The property: a reader of start-milestone comes away
+knowing the author self-review is not the final review.
 
 ## Provenance
 
@@ -55,3 +48,4 @@ human, and in this gap's original text — that the lifecycle lacked a prescribe
 independent review; loading `aiwfx-wrap-milestone` revealed step 2 already
 prescribes it, and exposed the two real seams above instead. The independent
 two-lens review the human requested was, in effect, wrap step 2 performed early.
+Defect #2 was later reconciled into G-0293 (Model 1) during a skills audit.

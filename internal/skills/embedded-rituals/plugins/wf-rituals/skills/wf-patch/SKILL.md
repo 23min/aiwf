@@ -1,6 +1,6 @@
 ---
 name: wf-patch
-description: One-off branch-and-merge ritual for fixes, chores, or tweaks too small to warrant a milestone — typos, config nudges, single-line bug fixes, dependency bumps. Creates a fix/patch/chore branch, lands one focused change, gates commit, wrap, and push behind explicit human approval. Use when the user describes a single focused change tied to one issue (or none).
+description: One-off branch-and-merge ritual for fixes, chores, or tweaks too small to warrant a milestone — typos, config nudges, single-line bug fixes, dependency bumps. Creates a patch/ branch (patch/G-NNNN-<slug> when it closes a gap), lands one focused change, gates commit, wrap, and push behind explicit human approval. Use when the user describes a single focused change tied to one issue (or none).
 ---
 
 # wf-patch
@@ -35,10 +35,13 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 1. **Read the linked issue or task** if one exists. State the user-observable goal in your own words before touching code; if you can't, the change isn't ready.
 
-2. **Create a descriptive branch** from the project's mainline:
-   - `fix/<short-slug>` — bug fix.
-   - `patch/<short-slug>` — small behavior tweak that isn't a bug.
-   - `chore/<short-slug>` — config, dependencies, doc nudges, no behavior change.
+2. **Create a descriptive branch** from the project's mainline, named for the
+   gap it closes so the statusline can surface it:
+   - `patch/G-NNNN-<short-slug>` — closes a tracked gap (the common case). The
+     statusline's session-entity HUD shows `G-NNNN` with its status glyph and
+     color while you work — the same treatment epics get on a ritual branch.
+   - `patch/<short-slug>` — no tracked gap (a typo, a config nudge). No HUD
+     entry, which is fine.
 
    Keep the slug short and conventional. Branch lifetime is the duration of the patch.
 
@@ -92,4 +95,4 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 - 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 7), wrap (step 9, declared sequence), push (step 11).
 - The full local CI gate must be green before the commit gate.
-- Branch prefixes are `fix/`, `patch/`, `chore/`. No other prefixes for this skill.
+- Branch is `patch/G-NNNN-<short-slug>` when the patch closes a gap, else `patch/<short-slug>`. The single `patch/` prefix is the convention for this skill; the gap id, when present, is what the statusline's session-entity HUD reads.
