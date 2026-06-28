@@ -37,6 +37,10 @@ acs:
       title: area-unslotted is AI-discoverable and coverage_roots is schema-documented
       status: open
       tdd_phase: done
+    - id: AC-8
+      title: a dead coverage root or coverage-with-no-paths raises a warning
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -161,4 +165,6 @@ Candidate behaviors to formalize at start-milestone:
 ### AC-6 — coverage enumeration is single-level, bounded, and IO-safe
 
 ### AC-7 — area-unslotted is AI-discoverable and coverage_roots is schema-documented
+
+### AC-8 — a dead coverage root or coverage-with-no-paths raises a warning
 
