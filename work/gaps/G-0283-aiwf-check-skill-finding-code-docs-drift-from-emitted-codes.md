@@ -16,7 +16,7 @@ The `aiwf-check` skill (`internal/skills/embedded/aiwf-check/SKILL.md`) exists t
 
 No mechanical chokepoint binds the skill's documented code set to the emitted set, so a new finding code can ship undocumented and nothing notices. The drift is one-directional (omissions only — every documented code is still emitted).
 
-Minor, sweep in the same patch: the `aiwf-list` skill describes ADR-0004 as "(proposed)" and "once that ADR ships"; ADR-0004 is `accepted` and the archive convention has shipped.
+This gap owns the aiwf-check finding-code documentation drift specifically. The related aiwf-list `ADR-0004` stale-status nit (it describes ADR-0004 as "proposed" / "once that ADR ships" when ADR-0004 is accepted and archiving has shipped) is owned by G-0299 (strict skill-body id-reference discipline), which removes inline lifecycle-status references from shipped skill bodies as a class.
 
 ## Why it matters
 
@@ -24,5 +24,5 @@ The check skill is the channel an AI assistant (or operator) consults to interpr
 
 ## Proposed fix
 
-1. **Document the missing codes** in the aiwf-check skill (and fix the aiwf-list ADR-0004 status nit).
+1. **Document the missing codes** in the aiwf-check skill.
 2. **Add the missing chokepoint:** a policy test asserting the skill's documented code set is a superset of the emitted `Code*` constants under `internal/check/` plus the typed `codespkg.Code` descriptors, with an explicit opt-out for any deliberately-internal code. This pins the skill to the emission sites so new finding codes can't ship undocumented.

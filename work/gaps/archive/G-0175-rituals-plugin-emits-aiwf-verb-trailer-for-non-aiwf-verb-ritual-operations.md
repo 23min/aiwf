@@ -1,7 +1,7 @@
 ---
 id: G-0175
 title: rituals plugin emits aiwf-verb trailer for non-aiwf-verb ritual operations
-status: open
+status: wontfix
 ---
 ## Problem
 

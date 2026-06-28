@@ -1,8 +1,10 @@
 ---
 id: G-0209
 title: Ritual step ordering is advisory only; no kernel enforcement
-status: open
+status: addressed
 discovered_in: M-0158
+addressed_by:
+    - M-0161
 ---
 M-0104 and M-0105 deliver structural updates to
 [`aiwfx-start-epic`](../../internal/skills/embedded-rituals/plugins/aiwf-extensions/skills/aiwfx-start-epic/SKILL.md)

@@ -63,3 +63,12 @@ When the structural test lands and a milestone's AC pins it:
 ## Discovered in
 
 M-0160 — surfaced during epic-merge prep when the post-push `aiwf check` flagged `trailer-verb-unknown` warnings on both the M-0159 and M-0160 merge commits, both fabricating `aiwf-verb: merge`. The diagnosis pulled apart "merge isn't an aiwf concept" (correct) from "wrap-milestone IS a recognized ritual value the skill should prescribe" (the missed-prescription that produced the fabrication). The skill asymmetry IS the operator-discoverability gap.
+
+## Sequencing (skills audit)
+
+The content fix already landed; what remains is the structural test that pins the
+trailer-prescription section. G-0295 (declared-sequence gate) rewrites this same
+wrap-milestone merge step — the merge becomes part of the terminal declared-sequence
+gate — so the structural test should land WITH G-0295's wrap-milestone rewrite and
+pin the trailer prescription in its final shape, not before against a shape G-0295
+will change. G-0219 promotes to `addressed` when that test lands.
