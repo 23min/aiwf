@@ -20,7 +20,8 @@ a dead recipe path, an invalid `--kind` value, stale entity references and inlin
 statuses, off-convention id placeholders, untrailered body-fill commits — plus the
 absence of any mechanical backstop that keeps skill content correct over time. The
 findings are filed as gaps. This epic addresses the content-correctness subset and
-adds the chokepoints; the gate/commit-model subset is the sibling lifecycle epic.
+adds the chokepoints; the gate-model subset is foundation epic E-0050 and the
+commit/TDD-model subset is lifecycle epic E-0049.
 
 ## Scope
 
@@ -37,7 +38,8 @@ adds the chokepoints; the gate/commit-model subset is the sibling lifecycle epic
 
 ### Out of scope
 
-- The gate-discipline model and the commit/TDD model (sibling lifecycle epic).
+- The gate-discipline model (foundation epic E-0050) and the commit/TDD model
+  (lifecycle epic E-0049).
 - The tier-C ritual-design gaps (separate triage).
 - New kernel verbs or features beyond the three chokepoint policies.
 
@@ -50,6 +52,9 @@ adds the chokepoints; the gate/commit-model subset is the sibling lifecycle epic
   content milestones, so the latter rebase onto swept bodies and are forced to
   ship structural tests.
 - Skill edits are authored in the embedded snapshot per ADR-0016.
+- Sequence after foundation epic E-0050: this epic's milestone wraps run under the
+  generalized declared-sequence gate E-0050 delivers, so every wrap here is gated
+  correctly.
 
 ## Success criteria
 
