@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -480,5 +481,144 @@ func TestStatusline_M0192_RitualEpicMissingFileFallsBackToUnknownGlyph(t *testin
 	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
 	if !strings.Contains(hud, "? E-9999") {
 		t.Errorf("missing epic.md should fall back to \"? E-9999\" (unknown glyph)\n hud: %q", hud)
+	}
+}
+
+// --- M-0193 / G-0290: statusline health glyph from a cached `--fast` probe ---
+//
+// The statusline prefixes ⚠ when `aiwf check --fast` reports error-severity
+// findings (exit 1, per the check verb's contract). A clean tree — or one with
+// only warnings (exit 0) — shows nothing, so the repo's always-present benign
+// warnings never pin the light on. The verdict is cached with a TTL + HEAD-fold
+// exactly like the CI segment: the hot render path reads the cache file and
+// never runs a live check. The probe degrades silently (no glyph) when aiwf is
+// absent or the tree is not an aiwf repo (no aiwf.yaml) — which is why the
+// M-0191/M-0192 fixtures (no aiwf.yaml) render no health glyph and stay green.
+
+// healthGlyph is the warning-prefix the health segment emits.
+const healthGlyph = "⚠"
+
+// writeAiwfStub writes a fake `aiwf` to a fresh dir (returned for PATH prepend).
+// For `aiwf check --fast …` it exits with `code` (1 = errors present, 0 = clean
+// or warnings-only, per the check verb's contract); everything else exits 0 so
+// the script's `command -v aiwf` guard passes.
+func writeAiwfStub(t *testing.T, code int) string {
+	t.Helper()
+	dir := t.TempDir()
+	stub := "#!/usr/bin/env bash\n" +
+		"if [ \"$1\" = check ]; then\n" +
+		"  for a in \"$@\"; do [ \"$a\" = --fast ] && exit " + strconv.Itoa(code) + "; done\n" +
+		"fi\n" +
+		"exit 0\n"
+	if err := os.WriteFile(filepath.Join(dir, "aiwf"), []byte(stub), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// newHealthRepo is newStatuslineRepo plus a committed aiwf.yaml, so the health
+// segment's `-f aiwf.yaml` guard passes and the probe runs.
+func newHealthRepo(t *testing.T) string {
+	t.Helper()
+	repo := newStatuslineRepo(t)
+	writeFile(t, filepath.Join(repo, "aiwf.yaml"), "schema_version: 1\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-m", "aiwf.yaml")
+	return repo
+}
+
+// runStatuslineHealth runs the script with both a `gh` stub and an `aiwf` stub
+// (exiting aiwfExit for `check --fast`) on PATH, using the given CI/health cache
+// dir. Mirrors runStatuslineCache; kept separate so the M-0191/M-0192 callers
+// stay untouched.
+func runStatuslineHealth(t *testing.T, repoDir, cacheDir, stdinJSON string, aiwfExit int, extraEnv ...string) string {
+	t.Helper()
+	ghDir := writeGhStub(t)
+	aiwfDir := writeAiwfStub(t, aiwfExit)
+	cmd := exec.Command("bash", statuslineScript(t))
+	cmd.Dir = repoDir
+	cmd.Stdin = strings.NewReader(stdinJSON)
+
+	var env []string
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "PATH=") || strings.HasPrefix(e, "AIWF_STATUSLINE_CACHE_DIR=") {
+			continue
+		}
+		env = append(env, e)
+	}
+	env = append(env,
+		"PATH="+aiwfDir+string(os.PathListSeparator)+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"AIWF_STATUSLINE_CACHE_DIR="+cacheDir,
+	)
+	env = append(env, extraEnv...)
+	cmd.Env = env
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("statusline.sh: %v\nstderr: %s", err, stderr.String())
+	}
+	return statuslineANSI.ReplaceAllString(stdout.String(), "")
+}
+
+// TestStatusline_M0193_AC2_FindingsRenderWarningPrefix: when `aiwf check --fast`
+// reports errors (exit 1), the statusline leads with the ⚠ prefix.
+func TestStatusline_M0193_AC2_FindingsRenderWarningPrefix(t *testing.T) {
+	t.Parallel()
+	repo := newHealthRepo(t)
+	tr := writeTranscript(t)
+
+	out := runStatuslineHealth(t, repo, t.TempDir(), statuslineStdin(tr, repo), 1)
+	if !strings.HasPrefix(out, healthGlyph) {
+		t.Errorf("AC-2: error findings must prefix the statusline with %q\n out: %q", healthGlyph, out)
+	}
+}
+
+// TestStatusline_M0193_AC2_CleanTreeNoWarningPrefix: a clean tree (exit 0 —
+// also the warnings-only case, which the check verb reports as exit 0) shows no
+// ⚠ anywhere.
+func TestStatusline_M0193_AC2_CleanTreeNoWarningPrefix(t *testing.T) {
+	t.Parallel()
+	repo := newHealthRepo(t)
+	tr := writeTranscript(t)
+
+	out := runStatuslineHealth(t, repo, t.TempDir(), statuslineStdin(tr, repo), 0)
+	if strings.Contains(out, healthGlyph) {
+		t.Errorf("AC-2: a clean / warnings-only tree must not render %q\n out: %q", healthGlyph, out)
+	}
+}
+
+// TestStatusline_M0193_AC2_ProbeErrorDegrades: if the probe errors (exit >1 —
+// e.g. an aiwf binary too old for --fast), the health segment degrades to no
+// glyph rather than rendering a spurious or broken indicator.
+func TestStatusline_M0193_AC2_ProbeErrorDegrades(t *testing.T) {
+	t.Parallel()
+	repo := newHealthRepo(t)
+	tr := writeTranscript(t)
+
+	out := runStatuslineHealth(t, repo, t.TempDir(), statuslineStdin(tr, repo), 2)
+	if strings.Contains(out, healthGlyph) {
+		t.Errorf("AC-2: a probe error (exit 2) must degrade to no glyph\n out: %q", out)
+	}
+}
+
+// TestStatusline_M0193_AC2_CacheServedWithinTTL: the verdict is cached. A first
+// render with errors (exit 1) caches "warn"; a second render within the TTL —
+// even with the probe now reporting clean (exit 0) — still shows ⚠, proving the
+// hot path served the cache and did not re-run the probe.
+func TestStatusline_M0193_AC2_CacheServedWithinTTL(t *testing.T) {
+	t.Parallel()
+	repo := newHealthRepo(t)
+	tr := writeTranscript(t)
+	cacheDir := t.TempDir()
+
+	first := runStatuslineHealth(t, repo, cacheDir, statuslineStdin(tr, repo), 1)
+	if !strings.HasPrefix(first, healthGlyph) {
+		t.Fatalf("AC-2 cache: first render with errors must show %q\n out: %q", healthGlyph, first)
+	}
+	second := runStatuslineHealth(t, repo, cacheDir, statuslineStdin(tr, repo), 0)
+	if !strings.HasPrefix(second, healthGlyph) {
+		t.Errorf("AC-2 cache: second render within TTL must serve the cached \"warn\" verdict (probe not re-run)\n out: %q", second)
 	}
 }
