@@ -1,7 +1,9 @@
 ---
 id: G-0189
 title: CI statusline shows stale result after push
-status: open
+status: addressed
+addressed_by_commit:
+    - 64ae762c
 ---
 ## Problem
 
