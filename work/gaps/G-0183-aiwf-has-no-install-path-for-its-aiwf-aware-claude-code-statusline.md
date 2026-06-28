@@ -1,7 +1,9 @@
 ---
 id: G-0183
 title: aiwf has no install path for its aiwf-aware Claude Code statusline
-status: open
+status: addressed
+addressed_by:
+    - M-0155
 ---
 ## What's missing
 
