@@ -8,6 +8,11 @@ depends_on:
     - M-0180
     - M-0178
 tdd: required
+acs:
+    - id: AC-1
+      title: coverage_roots parses and validates at config load (Tier-1)
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -118,3 +123,6 @@ Candidate behaviors to formalize at start-milestone:
 - `internal/config/config.go` — `Areas`; the coverage-root knob extends the schema here.
 - `internal/areagroup/areagroup.go` — the entity-axis partition (M-0176); coverage is the
   directory-axis covering law.
+
+### AC-1 — coverage_roots parses and validates at config load (Tier-1)
+
