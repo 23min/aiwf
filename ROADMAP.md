@@ -573,5 +573,5 @@ sibling-worktree git convention.
 |---|---|---|
 | M-0188 | Pin that the loader ignores in-repo worktrees under .claude/worktrees | done |
 | M-0189 | Add worktree.dir config knob defaulting to .claude/worktrees | done |
-| M-0190 | Default the start rituals to in-repo worktree placement | draft |
+| M-0190 | Default the start rituals to in-repo worktree placement | done |
 
