@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0044: path-backed `area` tags make `--area` filtering trustworthy in the 1:1 monorepo
+
+E-0044 hardens the E-0043 label-only `area` tag into a path-anchored, verifiable grouping for the multi-project (1:1 project↔area) monorepo: each area can declare a `paths:` glob, giving the kernel an oracle to check tags against. `aiwf list --area <name>` becomes a reliable "all work for that project" rather than a convenience a silent mislabel could betray.
+
+- **`paths:` per area + dual-form schema (M-0179, ADR-0020):** `areas.members` accepts the legacy bare-string form or a `{name, paths}` mapping; the custom unmarshaler is backward-compatible (zero migration).
+- **Path-axis checks (M-0180, M-0185):** `area-dead-glob` (a declared glob matching nothing), `area-overlap` (two areas claiming one directory), and `area-unslotted` (within an opt-in `areas.coverage_roots`, a project directory no area claims — plus `area-coverage-root-missing` / `area-coverage-no-paths` for misconfigured coverage) — all warning by default, error under `areas.required`.
+- **Mistag detection (M-0181):** a landed entity whose commits touched only another area's territory is flagged, with a sovereign acknowledge path.
+- **`areas.required` knob (M-0178):** promotes untagged entities of self-tagging kinds to a blocking finding, with add-time refusal.
+- **Verbs (M-0177, M-0183, M-0208):** `aiwf rename-area` (atomic cross-entity rewrite, comment- and sibling-key-preserving) and `aiwf set-area`.
+- **Discoverability + safety (M-0182, M-0184, M-0176):** an `aiwf-area` topical skill + deterministic `--path-hint` area derivation at `aiwf add`; the reserved `global` cross-cutting sentinel (ADR-0021); and a partition-totality property test on `internal/areagroup`.
+
 ### Added — E-0046: in-repo worktrees are the default ritual-worktree placement
 
 Worktrees the start rituals create now default to in-repo under `.claude/worktrees/<branch>/`, overriding the usual sibling-worktree convention — a sandboxed devcontainer session can only root its cwd in a worktree under the mounted workspace, and `$HOME`-placed worktrees are wiped on container rebuild (rationale in ADR-0023).
