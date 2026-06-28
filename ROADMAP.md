@@ -560,7 +560,7 @@ Replace aiwf's fragile `git stash`-based per-verb commit isolation with a plumbi
 | M-0186 | gitops commit primitive via temp-index and commit-tree | draft |
 | M-0187 | Opt-in gaps inbox on a never-checked-out ref | draft |
 
-## E-0046 — Formalize in-repo worktrees as the default placement (active)
+## E-0046 — Formalize in-repo worktrees as the default placement (done)
 
 ### Goal
 
