@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Inert with no declared paths; areamatch.Derive is the SSOT primitive
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
