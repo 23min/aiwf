@@ -1,7 +1,9 @@
 ---
 id: G-0259
 title: 41 of 55 policies never fire in any test (vacuous chokepoints)
-status: open
+status: addressed
+addressed_by_commit:
+    - 41b6f265
 ---
 ## What's missing
 
