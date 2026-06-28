@@ -1,7 +1,7 @@
 ---
 id: M-0185
 title: Area-path scoped-coverage check (unslotted-project detection)
-status: draft
+status: in_progress
 parent: E-0044
 depends_on:
     - M-0179
