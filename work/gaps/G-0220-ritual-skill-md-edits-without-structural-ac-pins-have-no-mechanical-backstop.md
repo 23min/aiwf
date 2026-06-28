@@ -85,3 +85,12 @@ When the impl lands:
 ## Discovered in
 
 M-0160 — surfaced after the operator (me) made an undisciplined SKILL.md edit at commit `5cf007f5` (fixing the G-0219 asymmetry) without filing a gap first, without an AC pinning the content, and without a structural test asserting the new prescription is in the right section. The user manually flagged the discipline gap — exactly the role the kernel's chokepoint should play.
+
+## Sequencing (skills audit)
+
+Prioritized to land FIRST, before the skills-audit content patches (G-0295, G-0297,
+G-0298, G-0299, G-0300, G-0301), so the edit-then-test backstop is mechanically
+enforced on those skill edits rather than discipline-dependent. The id-reference
+check in G-0299 is a complementary, more specific chokepoint over skill bodies; this
+gap is the general edit-then-test backstop. Together they form the mechanical layer
+that the content patches rebase onto.
