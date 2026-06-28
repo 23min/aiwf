@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: WorktreeDir rejects a repo-escaping path and falls back to default
-      status: open
+      status: met
 ---
 
 # M-0190 — Default the start rituals to in-repo worktree placement
