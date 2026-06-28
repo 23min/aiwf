@@ -13,6 +13,10 @@ acs:
       title: coverage_roots parses and validates at config load (Tier-1)
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: areas block rejects unknown top-level keys at load
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -125,4 +129,6 @@ Candidate behaviors to formalize at start-milestone:
   directory-axis covering law.
 
 ### AC-1 — coverage_roots parses and validates at config load (Tier-1)
+
+### AC-2 — areas block rejects unknown top-level keys at load
 
