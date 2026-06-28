@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: aiwfx-wrap-milestone batches its terminal local steps in one gate
       status: open
+    - id: AC-4
+      title: aiwfx-wrap-epic batches promote-done and cleanup in one gate
+      status: open
 ---
 
 ## Goal
@@ -44,4 +47,6 @@ and E-0049 milestone wraps inherit the corrected gate.
 ### AC-2 — aiwfx-release splits the two origin pushes into separate push gates
 
 ### AC-3 — aiwfx-wrap-milestone batches its terminal local steps in one gate
+
+### AC-4 — aiwfx-wrap-epic batches promote-done and cleanup in one gate
 
