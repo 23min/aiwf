@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
@@ -58,5 +59,56 @@ func TestRunCheck_AreaUnslottedSurfacesViaDispatcher(t *testing.T) {
 	}
 	if strings.Contains(out, "projects/app-a is claimed by no area") {
 		t.Errorf("app-a is claimed by a glob and must not fire unslotted; got:\n%s", out)
+	}
+}
+
+// TestRunCheck_AreaUnslottedEscalatesUnderRequired pins M-0185/AC-5 end-to-end:
+// with areas.required: true, area-unslotted surfaces at ERROR severity so
+// `aiwf check` exits ExitFindings — proving the ApplyAreaRequiredStrict
+// escalation seam actually applies in production, mirroring the required-true
+// coverage the area-required / dead-glob / overlap checks carry. The repo is
+// clean (no entities), so area-unslotted on the unclaimed child is the sole
+// error rather than being masked by an unrelated finding.
+func TestRunCheck_AreaUnslottedEscalatesUnderRequired(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	for _, d := range []string{"projects/app-a", "projects/orphan"} {
+		if err := os.MkdirAll(filepath.Join(root, d), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", d, err)
+		}
+	}
+
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	patched := string(raw) + "areas:\n" +
+		"  required: true\n" +
+		"  members:\n" +
+		"    - {name: app-a, paths: [projects/app-a/**]}\n" +
+		"  coverage_roots:\n" +
+		"    - projects\n"
+	if err = os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+
+	rc, stdout, _ := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"check", "--root", root})
+	})
+	if rc != cliutil.ExitFindings {
+		t.Errorf("rc = %d, want ExitFindings (%d) — area-unslotted must escalate to error under areas.required", rc, cliutil.ExitFindings)
+	}
+	if !strings.Contains(stdout, "area-unslotted") {
+		t.Fatalf("expected area-unslotted in output; got:\n%s", stdout)
+	}
+	// The finding must render at error severity (not warning) on the unclaimed
+	// child. The clean repo guarantees area-unslotted is the only finding.
+	if !strings.Contains(stdout, "error") || strings.Contains(stdout, "warning area-unslotted") {
+		t.Errorf("expected area-unslotted at ERROR severity under required; got:\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "projects/orphan") {
+		t.Errorf("expected the finding to name projects/orphan; got:\n%s", stdout)
 	}
 }

@@ -62,12 +62,16 @@ const CodeAreaCoverageNoPaths = "area-coverage-no-paths"
 // Enumeration is single-level (one os.ReadDir per declared root) and reads the
 // filesystem read-only; a transient/permission IO error yields no findings
 // rather than failing (the roadmapCaseCollision precedent). Dot-prefixed
-// immediate children (.git / .github / .claude / …) are skipped — tooling /
-// VCS artifacts are never projects, so enumerating only the declared roots
-// genuinely sidesteps the .git / node_modules / build-output noise a blanket
-// walk would pick up, even when the declared root is "." (the repo root). The
-// "is this directory claimed?" test routes through the areamatch SSOT
-// (M-0180/AC-1), the same matcher the path-axis checks use — no second matcher.
+// immediate children (.git / .github / .claude / …) are skipped — hidden
+// directories are tooling / VCS artifacts, never projects (the Unix dotfile
+// convention), and .claude is materialized by aiwf itself, so flagging them
+// would be a never-actionable false positive. The skip covers only HIDDEN
+// dirs: a "." root still enumerates non-hidden top-level dirs (docs/, work/,
+// node_modules/), so point coverage at a dedicated project-parent root
+// (projects/, apps/) rather than "." unless every non-hidden top-level dir is
+// genuinely a project. The "is this directory claimed?" test routes through the
+// areamatch SSOT (M-0180/AC-1), the same matcher the path-axis checks use — no
+// second matcher.
 //
 // Composed at the CLI layer (internal/cli/check) with the declared areas and
 // coverage roots sourced from config — the same seam AreaDeadGlob and
@@ -103,7 +107,12 @@ func AreaCoverage(t *tree.Tree, areas []AreaPaths, coverageRoots []string) []Fin
 		// os.Stat guard. A non-existent root or one that names a file is dead
 		// config — false confidence that coverage is active (M-0185/AC-8); any
 		// other stat error is indeterminate and skipped (never fail on IO, the
-		// roadmapCaseCollision precedent).
+		// roadmapCaseCollision precedent). The skip also covers the narrow case
+		// where the root's path traverses a non-directory component (e.g.
+		// "afile/sub" where afile is a file → ENOTDIR, which is not
+		// fs.ErrNotExist): deterministic dead config, but conservatively skipped
+		// rather than flagged — a root naming a file directly is still caught by
+		// the !info.IsDir() arm below.
 		info, statErr := os.Stat(rootAbs)
 		if statErr != nil {
 			if errors.Is(statErr, fs.ErrNotExist) {
@@ -127,12 +136,12 @@ func AreaCoverage(t *tree.Tree, areas []AreaPaths, coverageRoots []string) []Fin
 			if !e.IsDir() {
 				continue
 			}
-			// Skip dot-prefixed directories (.git, .github, .claude, …): these
-			// are tooling / VCS artifacts, never projects, and `.claude` is
-			// materialized by aiwf itself. Flagging them is a never-actionable
-			// false positive — this is what makes the "enumerating only
-			// declared roots sidesteps .git/build noise" contract hold even
-			// when the declared root is "." (the repo root).
+			// Skip hidden (dot-prefixed) directories (.git, .github, .claude,
+			// …): hidden dirs are tooling / VCS artifacts, never projects (the
+			// Unix dotfile convention), and `.claude` is materialized by aiwf
+			// itself, so flagging them would be a never-actionable false
+			// positive. This covers only hidden dirs — a "." root still
+			// enumerates non-hidden top-level dirs (see the function doc).
 			if strings.HasPrefix(e.Name(), ".") {
 				continue
 			}
