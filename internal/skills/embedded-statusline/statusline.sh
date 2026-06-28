@@ -283,17 +283,33 @@ ci_state="?"
 ci_prefix=""
 if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   ci_branch="${cur_branch:-HEAD}"
-  cache_key="$(printf '%s/%s' "$(git rev-parse --show-toplevel 2>/dev/null)" "$ci_branch" | shasum | awk '{print $1}')"
-  cache_file="/tmp/aiwf-statusline-ci-${cache_key}"
+  # --verify yields "" (not the literal "HEAD") on an unborn branch, so the
+  # staleness guard's emptiness check below stays correct.
+  head_sha="$(git rev-parse --verify HEAD 2>/dev/null)"
+  # HEAD is folded into the cache key so a new commit (or a push that moves
+  # HEAD) invalidates a prior verdict immediately, instead of the TTL serving
+  # the pre-commit result for up to $ttl seconds. (G-0189)
+  cache_key="$(printf '%s/%s/%s' "$(git rev-parse --show-toplevel 2>/dev/null)" "$ci_branch" "$head_sha" | shasum | awk '{print $1}')"
+  # Cache dir is overridable (hermetic tests point it at a temp dir); /tmp
+  # otherwise.
+  cache_dir="${AIWF_STATUSLINE_CACHE_DIR:-/tmp}"
+  cache_file="${cache_dir}/aiwf-statusline-ci-${cache_key}"
   ttl=45
 
   fetch_ci() {
-    local b="$1" out conc status
-    out="$(gh run list --branch "$b" --limit 1 --json conclusion,status 2>/dev/null)" || return 1
+    # $1 = branch, $2 = expected HEAD sha for the staleness check ("" to skip).
+    local b="$1" expected_sha="$2" out conc status sha
+    out="$(gh run list --branch "$b" --limit 1 --json conclusion,status,headSha 2>/dev/null)" || return 1
     [ -z "$out" ] || [ "$out" = "[]" ] && return 1
     conc="$(printf '%s' "$out" | jq -r '.[0].conclusion // empty' 2>/dev/null)"
     status="$(printf '%s' "$out" | jq -r '.[0].status // empty' 2>/dev/null)"
-    if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "requested" ] || [ "$status" = "waiting" ]; then
+    sha="$(printf '%s' "$out" | jq -r '.[0].headSha // empty' 2>/dev/null)"
+    if [ -n "$expected_sha" ] && [ -n "$sha" ] && [ "$sha" != "$expected_sha" ]; then
+      # Latest run is for a different commit than local HEAD — its verdict
+      # does not reflect what is checked out. Show stale-pending, not the
+      # previous commit's result. (G-0189)
+      printf '…'
+    elif [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "requested" ] || [ "$status" = "waiting" ]; then
       printf '→'
     else
       case "$conc" in
@@ -315,11 +331,13 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
     ci_prefix="${cached%%|*}"
     ci_state="${cached##*|}"
   else
-    s="$(fetch_ci "$ci_branch")"
+    s="$(fetch_ci "$ci_branch" "$head_sha")"
     if [ -z "$s" ] || [ "$s" = "?" ]; then
-      # Fall back to main when the current branch has no runs.
+      # Fall back to main when the current branch has no runs. No staleness
+      # check here: main's HEAD is not the current checkout's HEAD, and the
+      # m: prefix already signals this is a proxy, not your branch.
       if [ "$ci_branch" != "main" ]; then
-        s="$(fetch_ci main)"
+        s="$(fetch_ci main "")"
         [ -n "$s" ] && [ "$s" != "?" ] && ci_prefix="m:"
       fi
     fi
@@ -330,15 +348,17 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   fi
 fi
 
-# CI glyph precedes the label: ✓ ci / ✗ ci / → ci / ? ci.
-# Color matches the glyph's meaning: green ✓, red ✗, yellow →.
-# Main-fallback prefix surfaces as ✓ m:ci.
+# CI glyph precedes the label: ✓ ci / ✗ ci / → ci / … ci / ? ci.
+# Color matches the glyph's meaning: green ✓, red ✗, yellow →, gray … (stale:
+# the latest run is for a different commit than HEAD, so its verdict does not
+# apply to what's checked out). Main-fallback prefix surfaces as ✓ m:ci.
 ci_label="ci"
 [ -n "$ci_prefix" ] && ci_label="${ci_prefix}${ci_label}"
 case "$ci_state" in
   '✓') ci_fmt="${green}${ci_state} ${ci_label}${reset}" ;;
   '✗') ci_fmt="${red}${ci_state} ${ci_label}${reset}" ;;
   '→') ci_fmt="${yellow}${ci_state} ${ci_label}${reset}" ;;
+  '…') ci_fmt="${gray}${ci_state} ${ci_label}${reset}" ;;
   *)   ci_fmt="${ci_state} ${ci_label}" ;;
 esac
 
