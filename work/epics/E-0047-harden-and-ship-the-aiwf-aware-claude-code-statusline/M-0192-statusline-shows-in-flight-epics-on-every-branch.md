@@ -72,3 +72,44 @@ accentuate" code (where the current epic is swallowed into `+N` overflow) and
 passes after the branch-contextual rewrite. This is the genuine red→green of
 the milestone.
 
+## Work log
+
+- **AC-1 / AC-2 — met.** The branch-contextual reshape + behavioral coverage
+  landed in `f43f8e3e` (`fix(statusline): make epic HUD branch-contextual`).
+  Verifying the previously-untested "show epics on every branch" code surfaced
+  the current-epic-lost-to-overflow defect; the fork (ritual → current epic
+  only, non-ritual → list) fixes it and simplifies the code. The fix is
+  mirrored into the embedded copy `internal/skills/embedded-statusline/statusline.sh`,
+  kept byte-identical per the M-0155 drift test (`TestM0155_AC1_StatuslineEmbedded`).
+- G-0188's "desired behavior" was refined from "show all + secondary" to the
+  branch-contextual model in the same milestone, so the gap matches the build.
+
+## Validation
+
+- `go test ./internal/policies/ -run 'TestStatusline_M019[12]|TestM0155_AC1'`
+  — green: AC-1, AC-2 (epic-branch + milestone-branch subtests), the
+  missing-`epic.md` fail-soft fallback, the full M-0191 suite, and the embed
+  drift test.
+- `go vet` + `golangci-lint` (policies) clean; `go build ./...` ok; full
+  `internal/policies` package green (~93s, also run by the pre-commit hook).
+  Full `make ci` runs at the wrap-merge into the epic branch.
+- Human-verified renders: ritual `milestone/M-0192` → `▸ → E-0047/→ M-0192`
+  (current epic + milestone only); non-ritual `main` →
+  `○ E-0019 ○ E-0034 → E-0044 +4` (list, cap 3 + overflow, repo name correct).
+
+## Reviewer notes
+
+- An independent fresh-context reviewer approved with no blocking findings. It
+  re-confirmed AC-2's red→green independently (stashed the script, AC-2 failed
+  against the old code, passed after restore) and that the assertions are
+  structural — scoped to the ` · `-delimited epic-HUD segment so the branch
+  segment (which itself carries the epic/milestone id) cannot produce a false
+  pass.
+- Advisories addressed inline: a fail-soft test for a missing `epic.md` on a
+  ritual epic branch (the `? E-NNNN` unknown-status glyph); a
+  tracked-file-dependency comment on the ctx derivation; the AC-1 overflow
+  assertion tightened to the exact `+1`.
+- Left as documented: the ritual `m_file=""` arm is effectively unreachable (a
+  milestone branch enters the ritual block only because its file was found for
+  the epic-id derivation), and `epicHUDSegment`'s no-match return is a
+  defensive test-helper line.
