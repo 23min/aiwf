@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Start rituals record the sandbox rationale citing ADR-0023
-      status: open
+      status: met
     - id: AC-4
       title: WorktreeDir rejects a repo-escaping path and falls back to default
       status: open
