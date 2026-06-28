@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: rename-area preserves areas.required and inner areas-block comments end-to-end
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: rename-area preserves an unmodeled areas sub-key (forward-compat)
       status: open
