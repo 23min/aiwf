@@ -90,7 +90,8 @@ Candidate behaviors to formalize at start-milestone:
   dual-form decode discipline; a malformed value is a load-time error).
 - Within a declared coverage root, a child directory claimed by no area's glob raises an
   unslotted-project finding; a fully-slotted root is silent.
-- Inert when no coverage root is declared (the activation signal), and when no `paths:` exist.
+- Inert when no coverage root is declared (the activation signal); coverage-declared-but-no-`paths:`
+  is surfaced (not silently inert) per the M-0185 review — see AC-8.
 - Severity: warning by default, escalating to error under `areas.required` (consistent with
   dead-glob/overlap and `area-unknown`).
 - Bounded, read-only enumeration: single-level `os.ReadDir` per declared root, never fails on IO
@@ -118,12 +119,21 @@ Candidate behaviors to formalize at start-milestone:
 
 ## Design notes
 
-- This is the **covering** law — the third of the three partition laws (M-0180 landed
-  no-empty-column + disjointness). Same algebra family as M-0176's entity-axis partition test,
-  on the directory axis.
-- The universe = the immediate children of the declared coverage root(s). The knob is the single
-  source of truth for that universe; deriving it from glob anchors was rejected as brittle
-  (multi-root, anchorless, variable-depth globs) for a check meant to be trustworthy.
+- This is the **covering** law of the area↔directory matrix: dead-glob is the *no-empty-column*
+  property (every area locates something), overlap is *row-disjointness* (no directory claimed
+  twice), and coverage is *covering* (every in-scope directory is claimed). Same cardinality-algebra
+  family as M-0176's entity-axis partition test, lifted to the directory axis — though the three do
+  not jointly partition one set: dead-glob/overlap range over glob matches repo-wide, while coverage
+  ranges only over the immediate children of declared coverage roots.
+- The universe = the immediate children of the declared coverage root(s) — Option A: literal roots,
+  single-level, with depth handled by declaring multiple roots at any depth. The knob is the single
+  source of truth for that universe; deriving it from area glob anchors was rejected as brittle
+  (multi-root, anchorless, variable-depth) for a check meant to be trustworthy. **Option B** —
+  coverage entries as globs matching project dirs directly at any depth — is deferred as a
+  backward-compatible dual-form evolution (a bare path stays a literal root; a glob entry is the new
+  form). When B is picked up, pin the disambiguation rule (a glob metacharacter ⇒ glob entry) and
+  the caveat that `fs.ValidPath` permits `*` / `[` / `{` in a path segment, so a literal directory
+  named e.g. `app[1]` would otherwise be misread as a glob (M-0185 design review, Obs 5).
 - Native validation, in-binary: Tier-1 config-load validation for the knob, Tier-2 `aiwf check`
   rule for the law, Tier-3 property test for covering. No external validator (downstream config).
 - `depends_on: M-0179` (paths oracle), `M-0180` (the `areamatch` matcher + the forward laws this
@@ -133,6 +143,13 @@ Candidate behaviors to formalize at start-milestone:
   `unknownMemberKey` — so a typo'd areas key (e.g. `requried:`) is rejected at load rather than
   silently ignored. This reframes forward-compat as *explicit schema evolution*: the M-0208
   surgical writer's byte-preservation survives untouched; only the decode side tightens.
+- **Review outcome (the M-0185 two-lens review).** The fresh-context code + design reviews
+  converged on the `"."`-root noise (`.git` / `.claude` flagged as unslotted, contradicting the
+  "sidesteps noise" claim) → fixed by skipping dot-prefixed children. Two opted-in-but-silent
+  diagnostics were surfaced as AC-8: a dead coverage root (`area-coverage-root-missing`) and
+  coverage-declared-without-`paths:` (`area-coverage-no-paths`). Deferred follow-up: the
+  areas-block strict-key guard is asymmetric — only the `areas:` block rejects unknown keys; the
+  top-level `aiwf.yaml` decode stays non-strict (tracked as a gap, mirrored in Deferrals at wrap).
 
 ## Dependencies
 
@@ -154,17 +171,88 @@ Candidate behaviors to formalize at start-milestone:
 
 ### AC-1 — coverage_roots parses and validates at config load (Tier-1)
 
+A new `areas.coverage_roots` (`[]string`) field on `config.Areas` decodes through
+the existing custom `Areas.UnmarshalYAML`, with an explicit `coverage_roots: []`
+normalized to nil so empty equals absent. `Areas.validate()` rejects any entry
+that is empty, whitespace-padded, or not a valid repo-relative path —
+`fs.ValidPath` (no leading slash, no `..` segments; `.` permitted as the
+repo-root scope) — as a hard load error naming the bad value, the Tier-1 gate.
+*Evidence:* `TestConfig_CoverageRoots_ParsesAndValidates` (`internal/config/area_test.go`),
+8 cases at the real `config.Load` seam.
+
 ### AC-2 — areas block rejects unknown top-level keys at load
+
+`unknownAreasKey` / `knownAreasKeys` reject any key outside
+`{members, default, required, coverage_roots}` in the `areas:` mapping at
+config-load, naming the bad key — the areas-block-level analogue of G-0287's
+member-level guard, closing the silent-drop where yaml.v3's non-strict
+`value.Decode` would discard a typo'd key. Skipped for a non-mapping `areas:`
+value (which `value.Decode` rejects). *Evidence:*
+`TestConfig_AreasBlock_RejectsUnknownKey` (`internal/config/area_test.go`).
 
 ### AC-3 — unslotted child directory under a coverage root raises area-unslotted
 
+`check.AreaCoverage` + `CodeAreaUnslotted`: within each declared coverage root,
+every immediate child directory is tested against the declared area globs via the
+`areamatch` SSOT (`claimedByAnyArea` → `areamatch.Match`), and an unclaimed child
+fires `area-unslotted` naming the directory and the root. A whole-project `**`
+glob claims the bare project directory, so the fully-slotted root is silent — no
+second matcher. Composed at the CLI seam (`internal/cli/check`) with the declared
+areas + coverage roots from `aiwf.yaml`. *Evidence:* `TestAreaCoverage`
+(`internal/check/area_coverage_test.go`) + the dispatcher-seam test
+`TestRunCheck_AreaUnslottedSurfacesViaDispatcher` (`internal/cli/integration`).
+
 ### AC-4 — coverage law is inert without a declared coverage root
+
+With no `areas.coverage_roots` declared, `AreaCoverage` returns no findings even
+when unclaimed directories exist — the knob's presence is the activation signal,
+so a single-project / semantic-section repo (which declares no coverage root) is
+never flagged wholesale. *Evidence:* the "no coverage root declared is inert"
+case in `TestAreaCoverage`. (The complementary opted-in-but-undeliverable cases —
+a declared root with no `paths:`, or a dead root — are surfaced, not silent; see
+AC-8.)
 
 ### AC-5 — area-unslotted is warning by default, error under areas.required
 
+`area-unslotted` is emitted at `SeverityWarning`; the CLI-composed
+`ApplyAreaRequiredStrict` post-pass bumps it (and the AC-8 coverage findings) to
+`SeverityError` under `aiwf.yaml: areas.required: true`, uniformly with
+`area-unknown` / `area-dead-glob` / `area-overlap`. *Evidence:*
+`TestApplyAreaRequiredStrict_EscalatesCoverageFindings` asserts both severities
+and that an unrelated control code passes through unchanged.
+
 ### AC-6 — coverage enumeration is single-level, bounded, and IO-safe
+
+Enumeration is one `os.ReadDir` per declared root (immediate children only — a
+grandchild two levels deep is never flagged), reads the filesystem read-only, and
+never fails on a transient/permission IO error (the `roadmapCaseCollision`
+precedent). Only declared roots are enumerated — never a blanket walk — and
+dot-prefixed children (`.git` / `.github` / `.claude`) are skipped, so the
+"sidesteps `.git`/build noise" contract holds even for a `.` root. *Evidence:*
+the single-level (grandchild), non-dir-skip, dot-dir-skip, empty-root, and
+indeterminate-stat-error cases in `TestAreaCoverage`.
 
 ### AC-7 — area-unslotted is AI-discoverable and coverage_roots is schema-documented
 
+Each emitted coverage finding (`area-unslotted`, `area-coverage-root-missing`,
+`area-coverage-no-paths`) carries a `hintTable` entry and a table row in the
+`aiwf-check` skill's `## Findings (warnings)` section, and `areas.coverage_roots`
+has an "Areas `coverage_roots` schema" note (toward G-0288) documenting the
+opt-in model, the dot-dir skip, and the dual-form deferral. *Evidence:*
+`TestAreaCoverageFinding_StructurallyDocumented` (`internal/policies`), a
+structural assertion scoped to the warnings section (with the markdownSection
+self-guard against vacuity), plus the `finding-codes-have-hints` policy.
+
 ### AC-8 — a dead coverage root or coverage-with-no-paths raises a warning
+
+The two opted-in-but-undeliverable misconfigurations are surfaced rather than
+silently skipped (from the M-0185 review, Obs 1 + Obs 3): a declared root that
+resolves to no directory — non-existent, or naming a file — fires
+`area-coverage-root-missing` (dead config, the coverage analogue of
+`area-dead-glob`, via an `os.Stat` guard that distinguishes "resolves to no
+directory" from a transient/permission IO error); and `coverage_roots` declared
+with no area `paths:` fires a single `area-coverage-no-paths` (the path oracle is
+dormant) instead of degenerating into a per-child storm. Both warn by default and
+escalate under `areas.required` (AC-5). *Evidence:* the dead-root, file-root,
+indeterminate-stat, and no-paths cases in `TestAreaCoverage`.
 
