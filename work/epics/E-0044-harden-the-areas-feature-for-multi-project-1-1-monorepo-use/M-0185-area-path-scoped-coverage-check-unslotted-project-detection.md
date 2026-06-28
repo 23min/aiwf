@@ -36,7 +36,7 @@ acs:
     - id: AC-7
       title: area-unslotted is AI-discoverable and coverage_roots is schema-documented
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
