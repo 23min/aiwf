@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Explicit --area always wins over a conflicting --path-hint
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: Ambiguous --path-hint sets no area, prints a suggestion, proceeds untagged
       status: met
