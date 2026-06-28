@@ -1,7 +1,9 @@
 ---
 id: G-0303
 title: statusline CI glyph samples only the latest run, masking a failed workflow
-status: open
+status: addressed
+addressed_by_commit:
+    - 424bdc83
 ---
 ## Problem
 
