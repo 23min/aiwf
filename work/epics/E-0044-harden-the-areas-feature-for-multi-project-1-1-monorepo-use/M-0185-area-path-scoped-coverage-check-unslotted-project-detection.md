@@ -24,7 +24,7 @@ acs:
     - id: AC-4
       title: coverage law is inert without a coverage root or without paths
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: area-unslotted is warning by default, error under areas.required
       status: open
