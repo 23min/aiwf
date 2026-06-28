@@ -4,6 +4,10 @@ title: Generalize the declared-sequence gate; fix wrap/release drift
 status: draft
 parent: E-0050
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Generalized declared-sequence gate documented in CLAUDE.md and guidance
+      status: open
 ---
 
 ## Goal
@@ -28,3 +32,6 @@ Source: G-0295. Extracted from E-0049 into foundation epic E-0050 so both E-0048
 and E-0049 milestone wraps inherit the corrected gate.
 
 ## Acceptance criteria
+
+### AC-1 — Generalized declared-sequence gate documented in CLAUDE.md and guidance
+
