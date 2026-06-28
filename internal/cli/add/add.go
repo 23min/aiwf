@@ -174,14 +174,21 @@ func Run(k entity.Kind, title, actor, principal, root,
 	} else {
 		// M-0182: with --area omitted, derive from a single unambiguous
 		// --path-hint (root kinds only) through the areamatch SSOT. A hint
-		// matching zero or several areas sets nothing here (the suggestion
-		// output for those cases lands with AC-6/AC-7); an explicit --area
-		// above always wins, so derivation never overwrites it.
-		if pathHint != "" && entity.CarriesOwnArea(k) {
-			resolvedArea = deriveAreaFromHint(rootDir, pathHint)
+		// matching zero or several areas derives nothing (deriveAreaFromHint
+		// prints the suggestion); an explicit --area above always wins, so
+		// derivation never overwrites it.
+		if pathHint != "" {
+			if entity.CarriesOwnArea(k) {
+				resolvedArea = deriveAreaFromHint(rootDir, pathHint)
+			} else {
+				// A milestone's area derives from its parent epic, so a path
+				// hint has nothing to set. Note it rather than silently
+				// ignoring an explicitly-passed flag (the AC-7 principle).
+				fmt.Fprintln(os.Stderr, "aiwf add: --path-hint ignored — a milestone's area derives from its parent epic, not a path hint")
+			}
 		}
 		// E-0043: a gap with --discovered-in derives from the source entity's
-		// effective area — a fallback when --path-hint set nothing.
+		// effective area — a fallback when --path-hint derived nothing.
 		if resolvedArea == "" && k == entity.KindGap && discoveredIn != "" {
 			resolvedArea = tr.ResolvedAreaByID(discoveredIn)
 		}
@@ -285,9 +292,28 @@ func validateAreaMember(rootDir, area string) int {
 // collapses to "" here too.
 func deriveAreaFromHint(rootDir, pathHint string) string {
 	areas := configuredAreaPaths(rootDir)
+	if len(areas) == 0 {
+		// AC-7: no oracle — no declared area carries a paths: glob. Inert, but
+		// noted so an explicitly-passed hint does not silently do nothing.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q ignored — no declared area has a paths: glob to match against\n", pathHint)
+		return ""
+	}
 	matched, err := areamatch.Derive(areas, pathHint)
-	if err == nil && len(matched) == 1 {
+	if err != nil { //coverage:ignore unreachable via the public path: area globs are validated at config load (areamatch.Validate via config.Areas.validate), so Derive never sees a malformed glob here; kept as defense-in-depth degrading to no-derivation
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint derivation skipped: %v\n", err)
+		return ""
+	}
+	switch len(matched) {
+	case 1:
 		return matched[0]
+	case 0:
+		// AC-6: paths are declared, but none claim the hint. Describe the hint
+		// outcome ("no area derived"), not the entity's final state — a gap may
+		// still be tagged by the --discovered-in fallback in Run.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q matches no declared area's paths; no area derived (pass --area to tag explicitly)\n", pathHint)
+	default:
+		// AC-6: several areas claim the hint — ambiguous, so derive nothing.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
 	}
 	return ""
 }

@@ -62,11 +62,16 @@ func TestMatch(t *testing.T) {
 // ambiguous; a malformed glob errors.
 func TestDerive(t *testing.T) {
 	t.Parallel()
-	// overlap fixture: `shared` deliberately claims the same glob as `platform`.
+	// overlap fixture: four areas deliberately claim the SAME glob, so a hint
+	// under it matches all of them. Four colliding names make the sort load-
+	// bearing: a dropped sort.Strings fails ~96% of runs under Go's randomized
+	// map iteration (1 - 1/4!), vs only ~50% with two.
 	overlap := map[string][]string{
 		"platform": {"projects/platform/**"},
 		"billing":  {"projects/billing/**", "libs/billing/**"},
 		"shared":   {"projects/platform/**"},
+		"alpha":    {"projects/platform/**"},
+		"omega":    {"projects/platform/**"},
 	}
 	cases := []struct {
 		name    string
@@ -88,15 +93,18 @@ func TestDerive(t *testing.T) {
 			"services/other/x.go", nil, false,
 		},
 		{
-			"ambiguous: two areas claim the path (sorted)",
+			"ambiguous: several areas claim the path (sorted)",
 			overlap, "projects/platform/auth.go",
-			[]string{"platform", "shared"},
+			[]string{"alpha", "omega", "platform", "shared"},
 			false,
 		},
 		{
+			// Both of billing's globs match the path, so the inner break is the
+			// dedup mechanism: without it the name is appended twice. The path
+			// must match BOTH globs for this to exercise the break.
 			"per-area dedup across that area's own globs",
-			map[string][]string{"billing": {"projects/billing/**", "libs/billing/**"}},
-			"libs/billing/core.go",
+			map[string][]string{"billing": {"projects/**", "projects/billing/**"}},
+			"projects/billing/core.go",
 			[]string{"billing"},
 			false,
 		},
