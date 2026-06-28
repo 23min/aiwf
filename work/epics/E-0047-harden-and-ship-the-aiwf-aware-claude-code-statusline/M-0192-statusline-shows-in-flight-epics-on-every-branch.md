@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Ritual branch shows only the current epic and its milestone
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Deliverable
