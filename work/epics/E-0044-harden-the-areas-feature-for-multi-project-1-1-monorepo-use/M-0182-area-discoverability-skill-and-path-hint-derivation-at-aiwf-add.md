@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Single unambiguous --path-hint derives area when --area is omitted
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Explicit --area always wins over a conflicting --path-hint
       status: open
