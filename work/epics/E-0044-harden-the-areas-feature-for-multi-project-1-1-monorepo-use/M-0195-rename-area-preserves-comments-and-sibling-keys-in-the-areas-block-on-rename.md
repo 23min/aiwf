@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: rename-area preserves areas.required and inner areas-block comments end-to-end
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: rename-area preserves an unmodeled areas sub-key (forward-compat)
