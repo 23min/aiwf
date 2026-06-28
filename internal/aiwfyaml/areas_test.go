@@ -5,209 +5,6 @@ import (
 	"testing"
 )
 
-// TestSetAreas_RenameMemberPreservesEverythingElse pins the core
-// area-member rewrite (E-0044, M-0177): SetAreas splices a rewritten
-// areas block back, renaming one member while preserving member order,
-// the leading top-level keys, and comments outside the block.
-func TestSetAreas_RenameMemberPreservesEverythingElse(t *testing.T) {
-	t.Parallel()
-	src := `# top-of-file comment
-hosts: [claude-code]
-
-# the workstream areas
-areas:
-  members:
-    - platform
-    - billing
-`
-	doc, _, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
-		t.Fatalf("SetAreas: %v", err)
-	}
-	got := string(doc.Bytes())
-	want := `# top-of-file comment
-hosts: [claude-code]
-
-# the workstream areas
-areas:
-  members:
-    - infra
-    - billing
-`
-	if got != want {
-		t.Errorf("SetAreas rewrote unexpected bytes\n got: %q\nwant: %q", got, want)
-	}
-}
-
-// TestSetAreas_EmitsObjectFormForMembersWithPaths pins AC-4's writer leg
-// (E-0044, M-0179): a member carrying Paths is emitted in the `name`/`paths`
-// mapping form (with path scalars routed through yamlScalar), while a
-// paths-less member stays a bare string — so a paths-less config round-trips
-// byte-identical to the legacy shape and located members keep their paths.
-func TestSetAreas_EmitsObjectFormForMembersWithPaths(t *testing.T) {
-	t.Parallel()
-	src := `areas:
-  members:
-    - app-a
-`
-	doc, _, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	members := []AreaMember{
-		{Name: "app-a", Paths: []string{"projects/app-a/**", "shared/**"}},
-		{Name: "plat"},
-	}
-	if err := doc.SetAreas(members, ""); err != nil {
-		t.Fatalf("SetAreas: %v", err)
-	}
-	got := string(doc.Bytes())
-	// Path scalars route through yamlScalar; a `**`-containing glob is quoted
-	// (the `*` is YAML-significant) so it round-trips safely. The config loader
-	// unquotes it back to the bare value on read (asserted in the integration
-	// AC-4 test via a structural parse).
-	want := `areas:
-  members:
-    - name: app-a
-      paths:
-        - "projects/app-a/**"
-        - "shared/**"
-    - plat
-`
-	if got != want {
-		t.Errorf("object-form emission mismatch\n got: %q\nwant: %q", got, want)
-	}
-}
-
-// TestSetAreas_PreservesDefaultLabel pins that the `default:` display
-// label survives a member rename when carried back through SetAreas.
-func TestSetAreas_PreservesDefaultLabel(t *testing.T) {
-	t.Parallel()
-	src := `areas:
-  members:
-    - platform
-    - billing
-  default: untagged
-`
-	doc, _, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, "untagged"); err != nil {
-		t.Fatalf("SetAreas: %v", err)
-	}
-	got := string(doc.Bytes())
-	if !strings.Contains(got, "default: untagged") {
-		t.Errorf("default label dropped:\n%s", got)
-	}
-	if !strings.Contains(got, "- infra") || strings.Contains(got, "- platform") {
-		t.Errorf("member not renamed:\n%s", got)
-	}
-}
-
-// TestSetAreas_PreservesTrailingKeysAndComments pins that a top-level
-// key and its comment AFTER the areas block survive the splice — the
-// byte-range replacement must stop at the next top-level key.
-func TestSetAreas_PreservesTrailingKeysAndComments(t *testing.T) {
-	t.Parallel()
-	src := `areas:
-  members:
-    - platform
-    - billing
-
-# trailing comment belongs to html
-html:
-  out_dir: site
-`
-	doc, _, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
-		t.Fatalf("SetAreas: %v", err)
-	}
-	got := string(doc.Bytes())
-	for _, want := range []string{"# trailing comment belongs to html", "html:", "out_dir: site", "- infra"} {
-		if !strings.Contains(got, want) {
-			t.Errorf("missing %q after splice:\n%s", want, got)
-		}
-	}
-	if strings.Contains(got, "- platform") {
-		t.Errorf("old member still present:\n%s", got)
-	}
-}
-
-// TestSetAreas_NoAreasBlockErrors pins the refusal path: SetAreas on a
-// Doc with no areas block returns an error rather than fabricating one.
-// The verb never reaches this (it only renames declared members), but
-// the guard keeps the API honest.
-func TestSetAreas_NoAreasBlockErrors(t *testing.T) {
-	t.Parallel()
-	doc, _, err := ReadBytes([]byte("hosts: [claude-code]\n"))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if err := doc.SetAreas([]AreaMember{{Name: "platform"}}, ""); err == nil {
-		t.Fatal("SetAreas on a doc with no areas block should error")
-	}
-}
-
-// TestSetAreas_QuotesMemberNeedingQuoting pins that a member whose value
-// would be misread unquoted (a YAML reserved word, a leading digit) is
-// emitted quoted, matching the contracts writer's yamlScalar behavior.
-func TestSetAreas_QuotesMemberNeedingQuoting(t *testing.T) {
-	t.Parallel()
-	src := `areas:
-  members:
-    - platform
-`
-	doc, _, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if err := doc.SetAreas([]AreaMember{{Name: `"true"`}}, ""); err != nil {
-		t.Fatalf("SetAreas: %v", err)
-	}
-	// The member value is the literal string `"true"` — yamlScalar
-	// double-quotes any value containing a quote character, so the
-	// emitted member must be quoted, not a bare YAML boolean.
-	got := string(doc.Bytes())
-	if !strings.Contains(got, `- "`) {
-		t.Errorf("member needing quoting was emitted bare:\n%s", got)
-	}
-}
-
-// TestReadBytes_DetectsAreasWithoutContracts pins that the areas block
-// is detected even when no contracts: block is present — the contracts
-// path returns early on a missing contracts key, so areas detection
-// must not depend on it.
-func TestReadBytes_DetectsAreasWithoutContracts(t *testing.T) {
-	t.Parallel()
-	src := `hosts: [claude-code]
-areas:
-  members:
-    - platform
-    - billing
-`
-	doc, contracts, err := ReadBytes([]byte(src))
-	if err != nil {
-		t.Fatalf("ReadBytes: %v", err)
-	}
-	if contracts != nil {
-		t.Errorf("contracts = %+v, want nil", contracts)
-	}
-	// SetAreas succeeding proves the areas block was located.
-	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
-		t.Fatalf("SetAreas after areas-only read: %v", err)
-	}
-	if !strings.Contains(string(doc.Bytes()), "- infra") {
-		t.Errorf("areas block not rewritten:\n%s", doc.Bytes())
-	}
-}
-
 // TestRenameAreaMember_PreservesEverythingExceptTheToken pins M-0195/AC-1: the
 // surgical rename replaces ONLY the renamed member's name scalar in the source
 // bytes, leaving every other byte — comments inside the areas block, sibling
@@ -382,10 +179,71 @@ func TestRenameAreaMember_Errors(t *testing.T) {
 	})
 }
 
-// TestSetAreas_AreasBeforeContracts pins that when both blocks exist,
-// rewriting areas leaves the later contracts block intact — the
-// areas byte range must stop at the contracts key.
-func TestSetAreas_AreasBeforeContracts(t *testing.T) {
+// TestReadBytes_DetectsAreasWithoutContracts pins that the areas block
+// is detected even when no contracts: block is present — the contracts
+// path returns early on a missing contracts key, so areas detection
+// must not depend on it.
+func TestReadBytes_DetectsAreasWithoutContracts(t *testing.T) {
+	t.Parallel()
+	src := `hosts: [claude-code]
+areas:
+  members:
+    - platform
+    - billing
+`
+	doc, contracts, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	if contracts != nil {
+		t.Errorf("contracts = %+v, want nil", contracts)
+	}
+	// RenameAreaMember succeeding proves the areas block was located.
+	if err := doc.RenameAreaMember("platform", "infra"); err != nil {
+		t.Fatalf("RenameAreaMember after areas-only read: %v", err)
+	}
+	if !strings.Contains(string(doc.Bytes()), "- infra") {
+		t.Errorf("areas block not rewritten:\n%s", doc.Bytes())
+	}
+}
+
+// TestRenameAreaMember_PreservesTrailingKeysAndComments pins that a top-level
+// key and its comment AFTER the areas block — and the in-block `default:` —
+// survive the surgical rename: only the member-name token changes.
+func TestRenameAreaMember_PreservesTrailingKeysAndComments(t *testing.T) {
+	t.Parallel()
+	src := `areas:
+  members:
+    - platform
+    - billing
+  default: untagged
+
+# trailing comment belongs to html
+html:
+  out_dir: site
+`
+	doc, _, err := ReadBytes([]byte(src))
+	if err != nil {
+		t.Fatalf("ReadBytes: %v", err)
+	}
+	if err := doc.RenameAreaMember("platform", "infra"); err != nil {
+		t.Fatalf("RenameAreaMember: %v", err)
+	}
+	got := string(doc.Bytes())
+	for _, want := range []string{"default: untagged", "# trailing comment belongs to html", "html:", "out_dir: site", "- infra"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q after rename:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "- platform") {
+		t.Errorf("old member still present:\n%s", got)
+	}
+}
+
+// TestRenameAreaMember_AreasBeforeContracts pins that when both blocks exist,
+// renaming an area member leaves the later contracts block intact — the
+// surgical splice touches only the member-name token.
+func TestRenameAreaMember_AreasBeforeContracts(t *testing.T) {
 	t.Parallel()
 	src := `areas:
   members:
@@ -399,13 +257,13 @@ contracts:
 	if err != nil {
 		t.Fatalf("ReadBytes: %v", err)
 	}
-	if err := doc.SetAreas([]AreaMember{{Name: "infra"}, {Name: "billing"}}, ""); err != nil {
-		t.Fatalf("SetAreas: %v", err)
+	if err := doc.RenameAreaMember("platform", "infra"); err != nil {
+		t.Fatalf("RenameAreaMember: %v", err)
 	}
 	got := string(doc.Bytes())
 	for _, want := range []string{"- infra", "contracts:", "validators: {}", "entries: []"} {
 		if !strings.Contains(got, want) {
-			t.Errorf("missing %q after areas splice:\n%s", want, got)
+			t.Errorf("missing %q after areas rename:\n%s", want, got)
 		}
 	}
 }

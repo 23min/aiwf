@@ -84,17 +84,6 @@ type Entry struct {
 // against the in-memory tree happen elsewhere).
 var idPattern = regexp.MustCompile(`^C-\d{3,}$`)
 
-// AreaMember is the label+location shape SetAreas writes back (E-0044,
-// M-0179): a Name and an optional Paths list. Duplicated here (rather than
-// importing config.Member) so this package keeps its zero-dependency-on-config
-// layering — mirroring the duplicated idPattern precedent above. A member with
-// no Paths is emitted in the bare string form; one with Paths is emitted in the
-// `name`/`paths` mapping form.
-type AreaMember struct {
-	Name  string
-	Paths []string
-}
-
 // Doc is a parsed aiwf.yaml plus the byte ranges of the blocks aiwf
 // owns — the `contracts:` block and the `areas:` block. Doc carries
 // enough information to write an updated block back without round-
@@ -218,34 +207,13 @@ func (d *Doc) SetContracts(c *Contracts) error {
 	return nil
 }
 
-// SetAreas splices a rewritten `areas:` block into the doc's source
-// bytes, replacing the existing one. members is the full member list
-// in display order (callers supply the post-rename slice); defaultLabel
-// is the optional `default:` display label for the untagged complement
-// (empty omits the field). Comments, blank lines, and every other
-// top-level key survive byte-for-byte — only the `areas:` block's bytes
-// change, exactly as SetContracts does for contracts.
-//
-// SetAreas requires an existing `areas:` block: the sole caller
-// (`aiwf rename-area`) renames a declared member, so the block is
-// always present by the time it writes. Returns an error when no
-// `areas:` block was found at parse time rather than fabricating one —
-// there is no "create the block" path for this verb (E-0044, M-0177).
-func (d *Doc) SetAreas(members []AreaMember, defaultLabel string) error {
-	if !d.hasAreas {
-		return fmt.Errorf("no areas: block in aiwf.yaml to update")
-	}
-	d.replaceAreas(marshalAreasBlock(members, defaultLabel))
-	return nil
-}
-
 // RenameAreaMember rewrites a single declared area member's name from oldName
 // to newName in place, replacing ONLY that member's name scalar in the source
 // bytes (E-0044, M-0195). Every other byte of the file survives verbatim —
 // comments inside and outside the `areas:` block, sibling keys (`default`,
 // `required`, and any key aiwf does not model), `paths`, member form, blank
-// lines, indentation. This is the surgical replacement that supersedes the
-// whole-block SetAreas writer: a rename changes exactly one token, so the
+// lines, indentation. This is the surgical replacement for the prior
+// whole-block area-block writer: a rename changes exactly one token, so the
 // writer never regenerates the block and cannot drop what it does not rewrite.
 //
 // The new name is emitted through yamlScalar, so a name that needs quoting
@@ -635,59 +603,6 @@ func marshalContractsBlock(c *Contracts) []byte {
 	}
 
 	return []byte(b.String())
-}
-
-// marshalAreasBlock serializes an areas block beginning with the line
-// `areas:` and ending with a trailing newline. Members are emitted as a
-// two-space-indented YAML sequence in the supplied order (the verb
-// preserves the original member order, swapping only the renamed
-// entry); the optional `default:` display label follows when non-empty.
-//
-// Each member is emitted in the form that matches its shape (E-0044, M-0179):
-// a member with no Paths is a bare string (`- app-a`); a member with Paths is a
-// `name`/`paths` mapping (`- name: app-a` followed by an indented `paths:`
-// list). This keeps a paths-less config byte-identical to the legacy E-0043
-// shape while letting located members carry their paths through a rename.
-//
-// Mirrors marshalContractsBlock: scalars (names and path entries) route through
-// yamlScalar so a value that needs quoting is quoted, and the block is
-// canonical YAML the strict config loader round-trips. Comments and other
-// top-level keys are preserved by the byte-range splice in replaceAreas, not by
-// this function — same guarantee SetContracts gives.
-func marshalAreasBlock(members []AreaMember, defaultLabel string) []byte {
-	var b strings.Builder
-	b.WriteString("areas:\n")
-	if len(members) > 0 {
-		b.WriteString("  members:\n")
-		for _, m := range members {
-			if len(m.Paths) == 0 {
-				fmt.Fprintf(&b, "    - %s\n", yamlScalar(m.Name))
-				continue
-			}
-			fmt.Fprintf(&b, "    - name: %s\n", yamlScalar(m.Name))
-			b.WriteString("      paths:\n")
-			for _, p := range m.Paths {
-				fmt.Fprintf(&b, "        - %s\n", yamlScalar(p))
-			}
-		}
-	}
-	if defaultLabel != "" {
-		fmt.Fprintf(&b, "  default: %s\n", yamlScalar(defaultLabel))
-	}
-	return []byte(b.String())
-}
-
-// replaceAreas substitutes the block bytes in d.raw at the recorded
-// areas byte range. The range is updated so a subsequent SetAreas call
-// on the same Doc sees the new layout. Mirrors replaceContracts.
-func (d *Doc) replaceAreas(block []byte) {
-	out := make([]byte, 0, len(d.raw)-(d.areasAt.end-d.areasAt.start)+len(block))
-	out = append(out, d.raw[:d.areasAt.start]...)
-	out = append(out, block...)
-	out = append(out, d.raw[d.areasAt.end:]...)
-	d.raw = out
-	d.areasAt = byteRange{start: d.areasAt.start, end: d.areasAt.start + len(block)}
-	d.hasAreas = true
 }
 
 // sortedKeys returns the keys of m in ascending order. Used to make

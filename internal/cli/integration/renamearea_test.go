@@ -46,6 +46,62 @@ func readAiwfYAML(t *testing.T, root string) string {
 	return string(b)
 }
 
+// setupRequiredCommentedAreaRepo builds a repo whose areas block carries
+// `required: true` and a comment inside the block, plus one platform-tagged
+// epic — the fixture for the M-0195/AC-2 end-to-end preservation check.
+func setupRequiredCommentedAreaRepo(t *testing.T) string {
+	t.Helper()
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	yamlPath := filepath.Join(root, "aiwf.yaml")
+	raw, err := os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	patched := string(raw) +
+		"areas:\n" +
+		"  members:\n" +
+		"    # platform: the core monorepo app\n" +
+		"    - platform\n" +
+		"    - billing\n" +
+		"  required: true\n"
+	if err := os.WriteFile(yamlPath, []byte(patched), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+	mustRun(t, "add", "epic", "--title", "Platform one", "--area", "platform", "--actor", "human/test", "--root", root)
+	return root
+}
+
+// TestRenameArea_M0195AC2_PreservesRequiredAndComments pins M-0195/AC-2: a
+// rename through the verb seam preserves areas.required and a comment inside
+// the areas block (the live regression the surgical writer fixes) while still
+// renaming the member and retagging its entities in one commit.
+func TestRenameArea_M0195AC2_PreservesRequiredAndComments(t *testing.T) {
+	root := setupRequiredCommentedAreaRepo(t)
+	before := revCount(t, root)
+
+	mustRun(t, "rename-area", "platform", "infra", "--actor", "human/test", "--root", root)
+
+	yaml := readAiwfYAML(t, root)
+	if !strings.Contains(yaml, "required: true") {
+		t.Errorf("areas.required dropped by rename-area:\n%s", yaml)
+	}
+	if !strings.Contains(yaml, "# platform: the core monorepo app") {
+		t.Errorf("inner areas comment dropped by rename-area:\n%s", yaml)
+	}
+	if !strings.Contains(yaml, "- infra") || strings.Contains(yaml, "- platform") {
+		t.Errorf("member not renamed platform->infra:\n%s", yaml)
+	}
+	// The platform-tagged epic is retagged to infra in the same commit.
+	fm := frontmatterOf(readOne(t, root, filepath.Join("work", "epics", "E-0001-*", "epic.md")))
+	if !strings.Contains(fm, "area: infra") {
+		t.Errorf("E-0001 not retagged to infra:\n%s", fm)
+	}
+	if after := revCount(t, root); after != before+1 {
+		t.Errorf("commit count = %d, want %d (+1)", after, before+1)
+	}
+}
+
 // TestRenameArea_AC1_RewritesMemberAndEntitiesAtomically pins AC-1:
 // `rename-area platform infra` rewrites the aiwf.yaml member and every
 // platform-tagged entity, leaves the billing entity untouched, and

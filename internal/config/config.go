@@ -87,13 +87,12 @@ type Config struct {
 // M-0180, where the first match call site lives. A member declared in the
 // legacy string form (`members: [app-a]`) decodes with Name set and Paths nil.
 //
-// LOCKSTEP: aiwfyaml.AreaMember mirrors this struct field-for-field (the
-// comment-preserving writer is deliberately zero-dependency on config), and
-// verb.RenameArea copies Member → AreaMember by hand. The two are not
-// compile-linked: adding a field here means also adding it to
-// aiwfyaml.AreaMember and its copy site in renamearea.go, or the new field is
-// silently dropped on rename. Adding a field here also means adding its key to
-// knownMemberKeys, or the strict-key guard (G-0287) rejects it as unknown.
+// Adding a field here means adding its key to knownMemberKeys, or the
+// strict-key guard (G-0287) rejects it as unknown on read. There is no
+// parallel writer struct to keep in lockstep: the areas-block writer no longer
+// reconstructs members — `aiwf rename-area` surgically rewrites only the
+// renamed name token (M-0195) — so a new sibling key or field is preserved
+// through a rename automatically rather than being silently dropped.
 type Member struct {
 	Name  string   `yaml:"name"`
 	Paths []string `yaml:"paths,omitempty"`
@@ -736,7 +735,9 @@ func splitKeepEOL(s string) []string {
 // in mapping form (`- name: app-a`), churning a legacy bare-string member
 // and breaking the M-0179 zero-migration parity. Post-init edits to the
 // areas block route through the comment-preserving aiwfyaml writer
-// (aiwfyaml.SetAreas), which emits bare strings for paths-less members.
+// (aiwfyaml.Doc.RenameAreaMember), which rewrites only the renamed name
+// token and leaves each member's existing form (bare string or mapping)
+// untouched.
 func Write(root string, cfg *Config) error {
 	if err := cfg.Validate(); err != nil {
 		return err
