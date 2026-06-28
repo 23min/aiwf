@@ -1,8 +1,10 @@
 ---
 id: G-0187
 title: Statusline rendering has no end-to-end behavioral test
-status: open
+status: addressed
 discovered_in: M-0153
+addressed_by_commit:
+    - 64ae762c
 ---
 ## What's missing
 
