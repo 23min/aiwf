@@ -1025,3 +1025,133 @@ func TestWrite_OmitsArchiveByDefault(t *testing.T) {
 		t.Errorf("archive present in default-Write output: %q", got)
 	}
 }
+
+// TestWorktreeDir_DefaultUnset: no `worktree:` block; getter returns
+// DefaultWorktreeDir. M-0189 — in-repo placement is the kernel default
+// (ADR-0023); consumers override deliberately, not by accident.
+func TestWorktreeDir_DefaultUnset(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Worktree.Dir != "" {
+		t.Errorf("Worktree.Dir = %q, want empty (absent)", cfg.Worktree.Dir)
+	}
+	if got := cfg.WorktreeDir(); got != DefaultWorktreeDir {
+		t.Errorf("WorktreeDir() = %q, want %q", got, DefaultWorktreeDir)
+	}
+}
+
+// TestWorktreeDir_ExplicitOverride: a consumer on a bare host points the
+// ritual default at a different repo-relative root. Verifies the value
+// parses and reads through the getter (AC-1).
+func TestWorktreeDir_ExplicitOverride(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	contents := []byte("worktree:\n  dir: .worktrees\n")
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Worktree.Dir != ".worktrees" {
+		t.Errorf("Worktree.Dir = %q, want %q", cfg.Worktree.Dir, ".worktrees")
+	}
+	if got := cfg.WorktreeDir(); got != ".worktrees" {
+		t.Errorf("WorktreeDir() = %q, want %q", got, ".worktrees")
+	}
+}
+
+// TestWorktreeDir_InvalidFallsBackToDefault: the knob is a single
+// repo-relative directory (E-0046 YAGNI). Empty, whitespace-only, and
+// absolute values are not honored — they fall back to the kernel default
+// (AC-2).
+func TestWorktreeDir_InvalidFallsBackToDefault(t *testing.T) {
+	t.Parallel()
+	for _, dir := range []string{"", "   ", "/abs/worktrees", "/.claude/worktrees"} {
+		root := t.TempDir()
+		contents := []byte(fmt.Sprintf("worktree:\n  dir: %q\n", dir))
+		if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load(root)
+		if err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := cfg.WorktreeDir(); got != DefaultWorktreeDir {
+			t.Errorf("WorktreeDir() with configured=%q = %q, want %q", dir, got, DefaultWorktreeDir)
+		}
+	}
+}
+
+// TestWorktreeDir_NilReceiver: getter on a nil Config returns the
+// default, matching the other nil-tolerant getters (the verb dispatcher
+// may reach it before Load succeeds).
+func TestWorktreeDir_NilReceiver(t *testing.T) {
+	t.Parallel()
+	var cfg *Config
+	if got := cfg.WorktreeDir(); got != DefaultWorktreeDir {
+		t.Errorf("nil-receiver WorktreeDir() = %q, want %q", got, DefaultWorktreeDir)
+	}
+}
+
+// TestWorktreeDir_RejectsRepoEscapingPath: M-0190/AC-4. A repo-relative
+// worktree.dir that escapes the repo root (a `..` climbing above root,
+// directly or after interior traversal) is not honored — it falls back to
+// the kernel default. This keeps the value the start rituals consume in-repo
+// so a configured worktree.dir can never place a worktree outside the repo
+// and defeat ADR-0023 / the M-0188 loader guard. The check must not
+// over-reject: a non-escaping path (plain nested, or interior traversal that
+// stays in-repo) is still accepted.
+func TestWorktreeDir_RejectsRepoEscapingPath(t *testing.T) {
+	t.Parallel()
+
+	// Each cleans to a path that climbs above the repo root → default.
+	escaping := []string{
+		"..",
+		"../outside",
+		"../../foo",
+		"a/../../b",      // filepath.Clean → "../b"
+		"x/y/../../../z", // filepath.Clean → "../z"
+	}
+	for _, dir := range escaping {
+		root := t.TempDir()
+		contents := []byte(fmt.Sprintf("worktree:\n  dir: %q\n", dir))
+		if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load(root)
+		if err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := cfg.WorktreeDir(); got != DefaultWorktreeDir {
+			t.Errorf("WorktreeDir() with escaping=%q = %q, want default %q", dir, got, DefaultWorktreeDir)
+		}
+	}
+
+	// Control: non-escaping paths stay accepted (not defaulted), proving the
+	// escape check does not over-reject. "a/../b" cleans to "b" — interior
+	// traversal that stays in-repo.
+	for _, dir := range []string{"tools/worktrees", "a/../b"} {
+		root := t.TempDir()
+		contents := []byte(fmt.Sprintf("worktree:\n  dir: %q\n", dir))
+		if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load(root)
+		if err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if got := cfg.WorktreeDir(); got == DefaultWorktreeDir {
+			t.Errorf("WorktreeDir() with non-escaping=%q fell back to default; want it accepted", dir)
+		}
+	}
+}

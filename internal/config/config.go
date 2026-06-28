@@ -76,6 +76,7 @@ type Config struct {
 	Entities          Entities `yaml:"entities,omitempty"`
 	Guidance          Guidance `yaml:"guidance,omitempty"`
 	Areas             Areas    `yaml:"areas,omitempty"`
+	Worktree          Worktree `yaml:"worktree,omitempty"`
 }
 
 // Areas declares the closed set of workstream area tags (E-0043). Members is
@@ -399,6 +400,48 @@ func (c *Config) WireClaudeMd() bool {
 		return true
 	}
 	return *c.Guidance.WireClaudeMd
+}
+
+// Worktree carries the consumer's default placement for the git
+// worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)
+// create. Dir is a single repo-relative directory; the kernel default is
+// DefaultWorktreeDir. See ADR-0023 and E-0046 for why in-repo placement is
+// the default (a sandboxed devcontainer session can only root in a worktree
+// under the mounted workspace).
+type Worktree struct {
+	Dir string `yaml:"dir,omitempty"`
+}
+
+// DefaultWorktreeDir is the repo-relative directory the start rituals place
+// worktrees under when aiwf.yaml.worktree.dir is unset. In-repo placement
+// (ADR-0023): reachable as a session cwd inside a sandboxed devcontainer,
+// persistent under the mounted workspace, and gitignored via `.claude/*`.
+const DefaultWorktreeDir = ".claude/worktrees"
+
+// WorktreeDir returns the configured ritual-worktree placement directory or
+// the kernel default when unset. Only a single repo-relative directory is
+// honored (E-0046 YAGNI): an empty, whitespace-only, absolute, or
+// repo-escaping (`../…`) value falls back to DefaultWorktreeDir. The escape
+// rejection keeps the value the start rituals consume in-repo, so a
+// configured worktree.dir can never place a worktree outside the repo and
+// defeat ADR-0023 / the M-0188 loader guard. Tolerant of a nil receiver so
+// callers can invoke before / without a loaded Config.
+func (c *Config) WorktreeDir() string {
+	if c == nil {
+		return DefaultWorktreeDir
+	}
+	dir := strings.TrimSpace(c.Worktree.Dir)
+	if dir == "" || filepath.IsAbs(dir) {
+		return DefaultWorktreeDir
+	}
+	// Reject a repo-relative path that escapes the repo root. filepath.Clean
+	// collapses any interior traversal; a cleaned value of ".." or one with a
+	// "../" prefix climbs above root and would place a worktree outside the
+	// repo — defeating the in-repo guarantee ADR-0023 rests on.
+	if cleaned := filepath.Clean(dir); cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+		return DefaultWorktreeDir
+	}
+	return dir
 }
 
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is
