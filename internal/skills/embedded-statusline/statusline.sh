@@ -121,8 +121,18 @@ read_status() {
 }
 
 # --- Repo name --------------------------------------------------------------
+#
+# The MAIN repo's name, stable across linked worktrees. A worktree's
+# --show-toplevel is the worktree dir (e.g. .../worktrees/G-0304), which would
+# render the worktree's id as the repo name and duplicate the session-entity HUD
+# (G-0304). --git-common-dir points every worktree at the one shared .git, so
+# its parent is always the main repo root.
 
-repo="$(git rev-parse --show-toplevel 2>/dev/null | xargs -I{} basename {} 2>/dev/null)"
+repo=""
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+[ -n "$common_dir" ] && repo="$(basename "$(dirname "$common_dir")")"
+# Fallbacks: older git without --path-format, then the session's cwd.
+[ -z "$repo" ] && repo="$(git rev-parse --show-toplevel 2>/dev/null | xargs -I{} basename {} 2>/dev/null)"
 [ -z "$repo" ] && repo="$(jq_get '.workspace.current_dir' | xargs -I{} basename {} 2>/dev/null)"
 [ -z "$repo" ] && repo="?"
 
@@ -164,19 +174,18 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- Branch-contextual epic HUD (G-0188) ------------------------------------
+# --- Session-entity HUD (G-0188, narrowed/extended by G-0304) ---------------
 #
-# The HUD answers a different question depending on where you are:
-#   - Ritual branch (epic/E-*, milestone/M-*): show ONLY the current epic —
-#     the one the branch belongs to — with its status glyph (→ active,
-#     ○ proposed/draft) and color, plus its milestone inline on a milestone
-#     branch. No other epics, no overflow: when you are working inside an epic
-#     the HUD reflects that work, not the whole backlog.
-#   - Main / non-ritual: show the in-flight list — every non-terminal epic with
-#     glyph + color, terminal (done/cancelled) filtered out, capped at 3 with a
-#     +N overflow to stay scannable. This is the anti-blank case G-0188 names.
+# Show ONLY the entity the current session is working in, with its status glyph
+# (→ active, ○ proposed/draft/open, ✓ done/addressed, ✗ cancelled/…) and color:
+#   - Ritual branch (epic/E-*, milestone/M-*): the current epic — the one the
+#     branch belongs to — plus its milestone inline on a milestone branch.
+#   - Patch branch (patch/G-NNNN-*): the gap the wf-patch is fixing.
+#   - Anything else (main, gap-less patch/<slug>, …): nothing. The session isn't
+#     in an entity, so the backlog belongs in `aiwf status`, not the statusline
+#     (G-0304, superseding the earlier in-flight-list behavior).
 #
-# The ctx_epic_id / ctx_milestone_id derivation below decides which path runs.
+# The ctx_* derivation below decides whether — and which — entity renders.
 
 status_glyph() {
   case "$1" in
@@ -188,19 +197,13 @@ status_glyph() {
   esac
 }
 
-is_terminal() {
-  case "$1" in
-    done|addressed|accepted|met|retired|cancelled|wontfix|rejected|superseded) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 # Derive the current-branch context (epic id, milestone id). On a milestone
 # branch the epic id comes from the milestone file (git ls-files), so an
-# as-yet-uncommitted milestone leaves ctx_epic_id empty and the HUD falls back
-# to the list view below — acceptable: the entity is not tracked yet.
+# as-yet-uncommitted milestone leaves ctx_epic_id empty and the HUD renders
+# nothing — acceptable: the entity is not tracked yet.
 ctx_epic_id=""
 ctx_milestone_id=""
+ctx_gap_id=""
 case "$cur_branch" in
   milestone/M-*)
     ctx_milestone_id="$(printf '%s' "$cur_branch" | sed -E 's|^milestone/(M-[0-9]+).*|\1|')"
@@ -212,56 +215,41 @@ case "$cur_branch" in
   epic/E-*)
     ctx_epic_id="$(printf '%s' "$cur_branch" | sed -E 's|^epic/(E-[0-9]+).*|\1|')"
     ;;
+  patch/G-*)
+    ctx_gap_id="$(printf '%s' "$cur_branch" | sed -E 's|^patch/(G-[0-9]+).*|\1|')"
+    ;;
 esac
 
-epic_hud=""
+ctx_hud=""
 if [ -n "$ctx_epic_id" ]; then
-  # Ritual branch: ONLY the current epic, with its milestone inline on a
-  # milestone branch. No list, no overflow. The current epic is shown
-  # regardless of status (you are on its branch); the list path filters
-  # terminal epics, this one does not.
+  # Ritual epic/milestone branch: the current epic, with its milestone inline on
+  # a milestone branch. Shown regardless of status (you are on its branch).
   e_file="$(git ls-files "work/epics/${ctx_epic_id}-*/epic.md" "work/epics/archive/${ctx_epic_id}-*/epic.md" 2>/dev/null | head -1)"
   e_status=""
   [ -n "$e_file" ] && e_status="$(read_status "$e_file")"
   e_clr="$(entity_color "$e_status")"
   e_glyph="$(status_glyph "$e_status")"
-  epic_hud="${bold}${e_clr}▸ ${e_glyph} ${ctx_epic_id}${reset}"
+  ctx_hud="${bold}${e_clr}▸ ${e_glyph} ${ctx_epic_id}${reset}"
   if [ -n "$ctx_milestone_id" ]; then
     m_file="$(git ls-files "work/epics/*/${ctx_milestone_id}-*.md" "work/epics/archive/*/${ctx_milestone_id}-*.md" 2>/dev/null | head -1)"
     m_status=""
     [ -n "$m_file" ] && m_status="$(read_status "$m_file")"
     m_clr="$(entity_color "$m_status")"
     m_glyph="$(status_glyph "$m_status")"
-    epic_hud="${epic_hud}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
+    ctx_hud="${ctx_hud}${gray}/${reset}${m_clr}${m_glyph} ${ctx_milestone_id}${reset}"
   fi
-else
-  # Main / non-ritual: the in-flight list — non-terminal epics, capped, +N.
-  epic_hud_parts=()
-  epic_hud_count=0
-  epic_hud_cap=3
-  epic_hud_total=0
-  for epic_file in work/epics/E-*/epic.md; do
-    [ -f "$epic_file" ] || continue
-    e_status="$(read_status "$epic_file")"
-    is_terminal "$e_status" && continue
-    e_id="$(printf '%s' "$epic_file" | sed -E 's|^work/epics/(E-[0-9]+).*|\1|')"
-    [ -z "$e_id" ] && continue
-    epic_hud_total=$((epic_hud_total + 1))
-    [ "$epic_hud_count" -ge "$epic_hud_cap" ] && continue
-
-    e_clr="$(entity_color "$e_status")"
-    e_glyph="$(status_glyph "$e_status")"
-    epic_hud_parts+=("${e_clr}${e_glyph} ${e_id}${reset}")
-    epic_hud_count=$((epic_hud_count + 1))
-  done
-
-  # Join parts with space, add overflow.
-  for p in "${epic_hud_parts[@]+"${epic_hud_parts[@]}"}"; do
-    if [ -z "$epic_hud" ]; then epic_hud="$p"; else epic_hud="$epic_hud $p"; fi
-  done
-  overflow=$((epic_hud_total - epic_hud_count))
-  [ "$overflow" -gt 0 ] && epic_hud="${epic_hud} ${gray}+${overflow}${reset}"
+elif [ -n "$ctx_gap_id" ]; then
+  # Patch branch (patch/G-NNNN-*): the gap this wf-patch is fixing, with its
+  # status glyph/color — the same session-entity treatment epics get (G-0304).
+  g_file="$(git ls-files "work/gaps/${ctx_gap_id}-*.md" "work/gaps/archive/${ctx_gap_id}-*.md" 2>/dev/null | head -1)"
+  g_status=""
+  [ -n "$g_file" ] && g_status="$(read_status "$g_file")"
+  g_clr="$(entity_color "$g_status")"
+  g_glyph="$(status_glyph "$g_status")"
+  ctx_hud="${bold}${g_clr}▸ ${g_glyph} ${ctx_gap_id}${reset}"
 fi
+# On a non-ritual / non-patch branch all three ctx ids are empty, so ctx_hud
+# stays empty and no session-entity segment renders (G-0304).
 
 # --- Other in-flight ritual worktrees count (+N⎇) --------------------------
 #
@@ -435,7 +423,7 @@ head_seg="$ball $model_short"
 [ -n "$effort" ] && head_seg="$head_seg ${gray}${effort}${reset}"
 head_seg="$head_seg ▸ $tokens_fmt"
 parts=("$head_seg")
-[ -n "$epic_hud" ]      && parts+=("$epic_hud")
+[ -n "$ctx_hud" ]       && parts+=("$ctx_hud")
 parts+=("$repo")
 [ -n "$branch_seg" ]    && parts+=("$branch_seg")
 [ "$other_wt_count" -gt 0 ] && parts+=("+${other_wt_count}⎇")

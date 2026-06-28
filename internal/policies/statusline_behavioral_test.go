@@ -375,41 +375,31 @@ func newEpicHUDRepo(t *testing.T) string {
 	return repo
 }
 
-// TestStatusline_M0192_AC1_NonRitualRendersEpicList: on a non-ritual branch
-// (main) the HUD renders the in-flight list — non-terminal epics with the
-// canonical glyph, terminal epics filtered, and "+N" overflow past the cap.
-func TestStatusline_M0192_AC1_NonRitualRendersEpicList(t *testing.T) {
+// TestStatusline_G0304_NonRitualRendersNoEpicHUD: on a non-ritual branch (main,
+// patch, …) the epic HUD renders nothing — the session isn't in an epic, so the
+// backlog belongs in `aiwf status`. Supersedes the M-0192 non-ritual in-flight
+// list (G-0188's anti-blank rationale, now overridden).
+func TestStatusline_G0304_NonRitualRendersNoEpicHUD(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t) // stays on main (non-ritual)
 	tr := writeTranscript(t)
 
-	// 4 non-terminal (cap 3 -> one overflow) + 2 terminal (filtered).
+	// Several in-flight epics exist — none should appear in the HUD.
 	writeEpicFixture(t, repo, "E-1001", "alpha", "active")
 	writeEpicFixture(t, repo, "E-1002", "bravo", "proposed")
 	writeEpicFixture(t, repo, "E-1003", "charlie", "active")
 	writeEpicFixture(t, repo, "E-1004", "delta", "proposed")
-	writeEpicFixture(t, repo, "E-1005", "echo", "done")
-	writeEpicFixture(t, repo, "E-1006", "foxtrot", "cancelled")
 	commitFixtures(t, repo)
 
-	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
-	if hud == "" {
-		t.Fatalf("AC-1: expected an epic HUD segment on main")
+	out := runStatusline(t, repo, statuslineStdin(tr, repo))
+	if hud := epicHUDSegment(out); hud != "" {
+		t.Errorf("non-ritual branch must render no epic HUD; got %q", hud)
 	}
-	if !strings.Contains(hud, "→ E-1001") {
-		t.Errorf("AC-1: active epic should render \"→ E-1001\"\n hud: %q", hud)
-	}
-	if !strings.Contains(hud, "○ E-1002") {
-		t.Errorf("AC-1: proposed epic should render \"○ E-1002\"\n hud: %q", hud)
-	}
-	if strings.Contains(hud, "E-1005") {
-		t.Errorf("AC-1: terminal (done) epic E-1005 must be filtered\n hud: %q", hud)
-	}
-	if strings.Contains(hud, "E-1006") {
-		t.Errorf("AC-1: terminal (cancelled) epic E-1006 must be filtered\n hud: %q", hud)
-	}
-	if !strings.Contains(hud, "+1") {
-		t.Errorf("AC-1: 4 non-terminal epics with cap 3 should render \"+1\" overflow\n hud: %q", hud)
+	// No epic id should leak into the rendered line at all.
+	for _, id := range []string{"E-1001", "E-1002", "E-1003", "E-1004"} {
+		if strings.Contains(out, id) {
+			t.Errorf("non-ritual line must not mention epic %s\n out: %q", id, out)
+		}
 	}
 }
 
@@ -735,5 +725,115 @@ func TestStatusline_G0303_SuccessWithSkippedSibling(t *testing.T) {
 	}
 	if strings.Contains(seg, "?") {
 		t.Errorf("success + skipped must render ✓, not ?\n ci segment: %q", seg)
+	}
+}
+
+// --- G-0304: patch branches show the session's gap --------------------------
+//
+// A `patch/G-NNNN-*` branch is a wf-patch fixing a gap; the HUD shows that gap
+// with its status glyph/color, the same session-entity treatment epics get on a
+// ritual branch.
+
+// statuslineHUDEntry matches the session-entity HUD's "▸ <glyph> <id>" shape
+// (epic / milestone / gap), distinguishing it from the head segment's
+// "▸ <tokens>" (where ▸ precedes the token count, not a status glyph).
+var statuslineHUDEntry = regexp.MustCompile(`▸ [→○✓✗?] [EMG]-\d`)
+
+// hudSegment returns the " · "-delimited segment carrying the session-entity HUD
+// (epic or gap). Scopes assertions to it.
+func hudSegment(out string) string {
+	for seg := range strings.SplitSeq(out, " · ") {
+		if statuslineHUDEntry.MatchString(seg) {
+			return strings.TrimSpace(seg)
+		}
+	}
+	return ""
+}
+
+// writeGapFixture scaffolds work/gaps/<id>-<slug>.md with the status.
+func writeGapFixture(t *testing.T, repo, id, slug, status string) {
+	t.Helper()
+	dir := filepath.Join(repo, "work", "gaps")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, id+"-"+slug+".md"),
+		"---\nid: "+id+"\ntitle: "+slug+"\nstatus: "+status+"\n---\n## Problem\n\nfixture\n")
+}
+
+// TestStatusline_G0304_PatchBranchShowsGap: on a patch/G-NNNN-* branch the HUD
+// renders the gap with its status glyph (open → ○) and color.
+func TestStatusline_G0304_PatchBranchShowsGap(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	writeGapFixture(t, repo, "G-0500", "fix-thing", "open")
+	commitFixtures(t, repo)
+	gitIn(t, repo, "checkout", "-b", "patch/G-0500-fix-thing")
+
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	if !strings.Contains(hud, "G-0500") {
+		t.Errorf("patch branch must show its gap G-0500\n hud: %q", hud)
+	}
+	if !strings.Contains(hud, "○") {
+		t.Errorf("an open gap should render the ○ glyph\n hud: %q", hud)
+	}
+}
+
+// TestStatusline_G0304_PatchBranchAddressedGapGlyph: the gap's status drives the
+// glyph — an addressed gap renders ✓, distinct from an open one.
+func TestStatusline_G0304_PatchBranchAddressedGapGlyph(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	writeGapFixture(t, repo, "G-0500", "fix-thing", "addressed")
+	commitFixtures(t, repo)
+	gitIn(t, repo, "checkout", "-b", "patch/G-0500-fix-thing")
+
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	if !strings.Contains(hud, "✓ G-0500") {
+		t.Errorf("an addressed gap should render \"✓ G-0500\"\n hud: %q", hud)
+	}
+}
+
+// TestStatusline_G0304_PatchBranchMissingGapFileFallsBack: a patch branch whose
+// gap file is absent (stale/mistyped) still shows the id with the ? unknown
+// glyph rather than breaking under set -u.
+func TestStatusline_G0304_PatchBranchMissingGapFileFallsBack(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	gitIn(t, repo, "checkout", "-b", "patch/G-9999-ghost") // no gap file for G-9999
+
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	if !strings.Contains(hud, "? G-9999") {
+		t.Errorf("missing gap file should fall back to \"? G-9999\"\n hud: %q", hud)
+	}
+}
+
+// TestStatusline_G0304_RepoNameIsMainRepoNotWorktreeDir: in a linked worktree
+// the repo segment shows the MAIN repo's name (shared .git's parent), not the
+// worktree directory's basename — so an entity-id-named worktree
+// (.../worktrees/G-0500) doesn't render its id as the repo name.
+func TestStatusline_G0304_RepoNameIsMainRepoNotWorktreeDir(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t) // main repo basename: "myrepo"
+	tr := writeTranscript(t)
+	wt := filepath.Join(t.TempDir(), "G-0500") // worktree dir literally "G-0500"
+	gitIn(t, repo, "worktree", "add", "-b", "patch/G-0500-x", wt)
+
+	out := runStatusline(t, wt, statuslineStdin(tr, wt))
+	mainSeen := false
+	for seg := range strings.SplitSeq(out, " · ") {
+		s := strings.TrimSpace(seg)
+		if s == "myrepo" {
+			mainSeen = true
+		}
+		if s == "G-0500" {
+			t.Errorf("repo segment must be the main repo, not the worktree dir \"G-0500\"\n out: %q", out)
+		}
+	}
+	if !mainSeen {
+		t.Errorf("expected the main repo name \"myrepo\" as a segment\n out: %q", out)
 	}
 }

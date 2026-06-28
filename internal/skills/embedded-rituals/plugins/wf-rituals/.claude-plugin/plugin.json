@@ -1,6 +1,6 @@
 {
   "name": "wf-rituals",
-  "description": "Repo-agnostic engineering rituals: branching (patch/fix/chore), TDD cycle, code review, doc hygiene. Speaks the language of the work (milestone, AC, branch, test, PR) without coupling to any specific planning kernel.",
+  "description": "Repo-agnostic engineering rituals: branching (patch/), TDD cycle, code review, doc hygiene. Speaks the language of the work (milestone, AC, branch, test, PR) without coupling to any specific planning kernel.",
   "homepage": "https://github.com/23min/ai-workflow-rituals",
   "repository": "https://github.com/23min/ai-workflow-rituals",
   "license": "Apache-2.0",
