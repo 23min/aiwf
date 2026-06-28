@@ -9,10 +9,44 @@ tdd: required
 ---
 ## Deliverable
 
-The statusline prefixes a **health indicator** when the planning tree is in a findings state (G-0290).
+The statusline gains a **health indicator** driven by a cached, render-safe
+check verdict (G-0290), and the kernel gains the fast check surface that makes
+it possible:
 
-- A warning glyph (e.g. a yellow triangle) prefixes the statusline when the cached check-state shows findings; absent when clean.
-- The statusline **never** runs a live `aiwf check` — it renders on every prompt, so a seconds-scale check is forbidden. It reads a cheap *persisted* signal: the result of the last pre-commit / pre-push check (or a fast shape-only probe) written to a small state file.
-- Settings edits remain gated by the explicit per-invocation consent the statusline opt-in requires (ADR-0015).
+- **`aiwf check --fast`** — a content-only check mode. It loads the tree
+  without the trunk read and runs the in-memory content rules (`check.Run`
+  plus the cheap config-dependent tree rules — tree-discipline, area-unknown),
+  skipping the trunk-collision / provenance / FSM-history / metrics layer that
+  makes a full `aiwf check` seconds-to-minutes scale. On this repo the full
+  check is >30s (per-entity git-history walks over 574 entities); `--fast` is
+  sub-second — the same fast load path `--shape-only` already uses, but with
+  the full in-memory rule set rather than tree-discipline alone.
+- **Statusline health glyph** — the statusline prefixes `⚠` when
+  `aiwf check --fast` reports error-severity findings, and shows nothing when
+  the tree is clean or carries only warnings (so the repo's always-present
+  benign warnings never pin the light on). The verdict is cached with a TTL +
+  HEAD-fold exactly like the CI segment, so the hot render path only reads a
+  file — it never runs a live check. The embedded copy stays byte-identical
+  (existing M-0155 drift test).
 
-This milestone establishes the **shared tree-health signal** the epic's through-line names — the same signal `aiwf doctor` (G-0289) and the default `aiwf status` divergence flag (G-0277) can later consume. ACs at milestone start, tested against the M1 harness.
+## Scope: freshness from the render cadence, not pushes
+
+G-0290's hard constraint is "never run a live full check on render." The naive
+"persist the last hook check and read it" design fails in practice: pushes can
+be hours apart, so a push-cadence verdict is stale for most of a session. The
+fix is to tie the refresh to the **render cadence** (every prompt) the way the
+CI segment already does — cache + short TTL, re-probe on miss — which is only
+viable because `--fast` is render-cheap. Freshness is then bounded by the TTL
+(seconds after a commit), not by the next push.
+
+`--fast` is the **shared fast tree-health surface** the epic through-line
+names: the same `check.Run` verdict `aiwf status` and `aiwf doctor` already
+consume internally, now exposed render-safely for the statusline (and
+scripts/CI).
+
+## Why this milestone (per the epic)
+
+M3 of E-0047, the keystone. Builds on the M1 harness — every statusline
+assertion runs the real script against fixtures. Establishes the shared
+tree-health signal that G-0289 (`aiwf doctor`) and G-0277 (`aiwf status`
+divergence flag) can later surface.
