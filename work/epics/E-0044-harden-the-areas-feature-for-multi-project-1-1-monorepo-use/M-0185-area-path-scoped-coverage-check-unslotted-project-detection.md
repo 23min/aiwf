@@ -28,7 +28,7 @@ acs:
     - id: AC-5
       title: area-unslotted is warning by default, error under areas.required
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-6
       title: coverage enumeration is single-level, bounded, and IO-safe
       status: open
