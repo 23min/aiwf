@@ -9,10 +9,30 @@ tdd: required
 ---
 ## Deliverable
 
-The statusline entity segment shows in-flight epics on **every** branch (G-0188), not just ritual branches — today the most informative slot is blank in the commonest context (`main`).
+The epic HUD (`.claude/statusline.sh`, G-0188) becomes **branch-contextual** and
+behaviorally tested against the M1 harness:
 
-- On `main` / non-ritual branches: render all non-terminal epics (proposed/active) with the canonical glyph/color language from `aiwf status --worktrees` (`→` active yellow, `○` proposed blue; terminal `done`/`cancelled` filtered out).
-- On ritual branches: accentuate the current epic (the one the branch belongs to) and show its milestone/gap inline; other in-flight epics render visually secondary.
-- Cap at ~3 shown with `+N` overflow to keep the line scannable.
+- **Ritual branch** (`epic/E-*`, `milestone/M-*`): show **only** the current
+  epic — the one the branch belongs to — with its status glyph/color, plus its
+  milestone inline on a milestone branch. No other in-flight epics; no `+N`
+  overflow.
+- **Main / non-ritual**: show the in-flight epic list — all non-terminal epics
+  with canonical glyph/color (`→` active, `○` proposed/draft), terminal
+  (`done` / `cancelled`) filtered out, capped at ~3 with `+N` overflow.
 
-Tested against the M1 behavioral harness. ACs to be defined at milestone start.
+## Scope: verify + reshape (lightened)
+
+The "show epics on every branch" code shipped earlier untested, so this
+milestone is primarily verification — give the HUD behavioral coverage and
+close G-0188. Verification surfaced a real defect: under the original
+"show-all + accentuate-current" shape, the current epic is **lost to `+N`
+overflow** whenever it sorts past the cap (≥4 in-flight epics on the latest
+epic's branch — observed live on `milestone/M-0192`, where E-0047 fell into
+`+2`). The branch-contextual reshape (per the branch-contextual HUD-scope
+choice made for this epic) both fixes that and simplifies the code: the ritual
+branch renders only the current epic, so there is no list to overflow.
+
+## Why this milestone (per the epic)
+
+M2 of E-0047. Builds directly on the M1 harness — every assertion runs the
+real script against fixtures rather than grepping its source.
