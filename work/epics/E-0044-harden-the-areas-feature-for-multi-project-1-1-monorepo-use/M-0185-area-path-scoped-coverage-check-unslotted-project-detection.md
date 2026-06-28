@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: unslotted child directory under a coverage root raises area-unslotted
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: coverage law is inert without a declared coverage root
