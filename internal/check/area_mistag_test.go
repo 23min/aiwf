@@ -139,6 +139,17 @@ func TestAreaMistag_FiresOnForeignAreaWork(t *testing.T) {
 			t.Errorf("Message %q does not contain %q", f.Message, want)
 		}
 	}
+
+	// Paired control (mutation-hardening): the planning file ALONE — no
+	// foreign-area work — must NOT fire. This pins that the finding above is
+	// driven by the billing path matching billing's glob, not by an
+	// inverted/!-match artifact where unclaimed paths spuriously count as
+	// foreign. Without it, negating the foreign-match still passed this test
+	// because the planning path filled in for billing.
+	planningOnly := map[string]map[string]bool{"G-0001": {"work/gaps/G-0001-x.md": true}}
+	if got := AreaMistag(tr, areas, planningOnly, nil); len(got) != 0 {
+		t.Errorf("planning-only work must not fire (it matches no area glob), got %d: %+v", len(got), got)
+	}
 }
 
 // TestAreaMistag_SuppressedByAcknowledgement pins M-0181/AC-6: an entity that

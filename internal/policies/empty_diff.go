@@ -58,7 +58,7 @@ func PolicyEmptyDiffCommitsCarryMarker(root string) ([]Violation, error) {
 			Policy: "empty-diff-commits-carry-marker",
 			File:   f.Path,
 			Line:   line,
-			Detail: "file uses Plan.AllowEmpty = true but never references TrailerScope, TrailerAuditOnly, or TrailerForceFor; an unmarked empty-diff commit is indistinguishable from a no-op",
+			Detail: `file uses Plan.AllowEmpty = true but references none of the empty-commit markers (TrailerScope, TrailerAuditOnly, TrailerForceFor, or the "acknowledge-mistag" verb value); an unmarked empty-diff commit is indistinguishable from a no-op`,
 		})
 	}
 	return out, nil

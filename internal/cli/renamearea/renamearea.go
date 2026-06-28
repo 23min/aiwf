@@ -70,6 +70,7 @@ rename reverses via the same verb with swapped args.`,
 func Run(oldName, newName, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
+		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
 		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -88,6 +89,7 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
+		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
 		fmt.Fprintf(os.Stderr, "aiwf rename-area: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}

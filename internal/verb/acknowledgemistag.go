@@ -60,7 +60,7 @@ func AcknowledgeMistag(ctx context.Context, t *tree.Tree, id, actor, reason stri
 	}
 	for _, tr := range trailers {
 		if err := gitops.ValidateTrailer(tr.Key, tr.Value); err != nil {
-			//coverage:ignore defense-in-depth mirroring acknowledge-illegal: every trailer value here is already validated (canonID by t.ByID, actor by the human/ check), so this cannot fire via the public API; kept to catch a future malformed-trailer regression.
+			//coverage:ignore defense-in-depth mirroring acknowledge-illegal: every trailer value here is already validated upstream — canonID by t.ByID, and the actor by cliutil.ResolveActor's actorPattern at the CLI boundary (the verb's own human/ prefix check is necessary but not sufficient) — so this cannot fire via the public API; kept to catch a future malformed-trailer regression.
 			return nil, fmt.Errorf("aiwf acknowledge mistag: %w", err)
 		}
 	}
