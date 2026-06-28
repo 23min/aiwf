@@ -6,6 +6,15 @@ parent: E-0047
 depends_on:
     - M-0192
 tdd: required
+acs:
+    - id: AC-1
+      title: check --fast runs content rules without the git-history layer
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: statusline prefixes a health glyph from the cached --fast probe
+      status: open
+      tdd_phase: red
 ---
 ## Deliverable
 
@@ -50,3 +59,37 @@ M3 of E-0047, the keystone. Builds on the M1 harness — every statusline
 assertion runs the real script against fixtures. Establishes the shared
 tree-health signal that G-0289 (`aiwf doctor`) and G-0277 (`aiwf status`
 divergence flag) can later surface.
+
+### AC-1 — check --fast runs content rules without the git-history layer
+
+A `--fast` flag on `aiwf check` loads the tree without the trunk read and runs
+the in-memory content rules — `check.Run` (refs-resolve, status-valid,
+ids-unique, no-cycles, body-prose-id, AC rules, …) plus the cheap
+config-dependent tree rules (tree-discipline, area-unknown) — and skips the
+trunk-collision / provenance / FSM-history / metrics layer that makes a full
+check seconds-to-minutes scale.
+
+On a tree that is shape-clean but carries a content finding (an unresolved
+`depends_on` reference), `aiwf check --fast` reports the `refs-resolve` error
+and exits 1, where `aiwf check --shape-only` is blind to it and exits 0; on a
+clean tree `--fast` exits 0.
+
+Evidence: a fixture-tree test in `internal/cli/check` asserting the
+shape-only / fast / full contrast on a `refs-resolve` finding, and that a
+provenance/git-history-layer finding the full check emits is absent under
+`--fast` (the scope proof).
+
+### AC-2 — statusline prefixes a health glyph from the cached --fast probe
+
+The statusline prefixes `⚠` (red) when `aiwf check --fast` reports
+error-severity findings, and shows nothing when the tree is clean or carries
+only warnings — the repo's always-present benign warnings never pin the light
+on. The verdict is cached with a TTL + HEAD-fold exactly like the CI segment,
+so the hot render path reads a cached file and never runs a live check; the
+embedded copy stays byte-identical (existing M-0155 drift test).
+
+Evidence: M1-harness behavioral tests stub `aiwf` to a controlled JSON
+envelope — error findings → `⚠` present as the leading prefix; clean →
+absent; warnings-only → absent — plus a cache test asserting a second render
+within the TTL does not re-invoke the probe.
+
