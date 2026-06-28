@@ -6,6 +6,15 @@ parent: E-0047
 depends_on:
     - M-0191
 tdd: required
+acs:
+    - id: AC-1
+      title: Epic HUD renders the in-flight epic list on a non-ritual branch
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Ritual branch shows only the current epic and its milestone
+      status: open
+      tdd_phase: red
 ---
 ## Deliverable
 
@@ -36,3 +45,30 @@ branch renders only the current epic, so there is no list to overflow.
 
 M2 of E-0047. Builds directly on the M1 harness — every assertion runs the
 real script against fixtures rather than grepping its source.
+
+### AC-1 — Epic HUD renders the in-flight epic list on a non-ritual branch
+
+On a non-ritual branch (e.g. `main`), the epic HUD renders the in-flight list.
+`TestStatusline_M0192_AC1_NonRitualRendersEpicList` extends the M1 harness with
+an epic-fixture scaffold (`work/epics/<id>-*/epic.md` with a chosen status),
+runs `statusline.sh` with the repo as CWD on a non-ritual branch, strips ANSI,
+and asserts: non-terminal epics appear with the canonical glyph/color (`→`
+active, `○` proposed/draft); terminal epics (`done` / `cancelled`) are absent;
+and with more than the cap (3) in-flight, a `+N` overflow marker appears.
+Characterization of already-shipped behavior — the evidence is the new test,
+which fails if the list path regresses (empty HUD, wrong glyph, missing
+overflow).
+
+### AC-2 — Ritual branch shows only the current epic and its milestone
+
+On a ritual branch the HUD shows only the current epic and its milestone —
+nothing else. `TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic` scaffolds
+four or more in-flight epics, checks out an `epic/E-*` (and a `milestone/M-*`)
+branch whose epic sorts last, runs `statusline.sh`, and asserts: the current
+epic id appears (with its glyph), the milestone id appears inline on a
+milestone branch, **no other epic id appears**, and there is **no `+N`
+overflow marker**. The test fails against the pre-reshape "show-all +
+accentuate" code (where the current epic is swallowed into `+N` overflow) and
+passes after the branch-contextual rewrite. This is the genuine red→green of
+the milestone.
+
