@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: 'Skill teaches the area mental model: operate-everywhere vs aiwf constraints'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: 'Skill teaches the area lifecycle: add, set-area, mistag, acknowledge'
       status: open
