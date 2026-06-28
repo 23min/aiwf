@@ -60,7 +60,11 @@ With `areas.required: true` (the 1:1 monorepo case — every entity belongs to e
 
 - `aiwf add` **refuses** to create an untagged root entity — tag it, or pass `--path-hint` so the kernel derives one.
 - `aiwf check` raises a **blocking** `area-required` finding for any untagged root entity.
-- For work that genuinely belongs to no single project, tag it `global` — the reserved cross-cutting sentinel. It is always a valid value and is excluded from the mistag check.
+- For work that genuinely belongs to no single project, tag it `global` — the reserved cross-cutting sentinel. It is a valid `--area` value wherever an areas block is declared, and is excluded from the mistag check:
+
+```bash
+aiwf add adr --title "Adopt a shared CI cache" --area global
+```
 
 ## Related
 
