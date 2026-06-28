@@ -16,7 +16,7 @@ acs:
     - id: AC-2
       title: areas block rejects unknown top-level keys at load
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: unslotted child directory under a coverage root raises area-unslotted
       status: open
