@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: statusline prefixes a health glyph from the cached --fast probe
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Deliverable
