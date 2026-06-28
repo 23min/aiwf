@@ -7,10 +7,10 @@ status: proposed
 
 ## Goal
 
-The ritual lifecycle's gate model and commit/TDD model are coherent and match
-CLAUDE.md: approval gates batch local, reversible mutations safely (and never
-outward or timing-bearing ones), and milestone implementation commits plus TDD
-phase evidence are honest.
+The ritual lifecycle's commit/TDD model is coherent and matches CLAUDE.md:
+milestone implementation commits plus TDD phase evidence are honest, and the
+start/wrap rituals are internally consistent. The gate model itself is delivered
+by the foundation epic E-0050, which this epic builds on.
 
 ## Context
 
@@ -21,17 +21,22 @@ the wraps "keep per-action gates," which is false. (2) The milestone commit mode
 is incoherent: the implementation code is never staged (the wrap stages only the
 spec), and `tdd: required` phase promotes are bursted at wrap, collapsing the
 red-before-green timeline that is the only evidence the test came first. Filed as
-gaps G-0295 (gate), G-0293 (commit/TDD), with dependent ritual fixes and a deferred
-config knob.
+gaps G-0295 (gate) and G-0293 (commit/TDD), with dependent ritual fixes and a
+deferred config knob.
+
+Problem (1) — the gate fix, G-0295 — was **extracted into foundation epic E-0050**,
+which this epic depends on: the generalized declared-sequence gate and the
+wrap/release fixes land there first, so every milestone wrap in this epic runs
+under the corrected gate. E-0049 now covers the commit/TDD model (problem 2) and
+the remaining start/wrap ritual fixes.
 
 ## Scope
 
 ### In scope
 
-- **Generalize the declared-sequence gate** to any local-mutation sequence; fix the
-  wrap/release drift; write the local-vs-outward bright line into CLAUDE.md
-  (G-0295). **This is the program lead — it lands first, before the sibling content
-  epic, so every subsequent milestone wrap runs under batched gates.**
+- **Depends on E-0050** (gate-discipline foundation). The generalized
+  declared-sequence gate and the wrap/release ritual fixes land there; this epic
+  inherits the corrected gate for its own milestone wraps.
 - **Model 1 commit model:** commit implementation per AC on the milestone branch;
   phase promotes fire live during the cycle, never bursted at wrap (G-0293).
 - start-milestone review framing + wrap-milestone trailer-step structural test
@@ -40,14 +45,17 @@ config knob.
   sovereign-acts-land-off-trunk-on-trunk-based-repos ordering (G-0116, now
   unblocked — its blocker G-0059 is addressed).
 - aiwf.yaml declared-sequence-wraps opt-in knob (G-0296) — deferred; drop if the
-  Tier-1 rule suffices.
+  Tier-1 rule (delivered by E-0050) suffices.
 
 ### Out of scope
 
-- Skill-body content correctness and drift chokepoints (sibling content epic).
+- The gate model itself — generalizing the declared-sequence gate and fixing the
+  wrap/release drift (G-0295) — now lives in foundation epic E-0050.
+- Skill-body content correctness and drift chokepoints (sibling content epic
+  E-0048).
 - Epic-wrap lifecycle completion — scope-end-before-done, human-only-on-done, the
   wrap-closes-named-gaps sweep (G-0111). Its own decision-first future epic; kernel
-  -verb-heavy and distinct from this epic's gate/commit-model scope.
+  -verb-heavy and distinct from this epic's commit-model scope.
 - The remaining tier-C gaps: patch-in-kernel decision (G-0060), test-parallelism
   ship-to-consumers (G-0104), Codex materializer target (G-0178) — separate
   standing/deferred work. G-0175 (ritual trailer-key) is closed as superseded by
@@ -55,23 +63,24 @@ config knob.
 
 ## Constraints
 
-- The declared-sequence gate's bright line: batch local, reversible mutations that
-  occur at a single moment; exclude (a) outward/irreversible actions — push,
-  PR-create, tag-push, remote-delete, `--force` — and (b) timing-bearing mutations
-  (`tdd: required` phase promotes fire live).
-- G-0295 lands first (program lead) and ships its own structural tests; the
-  sibling epic's edit→test backstop lands afterward and guards everything later.
+- The bright line E-0050 establishes (batch local, reversible mutations; exclude
+  outward/irreversible actions and timing-bearing mutations) governs this epic too:
+  in particular `tdd: required` phase promotes are timing-bearing and fire live,
+  never batched (G-0293).
+- E-0050 lands before this epic begins, so every milestone wrap here runs under the
+  corrected declared-sequence gate; the sibling content epic E-0048's edit→test
+  backstop lands afterward and guards everything later.
 - Sovereign acts (`--force`) remain human-only; ADR-0010's branch model holds.
 
 ## Success criteria
 
-- [ ] No ungated mutating action remains in the wrap or release rituals; the
-      declared-sequence gate is documented and exercised.
 - [ ] A `tdd: required` milestone's implementation lands as per-AC commits, and its
       phase-ladder timestamps show `red` before `green` (live promotes, not a wrap
-      burst).
-- [ ] The gate-discipline drift the audit found is gone, verifiable against
-      CLAUDE.md's gate-discipline section.
+      burst) (G-0293).
+- [ ] The start-milestone review framing and the wrap-milestone trailer step are
+      fixed and structurally tested (G-0271, G-0219).
+- [ ] The start-ritual stale `branch-not-found` reference and the
+      sovereign-acts-on-trunk ordering are corrected (G-0224, G-0116).
 
 ## Open questions
 
@@ -81,11 +90,9 @@ config knob.
 
 ## Milestones
 
-<!-- execution order; G-0295 runs before the sibling content epic, the rest after -->
+<!-- execution order; runs after foundation epic E-0050 -->
 
-1. **[program lead]** Generalize declared-sequence gate + fix wrap/release drift (G-0295).
-   <!-- the sibling content epic runs here -->
-2. Model 1 commit + live phase promotes (G-0293).
-3. start-milestone review framing + wrap-milestone trailer test (G-0271, G-0219).
-4. start-ritual fixes: branch-not-found code (G-0224) + sovereign-acts-on-trunk ordering (G-0116).
-5. aiwf.yaml declared-sequence-wraps opt-in knob (G-0296) — optional/deferred.
+1. Model 1 commit + live phase promotes (G-0293).
+2. start-milestone review framing + wrap-milestone trailer test (G-0271, G-0219).
+3. start-ritual fixes: branch-not-found code (G-0224) + sovereign-acts-on-trunk ordering (G-0116).
+4. aiwf.yaml declared-sequence-wraps opt-in knob (G-0296) — optional/deferred.
