@@ -227,9 +227,13 @@ Enumeration is one `os.ReadDir` per declared root (immediate children only — a
 grandchild two levels deep is never flagged), reads the filesystem read-only, and
 never fails on a transient/permission IO error (the `roadmapCaseCollision`
 precedent). Only declared roots are enumerated — never a blanket walk — and
-dot-prefixed children (`.git` / `.github` / `.claude`) are skipped, so the
-"sidesteps `.git`/build noise" contract holds even for a `.` root. *Evidence:*
-the single-level (grandchild), non-dir-skip, dot-dir-skip, empty-root, and
+hidden (dot-prefixed) children (`.git` / `.github` / `.claude`) are skipped (the
+Unix dotfile convention; hidden dirs are tooling/VCS artifacts, never projects).
+The skip covers only *hidden* dirs — a `.` root still enumerates non-hidden
+top-level dirs (`docs/`, `node_modules/`), so point coverage at a dedicated
+project-parent root (`projects/`, `apps/`) rather than `.` unless every
+non-hidden top-level dir is genuinely a project. *Evidence:* the single-level
+(grandchild), non-dir-skip, hidden-dir-skip, empty-root, and
 indeterminate-stat-error cases in `TestAreaCoverage`.
 
 ### AC-7 — area-unslotted is AI-discoverable and coverage_roots is schema-documented
