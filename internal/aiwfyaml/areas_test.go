@@ -177,6 +177,24 @@ func TestRenameAreaMember_Errors(t *testing.T) {
 			t.Fatal("expected an error when members is not a sequence")
 		}
 	})
+	// yaml.v3 reports Column in runes, so a multibyte member earlier on a
+	// flow-style line shifts a later member's byte offset; the decode-verify
+	// guard in scalarByteSpan turns that mislocation into a SAFE REFUSAL — the
+	// doc is left byte-for-byte unchanged, never spliced at the wrong offset.
+	t.Run("mislocated scalar (flow-style multibyte) refuses safely", func(t *testing.T) {
+		t.Parallel()
+		src := "areas:\n  members: [café, billing]\n"
+		doc, _, err := ReadBytes([]byte(src))
+		if err != nil {
+			t.Fatalf("ReadBytes: %v", err)
+		}
+		if err := doc.RenameAreaMember("billing", "invoices"); err == nil {
+			t.Fatal("expected a safe refusal on a mislocated (rune-column) scalar")
+		}
+		if got := string(doc.Bytes()); got != src {
+			t.Errorf("doc must be unchanged on refusal\n got: %q\nwant: %q", got, src)
+		}
+	})
 }
 
 // TestReadBytes_DetectsAreasWithoutContracts pins that the areas block

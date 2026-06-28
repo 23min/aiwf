@@ -1,11 +1,16 @@
-// Package aiwfyaml reads and writes the `contracts:` block of the
-// consumer repo's aiwf.yaml without disturbing the rest of the file.
+// Package aiwfyaml reads and surgically edits two blocks of the
+// consumer repo's aiwf.yaml — `contracts:` and `areas:` — without
+// disturbing the rest of the file.
 //
-// The package owns one stretch of YAML — the `contracts:` mapping —
-// and leaves everything else byte-for-byte alone. Comments, blank
-// lines, key ordering, and indentation outside the block survive
-// every programmatic mutation; within the block, structure is
-// canonicalized on write.
+// It owns those two stretches of YAML and leaves everything else
+// byte-for-byte alone. Comments, blank lines, key ordering, and
+// indentation outside the edited region survive every programmatic
+// mutation. The two blocks differ in HOW they are edited: `contracts:`
+// is regenerated and spliced as a whole block (its structure is
+// canonicalized on write), whereas `areas:` is edited SURGICALLY —
+// `aiwf rename-area` rewrites only the renamed member's name token
+// (RenameAreaMember), so comments and sibling keys INSIDE the areas
+// block survive too (E-0044, M-0195).
 //
 // Two responsibilities:
 //
@@ -84,21 +89,19 @@ type Entry struct {
 // against the in-memory tree happen elsewhere).
 var idPattern = regexp.MustCompile(`^C-\d{3,}$`)
 
-// Doc is a parsed aiwf.yaml plus the byte ranges of the blocks aiwf
-// owns — the `contracts:` block and the `areas:` block. Doc carries
-// enough information to write an updated block back without round-
-// tripping the rest of the file.
+// Doc is a parsed aiwf.yaml plus the byte range of the `contracts:`
+// block (which is rewritten as a whole) and a flag for whether an
+// `areas:` block is present. Doc carries enough information to write an
+// updated block back without round-tripping the rest of the file.
 //
-// areasAt / hasAreas mirror contractsAt / hasContracts for the
-// `areas:` block (E-0044, M-0177): `aiwf rename-area` splices a
-// rewritten areas block back into the source bytes, leaving every
-// other byte — comments, blank lines, key ordering, the rest of the
-// file — untouched, exactly as SetContracts does for contracts.
+// hasAreas gates the surgical areas writer (E-0044, M-0195): RenameAreaMember
+// re-parses to locate the renamed member's name token and splices only those
+// bytes, so — unlike the contracts path — it needs no precomputed block range,
+// just the presence flag.
 type Doc struct {
 	raw          []byte
 	contractsAt  byteRange
 	hasContracts bool
-	areasAt      byteRange
 	hasAreas     bool
 }
 
@@ -132,7 +135,6 @@ func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 	doc := &Doc{
 		raw:         raw,
 		contractsAt: byteRange{start: len(raw), end: len(raw)},
-		areasAt:     byteRange{start: len(raw), end: len(raw)},
 	}
 	if root.Kind == 0 || len(root.Content) == 0 {
 		return doc, nil, nil
@@ -142,18 +144,13 @@ func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 		return nil, nil, fmt.Errorf("aiwf.yaml: top-level must be a YAML mapping, got %s", kindName(top.Kind))
 	}
 
-	// Detect the `areas:` block byte range for the area-member writer
-	// (E-0044, M-0177). Independent of the contracts: block — a repo may
-	// declare areas without contracts, and the contracts handling below
-	// returns early when no contracts: key is present, so areas detection
-	// must run first to survive that early return.
-	if areasIdx := findMappingKey(top, "areas"); areasIdx >= 0 {
-		areasKeyNode := top.Content[areasIdx]
-		start, end, err := blockByteRange(raw, top, areasKeyNode, areasIdx)
-		if err != nil { //coverage:ignore blockByteRange only errors when lineToByteOffset does, which it never does in practice (it returns len(raw) past EOF); defensive, mirrors the contracts path
-			return nil, nil, err
-		}
-		doc.areasAt = byteRange{start: start, end: end}
+	// Record whether an `areas:` block is present (E-0044, M-0195). The
+	// surgical areas writer (RenameAreaMember) re-parses to locate the renamed
+	// token, so it needs only this presence flag, not a precomputed byte range.
+	// Detected independently of the contracts: block — a repo may declare areas
+	// without contracts, and the contracts handling below returns early when no
+	// contracts: key is present.
+	if findMappingKey(top, "areas") >= 0 {
 		doc.hasAreas = true
 	}
 
@@ -256,7 +253,7 @@ func (d *Doc) RenameAreaMember(oldName, newName string) error {
 		return fmt.Errorf("area %q is not a declared member", oldName)
 	}
 	start, end, err := scalarByteSpan(d.raw, nameNode)
-	if err != nil { //coverage:ignore scalarByteSpan only errors on its own unreachable defensive guards
+	if err != nil {
 		return err
 	}
 	newToken := []byte(yamlScalar(newName))
@@ -264,11 +261,6 @@ func (d *Doc) RenameAreaMember(oldName, newName string) error {
 	out = append(out, d.raw[:start]...)
 	out = append(out, newToken...)
 	out = append(out, d.raw[end:]...)
-	// Keep areasAt consistent for any later operation on this Doc: the splice
-	// shifts the block's end by the token-length delta.
-	if start < d.areasAt.end {
-		d.areasAt.end += len(newToken) - (end - start)
-	}
 	d.raw = out
 	return nil
 }
@@ -291,10 +283,9 @@ func findMemberNameNode(members *yaml.Node, name string) *yaml.Node {
 					return v
 				}
 			}
-		default:
-			// A member node that is neither a bare string nor a name/paths
-			// mapping is not a valid member form (config.Load rejects it
-			// upstream) and cannot be the name we seek — skip it.
+		default: //coverage:ignore config.Load rejects a member node that is neither scalar nor mapping (memberKindError) upstream; this skip is defensive
+			// A member node that is neither a bare string nor a name/paths mapping
+			// is not a valid member form — skip it.
 		}
 	}
 	return nil
@@ -306,9 +297,17 @@ func findMemberNameNode(members *yaml.Node, name string) *yaml.Node {
 // position discriminates the quote style (ground truth, robust to yaml.v3 Style
 // flag combinations): a plain scalar's source is its value verbatim, so it ends
 // after len(Value) bytes; a quoted scalar ends at its matching close quote.
+//
+// yaml.v3 reports Column in runes, not bytes, so a multibyte member earlier on a
+// flow-style line (`members: [café, billing]`), or an anchored member, can shift
+// start off the token. The member lines aiwf documents are ASCII (`- name`), so
+// this is exact in practice — but rather than trust that, the located span is
+// verified to decode back to node.Value (across plain AND quoted styles alike).
+// A mismatch is a safe refusal: the caller writes nothing, instead of splicing
+// at the wrong offset and corrupting the file.
 func scalarByteSpan(raw []byte, node *yaml.Node) (start, end int, err error) {
 	lineStart, err := lineToByteOffset(raw, node.Line)
-	if err != nil { //coverage:ignore lineToByteOffset never errors (returns len past EOF); mirrors line 164
+	if err != nil { //coverage:ignore lineToByteOffset never errors (returns len past EOF); mirrors the contracts path
 		return 0, 0, err
 	}
 	start = lineStart + node.Column - 1
@@ -322,11 +321,21 @@ func scalarByteSpan(raw []byte, node *yaml.Node) (start, end int, err error) {
 		end, err = scanQuotedScalar(raw, start, '\'', false)
 	default:
 		end = start + len(node.Value)
-		if end > len(raw) || string(raw[start:end]) != node.Value { //coverage:ignore a plain scalar's source equals its decoded value for the ASCII names config permits
-			return 0, 0, fmt.Errorf("areas member name %q not found at byte %d", node.Value, start)
-		}
 	}
-	return start, end, err
+	if err != nil { //coverage:ignore scanQuotedScalar errors only on an unterminated quote, which yaml.v3 never parses into a node
+		return 0, 0, err
+	}
+	if end > len(raw) { //coverage:ignore a located span never overruns raw for a node from a successful parse
+		return 0, 0, fmt.Errorf("areas member name %q: located span overruns the source", node.Value)
+	}
+	// Verify the located span decodes back to the node's value — the uniform
+	// safety net for a mislocated start (see the rune-vs-byte Column note above),
+	// covering quoted styles too, not just plain.
+	var got string
+	if derr := yaml.Unmarshal(raw[start:end], &got); derr != nil || got != node.Value {
+		return 0, 0, fmt.Errorf("areas member name %q: located span %q does not decode to it (mislocated scalar)", node.Value, raw[start:end])
+	}
+	return start, end, nil
 }
 
 // scanQuotedScalar returns the byte offset just past the closing quote of a
