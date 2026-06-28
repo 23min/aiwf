@@ -1,7 +1,7 @@
 ---
 id: M-0193
 title: Statusline health indicator from a cached check-findings signal
-status: draft
+status: in_progress
 parent: E-0047
 depends_on:
     - M-0192
