@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: Generalized declared-sequence gate documented in CLAUDE.md and guidance
       status: open
+    - id: AC-2
+      title: aiwfx-release splits the two origin pushes into separate push gates
+      status: open
 ---
 
 ## Goal
@@ -34,4 +37,6 @@ and E-0049 milestone wraps inherit the corrected gate.
 ## Acceptance criteria
 
 ### AC-1 — Generalized declared-sequence gate documented in CLAUDE.md and guidance
+
+### AC-2 — aiwfx-release splits the two origin pushes into separate push gates
 
