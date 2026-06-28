@@ -1,7 +1,7 @@
 ---
 id: M-0192
 title: Statusline shows in-flight epics on every branch
-status: draft
+status: in_progress
 parent: E-0047
 depends_on:
     - M-0191
