@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: 'Skill teaches the area lifecycle: add, set-area, mistag, acknowledge'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Single unambiguous --path-hint derives area when --area is omitted
       status: met
