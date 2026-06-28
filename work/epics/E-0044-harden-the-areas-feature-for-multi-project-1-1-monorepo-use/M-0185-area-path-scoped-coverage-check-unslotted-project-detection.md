@@ -40,7 +40,7 @@ acs:
     - id: AC-8
       title: a dead coverage root or coverage-with-no-paths raises a warning
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
