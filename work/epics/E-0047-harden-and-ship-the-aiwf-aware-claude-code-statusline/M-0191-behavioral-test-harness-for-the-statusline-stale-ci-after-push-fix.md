@@ -4,6 +4,19 @@ title: Behavioral test harness for the statusline + stale-CI-after-push fix
 status: draft
 parent: E-0047
 tdd: required
+acs:
+    - id: AC-1
+      title: Behavioral test runs statusline.sh against a fixture and asserts real output
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: CI segment shows pending when the run's headSha differs from local HEAD
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Statusline cache key includes HEAD sha so a push invalidates a stale CI result
+      status: open
+      tdd_phase: red
 ---
 ## Deliverable
 
@@ -16,3 +29,10 @@ A behavioral test harness for `.claude/statusline.sh` (G-0187), plus the stale-C
 ## Why combined (per the epic)
 
 The harness proves itself by catching and fixing the clearest statusline bug; the stale-CI fix is its first behavioral target. Every later milestone (M2–M4) asserts against this harness.
+
+### AC-1 — Behavioral test runs statusline.sh against a fixture and asserts real output
+
+### AC-2 — CI segment shows pending when the run's headSha differs from local HEAD
+
+### AC-3 — Statusline cache key includes HEAD sha so a push invalidates a stale CI result
+
