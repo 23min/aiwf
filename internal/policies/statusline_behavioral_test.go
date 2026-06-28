@@ -622,3 +622,118 @@ func TestStatusline_M0193_AC2_CacheServedWithinTTL(t *testing.T) {
 		t.Errorf("AC-2 cache: second render within TTL must serve the cached \"warn\" verdict (probe not re-run)\n out: %q", second)
 	}
 }
+
+// --- G-0303: CI glyph aggregates across all workflows for HEAD --------------
+//
+// `gh run list` returns one entry per workflow run; the CI segment must reduce
+// them to the WORST state for the checked-out commit, so a failed workflow
+// (e.g. `go`) is never masked by a passing sibling (link-check, …) that happens
+// to be the most-recent run. Pre-fix the segment sampled only `.[0]`.
+
+// ghMultiRunJSON builds a STUB_GH_JSON array with several workflow runs for one
+// headSha; each run is a {conclusion, status} pair.
+func ghMultiRunJSON(headSha string, runs ...[2]string) string {
+	parts := make([]string, 0, len(runs))
+	for _, r := range runs {
+		parts = append(parts, `{"headSha":"`+headSha+`","conclusion":"`+r[0]+`","status":"`+r[1]+`"}`)
+	}
+	return "STUB_GH_JSON=[" + strings.Join(parts, ",") + "]"
+}
+
+// ciSegment returns the " · "-delimited segment carrying the CI glyph (the one
+// ending in the "ci" label), so assertions scope to it rather than the whole
+// line.
+func ciSegment(out string) string {
+	for seg := range strings.SplitSeq(out, " · ") {
+		if strings.HasSuffix(strings.TrimSpace(seg), "ci") {
+			return strings.TrimSpace(seg)
+		}
+	}
+	return ""
+}
+
+// TestStatusline_G0303_FailedWorkflowMaskedByPassingSibling is the core fix:
+// the latest run (.[0]) passed, but another workflow for the same commit
+// failed — the glyph must be ✗, not ✓.
+func TestStatusline_G0303_FailedWorkflowMaskedByPassingSibling(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	head := gitIn(t, repo, "rev-parse", "HEAD")
+	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"failure", "completed"})
+
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	if !strings.Contains(seg, "✗") {
+		t.Errorf("a failed workflow must render ✗ even when the latest run passed\n ci segment: %q", seg)
+	}
+	if strings.Contains(seg, "✓") {
+		t.Errorf("must not render ✓ when a sibling workflow failed\n ci segment: %q", seg)
+	}
+}
+
+// TestStatusline_G0303_AllWorkflowsSucceed: when every run for the commit
+// succeeded, the glyph is ✓ (no regression of the green path).
+func TestStatusline_G0303_AllWorkflowsSucceed(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	head := gitIn(t, repo, "rev-parse", "HEAD")
+	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"success", "completed"})
+
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	if !strings.Contains(seg, "✓") {
+		t.Errorf("all-success runs must render ✓\n ci segment: %q", seg)
+	}
+	if strings.Contains(seg, "✗") {
+		t.Errorf("all-success runs must not render ✗\n ci segment: %q", seg)
+	}
+}
+
+// TestStatusline_G0303_InProgressAmongSuccess: a still-running workflow (with no
+// failures) renders the pending glyph →.
+func TestStatusline_G0303_InProgressAmongSuccess(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	head := gitIn(t, repo, "rev-parse", "HEAD")
+	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"", "in_progress"})
+
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	if !strings.Contains(seg, "→") {
+		t.Errorf("an in-progress workflow (no failures) must render →\n ci segment: %q", seg)
+	}
+}
+
+// TestStatusline_G0303_StaleWhenNoRunForHead: runs exist only for a different
+// commit — the glyph stays the stale … (the aggregation preserves the
+// HEAD-staleness guard, G-0189).
+func TestStatusline_G0303_StaleWhenNoRunForHead(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	stub := ghMultiRunJSON("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", [2]string{"failure", "completed"})
+
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	if !strings.Contains(seg, "…") {
+		t.Errorf("a run for a different commit must render the stale glyph …\n ci segment: %q", seg)
+	}
+}
+
+// TestStatusline_G0303_SuccessWithSkippedSibling: a benign skipped sibling (a
+// path-filtered or if:-gated workflow) must not demote a passing commit to ? —
+// it still renders ✓. Pins the any-success (not all-success) green arm.
+func TestStatusline_G0303_SuccessWithSkippedSibling(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	head := gitIn(t, repo, "rev-parse", "HEAD")
+	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"skipped", "completed"})
+
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	if !strings.Contains(seg, "✓") {
+		t.Errorf("a skipped sibling must not demote a passing commit; want ✓\n ci segment: %q", seg)
+	}
+	if strings.Contains(seg, "?") {
+		t.Errorf("success + skipped must render ✓, not ?\n ci segment: %q", seg)
+	}
+}

@@ -308,27 +308,26 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   ttl=45
 
   fetch_ci() {
-    # $1 = branch, $2 = expected HEAD sha for the staleness check ("" to skip).
-    local b="$1" expected_sha="$2" out conc status sha
-    out="$(gh run list --branch "$b" --limit 1 --json conclusion,status,headSha 2>/dev/null)" || return 1
+    # $1 = branch, $2 = expected HEAD sha ("" → use the latest run's commit, the
+    # main-fallback proxy). Aggregates ALL workflow runs for the target commit
+    # to the worst state, so one failed workflow is never masked by a passing
+    # sibling that happens to be the most-recent run (G-0303). Returns the stale
+    # glyph (…) when no run exists for the expected HEAD — its verdict would be
+    # for a different commit (G-0189). Any failure → ✗; else any still-running →
+    # →; else any success → ✓ (tolerating benign skipped/neutral siblings from
+    # path-filtered or if:-gated workflows); else ? (e.g. all skipped).
+    local b="$1" expected_sha="$2" out
+    out="$(gh run list --branch "$b" --limit 30 --json conclusion,status,headSha 2>/dev/null)" || return 1
     [ -z "$out" ] || [ "$out" = "[]" ] && return 1
-    conc="$(printf '%s' "$out" | jq -r '.[0].conclusion // empty' 2>/dev/null)"
-    status="$(printf '%s' "$out" | jq -r '.[0].status // empty' 2>/dev/null)"
-    sha="$(printf '%s' "$out" | jq -r '.[0].headSha // empty' 2>/dev/null)"
-    if [ -n "$expected_sha" ] && [ -n "$sha" ] && [ "$sha" != "$expected_sha" ]; then
-      # Latest run is for a different commit than local HEAD — its verdict
-      # does not reflect what is checked out. Show stale-pending, not the
-      # previous commit's result. (G-0189)
-      printf '…'
-    elif [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "requested" ] || [ "$status" = "waiting" ]; then
-      printf '→'
-    else
-      case "$conc" in
-        success)  printf '✓'    ;;
-        failure|cancelled|timed_out|action_required|startup_failure) printf '✗' ;;
-        *)        printf '?'    ;;
-      esac
-    fi
+    printf '%s' "$out" | jq -r --arg sha "$expected_sha" '
+      (if $sha == "" then (.[0].headSha // "") else $sha end) as $target
+      | map(select(.headSha == $target)) as $runs
+      | if   ($runs | length) == 0 then "…"
+        elif any($runs[]; .conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out" or .conclusion=="action_required" or .conclusion=="startup_failure") then "✗"
+        elif any($runs[]; .status=="in_progress" or .status=="queued" or .status=="requested" or .status=="waiting") then "→"
+        elif any($runs[]; .conclusion=="success") then "✓"
+        else "?"
+        end' 2>/dev/null
   }
 
   use_cache=false
