@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: statusline prefixes a health glyph from the cached --fast probe
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Deliverable
 
