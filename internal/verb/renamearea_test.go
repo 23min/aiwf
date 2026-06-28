@@ -74,7 +74,7 @@ func TestRenameArea_RewritesMemberAndEntities(t *testing.T) {
 	doc := mustReadAreaDoc(t)
 
 	res, err := RenameArea(context.Background(), tr, doc,
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -120,11 +120,10 @@ func TestRenameArea_RewritesMemberAndEntities(t *testing.T) {
 }
 
 // TestRenameArea_PreservesMemberPaths pins the verb-leg of AC-4 (E-0044,
-// M-0179): the order-preserving rebuild renames only the matching member's
-// name and retains every member's paths, mapping config.Member to
-// aiwfyaml.AreaMember at the SetAreas call. The rewritten aiwf.yaml carries the
-// renamed member's paths under its new name and the non-renamed member's paths
-// untouched.
+// M-0179): the surgical rename rewrites only the matching member's name token
+// and leaves every member's paths byte-for-byte (M-0195). The rewritten
+// aiwf.yaml carries the renamed member's paths under its new name and the
+// non-renamed member's paths untouched.
 func TestRenameArea_PreservesMemberPaths(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{"E-0001": "platform"})
@@ -136,7 +135,7 @@ func TestRenameArea_PreservesMemberPaths(t *testing.T) {
 		{Name: "platform", Paths: []string{"projects/platform/**"}},
 		{Name: "billing", Paths: []string{"svc/billing/**"}},
 	}
-	res, err := RenameArea(context.Background(), tr, d, members, "", "platform", "infra", "human/test")
+	res, err := RenameArea(context.Background(), tr, d, members, "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -174,7 +173,7 @@ func TestRenameArea_NoReferencingEntities(t *testing.T) {
 	doc := mustReadAreaDoc(t)
 
 	res, err := RenameArea(context.Background(), tr, doc,
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -201,7 +200,7 @@ func TestRenameArea_PreservesDefaultLabel(t *testing.T) {
 		t.Fatalf("ReadBytes: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, d,
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "untagged", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "infra", "human/test")
 	if err != nil {
 		t.Fatalf("RenameArea: %v", err)
 	}
@@ -235,7 +234,7 @@ func TestRenameArea_ValidationRefusals(t *testing.T) {
 				doc = mustReadAreaDoc(t)
 			}
 			res, err := RenameArea(context.Background(), tr, doc,
-				members, "", tc.old, tc.new, "human/test")
+				members, tc.old, tc.new, "human/test")
 			if err == nil {
 				t.Fatalf("expected error, got Plan=%v", res)
 			}
@@ -256,7 +255,7 @@ func TestRenameArea_UndeclaredErrorNamesDeclaredSet(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{"E-0001": "platform"})
 	_, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "nope", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "nope", "infra", "human/test")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -277,7 +276,7 @@ func TestRenameArea_RefusesGlobalNewName(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{"E-0001": "platform"})
 	res, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", entity.AreaGlobal, "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", entity.AreaGlobal, "human/test")
 	if err == nil {
 		t.Fatalf("expected refusal renaming to the reserved %q, got Plan=%v", entity.AreaGlobal, res)
 	}
@@ -289,9 +288,9 @@ func TestRenameArea_RefusesGlobalNewName(t *testing.T) {
 	}
 }
 
-// TestRenameArea_DocWithoutAreasBlockErrors covers the SetAreas
+// TestRenameArea_DocWithoutAreasBlockErrors covers the RenameAreaMember
 // refusal seam: validation passes (members says the area is declared)
-// but the loaded doc carries no areas block, so the splice errors and
+// but the loaded doc carries no areas block, so the rewrite errors and
 // the verb surfaces it wrapped. In practice config and the doc read the
 // same file so this divergence can't arise, but the guard is real code.
 func TestRenameArea_DocWithoutAreasBlockErrors(t *testing.T) {
@@ -302,7 +301,7 @@ func TestRenameArea_DocWithoutAreasBlockErrors(t *testing.T) {
 		t.Fatalf("ReadBytes: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, d,
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "infra", "human/test")
 	if err == nil {
 		t.Fatalf("expected error, got Plan=%v", res)
 	}
@@ -321,7 +320,7 @@ func TestRenameArea_MissingEntityFileErrors(t *testing.T) {
 		t.Fatalf("remove entity file: %v", err)
 	}
 	res, err := RenameArea(context.Background(), tr, mustReadAreaDoc(t),
-		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "", "platform", "infra", "human/test")
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "infra", "human/test")
 	if err == nil {
 		t.Fatalf("expected error for missing entity file, got Plan=%v", res)
 	}

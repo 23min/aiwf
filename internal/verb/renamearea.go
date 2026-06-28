@@ -23,9 +23,9 @@ import (
 // grouping view buckets them into the untagged complement); this verb
 // closes that hole.
 //
-// members and defaultLabel are the consumer's declared areas (the
-// validated single source of truth from config.Load, passed by the CLI
-// layer); the verb never invents members. doc is the parsed aiwf.yaml
+// members is the consumer's declared areas (the validated single source
+// of truth from config.Load, passed by the CLI layer); the verb never
+// invents members and reads it only to validate the rename. doc is the parsed aiwf.yaml
 // the CLI loads for the comment-preserving splice, mirroring how
 // ContractBind receives its aiwfyaml.Doc.
 //
@@ -49,7 +49,7 @@ func RenameArea(
 	t *tree.Tree,
 	doc *aiwfyaml.Doc,
 	members []config.Member,
-	defaultLabel, oldName, newName, actor string,
+	oldName, newName, actor string,
 ) (*Result, error) {
 	_ = ctx
 	if doc == nil {
@@ -85,19 +85,12 @@ func RenameArea(
 		return nil, fmt.Errorf("area %q is already a declared member; declared areas: %s", newName, declaredList(names))
 	}
 
-	// Rewrite the member set, preserving display order AND each member's
-	// paths — only the renamed entry's name changes, in place. Map to the
-	// aiwfyaml writer's local member shape at the splice (config stays the
-	// single source of truth; aiwfyaml keeps its zero-dep-on-config layering).
-	next := make([]aiwfyaml.AreaMember, len(members))
-	for i, m := range members {
-		name := m.Name
-		if name == oldName {
-			name = newName
-		}
-		next[i] = aiwfyaml.AreaMember{Name: name, Paths: m.Paths}
-	}
-	if err := doc.SetAreas(next, defaultLabel); err != nil {
+	// Surgically rewrite only the renamed member's name token in aiwf.yaml,
+	// leaving every other byte of the areas block — comments, sibling keys
+	// (default, required, any future key), paths, formatting — untouched
+	// (E-0044, M-0195). The whole-block regeneration this replaced silently
+	// dropped every sibling key on rewrite.
+	if err := doc.RenameAreaMember(oldName, newName); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 

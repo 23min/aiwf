@@ -1,22 +1,24 @@
 ---
-id: M-0195
+id: M-0208
 title: rename-area preserves comments and sibling keys in the areas block on rename
-status: in_progress
+status: done
+prior_ids:
+    - M-0195
 parent: E-0044
 tdd: required
 acs:
     - id: AC-1
       title: Surgical member rename preserves all other areas-block bytes
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: rename-area preserves areas.required and inner areas-block comments end-to-end
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: rename-area preserves an unmodeled areas sub-key (forward-compat)
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -110,11 +112,68 @@ structural form of the drop-proofing guarantee.
 
 ## References
 
-- `internal/aiwfyaml/aiwfyaml.go` — `SetAreas`, `marshalAreasBlock`, `replaceAreas`,
-  `lineToByteOffset`, `yamlScalar` (the writer this milestone reworks).
-- `internal/verb/renamearea.go` / `internal/cli/renamearea/renamearea.go` — the verb and CLI seam
-  (`cliutil.ConfiguredAreaRequired` already exists).
+- `internal/aiwfyaml/aiwfyaml.go` — `RenameAreaMember` + `scalarByteSpan` / `scanQuotedScalar` /
+  `yamlScalar` (the surgical writer this milestone introduced, replacing the removed whole-block
+  `SetAreas` / `marshalAreasBlock` / `replaceAreas`).
+- `internal/verb/renamearea.go` / `internal/cli/renamearea/renamearea.go` — the verb and CLI seam.
 - M-0177 — the `rename-area` verb this hardens.
 - M-0178 — the `areas.required` knob whose silent drop this fixes.
 - M-0185 — the dependent scoped-coverage milestone (`coverage_roots`).
 - G-0287 — the member-level strict-key guard (the read-side analog of this no-silent-loss principle).
+
+## Work log
+
+- **AC-1 — surgical writer.** `aiwfyaml.RenameAreaMember` + `findMemberNameNode` / `scalarByteSpan`
+  / `scanQuotedScalar`, with a byte-identity matrix across member forms. · commit f9f38443 · tests green
+- **AC-2 — verb switch + retirement.** `rename-area` routes through the surgical writer; the
+  whole-block `SetAreas` / `marshalAreasBlock` / `replaceAreas` / `AreaMember` chain removed; an
+  end-to-end test pins `required` + inner-comment preservation. · commit 6b4b966e · tests green
+- **AC-3 — forward-compat pin.** An unmodeled `coverage_roots:` key + comment survive a rename,
+  proving M-0185's knob round-trips with zero writer change. · commit 69d519ae · tests green
+- **Corrective (post-review).** Uniform decode-verify guard in `scalarByteSpan` closes the
+  quoted-scalar mislocation window and makes the safety guard reachable + tested; dead `areasAt`
+  state removed; package doc refreshed. · commit e34a340c · tests green
+
+The per-AC `red → green → done` phase timeline is in `aiwf history M-0208/AC-<N>`.
+
+## Decisions made during implementation
+
+- **Surgical single-token rewrite over whole-block regeneration.** A rename changes exactly one
+  scalar, so splice only that token and never regenerate the block. Makes the no-drop guarantee
+  *structural* and forward-proofs every future `areas:` key. Surfaced from the "preserve comments
+  too" requirement; validated by the `wf-rethink` review (KEEP). Recorded here + in Context /
+  Design notes; no separate ADR (a milestone-internal design choice).
+- **Future-gap folded into M-0185, not a standalone gap.** The areas-block strict-key guard belongs
+  with the milestone that adds `coverage_roots`; recorded as a Design note in M-0185.
+- **Id-collision resolution.** Parallel-branch races against trunk resolved via `aiwf reallocate`
+  (M-0195 → M-0208, G-0295 → G-0302), preserving `prior_ids` and cross-references.
+
+## Validation
+
+- `go build ./...` green; `go vet` clean; `golangci-lint run` 0 issues.
+- `go test` green across `internal/aiwfyaml`, `internal/verb`, `internal/config`, `internal/cli/integration`.
+- `make ci` green (vet / lint / test-cov / self-check, 29 steps).
+- `make coverage-gate` green (diff-scoped coverage audit + firing-fixture meta-gate + no-stale-allowlist).
+- `aiwf check`: 0 errors.
+
+## Deferrals
+
+- None as a standalone gap. The areas-block strict-key guard (forward-compat hardening) is folded
+  into M-0185's Design notes — the milestone that introduces `coverage_roots`.
+
+## Reviewer notes
+
+- **Independent two-lens review (fresh-context), run before wrap.** `wf-review-code`: APPROVE — an
+  adversarial input matrix (flow-style, deep indent, CRLF, overlapping names, bidi multibyte) could
+  not corrupt a file; all load-bearing claims verified by measurement. `wf-rethink`: KEEP — the
+  surgical splice beats both alternatives (node re-encode churns formatting; regenerate + guard
+  still drops comments); removing the whole-block writer is justified (no verb adds/removes members).
+- **Convergent finding, addressed (commit e34a340c).** The byte-span locator uses yaml.v3's
+  rune-based `Column`; the original content-equality guard covered only the plain branch (a false
+  `coverage:ignore` rationale + a quoted-branch silent-corruption window). Fixed with a *uniform*
+  decode-verify across all styles + a flow-style multibyte safe-refusal test; the latent AC-1
+  empty-`default` coverage gap was closed in the same pass.
+- **Known limitation (documented, not a defect).** Exotic member-name shapes (flow-style multibyte,
+  anchored, block-scalar) make `rename-area` safely *refuse* (write nothing) rather than rename — a
+  proportionate trade-off for the 1:1-monorepo ASCII-name target; making `Column` rune-aware is
+  YAGNI for that input class.

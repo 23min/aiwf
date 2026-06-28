@@ -94,19 +94,19 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		return cliutil.ExitInternal
 	}
 
-	// The full member shape (label + paths) so the rename preserves each
-	// member's paths (E-0044, M-0179); the default label still comes through
-	// ConfiguredAreas (name-only). The handler has no *config.Config in scope,
-	// so it reads through the cliutil helpers rather than config directly.
+	// The declared member set, for the verb's rename validation (E-0044,
+	// M-0179). The handler has no *config.Config in scope, so it reads through
+	// the cliutil helper rather than config directly. The surgical writer
+	// (M-0195) preserves the default label and every other areas byte, so the
+	// verb no longer needs it threaded through.
 	members := cliutil.ConfiguredAreaMembersFull(rootDir)
-	_, defaultLabel := cliutil.ConfiguredAreas(rootDir)
 	doc, _, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
-	result, err := verb.RenameArea(ctx, tr, doc, members, defaultLabel, oldName, newName, actorStr)
+	result, err := verb.RenameArea(ctx, tr, doc, members, oldName, newName, actorStr)
 	pctx := cliutil.ProvenanceContext{
 		Actor:     actorStr,
 		Principal: strings.TrimSpace(principal),
