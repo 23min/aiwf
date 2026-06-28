@@ -141,7 +141,7 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentScopedToTarget(t *testing.T) {
 // AllowEmpty semantics.
 func writeAcknowledgmentCommit(t *testing.T, root, targetSHA, reason string) {
 	t.Helper()
-	subject := "aiwf acknowledge-illegal " + targetSHA[:min(8, len(targetSHA))]
+	subject := "aiwf acknowledge illegal " + targetSHA[:min(8, len(targetSHA))]
 	trailers := []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "acknowledge-illegal"},
 		{Key: gitops.TrailerForceFor, Value: targetSHA},

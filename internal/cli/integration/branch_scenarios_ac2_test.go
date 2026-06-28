@@ -254,7 +254,7 @@ func TestBranchScenarios_AC2_M0106Paths(t *testing.T) {
 		// FindingHintContainsAll. The unit test
 		// TestIsolationEscape_AC12_HintTextNamesAllOverridePaths
 		// pins the strict anchor set (originally 4 markers;
-		// M-0159/AC-9 added `aiwf acknowledge-illegal` for 5 total);
+		// M-0159/AC-9 added `aiwf acknowledge illegal` for 5 total);
 		// this E2E scenario is intentionally weaker — pins
 		// presence-in-envelope, not exact wording. The strict text
 		// remains pinned by the unit.

@@ -234,6 +234,109 @@ func TestRegisterFormatCompletion(t *testing.T) {
 	}
 }
 
+// writeAreaCompletionRepo drops an aiwf.yaml with a two-member areas block
+// into a fresh tempdir so the area completers (which read cwd via
+// ResolveRoot) have a declared set to offer. Returns the root.
+func writeAreaCompletionRepo(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
+		[]byte("areas:\n  members:\n    - platform\n    - billing\n"), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+	return root
+}
+
+// TestCompleteAreaFlag_OffersGlobal pins M-0184/AC-7(b): the --area flag
+// completion (add --area, and the list/show/status read filters) offers the
+// reserved `global` sentinel in addition to every declared member, so
+// operators can tab to the cross-cutting escape valve.
+func TestCompleteAreaFlag_OffersGlobal(t *testing.T) {
+	chdir(t, writeAreaCompletionRepo(t))
+	got, dir := cliutil.CompleteAreaFlag()(nil, nil, "")
+	if dir != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("directive = %v, want NoFileComp", dir)
+	}
+	set := append([]string{}, got...)
+	sort.Strings(set)
+	want := []string{"billing", "global", "platform"}
+	if diff := cmp.Diff(want, set); diff != "" {
+		t.Errorf("--area flag completion mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestCompleteAreaFlag_NoBlockOffersNothing pins the graceful-no-op edge of
+// M-0184/AC-7(b): with an aiwf.yaml present but NO areas block, the --area
+// completion offers nothing — not even the reserved `global` sentinel,
+// since the field is inert until a block is declared (M-0171) and
+// `add --area global` is a usage error there (AC-4). Covers the no-block
+// branch of areaValueCompletions deterministically (config present so
+// ResolveRoot succeeds, members empty).
+func TestCompleteAreaFlag_NoBlockOffersNothing(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+	chdir(t, root)
+	got, dir := cliutil.CompleteAreaFlag()(nil, nil, "")
+	if dir != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("directive = %v, want NoFileComp", dir)
+	}
+	if len(got) != 0 {
+		t.Errorf("no-block --area completion = %v, want empty (field inert without a block)", got)
+	}
+}
+
+// TestCompleteAreaValueArg_OffersGlobal pins M-0184/AC-7(b) for the
+// settable-value positional (set-area's <member>): it offers `global`
+// alongside the declared members, at the configured position only.
+func TestCompleteAreaValueArg_OffersGlobal(t *testing.T) {
+	chdir(t, writeAreaCompletionRepo(t))
+	fn := cliutil.CompleteAreaValueArg(1)
+
+	t.Run("at the member position offers members plus global", func(t *testing.T) {
+		got, dir := fn(nil, []string{"E-0001"}, "")
+		if dir != cobra.ShellCompDirectiveNoFileComp {
+			t.Errorf("directive = %v, want NoFileComp", dir)
+		}
+		set := append([]string{}, got...)
+		sort.Strings(set)
+		want := []string{"billing", "global", "platform"}
+		if diff := cmp.Diff(want, set); diff != "" {
+			t.Errorf("set-area member completion mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("at the wrong position offers nothing", func(t *testing.T) {
+		got, _ := fn(nil, nil, "")
+		if len(got) != 0 {
+			t.Errorf("position 0 should offer nothing for a position-1 completer, got %v", got)
+		}
+	})
+}
+
+// TestCompleteAreaArg_OmitsGlobal pins M-0184/AC-7(b)'s exclusion: the
+// rename-area <old> positional completion offers only declared members and
+// NEVER the reserved `global` sentinel — global is not a renameable member.
+func TestCompleteAreaArg_OmitsGlobal(t *testing.T) {
+	chdir(t, writeAreaCompletionRepo(t))
+	got, dir := cliutil.CompleteAreaArg(0)(nil, nil, "")
+	if dir != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("directive = %v, want NoFileComp", dir)
+	}
+	for _, g := range got {
+		if g == entity.AreaGlobal {
+			t.Errorf("rename-area <old> completion must not offer the reserved %q sentinel; got %v", entity.AreaGlobal, got)
+		}
+	}
+	set := append([]string{}, got...)
+	sort.Strings(set)
+	want := []string{"billing", "platform"}
+	if diff := cmp.Diff(want, set); diff != "" {
+		t.Errorf("rename-area <old> completion mismatch (-want +got):\n%s", diff)
+	}
+}
+
 // newCompletionFixtureRepo builds a small synthetic planning tree
 // under a tempdir and returns the root. Three entities: one epic and
 // two milestones. Synthetic content per CLAUDE.md test conventions —

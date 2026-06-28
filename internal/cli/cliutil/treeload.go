@@ -83,7 +83,35 @@ func ConfiguredAreaMembers(rootDir string) []string {
 	if err != nil || cfg == nil {
 		return nil
 	}
+	return cfg.Areas.MemberNames()
+}
+
+// ConfiguredAreaMembersFull returns the consumer's declared workstream areas
+// with their full label+location shape (E-0044, M-0179) — the member set the
+// `aiwf rename-area` writer needs so it can preserve each member's `paths`
+// across a rename. Returns nil when no areas block is declared (or aiwf.yaml is
+// absent/unreadable). The name-only readers stay on ConfiguredAreaMembers /
+// ConfiguredAreas (derived via MemberNames); only rename-area, which writes the
+// block back, reads the full members.
+func ConfiguredAreaMembersFull(rootDir string) []config.Member {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return nil
+	}
 	return cfg.Areas.Members
+}
+
+// ConfiguredAreaRequired returns the consumer's `aiwf.yaml: areas.required`
+// flag (M-0178), or false when no areas block is declared (or aiwf.yaml is
+// absent/unreadable). The single source of truth the `aiwf add` write-time
+// refusal reads — the verb-time twin of the M-0178 area-required check.
+// Tolerant of a missing aiwf.yaml so the dispatcher calls it unconditionally.
+func ConfiguredAreaRequired(rootDir string) bool {
+	cfg, err := config.Load(rootDir)
+	if err != nil || cfg == nil {
+		return false
+	}
+	return cfg.Areas.Required
 }
 
 // ConfiguredAreas returns the consumer's declared workstream areas from
@@ -97,7 +125,7 @@ func ConfiguredAreas(rootDir string) (members []string, defaultLabel string) {
 	if err != nil || cfg == nil {
 		return nil, ""
 	}
-	return cfg.Areas.Members, cfg.Areas.Default
+	return cfg.Areas.MemberNames(), cfg.Areas.Default
 }
 
 // ConfiguredTrunkBranchShortName returns the consumer's trunk short

@@ -112,6 +112,49 @@ var hintTable = map[string]string{
 	// or removing the field.
 	"area-unknown": "the entity's `area` is not in the declared set — fix the typo to match a member of `aiwf.yaml: areas.members`, add the value to that member set if it's a legitimate new workstream, or remove the `area` field; absence and an absent `areas` block are never flagged",
 
+	// M-0178 area-required: the entity has no `area` but the consumer opted
+	// into strictness via `aiwf.yaml: areas.required: true`. The remediation
+	// is the M-0183 tag verb (`aiwf set-area <id> <member>`) or relaxing the
+	// knob. Distinct from area-unknown (present-⇒-declared); this is
+	// present-at-all.
+	"area-required": "the entity has no `area` but `aiwf.yaml: areas.required` is set — tag it with `aiwf set-area <id> <member>` (a declared member of areas.members), or remove `areas.required` from aiwf.yaml if untagged entities are acceptable",
+
+	// M-0180 area-dead-glob: a declared area's `paths:` glob matches no real
+	// file or directory — dead config (a renamed / deleted / typo'd path).
+	// Per-glob; warning by default, error under areas.required. The
+	// remediation is fixing the glob, recreating the path, or dropping it.
+	"area-dead-glob": "an `aiwf.yaml: areas.members` path glob matches no file or directory — correct the glob to the path's real location, recreate the moved/renamed directory, or remove the dead glob from that member's `paths:`",
+
+	// M-0180 area-overlap: two declared areas' `paths:` globs both claim the
+	// same directory — ambiguous attribution. Warning by default, error under
+	// areas.required. The remediation is to make the globs disjoint.
+	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
+
+	// M-0185 area-unslotted: an immediate child directory of a declared
+	// coverage root (aiwf.yaml: areas.coverage_roots) is claimed by no area's
+	// `paths:` glob — an unslotted project. Warning by default, error under
+	// areas.required. The remediation is to slot it into an area, narrow the
+	// coverage root, or drop the root.
+	"area-unslotted": "a directory under an `aiwf.yaml: areas.coverage_roots` entry is claimed by no area's `paths:` glob — slot it into an area (add the directory to a member's `paths:`), or remove the coverage root if that subtree is not a project-tiling scope; absence of a coverage root makes this check inert",
+
+	// M-0185 area-coverage-root-missing: a declared coverage root resolves to
+	// no directory (typo, deleted, or a file) — dead config, the coverage
+	// analogue of area-dead-glob. A silently-skipped dead root gives false
+	// confidence that coverage is active.
+	"area-coverage-root-missing": "an `aiwf.yaml: areas.coverage_roots` entry points at no directory — correct the path to the real coverage-scope directory, or remove the dead entry; a dead root silently disables coverage for that scope",
+
+	// M-0185 area-coverage-no-paths: coverage_roots is declared but no area
+	// declares `paths:`, so the path oracle is dormant and coverage is inert.
+	// Surfaced rather than silently no-op'd.
+	"area-coverage-no-paths": "`aiwf.yaml: areas.coverage_roots` is declared but no area declares `paths:`, so coverage has nothing to match against and is inert — add `paths:` to a member (areas.members[].paths), or remove the coverage roots if path-based coverage isn't wanted yet",
+
+	// M-0181 area-mistag: an entity's linked commits (via the aiwf-entity
+	// trailer) touched only a DIFFERENT area's `paths:` territory than the one
+	// the entity is tagged to. Warning only — never escalated, because
+	// cross-cutting work is legitimate. The remediation is to retag the entity
+	// (`aiwf set-area`) or, if the work really is cross-cutting, acknowledge it.
+	"area-mistag": "the entity's `area` tag and its commits disagree — its work landed entirely in another area's `paths:` territory; fix the tag with `aiwf set-area`, or if the work is genuinely cross-cutting, acknowledge it (the acknowledge path, M-0181)",
+
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
 	// catches. Three subcodes cover the territory: illegal-transition
@@ -156,7 +199,7 @@ var hintTable = map[string]string{
 	"provenance-authorization-ended":                    "the scope was already ended (terminal-promote or revoke); open a fresh scope with `aiwf authorize <id> --to <agent>`",
 	"provenance-no-active-scope":                        "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
 	"provenance-audit-only-non-human":                   "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
-	"provenance-untrailered-entity-commit":              "the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge-illegal <sha> --for-entity <id> --reason \"...\"` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason \"...\"` or `aiwf cancel <id> --audit-only --reason \"...\"` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.",
+	"provenance-untrailered-entity-commit":              "the commit modified this entity via plain `git commit`; two recovery paths: (1) `aiwf acknowledge illegal <sha> --for-entity <id> --reason \"...\"` — SHA-verified per-(commit, entity) ack, the kernel walks `git diff-tree` to confirm the binding (G-0231 item 3); (2) `aiwf promote <id> <state> --audit-only --reason \"...\"` or `aiwf cancel <id> --audit-only --reason \"...\"` — per-entity blanket, no SHA binding. Use (1) for body-edit acks where the SHA is real and the kernel should verify; use (2) for status flips where the per-entity blanket fits. Either clears the matching finding on the next push.",
 	"provenance-untrailered-entity-commit/squash-merge": "the squash-merge from the GitHub UI dropped the original commits' aiwf-verb trailers; switch the repo's merge strategy to rebase-merge or `--no-ff` merge for branches that touch entity files, OR run `aiwf <verb> <id> --audit-only --reason \"...\"` per entity touched to backfill the audit trail",
 	"provenance-untrailered-scope-undefined":            "the audit range is undefined; configure an upstream (`git push -u origin <branch>`) or pass `aiwf check --since <ref>` to opt back in",
 
@@ -176,9 +219,9 @@ var hintTable = map[string]string{
 	// cross-reference to the old id, and stamps the proper
 	// `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers so
 	// `aiwf history` bridges old→new. Sovereign-human override via
-	// `aiwf acknowledge-illegal` is the post-hoc silencing path for
+	// `aiwf acknowledge illegal` is the post-hoc silencing path for
 	// renames that were deliberate.
-	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
+	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
 
 	// Verb-emitted findings (from internal/verb/).
 	"unexpected-tree-file": "remove the file or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
@@ -207,7 +250,7 @@ var hintTable = map[string]string{
 	// or in-place sovereign override is the right shape. Lineage via
 	// `aiwf history` covers M-0106 (original 2-path hint) and
 	// M-0159/AC-9 (acknowledge-illegal addition).
-	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge-illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
+	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

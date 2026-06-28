@@ -158,13 +158,24 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	archiveThreshold := 0
 	archiveThresholdSet := false
 	var areaMembers []string
+	var areaPaths []check.AreaPaths
+	var coverageRoots []string
+	areaRequired := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
-		areaMembers = cfg.Areas.Members
+		areaMembers = cfg.Areas.MemberNames()
+		areaRequired = cfg.Areas.Required
+		coverageRoots = cfg.Areas.CoverageRoots
+		// Project the declared members to the check package's
+		// config-agnostic AreaPaths so the path-axis rules (dead-glob)
+		// stay free of any aiwf.yaml type, the M-0171/AC-4 boundary.
+		for _, m := range cfg.Areas.Members {
+			areaPaths = append(areaPaths, check.AreaPaths{Name: m.Name, Paths: m.Paths})
+		}
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
@@ -186,10 +197,65 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// when no areas block is declared (empty member set).
 	findings = append(findings, check.AreaUnknown(tr, areaMembers)...)
 
+	// M-0178: area-required is the present-at-all chokepoint for the 1:1
+	// monorepo — a config-dependent tree rule composed here (not in the
+	// pure check.Run) with the declared set and the `areas.required` bool
+	// from aiwf.yaml. Inert (emits nothing) when required is false or no
+	// areas block is declared.
+	findings = append(findings, check.AreaRequired(tr, areaMembers, areaRequired)...)
+
+	// M-0180: area-dead-glob is the path-claim half of the area matrix —
+	// a config-dependent tree rule composed here (not in the pure
+	// check.Run) with the declared areas' path globs from aiwf.yaml. It
+	// reads the filesystem read-only and fires when a declared glob locates
+	// nothing. Inert when no member declares a `paths:` glob.
+	findings = append(findings, check.AreaDeadGlob(tr, areaPaths)...)
+
+	// M-0180: area-overlap is the row-disjointness half of the path-claim
+	// axis — two areas' globs claiming one directory. Config-dependent, so
+	// composed here (not in pure check.Run) with the same declared area
+	// paths. Reads the filesystem read-only; inert with <2 paths-carrying
+	// areas.
+	findings = append(findings, check.AreaOverlap(tr, areaPaths)...)
+
+	// M-0185: area-unslotted is the covering half of the path-claim axis —
+	// within an operator-declared coverage root, every immediate child
+	// directory must be claimed by some area's glob. Config-dependent, so
+	// composed here (not in pure check.Run) with the same declared area
+	// paths plus the coverage_roots knob. Reads the filesystem read-only,
+	// single-level per declared root; inert when no coverage root is
+	// declared or no area declares paths.
+	findings = append(findings, check.AreaCoverage(tr, areaPaths, coverageRoots)...)
+
+	// M-0181: area-mistag is the path-vs-tag consistency half of the area
+	// matrix — it reads each entity's linked commits (via the aiwf-entity
+	// trailer, gathered once) and flags an entity whose area-claimed work
+	// landed entirely in a foreign area's path territory. Composed here (the
+	// per-entity git walk is too heavy for the shape-only pre-commit path,
+	// like FSMHistoryConsistent) with the same declared area paths the
+	// dead-glob / overlap rules use. Warning only — deliberately NOT escalated
+	// by ApplyAreaRequiredStrict (cross-cutting is legitimate; the acknowledge
+	// path is the sanctioned escape valve, not a strictness bump). The gather
+	// is a full-history git-log walk, so it is gated behind a paths-carrying
+	// area: with no area declaring `paths:` (the common default) mistag is
+	// inert anyway, and the walk would be pure waste.
+	if check.AnyAreaHasPaths(areaPaths) {
+		touchedByEntity := check.GatherEntityPaths(ctx, resolved)
+		ackedMistags := check.WalkAcknowledgedMistags(ctx, resolved)
+		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity, ackedMistags)...)
+	}
+
 	// M-066/AC-2: aiwf.yaml: tdd.strict bumps entity-body-empty
 	// (and any future TDD-strict-covered finding) from warning to
 	// error so the pre-push hook blocks the push.
 	check.ApplyTDDStrict(findings, tddStrict)
+
+	// M-0178/AC-7: aiwf.yaml: areas.required bumps area-unknown from
+	// warning to error so the pre-push hook blocks a present-but-
+	// undeclared area too. Composed here (not in the pure check.Run)
+	// where areaRequired is in scope — the same seam ApplyTDDStrict
+	// uses. With required off, area-unknown stays a warning.
+	check.ApplyAreaRequiredStrict(findings, areaRequired)
 
 	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
 	// aggregate `archive-sweep-pending` finding from warning to
@@ -283,7 +349,11 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 		strict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
 		archiveThreshold, archiveThresholdSet = cfg.ArchiveSweepThreshold()
-		areaMembers = cfg.Areas.Members
+		// E-0044 (M-0179) evolved Areas.Members from []string to []Member;
+		// MemberNames() is the derived label set AreaUnknown consumes. (The
+		// path-axis area checks — dead-glob/overlap/coverage — are deliberately
+		// omitted from the --fast path, which stays the lighter in-memory pass.)
+		areaMembers = cfg.Areas.MemberNames()
 	}
 	// The cheap config-dependent tree rules the full check composes
 	// outside check.Run (check.go's full path) — both are pure in-memory

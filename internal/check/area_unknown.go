@@ -13,6 +13,45 @@ import (
 // and tests.
 const CodeAreaUnknown = "area-unknown"
 
+// ApplyAreaRequiredStrict bumps the severity of the area-axis findings from
+// warning to error when required=true. Mutates the findings slice in place.
+// The escalation mirrors ApplyTDDStrict: the rules stay config-agnostic
+// (always emit at warning), and the strictness bump is a separate, testable
+// post-pass composed at the CLI layer where `areas.required` is in scope.
+//
+// Two axes escalate together under `areas.required: true`:
+//   - the entity-tag axis (M-0178/AC-7): present-but-undeclared `area`
+//     fires area-unknown — escalated here so the pre-push hook blocks it
+//     too. (Empty area is the separate area-required error.)
+//   - the path-claim axis (M-0180): a dead path glob fires area-dead-glob
+//     and two areas claiming one directory fire area-overlap — both
+//     escalated here so a monorepo that opted into strictness cannot push an
+//     area pointing at nothing or an ambiguous path oracle.
+//   - the coverage axis (M-0185): an unslotted project directory fires
+//     area-unslotted, a declared root that resolves to no directory fires
+//     area-coverage-root-missing, and coverage declared with no paths fires
+//     area-coverage-no-paths — all escalated here so a monorepo that opted
+//     into strictness cannot push a project that no area claims, nor a
+//     dead/dormant coverage configuration.
+//
+// With required off, all stay warnings (byte-for-byte the pre-knob
+// behavior). The bumper is intentionally scoped: codes outside the
+// escalated area set (area-unknown, area-dead-glob, area-overlap,
+// area-unslotted, area-coverage-root-missing, area-coverage-no-paths) pass
+// through unchanged regardless of the flag.
+func ApplyAreaRequiredStrict(findings []Finding, required bool) {
+	if !required {
+		return
+	}
+	for i := range findings {
+		switch findings[i].Code {
+		case CodeAreaUnknown, CodeAreaDeadGlob, CodeAreaOverlap, CodeAreaUnslotted,
+			CodeAreaCoverageRootMissing, CodeAreaCoverageNoPaths:
+			findings[i].Severity = SeverityError
+		}
+	}
+}
+
 // AreaUnknown (warning) reports any non-archived entity whose `area`
 // frontmatter value is present and non-empty but not a member of the
 // declared set (`aiwf.yaml: areas.members`). It is the present-⇒-declared
@@ -45,10 +84,6 @@ func AreaUnknown(t *tree.Tree, declared []string) []Finding {
 	if len(declared) == 0 {
 		return nil
 	}
-	set := make(map[string]struct{}, len(declared))
-	for _, m := range declared {
-		set[m] = struct{}{}
-	}
 	var findings []Finding
 	for _, e := range t.Entities {
 		if e.Area == "" {
@@ -57,7 +92,10 @@ func AreaUnknown(t *tree.Tree, declared []string) []Finding {
 		if entity.IsArchivedPath(e.Path) {
 			continue
 		}
-		if _, ok := set[e.Area]; ok {
+		// The reserved `global` sentinel and any declared member are both
+		// valid (M-0184); membership routes through the SSOT predicate so
+		// there is no parallel `== global` check here.
+		if entity.IsValidAreaValue(e.Area, declared) {
 			continue
 		}
 		findings = append(findings, Finding{

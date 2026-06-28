@@ -1,8 +1,4 @@
-// Package acknowledgeillegal implements the `aiwf acknowledge-illegal`
-// verb. It is the per-verb subpackage that internal/cli/root.go's
-// NewRootCmd wires via NewCmd(); per the M-0115 pattern, every cmd/aiwf
-// verb lives under internal/cli/<verb>/.
-package acknowledgeillegal
+package acknowledge
 
 import (
 	"context"
@@ -16,23 +12,23 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// NewCmd builds `aiwf acknowledge-illegal <sha> --reason "..."`. The
-// verb is the retroactive sovereign-override mechanism for the
-// fsm-history-consistent rule's illegal-transition findings (M-0136
-// closes G-0150's request for a non-config-file exemption path).
+// newIllegalCmd builds `aiwf acknowledge illegal <sha> --reason "..."`. The
+// subcommand is the retroactive sovereign-override mechanism for the
+// fsm-history-consistent rule's illegal-transition findings (M-0136 closes
+// G-0150's request for a non-config-file exemption path).
 //
-// The verb requires a `human/...` actor (sovereign acts trace to a
-// named human) and a non-empty `--reason`. Per M-0136 design, the
-// acknowledgment is an empty commit carrying aiwf-force-for: <sha>
-// alongside the standard aiwf-verb / aiwf-actor / aiwf-reason
-// trailers — no aiwf.yaml entry, no history rewrite.
+// The verb requires a `human/...` actor (sovereign acts trace to a named
+// human) and a non-empty `--reason`. Per M-0136 design, the acknowledgment is
+// an empty commit carrying aiwf-force-for: <sha> alongside the standard
+// aiwf-verb / aiwf-actor / aiwf-reason trailers — no aiwf.yaml entry, no
+// history rewrite. The emitted `aiwf-verb: acknowledge-illegal` trailer is
+// unchanged by the M-0181/AC-5 regroup.
 //
-// G-0231 item 3: an optional `--for-entity <id>` flag binds the ack
-// to a specific (SHA, entity) pair. The verb verifies at write time
-// that <sha>'s diff actually touches <id>'s file; if not, the ack
-// is refused. Required when acking against
-// provenance-untrailered-entity-commit.
-func NewCmd() *cobra.Command {
+// G-0231 item 3: an optional `--for-entity <id>` flag binds the ack to a
+// specific (SHA, entity) pair. The verb verifies at write time that <sha>'s
+// diff actually touches <id>'s file; if not, the ack is refused. Required when
+// acking against provenance-untrailered-entity-commit.
+func newIllegalCmd() *cobra.Command {
 	var (
 		actor     string
 		root      string
@@ -41,7 +37,7 @@ func NewCmd() *cobra.Command {
 		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
-		Use:   "acknowledge-illegal <sha>",
+		Use:   "illegal <sha>",
 		Short: "Acknowledge a historical commit so kernel audit rules silence its findings",
 		Long: `Records an acknowledgment commit for a historical commit that one of the
 kernel's audit rules would otherwise flag. Every rule that consumes the
@@ -96,17 +92,17 @@ SHA. There is no "exempt everything" knob.
 Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,
 		Example: `  # Acknowledge a squash-merge commit whose intermediate FSM steps were lost
-  aiwf acknowledge-illegal f4ea7329 \
+  aiwf acknowledge illegal f4ea7329 \
     --reason "pre-AC-2 era squash; legal feature-branch progression existed but was collapsed"
 
   # Acknowledge an untrailered entity-edit commit (per-(SHA, entity) ack)
-  aiwf acknowledge-illegal 6a1e70cc --for-entity ADR-0007 \
+  aiwf acknowledge illegal 6a1e70cc --for-entity ADR-0007 \
     --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"`,
 		Args:          cobra.ExactArgs(1),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, reason, forEntity, *out))
+			return cliutil.WrapExitCode(runIllegal(args[0], actor, root, reason, forEntity, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (must be human/...; derived from git config if unset)")
@@ -120,31 +116,31 @@ Both --reason (non-empty after trim) and a human/... actor are required
 	return cmd
 }
 
-// Run executes `aiwf acknowledge-illegal`. Returns one of the
-// cliutil.Exit* codes; the caller (RunE in NewCmd) wraps the int in
-// cliutil.WrapExitCode so Cobra's RunE channel preserves the exit code
-// through the run() dispatcher.
-func Run(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) int {
+// runIllegal executes `aiwf acknowledge illegal`. Returns one of the
+// cliutil.Exit* codes; the caller (RunE) wraps the int in cliutil.WrapExitCode
+// so Cobra's RunE channel preserves the exit code through the run() dispatcher.
+func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) int {
 	if strings.TrimSpace(reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf acknowledge-illegal: --reason \"...\" is required (non-empty after trim)")
+		fmt.Fprintln(os.Stderr, "aiwf acknowledge illegal: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge-illegal: %v\n", err)
+		//coverage:ignore ResolveRoot errors only on a broken cwd — filepath.Abs failure (explicit --root) or os.Getwd failure (empty --root); neither is deterministically reproducible.
+		fmt.Fprintf(os.Stderr, "aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge-illegal: %v\n", err)
+		fmt.Fprintf(os.Stderr, "aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge-illegal")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal")
 	if release == nil {
 		return rc
 	}
 	defer release()
 	ctx := context.Background()
 	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, forEntity, actorStr, reason)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge-illegal", result, vErr, out)
+	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge illegal", result, vErr, out)
 }

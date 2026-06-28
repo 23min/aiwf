@@ -1,0 +1,312 @@
+package areamatch
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"slices"
+	"testing"
+
+	"github.com/bmatcuk/doublestar/v4"
+)
+
+// Match cases are sourced from the doublestar/v4 pattern grammar
+// (https://github.com/bmatcuk/doublestar#patterns): a single '*' matches
+// within one path segment, '**' matches across separators (zero or more
+// segments), and a malformed character class yields an error. Globs and paths
+// are '/'-separated and repo-relative.
+func TestMatch(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		glob    string
+		path    string
+		want    bool
+		wantErr bool
+	}{
+		{"literal exact match", "projects/app-a", "projects/app-a", true, false},
+		{"literal mismatch", "projects/app-a", "projects/app-b", false, false},
+		{"single star matches one segment", "projects/*", "projects/app-a", true, false},
+		{"single star does not cross separator", "projects/*", "projects/app-a/sub", false, false},
+		{"doublestar crosses separators", "projects/**", "projects/app-a/sub/deep", true, false},
+		{"doublestar scoped to its prefix", "projects/**", "other/app-a", false, false},
+		{"multi-segment with star matches", "a/b/*", "a/b/c", true, false},
+		{"multi-segment mismatch on middle segment", "a/b/*", "a/x/c", false, false},
+		{"malformed character class errors", "a[", "a", false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Match(tc.glob, tc.path)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("Match(%q, %q): want error, got nil", tc.glob, tc.path)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Match(%q, %q): unexpected error: %v", tc.glob, tc.path, err)
+			}
+			if got != tc.want {
+				t.Errorf("Match(%q, %q) = %v, want %v", tc.glob, tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDerive pins the M-0182 derivation primitive: a path hint is classified
+// by which areas' path-claims it falls under. Areas come in as name → globs
+// (config-agnostic, keeping areamatch a leaf below config). The result is the
+// sorted, per-area-deduped set of area names whose globs the path matches —
+// len 1 is an unambiguous derive, len 0 is "no area claims it", len ≥2 is
+// ambiguous; a malformed glob errors.
+func TestDerive(t *testing.T) {
+	t.Parallel()
+	// overlap fixture: four areas deliberately claim the SAME glob, so a hint
+	// under it matches all of them — exercising multi-match classification. This
+	// single-call case asserts sorted order too, but Go's small-map iteration is
+	// rotation-based (not a full shuffle), so a dropped sort.Strings only fails
+	// ~85% of single calls; the sort's determinism is pinned robustly by
+	// TestDeriveMultiMatchSorted, which loops to drive the miss probability to ~0.
+	overlap := map[string][]string{
+		"platform": {"projects/platform/**"},
+		"billing":  {"projects/billing/**", "libs/billing/**"},
+		"shared":   {"projects/platform/**"},
+		"alpha":    {"projects/platform/**"},
+		"omega":    {"projects/platform/**"},
+	}
+	cases := []struct {
+		name    string
+		areas   map[string][]string
+		path    string
+		want    []string
+		wantErr bool
+	}{
+		{
+			"single unambiguous match",
+			map[string][]string{"platform": {"projects/platform/**"}, "billing": {"projects/billing/**"}},
+			"projects/platform/auth/login.go",
+			[]string{"platform"},
+			false,
+		},
+		{
+			"no area claims the path",
+			map[string][]string{"platform": {"projects/platform/**"}},
+			"services/other/x.go", nil, false,
+		},
+		{
+			"ambiguous: several areas claim the path (sorted)",
+			overlap, "projects/platform/auth.go",
+			[]string{"alpha", "omega", "platform", "shared"},
+			false,
+		},
+		{
+			// Both of billing's globs match the path, so the inner break is the
+			// dedup mechanism: without it the name is appended twice. The path
+			// must match BOTH globs for this to exercise the break.
+			"per-area dedup across that area's own globs",
+			map[string][]string{"billing": {"projects/**", "projects/billing/**"}},
+			"projects/billing/core.go",
+			[]string{"billing"},
+			false,
+		},
+		{
+			"empty areas yields no match",
+			map[string][]string{},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"area with no globs is skipped",
+			map[string][]string{"platform": nil},
+			"projects/platform/x.go", nil, false,
+		},
+		{
+			"malformed glob errors",
+			map[string][]string{"bad": {"a["}},
+			"a", nil, true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Derive(tc.areas, tc.path)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("Derive(%q): want error, got nil", tc.path)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Derive(%q): unexpected error: %v", tc.path, err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("Derive(%q) = %v, want %v", tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDeriveMultiMatchSorted pins the determinism Derive's doc promises: the
+// matched set is sorted regardless of map iteration order. A single Derive call
+// can coincidentally return sorted order even with sort.Strings removed (Go's
+// small-map iteration is rotation-based, ~85% catch per call), so this loops
+// enough times that a dropped sort fails within one run: P(miss) ≈ 0.15^64 ≈ 0.
+func TestDeriveMultiMatchSorted(t *testing.T) {
+	t.Parallel()
+	areas := map[string][]string{
+		"shared":   {"projects/x/**"},
+		"platform": {"projects/x/**"},
+		"omega":    {"projects/x/**"},
+		"alpha":    {"projects/x/**"},
+	}
+	want := []string{"alpha", "omega", "platform", "shared"}
+	for i := 0; i < 64; i++ {
+		got, err := Derive(areas, "projects/x/file.go")
+		if err != nil {
+			t.Fatalf("iteration %d: Derive: %v", i, err)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("iteration %d: Derive = %v, want sorted %v", i, got, want)
+		}
+	}
+}
+
+// TestMatchFS exercises the filesystem-walk variant against a real temp tree:
+// a glob with live matches returns non-empty, a dead glob returns empty, a
+// wildcard-free literal returns the located path, and a malformed glob errors.
+func TestMatchFS(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "projects", "app-a"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "projects", "app-a", "main.go"), []byte("package a\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	fsys := os.DirFS(root)
+
+	t.Run("live glob returns non-empty", func(t *testing.T) {
+		t.Parallel()
+		got, err := MatchFS(fsys, "projects/app-a/**")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) == 0 {
+			t.Errorf("want non-empty matches for a live glob, got none")
+		}
+	})
+
+	t.Run("dead glob returns empty", func(t *testing.T) {
+		t.Parallel()
+		got, err := MatchFS(fsys, "projects/ghost/**")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("want empty for a dead glob, got %v", got)
+		}
+	})
+
+	t.Run("wildcard-free literal returns the located path", func(t *testing.T) {
+		t.Parallel()
+		got, err := MatchFS(fsys, "projects/app-a")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(got) != 1 || got[0] != "projects/app-a" {
+			t.Errorf("want [projects/app-a], got %v", got)
+		}
+	})
+
+	t.Run("malformed glob errors", func(t *testing.T) {
+		t.Parallel()
+		if _, err := MatchFS(fsys, "a["); err == nil {
+			t.Errorf("want error for malformed glob, got nil")
+		}
+	})
+}
+
+// TestMatchesAny exercises the early-terminating boolean-any variant: a live
+// glob is true, a dead glob is false, a wildcard-free literal that exists is
+// true, and a malformed glob errors.
+func TestMatchesAny(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "projects", "app-a"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "projects", "app-a", "main.go"), []byte("package a\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	fsys := os.DirFS(root)
+
+	cases := []struct {
+		name    string
+		glob    string
+		want    bool
+		wantErr bool
+	}{
+		{"live glob", "projects/app-a/**", true, false},
+		{"dead glob", "projects/ghost/**", false, false},
+		{"wildcard-free literal that exists", "projects/app-a", true, false},
+		{"wildcard-free literal that is absent", "projects/app-q", false, false},
+		{"malformed glob", "a[", false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := MatchesAny(fsys, tc.glob)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("MatchesAny(%q): want error, got nil", tc.glob)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("MatchesAny(%q): unexpected error: %v", tc.glob, err)
+			}
+			if got != tc.want {
+				t.Errorf("MatchesAny(%q) = %v, want %v", tc.glob, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestValidate pins the Tier-1 syntax gate: well-formed globs (literal, '*',
+// '**', alternation) pass; malformed ones (unterminated class / brace) error,
+// and the error wraps doublestar.ErrBadPattern so callers can classify it.
+func TestValidate(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		glob    string
+		wantErr bool
+	}{
+		{"literal", "projects/app-a", false},
+		{"single star", "projects/*", false},
+		{"doublestar", "projects/**", false},
+		{"alternation", "projects/{app-a,app-b}", false},
+		{"unterminated class", "projects/[app", true},
+		{"unterminated brace", "projects/{a,b", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := Validate(tc.glob)
+			if tc.wantErr && err == nil {
+				t.Errorf("Validate(%q): want error, got nil", tc.glob)
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("Validate(%q): unexpected error: %v", tc.glob, err)
+			}
+		})
+	}
+
+	t.Run("malformed error wraps ErrBadPattern", func(t *testing.T) {
+		t.Parallel()
+		err := Validate("a[")
+		if !errors.Is(err, doublestar.ErrBadPattern) {
+			t.Errorf("Validate error = %v, want it to wrap doublestar.ErrBadPattern", err)
+		}
+	})
+}

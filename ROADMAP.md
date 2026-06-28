@@ -541,13 +541,17 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0176 | Partition totality and disjointness property test for areagroup | draft |
-| M-0177 | aiwf rename-area verb with atomic cross-entity rewrite | draft |
-| M-0178 | areas.required knob promoting untagged entities to a blocking finding | draft |
-| M-0179 | paths per-area config evolution with backward-compatible unmarshaler | draft |
-| M-0180 | Area path bijection and coverage check | draft |
-| M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | draft |
-| M-0182 | Auto-derive or suggest area from path hint at add and wrap | draft |
+| M-0176 | Partition totality and disjointness property test for areagroup | done |
+| M-0177 | aiwf rename-area verb with atomic cross-entity rewrite | done |
+| M-0178 | areas.required knob promoting untagged entities to a blocking finding | done |
+| M-0179 | paths per-area config evolution with backward-compatible unmarshaler | done |
+| M-0180 | Area-path dead-glob and overlap checks | done |
+| M-0181 | Mistag detection via aiwf-entity trailer with acknowledge path | done |
+| M-0182 | Area discoverability skill and path-hint derivation at aiwf add | done |
+| M-0183 | aiwf set-area verb to tag one entity to a declared area member | done |
+| M-0184 | Reserved global area value: predicate, whitelist, and verb acceptance | done |
+| M-0185 | Area-path scoped-coverage check (unslotted-project detection) | done |
+| M-0208 | rename-area preserves comments and sibling keys in the areas block on rename | done |
 
 ## E-0045 — Plumbing-based commit construction for aiwf verbs (proposed)
 

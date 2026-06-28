@@ -674,7 +674,7 @@ func revListAncestors(ctx context.Context, root, sha string) map[string]bool {
 // adversarial behavior.
 //
 // M-0159/AC-4: ackedSHAs carries the set of commit SHAs that have
-// been retroactively acknowledged via `aiwf acknowledge-illegal`
+// been retroactively acknowledged via `aiwf acknowledge illegal`
 // (the same map illegalTransitionFindings consumes — the CLI
 // gather layer at internal/cli/check/check.go::Run computes it
 // once via WalkAcknowledgedSHAs and threads it through

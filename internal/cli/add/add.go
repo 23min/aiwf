@@ -10,10 +10,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -37,6 +40,7 @@ func NewCmd() *cobra.Command {
 		dependsOn     string
 		discoveredIn  string
 		area          string
+		pathHint      string
 		relatesTo     string
 		linkedADRs    string
 		bindValidator string
@@ -80,7 +84,7 @@ func NewCmd() *cobra.Command {
 				title = titles[0]
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
-				epicID, tddPolicy, dependsOn, discoveredIn, area, relatesTo, linkedADRs,
+				epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile, *out))
 		},
 	}
@@ -96,6 +100,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone (M-076)")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	cmd.Flags().StringVar(&area, "area", "", "workstream area tag (root kinds only); validated against aiwf.yaml: areas.members; a gap with --discovered-in derives it when omitted (E-0043)")
+	cmd.Flags().StringVar(&pathHint, "path-hint", "", "repo-relative path hint (root kinds only); when --area is omitted and the hint falls under exactly one declared area's paths, derive area from it via the areamatch SSOT (E-0044, M-0182)")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
 	cmd.Flags().StringVar(&bindValidator, "validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
@@ -126,7 +131,7 @@ func NewCmd() *cobra.Command {
 
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
-	epicID, tddPolicy, dependsOn, discoveredIn, area, relatesTo, linkedADRs,
+	epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile string, out cliutil.OutputFormat,
 ) int {
 	rootDir, err := cliutil.ResolveRoot(root)
@@ -163,13 +168,52 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// parent epic (ResolvedAreaByID). Explicit --area always wins.
 	resolvedArea := area
 	if area != "" {
-		if k != entity.KindMilestone {
+		if entity.CarriesOwnArea(k) {
 			if rc := validateAreaMember(rootDir, area); rc != cliutil.ExitOK {
 				return rc
 			}
+			// AC-5: an explicit --area always wins, but report a --path-hint
+			// that unambiguously points elsewhere — a cheap at-add mistag
+			// signal — without overriding the explicit choice.
+			if pathHint != "" {
+				warnAreaHintConflict(rootDir, area, pathHint)
+			}
 		}
-	} else if k == entity.KindGap && discoveredIn != "" {
-		resolvedArea = tr.ResolvedAreaByID(discoveredIn)
+	} else {
+		// M-0182: with --area omitted, derive from a single unambiguous
+		// --path-hint (root kinds only) through the areamatch SSOT. A hint
+		// matching zero or several areas derives nothing (deriveAreaFromHint
+		// prints the suggestion); an explicit --area above always wins, so
+		// derivation never overwrites it.
+		if pathHint != "" {
+			if entity.CarriesOwnArea(k) {
+				resolvedArea = deriveAreaFromHint(rootDir, pathHint)
+			} else {
+				// A milestone's area derives from its parent epic, so a path
+				// hint has nothing to set. Note it rather than silently
+				// ignoring an explicitly-passed flag (the AC-7 principle).
+				fmt.Fprintln(os.Stderr, "aiwf add: --path-hint ignored — a milestone's area derives from its parent epic, not a path hint")
+			}
+		}
+		// E-0043: a gap with --discovered-in derives from the source entity's
+		// effective area — a fallback when --path-hint derived nothing.
+		if resolvedArea == "" && k == entity.KindGap && discoveredIn != "" {
+			resolvedArea = tr.ResolvedAreaByID(discoveredIn)
+		}
+	}
+
+	// M-0178: under `aiwf.yaml: areas.required: true`, a self-tagging root
+	// kind whose resolved area is empty is refused at creation — fail-fast
+	// before any entity is written, rather than waiting for the next push's
+	// area-required check. A milestone derives its area from its parent epic
+	// and is never directly tagged, so it is exempt (the verb already
+	// rejects --area on a milestone). A gap whose --discovered-in derived a
+	// non-empty area above is unaffected — only a genuinely empty resolved
+	// area trips the refusal.
+	if resolvedArea == "" && entity.CarriesOwnArea(k) && cliutil.ConfiguredAreaRequired(rootDir) {
+		members := cliutil.ConfiguredAreaMembers(rootDir)
+		fmt.Fprintf(os.Stderr, "aiwf add: aiwf.yaml: areas.required is set — %s requires an --area; declared: %s\n", k, strings.Join(members, ", "))
+		return cliutil.ExitUsage
 	}
 
 	opts := verb.AddOptions{
@@ -227,17 +271,105 @@ func Run(k entity.Kind, title, actor, principal, root,
 // a block is declared (M-0171), so an explicit --area is a usage error.
 func validateAreaMember(rootDir, area string) int {
 	members := cliutil.ConfiguredAreaMembers(rootDir)
+	// The no-block guard stays AHEAD of the value check, deliberately: the
+	// `area` field is inert until an areas block is declared (M-0171), so
+	// even the reserved `global` sentinel is a usage error with no block
+	// (M-0184/AC-4). This is the one write path where global is not a
+	// recognized value — every other surface routes through
+	// entity.IsValidAreaValue, which accepts global regardless of the
+	// declared set.
 	if len(members) == 0 {
 		fmt.Fprintf(os.Stderr, "aiwf add: --area %q given but no `areas` block is declared in aiwf.yaml; declare areas.members or omit --area\n", area)
 		return cliutil.ExitUsage
 	}
-	for _, m := range members {
-		if m == area {
-			return cliutil.ExitOK
-		}
+	// With a block declared, the reserved `global` sentinel or any declared
+	// member is valid — the SSOT predicate, not a parallel `== global`.
+	if entity.IsValidAreaValue(area, members) {
+		return cliutil.ExitOK
 	}
 	fmt.Fprintf(os.Stderr, "aiwf add: --area %q is not a declared area; declared: %s\n", area, strings.Join(members, ", "))
 	return cliutil.ExitUsage
+}
+
+// deriveAreaFromHint maps a repo-relative --path-hint to a declared area via
+// the areamatch SSOT (M-0182). It returns the area name when the hint falls
+// under exactly one declared area's `paths:` globs, and "" otherwise — no
+// declared paths (inert), no match, or an ambiguous multi-area match; the
+// suggestion output for the zero/multi/inert cases lands with AC-6/AC-7. A
+// malformed glob (already rejected at config load by areamatch.Validate)
+// collapses to "" here too.
+func deriveAreaFromHint(rootDir, pathHint string) string {
+	areas := configuredAreaPaths(rootDir)
+	if len(areas) == 0 {
+		// AC-7: no oracle — no declared area carries a paths: glob. Inert, but
+		// noted so an explicitly-passed hint does not silently do nothing.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q ignored — no declared area has a paths: glob to match against\n", pathHint)
+		return ""
+	}
+	matched, err := areamatch.Derive(areas, normalizeHint(rootDir, pathHint))
+	if err != nil { //coverage:ignore unreachable via the public path: area globs are validated at config load (areamatch.Validate via config.Areas.validate), so Derive never sees a malformed glob here; kept as defense-in-depth degrading to no-derivation
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint derivation skipped: %v\n", err)
+		return ""
+	}
+	switch len(matched) {
+	case 1:
+		return matched[0]
+	case 0:
+		// AC-6: paths are declared, but none claim the hint. Describe the hint
+		// outcome ("no area derived"), not the entity's final state — a gap may
+		// still be tagged by the --discovered-in fallback in Run.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q matches no declared area's paths; no area derived (pass --area to tag explicitly)\n", pathHint)
+	default:
+		// AC-6: several areas claim the hint — ambiguous, so derive nothing.
+		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
+	}
+	return ""
+}
+
+// warnAreaHintConflict implements AC-5: when both --area and --path-hint are
+// given, the explicit --area wins (this never changes resolvedArea), but if the
+// hint unambiguously derives a DIFFERENT area, report the disagreement — the
+// cheapest possible at-add mistag-prevention signal. Silent when the hint
+// agrees, is ambiguous, matches nothing, or has no oracle: the operator chose
+// --area deliberately, so only a clear single-area conflict is worth a word.
+func warnAreaHintConflict(rootDir, area, pathHint string) {
+	matched, err := areamatch.Derive(configuredAreaPaths(rootDir), normalizeHint(rootDir, pathHint))
+	if err == nil && len(matched) == 1 && matched[0] != area {
+		fmt.Fprintf(os.Stderr, "aiwf add: note: --area %q overrides --path-hint %q, which points to area %q\n", area, pathHint, matched[0])
+	}
+}
+
+// normalizeHint makes a user-supplied --path-hint comparable to the declared,
+// repo-relative area globs (M-0182, second-review hardening). An absolute path
+// under the repo root is made relative to it first — the LLM, this milestone's
+// primary user, usually carries absolute paths — then ./, ../, and trailing-
+// slash segments are collapsed via path.Clean. The '..' collapse happens
+// BEFORE glob matching, so a hint like "projects/app-a/../app-b/x" resolves to
+// app-b and cannot lexically derive a confidently-wrong area. A path outside
+// the repo relativizes to a "../"-prefixed form that matches no repo-relative
+// glob — a correct zero-match.
+func normalizeHint(rootDir, pathHint string) string {
+	h := pathHint
+	if filepath.IsAbs(h) {
+		if rel, err := filepath.Rel(rootDir, h); err == nil {
+			h = rel
+		}
+	}
+	return path.Clean(filepath.ToSlash(h))
+}
+
+// configuredAreaPaths projects the declared members into the name → globs map
+// areamatch.Derive consumes, dropping members that declare no `paths:` (they
+// offer no oracle to match against).
+func configuredAreaPaths(rootDir string) map[string][]string {
+	members := cliutil.ConfiguredAreaMembersFull(rootDir)
+	areas := make(map[string][]string, len(members))
+	for _, m := range members {
+		if len(m.Paths) > 0 {
+			areas[m.Name] = m.Paths
+		}
+	}
+	return areas
 }
 
 // addCreationRefs returns the new entity's outbound references for

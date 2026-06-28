@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/aiwf/internal/cli/acknowledgeillegal"
+	"github.com/23min/aiwf/internal/cli/acknowledge"
 	"github.com/23min/aiwf/internal/cli/add"
 	"github.com/23min/aiwf/internal/cli/archive"
 	"github.com/23min/aiwf/internal/cli/authorize"
@@ -39,10 +39,12 @@ import (
 	"github.com/23min/aiwf/internal/cli/promote"
 	"github.com/23min/aiwf/internal/cli/reallocate"
 	"github.com/23min/aiwf/internal/cli/rename"
+	"github.com/23min/aiwf/internal/cli/renamearea"
 	"github.com/23min/aiwf/internal/cli/render"
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
+	"github.com/23min/aiwf/internal/cli/setarea"
 	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/cli/template"
@@ -165,6 +167,8 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(promote.NewCmd())
 	cmd.AddCommand(cancel.NewCmd())
 	cmd.AddCommand(rename.NewCmd())
+	cmd.AddCommand(renamearea.NewCmd())
+	cmd.AddCommand(setarea.NewCmd())
 	cmd.AddCommand(retitle.NewCmd())
 	cmd.AddCommand(editbody.NewCmd())
 	cmd.AddCommand(move.NewCmd())
@@ -187,7 +191,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(contract.NewCmd())
 	cmd.AddCommand(milestone.NewCmd())
 	cmd.AddCommand(authorize.NewCmd())
-	cmd.AddCommand(acknowledgeillegal.NewCmd())
+	cmd.AddCommand(acknowledge.NewCmd())
 
 	// G-0150: snapshot the explicit verb set into Annotations BEFORE
 	// any caller calls Execute (which is when Cobra's `help` and
@@ -239,6 +243,7 @@ Verbs:
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/

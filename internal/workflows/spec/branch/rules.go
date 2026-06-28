@@ -277,7 +277,7 @@ func Rules() []spec.Rule {
 		// (oldSHA NOT ancestor of newSHA) and surfaces AI-actor
 		// commits orphaned by the update as
 		// isolation-escape-orphaned-ai-commit warnings, hint
-		// naming `aiwf acknowledge-illegal` for deliberate
+		// naming `aiwf acknowledge illegal` for deliberate
 		// sovereign cleanup. Composes with AC-3 acknowledge-
 		// illegal via the shared per-SHA ackedSHAs map.
 		//

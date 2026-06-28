@@ -237,7 +237,7 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 			// unrepresentable. Read the resolved value via Tree.ResolvedArea;
 			// omitempty drops the cleared key on the next write-verb,
 			// auto-stripping the invalid value.
-			if kind == entity.KindMilestone {
+			if !entity.CarriesOwnArea(kind) {
 				e.Area = ""
 			}
 			tree.Entities = append(tree.Entities, e)
@@ -433,7 +433,7 @@ func (t *Tree) ResolvedArea(e *entity.Entity) string {
 	if e == nil {
 		return ""
 	}
-	if e.Kind == entity.KindMilestone {
+	if !entity.CarriesOwnArea(e.Kind) {
 		parent := t.ByID(e.Parent)
 		if parent == nil {
 			return ""

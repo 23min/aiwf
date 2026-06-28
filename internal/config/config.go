@@ -35,6 +35,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/23min/aiwf/internal/areamatch"
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/pathutil"
 )
 
@@ -79,62 +81,260 @@ type Config struct {
 	Worktree          Worktree `yaml:"worktree,omitempty"`
 }
 
-// Areas declares the closed set of workstream area tags (E-0043). Members is
-// the closed member set the optional `area` frontmatter field validates
-// against (the `area-unknown` finding lands in the next milestone). Default is
-// a DISPLAY LABEL ONLY for the untagged complement in grouped views — never a
-// member of the tag set, never written to an entity. An empty block (no
-// members) leaves the `area` field inert.
-type Areas struct {
-	Members []string `yaml:"members,omitempty"`
-	Default string   `yaml:"default,omitempty"`
+// Member is a single declared workstream area (E-0044, M-0179): a Name (the
+// tag entities carry in their `area:` frontmatter) and an optional Paths list
+// locating the area's source in a monorepo. Paths are validated as well-formed
+// strings only at this layer — glob matching against them is deferred to
+// M-0180, where the first match call site lives. A member declared in the
+// legacy string form (`members: [app-a]`) decodes with Name set and Paths nil.
+//
+// Adding a field here means adding its key to knownMemberKeys, or the
+// strict-key guard (G-0287) rejects it as unknown on read. There is no
+// parallel writer struct to keep in lockstep: the areas-block writer no longer
+// reconstructs members — `aiwf rename-area` surgically rewrites only the
+// renamed name token (M-0195) — so a new sibling key or field is preserved
+// through a rename automatically rather than being silently dropped.
+type Member struct {
+	Name  string   `yaml:"name"`
+	Paths []string `yaml:"paths,omitempty"`
 }
 
-// UnmarshalYAML decodes the areas block and rejects non-string members.
-// yaml.v3 would otherwise silently coerce an unquoted scalar (`42`, `true`, a
-// null) into the []string, admitting a non-string member; decoding members
-// through yaml.Node lets us assert each is a string scalar, per AC-2 ("schema
-// validation rejects non-string members"). A quoted numeric (`"42"`) is a
-// string and is accepted. Semantic rules (emptiness, whitespace, uniqueness,
-// default) live in validate().
+// Areas declares the closed set of workstream area tags (E-0043, E-0044).
+// Members is the closed member set the optional `area` frontmatter field
+// validates against (label + optional location). Default is a DISPLAY LABEL
+// ONLY for the untagged complement in grouped views — never a member of the
+// tag set, never written to an entity. An empty block (no members) leaves the
+// `area` field inert.
+//
+// Members accepts a backward-compatible dual form (E-0044, M-0179): a bare
+// string (`- app-a`, the legacy E-0043 shape) or a `name`/`paths` mapping
+// (`- {name: app-a, paths: [projects/app-a/**]}`). Name-consuming readers go
+// through MemberNames(), the derived single source of truth for the member
+// label set.
+type Areas struct {
+	Members []Member `yaml:"members,omitempty"`
+	Default string   `yaml:"default,omitempty"`
+	// Required (M-0178) opts the 1:1 monorepo into strictness: when true,
+	// an untagged entity of a self-tagging root kind is a blocking
+	// `area-required` (error) finding. Default false (absent) leaves the
+	// pre-knob (E-0043) behavior byte-for-byte unchanged. validate()
+	// rejects required:true with zero members (an unsatisfiable "every
+	// entity must be a member of the empty set").
+	Required bool `yaml:"required,omitempty"`
+	// CoverageRoots (M-0185) opts the multi-project monorepo into the
+	// scoped-coverage law: each listed directory's immediate child
+	// directories are projects expected to be claimed by some area's
+	// `paths:` glob, and an unclaimed child raises area-unslotted. Its
+	// presence is the activation signal — absent, the coverage check is
+	// inert, so the single-project / semantic-section repo is never
+	// flagged wholesale. Each root is a repo-relative directory path
+	// ('/'-separated, no leading slash, no `..` segments); roots may be
+	// nested and several may be declared for a mixed-depth layout (the
+	// immediate-children contract is per declared root). Adding it means
+	// adding `coverage_roots` to knownAreasKeys, or the areas-block
+	// strict-key guard rejects it as unknown on read.
+	CoverageRoots []string `yaml:"coverage_roots,omitempty"`
+}
+
+// MemberNames returns the declared member names in declaration order — the
+// derived single source of truth every name-consuming reader (`add --area`
+// validation, the `area-unknown` check, the grouping resolver, `--area`
+// completion) reads. Returns nil for an empty member set, matching the prior
+// `[]string` field's nil-when-absent semantics so consumers that compare
+// against nil are unaffected by the label+location migration.
+func (a Areas) MemberNames() []string {
+	if len(a.Members) == 0 {
+		return nil
+	}
+	names := make([]string, len(a.Members))
+	for i, m := range a.Members {
+		names[i] = m.Name
+	}
+	return names
+}
+
+// UnmarshalYAML decodes the areas block, accepting each member in either the
+// legacy string form or the `name`/`paths` mapping form (E-0044, M-0179).
+//
+// A bare scalar member must be a YAML string (`!!str`): the explicit tag check
+// keeps an unquoted `42`/`true`/`~` from silently becoming a string member,
+// routing it to the malformed-member guard instead. A quoted numeric (`"42"`)
+// is a string and is accepted. A mapping member decodes `name`/`paths`; an
+// explicit empty `paths: []` is normalized to nil so it equals an absent
+// `paths` (both express "no paths"). Decode-time errors (a non-list `paths`, a
+// member node that is neither scalar nor mapping) are wrapped to name the
+// offending member rather than shipping the bare yaml.v3 text. Semantic rules
+// (emptiness, whitespace, uniqueness, path hygiene, default) live in validate().
 func (a *Areas) UnmarshalYAML(value *yaml.Node) error {
+	// Strict-key guard at the areas-block level (M-0185, from the M-0208
+	// review): value.Decode below is non-strict and silently drops unknown
+	// keys, so a typo like `coverage_rootz:` would vanish rather than error.
+	// Reject it at decode, naming the bad key — the block-level analogue of
+	// unknownMemberKey (G-0287). Skipped for a non-mapping `areas:` value,
+	// which value.Decode reports below.
+	if value.Kind == yaml.MappingNode {
+		if bad := unknownAreasKey(value); bad != "" {
+			return fmt.Errorf("areas: unknown key %q (allowed: members, default, required, coverage_roots)", bad)
+		}
+	}
 	var raw struct {
-		Members []yaml.Node `yaml:"members"`
-		Default string      `yaml:"default"`
+		Members       []yaml.Node `yaml:"members"`
+		Default       string      `yaml:"default"`
+		Required      bool        `yaml:"required"`
+		CoverageRoots []string    `yaml:"coverage_roots"`
 	}
 	if err := value.Decode(&raw); err != nil {
 		return err
 	}
 	a.Default = raw.Default
-	a.Members = make([]string, 0, len(raw.Members))
+	a.Required = raw.Required
+	a.CoverageRoots = raw.CoverageRoots
+	if len(a.CoverageRoots) == 0 {
+		// yaml.v3 decodes `coverage_roots: []` to a non-nil empty slice;
+		// normalize to nil so explicit-empty equals absent.
+		a.CoverageRoots = nil
+	}
+	a.Members = make([]Member, 0, len(raw.Members))
 	for i := range raw.Members {
 		n := &raw.Members[i]
-		if n.Kind != yaml.ScalarNode || n.Tag != "!!str" {
-			return fmt.Errorf("areas.members: %q is not a string member", n.Value)
+		switch n.Kind {
+		case yaml.ScalarNode:
+			if n.Tag != "!!str" {
+				return memberKindError(i, n)
+			}
+			a.Members = append(a.Members, Member{Name: n.Value})
+		case yaml.MappingNode:
+			// Strict-key guard (G-0287): yaml.v3's Node.Decode is non-strict
+			// and silently drops unknown keys, so a typo like `pathz:` would
+			// vanish and feed the path-axis checks a false "no paths". Reject
+			// it at decode, naming the bad key.
+			if bad := unknownMemberKey(n); bad != "" {
+				return fmt.Errorf("areas.members[%d]: member %q has unknown key %q (allowed: name, paths)", i, memberNodeName(n), bad)
+			}
+			var m Member
+			if err := n.Decode(&m); err != nil {
+				return fmt.Errorf("areas.members[%d]: member %q: %w", i, memberNodeName(n), err)
+			}
+			if len(m.Paths) == 0 {
+				// yaml.v3 decodes `paths: []` to a non-nil empty slice;
+				// normalize to nil so explicit-empty equals absent.
+				m.Paths = nil
+			}
+			a.Members = append(a.Members, m)
+		default:
+			return memberKindError(i, n)
 		}
-		a.Members = append(a.Members, n.Value)
 	}
 	return nil
 }
 
-// validate enforces the areas-block schema. Members must be non-empty,
-// free of leading/trailing whitespace, and unique; default (if set) must be a
-// non-empty, whitespace-clean label that names a non-empty member set and is
-// not itself a member — it labels the untagged complement, which is disjoint
-// from every declared area.
+// memberKindError reports a member node that is neither a string member nor a
+// name/paths mapping — a bare sequence, or a non-`!!str` scalar like `42` /
+// `true` / `~`. Names the offending member by index (and value when the node
+// carries one) so the operator can locate it.
+func memberKindError(i int, n *yaml.Node) error {
+	return fmt.Errorf("areas.members[%d]: %q is neither a string member nor a name/paths mapping", i, n.Value)
+}
+
+// memberNodeName extracts the `name` scalar from a mapping member node for
+// error context, since a failed full decode leaves the decoded struct's Name
+// empty. Returns "" when the mapping has no `name` key.
+func memberNodeName(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == "name" {
+			return n.Content[i+1].Value
+		}
+	}
+	return ""
+}
+
+// knownMemberKeys is the closed set of keys a mapping member may declare. It
+// mirrors the Member struct's yaml tags and must be kept in sync by hand when a
+// field is added to Member (see the Member doc comment).
+var knownMemberKeys = map[string]bool{"name": true, "paths": true}
+
+// unknownMemberKey returns the first key in the mapping node that is not a
+// recognized member field, or "" when every key is known. It is the strict-key
+// guard the non-strict yaml.v3 Node.Decode lacks (G-0287).
+func unknownMemberKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownMemberKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
+// knownAreasKeys is the closed set of top-level keys the areas block may
+// declare. It mirrors the Areas struct's yaml tags and must be kept in sync by
+// hand when a field is added to Areas — the block-level analogue of
+// knownMemberKeys (M-0185 strict-key guard).
+var knownAreasKeys = map[string]bool{
+	"members":        true,
+	"default":        true,
+	"required":       true,
+	"coverage_roots": true,
+}
+
+// unknownAreasKey returns the first top-level key in the areas mapping node
+// that is not a recognized field, or "" when every key is known. It is the
+// areas-block-level strict-key guard the non-strict yaml.v3 value.Decode lacks
+// (M-0185), mirroring unknownMemberKey at the member level.
+func unknownAreasKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownAreasKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
+// validate enforces the areas-block schema. Member names must be non-empty,
+// free of leading/trailing whitespace, and unique across both declaration
+// forms; each path entry must be non-empty, whitespace-clean, and a
+// syntactically well-formed glob (the Tier-1 gate, M-0180 — a malformed glob
+// is a hard error at load naming the bad glob, rather than being silently
+// skipped by the dead-glob/overlap checks at runtime); default (if set) must
+// be a non-empty, whitespace-clean label that names a non-empty member set and
+// is not itself a member — it labels the untagged complement, which is
+// disjoint from every declared area.
 func (a Areas) validate() error {
 	seen := make(map[string]bool, len(a.Members))
 	for _, m := range a.Members {
-		if strings.TrimSpace(m) == "" {
+		name := m.Name
+		if strings.TrimSpace(name) == "" {
 			return fmt.Errorf("areas.members contains an empty member")
 		}
-		if m != strings.TrimSpace(m) {
-			return fmt.Errorf("areas.members member %q has leading or trailing whitespace", m)
+		if name != strings.TrimSpace(name) {
+			return fmt.Errorf("areas.members member %q has leading or trailing whitespace", name)
 		}
-		if seen[m] {
-			return fmt.Errorf("areas.members contains duplicate member %q", m)
+		// `global` is the reserved cross-cutting sentinel (ADR-0021,
+		// M-0184), not a declarable member: it is one value of the area
+		// dimension, never a second axis. Reject it here so the only way
+		// an entity carries `area: global` is the affirmative escape valve,
+		// not a member set that shadows the sentinel.
+		if name == entity.AreaGlobal {
+			return fmt.Errorf("areas.members may not declare the reserved %q area; it is the cross-cutting sentinel (ADR-0021)", entity.AreaGlobal)
 		}
-		seen[m] = true
+		if seen[name] {
+			return fmt.Errorf("areas.members contains duplicate member %q", name)
+		}
+		seen[name] = true
+		for _, p := range m.Paths {
+			if strings.TrimSpace(p) == "" {
+				return fmt.Errorf("areas.members member %q contains an empty path entry", name)
+			}
+			if p != strings.TrimSpace(p) {
+				return fmt.Errorf("areas.members member %q path %q has leading or trailing whitespace", name, p)
+			}
+			// Tier-1 glob-syntax gate (M-0180): route the check through the
+			// areamatch SSOT so config-load owns malformed globs and never
+			// imports doublestar directly. A bad glob is a hard load error,
+			// not a silently-skipped runtime no-op.
+			if err := areamatch.Validate(p); err != nil {
+				return fmt.Errorf("areas.members member %q path %q is not a valid glob: %w", name, p, err)
+			}
+		}
 	}
 	if a.Default != "" {
 		if strings.TrimSpace(a.Default) == "" {
@@ -148,6 +348,29 @@ func (a Areas) validate() error {
 		}
 		if seen[a.Default] {
 			return fmt.Errorf("areas.default %q must not also be a member; it labels the untagged complement", a.Default)
+		}
+	}
+	// M-0178: `required: true` asserts "every entity belongs to a declared
+	// area", which is unsatisfiable with an empty member set. Mirrors the
+	// `default`-needs-members rejection above.
+	if a.Required && len(a.Members) == 0 {
+		return fmt.Errorf("areas.required is set but no members are declared")
+	}
+	// M-0185: each coverage root must be a non-empty, whitespace-clean,
+	// repo-relative path. fs.ValidPath rejects a leading slash, `.` is
+	// permitted (the repo root as a coverage scope), and `..` segments are
+	// rejected so the single-level enumeration cannot escape the tree. No
+	// coupling to members: coverage_roots without paths is inert, not
+	// unsatisfiable (unlike required), so it is not a load error.
+	for _, r := range a.CoverageRoots {
+		if strings.TrimSpace(r) == "" {
+			return fmt.Errorf("areas.coverage_roots contains an empty entry")
+		}
+		if r != strings.TrimSpace(r) {
+			return fmt.Errorf("areas.coverage_roots entry %q has leading or trailing whitespace", r)
+		}
+		if !fs.ValidPath(r) {
+			return fmt.Errorf("areas.coverage_roots entry %q is not a valid repo-relative path (use '/'-separated, no leading slash, no `..` segments)", r)
 		}
 	}
 	return nil
@@ -620,6 +843,16 @@ func splitKeepEOL(s string) []string {
 // Write marshals cfg to root/aiwf.yaml. Refuses to overwrite an
 // existing file — callers (notably `aiwf init`) decide what to do
 // when one is already there.
+//
+// Empty-config-only by contract. The sole caller is `aiwf init`, which
+// writes an empty &Config{} (areas omitted). Write must NOT be used to
+// serialize a populated areas block: yaml.Marshal would emit every Member
+// in mapping form (`- name: app-a`), churning a legacy bare-string member
+// and breaking the M-0179 zero-migration parity. Post-init edits to the
+// areas block route through the comment-preserving aiwfyaml writer
+// (aiwfyaml.Doc.RenameAreaMember), which rewrites only the renamed name
+// token and leaves each member's existing form (bare string or mapping)
+// untouched.
 func Write(root string, cfg *Config) error {
 	if err := cfg.Validate(); err != nil {
 		return err

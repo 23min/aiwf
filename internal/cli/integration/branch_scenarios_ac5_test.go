@@ -6,12 +6,12 @@ import (
 )
 
 // branch_scenarios_ac5_test.go — M-0159/AC-5: real-git E2E
-// coverage of `aiwf acknowledge-illegal` silencing
+// coverage of `aiwf acknowledge illegal` silencing
 // trailer-verb-unknown findings, end-to-end through the gather→
 // consumer wiring. Converts the docstring promise at
 // internal/check/trailer_verb_unknown.go:25-29 — "Promotion to
 // error is contingent on cleaning history first (potentially
-// via `aiwf acknowledge-illegal` for the few intentional
+// via `aiwf acknowledge illegal` for the few intentional
 // historical strays, if any)" — into mechanical truth.
 //
 // AC-3's helper-lift already wired RunTrailerVerbUnknown to
@@ -37,7 +37,7 @@ import (
 // verbs as subprocess invocations, and asserts stdout/stderr/
 // exit-code/trailers/envelope output"), all scenarios drive the
 // real `aiwf check --format=json` against fixtures fabricated
-// via raw git + the real `aiwf acknowledge-illegal` verb.
+// via raw git + the real `aiwf acknowledge illegal` verb.
 //
 // The scenarios fall into four groups:
 //
@@ -65,7 +65,7 @@ import (
 
 // TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing drives
 // the four scenario groups described in the file header. All
-// scenarios use the real `aiwf acknowledge-illegal` verb; no
+// scenarios use the real `aiwf acknowledge illegal` verb; no
 // fake trailer fabrication for the acknowledgment commit.
 func TestBranchScenarios_AC5_TrailerVerbUnknownAckSilencing(t *testing.T) {
 	t.Parallel()
