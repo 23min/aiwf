@@ -101,7 +101,7 @@ Candidate behaviors to formalize at start-milestone:
 - M-0179 (`paths:` per area) — the oracle.
 - M-0180 (dead-glob/overlap + `areamatch`) — the matcher and the forward laws this completes.
 - M-0178 (`areas.required`) — the escalation seam for the severity contract.
-- M-0195 (rename-area writer fix) — must land first: it makes the `coverage_roots` knob survive
+- M-0208 (rename-area writer fix) — must land first: it makes the `coverage_roots` knob survive
   `aiwf rename-area`, which previously regenerated the `areas:` block and silently dropped every
   sibling key (`required`, and any future key) on rewrite.
 

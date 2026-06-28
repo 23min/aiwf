@@ -1,7 +1,9 @@
 ---
-id: M-0195
+id: M-0208
 title: rename-area preserves comments and sibling keys in the areas block on rename
 status: in_progress
+prior_ids:
+    - M-0195
 parent: E-0044
 tdd: required
 acs:
