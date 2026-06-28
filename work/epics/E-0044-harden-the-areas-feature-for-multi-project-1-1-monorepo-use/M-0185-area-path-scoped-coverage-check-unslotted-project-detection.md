@@ -22,7 +22,7 @@ acs:
       status: open
       tdd_phase: done
     - id: AC-4
-      title: coverage law is inert without a coverage root or without paths
+      title: coverage law is inert without a declared coverage root
       status: open
       tdd_phase: done
     - id: AC-5
@@ -158,7 +158,7 @@ Candidate behaviors to formalize at start-milestone:
 
 ### AC-3 — unslotted child directory under a coverage root raises area-unslotted
 
-### AC-4 — coverage law is inert without a coverage root or without paths
+### AC-4 — coverage law is inert without a declared coverage root
 
 ### AC-5 — area-unslotted is warning by default, error under areas.required
 
