@@ -1,7 +1,9 @@
 ---
 id: G-0262
 title: audit the whole test corpus for vacuous assertions, not just policies
-status: open
+status: addressed
+addressed_by_commit:
+    - 41b6f265
 ---
 ## What's missing
 
