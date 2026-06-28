@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: CI segment shows pending when the run's headSha differs from local HEAD
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Statusline cache key includes HEAD sha so a push invalidates a stale CI result
       status: open
