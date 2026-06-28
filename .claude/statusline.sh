@@ -5,7 +5,8 @@
 # Layout: <ball> <model> <effort?> ▸ <tokens> · <epic HUD> · <repo> · <branch…>[<dirty>][<sync>] · <ci-glyph> ci
 #
 # All segments fail soft: anything that errors collapses to "?" or is dropped.
-# Network calls are cached in /tmp with a TTL so the script stays sub-100ms.
+# Network + check-probe calls are cached in /tmp with a TTL so the hot
+# (cache-hit) path stays fast; a cache miss pays one gh + one aiwf check --fast.
 
 set -u
 
@@ -372,6 +373,63 @@ case "$ci_state" in
   *)   ci_fmt="${ci_state} ${ci_label}" ;;
 esac
 
+# --- Tree health (cached aiwf check --fast) ---------------------------------
+#
+# Prefixes ⚠ when `aiwf check --fast` reports error-severity findings, so the
+# operator gets an ambient signal that the planning tree has drifted into a
+# blocking state without running a verb by hand (G-0290). Hard constraint: the
+# statusline renders every prompt, so it must NOT run a full `aiwf check`
+# (seconds-to-minutes on a large tree — the per-entity git-history walks). It
+# runs the render-safe `--fast` mode (in-memory content rules, no git-history
+# layer) and caches the verdict on a short TTL + HEAD-fold, exactly like the CI
+# segment above — the hot path only reads the cache file.
+#
+# Only error-severity findings light the glyph: `aiwf check` exits 1 iff errors
+# are present, 0 for a clean tree OR one with warnings only, so the repo's
+# always-present benign warnings (archive-sweep-pending, …) never pin it on.
+#
+# Degrades silently (no glyph) when aiwf is absent, the tree is not an aiwf repo
+# (no aiwf.yaml), or the probe errors (exit >1) — e.g. a binary too old for
+# --fast. This is why the non-aiwf statusline fixtures render no health glyph.
+
+health_state=""
+health_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if command -v aiwf >/dev/null 2>&1 && [ -n "$health_root" ] && [ -f "$health_root/aiwf.yaml" ]; then
+  # HEAD-fold mirrors the CI key: a commit invalidates the cached verdict at
+  # once; between commits the TTL bounds staleness for uncommitted edits.
+  h_head="$(git rev-parse --verify HEAD 2>/dev/null)"
+  h_key="$(printf '%s/%s' "$health_root" "$h_head" | shasum | awk '{print $1}')"
+  h_cache_dir="${AIWF_STATUSLINE_CACHE_DIR:-/tmp}"
+  h_cache_file="${h_cache_dir}/aiwf-statusline-health-${h_key}"
+  h_ttl=30
+
+  h_use_cache=false
+  if [ -r "$h_cache_file" ]; then
+    h_age=$(( $(date +%s) - $(stat -c %Y "$h_cache_file" 2>/dev/null || stat -f %m "$h_cache_file" 2>/dev/null || echo 0) ))
+    [ "$h_age" -lt "$h_ttl" ] && h_use_cache=true
+  fi
+
+  if $h_use_cache; then
+    health_state="$(cat "$h_cache_file" 2>/dev/null)"
+  else
+    aiwf check --fast --root "$health_root" >/dev/null 2>&1
+    case $? in
+      0) health_state="ok"   ;;
+      1) health_state="warn" ;;
+      *) health_state=""     ;;  # probe failed (e.g. old binary, no --fast): degrade
+    esac
+    if [ -n "$health_state" ]; then
+      h_tmp="${h_cache_file}.tmp.$$"
+      printf '%s' "$health_state" >"$h_tmp" 2>/dev/null && mv -f "$h_tmp" "$h_cache_file" 2>/dev/null
+    fi
+  fi
+fi
+
+# ⚠ leads the whole line (before the ball) so a findings state is impossible to
+# miss; clean / warnings-only / degraded states render no prefix.
+health_prefix=""
+[ "$health_state" = "warn" ] && health_prefix="${red}⚠${reset} "
+
 # --- Compose ----------------------------------------------------------------
 
 head_seg="$ball $model_short"
@@ -389,4 +447,4 @@ out=""
 for p in "${parts[@]}"; do
   if [ -z "$out" ]; then out="$p"; else out="$out · $p"; fi
 done
-printf '%s' "$out"
+printf '%s%s' "$health_prefix" "$out"
