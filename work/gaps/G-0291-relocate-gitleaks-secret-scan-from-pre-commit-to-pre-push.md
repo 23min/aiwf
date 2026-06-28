@@ -1,8 +1,10 @@
 ---
 id: G-0291
 title: Relocate gitleaks secret-scan from pre-commit to pre-push
-status: open
+status: addressed
 discovered_in: E-0045
+addressed_by_commit:
+    - 3115da4e
 ---
 ## Problem
 
