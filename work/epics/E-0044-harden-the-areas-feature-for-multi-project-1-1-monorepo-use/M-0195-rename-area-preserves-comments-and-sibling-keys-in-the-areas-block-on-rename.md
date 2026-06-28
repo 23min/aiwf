@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Surgical member rename preserves all other areas-block bytes
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: rename-area preserves areas.required and inner areas-block comments end-to-end
