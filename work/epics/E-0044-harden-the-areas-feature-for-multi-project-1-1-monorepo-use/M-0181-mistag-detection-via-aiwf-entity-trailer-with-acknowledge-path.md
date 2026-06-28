@@ -122,7 +122,7 @@ The topical `aiwf-acknowledge` skill teaches both subverbs (`illegal`, `mistag`)
 
 ## Deferrals
 
-- **G-0304** — consolidate the three ack-walker HEAD-walk loops into one `forEachCommitTrailers` primitive (rule-of-three crossed; surfaced by the pre-wrap `wf-rethink`). DRY cleanup, not a correctness fix.
+- **G-0306** — consolidate the three ack-walker HEAD-walk loops into one `forEachCommitTrailers` primitive (rule-of-three crossed; surfaced by the pre-wrap `wf-rethink`). DRY cleanup, not a correctness fix.
 - No AC deferred or cancelled — all seven met.
 
 ## Reviewer notes
