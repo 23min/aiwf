@@ -28,7 +28,7 @@ If anything is red, stop and report. Wrap does not paper over failure.
 
 ### 2. Independent two-lens review — before the wrap
 
-This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 8). The review feeds the human gate; it does not replace it.
+This gates milestone *closure*, not the per-commit work: the implementation commits are already in, but the milestone is not yet wrapped, so there is still a chance to fix things *inside* the milestone. Findings become corrective commits on the milestone branch — before any AC flips to `met` and before the commit gate (step 7). The review feeds the human gate; it does not replace it.
 
 Dispatch a **fresh-context reviewer** (a subagent with no authorship attachment) over the milestone's full change-set (`git diff <base>..HEAD`), briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run two lenses:
 
@@ -73,15 +73,7 @@ The v1 separate tracking doc is gone. The milestone spec itself carries the wrap
 
 For ACs that were `cancelled` mid-implementation, link to the `D-NNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
 
-### 5. Promote the milestone status
-
-```bash
-aiwf promote M-NNNN done
-```
-
-aiwf validates `in_progress → done`, rewrites frontmatter, commits with `aiwf-verb: promote` trailers. The promote commit is *separate* from the implementation commits — it captures the moment of closure.
-
-### 6. Update the roadmap
+### 5. Update the roadmap
 
 ```bash
 aiwf render roadmap --write
@@ -89,7 +81,7 @@ aiwf render roadmap --write
 
 The roadmap reflects the milestone's new status without hand-edits.
 
-### 7. Stage all changes and prepare the wrap commit
+### 6. Stage all changes and prepare the wrap commit
 
 The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes). Stage it:
 
@@ -101,7 +93,7 @@ git diff --staged --stat
 
 Draft a conventional commit message: `feat(<scope>): <one-line summary> (M-NNNN)`.
 
-### 8. 🛑 Commit gate
+### 7. 🛑 Commit gate
 
 Show the user:
 - `git diff --staged --stat`
@@ -110,7 +102,7 @@ Show the user:
 
 **Stop and wait for explicit "commit" approval.**
 
-### 9. After commit approval
+### 8. After commit approval
 
 The wrap commit touches a milestone entity file (`work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`), so it carries the three required trailers — `aiwf-verb: wrap-milestone`, `aiwf-entity: M-NNNN`, `aiwf-actor: human/<id>`. Skipping any one of them trips the kernel's `provenance-untrailered-entity-commit` finding on the file touch. Parallel shape to `aiwfx-wrap-epic`'s trailered merge + wrap-artefact commits:
 
@@ -123,9 +115,9 @@ git commit -m "<approved-message>" \
 
 The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy.
 
-### 10. 🛑 Push gate
+### 9. 🛑 Push gate
 
-Confirm with the user before pushing. Then:
+Push is an outward, irreversible action — it stands as its own gate, never folded into the declared-sequence gate below. Confirm with the user before pushing. Then:
 
 ```bash
 git push -u origin milestone/M-NNNN-<slug>
@@ -133,9 +125,13 @@ git push -u origin milestone/M-NNNN-<slug>
 
 Open the PR if the project's flow is PR-driven. Reference the milestone id in the PR title.
 
-### 11. After merge
+### 10. 🛑 Declared-sequence gate — merge the milestone branch and close
 
-If the project uses an epic-integration branch, merge the milestone branch into the epic branch following the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
+This is the milestone's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 9, outward) and any origin-branch delete (outward) — those stand as their own gates and are never batched here.
+
+The enumerated local sequence is **merge → promote-done → local cleanup**:
+
+**1. Merge** the milestone branch into the epic branch. If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
 ```bash
 git checkout epic/E-NNNN-<slug>
@@ -159,14 +155,33 @@ The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `
 
 Record the resulting merge commit SHA wherever the project tracks merge history (the milestone's `## Work log` section is the natural place).
 
-Then:
+**2. Promote** the milestone to `done`:
 
-- Delete the milestone branch on origin.
-- Run `aiwf render roadmap --write` once more if the merge introduced any state aiwf would notice.
+```bash
+aiwf promote M-NNNN done
+```
+
+aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge so a delegated milestone's authorize scope is still live for the merge commit.
+
+**3. Local cleanup** — delete the local milestone branch (and its worktree, if one was used):
+
+```bash
+git branch -d milestone/M-NNNN-<slug>
+```
+
+These are local and reversible, so they belong inside the gate above.
+
+### 11. Origin cleanup and housekeeping
+
+After the declared-sequence gate, finish up. The origin-branch delete is an **outward action — its own gate**, never batched into step 10:
+
+- Delete the milestone branch on origin (`git push origin --delete milestone/M-NNNN-<slug>`) if the branch/PR flow created one — outward, its own gate.
+- Run `aiwf render roadmap --write` once more if the merge introduced any state aiwf would notice (a local change, no gate needed).
 
 ## Constraints
 
-- 🛑 **Never commit or push without explicit human approval** (steps 8, 10).
+- 🛑 **Never commit or push without explicit human approval** — the commit gate (step 7) and the push gate (step 9) are separate human gates.
+- 🛑 **The terminal local sequence — local merge, promote-done, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s self-review.
 - Deferrals must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at.

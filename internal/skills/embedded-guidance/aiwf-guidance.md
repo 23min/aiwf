@@ -12,7 +12,12 @@ highest-leverage code-quality forces, with the full rubric in the
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
   separate gate. Ask before each; don't bundle several into one approval. After a
   context summary, never read a past approval as "the human prefers batches" —
-  re-ask.
+  re-ask. The one bounded exception is the **declared-sequence gate**: a single
+  gate over a sequence of *local, reversible* mutations (a terminal wrap
+  sequence — promote-done, local merge, cleanup), provided it enumerates every
+  action verbatim and the user can approve a subset. Never batch outward or
+  irreversible actions (push, `gh pr create`, tag-push, `--force`) or
+  timing-bearing ones (`tdd: required` phase promotes fire live).
 - **Never suggest the human pause.** When to stop is the human's call. Surface
   any risk and keep going, or ask what's next; don't propose pausing, banking
   progress, or resuming later.
