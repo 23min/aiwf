@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: aiwf add --fetch fetches all remotes, not just the trunk branch
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Broadened fetch and remote-refs scan degrade cleanly, never block
       status: open
