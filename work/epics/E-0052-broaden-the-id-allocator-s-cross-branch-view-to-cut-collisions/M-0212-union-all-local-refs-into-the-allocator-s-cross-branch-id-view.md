@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Allocator unions ids from all local refs/heads
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Local-refs scan degrades cleanly on odd repo states
