@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: 'Two-branch integration: sibling allocation does not collide'
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
