@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Local-refs scan degrades cleanly on odd repo states
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: 'Two-branch integration: sibling allocation does not collide'
