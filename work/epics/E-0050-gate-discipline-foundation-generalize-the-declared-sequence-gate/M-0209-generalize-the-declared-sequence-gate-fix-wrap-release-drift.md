@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: aiwfx-release splits the two origin pushes into separate push gates
-      status: open
+      status: met
     - id: AC-3
       title: aiwfx-wrap-milestone batches its terminal local steps in one gate
       status: open
