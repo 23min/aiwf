@@ -669,5 +669,5 @@ cross-machine concurrent race.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0212 | Union all local refs into the allocator's cross-branch id view | done |
-| M-0213 | Opt-in best-effort fetch before id allocation | draft |
+| M-0213 | Opt-in best-effort fetch before id allocation | done |
 
