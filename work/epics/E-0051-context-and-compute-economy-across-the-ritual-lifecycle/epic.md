@@ -20,8 +20,8 @@ rituals never addressed:
 
 1. **Compute economy.** Several ritual steps are read-heavy and judgment-light —
    `aiwfx-wrap-epic`'s ADR harvest (walk every epic commit + diff), the doc-lint
-   sweeps, the start-ritual preflights, even the independent two-lens review.
-   Today they run inline on the main (expensive) model. Nothing tells a ritual to
+   sweeps, and the start-ritual preflights. Today they run inline on the main
+   (expensive) model. Nothing tells a ritual to
    dispatch the scan to a cheap-model subagent that returns a shortlist for the
    main model to adjudicate.
 
@@ -48,9 +48,12 @@ them where they don't — so they are one epic, not two.
 
 - **Pillar A — cheap-model delegation for scan-steps.** A doctrine (in guidance)
   plus per-step wiring: `aiwfx-wrap-epic` ADR harvest and doc-lint, start-ritual
-  preflights, and the wrap independent-review step dispatch to a cheap-model
-  subagent that returns a shortlist / report; the main model adjudicates. Name the
-  model tier per step (Haiku for pure scan; Sonnet for review judgment).
+  preflights dispatch to a cheap-model (Haiku) subagent that returns a shortlist /
+  report for the main model to adjudicate. The wrap independent two-lens review
+  also dispatches to a subagent — but as a *judgment* pass (Sonnet, fresh context
+  for independence), and it **feeds the human gate, never replaces it** (per
+  `aiwfx-wrap-milestone` §2). A subagent review is timely input to human judgment,
+  not a mechanical substitute for it.
 - **Pillar B — session-topology doctrine + ritual hand-off emission.** Document
   the home-session / anchored-build-session-per-epic / home-session-wrap topology.
   Wire the advisory hand-offs into the rituals: `aiwfx-start-epic` emits
