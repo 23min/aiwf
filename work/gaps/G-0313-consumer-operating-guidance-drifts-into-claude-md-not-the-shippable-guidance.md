@@ -27,7 +27,9 @@ Three surfaces are in play:
 
 - "How to OPERATE aiwf in any repo" → embedded guidance source → ships.
   (gate-per-mutation, reallocate-not-`git mv`, AC mechanical-evidence,
-  one-decision-at-a-time, never-suggest-pause, the body-prose-id discipline.)
+  one-decision-at-a-time, never-suggest-pause, the body-prose-id discipline,
+  the cross-branch id-allocation workflow — `--fetch`, branch-allocate, push
+  promptly — added to `CLAUDE.md` §"Id-collision resolution" by E-0052.)
 - "How to DEVELOP aiwf itself" → this repo's `CLAUDE.md` → correctly not shipped.
   (Go conventions, the test-parallelism discipline, `make ci` cadence, the
   release process, the chokepoint table, ritual-authoring locations.)
