@@ -31,10 +31,15 @@ commit/TDD-model subset is lifecycle epic E-0049.
   full body sweep + placeholder normalization (G-0299); skill-edit→test backstop
   policy (G-0220); finding-code documented-superset chokepoint (G-0283).
 - **Skill content correctness:** verb-skill factual corrections (G-0301);
-  wf-tdd-cycle / wf-review-code honesty (G-0297); wf-doc-lint reframe + gitleaks
+  wf-tdd-cycle / wf-review-code honesty (G-0297) and the wf-tdd-cycle
+  audit/vacuity-before-`met` reorder (G-0309); wf-doc-lint reframe + gitleaks
   (G-0294); descriptions + whiteboard + prose polish (G-0298); planning-ritual
   body-fill routing through edit-body (G-0300); plan-milestones Next-step (G-0248);
   devcontainer onboarding banner (G-0279).
+- **Cross-ritual deduplication:** extract the trailered-commit / merge block and
+  its caveats — duplicated across `aiwfx-wrap-epic`, `aiwfx-wrap-milestone`, and
+  `aiwfx-release` — into a `wf-commit-trailers` reference skill the rituals cite,
+  per the mechanism ratified in ADR-0024 (M-0210).
 
 ### Out of scope
 
@@ -78,7 +83,8 @@ commit/TDD-model subset is lifecycle epic E-0049.
 2. Skill-edit→structural-test backstop policy (G-0220) — foundation.
 3. Finding-code docs + documented-superset chokepoint (G-0283).
 4. Verb-skill factual corrections (G-0301).
-5. wf-tdd-cycle / wf-review-code honesty + wf-doc-lint reframe (G-0297, G-0294).
+5. wf-tdd-cycle / wf-review-code honesty + wf-doc-lint reframe + wf-tdd-cycle audit/vacuity-before-`met` reorder (G-0297, G-0294, G-0309).
 6. Descriptions + whiteboard + prose polish (G-0298).
 7. Planning-ritual body-fill routing + plan-milestones Next-step (G-0300, G-0248).
 8. Devcontainer onboarding banner (G-0279).
+9. Extract trailered-commit duplication into a `wf-commit-trailers` reference skill (M-0210, ADR-0024).
