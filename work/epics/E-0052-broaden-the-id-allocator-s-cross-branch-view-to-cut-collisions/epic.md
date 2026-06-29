@@ -1,7 +1,7 @@
 ---
 id: E-0052
 title: Broaden the id allocator's cross-branch view to cut collisions
-status: proposed
+status: active
 ---
 # Broaden the id allocator's cross-branch view to cut collisions
 
