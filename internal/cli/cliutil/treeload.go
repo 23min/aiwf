@@ -60,6 +60,11 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	// it can never block the add. Feeds AllocationIDs (allocation only),
 	// never the ids-unique check (which reads TrunkIDs).
 	tr.LocalRefIDs = trunk.LocalRefIDs(ctx, rootDir)
+	// M-0214: the remote-side mirror — ids reachable from every
+	// remote-tracking ref. Same best-effort, allocation-only contract as
+	// LocalRefIDs (never errors, never blocks; feeds AllocationIDs, not
+	// the ids-unique check).
+	tr.RemoteRefIDs = trunk.RemoteRefIDs(ctx, rootDir)
 	return tr, loadErrs, nil
 }
 

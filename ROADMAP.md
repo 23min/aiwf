@@ -670,4 +670,5 @@ cross-machine concurrent race.
 |---|---|---|
 | M-0212 | Union all local refs into the allocator's cross-branch id view | done |
 | M-0213 | Opt-in best-effort fetch before id allocation | done |
+| M-0214 | Broaden allocator and --fetch to all remote-tracking refs | done |
 

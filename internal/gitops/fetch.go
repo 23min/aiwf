@@ -2,15 +2,16 @@ package gitops
 
 import "context"
 
-// FetchBranch runs `git fetch <remote> <branch>` in workdir, refreshing
-// only that single branch's remote-tracking ref (refs/remotes/<remote>/<branch>
-// in a standard clone) — not a full `git fetch --all`. Wraps git
-// failures; the caller decides whether a failure is fatal or, as in the
-// allocator's opt-in `--fetch` (M-0213), best-effort.
+// FetchAll runs `git fetch --all` in workdir, refreshing every
+// remote-tracking ref (refs/remotes/*) across all configured remotes.
+// Wraps git failures; the caller decides whether a failure is fatal or,
+// as in the allocator's opt-in `--fetch` (M-0214), best-effort.
 //
-// The narrow single-branch fetch is deliberate: the allocator only needs
-// the configured trunk ref refreshed, and a `--all` would pull every
-// branch and tag the operator didn't ask for.
-func FetchBranch(ctx context.Context, workdir, remote, branch string) error {
-	return run(ctx, workdir, "fetch", remote, branch)
+// This is the broadened successor to M-0213's single-branch trunk fetch:
+// the allocator's remote-side view now spans every remote-tracking ref
+// (trunk.RemoteRefIDs), so `--fetch` refreshes all of them, not just the
+// trunk branch. With no remotes configured it is a clean no-op (git
+// exits 0) — nothing to fetch.
+func FetchAll(ctx context.Context, workdir string) error {
+	return run(ctx, workdir, "fetch", "--all")
 }

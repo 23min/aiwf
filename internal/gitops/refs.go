@@ -66,6 +66,37 @@ func LocalBranchRefs(ctx context.Context, workdir string) ([]string, error) {
 	return strings.Split(out, "\n"), nil
 }
 
+// RemoteTrackingRefs returns the full refnames of every remote-tracking
+// branch (refs/remotes/*) in workdir's repository, across all remotes,
+// e.g. []string{"refs/remotes/origin/feature", "refs/remotes/origin/main"}.
+// The per-remote symbolic HEAD (refs/remotes/<remote>/HEAD) is excluded —
+// it just points at that remote's default branch, whose tree another ref
+// already covers. Returns nil when the repo has no remote-tracking refs.
+// Wraps git failures.
+//
+// Used by the allocator's broadened cross-branch view (M-0214) via
+// trunk.RemoteRefIDs: an entity pushed to any remote branch is visible in
+// the local remote-tracking refs, so the allocator reads them to skip past
+// it (the remote-side mirror of LocalBranchRefs / M-0212).
+func RemoteTrackingRefs(ctx context.Context, workdir string) ([]string, error) {
+	out, err := output(ctx, workdir, "for-each-ref", "--format=%(refname)", "refs/remotes/")
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(out)
+	if out == "" {
+		return nil, nil
+	}
+	var refs []string
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasSuffix(line, "/HEAD") {
+			continue
+		}
+		refs = append(refs, line)
+	}
+	return refs, nil
+}
+
 // AddCommitSHA returns the SHA of the commit that introduced
 // relPath into the repo. Returns ("", nil) when the file has no add
 // commit visible from HEAD (newly staged but never committed).
