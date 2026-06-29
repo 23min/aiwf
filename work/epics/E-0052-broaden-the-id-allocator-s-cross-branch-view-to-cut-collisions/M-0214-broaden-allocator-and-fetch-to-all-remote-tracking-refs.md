@@ -80,3 +80,84 @@ Evidence: a no-remote repo where `aiwf add --fetch` succeeds with no warning (th
 fetch-all no-op) and allocates against the local view; an unreachable-remote repo
 where `--fetch` warns and still succeeds (never blocks); and an edge-case test for the
 remote-refs scan on a repo with no remote-tracking refs.
+
+## Work log
+
+Phase timeline is authoritative in `aiwf history M-0214/AC-<N>`; not duplicated here.
+Test fixture ids in backticks are literal allocator outputs, not entity references.
+
+### AC-1 — Allocator unions ids from all remote-tracking refs
+`gitops.RemoteTrackingRefs` (lists `refs/remotes/*`, skips symbolic HEAD) →
+`trunk.RemoteRefIDs` (via the shared `refIDs` helper) → `Tree.RemoteRefIDs` field +
+`AllocationIDs()` (now trunk ∪ local ∪ remote); `treeload.go` stamps it. The
+allocator already consumed `AllocationIDs()` (M-0212), so no `add.go` change was
+needed for the scan. · commit `71d11ea8` · tests: `RemoteTrackingRefs`,
+`RemoteRefIDs_*`, `Tree_AllocationIDs_UnionsTrunkLocalAndRemoteRefs`,
+`TestAdd_AllocatesPastNonTrunkRemoteRef` (clone with a non-trunk remote `G-0009` →
+allocates `G-0010`, not `G-0002`).
+
+### AC-2 — aiwf add --fetch fetches all remotes
+`gitops.FetchAll` (`git fetch --all`); `add.go`'s `--fetch` block now calls it. The
+M-0213 single-branch chain (`FetchBranch` / `FetchTrunkBestEffort` /
+`parseRemoteTrackingRef`) was removed. · commit `71d11ea8` · tests:
+`TestFetchAll_*`, `TestAdd_FetchAllReflectsNonTrunkRemoteID` (post-clone non-trunk
+branch brought by `--fetch` → `G-0010`; without `--fetch` → `G-0002`).
+
+### AC-3 — Broadened fetch and remote-refs scan degrade cleanly, never block
+Best-effort preserved: `add.go` warns + continues on a fetch failure; no-remote
+`git fetch --all` is a clean no-op. · commit `71d11ea8` · tests:
+`TestAdd_FetchBadRemote_WarnsButSucceeds` (unreachable remote → warning + exit OK),
+`TestAdd_FetchBestEffort_NoRemote` (no-remote → no warning), `RemoteRefIDs`
+no-remotes/not-a-repo degradation. Both load-bearing branches vacuity-checked
+(disable scan → AC-1/AC-2 fail; disable fetch → AC-2/AC-3 fail).
+
+## Decisions made during implementation
+
+- **Full G-0316 (scan-all + fetch-all), superseding M-0213's trunk-only `--fetch`.**
+  The choice between (A) adding only the remote-refs scan and (B) also broadening
+  `--fetch` to `git fetch --all` was put to the operator, who chose B — the coherent
+  "everything the scan reads, `--fetch` refreshes." Accepted costs: an id is taken
+  the moment it is pushed anywhere (an abandoned remote branch burns its id), and the
+  scan is O(remote branches) per allocation. `aiwf reallocate` stays the backstop for
+  the unpushed-elsewhere residual.
+- **Shared `refIDs` helper.** `LocalRefIDs` (M-0212) and `RemoteRefIDs` differ only in
+  the ref-listing function, so they delegate to one `refIDs(ctx, workdir, listRefs)` —
+  the rule-of-two-identical-bodies extraction, not speculative abstraction.
+
+## Validation
+
+- `make check-fast` (golangci-lint + go vet + full `go test` incl
+  `internal/policies`): **green**.
+- `go build ./...`: **green**. `golangci-lint` over the affected package trees:
+  **0 issues**.
+- Branch coverage: `RemoteTrackingRefs` / `FetchAll` / `RemoteRefIDs` / `LocalRefIDs`
+  / `AllocationIDs` 100%; `refIDs` 92.3% — the sole uncovered line is the justified
+  `//coverage:ignore` (the `for-each-ref` error branch shared by both listers).
+- `aiwf check`: **0 errors**.
+
+## Deferrals
+
+None — this milestone **closes G-0316**.
+
+## Reviewer notes
+
+- **Independent two-lens review before wrap.** Code-quality (`wf-review-code`) →
+  **APPROVE**: allocation-only invariant verified (the `ids-unique` check reads only
+  `TrunkIDs`); clean removal (no dangling refs to the deleted M-0213 functions);
+  non-vacuity confirmed; slice-aliasing safe; lock-held-across-fetch correct-by-design.
+  It caught a stale `add.go` fetch-block comment (still describing M-0213's trunk
+  refresh + no-remote warning) — fixed inline. Design (`wf-rethink`) on the unit →
+  **KEEP**, no rewrite (the `refIDs` DRY, the parallel local/remote structure, the
+  removal, `git fetch --all`, and the no-dedup-of-AllocationIDs were all judged right).
+- **Folded in:** the stale `add.go` comment, generalized the `refIDs`
+  `//coverage:ignore` wording (the helper is now generic over the ref-lister), and a
+  one-line note on the deliberate trunk overlap in `AllocationIDs`.
+- **Supersedes M-0213's trunk-only `--fetch`:** removing the single-branch chain also
+  resolved M-0213's `parseRemoteTrackingRef` dup-parsing watch-item, and the M-0213
+  fetch tests were reconciled (no-remote is now a clean no-op, not a warning).
+- **Track-for-later (non-blocking):** if a third ref-source ever appears, collapse the
+  parallel `Local*`/`Remote*` triad into one merged scan + `Tree.RefIDs` field
+  (rule-of-three) rather than adding a fourth parallel copy. Deferred today.
+- **Accepted limitations:** the repo lock is held across `git fetch --all` (opt-in,
+  best-effort, no worse in kind than M-0213); id-burn on abandoned remote branches and
+  the O(remote-branches) scan cost are the design trade-offs the operator accepted.
