@@ -1,7 +1,7 @@
 ---
 id: M-0195
 title: Strict skill-body id-reference discipline, check, and full sweep
-status: in_progress
+status: done
 parent: E-0048
 depends_on:
     - M-0209
@@ -78,8 +78,10 @@ Evidence: a check-package test with a fixture skill body containing a real id
 The check's allow-set stays silent: letter-form placeholders (the canonical
 `<prefix>-NNNN` token, whose suffix is the letter N, distinct from a
 digit-bearing real id), id-shapes inside any code construct, and an id-shape
-carried by a markdown link that resolves under `docs/**` (the design/ADR
-doc-link carve-out). This is the deliberate inversion of the `body-prose-id`
+carried by any markdown link destination — `proseMask` exempts link
+destinations regardless of path, which is the mechanism behind the design/ADR
+doc-link carve-out (the author keeps the id in the destination and the visible
+text descriptive). This is the deliberate inversion of the `body-prose-id`
 check, which flags `M-NNNN` in entity bodies; in a shipped skill body the
 placeholder is correct and the real id is the defect.
 
@@ -95,21 +97,32 @@ Every placeholder across the embedded skill tree is normalized to the canonical
 and pseudo-arithmetic (`C-NNN+1`) are eliminated; where two placeholders
 co-occur in one example they are made distinct. Normalization is the
 precondition for the AC-1 check: it is what lets the rule allow placeholders
-while flagging real ids.
+while flagging real ids. **Prose-scoped**, like the check: the test masks code
+constructs, so narrow metavariables that survive only inside command-syntax
+examples (`aiwf history M-NNN`) are deliberately out of scope — they are
+syntactic illustration, not entity references, and the check exempts them.
 
-Evidence: a test asserting no non-canonical placeholder shape remains in any
-shipped skill body.
+Evidence: a test asserting no non-canonical placeholder shape remains in
+shipped skill-body prose.
 
 ### AC-4 — Full sweep: id-reference check passes clean over the shipped skill tree
 
 Every real entity id, id-bearing filesystem path, and inline lifecycle-status
-assertion is removed from all shipped skill bodies (the 34 `SKILL.md` files
-across the two embedded trees); the AC-1 rule reports zero findings when run
-over the real embedded skills. This single assertion pins both the sweep (no
-real refs remain) and normalization (only valid placeholders remain). Because a
+assertion is removed from shipped skill-body **prose** (across the 34 `SKILL.md`
+files in the two embedded trees); the AC-1 rule reports zero findings when run
+over the real embedded skills. This assertion pins both the prose sweep (no real
+refs remain) and normalization (only valid placeholders remain). Because a
 leaked filesystem path or inline status almost always carries a real id, the
 id-shape rule transitively catches the common leakage forms; the residual
 path/status discipline beyond id-shapes lives in the AC-5 standing rule.
+
+The guarantee is **prose-scoped**: the check (and this test) mask code
+constructs and link destinations, because code carries both leakage *and*
+legitimate syntax-teaching format-examples (e.g. `body-prose-id`'s own `M-0001`
+hint) the masker cannot tell apart. A real id used as a *reference* inside a
+code example is an authoring discipline caught at review, not mechanically — the
+independent wrap review caught two such cases (`G-0018`, `G-0071` inside
+backticks) and the sweep cleaned them to placeholders.
 
 Evidence: a test that runs the AC-1 rule over the real embedded skill tree and
 asserts zero findings.
@@ -126,4 +139,79 @@ itself as the convenient version.
 Evidence: a section-scoped structural assertion that the rule text appears under
 the Skills-policy heading — not a flat file-wide grep — per CLAUDE.md
 §"Substring assertions are not structural assertions".
+
+## Work log
+
+- **AC-1 / AC-2** — `internal/check/skill_body_id.go`: `ScanSkillBodyID` byte
+  scanner + `skillBodyIDReference` tree-walk (inert in consumer repos), wired
+  into `check.Run`; `CodeSkillBodyID` constant + `hint.go` entry. Tests:
+  `skill_body_id_test.go` (11 scanner cases + dedupe + a `check.Run` seam test).
+- **AC-3 / AC-4** — full sweep of 23 `SKILL.md` bodies (≈117 real-id citations
+  removed, placeholders normalized); `skill_body_id_realtree_test.go` asserts the
+  real tree is clean (AC-4) and prose placeholders are canonical (AC-3). The
+  high-volume sweep ran via a Sonnet builder subagent, reviewed for prose quality.
+- **AC-5** — CLAUDE.md Skills-policy standing rule + enforcement-table row;
+  `internal/policies/m0195_skill_body_discipline_test.go` (section-scoped).
+
+Phase + status timeline per `aiwf history M-0195/AC-N`. Implementation lands in
+the single wrap commit (current bundle-at-wrap model).
+
+## Decisions made during implementation
+
+- **Check lives in `internal/check`, not `internal/policies`** — resolves the
+  epic's open question toward the pre-push (in-context) tier per the
+  chokepoint-timeliness criterion; inert in consumer repos (skill-source tree
+  absent).
+- **The guarantee is prose-scoped.** The check reuses `body-prose-id`'s
+  `proseMask`, so code constructs and link destinations are exempt — necessary
+  because code carries both real-id leakage *and* legitimate syntax-teaching
+  format-examples (e.g. `body-prose-id`'s own `M-0001` hint) the masker cannot
+  distinguish. Real ids inside code examples are an authoring discipline caught
+  at review, not mechanically.
+- **ADR citations preserved as doc-links; provenance/exemplar ids removed.** The
+  sweep collided with prior discoverability ACs — ADR references kept via the
+  doc-link carve-out (id in destination), milestone/gap provenance + exemplar ids
+  dropped. The whiteboard tier rubric was reworked to archetype-lead (operator
+  decision).
+- **Streamlined TDD promote cadence** adopted by operator direction (the
+  per-phase HITL gate is low-value for local, mechanically-grounded transitions);
+  a config knob is tracked in `G-0314` (filed on `main`).
+
+## Validation
+
+- `go test ./internal/check ./internal/skills ./internal/policies` — all green
+  (policies full suite ≈77s).
+- `go build ./...`, `go vet ./internal/...` — clean. `golangci-lint` on changed
+  packages — 0 issues.
+- `aiwf check` (worktree diag binary) — 0 errors; `skill-body-id` reports 0 over
+  the swept tree.
+- Diff-scoped coverage: `ScanSkillBodyID` 100%, `skillBodyIDReference` 95.8% (one
+  `//coverage:ignore` TOCTOU guard).
+- Independent two-lens review (fresh-context reviewer): REQUEST-CHANGES → 1
+  blocking (B1: two real ids in code constructs + overstated prose) resolved
+  (content swept to placeholders + prose made prose-scoped-honest); 2 non-blocking
+  — N2 fixed (AC-2 prose), N1 recorded below.
+
+## Deferrals
+
+- **`G-0315`** (`--discovered-in M-0195`) — ritual-skill ADR doc-links have broken
+  relative depth and are dead in consumer repos; questions the doc-link carve-out
+  for shipped skills. Filed on `main`.
+- **N1 — pre-push false-negative** — a real bare id glued to a malformed `/AC-x`
+  or `_` tail (`M-0001/AC-foo`, `M-0001_x`) escapes the pre-push check (the
+  combined token matches neither strict pattern). The CI-tier AC-3 real-tree test
+  *does* flag every such shape, so the tree stays safe; only the in-context
+  pre-push catch has the hole. Low priority — recorded here; file a gap if it
+  recurs.
+
+## Reviewer notes
+
+- `tdd: required`; every AC carries a structural test (red→green verified) per
+  the mechanical-evidence rule.
+- The guarantee is **prose-scoped** (see Decisions) — a deliberate, documented
+  limitation, not an oversight. AC-3 likewise: command-syntax metavariables
+  (`aiwf history M-NNN`) in code blocks are out of scope.
+- The sweep rippled into 7 prior ACs' tests; each was legitimately re-pointed
+  (the independent review verified none were gutted to a tautology), not weakened.
+- N1 is an accepted check limitation (the CI tier covers it).
 
