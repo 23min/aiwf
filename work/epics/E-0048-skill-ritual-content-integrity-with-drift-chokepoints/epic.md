@@ -1,7 +1,7 @@
 ---
 id: E-0048
 title: Skill & ritual content integrity (with drift chokepoints)
-status: proposed
+status: active
 ---
 # Skill & ritual content integrity (with drift chokepoints)
 
