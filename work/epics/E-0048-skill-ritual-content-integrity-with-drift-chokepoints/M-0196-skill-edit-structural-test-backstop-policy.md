@@ -61,16 +61,6 @@ Source: G-0220. Parent epic E-0048.
 
 ## Acceptance criteria
 
-## Work log
-
-## Decisions made during implementation
-
-## Validation
-
-## Deferrals
-
-## Reviewer notes
-
 ### AC-1 — Policy fires on an unbacked ritual SKILL.md edit
 
 Given a set of changed embedded-rituals `SKILL.md` paths and the set of
@@ -138,3 +128,12 @@ Test: structural assertions scoped to each named section (the enforcement table
 and §"Ritual content authoring") — not a flat substring grep over the file —
 confirming the row and the backstop sentence are present in the right place.
 
+## Work log
+
+## Decisions made during implementation
+
+## Validation
+
+## Deferrals
+
+## Reviewer notes
