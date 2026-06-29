@@ -1,7 +1,7 @@
 ---
 id: M-0212
 title: Union all local refs into the allocator's cross-branch id view
-status: draft
+status: in_progress
 parent: E-0052
 tdd: required
 acs:
