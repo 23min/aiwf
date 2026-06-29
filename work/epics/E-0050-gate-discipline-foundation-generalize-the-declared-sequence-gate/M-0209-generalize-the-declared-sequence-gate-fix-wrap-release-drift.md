@@ -15,7 +15,7 @@ acs:
       title: aiwfx-wrap-milestone batches its terminal local steps in one gate
       status: open
     - id: AC-4
-      title: aiwfx-wrap-epic batches promote-done and cleanup in one gate
+      title: 'wrap-epic: one declared-sequence gate for merge+commit+promote; split deletes'
       status: open
 ---
 
@@ -48,5 +48,5 @@ and E-0049 milestone wraps inherit the corrected gate.
 
 ### AC-3 — aiwfx-wrap-milestone batches its terminal local steps in one gate
 
-### AC-4 — aiwfx-wrap-epic batches promote-done and cleanup in one gate
+### AC-4 — wrap-epic: one declared-sequence gate for merge+commit+promote; split deletes
 
