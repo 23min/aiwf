@@ -654,7 +654,7 @@ right moment*, not buried in a doc.
 
 _No milestones yet._
 
-## E-0052 — Broaden the id allocator's cross-branch view to cut collisions (active)
+## E-0052 — Broaden the id allocator's cross-branch view to cut collisions (done)
 
 ### Goal
 
