@@ -215,7 +215,19 @@ When a milestone's deliverable is ritual `SKILL.md` content, the **authoring loc
 
 When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks for the same reason) after a merge, resolve via **`aiwf reallocate <id>`**, not via `git mv` + a manual frontmatter edit.
 
-The trunk-aware allocator (`aiwf add <kind>`) unions the current branch's ids with `refs/remotes/origin/main` **and every local `refs/heads/*`** (the local-refs scan landed in M-0212 / E-0052). So two *local* branches — including sibling worktrees sharing one object store — no longer collide against each other: the second allocation sees the first's id through the shared local refs and skips past it. The residual blind spot is *cross-machine* — two clones (or a clone and a CI checkout) that allocate the same id while neither has pushed to trunk both succeed locally, because neither's `refs/heads/*` is visible to the other; the collision stays invisible until one lands on trunk and the *other's next push* hits its pre-push hook. Before M-0212 this also bit solo operators with several long-lived *local* worktrees — same brain, different sessions, hours apart, neither pushed — but that same-machine case is now caught at allocation. `aiwf reallocate` remains the backstop for the cross-machine residual.
+The allocator picks the next free id by scanning the working tree, every local branch (`refs/heads/*`), every remote-tracking ref (`refs/remotes/*`), and the configured trunk ref. That scan feeds **allocation only** — never the `ids-unique` check, which compares the working tree against trunk.
+
+How to avoid collisions:
+
+- **One machine, multiple worktrees:** nothing to do — sibling worktrees share an object store, so the allocator already sees their ids.
+- **Separate clones:** run `aiwf add --fetch` (a best-effort `git fetch --all`) so a teammate's id on any *pushed* branch is seen and skipped, and **push promptly after `aiwf add`** so your new id reaches others' next fetch.
+- **Allocate on whatever branch you're working on** — you don't need to create entities on trunk to avoid collisions.
+
+What to expect:
+
+- A peer who allocated but has **not pushed** is invisible; if two of you take the same id before either pushes, you collide — resolve with `aiwf reallocate` (below). Prompt pushing shrinks that window.
+- A `--fetch` failure (offline, unreachable remote) never blocks the add: it warns and allocates against the local view.
+- An entity on an unmerged branch can't be referenced **by id in another branch's prose** until it reaches trunk (the `body-prose-id` check resolves only against the working tree and trunk). Backtick the id until then, or allocate on main if a parallel branch must reference it now.
 
 At merge time the move that compiles is:
 
