@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: All placeholders normalized to canonical width
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: 'Full sweep: id-reference check passes clean over the shipped skill tree'
       status: open
