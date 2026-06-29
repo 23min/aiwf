@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-06-29
+
 ### Changed — E-0052: the id allocator catches cross-branch collisions at allocation time
 
 The id allocator's cross-branch view widened from `{working tree + the single trunk
