@@ -1,6 +1,6 @@
 ---
 name: aiwfx-record-decision
-description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate plugin template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
+description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate plugin template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
 ---
 
 # aiwfx-record-decision
@@ -19,12 +19,12 @@ A decision becomes clear that future readers (six months from now) would regret 
 
 The decision can surface anywhere — during planning (`aiwfx-plan-epic`), mid-implementation (`aiwfx-start-milestone`), at review (`wf-review-code`), at wrap (`aiwfx-wrap-milestone` or `aiwfx-wrap-epic`). Wherever it surfaces, hand off to this skill and continue.
 
-## ADR vs D-NNN — which to pick
+## ADR vs D-NNNN — which to pick
 
 | Pick | When |
 |---|---|
 | **ADR** (`docs/adr/ADR-NNNN-<slug>.md`) | Architectural. Durable across multiple epics. Cross-cutting concern (sec, perf, data model, dependency choice, language idiom). The kind of thing a new contributor reads to understand "why is this code shaped this way?" |
-| **D-NNN** (`work/decisions/D-NNN-<slug>.md`) | Project-scoped. Tied to a specific epic or milestone. Sequencing decisions, scope cuts, mid-implementation pivots, deliberate trade-offs that don't rise to architectural weight. |
+| **D-NNNN** (`work/decisions/D-NNNN-<slug>.md`) | Project-scoped. Tied to a specific epic or milestone. Sequencing decisions, scope cuts, mid-implementation pivots, deliberate trade-offs that don't rise to architectural weight. |
 
 If you're unsure, ADR is usually the right call — durability is the cheap-to-add side. The cost of writing one ADR that turns out to be project-scoped is small; the cost of failing to record an architectural decision is large.
 
@@ -32,7 +32,7 @@ If you're unsure, ADR is usually the right call — durability is the cheap-to-a
 
 ### 1. Pick the kind
 
-Ask the user (or, if the calling skill knows, just pick): ADR or D-NNN?
+Ask the user (or, if the calling skill knows, just pick): ADR or D-NNNN?
 
 ### 2. Allocate the id
 
@@ -42,7 +42,7 @@ For an ADR:
 aiwf add adr --title "<imperative title>"
 ```
 
-For a D-NNN:
+For a D-NNNN:
 
 ```bash
 aiwf add decision --title "<imperative title>"
@@ -60,7 +60,7 @@ For an ADR: read this plugin's `templates/adr.md`. Fill in:
 - **Consequences** — positive and negative; follow-up work; migration cost.
 - **Validation (optional)** — how we'll know it still holds.
 
-For a D-NNN: read this plugin's `templates/decision.md`. Fill in:
+For a D-NNNN: read this plugin's `templates/decision.md`. Fill in:
 
 - **Status** — same vocabulary.
 - **Question** — what was being decided; what made the answer non-obvious.
@@ -70,7 +70,7 @@ For a D-NNN: read this plugin's `templates/decision.md`. Fill in:
 
 ### 4. Body header — date and decided_by
 
-In the body, just under the `# ADR-NNNN — <title>` (or `# D-NNN — <title>`) heading, add a one-line block-quote header capturing date and the person making the call:
+In the body, just under the `# ADR-NNNN — <title>` (or `# D-NNNN — <title>`) heading, add a one-line block-quote header capturing date and the person making the call:
 
 ```markdown
 > **Date:** YYYY-MM-DD · **Decided by:** <role/name>
@@ -82,10 +82,10 @@ The canonical timestamp and actor are also recoverable from git via `aiwf histor
 
 ### 5. Frontmatter touches (optional, for cross-references)
 
-aiwf core only validates these frontmatter fields on ADR / D-NNN entries: `id`, `title`, `status`, plus the cross-reference fields. Set the cross-references when relevant:
+aiwf core only validates these frontmatter fields on ADR / D-NNNN entries: `id`, `title`, `status`, plus the cross-reference fields. Set the cross-references when relevant:
 
 - For an ADR that supersedes another: set `supersedes: [ADR-NNNN]`. **Then edit the superseded ADR** to set `superseded_by: ADR-NEW` and promote it to `superseded` via `aiwf promote`.
-- For a D-NNN tied to specific work: set `relates_to: [E-NN, M-NNN]` so cross-references resolve.
+- For a D-NNNN tied to specific work: set `relates_to: [E-NN, M-NNN]` so cross-references resolve.
 
 Skip both if no cross-references apply.
 
@@ -102,7 +102,7 @@ Catches things like a misnamed reference, an out-of-set status, or a broken supe
 The `aiwf add` already produced one commit (the scaffold). The body fill is a second commit:
 
 ```bash
-git add docs/adr/ADR-NNNN-<slug>.md     # or work/decisions/D-NNN-<slug>.md
+git add docs/adr/ADR-NNNN-<slug>.md     # or work/decisions/D-NNNN-<slug>.md
 git commit -m "docs(adr): ADR-NNNN — <title>"
 ```
 
@@ -118,7 +118,7 @@ The decision now exists; the calling skill resumes its workflow.
 
 ## Promotion
 
-ADRs and D-NNN decisions start as `proposed`. They're promoted via `aiwf promote`:
+ADRs and D-NNNN decisions start as `proposed`. They're promoted via `aiwf promote`:
 
 ```bash
 aiwf promote ADR-NNNN accepted     # in force
@@ -126,16 +126,16 @@ aiwf promote ADR-NNNN superseded   # replaced (set superseded_by first)
 aiwf cancel  ADR-NNNN              # rejected (terminal)
 ```
 
-Same for D-NNN. aiwf validates each transition; illegal moves error out.
+Same for D-NNNN. aiwf validates each transition; illegal moves error out.
 
 ## Anti-patterns
 
 - *Capturing implementation details as decisions.* "We named the variable foo" is not a decision; "we chose to model auth as a service rather than a library" is.
-- *Writing a long prose decision under the milestone spec's `## Decisions made during implementation`.* Those should live in an ADR or D-NNN. The spec section just points at the id.
+- *Writing a long prose decision under the milestone spec's `## Decisions made during implementation`.* Those should live in an ADR or D-NNNN. The spec section just points at the id.
 - *Skipping the supersession edit.* A supersession is two-sided: the new entry says what it supersedes; the old entry's status flips to `superseded` and gets a `superseded_by:` pointer. Both edits.
 - *Writing the decision but never promoting it past `proposed`.* If it's in force, promote to `accepted`. Otherwise it never feels "decided."
 
 ## Constraints
 
-- 🛑 Decision text is durable. Once accepted, future supersession edits the *new* ADR/D-NNN; the original keeps its history. Never delete or rewrite a ratified decision.
+- 🛑 Decision text is durable. Once accepted, future supersession edits the *new* ADR/D-NNNN; the original keeps its history. Never delete or rewrite a ratified decision.
 - Use this skill, not raw `aiwf add adr`, when the decision is real. The body fill is what makes the record useful; the id alone isn't.

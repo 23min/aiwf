@@ -31,11 +31,15 @@ var hintTable = map[string]string{
 	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
 	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or remove the reference",
 	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; check the AC number or add the AC entry to acs[]",
-	"no-cycles/depends_on":               "remove one edge in the cycle to keep the milestone DAG acyclic",
-	"no-cycles/supersedes":               "remove the loop in the supersedes/superseded_by chain",
-	"titles-nonempty":                    "set a non-empty `title:` in the frontmatter",
-	"adr-supersession-mutual":            "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
-	"gap-addressed-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
+	// G-0299: skill-body-id chokepoint. Shipped SKILL.md bodies must cite
+	// no real entity id (the mirror image of body-prose-id). The fix is a
+	// canonical placeholder or a design/ADR doc-link, not a real id.
+	"skill-body-id":              "a shipped skill body cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description, or cite a design/ADR doc as a markdown link (the id rides in the link destination, the visible text stays descriptive)",
+	"no-cycles/depends_on":       "remove one edge in the cycle to keep the milestone DAG acyclic",
+	"no-cycles/supersedes":       "remove the loop in the supersedes/superseded_by chain",
+	"titles-nonempty":            "set a non-empty `title:` in the frontmatter",
+	"adr-supersession-mutual":    "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
+	"gap-addressed-has-resolver": "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
 	// G-0155: misset core.worktree silently redirects every git op
 	// against the wrong worktree. The hint points at the precise

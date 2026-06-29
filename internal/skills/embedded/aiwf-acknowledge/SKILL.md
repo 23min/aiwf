@@ -9,8 +9,8 @@ description: Use when `aiwf check` reports a finding you've judged to be intenti
 
 Two subverbs today:
 
-- **`aiwf acknowledge illegal <sha>`** — exempt a historical commit from the FSM-history / provenance audit rules (M-0136).
-- **`aiwf acknowledge mistag <id>`** — accept an `area-mistag` warning as intentional cross-cutting work (M-0181).
+- **`aiwf acknowledge illegal <sha>`** — exempt a historical commit from the FSM-history / provenance audit rules.
+- **`aiwf acknowledge mistag <id>`** — accept an `area-mistag` warning as intentional cross-cutting work.
 
 Both refuse a non-`human/` actor and an empty `--reason` at the gate — the judgment is the human's, recorded with a written rationale.
 
@@ -40,7 +40,7 @@ aiwf acknowledge illegal 6a1e70cc --for-entity ADR-0007 \
   --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"
 ```
 
-The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, `<sha>` doesn't match the 7-40-hex shape, or `<sha>` is **neither** reachable from HEAD **nor** present in the local object database (the M-0136/AC-4 + G-0236 typo guard).
+The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, `<sha>` doesn't match the 7-40-hex shape, or `<sha>` is **neither** reachable from HEAD **nor** present in the local object database (the typo guard).
 
 ### What the commit looks like
 
@@ -58,11 +58,11 @@ aiwf-entity: <id>           (only when --for-entity is supplied)
 
 ### Exemption semantics
 
-The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers and exempt findings whose offending commit appears in that set. The exemption is **DAG-scoped** (only trailers reachable from HEAD count, so a cherry-pick onto a branch lacking the original violation doesn't exempt it) and **per-SHA** (one ack covers every entity the historical SHA touched). The `aiwf-verb: acknowledge-illegal` trailer value is unchanged by the M-0181/AC-5 regroup — the command path `acknowledge illegal` enumerates to the same string, so history validates with no shim.
+The consuming rules walk HEAD's reachable history for `aiwf-force-for:` trailers and exempt findings whose offending commit appears in that set. The exemption is **DAG-scoped** (only trailers reachable from HEAD count, so a cherry-pick onto a branch lacking the original violation doesn't exempt it) and **per-SHA** (one ack covers every entity the historical SHA touched). The `aiwf-verb: acknowledge-illegal` trailer value is unchanged by the subverb regroup — the command path `acknowledge illegal` enumerates to the same string, so history validates with no shim.
 
 ## aiwf acknowledge mistag
 
-The `aiwf acknowledge mistag <id>` verb (M-0181) records a sovereign acceptance that an entity's `area` tag and its commits' landing zone legitimately disagree — suppressing the `area-mistag` warning for that entity. Mistag fires when an entity's area-claimed work landed entirely in a *foreign* area's `paths:` territory; sometimes that is genuinely intentional (e.g. moving code into a shared area), not a mis-file.
+The `aiwf acknowledge mistag <id>` verb records a sovereign acceptance that an entity's `area` tag and its commits' landing zone legitimately disagree — suppressing the `area-mistag` warning for that entity. Mistag fires when an entity's area-claimed work landed entirely in a *foreign* area's `paths:` territory; sometimes that is genuinely intentional (e.g. moving code into a shared area), not a mis-file.
 
 ### When to use
 
@@ -110,8 +110,7 @@ The `area-mistag` rule walks HEAD's reachable history for `aiwf-verb: acknowledg
 
 ## Related
 
-- **M-0136** — `aiwf acknowledge illegal` (then the top-level `acknowledge-illegal` verb).
-- **M-0181** — `aiwf acknowledge mistag` + the regroup of `acknowledge-illegal` into the `aiwf acknowledge` subverb namespace.
-- **M-0130 / M-0137** — implement `fsm-history-consistent` whose findings `illegal` exempts.
-- **G-0150** — the design conversation that surfaced the acknowledge-vs-aiwf.yaml-allowlist decision.
-- **ADR-0006** — the per-verb-skill / topical-skill / allowlist judgment rule this topical skill satisfies.
+- **`aiwf acknowledge illegal`** — exempts historical commits from FSM-history / provenance audit rules.
+- **`aiwf acknowledge mistag`** — accepts an `area-mistag` warning as intentional cross-cutting work; includes the regroup into the `aiwf acknowledge` subverb namespace.
+- **`fsm-history-consistent`** — the check rule whose `illegal-transition` subcode `acknowledge illegal` exempts.
+- **Skills policy ADR** — the per-verb-skill / topical-skill / allowlist judgment rule this topical skill satisfies.

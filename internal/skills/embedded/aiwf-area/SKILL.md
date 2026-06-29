@@ -71,4 +71,4 @@ aiwf add adr --title "Adopt a shared CI cache" --area global
 - **`aiwf-add`** — the full `--area` / `--path-hint` write path.
 - **`aiwf-check`** — the area findings (`area-mistag`, `area-dead-glob`, `area-overlap`, `area-unknown`, `area-required`) and how to clear each.
 - **`aiwf-acknowledge`** — `aiwf acknowledge mistag` for legitimate cross-cutting work.
-- **E-0043 / E-0044** — the epics that shipped, then path-hardened, the area feature.
+- **Area epics** — the epics that shipped, then path-hardened, the area feature.

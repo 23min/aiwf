@@ -9,7 +9,7 @@ The `aiwf history` verb answers "what happened to this entity?" by filtering `gi
 
 ## When to use
 
-The user wants the lifecycle of one entity. Example phrasings: "when was M-007 created?", "show me what happened to E-19", "why is this gap closed?", "show the TDD cycle for M-007/AC-1", "who authorized this work?".
+The user wants the lifecycle of one entity. Example phrasings: "when was M-NNNN created?", "show me what happened to E-NNNN", "why is this gap closed?", "show the TDD cycle for M-NNNN/AC-N", "who authorized this work?".
 
 ## What to run
 
@@ -33,12 +33,12 @@ DATE  ACTOR  VERB  TO  DETAIL  COMMIT  [chips...]
 
 ## Composite ids and prefix matching
 
-- `aiwf history M-007` shows the milestone's own events PLUS every AC's events (`M-007/AC-N`). The match is anchored on the literal `/` boundary so `M-007/` cannot prefix-match `M-070/`.
-- `aiwf history M-007/AC-1` shows only that AC's events.
+- `aiwf history M-NNNN` shows the milestone's own events PLUS every AC's events (`M-NNNN/AC-N`). The match is anchored on the literal `/` boundary so `M-NNNN/` cannot prefix-match `M-MMMM/`.
+- `aiwf history M-NNNN/AC-N` shows only that AC's events.
 
 ## --show-authorization
 
-By default scope chips abbreviate the auth-SHA to 7 characters: `[E-03 4b13a0f]`. With `--show-authorization`, the full SHA is inlined: `[E-03 4b13a0fdeadbeef...]`. Useful when copy-pasting into another `aiwf` invocation that needs the full SHA. JSON output always carries the full SHA in `authorized_by`.
+By default scope chips abbreviate the auth-SHA to 7 characters: `[E-NNNN 4b13a0f]`. With `--show-authorization`, the full SHA is inlined: `[E-NNNN 4b13a0fdeadbeef...]`. Useful when copy-pasting into another `aiwf` invocation that needs the full SHA. JSON output always carries the full SHA in `authorized_by`.
 
 ## What aiwf does
 
@@ -48,7 +48,7 @@ By default scope chips abbreviate the auth-SHA to 7 characters: `[E-03 4b13a0f]`
 4. Builds a one-time `authSHA → scope-entity` map for chip rendering.
 5. Renders one event per line; forced/audit-only/reason events get indented sub-lines.
 
-After two reallocates (G-001 → G-002 → G-003), `aiwf history G-001`, `aiwf history G-002`, and `aiwf history G-003` all return the same chronological timeline.
+After two reallocates, all queries against the old id, intermediate id, and current id return the same chronological timeline.
 
 ## Limitations
 
