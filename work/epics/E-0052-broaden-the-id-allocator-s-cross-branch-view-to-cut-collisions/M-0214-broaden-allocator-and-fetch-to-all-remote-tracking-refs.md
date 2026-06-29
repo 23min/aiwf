@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Broadened fetch and remote-refs scan degrade cleanly, never block
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
