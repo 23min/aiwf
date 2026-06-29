@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwfx-wrap-milestone batches its terminal local steps in one gate
-      status: open
+      status: met
     - id: AC-4
       title: 'wrap-epic: one declared-sequence gate for merge+commit+promote; split deletes'
       status: open
