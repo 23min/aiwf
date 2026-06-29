@@ -837,3 +837,148 @@ func TestStatusline_G0304_RepoNameIsMainRepoNotWorktreeDir(t *testing.T) {
 		t.Errorf("expected the main repo name \"myrepo\" as a segment\n out: %q", out)
 	}
 }
+
+// --- G-0310: subscription-usage dots (weekly seven_day / 5-hour five_hour) ---
+//
+// The statusline reads rate_limits.{seven_day,five_hour}.used_percentage from
+// its stdin JSON (the figures /usage shows; Pro/Max only, present after the
+// first API response, each window independently optional) and renders one
+// colored dot + label per present window — green/yellow/red on the same scale
+// as the context ball. An absent window renders nothing.
+
+// statuslineStdinRates is statuslineStdin plus a rate_limits block. A negative
+// percentage omits that window (models an absent field).
+func statuslineStdinRates(transcriptPath, repoDir string, sevenDay, fiveHour float64) string {
+	var w []string
+	if fiveHour >= 0 {
+		w = append(w, `"five_hour":{"used_percentage":`+strconv.FormatFloat(fiveHour, 'f', -1, 64)+`,"resets_at":1738425600}`)
+	}
+	if sevenDay >= 0 {
+		w = append(w, `"seven_day":{"used_percentage":`+strconv.FormatFloat(sevenDay, 'f', -1, 64)+`,"resets_at":1738857600}`)
+	}
+	rl := ""
+	if len(w) > 0 {
+		rl = `,"rate_limits":{` + strings.Join(w, ",") + `}`
+	}
+	return `{"model":{"display_name":"Opus 4.8 (1M context)"},` +
+		`"transcript_path":"` + transcriptPath + `",` +
+		`"workspace":{"current_dir":"` + repoDir + `"},` +
+		`"effort":{"level":"xhigh"}` + rl + `}`
+}
+
+// runStatuslineUsageRaw runs the script and returns RAW (non-ANSI-stripped)
+// stdout — the usage-dot color is the behavioral signal under test. Mirrors
+// runStatuslineCache's env setup (fresh gh stub, isolated cache dir).
+func runStatuslineUsageRaw(t *testing.T, repoDir, stdinJSON string) string {
+	t.Helper()
+	ghDir := writeGhStub(t)
+	cmd := exec.Command("bash", statuslineScript(t))
+	cmd.Dir = repoDir
+	cmd.Stdin = strings.NewReader(stdinJSON)
+	var env []string
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "PATH=") || strings.HasPrefix(e, "AIWF_STATUSLINE_CACHE_DIR=") {
+			continue
+		}
+		env = append(env, e)
+	}
+	env = append(env,
+		"PATH="+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"AIWF_STATUSLINE_CACHE_DIR="+t.TempDir(),
+	)
+	cmd.Env = env
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("statusline.sh: %v\nstderr: %s", err, stderr.String())
+	}
+	return stdout.String()
+}
+
+func TestStatusline_G0310_UsageDotsRenderWhenPresent(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	out := runStatusline(t, repo, statuslineStdinRates(tr, repo, 90, 20))
+	if !strings.Contains(out, "● 7d") {
+		t.Errorf("weekly usage dot ● 7d missing\n out: %q", out)
+	}
+	if !strings.Contains(out, "● 5h") {
+		t.Errorf("5-hour usage dot ● 5h missing\n out: %q", out)
+	}
+}
+
+func TestStatusline_G0310_UsageDotsAbsentWhenNoRateLimits(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	// plain stdin: no rate_limits block (non-subscriber / pre-first-API-response)
+	out := runStatusline(t, repo, statuslineStdin(tr, repo))
+	if strings.Contains(out, "7d") || strings.Contains(out, "5h") {
+		t.Errorf("no rate_limits -> no usage dots, got\n out: %q", out)
+	}
+}
+
+func TestStatusline_G0310_OneWindowAbsentRendersOnlyTheOther(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	// weekly present, five_hour omitted (negative) — windows are independently optional
+	out := runStatusline(t, repo, statuslineStdinRates(tr, repo, 90, -1))
+	if !strings.Contains(out, "● 7d") {
+		t.Errorf("weekly present -> ● 7d expected\n out: %q", out)
+	}
+	if strings.Contains(out, "5h") {
+		t.Errorf("five_hour absent -> no ● 5h\n out: %q", out)
+	}
+}
+
+func TestStatusline_G0310_UsageDotColorReflectsThreshold(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	const red, green, yellow, reset = "\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[0m"
+	cases := []struct {
+		name               string
+		sevenDay, fiveHour float64
+		wantWeekly         string // color escape expected immediately before ● 7d
+	}{
+		{"weekly red at 90", 90, 20, red},
+		{"weekly green at 20", 20, 20, green},
+		{"weekly yellow at 65", 65, 20, yellow},
+		// 79.9 proves truncation (not rounding): truncates to 79 -> yellow; a
+		// round would give 80 -> red. Also the only case whose JSON carries a
+		// decimal point, exercising the `${1%%.*}` strip.
+		{"weekly 79.9 truncates to 79 -> yellow", 79.9, 20, yellow},
+		{"weekly boundary 80 -> red", 80, 20, red},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			raw := runStatuslineUsageRaw(t, repo, statuslineStdinRates(tr, repo, c.sevenDay, c.fiveHour))
+			want := c.wantWeekly + "●" + reset + " 7d"
+			if !strings.Contains(raw, want) {
+				t.Errorf("weekly dot color: want %q in raw output\n raw: %q", want, raw)
+			}
+		})
+	}
+}
+
+func TestStatusline_G0310_NonNumericUsageRendersNothing(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	tr := writeTranscript(t)
+	// rate_limits present but used_percentage is non-numeric: the defensive guard
+	// (`*[!0-9.]*`) must render no dot and emit no shell error. The float64-typed
+	// statuslineStdinRates can't express this, so craft the stdin directly.
+	stdin := `{"model":{"display_name":"Opus 4.8 (1M context)"},` +
+		`"transcript_path":"` + tr + `",` +
+		`"workspace":{"current_dir":"` + repo + `"},` +
+		`"effort":{"level":"xhigh"},` +
+		`"rate_limits":{"seven_day":{"used_percentage":"oops"},"five_hour":{"used_percentage":"n/a"}}}`
+	out := runStatusline(t, repo, stdin)
+	if strings.Contains(out, "7d") || strings.Contains(out, "5h") {
+		t.Errorf("non-numeric used_percentage -> no usage dots, got\n out: %q", out)
+	}
+}
