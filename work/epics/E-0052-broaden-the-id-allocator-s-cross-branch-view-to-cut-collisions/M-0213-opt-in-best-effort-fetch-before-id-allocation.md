@@ -1,7 +1,7 @@
 ---
 id: M-0213
 title: Opt-in best-effort fetch before id allocation
-status: in_progress
+status: done
 parent: E-0052
 tdd: required
 acs:
