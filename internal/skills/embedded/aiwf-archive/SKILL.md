@@ -9,14 +9,14 @@ The `aiwf archive` verb sweeps terminal-status entities into per-kind `archive/`
 
 The kernel principle the verb embodies: location is a redundant projection of status. The decoupling buys (1) a grace period after close for inspection and wrap rituals, and (2) one-purpose promotion verbs with no file-move side effects to test. The cost is bounded drift (the period between promotion and the next sweep); the drift is policed via the `archive-sweep-pending` advisory finding and the `archive.sweep_threshold` knob below.
 
-See [ADR-0004](../../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) for the full design rationale.
+See [the uniform-archive-convention ADR](../../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) for the full design rationale.
 
 ## When to use
 
 - `aiwf check` reports `archive-sweep-pending` and the operator wants the tree back to convergence.
 - The active directory listing (a plain `ls work/gaps/`, GitHub tree, or IDE file pane) is cluttered with terminal entries.
 - A milestone or epic just closed and the operator is doing wrap rituals — running a dry-run now previews what the next sweep will move.
-- First-time migration on a pre-ADR-0004 tree: the same verb covers the bulk first sweep and every recurring small sweep that follows.
+- First-time migration on a pre-archive-convention tree: the same verb covers the bulk first sweep and every recurring small sweep that follows.
 
 ## What to run
 
@@ -43,9 +43,9 @@ aiwf archive --apply --kind gap
 
 ## Reversal — there is none
 
-**You don't reverse the sweep, deliberately.** Per ADR-0004 §"Reversal — what verb undoes archive?", the FSM is one-directional and archive is the structural projection of FSM-terminality. The kernel does not provide an "aiwf reactivate" verb, an "un-archive" verb, or any reverse-sweep mode.
+**You don't reverse the sweep, deliberately.** Per the archive convention §"Reversal — what verb undoes archive?", the FSM is one-directional and archive is the structural projection of FSM-terminality. The kernel does not provide an "aiwf reactivate" verb, an "un-archive" verb, or any reverse-sweep mode.
 
-The canonical pattern when a closed entity needs revisiting is to **file a new entity that references the archived one**. `Resolves: G-0018` from a new gap remains valid because the loader resolves ids across both active and archive directories — references stay live indefinitely.
+The canonical pattern when a closed entity needs revisiting is to **file a new entity that references the archived one**. `Resolves: G-NNNN` from a new gap remains valid because the loader resolves ids across both active and archive directories — references stay live indefinitely.
 
 If a contributor hand-edits frontmatter to take a status off-terminal on an already-archived file, `aiwf check` fires `archived-entity-not-terminal` (blocking). The remediation is to revert the hand-edit, not to relocate the file.
 
@@ -72,9 +72,9 @@ The escalated message names both the count and the configured threshold so the h
 
 The decoupled model creates one merge-conflict shape worth knowing.
 
-**Rename + modify.** Branch A archives `G-0018` (renames the file from `work/gaps/G-0018-...md` to `work/gaps/archive/G-0018-...md`). Branch B edits `G-0018` in place. When the branches merge, git's rename detection usually handles this cleanly — the edit goes to the renamed path. Occasionally it surfaces as a "rename+modify" conflict; the resolution is mechanical: take the rename, take the edit. Standard kernel pattern of "merge, run check, fix findings" handles the rest.
+**Rename + modify.** Branch A archives `G-NNNN` (renames the file from `work/gaps/G-NNNN-...md` to `work/gaps/archive/G-NNNN-...md`). Branch B edits `G-NNNN` in place. When the branches merge, git's rename detection usually handles this cleanly — the edit goes to the renamed path. Occasionally it surfaces as a "rename+modify" conflict; the resolution is mechanical: take the rename, take the edit. Standard kernel pattern of "merge, run check, fix findings" handles the rest.
 
-**Cross-references in body prose.** Body-prose references that use file paths (rather than ids) become stale when the target archives. Standard kernel discipline prefers id-form references; G-0091 tracks the work item for a preventive check rule.
+**Cross-references in body prose.** Body-prose references that use file paths (rather than ids) become stale when the target archives. Standard kernel discipline prefers id-form references; a tracked gap captures the work item for a preventive check rule.
 
 ## Per-kind storage layout
 
@@ -96,4 +96,4 @@ Milestones don't archive independently because they live as flat files inside th
 - **Don't hand-move files into `archive/`.** The verb's commit carries the `aiwf-verb: archive` trailer so `aiwf history` recognizes the move. A hand-`mv` leaves an untrailered commit that the provenance audit flags.
 - **Don't try to "un-archive" by editing frontmatter.** Status is the source of truth; flipping a terminal status off-terminal on a file under `archive/` produces an `archived-entity-not-terminal` finding. The remediation is to revert the hand-edit and file a new entity referencing the archived one.
 - **Don't sweep before wrap rituals.** Just-closed entities benefit from the grace period — running wrap skills, browsing `aiwf show <id>` paths, and skimming the dust just settled all work most naturally when the entity is still at its active path.
-- **Don't bypass the dry-run preview on a bulk migration.** The first sweep on a pre-ADR-0004 tree typically moves dozens or hundreds of files. Read the dry-run output, confirm the counts, then `--apply`.
+- **Don't bypass the dry-run preview on a bulk migration.** The first sweep on a pre-archive-convention tree typically moves dozens or hundreds of files. Read the dry-run output, confirm the counts, then `--apply`.

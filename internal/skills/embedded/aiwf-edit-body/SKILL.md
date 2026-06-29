@@ -40,7 +40,7 @@ Both modes refuse leading `---` (frontmatter delimiter) in body content — the 
 
 ### AC body sub-sections
 
-Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNN/AC-N` are still refused to keep the verb's seam simple.)
+Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNNN/AC-N` are still refused to keep the verb's seam simple.)
 
 ## What aiwf does
 
@@ -59,7 +59,7 @@ Editing the prose under a single `### AC-N — title` heading inside a milestone
 
 The frontmatter `id`, `title`, `status`, references, and acs[] are all preserved verbatim in both modes. Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`.
 
-## Composite ids (M-NNN/AC-N)
+## Composite ids (M-NNNN/AC-N)
 
 Not directly supported. To update an AC body section, edit the prose under the `### AC-N — title` heading in the parent milestone file in your editor, then run `aiwf edit-body M-NNN` (bless mode commits whatever changed). Composite-id support is deliberately deferred — bless mode covers the AC sub-section workflow without needing a sub-section resolver.
 

@@ -23,7 +23,7 @@ The six kinds and their required flags:
 | Kind | Required flags | Notes |
 |---|---|---|
 | epic | `--title` | Allocates `E-NN`. |
-| milestone | `--title`, `--epic <E-id>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on M-PPP[,M-QQQ]` declares prerequisite milestones at allocation time (M-076); each id must already exist as a milestone. |
+| milestone | `--title`, `--epic <E-id>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on M-PPP[,M-QQQ]` declares prerequisite milestones at allocation time; each id must already exist as a milestone. |
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
 | gap | `--title` | Optional `--discovered-in <id>`. |
 | decision | `--title` | Optional `--relates-to <id,id,...>`. |
@@ -88,7 +88,7 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
 6. **Scaffolds load-bearing body sections empty.** Step 5 closes the create commit, but the entity is not done yet — the body sections under each `## <Section>` heading (and the `### AC-N — <title>` body for ACs) are deliberately empty. They are placeholders meant to be filled in. `aiwf check` reports `entity-body-empty` for any load-bearing section that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.
 
-## Milestone `depends_on`: declare DAG edges via verb (M-076)
+## Milestone `depends_on`: declare DAG edges via verb
 
 Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array. Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
 
@@ -106,7 +106,7 @@ aiwf milestone depends-on M-NNN --clear
 
 Replace-not-append semantics: a second `--on` invocation replaces the list, it does not extend. To add a single dependency to an existing list, the operator passes the full updated list. `--on` and `--clear` are mutually exclusive.
 
-Each id passed to `--depends-on` or `--on` must resolve to an existing milestone before the verb commits — typos and pre-allocation references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity. Cross-kind dependencies (e.g. milestone depends on ADR) are out of scope today; G-073 generalises the schema if the friction earns it.
+Each id passed to `--depends-on` or `--on` must resolve to an existing milestone before the verb commits — typos and pre-allocation references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity. Cross-kind dependencies (e.g. milestone depends on ADR) are out of scope today; a gap captures the generalization if the friction earns it.
 
 Don't hand-edit `depends_on:` directly — `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render.
 
@@ -129,7 +129,7 @@ The load-bearing body sections per kind:
 Two ways to land the body content:
 
 - **Two-step (default)**: `aiwf add <kind> --title "..."` creates the entity with empty body sections; then edit the file and run `aiwf edit-body <id>` to commit the prose with proper trailers. Works for every kind today. Right when the body shape isn't fully clear yet — let the file scaffold first, then iterate the prose.
-- **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds (since M-056) and for ACs (positional pairing per M-067 — see the body-file sections above). Right when the body content is **already drafted** — mining from a design doc, a prior conversation, a code comment, or a CLI tool's stderr that named the defect. Landing it in the create commit avoids the follow-up untrailered hand-edit (and the `provenance-untrailered-entity-commit` warning that would otherwise fire on the next `aiwf check`).
+- **One-step (in-verb)**: pass `--body-file <path>` (or `-` for stdin) on `aiwf add` so the body lands in the same atomic create commit as the frontmatter. Available for all six top-level kinds and for ACs (see the body-file sections above). Right when the body content is **already drafted** — mining from a design doc, a prior conversation, a code comment, or a CLI tool's stderr that named the defect. Landing it in the create commit avoids the follow-up untrailered hand-edit (and the `provenance-untrailered-entity-commit` warning that would otherwise fire on the next `aiwf check`).
 
 ### What to write per kind
 
@@ -195,7 +195,7 @@ If the LLM is invoked turn-by-turn by a human (HITL / tool mode), pass `--actor 
 - Don't pass `--actor` unless the user asked for a specific actor; the default (derived from git config user.email) is correct.
 - Don't omit `--principal` when invoking as a non-human actor — the verb refuses with a `provenance-trailer-incoherent` finding.
 - Don't manually edit the milestone's `acs[]` to "fix" a gap from a cancelled AC — AC ids are position-stable. After cancelling AC-2, the next `aiwf add ac` allocates AC-3, not a recycled AC-2.
-- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. `aiwf check` surfaces the omission as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`) per [M-066](../../../../work/epics/E-17-entity-body-prose-chokepoint-closes-g-058/M-066-aiwf-check-finding-entity-body-empty.md). The body is the spec — write the prose detail (description, examples, edge cases, references) before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
+- Don't leave load-bearing body sections empty for any entity kind — the title is a label, not a spec. `aiwf check` surfaces the omission as `entity-body-empty` (warning by default; error under `aiwf.yaml: tdd.strict: true`). The body is the spec — write the prose detail (description, examples, edge cases, references) before declaring the entity complete. See *"After `aiwf add <kind>`: fill in the body"* above for the per-kind shapes.
 
 ## Tree discipline — `work/` is aiwf's domain
 

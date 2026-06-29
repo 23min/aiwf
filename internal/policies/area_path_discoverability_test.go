@@ -61,7 +61,7 @@ func TestAreaPathFindings_StructurallyDocumented(t *testing.T) {
 	if end := strings.Index(note, "\n\n"); end != -1 {
 		note = note[:end]
 	}
-	for _, want := range []string{"areas.members", "paths", "G-0288"} {
+	for _, want := range []string{"areas.members", "paths"} {
 		if !strings.Contains(note, want) {
 			t.Errorf("%q note does not mention %q", noteMarker, want)
 		}
@@ -104,18 +104,20 @@ func TestAreaCoverageFinding_StructurallyDocumented(t *testing.T) {
 		}
 	}
 
-	// The coverage_roots schema note (toward G-0288). Scope assertions to the
-	// note region so this stays structural, not a whole-file grep.
+	// The coverage_roots schema note. Scope assertions to the note region so
+	// this stays structural, not a whole-file grep. The note once carried a
+	// real-id back-reference; G-0299 removed real ids from shipped skill
+	// bodies, so the pins are now the config key + the finding code it drives.
 	const noteMarker = "Areas `coverage_roots` schema"
 	noteStart := strings.Index(body, noteMarker)
 	if noteStart == -1 {
-		t.Fatalf("aiwf-check skill has no %q note (M-0185/AC-7, toward G-0288)", noteMarker)
+		t.Fatalf("aiwf-check skill has no %q note", noteMarker)
 	}
 	note := body[noteStart:]
 	if end := strings.Index(note, "\n\n"); end != -1 {
 		note = note[:end]
 	}
-	for _, want := range []string{"areas.coverage_roots", "area-unslotted", "G-0288"} {
+	for _, want := range []string{"areas.coverage_roots", "area-unslotted"} {
 		if !strings.Contains(note, want) {
 			t.Errorf("%q note does not mention %q", noteMarker, want)
 		}

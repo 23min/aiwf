@@ -22,10 +22,10 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    - The success criteria — what "done" looks like at epic close.
 
 2. **Decompose into milestones.** Each milestone:
-   - Is **independently shippable**. After M-0001 lands, the system is in a coherent state even if M-0002 never runs.
+   - Is **independently shippable**. After a prior milestone lands, the system is in a coherent state even if this one never runs.
    - Has clear, **testable acceptance criteria**.
    - Targets **1–3 days of focused work**. If a candidate is bigger, split it. If smaller, fold it into a sibling.
-   - Has explicit dependencies (or none). Forward-flowing — M-0002 may depend on M-0001; never the reverse.
+   - Has explicit dependencies (or none). Forward-flowing — a later milestone may depend on an earlier one; never the reverse.
 
 3. **Sequence them.** Foundational first. Group related work; don't scatter concerns. Identify any milestones that can be parallelized (no dependency between them).
 
@@ -48,7 +48,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    Frontmatter (`id`, `parent`, `status: draft`) was set by `aiwf add` — don't touch.
 
-6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers (M-0076):
+6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
 
    ```bash
    # At allocation time: pass --depends-on on aiwf add milestone
@@ -101,9 +101,9 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 ## Anti-patterns
 
 - *Front-loading detail.* Don't write 10 fully-specced milestones up front. Spec details rot fast; AC definitions written 6 weeks before the work starts are usually wrong.
-- *Inventing global ordering when only local matters.* If M-0003 and M-0004 don't depend on each other, leave their order soft.
+- *Inventing global ordering when only local matters.* If two milestones don't depend on each other, leave their order soft.
 - *Scope creep mid-decomposition.* If decomposition surfaces work that wasn't in the epic, decide: amend the epic spec (and re-confirm with the user) or capture as a gap (`aiwf add gap`) for later.
-- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md and G-0184: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Next step
 
