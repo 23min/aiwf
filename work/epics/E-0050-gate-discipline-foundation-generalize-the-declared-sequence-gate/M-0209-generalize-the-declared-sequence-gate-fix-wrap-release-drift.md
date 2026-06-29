@@ -1,7 +1,7 @@
 ---
 id: M-0209
 title: Generalize the declared-sequence gate; fix wrap/release drift
-status: in_progress
+status: done
 parent: E-0050
 tdd: advisory
 acs:
