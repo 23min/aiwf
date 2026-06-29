@@ -626,7 +626,7 @@ by the foundation epic E-0050, which this epic builds on.
 | M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
 | M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
 
-## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (active)
+## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (done)
 
 ### Goal
 
@@ -638,7 +638,7 @@ currently violate the gate discipline CLAUDE.md *claims* they already follow.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0209 | Generalize the declared-sequence gate; fix wrap/release drift | draft |
+| M-0209 | Generalize the declared-sequence gate; fix wrap/release drift | done |
 
 ## E-0051 — Context and compute economy across the ritual lifecycle (proposed)
 
