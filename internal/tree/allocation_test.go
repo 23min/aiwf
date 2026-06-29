@@ -30,6 +30,21 @@ func TestTree_AllocationIDs_UnionsTrunkAndLocalRefs(t *testing.T) {
 	}
 }
 
+func TestTree_AllocationIDs_UnionsTrunkLocalAndRemoteRefs(t *testing.T) {
+	t.Parallel()
+	tr := &Tree{
+		TrunkIDs:     []trunk.ID{{Kind: entity.KindGap, ID: "G-0003", Path: "work/gaps/G-0003-x.md"}},
+		LocalRefIDs:  []string{"G-0007"},
+		RemoteRefIDs: []string{"G-0011"},
+	}
+	got := tr.AllocationIDs()
+	// trunk, then local-ref, then remote-ref ids; duplicates harmless.
+	want := []string{"G-0003", "G-0007", "G-0011"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("AllocationIDs mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestTree_AllocationIDs_NoLocalRefs_IsTrunkOnly(t *testing.T) {
 	t.Parallel()
 	tr := &Tree{

@@ -614,6 +614,58 @@ func TestLocalBranchRefs(t *testing.T) {
 	})
 }
 
+func TestRemoteTrackingRefs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	t.Run("no remotes returns nil", func(t *testing.T) {
+		t.Parallel()
+		dir := initTestRepo(t)
+		commitFile(t, ctx, dir, "a.txt", "a\n")
+		got, err := RemoteTrackingRefs(ctx, dir)
+		if err != nil {
+			t.Fatalf("RemoteTrackingRefs: %v", err)
+		}
+		if got != nil {
+			t.Errorf("RemoteTrackingRefs = %v, want nil with no remotes", got)
+		}
+	})
+
+	t.Run("lists every remote-tracking branch, skips HEAD", func(t *testing.T) {
+		t.Parallel()
+		// Build an upstream, clone it, and add a second remote branch so
+		// the clone's refs/remotes/origin/* has two branches plus the
+		// symbolic HEAD.
+		up := initTestRepo(t)
+		commitFile(t, ctx, up, "a.txt", "a\n")
+		mustRun(t, ctx, up, "branch", "feature")
+		dir := initTestRepo(t)
+		commitFile(t, ctx, dir, "base.txt", "b\n")
+		mustRun(t, ctx, dir, "remote", "add", "origin", up)
+		mustRun(t, ctx, dir, "fetch", "-q", "origin")
+		got, err := RemoteTrackingRefs(ctx, dir)
+		if err != nil {
+			t.Fatalf("RemoteTrackingRefs: %v", err)
+		}
+		// refs/remotes/origin/HEAD (symbolic) is excluded; the two real
+		// branches remain, sorted by refname.
+		want := []string{"refs/remotes/origin/feature", "refs/remotes/origin/main"}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("RemoteTrackingRefs mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("non-repo returns error", func(t *testing.T) {
+		t.Parallel()
+		// `git for-each-ref` outside a repository exits non-zero — the
+		// wrapped-error path (trunk.RemoteRefIDs guards it with IsRepo).
+		_, err := RemoteTrackingRefs(ctx, t.TempDir())
+		if err == nil {
+			t.Error("RemoteTrackingRefs on a non-repo dir = nil error, want error")
+		}
+	})
+}
+
 // would panic under parallel execution.
 func initTestRepo(t *testing.T) string {
 	t.Helper()

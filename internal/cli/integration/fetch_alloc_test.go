@@ -15,19 +15,20 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
-// TestAdd_FetchReflectsUpstreamID pins M-0213/AC-1: `aiwf add --fetch`
-// refreshes the configured trunk ref before computing max, so an id that
-// landed on trunk since the last local fetch is seen and skipped. The
-// same allocation without --fetch allocates against the stale tracking
-// ref and does not.
+// TestAdd_FetchReflectsUpstreamID exercises `aiwf add --fetch` (M-0214's
+// `git fetch --all`) reflecting a TRUNK-side upstream advance: --fetch
+// refreshes the tracking refs before computing max, so an id that landed
+// on trunk since the last local fetch is seen and skipped; the same
+// allocation without --fetch allocates against the stale ref and does not.
+// (M-0214/AC-2's companion test covers the non-trunk remote-branch case.)
 //
 // Setup: an upstream repo carrying G-0001 is cloned twice; upstream then
 // advances to G-0002 out-of-band (the clones' refs/remotes/origin/main go
 // stale). The --fetch clone refreshes and skips to G-0003; the no-fetch
 // clone re-allocates the upstream id (G-0002) — the collision --fetch
 // prevents. All local, offline (filesystem clone). Driven in-process so
-// the dispatcher's --fetch path is instrumented (the success arm:
-// FetchTrunkBestEffort returns nil → no warning).
+// the dispatcher's --fetch success arm (FetchAll returns nil → no warning)
+// is instrumented.
 func TestAdd_FetchReflectsUpstreamID(t *testing.T) {
 	t.Parallel()
 	up := newUpstreamWithGap(t) // upstream on main carrying G-0001
@@ -56,12 +57,15 @@ func TestAdd_FetchReflectsUpstreamID(t *testing.T) {
 	}
 }
 
-// TestAdd_FetchBestEffort_NoRemote pins M-0213/AC-2: with no remote, the
-// fetch fails but degrades to local-only allocation with a warning and a
-// success exit — never blocking the add.
+// TestAdd_FetchBestEffort_NoRemote pins M-0214/AC-3 (no-remote arm): with
+// no remote configured, `git fetch --all` is a clean no-op (exit 0), so
+// --fetch neither warns nor blocks — the add succeeds and allocates
+// against the local view. (This supersedes M-0213's behavior, where the
+// single-branch `git fetch origin main` failed and warned; M-0214's
+// fetch-all has nothing to fetch and says nothing.)
 //
 // SERIAL (no t.Parallel): captures the process-global os.Stderr to assert
-// the operator warning. Listed in setup_test.go's serial block.
+// the ABSENCE of a fetch warning. Listed in setup_test.go's serial block.
 func TestAdd_FetchBestEffort_NoRemote(t *testing.T) {
 	repo := newRepoNoRemote(t)
 
@@ -72,12 +76,12 @@ func TestAdd_FetchBestEffort_NoRemote(t *testing.T) {
 	if rc != cliutil.ExitOK {
 		t.Fatalf("aiwf add --fetch (no remote) rc = %d, want OK (best-effort never blocks)\nstderr: %s", rc, stderr)
 	}
-	if !strings.Contains(stderr, "--fetch") || !strings.Contains(stderr, "allocating against the local view") {
-		t.Errorf("stderr should warn about the degraded fetch, got: %q", stderr)
+	if strings.Contains(stderr, "--fetch:") {
+		t.Errorf("no-remote `git fetch --all` is a clean no-op; expected no --fetch warning, got: %q", stderr)
 	}
 	// The add still succeeded against the local view: G-0001 allocated.
 	if got := gapIDs(t, repo); !slices.Contains(got, "G-0001") {
-		t.Errorf("gap not created on degraded fetch; gaps = %v", got)
+		t.Errorf("gap not created; gaps = %v", got)
 	}
 }
 

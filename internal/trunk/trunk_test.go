@@ -224,6 +224,58 @@ func TestIDsFromPaths_SkipsNonEntityPaths(t *testing.T) {
 	}
 }
 
+// --- M-0214: RemoteRefIDs (the allocator's remote-side cross-branch view) ---
+
+func TestRemoteRefIDs_UnionsRemoteBranchIDs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	// Upstream with two branches: main carries G-0001, a non-trunk
+	// `feature` branch carries G-0005.
+	up := initRepo(t)
+	commitFile(t, ctx, up, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, up, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, up, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, up, "checkout", "-q", "main")
+	// Clone: refs/remotes/origin/{main,feature} are populated.
+	clone := cloneRepo(t, up)
+
+	got := RemoteRefIDs(ctx, clone)
+	if !slices.Contains(got, "G-0005") {
+		t.Errorf("RemoteRefIDs = %v, want non-trunk remote-branch id G-0005", got)
+	}
+	if !slices.Contains(got, "G-0001") {
+		t.Errorf("RemoteRefIDs = %v, want main remote-branch id G-0001", got)
+	}
+}
+
+func TestRemoteRefIDs_NoRemotes_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	if got := RemoteRefIDs(ctx, dir); got != nil {
+		t.Errorf("RemoteRefIDs = %v, want nil for a repo with no remotes", got)
+	}
+}
+
+func TestRemoteRefIDs_NotARepo_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	if got := RemoteRefIDs(context.Background(), t.TempDir()); got != nil {
+		t.Errorf("RemoteRefIDs = %v, want nil for a non-repo dir", got)
+	}
+}
+
+// cloneRepo clones src into a fresh temp dir (origin → src) and returns it.
+func cloneRepo(t *testing.T, src string) string {
+	t.Helper()
+	dst := t.TempDir()
+	cmd := exec.CommandContext(context.Background(), "git", "clone", "-q", src, dst)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git clone: %v\n%s", err, out)
+	}
+	return dst
+}
+
 // --- M-0212/AC-2: LocalRefIDs degrades cleanly on odd repo states ---
 
 func TestLocalRefIDs_NotARepo_ReturnsNil(t *testing.T) {
