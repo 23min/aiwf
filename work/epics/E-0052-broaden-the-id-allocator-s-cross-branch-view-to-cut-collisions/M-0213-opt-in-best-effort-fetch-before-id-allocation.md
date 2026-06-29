@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: The fetch is best-effort and never blocks the add
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
