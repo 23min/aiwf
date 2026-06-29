@@ -4,7 +4,7 @@ title: Strict skill-body id-reference discipline, check, and full sweep
 status: draft
 parent: E-0048
 depends_on:
-    - M-0203
+    - M-0209
 tdd: required
 acs:
     - id: AC-1
