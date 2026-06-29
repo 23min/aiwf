@@ -70,11 +70,13 @@ without `--fetch` does not.
 ### AC-3 — Broadened fetch and remote-refs scan degrade cleanly, never block
 
 Best-effort is preserved across the broadening: a `git fetch --all` failure (offline,
-no remote, an unreachable remote) degrades to local-only allocation with a warning and
-a success exit — never blocks the add. The remote-refs scan is read-only and degrades
-cleanly on odd repo states (no remotes, an unreadable ref) — falling back to the
-current behavior without erroring.
+an unreachable remote) degrades to local-only allocation with a warning and a success
+exit — never blocks the add. A repo with no remotes is a clean no-op (git exits 0), so
+`--fetch` neither warns nor blocks there. The remote-refs scan is read-only and
+degrades cleanly on odd repo states (no remotes, an unreadable ref) — falling back to
+the current behavior without erroring.
 
-Evidence: a no-remote repo where `aiwf add --fetch` succeeds, emits a warning, and
-allocates against the local view; and an edge-case test for the remote-refs scan on a
-repo with no remote-tracking refs.
+Evidence: a no-remote repo where `aiwf add --fetch` succeeds with no warning (the
+fetch-all no-op) and allocates against the local view; an unreachable-remote repo
+where `--fetch` warns and still succeeds (never blocks); and an edge-case test for the
+remote-refs scan on a repo with no remote-tracking refs.
