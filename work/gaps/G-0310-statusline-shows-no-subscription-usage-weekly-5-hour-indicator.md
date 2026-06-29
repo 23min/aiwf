@@ -1,7 +1,9 @@
 ---
 id: G-0310
 title: statusline shows no subscription-usage (weekly / 5-hour) indicator
-status: open
+status: addressed
+addressed_by_commit:
+    - 0b4d61a8
 ---
 ## What's missing
 
