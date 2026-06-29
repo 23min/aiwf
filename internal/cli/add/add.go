@@ -19,6 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -47,6 +48,7 @@ func NewCmd() *cobra.Command {
 		bindSchema    string
 		bindFixtures  string
 		bodyFile      string
+		fetch         bool
 		out           *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
@@ -85,7 +87,7 @@ func NewCmd() *cobra.Command {
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
 				epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
-				bindValidator, bindSchema, bindFixtures, bodyFile, *out))
+				bindValidator, bindSchema, bindFixtures, bodyFile, fetch, *out))
 		},
 	}
 	// PersistentFlags are inherited by the `add ac` child so the shared
@@ -107,6 +109,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&bindSchema, "schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
 	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
+	cmd.Flags().BoolVar(&fetch, "fetch", false, "before allocating the id, best-effort `git fetch --all` to refresh every remote-tracking ref, so the id is computed against the freshest published view across all branches (not just trunk); a fetch failure (offline, unreachable remote) degrades to local-only allocation with a warning and never blocks the add (M-0214)")
 	out = cliutil.AddFormatFlags(cmd)
 
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -132,7 +135,7 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
 	epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
-	bindValidator, bindSchema, bindFixtures, bodyFile string, out cliutil.OutputFormat,
+	bindValidator, bindSchema, bindFixtures, bodyFile string, fetch bool, out cliutil.OutputFormat,
 ) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
@@ -152,6 +155,19 @@ func Run(k entity.Kind, title, actor, principal, root,
 	defer release()
 
 	ctx := context.Background()
+	// M-0214: opt-in best-effort refresh of every remote-tracking ref
+	// (git fetch --all) before allocation, so the broadened remote-refs
+	// scan computes max against the freshest published view across all
+	// branches. A failure (offline, unreachable remote) degrades to
+	// local-only allocation with a warning — never blocks the add; a
+	// no-remote repo is a clean no-op (git exits 0, no warning). The
+	// fetch must land before LoadTreeWithTrunk so the refreshed refs are
+	// the ones read into the allocator's view.
+	if fetch {
+		if ferr := gitops.FetchAll(ctx, rootDir); ferr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf add: --fetch: %v; allocating against the local view\n", ferr)
+		}
+	}
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: loading tree: %v\n", err)

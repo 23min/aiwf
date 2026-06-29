@@ -16,6 +16,28 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-06-29
+
+### Changed — E-0052: the id allocator catches cross-branch collisions at allocation time
+
+The id allocator's cross-branch view widened from `{working tree + the single trunk
+ref}` to the full published surface — the working tree, every local branch
+(`refs/heads/*`), every remote-tracking ref (`refs/remotes/*`), and the configured trunk
+ref. The dominant collision classes — a sibling git worktree's freshly-committed id, and
+an id on a teammate's pushed-but-unmerged feature branch — are now caught when `aiwf add`
+allocates, instead of surfacing at push and needing `aiwf reallocate`. The widened set
+feeds allocation (prevention) only; the `ids-unique` check keeps its working-tree-vs-trunk
+basis, so the same entity legitimately present on two branches is never false-flagged. The
+stable-id-from-creation model is unchanged.
+
+- **New `aiwf add --fetch`** — opt-in, best-effort `git fetch --all` before allocating, so
+  the id is computed against the freshest published view across all branches; a fetch
+  failure (offline, unreachable remote) degrades to local-only allocation with a warning
+  and never blocks the add.
+- `aiwf reallocate` remains the backstop for the irreducible cross-machine race (a peer
+  who allocated but has not pushed). The decision and its trade-offs are recorded in
+  ADR-0025 (relating to the proposed ADR-0001 structural endpoint).
+
 ## [0.19.0] — 2026-06-29
 
 ### Added — statusline subscription-usage dots (G-0310)

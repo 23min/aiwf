@@ -18,7 +18,7 @@ Two goals, then: make collisions rare, and when they happen, keep the cleanup lo
 
 ## Trunk-aware allocator
 
-The allocator reads two trees: the working tree, and the configured trunk ref.
+The allocator reads two trees: the working tree, and the configured trunk ref. *(Later widened — see **Update (E-0052)** below.)*
 
 The default trunk is `refs/remotes/origin/main`. Consumers who use a different trunk set it in `aiwf.yaml`:
 
@@ -32,6 +32,19 @@ If the configured ref doesn't exist, the allocator stops and asks the operator t
 The trunk tree is read with `git ls-tree --full-tree -r <ref> -- work/`. No checkout, no working-tree disturbance. The cost is small, and the result is cached by ref-SHA inside a single verb run.
 
 That's the entire allocator change.
+
+> **Update (E-0052).** The allocator's read set was later widened beyond the single
+> trunk ref. It now unions the working tree, **every local `refs/heads/*`** (M-0212),
+> **every remote-tracking `refs/remotes/*`** (M-0214), and the configured trunk ref —
+> the full published cross-branch view — so the dominant collision classes are caught
+> at allocation time rather than at push. `aiwf add --fetch` opt-in-refreshes that view
+> (`git fetch --all`, best-effort, never blocks). Crucially, the widened set feeds
+> **allocation only**: the `ids-unique` check (below) keeps its working-tree-vs-trunk
+> basis, because folding sibling branches into the uniqueness comparison would
+> false-flag the same entity present on two branches. The trunk-ancestry tiebreaker and
+> `aiwf reallocate` are unchanged. See `trunk.LocalRefIDs` / `trunk.RemoteRefIDs` /
+> `Tree.AllocationIDs` and the E-0052 milestone specs (M-0212 / M-0213 / M-0214,
+> closing G-0316).
 
 The doc comment at `internal/entity/allocate.go:34`:
 

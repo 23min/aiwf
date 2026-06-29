@@ -588,14 +588,15 @@ sibling-worktree git convention.
 | M-0193 | Statusline health indicator from a cached check-findings signal | done |
 | M-0194 | Ship the statusline via aiwf init/update with portability fixes | cancelled |
 
-## E-0048 — Skill & ritual content integrity (with drift chokepoints) (proposed)
+## E-0048 — Skill & ritual content integrity (with drift chokepoints) (active)
 
 ### Goal
 
 Every shipped skill and ritual body is accurate, consistent, and self-contained,
 and mechanical chokepoints prevent future drift. The reader of any `aiwf-*` verb
 skill or `aiwfx-*` / `wf-*` ritual gets correct guidance, and a future edit that
-reintroduces drift fails CI.
+reintroduces drift is caught at the earliest chokepoint tier its class allows —
+pre-push where the check can live there, CI at the latest.
 
 | Milestone | Title | Status |
 |---|---|---|
@@ -608,6 +609,7 @@ reintroduces drift fails CI.
 | M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |
 | M-0202 | Fix devcontainer onboarding banner (retired plugin install) | draft |
 | M-0210 | Extract trailered-commit duplication into a wf-commit-trailers reference skill | draft |
+| M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | draft |
 
 ## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
 
@@ -651,4 +653,22 @@ worktree isolation. The operator gets the doctrine *emitted by the rituals at th
 right moment*, not buried in a doc.
 
 _No milestones yet._
+
+## E-0052 — Broaden the id allocator's cross-branch view to cut collisions (done)
+
+### Goal
+
+Reduce the id-collision *window* mechanically by widening the trunk-aware
+allocator from `{working-tree ids + one trunk ref}` to `{working-tree ids + all
+local refs + best-effort-fetched trunk}`, so the dominant collision classes are
+caught at allocation time instead of surfacing at push via `aiwf reallocate`.
+The stable-id-from-creation model is preserved entirely — no inbox, no mint, no
+slug phase. `aiwf reallocate` stays the backstop for the irreducible
+cross-machine concurrent race.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0212 | Union all local refs into the allocator's cross-branch id view | done |
+| M-0213 | Opt-in best-effort fetch before id allocation | done |
+| M-0214 | Broaden allocator and --fetch to all remote-tracking refs | done |
 

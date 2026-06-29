@@ -41,6 +41,8 @@ For Go-specific rules (formatting, linting, testing, coverage, error handling, C
 
   **The sanctioned exception: the declared-sequence gate.** A single gate may cover a sequence of *local, reversible* mutations that occur at one moment — **provided the gate question enumerates every action verbatim**. Approval binds to exactly the enumerated list; the user can approve a subset ("all except the promote") because the enumeration makes partial approval expressible. The bright line is what may be batched: **batch local, reversible mutations** — promotes, an `aiwf archive` sweep, a local merge to mainline, a tracker-closure `aiwf promote G-NNNN addressed --by-commit <sha>`, local branch deletion, worktree removal. **Never batch (a) outward / irreversible actions** — push to origin, `gh pr create`, tag-push, remote-branch delete, `--force`; each always stands as its own gate (push is the only action that leaves the machine, and `--force` is additionally sovereign / human-only). **Never batch (b) timing-bearing mutations** whose signal *is* their timestamp — `tdd: required` AC phase promotes fire live during the cycle, never bursted into one moment. Any deviation — a merge conflict, a check finding, unexpected dirty state, any action not on the list — aborts the sequence and re-gates from the point of deviation. The consolidation is sound only because the mechanical gates carry the safety load the per-action gates used to carry: `make ci` green at the verify step, the pre-push lint hook, and `aiwf check` pre-push (G-0179). The canonical instance is the `wf-patch` wrap; the `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` rituals use the same gate for their terminal local sequence (local merge + promote-done + cleanup — promote lands last so a delegated scope stays live for the merge commit, per G-0119; push excluded).
 
+- **Active streamlined-cadence override (operator-directed; interim, pending G-0314).** For the in-flight epics **E-0048** and **E-0052**, the operator has sovereignly adopted the streamlined TDD promote cadence: `tdd: required` AC phase/met promotes (`aiwf promote M-NNNN/AC-N --phase … | met`) **flow live without a per-promote HITL gate** — the assistant runs them as the cycle progresses and reports, instead of asking before each. The gates that remain: the **implementation commit**, the **merge**, and the **push** — each its own gate; **push is never batched or streamlined**, and all outward / irreversible actions stay individually gated. This **overrides** the "timing-bearing promotes fire live, never bursted, each its own gate" rule above **for these two epics only**, and is deliberately recorded here (not in conversation) so it survives `/compact`. The durable form is the `tdd.promote_gate: streamlined | strict` knob tracked in G-0314; delete this note when that lands.
+
 - **Finish in-context, don't paper over.** When you notice a closely-related issue in the file or text you're editing — especially one you just authored — fix it inline, not as a new gap. Filing-and-patch ceremony for a 5-line correction is churn: the original gap shipped half-baked, and "two gaps closed" is not progress over "one closed completely." File a separate gap only when the issue is *architecturally distinct* (different subsystem, different design question). Surface what you noticed plainly ("X is also wrong here, fixing inline"); don't silently defer.
 
 ---
@@ -215,7 +217,19 @@ When a milestone's deliverable is ritual `SKILL.md` content, the **authoring loc
 
 When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks for the same reason) after a merge, resolve via **`aiwf reallocate <id>`**, not via `git mv` + a manual frontmatter edit.
 
-The trunk-aware allocator (`aiwf add <kind>`) unions the current branch's ids with `refs/remotes/origin/main`. It does **not** scan parallel feature branches. Two branches that allocate the same id while neither has pushed to trunk both succeed locally; the collision is invisible until one of them lands on trunk and the *other's next push* hits its pre-push hook. Solo operators with several long-lived worktrees see this more often than the design's "parallel devs racing through trunk" model predicts — same brain, different sessions, hours apart, neither pushed yet.
+The allocator picks the next free id by scanning the working tree, every local branch (`refs/heads/*`), every remote-tracking ref (`refs/remotes/*`), and the configured trunk ref. That scan feeds **allocation only** — never the `ids-unique` check, which compares the working tree against trunk.
+
+How to avoid collisions:
+
+- **One machine, multiple worktrees:** nothing to do — sibling worktrees share an object store, so the allocator already sees their ids.
+- **Separate clones:** run `aiwf add --fetch` (a best-effort `git fetch --all`) so a teammate's id on any *pushed* branch is seen and skipped, and **push promptly after `aiwf add`** so your new id reaches others' next fetch.
+- **Allocate on whatever branch you're working on** — you don't need to create entities on trunk to avoid collisions.
+
+What to expect:
+
+- A peer who allocated but has **not pushed** is invisible; if two of you take the same id before either pushes, you collide — resolve with `aiwf reallocate` (below). Prompt pushing shrinks that window.
+- A `--fetch` failure (offline, unreachable remote) never blocks the add: it warns and allocates against the local view.
+- An entity on an unmerged branch can't be referenced **by id in another branch's prose** until it reaches trunk (the `body-prose-id` check resolves only against the working tree and trunk). Backtick the id until then, or allocate on main if a parallel branch must reference it now.
 
 At merge time the move that compiles is:
 
