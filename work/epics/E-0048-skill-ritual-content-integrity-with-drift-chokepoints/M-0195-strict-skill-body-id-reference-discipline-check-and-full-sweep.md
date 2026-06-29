@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Standing rule documented in CLAUDE.md Skills policy
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
