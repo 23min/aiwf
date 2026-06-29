@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Generalized declared-sequence gate documented in CLAUDE.md and guidance
-      status: open
+      status: met
     - id: AC-2
       title: aiwfx-release splits the two origin pushes into separate push gates
       status: open
