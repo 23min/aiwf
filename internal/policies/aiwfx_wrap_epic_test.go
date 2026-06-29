@@ -238,10 +238,14 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 		switch {
 		case strings.Contains(lower, "merge") && strings.Contains(lower, "epic branch"):
 			mergeIdx = i
-		case strings.Contains(lower, "after commit approval"):
-			// The wrap-artefact commit step's heading is "After
-			// commit approval" — that's the step that emits the
-			// CHANGELOG + wrap.md commit.
+		case strings.Contains(lower, "wrap-artefact commit"):
+			// The wrap-artefact commit step's heading is
+			// "Wrap-artefact commit — CHANGELOG + wrap.md" — the step
+			// that emits the CHANGELOG + wrap.md commit. (Pre-M-0209
+			// this was a separate "After commit approval" step with its
+			// own commit gate; M-0209 folded that gate into the
+			// step-4 declared-sequence gate, but the commit step — and
+			// its position in the promote-last ordering — remains.)
 			wrapArtefactIdx = i
 		case strings.Contains(lower, "promote the epic to `done`"):
 			promoteIdx = i
@@ -254,7 +258,7 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 		t.Error("G-0119: `## Workflow` must contain a `### …merge…epic branch…` step")
 	}
 	if wrapArtefactIdx < 0 {
-		t.Error("G-0119: `## Workflow` must contain a `### …After commit approval` step (the wrap-artefact commit)")
+		t.Error("G-0119: `## Workflow` must contain a `### …Wrap-artefact commit…` step (the CHANGELOG + wrap.md commit)")
 	}
 	if promoteIdx < 0 {
 		t.Error("G-0119: `## Workflow` must contain a `### …Promote the epic to `done`…` step")
