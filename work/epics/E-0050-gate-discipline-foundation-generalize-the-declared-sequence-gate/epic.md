@@ -1,7 +1,7 @@
 ---
 id: E-0050
 title: 'Gate-discipline foundation: generalize the declared-sequence gate'
-status: active
+status: done
 ---
 # Gate-discipline foundation: generalize the declared-sequence gate
 
