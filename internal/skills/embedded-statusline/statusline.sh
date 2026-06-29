@@ -417,11 +417,35 @@ fi
 health_prefix=""
 [ "$health_state" = "warn" ] && health_prefix="${red}⚠${reset} "
 
+# --- Subscription-usage dots (G-0310) --------------------------------------
+# rate_limits.{seven_day,five_hour}.used_percentage from the stdin JSON — the
+# figures /usage shows (Pro/Max only, present after the first API response, each
+# window independently optional). One colored dot + label per present window,
+# same green/yellow/red scale as the context ball; an absent window renders
+# nothing (like the health glyph degrades).
+usage_color() {  # $1 = integer percent
+  if   [ "$1" -lt 50 ]; then printf '%s' "$green"
+  elif [ "$1" -lt 80 ]; then printf '%s' "$yellow"
+  else                       printf '%s' "$red"
+  fi
+}
+usage_seg=""
+usage_dot() {  # $1 = raw used_percentage (float/int/empty), $2 = label
+  case "$1" in
+    ''|*[!0-9.]*) return ;;            # absent or non-numeric -> render nothing
+  esac
+  local _u; _u="${1%%.*}"; [ -z "$_u" ] && _u=0  # truncate float -> int for comparison
+  usage_seg="${usage_seg} $(usage_color "$_u")●${reset} $2"
+}
+usage_dot "$(jq_get '.rate_limits.seven_day.used_percentage')" "7d"
+usage_dot "$(jq_get '.rate_limits.five_hour.used_percentage')" "5h"
+
 # --- Compose ----------------------------------------------------------------
 
 head_seg="$ball $model_short"
 [ -n "$effort" ] && head_seg="$head_seg ${gray}${effort}${reset}"
 head_seg="$head_seg ▸ $tokens_fmt"
+[ -n "$usage_seg" ] && head_seg="$head_seg$usage_seg"
 parts=("$head_seg")
 [ -n "$ctx_hud" ]       && parts+=("$ctx_hud")
 parts+=("$repo")
