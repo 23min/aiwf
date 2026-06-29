@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0050: ritual wraps gate the terminal local sequence under one declared-sequence gate
+
+The wf-patch-only "declared-sequence gate" is now a general capability for any sequence of *local, reversible* mutations — enumerated verbatim, subset-approvable, aborting and re-gating on deviation — with a bright line that excludes outward/irreversible actions (push, `gh pr create`, tag-push, remote-branch delete, `--force`) and timing-bearing ones (`tdd: required` phase promotes fire live). CLAUDE.md §"Gate discipline" and the embedded per-turn guidance are rewritten to match reality.
+
+- **`aiwfx-release`:** the two origin pushes (commit, tag) are split into two separate push gates; the bundled "push the commit and the tag" prompt is gone.
+- **`aiwfx-wrap-milestone` / `aiwfx-wrap-epic`:** the previously ungated promote / merge / cleanup steps now run under one declared-sequence gate over the terminal local sequence (merge → promote-done → cleanup), with push and origin-branch deletes kept as their own outward gates (no batch-approval of deletes).
+- Each fix is pinned by a section-scoped structural test under `internal/policies/`. Materialized into consumer repos on the next `aiwf update`. Resolves G-0295.
+
 ## [0.18.0] — 2026-06-28
 
 ### Added — E-0044: path-backed `area` tags make `--area` filtering trustworthy in the 1:1 monorepo
