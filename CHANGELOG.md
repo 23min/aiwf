@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-06-29
+
+### Added — statusline subscription-usage dots (G-0310)
+
+The aiwf-aware statusline now renders weekly (7-day) and 5-hour subscription-usage dots — `● 7d` / `● 5h`, colored green / yellow / red on the same scale as the context ball — read live from `rate_limits.seven_day.used_percentage` and `rate_limits.five_hour.used_percentage` in the statusline's stdin JSON (the figures the `/usage` command shows; Claude.ai Pro/Max only, present after the first API response of a session). Each window is independently optional; an absent window renders nothing, exactly as the tree-health glyph degrades. Materialized into consumer repos on the next `aiwf update`. Resolves G-0310.
+
 ### Changed — E-0050: ritual wraps gate the terminal local sequence under one declared-sequence gate
 
 The wf-patch-only "declared-sequence gate" is now a general capability for any sequence of *local, reversible* mutations — enumerated verbatim, subset-approvable, aborting and re-gating on deviation — with a bright line that excludes outward/irreversible actions (push, `gh pr create`, tag-push, remote-branch delete, `--force`) and timing-bearing ones (`tdd: required` phase promotes fire live). CLAUDE.md §"Gate discipline" and the embedded per-turn guidance are rewritten to match reality.
