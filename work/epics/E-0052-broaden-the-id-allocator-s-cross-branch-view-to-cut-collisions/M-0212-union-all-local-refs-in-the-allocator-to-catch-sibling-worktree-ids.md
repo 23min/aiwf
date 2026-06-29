@@ -28,9 +28,15 @@ next allocation skips past it instead of colliding.
 
 This is class 1 of G-0272's taxonomy — the dominant solo+agents collision and the
 only one that is *artificially* invisible (the data is on local disk; the
-allocator just doesn't look). Offline, read-only, cheap. Both the allocator
-(`aiwf add`) and the `ids-unique` trunk-collision check consume the widened id
-set. The stable-id model is preserved entirely.
+allocator just doesn't look). Offline, read-only, cheap.
+
+Only the allocator (`aiwf add`) consumes the widened id set; the `ids-unique`
+trunk-collision check is deliberately left on its current working-tree-vs-trunk
+basis. Folding every sibling branch into the uniqueness comparison would flag the
+same entity present on two branches (e.g. a feature branch forked from main) as a
+false collision — the prevention win is real and side-effect-free, the detection
+change is not, so this milestone takes only the prevention half. The stable-id
+model is preserved entirely.
 
 Source: G-0272. Parent epic E-0052.
 
@@ -39,8 +45,8 @@ Source: G-0272. Parent epic E-0052.
 The allocator's id set unions ids reachable from every local `refs/heads/*` in
 addition to the working tree and the configured trunk ref. An id that exists only
 on a sibling local branch raises the allocated `max`, so the next allocation
-skips it. The widened set feeds both `aiwf add` (prevention) and the `ids-unique`
-trunk-collision check (detection).
+skips it. The widened set feeds `aiwf add` (prevention) only; the `ids-unique`
+trunk-collision check keeps its current working-tree-vs-trunk basis.
 
 Evidence: a test where a fixture entity id exists only on a sibling local branch
 (not the working tree, not the trunk ref) and the next `aiwf add` of that kind
@@ -65,4 +71,3 @@ not a duplicate.
 
 Evidence: an integration test that drives `aiwf add` (or the verb dispatcher)
 across two local branches in one repo and asserts the two ids differ.
-
