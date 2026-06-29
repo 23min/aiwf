@@ -607,6 +607,7 @@ reintroduces drift fails CI.
 | M-0200 | Skill descriptions, whiteboard, and prose polish | draft |
 | M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |
 | M-0202 | Fix devcontainer onboarding banner (retired plugin install) | draft |
+| M-0210 | Extract trailered-commit duplication into a wf-commit-trailers reference skill | draft |
 
 ## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
 
@@ -625,7 +626,7 @@ by the foundation epic E-0050, which this epic builds on.
 | M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
 | M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
 
-## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (proposed)
+## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (active)
 
 ### Goal
 
@@ -638,4 +639,16 @@ currently violate the gate discipline CLAUDE.md *claims* they already follow.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0209 | Generalize the declared-sequence gate; fix wrap/release drift | draft |
+
+## E-0051 — Context and compute economy across the ritual lifecycle (proposed)
+
+### Goal
+
+The ritual lifecycle uses the right context and the right compute at each
+boundary: read-heavy, judgment-light steps run on a cheap model, and the
+session topology keeps build context where it accumulates while OS-enforcing
+worktree isolation. The operator gets the doctrine *emitted by the rituals at the
+right moment*, not buried in a doc.
+
+_No milestones yet._
 
