@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Skill-body id-reference check fires pre-push over the embedded skill tree
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Canonical placeholders, code, and ADR doc-link carve-out stay silent
       status: open
