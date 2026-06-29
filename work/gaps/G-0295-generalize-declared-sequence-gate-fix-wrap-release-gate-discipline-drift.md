@@ -1,7 +1,9 @@
 ---
 id: G-0295
 title: Generalize declared-sequence gate; fix wrap/release gate-discipline drift
-status: open
+status: addressed
+addressed_by_commit:
+    - 7e6be1f1
 ---
 ## Problem
 
