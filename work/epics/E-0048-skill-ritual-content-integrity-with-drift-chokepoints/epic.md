@@ -10,7 +10,8 @@ status: proposed
 Every shipped skill and ritual body is accurate, consistent, and self-contained,
 and mechanical chokepoints prevent future drift. The reader of any `aiwf-*` verb
 skill or `aiwfx-*` / `wf-*` ritual gets correct guidance, and a future edit that
-reintroduces drift fails CI.
+reintroduces drift is caught at the earliest chokepoint tier its class allows —
+pre-push where the check can live there, CI at the latest.
 
 ## Context
 
@@ -64,8 +65,11 @@ commit/TDD-model subset is lifecycle epic E-0049.
 ## Success criteria
 
 - [ ] Every defect named in the gaps under *Milestones* is fixed and verified.
-- [ ] Three CI-green chokepoints exist: skill-body id-reference check, finding-code
-      documented-superset, and the skill-edit→structural-test backstop.
+- [ ] Three mechanical chokepoints exist — skill-body id-reference check,
+      finding-code documented-superset, and the skill-edit→structural-test
+      backstop — each placed at the *earliest tier its class allows* (pre-push, as
+      an `aiwf check` rule, so the catch is in-context; CI only where it must be a
+      Go policy test). A CI-only chokepoint is a backstop, not the in-context catch.
 - [ ] No shipped skill body references a real entity id, path, or inline status
       (placeholders only; ADR doc-links allowed).
 
@@ -73,7 +77,7 @@ commit/TDD-model subset is lifecycle epic E-0049.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Does the id-reference check live in `internal/check` or `internal/policies`? | no | decided in the G-0299 milestone |
+| Does the id-reference check live in `internal/check` or `internal/policies`? | no | decided in the G-0299 milestone, favouring `internal/check` (pre-push, in-context) per the timeliness criterion |
 
 ## Milestones
 
