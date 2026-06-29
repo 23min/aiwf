@@ -567,6 +567,53 @@ func TestRenamesFromRef_AbsentRefReturnsNil(t *testing.T) {
 // initTestRepo creates a fresh git repo in a temp dir and returns
 // its path. Commit identity is seeded by TestMain in setup_test.go
 // (via os.Setenv) so this helper is t.Parallel-compatible — t.Setenv
+func TestLocalBranchRefs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	t.Run("no branches yet returns nil", func(t *testing.T) {
+		t.Parallel()
+		// A freshly-init'd repo has no commit, so refs/heads/main does
+		// not yet exist — the M-0212/AC-2 "no local branches" degrade.
+		dir := initTestRepo(t)
+		got, err := LocalBranchRefs(ctx, dir)
+		if err != nil {
+			t.Fatalf("LocalBranchRefs: %v", err)
+		}
+		if got != nil {
+			t.Errorf("LocalBranchRefs = %v, want nil for a repo with no branches", got)
+		}
+	})
+
+	t.Run("lists every local branch", func(t *testing.T) {
+		t.Parallel()
+		dir := initTestRepo(t)
+		commitFile(t, ctx, dir, "a.txt", "a\n")
+		mustRun(t, ctx, dir, "branch", "epic/E-01-foo")
+		mustRun(t, ctx, dir, "branch", "feature")
+		got, err := LocalBranchRefs(ctx, dir)
+		if err != nil {
+			t.Fatalf("LocalBranchRefs: %v", err)
+		}
+		// for-each-ref sorts by refname ascending.
+		want := []string{"refs/heads/epic/E-01-foo", "refs/heads/feature", "refs/heads/main"}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("LocalBranchRefs mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("non-repo returns error", func(t *testing.T) {
+		t.Parallel()
+		// `git for-each-ref` outside a repository exits non-zero — the
+		// wrapped-error path. (trunk.LocalRefIDs guards this with an
+		// IsRepo check, but the primitive surfaces the error directly.)
+		_, err := LocalBranchRefs(ctx, t.TempDir())
+		if err == nil {
+			t.Error("LocalBranchRefs on a non-repo dir = nil error, want error")
+		}
+	})
+}
+
 // would panic under parallel execution.
 func initTestRepo(t *testing.T) string {
 	t.Helper()

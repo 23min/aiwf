@@ -42,6 +42,30 @@ func HasAnyRemoteTrackingRefs(ctx context.Context, workdir string) (bool, error)
 	return strings.TrimSpace(out) != "", nil
 }
 
+// LocalBranchRefs returns the full refnames of every local branch
+// (refs/heads/*) in workdir's repository, e.g.
+// []string{"refs/heads/main", "refs/heads/epic/E-01-foo"}. Returns
+// nil when the repo has no local branches (a freshly-init'd repo
+// before its first commit, or an all-detached state). Wraps git
+// failures.
+//
+// Mirrors HasAnyRemoteTrackingRefs's for-each-ref shape, widened from
+// a count to the full list. Used by the allocator's broadened
+// cross-branch view (M-0212) via trunk.LocalRefIDs: a sibling git
+// worktree's freshly-committed entity already lives in the shared
+// local refs, so the allocator reads them to skip past it.
+func LocalBranchRefs(ctx context.Context, workdir string) ([]string, error) {
+	out, err := output(ctx, workdir, "for-each-ref", "--format=%(refname)", "refs/heads/")
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(out)
+	if out == "" {
+		return nil, nil
+	}
+	return strings.Split(out, "\n"), nil
+}
+
 // AddCommitSHA returns the SHA of the commit that introduced
 // relPath into the repo. Returns ("", nil) when the file has no add
 // commit visible from HEAD (newly staged but never committed).

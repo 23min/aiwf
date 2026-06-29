@@ -112,7 +112,7 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 	if err := validateDependsOnReferents(t, kind, opts); err != nil {
 		return nil, err
 	}
-	id := entity.AllocateID(kind, t.Entities, t.TrunkIDStrings())
+	id := entity.AllocateID(kind, t.Entities, t.AllocationIDs())
 	slug, dropped := entity.SlugifyDetailed(title)
 	if slug == "" {
 		return nil, fmt.Errorf("title %q produces an empty slug; try a different title", title)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -168,6 +169,133 @@ func TestResult_IDStrings(t *testing.T) {
 	if (Result{}).IDStrings() != nil {
 		t.Error("empty Result.IDStrings should be nil")
 	}
+}
+
+// --- M-0212: LocalRefIDs (the allocator's broadened cross-branch view) ---
+
+func TestLocalRefIDs_UnionsSiblingBranchIDs(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	// main carries G-0001.
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	// A sibling branch carries a higher id that exists ONLY on that
+	// ref — the dominant solo+worktree collision class. No remote, so
+	// no trunk ref is in play; the sibling id is visible solely via
+	// refs/heads/*.
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	got := LocalRefIDs(ctx, dir)
+	if !slices.Contains(got, "G-0005") {
+		t.Errorf("LocalRefIDs = %v, want it to include sibling-only id G-0005", got)
+	}
+	if !slices.Contains(got, "G-0001") {
+		t.Errorf("LocalRefIDs = %v, want it to include main id G-0001", got)
+	}
+}
+
+func TestLocalRefIDs_ScansAcrossEntityKinds(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "docs/adr/ADR-0009-baz.md", "# baz\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	got := LocalRefIDs(ctx, dir)
+	if !slices.Contains(got, "ADR-0009") {
+		t.Errorf("LocalRefIDs = %v, want it to include sibling-branch ADR-0009", got)
+	}
+}
+
+func TestIDsFromPaths_SkipsNonEntityPaths(t *testing.T) {
+	t.Parallel()
+	got := idsFromPaths([]string{
+		"work/notes.md",           // under work/ but not a kind subdir → PathKind false
+		"work/gaps/G-1-narrow.md", // gap-shaped filename, but G-1 is too narrow to ValidateID → IDFromPath false
+		"work/gaps/G-0007-ok.md",  // a well-formed gap → kept
+	})
+	want := []ID{{Kind: entity.KindGap, ID: "G-0007", Path: "work/gaps/G-0007-ok.md"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("idsFromPaths mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// --- M-0212/AC-2: LocalRefIDs degrades cleanly on odd repo states ---
+
+func TestLocalRefIDs_NotARepo_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	// A plain directory that was never `git init`'d. LocalRefIDs must
+	// not error or panic — it degrades to "no cross-branch view".
+	got := LocalRefIDs(context.Background(), t.TempDir())
+	if got != nil {
+		t.Errorf("LocalRefIDs = %v, want nil for a non-repo dir", got)
+	}
+}
+
+func TestLocalRefIDs_NoBranches_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	// A freshly-init'd repo has no commit, so refs/heads/main does not
+	// yet exist — zero local branches.
+	got := LocalRefIDs(context.Background(), initRepo(t))
+	if got != nil {
+		t.Errorf("LocalRefIDs = %v, want nil for a repo with no branches", got)
+	}
+}
+
+func TestLocalRefIDs_UnreadableRefSkipped(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	// main carries a readable id.
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	// A sibling branch carries an id, then we corrupt its tip by
+	// deleting the commit's tree object. `git for-each-ref` still
+	// LISTS the branch (the commit object resolves), but `git ls-tree`
+	// on it fails — the "lists but won't read" unreadable-ref case
+	// (a real shape under a concurrent worktree branch-deletion race,
+	// the very scenario M-0212 targets). LocalRefIDs must skip it and
+	// still return main's readable id, with no error and no panic.
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0009-bar.md", "# bar\n")
+	treeSHA := strings.TrimSpace(mustOutput(t, ctx, dir, "rev-parse", "sibling^{tree}"))
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+	deleteLooseObject(t, dir, treeSHA)
+
+	got := LocalRefIDs(ctx, dir)
+	if slices.Contains(got, "G-0009") {
+		t.Errorf("LocalRefIDs = %v, want the unreadable sibling id G-0009 skipped", got)
+	}
+	if !slices.Contains(got, "G-0001") {
+		t.Errorf("LocalRefIDs = %v, want main's readable id G-0001 retained", got)
+	}
+}
+
+// deleteLooseObject removes the loose object file for sha from dir's
+// object store. Auto-gc is disabled in tests (testsupport.HardenGitTestEnv),
+// so objects in a fresh fixture repo are always loose — no pack to chase.
+func deleteLooseObject(t *testing.T, dir, sha string) {
+	t.Helper()
+	obj := filepath.Join(dir, ".git", "objects", sha[:2], sha[2:])
+	if err := os.Remove(obj); err != nil {
+		t.Fatalf("removing loose object %s: %v", sha, err)
+	}
+}
+
+// mustOutput runs a git command and returns its stdout, failing the
+// test on error.
+func mustOutput(t *testing.T, ctx context.Context, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git %v: %v", args, err)
+	}
+	return string(out)
 }
 
 // initRepo / commitFile / mustRun mirror the helpers in
