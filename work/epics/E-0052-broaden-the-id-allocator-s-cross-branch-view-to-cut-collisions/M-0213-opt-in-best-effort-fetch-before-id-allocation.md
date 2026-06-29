@@ -4,6 +4,15 @@ title: Opt-in best-effort fetch before id allocation
 status: draft
 parent: E-0052
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf add --fetch refreshes the trunk ref before allocating
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: The fetch is best-effort and never blocks the add
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -21,3 +30,23 @@ cure). Surfaced as a `--fetch` flag on `aiwf add`; a `doctor` staleness nudge is
 a possible complement, deferred.
 
 Source: G-0273. Parent epic E-0052.
+
+### AC-1 — aiwf add --fetch refreshes the trunk ref before allocating
+
+`aiwf add <kind> --fetch` refreshes the configured trunk ref (only that ref, not
+a full `fetch --all`) before computing `max`, so an id that landed on trunk since
+the last local fetch is seen and skipped.
+
+Evidence: a test with a local clone whose trunk ref is advanced out-of-band — the
+`--fetch` allocation reflects the upstream id; the same allocation without
+`--fetch` does not.
+
+### AC-2 — The fetch is best-effort and never blocks the add
+
+The fetch is best-effort and never blocks the add: a failure (no remote, an
+unreachable origin, a network error) degrades to local-only allocation with a
+warning and a success exit, identical to today's behavior.
+
+Evidence: a no-remote repo where `aiwf add --fetch` succeeds, emits a warning,
+and allocates against the local view.
+
