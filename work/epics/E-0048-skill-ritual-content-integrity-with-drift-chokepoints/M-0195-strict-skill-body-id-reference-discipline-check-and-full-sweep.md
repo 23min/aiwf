@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: 'Full sweep: id-reference check passes clean over the shipped skill tree'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: Standing rule documented in CLAUDE.md Skills policy
       status: open
