@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: 'wrap-epic: one declared-sequence gate for merge+commit+promote; split deletes'
-      status: open
+      status: met
 ---
 
 ## Goal
