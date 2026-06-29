@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Allocator unions ids from all local refs/heads
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Local-refs scan degrades cleanly on odd repo states
       status: open
