@@ -12,7 +12,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: Canonical placeholders, code, and ADR-doc-link carve-out do not fire
+      title: Canonical placeholders, code, and ADR doc-link carve-out stay silent
       status: open
       tdd_phase: red
     - id: AC-3
@@ -73,7 +73,7 @@ criterion; the CI policy layer is a backstop, not the catch.
 Evidence: a check-package test with a fixture skill body containing a real id
 (e.g. `M-0001`) makes the finding fire; a clean body stays silent.
 
-### AC-2 — Canonical placeholders, code, and ADR-doc-link carve-out do not fire
+### AC-2 — Canonical placeholders, code, and ADR doc-link carve-out stay silent
 
 The check's allow-set stays silent: letter-form placeholders (the canonical
 `<prefix>-NNNN` token, whose suffix is the letter N, distinct from a
