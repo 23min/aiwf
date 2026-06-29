@@ -42,7 +42,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	}
 
 	oldID := target.ID
-	newID := entity.AllocateID(target.Kind, t.Entities, t.TrunkIDStrings())
+	newID := entity.AllocateID(target.Kind, t.Entities, t.AllocationIDs())
 
 	source, dest, err := reallocatePaths(target, newID)
 	if err != nil {

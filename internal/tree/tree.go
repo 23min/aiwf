@@ -110,6 +110,16 @@ type Tree struct {
 	// check rule, since contracts legitimately carry schema/fixture
 	// artifacts alongside contract.md.
 	Strays []string
+	// LocalRefIDs is the entity-id set observed across every local
+	// branch ref (refs/heads/*), populated alongside TrunkIDs by the
+	// cmd dispatcher (M-0212). It feeds AllocationIDs — the allocator's
+	// broadened cross-branch view, which catches a sibling git
+	// worktree's freshly-committed id before it collides — but NOT the
+	// ids-unique check, which stays on its working-tree-vs-trunk basis
+	// (E-0052 decision: the widened set is allocation-only). Tests that
+	// build trees in-memory leave it nil, degrading the allocator to
+	// {working-tree + trunk} behavior.
+	LocalRefIDs []string
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience
@@ -125,6 +135,23 @@ func (t *Tree) TrunkIDStrings() []string {
 		out[i] = x.ID
 	}
 	return out
+}
+
+// AllocationIDs returns the id set the allocator must skip past: the
+// union of the configured trunk ref's ids (TrunkIDStrings) and every
+// local branch ref's ids (LocalRefIDs). This is deliberately broader
+// than TrunkIDs alone — the ids-unique check reads TrunkIDs directly
+// and must NOT see LocalRefIDs (folding sibling branches into the
+// uniqueness comparison would false-flag the same entity present on
+// two branches; E-0052 / M-0212 take only the prevention half).
+// Duplicates across the two sources are harmless: AllocateID takes the
+// max.
+func (t *Tree) AllocationIDs() []string {
+	trunkIDs := t.TrunkIDStrings()
+	if len(t.LocalRefIDs) == 0 {
+		return trunkIDs
+	}
+	return append(trunkIDs, t.LocalRefIDs...)
 }
 
 // HasPlannedFile reports whether path (forward-slash, repo-relative)
