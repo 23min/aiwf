@@ -92,3 +92,4 @@ commit/TDD-model subset is lifecycle epic E-0049.
 7. Planning-ritual body-fill routing + plan-milestones Next-step (G-0300, G-0248).
 8. Devcontainer onboarding banner (G-0279).
 9. Extract trailered-commit duplication into a `wf-commit-trailers` reference skill (M-0210, ADR-0024).
+10. Migrate consumer operating guidance from CLAUDE.md to the shippable embedded-guidance source, plus a drift chokepoint (G-0313).
