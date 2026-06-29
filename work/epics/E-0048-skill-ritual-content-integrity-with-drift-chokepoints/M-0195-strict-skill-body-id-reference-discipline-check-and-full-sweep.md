@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Canonical placeholders, code, and ADR doc-link carve-out stay silent
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: All placeholders normalized to canonical width
       status: open
