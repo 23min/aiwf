@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Allocator unions ids from all remote-tracking refs
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: aiwf add --fetch fetches all remotes, not just the trunk branch
       status: open
