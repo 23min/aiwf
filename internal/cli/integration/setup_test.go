@@ -32,10 +32,12 @@ import (
 // package (mutate process-level state or saturate shared resources):
 //
 //   - Any test calling testutil.CaptureStdout / CaptureStderr /
-//     CaptureRun — mutates os.Stdout / os.Stderr, which are
-//     process-level fds shared by every goroutine. Lots of these in
-//     this package (every verb-level test that asserts on printed
-//     output goes through capture).
+//     CaptureRun, or the local captureStderr helper (fetch_alloc_test.go
+//     / remote_alloc_test.go: the --fetch best-effort warning tests) —
+//     mutates os.Stdout / os.Stderr, which are process-level fds
+//     shared by every goroutine. Lots of these in this package (every
+//     verb-level test that asserts on printed output goes through
+//     capture).
 //   - Any test calling t.Setenv (panics under t.Parallel). The
 //     doctor/actor/whoami tests use this to isolate $HOME and
 //     $XDG_CONFIG_HOME.

@@ -110,6 +110,25 @@ type Tree struct {
 	// check rule, since contracts legitimately carry schema/fixture
 	// artifacts alongside contract.md.
 	Strays []string
+	// LocalRefIDs is the entity-id set observed across every local
+	// branch ref (refs/heads/*), populated alongside TrunkIDs by the
+	// cmd dispatcher (M-0212). It feeds AllocationIDs — the allocator's
+	// broadened cross-branch view, which catches a sibling git
+	// worktree's freshly-committed id before it collides — but NOT the
+	// ids-unique check, which stays on its working-tree-vs-trunk basis
+	// (E-0052 decision: the widened set is allocation-only). Tests that
+	// build trees in-memory leave it nil, degrading the allocator to
+	// {working-tree + trunk} behavior.
+	LocalRefIDs []string
+	// RemoteRefIDs is the entity-id set observed across every
+	// remote-tracking ref (refs/remotes/*), populated alongside TrunkIDs
+	// by the cmd dispatcher (M-0214). The remote-side mirror of
+	// LocalRefIDs: it feeds AllocationIDs so an entity pushed to any
+	// remote branch (a teammate's not-yet-merged work) is skipped at
+	// allocation, but NOT the ids-unique check, which stays on its
+	// working-tree-vs-trunk basis (G-0316). Tests that build trees
+	// in-memory leave it nil.
+	RemoteRefIDs []string
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience
@@ -125,6 +144,26 @@ func (t *Tree) TrunkIDStrings() []string {
 		out[i] = x.ID
 	}
 	return out
+}
+
+// AllocationIDs returns the id set the allocator must skip past: the
+// union of the configured trunk ref's ids (TrunkIDStrings), every local
+// branch ref's ids (LocalRefIDs, M-0212), and every remote-tracking
+// ref's ids (RemoteRefIDs, M-0214). This is deliberately broader than
+// TrunkIDs alone — the ids-unique check reads TrunkIDs directly and must
+// NOT see LocalRefIDs/RemoteRefIDs (folding sibling branches into the
+// uniqueness comparison would false-flag the same entity present on two
+// branches; E-0052 takes only the prevention half). The trunk ref's ids
+// now appear in both TrunkIDStrings and RemoteRefIDs (trunk is one of the
+// refs/remotes/* the remote scan reads) — keeping TrunkIDStrings is
+// deliberate defensive layering: if the remote scan degrades to nil
+// (offline odd state) trunk still contributes. Duplicates across the
+// three sources are harmless: AllocateID takes the max.
+func (t *Tree) AllocationIDs() []string {
+	ids := t.TrunkIDStrings()
+	ids = append(ids, t.LocalRefIDs...)
+	ids = append(ids, t.RemoteRefIDs...)
+	return ids
 }
 
 // HasPlannedFile reports whether path (forward-slash, repo-relative)

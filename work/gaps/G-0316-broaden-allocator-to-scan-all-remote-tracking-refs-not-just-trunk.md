@@ -1,8 +1,10 @@
 ---
 id: G-0316
 title: Broaden allocator to scan all remote-tracking refs, not just trunk
-status: open
+status: addressed
 discovered_in: M-0213
+addressed_by:
+    - M-0214
 ---
 ## Problem
 

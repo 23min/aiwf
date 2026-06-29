@@ -54,6 +54,17 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 		}
 		tr.TrunkRenames = renames
 	}
+	// M-0212: stamp the allocator's broadened cross-branch view — ids
+	// reachable from every local branch ref. Best-effort and read-only:
+	// LocalRefIDs never errors, degrading to nil on odd repo states, so
+	// it can never block the add. Feeds AllocationIDs (allocation only),
+	// never the ids-unique check (which reads TrunkIDs).
+	tr.LocalRefIDs = trunk.LocalRefIDs(ctx, rootDir)
+	// M-0214: the remote-side mirror — ids reachable from every
+	// remote-tracking ref. Same best-effort, allocation-only contract as
+	// LocalRefIDs (never errors, never blocks; feeds AllocationIDs, not
+	// the ids-unique check).
+	tr.RemoteRefIDs = trunk.RemoteRefIDs(ctx, rootDir)
 	return tr, loadErrs, nil
 }
 
