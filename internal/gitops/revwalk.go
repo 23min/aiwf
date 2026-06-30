@@ -309,32 +309,13 @@ func parseBulkTrailers(fields []string) map[string]string {
 	return out
 }
 
-// parsePathsBlock reads `git log --raw` (or `--name-status`) output
-// into PathTouch values. Each line is one path-touch.
-//
-// Two line shapes are accepted:
-//
-//   - Raw (`git log --raw`, the production walk): a line beginning
-//     with ':' carries the mode/object-id prefix —
-//     ":<srcmode> <dstmode> <presha> <postsha> <status>\t<path>[\t<dst>]".
-//     The pre/post blob ids populate [PathTouch].PreSHA / PostSHA.
-//   - Name-status (`git log --name-status`): "<status>\t<path>[\t<dst>]"
-//     with no leading ':'; PreSHA / PostSHA stay empty. Retained so the
-//     parser's contract is a superset and pre-existing callers/tests
-//     that feed name-status lines keep working.
-//
-// Status codes (both shapes):
-//
-//   - "A" / "M" / "D" / "T": one path follows.
-//   - "Rxxx" / "Cxxx" (rename / copy with similarity score): two paths
-//     follow — source then destination. The score (e.g. R100, R092)
-//     collapses to the bare "R" / "C" letter in [PathTouch].Status;
-//     the score isn't load-bearing for any current consumer.
-//
-// Lines that don't match either shape are dropped silently (defensive
-// — git's output is well-defined, but a future flag combination could
-// emit a shape we don't expect, and dropping is safer than mis-
-// classifying).
+// parsePathsBlock reads `git log --raw` output into PathTouch values,
+// one per line, via parseRawPathLine. BulkRevwalk is the only caller and
+// always requests `--raw`, so every line carries the mode/object-id
+// prefix; a line parseRawPathLine rejects is dropped silently
+// (defensive — git's --raw output is well-defined, but a future flag
+// combination could emit a shape we don't expect, and dropping is safer
+// than mis-classifying).
 func parsePathsBlock(block string) []PathTouch {
 	if block == "" {
 		return nil
@@ -347,32 +328,6 @@ func parsePathsBlock(block string) []PathTouch {
 		}
 		if touch, ok := parseRawPathLine(line); ok {
 			out = append(out, touch)
-			continue
-		}
-		parts := strings.Split(line, "\t")
-		if len(parts) < 2 {
-			continue
-		}
-		statusRaw := parts[0]
-		if statusRaw == "" {
-			continue
-		}
-		statusCode := string(statusRaw[0])
-		switch statusCode {
-		case "R", "C":
-			if len(parts) < 3 {
-				continue
-			}
-			out = append(out, PathTouch{
-				Status:  statusCode,
-				SrcPath: parts[1],
-				Path:    parts[2],
-			})
-		default:
-			out = append(out, PathTouch{
-				Status: statusCode,
-				Path:   parts[1],
-			})
 		}
 	}
 	return out
@@ -382,11 +337,9 @@ func parsePathsBlock(block string) []PathTouch {
 //
 //	:<srcmode> <dstmode> <presha> <postsha> <status>\t<path>[\t<dst>]
 //
-// into a PathTouch carrying the pre/post blob ids. The leading-':'
-// prefix and the five space-separated metadata fields distinguish the
-// raw shape from name-status; a line that doesn't start with ':' (or
-// whose prefix is malformed) returns ok=false so the caller falls back
-// to the name-status parse.
+// into a PathTouch carrying the pre/post blob ids. A line that doesn't
+// start with ':' (or whose prefix is malformed) returns ok=false and is
+// dropped by the caller.
 //
 // The status field may carry a similarity score (e.g. "R100"); only
 // the leading letter is kept in [PathTouch].Status, matching the

@@ -133,11 +133,11 @@ func (br *BlobReader) request(spec string) ([]byte, error) {
 		return nil, errBlobReaderClosed
 	}
 	if _, err := io.WriteString(br.stdin, spec+"\n"); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: write request: %w", err) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
+		return nil, fmt.Errorf("gitops: BlobReader: write request: %w", err) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
 	}
 	headerLine, err := br.stdout.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read header: %w", err)
+		return nil, fmt.Errorf("gitops: BlobReader: read header: %w", err)
 	}
 	header := strings.TrimRight(headerLine, "\n")
 	missing, size, parseErr := parseBatchHeader(header)
@@ -149,11 +149,11 @@ func (br *BlobReader) request(spec string) ([]byte, error) {
 	}
 	content := make([]byte, size)
 	if _, err := io.ReadFull(br.stdout, content); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read content (%d bytes): %w", size, err)
+		return nil, fmt.Errorf("gitops: BlobReader: read content (%d bytes): %w", size, err)
 	}
 	// Consume the trailing LF git appends after content.
 	if _, err := br.stdout.ReadByte(); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read trailing LF: %w", err)
+		return nil, fmt.Errorf("gitops: BlobReader: read trailing LF: %w", err)
 	}
 	return content, nil
 }

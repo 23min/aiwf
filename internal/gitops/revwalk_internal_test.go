@@ -169,54 +169,17 @@ func TestParsePathsBlock(t *testing.T) {
 	}{
 		{name: "empty block", block: ""},
 		{
-			name:  "single A line",
-			block: "A\talpha.md\n",
-			want:  []PathTouch{{Status: "A", Path: "alpha.md"}},
-		},
-		{
-			name:  "M + D",
-			block: "M\talpha.md\nD\tbeta.md\n",
+			// Loop behavior: multiple raw lines, blank line skipped, and
+			// a malformed line (parseRawPathLine returns ok=false — its
+			// own cases are pinned by TestParseRawPathLine) dropped.
+			name: "multiple raw entries, blank + malformed lines skipped",
+			block: ":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 A\talpha.md\n" +
+				"\n" +
+				"not a raw line\n" +
+				":100644 100644 3333333333333333333333333333333333333333 4444444444444444444444444444444444444444 M\tbeta.md\n",
 			want: []PathTouch{
-				{Status: "M", Path: "alpha.md"},
-				{Status: "D", Path: "beta.md"},
-			},
-		},
-		{
-			name:  "rename with similarity",
-			block: "R100\told.md\tnew.md\n",
-			want:  []PathTouch{{Status: "R", SrcPath: "old.md", Path: "new.md"}},
-		},
-		{
-			name:  "copy with similarity",
-			block: "C087\tsrc.md\tdst.md\n",
-			want:  []PathTouch{{Status: "C", SrcPath: "src.md", Path: "dst.md"}},
-		},
-		{
-			name:  "type change passes through",
-			block: "T\tx.md\n",
-			want:  []PathTouch{{Status: "T", Path: "x.md"}},
-		},
-		{
-			name:  "skip too-few parts",
-			block: "A\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip rename with missing dst path",
-			block: "R100\told.md\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip empty status code",
-			block: "\tnopath.md\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip empty lines between entries",
-			block: "A\talpha.md\n\nM\tbeta.md\n",
-			want: []PathTouch{
-				{Status: "A", Path: "alpha.md"},
-				{Status: "M", Path: "beta.md"},
+				{Status: "A", Path: "alpha.md", PreSHA: "1111111111111111111111111111111111111111", PostSHA: "2222222222222222222222222222222222222222"},
+				{Status: "M", Path: "beta.md", PreSHA: "3333333333333333333333333333333333333333", PostSHA: "4444444444444444444444444444444444444444"},
 			},
 		},
 		// `git log --raw` lines (production shape): the ':<srcmode>

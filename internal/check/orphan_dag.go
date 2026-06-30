@@ -88,6 +88,13 @@ func (d *CommitDAG) FirstParentChain(tip string) []string {
 // newer by following parent edges — matching `git merge-base --is-ancestor
 // old newer` semantics, including reflexivity (old == newer is true). The
 // walk is an iterative DFS over the in-memory parent map.
+//
+// Note: the reflexive short-circuit returns true for old == newer even when
+// that SHA is unknown to the DAG, whereas `git merge-base --is-ancestor`
+// errors (→ false) on an unknown commit. The sole caller
+// (WalkOrphanedAICommits) guards `older.SHA == newer.SHA` before calling, so
+// the divergence is unreachable today; a future reuse must re-establish
+// that guard or only short-circuit for a known key.
 func (d *CommitDAG) isAncestor(old, newer string) bool {
 	if old == newer {
 		return true
