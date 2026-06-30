@@ -1,8 +1,10 @@
 ---
 id: G-0320
 title: TestM080_AC6 runs full 85s aiwf check for one fact; use a fixture
-status: open
+status: addressed
 discovered_in: M-0196
+addressed_by_commit:
+    - 1c3339b6
 ---
 ## What's missing
 
