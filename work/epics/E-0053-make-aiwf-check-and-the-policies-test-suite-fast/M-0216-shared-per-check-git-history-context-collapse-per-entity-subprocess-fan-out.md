@@ -76,7 +76,7 @@ phase done.
 Pinned by the fixture suites (`TestBulkRevwalk_*`, `TestParseRawPathLine`,
 `TestFSMHistoryConsistent_*`, the oracle/acks/cherry/provenance suites) — a
 behaviour change fails them — and confirmed at every increment by the live-tree
-diff: **41 = 41** findings, sorted-identical, old binary (pre-AC-2) vs final
+diff: **31 = 31** findings, sorted-identical, old binary (pre-AC-2) vs final
 binary. Phase done.
 
 ### AC-4 — Measured check wall-time delta recorded in Validation
@@ -112,7 +112,7 @@ clean. Diff-scoped coverage gate green.
 
 **Byte-identical findings (AC-3).** `aiwf check --format=json` on the live kernel
 tree, old binary (pre-AC-2) vs the final B+C binary, sorted findings compared:
-**41 = 41, identical** — re-verified after each increment (AC-1, AC-2, AC-5,
+**31 = 31, identical** — re-verified after each increment (AC-1, AC-2, AC-5,
 AC-6, and the review cleanups).
 
 **Subprocess fan-out collapsed.** Per-check git spawns on the kernel tree:
