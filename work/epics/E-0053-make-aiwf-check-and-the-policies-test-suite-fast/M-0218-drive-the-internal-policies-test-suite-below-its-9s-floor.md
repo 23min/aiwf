@@ -1,7 +1,7 @@
 ---
 id: M-0218
 title: Drive the internal/policies test suite below its ~9s floor
-status: draft
+status: cancelled
 parent: E-0053
 tdd: advisory
 ---
