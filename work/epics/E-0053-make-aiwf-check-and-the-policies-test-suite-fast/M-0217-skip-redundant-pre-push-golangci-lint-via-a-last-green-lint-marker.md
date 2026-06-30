@@ -1,7 +1,7 @@
 ---
 id: M-0217
 title: Skip redundant pre-push golangci-lint via a last-green-lint marker
-status: draft
+status: cancelled
 parent: E-0053
 tdd: required
 ---
