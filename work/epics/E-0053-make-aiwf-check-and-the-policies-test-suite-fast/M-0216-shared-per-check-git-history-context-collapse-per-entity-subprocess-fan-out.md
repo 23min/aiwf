@@ -34,8 +34,14 @@ acs:
 
 Eliminate the per-entity / per-pair / per-rule git-subprocess fan-out in
 `aiwf check` by reading git history into shared in-memory structures once per
-check and having each history-walking rule derive from them, instead of each
-rule re-walking history independently.
+check and having the **dominant** history-walking rules derive from them,
+instead of re-walking history independently. Not *every* rule: the
+untrailed-commits audit, id-rename, post-cutoff, area-mistag, and the
+per-orphan reflog/message reads keep their own scoped walks (see Deferrals).
+The collapse targets the heavy fan-out that dominated wall-time — the 683
+per-pair `merge-base`, the 46 per-branch `rev-list --first-parent`, the five
+`git log HEAD` trailer gathers, and the per-entity FSM `<commit>:<path>`
+re-resolution — not the cheap scoped walks.
 
 Delivered: two shared per-check artifacts and their consumers — (1) a **commit
 DAG** (`git rev-list --all --reflog --parents`, one pass) consumed by the
@@ -61,7 +67,9 @@ Commit 97090bff · phase done.
 
 ### AC-2 — Shared per-check git-history context consumed by the history-walking rules
 
-`BulkRevwalk` now streams `git log --all --raw --no-abbrev`, enriching each
+`BulkRevwalk` now reads `git log --all --raw --no-abbrev` (one buffered
+single-subprocess pass — not a streaming reader; every caller consumes the
+whole walk), enriching each
 `PathTouch` with the pre/post blob object ids. The `fsm-history-consistent` rule
 reads status **by blob object id** (a direct object lookup via
 `BlobReader.ReadObject`) rather than resolving `<commit>:<path>` per read; ids
@@ -154,6 +162,16 @@ perf backlog (all `--discovered-in M-0216`), in priority order:
   the FSM `--raw` walk, the DAG build), determinism preserved by sorting at the
   aggregation boundary.
 
+Review-finding follow-ups from the third pass (also `--discovered-in M-0216`),
+hardening rather than perf:
+
+- G-0327 — harden the FSM walk's missing-non-zero-blob skip into a
+  `history-walk-error` finding (a pre-existing fail-open AC-2 faithfully
+  preserved; surfacing it is new degraded-repo behaviour). Finding 2.
+- G-0328 — a standing golden-fixture byte-identity comparator for
+  `aiwf check --format=json` (today's standing evidence is the per-rule fixture
+  suites; the cross-binary diff was a one-time confirmation). Finding 3.
+
 ## Reviewer notes
 
 Two independent fresh-context review passes (the first subagent attempt hit a
@@ -172,9 +190,35 @@ caught the rename/copy parent-side edge case, fixed before AC-2 closed):
   formats diffed identical across all ~5,471 HEAD commits; the in-memory
   `^aiwf-` regex selected the identical commit set as `git log -E --grep`
   (~4,614); `FirstParentChain` matched `git rev-list --first-parent` for all 46
-  ritual branches, zero mismatches. Two non-blocking advisories, both documented
-  in `head_history.go`: **A1** the provenance path is fail-open on catastrophic
-  git failure (consistent with the other gathers, vs the old fail-loud); **A2**
-  the trailer-format equivalence is a verified tree-shape assumption, not a
-  structural invariant.
+  ritual branches, zero mismatches. Two non-blocking advisories were raised here,
+  both documented in `head_history.go`: **A1** the provenance path was fail-open
+  on catastrophic git failure (vs the old fail-loud); **A2** the trailer-format
+  equivalence is a verified tree-shape assumption, not a structural invariant.
+
+- **Third pass (independent temp-clone review) — code-quality + claim audit.**
+  Confirmed AC-1/2/5/6 real and the full gate green in a fresh clone. Four
+  findings, dispositioned in a corrective commit before wrap:
+  - **Fixed (Finding 1, escalates A1):** the shared HEAD walk silently returned
+    nil on a catastrophic `git log HEAD` failure, disabling the
+    provenance / isolation-escape integrity checks on a degraded repo without a
+    signal — a real regression, since the pre-refactor `readProvenanceCommits`
+    was fail-loud. `WalkHeadCommits` now returns `([]HeadCommit, error)` and the
+    CLI fails the check with `ExitInternal` on error (restoring fail-loud).
+    Regression-pinned by `TestWalkHeadCommits_FailsLoudOnUnreadableHistory`
+    (a removed parent object → HEAD resolves but the walk fails). Outside the
+    byte-identical domain — a healthy tree never triggers it, so findings stay
+    31 = 31.
+  - **Fixed (Finding 4):** the `BulkRevwalk` docstring (and AC-2's note above)
+    claimed it "streams"; it buffers the full subprocess output. Wording
+    corrected; no behaviour change (YAGNI — no caller needs incremental delivery).
+  - **Fixed (claim audit):** the Goal's "each history-walking rule" overclaimed;
+    softened to the *dominant* rules, naming the scoped walks that deliberately
+    stay independent.
+  - **Deferred to gaps (`--discovered-in M-0216`):** Finding 2 (**G-0327**) —
+    harden the missing-non-zero-blob skip (a *pre-existing* fail-open:
+    `readStatusAt` and the new `statusBySHA` both skip on `ErrBlobMissing`, so
+    AC-2 faithfully preserved it; surfacing it as a finding is new behaviour).
+    Finding 3 (**G-0328**) — a golden-fixture byte-identity comparator as a
+    standing regression guard (the standing evidence today is the per-rule
+    fixture suites; the cross-binary diff was a one-time confirmation).
 
