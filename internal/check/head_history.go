@@ -69,7 +69,7 @@ func WalkHeadCommits(ctx context.Context, root string) []HeadCommit {
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
-		return nil
+		return nil //coverage:ignore git log HEAD fails only on a corrupt repo; the empty-history / non-git cases are handled by the hasGitCommits guard above
 	}
 	return parseHeadCommits(string(out))
 }

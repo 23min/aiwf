@@ -98,6 +98,46 @@ func TestCommitDAG_IsAncestor_DiamondRevisits(t *testing.T) {
 	}
 }
 
+// TestCommitDAG_FirstParentChain pins CommitDAG.FirstParentChain (M-0216
+// AC-6) against `git rev-list --first-parent <tip>` semantics: it follows
+// parents[0] to a root, returns nil for an empty tip, returns just the tip
+// for an absent/root commit, and terminates on a (defensive) cycle via the
+// seen-guard.
+func TestCommitDAG_FirstParentChain(t *testing.T) {
+	t.Parallel()
+	// First-parent chain c -> b -> a; b also has a second parent (d) that
+	// the first-parent walk must NOT follow.
+	dag := parseCommitDAG("c b e\nb a d\na\nd\ne\n")
+	eq := func(got, want []string) bool {
+		if len(got) != len(want) {
+			return false
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				return false
+			}
+		}
+		return true
+	}
+	if got := dag.FirstParentChain(""); got != nil {
+		t.Errorf("FirstParentChain(\"\") = %v, want nil", got)
+	}
+	if got := dag.FirstParentChain("c"); !eq(got, []string{"c", "b", "a"}) {
+		t.Errorf("FirstParentChain(c) = %v, want [c b a] (first-parent only)", got)
+	}
+	if got := dag.FirstParentChain("a"); !eq(got, []string{"a"}) {
+		t.Errorf("FirstParentChain(a) = %v, want [a] (root)", got)
+	}
+	if got := dag.FirstParentChain("zzz"); !eq(got, []string{"zzz"}) {
+		t.Errorf("FirstParentChain(zzz) = %v, want [zzz] (absent tip)", got)
+	}
+	// Defensive cycle a -> a: the seen-guard must terminate.
+	cyc := parseCommitDAG("a a\n")
+	if got := cyc.FirstParentChain("a"); !eq(got, []string{"a"}) {
+		t.Errorf("FirstParentChain(a) on cyclic dag = %v, want [a] (seen-guard terminates)", got)
+	}
+}
+
 // TestWalkOrphanedAICommits_DAGDetectsForcePushedOrphan is the seam test
 // (M-0216 AC-1): it exercises WalkOrphanedAICommits end-to-end against a
 // real git repo where an ai/ commit was force-pushed away (a
