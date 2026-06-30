@@ -1,7 +1,7 @@
 ---
 id: G-0318
 title: Pre-push re-lints code make ci just linted green on the same SHA
-status: open
+status: wontfix
 discovered_in: M-0196
 ---
 ## What's missing
