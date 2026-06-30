@@ -1,7 +1,7 @@
 ---
 id: M-0216
 title: Shared per-check git-history context; collapse per-entity subprocess fan-out
-status: draft
+status: in_progress
 parent: E-0053
 tdd: required
 acs:
