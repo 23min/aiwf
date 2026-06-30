@@ -672,7 +672,7 @@ cross-machine concurrent race.
 | M-0213 | Opt-in best-effort fetch before id allocation | done |
 | M-0214 | Broaden allocator and --fetch to all remote-tracking refs | done |
 
-## E-0053 — Make aiwf check and the policies test suite fast (active)
+## E-0053 — Make aiwf check and the policies test suite fast (done)
 
 ### Goal
 
@@ -691,8 +691,8 @@ that never share a loaded history.
 |---|---|---|
 | M-0215 | Profile aiwf check and the policies suite to a per-rule wall-time baseline | done |
 | M-0216 | Shared per-check git-history context; collapse per-entity subprocess fan-out | done |
-| M-0217 | Skip redundant pre-push golangci-lint via a last-green-lint marker | draft |
-| M-0218 | Drive the internal/policies test suite below its ~9s floor | draft |
-| M-0219 | Wire git commit-graph maintenance into aiwf init and update | draft |
+| M-0217 | Skip redundant pre-push golangci-lint via a last-green-lint marker | cancelled |
+| M-0218 | Drive the internal/policies test suite below its ~9s floor | cancelled |
+| M-0219 | Wire git commit-graph maintenance into aiwf init and update | cancelled |
 | M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
 
