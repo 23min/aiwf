@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Measured integration-suite wall-time reduction recorded in Validation
-      status: open
+      status: met
     - id: AC-4
       title: Sibling heavy real-tree check tests audited and re-fixtured or justified
       status: open
