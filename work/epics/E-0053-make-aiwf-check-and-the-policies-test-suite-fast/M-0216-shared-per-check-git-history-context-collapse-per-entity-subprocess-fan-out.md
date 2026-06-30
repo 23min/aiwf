@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Measured check wall-time delta recorded in Validation
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
