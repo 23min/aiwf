@@ -1,14 +1,15 @@
 package policies
 
 import (
-	"encoding/json"
+	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // criticalPathMdPath is the path AC-5 forbids and AC-6 polices.
@@ -214,52 +215,71 @@ func TestM080_AC5_CriticalPathRetired(t *testing.T) {
 	}
 }
 
-// TestM080_AC6_NoUnexpectedTreeFileWarning asserts AC-6: running
-// `aiwf check` against the live tree produces no warning of
-// class `unexpected-tree-file` citing the retired holding doc.
-// The check is invoked via the binary at /tmp/aiwf-m080 (built
-// in preflight) so the test exercises the same surface as a
-// pre-push hook.
+// TestM080_AC6_NoUnexpectedTreeFileWarning asserts AC-6: the retired
+// holding doc work/epics/critical-path.md produces no
+// `unexpected-tree-file` finding from the tree-discipline rule.
+//
+// The assertion is pinned on a minimal fixture rather than the live
+// tree (G-0320). The prior version built the aiwf binary and shelled
+// `aiwf check --format=json` over the *entire* repo — ~82s, the
+// dominant cost of the whole internal/policies suite — solely to
+// assert one narrow rule fact. The fixture pins the same fact in
+// sub-second time by loading a tiny tree and calling the rule
+// directly. It also adds a positive control the live-tree version
+// could never exercise: a tree where the holding doc IS present must
+// flag it, proving the retired-case "no finding" is meaningful and
+// not vacuously green because the rule lost its teeth.
 func TestM080_AC6_NoUnexpectedTreeFileWarning(t *testing.T) {
 	t.Parallel()
-	root := repoRoot(t)
-	bin := "/tmp/aiwf-m080"
-	if _, err := os.Stat(bin); os.IsNotExist(err) {
-		// Build the binary on the fly — a missing build is a
-		// preflight gap, not a real AC failure.
-		buildCmd := exec.Command("go", "build", "-o", bin, "./cmd/aiwf")
-		buildCmd.Dir = root
-		if out, buildErr := buildCmd.CombinedOutput(); buildErr != nil {
-			t.Fatalf("AC-6: building aiwf binary: %v\n%s", buildErr, out)
+
+	mustWrite := func(t *testing.T, root, rel, body string) {
+		t.Helper()
+		full := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
 		}
-		// macOS Gatekeeper crashes on unsigned Mach-O headers (Sonoma 14.8.x syspolicyd bug); ad-hoc sign to route around.
-		if runtime.GOOS == "darwin" {
-			if out, signErr := exec.Command("codesign", "--sign", "-", "--force", bin).CombinedOutput(); signErr != nil {
-				t.Fatalf("AC-6: codesign aiwf binary: %v\n%s", signErr, out)
-			}
+		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
 
-	cmd := exec.Command(bin, "check", "--format=json")
-	cmd.Dir = root
-	out, _ := cmd.CombinedOutput()
-	// `aiwf check` exits non-zero on findings; the JSON envelope
-	// carries them either way. Don't gate on exit code; parse
-	// the envelope.
-	var envelope struct {
-		Findings []struct {
-			Code string `json:"code"`
-			Path string `json:"path"`
-		} `json:"findings"`
-	}
-	if jsonErr := json.Unmarshal(out, &envelope); jsonErr != nil {
-		t.Fatalf("AC-6: parsing `aiwf check --format=json`: %v\noutput:\n%s", jsonErr, out)
-	}
-	for _, f := range envelope.Findings {
-		if f.Code == "unexpected-tree-file" && f.Path == criticalPathMdPath {
-			t.Errorf("AC-6: aiwf check still warns `unexpected-tree-file` for %s", criticalPathMdPath)
+	// A real entity so the loader has a populated work/epics tree to
+	// walk — the same layout the holding doc sat alongside.
+	const realEpic = "---\nid: E-0001\nkind: epic\nstatus: proposed\ntitle: fixture epic\n---\nbody\n"
+
+	flagsCriticalPath := func(t *testing.T, root string) bool {
+		t.Helper()
+		tr, _, err := tree.Load(context.Background(), root)
+		if err != nil {
+			t.Fatalf("tree.Load: %v", err)
 		}
+		for _, f := range check.TreeDiscipline(tr, nil, false) {
+			if f.Code == check.CodeUnexpectedTreeFile && f.Path == criticalPathMdPath {
+				return true
+			}
+		}
+		return false
 	}
+
+	t.Run("retired doc absent yields no finding", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		mustWrite(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
+		// criticalPathMdPath deliberately NOT written — it is retired.
+		if flagsCriticalPath(t, root) {
+			t.Errorf("AC-6: unexpected-tree-file fired for retired %s", criticalPathMdPath)
+		}
+	})
+
+	t.Run("control: present doc is flagged (rule has teeth)", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		mustWrite(t, root, "work/epics/E-0001-fixture/epic.md", realEpic)
+		mustWrite(t, root, criticalPathMdPath, "a holding doc that is not an entity\n")
+		if !flagsCriticalPath(t, root) {
+			t.Errorf("AC-6 control: rule must flag %s when present, else the retired-case assertion is vacuous", criticalPathMdPath)
+		}
+	})
 }
 
 // TestM080_AC7_ValidationCitesE21Promote asserts AC-7: the
