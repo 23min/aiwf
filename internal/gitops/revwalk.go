@@ -111,11 +111,11 @@ var bulkTrailerKeys = []string{
 	"aiwf-tests",
 }
 
-// BulkRevwalk streams [CommitRecord] values from a single
+// BulkRevwalk runs a single
 // `git log --all --raw --no-abbrev -M -m --pretty=...` subprocess,
-// calling fn for each commit-diff record in walk order. The
-// single-subprocess shape replaces the per-entity `git log --follow`
-// fan-out used by callers that walk every entity
+// reads its full output, then calls fn for each commit-diff [CommitRecord]
+// in walk order. The single-subprocess shape replaces the per-entity
+// `git log --follow` fan-out used by callers that walk every entity
 // (fsm-history-consistent, status worktree views, show scope views) —
 // collapsing ~3,000 fork/execs on the kernel tree into one long-lived
 // process. `--raw --no-abbrev` carries each path's pre/post blob
@@ -123,9 +123,13 @@ var bulkTrailerKeys = []string{
 // consumers fetch content by object id rather than re-resolving
 // `<commit>:<path>` per read (E-0053 / M-0216 AC-2).
 //
-// If fn returns a non-nil error, BulkRevwalk halts the walk and
-// returns that error verbatim (`errors.Is` works). Use this to
-// short-circuit when the consumer has found what it needs.
+// The git output is buffered in full before the first callback — this
+// is deliberately not a streaming reader, because every current caller
+// consumes the whole walk (YAGNI). If fn returns a non-nil error,
+// BulkRevwalk stops iterating the remaining records and returns that
+// error verbatim (`errors.Is` works). That short-circuits the
+// parse/callback loop only, not the git subprocess, which has already
+// run to completion — so it saves callback work, not subprocess time.
 //
 // Returns nil (no error, no callbacks) when root is empty, is not a
 // git repo, or is a repo with no commits — the same "nothing to walk"

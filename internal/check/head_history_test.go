@@ -1,10 +1,27 @@
 package check
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/23min/aiwf/internal/gitops"
 )
+
+// mustHead runs WalkHeadCommits over a healthy fixture repo, asserting
+// the Finding-1 fail-loud error is nil. Every fixture these tests build
+// is a readable repo, so a non-nil error here is a fixture/regression
+// bug, not an expected branch; the error path itself is covered by
+// TestWalkHeadCommits_FailsLoudOnUnreadableHistory.
+func mustHead(t *testing.T, root string) []HeadCommit {
+	t.Helper()
+	h, err := WalkHeadCommits(context.Background(), root)
+	if err != nil {
+		t.Fatalf("WalkHeadCommits over fixture %s: %v", root, err)
+	}
+	return h
+}
 
 // TestParseHeadCommits covers WalkHeadCommits' pure parser: a valid
 // two-record stream, a record with too few unit-separated fields
@@ -30,6 +47,75 @@ func TestParseHeadCommits(t *testing.T) {
 	}
 	if got[1].SHA != "sha4" {
 		t.Errorf("record 1 SHA = %q, want sha4", got[1].SHA)
+	}
+}
+
+// TestWalkHeadCommits_EmptyAndNonGitReturnNoError pins the (nil, nil)
+// contract for the three "no commits" inputs: an empty root string, a
+// non-git directory, and a freshly-init'd repo with no commits yet.
+// None of these is a failure — a nil slice means "no commits / no
+// exemptions", and the error must stay nil so the caller does not fail
+// loud (M-0216 Finding 1).
+func TestWalkHeadCommits_EmptyAndNonGitReturnNoError(t *testing.T) {
+	t.Parallel()
+	cases := map[string]string{
+		"empty root":  "",
+		"non-git dir": t.TempDir(),
+	}
+	for name, root := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got, err := WalkHeadCommits(context.Background(), root)
+			if got != nil || err != nil {
+				t.Errorf("WalkHeadCommits(%q) = (%v, %v), want (nil, nil)", root, got, err)
+			}
+		})
+	}
+	t.Run("git repo with no commits", func(t *testing.T) {
+		t.Parallel()
+		r := newRepoFixture(t) // git init, no commits yet
+		got, err := WalkHeadCommits(context.Background(), r.root)
+		if got != nil || err != nil {
+			t.Errorf("WalkHeadCommits(no-commits) = (%v, %v), want (nil, nil)", got, err)
+		}
+	})
+}
+
+// TestWalkHeadCommits_FailsLoudOnUnreadableHistory is the Finding-1
+// regression test: a repo whose HEAD resolves (so hasGitCommits is
+// true) but whose reachable history cannot be fully read must return a
+// non-nil error, NOT a silent nil that would disable the provenance /
+// isolation-escape gathers deriving from the walk.
+//
+// The repro removes a non-HEAD parent commit object: `git rev-parse
+// --verify --quiet HEAD` still resolves the tip (hasGitCommits true),
+// but `git log --reverse HEAD` — which collects the full history before
+// emitting — fails when it reaches the missing parent.
+func TestWalkHeadCommits_FailsLoudOnUnreadableHistory(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	parent := r.gitCommit("parent")
+	r.gitCommit("child") // HEAD = child; parent is a reachable ancestor
+
+	// Delete the parent's loose commit object. Auto-gc is disabled in the
+	// test env (HardenGitTestEnv), so the object is loose and this is the
+	// whole object — HEAD (child) still resolves, but the ancestry walk
+	// can no longer be completed.
+	obj := filepath.Join(r.root, ".git", "objects", parent[:2], parent[2:])
+	if err := os.Remove(obj); err != nil {
+		t.Fatalf("removing parent commit object %s: %v", obj, err)
+	}
+
+	if !hasGitCommits(context.Background(), r.root) {
+		t.Fatal("precondition: HEAD must still resolve after removing the parent object")
+	}
+
+	got, err := WalkHeadCommits(context.Background(), r.root)
+	if err == nil {
+		t.Fatalf("WalkHeadCommits: want fail-loud error on unreadable history, got nil (commits=%d)", len(got))
+	}
+	if got != nil {
+		t.Errorf("WalkHeadCommits: want nil slice alongside error, got %d commits", len(got))
 	}
 }
 

@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -60,24 +61,28 @@ type HeadCommit struct {
 // `--reverse` order readProvenanceCommits depends on; the map-building
 // consumers (acks, audit-only, cherry-picks) are order-insensitive.
 //
-// Returns nil for a non-git directory, an empty history, or a git
-// failure — the consumers treat nil and empty identically (no
-// exemptions / no commits).
+// Returns (nil, nil) for an empty root, a non-git directory, or a repo
+// with no commits yet — the consumers treat a nil slice as "no commits
+// / no exemptions".
 //
-// Failure-contract note (M-0216 AC-5): a catastrophic `git log HEAD`
-// failure (a corrupt repo where HasCommits is nonetheless true) now
-// yields nil here, so the provenance/acks/cherry/fsm-history gathers
-// silently produce no findings rather than the old readProvenanceCommits
-// raising ExitInternal. This makes provenance consistent with the four
-// other gathers, which already swallowed git errors; it is outside the
-// byte-identical claim's domain (a healthy tree) but is a real change to
-// the corrupt-repo failure mode.
+// Fail-loud contract (M-0216 Finding 1): a catastrophic `git log HEAD`
+// failure — a repo whose HEAD resolves (so hasGitCommits is true) but
+// whose reachable history cannot be read, e.g. a corrupt object store
+// or a partial/blobless clone missing a reachable commit — returns a
+// non-nil error. The sole production caller (internal/cli/check) fails
+// the whole check with ExitInternal on that error rather than reading
+// the unreadable history as "no commits". This restores the fail-loud
+// behavior the pre-refactor readProvenanceCommits had: a shared walk
+// that silently returned nil here would disable the provenance /
+// isolation-escape / promote-on-wrong-branch integrity checks on a
+// degraded repo with no signal at all. The error path is outside the
+// byte-identical claim's domain — a healthy tree never triggers it.
 //
 // One `git log --reverse HEAD` subprocess replaces the five the gather
 // rules used to each spawn (E-0053 / M-0216 AC-5).
-func WalkHeadCommits(ctx context.Context, root string) []HeadCommit {
+func WalkHeadCommits(ctx context.Context, root string) ([]HeadCommit, error) {
 	if root == "" || !hasGitCommits(ctx, root) {
-		return nil
+		return nil, nil
 	}
 	// Marker-first, then US-separated fixed fields, with %B (the body,
 	// which carries newlines) LAST so a SplitN on the unit separator
@@ -88,9 +93,9 @@ func WalkHeadCommits(ctx context.Context, root string) []HeadCommit {
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
-		return nil //coverage:ignore git log HEAD fails only on a corrupt repo; the empty-history / non-git cases are handled by the hasGitCommits guard above
+		return nil, fmt.Errorf("walking HEAD history in %s: %w", root, err)
 	}
-	return parseHeadCommits(string(out))
+	return parseHeadCommits(string(out)), nil
 }
 
 // parseHeadCommits splits WalkHeadCommits' marker-delimited output into
