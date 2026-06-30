@@ -126,7 +126,8 @@ func TestWalkOrphanedAICommits_DAGDetectsForcePushedOrphan(t *testing.T) {
 	r.run("git", "checkout", "-q", "milestone/M-0001-fixture")
 	r.run("git", "reset", "--hard", sibling)
 
-	orphans := WalkOrphanedAICommits(context.Background(), r.root)
+	dag, _ := BuildCommitDAG(context.Background(), r.root)
+	orphans := WalkOrphanedAICommits(context.Background(), r.root, dag)
 	var found bool
 	for _, o := range orphans {
 		if o.SHA == aiSHA && o.EntityID == "M-0001" && o.Actor == "ai/claude" {

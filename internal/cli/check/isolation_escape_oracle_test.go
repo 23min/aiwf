@@ -5,11 +5,51 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/gitops"
 )
+
+// TestNewGitBranchOracle_NilDAGFallback pins the M-0216 AC-6 fallback:
+// when the shared DAG is nil (its `git rev-list --all` build failed),
+// the oracle falls back to the per-branch `git rev-list --first-parent`
+// and must produce the IDENTICAL first-parent index as the DAG path.
+func TestNewGitBranchOracle_NilDAGFallback(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := setupAC3RepoAllHealthy(t)
+	epicTip := gitOutput(t, root, "rev-parse", "epic/E-0001-engine")
+
+	withDAG, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	if err != nil {
+		t.Fatalf("DAG-path oracle: %v", err)
+	}
+	noDAG, err := newGitBranchOracle(ctx, root, nil)
+	if err != nil {
+		t.Fatalf("nil-DAG (fallback) oracle: %v", err)
+	}
+	want := withDAG.FirstParentBranches(epicTip)
+	got := noDAG.FirstParentBranches(epicTip)
+	if len(got) == 0 {
+		t.Error("fallback produced empty index for the epic tip")
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("fallback FirstParentBranches(%s) = %v, want (DAG path) %v", epicTip[:7], got, want)
+	}
+}
+
+// mustDAG builds the shared commit DAG for a fixture repo, exercising
+// the M-0216 AC-6 DAG-backed first-parent path in the oracle tests. A
+// build failure yields nil, which makes newGitBranchOracle fall back to
+// the per-branch rev-list — the fallback path has its own dedicated
+// test (TestNewGitBranchOracle_NilDAGFallback).
+func mustDAG(ctx context.Context, root string) *check.CommitDAG {
+	dag, _ := check.BuildCommitDAG(ctx, root)
+	return dag
+}
 
 // isolation_escape_oracle_test.go — M-0161/AC-3 (G-0203) RED:
 // unit-level pinning of the typed-error / per-ref-tolerance
@@ -43,7 +83,7 @@ func TestNewGitBranchOracle_AC3_AllHealthy_NoErrors(t *testing.T) {
 	ctx := context.Background()
 	root := setupAC3RepoAllHealthy(t)
 
-	oracle, err := newGitBranchOracle(ctx, root)
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
 	if err != nil {
 		t.Fatalf("newGitBranchOracle on healthy repo: %v", err)
 	}
@@ -79,7 +119,7 @@ func TestNewGitBranchOracle_AC3_PerRefTolerance_OneCorruptedRef(t *testing.T) {
 	ctx := context.Background()
 	root, healthyHeadSHA, corruptRef := setupAC3RepoWithCorruptRef(t)
 
-	oracle, err := newGitBranchOracle(ctx, root)
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
 	if err != nil {
 		t.Fatalf("newGitBranchOracle returned error %q; AC-3 contract: per-ref failures accumulate into OracleErrors() and construction succeeds when at least one ref enumerated cleanly", err)
 	}
@@ -248,7 +288,7 @@ func TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError(t *testi
 	ctx := context.Background()
 	root := setupAC4ShallowRepo(t)
 
-	oracle, err := newGitBranchOracle(ctx, root)
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
 	if err != nil {
 		t.Fatalf("newGitBranchOracle returned error %q; AC-4 contract: shallow detection accumulates a typed OracleErr and construction succeeds", err)
 	}
@@ -288,7 +328,7 @@ func TestNewGitBranchOracle_AC4_NonShallow_NoShallowEntry(t *testing.T) {
 	ctx := context.Background()
 	root := setupAC3RepoAllHealthy(t)
 
-	oracle, err := newGitBranchOracle(ctx, root)
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}

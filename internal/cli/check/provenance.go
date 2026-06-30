@@ -81,7 +81,14 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// the rule should exempt. The rule's docstring at
 	// internal/check/isolation_escape.go:67-78 pins the contract;
 	// the walker is the gather-side derivation.
-	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
+	// M-0216 AC-6: build the shared commit DAG once (one `git rev-list
+	// --all --reflog --parents`) and feed it to BOTH the isolation-escape
+	// oracle's first-parent index (replacing 46 per-branch `rev-list
+	// --first-parent`) and the orphaned-AI-commit ancestry walk
+	// (replacing the per-pair `merge-base`). A nil DAG (rev-list failed)
+	// makes each consumer fall back to its per-call git path.
+	dag, _ := check.BuildCommitDAG(ctx, root)
+	if oracle, oErr := newGitBranchOracle(ctx, root, dag); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(head)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
 		// M-0161/AC-5: force-push orphan detection. Walk each
@@ -90,7 +97,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		// isolation-escape-orphaned-ai-commit warnings. Composes
 		// with M-0159/AC-3 acknowledge-illegal via the shared
 		// ackedSHAs map.
-		orphans := check.WalkOrphanedAICommits(ctx, root)
+		orphans := check.WalkOrphanedAICommits(ctx, root, dag)
 		findings = append(findings, check.RunOrphanedAICommits(orphans, ackedSHAs)...)
 		// M-0161/AC-8 (G-0209): promote-on-wrong-branch detection.
 		// Activating-promote commits (epic → active, milestone →

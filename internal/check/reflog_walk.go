@@ -72,7 +72,7 @@ type OrphanedAICommit struct {
 // the tip on multiple refs at different times) surfaces once
 // per (SHA, Branch) pair; the rule consumer deduplicates by
 // SHA when emitting findings.
-func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit {
+func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG) []OrphanedAICommit {
 	if root == "" {
 		return nil
 	}
@@ -80,15 +80,15 @@ func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit 
 	if err != nil || len(refs) == 0 {
 		return nil
 	}
-	// Build the commit DAG once (one `git rev-list --all --reflog
-	// --parents`) and answer ancestry in memory, replacing the per-pair
-	// `git merge-base --is-ancestor` fan-out — 683 subprocesses on the
-	// kernel repo at the M-0215 baseline (M-0216). Fast path + fallback:
-	// if rev-list fails (a corrupt repo, where the whole check is already
-	// unreliable), fall back to the original per-pair merge-base so the
-	// findings stay byte-identical to the pre-M-0216 behavior. The
-	// fallback is slow but fires only on a broken repo, essentially never.
-	dag, _ := buildCommitDAG(ctx, root)
+	// Answer ancestry from the shared in-memory commit DAG (built once per
+	// check invocation by the CLI gather layer via BuildCommitDAG and also
+	// consumed by the isolation-escape oracle's first-parent index —
+	// M-0216 AC-6), replacing the per-pair `git merge-base --is-ancestor`
+	// fan-out (683 subprocesses on the kernel repo at the M-0215
+	// baseline). Fast path + fallback: if the DAG is nil (rev-list failed
+	// on a corrupt repo, where the whole check is already unreliable),
+	// fall back to the original per-pair merge-base so the findings stay
+	// byte-identical to the pre-M-0216 behavior.
 	isAncestor := func(old, newer string) bool {
 		if dag != nil {
 			return dag.isAncestor(old, newer)
