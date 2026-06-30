@@ -112,9 +112,9 @@ func TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings(t *testin
 	}
 	defer delegate.Close()
 	fake := &fakeBlobReader{
-		delegate:        delegate,
-		errOnPathPrefix: "work/epics/E-0002",
-		readErr:         errors.New("synthetic blob read failure"),
+		delegate:           delegate,
+		errOnContentSubstr: "id: E-0002",
+		readErr:            errors.New("synthetic blob read failure"),
 	}
 
 	got := fsmHistoryConsistentWithDeps(context.Background(), r.root, tr, nil, fake)
@@ -139,27 +139,51 @@ func TestFSMHistoryConsistent_AC5_PartialFailure_PreservesGoodFindings(t *testin
 }
 
 // fakeBlobReader implements the blobReader interface for AC-5's
-// partial-failure test. Reads with path matching errOnPathPrefix
-// return readErr; all other reads delegate to the underlying real
-// BlobReader. Delegation preserves the on-disk semantics for the
-// "success" portion of the partial-failure scenario so the legitimate
-// findings (illegal-transition / forced-untrailered / etc.) emerge as
-// they would in production.
+// partial-failure test. A read whose target resolves to content
+// containing errOnContentSubstr returns readErr; all other reads
+// delegate to the underlying real BlobReader. Delegation preserves the
+// on-disk semantics for the "success" portion of the partial-failure
+// scenario so the legitimate findings (illegal-transition /
+// forced-untrailered / etc.) emerge as they would in production.
+//
+// Injection is content-based rather than path-based because the M-0216
+// AC-2 fast path reads status by blob object id (ReadObject), which
+// carries no path — a path-prefix predicate would never fire on the
+// production read site. The entity id appears in each entity file's
+// frontmatter (`id: E-NNNN`), so matching on the id substring fails
+// exactly the target entity's blob reads regardless of whether the
+// walker addressed it by `<commit>:<path>` or by object id.
 //
 // Defined here (not in fsm_history_consistent.go) because it's a
 // test-only fixture. Tests live in package check (internal), so the
 // fake can satisfy the unexported blobReader interface directly.
 type fakeBlobReader struct {
-	delegate        *gitops.BlobReader
-	errOnPathPrefix string
-	readErr         error
+	delegate           *gitops.BlobReader
+	errOnContentSubstr string
+	readErr            error
 }
 
 func (f *fakeBlobReader) Read(commit, path string) ([]byte, error) {
-	if f.errOnPathPrefix != "" && strings.HasPrefix(path, f.errOnPathPrefix) {
+	content, err := f.delegate.Read(commit, path)
+	return f.maybeFail(content, err)
+}
+
+func (f *fakeBlobReader) ReadObject(sha string) ([]byte, error) {
+	content, err := f.delegate.ReadObject(sha)
+	return f.maybeFail(content, err)
+}
+
+// maybeFail returns readErr when the delegate-read content carries the
+// configured substring; otherwise it passes the delegate's result
+// through unchanged.
+func (f *fakeBlobReader) maybeFail(content []byte, err error) ([]byte, error) {
+	if err != nil {
+		return content, err
+	}
+	if f.errOnContentSubstr != "" && strings.Contains(string(content), f.errOnContentSubstr) {
 		return nil, f.readErr
 	}
-	return f.delegate.Read(commit, path)
+	return content, nil
 }
 
 func (f *fakeBlobReader) Close() error {

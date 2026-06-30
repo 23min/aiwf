@@ -88,9 +88,19 @@ func TestBulkRevwalk_SingleRootCommit(t *testing.T) {
 	if len(rec.Parents) != 0 {
 		t.Errorf("Parents = %v, want empty (root commit)", rec.Parents)
 	}
-	wantPaths := []gitops.PathTouch{{Status: "A", Path: "alpha.md"}}
+	// M-0216 AC-2: --raw carries blob object ids. An add has an
+	// all-zero pre-image and a post-image equal to the committed blob.
+	wantPaths := []gitops.PathTouch{{
+		Status:  "A",
+		Path:    "alpha.md",
+		PreSHA:  "0000000000000000000000000000000000000000",
+		PostSHA: blobID(t, ctx, root, rec.Commit, "alpha.md"),
+	}}
 	if diff := cmp.Diff(wantPaths, rec.Paths); diff != "" {
 		t.Errorf("Paths mismatch (-want +got):\n%s", diff)
+	}
+	if gitops.BlobAllZero(rec.Paths[0].PostSHA) {
+		t.Errorf("PostSHA = %q, want a real blob id", rec.Paths[0].PostSHA)
 	}
 	wantTrailers := map[string]string{
 		"aiwf-verb":   "add",
@@ -398,6 +408,18 @@ func headSHA(t *testing.T, ctx context.Context, root string) string {
 	out, err := runGitOutput(ctx, root, "rev-parse", "HEAD")
 	if err != nil {
 		t.Fatalf("rev-parse HEAD: %v", err)
+	}
+	return out
+}
+
+// blobID returns the full 40-char blob object id of path at commit
+// via `git rev-parse <commit>:<path>` — the independent oracle the
+// blob-id-population assertion checks BulkRevwalk's PostSHA against.
+func blobID(t *testing.T, ctx context.Context, root, commit, path string) string {
+	t.Helper()
+	out, err := runGitOutput(ctx, root, "rev-parse", commit+":"+path)
+	if err != nil {
+		t.Fatalf("rev-parse %s:%s: %v", commit, path, err)
 	}
 	return out
 }

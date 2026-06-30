@@ -138,6 +138,12 @@ func isRepoPath(_ context.Context, root string) bool {
 // outside consumer needs it.
 type blobReader interface {
 	Read(commit, path string) ([]byte, error)
+	// ReadObject fetches content by blob object id directly, skipping
+	// the per-read `<commit>:<path>` tree walk. M-0216 AC-2: the walker
+	// reads status by the pre/post blob ids `git log --raw` carries on
+	// each PathTouch, which is markedly cheaper than resolving the path
+	// at each commit.
+	ReadObject(sha string) ([]byte, error)
 	Close() error
 }
 

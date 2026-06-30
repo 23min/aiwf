@@ -219,6 +219,50 @@ func TestParsePathsBlock(t *testing.T) {
 				{Status: "M", Path: "beta.md"},
 			},
 		},
+		// `git log --raw` lines (production shape): the ':<srcmode>
+		// <dstmode> <presha> <postsha> <status>' prefix carries the blob
+		// object ids that the FSM walker reads by id (M-0216 AC-2).
+		{
+			name:  "raw M line carries pre/post blob ids",
+			block: ":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\talpha.md\n",
+			want: []PathTouch{{
+				Status:  "M",
+				Path:    "alpha.md",
+				PreSHA:  "1111111111111111111111111111111111111111",
+				PostSHA: "2222222222222222222222222222222222222222",
+			}},
+		},
+		{
+			name:  "raw A line has all-zero pre-image",
+			block: ":000000 100644 0000000000000000000000000000000000000000 3333333333333333333333333333333333333333 A\talpha.md\n",
+			want: []PathTouch{{
+				Status:  "A",
+				Path:    "alpha.md",
+				PreSHA:  "0000000000000000000000000000000000000000",
+				PostSHA: "3333333333333333333333333333333333333333",
+			}},
+		},
+		{
+			name:  "raw D line has all-zero post-image",
+			block: ":100644 000000 4444444444444444444444444444444444444444 0000000000000000000000000000000000000000 D\tbeta.md\n",
+			want: []PathTouch{{
+				Status:  "D",
+				Path:    "beta.md",
+				PreSHA:  "4444444444444444444444444444444444444444",
+				PostSHA: "0000000000000000000000000000000000000000",
+			}},
+		},
+		{
+			name:  "raw R line carries both paths and blob ids",
+			block: ":100644 100644 5555555555555555555555555555555555555555 6666666666666666666666666666666666666666 R100\told.md\tnew.md\n",
+			want: []PathTouch{{
+				Status:  "R",
+				SrcPath: "old.md",
+				Path:    "new.md",
+				PreSHA:  "5555555555555555555555555555555555555555",
+				PostSHA: "6666666666666666666666666666666666666666",
+			}},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
