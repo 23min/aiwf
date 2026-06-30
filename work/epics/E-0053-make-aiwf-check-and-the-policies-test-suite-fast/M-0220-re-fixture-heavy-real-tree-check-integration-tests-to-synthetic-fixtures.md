@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Check integration tests use the shared AiwfBinary, not per-test BuildBinary
-      status: open
+      status: met
     - id: AC-3
       title: Measured integration-suite wall-time reduction recorded in Validation
       status: open
