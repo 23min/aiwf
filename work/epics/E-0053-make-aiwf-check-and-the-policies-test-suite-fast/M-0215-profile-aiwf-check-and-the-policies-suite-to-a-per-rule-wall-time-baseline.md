@@ -69,6 +69,9 @@ yaml frontmatter parsing across 659 entity files. **There is no in-process Go
 hot path** — no O(n²) loop, no slow algorithm. The 79s is serial
 subprocess-wait.
 
+In one line: `aiwf check` is **subprocess-wait bound, not CPU bound** — the
+fix is to spawn fewer git subprocesses (M-0216), not to make Go code faster.
+
 ### aiwf check — git-subprocess attribution (AC-1)
 
 One check spawns **895 git subprocesses** (strace execve count):
