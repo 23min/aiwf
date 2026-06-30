@@ -1,7 +1,7 @@
 ---
 id: M-0219
 title: Wire git commit-graph maintenance into aiwf init and update
-status: draft
+status: cancelled
 parent: E-0053
 tdd: required
 ---
