@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Shared per-check git-history context consumed by the history-walking rules
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf check findings byte-identical before and after the refactor
