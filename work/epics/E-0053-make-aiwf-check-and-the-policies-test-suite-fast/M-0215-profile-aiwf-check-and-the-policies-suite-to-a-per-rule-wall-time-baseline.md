@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Record policies-suite per-test timing ranking floor-gating tests
-      status: open
+      status: met
 ---
 ## Goal
 
