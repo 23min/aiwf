@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Real-tree check rendering test removed; collapse property pinned synthetically
-      status: open
+      status: met
     - id: AC-2
       title: Check integration tests use the shared AiwfBinary, not per-test BuildBinary
       status: open
