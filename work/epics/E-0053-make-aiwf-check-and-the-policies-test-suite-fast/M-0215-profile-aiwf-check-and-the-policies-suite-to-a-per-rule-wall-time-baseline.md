@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Record aiwf check CPU profile and git-subprocess attribution
-      status: open
+      status: met
     - id: AC-2
       title: Record policies-suite per-test timing ranking floor-gating tests
       status: open
