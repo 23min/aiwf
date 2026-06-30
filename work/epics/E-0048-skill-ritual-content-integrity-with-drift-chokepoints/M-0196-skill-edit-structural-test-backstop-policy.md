@@ -130,10 +130,49 @@ confirming the row and the backstop sentence are present in the right place.
 
 ## Work log
 
+Per-AC phase timeline lives in `aiwf history M-0196/AC-<N>`; this log records the final outcome only.
+
+### AC-1 — Policy fires on an unbacked ritual SKILL.md edit
+`detectUnbackedSkillEdits` emits a `Violation` per changed embedded-rituals `SKILL.md` path not referenced by any `internal/policies/*_test.go`. Red→green; sabotage-verified (stub returns nil → fire/mixed cases fail). tests: pass=4.
+
+### AC-2 — Policy stays silent when the edit is backed
+Same detector; the mixed-input case proves per-path discrimination. tests: pass=4 (shared table).
+
+### AC-3 — Gate is diff-scoped and inert without a base ref
+`skillEditBackstopViolations` no-ops on empty/zero base; `TestPolicy_SkillEditStructuralTestBackstop` skips without `AIWF_COVERAGE_BASE`; a git-fixture seam test drives `git diff <base>` → `changedSkillFiles` → `policyTestRefs` → detector end-to-end, sabotage-verified load-bearing. tests: pass=3 + base-unresolvable + errors.
+
+### AC-4 — Gate wired into CI coverage-gate step and Makefile target
+`SkillEditStructuralTestBackstop` added to the `-run '^TestPolicy_(…)$'` alternation in `.github/workflows/go.yml` and the `Makefile` coverage-gate target; `TestSkillEditBackstop_WiredIntoCoverageGate` pins both lines (red→green). tests: pass=1.
+
+### AC-5 — Chokepoint documented in CLAUDE.md table and authoring section
+Enforcement-table row (names the engine file) + a §"Ritual content authoring" paragraph (names the policy). `TestSkillEditBackstop_DocumentedInClaudeMd` asserts both, scoped to each named section (red→green). tests: pass=1.
+
 ## Decisions made during implementation
+
+- **CI-tier Go policy, not an `aiwf check` finding** (operator-confirmed, Option A). The property — "this aiwf-repo skill edit has a paired `internal/policies/` test" — is an aiwf-repo development invariant, meaningless in a consumer tree where rituals are materialized. Deliberately diverges from M-0195's pre-push `skill-body-id` placement: CI is the earliest tier *this rule's class* allows, so it is correct, not a timeliness regression.
+- **Diff-scoped, reusing `AIWF_COVERAGE_BASE`** — mirrors `branch_coverage_audit`, not a total "every skill needs a test" ledger. Faithful to G-0220's commit-scoped fixtures and avoids forcing structural tests onto trivial skills.
+- **Reference-by-path** — the edited `SKILL.md` repo-relative path appears as a literal in some `internal/policies/*_test.go` (the path-constant convention, G-0182). Robust against filename-derivation brittleness; scan restricted to `*_test.go` because the backstop the gap requires is a *test*.
+- **v1 granularity** file-existence + skill-reference; section-level "test asserts the changed section" deferred to G-0317.
+
+No `aiwfx-record-decision` ADRs were needed — these are scoping choices within the milestone, not cross-cutting architectural decisions.
 
 ## Validation
 
+- `go test ./internal/policies/` — green (all M-0196 tests pass).
+- `aiwf check` — exit 0, 0 errors (26 warnings, none on M-0196).
+- `go build ./...` — green.
+- `golangci-lint run` — 0 issues.
+- Coverage: every new engine-file line covered or `//coverage:ignore`'d (one TOCTOU `os.ReadFile` line); firing-fixture construction line covered (count 6); no new `grandfatherDark` entry.
+- Independent reviewer (fresh-context, adversarial, verify-by-measuring): **approve**, no blocking findings; independently re-ran the seam sabotage check and the coverage/firing-fixture audits.
+- The authoritative `make ci` / `make coverage-gate` run is at the wrap boundary, after the implementation commit (the diff-scoped gate only sees committed changes).
+
 ## Deferrals
 
+- **Section-level granularity** — v1 requires only that the edited skill's path be *referenced* by a policy test, not that the test *asserts the changed section*. A stale/non-asserting test that names the path is a residual false-negative. Captured as **G-0317** (`--discovered-in M-0196`). Disclosed in the engine doc-comment and CLAUDE.md §"Ritual content authoring".
+
 ## Reviewer notes
+
+- **Scope is `embedded-rituals` only**, not the `embedded/` verb-skill tree — G-0220 is about rituals. `skillRitualsDir` pins it.
+- **`tt := tt` loop captures retained** (test file) — redundant under the go.mod 1.24 loopvar semantics, but kept to match the adjacent `branch_coverage_audit_test.go` style. The reviewer flagged it as an indifferent nit.
+- **Diff-scoped ratchet, by design:** ~10 of 17 embedded-rituals `SKILL.md` files have no policy-test path reference today. That is the intended G-0220 ratchet — the *next* edit to such a skill must add a structural test. It bites only on edit (diff-scoped), never retroactively.
+- **One `//coverage:ignore`:** the `os.ReadFile` error inside `policyTestRefs` is a TOCTOU race (file deleted between `os.ReadDir` and `os.ReadFile`) — not deterministically reachable; mirrors `firing_fixture_presence.go`'s identical annotation.

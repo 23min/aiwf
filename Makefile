@@ -121,19 +121,21 @@ test-cov:
 
 # coverage-gate runs the profile-driven policy gates: the diff-scoped
 # branch-coverage audit (G-0067 — every statement on a line changed
-# since origin/main is tested or //coverage:ignore'd) and the total
+# since origin/main is tested or //coverage:ignore'd), the total
 # firing-fixture-presence meta-gate (G-0259 — every non-grandfathered
-# policy has a test that covers its firing branch), plus the no-stale
-# allowlist check. It generates a fresh atomic-mode profile, resolves
-# the base as the merge-base with origin/main, then runs all three with
-# that profile + base. Run this after committing your work; the branch
-# audit compares committed HEAD to the base, so uncommitted changes are
-# not seen. CI runs the same gates in the test job.
+# policy has a test that covers its firing branch) plus its no-stale
+# allowlist check, and the skill-edit structural-test backstop (G-0220 —
+# a ritual SKILL.md edit must be paired with a referencing structural
+# test under internal/policies/). It generates a fresh atomic-mode
+# profile, resolves the base as the merge-base with origin/main, then
+# runs them with that profile + base. Run this after committing your
+# work; the diff-scoped gates compare committed HEAD to the base, so
+# uncommitted changes are not seen. CI runs the same gates in the test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop)$$' -count=1 ./internal/policies/
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
 # just the internal/ packages changed since the merge-base with
