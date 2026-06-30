@@ -37,6 +37,16 @@ const headRecMarker = "===AIWF-HEADREC==="
 // AuthorEmail / CommitterEmail feed the cherry-pick identity-gap check;
 // Body feeds the cherry-pick marker match and the provenance
 // aiwf-trailer grep.
+//
+// Trailer-shape assumption (M-0216 AC-5): the provenance gather replaced
+// `%(trailers:only=true,unfold=true)` with this `%(trailers:unfold=true)`
+// block, which is byte-identical ONLY while no commit's trailer block
+// carries a non-trailer, colon-bearing line (e.g. `Note: see http://…`)
+// that `gitops.ParseTrailers` would read as a trailer. That holds for
+// every aiwf-produced commit and was verified across the whole kernel
+// tree; a consumer commit that violated it could synthesize a trailer
+// the `only=true` path dropped. A latent constraint, not a structural
+// invariant.
 type HeadCommit struct {
 	SHA            string
 	Trailers       []gitops.Trailer
@@ -53,6 +63,15 @@ type HeadCommit struct {
 // Returns nil for a non-git directory, an empty history, or a git
 // failure — the consumers treat nil and empty identically (no
 // exemptions / no commits).
+//
+// Failure-contract note (M-0216 AC-5): a catastrophic `git log HEAD`
+// failure (a corrupt repo where HasCommits is nonetheless true) now
+// yields nil here, so the provenance/acks/cherry/fsm-history gathers
+// silently produce no findings rather than the old readProvenanceCommits
+// raising ExitInternal. This makes provenance consistent with the four
+// other gathers, which already swallowed git errors; it is outside the
+// byte-identical claim's domain (a healthy tree) but is a real change to
+// the corrupt-repo failure mode.
 //
 // One `git log --reverse HEAD` subprocess replaces the five the gather
 // rules used to each spawn (E-0053 / M-0216 AC-5).
