@@ -694,4 +694,5 @@ that never share a loaded history.
 | M-0217 | Skip redundant pre-push golangci-lint via a last-green-lint marker | draft |
 | M-0218 | Drive the internal/policies test suite below its ~9s floor | draft |
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | draft |
+| M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
 
