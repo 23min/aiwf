@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Policy fires on an unbacked ritual SKILL.md edit
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Policy stays silent when the edit is backed by a referencing test
       status: open
