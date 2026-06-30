@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: aiwf check findings byte-identical before and after the refactor
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Measured check wall-time delta recorded in Validation
       status: open
