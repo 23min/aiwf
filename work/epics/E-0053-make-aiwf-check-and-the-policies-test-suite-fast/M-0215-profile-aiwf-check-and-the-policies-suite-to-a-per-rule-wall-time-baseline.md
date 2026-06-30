@@ -1,7 +1,7 @@
 ---
 id: M-0215
 title: Profile aiwf check and the policies suite to a per-rule wall-time baseline
-status: draft
+status: in_progress
 parent: E-0053
 tdd: none
 acs:
