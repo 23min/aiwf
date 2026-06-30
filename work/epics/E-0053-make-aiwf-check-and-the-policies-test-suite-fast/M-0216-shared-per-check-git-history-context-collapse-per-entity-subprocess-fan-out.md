@@ -21,6 +21,14 @@ acs:
       title: Measured check wall-time delta recorded in Validation
       status: met
       tdd_phase: done
+    - id: AC-5
+      title: Shared HEAD-history walk replaces five independent per-rule git-log walks
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: Isolation-escape oracle first-parent index built from the shared in-memory DAG
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -111,4 +119,8 @@ as the perf backlog (all `--discovered-in M-0216`):
 - G-0324 — branch hygiene: prune merged ritual branches; oracle skips
   trunk-ancestor refs.
 - G-0325 — parallelize the independent history walks / blob reads.
+
+### AC-5 — Shared HEAD-history walk replaces five independent per-rule git-log walks
+
+### AC-6 — Isolation-escape oracle first-parent index built from the shared in-memory DAG
 
