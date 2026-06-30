@@ -80,6 +80,21 @@ func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit 
 	if err != nil || len(refs) == 0 {
 		return nil
 	}
+	// Build the commit DAG once (one `git rev-list --all --reflog
+	// --parents`) and answer ancestry in memory, replacing the per-pair
+	// `git merge-base --is-ancestor` fan-out — 683 subprocesses on the
+	// kernel repo at the M-0215 baseline (M-0216). Fast path + fallback:
+	// if rev-list fails (a corrupt repo, where the whole check is already
+	// unreliable), fall back to the original per-pair merge-base so the
+	// findings stay byte-identical to the pre-M-0216 behavior. The
+	// fallback is slow but fires only on a broken repo, essentially never.
+	dag, _ := buildCommitDAG(ctx, root)
+	isAncestor := func(old, newer string) bool {
+		if dag != nil {
+			return dag.isAncestor(old, newer)
+		}
+		return isAncestorViaGit(ctx, root, old, newer) //coverage:ignore fallback fires only when git rev-list fails systemically; not deterministically reproducible
+	}
 	var out []OrphanedAICommit
 	for _, ref := range refs {
 		entries, err := reflogEntries(ctx, root, ref)
@@ -95,7 +110,7 @@ func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit 
 			if older.SHA == "" || newer.SHA == "" || older.SHA == newer.SHA {
 				continue
 			}
-			if isAncestor(ctx, root, older.SHA, newer.SHA) {
+			if isAncestor(older.SHA, newer.SHA) {
 				continue // fast-forward; not orphaned
 			}
 			actor, entity := readActorAndEntity(ctx, root, older.SHA)
@@ -213,17 +228,16 @@ func reflogEntries(ctx context.Context, root, ref string) ([]reflogEntry, error)
 	return entries, nil
 }
 
-// isAncestor reports whether old is reachable from new via
-// any path. Used to distinguish fast-forward (old IS ancestor;
-// not orphaned) from non-fast-forward (old NOT ancestor;
-// orphaned).
-func isAncestor(ctx context.Context, root, old, newer string) bool {
+// isAncestorViaGit reports whether old is reachable from newer via
+// `git merge-base --is-ancestor` — the pre-M-0216 implementation, kept
+// as the fallback for when the in-memory commit DAG is unavailable
+// (a corrupt repo where `git rev-list` fails). On a git error it
+// returns false, exactly as the original per-pair walk did, so the
+// fallback path's findings stay byte-identical to the old behavior.
+func isAncestorViaGit(ctx context.Context, root, old, newer string) bool {
 	cmd := exec.CommandContext(ctx, "git", "merge-base", "--is-ancestor", old, newer)
 	cmd.Dir = root
-	if err := cmd.Run(); err != nil {
-		return false
-	}
-	return true
+	return cmd.Run() == nil
 }
 
 // readActorAndEntity reads the aiwf-actor: and aiwf-entity:
