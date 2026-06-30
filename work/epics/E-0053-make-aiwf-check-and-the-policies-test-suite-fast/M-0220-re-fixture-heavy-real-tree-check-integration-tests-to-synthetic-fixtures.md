@@ -1,7 +1,7 @@
 ---
 id: M-0220
 title: Re-fixture heavy real-tree check integration tests to synthetic fixtures
-status: in_progress
+status: done
 parent: E-0053
 tdd: advisory
 acs:
