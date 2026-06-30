@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0053: faster `aiwf check`
+
+`aiwf check` now derives each commit's git history once per run instead of
+per entity (M-0216), cutting git-subprocess fan-out on large planning trees;
+findings stay byte-identical (a pure performance change). The
+`internal/cli/integration` test suite is also ~25% faster (`go test
+-parallel 8 ./...` 93s → 70s) after re-fixturing a redundant 35s real-tree
+check rendering test to a synthetic fixture and sharing the built binary
+across check tests (M-0220). Three further candidate optimizations
+(M-0217/M-0218/M-0219) were measured and dropped as not worth the risk.
+
 ## [0.20.0] — 2026-06-29
 
 ### Changed — E-0052: the id allocator catches cross-branch collisions at allocation time
