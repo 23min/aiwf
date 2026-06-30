@@ -9,7 +9,7 @@ acs:
       title: Real-tree check rendering test removed; collapse property pinned synthetically
       status: open
     - id: AC-2
-      title: Kernel-tree check test uses the shared AiwfBinary, not a per-test BuildBinary
+      title: Check integration tests use the shared AiwfBinary, not per-test BuildBinary
       status: open
     - id: AC-3
       title: Measured integration-suite wall-time reduction recorded in Validation
@@ -64,7 +64,7 @@ surface and must be preserved assertion-for-assertion.
 
 ### AC-1 — Real-tree check rendering test removed; collapse property pinned synthetically
 
-### AC-2 — Kernel-tree check test uses the shared AiwfBinary, not a per-test BuildBinary
+### AC-2 — Check integration tests use the shared AiwfBinary, not per-test BuildBinary
 
 ### AC-3 — Measured integration-suite wall-time reduction recorded in Validation
 
