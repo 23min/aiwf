@@ -150,12 +150,11 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 			}
 
 			// Commit-side: PostSHA is by definition the blob at
-			// touch.Path at this commit, for every status (a delete's
-			// all-zero PostSHA reads as "" — the same skip the deleted-
-			// file branch below took). When PostSHA is absent (a
-			// name-status-format record, never the production --raw
-			// walk), fall back to the path-resolving read.
-			commitStatus, readErr := readBlobOrPath(statusBySHA, touch.PostSHA, rec.Commit, touch.Path, br)
+			// touch.Path at this commit, for every status — a delete's
+			// all-zero PostSHA reads as "" via statusBySHA, the same skip
+			// the deleted-file branch below took. BulkRevwalk always emits
+			// --raw, so PostSHA is populated.
+			commitStatus, readErr := statusBySHA(touch.PostSHA)
 			if readErr != nil {
 				key := rec.Commit + "\x00" + touch.Path + "\x00commit"
 				if _, dup := seenErr[key]; !dup {
@@ -187,32 +186,29 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 				// Parent-side status at touch.Path. PreSHA is the blob at
 				// the parent THIS diff record is against — but only when
 				// the diff kept the same path is it the blob at
-				// touch.Path:
+				// touch.Path, so the fast path is restricted to that case:
 				//
 				//   - merge: each per-parent -m record carries one
 				//     parent's PreSHA, but the loop visits all parents, so
 				//     PreSHA can't be matched to `parent` here — keep the
 				//     path-resolving read. (Merges are few, and all three
 				//     predicates discard merge observations anyway.)
-				//   - rename/copy ("R"/"C"): the dest path (touch.Path) is
-				//     created by this commit, so it does not exist at the
-				//     parent — the path-resolving read always returns "".
-				//     Short-circuit to "" with no read (byte-identical),
-				//     since PreSHA points at the *source* path's blob.
+				//   - rename/copy ("R"/"C"): PreSHA points at the *source*
+				//     path's blob, not touch.Path's. The dest path is
+				//     normally created by the commit (absent at the
+				//     parent), but a force-rename onto an existing dest
+				//     would have a real parent-side blob there — so keep
+				//     the path-resolving read, which is correct in BOTH
+				//     cases and byte-identical with the pre-refactor walk.
 				//   - otherwise ("M"/"A"/"T"): touch.Path is unchanged, so
 				//     PreSHA is exactly the parent's blob at touch.Path
 				//     (an add's all-zero PreSHA reads as "", matching the
 				//     parent-has-no-file case). Read by object id.
 				var priorStatus string
 				var readErr error
-				switch {
-				case isMerge:
-					priorStatus, readErr = readStatusAt(parent, touch.Path, br)
-				case touch.Status == "R" || touch.Status == "C":
-					priorStatus = ""
-				case touch.PreSHA != "":
+				if touch.PreSHA != "" && !isMerge && touch.Status != "R" && touch.Status != "C" {
 					priorStatus, readErr = statusBySHA(touch.PreSHA)
-				default:
+				} else {
 					priorStatus, readErr = readStatusAt(parent, touch.Path, br)
 				}
 				if readErr != nil {
@@ -262,19 +258,6 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 	})
 
 	return observations, walkErrors, walkErr
-}
-
-// readBlobOrPath reads the frontmatter status using the blob object id
-// when one is available (the fast path: a direct object read), falling
-// back to the path-resolving readStatusAt when sha is empty — which
-// happens only for a name-status-format record, never the production
-// --raw walk. An all-zero sha (the absent side of an add/delete) is
-// non-empty, so it routes through statusBySHA and reads as "".
-func readBlobOrPath(statusBySHA func(string) (string, error), sha, commit, path string, br blobReader) (string, error) {
-	if sha == "" {
-		return readStatusAt(commit, path, br)
-	}
-	return statusBySHA(sha)
 }
 
 // readStatusAt reads the entity file's frontmatter status field at
