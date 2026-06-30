@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Gate is diff-scoped and inert without a base ref
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Gate wired into CI coverage-gate step and Makefile target
