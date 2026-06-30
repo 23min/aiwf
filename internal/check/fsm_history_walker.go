@@ -121,7 +121,7 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 		var s string
 		switch {
 		case errors.Is(err, gitops.ErrBlobMissing):
-			err = nil
+			err = nil //coverage:ignore ReadObject gets only real --raw blob ids (all-zero short-circuited via BlobAllZero); ErrBlobMissing fires only for a blob absent locally (partial/blobless clone), not reproducible in a normal test repo
 		case err != nil:
 			// Real failure — surface to the caller; don't cache a
 			// transient as authoritative.

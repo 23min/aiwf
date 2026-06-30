@@ -411,7 +411,7 @@ func parseRawPathLine(line string) (PathTouch, bool) {
 	}
 	statusField := meta[4]
 	if statusField == "" {
-		return PathTouch{}, false
+		return PathTouch{}, false //coverage:ignore strings.Fields never yields an empty field, so meta[4] is always non-empty when len(meta)==5; defensive guard
 	}
 	statusCode := string(statusField[0])
 	preSHA := meta[2]

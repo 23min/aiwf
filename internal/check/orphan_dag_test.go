@@ -68,6 +68,36 @@ func TestCommitDAG_IsAncestor(t *testing.T) {
 	}
 }
 
+// TestCommitDAG_IsAncestor_DiamondRevisits exercises the DFS's
+// already-seen short-circuit: a convergence node reachable by two
+// paths lands on the stack twice (the second push happens while it is
+// still unseen), so it is popped once-marked and once-already-seen.
+// The parents order (x before b) forces b — which also has x as a
+// parent — to re-push the still-unseen x. A query for an absent sha
+// forces the full traversal that hits the revisit.
+func TestCommitDAG_IsAncestor_DiamondRevisits(t *testing.T) {
+	t.Parallel()
+	// a -> {x, b}; b -> {x}; x is the shared root (the diamond's tail).
+	dag := parseCommitDAG("a x b\nb x\nx\n")
+	if dag.isAncestor("zzz", "a") {
+		t.Error("isAncestor(absent, a) = true, want false")
+	}
+	// And the real ancestry answers stay correct across the diamond.
+	for _, tc := range []struct {
+		old, newer string
+		want       bool
+	}{
+		{"x", "a", true}, // shared root reachable both ways
+		{"b", "a", true},
+		{"x", "b", true},
+		{"a", "x", false},
+	} {
+		if got := dag.isAncestor(tc.old, tc.newer); got != tc.want {
+			t.Errorf("isAncestor(%q, %q) = %v, want %v", tc.old, tc.newer, got, tc.want)
+		}
+	}
+}
+
 // TestWalkOrphanedAICommits_DAGDetectsForcePushedOrphan is the seam test
 // (M-0216 AC-1): it exercises WalkOrphanedAICommits end-to-end against a
 // real git repo where an ai/ commit was force-pushed away (a

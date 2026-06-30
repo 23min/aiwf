@@ -29,7 +29,7 @@ func buildCommitDAG(ctx context.Context, root string) (*commitDAG, error) {
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("git rev-list --all --reflog --parents: %w", err)
+		return nil, fmt.Errorf("git rev-list --all --reflog --parents: %w", err) //coverage:ignore git rev-list fails only on a corrupt repo; WalkOrphanedAICommits then falls back to per-pair merge-base
 	}
 	return parseCommitDAG(string(out)), nil
 }

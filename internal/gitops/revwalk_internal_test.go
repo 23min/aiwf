@@ -276,6 +276,54 @@ func TestParsePathsBlock(t *testing.T) {
 	}
 }
 
+// TestParseRawPathLine exercises parseRawPathLine directly — the
+// `git log --raw` line parser — including the malformed-shape guards
+// that the line-format the production walk emits never hits but that
+// must reject cleanly (returning ok=false so parsePathsBlock falls
+// back to the name-status branch).
+func TestParseRawPathLine(t *testing.T) {
+	t.Parallel()
+	const pre = "1111111111111111111111111111111111111111"
+	const post = "2222222222222222222222222222222222222222"
+	cases := []struct {
+		name string
+		line string
+		want PathTouch
+		ok   bool
+	}{
+		{
+			name: "valid M",
+			line: ":100644 100644 " + pre + " " + post + " M\talpha.md",
+			want: PathTouch{Status: "M", Path: "alpha.md", PreSHA: pre, PostSHA: post},
+			ok:   true,
+		},
+		{
+			name: "valid R with two operands",
+			line: ":100644 100644 " + pre + " " + post + " R100\told.md\tnew.md",
+			want: PathTouch{Status: "R", SrcPath: "old.md", Path: "new.md", PreSHA: pre, PostSHA: post},
+			ok:   true,
+		},
+		{name: "no leading colon", line: "M\talpha.md"},
+		{name: "no tab", line: ":100644 100644 " + pre + " " + post + " M"},
+		{name: "wrong meta field count", line: ":100644 100644 " + pre + " M\talpha.md"},
+		{name: "rename missing second operand", line: ":100644 100644 " + pre + " " + post + " R100\tonly.md"},
+		{name: "empty single operand", line: ":100644 100644 " + pre + " " + post + " M\t"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := parseRawPathLine(tc.line)
+			if ok != tc.ok {
+				t.Fatalf("parseRawPathLine(%q) ok = %v, want %v", tc.line, ok, tc.ok)
+			}
+			if ok && !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("parseRawPathLine(%q) = %#v, want %#v", tc.line, got, tc.want)
+			}
+		})
+	}
+}
+
 // makeTrailerStub returns a sequence of `\x1f<empty>` separators
 // covering every bulkTrailerKeys slot, so chunk fixtures have the
 // expected field count without spelling each trailer out.

@@ -133,7 +133,7 @@ func (br *BlobReader) request(spec string) ([]byte, error) {
 		return nil, errBlobReaderClosed
 	}
 	if _, err := io.WriteString(br.stdin, spec+"\n"); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: write request: %w", err)
+		return nil, fmt.Errorf("gitops: BlobReader.Read: write request: %w", err) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
 	}
 	headerLine, err := br.stdout.ReadString('\n')
 	if err != nil {
