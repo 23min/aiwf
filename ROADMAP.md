@@ -672,3 +672,26 @@ cross-machine concurrent race.
 | M-0213 | Opt-in best-effort fetch before id allocation | done |
 | M-0214 | Broaden allocator and --fetch to all remote-tracking refs | done |
 
+## E-0053 — Make aiwf check and the policies test suite fast (active)
+
+### Goal
+
+Cut the wall-time of `aiwf check` — the pre-push and CI chokepoint — and of
+the `internal/policies` test suite, by eliminating redundant git-subprocess
+fan-out and a redundant pre-push lint run, without weakening any guarantee
+or moving any rule from pre-push to CI.
+
+On the kernel's own repo (659 entities) `aiwf check` measures ~85s, almost
+entirely git-subprocess overhead: a single run spawns ~895 git processes,
+683 of them `git merge-base --is-ancestor` issued one-per-reflog-pair by the
+orphaned-AI-commit walk. The check runs ~6 independent git-history passes
+that never share a loaded history.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0215 | Profile aiwf check and the policies suite to a per-rule wall-time baseline | done |
+| M-0216 | Shared per-check git-history context; collapse per-entity subprocess fan-out | in_progress |
+| M-0217 | Skip redundant pre-push golangci-lint via a last-green-lint marker | draft |
+| M-0218 | Drive the internal/policies test suite below its ~9s floor | draft |
+| M-0219 | Wire git commit-graph maintenance into aiwf init and update | draft |
+
