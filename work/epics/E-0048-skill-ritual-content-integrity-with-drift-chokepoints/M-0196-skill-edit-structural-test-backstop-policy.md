@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Chokepoint documented in CLAUDE.md table and authoring section
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
