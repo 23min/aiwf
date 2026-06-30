@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Gate wired into CI coverage-gate step and Makefile target
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: Chokepoint documented in CLAUDE.md table and authoring section
       status: open
