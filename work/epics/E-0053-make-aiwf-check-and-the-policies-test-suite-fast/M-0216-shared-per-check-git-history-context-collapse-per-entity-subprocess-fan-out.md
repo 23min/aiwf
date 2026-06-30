@@ -154,3 +154,27 @@ perf backlog (all `--discovered-in M-0216`), in priority order:
   the FSM `--raw` walk, the DAG build), determinism preserved by sorting at the
   aggregation boundary.
 
+## Reviewer notes
+
+Two independent fresh-context review passes (the first subagent attempt hit a
+weekly usage limit; an inline adversarial self-review substituted there and
+caught the rename/copy parent-side edge case, fixed before AC-2 closed):
+
+- **AC-1 / AC-2 — code-quality + design (wf-rethink).** Code-quality: APPROVE
+  (byte-identical by construction — the blob-id fast path is a pure optimization
+  over an always-correct fallback). Design: *sound-with-reservations* — its
+  load-bearing finding was that the original "shared context consumed by the
+  rules" framing overclaimed (only the FSM consumed the enriched pass). **That
+  finding is what motivated bringing increments B and C back in** (AC-5/AC-6), so
+  the claim is now delivered, not narrowed.
+- **AC-5 / AC-6 (B+C) — code-quality.** APPROVE. The reviewer verified the three
+  byte-identical equivalences **empirically against the live tree**: the trailer
+  formats diffed identical across all ~5,471 HEAD commits; the in-memory
+  `^aiwf-` regex selected the identical commit set as `git log -E --grep`
+  (~4,614); `FirstParentChain` matched `git rev-list --first-parent` for all 46
+  ritual branches, zero mismatches. Two non-blocking advisories, both documented
+  in `head_history.go`: **A1** the provenance path is fail-open on catastrophic
+  git failure (consistent with the other gathers, vs the old fail-loud); **A2**
+  the trailer-format equivalence is a verified tree-shape assumption, not a
+  structural invariant.
+
