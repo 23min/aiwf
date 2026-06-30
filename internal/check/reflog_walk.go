@@ -72,13 +72,28 @@ type OrphanedAICommit struct {
 // the tip on multiple refs at different times) surfaces once
 // per (SHA, Branch) pair; the rule consumer deduplicates by
 // SHA when emitting findings.
-func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit {
+func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG) []OrphanedAICommit {
 	if root == "" {
 		return nil
 	}
 	refs, err := listRitualHeads(ctx, root)
 	if err != nil || len(refs) == 0 {
 		return nil
+	}
+	// Answer ancestry from the shared in-memory commit DAG (built once per
+	// check invocation by the CLI gather layer via BuildCommitDAG and also
+	// consumed by the isolation-escape oracle's first-parent index —
+	// M-0216 AC-6), replacing the per-pair `git merge-base --is-ancestor`
+	// fan-out (683 subprocesses on the kernel repo at the M-0215
+	// baseline). Fast path + fallback: if the DAG is nil (rev-list failed
+	// on a corrupt repo, where the whole check is already unreliable),
+	// fall back to the original per-pair merge-base so the findings stay
+	// byte-identical to the pre-M-0216 behavior.
+	isAncestor := func(old, newer string) bool {
+		if dag != nil {
+			return dag.isAncestor(old, newer)
+		}
+		return isAncestorViaGit(ctx, root, old, newer) //coverage:ignore fallback fires only when git rev-list fails systemically; not deterministically reproducible
 	}
 	var out []OrphanedAICommit
 	for _, ref := range refs {
@@ -95,7 +110,7 @@ func WalkOrphanedAICommits(ctx context.Context, root string) []OrphanedAICommit 
 			if older.SHA == "" || newer.SHA == "" || older.SHA == newer.SHA {
 				continue
 			}
-			if isAncestor(ctx, root, older.SHA, newer.SHA) {
+			if isAncestor(older.SHA, newer.SHA) {
 				continue // fast-forward; not orphaned
 			}
 			actor, entity := readActorAndEntity(ctx, root, older.SHA)
@@ -213,17 +228,16 @@ func reflogEntries(ctx context.Context, root, ref string) ([]reflogEntry, error)
 	return entries, nil
 }
 
-// isAncestor reports whether old is reachable from new via
-// any path. Used to distinguish fast-forward (old IS ancestor;
-// not orphaned) from non-fast-forward (old NOT ancestor;
-// orphaned).
-func isAncestor(ctx context.Context, root, old, newer string) bool {
+// isAncestorViaGit reports whether old is reachable from newer via
+// `git merge-base --is-ancestor` — the pre-M-0216 implementation, kept
+// as the fallback for when the in-memory commit DAG is unavailable
+// (a corrupt repo where `git rev-list` fails). On a git error it
+// returns false, exactly as the original per-pair walk did, so the
+// fallback path's findings stay byte-identical to the old behavior.
+func isAncestorViaGit(ctx context.Context, root, old, newer string) bool {
 	cmd := exec.CommandContext(ctx, "git", "merge-base", "--is-ancestor", old, newer)
 	cmd.Dir = root
-	if err := cmd.Run(); err != nil {
-		return false
-	}
-	return true
+	return cmd.Run() == nil
 }
 
 // readActorAndEntity reads the aiwf-actor: and aiwf-entity:

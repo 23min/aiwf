@@ -108,6 +108,26 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
 	findings = append(findings, contractFindings...)
 
+	// M-0216/AC-5: the shared per-check HEAD-reachable history walk.
+	// Computed ONCE here, then threaded to every rule that used to spawn
+	// its own `git log HEAD` — the acks/ack-entities/audit-only/
+	// cherry-pick/provenance-commits gathers all derive from this single
+	// slice now (collapsing five reachable-history passes to one).
+	head, headErr := check.WalkHeadCommits(ctx, resolved)
+	if headErr != nil {
+		// M-0216 Finding 1: a HEAD-history read failure (corrupt object
+		// store / partial clone where HEAD resolves but the walk fails)
+		// must fail loud, not silently disable the provenance /
+		// isolation-escape gathers that derive from this single walk.
+		// Restores the pre-refactor readProvenanceCommits fail-loud path.
+		// The error itself is unit-tested in internal/check
+		// (TestWalkHeadCommits_FailsLoudOnUnreadableHistory); this handler
+		// mirrors the sibling contractErr/pErr/mErr propagators in this
+		// function.
+		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", headErr) //coverage:ignore git log HEAD fails only on a corrupt/partial repo, not reproducible through full Run in a unit test; the WalkHeadCommits error path is covered directly in internal/check
+		return cliutil.ExitInternal                         //coverage:ignore see above — conventional fail-loud propagation, peer of contractErr/pErr/mErr
+	}
+
 	// M-0159/AC-3: compute the retroactive-acknowledgment SHA set
 	// once per check invocation, then pass it to every rule that
 	// consumes it. The single-compute invariant is policed by
@@ -115,8 +135,9 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// is forbidden (violation class 3c). The four consumers below
 	// are RunProvenanceCheck (which forwards to RunIsolationEscape,
 	// RunTrailerVerbUnknown, and RunIDRenameUntrailered — the
-	// fourth added at M-0160/AC-4) and FSMHistoryConsistent.
-	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved)
+	// fourth added at M-0160/AC-4) and FSMHistoryConsistent. Now
+	// derived from the shared head walk (AC-5).
+	ackedSHAs := check.WalkAcknowledgedSHAs(ctx, resolved, head)
 
 	// G-0231 item 3: per-(SHA, entity) ack set, consumed only by
 	// RunUntrailedAudit (the seventh ack consumer, added in this
@@ -124,7 +145,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// the rule's findings are per-(commit, entity) — requiring a
 	// per-pair ack rather than a SHA-only blanket. Same
 	// single-compute / cascading-pass-through pattern.
-	ackedSHAEntities := check.WalkAcknowledgedSHAEntities(ctx, resolved)
+	ackedSHAEntities := check.WalkAcknowledgedSHAEntities(ctx, resolved, head)
 
 	// G-0218 Patch 2: compute the post-cutoff SHA set once per check
 	// invocation, then pass it to RunProvenanceCheck (which forwards
@@ -134,7 +155,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// G-0150 baseline.
 	postCutoffSHAs := check.WalkPostCutoffSHAs(ctx, resolved)
 
-	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, ackedSHAEntities, postCutoffSHAs)
+	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, ackedSHAEntities, postCutoffSHAs, head)
 	if pErr != nil {
 		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
@@ -149,7 +170,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// shape-only policy path. M-0130 lands the predicates
 	// incrementally; AC-1 wires the walker without emitting any
 	// findings yet.
-	findings = append(findings, check.FSMHistoryConsistent(ctx, resolved, tr, ackedSHAs)...)
+	findings = append(findings, check.FSMHistoryConsistent(ctx, resolved, tr, ackedSHAs, head)...)
 
 	requireMetrics := false
 	var treeAllow []string

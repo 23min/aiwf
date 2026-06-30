@@ -78,7 +78,7 @@ const CodeFSMHistoryConsistent = "fsm-history-consistent"
 // per check invocation and passes the result to all three rules
 // that consume it. A nil/empty map is "no acknowledgments" (the
 // rule polices normally).
-func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool) []Finding {
+func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool, head []HeadCommit) []Finding {
 	if t == nil || root == "" {
 		return nil
 	}
@@ -111,7 +111,7 @@ func FSMHistoryConsistent(ctx context.Context, root string, t *tree.Tree, ackedS
 		}}
 	}
 	defer func() { _ = br.Close() }()
-	return fsmHistoryConsistentWithDeps(ctx, root, t, ackedSHAs, br)
+	return fsmHistoryConsistentWithDeps(ctx, root, t, ackedSHAs, head, br)
 }
 
 // isRepoPath reports whether root is a git repo via the .git
@@ -138,6 +138,12 @@ func isRepoPath(_ context.Context, root string) bool {
 // outside consumer needs it.
 type blobReader interface {
 	Read(commit, path string) ([]byte, error)
+	// ReadObject fetches content by blob object id directly, skipping
+	// the per-read `<commit>:<path>` tree walk. M-0216 AC-2: the walker
+	// reads status by the pre/post blob ids `git log --raw` carries on
+	// each PathTouch, which is markedly cheaper than resolving the path
+	// at each commit.
+	ReadObject(sha string) ([]byte, error)
 	Close() error
 }
 
@@ -160,7 +166,7 @@ type blobReader interface {
 // retroactively-acknowledged commit SHAs. Consumed directly
 // instead of computed internally — see FSMHistoryConsistent's
 // docstring for rationale.
-func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool, br blobReader) []Finding {
+func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree, ackedSHAs map[string]bool, head []HeadCommit, br blobReader) []Finding {
 	if t == nil || root == "" {
 		return nil
 	}
@@ -182,7 +188,7 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 	}
 	findings = append(findings, historyWalkErrorFindings(walkErrors)...)
 
-	acksByEntity := walkAuditOnlyAcksByEntity(ctx, root)
+	acksByEntity := walkAuditOnlyAcksByEntity(head)
 	ackedObs := computeAckedObservations(ctx, root, observations, acksByEntity)
 	// M-0159/AC-3: ackedSHAs comes in as a parameter (computed
 	// once by the CLI gather layer in internal/cli/check/) rather
@@ -513,36 +519,26 @@ func manualEditFindings(observations []statusChange, ackedObs map[string]bool) [
 //
 // Returns nil for non-git directories and empty histories; the
 // consumer treats nil and empty as equivalent (no acks).
-func walkAuditOnlyAcksByEntity(ctx context.Context, root string) map[string][]string {
-	if root == "" || !hasGitCommits(ctx, root) {
+//
+// M-0216/AC-5: derives from the shared HEAD walk (head) instead of
+// spawning its own `git log HEAD`. The per-entity []sha order is now
+// oldest-first (head's order) rather than newest-first, which does not
+// change findings: computeAckedObservations only tests set membership
+// (does ANY ack's ancestor set cover the observation), an
+// order-insensitive predicate.
+func walkAuditOnlyAcksByEntity(head []HeadCommit) map[string][]string {
+	if len(head) == 0 {
 		return nil
 	}
-	// %x00 between fields keeps trailer blocks (which contain newlines)
-	// distinguishable from the SHA boundary. The trailing %x00 closes
-	// the last commit's trailer block so the parser doesn't drift into
-	// the next SHA.
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
-		"HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil
-	}
-	parts := strings.Split(string(out), "\x00")
-	// parts layout: [SHA, trailers, SHA, trailers, …, possibly trailing
-	// chunk]. Even indices are SHAs, odd are trailer blocks. The first
-	// SHA may have leading whitespace from git's inter-record newline.
 	acks := make(map[string][]string)
-	for i := 0; i+1 < len(parts); i += 2 {
-		sha := strings.TrimSpace(parts[i])
-		if sha == "" {
+	for i := range head {
+		c := &head[i]
+		if c.SHA == "" {
 			continue
 		}
-		parsed := gitops.ParseTrailers(parts[i+1])
 		var hasAuditOnly bool
 		var entID string
-		for _, t := range parsed {
+		for _, t := range c.Trailers {
 			switch t.Key {
 			case gitops.TrailerAuditOnly:
 				hasAuditOnly = true
@@ -554,7 +550,7 @@ func walkAuditOnlyAcksByEntity(ctx context.Context, root string) map[string][]st
 			continue
 		}
 		canonID := entity.Canonicalize(entity.CompositeRoot(entID))
-		acks[canonID] = append(acks[canonID], sha)
+		acks[canonID] = append(acks[canonID], c.SHA)
 	}
 	return acks
 }

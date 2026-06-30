@@ -169,55 +169,62 @@ func TestParsePathsBlock(t *testing.T) {
 	}{
 		{name: "empty block", block: ""},
 		{
-			name:  "single A line",
-			block: "A\talpha.md\n",
-			want:  []PathTouch{{Status: "A", Path: "alpha.md"}},
-		},
-		{
-			name:  "M + D",
-			block: "M\talpha.md\nD\tbeta.md\n",
+			// Loop behavior: multiple raw lines, blank line skipped, and
+			// a malformed line (parseRawPathLine returns ok=false — its
+			// own cases are pinned by TestParseRawPathLine) dropped.
+			name: "multiple raw entries, blank + malformed lines skipped",
+			block: ":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 A\talpha.md\n" +
+				"\n" +
+				"not a raw line\n" +
+				":100644 100644 3333333333333333333333333333333333333333 4444444444444444444444444444444444444444 M\tbeta.md\n",
 			want: []PathTouch{
-				{Status: "M", Path: "alpha.md"},
-				{Status: "D", Path: "beta.md"},
+				{Status: "A", Path: "alpha.md", PreSHA: "1111111111111111111111111111111111111111", PostSHA: "2222222222222222222222222222222222222222"},
+				{Status: "M", Path: "beta.md", PreSHA: "3333333333333333333333333333333333333333", PostSHA: "4444444444444444444444444444444444444444"},
 			},
 		},
+		// `git log --raw` lines (production shape): the ':<srcmode>
+		// <dstmode> <presha> <postsha> <status>' prefix carries the blob
+		// object ids that the FSM walker reads by id (M-0216 AC-2).
 		{
-			name:  "rename with similarity",
-			block: "R100\told.md\tnew.md\n",
-			want:  []PathTouch{{Status: "R", SrcPath: "old.md", Path: "new.md"}},
+			name:  "raw M line carries pre/post blob ids",
+			block: ":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\talpha.md\n",
+			want: []PathTouch{{
+				Status:  "M",
+				Path:    "alpha.md",
+				PreSHA:  "1111111111111111111111111111111111111111",
+				PostSHA: "2222222222222222222222222222222222222222",
+			}},
 		},
 		{
-			name:  "copy with similarity",
-			block: "C087\tsrc.md\tdst.md\n",
-			want:  []PathTouch{{Status: "C", SrcPath: "src.md", Path: "dst.md"}},
+			name:  "raw A line has all-zero pre-image",
+			block: ":000000 100644 0000000000000000000000000000000000000000 3333333333333333333333333333333333333333 A\talpha.md\n",
+			want: []PathTouch{{
+				Status:  "A",
+				Path:    "alpha.md",
+				PreSHA:  "0000000000000000000000000000000000000000",
+				PostSHA: "3333333333333333333333333333333333333333",
+			}},
 		},
 		{
-			name:  "type change passes through",
-			block: "T\tx.md\n",
-			want:  []PathTouch{{Status: "T", Path: "x.md"}},
+			name:  "raw D line has all-zero post-image",
+			block: ":100644 000000 4444444444444444444444444444444444444444 0000000000000000000000000000000000000000 D\tbeta.md\n",
+			want: []PathTouch{{
+				Status:  "D",
+				Path:    "beta.md",
+				PreSHA:  "4444444444444444444444444444444444444444",
+				PostSHA: "0000000000000000000000000000000000000000",
+			}},
 		},
 		{
-			name:  "skip too-few parts",
-			block: "A\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip rename with missing dst path",
-			block: "R100\told.md\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip empty status code",
-			block: "\tnopath.md\nM\talpha.md\n",
-			want:  []PathTouch{{Status: "M", Path: "alpha.md"}},
-		},
-		{
-			name:  "skip empty lines between entries",
-			block: "A\talpha.md\n\nM\tbeta.md\n",
-			want: []PathTouch{
-				{Status: "A", Path: "alpha.md"},
-				{Status: "M", Path: "beta.md"},
-			},
+			name:  "raw R line carries both paths and blob ids",
+			block: ":100644 100644 5555555555555555555555555555555555555555 6666666666666666666666666666666666666666 R100\told.md\tnew.md\n",
+			want: []PathTouch{{
+				Status:  "R",
+				SrcPath: "old.md",
+				Path:    "new.md",
+				PreSHA:  "5555555555555555555555555555555555555555",
+				PostSHA: "6666666666666666666666666666666666666666",
+			}},
 		},
 	}
 	for _, tc := range cases {
@@ -227,6 +234,54 @@ func TestParsePathsBlock(t *testing.T) {
 			got := parsePathsBlock(tc.block)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("parsePathsBlock(%q) = %#v, want %#v", tc.block, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestParseRawPathLine exercises parseRawPathLine directly — the
+// `git log --raw` line parser — including the malformed-shape guards
+// that the line-format the production walk emits never hits but that
+// must reject cleanly (returning ok=false so parsePathsBlock falls
+// back to the name-status branch).
+func TestParseRawPathLine(t *testing.T) {
+	t.Parallel()
+	const pre = "1111111111111111111111111111111111111111"
+	const post = "2222222222222222222222222222222222222222"
+	cases := []struct {
+		name string
+		line string
+		want PathTouch
+		ok   bool
+	}{
+		{
+			name: "valid M",
+			line: ":100644 100644 " + pre + " " + post + " M\talpha.md",
+			want: PathTouch{Status: "M", Path: "alpha.md", PreSHA: pre, PostSHA: post},
+			ok:   true,
+		},
+		{
+			name: "valid R with two operands",
+			line: ":100644 100644 " + pre + " " + post + " R100\told.md\tnew.md",
+			want: PathTouch{Status: "R", SrcPath: "old.md", Path: "new.md", PreSHA: pre, PostSHA: post},
+			ok:   true,
+		},
+		{name: "no leading colon", line: "M\talpha.md"},
+		{name: "no tab", line: ":100644 100644 " + pre + " " + post + " M"},
+		{name: "wrong meta field count", line: ":100644 100644 " + pre + " M\talpha.md"},
+		{name: "rename missing second operand", line: ":100644 100644 " + pre + " " + post + " R100\tonly.md"},
+		{name: "empty single operand", line: ":100644 100644 " + pre + " " + post + " M\t"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := parseRawPathLine(tc.line)
+			if ok != tc.ok {
+				t.Fatalf("parseRawPathLine(%q) ok = %v, want %v", tc.line, ok, tc.ok)
+			}
+			if ok && !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("parseRawPathLine(%q) = %#v, want %#v", tc.line, got, tc.want)
 			}
 		})
 	}
