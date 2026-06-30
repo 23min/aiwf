@@ -67,7 +67,7 @@ func TestFSMHistoryConsistent_M0159AC3_AcceptsAckedSHAsParam(t *testing.T) {
 	tr := &tree.Tree{}
 	ackedSHAs := map[string]bool{}
 
-	got := FSMHistoryConsistent(context.Background(), root, tr, ackedSHAs)
+	got := FSMHistoryConsistent(context.Background(), root, tr, ackedSHAs, WalkHeadCommits(context.Background(), root))
 	if len(got) != 0 {
 		t.Fatalf("FSMHistoryConsistent on empty fixture returned non-empty findings: %+v", got)
 	}

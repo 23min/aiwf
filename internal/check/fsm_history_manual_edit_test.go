@@ -425,7 +425,7 @@ func TestFSMHistoryConsistent_FiresManualEdit_OnLegalUntraileredCommit(t *testin
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusDraft, "add milestone")
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit status; no verb trailer")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
@@ -467,7 +467,7 @@ func TestFSMHistoryConsistent_NoManualEdit_WhenVerbTrailerPresent(t *testing.T) 
 			gitops.TrailerActor:  "human/peter",
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings (verb-trailer exempts AC-4); got %d: %+v", len(got), got)
 	}
@@ -497,7 +497,7 @@ func TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit(t *testing
 	// Manual flip without aiwf-verb trailer — fires AC-4 absent ack.
 	r.commitEntity("M-0001", entity.KindMilestone, entity.StatusInProgress, "hand-edit; no aiwf-verb trailer")
 
-	pre := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	pre := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(pre) != 1 || pre[0].Subcode != "manual-edit" {
 		t.Fatalf("pre-ack: expected 1 manual-edit finding; got %+v", pre)
 	}
@@ -513,7 +513,7 @@ func TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit(t *testing
 			gitops.TrailerTo:        entity.StatusInProgress,
 		})
 
-	post := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	post := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(post) != 0 {
 		t.Errorf("post-ack: expected 0 findings (manual-edit cleared by audit-only ack); got %d: %+v", len(post), post)
 	}
@@ -541,7 +541,7 @@ func TestFSMHistoryConsistent_AuditOnlyDoesNotClearIllegalTransition(t *testing.
 			gitops.TrailerAuditOnly: "post-hoc acknowledgment (test fixture; should not actually clear illegal-transition)",
 		})
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding (illegal-transition still fires; audit-only doesn't apply per D-0008); got %d: %+v", len(got), got)
 	}
@@ -560,7 +560,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 		t.Parallel()
 		r := newRepoFixture(t)
 		r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add epic")
-		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		acks := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 		if len(acks) != 0 {
 			t.Errorf("expected empty ack map; got %+v", acks)
 		}
@@ -577,7 +577,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 				gitops.TrailerActor:     "human/peter",
 				gitops.TrailerAuditOnly: "test ack",
 			})
-		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		acks := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 		if len(acks["G-0042"]) != 1 {
 			t.Errorf("expected G-0042 to have 1 ack; got %+v", acks)
 		}
@@ -596,7 +596,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 					gitops.TrailerAuditOnly: "test ack",
 				})
 		}
-		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		acks := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 		if len(acks["G-0042"]) != 3 {
 			t.Errorf("expected G-0042 to have 3 acks; got %+v", acks)
 		}
@@ -615,7 +615,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 				gitops.TrailerActor:     "human/peter",
 				gitops.TrailerAuditOnly: "test ack",
 			})
-		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		acks := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 		if len(acks["M-0001"]) != 1 {
 			t.Errorf("expected M-0001 to have 1 ack (composite rollup); got %+v", acks)
 		}
@@ -630,7 +630,7 @@ func TestWalkAuditOnlyAcksByEntity_PicksUpAcks(t *testing.T) {
 				gitops.TrailerAuditOnly: "no entity trailer",
 				gitops.TrailerActor:     "human/peter",
 			})
-		acks := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+		acks := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 		if len(acks) != 0 {
 			t.Errorf("expected empty ack map (audit-only without aiwf-entity ignored); got %+v", acks)
 		}
@@ -699,7 +699,7 @@ func TestComputeAckedObservations_CherryPickedAckOnParallelBranch_DoesNotSuppres
 			Trailers:   nil,
 		},
 	}
-	acksByEntity := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+	acksByEntity := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 	if len(acksByEntity["M-0001"]) == 0 {
 		t.Fatal("test setup wrong: expected the ack to be in HEAD's reachable history")
 	}
@@ -738,7 +738,7 @@ func TestComputeAckedObservations_AckIsDescendantOfFlip_Suppresses(t *testing.T)
 			Next:       entity.StatusInProgress,
 		},
 	}
-	acksByEntity := walkAuditOnlyAcksByEntity(context.Background(), r.root)
+	acksByEntity := walkAuditOnlyAcksByEntity(WalkHeadCommits(context.Background(), r.root))
 	ackedObs := computeAckedObservations(context.Background(), r.root, observations, acksByEntity)
 	if !ackedObs[flipSHA] {
 		t.Errorf("flip is an ancestor of the ack (linear history); chrono check should suppress; got ackedObs=%+v", ackedObs)
@@ -759,7 +759,7 @@ func TestFSMHistoryConsistent_ManualEdit_MergeIntegrationSilent(t *testing.T) {
 	r.gitCheckout("main")
 	r.gitMerge("branch-handedit", "merge branch-handedit into main")
 
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil)
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, WalkHeadCommits(context.Background(), r.root))
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding (original commit only; merge skipped per D-0010), got %d: %+v", len(got), got)
 	}

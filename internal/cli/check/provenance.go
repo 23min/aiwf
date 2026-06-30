@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -58,14 +59,11 @@ import (
 // the rule's severity transition against fixture cutoffs (the
 // production HookInstallSHA points at a specific main-branch
 // commit that fresh-fixture repos don't carry).
-func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool, ackedSHAEntities map[string]map[string]bool, postCutoffSHAs map[string]bool) ([]check.Finding, error) {
+func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since string, registeredVerbs map[string]struct{}, ackedSHAs map[string]bool, ackedSHAEntities map[string]map[string]bool, postCutoffSHAs map[string]bool, head []check.HeadCommit) ([]check.Finding, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
-	commits, err := readProvenanceCommits(ctx, root)
-	if err != nil {
-		return nil, err
-	}
+	commits := provenanceCommitsFromHead(head)
 	findings := check.RunProvenance(commits, t)
 	// M-0106: isolation-escape rule. Wire the git-backed BranchOracle
 	// (built once per check invocation across the ritual-branch set)
@@ -84,7 +82,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// internal/check/isolation_escape.go:67-78 pins the contract;
 	// the walker is the gather-side derivation.
 	if oracle, oErr := newGitBranchOracle(ctx, root); oErr == nil {
-		cherryPicked := check.WalkCherryPicks(ctx, root)
+		cherryPicked := check.WalkCherryPicks(head)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
 		// M-0161/AC-5: force-push orphan detection. Walk each
 		// ritual ref's reflog for non-fast-forward updates;
@@ -382,49 +380,34 @@ func ParseUntrailedCommits(s string) []check.UntrailedCommit {
 	return out
 }
 
-// readProvenanceCommits returns every commit reachable from HEAD whose
-// message carries any aiwf-* trailer, oldest-first. The output shape
-// matches scope.Commit (SHA + parsed trailers) so check.RunProvenance
-// stays I/O-free.
-//
-// The grep pattern is a basic regex anchored to the start of a
-// trailer line. `git log -E` enables ERE so the anchor is honored.
-func readProvenanceCommits(ctx context.Context, root string) ([]scope.Commit, error) {
-	const fieldSep = "\x1f"
-	const recSep = "\x1e\n"
-	args := []string{
-		"log",
-		"--reverse",
-		"-E",
-		"--grep", "^aiwf-[a-z-]+:",
-		"--pretty=tformat:%H" + fieldSep + "%(trailers:only=true,unfold=true)\x1e",
-	}
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
-		}
-		return nil, fmt.Errorf("git log: %w", err)
-	}
+// provenanceTrailerLineRE matches a commit whose message carries an
+// aiwf-* trailer line, reproducing the prior `git log -E --grep
+// '^aiwf-[a-z-]+:'` filter in-memory. `(?m)` makes `^` match the start
+// of any line in the body, exactly as git's ERE `^` does against the
+// log message. Verified to select the identical commit set on the
+// kernel tree (M-0216/AC-5).
+var provenanceTrailerLineRE = regexp.MustCompile(`(?m)^aiwf-[a-z-]+:`)
+
+// provenanceCommitsFromHead returns every HEAD-reachable commit whose
+// message carries any aiwf-* trailer, oldest-first — derived from the
+// shared head walk (M-0216/AC-5) instead of its own `git log --reverse
+// -E --grep` pass. The output shape matches scope.Commit (SHA + parsed
+// trailers) so check.RunProvenance stays I/O-free. head is already
+// oldest-first (WalkHeadCommits uses --reverse), so the order
+// RunProvenance depends on is preserved.
+func provenanceCommitsFromHead(head []check.HeadCommit) []scope.Commit {
 	var commits []scope.Commit
-	for _, rec := range strings.Split(string(out), recSep) {
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
-			continue
-		}
-		parts := strings.SplitN(rec, fieldSep, 2)
-		if len(parts) < 2 {
+	for i := range head {
+		c := &head[i]
+		if c.SHA == "" || !provenanceTrailerLineRE.MatchString(c.Body) {
 			continue
 		}
 		commits = append(commits, scope.Commit{
-			SHA:      strings.TrimSpace(parts[0]),
-			Trailers: gitops.ParseTrailers(parts[1]),
+			SHA:      c.SHA,
+			Trailers: c.Trailers,
 		})
 	}
-	return commits, nil
+	return commits
 }
 
 // expectedParentBranchesForPromote builds the AC-8 map of
