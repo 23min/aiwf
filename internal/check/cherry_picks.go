@@ -1,10 +1,7 @@
 package check
 
 import (
-	"context"
-	"os/exec"
 	"regexp"
-	"strings"
 )
 
 // cherry_picks.go — M-0159/AC-6: the canonical home for the
@@ -65,59 +62,33 @@ var cherryPickedMarkerRE = regexp.MustCompile(`\(cherry picked from commit [0-9a
 // exactly once per check invocation and passes the resulting map
 // to RunIsolationEscape's cherryPicked parameter (replacing the
 // G-0202 nil-placeholder).
-func WalkCherryPicks(ctx context.Context, root string) map[string]bool {
-	if root == "" || !hasGitCommits(ctx, root) {
-		return nil
-	}
-	const fieldSep = "\x1f"
-	const recSep = "\x1e"
-	// One `git log` invocation; per-commit emit:
-	//   <SHA><US><author-email><US><committer-email><US><body><RS>
-	// Using ASCII control chars (US=\x1f, RS=\x1e) that don't
-	// appear in commit content. The recSep needs no trailing
-	// newline because we split on the raw \x1e and never depend on
-	// surrounding whitespace.
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H"+fieldSep+"%ae"+fieldSep+"%ce"+fieldSep+"%B"+recSep,
-		"HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
+//
+// M-0216/AC-5: derives from the shared HEAD walk (head) — the
+// author/committer emails and body it needs are carried on each
+// HeadCommit, so the dedicated `git log HEAD` it used to spawn is
+// gone. A nil/empty head yields nil (the prior "no commits" signal).
+func WalkCherryPicks(head []HeadCommit) map[string]bool {
+	if len(head) == 0 {
 		return nil
 	}
 	cherryPicks := map[string]bool{}
-	for _, rec := range strings.Split(string(out), recSep) {
-		// Trim only whitespace that could land between records via
-		// git log's own formatting (no leading newline after the
-		// first record because `format` adds no terminators of its
-		// own; defensive trim anyway).
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
+	for i := range head {
+		c := &head[i]
+		// Both signals required: (b) identity gap AND (a) marker.
+		if c.SHA == "" || c.AuthorEmail == "" || c.CommitterEmail == "" {
 			continue
 		}
-		fields := strings.SplitN(rec, fieldSep, 4)
-		if len(fields) < 4 {
+		if c.AuthorEmail == c.CommitterEmail {
 			continue
 		}
-		sha := strings.TrimSpace(fields[0])
-		authorEmail := strings.TrimSpace(fields[1])
-		committerEmail := strings.TrimSpace(fields[2])
-		body := fields[3]
-		// Both signals required: (b) gap AND (a) marker.
-		if sha == "" || authorEmail == "" || committerEmail == "" {
-			continue
-		}
-		if authorEmail == committerEmail {
-			continue
-		}
-		if !cherryPickedMarkerRE.MatchString(body) {
+		if !cherryPickedMarkerRE.MatchString(c.Body) {
 			// Gap exists (e.g., an amended commit with --reset-author
 			// or an upstream rewrite) but no marker line: not a
 			// `cherry-pick -x` shape per the rule's docstring. The
 			// rule continues to fire.
 			continue
 		}
-		cherryPicks[sha] = true
+		cherryPicks[c.SHA] = true
 	}
 	return cherryPicks
 }

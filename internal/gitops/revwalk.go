@@ -34,15 +34,49 @@ type CommitRecord struct {
 }
 
 // PathTouch is one path touched by a commit. Status is the git
-// --name-status code: "A" added, "M" modified, "D" deleted, "R"
-// renamed (SrcPath set to the pre-rename path), "C" copied (SrcPath
-// set to the source path). The "T" (type change) code is rare in
-// the aiwf planning tree (no symlinks, no submodules) and passes
-// through unchanged.
+// --raw / --name-status code: "A" added, "M" modified, "D" deleted,
+// "R" renamed (SrcPath set to the pre-rename path), "C" copied
+// (SrcPath set to the source path). The "T" (type change) code is
+// rare in the aiwf planning tree (no symlinks, no submodules) and
+// passes through unchanged.
+//
+// PreSHA and PostSHA are the pre-image and post-image blob object
+// ids from `git log --raw` (the `:<srcmode> <dstmode> <presha>
+// <postsha> <status>` prefix). PostSHA is the blob at this commit;
+// PreSHA is the blob at the parent THIS diff record is against (the
+// single parent for a non-merge commit; under `-m`, the specific
+// parent of this per-parent record). An all-zero id ("000…0", which
+// [BlobAllZero] reports) means "no blob on that side" — a delete has
+// an all-zero PostSHA, an add has an all-zero PreSHA. Both are empty
+// when BulkRevwalk's underlying diff format carried no object ids
+// (defensive; the production walk always requests `--raw`).
+//
+// Carrying the blob ids lets status-reading consumers
+// (internal/check/fsm_history_walker) fetch the file content by
+// object id — a direct object read — instead of resolving
+// `<commit>:<path>` per read, which forces git to walk the tree from
+// the commit root to the blob on every call. Measured on the kernel
+// tree the direct-id read is ~3× faster, and ids dedupe across the
+// walk (a commit's PostSHA equals its child's PreSHA at the same
+// path), so the same blob is read once (E-0053 / M-0216 AC-2).
 type PathTouch struct {
 	Status  string
 	Path    string
 	SrcPath string
+	PreSHA  string
+	PostSHA string
+}
+
+// blobZeroID is git's all-zero object id, emitted by `git log --raw`
+// for the absent side of an add (PreSHA) or delete (PostSHA).
+const blobZeroID = "0000000000000000000000000000000000000000"
+
+// BlobAllZero reports whether id is git's all-zero blob object id —
+// the "no blob on this side" sentinel `git log --raw` emits for the
+// pre-image of an add or the post-image of a delete. Consumers treat
+// it the same as a missing blob (no content to read).
+func BlobAllZero(id string) bool {
+	return id == "" || id == blobZeroID
 }
 
 // Sentinels used to delimit the `git log` output into per-commit
@@ -77,17 +111,25 @@ var bulkTrailerKeys = []string{
 	"aiwf-tests",
 }
 
-// BulkRevwalk streams [CommitRecord] values from a single
-// `git log --all --name-status -M -m --pretty=...` subprocess, calling
-// fn for each commit-diff record in walk order. The single-subprocess
-// shape replaces the per-entity `git log --follow` fan-out used by
-// callers that walk every entity (fsm-history-consistent, status
-// worktree views, show scope views) — collapsing ~3,000 fork/execs on
-// the kernel tree into one long-lived process.
+// BulkRevwalk runs a single
+// `git log --all --raw --no-abbrev -M -m --pretty=...` subprocess,
+// reads its full output, then calls fn for each commit-diff [CommitRecord]
+// in walk order. The single-subprocess shape replaces the per-entity
+// `git log --follow` fan-out used by callers that walk every entity
+// (fsm-history-consistent, status worktree views, show scope views) —
+// collapsing ~3,000 fork/execs on the kernel tree into one long-lived
+// process. `--raw --no-abbrev` carries each path's pre/post blob
+// object ids ([PathTouch].PreSHA / PostSHA) so status-reading
+// consumers fetch content by object id rather than re-resolving
+// `<commit>:<path>` per read (E-0053 / M-0216 AC-2).
 //
-// If fn returns a non-nil error, BulkRevwalk halts the walk and
-// returns that error verbatim (`errors.Is` works). Use this to
-// short-circuit when the consumer has found what it needs.
+// The git output is buffered in full before the first callback — this
+// is deliberately not a streaming reader, because every current caller
+// consumes the whole walk (YAGNI). If fn returns a non-nil error,
+// BulkRevwalk stops iterating the remaining records and returns that
+// error verbatim (`errors.Is` works). That short-circuits the
+// parse/callback loop only, not the git subprocess, which has already
+// run to completion — so it saves callback work, not subprocess time.
 //
 // Returns nil (no error, no callbacks) when root is empty, is not a
 // git repo, or is a repo with no commits — the same "nothing to walk"
@@ -96,7 +138,7 @@ var bulkTrailerKeys = []string{
 // The walk includes all reachable refs (--all) so feature-branch
 // history is observed; -M enables rename detection (PathTouch.Status
 // "R" with SrcPath set rather than separate D + A entries); -m forces
-// per-parent diff fan-out so merge commits' name-status output is
+// per-parent diff fan-out so merge commits' --raw output is
 // non-empty (a merge with N parents produces N records, each with the
 // same Commit / Parents but its parent-specific Paths).
 func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) error {
@@ -113,7 +155,8 @@ func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) 
 	pretty := buildBulkPretty()
 	cmd := exec.CommandContext(ctx, "git", "log",
 		"--all",
-		"--name-status",
+		"--raw",
+		"--no-abbrev",
 		"-M",
 		"-m",
 		"--pretty="+pretty,
@@ -270,21 +313,13 @@ func parseBulkTrailers(fields []string) map[string]string {
 	return out
 }
 
-// parsePathsBlock reads `git log --name-status` output (TAB-separated)
-// into PathTouch values. Each line is one path-touch.
-//
-// Status codes from git's --name-status:
-//
-//   - "A" / "M" / "D" / "T": one path follows.
-//   - "Rxxx" / "Cxxx" (rename / copy with similarity score): two paths
-//     follow — source then destination. The score (e.g. R100, R092)
-//     collapses to the bare "R" / "C" letter in [PathTouch].Status;
-//     the score isn't load-bearing for any current consumer.
-//
-// Lines that don't match either shape are dropped silently (defensive
-// — git's output is well-defined, but a future flag combination could
-// emit a shape we don't expect, and dropping is safer than mis-
-// classifying).
+// parsePathsBlock reads `git log --raw` output into PathTouch values,
+// one per line, via parseRawPathLine. BulkRevwalk is the only caller and
+// always requests `--raw`, so every line carries the mode/object-id
+// prefix; a line parseRawPathLine rejects is dropped silently
+// (defensive — git's --raw output is well-defined, but a future flag
+// combination could emit a shape we don't expect, and dropping is safer
+// than mis-classifying).
 func parsePathsBlock(block string) []PathTouch {
 	if block == "" {
 		return nil
@@ -295,33 +330,73 @@ func parsePathsBlock(block string) []PathTouch {
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, "\t")
-		if len(parts) < 2 {
-			continue
-		}
-		statusRaw := parts[0]
-		if statusRaw == "" {
-			continue
-		}
-		statusCode := string(statusRaw[0])
-		switch statusCode {
-		case "R", "C":
-			if len(parts) < 3 {
-				continue
-			}
-			out = append(out, PathTouch{
-				Status:  statusCode,
-				SrcPath: parts[1],
-				Path:    parts[2],
-			})
-		default:
-			out = append(out, PathTouch{
-				Status: statusCode,
-				Path:   parts[1],
-			})
+		if touch, ok := parseRawPathLine(line); ok {
+			out = append(out, touch)
 		}
 	}
 	return out
+}
+
+// parseRawPathLine parses one `git log --raw` line of the shape
+//
+//	:<srcmode> <dstmode> <presha> <postsha> <status>\t<path>[\t<dst>]
+//
+// into a PathTouch carrying the pre/post blob ids. A line that doesn't
+// start with ':' (or whose prefix is malformed) returns ok=false and is
+// dropped by the caller.
+//
+// The status field may carry a similarity score (e.g. "R100"); only
+// the leading letter is kept in [PathTouch].Status, matching the
+// name-status path. Status letters that take two path operands ("R",
+// "C") read the source from the first tab field and the destination
+// from the second; all others take a single path operand.
+func parseRawPathLine(line string) (PathTouch, bool) {
+	if !strings.HasPrefix(line, ":") {
+		return PathTouch{}, false
+	}
+	// Split metadata (space-separated) from the path operands
+	// (tab-separated). The status letter is the last metadata field and
+	// is followed immediately by a TAB before the first path.
+	tab := strings.IndexByte(line, '\t')
+	if tab < 0 {
+		return PathTouch{}, false
+	}
+	meta := strings.Fields(line[:tab])
+	// meta = [:srcmode, dstmode, presha, postsha, status]
+	if len(meta) != 5 {
+		return PathTouch{}, false
+	}
+	statusField := meta[4]
+	if statusField == "" {
+		return PathTouch{}, false //coverage:ignore strings.Fields never yields an empty field, so meta[4] is always non-empty when len(meta)==5; defensive guard
+	}
+	statusCode := string(statusField[0])
+	preSHA := meta[2]
+	postSHA := meta[3]
+	operands := strings.Split(line[tab+1:], "\t")
+	switch statusCode {
+	case "R", "C":
+		if len(operands) < 2 || operands[0] == "" || operands[1] == "" {
+			return PathTouch{}, false
+		}
+		return PathTouch{
+			Status:  statusCode,
+			SrcPath: operands[0],
+			Path:    operands[1],
+			PreSHA:  preSHA,
+			PostSHA: postSHA,
+		}, true
+	default:
+		if operands[0] == "" {
+			return PathTouch{}, false
+		}
+		return PathTouch{
+			Status:  statusCode,
+			Path:    operands[0],
+			PreSHA:  preSHA,
+			PostSHA: postSHA,
+		}, true
+	}
 }
 
 // hasAnyCommit reports whether root's repo has at least one commit

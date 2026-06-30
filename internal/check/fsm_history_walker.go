@@ -96,6 +96,43 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 		seenErr = make(map[string]struct{})
 	)
 
+	// M-0216 AC-2: read status by blob object id (the pre/post id
+	// columns `git log --raw` puts on each PathTouch) instead of
+	// resolving `<commit>:<path>` per read, which forces git to walk the
+	// tree from the commit root to the blob on every call (~3× slower on
+	// the kernel tree). Object ids dedupe across the walk — a commit's
+	// PostSHA equals its child's PreSHA at the same path — so shaCache
+	// reads each unique blob once. statusBySHA returns ("", nil) for an
+	// all-zero id (the absent side of an add/delete), matching
+	// readStatusAt's ErrBlobMissing skip-this-pair signal.
+	type statusResult struct {
+		status string
+		err    error
+	}
+	shaCache := make(map[string]statusResult)
+	statusBySHA := func(sha string) (string, error) {
+		if gitops.BlobAllZero(sha) {
+			return "", nil
+		}
+		if c, ok := shaCache[sha]; ok {
+			return c.status, c.err
+		}
+		content, err := br.ReadObject(sha)
+		var s string
+		switch {
+		case errors.Is(err, gitops.ErrBlobMissing):
+			err = nil //coverage:ignore ReadObject gets only real --raw blob ids (all-zero short-circuited via BlobAllZero); ErrBlobMissing fires only for a blob absent locally (partial/blobless clone), not reproducible in a normal test repo
+		case err != nil:
+			// Real failure — surface to the caller; don't cache a
+			// transient as authoritative.
+			return "", err
+		default:
+			s = parseStatusFromFrontmatter(content)
+		}
+		shaCache[sha] = statusResult{status: s, err: err}
+		return s, err
+	}
+
 	walkErr := gitops.BulkRevwalk(ctx, root, func(rec gitops.CommitRecord) error {
 		// Single-pass per commit-record: for each path touched,
 		// attribute it to an entity (if known), then read commit-side
@@ -112,7 +149,12 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 				continue
 			}
 
-			commitStatus, readErr := readStatusAt(rec.Commit, touch.Path, br)
+			// Commit-side: PostSHA is by definition the blob at
+			// touch.Path at this commit, for every status — a delete's
+			// all-zero PostSHA reads as "" via statusBySHA, the same skip
+			// the deleted-file branch below took. BulkRevwalk always emits
+			// --raw, so PostSHA is populated.
+			commitStatus, readErr := statusBySHA(touch.PostSHA)
 			if readErr != nil {
 				key := rec.Commit + "\x00" + touch.Path + "\x00commit"
 				if _, dup := seenErr[key]; !dup {
@@ -141,7 +183,34 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 			}
 
 			for _, parent := range rec.Parents {
-				priorStatus, readErr := readStatusAt(parent, touch.Path, br)
+				// Parent-side status at touch.Path. PreSHA is the blob at
+				// the parent THIS diff record is against — but only when
+				// the diff kept the same path is it the blob at
+				// touch.Path, so the fast path is restricted to that case:
+				//
+				//   - merge: each per-parent -m record carries one
+				//     parent's PreSHA, but the loop visits all parents, so
+				//     PreSHA can't be matched to `parent` here — keep the
+				//     path-resolving read. (Merges are few, and all three
+				//     predicates discard merge observations anyway.)
+				//   - rename/copy ("R"/"C"): PreSHA points at the *source*
+				//     path's blob, not touch.Path's. The dest path is
+				//     normally created by the commit (absent at the
+				//     parent), but a force-rename onto an existing dest
+				//     would have a real parent-side blob there — so keep
+				//     the path-resolving read, which is correct in BOTH
+				//     cases and byte-identical with the pre-refactor walk.
+				//   - otherwise ("M"/"A"/"T"): touch.Path is unchanged, so
+				//     PreSHA is exactly the parent's blob at touch.Path
+				//     (an add's all-zero PreSHA reads as "", matching the
+				//     parent-has-no-file case). Read by object id.
+				var priorStatus string
+				var readErr error
+				if touch.PreSHA != "" && !isMerge && touch.Status != "R" && touch.Status != "C" {
+					priorStatus, readErr = statusBySHA(touch.PreSHA)
+				} else {
+					priorStatus, readErr = readStatusAt(parent, touch.Path, br)
+				}
 				if readErr != nil {
 					key := rec.Commit + "\x00" + parent + "\x00" + touch.Path + "\x00parent"
 					if _, dup := seenErr[key]; !dup {

@@ -27,8 +27,7 @@ import (
 func TestBinary_Check_TrunkRenameNotCollision(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
 	testutil.MustExec(t, repo, "git", "init", "-q")
@@ -90,8 +89,7 @@ func TestBinary_Check_TrunkRenameNotCollision(t *testing.T) {
 func TestBinary_Check_NonRenameSameIDStillCollides(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
 	testutil.MustExec(t, repo, "git", "init", "-q")

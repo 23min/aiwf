@@ -55,29 +55,23 @@ import (
 // added at M-0160/AC-4 as the fourth consumer). Rule-internal
 // recomputes are forbidden by PolicyAcksHelperLift (violation
 // class 3c).
-func WalkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
-	if root == "" || !hasGitCommits(ctx, root) {
-		return nil
-	}
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
-		"HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
+//
+// M-0216/AC-5: derives from the shared HEAD walk (head) instead of
+// spawning its own `git log HEAD` — the CLI gather layer computes
+// WalkHeadCommits once and threads it in. The "Walk" name is retained
+// because the acks_helper_lift policy (M-0159/AC-3) pins this exported
+// symbol as the single ackedSHAs source; it now derives rather than
+// walks. resolveFullSHA stays a git call (it resolves against the full
+// object DB, which the in-memory HEAD set can't replicate). A nil/empty
+// head yields nil — the same "no commits / no acks" signal the prior
+// git-walk returned.
+func WalkAcknowledgedSHAs(ctx context.Context, root string, head []HeadCommit) map[string]bool {
+	if len(head) == 0 {
 		return nil
 	}
 	acked := map[string]bool{}
-	parts := strings.Split(string(out), "\x00")
-	for i := 0; i+1 < len(parts); i += 2 {
-		// parts[i] is the commit SHA (one acknowledged each); parts[i+1]
-		// is its trailer block.
-		trailerBlock := parts[i+1]
-		if trailerBlock == "" {
-			continue
-		}
-		parsed := gitops.ParseTrailers(trailerBlock)
-		for _, tr := range parsed {
+	for i := range head {
+		for _, tr := range head[i].Trailers {
 			if tr.Key != gitops.TrailerForceFor {
 				continue
 			}
@@ -118,28 +112,18 @@ func WalkAcknowledgedSHAs(ctx context.Context, root string) map[string]bool {
 // Returns nil for non-git directories and empty histories; the
 // consumer treats nil and an empty map identically (no
 // exemptions).
-func WalkAcknowledgedSHAEntities(ctx context.Context, root string) map[string]map[string]bool {
-	if root == "" || !hasGitCommits(ctx, root) {
-		return nil
-	}
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H%x00%(trailers:unfold=true)%x00",
-		"HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
+//
+// M-0216/AC-5: derives from the shared HEAD walk (head) — see
+// WalkAcknowledgedSHAs for the retained-name / single-compute
+// rationale.
+func WalkAcknowledgedSHAEntities(ctx context.Context, root string, head []HeadCommit) map[string]map[string]bool {
+	if len(head) == 0 {
 		return nil
 	}
 	acked := map[string]map[string]bool{}
-	parts := strings.Split(string(out), "\x00")
-	for i := 0; i+1 < len(parts); i += 2 {
-		trailerBlock := parts[i+1]
-		if trailerBlock == "" {
-			continue
-		}
-		parsed := gitops.ParseTrailers(trailerBlock)
+	for i := range head {
 		var forceFor, entityID string
-		for _, tr := range parsed {
+		for _, tr := range head[i].Trailers {
 			switch tr.Key {
 			case gitops.TrailerForceFor:
 				forceFor = strings.TrimSpace(tr.Value)
