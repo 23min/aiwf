@@ -404,30 +404,6 @@ func TestBinary_ReadOnlyVerbs_ExitOK(t *testing.T) {
 // Builds happen from the repo root so the relative package path
 // resolves regardless of which package the test runs in.
 
-// repoRootForTest walks up from the test's cwd looking for go.mod
-// and returns the absolute directory containing it. The test binary
-// runs in the package directory (cmd/aiwf); the repo root is
-// two levels up.
-func repoRootForTest(t *testing.T) string {
-	t.Helper()
-	dir, err := filepath.Abs(".")
-	if err != nil {
-		t.Fatalf("abs path: %v", err)
-	}
-	for i := 0; i < 6; i++ {
-		if _, err := exec.Command("test", "-f", filepath.Join(dir, "go.mod")).Output(); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	t.Fatalf("could not locate repo root (no go.mod in 6 parents)")
-	return ""
-}
-
 // runBinary invokes bin with args and returns combined stdout+stderr.
 // Combined output is what a user sees, so the assertions read the
 // same bytes the user would.
