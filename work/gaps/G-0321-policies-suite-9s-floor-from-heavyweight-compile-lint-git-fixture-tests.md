@@ -1,7 +1,7 @@
 ---
 id: G-0321
 title: policies suite ~9s floor from heavyweight compile/lint/git fixture tests
-status: open
+status: wontfix
 discovered_in: M-0196
 ---
 ## What's missing
