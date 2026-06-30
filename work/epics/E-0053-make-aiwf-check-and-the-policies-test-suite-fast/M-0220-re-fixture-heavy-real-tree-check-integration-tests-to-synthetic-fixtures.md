@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: Sibling heavy real-tree check tests audited and re-fixtured or justified
-      status: open
+      status: met
 ---
 ## Goal
 
