@@ -690,7 +690,7 @@ that never share a loaded history.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0215 | Profile aiwf check and the policies suite to a per-rule wall-time baseline | done |
-| M-0216 | Shared per-check git-history context; collapse per-entity subprocess fan-out | in_progress |
+| M-0216 | Shared per-check git-history context; collapse per-entity subprocess fan-out | done |
 | M-0217 | Skip redundant pre-push golangci-lint via a last-green-lint marker | draft |
 | M-0218 | Drive the internal/policies test suite below its ~9s floor | draft |
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | draft |
