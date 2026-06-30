@@ -45,7 +45,7 @@ func TestM0216_AC4_ValidationRecordsDelta(t *testing.T) {
 		}
 	}
 	// The byte-identical confirmation (the AC-3 pin, recorded alongside).
-	for _, m := range []string{"byte-identical", "34 = 34"} {
+	for _, m := range []string{"byte-identical", "31 = 31"} {
 		if !strings.Contains(section, m) {
 			t.Errorf("AC-4: §Validation must record byte-identical marker %q", m)
 		}
