@@ -4,6 +4,13 @@ title: Profile aiwf check and the policies suite to a per-rule wall-time baselin
 status: draft
 parent: E-0053
 tdd: none
+acs:
+    - id: AC-1
+      title: Record aiwf check CPU profile and git-subprocess attribution
+      status: open
+    - id: AC-2
+      title: Record policies-suite per-test timing ranking floor-gating tests
+      status: open
 ---
 ## Goal
 
@@ -24,3 +31,8 @@ is the budget.
 Profile before optimizing. No production code changes land beyond temporary,
 reverted profiling instrumentation. Acceptance criteria are authored when
 the milestone starts.
+
+### AC-1 — Record aiwf check CPU profile and git-subprocess attribution
+
+### AC-2 — Record policies-suite per-test timing ranking floor-gating tests
+
