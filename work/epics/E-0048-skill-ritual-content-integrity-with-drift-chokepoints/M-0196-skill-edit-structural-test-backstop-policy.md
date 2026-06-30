@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Policy stays silent when the edit is backed by a referencing test
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Gate is diff-scoped and inert without a base ref
