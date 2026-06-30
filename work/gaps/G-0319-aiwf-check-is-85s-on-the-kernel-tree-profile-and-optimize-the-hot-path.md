@@ -12,7 +12,7 @@ slowness flagged after the M-0196 wrap:
 
 - It is the dominant cost of the **pre-push hook** (`aiwf check` runs after the
   lint gate; ~85s on every push).
-- It is what makes `TestM080_AC6_NoUnexpectedTreeFileWarning` ~82s (G-0319) —
+- It is what makes `TestM080_AC6_NoUnexpectedTreeFileWarning` ~82s (G-0320) —
   that test shells the full check.
 
 85s to validate a markdown-and-frontmatter tree is disproportionate; the tree
@@ -25,7 +25,7 @@ subprocess-fan-out hot path.
 (full), and CI all run it, and the test suite shells it. Every second of check
 latency is paid many times per wrap. Speeding it up is the highest-leverage
 single fix for the whole local-validation experience; it is the *root* that
-G-0319 (test fixture) and G-0318 (lint redundancy) only work around at the
+G-0320 (test fixture) and G-0318 (lint redundancy) only work around at the
 edges.
 
 ## Proposed investigation
@@ -59,5 +59,5 @@ existing check tests + a before/after wall-time measurement.
 ## Discovered in
 
 M-0196 — measured `aiwf check` at ~85s while profiling the wrap+push slowness;
-it is the shared root of G-0319 (the 82s policy-suite test) and the pre-push
+it is the shared root of G-0320 (the 82s policy-suite test) and the pre-push
 hook cost.
