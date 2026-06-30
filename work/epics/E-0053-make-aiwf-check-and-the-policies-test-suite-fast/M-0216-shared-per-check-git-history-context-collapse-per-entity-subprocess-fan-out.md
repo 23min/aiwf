@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Shared HEAD-history walk replaces five independent per-rule git-log walks
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Isolation-escape oracle first-parent index built from the shared in-memory DAG
