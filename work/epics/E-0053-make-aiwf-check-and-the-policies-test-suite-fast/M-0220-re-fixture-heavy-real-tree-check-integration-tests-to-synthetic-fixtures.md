@@ -6,7 +6,7 @@ parent: E-0053
 tdd: advisory
 acs:
     - id: AC-1
-      title: Kernel-tree check rendering test uses a synthetic fixture, not the real tree
+      title: Real-tree check rendering test removed; collapse property pinned synthetically
       status: open
     - id: AC-2
       title: Kernel-tree check test uses the shared AiwfBinary, not a per-test BuildBinary
@@ -62,7 +62,7 @@ surface and must be preserved assertion-for-assertion.
 - Wall-clock is recorded in `## Validation`, deliberately NOT asserted inside a
   test — env-dependent timing pins are flaky.
 
-### AC-1 — Kernel-tree check rendering test uses a synthetic fixture, not the real tree
+### AC-1 — Real-tree check rendering test removed; collapse property pinned synthetically
 
 ### AC-2 — Kernel-tree check test uses the shared AiwfBinary, not a per-test BuildBinary
 
