@@ -1,7 +1,7 @@
 ---
 id: G-0322
 title: Maintain git commit-graph on init/update to accelerate aiwf check
-status: open
+status: wontfix
 discovered_in: M-0216
 ---
 
