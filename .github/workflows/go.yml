@@ -94,17 +94,21 @@ jobs:
       - run: go test -tags testpins -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -race -parallel 8 -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -n 1
-      # Profile-driven policy gates. Two gates read the coverage profile
-      # built above; both skip in the broad test run (no profile env), so
-      # they fire exactly once here with the complete profile:
+      # Profile-driven policy gates. These gates read the coverage profile
+      # built above and/or the base ref; all skip in the broad test run
+      # (no profile/base env), so they fire exactly once here:
       #   - Diff-scoped coverage gate (G-0067): fail if any statement on a
       #     line changed vs the base is neither tested nor //coverage:ignore'd.
       #   - Firing-fixture-presence meta-gate (G-0259): fail if any
       #     non-grandfathered policy has a firing branch no test covers,
       #     and keep the grandfatherDark ledger free of stale entries.
+      #   - Skill-edit structural-test backstop (G-0220): fail if a commit
+      #     edits a ritual SKILL.md under internal/skills/embedded-rituals
+      #     with no referencing structural test under internal/policies/.
+      #     Diff-scoped on the base ref.
       # The base is the merge-base with origin/main on a PR, or
       # github.event.before on a trunk push; an all-zero before-SHA (a
-      # brand-new branch) makes the diff-scoped audit no-op.
+      # brand-new branch) makes the diff-scoped audits no-op.
       - name: Resolve coverage base ref
         id: covbase
         run: |
@@ -118,7 +122,7 @@ jobs:
         env:
           AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
           AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist)$' -count=1 ./internal/policies/
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop)$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

@@ -600,8 +600,8 @@ pre-push where the check can live there, CI at the latest.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0195 | Strict skill-body id-reference discipline, check, and full sweep | draft |
-| M-0196 | Skill-edit structural-test backstop policy | draft |
+| M-0195 | Strict skill-body id-reference discipline, check, and full sweep | done |
+| M-0196 | Skill-edit structural-test backstop policy | done |
 | M-0197 | Document aiwf-check finding codes + documented-superset chokepoint | draft |
 | M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | draft |
 | M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | draft |
