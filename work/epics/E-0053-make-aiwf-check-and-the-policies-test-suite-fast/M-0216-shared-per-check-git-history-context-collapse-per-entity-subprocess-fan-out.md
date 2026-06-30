@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Orphaned-AI-commit walk uses in-memory DAG ancestry, no per-pair merge-base
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Shared per-check git-history context consumed by the history-walking rules
       status: open
