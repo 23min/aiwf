@@ -1,7 +1,7 @@
 ---
 id: E-0053
 title: Make aiwf check and the policies test suite fast
-status: active
+status: done
 ---
 ## Goal
 
