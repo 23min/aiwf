@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwf-check documents the four-status AC set, kernel-derived
-      status: open
+      status: met
     - id: AC-2
       title: aiwf-archive drops findings as an archivable kind
       status: open
