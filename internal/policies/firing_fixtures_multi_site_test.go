@@ -164,6 +164,35 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			},
 		},
 
+		// m0202-devcontainer-onboarding: missing files (both report sites)
+		// + a retired marker in each file + the banner missing its
+		// verification pointer. Together these light every report site.
+		{name: "m0202-onboarding/missing", policy: PolicyM0202DevcontainerOnboarding, files: map[string]string{}},
+		{
+			name:   "m0202-onboarding/init-retired-marker",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf doctor rituals:\n/plugin marketplace add 23min/ai-workflow-rituals\n",
+				".devcontainer/README.md": "clean\n",
+			},
+		},
+		{
+			name:   "m0202-onboarding/readme-retired-marker",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf doctor rituals:\n",
+				".devcontainer/README.md": "install both plugins at PROJECT scope\n",
+			},
+		},
+		{
+			name:   "m0202-onboarding/banner-missing-pointer",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf devcontainer ready.\n",
+				".devcontainer/README.md": "clean\n",
+			},
+		},
+
 		// trailer-order-matches-constants: each defensive drift line is an
 		// early return, so one fixture per class.
 		{name: "trailer-order/file-not-found", policy: PolicyTrailerOrderMatchesConstants, files: map[string]string{}},

@@ -48,7 +48,7 @@ reproduce exactly.
 
 Repo location: this repo cloned at `~/Projects/aiwf/` (or any
 sibling-tree path — the workspace mount goes one level up so
-siblings like `~/Projects/ai-workflow-rituals/` are reachable
+sibling repos under the same parent directory are reachable
 inside).
 
 ## Reopen in Container
@@ -61,15 +61,16 @@ In VS Code at this repo's root:
    `.devcontainer/init.sh` (idempotent install of golangci-lint,
    gofumpt, govulncheck, Claude Code CLI, aiwf binary, framework
    hooks). Subsequent opens reuse the cached image.
-4. After init completes, the banner in init.sh prints the manual
-   step you still need: install both rituals plugins at PROJECT
-   scope via the `/plugin` menu inside Claude Code. The CLI form
-   defaults to USER scope (wrong); use the interactive menu.
+4. After init completes, the rituals are already installed —
+   `aiwf init` (run by init.sh) materialized the aiwf-* verb skills
+   and the aiwfx-* / wf-* rituals, role agents, and templates into
+   `.claude/` directly. There is no separate plugin-install step
+   (ADR-0014).
 
 Verify the container is set up correctly:
 
 ```
-aiwf doctor          # No recommended-plugin-not-installed warnings.
+aiwf doctor          # rituals: line confirms the skills are materialized.
 make ci              # vet + lint + test-race + coverage + selfcheck green.
 ```
 
@@ -86,60 +87,26 @@ The container reads these from the host VS Code session or from
 Outside those, the container inherits `$PATH` and standard host
 environment from VS Code's remote session.
 
-## Cross-repo plugin testing (rituals repo)
+## Ritual authoring
 
-The rituals + `aiwfx-*` skills change frequently. Their canonical
-location is the sibling repo at `~/Projects/ai-workflow-rituals/`
-on the host, distributed via the Claude Code marketplace. Iteration
-is fixture-first in this repo per CLAUDE.md *"Cross-repo plugin
-testing"* — author the SKILL.md change at
-`internal/policies/testdata/<skill-name>/SKILL.md`, TDD against the
-fixture here, then copy the fixture into the rituals repo at wrap
-time.
+The rituals (`aiwfx-*` / `wf-*` skills, role agents, templates) are
+authored in-repo in the embedded snapshot at
+`internal/skills/embedded-rituals/`, embedded into the `aiwf` binary
+via `go:embed`, and materialized into `.claude/` by `aiwf init` /
+`aiwf update` (ADR-0014, ADR-0016). A ritual edit is one commit in
+this repo — there is no separate marketplace repo and no cross-repo
+copy step; the upstream marketplace channel that predated this is
+archived (ADR-0016, G-0193).
 
-**The mount is free.** `devcontainer.json`'s `workspaceMount`
-binds `${localWorkspaceFolder}/..` onto `/workspaces/`, so any
-sibling repo under `~/Projects/` on the host is reachable inside
-the container by name. With the rituals repo cloned at
-`~/Projects/ai-workflow-rituals/`, the container sees it at
-`/workspaces/ai-workflow-rituals/`. No additional `devcontainer.json`
-config needed; M-0132's `PolicyM0132DevcontainerShape` pins the
-`${localWorkspaceFolder}/..` pattern explicitly for this use case.
-
-Sanity check inside the container:
+Verify the materialized rituals inside the container with:
 
 ```
-ls /workspaces/ai-workflow-rituals/plugins/   # should list aiwf-extensions + wf-rituals
-aiwf doctor | grep plugin-mount               # should report `ok (N plugin entries cached)`
-gh auth status                                # inherited via the gh credential mount
+aiwf doctor          # the `rituals:` line reports materialization status
 ```
 
-**The wrap-side copy step is one command** (closes the
-[CLAUDE.md flow](../CLAUDE.md) step that previously asked the
-operator to construct a 6-segment path by hand):
-
-```
-make copy-skill-fixture SKILL=aiwfx-start-epic
-```
-
-The target asserts: the `SKILL` variable is set, the fixture
-exists at `internal/policies/testdata/$(SKILL)/SKILL.md`, the
-sibling rituals repo is reachable at `../ai-workflow-rituals`, and
-the destination `plugins/<plugin>/skills/$(SKILL)/SKILL.md` exists
-under it. Refuses with a clear stderr message if any precondition
-fails — no partial copies.
-
-After the copy: `cd ../ai-workflow-rituals && git diff && git
-commit + git push` from the rituals repo. The container's gh
-credential helper (set up by `.devcontainer/init.sh`) handles the
-push; no extra auth step.
-
-**G-0146 status.** Half-step closure: the mount + the docs + the
-copy-step automation make the flow reachable end-to-end in the
-container. The full end-to-end smoke (a script gating CI on
-fixture → rituals-copy → drift-check round-trip) is deferred
-until a forcing function names what shape the smoke assertion
-should take. See G-0146 archive for the original problem framing.
+See CLAUDE.md §"Ritual content authoring" for the authoring
+workflow and the structural-test discipline that accompanies a
+ritual edit.
 
 ## Recovery prompt
 
