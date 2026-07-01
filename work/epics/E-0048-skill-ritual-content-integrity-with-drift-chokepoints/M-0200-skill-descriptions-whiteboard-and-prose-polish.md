@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Completion-boundary forks in plan-epic and wrap-epic shed pause vocabulary
-      status: open
+      status: met
     - id: AC-2
       title: whiteboard description states it writes the gitignored WHITEBOARD.md cache
       status: open
