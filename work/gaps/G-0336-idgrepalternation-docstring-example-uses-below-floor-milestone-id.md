@@ -1,7 +1,9 @@
 ---
 id: G-0336
 title: IDGrepAlternation docstring example uses below-floor milestone id
-status: open
+status: addressed
+addressed_by_commit:
+    - 7eebec78
 ---
 ## Problem
 
