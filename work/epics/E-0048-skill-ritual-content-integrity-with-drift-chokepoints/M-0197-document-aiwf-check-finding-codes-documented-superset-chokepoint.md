@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Every emitted finding code is documented in the aiwf-check skill
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A documented-superset chokepoint binds the skill to the emission sites
