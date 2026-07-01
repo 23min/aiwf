@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: aiwf-authorize provenance-model doc-link resolves
-      status: open
+      status: met
     - id: AC-5
       title: aiwf-add example is self-consistent and cites sections not lines
       status: open
