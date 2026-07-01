@@ -110,3 +110,50 @@ line anchors.
 Test: assert the typo example names two different ids; assert the skill body
 contains no `docs/….md:NN` pinned-line citation (fragile anchors that rot as the
 docs change).
+
+## Work log
+
+tdd: advisory — no per-AC phase timeline; this log records the final outcome.
+
+### AC-1 — aiwf-check documents the four-status AC set, kernel-derived
+`acs-shape/status` row → `{open, met, deferred, cancelled}` ("four"). Pinned by `TestAiwfCheckSkill_ACStatusSetMatchesKernel` (source-derived from `entity.AllowedACStatuses()`). commit 94f35591.
+
+### AC-2 — aiwf-archive drops findings as an archivable kind
+"gaps or findings" → "gaps or decisions". Pinned by `TestAiwfArchiveSkill_NoFindingsAsKind`. commit 94f35591.
+
+### AC-3 — aiwf-contract cites the real recipe path and complete cancel FSM
+Recipe path `tools/…` → `internal/recipe/embedded/`; cancel description adds `deprecated → retired`. Pinned by `TestAiwfContractSkill_RecipePathAndCancelFSM` (recipe-path existence + section-scoped cancel FSM source-derived from `CancelTarget`). commit 94f35591.
+
+### AC-4 — aiwf-authorize provenance-model doc-link resolves
+Doc-link depth `../../` → `../../../../`. Pinned by `TestAiwfAuthorizeSkill_ProvenanceDocLinkResolves` (resolves the link against the skill dir + `os.Stat`). commit 94f35591.
+
+### AC-5 — aiwf-add example is self-consistent and cites sections not lines
+Typo example → distinct ids (`M-008` for `M-007`); citations de-pinned (dropped `:22`/`:139`, kept doc paths). Pinned by `TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites`. commit 94f35591.
+
+## Decisions made during implementation
+
+- **AC-2 replacement kind.** "findings" → "gaps or decisions" (decisions is a real, high-volume archivable kind) rather than dropping the second example — keeps the "one kind is the volume offender" illustration accurate.
+- **AC-4 scope: source-tree depth only.** Fixed the doc-link to `../../../../docs/…` so it resolves from the skill's source location. The materialized-in-consumer deadness of design/ADR doc-links (they don't resolve from a consumer's `.claude/skills/…`) is the broader concern owned by G-0315 (an M-0195 deferral), out of scope here.
+- **AC-5 ripple: re-point, don't gut.** De-pinning the aiwf-add citations broke `TestSkill_AddCitesDesignIntent` (M-068/AC-2), which pinned the exact `:22`/`:139` anchors. Root-caused (not papered over) and re-pointed it to the stable doc-path form + added a guard that the pinned form can't return, and updated its doc-comment — preserving its citation-traceability intent (the M-0195 "legitimately re-pointed, not gutted" pattern).
+
+No `aiwfx-record-decision` ADRs were needed — these are scoping choices within the milestone.
+
+## Validation
+
+- `go test ./internal/policies/ ./internal/skills/ ./internal/check/` — green.
+- `make check-fast` (build / vet / lint / full suite) — green.
+- Diff-scoped coverage — no exposure: all changes are `_test.go` (not coverage-instrumented) or markdown.
+- `skill-body-id` realtree — green (recipe path + doc-link stay masked / doc-link carve-out).
+- Independent adversarial reviewer — [verdict recorded in Reviewer notes].
+
+## Deferrals
+
+- None opened by this milestone. AC-4's consumer-repo doc-link deadness is the pre-existing G-0315, not this milestone's to resolve.
+
+## Reviewer notes
+
+- **Independent adversarial reviewer: APPROVE, no blocking findings.** All 5 fixes verified factually correct against kernel source; all 5 tests confirmed genuine via red-on-old / green-on-new experiments (restore `94f35591~1` content → test reddens naming the defect → restore); the AC-5 ripple re-point confirmed strengthened, not gutted; no real-id leak; full affected suite green.
+- **Track-for-later #1 (AC-2 guard narrow) — addressed inline.** `TestAiwfArchiveSkill_NoFindingsAsKind` now also source-derives from `entity.AllKinds()`: every `--kind <x>` the skill demonstrates must name a real entity kind, catching a fabricated flag like `--kind findings` that the prose literal misses. The prose-offender phrasing stays guarded by the `"or findings"` literal (the actual defect was prose, not a flag).
+- **Track-for-later #2 (AC-3 iteration domain hardcoded) — accepted.** Only the cancel *targets* are source-derived (`CancelTarget`); the from-status *set* is a literal slice, mirroring the repo convention that a kind's status set is itself hardcoded in Go. The load-bearing part (targets) is derived.
+- AC-1 and AC-3 are **source-derived** (iterate `entity.AllowedACStatuses()` / `entity.CancelTarget(KindContract, …)`), so those two skill facts are permanent guards that fail if the kernel set changes and the skill isn't updated — mini-chokepoints, not one-time fixes.
+- AC-3's cancel-FSM assertion is scoped to the "Cancel a contract entirely" section (via `sectionUnder`), so an incidental `retired`/`deprecated` mention in the FSM diagram elsewhere does not satisfy it.
