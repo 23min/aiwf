@@ -606,7 +606,7 @@ pre-push where the check can live there, CI at the latest.
 | M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | done |
 | M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | done |
 | M-0200 | Skill descriptions, whiteboard, and prose polish | done |
-| M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |
+| M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | done |
 | M-0202 | Fix devcontainer onboarding banner (retired plugin install) | draft |
 | M-0210 | Extract trailered-commit duplication into a wf-commit-trailers reference skill | draft |
 | M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | draft |
