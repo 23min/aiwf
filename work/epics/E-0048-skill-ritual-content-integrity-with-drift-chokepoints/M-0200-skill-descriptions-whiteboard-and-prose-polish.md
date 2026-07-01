@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: whiteboard description states it writes the gitignored WHITEBOARD.md cache
-      status: open
+      status: met
     - id: AC-3
       title: wf-codebase-health description leads with its aiwf-ritual identity
       status: open
