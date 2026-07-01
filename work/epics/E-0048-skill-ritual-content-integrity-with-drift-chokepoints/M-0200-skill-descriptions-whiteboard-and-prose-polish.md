@@ -1,7 +1,7 @@
 ---
 id: M-0200
 title: Skill descriptions, whiteboard, and prose polish
-status: in_progress
+status: done
 parent: E-0048
 depends_on:
     - M-0196
@@ -9,16 +9,16 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Completion-boundary forks in plan-epic and wrap-epic shed pause vocabulary
-      status: open
+      status: met
     - id: AC-2
       title: whiteboard description states it writes the gitignored WHITEBOARD.md cache
-      status: open
+      status: met
     - id: AC-3
       title: wf-codebase-health description leads with its aiwf-ritual identity
-      status: open
+      status: met
     - id: AC-4
       title: aiwf-retitle description drops the rename-the-title aiwf-rename collision
-      status: open
+      status: met
 ---
 ## Goal
 
@@ -89,3 +89,50 @@ collides with `aiwf-rename`'s primary "rename" trigger; the softened
 change/correct-title framing stays. **Test:** the description omits "rename the
 title" and retains a change/correct-title trigger, so the collision cannot silently
 return.
+
+## Work log
+
+- **AC-1** — `aiwfx-plan-epic` fork label, stop-here path, and Next-step line
+  reframed to completion vocabulary; `aiwfx-wrap-epic` Next-step dropped
+  ", or stop here". · commit 851e66a1
+- **AC-2** — `aiwfx-whiteboard` `description:` now states it writes the gitignored
+  `WHITEBOARD.md` cache; body cache cross-reference corrected `below` → `above`. ·
+  commit 851e66a1
+- **AC-3** — `wf-codebase-health` `description:` reframed to lead with its
+  aiwf-ritual identity (companion to `wf-review-code`'s per-diff gate). · commit
+  851e66a1
+- **AC-4** — `aiwf-retitle` `description:` dropped the "rename the title" trigger
+  colliding with `aiwf-rename`. · commit 851e66a1
+
+All four fixes land in one implementation commit; each is pinned by a structural
+test in `internal/policies/prose_description_polish_test.go` that reddens on the
+pre-fix content (verified red-on-old by the independent reviewer). The two ritual
+path literals in that test double as the M-0196 skill-edit backstop references for
+`aiwfx-plan-epic` and `wf-codebase-health` (`aiwfx-whiteboard` and `aiwfx-wrap-epic`
+are already referenced by their own test files).
+
+## Validation
+
+- `go test ./internal/policies/ -count=1` — green (the four `TestProsePolish_*`
+  tests plus the pre-existing `TestAiwfxWhiteboard_*` set, confirming the whiteboard
+  description edit preserved its ≥5 query phrasings).
+- `make check-fast` — exit 0 (full lint + vet + unit-test suite).
+- `aiwf check` — 0 errors (32 pre-existing advisory warnings, none from this
+  milestone; no new `skill-body-id` finding).
+
+## Reviewer notes
+
+Independent fresh-context review (code-quality lens; the design lens found no new
+design surface to rethink in a prose-only change) returned **APPROVE** with no
+blocking findings. It verified every AC test reddens on pre-fix content by
+red-on-old revert (no vacuous anchors — the M-0199 lesson held), the "above"
+cross-reference is factually correct (heading L102 precedes reference L136), no YAML
+frontmatter breakage across the three edited `description:` scalars, and full
+G-0298 scope coverage. Two non-blocking notes: the AC-1 wrap-epic reframe-token
+(`whatever's next`) and AC-4 retain-check (`correct the title`) are over-deletion
+guards rather than primary anchors — the absence assertions (`stop here` /
+`rename the title`) carry the pinning weight. No change warranted.
+
+## Deferrals
+
+None. G-0298's scope is fully addressed; the milestone leaves no deferred work.

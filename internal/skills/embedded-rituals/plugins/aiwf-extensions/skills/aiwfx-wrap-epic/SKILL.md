@@ -231,4 +231,4 @@ Version-tag cuts, the `[Unreleased]` → `[X.Y.Z]` rename, package publishing, a
 ## Next step
 
 If a release follows: → `aiwfx-release`.
-If not: → `aiwfx-plan-epic` for whatever's next, or stop here.
+If not: → `aiwfx-plan-epic` for whatever's next.

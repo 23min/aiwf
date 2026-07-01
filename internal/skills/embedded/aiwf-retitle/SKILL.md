@@ -1,6 +1,6 @@
 ---
 name: aiwf-retitle
-description: Use when the user wants to fix or change an entity's title — "the title doesn't match anymore", "fix the title", "retitle to reflect new scope", "correct the title", "rename the title", or change an AC's title inside its parent milestone. Runs `aiwf retitle` so the frontmatter mutation rides through a verb route with proper trailers, instead of a hand-edit that triggers a `provenance-untrailered-entity-commit` warning.
+description: Use when the user wants to fix or change an entity's title — "the title doesn't match anymore", "fix the title", "retitle to reflect new scope", "correct the title", or change an AC's title inside its parent milestone. Runs `aiwf retitle` so the frontmatter mutation rides through a verb route with proper trailers, instead of a hand-edit that triggers a `provenance-untrailered-entity-commit` warning.
 ---
 
 # aiwf-retitle
