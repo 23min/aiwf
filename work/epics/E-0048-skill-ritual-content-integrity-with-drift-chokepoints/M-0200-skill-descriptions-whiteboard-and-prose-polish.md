@@ -1,7 +1,7 @@
 ---
 id: M-0200
 title: Skill descriptions, whiteboard, and prose polish
-status: in_progress
+status: done
 parent: E-0048
 depends_on:
     - M-0196
