@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: aiwf-add example is self-consistent and cites sections not lines
-      status: open
+      status: met
 ---
 ## Goal
 
