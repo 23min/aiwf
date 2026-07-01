@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Chokepoint requires the trailered-commit prescription at both wrap rituals
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-2
       title: Chokepoint pins caveat and identity-rule at every ritual trailer site
       status: open
