@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Chokepoint pins caveat and identity-rule at every ritual trailer site
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
