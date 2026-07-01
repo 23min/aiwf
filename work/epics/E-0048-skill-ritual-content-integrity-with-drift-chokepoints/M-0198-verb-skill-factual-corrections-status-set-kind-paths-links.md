@@ -1,7 +1,7 @@
 ---
 id: M-0198
 title: Verb-skill factual corrections (status set, kind, paths, links)
-status: in_progress
+status: done
 parent: E-0048
 depends_on:
     - M-0197
