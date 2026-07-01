@@ -1,7 +1,7 @@
 ---
 id: M-0197
 title: Document aiwf-check finding codes + documented-superset chokepoint
-status: draft
+status: in_progress
 parent: E-0048
 depends_on:
     - M-0196
