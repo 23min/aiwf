@@ -11,7 +11,7 @@ acs:
       title: Planning and record-decision skills route body-fill through aiwf edit-body
       status: open
     - id: AC-2
-      title: aiwfx-record-decision carries the ADR-authoring no-gate-language discipline
+      title: aiwfx-record-decision carries the ADR authoring no-gate-language discipline
       status: open
     - id: AC-3
       title: Planning-ritual Next-step routing is status-aware through start-epic
@@ -24,7 +24,7 @@ acs:
 
 ### AC-1 — Planning and record-decision skills route body-fill through aiwf edit-body
 
-### AC-2 — aiwfx-record-decision carries the ADR-authoring no-gate-language discipline
+### AC-2 — aiwfx-record-decision carries the ADR authoring no-gate-language discipline
 
 ### AC-3 — Planning-ritual Next-step routing is status-aware through start-epic
 
