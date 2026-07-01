@@ -102,10 +102,21 @@ func TestWfTddCycle_RedRedundantAndForceSovereign(t *testing.T) {
 		t.Fatal("RECORD section no longer mentions --force; expected the reframed sovereign-act note")
 	}
 	rl := strings.ToLower(record)
-	for _, want := range []string{"sovereign", "human", "bypass"} {
+	// The corrected note (B1): --force is human-only / sovereign, AND the
+	// acs-tdd-audit refuses `met` regardless of --force — there is no
+	// `--force met` bypass (force relaxes only the FSM transition check,
+	// not the projection audit). NOTE: do not anchor on "regardless" alone
+	// — the RECORD section already carries an unrelated "(regardless of
+	// project framework)" bullet, so that token matches vacuously. Anchor
+	// on the human-only/sovereign framing plus a phrase that force gives no
+	// path to met — both of which appear only in the corrected force note.
+	for _, want := range []string{"sovereign", "human"} {
 		if !strings.Contains(rl, want) {
-			t.Errorf("RECORD --force note omits %q; it must frame --force as a human-only sovereign act that bypasses the TDD audit (G-0297)", want)
+			t.Errorf("RECORD --force note omits %q; --force must be framed as a human-only sovereign act (G-0297)", want)
 		}
+	}
+	if !strings.Contains(rl, "shortcut") && !strings.Contains(rl, "does not get") {
+		t.Error("RECORD --force note must state --force gives no path to `met` ahead of `done` (the acs-tdd-audit refuses regardless of --force); found neither \"shortcut\" nor \"does not get\" — the false \"--force bypasses the audit\" claim must not return (G-0297)")
 	}
 }
 
@@ -205,8 +216,11 @@ func TestWfDocLint_SecretScanPrePushCIAndCurrentGitleaks(t *testing.T) {
 	// subcommands at body scope — they are unique tokens introduced only by
 	// this section, and `gitleaks detect` is asserted absent above.
 	bl := strings.ToLower(body)
-	if !strings.Contains(bl, "gitleaks git") && !strings.Contains(bl, "gitleaks dir") {
-		t.Error("wf-doc-lint does not use the current `gitleaks git` / `gitleaks dir` subcommands (G-0294)")
+	// AC-5 documents BOTH current subcommands (history + filesystem), so
+	// require both — || fails if either is missing (a && would only fire
+	// when both are absent).
+	if !strings.Contains(bl, "gitleaks git") || !strings.Contains(bl, "gitleaks dir") {
+		t.Error("wf-doc-lint must document both current subcommands `gitleaks git` (history) and `gitleaks dir` (filesystem) (G-0294)")
 	}
 	// pre-commit must survive only as the framed non-boundary, not as a
 	// recommendation — so it appears alongside a latency/boundary framing.

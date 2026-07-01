@@ -103,7 +103,7 @@ The AC is promoted to `met` only *after* the branch-coverage audit and the vacui
       aiwf promote M-NNN/AC-<N> met
       ```
 
-      Under `tdd: required`, the kernel audit refuses `met` without `phase: done` — keep them in this order. **Do not reach for `--force` to record `met` ahead of `done`.** `--force` is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor), and recording `met` ahead of `done` **bypasses** the very TDD audit that gives the phase ladder its meaning. If a genuine exception needs it, the agent *surfaces the need to the human*; the human runs the sovereign override.
+      Under `tdd: required`, the `acs-tdd-audit` refuses `met` while `tdd_phase` is not `done` — and **`--force` does not get you around it.** Force relaxes only the status/phase FSM *transition* check; the audit runs as a projection finding **regardless of `--force`**, so there is no `--force met` shortcut. Keep the order: reach `--phase done` first, then `met`. `--force` itself is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor) — if you think an exception genuinely needs it, the honest lever is fixing the *phase* (or reconsidering the milestone's `tdd:` setting), not forcing the *status*; surface that to the human rather than reaching for `--force met` yourself.
     - Append a Work log entry under the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`.
     - The kernel records the phase + status timeline via `aiwf history M-NNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
 - If the project doesn't use aiwf:
