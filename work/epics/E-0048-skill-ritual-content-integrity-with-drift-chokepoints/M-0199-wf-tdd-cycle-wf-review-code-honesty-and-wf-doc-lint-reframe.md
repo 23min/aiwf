@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: wf-tdd-cycle drops idempotent misuse and reframes force as sovereign
-      status: open
+      status: met
     - id: AC-3
       title: branch-coverage audit framed as agent-performed in both skills
       status: open
