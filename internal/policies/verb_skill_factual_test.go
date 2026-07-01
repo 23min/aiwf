@@ -56,6 +56,13 @@ func headingLevel(ln string) int {
 // headingSub up to (not including) the next heading of the same-or-
 // shallower level. Scopes an assertion to one section so a fact in an
 // unrelated section (e.g. an FSM diagram elsewhere) doesn't satisfy it.
+//
+// Caveat: it is NOT markdown-code-fence-aware — a `#`-prefixed comment
+// line inside a ```bash block reads as a heading and truncates the
+// returned section early. When a section-scoped assertion must reach
+// content that sits after a fenced block containing `#` comments, assert
+// that (uniquely-named) content at body scope instead (see
+// TestWfDocLint_SecretScanPrePushCIAndCurrentGitleaks).
 func sectionUnder(body, headingSub string) string {
 	lines := strings.Split(body, "\n")
 	start, level := -1, 0

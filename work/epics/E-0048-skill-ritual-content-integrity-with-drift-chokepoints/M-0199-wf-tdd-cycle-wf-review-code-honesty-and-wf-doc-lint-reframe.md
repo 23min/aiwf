@@ -1,7 +1,7 @@
 ---
 id: M-0199
 title: wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe
-status: in_progress
+status: done
 parent: E-0048
 depends_on:
     - M-0196
@@ -9,19 +9,19 @@ tdd: advisory
 acs:
     - id: AC-1
       title: wf-tdd-cycle records met after the coverage audit and vacuity check
-      status: open
+      status: met
     - id: AC-2
       title: wf-tdd-cycle drops idempotent misuse and reframes force as sovereign
-      status: open
+      status: met
     - id: AC-3
       title: branch-coverage audit framed as agent-performed in both skills
-      status: open
+      status: met
     - id: AC-4
       title: wf-doc-lint separates repo-wide path-leak scan from four doc heuristics
-      status: open
+      status: met
     - id: AC-5
       title: wf-doc-lint secret-scan advice is pre-push plus CI with current gitleaks
-      status: open
+      status: met
 ---
 ## Goal
 
@@ -41,8 +41,11 @@ human) reading them for authoritative guidance is misled:
   walk is what actually supplies branch-level assurance.
 - **`wf-tdd-cycle` steers the implementing agent toward `--force`.** Its RECORD
   step offers `--force --reason` as a routine way to record `met` ahead of `done`.
-  But `--force` is a sovereign, human-only act, and recording `met` ahead of `done`
-  bypasses the TDD audit that gives the phase ladder its meaning.
+  But `--force` is a sovereign, human-only act — and (corrected mid-milestone, see
+  Decisions) it does **not** let you record `met` ahead of `done` at all: the
+  `acs-tdd-audit` is an unconditional projection gate that refuses `met` while
+  `tdd_phase != done` regardless of `--force`. The skill must not point the agent
+  at a shortcut that does not exist.
 - **`wf-tdd-cycle` misuses "idempotent."** The RED step calls re-running the
   phase-seed "idempotent" while noting the FSM *refuses* `red → red`. A step the FSM
   refuses errors on re-run — the opposite of idempotent; it is redundant, and the
@@ -89,13 +92,18 @@ Two honesty corrections in `wf-tdd-cycle` (G-0297):
 - The RED phase-seed no longer calls re-running the `--phase red` promote
   "idempotent"; it names it **redundant** — the FSM refuses `red → red`, so the step
   is *skipped* when the AC was already seeded at `red`.
-- The RECORD step reframes the `--force met` escape hatch as a **human-only
-  sovereign** act that **bypasses the TDD audit** — not a routine move the
-  implementing agent (often non-human, which the kernel refuses) reaches for.
+- The RECORD step reframes the `--force met` line. `--force` is a **human-only
+  sovereign** act, and (corrected under review — see Decisions) the step now states
+  the truth: `--force` does **not** get you `met` ahead of `done`, because the
+  `acs-tdd-audit` runs as an unconditional projection finding regardless of
+  `--force` — there is no `--force met` shortcut. The honest lever is fixing the
+  *phase*, not forcing the *status*.
 
-Test: a structural test asserts the RED phase-seed prose contains "redundant" and no
-longer contains "idempotent"; and that the `--force` passage frames it as
-human-only / sovereign and states it bypasses the audit.
+Test: `TestWfTddCycle_RedRedundantAndForceSovereign` asserts the RED phase-seed
+prose contains "redundant" and no longer contains "idempotent"; and that the
+`--force` passage frames it as human-only / sovereign **and** states there is no
+`--force met` shortcut (audit refuses regardless of force) — the anchor is a phrase
+that only the corrected note carries, verified red on the pre-fix content.
 
 ### AC-3 — branch-coverage audit framed as agent-performed in both skills
 
@@ -137,27 +145,101 @@ The deprecated `gitleaks detect` invocation and the pre-commit-hook recommendati
 are gone (G-0294 facets 1/2).
 
 Test: a structural test asserts the section mentions a pre-push hook and a CI job,
-mentions `gitleaks git` and/or `gitleaks dir`, and contains neither `gitleaks detect`
-nor a recommendation to run the scan as a pre-commit hook.
+requires **both** `gitleaks git` and `gitleaks dir`, and asserts the body contains
+neither `gitleaks detect` nor a recommendation to run the scan as a pre-commit hook.
 
 ## Work log
 
 tdd: advisory — no per-AC phase timeline; this log records the final outcome per AC.
 
 ### AC-1 — wf-tdd-cycle records met after the coverage audit and vacuity check
+RECORD moved out of `## The cycle` to a top-level section after the branch-coverage
+audit and vacuity check. Pinned by `TestWfTddCycle_RecordFollowsEvidence` (heading
+order). commit a232ba75.
 
 ### AC-2 — wf-tdd-cycle drops idempotent misuse and reframes force as sovereign
+RED: "idempotent" → "redundant" (FSM refuses `red → red`). RECORD: `--force met`
+note corrected — first landed with the inverted "bypasses the audit" claim
+(a232ba75), then corrected under review to the measured truth (no `--force met`
+shortcut; audit refuses regardless of force) in cc949954. Pinned by
+`TestWfTddCycle_RedRedundantAndForceSovereign`.
 
 ### AC-3 — branch-coverage audit framed as agent-performed in both skills
+Added the agent-performed / statement-level framing to `wf-tdd-cycle`'s audit
+section and `wf-review-code`'s Tests branch-coverage bullet. Pinned by
+`TestBranchCoverageAudit_FramedAgentPerformed` (both skills). commit a232ba75.
 
 ### AC-4 — wf-doc-lint separates repo-wide path-leak scan from four doc heuristics
+Removed the `### 5` path-leak heuristic; added a distinct `## Related: repo-wide …`
+section; scoped the block-on-zero anti-pattern to the four heuristics. Pinned by
+`TestWfDocLint_FourHeuristicsPlusStandaloneScan`. commit a232ba75.
 
 ### AC-5 — wf-doc-lint secret-scan advice is pre-push plus CI with current gitleaks
+Standalone-scan section recommends pre-push + CI with `gitleaks git` / `gitleaks
+dir`; deprecated `gitleaks detect` and the pre-commit recommendation gone. Pinned by
+`TestWfDocLint_SecretScanPrePushCIAndCurrentGitleaks`; assertion tightened to
+require both subcommands in cc949954. commit a232ba75.
 
 ## Decisions made during implementation
 
+- **B1 (review-blocking, corrected): `--force` does not bypass the `acs-tdd-audit`.**
+  The initial `--force met` reframe — and G-0297's own premise, and the pre-existing
+  skill text — all assumed recording `met` ahead of `done` "bypasses the TDD audit."
+  The independent reviewer measured otherwise, and I confirmed it against kernel
+  source: `promoteAC` guards only the FSM transition with `if !force`, then
+  `finalizeACPlan` runs the projection findings **unconditionally**, so the
+  error-severity `acs-tdd-audit` refuses `met` under `tdd: required` with `--force`
+  or without. There is no `--force met` shortcut. Corrected the skill note, the AC-2
+  body, and the Goal bullet to the measured behavior (audit refuses regardless of
+  force; the honest lever is fixing the phase). commit cc949954.
+- **AC-2 test anchor re-pointed (self-caught vacuity).** The corrected assertion
+  first anchored on "regardless", which collided with an unrelated
+  "regardless of project framework" bullet in the same section — the test passed on
+  the *bad* content. Re-pointed to the sovereign/human framing plus an explicit
+  "no `--force met` shortcut" anchor that only the corrected note carries; verified
+  red on the pre-fix content. commit cc949954.
+- **`--force` boundary is a broader kernel concern → filed separately.** The
+  two-tier `--force` semantics (overrides FSM/preconditions, never the projection
+  error-gate) is undocumented and adjacent kernel guards diverge; captured as gaps
+  (see Reviewer notes), not folded into this ritual-content milestone.
+
+No `aiwfx-record-decision` ADRs were needed — these are scoping / correction choices
+within the milestone.
+
 ## Validation
+
+- `make check-fast` (build / vet / lint / full suite) — green, on both the impl
+  commit and the corrective commit.
+- 5 structural tests green; each verified **red on the pre-fix content** during TDD
+  (and AC-2 re-verified red on the intermediate inverted content).
+- Diff-scoped coverage — no exposure: all changes are `_test.go` (not
+  coverage-instrumented) or markdown.
+- `skill-body-id` — green (no real entity ids in the shipped skill bodies; `M-NNN`
+  / `AC-<N>` placeholders only).
+- `skill-edit-structural-test-backstop` — satisfied: all three edited ritual skill
+  paths are referenced by `internal/policies/wf_ritual_honesty_test.go`.
 
 ## Deferrals
 
+None deferred from M-0199's own scope. (Three *adjacent* kernel gaps surfaced during
+the `--force` investigation and were filed independently — see Reviewer notes — but
+they are not deferred M-0199 work.)
+
 ## Reviewer notes
+
+- **Independent adversarial review: request-changes → corrected → approve.** The
+  reviewer verified every load-bearing claim by measurement (heading order,
+  idempotent→redundant, the agent-performed/statement-level reframe, the whole
+  doc-lint restructure) and confirmed all five tests genuinely redden on the pre-fix
+  content, with no real-id leak. One blocking finding, **B1** (the `--force`/bypass
+  inaccuracy), was fixed and mechanically re-verified (red-on-old, green-on-new,
+  `make check-fast` clean) — see Decisions. Two non-blocking items were addressed
+  inline: the doc-lint gitleaks assertion now requires both subcommands, and
+  `sectionUnder`'s code-fence-unawareness is documented.
+- **Adjacent kernel findings (NOT M-0199 scope) filed as gaps** on the epic branch
+  during the `--force` discussion: `G-0333` (the `--force` override boundary is
+  undocumented + audit finding-hints that cite force), `G-0334` (a milestone can
+  traverse `draft → in_progress → done` carrying zero acceptance criteria — the
+  AC-evidence discipline is vacuous for a zero-AC milestone), and `G-0335`
+  (`aiwf promote <M> cancelled` bypasses the open-AC guard that `aiwf cancel`
+  enforces). Each carries a traced + reproduced record and a direction-with-options.

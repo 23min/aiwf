@@ -29,7 +29,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
   aiwf promote M-NNN/AC-<N> --phase red
   ```
 
-  When `aiwf add ac` was called against a `tdd: required` milestone, the AC was already seeded at `red`; this step is idempotent and the FSM will refuse `red → red`. Skip it in that case.
+  When `aiwf add ac` was called against a `tdd: required` milestone, the AC was already seeded at `red`; **skip this step** in that case — re-running it is redundant. The FSM *refuses* `red → red`, and a refusal is an error you would have to work around, not a silent no-op, so don't re-run it expecting nothing to happen.
 
 ### GREEN — Make it pass with the minimum code
 
@@ -57,33 +57,11 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 
   This step is optional — `green → done` is legal under the FSM. Use it when the refactor pass meaningfully reshaped the code.
 
-### RECORD — Update where progress lives
-
-- If the project uses aiwf:
-    - Advance the AC's `tdd_phase` to `done`:
-
-      ```bash
-      aiwf promote M-NNN/AC-<N> --phase done
-      ```
-
-    - Mark the acceptance criterion `met`:
-
-      ```bash
-      aiwf promote M-NNN/AC-<N> met
-      ```
-
-      Under `tdd: required`, the kernel audit refuses `met` without `phase: done` — keep them in this order, OR use `--force --reason "..."` if you genuinely need to record `met` ahead of `done` (rare).
-    - Append a Work log entry under the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`.
-    - The kernel records the phase + status timeline via `aiwf history M-NNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
-- If the project doesn't use aiwf:
-    - Mark the acceptance criterion done in whatever the project uses to track AC progress (an issue, a checklist).
-    - Note any decisions or deviations made mid-cycle.
-- Note any decisions or deviations made mid-cycle (regardless of project framework).
-- If the project has no AC-tracking habit, skip — don't invent one.
-
 ## Branch-coverage audit (HARD RULE — runs before declaring done)
 
 Before declaring this cycle complete, you walk every reachable conditional branch in the diff and confirm an explicit test exercises each side. **Saying "every branch covered" without performing the audit is the failure mode this rule exists to prevent.**
+
+This audit is **agent-performed** — a manual branch-walk, not a tool invocation. A project's mechanical coverage gate is typically **statement**-level: it records that a basic block *ran*, not which arm of an `if`/`switch` was taken. So "hard rule" here means *you must perform this walk*, not *a tool enforces it at branch granularity* — where the mechanical gate stops at statements, this manual walk is what supplies the branch-level assurance. Don't read "hard rule" as "something else will catch me if I skip it."
 
 ### How to audit
 
@@ -107,6 +85,32 @@ Branch coverage proves each line *ran*; it does not prove an assertion would *ca
 - **The invocation is mandatory; the output is advisory.** A surviving mutant or a weak-assertion finding routes back into this cycle as a fresh RED → GREEN — strengthen the assertion, then confirm it goes red on the mutant — or, if you judge it out of scope, it is surfaced at the calling skill's commit gate for the human to weigh. It is *not* an automatic block: the assertion-shape probe is LLM-judged and cannot be a hard gate (a gating mutation-testing step is a separate, mechanical concern).
 
 Skipping the invocation because "the tests look fine" is the failure mode this step exists to prevent — the same shape as declaring branch coverage without performing the audit.
+
+## RECORD — record progress (after the evidence)
+
+The AC is promoted to `met` only *after* the branch-coverage audit and the vacuity check above have run. `met` is the "this AC is done" judgment; it sits after the evidence that substantiates it, never before — a judgment recorded before its evidence is a vacuous gate.
+
+- If the project uses aiwf:
+    - Advance the AC's `tdd_phase` to `done`:
+
+      ```bash
+      aiwf promote M-NNN/AC-<N> --phase done
+      ```
+
+    - Mark the acceptance criterion `met`:
+
+      ```bash
+      aiwf promote M-NNN/AC-<N> met
+      ```
+
+      Under `tdd: required`, the `acs-tdd-audit` refuses `met` while `tdd_phase` is not `done` — and **`--force` does not get you around it.** Force relaxes only the status/phase FSM *transition* check; the audit runs as a projection finding **regardless of `--force`**, so there is no `--force met` shortcut. Keep the order: reach `--phase done` first, then `met`. `--force` itself is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor) — if you think an exception genuinely needs it, the honest lever is fixing the *phase* (or reconsidering the milestone's `tdd:` setting), not forcing the *status*; surface that to the human rather than reaching for `--force met` yourself.
+    - Append a Work log entry under the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`.
+    - The kernel records the phase + status timeline via `aiwf history M-NNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
+- If the project doesn't use aiwf:
+    - Mark the acceptance criterion done in whatever the project uses to track AC progress (an issue, a checklist).
+    - Note any decisions or deviations made mid-cycle.
+- Note any decisions or deviations made mid-cycle (regardless of project framework).
+- If the project has no AC-tracking habit, skip — don't invent one.
 
 ## Anti-patterns
 
