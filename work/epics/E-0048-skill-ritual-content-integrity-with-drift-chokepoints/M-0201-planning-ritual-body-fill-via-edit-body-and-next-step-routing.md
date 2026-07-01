@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Planning-ritual Next-step routing is status-aware through start-epic
-      status: open
+      status: met
 ---
 ## Goal
 
