@@ -4,6 +4,23 @@ title: Path-scoped single-entity history with bloom-filter maintenance
 status: draft
 parent: E-0054
 tdd: required
+acs:
+    - id: AC-1
+      title: single-entity history resolves via path-scoped git log over the entity path set
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf update maintains changed-path bloom filters idempotently
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: path-scoped history equals trailer-grep history including renamed entities
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: measured single-entity history wall-time delta recorded in Validation
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -28,3 +45,12 @@ the explicit path set rather than rely on `--follow` heuristics.
   the common object store — safe by construction; stale only ever means slower.
 - Grep-fallback stays as the correctness oracle: path-scoped result must equal the
   trailer-grep result, including for renamed/archived entities.
+
+### AC-1 — single-entity history resolves via path-scoped git log over the entity path set
+
+### AC-2 — aiwf update maintains changed-path bloom filters idempotently
+
+### AC-3 — path-scoped history equals trailer-grep history including renamed entities
+
+### AC-4 — measured single-entity history wall-time delta recorded in Validation
+
