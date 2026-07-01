@@ -95,3 +95,78 @@ twin gap). **Test:** a section-scoped assertion (over `## Next step`) that
 plan-milestones names both `aiwfx-start-epic` and the proposed/active condition — no
 longer an unconditional `start-milestone` pointer — and that plan-epic's `## Next
 step` names `aiwfx-start-epic`.
+
+## Work log
+
+### AC-1 — body-fill routes through aiwf edit-body
+
+`aiwfx-plan-epic` step 5 and `aiwfx-plan-milestones` step 5 gained an `aiwf edit-body`
+route for the template body fill; `aiwfx-record-decision` step 7 was reframed from a
+plain `git commit -m "docs(adr): ..."` to `aiwf edit-body` (bless mode), dropping the
+untrailered route; plan-epic's "does not commit the body fill" bullet was reframed to
+"does not merge to main." · commit f81a140d
+
+### AC-2 — ADR authoring discipline
+
+`aiwfx-record-decision` step 3 gained an "ADR authoring discipline" note citing
+CLAUDE.md §"Authoring an ADR" — *decision is decision*, no gate/schedule language in
+the ADR body. · commit f81a140d
+
+### AC-3 — status-aware Next-step routing
+
+`aiwfx-plan-milestones` `## Next step` became a two-case, status-aware fork
+(`aiwfx-start-epic` for a `proposed` epic; `aiwfx-start-milestone` for an `active`
+one); the same leapfrog in `aiwfx-plan-epic`'s `## Next step` was corrected inline. ·
+commit f81a140d
+
+Review-response hardening (branch-coverage self-sufficiency for `findNumberedStep`,
+a symmetric AC-3 assertion pinning both halves of G-0248's contract, and an
+`aiwf edit-body --body-file` footgun note) landed as commit 72f38842.
+
+## Decisions made during implementation
+
+No ADR/decision entity was warranted. One empirically-verified fact shaped the
+`aiwfx-record-decision` guidance: `aiwf edit-body` **bless mode refuses** a working
+copy with frontmatter changes, but **`--body-file` mode preserves** the working-copy
+frontmatter (e.g. a `supersedes:` cross-reference) while taking the body from the
+draft file. So the frontmatter-cross-ref path routes through `--body-file`. Verified
+against the real verb and reproduced independently by the reviewer; mechanism in
+`internal/verb/editbody.go`.
+
+## Validation
+
+- `go test ./internal/policies/ -count=1` — green (the four M-0201 AC/helper tests
+  plus the full package).
+- `make check-fast` — exit 0 (full lint + vet + unit suite).
+- `aiwf check` via a branch-accurate diag binary (built from this branch, including
+  the G-0299 `skill-body-id` rule) — **0 errors**; no `skill-body-id` finding on the
+  edited skills; the skill-edit backstop is satisfied for all three edited skills.
+- Empirical verification of the `--body-file` frontmatter-preservation claim against
+  the real verb (bless refuses; `--body-file` retains `supersedes:` in a trailered
+  commit).
+
+## Reviewer notes
+
+Independent fresh-context review (code-quality lens; the change introduced no new
+module/abstraction/data model, so `wf-rethink` had no design surface) returned
+**APPROVE**. It verified all four AC tests redden on pre-fix content by revert-and-test,
+confirmed the plan-milestones AC-1 assertion is step-5-scoped and therefore
+non-vacuous (old content named `aiwf edit-body` only in step 6, and the step-5-scoped
+test failed on it), independently reproduced the `--body-file` frontmatter claim
+against the verb, and confirmed skill coherence, `skill-body-id` cleanliness, backstop
+satisfaction, and full G-0300 / G-0248 / G-0331 scope. Its three non-blocking findings
+were all addressed inline in commit 72f38842: (1) the `findNumberedStep`
+branch-coverage test was made self-sufficient for the second-loop fence-skip branch;
+(2) the AC-3 plan-milestones assertion now pins both halves of G-0248's two-case
+contract; (3) a `--body-file` footgun note (the draft file supplies the body, not the
+in-place step-3 edit).
+
+## Deferrals
+
+None. G-0300, G-0248, and G-0331 are fully addressed. Per this epic's convention,
+the source gaps stay `open` until the E-0048 wrap sweep. G-0331 is closed as a
+consequence — `aiwfx-record-decision` now carries a referencing structural test
+(`internal/policies/aiwfx_record_decision_test.go`), clearing the M-0196 skill-edit
+backstop for it; the plan-epic half was already cleared by M-0200. Verified at
+implementation time (per G-0300's scope note) that no pre-existing gap already
+covered the edit-body routing.
