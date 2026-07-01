@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Every emitted finding code is documented in the aiwf-check skill
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A documented-superset chokepoint binds the skill to the emission sites
       status: open
