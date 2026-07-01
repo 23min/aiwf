@@ -343,11 +343,14 @@ func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
 // citation must be co-located with the prescription so the operator
 // sees them together):
 //
-//   - docs/pocv3/plans/acs-and-tdd-plan.md:22 — the "prose is not
+//   - docs/pocv3/plans/acs-and-tdd-plan.md — the "prose is not
 //     parsed" line and the AC body-shape recommendation.
-//   - docs/pocv3/design/design-decisions.md:139 — the broader
+//   - docs/pocv3/design/design-decisions.md — the broader
 //     "tree carries semantic detail in prose, not in structure"
 //     stance.
+//
+// Citations are de-pinned (doc path, no `:line` anchor) per
+// M-0198 / G-0301: pinned line numbers rot as the docs change.
 //
 // Both literal paths must be present; both must be inside the
 // `## After aiwf add <kind>: fill in the body` section. Substring
@@ -378,13 +381,19 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 		t.Fatal("AC-2 prerequisite: body-prose subsection missing — AC-1 must land first")
 	}
 
+	// Citations are de-pinned (stable doc path, not a `:line` anchor)
+	// per M-0198 / G-0301 — pinned line numbers rot as the docs change;
+	// the doc-path reference preserves traceability without the fragility.
 	citations := []string{
-		"docs/pocv3/plans/acs-and-tdd-plan.md:22",
-		"docs/pocv3/design/design-decisions.md:139",
+		"docs/pocv3/plans/acs-and-tdd-plan.md",
+		"docs/pocv3/design/design-decisions.md",
 	}
 	for _, c := range citations {
 		if !strings.Contains(tail, c) {
 			t.Errorf("AC-2: citation %q missing from the body-prose subsection", c)
+		}
+		if strings.Contains(tail, c+":") {
+			t.Errorf("AC-2: citation %q still carries a fragile pinned-line anchor (M-0198/G-0301)", c)
 		}
 	}
 }

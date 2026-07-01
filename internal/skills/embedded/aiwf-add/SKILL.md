@@ -164,7 +164,7 @@ in `cmd/aiwf/add_cmd_test.go`.
 ## What's missing
 
 `aiwf add gap` accepts `--discovered-in <id>` but does not validate
-that the referenced entity exists. A typo (`M-007` for `M-007`) lands
+that the referenced entity exists. A typo (`M-008` for `M-007`) lands
 silently; only `aiwf check` catches it later, and only as a
 `refs-resolve/unresolved` warning rather than at the point of intent.
 
@@ -177,7 +177,7 @@ and the operator has to repair the gap separately later — exactly
 the failure class the verb-time projection check exists to prevent.
 ```
 
-Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (per `docs/pocv3/plans/acs-and-tdd-plan.md:22` and `docs/pocv3/design/design-decisions.md:139`) treats body content as the spec; the title is a label, not a substitute.
+Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (see `docs/pocv3/plans/acs-and-tdd-plan.md` and `docs/pocv3/design/design-decisions.md`) treats body content as the spec; the title is a label, not a substitute.
 
 ## Provenance flags
 

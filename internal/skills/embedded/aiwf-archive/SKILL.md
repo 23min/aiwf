@@ -33,7 +33,7 @@ aiwf archive --dry-run
 aiwf archive --apply
 
 # Scope the sweep to one kind. Useful when one kind is the volume
-# offender (typically gaps or findings).
+# offender (typically gaps or decisions).
 aiwf archive --apply --kind gap
 ```
 

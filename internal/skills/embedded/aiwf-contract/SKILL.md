@@ -204,7 +204,7 @@ This is the right answer when:
 
 ### "How do I add my own recipe to the engine?"
 
-Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `tools/internal/recipe/embedded/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
+Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `internal/recipe/embedded/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
 
 ### "I already have a contract-verification setup — adopt me into aiwf"
 
@@ -214,7 +214,7 @@ For the engine's current state, do migration in two phases: first land the contr
 
 ### "Cancel a contract entirely"
 
-`aiwf cancel C-NNNN` moves the entity from `proposed` or `accepted` to `rejected`. The contract is no longer verified (terminal-status skip). Schema files and fixtures are not deleted — cancellation is a status change. To remove the binding row from `aiwf.yaml.contracts.entries[]`, run `aiwf contract unbind C-NNNN` separately.
+`aiwf cancel C-NNNN` moves the entity to a terminal status: from `proposed` or `accepted` to `rejected`, or from `deprecated` to `retired`. The contract is no longer verified (terminal-status skip). Schema files and fixtures are not deleted — cancellation is a status change. To remove the binding row from `aiwf.yaml.contracts.entries[]`, run `aiwf contract unbind C-NNNN` separately.
 
 If the user wants to delete schema files, that's a separate manual step; aiwf does not delete user files.
 
