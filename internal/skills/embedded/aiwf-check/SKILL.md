@@ -76,7 +76,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `environment` | Validator binary not on PATH. | Install it (see the recipe's install instructions) or fix `command:` in `aiwf.yaml`. |
 | `acs-shape/id` | An AC's id doesn't match `AC-N` or doesn't follow the per-milestone `1..max` ordering. | Fix the id in the milestone's `acs[]` list. |
 | `acs-shape/title` | An AC's title is missing or whitespace-only. | Fill in the title. |
-| `acs-shape/status` | An AC's status is not in `{open, met, cancelled}`. | Use one of the three statuses. |
+| `acs-shape/status` | An AC's status is not in `{open, met, deferred, cancelled}`. | Use one of the four statuses (`deferred` is a live terminal AC state). |
 | `acs-shape/tdd-phase` | An AC's `tdd_phase` is set on a milestone that is not `tdd: required`, OR it's set to a value not in `{red, green, refactor, done}`. | Either set the milestone to `tdd: required`, remove the field from the AC, or fix the phase value. |
 | `acs-shape/tdd-policy` | An AC at `tdd_phase: done` is in a milestone that is not `tdd: required`. | Either flip the milestone to `tdd: required` or remove the `tdd_phase` field. |
 | `acs-body-coherence/missing-heading` | The frontmatter `acs[]` lists an AC, but the body has no `### AC-N — <title>` heading for it. | Run `aiwf add ac` (which scaffolds the heading), or hand-edit the body to add it. |

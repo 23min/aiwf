@@ -603,7 +603,7 @@ pre-push where the check can live there, CI at the latest.
 | M-0195 | Strict skill-body id-reference discipline, check, and full sweep | done |
 | M-0196 | Skill-edit structural-test backstop policy | done |
 | M-0197 | Document aiwf-check finding codes + documented-superset chokepoint | done |
-| M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | draft |
+| M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | done |
 | M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | draft |
 | M-0200 | Skill descriptions, whiteboard, and prose polish | draft |
 | M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |

@@ -28,7 +28,7 @@ The verb **requires a human actor**. `aiwf authorize` invoked by an agent refuse
 
 ## Tool vs. agent
 
-The provenance model (see [`docs/pocv3/design/provenance-model.md`](../../docs/pocv3/design/provenance-model.md)) distinguishes two modes for non-human operators:
+The provenance model (see [`docs/pocv3/design/provenance-model.md`](../../../../docs/pocv3/design/provenance-model.md)) distinguishes two modes for non-human operators:
 
 - **Tool mode (HITL).** The human is in the conversation, dictating changes. The assistant is a tool; verbs run with `--actor ai/<id> --principal human/<id>` (or just `--actor human/<id>` if the assistant is invoking on the human's behalf). No scope, no `aiwf-authorized-by:` trailer. The trailer set is `aiwf-actor:` + `aiwf-principal:` only.
 
