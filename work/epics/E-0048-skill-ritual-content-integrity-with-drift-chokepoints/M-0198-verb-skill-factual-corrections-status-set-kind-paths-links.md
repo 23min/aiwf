@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: aiwf-archive drops findings as an archivable kind
-      status: open
+      status: met
     - id: AC-3
       title: aiwf-contract cites the real recipe path and complete cancel FSM
       status: open
