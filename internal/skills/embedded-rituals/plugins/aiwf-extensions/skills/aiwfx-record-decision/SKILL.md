@@ -60,6 +60,8 @@ For an ADR: read this plugin's `templates/adr.md`. Fill in:
 - **Consequences** — positive and negative; follow-up work; migration cost.
 - **Validation (optional)** — how we'll know it still holds.
 
+**ADR authoring discipline** (CLAUDE.md §"Authoring an ADR"). *Decision is decision.* Record *what* was chosen and *why*, never *when* to act on it. Keep gate/schedule language out of the ADR body — no "ratify after X", no "status stays proposed through Y", no "accept once the epic closes." Whether the decision is in force is the `status:` field (`proposed` → `accepted`); *when to act on it* is a planning concern that lives in the planning surface, not the ADR prose.
+
 For a D-NNNN: read this plugin's `templates/decision.md`. Fill in:
 
 - **Status** — same vocabulary.
@@ -85,9 +87,9 @@ The canonical timestamp and actor are also recoverable from git via `aiwf histor
 aiwf core only validates these frontmatter fields on ADR / D-NNNN entries: `id`, `title`, `status`, plus the cross-reference fields. Set the cross-references when relevant:
 
 - For an ADR that supersedes another: set `supersedes: [ADR-NNNN]`. **Then edit the superseded ADR** to set `superseded_by: ADR-NEW` and promote it to `superseded` via `aiwf promote`.
-- For a D-NNNN tied to specific work: set `relates_to: [E-NN, M-NNN]` so cross-references resolve.
+- For a D-NNNN tied to specific work: set `relates_to: [E-NN, M-NNN]` so cross-references resolve. A decision's `relates_to` can alternatively be set at allocation — `aiwf add decision --relates-to <ids>` (step 2) — which lands it in the scaffold commit and keeps step 7 a body-only bless.
 
-Skip both if no cross-references apply.
+Skip both if no cross-references apply. These are **frontmatter** edits, not body content: `aiwf edit-body` is body-only, so when you set one here, land the body fill with `aiwf edit-body <id> --body-file <draft>` at step 7 (bless mode refuses a working copy with pending frontmatter changes).
 
 ### 6. Validate
 
@@ -97,16 +99,25 @@ aiwf check
 
 Catches things like a misnamed reference, an out-of-set status, or a broken supersession chain.
 
-### 7. Commit the body fill
+### 7. Land the body fill via `aiwf edit-body`
 
-The `aiwf add` already produced one commit (the scaffold). The body fill is a second commit:
+The `aiwf add` already produced one commit (the scaffold). Land the filled-in body as a second, **trailered** commit through the `aiwf edit-body` verb — never a plain `git commit`, which lands without the `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers and trips the kernel's `provenance-untrailered-entity-commit` finding on every recorded decision:
 
 ```bash
-git add docs/adr/ADR-NNNN-<slug>.md     # or work/decisions/D-NNNN-<slug>.md
-git commit -m "docs(adr): ADR-NNNN — <title>"
+aiwf edit-body ADR-NNNN     # bless mode: commits the in-place body edit with trailers
+# or, for a project-scoped decision:
+aiwf edit-body D-NNNN
 ```
 
-The two-commit shape is intentional: the first commit is "id allocated"; the second is "decision authored." `aiwf history ADR-NNNN` shows both.
+You edited the body in place at step 3; `aiwf edit-body <id>` (bless mode) commits those working-copy bytes with the provenance trailers in one atomic operation. The two-commit shape is intentional: the first commit ("id allocated") is the `aiwf add` scaffold; the second ("decision authored") is this `aiwf edit-body` body fill. `aiwf history ADR-NNNN` shows both.
+
+**If you set frontmatter cross-references at step 5**, bless mode refuses (it is body-only, and the working copy now has a frontmatter diff). Land the body with `--body-file` instead — it pairs the working-copy frontmatter (cross-references and all) with the new body in one trailered commit:
+
+```bash
+aiwf edit-body ADR-NNNN --body-file <draft>
+```
+
+`--body-file` takes the body from `<draft>`, **not** your in-place step-3 edit — put the filled-in body in the draft file so you don't commit an empty or stale body. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
 
 ### 8. Mirror the id back to the caller's context
 

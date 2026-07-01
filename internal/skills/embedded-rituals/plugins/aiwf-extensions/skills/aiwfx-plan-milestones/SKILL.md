@@ -48,6 +48,14 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    Frontmatter (`id`, `parent`, `status: draft`) was set by `aiwf add` — don't touch.
 
+   Land each filled-in body through the trailered verb, not a plain `git commit`:
+
+   ```bash
+   aiwf edit-body M-NNNN     # bless mode: commits the in-place body edit with aiwf-verb / -entity / -actor trailers
+   ```
+
+   `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against a milestone spec would trip the kernel's `provenance-untrailered-entity-commit` finding — the same finding step 6 warns about for `depends_on` edits. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
+
 6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
 
    ```bash
@@ -107,4 +115,9 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
 ## Next step
 
-→ `aiwfx-start-milestone <M-NNNN>` for the first milestone in the sequence. Run after the planning commits have landed on main (per step 10) so subsequent implementation branches can fork cleanly from main rather than stacking on the ritual branch.
+Status-aware — the right next skill depends on the parent epic's status:
+
+- **Epic still `proposed`** (the first-time `plan-epic` → `plan-milestones` flow): → `aiwfx-start-epic E-NNNN`. It performs the sovereign `proposed → active` promote and cuts the `epic/E-NNNN-<slug>` branch that milestone branches fork from — the step `aiwfx-start-milestone` requires to have run first.
+- **Epic already `active`** (re-planning or adding milestones mid-epic): → `aiwfx-start-milestone <M-NNNN>` for the first drafted milestone.
+
+Either way, run this only after the planning commits have landed on main (per step 10) so implementation branches fork cleanly from main rather than stacking on the ritual branch.
