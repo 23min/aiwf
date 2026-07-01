@@ -49,6 +49,14 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    Keep frontmatter (`id:`, `status:`) untouched — `aiwf add` set those correctly. The spec's body is where the planning conversation lives.
 
+   Land the filled-in body through the trailered verb, not a plain `git commit`:
+
+   ```bash
+   aiwf edit-body E-NN     # bless mode: commits the in-place body edit with aiwf-verb / -entity / -actor trailers
+   ```
+
+   `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against the spec would trip the kernel's `provenance-untrailered-entity-commit` finding. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
+
 6. **Use reference-phrasing for list-derived counts.** When success criteria reference a list defined elsewhere in the spec, phrase as a reference, not a count. *"Every ADR listed in the *ADRs produced* table is merged"* not *"all 16 ADRs merged"*. Counts drift; references don't.
 
 7. **Update `ROADMAP.md`** by running:
@@ -65,7 +73,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
 - Does not promote the epic to `active`. The epic stays `proposed` until milestones are planned and work begins. Use `aiwf promote E-NN active` when ready.
 - Does not break the epic into milestones. That's `aiwfx-plan-milestones`.
-- Does not commit the body fill — the body edit happens in the working tree; the user commits when the spec is ready (or runs `aiwfx-plan-milestones` next which produces its own commit).
+- Does not merge the planning commits to main — the body fill lands via `aiwf edit-body` as one trailered commit on the ritual branch (step 5); merging those commits to main is the separate *Closing the planning session* step.
 
 ## Anti-patterns
 
@@ -98,4 +106,4 @@ When the operator declines, capture the one-line reason in the conversation tran
 
 ## Next step
 
-→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main if planning is complete for now. Run `aiwfx-start-milestone <M-NNNN>` only after the planning commits have landed on main.
+→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main if planning is complete for now. Once milestones are planned, `aiwfx-start-epic E-NN` performs the sovereign `proposed → active` promote and cuts the epic branch; `aiwfx-start-milestone <M-NNNN>` runs after that, only once the planning commits have landed on main.
