@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: wf-doc-lint secret-scan advice is pre-push plus CI with current gitleaks
-      status: open
+      status: met
 ---
 ## Goal
 
