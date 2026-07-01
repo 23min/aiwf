@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Planning and record-decision skills route body-fill through aiwf edit-body
-      status: open
+      status: met
     - id: AC-2
       title: aiwfx-record-decision carries the ADR authoring no-gate-language discipline
       status: open
