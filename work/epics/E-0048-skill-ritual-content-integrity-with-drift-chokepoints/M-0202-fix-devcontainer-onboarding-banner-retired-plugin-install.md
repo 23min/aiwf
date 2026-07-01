@@ -1,16 +1,16 @@
 ---
 id: M-0202
 title: Fix devcontainer onboarding banner (retired plugin install)
-status: in_progress
+status: done
 parent: E-0048
 tdd: none
 acs:
     - id: AC-1
       title: Devcontainer onboarding drops the retired rituals plugin-install flow
-      status: open
+      status: met
     - id: AC-2
       title: Drift chokepoint forbids the retired flow and reconciles the legacy banner pin
-      status: open
+      status: met
 ---
 ## Goal
 
@@ -63,3 +63,72 @@ added after G-0259). In the same change, `PolicyM0132InitScript`'s obsolete
 as M-0132's AC-4 banner pin — is removed, so the new chokepoint and the legacy
 pin no longer contradict and `PolicyM0132InitScript` passes on the corrected
 `init.sh`.
+
+## Work log
+
+### AC-1 — Devcontainer onboarding drops the retired plugin-install flow
+Rewrote the `init.sh` banner and corrected the README ("Reopen in Container"
+step 4, the verify block, and the retired "Cross-repo plugin testing" section →
+"Ritual authoring"). Both files are clean of every retired marker. · commit
+`7340ea43` (content) + `89170432` (recovery-prompt sweep) · verified by
+`PolicyM0202DevcontainerOnboarding` green on the live tree.
+
+### AC-2 — Drift chokepoint forbids the retired flow and reconciles the legacy pin
+Added `PolicyM0202DevcontainerOnboarding` (forbids the retired strings in both
+files, requires the `aiwf doctor` / `rituals:` pointer) with four firing
+fixtures; removed the obsolete `bannerLiterals` block + orphaned `sort` import
+from `PolicyM0132InitScript`. · commit `7340ea43` · new policy 100% covered,
+`TestPolicy_M0132InitScript` green on the corrected `init.sh`.
+
+## Decisions made during implementation
+
+- **`tdd: none` kept** (the skeleton default). The deliverable is doc/policy
+  content with no runtime code path to phase through; `advisory` would only emit
+  `acs-tdd-audit` warning noise on the `met` promotes. Mechanical evidence is
+  still provided per the "AC promotion requires mechanical evidence" rule.
+- **The dead `copy-skill-fixture` Makefile target was retired** (operator
+  decision, in-flight). The reviewer found this milestone's deletion of the
+  README "Cross-repo plugin testing" section broke a comment reference the target
+  cited, and the target was already provably dead (its testdata path was removed
+  by G-0182, its sibling repo archived by ADR-0016/G-0193). Retiring it folds the
+  finding in rather than filing a separate gap for dead code. · commit
+  `89170432`.
+
+No ADR or project-decision entity was warranted — no architectural choice or
+durable trade-off surfaced.
+
+## Validation
+
+- `make check-fast` (vet + golangci-lint + full `go test`): green — lint `0
+  issues`, all packages `ok`.
+- `go test -race -parallel 8 ./internal/policies/`: `ok`.
+- `PolicyM0202DevcontainerOnboarding`: 100.0% coverage; reddens on the pre-fix
+  files (revert-and-test → 8 violations), passes on the corrected tree.
+- Firing-fixture meta-gate: `m0202-devcontainer-onboarding` not grandfathered;
+  its four fixtures light the construction line.
+- `PolicyM0132InitScript`, `PolicyM0132DevcontainerReadme`: green (the four
+  required README H2 sections survive).
+- `.devcontainer/` retired-marker sweep: clean. No `copy-skill-fixture`
+  references remain repo-wide. `make help` parses.
+
+## Deferrals
+
+None. The source gap **G-0279** is closed by this milestone but stays
+`status: open` per the E-0048 convention — source gaps are swept to `addressed`
+in a single batch at the epic wrap, not per milestone.
+
+## Reviewer notes
+
+Independent fresh-context reviewer returned **APPROVE**, verifying every
+load-bearing claim by measurement (non-vacuity via revert-and-test; marker-set
+correctness; the M-0132 reconciliation left no orphaned firing fixture and `sort`
+is genuinely unused; firing-fixture meta-gate 100%; README structure/accuracy;
+scope discipline — the Makefile was untouched at review time). Two non-blocking
+findings were addressed inline in commit `89170432`: (T1) retire the provably-dead
+`copy-skill-fixture` Makefile target whose comment referenced the README section
+this milestone deleted; (T2) sweep the stale `install plugins` failure-mode in the
+README recovery prompt → `materialize rituals`.
+
+Informational (no action): the `retiredMarkers` are single-space substrings, so a
+line-wrapped `PROJECT\n   scope` in prose would evade the `PROJECT scope` marker —
+irrelevant in practice because the markers co-occur and every fragment was removed.

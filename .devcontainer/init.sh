@@ -173,20 +173,14 @@ cat <<'BANNER'
 ================================================================
 aiwf devcontainer ready.
 
-One manual step remaining — install the rituals plugins at PROJECT
-scope. The CLI form `claude /plugin install ...` defaults to USER
-scope (wrong scope; aiwf doctor will warn). Instead, in Claude
-Code at this repo's root:
+Rituals are already installed. `aiwf init` (run above) materialized
+the aiwf-* verb skills and the aiwfx-* / wf-* rituals, role agents,
+and templates into .claude/ directly — there is no separate
+plugin-install step (ADR-0014).
 
-  /plugin marketplace add 23min/ai-workflow-rituals
-  /plugin                   # Discover tab; install each at PROJECT scope:
-                            #   - aiwf-extensions
-                            #   - wf-rituals
-  /reload-plugins
-
-Verify with `aiwf doctor`: the recommended-plugin-not-installed
-warnings should fall silent once both plugins are project-scope
-installed.
+Verify with `aiwf doctor`: the `rituals:` line confirms the
+artifacts are materialized (it points you at `aiwf update` if any
+are missing).
 
 Opt-in env vars:
   AIWF_DEVCONTAINER_E2E=true    # Install Playwright + Chromium on next rebuild
