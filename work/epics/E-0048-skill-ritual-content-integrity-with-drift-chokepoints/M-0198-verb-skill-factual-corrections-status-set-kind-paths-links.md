@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwf-contract cites the real recipe path and complete cancel FSM
-      status: open
+      status: met
     - id: AC-4
       title: aiwf-authorize provenance-model doc-link resolves
       status: open
