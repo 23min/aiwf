@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: branch-coverage audit framed as agent-performed in both skills
-      status: open
+      status: met
     - id: AC-4
       title: wf-doc-lint separates repo-wide path-leak scan from four doc heuristics
       status: open
