@@ -26,7 +26,7 @@ previous tip, so M-0195's already-landed edits are not re-flagged (matching the
 "never retroactively" intent). But:
 
 - The local `make coverage-gate` (base = merge-base with `origin/main`) sweeps
-  in M-0195's edits and fails today — surfaced during M-0197's self-review.
+  in M-0195's edits and fails today.
 - The E-0048 → `main` merge push (base = old `main` tip) brings the whole
   epic's diff against `main`, so the backstop will fire and block the epic
   wrap.
@@ -40,11 +40,3 @@ Add a structural test under `internal/policies/` for each skill — a
 heading-walk assertion pinning some prescribed content (the
 `aiwfx_wrap_epic_test.go` template) — so each skill's path is referenced and
 the backstop clears.
-
-Sequencing: M-0201 (planning-ritual body-fill, G-0300) is expected to edit
-`aiwfx-plan-epic` and would then be forced by the ratchet to add its test —
-but M-0201's scope is not yet written, and `aiwfx-record-decision` is not
-clearly in any planned milestone's scope. The receiving milestone is recorded
-when this gap is picked up.
-
-Discovered during M-0197 (its coverage-gate run surfaced the two).
