@@ -7,12 +7,12 @@ tdd: required
 acs:
     - id: AC-1
       title: Chokepoint requires the trailered-commit prescription at both wrap rituals
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Chokepoint pins caveat and identity-rule at every ritual trailer site
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 ## Goal
 
@@ -31,8 +31,8 @@ proposed. The epic's load-bearing goal is drift-safety; a chokepoint meets it
 without introducing a new reference-skill category or a mid-merge
 skill-invocation step, at the cost of leaving the block duplicated — a marginal
 per-invocation token cost, since a ritual body loads only when that ritual runs.
-ADR-0024 is rejected in favour of this design; the counter-decision is recorded
-so a future "should I extract this shared block?" reader finds the reasoning.
+ADR-0024 is rejected in favour of this design; the rationale is recorded in the
+Decisions section below (no new ADR, per the operator's lighter path).
 
 The guard is **per-ritual** (file-level), not per-`git commit --trailer` site:
 it asserts the canonical caveat / identity prescription appears somewhere in any
@@ -74,26 +74,78 @@ added after that gate.
 
 ## Work log
 
-_(one entry per AC, filled during implementation)_
+### AC-1 — presence guard
+`PolicyM0210TrailerCommitDrift` (AC-1 loop) requires both wrap rituals to carry
+a `git commit --trailer` block naming all three keys; the `required-missing`,
+`required-no-block`, and `required-missing-key` firing fixtures pin the branch.
+Delivered in the single policy commit `19aa526c`.
+
+### AC-2 — caveat/identity accompaniment guard
+`PolicyM0210TrailerCommitDrift` (AC-2 loop) requires the canonical caveat at
+every trailered-commit block and the identity rule at every staged-merge
+trailered commit, across all rituals; the `wrap-missing-caveat` and
+`merge-missing-identity` firing fixtures pin the two branches. Delivered in
+commit `19aa526c` (same policy; two facets).
 
 ## Decisions made during implementation
 
-- **Chokepoint over extraction — ADR-0024 rejected.** The trailered-commit block
-  stays inline; a drift chokepoint replaces the proposed `wf-commit-trailers`
-  reference-skill extraction. Rationale: the epic's load-bearing goal is
-  drift-safety, which a mechanical guard meets without a new reference-skill
-  category or a mid-merge invocation step; the extraction's token benefit was
-  marginal. Decision-record reference filled when the rejection lands.
+- **Chokepoint over extraction — ADR-0024 rejected (`693e130f`).** M-0210
+  originally proposed extracting the trailered-commit block into a
+  `wf-commit-trailers` reference skill (ADR-0024). The operator rejected that in
+  favour of a drift chokepoint (`PolicyM0210TrailerCommitDrift`). Rationale: the
+  epic's load-bearing goal is drift-safety, which a mechanical guard meets
+  without a new reference-skill category (every existing `wf-*` skill is a
+  runnable procedure, not a look-up reference) or a mid-merge skill-invocation
+  step; the extraction's token benefit was marginal (a ritual body loads only
+  when that ritual runs). The block stays inline where it is run. ADR-0024 was
+  promoted `proposed → rejected` with the rationale in its `aiwf history`; no
+  replacement ADR was written (the operator chose the lighter path — rationale
+  in this spec).
 
 ## Validation
 
-_(test-suite, lint, and coverage-gate results, filled at wrap)_
+- `make check-fast` (go vet + golangci-lint + full `go test`): green — exit 0,
+  lint clean (a gocritic `filepathJoin` finding was fixed during the refactor
+  phase), all packages `ok`.
+- New-file coverage: every function 100% except the single
+  `filepath.Glob` error-return line, which is annotated `//coverage:ignore`
+  (a fixed literal glob pattern is never `ErrBadPattern`). The diff-scoped
+  coverage gate escapes that line.
+- Firing-fixture meta-gate (G-0259): `m0210-trailer-commit-drift` is not in
+  `grandfatherDark`; its six `m0210/*` fixtures light the construction line.
+- Independent adversarial review: **APPROVE**. Non-vacuity verified by
+  revert-and-test — stripping the caveat, the identity rule, and a trailer key
+  from the real `aiwfx-wrap-epic/SKILL.md` each reddened the live positive test,
+  restored clean. Scope, detector tightness, and the `aiwfx-release` exclusion
+  (it carries no trailered-commit block) all confirmed by measurement.
 
 ## Deferrals
 
-None expected — the drift-safety concern is closed by this milestone's
-chokepoint.
+None filed as gaps. The reviewer flagged (non-blocking) that the shared
+`TestFiringFixtures_MultiSite` harness asserts only `len(vs) > 0`, so a fixture
+does not by itself prove its *named* branch fired (the diff-scoped coverage gate
+plus live correctness carry that guarantee). This is the established repo-wide
+pattern (m0132 / m0202 / trailer-order share it), not introduced here; a durable
+fix (an optional per-row `wantDetail` assertion on the shared harness) would
+benefit all policies and was consciously left out of this milestone's scope —
+not filed as a gap per the operator's steer.
 
 ## Reviewer notes
 
-_(trade-offs and deliberate omissions, filled at wrap)_
+Independent fresh-context reviewer returned **APPROVE**, verifying every
+load-bearing claim by measurement (live-tree green; non-vacuity via
+revert-and-test on all three facets; six firing fixtures; coverage; G-0259
+meta-gate; detector tightness; `aiwfx-release` exclusion; scope discipline — the
+two wrap `SKILL.md` files are untouched, as the chokepoint-only reframe
+intends). Three non-blocking findings, all net-behavior-correct, accepted as-is
+rather than churning correct code:
+
+- The shared firing-fixture harness pins branches only via `len(vs) > 0` (the
+  repo-wide pattern; see Deferrals).
+- `aiwf-verb`, when absent, surfaces as "no trailered-commit block" rather than
+  "missing key" — because block-detection itself keys on `aiwf-verb`; the
+  all-three-keys guarantee still holds.
+- AC-1's caveat requirement for the required wraps is enforced structurally in
+  the AC-2 loop (which iterates all rituals with a block, the wraps included),
+  not the AC-1 loop; net behaviour matches AC-1's stated requirement, confirmed
+  by the revert-test.
