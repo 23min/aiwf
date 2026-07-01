@@ -104,12 +104,25 @@ func TestAiwfCheckSkill_ACStatusSetMatchesKernel(t *testing.T) {
 func TestAiwfArchiveSkill_NoFindingsAsKind(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, aiwfArchiveSkillPath)
-	// The specific error was "typically gaps or findings" — findings is
-	// not an entity kind. "findings" legitimately appears elsewhere (the
-	// skill discusses check findings), so scope to the kind-offender phrasing.
+	// The specific error was the prose "typically gaps or findings" —
+	// findings is not an entity kind. "findings" legitimately appears
+	// elsewhere (the skill discusses check findings), so guard the exact
+	// kind-offender phrasing rather than the bare word.
 	if strings.Contains(body, "or findings") {
 		t.Errorf("aiwf-archive skill still lists \"findings\" as a kind (\"or findings\"); " +
 			"the archivable kinds are epic, contract, gap, decision, adr")
+	}
+	// Source-derived, stronger: every `--kind <x>` the skill demonstrates
+	// must name a real entity kind (entity.AllKinds()) — catches a
+	// fabricated flag like `--kind findings` that the prose guard misses.
+	valid := map[string]bool{}
+	for _, k := range entity.AllKinds() {
+		valid[string(k)] = true
+	}
+	for _, m := range regexp.MustCompile(`--kind\s+([a-z]+)`).FindAllStringSubmatch(body, -1) {
+		if !valid[m[1]] {
+			t.Errorf("aiwf-archive shows `--kind %s`, which is not a real entity kind (kinds: %v)", m[1], entity.AllKinds())
+		}
 	}
 }
 
