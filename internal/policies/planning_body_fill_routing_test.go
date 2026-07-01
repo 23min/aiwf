@@ -66,16 +66,19 @@ func findNumberedStep(body, keyword string) string {
 }
 
 // TestFindNumberedStep_BranchCoverage exercises every reachable branch of
-// findNumberedStep against synthetic inputs (missing workflow, no matching
-// step, fence not confused for a step, happy path with correct termination).
+// findNumberedStep against synthetic inputs alone (no reliance on the live
+// fixtures): missing workflow, no matching step, a fence before the match
+// (first-loop fence-skip), a fence inside the matched step's body
+// (second-loop fence-skip), and the happy path with correct termination.
 func TestFindNumberedStep_BranchCoverage(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name     string
-		body     string
-		keyword  string
-		wantHas  string
-		wantNone bool
+		name         string
+		body         string
+		keyword      string
+		wantHas      string
+		wantExcludes string
+		wantNone     bool
 	}{
 		{
 			name:     "missing-workflow",
@@ -90,16 +93,31 @@ func TestFindNumberedStep_BranchCoverage(t *testing.T) {
 			wantNone: true,
 		},
 		{
-			name:    "fenced-numbered-line-not-confused-for-step",
+			// Fence BEFORE the matched step exercises the first
+			// (locate) loop's fence-skip: the `1. not-a-step` line
+			// inside step 1's fence must not be mistaken for a step.
+			name:    "fenced-numbered-line-before-match-first-loop",
 			body:    "## Workflow\n\n1. **Intro.** body\n\n   ```bash\n   1. not-a-step\n   ```\n\n2. **Replace the body.** here\n",
 			keyword: "replace",
 			wantHas: "Replace the body",
 		},
 		{
-			name:    "happy-path-terminates-at-next-step",
-			body:    "## Workflow\n\n5. **Replace the body with the rich template.** fill\n\n6. **Next thing.** more\n",
-			keyword: "rich template",
-			wantHas: "Replace the body",
+			// Fence INSIDE the matched step's body exercises the
+			// second (termination) loop's fence-skip: the fenced
+			// `6. not-a-real-step` line must not terminate step 5 —
+			// only the real step 6 does.
+			name:         "fenced-numbered-line-inside-match-second-loop",
+			body:         "## Workflow\n\n5. **Replace the rich template.** intro\n\n   ```bash\n   6. not-a-real-step\n   ```\n\n   tail\n\n6. **Next thing.** more\n",
+			keyword:      "rich template",
+			wantHas:      "not-a-real-step",
+			wantExcludes: "Next thing",
+		},
+		{
+			name:         "happy-path-terminates-at-next-step",
+			body:         "## Workflow\n\n5. **Replace the body with the rich template.** fill\n\n6. **Next thing.** more\n",
+			keyword:      "rich template",
+			wantHas:      "Replace the body",
+			wantExcludes: "Next thing",
 		},
 	}
 	for _, tc := range cases {
@@ -115,8 +133,8 @@ func TestFindNumberedStep_BranchCoverage(t *testing.T) {
 			if !strings.Contains(got, tc.wantHas) {
 				t.Errorf("findNumberedStep(%q) = %q; want it to contain %q", tc.name, got, tc.wantHas)
 			}
-			if tc.name == "happy-path-terminates-at-next-step" && strings.Contains(got, "Next thing") {
-				t.Errorf("findNumberedStep(%q): step body leaked into the next step (got %q)", tc.name, got)
+			if tc.wantExcludes != "" && strings.Contains(got, tc.wantExcludes) {
+				t.Errorf("findNumberedStep(%q): step body leaked past its terminator (got %q; must exclude %q)", tc.name, got, tc.wantExcludes)
 			}
 		})
 	}
@@ -175,6 +193,16 @@ func TestPlanningNextStep_AC3_StatusAwareRouting(t *testing.T) {
 		}
 		if !strings.Contains(strings.ToLower(section), "proposed") {
 			t.Error("AC-3: plan-milestones `## Next step` must be status-aware — name the `proposed` epic case that routes to start-epic")
+		}
+		// The contract is two-case: the already-active epic still routes
+		// to start-milestone. Assert both halves so a future edit can't
+		// collapse the status-awareness back to a single pointer (in
+		// either direction).
+		if !strings.Contains(section, "aiwfx-start-milestone") {
+			t.Error("AC-3: plan-milestones `## Next step` must retain the `aiwfx-start-milestone` route for the already-active epic case")
+		}
+		if !strings.Contains(strings.ToLower(section), "active") {
+			t.Error("AC-3: plan-milestones `## Next step` must name the `active` epic case (the second half of the two-case contract)")
 		}
 	})
 

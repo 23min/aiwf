@@ -117,7 +117,7 @@ You edited the body in place at step 3; `aiwf edit-body <id>` (bless mode) commi
 aiwf edit-body ADR-NNNN --body-file <draft>
 ```
 
-See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
+`--body-file` takes the body from `<draft>`, **not** your in-place step-3 edit — put the filled-in body in the draft file so you don't commit an empty or stale body. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
 
 ### 8. Mirror the id back to the caller's context
 
