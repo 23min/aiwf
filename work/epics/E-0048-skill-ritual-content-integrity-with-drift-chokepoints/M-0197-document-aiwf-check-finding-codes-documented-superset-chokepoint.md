@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: A documented-superset chokepoint binds the skill to the emission sites
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
