@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: wf-doc-lint separates repo-wide path-leak scan from four doc heuristics
-      status: open
+      status: met
     - id: AC-5
       title: wf-doc-lint secret-scan advice is pre-push plus CI with current gitleaks
       status: open
