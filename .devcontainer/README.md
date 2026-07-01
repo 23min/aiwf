@@ -117,7 +117,7 @@ prompt to pick up where the previous session left off:
 > You are continuing devcontainer milestone M-0132. Read the milestone
 > spec at `work/epics/E-0035-devcontainer-based-dev-loop/M-0132-*/*.md`.
 > The container failed to {start | finish postcreate | run `make ci` |
-> install plugins | mount workspace correctly | …}. Diagnose per the
+> materialize rituals | mount workspace correctly | …}. Diagnose per the
 > `## First-boot recovery` section of that spec. If the failure isn't
 > listed there, add it as a new entry before fixing, so the next
 > failure of the same shape is one-shot.

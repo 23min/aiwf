@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install copy-skill-fixture
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -35,7 +35,6 @@ help:
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
-	@echo "  copy-skill-fixture SKILL=<name> - copy embedded ritual skill into testdata (deprecated; testdata fixtures removed per G-0182)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -203,32 +202,3 @@ e2e-install:
 
 e2e:
 	cd e2e/playwright && npx playwright test
-
-# Copy a SKILL.md fixture from this repo's testdata into the sibling
-# ai-workflow-rituals repo at the path Claude Code expects. Closes
-# the cross-repo flow's "construct a 6-segment path by hand" step
-# per CLAUDE.md *Cross-repo plugin testing* and
-# .devcontainer/README.md *Cross-repo plugin testing (rituals repo)*.
-#
-# Usage:  make copy-skill-fixture SKILL=aiwfx-start-epic
-#
-# Refuses (exit 2) with a clear stderr message if: SKILL is unset,
-# the fixture doesn't exist, the sibling rituals repo isn't
-# reachable at ../ai-workflow-rituals, or the destination skill
-# directory isn't present in the rituals repo. No partial copies.
-#
-# G-0146 / E-0035 deferral closure (half-step). End-to-end smoke
-# is deferred to a successor gap.
-copy-skill-fixture:
-	@test -n "$(SKILL)" || { echo "ERROR: SKILL=<name> required (e.g. make copy-skill-fixture SKILL=aiwfx-start-epic)" >&2; exit 2; }
-	@test -f internal/policies/testdata/$(SKILL)/SKILL.md || { echo "ERROR: fixture missing: internal/policies/testdata/$(SKILL)/SKILL.md" >&2; exit 2; }
-	@test -d ../ai-workflow-rituals || { echo "ERROR: sibling rituals repo not reachable at ../ai-workflow-rituals — see .devcontainer/README.md *Cross-repo plugin testing*" >&2; exit 2; }
-	@TARGET=$$(find ../ai-workflow-rituals -path "*/skills/$(SKILL)/SKILL.md" -type f | head -n 1); \
-	if [ -z "$$TARGET" ]; then \
-		echo "ERROR: target skill dir not found under ../ai-workflow-rituals/plugins/*/skills/$(SKILL)/ — does the skill exist in the rituals repo?" >&2; \
-		exit 2; \
-	fi; \
-	cp internal/policies/testdata/$(SKILL)/SKILL.md "$$TARGET"; \
-	echo "Copied internal/policies/testdata/$(SKILL)/SKILL.md -> $$TARGET"; \
-	echo "Next: cd ../ai-workflow-rituals && git diff && git commit + git push"
-
