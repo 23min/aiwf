@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Drift chokepoint forbids the retired flow and reconciles the legacy banner pin
-      status: open
+      status: met
 ---
 ## Goal
 
