@@ -1,7 +1,7 @@
 ---
 id: M-0202
 title: Fix devcontainer onboarding banner (retired plugin install)
-status: in_progress
+status: done
 parent: E-0048
 tdd: none
 acs:
