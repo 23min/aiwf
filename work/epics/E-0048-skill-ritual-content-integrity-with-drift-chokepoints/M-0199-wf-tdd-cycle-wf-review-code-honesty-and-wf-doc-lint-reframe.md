@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: wf-tdd-cycle records met after the coverage audit and vacuity check
-      status: open
+      status: met
     - id: AC-2
       title: wf-tdd-cycle drops idempotent misuse and reframes force as sovereign
       status: open
