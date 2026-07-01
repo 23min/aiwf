@@ -1,6 +1,6 @@
 ---
 name: aiwfx-whiteboard
-description: Open-work synthesis ritual — answers direction questions like "what should I work on next?", "give me the landscape", "where should we focus?", "what's the critical path?", "synthesise the open work", "draw the whiteboard". Loads tree state via `aiwf status` / `aiwf list` / `aiwf show` / `aiwf history`; produces a tiered open-work landscape, a recommended sequence, a first-decision fork, and an optional Q&A gate over pending decisions. Read-only; no commit; no persisted artefact.
+description: Open-work synthesis ritual — answers direction questions like "what should I work on next?", "give me the landscape", "where should we focus?", "what's the critical path?", "synthesise the open work", "draw the whiteboard". Loads tree state via `aiwf status` / `aiwf list` / `aiwf show` / `aiwf history`; produces a tiered open-work landscape, a recommended sequence, a first-decision fork, and an optional Q&A gate over pending decisions. Read-only over the planning tree — no mutation, no commit; writes a gitignored `WHITEBOARD.md` cache (regenerated each run, never committed).
 ---
 
 # aiwfx-whiteboard
@@ -133,7 +133,7 @@ Every verb invocation in the skill body or its rendered output must resolve to a
 
 ### 3. Persisting the synthesis to a checked-in file
 
-**No `whiteboard.md`, `landscape.md`, or any synthesis snapshot committed to the tree.** A checked-in snapshot goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree. **Gitignored local caches are different and OK** — they regenerate on each invocation, don't share team-wide drift, and don't tax git history. The skill writes such a cache to `WHITEBOARD.md` (see *Output cache* below); `STATUS.md` is the precedent (a persisted artefact regenerated on every commit by the pre-commit hook).
+**No `whiteboard.md`, `landscape.md`, or any synthesis snapshot committed to the tree.** A checked-in snapshot goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree. **Gitignored local caches are different and OK** — they regenerate on each invocation, don't share team-wide drift, and don't tax git history. The skill writes such a cache to `WHITEBOARD.md` (see *Output cache* above); `STATUS.md` is the precedent (a persisted artefact regenerated on every commit by the pre-commit hook).
 
 ### 4. Scope creep beyond direction-synthesis
 
