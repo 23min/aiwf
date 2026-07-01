@@ -84,10 +84,15 @@ func Canonicalize(id string) string {
 // so callers always receive a syntactically-valid pattern.
 //
 // Concretely, an input of `E-22` returns `(E-0*22)` (any width that
-// equals 22 numerically); `E-0022` returns the same. `M-22/AC-1`
-// returns `(M-0*22)/AC-1`. The pattern is intended to be embedded in
-// a wider regex (anchors, prefix), so it is wrapped in a single
-// capture group for unambiguous concatenation.
+// equals 22 numerically); `E-0022` returns the same. A composite whose
+// parent meets the milestone floor, `M-221/AC-1`, returns
+// `(M-0*221)/AC-1` — the parent recurses, the AC-N sub-id is anchored
+// verbatim. A composite whose parent is below the floor (`M-22/AC-1`,
+// two digits where the grammar wants three) is not a valid composite
+// id, so ParseCompositeID rejects it and the whole input is
+// regex-quoted through unchanged. The pattern is intended to be
+// embedded in a wider regex (anchors, prefix), so it is wrapped in a
+// single capture group for unambiguous concatenation.
 func IDGrepAlternation(id string) string {
 	if id == "" {
 		return ""
