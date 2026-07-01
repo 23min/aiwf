@@ -1,7 +1,7 @@
 ---
 id: M-0201
 title: Planning-ritual body-fill via edit-body and Next-step routing
-status: draft
+status: in_progress
 parent: E-0048
 depends_on:
     - M-0196
