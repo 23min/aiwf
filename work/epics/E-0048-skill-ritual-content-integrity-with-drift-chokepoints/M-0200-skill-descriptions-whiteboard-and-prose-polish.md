@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: wf-codebase-health description leads with its aiwf-ritual identity
-      status: open
+      status: met
     - id: AC-4
       title: aiwf-retitle description drops the rename-the-title aiwf-rename collision
       status: open
