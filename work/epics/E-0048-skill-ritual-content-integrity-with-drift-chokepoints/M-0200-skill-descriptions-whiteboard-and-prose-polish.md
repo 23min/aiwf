@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: aiwf-retitle description drops the rename-the-title aiwf-rename collision
-      status: open
+      status: met
 ---
 ## Goal
 
