@@ -89,7 +89,7 @@ commit/TDD-model subset is lifecycle epic E-0049.
 4. Verb-skill factual corrections (G-0301).
 5. wf-tdd-cycle / wf-review-code honesty + wf-doc-lint reframe + wf-tdd-cycle audit/vacuity-before-`met` reorder (G-0297, G-0294, G-0309).
 6. Descriptions + whiteboard + prose polish (G-0298).
-7. Planning-ritual body-fill routing + plan-milestones Next-step (G-0300, G-0248).
+7. Planning-ritual body-fill routing + plan-milestones Next-step (G-0300, G-0248, G-0331). The G-0300 edits to `aiwfx-plan-epic` + `aiwfx-record-decision` trip the skill-edit backstop ratchet, forcing G-0331's two structural tests here (M-0200's G-0298 edit to `aiwfx-record-decision` may clear that half earlier).
 8. Devcontainer onboarding banner (G-0279).
 9. Extract trailered-commit duplication into a `wf-commit-trailers` reference skill (M-0210, ADR-0024).
 10. Migrate consumer operating guidance from CLAUDE.md to the shippable embedded-guidance source, plus a drift chokepoint (G-0313).
