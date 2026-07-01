@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Devcontainer onboarding drops the retired rituals plugin-install flow
-      status: open
+      status: met
     - id: AC-2
       title: Drift chokepoint forbids the retired flow and reconciles the legacy banner pin
       status: open
