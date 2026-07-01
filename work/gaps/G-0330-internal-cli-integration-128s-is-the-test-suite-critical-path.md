@@ -1,8 +1,10 @@
 ---
 id: G-0330
 title: internal/cli/integration (~128s) is the test-suite critical path
-status: open
+status: addressed
 discovered_in: E-0053
+addressed_by_commit:
+    - 5c8882a5
 ---
 ## Context
 
