@@ -24,33 +24,43 @@ acs:
 ---
 ## Goal
 
-Make single-entity `aiwf history` / `aiwf show` fast by querying git *by path* with
-changed-path bloom filters, and maintain those filters so the lever persists.
+**Cancelled during the E-0054 pre-start review — superseded by G-0340.**
 
-`aiwf history M-NNNN` currently greps every commit message (~1s over all 5,510
-commits). `git log -- <path>` with changed-path bloom filters is ~14ms (measured on
-this tree) — git skips the commits that never touched the file. The entity's path
-set is *current path + prior paths* (archive `git mv`, `aiwf reallocate` renames),
-which aiwf already tracks via `prior_ids` and the archive convention, so it can pass
-the explicit path set rather than rely on `--follow` heuristics.
+This milestone's original premise was that a path-scoped `git log -- <path>` can
+replace the trailer grep for single-entity history, with the path set reconstructable
+from current path + `prior_ids` + the archive convention. The review showed that
+premise is false:
+
+- `prior_ids` tracks only `reallocate` id-lineage — not `rename` slug changes,
+  `archive` moves, or transitive parent-dir moves — so the historical path set is
+  **not** reconstructable from frontmatter.
+- Pathless `--allow-empty` commits (`acknowledge`, `authorize`, `audit-only`) carry
+  `aiwf-entity:` but touch no file, so a path query cannot see them.
+- `git log -- <path>` applies history simplification, pruning merge commits the
+  trailer grep retains.
+
+The deferred work — path-scoped history as a *verified accelerator* over the
+trailer-grep oracle, plus changed-path bloom-filter maintenance — is tracked in
+**G-0340**, which records these constraints. The safe read-verb win extracted from
+this milestone (guard the unconditional authorize grep) landed as **M-0223**.
 
 ## Notes
 
-- Reopens the M-0219 / G-0322 decision: that milestone measured only the *base*
-  commit-graph (which git writes by default) and found ~1.5s; it never measured
-  `--changed-paths` bloom filters + path-scoped queries, the orthogonal lever here.
-- Maintenance: `git commit-graph write --reachable --changed-paths`, wired into
-  `aiwf update` (or `git maintenance` config registered there), idempotent.
-- Bloom filters are keyed by commit SHA (immutable) and shared across worktrees via
-  the common object store — safe by construction; stale only ever means slower.
-- Grep-fallback stays as the correctness oracle: path-scoped result must equal the
-  trailer-grep result, including for renamed/archived entities.
+Do not resurrect this body's original path-set assumption; see G-0340 for the correct
+framing (trailer grep stays the authoritative oracle).
 
 ### AC-1 — single-entity history resolves via path-scoped git log over the entity path set
 
+Deferred to G-0340.
+
 ### AC-2 — aiwf update maintains changed-path bloom filters idempotently
+
+Deferred to G-0340.
 
 ### AC-3 — path-scoped history equals trailer-grep history including renamed entities
 
+Deferred to G-0340.
+
 ### AC-4 — measured single-entity history wall-time delta recorded in Validation
 
+Deferred to G-0340.
