@@ -35,8 +35,8 @@ covering **both** walk families the spike identified:
    `readAllAuthorizeOpeners` grep (an unbounded HEAD `git log`), plus per-scope
    `LoadEntityScopes` walks and per-SHA `git show` date lookups.
 
-On the kernel tree that is ~1,860+ `git log` walks / ~3,500 subprocesses and
-~28 minutes. Feed the per-entity event lists (bucketed by `aiwf-entity` /
+On the kernel tree that is ~1,860+ `git log` walks (~3,500 subprocesses, estimated)
+and ~28 minutes. Feed the per-entity event lists (bucketed by `aiwf-entity` /
 `aiwf-prior-entity`) and the authorize-opener / scope map from one shared HEAD-scoped
 pass. The spike proved ~12.8s, byte-identical across all 657 pages.
 
@@ -49,8 +49,14 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
   is the bucketing + authorize-opener map + scope-FSM replay layer on top of one
   pass — not a new walker.
 - **Do NOT reuse `gitops.BulkRevwalk`.** It walks `--all` (would leak feature-branch
-  commits and break AC-3 byte-identity) and collapses repeating trailers to a last
-  value (would drop multi-scope `aiwf-scope-ends`). It is pinned to the check side.
+  commits and break AC-3 byte-identity) and its extracted trailer set omits
+  `aiwf-scope-ends` / `aiwf-to` / `aiwf-prior-entity` (it collapses repeats to a
+  last-value map). `WalkHeadCommits` already captures the full trailer block and
+  preserves repeats — it lacks only `%aI`.
+- **Share the authorize-opener/scope map with M-0223's guard — don't add a third
+  copy.** Render, `history`, and `show` all build the same map today via two
+  near-duplicate implementations; the single-pass version should be the shared
+  source, not a fourth.
 - **Correctness traps to preserve, all load-bearing:**
   - HEAD ref scope, not `--all` (matches `ReadHistoryChain`).
   - Fold `M-NNNN/AC-N` events into **both** the AC bucket and the parent milestone
@@ -66,7 +72,8 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
 - **Decide the error semantic deliberately.** Render today swallows a per-entity
   history error into one blank tab (`resolver.go` best-effort). A single shared pass
   that errors must not silently blank *every* page — pick fail-loud or degrade, and
-  pin it.
+  pin it. Byte-identity (AC-3) is a *healthy-tree* claim; the error path is changed
+  by this decision and pinned separately.
 - The throwaway spike (`resolver_bulkspike.go`, reverted, env-gated) is the reference
   behavior only; productionize with tests — do **not** ship the env-gated form.
 
@@ -76,4 +83,20 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
 
 ### AC-3 — rendered site byte-identical before and after the refactor
 
+The mechanical test is a **synthetic golden-site fixture** — a small fictional
+planning tree committed under `testdata/`, rendered via the new path, byte-diffed
+(`diff -rq`) against a committed golden site. The fixture must exercise every
+correctness trap or the diff is vacuous: a pathless acknowledge (`--allow-empty`)
+commit, an archived entity, an entity with **repeating** `aiwf-scope-ends`, an
+`M-NNNN/AC-N` composite, both narrow (`E-22`) and canonical (`E-0022`) id widths, and
+an **active-scope opener**. The one-time real-kernel-tree `diff -rq` (the 28-min old
+path vs the new path) is a dev sanity check only, not this AC's assertion (the
+testdata rule requires synthetic goldens; the old path can't regenerate a reference).
+
 ### AC-4 — measured render wall-time delta recorded in Validation
+
+Structural assertion: the milestone's Validation section is present and populated with
+a before/after wall-time measurement taken by `performance.md`'s "How to measure"
+recipe (`strace -f -c` subprocess attribution + byte-diff), naming the mechanism
+measured. The absolute number is environment-specific and not a CI gate; the AC
+asserts the record exists, not a threshold.
