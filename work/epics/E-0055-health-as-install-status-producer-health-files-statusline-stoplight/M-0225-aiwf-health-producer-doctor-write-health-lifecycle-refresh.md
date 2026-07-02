@@ -1,7 +1,7 @@
 ---
 id: M-0225
 title: 'aiwf health producer: doctor --write-health + lifecycle refresh'
-status: draft
+status: cancelled
 parent: E-0055
 depends_on:
     - M-0224

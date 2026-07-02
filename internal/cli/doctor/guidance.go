@@ -20,20 +20,23 @@ import (
 // exact fix (`aiwf update`, which self-heals the import per ADR-0018).
 // When the consumer opted out, or the fragment is absent, nothing is
 // reported.
-func appendGuidanceImportReport(in []string, rootDir string) []string {
+func appendGuidanceImportReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
+	problems = problemsIn
 	// Respect the opt-out: a consumer who disabled wiring should not be nagged.
 	if cfg, err := config.Load(rootDir); err == nil && !cfg.WireClaudeMd() {
-		return in
+		return in, problems
 	}
 	guidancePath := filepath.Join(rootDir, filepath.FromSlash(skills.GuidanceFile))
 	if _, err := os.Stat(guidancePath); err != nil {
-		return in // fragment absent → nothing to wire
+		return in, problems // fragment absent → nothing to wire
 	}
 	importLine := "@" + skills.GuidanceFile
 	if claudeMd, err := os.ReadFile(filepath.Join(rootDir, "CLAUDE.md")); err == nil && guidanceImportLinePresent(string(claudeMd), importLine) {
-		return append(in, label("guidance:")+"ok (CLAUDE.md imports the aiwf guidance fragment)")
+		return append(in, label("guidance:")+"ok (CLAUDE.md imports the aiwf guidance fragment)"), problems
 	}
-	return append(in, label("guidance:")+"claudemd-guidance-unwired: advisory — "+skills.GuidanceFile+" exists but CLAUDE.md does not import it; run `aiwf update` to wire it")
+	val := "claudemd-guidance-unwired: advisory — " + skills.GuidanceFile + " exists but CLAUDE.md does not import it; run `aiwf update` to wire it"
+	problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
+	return append(in, label("guidance:")+val), problems
 }
 
 // guidanceImportLinePresent reports whether any line of CLAUDE.md, once

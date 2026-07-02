@@ -6,10 +6,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/doctor"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
@@ -138,5 +140,15 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 			return rc
 		}
 	}
+
+	// Refresh the installation-health file so the statusline stoplight reflects
+	// the just-updated setup — written last, after every artifact (including the
+	// statusline itself) has been refreshed. This runs a full doctor pass
+	// (LookPath, tree load, a filesystem-case probe); acceptable at update
+	// cadence. Best-effort: a write failure only logs, never fails update.
+	if err := doctor.WriteHealth(context.Background(), rootDir, time.Now().UTC().Format(time.RFC3339), doctor.DoctorOptions{}); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
+	}
+
 	return cliutil.ExitOK
 }

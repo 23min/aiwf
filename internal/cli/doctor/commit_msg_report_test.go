@@ -15,9 +15,9 @@ func TestAppendCommitMsgHookReport_Missing(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".git", "hooks"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := appendCommitMsgHookReport(nil, 0, root)
-	if problems != 1 {
-		t.Errorf("problems = %d, want 1", problems)
+	lines, problems := appendCommitMsgHookReport(nil, nil, root)
+	if got := errorCount(problems); got != 1 {
+		t.Errorf("error problems = %d, want 1", got)
 	}
 	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "missing") || !strings.Contains(out, "aiwf update") {
@@ -38,9 +38,9 @@ func TestAppendCommitMsgHookReport_AlienHook(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hooks, "commit-msg"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := appendCommitMsgHookReport(nil, 0, root)
-	if problems != 0 {
-		t.Errorf("problems = %d, want 0 (alien hook is reported but not a problem-count bump)", problems)
+	lines, problems := appendCommitMsgHookReport(nil, nil, root)
+	if got := errorCount(problems); got != 0 {
+		t.Errorf("error problems = %d, want 0 (alien hook is a warning, not an error-count bump)", got)
 	}
 	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "not aiwf-managed") {
@@ -65,9 +65,9 @@ func TestAppendCommitMsgHookReport_OurHookAiwfNotOnPATH(t *testing.T) {
 	// fails. t.Setenv blocks t.Parallel; this test is intentionally
 	// serial.
 	t.Setenv("PATH", filepath.Join(t.TempDir(), "no-aiwf-here"))
-	lines, problems := appendCommitMsgHookReport(nil, 0, root)
-	if problems != 1 {
-		t.Errorf("problems = %d, want 1", problems)
+	lines, problems := appendCommitMsgHookReport(nil, nil, root)
+	if got := errorCount(problems); got != 1 {
+		t.Errorf("error problems = %d, want 1", got)
 	}
 	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "aiwf binary not found on PATH") {
@@ -88,9 +88,9 @@ func TestAppendCommitMsgHookReport_OurHook(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hooks, "commit-msg"), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	lines, problems := appendCommitMsgHookReport(nil, 0, root)
-	if problems != 0 {
-		t.Errorf("problems = %d, want 0", problems)
+	lines, problems := appendCommitMsgHookReport(nil, nil, root)
+	if got := errorCount(problems); got != 0 {
+		t.Errorf("error problems = %d, want 0", got)
 	}
 	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "ok") {

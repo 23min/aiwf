@@ -49,11 +49,11 @@ func TestDoctorReport_RitualsMissing_WarnsSoft(t *testing.T) {
 	root := initForDoctor(t)
 	// Capture the baseline problem count, then remove materialized
 	// templates so the rituals check has something missing.
-	_, before := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	_, before := doctorReport(root, doctor.DoctorOptions{})
 	if err := os.RemoveAll(filepath.Join(root, ".claude", "templates")); err != nil {
 		t.Fatal(err)
 	}
-	lines, after := doctor.DoctorReport(root, doctor.DoctorOptions{})
+	lines, after := doctorReport(root, doctor.DoctorOptions{})
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "not materialized") || !strings.Contains(joined, "aiwf update") {
 		t.Errorf("expected 'not materialized — run aiwf update' warning; got:\n%s", joined)
