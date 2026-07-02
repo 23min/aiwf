@@ -1,7 +1,9 @@
 ---
 id: G-0298
 title: 'Skill prose & description polish: pause vocabulary, whiteboard, descriptions'
-status: open
+status: addressed
+addressed_by:
+    - M-0200
 ---
 ## Problem
 
