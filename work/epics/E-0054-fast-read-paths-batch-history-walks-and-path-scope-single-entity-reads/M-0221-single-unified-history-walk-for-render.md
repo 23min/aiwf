@@ -53,10 +53,10 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
   `aiwf-scope-ends` / `aiwf-to` / `aiwf-prior-entity` (it collapses repeats to a
   last-value map). `WalkHeadCommits` already captures the full trailer block and
   preserves repeats — it lacks only `%aI`.
-- **Share the authorize-opener/scope map with M-0223's guard — don't add a third
-  copy.** Render, `history`, and `show` all build the same map today via two
-  near-duplicate implementations; the single-pass version should be the shared
-  source, not a fourth.
+- **Share the authorize-opener/scope helper with M-0223 — don't add a third copy.**
+  Render, `history`, and `show` all build the same map today via two near-duplicate
+  implementations; the single-pass version should reuse M-0223's consolidated helper,
+  not add a fourth.
 - **Correctness traps to preserve, all load-bearing:**
   - HEAD ref scope, not `--all` (matches `ReadHistoryChain`).
   - Fold `M-NNNN/AC-N` events into **both** the AC bucket and the parent milestone
@@ -68,7 +68,8 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
   - Drop bucketed commits with an `aiwf-entity` trailer but empty verb+actor (the
     prose-mention false-positive `ReadHistoryChain` already excludes).
   - Replay the scope FSM (authorize opened/paused/resumed + `scope-ends`) in-memory
-    from the buckets; take open/end dates from the walk's `%aI`.
+    from the buckets, **including scopes opened on the milestone itself** (its own
+    `authorize` commit is in its bucket); take open/end dates from the walk's `%aI`.
 - **Decide the error semantic deliberately.** Render today swallows a per-entity
   history error into one blank tab (`resolver.go` best-effort). A single shared pass
   that errors must not silently blank *every* page — pick fail-loud or degrade, and
@@ -79,19 +80,32 @@ pass. The spike proved ~12.8s, byte-identical across all 657 pages.
 
 ### AC-1 — render resolves all entity histories from a single git-history pass
 
+Mechanical seam assertion (byte-identity alone doesn't prove the *mechanism* — you can
+get identical output the slow way). Drive render over the synthetic fixture through an
+injected/counted git seam and assert: exactly **one** HEAD history walk is issued, and
+the render path makes **zero** per-entity `history.ReadHistory` / `resolver.history`
+subprocess calls. The call count is the evidence.
+
 ### AC-2 — provenance and scope views resolve from the shared pass, not per-milestone
+
+Same seam: assert render makes **zero** per-milestone `show.LoadEntityScopeViews`
+calls and **zero** `readAllAuthorizeOpeners` invocations; the opener/scope map and the
+scope FSM are derived from the shared pass (via M-0223's consolidated helper). Count,
+don't infer.
 
 ### AC-3 — rendered site byte-identical before and after the refactor
 
-The mechanical test is a **synthetic golden-site fixture** — a small fictional
-planning tree committed under `testdata/`, rendered via the new path, byte-diffed
-(`diff -rq`) against a committed golden site. The fixture must exercise every
-correctness trap or the diff is vacuous: a pathless acknowledge (`--allow-empty`)
-commit, an archived entity, an entity with **repeating** `aiwf-scope-ends`, an
-`M-NNNN/AC-N` composite, both narrow (`E-22`) and canonical (`E-0022`) id widths, and
-an **active-scope opener**. The one-time real-kernel-tree `diff -rq` (the 28-min old
-path vs the new path) is a dev sanity check only, not this AC's assertion (the
-testdata rule requires synthetic goldens; the old path can't regenerate a reference).
+**Differential test, not a bare golden.** While the old per-entity path still exists,
+run both projections on the synthetic fixture — old (`ReadHistoryChain` +
+`LoadEntityScopeViews`) vs new (bucketed single-pass) — and assert equal, and
+`diff -rq` the full rendered site old-vs-new; delete the old path last. This proves
+*new == old*, which a static golden (new == golden) does not. The synthetic fixture
+must exercise every trap: a pathless acknowledge (`--allow-empty`) commit, an archived
+entity, an entity with **repeating** `aiwf-scope-ends`, an active-scope opener, an
+`M-NNNN/AC-N` composite, and both narrow (`E-22`) and canonical (`E-0022`) id widths. A
+committed synthetic golden site remains as the post-deletion regression guard. The
+one-time real-kernel-tree `diff -rq` (28-min old path vs new) is a dev sanity check
+only, not this AC's assertion (the testdata rule requires synthetic goldens).
 
 ### AC-4 — measured render wall-time delta recorded in Validation
 
