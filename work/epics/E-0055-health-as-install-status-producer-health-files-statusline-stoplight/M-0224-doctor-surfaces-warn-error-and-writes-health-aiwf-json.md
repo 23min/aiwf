@@ -13,6 +13,10 @@ acs:
       title: aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: statusline reads the health files and renders the four-state stoplight
+      status: open
+      tdd_phase: red
 ---
 ## Deliverable
 
@@ -38,3 +42,6 @@ healthy) and atomic-writes the file to the main checkout's `.claude/`, resolved 
 from a linked worktree; `aiwf update` writes it too, so it refreshes on the command
 operators already run. Evidence: a seeded-problem repo produces the mapped error entry;
 a healthy repo produces an empty `findings` array; the write is atomic.
+
+### AC-3 — statusline reads the health files and renders the four-state stoplight
+
