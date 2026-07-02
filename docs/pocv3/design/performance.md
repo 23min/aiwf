@@ -97,11 +97,13 @@ history via `git log --grep '^aiwf-entity: <id>$'` (`internal/cli/history/histor
 `ReadHistoryChain`). `--grep` is only a pre-filter — git still reads *every* commit
 message. So each call is O(5,510 commits) regardless of how few touched the entity.
 
-`render` multiplies this: `internal/cli/render/resolver.go` calls `history(id)`
-**N+2 times per milestone** (once per AC via the `M-NNNN/AC-N` composite, plus the
-commits table, plus the provenance timeline). A ~170-milestone tree ⇒ ~600
-full-history walks in one render — and a second walk family on top (see the spike
-result below). This is the 28-minute render.
+`render` multiplies this: `internal/cli/render/resolver.go` resolves history
+**N+2 times per milestone** — once per AC via the `M-NNNN/AC-N` composite, plus the
+shared `m.ID` walk, plus a second *uncached* `m.ID` walk inside
+`show.LoadEntityScopeViews` (the commits table and provenance timeline reuse the
+resolver cache, so they add no walks). Across all entities that is ~1,860+
+full-history walks in one render — and the authorize-opener grep family on top (see
+the spike result below). This is the 28-minute render.
 
 **The lever git already offers but aiwf doesn't use: query by *path*, not by grep.**
 Each entity is a file at a known path. With changed-path bloom filters, `git log --
@@ -113,10 +115,26 @@ this repo:
 | `git log -- <exact path>` | ~1.0s | **0.014s** (70×) |
 | `git log --grep=aiwf-entity:` | 0.88s | 0.88s (grep can't use bloom) |
 
-Path-scoping needs the entity's *prior* paths too (archive `git mv`, `aiwf
-reallocate` renames) — aiwf already tracks these via `prior_ids` and the archive
-convention, so it can feed the explicit path set rather than rely on `--follow`
-heuristics.
+**Path-scoping is a fast *accelerator*, not a drop-in for the grep — it is a
+different query.** Three gaps make `git log -- <path>` ≠ `git log --grep=aiwf-entity:`,
+so the trailer grep must stay the authoritative oracle and path-scoping a *verified*
+fast path (deferred to G-0340):
+
+- **Pathless trailer commits are invisible to a path query.** `aiwf
+  acknowledge-illegal` / `acknowledge-mistag` write `--allow-empty` commits carrying
+  `aiwf-entity:` but touching no file (6 live entities already). A path query misses
+  them; it must be unioned with a bounded trailer query.
+- **The path set is only partly tracked.** `prior_ids` records `aiwf reallocate`
+  lineage only — *not* `aiwf rename` slug changes (no frontmatter trace), `archive`
+  moves (~533 entities; pre-archive path derivable by convention, not frontmatter), or
+  transitive parent-dir moves (archiving an epic moves every child milestone's path).
+  A naive current-path query returned 1 of 3 events for an archived entity.
+- **History simplification.** `git log -- <path>` prunes merge commits (TREESAME) that
+  `--grep` retains; matching grep semantics needs `--full-history` / `-m`.
+
+On a typical entity the lever is ~20× (path-scoped ~65ms vs ~1.3s over the base
+commit-graph; best case ~14ms on a rarely-touched path) — worth building once the
+equivalence above is handled, not before.
 
 > **Spike result (2026-07-01, this repo).** A throwaway spike routed `render`'s
 > per-entity history through one shared single-pass walk (env-gated, one binary doing
@@ -183,12 +201,13 @@ Cancelled after measurement (recorded here so they aren't re-litigated):
   win.
 - **M-0218** — drive the policies suite below its 9s floor: it runs fully overlapped
   behind the integration package, so optimizing it changes no wall-clock.
-- **M-0219** — wire commit-graph maintenance into init/update. **Dropped on an
-  incomplete measurement** (G-0322 wontfix): it measured only the *base* commit-graph
-  (which git writes by default via `gc.writeCommitGraph`) and found ~1.5s. It never
-  measured `--changed-paths` bloom filters + path-scoped queries — the orthogonal 70×
-  lever in class 1 above. **This decision should be reopened for bloom filters
-  specifically** (see below).
+- **M-0219** — wire commit-graph maintenance into init/update. **Dropped on a
+  workload-scoped measurement** (G-0322 wontfix): it *did* evaluate `--changed-paths`,
+  but against `aiwf check`'s full-DAG `--raw` walk — where bloom filters correctly do
+  nothing (check reads every path, so nothing is skippable) — and found ~1.5s over the
+  base commit-graph. It never measured **single-entity path-scoped reads**, a different
+  query shape where the bloom lever is real (class 1 above). Reopening for that shape
+  is justified (deferred to **G-0340**); conflating the two workloads is the trap.
 
 Deferred levers carried forward (profiled, unstarted): **G-0323** incremental
 `aiwf check` via a validated watermark; **G-0324** branch hygiene; **G-0325**
@@ -264,20 +283,24 @@ the read-path win with *no* persistent state to corrupt. Do them first.
 
 ## commit-graph + changed-path bloom filters
 
-The repo has a base commit-graph but **no bloom filters** — verified by inspecting
-the chunk table (`OIDF/OIDL/CDAT/GDA2`, no `BIDX/BDAT`). git's default gc writes the
-base graph but **not** bloom filters; you opt in explicitly:
+The repo's base commit-graph originally carried **no bloom filters** — verified by
+inspecting the chunk table (`OIDF/OIDL/CDAT/GDA2`, no `BIDX/BDAT`). git's default gc
+writes the base graph but **not** bloom filters; you opt in explicitly:
 
 ```sh
 git commit-graph write --reachable --changed-paths
 ```
 
 On this repo that write took ~11s once and added the `BIDX/BDAT` chunks, after which
-a single-entity path-scoped history dropped from ~1.0s to **0.014s**. Bloom filters
-are keyed by commit SHA (immutable) and shared across worktrees via the common object
-store, so they are safe by construction — stale only ever means slower.
+a single-entity path-scoped history dropped from ~1.3s (base graph) to ~65ms (best
+case ~14ms). Bloom filters are keyed by commit SHA (immutable) and shared across
+worktrees via the common object store, so they are safe by construction — stale only
+ever means slower. Verified: git **preserves** existing filters across `gc` and plain
+`commit-graph write` but never **creates** them by default, and commits not yet in the
+graph still return correct (slower) results — so a fresh clone has none until the
+explicit write runs, which is why the maintenance below is net-new.
 
-Maintenance options (pick one; the M-0219 decision is reopened for this): run
+Maintenance options (pick one; deferred to G-0340): run
 `git commit-graph write --reachable --changed-paths` opportunistically after a
 mutating verb (aiwf makes one commit per mutation), or configure `git maintenance`
 with the changed-paths task and register it in `aiwf init` / `aiwf update`. The base
@@ -305,13 +328,21 @@ Largely yes:
 
 0. **Branch hygiene** (G-0324) — prune the merged local branches. Free; shrinks
    allocator + check fan-out immediately.
-1. **Route `render`/`history` through a single unified history walk** — reuses the
-   `BulkRevwalk` shape; no new architecture, zero worktree risk. Must batch **both**
-   render walk families (per-entity events *and* the authorize-opener/provenance map)
-   from one pass — the spike above proved 12.8s vs 28 min, byte-identical. Biggest
-   single render win.
-2. **Path-scoped history + maintained changed-path bloom filters** — reopens M-0219
-   for bloom filters; per-entity history ~1s → ~14ms.
+1. **Route `render` through a single unified history walk** (M-0221) — build on
+   E-0053's HEAD-scoped `check.WalkHeadCommits` (extend with `%aI`); **not**
+   `gitops.BulkRevwalk`, which walks `--all` (leaks branch commits, breaks
+   byte-identity) and collapses repeating trailers. The genuinely new code is the
+   bucketing + authorize-opener map + scope-FSM replay on top of one HEAD pass. Must
+   batch **both** render walk families (per-entity events *and* the
+   authorize-opener/provenance map) — the spike proved 12.8s vs 28 min, byte-identical.
+   Biggest single render win.
+1b. **Guard the unconditional `BuildScopeEntityMap` grep** (M-0223) — the cheap, safe
+   single-entity `history` win; skip the repo-wide authorize grep when the entity has
+   no scope data. Roughly halves the default text command, zero correctness risk.
+2. **Path-scoped history + maintained changed-path bloom filters** (deferred, G-0340)
+   — per-entity history ~1.3s → ~65ms, but only once the query-equivalence gaps
+   (pathless commits, path-set derivation, history simplification) are handled; the
+   trailer grep stays the oracle.
 3. **SHA-keyed read-model cache** + **per-SHA incremental check** (G-0323, reframed
    as memoization) — the "flat regardless of size" tier; larger effort; safe only
    under the caching invariant above.
