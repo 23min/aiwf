@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -39,6 +40,7 @@ func NewCmd() *cobra.Command {
 		root        string
 		selfCheck   bool
 		checkLatest bool
+		writeHealth bool
 	)
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -55,12 +57,16 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
+			if writeHealth {
+				return cliutil.WrapExitCode(runWriteHealth(root))
+			}
 			return cliutil.WrapExitCode(Run(root, selfCheck, checkLatest))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&selfCheck, "self-check", false, "run every verb against a temp repo and report pass/fail")
 	cmd.Flags().BoolVar(&checkLatest, "check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
+	cmd.Flags().BoolVar(&writeHealth, "write-health", false, "write .claude/health.aiwf.json from doctor's warnings and errors (consumed by the statusline health stoplight)")
 	return cmd
 }
 
@@ -81,8 +87,30 @@ func Run(root string, selfCheck, checkLatest bool) int {
 	for _, line := range report {
 		fmt.Println(line)
 	}
-	if problems > 0 {
-		return cliutil.ExitFindings
+	// Exit findings iff at least one problem is error-severity;
+	// warnings alone keep exit 0 (doctor exits 0 on advisories, same
+	// as `aiwf check`).
+	for i := range problems {
+		if problems[i].Severity == SeverityError {
+			return cliutil.ExitFindings
+		}
+	}
+	return cliutil.ExitOK
+}
+
+// runWriteHealth writes .claude/health.aiwf.json for the statusline
+// health stoplight. It stamps generated_at at the CLI edge (keeping
+// WriteHealth wall-clock-free) and stays quiet on success so callers
+// like `aiwf update` can invoke it without report noise.
+func runWriteHealth(root string) int {
+	rootDir, err := cliutil.ResolveRoot(root)
+	if err != nil { //coverage:ignore ResolveRoot(--root) resolves via filepath.Abs and cannot fail here; defensive parity with Run
+		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
+		return cliutil.ExitUsage
+	}
+	if err := WriteHealth(context.Background(), rootDir, time.Now().UTC().Format(time.RFC3339), DoctorOptions{}); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf doctor --write-health: %v\n", err)
+		return cliutil.ExitInternal
 	}
 	return cliutil.ExitOK
 }
@@ -122,8 +150,11 @@ func label(s string) string {
 var subIndent = strings.Repeat(" ", labelWidth)
 
 // DoctorReport collects every doctor finding into a slice of human
-// strings and returns the count of problems. Pure for testability.
-func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems int) {
+// strings and returns the warnings and errors as []Problem — the
+// report's problem states without the ok/info context. Pure for
+// testability. The error count (what doctor's exit code weighs) is the
+// number of SeverityError entries; warnings are advisory.
+func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems []Problem) {
 	current := version.Current()
 	binaryRow := label("binary:") + renderBinaryVersion(current)
 	binaryRow += binaryStaleness(context.Background(), rootDir, current, version.ModulePath())
@@ -163,11 +194,12 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	cfg, err := config.Load(rootDir)
 	switch {
 	case errors.Is(err, config.ErrNotFound):
-		lines = append(lines, label("config:")+"aiwf.yaml not found (run `aiwf init`)")
-		problems++
+		val := "aiwf.yaml not found (run `aiwf init`)"
+		lines = append(lines, label("config:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 	case err != nil:
 		lines = append(lines, label("config:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 	default:
 		lines = append(lines, label("config:")+"ok")
 		if cfg.LegacyActor != "" {
@@ -195,7 +227,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 
 	if actor, source, actorErr := cliutil.ResolveActorWithSource("", rootDir); actorErr != nil {
 		lines = append(lines, label("actor:")+actorErr.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: actorErr.Error()})
 	} else {
 		lines = append(lines, fmt.Sprintf("%s%s (from %s)", label("actor:"), actor, source))
 	}
@@ -213,28 +245,32 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	// exception, paralleled here as substring-against-stdout for
 	// the doctor surface).
 	if currentBranch(rootDir) == "" && headIsDetached(rootDir) {
-		lines = append(lines, label("head:")+"detached-head: advisory — no symbolic HEAD; checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug>) before running `aiwf authorize`, or use `--force --reason \"...\"` to override the preflight refusal.")
+		val := "detached-head: advisory — no symbolic HEAD; checkout a ritual branch (epic/E-NNNN-<slug> / milestone/M-NNNN-<slug>) before running `aiwf authorize`, or use `--force --reason \"...\"` to override the preflight refusal."
+		lines = append(lines, label("head:")+val)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 	}
 
 	embedded, err := skills.List()
-	if err != nil {
+	if err != nil { //coverage:ignore skills.List reads the compiled-in embed FS; it cannot fail at runtime, so tempdir tests cannot reach this arm
 		lines = append(lines, label("skills:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 	} else {
 		drift, missing := skillDrift(rootDir, embedded)
 		switch {
 		case len(missing) > 0:
-			lines = append(lines, fmt.Sprintf("%s%d missing — run `aiwf init` or `aiwf update`", label("skills:"), len(missing)))
+			val := fmt.Sprintf("%d missing — run `aiwf init` or `aiwf update`", len(missing))
+			lines = append(lines, label("skills:")+val)
 			for _, m := range missing {
 				lines = append(lines, subIndent+"- "+m)
 			}
-			problems++
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		case len(drift) > 0:
-			lines = append(lines, fmt.Sprintf("%s%d drifted — run `aiwf update` to refresh", label("skills:"), len(drift)))
+			val := fmt.Sprintf("%d drifted — run `aiwf update` to refresh", len(drift))
+			lines = append(lines, label("skills:")+val)
 			for _, d := range drift {
 				lines = append(lines, subIndent+"- "+d)
 			}
-			problems++
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		default:
 			lines = append(lines, fmt.Sprintf("%sok (%d skills, byte-equal to embed)", label("skills:"), len(embedded)))
 		}
@@ -243,7 +279,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	tr, loadErrs, err := tree.Load(context.Background(), rootDir)
 	if err != nil {
 		lines = append(lines, label("ids:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 	} else {
 		findings := check.Run(tr, loadErrs)
 		collisions := 0
@@ -251,13 +287,13 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 			f := &findings[i]
 			if f.Code == check.CodeIDsUnique {
 				collisions++
-				lines = append(lines, fmt.Sprintf("%scollision %s @ %s", label("ids:"), f.EntityID, f.Path))
+				val := fmt.Sprintf("collision %s @ %s", f.EntityID, f.Path)
+				lines = append(lines, label("ids:")+val)
+				problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			}
 		}
 		if collisions == 0 {
 			lines = append(lines, label("ids:")+"ok (no collisions)")
-		} else {
-			problems++
 		}
 	}
 
@@ -270,9 +306,9 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendCommitMsgHookReport(lines, problems, rootDir)
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
-	lines = appendMaterializedRitualsReport(lines, rootDir)
-	lines = appendStatuslineReport(lines, rootDir)
-	lines = appendGuidanceImportReport(lines, rootDir)
+	lines, problems = appendMaterializedRitualsReport(lines, problems, rootDir)
+	lines, problems = appendStatuslineReport(lines, problems, rootDir)
+	lines, problems = appendGuidanceImportReport(lines, problems, rootDir)
 
 	return lines, problems
 }
@@ -284,23 +320,26 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 // A `rituals:` ok line confirms presence; a soft warning naming the
 // missing artifacts points at `aiwf update`. Rituals are advisory
 // artifacts, so a miss never increments the problem count.
-func appendMaterializedRitualsReport(in []string, rootDir string) []string {
+func appendMaterializedRitualsReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
+	problems = problemsIn
 	present, missing, err := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
-	if err != nil {
-		return append(in, label("rituals:")+err.Error())
+	if err != nil { //coverage:ignore MaterializedRituals errors only when the compiled-in embed FS walk fails; unreachable at runtime, so tempdir tests cannot reach this arm
+		return append(in, label("rituals:")+err.Error()), problems
 	}
 	if len(missing) > 0 {
 		out := in
-		out = append(out, fmt.Sprintf("%s%d of %d ritual artifacts not materialized — run `aiwf update`", label("rituals:"), len(missing), len(present)+len(missing)))
+		val := fmt.Sprintf("%d of %d ritual artifacts not materialized — run `aiwf update`", len(missing), len(present)+len(missing))
+		out = append(out, label("rituals:")+val)
 		for _, m := range missing {
 			out = append(out, subIndent+"- "+m)
 		}
-		return out
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
+		return out, problems
 	}
 	return append(in,
 		fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)),
 		subIndent+"managed by aiwf (skills aiwf-*/aiwfx-*/wf-*, agents, templates); `aiwf update` refreshes — do not hand-edit (see .claude/skills/README.md)",
-	)
+	), problems
 }
 
 // appendRenderReport surfaces the consumer's HTML render
@@ -309,7 +348,7 @@ func appendMaterializedRitualsReport(in []string, rootDir string) []string {
 // without re-running `aiwf update`, the gitignore still carries the
 // stale `<out_dir>/` line and the rendered files are invisible to
 // git.
-func appendRenderReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendRenderReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 
@@ -332,9 +371,9 @@ func appendRenderReport(in []string, problemsIn int, rootDir string) (lines []st
 			needle := strings.TrimRight(outDir, "/") + "/"
 			for _, line := range strings.Split(string(raw), "\n") {
 				if strings.TrimSpace(line) == needle {
-					lines = append(lines,
-						fmt.Sprintf("%sdrift: commit_output is true but .gitignore still holds %q; run `aiwf update` to reconcile", subIndent, needle))
-					problems++
+					val := fmt.Sprintf("drift: commit_output is true but .gitignore still holds %q; run `aiwf update` to reconcile", needle)
+					lines = append(lines, subIndent+val)
+					problems = append(problems, Problem{Severity: SeverityError, Message: val})
 					break
 				}
 			}
@@ -345,7 +384,7 @@ func appendRenderReport(in []string, problemsIn int, rootDir string) (lines []st
 
 // appendHookReport inspects the pre-push hook at the consumer's
 // effective hooks directory and reports its state.
-func appendHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendHookReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 
@@ -353,17 +392,20 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	hookPath := filepath.Join(hooksDir, "pre-push")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
-		lines = append(lines, label("hook:")+"missing — pre-push validation not installed; run `aiwf init` to install")
-		problems++
+		val := "missing — pre-push validation not installed; run `aiwf init` to install"
+		lines = append(lines, label("hook:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if err != nil {
 		lines = append(lines, label("hook:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), "# aiwf:pre-push") {
-		lines = append(lines, label("hook:")+"present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push")
+		val := "present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push"
+		lines = append(lines, label("hook:")+val)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
 	}
 
@@ -373,15 +415,17 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	if strings.Contains(string(raw), "command -v aiwf") {
 		found, lookErr := exec.LookPath("aiwf")
 		if lookErr != nil {
-			lines = append(lines, label("hook:")+"aiwf binary not found on PATH (hook would fail at push time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
-			problems++
+			val := "aiwf binary not found on PATH (hook would fail at push time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH"
+			lines = append(lines, label("hook:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			return lines, problems
 		}
 		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-push")
+		val := fmt.Sprintf("ok (resolves to %s)%s", found, chainSuffix)
+		lines = append(lines, label("hook:")+val)
 		if chainProblem {
-			problems++
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		}
-		lines = append(lines, fmt.Sprintf("%sok (resolves to %s)%s", label("hook:"), found, chainSuffix))
 		return lines, problems
 	}
 
@@ -391,20 +435,23 @@ func appendHookReport(in []string, problemsIn int, rootDir string) (lines []stri
 	// shape).
 	embedded := extractHookExecPath(string(raw))
 	if embedded == "" {
-		lines = append(lines, label("hook:")+"aiwf-managed but malformed (no exec line found); run `aiwf init` to refresh")
-		problems++
+		val := "aiwf-managed but malformed (no exec line found); run `aiwf init` to refresh"
+		lines = append(lines, label("hook:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("%sstale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", label("hook:"), embedded))
-		problems++
+		val := fmt.Sprintf("stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded)
+		lines = append(lines, label("hook:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-push")
+	val := fmt.Sprintf("ok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", embedded, chainSuffix)
+	lines = append(lines, label("hook:")+val)
 	if chainProblem {
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 	}
-	lines = append(lines, fmt.Sprintf("%sok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", label("hook:"), embedded, chainSuffix))
 	return lines, problems
 }
 
@@ -454,7 +501,7 @@ func localChainSuffix(rootDir, hooksDir, hookName string) (suffix string, proble
 
 // appendPreCommitHookReport inspects .git/hooks/pre-commit and
 // reports its state.
-func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendPreCommitHookReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 
@@ -462,17 +509,20 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 	hookPath := filepath.Join(hooksDir, "pre-commit")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
-		lines = append(lines, label("pre-commit:")+"missing — tree-discipline gate not installed; run `aiwf update`")
-		problems++
+		val := "missing — tree-discipline gate not installed; run `aiwf update`"
+		lines = append(lines, label("pre-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if err != nil {
 		lines = append(lines, label("pre-commit:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), "# aiwf:pre-commit") {
-		lines = append(lines, label("pre-commit:")+"present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced")
+		val := "present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced"
+		lines = append(lines, label("pre-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
 	}
 
@@ -481,21 +531,24 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 	if strings.Contains(string(raw), "command -v aiwf") {
 		found, lookErr := exec.LookPath("aiwf")
 		if lookErr != nil {
-			lines = append(lines, label("pre-commit:")+"aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
-			problems++
+			val := "aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH"
+			lines = append(lines, label("pre-commit:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			return lines, problems
 		}
 		// G-0112 drift check (regen step in pre-commit is a regression).
 		if strings.Contains(string(raw), "status --root") {
-			lines = append(lines, label("pre-commit:")+"present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh")
-			problems++
+			val := "present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh"
+			lines = append(lines, label("pre-commit:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			return lines, problems
 		}
 		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-commit")
+		val := fmt.Sprintf("ok (resolves to %s)%s", found, chainSuffix)
+		lines = append(lines, label("pre-commit:")+val)
 		if chainProblem {
-			problems++
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		}
-		lines = append(lines, fmt.Sprintf("%sok (resolves to %s)%s", label("pre-commit:"), found, chainSuffix))
 		return lines, problems
 	}
 
@@ -504,22 +557,25 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 	// stale path means the hook can't run at all.
 	embedded := extractPreCommitExecPath(string(raw))
 	if embedded == "" {
-		lines = append(lines, label("pre-commit:")+"aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
-		problems++
+		val := "aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh"
+		lines = append(lines, label("pre-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("%sstale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", label("pre-commit:"), embedded))
-		problems++
+		val := fmt.Sprintf("stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded)
+		lines = append(lines, label("pre-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "pre-commit")
 	if chainProblem {
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: strings.TrimPrefix(chainSuffix, "; ")})
 	}
 	if strings.Contains(string(raw), "status --root") {
-		lines = append(lines, label("pre-commit:")+"present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh")
-		problems++
+		val := "present with stale STATUS.md regen step (G-0112: regen moved to post-commit); run `aiwf update` to refresh"
+		lines = append(lines, label("pre-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	lines = append(lines, fmt.Sprintf("%sok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", label("pre-commit:"), embedded, chainSuffix))
@@ -530,7 +586,7 @@ func appendPreCommitHookReport(in []string, problemsIn int, rootDir string) (lin
 // reports its state (G-0218). The hook was born post-G-0135 (PATH
 // lookup from day one), so there is no pre-G-0135 absolute-path
 // shape to check for.
-func appendCommitMsgHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendCommitMsgHookReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 
@@ -538,36 +594,41 @@ func appendCommitMsgHookReport(in []string, problemsIn int, rootDir string) (lin
 	hookPath := filepath.Join(hooksDir, "commit-msg")
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
-		lines = append(lines, label("commit-msg:")+"missing — G-0218 fabricated-trailer chokepoint not installed; run `aiwf update`")
-		problems++
+		val := "missing — G-0218 fabricated-trailer chokepoint not installed; run `aiwf update`"
+		lines = append(lines, label("commit-msg:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if err != nil {
 		lines = append(lines, label("commit-msg:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), "# aiwf:commit-msg") {
-		lines = append(lines, label("commit-msg:")+"present but not aiwf-managed (no `# aiwf:commit-msg` marker); G-0218 fabricated-trailer chokepoint is not enforced")
+		val := "present but not aiwf-managed (no `# aiwf:commit-msg` marker); G-0218 fabricated-trailer chokepoint is not enforced"
+		lines = append(lines, label("commit-msg:")+val)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
 	}
 	found, lookErr := exec.LookPath("aiwf")
 	if lookErr != nil {
-		lines = append(lines, label("commit-msg:")+"aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
-		problems++
+		val := "aiwf binary not found on PATH (hook would fail at commit time); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH"
+		lines = append(lines, label("commit-msg:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "commit-msg")
+	val := fmt.Sprintf("ok (resolves to %s)%s", found, chainSuffix)
+	lines = append(lines, label("commit-msg:")+val)
 	if chainProblem {
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 	}
-	lines = append(lines, fmt.Sprintf("%sok (resolves to %s)%s", label("commit-msg:"), found, chainSuffix))
 	return lines, problems
 }
 
 // appendPostCommitHookReport inspects .git/hooks/post-commit and
 // reports its state (G-0112).
-func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendPostCommitHookReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 
@@ -581,8 +642,9 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 	raw, err := os.ReadFile(hookPath)
 	if errors.Is(err, os.ErrNotExist) {
 		if autoUpdate {
-			lines = append(lines, label("post-commit:")+"missing — STATUS.md will not regenerate (status_md.auto_update: true); run `aiwf update`")
-			problems++
+			val := "missing — STATUS.md will not regenerate (status_md.auto_update: true); run `aiwf update`"
+			lines = append(lines, label("post-commit:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			return lines, problems
 		}
 		lines = append(lines, label("post-commit:")+"not installed (status_md.auto_update: false; nothing to install)")
@@ -590,17 +652,20 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 	}
 	if err != nil {
 		lines = append(lines, label("post-commit:")+err.Error())
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
 	hasOurMarker := strings.Contains(string(raw), "# aiwf:post-commit")
 	if !hasOurMarker {
-		lines = append(lines, label("post-commit:")+"present but not aiwf-managed (no `# aiwf:post-commit` marker); STATUS.md regen will not run")
+		val := "present but not aiwf-managed (no `# aiwf:post-commit` marker); STATUS.md regen will not run"
+		lines = append(lines, label("post-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
 	}
 	if !autoUpdate {
-		lines = append(lines, label("post-commit:")+"present (aiwf-managed) but config says off (status_md.auto_update: false); run `aiwf update` to remove")
-		problems++
+		val := "present (aiwf-managed) but config says off (status_md.auto_update: false); run `aiwf update` to remove"
+		lines = append(lines, label("post-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	// Post-G-0135 / M-0133 / AC-1: hook resolves aiwf via PATH at
@@ -608,35 +673,40 @@ func appendPostCommitHookReport(in []string, problemsIn int, rootDir string) (li
 	if strings.Contains(string(raw), "command -v aiwf") {
 		found, lookErr := exec.LookPath("aiwf")
 		if lookErr != nil {
-			lines = append(lines, label("post-commit:")+"aiwf binary not found on PATH (STATUS.md regen will skip silently); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH")
-			problems++
+			val := "aiwf binary not found on PATH (STATUS.md regen will skip silently); install via `go install ./cmd/aiwf` and ensure $GOPATH/bin is on PATH"
+			lines = append(lines, label("post-commit:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 			return lines, problems
 		}
 		chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "post-commit")
+		val := fmt.Sprintf("ok (resolves to %s)%s", found, chainSuffix)
+		lines = append(lines, label("post-commit:")+val)
 		if chainProblem {
-			problems++
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		}
-		lines = append(lines, fmt.Sprintf("%sok (resolves to %s)%s", label("post-commit:"), found, chainSuffix))
 		return lines, problems
 	}
 
 	// Pre-G-0135: absolute path baked at install time.
 	embedded := extractPreCommitExecPath(string(raw))
 	if embedded == "" {
-		lines = append(lines, label("post-commit:")+"aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh")
-		problems++
+		val := "aiwf-managed but malformed (no aiwf invocation found); run `aiwf update` to refresh"
+		lines = append(lines, label("post-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	if _, statErr := os.Stat(embedded); statErr != nil {
-		lines = append(lines, fmt.Sprintf("%sstale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", label("post-commit:"), embedded))
-		problems++
+		val := fmt.Sprintf("stale path %s — binary moved or removed; run `aiwf update` to refresh (post-G-0135 hooks resolve aiwf via PATH)", embedded)
+		lines = append(lines, label("post-commit:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 		return lines, problems
 	}
 	chainSuffix, chainProblem := localChainSuffix(rootDir, hooksDir, "post-commit")
+	val := fmt.Sprintf("ok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", embedded, chainSuffix)
+	lines = append(lines, label("post-commit:")+val)
 	if chainProblem {
-		problems++
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
 	}
-	lines = append(lines, fmt.Sprintf("%sok (%s; pre-G-0135 shape, run `aiwf update` to switch to PATH lookup)%s", label("post-commit:"), embedded, chainSuffix))
 	return lines, problems
 }
 
@@ -707,7 +777,7 @@ func filesystemCaseLabel(dir string) string {
 
 // appendValidatorReport reads aiwf.yaml's contracts block and
 // reports each configured validator's binary availability.
-func appendValidatorReport(in []string, problemsIn int, rootDir string) (lines []string, problems int) {
+func appendValidatorReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	lines = in
 	problems = problemsIn
 	yamlPath := filepath.Join(rootDir, "aiwf.yaml")
@@ -721,24 +791,32 @@ func appendValidatorReport(in []string, problemsIn int, rootDir string) (lines [
 	}
 	sort.Strings(names)
 
-	missing := 0
+	// missingVals holds the value text of each missing-validator line so
+	// the strict branch can raise one error per missing binary (matching
+	// the pre-[]Problem `problems += missing` count).
+	var missingVals []string
 	for _, n := range names {
 		v := contracts.Validators[n]
 		if _, lpErr := exec.LookPath(v.Command); lpErr == nil {
 			lines = append(lines, fmt.Sprintf("%s%s ok (command=%s)", label("validator:"), n, v.Command))
 		} else {
-			lines = append(lines, fmt.Sprintf("%s%s missing (command=%s)", label("validator:"), n, v.Command))
-			missing++
+			val := fmt.Sprintf("%s missing (command=%s)", n, v.Command)
+			lines = append(lines, label("validator:")+val)
+			missingVals = append(missingVals, val)
 		}
 	}
-	if missing > 0 && contracts.StrictValidators {
-		lines = append(lines, fmt.Sprintf("%s%d missing validator(s) and strict_validators=true; pre-push will fail", subIndent, missing))
-		problems += missing
-	} else if missing > 0 {
+	if len(missingVals) > 0 && contracts.StrictValidators {
+		lines = append(lines, fmt.Sprintf("%s%d missing validator(s) and strict_validators=true; pre-push will fail", subIndent, len(missingVals)))
+		for _, val := range missingVals {
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
+		}
+	} else if len(missingVals) > 0 {
+		warn := "missing binaries are warnings (strict_validators=false); pushes are not blocked"
 		lines = append(lines,
-			subIndent+"missing binaries are warnings (strict_validators=false); pushes are not blocked",
+			subIndent+warn,
 			subIndent+"install the binary or set strict_validators=true to enforce on every machine",
 		)
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: warn})
 	}
 	return lines, problems
 }

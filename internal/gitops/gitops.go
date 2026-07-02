@@ -293,6 +293,19 @@ func commonGitDir(ctx context.Context, workdir string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// MainCheckoutRoot returns the absolute path to the main working tree's
+// root for the repo at workdir — the parent of the shared git dir. When
+// workdir is a linked worktree, this is the main checkout, not the
+// worktree, so aiwf writes shared per-repo artifacts (the health file)
+// there and a single copy serves every worktree.
+func MainCheckoutRoot(ctx context.Context, workdir string) (string, error) {
+	commonDir, err := commonGitDir(ctx, workdir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(commonDir), nil
+}
+
 // InWorktree reports whether workdir is inside a linked git worktree
 // (vs. the main checkout). True when the per-worktree git dir
 // differs from the shared common dir. Useful for operator-facing

@@ -360,62 +360,43 @@ case "$ci_state" in
   *)   ci_fmt="${ci_state} ${ci_label}" ;;
 esac
 
-# --- Tree health (cached aiwf check --fast) ---------------------------------
+# --- Installation health stoplight (reads producer health files) -----------
 #
-# Prefixes ⚠ when `aiwf check --fast` reports error-severity findings, so the
-# operator gets an ambient signal that the planning tree has drifted into a
-# blocking state without running a verb by hand (G-0290). Hard constraint: the
-# statusline renders every prompt, so it must NOT run a full `aiwf check`
-# (seconds-to-minutes on a large tree — the per-entity git-history walks). It
-# runs the render-safe `--fast` mode (in-memory content rules, no git-history
-# layer) and caches the verdict on a short TTL + HEAD-fold, exactly like the CI
-# segment above — the hot path only reads the cache file.
-#
-# Only error-severity findings light the glyph: `aiwf check` exits 1 iff errors
-# are present, 0 for a clean tree OR one with warnings only, so the repo's
-# always-present benign warnings (archive-sweep-pending, …) never pin it on.
-#
-# Degrades silently (no glyph) when aiwf is absent, the tree is not an aiwf repo
-# (no aiwf.yaml), or the probe errors (exit >1) — e.g. a binary too old for
-# --fast. This is why the non-aiwf statusline fixtures render no health glyph.
+# Reads .claude/health.*.json — one per producer (aiwf, ai-dotfiles, …) — unions
+# their findings, and prefixes a four-state stoplight at the maximum severity:
+#   ▲ (red)    — a finding is error severity
+#   ▲ (yellow) — the max severity is warn
+#   ● (green)  — a health file present with no warn/error (healthy)
+#   ● (gray)   — an aiwf repo but no producer has written a file yet (unknown)
+# It NEVER runs a check on the render path: producers write the files out of band
+# (`aiwf doctor --write-health`, `dotfiles-doctor --write`); the statusline only
+# reads and unions. Resolves to the MAIN checkout (git-common-dir parent) so one
+# file serves every linked worktree. Severities are matched by substring; a
+# corrupt file among valid ones contributes no match, and a set with no readable
+# "findings" at all renders gray (unknown) rather than a false green.
 
-health_state=""
-health_root="$(git rev-parse --show-toplevel 2>/dev/null)"
-if command -v aiwf >/dev/null 2>&1 && [ -n "$health_root" ] && [ -f "$health_root/aiwf.yaml" ]; then
-  # HEAD-fold mirrors the CI key: a commit invalidates the cached verdict at
-  # once; between commits the TTL bounds staleness for uncommitted edits.
-  h_head="$(git rev-parse --verify HEAD 2>/dev/null)"
-  h_key="$(printf '%s/%s' "$health_root" "$h_head" | shasum | awk '{print $1}')"
-  h_cache_dir="${AIWF_STATUSLINE_CACHE_DIR:-/tmp}"
-  h_cache_file="${h_cache_dir}/aiwf-statusline-health-${h_key}"
-  h_ttl=30
-
-  h_use_cache=false
-  if [ -r "$h_cache_file" ]; then
-    h_age=$(( $(date +%s) - $(stat -c %Y "$h_cache_file" 2>/dev/null || stat -f %m "$h_cache_file" 2>/dev/null || echo 0) ))
-    [ "$h_age" -lt "$h_ttl" ] && h_use_cache=true
-  fi
-
-  if $h_use_cache; then
-    health_state="$(cat "$h_cache_file" 2>/dev/null)"
-  else
-    aiwf check --fast --root "$health_root" >/dev/null 2>&1
-    case $? in
-      0) health_state="ok"   ;;
-      1) health_state="warn" ;;
-      *) health_state=""     ;;  # probe failed (e.g. old binary, no --fast): degrade
-    esac
-    if [ -n "$health_state" ]; then
-      h_tmp="${h_cache_file}.tmp.$$"
-      printf '%s' "$health_state" >"$h_tmp" 2>/dev/null && mv -f "$h_tmp" "$h_cache_file" 2>/dev/null
+health_prefix=""
+health_common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+if [ -n "$health_common" ]; then
+  health_root="$(dirname "$health_common")"
+  set -- "$health_root/.claude"/health.*.json
+  if [ -e "$1" ]; then
+    health_blob="$(cat "$health_root/.claude"/health.*.json 2>/dev/null)"
+    if ! printf '%s' "$health_blob" | grep -q '"findings"'; then
+      # files present but none parse (no "findings" key) — unknown, not a
+      # false green (ADR-0026: "no health file present, or none parse").
+      health_prefix="${gray}●${reset} "
+    elif printf '%s' "$health_blob" | grep -q '"severity"[[:space:]]*:[[:space:]]*"error"'; then
+      health_prefix="${red}▲${reset} "
+    elif printf '%s' "$health_blob" | grep -q '"severity"[[:space:]]*:[[:space:]]*"warn"'; then
+      health_prefix="${yellow}▲${reset} "
+    else
+      health_prefix="${green}●${reset} "
     fi
+  elif [ -f "$health_root/aiwf.yaml" ]; then
+    health_prefix="${gray}●${reset} "
   fi
 fi
-
-# ⚠ leads the whole line (before the ball) so a findings state is impossible to
-# miss; clean / warnings-only / degraded states render no prefix.
-health_prefix=""
-[ "$health_state" = "warn" ] && health_prefix="${red}⚠${reset} "
 
 # --- Subscription-usage dots (G-0310) --------------------------------------
 # rate_limits.{seven_day,five_hour}.used_percentage from the stdin JSON — the
