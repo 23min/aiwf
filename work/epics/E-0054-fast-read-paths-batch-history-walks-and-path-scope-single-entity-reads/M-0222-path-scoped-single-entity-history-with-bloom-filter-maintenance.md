@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: aiwf update maintains changed-path bloom filters idempotently
-      status: open
+      status: deferred
       tdd_phase: red
     - id: AC-3
       title: path-scoped history equals trailer-grep history including renamed entities
