@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: measured single-entity history wall-time delta recorded in Validation
-      status: open
+      status: deferred
       tdd_phase: red
 ---
 ## Goal
