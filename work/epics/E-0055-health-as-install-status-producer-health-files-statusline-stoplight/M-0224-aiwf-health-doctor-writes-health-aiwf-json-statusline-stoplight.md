@@ -1,7 +1,7 @@
 ---
 id: M-0224
 title: 'aiwf health: doctor writes health.aiwf.json + statusline stoplight'
-status: in_progress
+status: done
 parent: E-0055
 tdd: required
 acs:
