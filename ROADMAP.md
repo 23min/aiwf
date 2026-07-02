@@ -600,16 +600,16 @@ pre-push where the check can live there, CI at the latest.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0195 | Strict skill-body id-reference discipline, check, and full sweep | draft |
-| M-0196 | Skill-edit structural-test backstop policy | draft |
-| M-0197 | Document aiwf-check finding codes + documented-superset chokepoint | draft |
-| M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | draft |
-| M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | draft |
-| M-0200 | Skill descriptions, whiteboard, and prose polish | draft |
-| M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | draft |
-| M-0202 | Fix devcontainer onboarding banner (retired plugin install) | draft |
-| M-0210 | Extract trailered-commit duplication into a wf-commit-trailers reference skill | draft |
-| M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | draft |
+| M-0195 | Strict skill-body id-reference discipline, check, and full sweep | done |
+| M-0196 | Skill-edit structural-test backstop policy | done |
+| M-0197 | Document aiwf-check finding codes + documented-superset chokepoint | done |
+| M-0198 | Verb-skill factual corrections (status set, kind, paths, links) | done |
+| M-0199 | wf-tdd-cycle/wf-review-code honesty and wf-doc-lint reframe | done |
+| M-0200 | Skill descriptions, whiteboard, and prose polish | done |
+| M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | done |
+| M-0202 | Fix devcontainer onboarding banner (retired plugin install) | done |
+| M-0210 | Drift chokepoint for the trailered-commit block in wrap rituals | done |
+| M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | done |
 
 ## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
 

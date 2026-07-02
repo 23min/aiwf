@@ -160,18 +160,26 @@ func TestAiwfxWhiteboard_AC3_TierRubric(t *testing.T) {
 		}
 	}
 
-	// Spec: the rubric must cite examples drawn from
-	// critical-path.md's actual tier placements. Pick one
-	// representative from each tier and assert the id appears
-	// in the rubric body. (Per critical-path.md: Tier 1 = G-071,
-	// Tier 2 = ADR-0001, Tier 3 = G-059, Tier 4 = G-056, Tier 5
-	// = G-070.) Width-tolerant per ADR-0008: post-M-0083 the skill
-	// body cites canonical 4-digit form (G-0071 etc.); the
-	// containsIDForm helper matches either width.
-	exemplars := []string{"G-071", "ADR-0001", "G-059", "G-056", "G-070"}
-	for _, id := range exemplars {
-		if !containsIDForm(section, id) {
-			t.Errorf("AC-3: §Tier classification rubric must cite exemplar %q from critical-path.md", id)
+	// Spec (revised by G-0299): the rubric teaches each tier by example
+	// ARCHETYPE — a description of the KIND of item that belongs there —
+	// rather than by citing real entity ids, which would leak aiwf's own
+	// tree into a shipped, consumer-facing skill body. Assert every tier
+	// carries an "Example archetypes" block and a representative archetype
+	// phrase; the skill-body-id check is the mechanical backstop that no
+	// real id reappears here.
+	if got := strings.Count(section, "Example archetypes"); got < len(tierLabels) {
+		t.Errorf("AC-3: §Tier rubric must give example archetypes for each tier; found %d blocks, want >= %d", got, len(tierLabels))
+	}
+	archetypePhrases := []string{
+		"lifecycle-blind",          // Tier 1
+		"entity-id-minting-policy", // Tier 2
+		"branch-model ritual",      // Tier 3
+		"gitignore",                // Tier 4
+		"defer until a json",       // Tier 5
+	}
+	for _, p := range archetypePhrases {
+		if !strings.Contains(lower, p) {
+			t.Errorf("AC-3: §Tier rubric must teach by archetype; missing representative phrase %q", p)
 		}
 	}
 }

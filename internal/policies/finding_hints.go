@@ -37,18 +37,66 @@ func PolicyFindingCodesHaveHints(root string) ([]Violation, error) {
 	}
 
 	hintKeys := loadHintTableKeys(files)
-	codeConsts := loadCheckCodeConstants(files)
 
 	var out []Violation
-	fset := token.NewFileSet()
-	type seenCode struct {
-		Code    string
-		Subcode string
-		File    string
-		Line    int
+	for _, sc := range emittedFindingCodeSites(files) {
+		key := sc.Code
+		if sc.Subcode != "" {
+			key = sc.Code + "/" + sc.Subcode
+		}
+		if _, ok := hintKeys[key]; ok {
+			continue
+		}
+		// Subcode-less fallback: hint table sometimes carries a bare
+		// key for a code with multiple subcodes. The runtime HintFor
+		// falls back to the bare code when the subcoded entry is
+		// missing — mirror that behavior to avoid false positives.
+		if sc.Subcode != "" {
+			if _, ok := hintKeys[sc.Code]; ok {
+				continue
+			}
+		}
+		out = append(out, Violation{
+			Policy: "finding-codes-have-hints",
+			File:   sc.File,
+			Line:   sc.Line,
+			Detail: "Finding{Code: " + strconv.Quote(sc.Code) +
+				func() string {
+					if sc.Subcode != "" {
+						return ", Subcode: " + strconv.Quote(sc.Subcode)
+					}
+					return ""
+				}() +
+				"} has no entry in internal/check/hint.go hintTable",
+		})
 	}
-	var seen []seenCode
+	return out, nil
+}
 
+// findingCodeSite is one finding code observed at a Finding{}/pseudo-
+// finding composite-literal construction site, with its optional subcode
+// and source location.
+type findingCodeSite struct {
+	Code    string
+	Subcode string
+	File    string
+	Line    int
+}
+
+// emittedFindingCodeSites walks every non-test .go file's composite
+// literals for a Code (and optional Subcode) field and returns one site
+// per emission, resolving bare string literals, same-package Code*
+// constants, and typed codespkg.Code{ID:…} descriptor references —
+// including `CodeXxx.ID` and cross-package `pkg.CodeXxx.ID` selectors.
+//
+// It is the single source of truth for "what codes the check layer can
+// emit", shared by PolicyFindingCodesHaveHints and
+// PolicyFindingCodesDocumentedInSkill so the hint-completeness and
+// skill-documentation chokepoints cannot drift from each other.
+func emittedFindingCodeSites(files []FileEntry) []findingCodeSite {
+	codeConsts := loadCheckCodeConstants(files)
+	fset := token.NewFileSet()
+	var out []findingCodeSite
 	for _, f := range files {
 		if !strings.HasSuffix(f.Path, ".go") || strings.HasSuffix(f.Path, "_test.go") {
 			continue
@@ -85,7 +133,7 @@ func PolicyFindingCodesHaveHints(root string) ([]Violation, error) {
 			if code == "" {
 				return true
 			}
-			seen = append(seen, seenCode{
+			out = append(out, findingCodeSite{
 				Code:    code,
 				Subcode: subcode,
 				File:    f.Path,
@@ -94,39 +142,7 @@ func PolicyFindingCodesHaveHints(root string) ([]Violation, error) {
 			return true
 		})
 	}
-
-	for _, sc := range seen {
-		key := sc.Code
-		if sc.Subcode != "" {
-			key = sc.Code + "/" + sc.Subcode
-		}
-		if _, ok := hintKeys[key]; ok {
-			continue
-		}
-		// Subcode-less fallback: hint table sometimes carries a bare
-		// key for a code with multiple subcodes. The runtime HintFor
-		// falls back to the bare code when the subcoded entry is
-		// missing — mirror that behavior to avoid false positives.
-		if sc.Subcode != "" {
-			if _, ok := hintKeys[sc.Code]; ok {
-				continue
-			}
-		}
-		out = append(out, Violation{
-			Policy: "finding-codes-have-hints",
-			File:   sc.File,
-			Line:   sc.Line,
-			Detail: "Finding{Code: " + strconv.Quote(sc.Code) +
-				func() string {
-					if sc.Subcode != "" {
-						return ", Subcode: " + strconv.Quote(sc.Subcode)
-					}
-					return ""
-				}() +
-				"} has no entry in internal/check/hint.go hintTable",
-		})
-	}
-	return out, nil
+	return out
 }
 
 // loadHintTableKeys reads internal/check/hint.go and returns
@@ -150,10 +166,12 @@ func loadHintTableKeys(files []FileEntry) map[string]struct{} {
 	return keys
 }
 
-// loadCheckCodeConstants reads every const declaration in the
-// check package and returns name → string-literal value for the
-// ones whose value is a quoted string. Used to resolve
-// `Code: CodeFoo` references in Finding{} literals.
+// loadCheckCodeConstants reads every const and var declaration in the
+// check package and returns name → string-code value for two shapes:
+// string-constant codes (`const CodeFoo = "foo"`) and typed descriptor
+// codes (`var CodeFoo = codespkg.Code{ID: "foo"}`). Used to resolve
+// `Code: CodeFoo` and `Code: CodeFoo.ID` references in Finding{}
+// literals.
 func loadCheckCodeConstants(files []FileEntry) map[string]string {
 	out := map[string]string{}
 	fset := token.NewFileSet()
@@ -167,7 +185,7 @@ func loadCheckCodeConstants(files []FileEntry) map[string]string {
 		}
 		for _, decl := range astFile.Decls {
 			gen, ok := decl.(*ast.GenDecl)
-			if !ok || gen.Tok != token.CONST {
+			if !ok || (gen.Tok != token.CONST && gen.Tok != token.VAR) {
 				continue
 			}
 			for _, spec := range gen.Specs {
@@ -179,15 +197,21 @@ func loadCheckCodeConstants(files []FileEntry) map[string]string {
 					if i >= len(vs.Values) {
 						continue
 					}
-					lit, ok := vs.Values[i].(*ast.BasicLit)
-					if !ok || lit.Kind != token.STRING {
-						continue
+					switch val := vs.Values[i].(type) {
+					case *ast.BasicLit:
+						// String-constant code form: take the quoted literal directly.
+						if val.Kind != token.STRING {
+							continue
+						}
+						if unq, err := strconv.Unquote(val.Value); err == nil {
+							out[name.Name] = unq
+						}
+					case *ast.CompositeLit:
+						// Typed-descriptor form (a codespkg.Code value): pull its ID field literal.
+						if id, ok := compositeLitStringField(val, "ID"); ok {
+							out[name.Name] = id
+						}
 					}
-					unq, err := strconv.Unquote(lit.Value)
-					if err != nil {
-						continue
-					}
-					out[name.Name] = unq
 				}
 			}
 		}
@@ -195,11 +219,36 @@ func loadCheckCodeConstants(files []FileEntry) map[string]string {
 	return out
 }
 
+// compositeLitStringField returns the string-literal value of the named
+// field in a composite literal (e.g. the ID of a codespkg.Code{ID:…}
+// descriptor), and whether such a field was found.
+func compositeLitStringField(cl *ast.CompositeLit, field string) (string, bool) {
+	for _, elt := range cl.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok || key.Name != field {
+			continue
+		}
+		lit, ok := kv.Value.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			continue
+		}
+		if s, err := strconv.Unquote(lit.Value); err == nil {
+			return s, true
+		}
+	}
+	return "", false
+}
+
 // resolveStringExpr extracts a string value from an AST expression
-// when possible. Handles bare string literals and identifiers that
-// resolve via codeConsts. Returns "" otherwise — callers treat
-// unresolved values as opaque and skip the policy check (we can't
-// fairly judge a code we can't read).
+// when possible. Handles bare string literals, identifiers that resolve
+// via codeConsts (`CodeFoo`), and `.ID` selectors on a descriptor —
+// both same-package (`CodeFoo.ID`) and cross-package (`pkg.CodeFoo.ID`).
+// Returns "" otherwise — callers treat unresolved values as opaque and
+// skip the policy check (we can't fairly judge a code we can't read).
 func resolveStringExpr(expr ast.Expr, codeConsts map[string]string) string {
 	switch v := expr.(type) {
 	case *ast.BasicLit:
@@ -213,6 +262,20 @@ func resolveStringExpr(expr ast.Expr, codeConsts map[string]string) string {
 		return s
 	case *ast.Ident:
 		return codeConsts[v.Name]
+	case *ast.SelectorExpr:
+		// Resolve `CodeFoo.ID` / `pkg.CodeFoo.ID` to the descriptor's ID
+		// via its var name. Descriptor names are unique across the check
+		// layer, so the package qualifier is not needed for the lookup.
+		if v.Sel.Name != "ID" {
+			return ""
+		}
+		switch x := v.X.(type) {
+		case *ast.Ident:
+			return codeConsts[x.Name]
+		case *ast.SelectorExpr:
+			return codeConsts[x.Sel.Name]
+		}
+		return ""
 	}
 	return ""
 }

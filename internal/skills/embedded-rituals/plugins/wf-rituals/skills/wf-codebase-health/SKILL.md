@@ -1,6 +1,6 @@
 ---
 name: wf-codebase-health
-description: Stack-agnostic field guide of code-health principles — module boundaries, contracts, data discipline, tests that pin behavior, errors/logs/audit, reasoning aids, operational properties. Use when designing a new module, planning a refactor, reviewing a non-trivial diff, writing a spec that introduces new boundaries, or scoring an inherited codebase Strong/Weak/Missing with file:line evidence. These are advisory forces, not rules — consult them, don't enforce them; the project's own conventions win. Complements wf-review-code (the per-diff gate) at the whole-codebase altitude.
+description: The aiwf per-repo code-health ritual — the whole-codebase companion to wf-review-code's per-diff gate. A stack-agnostic field guide of code-health principles: module boundaries, contracts, data discipline, tests that pin behavior, errors/logs/audit, reasoning aids, operational properties. Use when designing a new module, planning a refactor, reviewing a non-trivial diff, writing a spec that introduces new boundaries, or scoring an inherited codebase Strong/Weak/Missing with file:line evidence. These are advisory forces, not rules — consult them, don't enforce them; the project's own conventions win.
 ---
 
 # wf-codebase-health

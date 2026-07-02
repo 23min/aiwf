@@ -1,8 +1,10 @@
 ---
 id: G-0309
 title: wf-tdd-cycle promotes AC to met before branch-coverage audit and vacuity
-status: open
+status: addressed
 discovered_in: M-0209
+addressed_by:
+    - M-0199
 ---
 
 ## What's missing

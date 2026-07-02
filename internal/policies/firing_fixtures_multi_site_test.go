@@ -164,12 +164,132 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			},
 		},
 
+		// m0202-devcontainer-onboarding: missing files (both report sites)
+		// + a retired marker in each file + the banner missing its
+		// verification pointer. Together these light every report site.
+		{name: "m0202-onboarding/missing", policy: PolicyM0202DevcontainerOnboarding, files: map[string]string{}},
+		{
+			name:   "m0202-onboarding/init-retired-marker",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf doctor rituals:\n/plugin marketplace add 23min/ai-workflow-rituals\n",
+				".devcontainer/README.md": "clean\n",
+			},
+		},
+		{
+			name:   "m0202-onboarding/readme-retired-marker",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf doctor rituals:\n",
+				".devcontainer/README.md": "install both plugins at PROJECT scope\n",
+			},
+		},
+		{
+			name:   "m0202-onboarding/banner-missing-pointer",
+			policy: PolicyM0202DevcontainerOnboarding,
+			files: map[string]string{
+				".devcontainer/init.sh":   "aiwf devcontainer ready.\n",
+				".devcontainer/README.md": "clean\n",
+			},
+		},
+
 		// trailer-order-matches-constants: each defensive drift line is an
 		// early return, so one fixture per class.
 		{name: "trailer-order/file-not-found", policy: PolicyTrailerOrderMatchesConstants, files: map[string]string{}},
 		{name: "trailer-order/parse-error", policy: PolicyTrailerOrderMatchesConstants, files: map[string]string{"internal/gitops/trailers.go": "package gitops\n\nnot valid go @@@\n"}},
 		{name: "trailer-order/no-consts", policy: PolicyTrailerOrderMatchesConstants, files: map[string]string{"internal/gitops/trailers.go": "package gitops\n\nfunc f() {}\n"}},
 		{name: "trailer-order/no-order-slice", policy: PolicyTrailerOrderMatchesConstants, files: map[string]string{"internal/gitops/trailers.go": "package gitops\n\nconst TrailerVerb = \"aiwf-verb\"\n"}},
+
+		// m0210-trailer-commit-drift: the trailered-commit prescription drift
+		// chokepoint has one Violation construction line (a single report
+		// closure), so any firing fixture lights it; the cases below each
+		// target a distinct violation branch so the diff-scoped coverage gate
+		// sees every arm exercised.
+		//
+		// required-missing: no ritual files -> both required wraps absent
+		// (AC-1 presence guard, `if !ok`).
+		{name: "m0210/required-missing", policy: PolicyM0210TrailerCommitDrift, files: map[string]string{}},
+		// required-no-block: wrap-epic present but carries no trailered-commit
+		// block (AC-1 `if !hasTrailerBlock`, the G-0219 missing-block mode).
+		{
+			name:   "m0210/required-no-block",
+			policy: PolicyM0210TrailerCommitDrift,
+			files:  map[string]string{aiwfxWrapEpicFixturePath: "# wrap-epic\n\nThis ritual documents no trailered-commit block.\n"},
+		},
+		// required-missing-key: wrap-epic block omits the aiwf-actor trailer
+		// flag (AC-1 all-three-keys guard).
+		{
+			name:   "m0210/required-missing-key",
+			policy: PolicyM0210TrailerCommitDrift,
+			files: map[string]string{aiwfxWrapEpicFixturePath: `git merge --no-ff --no-commit epic/E-NN-<slug>
+
+git commit -m "chore(epic): wrap E-NNNN" \
+  --trailer "aiwf-verb: wrap-epic" \
+  --trailer "aiwf-entity: E-NNNN"
+
+Resolve identity from git config user.email; do not hardcode the id.
+Variant casings such as Aiwf-Verb fail the kernel's trailer-keys policy.
+`},
+		},
+		// wrap-missing-caveat: wrap-epic composes a full trailered commit but
+		// drops the canonical variant-casings caveat (AC-2 caveat accompaniment).
+		{
+			name:   "m0210/wrap-missing-caveat",
+			policy: PolicyM0210TrailerCommitDrift,
+			files: map[string]string{aiwfxWrapEpicFixturePath: `git merge --no-ff --no-commit epic/E-NN-<slug>
+
+git commit -m "chore(epic): wrap E-NNNN" \
+  --trailer "aiwf-verb: wrap-epic" \
+  --trailer "aiwf-entity: E-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+
+Resolve identity from git config user.email; do not hardcode the id.
+`},
+		},
+		// merge-missing-identity: wrap-epic stages a --no-commit merge and
+		// composes a trailered commit but drops the git-config identity rule
+		// (AC-2 identity accompaniment at merge sites).
+		{
+			name:   "m0210/merge-missing-identity",
+			policy: PolicyM0210TrailerCommitDrift,
+			files: map[string]string{aiwfxWrapEpicFixturePath: `git merge --no-ff --no-commit epic/E-NN-<slug>
+
+git commit -m "chore(epic): wrap E-NNNN" \
+  --trailer "aiwf-verb: wrap-epic" \
+  --trailer "aiwf-entity: E-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+
+Variant casings such as Aiwf-Verb fail the kernel's trailer-keys policy.
+`},
+		},
+		// unreadable: a directory in place of wrap-epic's SKILL.md makes the
+		// glob match but os.ReadFile fail (the "unreadable ritual" line).
+		{name: "m0210/unreadable", policy: PolicyM0210TrailerCommitDrift, files: map[string]string{aiwfxWrapEpicFixturePath + "/keep": "x"}},
+
+		// m0211-guidance-operating-anchors: the drift chokepoint over the
+		// shipped guidance has two Violation construction lines — the
+		// unreadable/absent-file line and the per-anchor loop line. One fixture
+		// per line.
+		//
+		// missing-file: no guidance source -> os.ReadFile fails (the absent-file
+		// line).
+		{name: "m0211/missing-file", policy: PolicyM0211GuidanceOperatingAnchors, files: map[string]string{}},
+		// missing-anchor: a guidance source that carries every curated anchor
+		// except the cross-branch allocation rule (no `--fetch` / push-promptly)
+		// -> the per-anchor loop line fires.
+		{
+			name:   "m0211/missing-anchor",
+			policy: PolicyM0211GuidanceOperatingAnchors,
+			files: map[string]string{m0209GuidanceFixturePath: `# guidance
+
+- **Each mutating action is its own approval gate.** don't bundle.
+- **On an id collision, run aiwf reallocate, not git mv.**
+- **Promote an AC to met only with mechanical evidence.**
+- **Decide one thing at a time.**
+- **Never suggest the human pause.**
+- The body-prose-id rule enforces id shapes.
+`},
+		},
 	}
 
 	for _, tc := range cases {

@@ -1,7 +1,9 @@
 ---
 id: G-0248
 title: aiwfx-plan-milestones Next step skips aiwfx-start-epic for proposed epics
-status: open
+status: addressed
+addressed_by:
+    - M-0201
 ---
 ## What's missing
 

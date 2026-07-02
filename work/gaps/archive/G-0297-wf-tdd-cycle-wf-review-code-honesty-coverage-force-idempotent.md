@@ -1,7 +1,9 @@
 ---
 id: G-0297
 title: 'wf-tdd-cycle/wf-review-code honesty: coverage, --force, idempotent'
-status: open
+status: addressed
+addressed_by:
+    - M-0199
 ---
 ## Problem
 

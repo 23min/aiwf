@@ -59,7 +59,7 @@ This skill is the **per-diff gate**. For whole-codebase structural and operation
 ### 5. Tests
 
 - A test exists for the new or changed behavior — every acceptance criterion if AC-driven, otherwise every behavioral change.
-- **Branch coverage:** every reachable conditional branch in the diff has at least one test exercising it. (See `wf-tdd-cycle` § "Branch-coverage audit" — same hard rule.)
+- **Branch coverage:** every reachable conditional branch in the diff has at least one test exercising it. This is an **agent-performed** manual branch-walk (see `wf-tdd-cycle` § "Branch-coverage audit" — same hard rule), not a tool run: a project's mechanical coverage gate is typically **statement**-level, so this walk is what supplies the branch-level assurance. "Hard rule" means you must perform the walk, not that a tool enforces it at branch granularity.
 - Tests are deterministic.
 - Tests cover happy path *and* edge cases.
 - No tests removed without an explicit reason.

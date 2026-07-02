@@ -1,7 +1,9 @@
 ---
 id: G-0279
 title: Stale devcontainer banner instructs retired rituals plugin install
-status: open
+status: addressed
+addressed_by:
+    - M-0202
 ---
 ## What's missing
 

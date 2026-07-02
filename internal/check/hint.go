@@ -31,11 +31,15 @@ var hintTable = map[string]string{
 	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
 	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or remove the reference",
 	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; check the AC number or add the AC entry to acs[]",
-	"no-cycles/depends_on":               "remove one edge in the cycle to keep the milestone DAG acyclic",
-	"no-cycles/supersedes":               "remove the loop in the supersedes/superseded_by chain",
-	"titles-nonempty":                    "set a non-empty `title:` in the frontmatter",
-	"adr-supersession-mutual":            "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
-	"gap-addressed-has-resolver":         "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
+	// G-0299: skill-body-id chokepoint. Shipped SKILL.md bodies must cite
+	// no real entity id (the mirror image of body-prose-id). The fix is a
+	// canonical placeholder or a design/ADR doc-link, not a real id.
+	"skill-body-id":              "a shipped skill body cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description, or cite a design/ADR doc as a markdown link (the id rides in the link destination, the visible text stays descriptive)",
+	"no-cycles/depends_on":       "remove one edge in the cycle to keep the milestone DAG acyclic",
+	"no-cycles/supersedes":       "remove the loop in the supersedes/superseded_by chain",
+	"titles-nonempty":            "set a non-empty `title:` in the frontmatter",
+	"adr-supersession-mutual":    "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
+	"gap-addressed-has-resolver": "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
 
 	// G-0155: misset core.worktree silently redirects every git op
 	// against the wrong worktree. The hint points at the precise
@@ -250,7 +254,11 @@ var hintTable = map[string]string{
 	// or in-place sovereign override is the right shape. Lineage via
 	// `aiwf history` covers M-0106 (original 2-path hint) and
 	// M-0159/AC-9 (acknowledge-illegal addition).
-	"isolation-escape": "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
+	"isolation-escape":                    "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
+	"isolation-escape-oracle-failure":     "advisory: the branch-choreography oracle could not resolve one or more refs, so isolation-escape could not be checked for the affected commits. It fails shut on correctness (no false positives) and fails open on coverage, so this is operator visibility, not a blocker — inspect the named ref/failure mode; it clears once the ref resolves. See D-0019 for the contract.",
+	"isolation-escape-shallow-clone":      "the repository is a shallow clone, so the per-commit branch map is left empty and isolation-escape can't run (a total-coverage gap). Unshallow with `git fetch --unshallow`, or in CI use `actions/checkout@vN` with `fetch-depth: 0`.",
+	"isolation-escape-orphaned-ai-commit": "an AI-actor commit was orphaned by a non-fast-forward update (force-push) on a ritual branch, so the kernel can't tell whether it was on the correct branch. Review the commit; if it was deliberate sovereign-human work, record it via `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor.",
+	"promote-on-wrong-branch":             "an activating-promote (e.g. `aiwf promote E-NNNN active` / `aiwf promote M-NNNN in_progress`) landed on a branch other than the entity's expected parent branch, contrary to ADR-0010 (sovereign acts land on the parent branch before the ritual branch is cut). Land future activations on the parent branch; if this placement was deliberate, silence the commit via `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor, or add an `aiwf-force: <reason>` trailer to the promote commit.",
 }
 
 // HintFor returns the canonical action hint for a given code+subcode.

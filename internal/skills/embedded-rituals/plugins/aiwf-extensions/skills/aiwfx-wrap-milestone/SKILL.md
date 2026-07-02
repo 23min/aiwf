@@ -9,7 +9,7 @@ Closes a milestone. Verifies completeness, finalizes the milestone spec's wrap-s
 
 ## When to use
 
-The milestone's implementation is complete and self-reviewed (`aiwfx-start-milestone` step 7 ran clean). The user says: *"wrap M-NNNN"*, *"finish M-0007"*, *"close out the cache milestone"*.
+The milestone's implementation is complete and self-reviewed (`aiwfx-start-milestone` step 7 ran clean). The user says: *"wrap M-NNNN"*, *"finish the auth milestone"*, *"close out the cache milestone"*.
 
 If the milestone isn't actually done — failing tests, unmet ACs, broken build — stop and report. Don't paper over.
 
@@ -149,9 +149,9 @@ git commit -m "chore(milestone): wrap M-NNNN — <milestone title>" \
   --trailer "aiwf-actor: human/<id>"
 ```
 
-The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. The `aiwf-verb: wrap-milestone` value names the ritual that produced the commit; the kernel's `trailer-verb-unknown` rule recognizes it via the ritualVerbs allowlist (sourced from the embedded ritual snapshot per G-0190), mirroring `aiwfx-wrap-epic`'s `aiwf-verb: wrap-epic` trailer at the equivalent step.
+The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `aiwf-verb`, `aiwf-entity`, `aiwf-actor`. Variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. The `aiwf-verb: wrap-milestone` value names the ritual that produced the commit; the kernel's `trailer-verb-unknown` rule recognizes it via the ritualVerbs allowlist (sourced from the embedded ritual snapshot), mirroring `aiwfx-wrap-epic`'s `aiwf-verb: wrap-epic` trailer at the equivalent step.
 
-**Why an `aiwf-verb` trailer on a `git merge` commit.** The merge IS a kernel-meaningful structural transition (the milestone's work joins the epic's history); `aiwf-verb: wrap-milestone` records the *ritual* that produced it, not the underlying git operation. **Do NOT** write `aiwf-verb: merge` — `merge` is neither a Cobra verb nor an allowlisted ritual value; the `commit-msg` git hook materialized by `aiwf init` / `aiwf update` (per G-0218's primary chokepoint) refuses the commit at message-composition time with a named-value error pointing at the canonical `aiwf-verb: wrap-milestone` shape. Historical commits authored before the hook landed are still surfaced by the `trailer-verb-unknown` rule at pre-push, with two cleanup paths (`aiwf acknowledge illegal <sha>` or push the warning forward, since amend is blocked by the trunk-aware push model).
+**Why an `aiwf-verb` trailer on a `git merge` commit.** The merge IS a kernel-meaningful structural transition (the milestone's work joins the epic's history); `aiwf-verb: wrap-milestone` records the *ritual* that produced it, not the underlying git operation. **Do NOT** write `aiwf-verb: merge` — `merge` is neither a Cobra verb nor an allowlisted ritual value; the `commit-msg` git hook materialized by `aiwf init` / `aiwf update` (the primary chokepoint) refuses the commit at message-composition time with a named-value error pointing at the canonical `aiwf-verb: wrap-milestone` shape. Historical commits authored before the hook landed are still surfaced by the `trailer-verb-unknown` rule at pre-push, with two cleanup paths (`aiwf acknowledge illegal <sha>` or push the warning forward, since amend is blocked by the trunk-aware push model).
 
 Record the resulting merge commit SHA wherever the project tracks merge history (the milestone's `## Work log` section is the natural place).
 

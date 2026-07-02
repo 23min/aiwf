@@ -343,11 +343,14 @@ func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
 // citation must be co-located with the prescription so the operator
 // sees them together):
 //
-//   - docs/pocv3/plans/acs-and-tdd-plan.md:22 — the "prose is not
+//   - docs/pocv3/plans/acs-and-tdd-plan.md — the "prose is not
 //     parsed" line and the AC body-shape recommendation.
-//   - docs/pocv3/design/design-decisions.md:139 — the broader
+//   - docs/pocv3/design/design-decisions.md — the broader
 //     "tree carries semantic detail in prose, not in structure"
 //     stance.
+//
+// Citations are de-pinned (doc path, no `:line` anchor) per
+// M-0198 / G-0301: pinned line numbers rot as the docs change.
 //
 // Both literal paths must be present; both must be inside the
 // `## After aiwf add <kind>: fill in the body` section. Substring
@@ -378,13 +381,19 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 		t.Fatal("AC-2 prerequisite: body-prose subsection missing — AC-1 must land first")
 	}
 
+	// Citations are de-pinned (stable doc path, not a `:line` anchor)
+	// per M-0198 / G-0301 — pinned line numbers rot as the docs change;
+	// the doc-path reference preserves traceability without the fragility.
 	citations := []string{
-		"docs/pocv3/plans/acs-and-tdd-plan.md:22",
-		"docs/pocv3/design/design-decisions.md:139",
+		"docs/pocv3/plans/acs-and-tdd-plan.md",
+		"docs/pocv3/design/design-decisions.md",
 	}
 	for _, c := range citations {
 		if !strings.Contains(tail, c) {
 			t.Errorf("AC-2: citation %q missing from the body-prose subsection", c)
+		}
+		if strings.Contains(tail, c+":") {
+			t.Errorf("AC-2: citation %q still carries a fragile pinned-line anchor (M-0198/G-0301)", c)
 		}
 	}
 }
@@ -532,12 +541,12 @@ func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
 		// The two-step alternative co-located so the operator
 		// reads them in one place rather than separately.
 		"aiwf edit-body",
-		// Explicit M-067 cross-reference. The spec calls for
-		// a two-way pointer; without the literal id the trail
-		// from this skill back to the verb history is lost.
-		// Narrow width matches the SKILL.md prose verbatim;
-		// body-prose canonicalization is M-082's `aiwf rewidth`.
-		"M-067",
+		// The body-file alternative is documented for ACs too, not
+		// just the six top-level kinds. This once pinned the literal
+		// milestone back-reference; G-0299 removed real ids from
+		// shipped skill bodies, so the behavioral pin is now that ACs
+		// are named as a body-file target.
+		"for ACs",
 		// "When to use" — the skill should signal that the
 		// in-verb form is for content already drafted, not a
 		// universal default. The literal phrase the AC's spec
@@ -567,7 +576,9 @@ func TestSkill_AddNamesBodyFileAsAlternative(t *testing.T) {
 //     body sections" or equivalent).
 //   - Reference `entity-body-empty` so the operator knows the
 //     finding code that surfaces the omission.
-//   - Reference M-066 so the cross-link to the rule is explicit.
+//
+// (It once also pinned a literal milestone back-reference; G-0299
+// removed real ids from shipped skill bodies, so that marker is gone.)
 func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
 	t.Parallel()
 	skills, err := List()
@@ -598,11 +609,6 @@ func TestSkill_AddDontEntryAgainstEmptyBodies(t *testing.T) {
 		// Finding code so the operator knows what `aiwf check`
 		// will surface.
 		check.CodeEntityBodyEmpty,
-		// Cross-reference to the rule's milestone so the trail
-		// from the Don't entry back to the rule is one click.
-		// Narrow width matches the SKILL.md prose verbatim;
-		// body-prose canonicalization is M-082's `aiwf rewidth`.
-		"M-066",
 	}
 	for _, m := range mustContain {
 		if !strings.Contains(tail, m) {

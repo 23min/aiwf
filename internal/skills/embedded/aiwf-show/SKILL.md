@@ -9,7 +9,7 @@ The `aiwf show` verb is the canonical per-entity inspection surface. One call re
 
 ## When to use
 
-The user names a specific entity and wants its current state, not a list or a timeline. Example phrasings: "show me G-0078", "what does M-007 look like?", "what's the state of E-19?", "describe AC-3 on M-007", "what does this gap say?".
+The user names a specific entity and wants its current state, not a list or a timeline. Example phrasings: "show me G-NNNN", "what does M-NNNN look like?", "what's the state of E-NNNN?", "describe AC-3 on M-NNNN", "what does this gap say?".
 
 If the user asks "what happened to" or wants a timeline → reach for `aiwf-history`. If the user wants "what's in flight" across the whole tree → reach for `aiwf-status`. If the user names an id, reach here.
 
@@ -26,7 +26,7 @@ aiwf show <id> --area <A>                    # predicate: shown only if effectiv
 
 The composite-id pattern `M-NNN/AC-N` is not obvious from `--help`. Use it whenever the user names a specific AC — the JSON output for a composite id carries just that AC's slice (id, title, status, tdd_phase, body description, tests).
 
-`--area <A>` (E-0043) makes `show` a single-entity predicate: it renders the entity only when its effective area equals `<A>` (composite AC ids roll up to the parent epic's area); otherwise it prints a one-line `<id> is in area "X", not "<A>"` note and exits 0 (the entity is hidden, like an empty filter — not an error). It exists so a script can apply one `--area` filter uniformly across `list`, `status`, and `show`.
+`--area <A>` makes `show` a single-entity predicate: it renders the entity only when its effective area equals `<A>` (composite AC ids roll up to the parent epic's area); otherwise it prints a one-line `<id> is in area "X", not "<A>"` note and exits 0 (the entity is hidden, like an empty filter — not an error). It exists so a script can apply one `--area` filter uniformly across `list`, `status`, and `show`.
 
 ## Output shape
 

@@ -1,7 +1,9 @@
 ---
 id: G-0301
 title: 'Verb-skill factual corrections: AC status set, archive kind, contract, links'
-status: open
+status: addressed
+addressed_by:
+    - M-0198
 ---
 ## Problem
 

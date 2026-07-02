@@ -9,7 +9,7 @@ This skill is advisory; the binary is authoritative.
 
 A **contract** in aiwf is a bounded surface in the consumer repo whose shape is enforced mechanically — typically a CUE schema, a JSON Schema, a `.proto`, or an OpenAPI document. aiwf provides:
 
-1. A **registry record** (`contract` entity, `C-NNN`) tying the surface to ADRs and a status.
+1. A **registry record** (`contract` entity, `C-NNNNN`) tying the surface to ADRs and a status.
 2. A **verification engine** (`aiwf contract verify`) that runs the user's chosen validator against fixtures and reports findings.
 3. A **pre-push hook** (`aiwf check`) that runs verification automatically when contracts are configured.
 
@@ -103,7 +103,7 @@ A `valid/` fixture was rejected. Two possibilities — let the user decide:
 - **The fixture is wrong.** It declared a shape the schema (correctly) doesn't accept. Fix the fixture.
 - **The schema is too strict.** Loosen the schema and document the change in the ADR if it's meaningful.
 
-Never delete a fixture to silence a finding. If a fixture's domain is genuinely retired, that's an ADR-level decision; document it.
+Never delete a fixture to silence a finding. If a fixture's domain is genuinely retired, that's an architectural decision worth an ADR; document it.
 
 ### Finding: `fixture-accepted`
 
@@ -134,13 +134,13 @@ The fix is **always a verb**: `aiwf contract bind <id> --validator <name> --sche
 
 ```bash
 aiwf contract recipes        # validators side
-aiwf show C-NNN              # one entity in detail
-aiwf history C-NNN           # lifecycle
+aiwf show C-NNNN              # one entity in detail
+aiwf history C-NNNN           # lifecycle
 ```
 
 Generic verbs cover the entity side. Do not invent `aiwf contract list` or `aiwf contract status` — they don't exist by design.
 
-### "Move C-NNN through its lifecycle"
+### "Move C-NNNN through its lifecycle"
 
 The contract status set is closed:
 
@@ -150,26 +150,26 @@ proposed → accepted → deprecated → retired
 ```
 
 ```bash
-aiwf promote C-NNN accepted   --reason "ADR-NNN approved 2026-04-30"
-aiwf promote C-NNN deprecated --reason "phasing out for C-NNN+1"
-aiwf promote C-NNN retired    --reason "no consumers remain"
-aiwf cancel  C-NNN            --reason "rolled into ADR-NNN-rev2"
+aiwf promote C-NNNN accepted   --reason "ADR-NNN approved 2026-04-30"
+aiwf promote C-NNNN deprecated --reason "phasing out for C-NNNN+1"
+aiwf promote C-NNNN retired    --reason "no consumers remain"
+aiwf cancel  C-NNNN            --reason "rolled into ADR-NNN-rev2"
 ```
 
-`--reason` is optional but appears in `aiwf history C-NNN`; encourage it for status moves.
+`--reason` is optional but appears in `aiwf history C-NNNN`; encourage it for status moves.
 
-**Status changes never modify the binding.** A `retired` contract still has its `entries[]` row in `aiwf.yaml`; pre-push verification simply skips it. To remove the binding, run `aiwf contract unbind C-NNN` separately. The two-step is intentional: status moves are forward-only and shouldn't destroy operational config that may still carry historical or audit value.
+**Status changes never modify the binding.** A `retired` contract still has its `entries[]` row in `aiwf.yaml`; pre-push verification simply skips it. To remove the binding, run `aiwf contract unbind C-NNNN` separately. The two-step is intentional: status moves are forward-only and shouldn't destroy operational config that may still carry historical or audit value.
 
 ### "Deprecate a contract"
 
-`aiwf promote C-NNN deprecated`. Deprecation is not retirement — verification still runs (the contract is not yet terminal). The signal is for human consumers ("don't write new code against this").
+`aiwf promote C-NNNN deprecated`. Deprecation is not retirement — verification still runs (the contract is not yet terminal). The signal is for human consumers ("don't write new code against this").
 
-### "Stop verifying C-NNN" / "I don't want this contract checked anymore"
+### "Stop verifying C-NNNN" / "I don't want this contract checked anymore"
 
 Two cases, two verbs:
 
-- **The contract is finished its lifecycle:** `aiwf promote C-NNN retired`. Verification stops automatically (terminal-status skip). The binding stays in `aiwf.yaml` for historical reference.
-- **The binding was wrong / outdated and should go away regardless of contract status:** `aiwf contract unbind C-NNN`. Removes the binding row only; entity status unchanged.
+- **The contract is finished its lifecycle:** `aiwf promote C-NNNN retired`. Verification stops automatically (terminal-status skip). The binding stays in `aiwf.yaml` for historical reference.
+- **The binding was wrong / outdated and should go away regardless of contract status:** `aiwf contract unbind C-NNNN`. Removes the binding row only; entity status unchanged.
 
 ### "Language with no recipe" (Pydantic, Avro, custom validator, …)
 
@@ -204,7 +204,7 @@ This is the right answer when:
 
 ### "How do I add my own recipe to the engine?"
 
-Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `tools/internal/recipe/embedded/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
+Recipes ship embedded in the binary. To upstream one, contribute a markdown file to `internal/recipe/embedded/<lang>.md` (PR). Local-only recipes are not supported by design — drift between repos defeats the recipe pattern. For per-repo custom validators, use `aiwf contract recipe install --from <path>` (above).
 
 ### "I already have a contract-verification setup — adopt me into aiwf"
 
@@ -214,7 +214,7 @@ For the engine's current state, do migration in two phases: first land the contr
 
 ### "Cancel a contract entirely"
 
-`aiwf cancel C-NNN` moves the entity from `proposed` or `accepted` to `rejected`. The contract is no longer verified (terminal-status skip). Schema files and fixtures are not deleted — cancellation is a status change. To remove the binding row from `aiwf.yaml.contracts.entries[]`, run `aiwf contract unbind C-NNN` separately.
+`aiwf cancel C-NNNN` moves the entity to a terminal status: from `proposed` or `accepted` to `rejected`, or from `deprecated` to `retired`. The contract is no longer verified (terminal-status skip). Schema files and fixtures are not deleted — cancellation is a status change. To remove the binding row from `aiwf.yaml.contracts.entries[]`, run `aiwf contract unbind C-NNNN` separately.
 
 If the user wants to delete schema files, that's a separate manual step; aiwf does not delete user files.
 
@@ -248,5 +248,5 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 - Don't conflate the registry record (the `contract` entity) with the validator binding (`aiwf.yaml.contracts.entries[]`). Two responsibilities, two locations, linked by `id`. Different verbs for each.
 - Don't suggest deleting fixtures to silence findings.
 - Don't run `aiwf contract verify` against an empty `entries:` block expecting work — it returns nothing, which is correct.
-- Don't invent new verb forms (`aiwf contract list`, `aiwf contract status`). The generic `aiwf show C-NNN` and `aiwf history C-NNN` are authoritative.
+- Don't invent new verb forms (`aiwf contract list`, `aiwf contract status`). The generic `aiwf show C-NNNN` and `aiwf history C-NNNN` are authoritative.
 - Don't claim a `skip_in_check` config option exists. Pre-push verification is unconditional for non-terminal contracts.
