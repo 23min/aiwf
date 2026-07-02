@@ -56,6 +56,6 @@ domain.
 
 ## Milestones
 
-1. Producer — `aiwf doctor` surfaces warnings and errors and writes
-   `.claude/health.aiwf.json`.
-2. Consumer — the four-state statusline stoplight.
+1. `aiwf doctor` surfaces warnings and errors and writes `.claude/health.aiwf.json`
+   (producer), and the statusline reads the health files and renders the four-state
+   stoplight (consumer) — delivered as one milestone.
