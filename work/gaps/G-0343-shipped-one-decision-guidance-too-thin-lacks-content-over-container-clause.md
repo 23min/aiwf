@@ -1,7 +1,9 @@
 ---
 id: G-0343
 title: Shipped one-decision guidance too thin, lacks content-over-container clause
-status: open
+status: addressed
+addressed_by_commit:
+    - 8b16df31
 ---
 ## Problem
 
