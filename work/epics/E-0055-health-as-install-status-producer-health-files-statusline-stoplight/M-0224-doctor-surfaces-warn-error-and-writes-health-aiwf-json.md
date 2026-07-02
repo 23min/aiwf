@@ -6,7 +6,7 @@ parent: E-0055
 tdd: required
 acs:
     - id: AC-1
-      title: doctor emits typed severity-tagged findings the text report renders from
+      title: doctor exposes its warnings and errors with severity and message
       status: open
       tdd_phase: red
     - id: AC-2
@@ -40,7 +40,7 @@ the text report and the JSON envelope render from.
   `aiwf.yaml` on a non-initialized repo) appears at `severity: error`; plus the
   `--format` completion-drift test.
 
-### AC-1 — doctor emits typed severity-tagged findings the text report renders from
+### AC-1 — doctor exposes its warnings and errors with severity and message
 
 ### AC-2 — aiwf doctor --format=json emits the standard findings envelope
 
