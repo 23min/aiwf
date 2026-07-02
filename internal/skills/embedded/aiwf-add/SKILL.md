@@ -88,6 +88,32 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
 6. **Scaffolds load-bearing body sections empty.** Step 5 closes the create commit, but the entity is not done yet — the body sections under each `## <Section>` heading (and the `### AC-N — <title>` body for ACs) are deliberately empty. They are placeholders meant to be filled in. `aiwf check` reports `entity-body-empty` for any load-bearing section that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.
 
+## Allocating ids across branches and clones
+
+Allocation scans the working tree, every local branch, every remote-tracking
+ref, and the configured trunk ref, so *where* you allocate rarely matters — but
+a few operating rules keep ids collision-free across a team:
+
+- **One machine, multiple worktrees:** nothing to do — sibling worktrees share
+  an object store, so the allocator already sees their ids.
+- **Separate clones:** run `aiwf add --fetch` (a best-effort `git fetch --all`)
+  so a teammate's id on any *pushed* branch is seen and skipped, and
+  **push promptly after `aiwf add`** so your new id reaches others' next fetch.
+- **Allocate on whatever branch you're working on** — you don't need to create
+  entities on trunk to avoid collisions.
+
+What to expect:
+
+- A peer who allocated but has **not pushed** is invisible; if two of you take
+  the same id before either pushes, you collide — resolve with `aiwf reallocate`
+  (see the `aiwf-reallocate` skill). Prompt pushing shrinks that window.
+- A `--fetch` failure (offline, unreachable remote) never blocks the add: it
+  warns and allocates against the local view.
+- An entity on an unmerged branch can't be referenced **by id in another
+  branch's prose** until it reaches trunk (the `body-prose-id` check resolves
+  only against the working tree and trunk). Backtick the id until then, or
+  allocate on the trunk branch if a parallel branch must reference it now.
+
 ## Milestone `depends_on`: declare DAG edges via verb
 
 Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array. Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:

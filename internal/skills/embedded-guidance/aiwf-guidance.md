@@ -21,9 +21,10 @@ highest-leverage code-quality forces, with the full rubric in the
 - **Never suggest the human pause.** When to stop is the human's call. Surface
   any risk and keep going, or ask what's next; don't propose pausing, banking
   progress, or resuming later.
-- **On an id collision, run `aiwf reallocate`, not `git mv`.** A hand `git mv`
-  clears the immediate finding but silently orphans kernel-trailer history and
-  cross-references; the verb rewrites them and stamps the renumber.
+- **Allocate ids on your working branch and push promptly; on a collision run `aiwf reallocate`, not `git mv`.**
+  In a multi-clone setup, `aiwf add --fetch` first so a peer's pushed id is seen
+  (an unpushed one is invisible → you collide). `git mv` orphans trailer history
+  and cross-references; the verb rewrites them — the `aiwf-add` skill has the full workflow.
 - **Promote an AC to met only with mechanical evidence.** `aiwf promote
   M-…/AC-… met` needs a test or check that fails if the AC's claim breaks. "I
   read it and it looks right" is not evidence.

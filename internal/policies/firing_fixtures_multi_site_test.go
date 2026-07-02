@@ -265,6 +265,31 @@ Variant casings such as Aiwf-Verb fail the kernel's trailer-keys policy.
 		// unreadable: a directory in place of wrap-epic's SKILL.md makes the
 		// glob match but os.ReadFile fail (the "unreadable ritual" line).
 		{name: "m0210/unreadable", policy: PolicyM0210TrailerCommitDrift, files: map[string]string{aiwfxWrapEpicFixturePath + "/keep": "x"}},
+
+		// m0211-guidance-operating-anchors: the drift chokepoint over the
+		// shipped guidance has two Violation construction lines — the
+		// unreadable/absent-file line and the per-anchor loop line. One fixture
+		// per line.
+		//
+		// missing-file: no guidance source -> os.ReadFile fails (the absent-file
+		// line).
+		{name: "m0211/missing-file", policy: PolicyM0211GuidanceOperatingAnchors, files: map[string]string{}},
+		// missing-anchor: a guidance source that carries every curated anchor
+		// except the cross-branch allocation rule (no `--fetch` / push-promptly)
+		// -> the per-anchor loop line fires.
+		{
+			name:   "m0211/missing-anchor",
+			policy: PolicyM0211GuidanceOperatingAnchors,
+			files: map[string]string{m0209GuidanceFixturePath: `# guidance
+
+- **Each mutating action is its own approval gate.** don't bundle.
+- **On an id collision, run aiwf reallocate, not git mv.**
+- **Promote an AC to met only with mechanical evidence.**
+- **Decide one thing at a time.**
+- **Never suggest the human pause.**
+- The body-prose-id rule enforces id shapes.
+`},
+		},
 	}
 
 	for _, tc := range cases {

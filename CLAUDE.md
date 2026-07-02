@@ -216,23 +216,26 @@ When a milestone's deliverable is ritual `SKILL.md` content, the **authoring loc
 
 ---
 
+## Consumer-operating guidance vs repo-development guidance
+
+Two audiences read guidance about aiwf, and each has a different shippable home. The dividing line is **audience, not importance** — not "how load-bearing is this rule" but "who needs it":
+
+- **"How to OPERATE aiwf in any repo"** — gate-per-mutation, reallocate-not-`git mv`, AC-mechanical-evidence, one-decision-at-a-time, never-suggest-pause, the `body-prose-id` discipline, the cross-branch id-allocation workflow. This is consumer-facing and **ships**: the high-leverage, always-on subset lives in the embedded guidance source (`internal/skills/embedded-guidance/aiwf-guidance.md`, materialized into a consumer's `.claude/aiwf-guidance.md` and `@`-imported into their `CLAUDE.md`); lower-frequency detail routes to the on-demand verb/ritual skills. Because this repo dogfoods and imports the same materialized guidance, an operating rule placed in the embedded source is followed here *and* shipped — one source, no fork. Placed directly in this `CLAUDE.md` instead, it forks: aiwf's own repo has it, every consumer is blind to it.
+- **"How to DEVELOP aiwf itself"** — the Go conventions, the test-parallelism discipline, the `make ci` cadence, the release process, the chokepoint table, the ritual-authoring locations. This stays in **this** `CLAUDE.md` and correctly does not ship.
+
+**Hybrid sections are split, not moved wholesale.** A section carrying both audiences — the *Id-collision resolution at merge time* section below is the canonical example (the general allocation/avoidance workflow ships; the merge-time `git mv` resolution mechanics and the E-0033 history stay) — keeps its repo-development specialization here behind a pointer at the shipped home.
+
+The mechanical backstop is `PolicyM0211GuidanceOperatingAnchors` (`internal/policies/`): it asserts a curated set of consumer-operating anchors is present in the embedded guidance source, so an already-shipped operating rule cannot silently drift *out* of the fragment. It deliberately cannot classify a *brand-new* rule's audience — that judgment is what the "audience, not importance" test above is for. Until a new operating rule is added to the guidance and to the curated set, discipline plus the wrap-ritual review is the interim catch for a newly-authored rule landing in the wrong home (G-0313).
+
+---
+
 ## Id-collision resolution at merge time
 
 When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks for the same reason) after a merge, resolve via **`aiwf reallocate <id>`**, not via `git mv` + a manual frontmatter edit.
 
 The allocator picks the next free id by scanning the working tree, every local branch (`refs/heads/*`), every remote-tracking ref (`refs/remotes/*`), and the configured trunk ref. That scan feeds **allocation only** — never the `ids-unique` check, which compares the working tree against trunk.
 
-How to avoid collisions:
-
-- **One machine, multiple worktrees:** nothing to do — sibling worktrees share an object store, so the allocator already sees their ids.
-- **Separate clones:** run `aiwf add --fetch` (a best-effort `git fetch --all`) so a teammate's id on any *pushed* branch is seen and skipped, and **push promptly after `aiwf add`** so your new id reaches others' next fetch.
-- **Allocate on whatever branch you're working on** — you don't need to create entities on trunk to avoid collisions.
-
-What to expect:
-
-- A peer who allocated but has **not pushed** is invisible; if two of you take the same id before either pushes, you collide — resolve with `aiwf reallocate` (below). Prompt pushing shrinks that window.
-- A `--fetch` failure (offline, unreachable remote) never blocks the add: it warns and allocates against the local view.
-- An entity on an unmerged branch can't be referenced **by id in another branch's prose** until it reaches trunk (the `body-prose-id` check resolves only against the working tree and trunk). Backtick the id until then, or allocate on main if a parallel branch must reference it now.
+**The general allocation & collision-*avoidance* operating workflow** — allocate on your working branch; `aiwf add --fetch` and push promptly in a multi-clone setup; the unpushed-peer-is-invisible and unmerged-branch-prose caveats — is consumer-operating guidance and now **ships** via the embedded guidance source (tight form, always-on) and the `aiwf-add` skill (full mechanics, on-demand). It is no longer duplicated here (per the *Consumer-operating guidance vs repo-development guidance* authoring rule above). What follows is the merge-time collision-*resolution* specialization for this repo's trunk-based flow.
 
 At merge time the move that compiles is:
 
