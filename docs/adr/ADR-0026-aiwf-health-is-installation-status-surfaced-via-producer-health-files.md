@@ -1,7 +1,7 @@
 ---
 id: ADR-0026
 title: aiwf health is installation status, surfaced via producer health files
-status: proposed
+status: accepted
 ---
 ## Context
 
