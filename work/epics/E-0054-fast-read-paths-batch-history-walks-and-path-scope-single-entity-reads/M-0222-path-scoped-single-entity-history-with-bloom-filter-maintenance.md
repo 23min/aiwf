@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: single-entity history resolves via path-scoped git log over the entity path set
-      status: open
+      status: deferred
       tdd_phase: red
     - id: AC-2
       title: aiwf update maintains changed-path bloom filters idempotently
