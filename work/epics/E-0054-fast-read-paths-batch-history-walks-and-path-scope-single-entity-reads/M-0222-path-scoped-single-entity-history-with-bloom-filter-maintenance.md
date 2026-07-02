@@ -15,7 +15,7 @@ acs:
       tdd_phase: red
     - id: AC-3
       title: path-scoped history equals trailer-grep history including renamed entities
-      status: open
+      status: deferred
       tdd_phase: red
     - id: AC-4
       title: measured single-entity history wall-time delta recorded in Validation
