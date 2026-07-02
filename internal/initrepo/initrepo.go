@@ -725,9 +725,10 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 
 // ensureGuidance materializes the consumer CLAUDE.md guidance fragment
 // to .claude/aiwf-guidance.md, version-stamped from the running binary.
-// Unlike the scaffold-once statusline, it is byte-refreshed on every
-// init/update (M-0163). In dry-run mode, returns the would-be ledger
-// entry without touching disk.
+// It is byte-refreshed on every init/update (M-0163) — like the
+// statusline's own version-stamped refresh (G-0344), though the
+// statusline stays behind the `--statusline` opt-in for initial install.
+// In dry-run mode, returns the would-be ledger entry without touching disk.
 func ensureGuidance(root string, dryRun bool) (StepResult, error) {
 	if dryRun {
 		return StepResult{

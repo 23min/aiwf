@@ -5,10 +5,191 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/23min/aiwf/internal/pathutil"
+	"github.com/23min/aiwf/internal/version"
 )
+
+// statuslineVersionSentinel is the placeholder in the embedded
+// statusline script that RenderStatusline replaces with the binary's
+// version string at materialization time (G-0344). Mirrors the
+// guidance fragment's __AIWF_VERSION__ substitution.
+const statuslineVersionSentinel = "__AIWF_VERSION__"
+
+// statuslineVersionRE captures the version token from a materialized
+// statusline's marker line: `# aiwf-statusline version: <token> …`.
+// Presence of the line marks a copy as aiwf-managed (the analogue of
+// the `# aiwf:<hook>` hook markers); the token is the installed version
+// that the upgrade-only refresh (G-0344) compares against the binary.
+var statuslineVersionRE = regexp.MustCompile(`(?m)^# aiwf-statusline version: (\S+).*$`)
+
+// RenderStatusline returns the embedded statusline script with the
+// version sentinel replaced by ver — the bytes aiwf materializes to a
+// consumer's `.claude/statusline.sh`. Pure and deterministic; the
+// scaffold and the upgrade-only refresh both write this.
+func RenderStatusline(ver string) []byte {
+	return bytes.ReplaceAll(statuslineEmbed, []byte(statuslineVersionSentinel), []byte(ver))
+}
+
+// InstalledStatuslineVersion parses the version token from a
+// materialized statusline's marker line. ok=false means the content
+// carries no aiwf marker — a legacy, hand-written, or foreign copy that
+// the upgrade-only refresh must leave untouched (it can't prove the
+// copy is aiwf-managed, nor order its version).
+func InstalledStatuslineVersion(content []byte) (ver string, ok bool) {
+	m := statuslineVersionRE.FindSubmatch(content)
+	if m == nil {
+		return "", false
+	}
+	return string(m[1]), true
+}
+
+// statuslineBody returns content with its aiwf version-marker line
+// removed, so two copies that differ only in their stamped version
+// compare equal. Used to isolate a genuine body edit (drift) from a
+// mere version difference (which the version-relationship report
+// covers separately).
+func statuslineBody(content []byte) []byte {
+	return statuslineVersionRE.ReplaceAll(content, nil)
+}
+
+// StatuslineBodyDrifted reports whether the on-disk script's body
+// (ignoring the version-marker line) differs from the embedded copy —
+// i.e. a local edit that `aiwf update --statusline` would overwrite.
+func StatuslineBodyDrifted(onDisk []byte) bool {
+	return !bytes.Equal(statuslineBody(onDisk), statuslineBody(statuslineEmbed))
+}
+
+// StatuslineRefreshAction classifies what plain `aiwf update` did (or
+// declined to do) with one already-installed statusline copy under the
+// upgrade-only auto-refresh (G-0344).
+type StatuslineRefreshAction string
+
+// StatuslineRefreshAction values.
+const (
+	// RefreshActionCurrent — installed version equals the binary's and
+	// the body matches; nothing to do.
+	RefreshActionCurrent StatuslineRefreshAction = "current"
+	// RefreshActionUpgraded — the binary ships a newer version; the
+	// script was rewritten to it.
+	RefreshActionUpgraded StatuslineRefreshAction = "upgraded"
+	// RefreshActionHealed — versions match but the body had drifted; the
+	// aiwf-owned copy was restored.
+	RefreshActionHealed StatuslineRefreshAction = "healed"
+	// RefreshActionSkipped — left untouched: an unmarked (foreign/legacy)
+	// copy, an installed version newer than the binary (never a blind
+	// downgrade), or versions that can't be ordered (a dev/pre-release
+	// build). Detail says which.
+	RefreshActionSkipped StatuslineRefreshAction = "skipped"
+)
+
+// StatuslineRefreshOutcome reports the upgrade-only auto-refresh result
+// for one installed copy. Emitted only for copies that exist on disk.
+type StatuslineRefreshOutcome struct {
+	Path   string
+	Scope  StatuslineScope
+	Action StatuslineRefreshAction
+	// Detail is a short human explanation (version transition or the
+	// reason for a skip). For RefreshActionCurrent it carries the current
+	// version but is not displayed (LedgerLine reports show=false).
+	Detail string
+}
+
+// LedgerLine renders the outcome as a one-line `aiwf update` ledger
+// entry, returning show=false for an already-current copy so the common
+// (unchanged) path stays quiet. Pure so the Current-skip is unit-testable
+// without a tagged binary equal to the installed version (which an
+// in-process (devel) test can never produce).
+func (o StatuslineRefreshOutcome) LedgerLine() (line string, show bool) {
+	if o.Action == RefreshActionCurrent {
+		return "", false
+	}
+	return fmt.Sprintf("  %-9s  statusline (%s scope)  (%s)", o.Action, o.Scope, o.Detail), true
+}
+
+// decideStatuslineRefresh is the pure upgrade-only decision (G-0344):
+// given the binary's version, the version parsed from the installed
+// copy (marked=false when the marker is absent), and whether the body
+// drifted, it returns the action and a human detail. It never
+// downgrades and never acts when the two versions can't be ordered —
+// version.Compare returns SkewUnknown for any dev/pseudo/pre-release
+// value, which the safe default (skip) handles.
+func decideStatuslineRefresh(binary, installed version.Info, marked, bodyDrifted bool) (action StatuslineRefreshAction, detail string) {
+	if !marked {
+		return RefreshActionSkipped, "unmarked copy (no aiwf version marker) — run `aiwf update --statusline` once to adopt versioned refresh"
+	}
+	switch version.Compare(binary, installed) {
+	case version.SkewAhead:
+		return RefreshActionUpgraded, fmt.Sprintf("%s → %s", installed.Version, binary.Version)
+	case version.SkewBehind:
+		return RefreshActionSkipped, fmt.Sprintf("installed %s is newer than this binary %s — not downgrading", installed.Version, binary.Version)
+	case version.SkewUnknown:
+		return RefreshActionSkipped, fmt.Sprintf("cannot order versions (installed %q, binary %q) — not auto-refreshing", installed.Version, binary.Version)
+	default: // SkewEqual
+		if bodyDrifted {
+			return RefreshActionHealed, "restored aiwf-owned copy after a local edit"
+		}
+		return RefreshActionCurrent, binary.Version
+	}
+}
+
+// AutoRefreshStatusline applies the upgrade-only auto-refresh (G-0344)
+// to any already-installed statusline copy, at both the user
+// (`$HOME/.claude/statusline.sh`) and project
+// (`<root>/.claude/statusline.sh`) destinations. It refreshes only an
+// aiwf-marked copy, only when the binary's version is newer-or-equal to
+// the installed stamp, and never creates a copy or touches any settings
+// file — that stays behind the explicit `--statusline` opt-in. The home
+// directory is resolved via os.UserHomeDir(); tests pass it explicitly
+// via AutoRefreshStatuslineForVersion.
+func AutoRefreshStatusline(root string) ([]StatuslineRefreshOutcome, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolving user home directory: %w", err) //coverage:ignore os.UserHomeDir fails only when $HOME is unset; not reproducible in the test env (mirrors the ScaffoldStatusline sibling)
+	}
+	return AutoRefreshStatuslineForVersion(root, home, version.Current())
+}
+
+// AutoRefreshStatuslineForVersion is AutoRefreshStatusline with the
+// home directory and binary version injected — the testable core, so
+// tests can drive the upgrade / downgrade / equal / unknown matrix
+// without a real binary version or `$HOME`.
+func AutoRefreshStatuslineForVersion(root, home string, binary version.Info) ([]StatuslineRefreshOutcome, error) {
+	rendered := RenderStatusline(binary.Version)
+
+	type candidate struct {
+		path  string
+		scope StatuslineScope
+	}
+	var candidates []candidate
+	if home != "" {
+		candidates = append(candidates, candidate{filepath.Join(home, statuslineRelPath), StatuslineScopeUser})
+	}
+	candidates = append(candidates, candidate{filepath.Join(root, statuslineRelPath), StatuslineScopeProject})
+
+	var outcomes []StatuslineRefreshOutcome
+	for _, c := range candidates {
+		onDisk, err := os.ReadFile(c.path)
+		if os.IsNotExist(err) {
+			continue // not installed at this scope — nothing to refresh
+		}
+		if err != nil {
+			return outcomes, fmt.Errorf("reading %s: %w", c.path, err)
+		}
+		installedRaw, marked := InstalledStatuslineVersion(onDisk)
+		bodyDrifted := !bytes.Equal(onDisk, rendered)
+		action, detail := decideStatuslineRefresh(binary, version.Parse(installedRaw), marked, bodyDrifted)
+		if action == RefreshActionUpgraded || action == RefreshActionHealed {
+			if err := pathutil.AtomicWriteFile(c.path, rendered, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults; tempdir-based tests can't reproduce
+				return outcomes, fmt.Errorf("refreshing %s: %w", c.path, err)
+			}
+		}
+		outcomes = append(outcomes, StatuslineRefreshOutcome{Path: c.path, Scope: c.scope, Action: action, Detail: detail})
+	}
+	return outcomes, nil
+}
 
 // StatuslineScope names which Claude Code settings tree a `--statusline`
 // scaffold targets. Closed set; an unknown value is a usage error.
@@ -104,14 +285,20 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 		Snippet: FormatStatuslineSnippet(snippetCmd),
 	}
 
-	// Always byte-refresh: write the embed when the destination is
-	// absent or its content differs. A byte-equal copy is left untouched
-	// (idempotent — no needless write, no mtime churn).
+	// The explicit `--statusline` path always refreshes to *this*
+	// binary's version — the operator asked for this binary, so a
+	// downgrade here is their deliberate act (unlike the passive
+	// upgrade-only auto-refresh on a plain `aiwf update`; G-0344).
+	rendered := RenderStatusline(version.Current().Version)
+
+	// Byte-refresh: write when the destination is absent or its content
+	// differs from the rendered copy. A byte-equal copy is left
+	// untouched (idempotent — no needless write, no mtime churn).
 	existing, readErr := os.ReadFile(dest)
 	switch {
 	case readErr == nil:
-		if !bytes.Equal(existing, statuslineEmbed) {
-			if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults (disk-full/permission); tempdir-based tests can't reproduce
+		if !bytes.Equal(existing, rendered) {
+			if err := pathutil.AtomicWriteFile(dest, rendered, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults (disk-full/permission); tempdir-based tests can't reproduce
 				return res, fmt.Errorf("refreshing %s: %w", dest, err)
 			}
 			res.Wrote = true
@@ -120,7 +307,7 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil { //coverage:ignore MkdirAll fails only on filesystem faults; tempdir-based tests can't reproduce
 			return res, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
 		}
-		if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults; tempdir-based tests can't reproduce
+		if err := pathutil.AtomicWriteFile(dest, rendered, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults; tempdir-based tests can't reproduce
 			return res, fmt.Errorf("writing %s: %w", dest, err)
 		}
 		res.Wrote = true

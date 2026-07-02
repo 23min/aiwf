@@ -55,29 +55,25 @@ const ritualsRoot = "embedded-rituals"
 
 // statuslineEmbed holds the aiwf-aware Claude Code statusline script
 // (E-0039, M-0155). Unlike the skill artifacts above, the statusline is
-// embedded as a single file (one shell script, not a tree) and ships
-// with a deliberate lifecycle difference: it is **excluded from the
-// unconditional refresh set** that `Materialize` rewrites on every
-// `aiwf update`. The script is scaffold-once: only the dedicated
-// `--statusline` install path writes it, and only if no copy already
-// exists at the destination. That lets a consumer customize the script
-// without `aiwf update` clobbering their edits.
+// embedded as a single file (one shell script, not a tree) and carries a
+// `__AIWF_VERSION__` marker sentinel that RenderStatusline substitutes at
+// materialization time (G-0344) — so the embed is the single source of
+// truth and no pre-rendered copy is tracked.
 //
-// The byte-equality drift between this embed and the dev-repo's
-// canonical `.claude/statusline.sh` is policed by
-// `TestM0155_AC1_StatuslineEmbedded` under `internal/policies/`.
-// Operators editing the canonical script must mirror the change here.
+// Lifecycle (G-0337, G-0344): the explicit `--statusline` install path
+// always refreshes the script to this binary's rendered version; a plain
+// `aiwf update` upgrade-only auto-refreshes an already-installed marked
+// copy but never below its stamped version and never creates one. Both
+// paths write via RenderStatusline, never these raw bytes.
 //
 //go:embed embedded-statusline/statusline.sh
 var statuslineEmbed []byte
 
-// StatuslineBytes returns the embedded aiwf-aware Claude Code
-// statusline script. The returned slice is the same shared backing
-// array on every call — callers must treat it as read-only.
-//
-// Used by the `--statusline` install path on `aiwf init` / `aiwf
-// update` (M-0155) to scaffold the script to the scope-appropriate
-// destination only when the destination is absent.
+// StatuslineBytes returns the raw embedded statusline script, with the
+// `__AIWF_VERSION__` sentinel unsubstituted. The returned slice is the
+// same shared backing array on every call — callers must treat it as
+// read-only. Callers that materialize a copy want RenderStatusline (which
+// stamps the version); this raw form is for content/shape assertions.
 func StatuslineBytes() []byte {
 	return statuslineEmbed
 }

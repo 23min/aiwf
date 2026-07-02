@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // statuslineRoot is the relative target path the project-scope
@@ -20,19 +21,25 @@ const (
 )
 
 // TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace asserts M-0155/AC-3
-// as revised by G-0337: the scaffold always byte-refreshes the embedded
-// statusline script. A fresh destination is written; a stale (differing)
-// copy is refreshed to the embed; an already-current (byte-equal) copy is
+// as revised by G-0337 and G-0344: the `--statusline` scaffold always
+// refreshes to the *rendered* statusline script — the embed with its
+// `__AIWF_VERSION__` marker substituted for this binary's version
+// (G-0344). A fresh destination is written; a stale (differing) copy is
+// refreshed; an already-current (byte-equal to the rendered copy) one is
 // left untouched (idempotent, Wrote=false); a directory at the
 // destination surfaces a read error.
 //
 // This supersedes the earlier scaffold-once lifecycle (write-only-if-
-// absent). The script is an aiwf-owned artifact, byte-refreshed on every
-// `aiwf update` like the materialized skills and hooks — a local edit
-// does not survive.
+// absent). The script is an aiwf-owned artifact, refreshed on every
+// `aiwf update --statusline` like the materialized skills and hooks — a
+// local edit does not survive.
 func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 	t.Parallel()
-	t.Run("absent destination → write the embed", func(t *testing.T) {
+	// The scaffold writes the rendered form: the embed with the version
+	// sentinel replaced by the running binary's version (`(devel)` under
+	// `go test`). This is the byte-for-byte contract the subtests pin.
+	wantRendered := skills.RenderStatusline(version.Current().Version)
+	t.Run("absent destination → write the rendered script", func(t *testing.T) {
 		t.Parallel()
 		root := t.TempDir()
 		home := t.TempDir() // unused for project scope but provided for shape
@@ -47,8 +54,8 @@ func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reading scaffolded script at %s: %v", res.Path, err)
 		}
-		if !bytes.Equal(got, skills.StatuslineBytes()) {
-			t.Errorf("AC-3: scaffolded script (%d bytes) must be byte-equal to the embed (%d bytes)", len(got), len(skills.StatuslineBytes()))
+		if !bytes.Equal(got, wantRendered) {
+			t.Errorf("AC-3: scaffolded script (%d bytes) must be byte-equal to the rendered embed (%d bytes)", len(got), len(wantRendered))
 		}
 	})
 	t.Run("pre-existing stale content → refresh to the embed", func(t *testing.T) {
@@ -75,8 +82,8 @@ func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reading dest after scaffold: %v", err)
 		}
-		if !bytes.Equal(got, skills.StatuslineBytes()) {
-			t.Errorf("AC-3: stale content must be refreshed to the embed, got %q", got)
+		if !bytes.Equal(got, wantRendered) {
+			t.Errorf("AC-3: stale content must be refreshed to the rendered embed, got %q", got)
 		}
 	})
 	t.Run("already-current content → left untouched (idempotent)", func(t *testing.T) {
@@ -87,7 +94,7 @@ func TestM0155_AC3_ScaffoldStatuslineRefreshesInPlace(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
-		if err := os.WriteFile(dest, skills.StatuslineBytes(), 0o755); err != nil {
+		if err := os.WriteFile(dest, wantRendered, 0o755); err != nil {
 			t.Fatalf("write current: %v", err)
 		}
 		res, err := skills.ScaffoldStatuslineWithHome(root, home, skills.StatuslineScopeProject)

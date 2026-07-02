@@ -139,6 +139,14 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 		}); rc != cliutil.ExitOK {
 			return rc
 		}
+	} else {
+		// Plain `aiwf update`: upgrade-only auto-refresh of an
+		// already-installed statusline (G-0344). Refreshes only an
+		// aiwf-marked copy, never below its installed version, and never
+		// creates a copy or touches any settings file — initial install
+		// and settings wiring stay behind the explicit `--statusline`
+		// opt-in (ADR-0015 consent unchanged).
+		refreshStatuslineInPlace(rootDir)
 	}
 
 	// Refresh the installation-health file so the statusline stoplight reflects
@@ -151,4 +159,23 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 	}
 
 	return cliutil.ExitOK
+}
+
+// refreshStatuslineInPlace runs the upgrade-only statusline
+// auto-refresh (G-0344) and reports any action taken. Best-effort: a
+// filesystem fault only logs to stderr, never fails the update — the
+// statusline is an advisory convenience, not a correctness artifact.
+// An already-current copy is silent (no ledger noise on the common
+// path); only a real change or a skip-worth-knowing is printed.
+func refreshStatuslineInPlace(rootDir string) {
+	outcomes, err := skills.AutoRefreshStatusline(rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf update: could not auto-refresh statusline: %v\n", err) //coverage:ignore best-effort; AutoRefreshStatusline errors only on a filesystem fault reading an existing script, unreachable from tempdir tests
+		return
+	}
+	for _, o := range outcomes {
+		if line, show := o.LedgerLine(); show {
+			fmt.Println(line)
+		}
+	}
 }

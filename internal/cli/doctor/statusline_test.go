@@ -111,15 +111,21 @@ func TestStatuslineReport_AC3_WiredSuppressesSnippet(t *testing.T) {
 	}
 }
 
-// TestStatuslineReport_AC4_DriftDetected asserts M-0157/AC-4:
-// when the on-disk script differs from the embedded copy, drift is reported.
+// TestStatuslineReport_AC4_DriftDetected asserts M-0157/AC-4 as revised
+// by G-0344: when an aiwf-*marked* on-disk script has a body that differs
+// from the embedded copy (a local edit), a `drift:` line is reported. The
+// marker line is preserved so this exercises the body-drift path, not the
+// no-marker version advisory (which is a separate signal).
 func TestStatuslineReport_AC4_DriftDetected(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	home := t.TempDir()
 	installStatusline(t, root)
 	path := filepath.Join(root, ".claude", "statusline.sh")
-	if err := os.WriteFile(path, []byte("#!/bin/bash\n# modified\n"), 0o755); err != nil {
+	// Keep a valid aiwf version marker, but edit the body — a managed
+	// copy the operator hand-modified.
+	edited := []byte("#!/usr/bin/env bash\n# aiwf-statusline version: v9.9.9 — managed by aiwf\n# LOCAL EDIT: this body diverges from the embed\n")
+	if err := os.WriteFile(path, edited, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -132,7 +138,7 @@ func TestStatuslineReport_AC4_DriftDetected(t *testing.T) {
 		}
 	}
 	if !foundDrift {
-		t.Errorf("AC-4: drift line must be emitted when on-disk differs from embedded; lines: %v", lines)
+		t.Errorf("AC-4: drift line must be emitted when a marked script's body differs from embedded; lines: %v", lines)
 	}
 }
 

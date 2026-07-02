@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0344: version-stamped statusline with upgrade-only auto-refresh
+
+The embedded statusline script now carries an `# aiwf-statusline version:` marker stamped
+with the binary's version at materialization time. A plain `aiwf update` (no `--statusline`)
+auto-refreshes an already-installed, aiwf-marked copy in place — but only when the binary's
+version is newer-or-equal to the installed stamp, so an older-version container can never
+silently downgrade a statusline shared across a `~/.claude` bind mount (and unorderable
+dev/pre-release builds never act). Initial install and `settings.json` wiring still require
+the explicit `--statusline` opt-in (ADR-0015 consent unchanged). `aiwf doctor` now reports
+the installed-vs-binary statusline version relationship (refresh-available, or
+installed-is-newer/not-downgraded) alongside a body-drift check that ignores the version
+marker line.
+
 ### Added — E-0055: installation-health stoplight in the statusline
 
 `aiwf doctor` now surfaces its warnings and errors as structured problems and writes them

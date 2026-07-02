@@ -1,7 +1,6 @@
 package doctor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // appendStatuslineReport adds the statusline advisory block to the
@@ -256,19 +256,56 @@ func hasStatusLineKey(path string) bool {
 	return ok
 }
 
-// appendDriftCheck compares the on-disk statusline to the embedded
-// copy and reports when they differ.
+// appendDriftCheck reports two independent statusline signals (G-0344):
+//
+//   - version relationship — how the installed copy's stamped version
+//     relates to this binary's: an unmarked (legacy/foreign) copy, a
+//     newer version shipping with this binary (refresh available), or an
+//     installed version *newer* than this binary (which a plain
+//     `aiwf update` deliberately does not downgrade — the fleet-safety
+//     signal for a shared `~/.claude`).
+//   - body drift — the script body (ignoring the version-marker line)
+//     differs from the embedded copy, i.e. a local edit.
+//
+// The version line and the drift line are orthogonal: a copy can be the
+// current version yet body-edited, or an older version yet
+// byte-faithful. Both are SeverityWarn advisories (the caller tags them).
 func appendDriftCheck(in []string, installedPath string) []string {
 	onDisk, err := os.ReadFile(installedPath)
 	if err != nil {
-		return in
+		return in //coverage:ignore installedPath was just resolved via os.Stat by resolveInstalledStatusline; a read failure here is a TOCTOU race unreachable from tests
 	}
-	embedded := skills.StatuslineBytes()
-	if len(embedded) == 0 {
-		return in
+	return append(in, statuslineVersionLines(onDisk, version.Current())...)
+}
+
+// statuslineVersionLines returns the version-relationship and body-drift
+// advisory sub-lines for an installed statusline copy, given the running
+// binary's version. Pure and version-injectable so the
+// ahead/behind/unmarked/equal branches are unit-testable without a real
+// tagged binary (a `go test` binary always reports `(devel)`; G-0344).
+func statuslineVersionLines(onDisk []byte, binary version.Info) []string {
+	installedRaw, marked := skills.InstalledStatuslineVersion(onDisk)
+	if !marked {
+		return []string{subIndent + "version: installed statusline carries no aiwf version marker (legacy or foreign copy) — run `aiwf update --statusline` once to adopt versioned auto-refresh"}
 	}
-	if !bytes.Equal(onDisk, embedded) {
-		return append(in, subIndent+"drift: on-disk statusline differs from the embedded copy — run `aiwf update --statusline` to refresh it (the script is aiwf-owned and byte-refreshed; local edits are overwritten)")
+	var out []string
+	switch version.Compare(binary, version.Parse(installedRaw)) {
+	case version.SkewAhead:
+		out = append(out, subIndent+fmt.Sprintf("version: statusline %s installed but this aiwf ships %s — run `aiwf update` to refresh", installedRaw, binary.Version))
+	case version.SkewBehind:
+		// Installed is a newer aiwf version. Report it, but return
+		// without the body-drift hint below: a newer version legitimately
+		// carries a different body, and the drift hint's remediation
+		// (`aiwf update --statusline`, which rewrites to this older
+		// binary's version) would downgrade the very copy we just said we
+		// will not downgrade.
+		return append(out, subIndent+fmt.Sprintf("version: installed statusline %s is newer than this aiwf binary %s — not downgraded (a shared ~/.claude across differing aiwf versions?)", installedRaw, binary.Version))
 	}
-	return in
+	// Body drift is reported independently of the version relationship,
+	// with the marker line normalized out so a mere version difference
+	// is not mistaken for a local edit.
+	if skills.StatuslineBodyDrifted(onDisk) {
+		out = append(out, subIndent+"drift: on-disk statusline body differs from the embedded copy — run `aiwf update --statusline` to refresh it (the script is aiwf-owned; local edits are overwritten)")
+	}
+	return out
 }

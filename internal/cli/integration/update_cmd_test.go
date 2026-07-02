@@ -13,6 +13,30 @@ import (
 	"github.com/23min/aiwf/internal/initrepo"
 )
 
+// TestRun_PlainUpdateNeverCreatesStatusline asserts G-0344's guardrail:
+// the upgrade-only auto-refresh only touches an *already-installed* copy;
+// a plain `aiwf update` (no `--statusline`) must never scaffold a
+// statusline where none exists. Initial install stays behind the explicit
+// `--statusline` opt-in (ADR-0015 consent unchanged). Scoped to the
+// tempdir project path, which is deterministic regardless of machine state.
+func TestRun_PlainUpdateNeverCreatesStatusline(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	statuslinePath := filepath.Join(root, ".claude", "statusline.sh")
+	if _, err := os.Stat(statuslinePath); err == nil {
+		t.Fatalf("precondition: init must not scaffold a statusline without --statusline")
+	}
+	if rc := cli.Execute([]string{"update", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("update: %d", rc)
+	}
+	if _, err := os.Stat(statuslinePath); err == nil {
+		t.Errorf("plain `aiwf update` must not create a statusline (found %s)", statuslinePath)
+	}
+}
+
 // TestRun_UpdateMaterializes wipes a tampered skill file and verifies
 // `aiwf update` restores the embedded content byte-for-byte.
 func TestRun_UpdateMaterializes(t *testing.T) {
