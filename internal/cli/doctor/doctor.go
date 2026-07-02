@@ -251,7 +251,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	}
 
 	embedded, err := skills.List()
-	if err != nil {
+	if err != nil { //coverage:ignore skills.List reads the compiled-in embed FS; it cannot fail at runtime, so tempdir tests cannot reach this arm
 		lines = append(lines, label("skills:")+err.Error())
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 	} else {
@@ -323,7 +323,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 func appendMaterializedRitualsReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	problems = problemsIn
 	present, missing, err := skills.MaterializedRituals(rootDir, skills.ClaudeTarget)
-	if err != nil {
+	if err != nil { //coverage:ignore MaterializedRituals errors only when the compiled-in embed FS walk fails; unreachable at runtime, so tempdir tests cannot reach this arm
 		return append(in, label("rituals:")+err.Error()), problems
 	}
 	if len(missing) > 0 {
