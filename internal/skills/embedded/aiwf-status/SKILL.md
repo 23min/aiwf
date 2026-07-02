@@ -14,7 +14,7 @@ A one-screen project snapshot for human readers. Reach for this whenever the use
 `aiwf status` walks the planning tree and renders five sections:
 
 1. **In flight** — every epic with status `active`, plus every milestone underneath it. The currently-running milestone is marked `→`; done milestones get `✓`. Each milestone row that carries acceptance criteria shows a per-status badge (`ACs M/T met (N open)`) and the milestone's TDD policy when set (`tdd: required`/`advisory`/`none`).
-2. **Open decisions** — ADRs (`ADR-NNNN`) and D-NNN entries with status `proposed`. The decisions that haven't been ratified, rejected, or superseded yet.
+2. **Open decisions** — ADRs (`ADR-NNNN`) and decisions (`D-NNNN`) with status `proposed`. The decisions that haven't been ratified, rejected, or superseded yet.
 3. **Open gaps** — gaps with status `open`, with the milestone or epic each was discovered in.
 4. **Recent activity** — the last 5 commits whose messages carry an `aiwf-verb:` trailer. Date, actor, verb, subject. Cross-entity, no filter.
 5. **Health** — total entity count, error count, warning count from `aiwf check`. If non-zero, points at `aiwf check` for details.
@@ -23,7 +23,7 @@ By design, the verb shows *only in-flight state* at the top level — closed epi
 
 ## Scoping to one workstream (`--area`)
 
-`aiwf status --area <A>` scopes the snapshot to a single workstream (E-0043): the **entity-derived** sections — in-flight epics (and their milestones), planned epics, open decisions, open gaps — keep only entities whose effective area equals `<A>` (root kinds by their own field, epics carrying their milestones along). Recent activity, warnings, and health stay **global** — they are cross-cutting tree-health signals, not per-area concepts. An undeclared `--area` value prints a one-line note to stderr and scopes everything out (reads never reject). Reach for it when the user asks *"what's in flight in the platform workstream?"*.
+`aiwf status --area <A>` scopes the snapshot to a single workstream: the **entity-derived** sections — in-flight epics (and their milestones), planned epics, open decisions, open gaps — keep only entities whose effective area equals `<A>` (root kinds by their own field, epics carrying their milestones along). Recent activity, warnings, and health stay **global** — they are cross-cutting tree-health signals, not per-area concepts. An undeclared `--area` value prints a one-line note to stderr and scopes everything out (reads never reject). Reach for it when the user asks *"what's in flight in the platform workstream?"*.
 
 **Filter vs. group.** `--area` *narrows* to one workstream. Separately, when `aiwf.yaml` declares an `areas` block, plain `aiwf status` (and `--format=md`) automatically *partitions* the In-flight and Roadmap epic sections into a subsection per declared area, plus an always-shown untagged complement labelled by `areas.default` (or a `Uncategorized` fallback); an unused declared area is omitted. With no `areas` block, output is exactly as before. Grouping and `--area` are alternatives — `--area` suppresses grouping (the view is already one workstream). The same partition drives `aiwf render roadmap` and `render --format=html`.
 
@@ -72,7 +72,7 @@ Health
 
 For scripting: `aiwf status --format=json --pretty`. JSON envelope with the same data, structured. The envelope's `worktrees` array is always populated when ≥1 worktree exists (omitted from default JSON via `omitempty` when zero); structured consumers see the same data the human-narrative output surfaces, no flag needed.
 
-## Worktrees in the default output (G-0122)
+## Worktrees in the default output
 
 When ≥2 git worktrees exist for the repo, `aiwf status` inserts a one-line-per-worktree `Worktrees` section directly under `In flight`. Each row names the entity each worktree is driving (epic / milestone / gap) with its status, the relative age of the last commit, and a `dirty` flag when the working tree has uncommitted changes. Single-worktree projects see no section (no value to add).
 
@@ -106,10 +106,10 @@ The `--worktrees` flag affects only the text output; the JSON envelope already c
 
 After running `aiwf status`, narrate the state to the user in plain language — don't just dump the report and stop. Typical follow-ups:
 
-- If a milestone is `in_progress`, mention it and offer to continue: *"M-002 is in flight — want to keep building, or wrap it?"*
-- If a milestone has open ACs, name the count: *"M-002 still has 1 AC open — `aiwf show M-002` for the breakdown."*
-- If no milestone is `in_progress` but milestones are `draft` under an active epic, suggest starting the next: *"M-003 is next in E-01 — start it?"*
-- If there are open decisions that are blocking progress, surface them: *"ADR-0001 is still proposed — does it need ratification?"*
-- If there are open gaps and free time, mention them: *"G-001 was logged during M-001 — want to address it now or defer?"*
+- If a milestone is `in_progress`, mention it and offer to continue: *"The auth milestone is in flight — want to keep building, or wrap it?"*
+- If a milestone has open ACs, name the count: *"The auth milestone still has 1 AC open — `aiwf show <id>` for the breakdown."*
+- If no milestone is `in_progress` but milestones are `draft` under an active epic, suggest starting the next: *"The content migration milestone is next — start it?"*
+- If there are open decisions that are blocking progress, surface them: *"The OpenAPI ADR is still proposed — does it need ratification?"*
+- If there are open gaps and free time, mention them: *"A gap was logged during the last milestone — want to address it now or defer?"*
 
 The verb is the data layer; the AI is the narration layer.

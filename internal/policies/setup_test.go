@@ -24,6 +24,9 @@ import (
 //     _BASE to drive the env-fed coverage-audit entry point.
 //   - TestPolicyFiringFixturePresence_Env — sets AIWF_COVERAGE_PROFILE
 //     to drive the env-fed firing-fixture-presence entry point.
+//   - TestPolicySkillEditStructuralTestBackstop_Env — sets
+//     AIWF_COVERAGE_BASE to drive the env-fed skill-edit-backstop entry
+//     point (M-0196 / G-0220).
 //
 // Every other Test* function reads-only against the shared *Tree (do
 // not mutate) or uses t.TempDir for fixture work.

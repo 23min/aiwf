@@ -5,25 +5,24 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 )
 
 // PolicyM0132InitScript asserts that .devcontainer/init.sh is the
 // in-container postCreateCommand hook, has mode 0755, carries the
-// bash header, contains each agreed install/config section with
-// idempotency guards, and the post-install banner contains the four
-// canonical literal strings the operator needs to install the
-// rituals plugins at PROJECT scope.
+// bash header, and contains each agreed install/config section with
+// idempotency guards.
 //
 // Cross-file consistency: the golangci-lint version pinned in
 // init.sh must match the version pinned in .github/workflows/go.yml.
 // CI is the source of truth; init.sh adopts.
 //
-// Pins M-0132/AC-4. The banner is the chokepoint that surfaces the
-// one manual step claude-code#31388 + the CLI-form's USER-scope
-// default forces us into; per Q1 of the design conversation, the
-// banner is the document-and-trust answer (option 1).
+// Pins M-0132/AC-4 (the init.sh shape). The post-install banner's
+// *content* is no longer asserted here: M-0202 (G-0279) retired the
+// marketplace / PROJECT-scope plugin-install flow the banner used to
+// carry, so PolicyM0202DevcontainerOnboarding now owns the banner
+// content contract (retired-flow strings absent; the `aiwf doctor`
+// `rituals:` verification pointer present).
 func PolicyM0132InitScript(root string) ([]Violation, error) {
 	const relPath = ".devcontainer/init.sh"
 	abs := filepath.Join(root, relPath)
@@ -135,27 +134,6 @@ func PolicyM0132InitScript(root string) ([]Violation, error) {
 				break
 			}
 		}
-	}
-
-	// Banner block — the four canonical literal strings the operator
-	// needs to install the rituals plugins correctly. Each must
-	// appear at least once in the file (the cat <<'BANNER' heredoc
-	// is contiguous; if any is missing, the banner is wrong).
-	bannerLiterals := []string{
-		"23min/ai-workflow-rituals",
-		"PROJECT scope",
-		"aiwf-extensions",
-		"wf-rituals",
-	}
-	var missingBanner []string
-	for _, lit := range bannerLiterals {
-		if !strings.Contains(content, lit) {
-			missingBanner = append(missingBanner, lit)
-		}
-	}
-	if len(missingBanner) > 0 {
-		sort.Strings(missingBanner)
-		report(fmt.Sprintf("banner block missing canonical literal(s): %s", strings.Join(missingBanner, ", ")))
 	}
 
 	// Cross-file consistency: golangci-lint version pinned here must

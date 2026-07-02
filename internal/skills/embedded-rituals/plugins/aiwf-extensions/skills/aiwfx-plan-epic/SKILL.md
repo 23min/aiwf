@@ -49,6 +49,14 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    Keep frontmatter (`id:`, `status:`) untouched — `aiwf add` set those correctly. The spec's body is where the planning conversation lives.
 
+   Land the filled-in body through the trailered verb, not a plain `git commit`:
+
+   ```bash
+   aiwf edit-body E-NN     # bless mode: commits the in-place body edit with aiwf-verb / -entity / -actor trailers
+   ```
+
+   `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against the spec would trip the kernel's `provenance-untrailered-entity-commit` finding. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
+
 6. **Use reference-phrasing for list-derived counts.** When success criteria reference a list defined elsewhere in the spec, phrase as a reference, not a count. *"Every ADR listed in the *ADRs produced* table is merged"* not *"all 16 ADRs merged"*. Counts drift; references don't.
 
 7. **Update `ROADMAP.md`** by running:
@@ -65,23 +73,23 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
 - Does not promote the epic to `active`. The epic stays `proposed` until milestones are planned and work begins. Use `aiwf promote E-NN active` when ready.
 - Does not break the epic into milestones. That's `aiwfx-plan-milestones`.
-- Does not commit the body fill — the body edit happens in the working tree; the user commits when the spec is ready (or runs `aiwfx-plan-milestones` next which produces its own commit).
+- Does not merge the planning commits to main — the body fill lands via `aiwf edit-body` as one trailered commit on the ritual branch (step 5); merging those commits to main is the separate *Closing the planning session* step.
 
 ## Anti-patterns
 
 - *Planning the epic and immediately starting work.* Don't skip review. The epic spec is the place where scope changes are cheap; once milestones are running, scope changes are expensive.
 - *Hand-writing scalar counts.* "5 milestones" rots; "every milestone listed below" doesn't.
 - *Treating "Open questions" as scratch.* If a question is blocking, state how it gets resolved.
-- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md and G-0184: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids (`M-0001`+) by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Closing the planning session
 
 Planning is closed. Two paths from here:
 
 - **Continue to milestones now** → invoke `aiwfx-plan-milestones`. The merge-to-main prompt fires at *its* end, covering both skills' commits in one operation.
-- **Stop here** → the epic spec is settled but no milestones are planned yet. The planning commits live on the ritual branch; merge them to main now so the freshly-allocated `E-NNNN` id and the spec are visible to other worktrees, machines, or operators.
+- **Planning complete for now** → the epic spec is settled but no milestones are planned yet. The planning commits live on the ritual branch; merge them to main now so the freshly-allocated `E-NNNN` id and the spec are visible to other worktrees, machines, or operators.
 
-For the stop-here path, prompt the user as a strong recommendation with explicit decline (not optional guidance):
+For this planning-complete path, prompt the user as a strong recommendation with explicit decline (not optional guidance):
 
 > Planning is closed. Default behavior is to merge to main now. Decline only with a specific reason — entity shape uncertain, near-term re-planning expected, team convention overrides. Merge now? (Y/n)
 
@@ -98,4 +106,4 @@ When the operator declines, capture the one-line reason in the conversation tran
 
 ## Next step
 
-→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main and pause if stopping here. Run `aiwfx-start-milestone <M-NNNN>` only after the planning commits have landed on main.
+→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main if planning is complete for now. Once milestones are planned, `aiwfx-start-epic E-NN` performs the sovereign `proposed → active` promote and cuts the epic branch; `aiwfx-start-milestone <M-NNNN>` runs after that, only once the planning commits have landed on main.

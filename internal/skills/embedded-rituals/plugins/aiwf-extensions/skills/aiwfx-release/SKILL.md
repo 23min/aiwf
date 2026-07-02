@@ -144,7 +144,7 @@ If a notable release-time decision was made (rolled back, hotfixed, deferred a f
 ## Constraints
 
 - 🛑 **Never commit, tag, or push without explicit human approval** — each is its own gate (steps 4, 5, 6, 7); the commit push and the tag push are two separate gates, never bundled.
-- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch." **Green is CI-green, not just locally-green** — step 1's `gh run list` check is where this binds; a local `go test ./...` pass does not substitute for it. See G-0244 for the discovery case.
+- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch." **Green is CI-green, not just locally-green** — step 1's `gh run list` check is where this binds; a local `go test ./...` pass does not substitute for it.
 - Versions are immutable. If `vX.Y.Z` has a problem, the next release is `vX.Y.(Z+1)` — don't move the tag.
 - Don't skip CHANGELOG. Future-you and downstream consumers depend on it.
 

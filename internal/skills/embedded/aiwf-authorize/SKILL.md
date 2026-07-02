@@ -9,9 +9,9 @@ The `aiwf authorize` verb opens, pauses, or resumes an **authorization scope** �
 
 ## When to use
 
-The user says something like *"go ahead and implement E-03"*, *"work on the cache milestone autonomously"*, or *"pause your work on E-09 while I review"*. Authorization is the verb that records that handoff so subsequent agent commits carry trailers proving the human authorized them.
+The user says something like *"go ahead and implement E-NNNN"*, *"work on the cache milestone autonomously"*, or *"pause your work on E-NNNN while I review"*. Authorization is the verb that records that handoff so subsequent agent commits carry trailers proving the human authorized them.
 
-When the user is just dictating individual changes turn-by-turn (*"add a gap that says X"*, *"promote M-001 to in_progress"*), no authorization is needed — the human is the principal, the assistant is a tool, and verbs run with `--actor human/<id>` as if the human typed them. See *Tool vs. agent* below.
+When the user is just dictating individual changes turn-by-turn (*"add a gap that says X"*, *"promote M-NNNN to in_progress"*), no authorization is needed — the human is the principal, the assistant is a tool, and verbs run with `--actor human/<id>` as if the human typed them. See *Tool vs. agent* below.
 
 ## What to run
 
@@ -28,7 +28,7 @@ The verb **requires a human actor**. `aiwf authorize` invoked by an agent refuse
 
 ## Tool vs. agent
 
-The provenance model (see [`docs/pocv3/design/provenance-model.md`](../../docs/pocv3/design/provenance-model.md)) distinguishes two modes for non-human operators:
+The provenance model (see [`docs/pocv3/design/provenance-model.md`](../../../../docs/pocv3/design/provenance-model.md)) distinguishes two modes for non-human operators:
 
 - **Tool mode (HITL).** The human is in the conversation, dictating changes. The assistant is a tool; verbs run with `--actor ai/<id> --principal human/<id>` (or just `--actor human/<id>` if the assistant is invoking on the human's behalf). No scope, no `aiwf-authorized-by:` trailer. The trailer set is `aiwf-actor:` + `aiwf-principal:` only.
 

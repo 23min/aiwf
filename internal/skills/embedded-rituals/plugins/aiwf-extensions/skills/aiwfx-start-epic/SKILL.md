@@ -5,14 +5,14 @@ description: Activates an aiwf epic — runs the preflight checks (epic body com
 
 # aiwfx-start-epic
 
-Activates an epic. Activation is a sovereign moment — the kernel treats `aiwf promote E-NN active` as a human-only act per M-0095, and the skill makes the surrounding deliberation explicit: preflight checks against the epic's readiness, a worktree-placement step that defaults to in-repo (ADR-0023) with the per-invocation override retained, and an optional principal-to-agent delegation hand-off.
+Activates an epic. Activation is a sovereign moment — the kernel treats `aiwf promote E-NN active` as a human-only act per the kernel's sovereignty rule, and the skill makes the surrounding deliberation explicit: preflight checks against the epic's readiness, a worktree-placement step that defaults to in-repo (the in-repo placement convention) with the per-invocation override retained, and an optional principal-to-agent delegation hand-off.
 
 ## Principles
 
 - **Activation is sovereign.** The kernel refuses `aiwf promote E-NN active` from a non-`human/` actor unless `--force --reason "..."` is used. The skill's promotion step runs as the human; an AI assistant orchestrating the conversation hands the verb off to the operator.
-- **Sovereign acts on `main`; branch cut afterwards.** Per [ADR-0010](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), state-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is M-0103's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The M-0104/AC-4 carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8). M-0106's `isolation-escape` kernel finding provides post-hoc detection at `aiwf check` (warning severity) for branch-binding drift that escapes both the session-layer hook and M-0103's at-dispatch refusal.
+- **Sovereign acts on `main`; branch cut afterwards.** Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), state-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is the kernel's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The from-main `--branch` carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8). The `isolation-escape` kernel finding provides post-hoc detection at `aiwf check` (warning severity) for branch-binding drift that escapes both the session-layer hook and the kernel's at-dispatch refusal.
 - **Preflight uses kernel signals.** Body completeness, drafted-milestone presence, and `aiwf check` cleanliness all surface through existing kernel rules (`entity-body-empty`, `epic-active-no-drafted-milestones`, the standard refusal-severity findings). The skill reads — it does not duplicate the rule.
-- **Worktree placement defaults to in-repo.** The recommended placement is in-repo under the configured `worktree.dir` (ADR-0023) — reachable as a sandboxed devcontainer session's cwd and persistent under the mounted workspace. The default is a recommendation, not a lock: the per-invocation override (main-checkout / sibling) stays a Q&A choice, since each option still trades off parallel work, IDE state, and `aiwf check` blast radius.
+- **Worktree placement defaults to in-repo.** The recommended placement is in-repo under the configured `worktree.dir` ([the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)) — reachable as a sandboxed devcontainer session's cwd and persistent under the mounted workspace. The default is a recommendation, not a lock: the per-invocation override (main-checkout / sibling) stays a Q&A choice, since each option still trades off parallel work, IDE state, and `aiwf check` blast radius.
 - **The promotion commit and any authorize commit are separate.** One verb = one commit. The skill orchestrates both in sequence; it never bundles them.
 
 ## Precondition
@@ -56,11 +56,11 @@ Ask the operator whether the work proceeds in-loop (the operator drives every mi
 - **In-loop** — no scope opened. Step 7 is skipped.
 - **Delegate to `ai/<id>`** — step 7 runs `aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug>`. The operator names the agent and the future epic branch (typically `epic/E-NN-<slug>` derived from the epic id and slug).
 
-The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. Per ADR-0010, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
+The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. Per the branch-model ADR, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
 
 ### 6. Sovereign promotion
 
-Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Per ADR-0010, both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
+Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
 
 Activation is the sovereign moment. The operator runs:
 
@@ -68,7 +68,7 @@ Activation is the sovereign moment. The operator runs:
 aiwf promote E-NN active
 ```
 
-The kernel refuses this verb from a non-`human/` actor — per M-0095, an `ai/<id>` operator attempting to flip the epic gets a typed error pointing at the rule and the override path. The operator is human; an AI assistant orchestrating the conversation does not invoke the verb itself.
+The kernel refuses this verb from a non-`human/` actor — per the kernel's sovereignty rule, an `ai/<id>` operator attempting to flip the epic gets a typed error pointing at the rule and the override path. The operator is human; an AI assistant orchestrating the conversation does not invoke the verb itself.
 
 The override path exists for genuine sovereign-act-shaped exceptions (a ratification run by a bot account, a recovery flow after a half-applied prior promote):
 
@@ -88,11 +88,11 @@ If step 5 chose delegation, the operator runs (still on `main`):
 aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug> --reason "<one-sentence rationale>"
 ```
 
-The `--branch` flag names the *future* epic branch — the one step 8 will cut. The branch does not yet exist when this verb runs. The M-0103 AI-target preflight permits this combination via the M-0104/AC-4 carve-out: from a checkout on `main`, an explicit `--branch` whose value matches the ritual shape (`epic/`/`milestone/`/`patch/` per `internal/branchparse/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future ref; step 8's branch cut closes the binding.
+The `--branch` flag names the *future* epic branch — the one step 8 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the from-main `--branch` carve-out: from a checkout on `main`, an explicit `--branch` whose value matches the ritual shape (`epic/`/`milestone/`/`patch/` per `internal/branchparse/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future ref; step 8's branch cut closes the binding.
 
 This is a *separate* commit from step 6. The scope is `active` from this commit forward; the agent operates within it until the epic reaches a terminal status or the operator pauses the scope.
 
-If the operator is NOT on `main` when this step runs (e.g. they jumped to a feature branch first), M-0103's preflight refuses with `branch-context-required` or `branch-not-found`. The override path is the same sovereign-act shape:
+If the operator is NOT on `main` when this step runs (e.g. they jumped to a feature branch first), the kernel's preflight refuses with `branch-context-required` or `branch-not-found`. The override path is the same sovereign-act shape:
 
 ```bash
 aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug> --force --reason "<one-sentence justification>"
@@ -104,7 +104,7 @@ If step 5 chose in-loop, skip.
 
 ### 8. Worktree placement and branch creation (Q&A)
 
-Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`, [ADR-0023](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`). Read the resolved directory from the kernel rather than hardcoding it:
+Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`, [the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`). Read the resolved directory from the kernel rather than hardcoding it:
 
 ```bash
 aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'
@@ -112,11 +112,11 @@ aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'
 
 The default is a recommendation, not a lock — the per-invocation override stays. The choice still matters (parallel work, IDE state, `aiwf check` blast radius), so surface the three placements and let the operator override:
 
-1. **`.claude/worktrees/<branch>/` (in-repo worktree — the default).** A worktree under the repo's own `.claude/` tree, at the resolved `worktree.dir`. Survives `git checkout` on the main worktree; gitignored; reachable as a sandboxed session's cwd. Recommended placement (ADR-0023).
+1. **`.claude/worktrees/<branch>/` (in-repo worktree — the default).** A worktree under the repo's own `.claude/` tree, at the resolved `worktree.dir`. Survives `git checkout` on the main worktree; gitignored; reachable as a sandboxed session's cwd. Recommended placement (see the in-repo placement convention).
 2. **No worktree, work directly on the epic branch in the main checkout.** The operator's existing checkout switches to `epic/E-NN-<slug>` via `git checkout -b`. Simplest; no extra checkout state to manage. Trade-off: no isolated playground if the epic gets contentious.
 3. **`../aiwf-<branch>/` (sibling-directory worktree).** A worktree as a sibling of the repo root. Fully isolated path; valid on a bare host where the sandbox confinement does not apply. Trade-off: unreachable as a sandboxed session's cwd, requires a deliberate `cd` to enter, and `find`-based tools rooted at the original repo do not see it.
 
-The branch shape is settled by ADR-0010: ritualized work on `epic/E-NN-<slug>`. If step 7's authorize commit was produced (delegated case), the branch name is already in the trailer — this step cuts that exact ref. If step 5 chose in-loop, the operator still cuts `epic/E-NN-<slug>` (the same naming convention; no `aiwf-branch:` trailer was emitted upstream, but the convention is the same).
+The branch shape follows the branch-model convention: ritualized work on `epic/E-NN-<slug>`. If step 7's authorize commit was produced (delegated case), the branch name is already in the trailer — this step cuts that exact ref. If step 5 chose in-loop, the operator still cuts `epic/E-NN-<slug>` (the same naming convention; no `aiwf-branch:` trailer was emitted upstream, but the convention is the same).
 
 Execute the branch cut against the chosen worktree (default in-repo under `worktree.dir`, or the main checkout / sibling per the override). The branch operation does not produce an aiwf commit; it is plain git plumbing.
 
@@ -129,17 +129,17 @@ If a delegation scope was opened in step 7, the hand-off is to the named agent (
 ## Constraints
 
 - 🛑 **Never commit or push without explicit human approval.** Step 6's promotion and step 7's authorize each require human confirmation.
-- 🛑 **Sovereign promotion requires a `human/` actor.** Per M-0095, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. An AI assistant orchestrating the conversation does not run the verb itself.
-- 🛑 **Sovereign acts land on `main` before the branch cut.** Per ADR-0010, steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The M-0103 preflight enforces this for the authorize commit (the M-0104/AC-4 carve-out allows the `--branch <future>` form from `main`).
+- 🛑 **Sovereign promotion requires a `human/` actor.** Per the kernel's sovereignty rule, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. An AI assistant orchestrating the conversation does not run the verb itself.
+- 🛑 **Sovereign acts land on `main` before the branch cut.** Per the branch-model convention, steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The kernel's preflight enforces this for the authorize commit (the from-main `--branch` carve-out allows the `--branch <future>` form from `main`).
 - The promotion commit and any authorize commit are separate. One verb = one commit.
-- Worktree placement defaults to in-repo under the configured `worktree.dir` (ADR-0023), but the default is a recommendation, not a lock — the per-invocation override (main-checkout / sibling) stays a Q&A choice. The branch shape is settled by ADR-0010 — `epic/E-NN-<slug>` — and is not surfaced as a prompt.
+- Worktree placement defaults to in-repo under the configured `worktree.dir` (the in-repo placement convention), but the default is a recommendation, not a lock — the per-invocation override (main-checkout / sibling) stays a Q&A choice. The branch shape follows the branch model — `epic/E-NN-<slug>` — and is not surfaced as a prompt.
 
 ## Anti-patterns
 
 - *Skipping the drafted-milestone check.* The epic activates with nothing queued; the next thing that happens is friction.
 - *Letting an AI assistant run `aiwf promote E-NN active` directly.* The kernel refuses; the override path (`--force --reason`) is for genuine sovereign-act-shaped exceptions, not for routing around the rule.
 - *Bundling the promote and authorize commits.* One verb = one commit. A combined commit is two acts at one timestamp and breaks `aiwf history`.
-- *Hardcoding the worktree directory instead of reading `worktree.dir`.* The default is in-repo (ADR-0023), but the resolved directory comes from the `worktree.dir` knob via `aiwf doctor` — baking `.claude/worktrees` into the prompt silently ignores a consumer's override.
+- *Hardcoding the worktree directory instead of reading `worktree.dir`.* The default is in-repo (the in-repo placement convention), but the resolved directory comes from the `worktree.dir` knob via `aiwf doctor` — baking `.claude/worktrees` into the prompt silently ignores a consumer's override.
 - *Dropping the override to force in-repo.* In-repo is the default, not a lock; the sibling and main-checkout placements stay selectable (a bare host with no sandbox confinement may legitimately prefer a sibling).
 
 ## Next step

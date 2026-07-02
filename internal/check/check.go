@@ -52,6 +52,11 @@ const (
 	// malformed-shape, unresolved, unresolved-milestone, unresolved-ac.
 	// See internal/check/body_prose_id.go for the classifier shape.
 	CodeBodyProseID = "body-prose-id"
+	// CodeSkillBodyID is the G-0299 skill-body id-reference rule: a shipped
+	// SKILL.md body must cite no real (digit-bearing) entity id. The mirror
+	// image of body-prose-id; inert in a consumer repo (no skill-source
+	// tree). See internal/check/skill_body_id.go.
+	CodeSkillBodyID = "skill-body-id"
 )
 
 // Finding is one structured report from a check. The finder fills in
@@ -107,6 +112,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, gapAddressedHasResolver(t)...)
 	// G-0184: id-shape chokepoint at the committed body-prose layer.
 	findings = append(findings, bodyProseID(t)...)
+	findings = append(findings, skillBodyIDReference(t)...)
 	// M-0094: epic-active preflight signal per G-0063.
 	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
 	// I2: AC and TDD checks.

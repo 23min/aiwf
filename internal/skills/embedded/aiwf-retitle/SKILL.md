@@ -1,11 +1,11 @@
 ---
 name: aiwf-retitle
-description: Use when the user wants to fix or change an entity's title — "the title doesn't match anymore", "fix the title", "retitle to reflect new scope", "correct the title", "rename the title", or change an AC's title inside its parent milestone. Runs `aiwf retitle` so the frontmatter mutation rides through a verb route with proper trailers, instead of a hand-edit that triggers a `provenance-untrailered-entity-commit` warning.
+description: Use when the user wants to fix or change an entity's title — "the title doesn't match anymore", "fix the title", "retitle to reflect new scope", "correct the title", or change an AC's title inside its parent milestone. Runs `aiwf retitle` so the frontmatter mutation rides through a verb route with proper trailers, instead of a hand-edit that triggers a `provenance-untrailered-entity-commit` warning.
 ---
 
 # aiwf-retitle
 
-The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities the on-disk slug is also re-derived from the new title (G-0108) so the filesystem stays in sync, and any canonical `# <ID> — <title>` body H1 is rewritten to track the new title (G-0083) — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated. Closes G-065 — the asymmetry where `aiwf rename` exists for slugs but no verb exists for titles.
+The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities the on-disk slug is also re-derived from the new title so the filesystem stays in sync, and any canonical `# <ID> — <title>` body H1 is rewritten to track the new title — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated.
 
 ## When to use
 
@@ -33,7 +33,7 @@ Two positional arguments matching `aiwf rename`'s shape: id (or `M-NNN/AC-N`), n
 ## What aiwf does
 
 1. Looks up the entity (or AC) by id.
-2. For top-level entities: rewrites the frontmatter `title:` field, re-derives the on-disk slug from the new title and renames the file/dir in the same commit (G-0108), and rewrites a canonical `# <ID> — <title>` body H1 if one is present (G-0083). Non-canonical H1s and bodies without an H1 are left untouched.
+2. For top-level entities: rewrites the frontmatter `title:` field, re-derives the on-disk slug from the new title and renames the file/dir in the same commit, and rewrites a canonical `# <ID> — <title>` body H1 if one is present. Non-canonical H1s and bodies without an H1 are left untouched.
 3. For composite ids: rewrites the AC's `title` inside the parent milestone's `acs[]` AND regenerates the matching `### AC-N — <new-title>` body heading. Both happen in one atomic file write.
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
 5. Creates one commit with `aiwf-verb: retitle`, `aiwf-entity: <id>` (or `<id>/AC-N` for composite ids), `aiwf-actor: <actor>` trailers.

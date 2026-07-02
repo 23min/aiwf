@@ -319,7 +319,9 @@ func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
 		{"post-allocation dedicated verb", "aiwf milestone depends-on"},
 		{"--on flag", "--on"},
 		{"--clear flag", "--clear"},
-		{"M-0076 reference grounds the surface", "M-0076"},
+		// A real-id back-reference here was removed by G-0299 (shipped
+		// skill bodies cite no real id); the depends-on surface is pinned
+		// by the four flag/verb markers above.
 	}
 	for _, w := range wantContent {
 		if !strings.Contains(section, w.marker) {

@@ -39,31 +39,31 @@ Docs with no inbound links from any other doc, README, or code file. They might 
 
 `TODO`, `FIXME`, `XXX`, or similar markers anywhere under `docs/`. List them with `path:line`. Most projects accumulate these; the lint just makes them visible so they can be triaged or grandfathered explicitly.
 
-### 5. Contributor-state and path leaks
+## Related: repo-wide secret / path-leak scanning (standalone tool)
 
-Absolute filesystem paths in committed text leak contributor-local state — usernames, project layouts, machine-specific install locations. None of it informs a downstream reader; all of it inflates the surface where personal identifiers and unrelated-project names creep into public-facing repos.
+Distinct from the four doc heuristics above: absolute filesystem paths and secrets in committed text leak contributor-local state — usernames, machine layouts, install locations — and none of it informs a downstream reader. This is **not** one of the four doc heuristics, for three reasons:
 
-Patterns that should trip the rule:
+- **Scope is repo-wide, not docs-scoped.** A leaked path is a defect anywhere in the tree (source, tests, config, git history), not just under `docs/`. The four heuristics above are docs-scoped; this scan is not.
+- **It is deterministic and mechanical** (regex → match), so it deserves a **real chokepoint**, not an LLM-judged advisory heuristic.
+- **Its patterns and allowlist are repo-specific** — each project has its own contributor identities to exclude, its own legitimate paths to allow, its own test-fixture placeholder conventions.
 
-- `/Users/<name>/...` (macOS home)
-- `/home/<name>/...` (Linux home; allowlist well-known devcontainer users like `/home/vscode/`)
-- `C:\Users\<name>\...` (Windows variants)
-- `~/<...>`, `$HOME/<...>` (shell home expansion in prose; idiomatic in shell scripts — allowlist by file path)
-- `/tmp/`, `/private/`, `/var/`, `/opt/` (machine-state paths)
+So this belongs in a **standalone tool the consumer's repo owns and configures**, invoked from its own chokepoints — not folded into this advisory doc-lint.
 
-Unlike the other four checks above (which are skill-internal heuristics the LLM applies), this one's right home is a **standalone tool the consumer's repo owns and configures**, because:
+Patterns worth catching: `/Users/<name>/…` (macOS home), `/home/<name>/…` (Linux home; allowlist well-known devcontainer users like `/home/vscode/`), `C:\Users\<name>\…` (Windows), `~/…` / `$HOME/…` in prose (idiomatic in shell scripts — allowlist by file path), and machine-state paths (`/tmp/`, `/private/`, `/var/`, `/opt/`).
 
-- The rule is deterministic and mechanical (regex → match), so it deserves a real chokepoint, not LLM-judged advisory.
-- The exact patterns and allowlist policy are repo-specific (each project has its own contributor identities to exclude, its own legitimate paths to allow, its own placeholder conventions for test fixtures).
-- The same tool needs to be invokable from multiple chokepoints: pre-commit hook, CI workflow, manual run — that distribution problem is already solved by mature tools.
+**Recommended tool family:** [gitleaks](https://github.com/gitleaks/gitleaks) (also viable: `detect-secrets`, `ggshield`). The plugin ships no rules; the consumer's repo owns its `.gitleaks.toml`, tuned to its own contributors and allowlist.
 
-**Recommended tool family:** [gitleaks](https://github.com/gitleaks/gitleaks) (also viable: `detect-secrets`, `ggshield`). All three are CLI-based, support custom regex rules, and have first-class integrations for pre-commit hooks, GitHub Actions, and ad-hoc invocation. The plugin does not ship rules; the consumer's repo owns its `.gitleaks.toml` (or equivalent), tuned to its own contributors and allowlist.
+**Where to wire it — the push is the trust boundary.** A secret is not exposed until it is **pushed**, so the scan belongs at **pre-push** (the real boundary) plus an operator-independent **CI** job (the authoritative chokepoint a skipped local hook can't bypass). A *pre-commit* hook only taxes every commit's latency without being the boundary — recommend against it.
 
-**What the consumer adds:**
+Use the current gitleaks subcommands (v8.x deprecated the old `detect`):
 
-1. A `.gitleaks.toml` at the repo root with the path-leak rules and the project-specific allowlist (archive dirs, testdata fixtures, well-known devcontainer users, codified test placeholders).
-2. A pre-commit hook that runs `gitleaks detect --config=.gitleaks.toml --no-banner --no-git` and blocks on non-zero exit.
-3. Optionally, a CI workflow that runs the same command. The pre-commit hook gives fast feedback; CI is the authoritative chokepoint.
+```bash
+# History scan — every committed blob; for the CI job and the pre-push hook.
+gitleaks git --config=.gitleaks.toml --no-banner
+
+# Filesystem scan — the working tree only; for a fast ad-hoc check.
+gitleaks dir --config=.gitleaks.toml --no-banner
+```
 
 **Example rule shape (gitleaks TOML):**
 
@@ -79,7 +79,7 @@ description = "archive/ subdirs are forget-by-default"
 paths = ['''/archive/''']
 ```
 
-When this skill runs as advisory ritual, point the operator at their `.gitleaks.toml` and recommend `gitleaks detect`. Don't try to re-implement the rule in prose — the operator's existing tool is the source of truth.
+When this skill runs as an advisory ritual, point the operator at their `.gitleaks.toml` and the pre-push + CI wiring above; don't re-implement the rule in prose — the operator's existing tool is the source of truth.
 
 ## What it deliberately does NOT do
 
@@ -131,7 +131,7 @@ If nothing is found, the report has empty sections and the summary is a single l
 ## Anti-patterns
 
 - *"Auto-fix the dead links"* — never. Even mechanical-looking fixes (deleting a link, renaming a symbol reference) are prose changes that need human approval.
-- *Treating doc-lint findings as a CI gate.* Drift is expected; surface it, don't fence on it. Block-on-zero is too strict for any real codebase.
+- *Treating the four doc heuristics as a CI gate.* Drift in the doc heuristics is expected; surface it, don't fence on it — block-on-zero is too strict for those. (The repo-wide secret / path-leak scan is the deliberate exception: it is deterministic and *does* gate at pre-push + CI — see "Related: repo-wide secret / path-leak scanning" above. Don't conflate the two.)
 - *Hand-editing the report.* It's a snapshot. Re-run the lint to update.
 - *Confusing this with content review.* This skill catches symbols that no longer exist. It does not catch "this paragraph is misleading" or "this example is wrong even though the symbol is real."
 

@@ -69,7 +69,7 @@ Two to four sentences on what shipped and why. Reference the goal from the epic 
 
 ## Decisions captured
 
-- D-NNN — <slug>             (or "none")
+- D-NNNN — <slug>             (or "none")
 
 ## Follow-ups carried forward
 
@@ -91,7 +91,7 @@ Walk the epic's commits. For each candidate decision, ask: *"Would a future read
 - A scope cut or framing shift affecting downstream work.
 - A supersession of a prior ADR.
 
-For each candidate, invoke `aiwfx-record-decision` and choose ADR (architectural, durable) or D-NNN (project-scoped, more local). Record the resulting ids in the wrap artefact's `## ADRs ratified` or `## Decisions captured` section.
+For each candidate, invoke `aiwfx-record-decision` and choose ADR (architectural, durable) or D-NNNN (project-scoped, more local). Record the resulting ids in the wrap artefact's `## ADRs ratified` or `## Decisions captured` section.
 
 ### 3. Doc-lint sweep (scoped)
 
@@ -166,7 +166,7 @@ aiwf promote E-NN done
 
 aiwf validates `active → done`, rewrites frontmatter, commits with `aiwf-verb: promote`. (If the epic is still `proposed`, that means no milestone ever started — wrap doesn't apply. Investigate.)
 
-**Why promote is last (closes G-0119).** The `aiwf promote E-NN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this — wrap artefact, CHANGELOG entry, reallocates, or other wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NN done` as the last commit in the wrap bundle guarantees every other wrap commit lives under the live scope, and the scope-ending promote is itself the natural last act before the push gate.
+**Why promote is last.** The `aiwf promote E-NN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this — wrap artefact, CHANGELOG entry, reallocates, or other wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NN done` as the last commit in the wrap bundle guarantees every other wrap commit lives under the live scope, and the scope-ending promote is itself the natural last act before the push gate.
 
 The completion date is recorded in `wrap.md` (step 1) and is recoverable from the `aiwf-verb: promote` commit via `aiwf history E-NN`. Do not add a `completed:` field to the epic frontmatter — aiwf's epic schema does not include it, and the parse failure cascades into unresolved-reference findings on every entity that links to this epic.
 
@@ -206,7 +206,7 @@ aiwf render roadmap --write
 
 - 🛑 **The terminal local sequence — merge, wrap-artefact commit, promote-done — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 8) and each origin-branch delete (step 9) are outward and keep their own gates; never batch them.
 - 🛑 **The merge commit and the wrap-artefact commit both carry the three required trailers.** Skipping either is the regression the kernel's `provenance-untrailered-entity-commit` finding catches.
-- 🛑 **`aiwf promote E-NN done` is the last commit in the bundle** (step 7). It ends the active authorize scope; any commit produced after it carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. Closes G-0119.
+- 🛑 **`aiwf promote E-NN done` is the last commit in the bundle** (step 7). It ends the active authorize scope; any commit produced after it carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push.
 - Every milestone must be `done` before wrap — `aiwf check` and `aiwf history E-NN` confirm.
 - Branch-cleanup is origin-only. Do not delete local branches.
 - The wrap artefact is mandatory. Don't close an epic without one.
@@ -220,7 +220,7 @@ aiwf render roadmap --write
 - *Pushing before approval.*
 - *Merging without `--no-commit`.* Produces an untrailered merge commit; the kernel rule fires once per entity file touched.
 - *Hardcoding `<id>` in the actor trailer.* Resolve from `git config user.email` at run time per the provenance model.
-- *Promoting the epic to `done` before the wrap-artefact and other wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 7, after the wrap-artefact commit — see G-0119.
+- *Promoting the epic to `done` before the wrap-artefact and other wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 7, after the wrap-artefact commit — the "Why promote is last" section above explains why.
 
 ## Out of scope
 
@@ -231,4 +231,4 @@ Version-tag cuts, the `[Unreleased]` → `[X.Y.Z]` rename, package publishing, a
 ## Next step
 
 If a release follows: → `aiwfx-release`.
-If not: → `aiwfx-plan-epic` for whatever's next, or stop here.
+If not: → `aiwfx-plan-epic` for whatever's next.
