@@ -1,7 +1,9 @@
 ---
 id: G-0299
 title: Strict skill-body id-reference discipline + placeholder normalization
-status: open
+status: addressed
+addressed_by:
+    - M-0195
 ---
 ## Problem
 
