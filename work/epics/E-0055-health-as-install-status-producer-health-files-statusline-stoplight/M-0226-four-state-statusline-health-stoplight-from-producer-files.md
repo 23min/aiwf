@@ -1,7 +1,7 @@
 ---
 id: M-0226
 title: Four-state statusline health stoplight from producer files
-status: draft
+status: cancelled
 parent: E-0055
 depends_on:
     - M-0224
