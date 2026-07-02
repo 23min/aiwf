@@ -10,14 +10,14 @@ highest-leverage code-quality forces, with the full rubric in the
 
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
-  separate gate. Ask before each; don't bundle several into one approval. After a
-  context summary, never read a past approval as "the human prefers batches" —
-  re-ask. The one bounded exception is the **declared-sequence gate**: a single
-  gate over a sequence of *local, reversible* mutations (a terminal wrap
-  sequence — promote-done, local merge, cleanup), provided it enumerates every
-  action verbatim and the user can approve a subset. Never batch outward or
-  irreversible actions (push, `gh pr create`, tag-push, `--force`) or
-  timing-bearing ones (`tdd: required` phase promotes fire live).
+  separate gate — ask before each, and after a context summary re-ask rather
+  than reading a past approval as a standing preference for batches. One aiwf
+  mechanic batches on purpose: the **declared-sequence gate** the `aiwfx-wrap-*`
+  rituals use to cover a terminal sequence of *local, reversible* mutations
+  (promote-done, local merge, cleanup) under a single approval — one that
+  enumerates every action and lets you approve a subset. Outward or irreversible
+  actions (push, `gh pr create`, tag-push, `--force`) and timing-bearing ones
+  (`tdd: required` phase promotes) never batch.
 - **Never suggest the human pause.** When to stop is the human's call. Surface
   any risk and keep going, or ask what's next; don't propose pausing, banking
   progress, or resuming later.
