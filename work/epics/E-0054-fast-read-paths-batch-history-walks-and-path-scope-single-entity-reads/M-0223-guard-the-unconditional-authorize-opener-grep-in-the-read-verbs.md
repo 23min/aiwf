@@ -14,7 +14,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-3
-      title: measured history text wall-time delta recorded in Validation
+      title: measured read-verb wall-time delta recorded in Validation
       status: open
       tdd_phase: red
 ---
@@ -48,5 +48,5 @@ renders identical scope info. The shared scope map benefits `render` too.
 
 ### AC-2 — history and show output identical for scoped and scopeless entities
 
-### AC-3 — measured history text wall-time delta recorded in Validation
+### AC-3 — measured read-verb wall-time delta recorded in Validation
 
