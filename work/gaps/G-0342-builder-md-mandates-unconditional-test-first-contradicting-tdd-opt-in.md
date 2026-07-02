@@ -1,7 +1,9 @@
 ---
 id: G-0342
 title: builder.md mandates unconditional test-first, contradicting tdd opt-in
-status: open
+status: addressed
+addressed_by_commit:
+    - d9ddc3c7
 ---
 ## Problem
 
