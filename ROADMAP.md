@@ -609,7 +609,7 @@ pre-push where the check can live there, CI at the latest.
 | M-0201 | Planning-ritual body-fill via edit-body and Next-step routing | done |
 | M-0202 | Fix devcontainer onboarding banner (retired plugin install) | done |
 | M-0210 | Drift chokepoint for the trailered-commit block in wrap rituals | done |
-| M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | draft |
+| M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | done |
 
 ## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
 
