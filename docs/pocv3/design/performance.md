@@ -112,23 +112,26 @@ this repo:
 
 | one entity's history | no bloom filters | with bloom filters |
 |---|---|---|
-| `git log -- <exact path>` | ~1.0s | **0.014s** (70×) |
-| `git log --grep=aiwf-entity:` | 0.88s | 0.88s (grep can't use bloom) |
+| `git log -- <exact path>` | ~1.3s | **~65ms** typical (~14ms best case) |
+| `git log --grep=aiwf-entity:` | ~0.9s | ~0.9s (grep can't use bloom) |
 
 **Path-scoping is a fast *accelerator*, not a drop-in for the grep — it is a
 different query.** Three gaps make `git log -- <path>` ≠ `git log --grep=aiwf-entity:`,
 so the trailer grep must stay the authoritative oracle and path-scoping a *verified*
 fast path (deferred to G-0340):
 
-- **Pathless trailer commits are invisible to a path query.** `aiwf
-  acknowledge-illegal` / `acknowledge-mistag` write `--allow-empty` commits carrying
-  `aiwf-entity:` but touching no file (6 live entities already). A path query misses
-  them; it must be unioned with a bounded trailer query.
+- **Pathless trailer commits are invisible to a path query.** Any `--allow-empty`
+  commit carrying `aiwf-entity:` but touching no file is missed — a whole class:
+  `acknowledge-illegal` / `acknowledge-mistag`, `authorize` openers/lifecycle, and
+  `audit-only`. Six entities already have empty acknowledge events alone (five live,
+  one archived). A path query must be unioned with a bounded trailer query.
 - **The path set is only partly tracked.** `prior_ids` records `aiwf reallocate`
-  lineage only — *not* `aiwf rename` slug changes (no frontmatter trace), `archive`
-  moves (~533 entities; pre-archive path derivable by convention, not frontmatter), or
-  transitive parent-dir moves (archiving an epic moves every child milestone's path).
-  A naive current-path query returned 1 of 3 events for an archived entity.
+  lineage only (26 entities) — *not* `aiwf rename` slug changes (30 commits, no
+  frontmatter trace), `archive` moves (~508 entities; pre-archive path derivable by
+  convention, not frontmatter), or transitive parent-dir moves (archiving an epic
+  moves every child milestone's path). A naive current-path query returned 1 of 3
+  events for an archived entity (for archived G-0103, the grep and path sets are
+  entirely disjoint).
 - **History simplification.** `git log -- <path>` prunes merge commits (TREESAME) that
   `--grep` retains; matching grep semantics needs `--full-history` / `-m`.
 
@@ -336,9 +339,12 @@ Largely yes:
    batch **both** render walk families (per-entity events *and* the
    authorize-opener/provenance map) — the spike proved 12.8s vs 28 min, byte-identical.
    Biggest single render win.
-1b. **Guard the unconditional `BuildScopeEntityMap` grep** (M-0223) — the cheap, safe
-   single-entity `history` win; skip the repo-wide authorize grep when the entity has
-   no scope data. Roughly halves the default text command, zero correctness risk.
+1b. **Guard the unconditional authorize grep across the read verbs** (M-0223) — the
+   cheap single-entity win. The same grep runs unconditionally in `history` text
+   (`BuildScopeEntityMap`) *and* `show` (`readAllAuthorizeOpeners` via
+   `LoadEntityScopeViews`, ~3.4s); skip it when the entity's loaded events carry no
+   scope data, and consolidate the two near-duplicate impls into one shared helper.
+   Roughly halves both commands; low risk (verified), gated on a non-vacuous fixture.
 2. **Path-scoped history + maintained changed-path bloom filters** (deferred, G-0340)
    — per-entity history ~1.3s → ~65ms, but only once the query-equivalence gaps
    (pathless commits, path-set derivation, history simplification) are handled; the
