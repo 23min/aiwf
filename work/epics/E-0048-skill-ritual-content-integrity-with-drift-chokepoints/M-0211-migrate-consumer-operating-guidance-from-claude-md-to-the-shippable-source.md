@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Cross-branch id-allocation rule migrated to guidance and aiwf-add skill
-      status: open
+      status: met
     - id: AC-2
       title: Drift chokepoint asserts operating anchors present in shipped guidance
       status: open
