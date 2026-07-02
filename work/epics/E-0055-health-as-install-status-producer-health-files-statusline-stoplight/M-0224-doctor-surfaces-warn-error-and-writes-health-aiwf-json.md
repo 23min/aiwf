@@ -1,6 +1,6 @@
 ---
 id: M-0224
-title: Structured, severity-tagged doctor findings + JSON envelope
+title: doctor surfaces warn/error and writes health.aiwf.json
 status: in_progress
 parent: E-0055
 tdd: required
