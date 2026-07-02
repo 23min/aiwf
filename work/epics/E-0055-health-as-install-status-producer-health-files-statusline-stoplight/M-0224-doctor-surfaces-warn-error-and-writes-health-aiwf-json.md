@@ -16,31 +16,25 @@ acs:
 ---
 ## Deliverable
 
-Refactor `aiwf doctor` so that a typed, severity-tagged findings slice is the
-single source of truth, and the existing human-readable report is *derived* from
-it. Add a `--format=json` envelope. Closes G-0070.
+Surface `aiwf doctor`'s warnings and errors as structured problems and write them to
+`.claude/health.aiwf.json` for the statusline (and any other consumer) to read. The
+problems are collected alongside the existing doctor output — no rewrite of the report.
 
-Doctor already accumulates a two-level signal (blocking checks increment the
-problem count; advisory and informational lines never do); this milestone lifts
-that into an explicit per-finding severity (`info` / `warn` / `error`) that both
-the text report and the JSON envelope render from.
-
-## Acceptance criteria (formalized at milestone start)
-
-- **Typed findings model.** `aiwf doctor` produces findings carrying
-  `{ code, severity, message, data }` with `severity` one of `info` / `warn` /
-  `error`; the human text report is rendered from that slice, not built
-  independently. Evidence: a per-section severity-mapping test (blocking → error,
-  advisory → warn or info) plus a golden test that the derived prose equals the
-  current report byte-for-byte (no regression).
-- **JSON envelope.** `aiwf doctor --format=json` emits the standard
-  `{ tool, version, status, findings, result, metadata }` envelope with `status`
-  one of `ok` / `findings` / `error`. Evidence: an integration test that drives
-  the verb, parses the envelope, and asserts a known finding (e.g. a missing
-  `aiwf.yaml` on a non-initialized repo) appears at `severity: error`; plus the
-  `--format` completion-drift test.
+## Acceptance criteria
 
 ### AC-1 — doctor exposes its warnings and errors with severity and message
 
+`aiwf doctor` collects its problem states — the blocking checks (today's error count)
+and the advisory ones — as `{severity, message}`, `severity` one of `warn` / `error`
+(`info` reserved for non-actionable context). The existing human report is unchanged.
+Evidence: a repo with a known problem (e.g. a missing `aiwf.yaml`) yields an
+error-severity problem whose message names it; a clean repo yields none.
+
 ### AC-2 — aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
 
+`aiwf doctor --write-health` maps those problems onto the fixed ai-dotfiles schema
+(`{generated_at, findings:[{source:"aiwf", severity, message}]}`; empty `findings` when
+healthy) and atomic-writes the file to the main checkout's `.claude/`, resolved even
+from a linked worktree; `aiwf update` writes it too, so it refreshes on the command
+operators already run. Evidence: a seeded-problem repo produces the mapped error entry;
+a healthy repo produces an empty `findings` array; the write is atomic.
