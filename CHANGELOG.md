@@ -27,6 +27,18 @@ check rendering test to a synthetic fixture and sharing the built binary
 across check tests (M-0220). Three further candidate optimizations
 (M-0217/M-0218/M-0219) were measured and dropped as not worth the risk.
 
+### Added — E-0048: skill & ritual content-integrity chokepoints
+
+Five mechanical chokepoints now keep shipped skill / ritual / guidance content
+from drifting: the skill-body id-reference check (pre-push `aiwf check`), the
+finding-code documented-superset policy, the skill-edit→structural-test backstop,
+the trailered-commit drift chokepoint, and the guidance operating-anchor
+chokepoint. The content defects a 2026-06-28 audit found across the verb skills,
+the `wf-*` engineering rituals, the planning rituals, the devcontainer
+onboarding banner, and `CLAUDE.md` are corrected, and consumer-operating guidance
+(such as the cross-branch id-allocation workflow) now ships via the embedded
+guidance source rather than living only in this repo's `CLAUDE.md`.
+
 ## [0.20.0] — 2026-06-29
 
 ### Changed — E-0052: the id allocator catches cross-branch collisions at allocation time
