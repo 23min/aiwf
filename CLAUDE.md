@@ -1,666 +1,285 @@
 # CLAUDE.md — ai-workflow repo
 
-This repo carries `aiwf` — a small experimental framework that helps humans and AI assistants keep track of what's planned, decided, and done, by validating a small set of mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what aiwf commits to. Read [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md) for the four sessions of work that produced it. **Gaps live as `aiwf` entities under `work/gaps/` (per G38 dogfooding the kernel against itself); run `aiwf list --kind gap` or `aiwf show G-NNN` to inspect them. The pre-migration text record is archived at [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for historical reference.**
+This repo carries `aiwf` — a small framework that helps humans and AI assistants track what's planned, decided, and done, by validating mechanical guarantees about a markdown-and-frontmatter project tree. Read [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) for what aiwf commits to and §"What's deliberately not in the PoC" for scope limits. Gaps live as entities under `work/gaps/` — run `aiwf list --kind gap` or `aiwf show G-NNNN`.
 
 ---
 
 ## Engineering principles
 
-- **KISS — keep it simple.** Prefer the boring solution. Three similar lines beats a premature abstraction. Avoid cleverness — reflection, metaprogramming, deeply nested generics, control-flow tricks — unless the simple version is demonstrably worse.
-- **YAGNI — don't build for tomorrow.** No speculative interfaces, no "we might need this later" config knobs, no plugin architectures for a single implementation. Add the second case when it shows up; abstract on the third.
-- **No half-finished implementations.** If a feature lands, it lands tested. Stubs and TODOs in shipped code are a smell, not a milestone.
-- **Errors are findings, not parse failures.** `aiwf check` loads inconsistent state and reports it; it does not refuse to start. Validation is a separate axis from loading.
-- **The framework's correctness must not depend on the LLM's behavior.** Skills are advisory; the pre-push git hook and `aiwf check` are authoritative. If a guarantee depends on the LLM remembering to invoke a skill, it is not a guarantee.
-- **Kernel functionality must be AI-discoverable.** Every verb, flag, JSON envelope field, body-section name, finding code, trailer key, and YAML field is reachable through channels an AI assistant routinely consults: `aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, this `CLAUDE.md`, or the design docs cross-referenced from it. If an AI assistant has to grep source to learn a kernel capability, the capability is undocumented. New capabilities ship with their `--help` text and skill-level documentation alongside the implementation, not after.
-- **CLI surfaces must be auto-completion-friendly.** Every verb, subverb, flag, and closed-set value (kinds, statuses, format names, entity ids) is reachable via shell tab-completion. Static enumerations are wired through Cobra's `ValidArgs` and `RegisterFlagCompletionFunc`; entity ids enumerate dynamically by shelling back to `aiwf` from the generated completion script. Auto-completion is the human-facing peer of the AI-discoverability rule above: humans tab through the surface, AI assistants read `--help` and skills — both must traverse the *same* canonical surface, not two parallel ones. The drift-prevention test in `internal/policies/` (E-14 / M-054) is the chokepoint — a verb or flag added without completion wiring fails CI, so the guarantee does not depend on reviewer vigilance.
-- **Provenance is principal × agent × scope, not just operator.** When the human directs the LLM in conversation ("add a gap that says X"), the LLM is a *tool* — the human is the principal, the LLM is the agent, no co-actor inflation. When the human authorizes autonomous work (`aiwf authorize E-03 --to ai/claude`), the agent operates within that scope until the scope-entity reaches a terminal status or the human pauses. `--force` is sovereign: only humans wield it. See [`docs/pocv3/design/provenance-model.md`](docs/pocv3/design/provenance-model.md) for the full model.
-- **Never emit a malformed or fabricated id-shaped token in committed prose.** No letter or placeholder suffixes (`M-a`, `M-alpha`, `M-NNNN`, `ADR-shaped`); no canonical-width fabrications (`M-0099` for a milestone that doesn't exist); no pseudo-formal sequence labels ("Phase 1", "Phase A", "alpha/beta/gamma" — these imply a commitment the conversation hasn't made). In **planning conversations**, when sequencing not-yet-allocated milestones within an epic-planning chat, you may use short numeric labels — `M-1`, `M-2`, `M-3` — as conversational shorthand; these are distinguishable from canonical ids and signal "sequential placeholder, not a commitment." When you reach `aiwf add`, the verb assigns the canonical id and the deliverable name becomes the slug. The mechanical chokepoint is the `body-prose-id` check finding (G-0184) — wrap any id-shape in backticks if the prose is discussing syntax rather than referencing a real entity.
-
-For Go-specific rules (formatting, linting, testing, coverage, error handling, CLI conventions, commit-trailer convention), see the *Go conventions* section below.
+- **KISS.** Prefer the boring solution. A few similar lines beat a premature abstraction. Avoid cleverness (reflection, metaprogramming, deep generics, control-flow tricks) unless the simple version is demonstrably worse.
+- **YAGNI.** No speculative interfaces, no "might need it later" knobs, no plugin systems for one implementation. Add the second case when it shows up; abstract on the third.
+- **No half-finished implementations.** A feature that lands, lands tested. Stubs and TODOs in shipped code are a smell.
+- **Errors are findings, not parse failures.** `aiwf check` loads inconsistent state and reports it; it never refuses to start. Validation is a separate axis from loading.
+- **Framework correctness must not depend on LLM behavior.** Skills are advisory; the pre-push hook and `aiwf check` are authoritative. A guarantee that depends on the LLM remembering to invoke a skill is not a guarantee.
+- **Kernel functionality must be AI-discoverable.** Every verb, flag, JSON field, body-section name, finding code, trailer key, and YAML field is reachable via `aiwf <verb> --help`, embedded skills under `.claude/skills/aiwf-*`, this file, or the cross-referenced design docs. If an AI must grep source to learn a capability, it's undocumented — ship `--help` + skill docs alongside the implementation.
+- **CLI surfaces must be auto-completion-friendly.** Every verb, subverb, flag, and closed-set value is reachable via tab-completion (Cobra `ValidArgs` / `RegisterFlagCompletionFunc`; entity ids enumerate dynamically). The drift test in `internal/policies/` fails CI on a verb/flag added without completion wiring.
+- **Provenance is principal × agent × scope, not just operator.** When the human directs the LLM in conversation, the LLM is a *tool* (human = principal, no co-actor inflation). When the human runs `aiwf authorize E-NN --to ai/claude`, the agent works within that scope until the scope-entity is terminal or the human pauses. `--force` is sovereign — humans only. See [`docs/pocv3/design/provenance-model.md`](docs/pocv3/design/provenance-model.md).
+- **Never emit a malformed or fabricated id-shaped token in committed prose.** No letter/placeholder suffixes (`M-a`, `M-alpha`, `M-NNNN`), no canonical-width fabrications for entities that don't exist, no pseudo-formal sequence labels ("Phase 1", "alpha/beta"). In planning conversations, short numeric labels (`M-1`, `M-2`) are allowed shorthand for not-yet-allocated milestones. Wrap any id-shape in backticks when discussing syntax rather than referencing a real entity; the `body-prose-id` check enforces this.
 
 ---
 
 ## Working with the user
 
-- **Q&A / interview format.** When the user says "Q&A", "interview me", or anything similar — or whenever you have ≥3 distinct decisions queued and would otherwise dump them in one message — present questions or findings **one at a time**, not as a batch. For each item, give:
-  1. **Context** — what the question is about and why it matters here.
-  2. **Pros / cons** (or whys / why-nots) for each option.
-  3. **Risks**, if any.
-  4. **Your lean** and the reasoning behind it. State it plainly; don't hedge to the point of uselessness.
-  5. A **numbered list of options** the user can pick from (including "something else").
-
-  Wait for the user's choice before moving to the next item. Once they pick, confirm the decision in one line and move on.
-
-- **Never suggest the user pause.** Do not propose pausing, stopping, breaking, "banking progress and resuming later," picking this up in a fresh session, or any variant. When to stop is the user's call alone — they will decide and say so. Keep working until the user directs otherwise or the requested work is genuinely complete. If you believe there is a real risk in continuing (accumulated context, an unresolved decision, a sequencing hazard), state the risk plainly and keep going / ask what they want next — never frame it as "we should pause." Surface the *information*; the user owns the *decision to stop*.
-
-- **Gate discipline survives compaction.** Each mutating action — commit, push, merge, promote, archive, tag, `gh pr create`, deleting a branch — is its own gate. Prior approvals never carry forward, including across `/compact`. The default is to ask before each action, even when the next step looks like an obvious continuation of an approved sequence — obviousness is when the temptation to bundle is strongest, and bundling is when the user loses the ability to redirect mid-sequence.
-
-  Don't collapse multiple mutating actions into a single `AskUserQuestion`. If the option label reads "Yes — commit + push + merge + promote (Recommended)," the question is wrong; split it. One mutating action per gate, one gate per question.
-
-  Compaction preserves *that* something was approved, not the *granularity* at which approvals fired. After `/compact`, re-read this rule; never infer cadence from the summary.
-
-  **The sanctioned exception: the declared-sequence gate.** A single gate may cover a sequence of *local, reversible* mutations that occur at one moment — **provided the gate question enumerates every action verbatim**. Approval binds to exactly the enumerated list; the user can approve a subset ("all except the promote") because the enumeration makes partial approval expressible. The bright line is what may be batched: **batch local, reversible mutations** — promotes, an `aiwf archive` sweep, a local merge to mainline, a tracker-closure `aiwf promote G-NNNN addressed --by-commit <sha>`, local branch deletion, worktree removal. **Never batch (a) outward / irreversible actions** — push to origin, `gh pr create`, tag-push, remote-branch delete, `--force`; each always stands as its own gate (push is the only action that leaves the machine, and `--force` is additionally sovereign / human-only). **Never batch (b) timing-bearing mutations** whose signal *is* their timestamp — `tdd: required` AC phase promotes fire live during the cycle, never bursted into one moment. Any deviation — a merge conflict, a check finding, unexpected dirty state, any action not on the list — aborts the sequence and re-gates from the point of deviation. The consolidation is sound only because the mechanical gates carry the safety load the per-action gates used to carry: `make ci` green at the verify step, the pre-push lint hook, and `aiwf check` pre-push (G-0179). The canonical instance is the `wf-patch` wrap; the `aiwfx-wrap-milestone` and `aiwfx-wrap-epic` rituals use the same gate for their terminal local sequence (local merge + promote-done + cleanup — promote lands last so a delegated scope stays live for the merge commit, per G-0119; push excluded).
-
-- **Active streamlined-cadence override (operator-directed; interim, pending G-0314).** For the in-flight epics **E-0048** and **E-0052**, the operator has sovereignly adopted the streamlined TDD promote cadence: `tdd: required` AC phase/met promotes (`aiwf promote M-NNNN/AC-N --phase … | met`) **flow live without a per-promote HITL gate** — the assistant runs them as the cycle progresses and reports, instead of asking before each. The gates that remain: the **implementation commit**, the **merge**, and the **push** — each its own gate; **push is never batched or streamlined**, and all outward / irreversible actions stay individually gated. This **overrides** the "timing-bearing promotes fire live, never bursted, each its own gate" rule above **for these two epics only**, and is deliberately recorded here (not in conversation) so it survives `/compact`. The durable form is the `tdd.promote_gate: streamlined | strict` knob tracked in G-0314; delete this note when that lands.
-
-- **Finish in-context, don't paper over.** When you notice a closely-related issue in the file or text you're editing — especially one you just authored — fix it inline, not as a new gap. Filing-and-patch ceremony for a 5-line correction is churn: the original gap shipped half-baked, and "two gaps closed" is not progress over "one closed completely." File a separate gap only when the issue is *architecturally distinct* (different subsystem, different design question). Surface what you noticed plainly ("X is also wrong here, fixing inline"); don't silently defer.
+- **Q&A / one decision at a time.** When the user says "Q&A"/"interview me", or you have ≥3 queued decisions, present them **one at a time**: context, pros/cons, risks, your plain lean, then a numbered option list (incl. "something else"). Wait for the pick, confirm in one line, move on.
+- **Never suggest the user pause.** Don't propose pausing, stopping, banking progress, or resuming later. When to stop is the user's call. If continuing carries real risk, state it plainly and keep going / ask what's next — surface the information, don't own the decision to stop.
+- **Gate discipline survives compaction.** Every mutating action — commit, push, merge, promote, archive, cancel, tag, `gh pr create`, branch delete — is its own gate; prior approvals never carry forward, including across `/compact`. Don't collapse several mutations into one `AskUserQuestion` ("Yes — commit + push + merge" is the wrong question); one action per gate. The sanctioned exception is the **declared-sequence gate**: a single gate MAY cover a sequence of **local, reversible** mutations at one moment *provided the gate enumerates every action verbatim* (the user can then approve a subset). Batchable: promotes, an `aiwf archive` sweep, a local merge to mainline, a tracker-closure `aiwf promote G-NNNN addressed --by-commit <sha>`, local branch/worktree deletion. Never batch **outward / irreversible** actions — push, `gh pr create`, tag-push, remote-branch delete, `--force` (each its own gate; push is the only action that leaves the machine; `--force` is additionally human-only). Never batch **timing-bearing** mutations whose signal *is* their timestamp — `tdd: required` AC phase promotes fire live. Any deviation (conflict, finding, unexpected dirty state, an action not on the list) aborts and re-gates. Canonical instance: the `wf-patch` wrap; the `aiwfx-wrap-*` rituals use the same gate for their terminal local sequence (local merge + promote-done + cleanup — promote lands last so a delegated scope stays live for the merge commit, per G-0119; push excluded).
+- **Active streamlined-cadence override (operator-directed; interim, pending G-0314).** For epics **E-0048** and **E-0052** only, `tdd: required` AC phase/met promotes flow **live without a per-promote gate** — run them as the cycle progresses and report. The implementation commit, the merge, and the push each remain their own gate; **push is never batched or streamlined**. This overrides the "timing-bearing promotes each its own gate" rule for these two epics, recorded here so it survives `/compact`. The durable form is the `tdd.promote_gate: streamlined | strict` knob (G-0314); delete this note when it lands.
+- **Finish in-context, don't paper over.** When you notice a closely-related issue in text you're editing — especially one you just authored — fix it inline. File a separate gap only when the issue is *architecturally distinct*. Surface what you noticed plainly; don't silently defer.
 
 ---
 
 ## Authoring an ADR
 
-An ADR captures an architectural decision. **Decision is decision.** Once written down, what the ADR records is the choice — not the schedule for acting on it.
-
-Don't write gate language into ADR bodies — *"ratify after X happens,"* *"status remains proposed through Y wraps,"* *"accept after the implementing gaps' resolution shapes prove the contract works in practice."* Either you're committed (ratify it via `aiwf promote ADR-NNNN accepted`) or you're not (keep it `proposed` and let the conversation continue). When to *act on* the decision — what milestone, in what sequence, gated on what — is a planning concern that lives in the planning surface (`aiwf status`, the whiteboard, the materialized planning skills), not in the ADR body.
-
-The prior pattern (gate language in ADR bodies, sometimes backed by bespoke `internal/policies/` tests pinning status) conflated *"what's the decision?"* with *"are we ready to act on it?"*. Reviewers and LLM agents reading the ADR couldn't tell whether the gate was decision rationale ("we'll ratify if the design holds up") or schedule artifact ("we'll ratify when the epic closes"). The clean separation: **ADR captures the choice; planning sequences the action.**
-
-The FSM (`proposed → accepted | rejected`; `accepted → superseded`) and `aiwf promote` are the only mechanical surfaces that should constrain ADR status transitions. No bespoke per-ADR test pins. Sovereign override (`--force --reason`) remains available when an exceptional ratification path is genuinely needed.
+**Decision is decision.** An ADR records the choice, not the schedule for acting on it. Don't write gate language into ADR bodies (*"ratify after X"*, *"status stays proposed through Y"*). Either you're committed (`aiwf promote ADR-NNNN accepted`) or you're not (keep it `proposed`). When to *act* is a planning concern that lives in the planning surface, not the ADR body. The FSM (`proposed → accepted | rejected`; `accepted → superseded`) and `aiwf promote` are the only surfaces that constrain ADR status — no bespoke per-ADR test pins. `--force --reason` remains for exceptional ratification paths.
 
 ---
 
 ## What aiwf commits to
 
-These are the load-bearing properties any change must preserve. They are distilled from the research arc and recorded in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md).
+Load-bearing properties any change must preserve, distilled in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md). If a change doesn't preserve one, treat it as a kernel-level decision and surface it — not a quiet refactor.
 
-1. **Six entity kinds** — epic, milestone, ADR, gap, decision, contract — each with a closed status set and one Go function for legal transitions. Hardcoded; not driven by external YAML.
-2. **Stable ids that survive rename, cancel, and collision.** Every kernel id kind emits at a uniform canonical 4-digit width (per ADR-0008) — epics, milestones, gaps, decisions, contracts, ADRs, and findings all follow the same `<prefix>-NNNN` shape. Parsers tolerate narrower legacy widths on input so pre-migration trees, branches, and commit trailers continue to validate without history rewrite; renderers and allocators always emit canonical width. Consumers carrying narrow-legacy trees migrate via `aiwf rewidth --apply` (one commit, idempotent, archive entries preserved per forget-by-default). The id is the primary key; the slug is just display. Renames preserve the id. "Removal" means flipping status to a terminal value, not deleting the file. Collisions are detected by `aiwf check` and resolved by `aiwf reallocate`.
-3. **`aiwf check` runs as a pre-push git hook.** Validation is the chokepoint. The hook is what makes the framework's guarantees real; without it, skills are just suggestions.
-4. **`aiwf history <id>` reads `git log`.** No separate event log file. Structured commit trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) make the log queryable.
-5. **Marker-managed framework artifacts in the consumer repo, regenerated only on explicit `aiwf init` / `aiwf update`.** Skills under `.claude/skills/aiwf-*` (gitignored) and git hooks under `.git/hooks/<hook>` (untracked, identified by an `# aiwf:<hook>` marker so user-written hooks are left alone). A further artifact (ADR-0018, E-0040) is the **per-turn LLM guidance fragment**: `init`/`update` materialize `.claude/aiwf-guidance.md` (gitignored, version-stamped) and automatically maintain a marker-wrapped `@.claude/aiwf-guidance.md` import line in the consumer's root `CLAUDE.md` — the one aiwf-owned region inside a user-owned file. That wiring is **line-anchored** (touches only its own marker block; surrounding content preserved verbatim), **self-healing** (re-added on the next `update` if removed), and **default-on with an `aiwf.yaml` opt-out** (`guidance.wire_claudemd: false`) — there is deliberately no CLI flag, mirroring how skills/hooks are materialized. `aiwf update` is the upgrade verb — it refreshes every artifact the consumer is opted into. Stable across `git checkout` by design.
-6. **Layered location-of-truth.** Engine binary lives external (machine-installed via `go install`). Per-project policy and planning state live in the consumer repo. Materialized skill adapters live in the consumer repo but are gitignored.
-7. **Every mutating verb produces exactly one git commit.** That gives per-mutation atomicity for free. A failed mutation aborts before the commit.
-8. **Acceptance criteria as namespaced sub-elements of milestones; TDD opt-in per milestone.** ACs are not a seventh kind — they're structured sub-elements addressed by composite id `M-NNN/AC-N`, validated by `aiwf check`, with the audit rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`.
-9. **Principal × agent × scope provenance.** The kernel separates *who is accountable* (principal, always human) from *who ran the verb* (operator/actor, may be LLM or bot). Authorized agent work is gated by a typed scope FSM (`active | paused | ended`) opened with `aiwf authorize`. `--force` requires a human actor — sovereign acts always trace to a named human. Identity is runtime-derived from `git config user.email`, not stored in `aiwf.yaml`.
-10. **Uniform archive convention for terminal-status entities** (per [ADR-0004](docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md)). Every kind stores terminal entities under a per-parent `archive/` subdirectory — `work/gaps/archive/`, `work/decisions/archive/`, `work/contracts/archive/`, `work/epics/archive/`, `docs/adr/archive/` — so the active directory listing reflects what is currently in-flight without filter ceremony. Movement is decoupled from FSM promotion: `aiwf promote` and `aiwf cancel` flip status only; `aiwf archive` sweeps qualifying entities into their archive subdirs as a single commit per invocation. The loader resolves ids across active and archive, so cross-references stay live indefinitely. Reversal is deliberately absent — file a new entity referencing the archived one. Drift is policed via the `archive-sweep-pending` advisory finding, with an opt-in `archive.sweep_threshold` knob in `aiwf.yaml` that flips the finding to blocking past the named count.
-
-If a proposed change does not preserve one of these, treat it as a kernel-level decision and surface it explicitly — not a quiet refactor.
+1. **Six entity kinds** — epic, milestone, ADR, gap, decision, contract — each with a closed status set and one Go function for legal transitions. Hardcoded, not driven by external YAML.
+2. **Stable ids that survive rename, cancel, and collision.** Every kernel id emits at a uniform canonical 4-digit width (ADR-0008); parsers tolerate narrower legacy widths on input, while renderers and allocators always emit canonical width. Migrate legacy trees with `aiwf rewidth --apply` (one idempotent commit). The id is the primary key, the slug is display; rename preserves the id; "removal" means a terminal status, not deletion; collisions are detected by `aiwf check` and resolved by `aiwf reallocate`.
+3. **`aiwf check` runs as a pre-push git hook.** Validation is the chokepoint that makes the guarantees real.
+4. **`aiwf history <id>` reads `git log`.** No separate event log; structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) make the log queryable.
+5. **Marker-managed framework artifacts, regenerated only on explicit `aiwf init` / `aiwf update`.** Skills under `.claude/skills/aiwf-*` (gitignored) and git hooks under `.git/hooks/<hook>` (identified by an `# aiwf:<hook>` marker so user hooks are left alone). The per-turn guidance fragment (ADR-0018): `init`/`update` materialize `.claude/aiwf-guidance.md` and maintain a marker-wrapped `@.claude/aiwf-guidance.md` import in the consumer's root `CLAUDE.md` — line-anchored, self-healing, default-on with an `aiwf.yaml` opt-out (`guidance.wire_claudemd: false`). `aiwf update` refreshes every opted-in artifact.
+6. **Layered location-of-truth.** Engine binary external (`go install`); per-project policy/planning state in the consumer repo; materialized skill adapters in the consumer repo but gitignored.
+7. **Every mutating verb produces exactly one git commit** — per-mutation atomicity for free; a failed mutation aborts before the commit.
+8. **Acceptance criteria as namespaced sub-elements of milestones; TDD opt-in per milestone.** ACs are addressed by composite id `M-NNNN/AC-N`, validated by `aiwf check`, with the `acs-tdd-audit` rule "AC `met` requires `tdd_phase: done`" when the milestone is `tdd: required`.
+9. **Principal × agent × scope provenance.** The kernel separates *who is accountable* (principal, always human) from *who ran the verb* (actor, may be LLM/bot). Authorized work is gated by a scope FSM (`active | paused | ended`) opened with `aiwf authorize`; `--force` requires a human actor. Identity is runtime-derived from `git config user.email`, not stored in `aiwf.yaml`.
+10. **Uniform archive convention for terminal-status entities** (ADR-0004). Every kind stores terminal entities under a per-parent `archive/` subdirectory; `aiwf promote` / `aiwf cancel` flip status only, and `aiwf archive` sweeps qualifying entities into their archive subdirs as one commit. The loader resolves ids across active and archive, so cross-references stay live. Reversal is absent — file a new entity referencing the archived one. Drift is policed by the `archive-sweep-pending` advisory finding (opt-in `archive.sweep_threshold` knob in `aiwf.yaml`).
 
 ---
 
 ## What is *not* in scope
 
-Not in scope, deliberately. None of these blocks aiwf value; each can be added later when real friction demonstrates the need.
-
-- An events.jsonl file or any append-only event log.
-- A graph projection file or hash chain.
-- A monotonic ID counter coordinated across branches.
-- A module system or capability registry.
-- Multi-host adapter generation (aiwf targets Claude Code only).
-- A third-party skill registry.
-- Tombstones beyond "status = cancelled / wontfix / rejected / retired."
-- CRDT primitives, custom merge drivers, server-side hooks.
-- GitHub Issues or Linear sync.
-- Full FSM-as-YAML.
-
-If you find yourself reaching for any of the above to solve a problem, stop and check [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) §"What's deliberately not in the PoC" — there's almost certainly a simpler way.
+Deliberately excluded (each addable later when real friction demands it): an events.jsonl / append-only event log, a graph-projection or hash-chain file, a cross-branch monotonic ID counter, a module/capability registry, multi-host adapter generation (aiwf targets Claude Code only), a third-party skill registry, tombstones beyond terminal statuses, CRDT primitives / custom merge drivers / server-side hooks, GitHub-Issues or Linear sync, full FSM-as-YAML. If you reach for any of these, check design-decisions.md §"What's deliberately not in the PoC" — there's almost certainly a simpler way.
 
 ---
 
 ## How to validate changes
 
 ```bash
-go test -race ./...                  # unit tests
-golangci-lint run                    # linters
-go build -o /tmp/aiwf ./cmd/aiwf     # binary builds
+go test -race ./...              # unit tests
+golangci-lint run                # linters
+go build -o /tmp/aiwf ./cmd/aiwf # binary builds
 ```
 
-`make check-fast` bundles the first two plus `go vet` for the inner loop; `make ci` runs the full CI-parity gate (adds the race detector, coverage, and the end-to-end self-check). CI runs the full gate on every push.
+`make check-fast` bundles the first two plus `go vet` for the inner loop; `make ci` runs the full CI-parity gate (race, coverage, self-check). CI runs the full gate on every push.
 
-### Local validation cadence
+**Local validation cadence.** `make ci` gates the *integration boundaries* (the epic→main merge and the push); it need **not** run before every local commit:
 
-`make ci` gates the **integration boundaries** — the merge to mainline and the push — and must be green there. It does **not** need to run before every local commit:
+- **Inner loop** (milestone work on an epic branch, a `wf-patch` branch before wrap): use `make check-fast`.
+- **Skip the redundant run** when no Go/build input (`*.go`, `go.mod`, `go.sum`, `Makefile`, `.github/workflows/*`) changed since the last green `make ci`. Planning-state commits (`aiwf promote`/`edit-body`/`add`) touch entity markdown, never build inputs, and don't invalidate a green run.
+- **A milestone wrap merges into the *epic* branch, not mainline** — so run `make check-fast`, not the full gate; its safety net is the pre-push hook + CI-on-push when the epic branch is pushed. The wrap merge commit may use `git commit --no-verify` (its tree is byte-identical to the already-validated implementation commit). **Never `--no-verify` a push** — that skips the gitleaks scan whose boundary *is* the push.
 
-- **Inner loop.** While iterating (milestone work on an epic branch, a `wf-patch` branch before its wrap), use `make check-fast` for fast feedback. The full gate confirms before the commit/merge that integrates the work.
-- **Skip the redundant run.** When no Go/build input (`*.go`, `go.mod`, `go.sum`, `Makefile`, `.github/workflows/*`) has changed since the last green `make ci`, the gate is still green — don't re-run it. Planning-state commits — `aiwf promote` / `edit-body` / `add` touch entity markdown (and, for `aiwf add` with a contract bind, `aiwf.yaml`), never Go/build inputs — do not invalidate a prior green run. This is the waste that made the epic wrap re-run the full gate when only milestone `promote`s (frontmatter) had landed since the last green run.
-- **A milestone wrap merges into the *epic* branch, not mainline — so it does not need `make ci`.** `make ci` gates *mainline* integration: the epic→main merge and the push that carries it. A milestone→epic merge is an inner-loop integration whose safety net is the **pre-push hook** (full lint + `aiwf check`) plus **CI-on-push** — both fire when the epic branch is pushed. So at a milestone wrap, run `make check-fast`, not the full gate; reserve `make ci` for the epic→main boundary. The wrap **merge commit** may be made with `git commit --no-verify`: its tree is byte-identical to the milestone's already-validated implementation commit and the merge never leaves the machine, so re-running the pre-commit policy suite (~84s, G-0280) on it buys nothing. **Never `--no-verify` a push** — that skips the gitleaks secret scan, the one gate whose boundary *is* the push. (The recurring-redundancy costs this cadence sidesteps — the ~85s `aiwf check`, the policy-suite test that shells it, and the pre-push re-lint — have structural fixes tracked in G-0319 / G-0320 / G-0318.)
-
-The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance, so it belongs at the boundary that integrates or leaves the machine — not at each commit. This specializes the `wf-patch` / `aiwfx-wrap-*` rituals' "full local CI gate" step for this repo.
+The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance at the boundary that integrates or leaves the machine.
 
 ---
 
 ## Operator setup
 
-After cloning, run **`aiwf init`** (first time) or **`aiwf update`** (existing repo) at the repo root. That single command materializes everything aiwf ships into `.claude/`: the verb skills (`aiwf-*`), the ritual planning/lifecycle skills (`aiwfx-*`), the engineering skills (`wf-*`), the role agents (`planner` / `builder` / `reviewer` / `deployer`), and the entity templates — all gitignored, marker-managed, and byte-refreshed on every `aiwf update`. The rituals are embedded in the engine binary from a pinned upstream snapshot (ADR-0014, E-0038), so there is **no separate install step**, and the ritual version always equals the binary version.
+After cloning, run **`aiwf init`** (first time) or **`aiwf update`** (existing repo) at the repo root. That single command materializes everything aiwf ships into `.claude/`: verb skills (`aiwf-*`), ritual skills (`aiwfx-*`), engineering skills (`wf-*`), role agents (planner/builder/reviewer/deployer), and entity templates — all gitignored, marker-managed, byte-refreshed on `aiwf update`. Rituals are embedded in the binary from a pinned snapshot (ADR-0014), so there is no separate install step and the ritual version always equals the binary version.
 
-Verify with `aiwf doctor`: the `rituals:` line confirms the artifacts are materialized (it points you at `aiwf update` if any are missing). aiwf does **not** edit your `.claude/settings.json` without **explicit per-invocation consent**. The narrow exception is the aiwf-aware statusline opt-in (`aiwf init/update --statusline`): there, settings edits are gated by an interactive `[y/N]` confirm on a TTY or the explicit `--wire-settings` flag on the command. See [ADR-0015](docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md) for the ratified decision.
+Verify with `aiwf doctor` (the `rituals:` line confirms materialization). aiwf does **not** edit your `.claude/settings.json` without **explicit per-invocation consent**. The narrow exception is the statusline opt-in (`aiwf init/update --statusline`): settings edits are gated by an interactive `[y/N]` confirm on a TTY or the explicit `--wire-settings` flag. See [ADR-0015](docs/adr/ADR-0015-settings-json-edits-require-explicit-per-invocation-consent.md).
 
 ### Devcontainer
 
-If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), no plugin install is needed inside the container either — `aiwf init` / `aiwf update` materializes the rituals into the container's `.claude/` exactly as on the host. The mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json).
+If you use the devcontainer (see [`.devcontainer/README.md`](.devcontainer/README.md)), no separate install is needed inside the container either — `aiwf init` / `aiwf update` materializes the rituals into the container's `.claude/` exactly as on the host. Mechanics live in [`.devcontainer/initialize.sh`](.devcontainer/initialize.sh) and [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json).
 
 ---
 
 ## Working in this repo
 
-The historical sessions and iterations are archived at [`docs/pocv3/archive/poc-plan-pre-migration.md`](docs/pocv3/archive/poc-plan-pre-migration.md). Forward work tracks via epic + milestone entities under `work/`; allocate via `aiwf add epic` / `aiwf add milestone` and run `aiwf status` to see in-flight state.
+**Trunk-based development on `main` for maintainers.** Commit directly to trunk; no PR ceremony. Validation is mechanized: `aiwf check` runs pre-commit (shape-only) and pre-push (full), and CI runs the full matrix. Outside contributors use GitHub PRs (see [`CONTRIBUTING.md`](CONTRIBUTING.md)). Conventional Commits subjects are mandatory both paths. When in doubt, the smaller change is the right change.
 
-**Trunk-based development on `main` for maintainers.** Commit directly to trunk; no PR ceremony, no review queue. Validation is mechanized: `aiwf check` runs pre-commit (shape-only) and pre-push (full), and CI runs the full lint/test/build matrix. Outside contributors propose changes through GitHub PRs — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Conventional Commits subjects are mandatory for both paths (`feat(aiwf): ...`, `chore(aiwf): ...`, `docs: ...`).
-
-When in doubt: the smaller change is the right change.
-
-### Derived artifacts — regenerate, don't hand-edit
-
-Some files in the tree are **generated from the planning state**, not authored. A hand-edit survives only until the next regeneration clobbers it. Change the source (the entities under `work/`, or the generator), then regenerate:
-
-- **`ROADMAP.md`** — committed, regenerated by `aiwf render roadmap`. This is the trap: it *is* tracked, so it reads like a hand-maintained doc. It isn't — re-render after changing epics/milestones rather than editing the table by hand.
-- **`STATUS.md`** — gitignored, regenerated by the post-commit hook (`status_md.auto_update`, G-0112). Never hand-edited.
-- **`site/`** — gitignored, the `aiwf render --format=html` output directory.
-
-A related but distinct class is the **materialized framework artifacts** under `.claude/` (verb/ritual skills, the `aiwf-guidance.md` fragment, git hooks) — gitignored, regenerated by `aiwf init` / `aiwf update`, covered by commitment #5 above.
-
-**Not derived:** the embedded ritual snapshot under `internal/skills/embedded-rituals/` looks generated but is the **authoring source of truth** (§"Ritual content authoring" below) — you *do* hand-edit it.
+**Derived artifacts — regenerate, don't hand-edit.** Change the source, then regenerate:
+- **`ROADMAP.md`** — committed, regenerated by `aiwf render roadmap` (the trap: it's tracked but not hand-maintained).
+- **`STATUS.md`** — gitignored, regenerated by the post-commit hook (`status_md.auto_update`).
+- **`site/`** — gitignored, the `aiwf render --format=html` output.
+- Materialized `.claude/` artifacts (skills, `aiwf-guidance.md`, hooks) — gitignored, regenerated by `aiwf init`/`update`.
+- **Not derived:** the embedded ritual snapshot under `internal/skills/embedded-rituals/` is the *authoring source of truth* — you hand-edit it (see §"Ritual content authoring").
 
 ---
 
 ## AC promotion requires mechanical evidence
 
-Before `aiwf promote M-NNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read the file and it looks right"* is not evidence; it makes the AC's correctness depend on the reviewer's recall, which is exactly the dependency *"framework correctness must not depend on the LLM's behavior"* forbids.
-
-This applies **even to milestones with `tdd: none`**. The `tdd:` policy controls whether the kernel's `acs-tdd-audit` finding fires; it does not waive the test-discipline obligation. For doc-shaped ACs (ADR content, skill body content), the test is typically a structural assertion on a named markdown section — per Go conventions §"Substring assertions are not structural assertions" below, scope the assertion to the section, don't grep flat over the file.
-
-The chokepoint is the AC-promote command. Discipline is the chokepoint until a kernel finding-rule lands that polices test-existence per AC.
+Before `aiwf promote M-NNNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read it and it looks right"* is not evidence. This applies **even to `tdd: none` milestones**: the `tdd:` policy only controls whether `acs-tdd-audit` fires; it never waives the test obligation. For doc-shaped ACs, the test is a structural assertion scoped to a named markdown section (see §"Substring assertions are not structural assertions"). The chokepoint is the AC-promote command.
 
 ---
 
 ## Subagent worktree isolation
 
-When dispatching a subagent that must work in an isolated git worktree, **the parent session bootstraps the worktree before invoking `Agent`** — never relies on the `isolation: "worktree"` kwarg as the load-bearing mechanism. The kwarg has been observed to silently drop, leaving the subagent's work in the live tree with no detection (aiwf gap [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)).
+When dispatching a subagent that must work in an isolated worktree, **the parent bootstraps the worktree before invoking `Agent`** — never rely on the `isolation: "worktree"` kwarg (it has been observed to silently drop, leaving work in the live tree undetected; [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)):
 
-The pattern:
+1. Parent runs `git worktree add <path> -b <branch> <base>` (sibling path for session work; `.claude/worktrees/<name>` for transient agent worktrees).
+2. Parent verifies via `git worktree list`.
+3. Parent invokes `Agent` *without* the `isolation` kwarg; the prompt names the worktree path so the subagent uses absolute paths / `git -C <path>`.
+4. On return, parent verifies the subagent's commits live on the worktree branch.
 
-1. **Parent runs `git worktree add <path> -b <branch> <base>`** in its own checkout. Sibling-path convention for session-scope work (e.g. `/Users/.../aiwf-<topic>`); `.claude/worktrees/<name>` for transient agent worktrees.
-2. **Parent verifies via `git worktree list`** that the expected path appears.
-3. **Parent invokes `Agent` *without* the `isolation: "worktree"` kwarg.** The prompt names the worktree path explicitly so the subagent operates against it via absolute paths or `git -C <path>` for git ops.
-4. **On return, parent verifies** the subagent's commits live on the worktree branch and the diff is rooted in that path. Mismatch indicates the agent escaped its scope.
-
-The chokepoint is [`.claude/hooks/validate-agent-isolation.sh`](.claude/hooks/validate-agent-isolation.sh), registered as a `PreToolUse` hook on the `Agent` tool in [`.claude/settings.json`](.claude/settings.json). Any `Agent` invocation that passes `isolation: "worktree"` is denied with a message pointing at the precondition pattern. The hook script's contract is pinned by `TestAgentIsolationHook_*` under `internal/policies/`.
-
-This is the session-layer guard (tier 3, partial-closes G-0099). The full kernel-side `isolation-escape` finding — which catches the post-hoc *"commits landed in the wrong place"* failure mode regardless of how the dispatch was set up — is tracked under E-0019 and remains open.
+The chokepoint is [`.claude/hooks/validate-agent-isolation.sh`](.claude/hooks/validate-agent-isolation.sh), a `PreToolUse` hook that denies any `Agent` call passing `isolation: "worktree"`. Contract pinned by `TestAgentIsolationHook_*`.
 
 ---
 
 ## Worktree binary discipline
 
-When you work in a git worktree on a branch with uncommitted or unmerged code changes that affect `aiwf`'s own behavior — kernel-rule milestones, check additions, verb-gate changes, FSM extensions — the `aiwf` binary on PATH (typically `/go/bin/aiwf` from a prior `go install`) was built from some earlier state. Invoking `aiwf check`, `aiwf doctor`, or any other verb against the worktree using that binary produces results computed from stale code: false positives, false negatives, or both, and the output looks authoritative either way.
-
-The discipline: when diagnosing `aiwf` behavior against your current worktree source, **build a worktree-scoped binary explicitly and invoke it by path**. Do not rely on PATH. Use `make diag-aiwf` — it builds `./bin/aiwf-diag` from the current worktree source and prints its absolute path:
-
-```bash
-$ make diag-aiwf
-Built: /workspaces/aiwf/bin/aiwf-diag
-Invoke as: /workspaces/aiwf/bin/aiwf-diag <verb> [args...]
-```
-
-Then invoke the printed path explicitly throughout the session (`/workspaces/aiwf/bin/aiwf-diag check`, etc.). Rebuild after any commit that touches packages the diagnosis depends on (typically `internal/check/`, `internal/entity/`, `internal/cli/`, or `internal/verb/`) by re-running `make diag-aiwf`.
-
-For AI assistant sessions running in `$CLAUDE_JOB_DIR`, the session's job dir is an equally good home for the diag binary if the per-session sandbox is preferred: `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf`, then invoke `"$CLAUDE_JOB_DIR/aiwf"` explicitly.
-
-This is operator discipline — the `make diag-aiwf` target is the recommended convention but nothing mechanically blocks a stale-PATH `aiwf` call in a worktree. The bug pattern is fully general: worktree branch A has code X; PATH `aiwf` was built from code Y at some prior time; the operator runs `aiwf check` thinking they're testing X and gets results computed against Y. The mismatch is silent. The chokepoint is the named target, not a hook — operators have to reach for it deliberately when working against uncommitted kernel source.
-
-History: G-0147 introduced the `make diag-aiwf` target as the recommended chokepoint.
+When diagnosing `aiwf`'s own behavior against a worktree with uncommitted/unmerged code changes, the `aiwf` on PATH was built from earlier state — `aiwf check`/`doctor` then compute results from stale code, silently. **Build a worktree-scoped binary and invoke it by path**, don't rely on PATH: run `make diag-aiwf` (builds `./bin/aiwf-diag` from current source, prints its absolute path), then invoke that path throughout the session. Rebuild after any commit touching the packages under diagnosis (typically `internal/check`, `internal/entity`, `internal/cli`, `internal/verb`). For AI sessions, `go build -o "$CLAUDE_JOB_DIR/aiwf" ./cmd/aiwf` and invoke that path. Operator discipline — nothing mechanically blocks a stale-PATH call.
 
 ---
 
 ## Ritual content authoring
 
-The rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are **authored directly** at `internal/skills/embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md`, embedded via `go:embed`, and materialized into the consumer's `.claude/` by `aiwf init` / `aiwf update` (ADR-0014, E-0038). A ritual edit is one commit in this repo — no cross-repo coordination.
+Rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are **authored directly** at `internal/skills/embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md`, embedded via `go:embed`, and materialized into consumers' `.claude/` by `aiwf init` / `aiwf update` (ADR-0014). A ritual edit is one commit here — no cross-repo coordination. The upstream `23min/ai-workflow-rituals` repo is archived (ADR-0016); the embedded snapshot IS the single source of truth. When a milestone's deliverable is ritual content, the authoring location is the embedded snapshot itself, and AC tests under `internal/policies/` assert against the embedded bytes via path constants.
 
-The upstream repo [`23min/ai-workflow-rituals`](https://github.com/23min/ai-workflow-rituals) is **archived** (read-only). It was the authoring channel before ADR-0016 ratified the retirement; the git history there is preserved for archaeology. The embedded snapshot at `internal/skills/embedded-rituals/` IS the single source of truth (ADR-0016).
-
-When a milestone's deliverable is ritual `SKILL.md` content, the **authoring location is the embedded snapshot itself**; AC tests under `internal/policies/` assert content claims against the embedded bytes via the path constants (`aiwfxWhiteboardFixturePath`, etc. — each points at the embedded snapshot path per G-0182).
-
-**Every embedded-rituals `SKILL.md` edit must land alongside a referencing structural test under `internal/policies/`.** This is no longer operator vigilance: the `skill-edit-structural-test-backstop` policy (`internal/policies/skill_edit_structural_test_backstop.go`, G-0220 / M-0196) makes it mechanical — a commit that modifies a `SKILL.md` under `internal/skills/embedded-rituals/**` whose path no `internal/policies/*_test.go` references fails the CI coverage-gate step. The gate is diff-scoped (it reads the same base ref as the branch-coverage audit) and CI-tier, not an `aiwf check` finding, because the property it polices is an aiwf-repo development invariant — meaningless in a consumer tree where rituals are materialized rather than authored. v1 granularity is file-existence + skill-reference: the test must reference the edited skill's path. It catches the drive-by-edit failure mode (a `SKILL.md` shipped with *no* structural test), but not a stale test that references the path without asserting the changed section — that residual is a deferred follow-up.
-
-> **Retired (G-0193 / ADR-0016):** `rituals.lock`, `scripts/sync-rituals.sh`, the `sync-rituals` Make target, and `TestRituals_VendoredMatchesUpstream` were removed when the upstream authoring channel was retired. They policed a drift class that no longer exists (there is no upstream to drift from). The earlier E-0038 / M-0152 retirement of the marketplace-cache drift tests (`Test*_DriftAgainstCache` / `*_CacheComparison`) was the first step on the same simplification arc.
+**Every embedded-rituals `SKILL.md` edit must land alongside a referencing structural test under `internal/policies/`.** This is mechanical, not vigilance: the `skill-edit-structural-test-backstop` policy fails the CI coverage-gate step when a commit modifies a `SKILL.md` under `internal/skills/embedded-rituals/**` whose path no `internal/policies/*_test.go` references. It's diff-scoped and CI-tier (the property is an aiwf-repo invariant, meaningless in a consumer tree). v1 granularity is file-existence + skill-reference.
 
 ---
 
 ## Consumer-operating guidance vs repo-development guidance
 
-Two audiences read guidance about aiwf, and each has a different shippable home. The dividing line is **audience, not importance** — not "how load-bearing is this rule" but "who needs it":
+Two audiences read guidance, each with a different shippable home. The dividing line is **audience, not importance**:
 
-- **"How to OPERATE aiwf in any repo"** — gate-per-mutation, reallocate-not-`git mv`, AC-mechanical-evidence, one-decision-at-a-time, never-suggest-pause, the `body-prose-id` discipline, the cross-branch id-allocation workflow. This is consumer-facing and **ships**: the high-leverage, always-on subset lives in the embedded guidance source (`internal/skills/embedded-guidance/aiwf-guidance.md`, materialized into a consumer's `.claude/aiwf-guidance.md` and `@`-imported into their `CLAUDE.md`); lower-frequency detail routes to the on-demand verb/ritual skills. Because this repo dogfoods and imports the same materialized guidance, an operating rule placed in the embedded source is followed here *and* shipped — one source, no fork. Placed directly in this `CLAUDE.md` instead, it forks: aiwf's own repo has it, every consumer is blind to it.
-- **"How to DEVELOP aiwf itself"** — the Go conventions, the test-parallelism discipline, the `make ci` cadence, the release process, the chokepoint table, the ritual-authoring locations. This stays in **this** `CLAUDE.md` and correctly does not ship.
+- **"How to OPERATE aiwf in any repo"** (gate-per-mutation, reallocate-not-`git mv`, AC-mechanical-evidence, one-decision-at-a-time, never-pause, `body-prose-id`, cross-branch id allocation) is consumer-facing and **ships**: the always-on subset lives in the embedded guidance source (`internal/skills/embedded-guidance/aiwf-guidance.md`, materialized into a consumer's `.claude/aiwf-guidance.md` and `@`-imported); lower-frequency detail routes to on-demand skills. Because this repo dogfoods the same materialized guidance, an operating rule placed in the embedded source is followed here *and* shipped — one source, no fork. Placed in this `CLAUDE.md` instead, it forks.
+- **"How to DEVELOP aiwf itself"** (Go conventions, test-parallelism discipline, `make ci` cadence, release process, chokepoint pointers, ritual-authoring locations) stays in **this** `CLAUDE.md` and does not ship.
 
-**Hybrid sections are split, not moved wholesale.** A section carrying both audiences — the *Id-collision resolution at merge time* section below is the canonical example (the general allocation/avoidance workflow ships; the merge-time `git mv` resolution mechanics and the E-0033 history stay) — keeps its repo-development specialization here behind a pointer at the shipped home.
-
-The mechanical backstop is `PolicyM0211GuidanceOperatingAnchors` (`internal/policies/`): it asserts a curated set of consumer-operating anchors is present in the embedded guidance source, so an already-shipped operating rule cannot silently drift *out* of the fragment. It deliberately cannot classify a *brand-new* rule's audience — that judgment is what the "audience, not importance" test above is for. Until a new operating rule is added to the guidance and to the curated set, discipline plus the wrap-ritual review is the interim catch for a newly-authored rule landing in the wrong home (G-0313).
+**Hybrid sections are split, not moved wholesale** — the *Id-collision resolution* section below is the canonical example (the allocation/avoidance workflow ships; the merge-time `git mv` mechanics stay here behind a pointer). The mechanical backstop is `PolicyM0211GuidanceOperatingAnchors` (`internal/policies/`): it asserts a curated set of operating anchors stays present in the embedded guidance source so a shipped operating rule can't drift out. It can't classify a *brand-new* rule's audience — that judgment is the "audience, not importance" test above.
 
 ---
 
 ## Id-collision resolution at merge time
 
-When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks for the same reason) after a merge, resolve via **`aiwf reallocate <id>`**, not via `git mv` + a manual frontmatter edit.
+When `aiwf check` reports `ids-unique/trunk-collision` (or the pre-push hook blocks) after a merge, resolve via **`aiwf reallocate <id>`**, not `git mv` + a manual frontmatter edit. The allocator picks the next free id by scanning the working tree, all local/remote-tracking refs, and the trunk ref (that scan feeds *allocation only*, never the `ids-unique` check, which compares working tree against trunk; `allocate.trunk` configures the ref).
 
-The allocator picks the next free id by scanning the working tree, every local branch (`refs/heads/*`), every remote-tracking ref (`refs/remotes/*`), and the configured trunk ref. That scan feeds **allocation only** — never the `ids-unique` check, which compares the working tree against trunk.
+The general allocation & collision-*avoidance* workflow (allocate on your working branch; `aiwf add --fetch` and push promptly in a multi-clone setup; the unpushed-peer and unmerged-branch-prose caveats) is consumer-operating guidance and now **ships** via the embedded guidance source and the `aiwf-add` skill — no longer duplicated here. What follows is the merge-time collision-*resolution* specialization.
 
-**The general allocation & collision-*avoidance* operating workflow** — allocate on your working branch; `aiwf add --fetch` and push promptly in a multi-clone setup; the unpushed-peer-is-invisible and unmerged-branch-prose caveats — is consumer-operating guidance and now **ships** via the embedded guidance source (tight form, always-on) and the `aiwf-add` skill (full mechanics, on-demand). It is no longer duplicated here (per the *Consumer-operating guidance vs repo-development guidance* authoring rule above). What follows is the merge-time collision-*resolution* specialization for this repo's trunk-based flow.
-
-At merge time the move that compiles is:
-
-```sh
-git mv work/gaps/G-NNNN-old-slug.md work/gaps/G-MMMM-old-slug.md
-# + frontmatter edit: id: G-MMMM, prior_ids: [G-NNNN]
-```
-
-The kernel's `gitops.RenamesFromRef` (used by the trunk-collision check) does `git diff -M` and picks the pair up, so the immediate finding clears. **It is not the canonical path.** It leaves the renumber invisible to anything that reads kernel-trailer history (`aiwf history`, the audit catalog, any future check rule keyed on `aiwf-verb: reallocate`); cross-references in other entities aren't auto-rewritten; the commit has no `aiwf-verb: reallocate` or `aiwf-prior-entity:` trailer. If you missed a reference in another file, no test catches it.
-
-The discipline: **collision detected → `aiwf reallocate <id>`, not `git mv`.** The verb:
-
-- Renames the file and rewrites the frontmatter atomically.
-- Walks the tree and rewrites every cross-reference to the old id (entity bodies, frontmatter `parent:`/`depends_on:`/`addressed_by:`, etc.) in the same commit.
-- Stamps the commit with `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers so `aiwf history G-MMMM` and any kernel rule keyed on the renumber event sees it.
-
-This applies whether the collision surfaces *during* the merge (resolve it now, before the merge commit lands) or *after* the merge pushed cleanly (trunk caught up later via someone else's push and your next push now sees the collision). In both cases the verb path is the same.
-
-Tracked as operator discipline only: no mechanical chokepoint blocks a `git mv` outside the verb path. If the pattern keeps recurring, a kernel-side check that flags "id-renames missing reallocate trailers" (or "trunk-collision findings cleared without a reallocate commit since merge-base") would be the chokepoint to add — file a gap if you see this happen more than once.
-
-History: surfaced after the main → epic merge in E-0033 where two G-0148 entities had been independently allocated on parallel branches; the inline-`git mv` resolution cleared the immediate `git diff -M` pair but left a second real collision that only surfaced on the next epic push, *after* trunk caught up via the main push of one side. Resolution: a follow-up `aiwf reallocate G-0148 → G-0150` on the epic branch.
+The `git mv` move that compiles (`git mv work/gaps/G-NNNN-slug.md work/gaps/G-MMMM-slug.md` + `id`/`prior_ids` frontmatter edit) clears the immediate `git diff -M` finding but is **not the canonical path**: it leaves the renumber invisible to `aiwf history`, doesn't rewrite cross-references, and carries no `aiwf-verb: reallocate` trailer — if you miss a reference elsewhere, no test catches it. So: **collision → `aiwf reallocate <id>`.** The verb renames + rewrites frontmatter atomically, walks the tree rewriting every cross-reference to the old id, and stamps `aiwf-verb: reallocate` + `aiwf-prior-entity:` trailers. This applies whether the collision surfaces during or after the merge. Operator discipline only — no mechanical chokepoint blocks a `git mv`; file a gap if the pattern recurs. (Surfaced in E-0033 after a main→epic merge produced two independently-allocated ids.)
 
 ---
 
 ## Go conventions
 
-These rules apply to all Go code in the module. The repo-wide engineering principles above (KISS, YAGNI, no half-finished implementations, errors-as-findings) cascade in on top of these.
+Repo-wide principles (KISS, YAGNI, no half-finished implementations, errors-as-findings) cascade in on top of these.
 
 ### Formatting and linting
 
-- **`gofumpt`** is the formatter. Run via `golangci-lint`, no separate install. Anything `gofumpt`-clean is also `gofmt`/`goimports`-clean.
-- **`golangci-lint`** is the only linter. Enabled set: `errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gocritic`, `revive`, `gosec`, `bodyclose`, `unconvert`, `misspell`, `gofumpt`, `goimports`. Config in `.golangci.yml` at repo root.
-- CI fails on any lint finding. No `//nolint` directives without a one-line rationale comment.
+- **`gofumpt`** formats (via `golangci-lint`, no separate install); gofumpt-clean implies gofmt/goimports-clean.
+- **`golangci-lint`** is the only linter. Enabled: `errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gocritic`, `revive`, `gosec`, `bodyclose`, `unconvert`, `misspell`, `gofumpt`, `goimports`. CI fails on any finding. No `//nolint` without a one-line rationale.
 
 ### Testing
 
-- **`testing` (stdlib) + `github.com/google/go-cmp`** for comparison-heavy assertions. No testify, no assertion DSLs.
-- **Table-driven** when ≥2 cases exercise the same function. Single-case tests stay flat.
-- **Subtests via `t.Run(name, ...)`** for each table case.
-- **Golden files** under `testdata/` for snapshot assertions. Synthetic content only — fixtures must read as obviously fictional, not as anonymized copies of real projects.
+- **stdlib `testing` + `github.com/google/go-cmp`.** No testify, no assertion DSLs.
+- **Table-driven** when ≥2 cases share a function (subtests via `t.Run`); single-case tests stay flat.
+- **Golden files** under `testdata/`, synthetic (obviously-fictional) content only.
 - **Race detector on every CI run:** `go test -race ./...`.
 
 #### Running tests in the devcontainer (primary)
 
-Inside the E-0035 devcontainer (Linux), there is no signing requirement and
-`go test` works unwrapped. Use any of:
-
-- `make test`, `make test-race`, `make coverage`
-- bare `go test ./pkg/...`
-- focused `go test -run TestX -count=1 ./pkg/...`
-
-See [`.devcontainer/README.md`](.devcontainer/README.md) for container setup.
+Inside the devcontainer (Linux) there is no signing requirement and `go test` runs unwrapped. Use `make test` / `make test-race` / `make coverage`, bare `go test ./pkg/...`, or focused `go test -run TestX -count=1 ./pkg/...`.
 
 #### Running tests on macOS host (fallback)
 
-If you must run tests on the macOS host instead of the container, the
-wrapper discipline below applies. `go test` on macOS must route the
-per-package test binary through
-[`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec`. The wrapper
-ad-hoc signs the binary on Darwin before exec; no-op on Linux/CI. Skipping it
-lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new
-process launch on the host until launchd's throttle expires. See G-0128 /
-G-0133 for the diagnostic record.
+On the macOS host, `go test` must route the per-package test binary through [`scripts/sign-and-run.sh`](scripts/sign-and-run.sh) via `-exec` (it ad-hoc-signs on Darwin; no-op on Linux/CI). Skipping it lands you in a Sonoma 14.8.x syspolicyd crash loop that stalls every new process launch (see G-0128 / G-0133). **Do:** `make test`, `make test-race`, `make coverage` (CI carries `-exec=./scripts/sign-and-run.sh` equivalently). **Don't:** bare `go test ./...` (bypasses the wrap; `-race` also hits the G-0127 fork/exec deadlock). Focused runs outside `make`: `export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"` then bare `go test`. **Defaults, not a chokepoint** — nothing catches a bare `go test` on the host. (Installing the production binary on Darwin needs the same signing: `make install` and `aiwf upgrade` sign automatically; bare `go install …@ver` does not — sign manually with `codesign -s - -f "$(go env GOPATH)/bin/aiwf"`.)
 
-**Do** — `make test`, `make test-race`, `make coverage`. CI (`go.yml`,
-`flake-hunt.yml`, `fuzz.yml`) carries `-exec=./scripts/sign-and-run.sh`
-equivalently.
+### Test design rules
 
-**Don't** — bare `go test ./...` (any scope). Bypasses the wrap. `-race`
-additionally hits the G-0127 fork/exec deadlock zone.
-
-**Focused runs outside `make`:** export `GOFLAGS` for the shell session and
-bare `go test` rides the wrap:
-
-    export GOFLAGS="-exec=$(pwd)/scripts/sign-and-run.sh"
-    go test -run TestX -count=1 ./pkg/...
-
-**Defaults, not a chokepoint.** Nothing catches a bare `go test` on the
-host. Trust boundary is the documented commands above.
-
-#### Installing the aiwf binary on macOS host
-
-The production `aiwf` binary needs the same ad-hoc signing as test
-binaries — same Sonoma 14.8.x syspolicyd crash class, parallel layer
-(G-0134). Three install paths exist, with different behaviors on Darwin:
-
-- **`make install`** — ad-hoc-signs on Darwin automatically. The
-  canonical local-install path. No-op on Linux.
-
-- **`aiwf upgrade`** — re-execs `go install`, then ad-hoc-signs the
-  resulting binary on Darwin before re-execing into `aiwf update`.
-  No-op on Linux. Warns and continues if codesign hiccups (the binary
-  still runs unsigned, just risks the syspolicyd crash on stale state).
-
-- **`go install github.com/23min/aiwf/cmd/aiwf@<version>`** (bare) —
-  **does not** sign on Darwin. The published Go module has no
-  install-time hook (the structural fix is parked, same stance as
-  G-0133's test-binary side). Operators using this path on Darwin
-  must manually sign after install:
-
-      codesign -s - -f "$(go env GOPATH)/bin/aiwf"
-
-  The CLAUDE.md hint plus `make install` / `aiwf upgrade` covering
-  the two common paths is the deliberate trade-off.
-
-#### Test the seam, not just the layer
-
-When a new helper, package, or shared function is wired into an existing caller (verb, dispatcher, hook), the test set must cover **both** the helper's behavior *and* the seam where it integrates. A unit test of the helper alone is necessary but not sufficient — it doesn't catch the case where the caller has a parallel source of truth and never adopts the helper.
-
-Concrete shape: for a new verb-level helper, write at least one test that drives the verb's dispatcher (`run([]string{"<verb>", ...})`) and asserts the output reflects the helper's contract. For a check-rule helper, write a fixture-tree test that exercises the rule through `check.Run`. Test names should make the seam explicit (`TestRunVersion_UsesBuildInfoFallback`, not just `TestResolvedVersion`).
-
-When a verb's output depends on values that only exist in a real binary — `runtime/debug.ReadBuildInfo`, `-ldflags`-stamped globals, `os.Args[0]`, `os.Executable()` — a unit test running under `go test` cannot exercise the production path. Add a binary-level integration test that builds the cmd to a tempfile and runs it as a subprocess: `go build -o $TMP/aiwf ./cmd/aiwf && exec.Command($TMP/aiwf, "version")`. The cost is a few seconds per CI run; the alternative is the bug shipping.
-
-Why this rule exists: v0.1.0 shipped with `aiwf version` returning `"dev"` even though the new `version.Current()` helper returned the correct buildinfo value. The unit test of `version.Current()` was clean. The verb still printed an unrelated package-global. Two parallel sources of truth coexisted; tests covered only the new one.
-
-#### Contract tests for upstream-cached systems
-
-For any external system with caching semantics — HTTP proxies (the Go module proxy is the canonical example), DNS, CDN-fronted APIs — tests must pin "did we ask the right question," not just "did we parse the answer correctly."
-
-Concrete shape: a real-system integration test (gated under `-short` so CI without network can skip) that derives the expected value through an **independent** code path, not from the same endpoint the implementation uses. For the module proxy this means: if the implementation resolves "latest" via `/@v/list`, the test independently fetches `/@v/list`, computes the expected highest semver, and asserts the implementation returns the same value. A test that just asserts "the implementation returned a non-empty version" is parsing-coverage, not resolution-correctness.
-
-When you discover the right endpoint by reading the upstream tool's source (e.g., the Go toolchain's resolver), document that decision in a comment at the call site so future readers don't re-litigate the choice.
-
-Why this rule exists: v0.1.0's `version.Latest()` queried the proxy's `/@latest` endpoint, which is cached separately from `/@v/list` and can serve stale pre-tag pseudo-versions for hours after a tag lands. The unit tests served whatever JSON the implementation expected and never asked whether the chosen endpoint was the right one. The Go toolchain uses `/@v/list`-first for exactly this reason — documented behavior we re-learned by failing in production.
-
-#### Spec-sourced inputs for upstream-defined input spaces
-
-When test cases enumerate an upstream-defined input grammar — semver shapes, RFC fields, error-code families, on-disk format variants — the test must cite the spec and cover the full enumerated space, not "the example I had in mind."
-
-Concrete shape: prefix the test data with a comment pointing at the canonical spec (e.g., `// per https://go.dev/ref/mod#pseudo-versions`), then list every case the spec defines. If you cannot cite a single source for the input space, the space isn't pinned and the tests are example-driven; either find the spec or document the omission explicitly as a known limitation.
-
-Why this rule exists: v0.1.0's pseudo-version regex initially only matched the basic `v0.0.0-DATE-SHA` form. The Go module spec defines three shapes (basic, post-tag, pre-release-base); VCS stamping adds the `+dirty` suffix. Smoke tests caught the gaps mid-implementation. A spec-sourced test pass at design time would have exercised all four cases on the first commit.
-
-#### Substring assertions are not structural assertions
-
-A test that greps for a literal in rendered output (HTML, Markdown, JSON) proves the literal exists *somewhere*. It does not prove the literal is in the right *place*. The right place is what the user (or the next renderer) actually consumes; the literal floating in the wrong section is still a bug that ships.
-
-Concrete shape:
-- For HTML output, parse the document with `golang.org/x/net/html` (or an equivalent) and assert presence inside the named `<section>`, attribute, or descendant chain. A standalone substring match is acceptable only when the value is unique and the location is irrelevant (e.g., a stable token in a JSON envelope).
-- For markdown output, walk the heading hierarchy and assert the prose appears under the expected section, not just on the page.
-- For multi-tab / multi-section pages, every substring assertion must name *which* section it expects the value in. "AC anchor exists" is not enough; "AC anchor exists inside `data-tab=manifest`" is.
-
-If the literal under test is short or generic enough to plausibly appear in unrelated places (e.g. an id="ac-1" attribute, the word "strict", a status name like "active"), assume it does and use a structural assertion.
-
-Why this rule exists: I3 step 5 shipped milestone-page tests that asserted `id="tab-overview"`, `href="#ac-1"`, `policy-strict">strict` etc. as plain substring matches. Two of those would have passed even with the AC rendered in the wrong tab, the policy badge swapped, or the anchor wired backwards. The user caught this in audit; the tests were structurally weak from the start.
-
-#### Render output must be human-verified before the iteration closes
-
-Test suites pin code correctness — they do not pin *feature* correctness. For UI / rendered output (HTML pages, generated docs, status outputs that the user reads), running the binary against a real fixture and visually inspecting the result is part of "done," not an optional follow-up. A green test suite says "no regressions in what we asserted"; only a manual look says "the page actually communicates what it should."
-
-Concrete shape:
-- Before claiming a render-iteration step closed, render against a non-trivial real fixture (the kernel repo's own planning tree is the canonical one), open the result, exercise the interactive surface (every tab, every link, every conditional content path), and only then mark the step done.
-- If you cannot run the binary in your environment (sandbox, CI-only), say so explicitly to the user instead of declaring success — the tests do not stand in for that pass.
-- An end-to-end golden snapshot of one full page (HTML byte-equal to a known-good fixture) is a good auxiliary safety net, but it doesn't replace the human look-through. Snapshots only catch *changes*; they don't catch "this was wrong on day one."
-
-Why this rule exists: I3 step 5 shipped six milestone tabs with placeholder Build/Tests/Provenance content paths that no test exercised. The rendered output was never opened in a browser. A green `go test ./...` was treated as completion; the user's audit caught the gap.
-
-#### Test untested code paths before declaring code paths "done"
-
-When a function has a branch (a `switch`, an `if`, a filter), every reachable branch must have a test that traverses it — or the branch must be marked `//coverage:ignore` with a one-line rationale. "Tests pass" with code paths not exercised is "tests pass for the paths I happened to think about."
-
-Concrete shape:
-- Before committing a feature, run `go test -coverprofile=cov.out ./<pkg>/...` and skim the uncovered lines. Each uncovered line is either: (a) a missing test (write it), (b) defensive code that can't fire (delete it), or (c) genuinely unreachable in production (mark it `//coverage:ignore <reason>`).
-- For typed view-builders that filter or branch on input (e.g. "is this a phase event?", "does this commit have an authorize trailer?"), the test set must include at least one input that takes each branch. A fixture with no scopes, no phase events, no force trailers exercises only the empty-state branch — that's not coverage of the populated path.
-- When the package gains a new typed input (a new trailer, a new field on a struct), audit the consumers' branches the same way: which call sites now have an unexercised arm? Write the missing test before the next commit.
-
-Why this rule exists: I3 step 5's `phaseEventsFromHistory`, `firstTestsTrailer`, `provenanceFor`, and `linkedEntitiesFor` were all wired in but never exercised by any test fixture that produced phase history, test trailers, scopes, or cross-kind references. The functions could have returned wrong shapes silently and nothing would have failed.
-
-#### Don't paper over a test failure — root-cause it
-
-When a test fails in a way that doesn't match its premise, the failure is information about the system, not about the test. Working around it (changing the test setup until it passes, adding manual git commits the production path doesn't make, sleeping until a race resolves) leaves the original signal unread. The test now passes for a reason other than what it was supposed to verify.
-
-Concrete shape:
-- If a test fails with a state error (lock contention, projection mismatch, "not found"), the first action is to dump the state at the point of failure (`t.Logf` the on-disk content, the trailer set, the lock holder) and read the actual cause. Only after you understand it should you decide whether the test or the production code needs to change.
-- A "manual git commit to keep things clean" inside a test is a yellow flag — the production verb is not making that commit and the user won't either. Either the verb should make it (production bug) or the test fixture should be set up so it isn't needed (test bug); not both.
-- "Workaround applied; investigation deferred" comments are owed an issue / gap entry; otherwise they accumulate as silent debt.
-
-Why this rule exists: I3 step 2A's `TestRun_AddACWithTestsFlag` originally hit a verb error after a hand-edit; I added a manual `git add -A && git commit` to make the test pass without diagnosing why the verb's projection ran in the wrong direction. The test now passes for a different reason than its assertion claims.
-
-#### Policy tests that read entity files must resolve via the loader
-
-When a test under `internal/policies/` (or any test that reads a live planning-tree entity) needs the file path of an epic, milestone, gap, decision, contract, or ADR, the path must come from the loader — `tree.Load(ctx, root)` + `Tree.ByID(id)` + `entity.Path`. **Never** hardcode a literal path like `filepath.Join(root, "work", "epics", "E-NNNN-...", "M-NNNN-....md")`.
-
-The reason is ADR-0004 (uniform archive convention): `aiwf archive --apply` moves terminal-status entities into a per-kind `archive/` subdirectory, and the loader resolves ids transparently across active and archive. A test that hardcodes the active-tree path appears to work right up until the parent entity reaches terminal status and the next sweep moves the file — at which point the test fails with a confusing file-not-found error inside a pre-commit policy hook, blocking the very `aiwf archive` commit that should have been routine.
-
-Concrete shape:
-
-```go
-tr, _, err := tree.Load(context.Background(), root)
-if err != nil { t.Fatalf("tree.Load: %v", err) }
-e := tr.ByID("M-0090")
-if e == nil { t.Fatal("M-0090 not found") }
-specPath := filepath.Join(root, e.Path)  // active or archive, transparent
-```
-
-The chokepoint is `PolicyNoHardcodedEntityPaths` in `internal/policies/`. It scans Go source under that package for `filepath.Join(...)` calls whose string-literal args match the entity-slug shape (`E-/M-/G-/D-/C-/ADR-` followed by digits and a dash). Any such call fails CI with a finding pointing at the offending line and citing the loader-based resolution above. The policy's scope is `internal/policies/*.go` — that's where this bug class lives in practice; if the pattern leaks into other packages, widen the scope in one commit rather than chasing it per-file.
-
-Why this rule exists: M-0090's first archive sweep aborted because `TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap` read the milestone spec via a hardcoded `filepath.Join` literal that the sweep invalidated. The test had passed every commit up to that point — it broke the instant the milestone's parent epic became archive-eligible. ADR-0004's whole point is that archive movement should be transparent; a test that opts out of the loader opts out of that guarantee.
+- **Test the seam, not just the layer.** When a helper is wired into a caller, cover the helper's behavior *and* the integration seam (drive `run([]string{"<verb>", …})` or `check.Run`). When output depends on values only a real binary has (`ReadBuildInfo`, ldflags globals, `os.Args[0]`), add a binary-level subprocess integration test.
+- **Contract tests for upstream-cached systems.** Pin "did we ask the right question," not just "did we parse the answer": derive the expected value through an *independent* code path (gated under `-short`).
+- **Spec-sourced inputs for upstream-defined input spaces.** Cite the spec in a comment and cover the full enumerated grammar, not "the example I had in mind."
+- **Substring assertions are not structural assertions.** A grep for a literal proves it exists *somewhere*, not in the right *place*. Parse HTML (`x/net/html`) / walk the heading hierarchy and assert presence inside the named section/attribute; for multi-section pages name *which* section. Use a structural assertion whenever the literal is short/generic.
+- **Render output must be human-verified before an iteration closes.** For rendered UI/docs, run the binary against a real fixture (the kernel's own planning tree), exercise every tab/link/conditional path, then mark done. If you can't run the binary, say so — tests don't stand in for the look.
+- **Test every reachable branch.** Each `if`/`switch`/filter arm needs a test that traverses it, or a `//coverage:ignore <reason>`. Skim uncovered lines before committing; each is a missing test, dead code to delete, or genuinely unreachable (annotate).
+- **Don't paper over a test failure — root-cause it.** A state error (lock contention, projection mismatch, not-found) is information about the system. Dump the state, read the cause. A "manual git commit to keep things clean" inside a test is a yellow flag — the production verb isn't making it.
+- **Policy tests that read entity files resolve via the loader** — `tree.Load(ctx, root)` + `Tree.ByID(id)` + `entity.Path`, never a hardcoded `filepath.Join(root, "work", …)` literal (archive sweeps move files; the loader resolves across active and archive). Chokepoint: `PolicyNoHardcodedEntityPaths`.
 
 ### Test discipline
 
-Test files in this module run **parallel-by-default**. After M-0091 + M-0092 the convention is established across `internal/*` and `cmd/aiwf/`; new test files in any module package follow it by default.
+Test files run **parallel-by-default**; new test files follow suit. The six load-bearing rules:
 
-The six load-bearing rules:
+- **`setup_test.go` per package** with a `func TestMain(m *testing.M)` that `os.Setenv`s the four GIT identity vars once (`GIT_AUTHOR_NAME`/`EMAIL`, `GIT_COMMITTER_NAME`/`EMAIL`) then `os.Exit(m.Run())`. `os.Setenv`, not `t.Setenv` (which panics under `t.Parallel`).
+- **`t.Parallel()` first-line** on every parallelizable test (nested inside independent table subtests too).
+- **Serial skip-list** in `setup_test.go`'s comment block, one rationale line per test that must stay serial (`t.Setenv`/`t.Chdir`, mutates a package var, shares stdout/stderr capture).
+- **`sync.Once` for expensive read-only shared fixtures** (cmd-binary build, live-repo `*Tree`), with a `// do not mutate` comment.
+- **`-race -parallel 8` cap** uniform across `Makefile` + workflows (race + git-subprocess fan-out flakes at default parallelism). Chokepoint: `internal/policies/race_parallel_cap.go`.
+- **`testsupport.HardenGitTestEnv()` in exec-bearing TestMains** (after identity seeding, before `m.Run()`): scrubs inherited git-locator env vars and disables auto-gc. Chokepoint: `internal/policies/git_test_env_harden.go`.
 
-- **`setup_test.go` per package.** Every test-bearing package has a `setup_test.go` (uniform filename — mechanical, AI-discoverable) containing a `TestMain(m *testing.M)`. The TestMain calls `os.Setenv` for the four GIT identity vars (`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL`) once at startup, then `os.Exit(m.Run())`. The shape:
-
-  ```go
-  package <pkg>
-
-  import (
-      "os"
-      "testing"
-  )
-
-  func TestMain(m *testing.M) {
-      os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
-      os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
-      os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
-      os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
-      os.Exit(m.Run())
-  }
-  ```
-
-  **`os.Setenv` not `t.Setenv`** because `t.Setenv` panics under `t.Parallel`. The identity values are immutable for the test binary's lifetime; once-setup is correct.
-
-- **`t.Parallel()` first-line on every parallelizable test.** Test functions that don't legitimately need serial execution call `t.Parallel()` as their first statement (after `t.Helper()` if present). Table-driven subtests inside `t.Run` get a nested `t.Parallel()` when each iteration is independent (separate `t.TempDir`, no shared state mutation).
-
-- **Serial skip-list in `setup_test.go`'s comment block.** Tests that legitimately must stay serial (calls `t.Setenv`/`t.Chdir`, mutates a package-level var, depends on shared `os.Stdout`/`os.Stderr` capture, saturates a shared subprocess limit) are documented with a one-line rationale per test. The comment is the audit trail — a reviewer reads it before adding a new parallel test that might interact with one of the listed ones. Canonical examples: `internal/verb/setup_test.go::TestApply_RollsBackOnCommitFailure` (deliberately clears GIT identity to provoke a commit failure); `cmd/aiwf/setup_test.go`'s integration_g37 file-level entry (dense subprocess fan-out).
-
-- **`sync.Once` for expensive shared fixtures.** Anything that costs more than a `t.TempDir()` per call and is read-only at test time goes behind a `sync.Once`. Canonical examples: the cmd-binary build (`cmd/aiwf/integration_test.go::aiwfBinary`) and the live-repo `*Tree` (`internal/policies/shared_tree_test.go::sharedRepoTree`). The helper carries a `// do not mutate` comment at its definition because the returned value is shared across goroutines.
-
-- **`-race -parallel 8` cap.** `Makefile`'s `test-race`, `.github/workflows/go.yml`'s race-coverage step, and `.github/workflows/flake-hunt.yml`'s race-detector sweep all carry `-parallel 8`. Rationale: race + heavy git-subprocess fan-out flakes on macOS at default `-parallel=GOMAXPROCS` (~50% of runs at GOMAXPROCS=20 in the G-0097 spike). CI Linux is less affected but the cap stays uniform across host shapes. Drift-prevention: `internal/policies/race_parallel_cap.go` (M-0091/AC-1) — drop the cap from one surface and the policy fires on that file at that line.
-
-- **`testsupport.HardenGitTestEnv()` in exec-bearing TestMains.** Every test-bearing package whose tests shell out to a subprocess (any `exec.Command` / `exec.CommandContext`) calls `testsupport.HardenGitTestEnv()` in its `TestMain`, after the GIT identity seeding and before `m.Run()`. The helper (a) scrubs the git locator env vars a parent git hook exports — `GIT_DIR`/`GIT_INDEX_FILE`/`GIT_OBJECT_DIRECTORY`/… — which otherwise steer fixture git commands into the parent repo's gitdir/index (G-0250), and (b) disables git auto-gc (`gc.auto=0`/`gc.autoDetach=false`, injected via `GIT_CONFIG_COUNT`) so a detached background `git gc` can't race fixture commits or `t.TempDir` cleanup (G-0251). Both failures surface as the same `invalid object / Error building trees` / `directory not empty` flake that "passes isolated, fails under full-suite/hook load." The call is harmless where git isn't used, but is required only for exec-bearing packages.
-
-The presence-of-`setup_test.go` chokepoint is `internal/policies/test_setup_presence.go` (M-0093/AC-2): an AST-level walk of every test-bearing package under `internal/` that fails CI if the package omits `setup_test.go` or its `setup_test.go` lacks a `func TestMain(m *testing.M)` declaration. **Scope is `internal/*`** — `cmd/aiwf/` has a more nuanced per-file audit shape (the captureStdout/Stderr/Run helpers force most callers serial; the per-file skip-list lives in `cmd/aiwf/setup_test.go`'s comment block, not a Go policy). If `cmd/aiwf/` should also be guarded, that's a future gap.
-
-The git-test-env-harden chokepoint is `internal/policies/git_test_env_harden.go` (G-0250/G-0251): it walks the same `internal/*` test-bearing packages and, for any whose `*_test.go` files contain an `exec.Command`/`exec.CommandContext` call, asserts the package's `TestMain` calls `testsupport.HardenGitTestEnv()`. It keys on exec usage rather than a literal `"git"` first argument because `internal/check`'s test fixtures shell git via `exec.Command(args[0], …)` (where `args[0]` is `"git"` passed by callers) — a literal-arg scan would miss it. No allowlist: every exec-bearing package hardens today, and the call is a no-op where unneeded. Accepted detection limits (no occurrence today): an aliased `os/exec` import evades the scan, and a package that shells git only through a cross-package helper (no `exec.Command` in its own `*_test.go`) isn't flagged — wire the call by hand there.
-
-Why this discipline: G-0097 measured ~4× wall-time headroom in `internal/verb` from parallel execution; M-0091's full rollout produced a 2.2× speedup at default parallelism across `internal/*` (53.6s → 24.5s); M-0092's cmd/aiwf rollout produced a 47% wall-time reduction on the cmd/* surface. Without the discipline + the chokepoint, future test files copy whichever shape was last touched and the parallelism rots package-by-package.
+Presence chokepoint: `internal/policies/test_setup_presence.go` (AST walk of `internal/*` test packages; fails CI if `setup_test.go`/`TestMain` is missing). Scope is `internal/*`; `cmd/aiwf/` uses a per-file skip-list in its own `setup_test.go`.
 
 ### Coverage
 
-- **High coverage on `internal/...` packages.** PoC target is 90%; the *total*-coverage check is advisory. The *diff-scoped* gate below is blocking — it polices coverage on the lines a change touches, not the whole tree.
-- **Exclusions** (intentionally small):
-  - `cmd/aiwf/main.go` — covered by integration tests against the binary, not unit tests.
-  - Generated code.
-  - Specific lines marked `//coverage:ignore <reason>`.
-- The PoC is small enough that 100% coverage on internal packages is realistic; aim for it but don't block on it.
+High coverage on `internal/...` (PoC target 90%; total-coverage check advisory). Exclusions: `cmd/aiwf/main.go` (integration-tested), generated code, `//coverage:ignore <reason>` lines.
 
-#### Diff-scoped coverage gate (G-0067)
-
-The `wf-tdd-cycle` skill calls branch coverage a HARD RULE, but a skill is advisory — under load the LLM drifts off it and nothing notices. The diff-scoped coverage gate makes that rule mechanical for aiwf's own Go code: **every statement on a line changed since the base ref must be exercised by a test or annotated `//coverage:ignore <reason>`.** A change that adds an untested branch fails CI, naming the `file:line`.
-
-- The engine is `internal/policies/branch_coverage_audit.go` (`PolicyBranchCoverageAudit`), run as the `TestPolicy_BranchCoverageAudit` Go test. It intersects the uncovered blocks of a `go test -coverprofile` with the lines `git diff`'d against the base, applying the `//coverage:ignore` escape. It reads the profile path from `AIWF_COVERAGE_PROFILE` and the base ref from `AIWF_COVERAGE_BASE`; with no profile env set (the default in the broad `go test ./...` run) it skips, so the audit fires exactly once, in CI's dedicated coverage-gate step, with the complete profile.
-- **What it actually enforces:** Go's `-cover` is *statement* coverage, not *branch* coverage — the profile records how often a basic block ran, not which arm of an `if`/`switch` was taken. So the v1 gate is *diff-scoped statement coverage with the `//coverage:ignore` escape*. True per-arm branch correlation is a strictly stronger property this version does not provide; it is tracked as a follow-up gap.
-- **Run it locally** with `make coverage-gate` (resolves the base as the merge-base with `origin/main`). It compares committed `HEAD` to the base, so run it *after* committing — uncommitted changes are invisible to the gate.
-- The chokepoint is the CI test job's coverage-gate step (`.github/workflows/go.yml`). On a PR the base is the merge-base with `origin/main`; on a trunk push it is `github.event.before`; an all-zero before-SHA (a brand-new branch) makes the audit no-op.
-
-#### Firing-fixture meta-gate (G-0259)
-
-The diff-scoped gate above only ever policed the construction lines a *change* touched. Every policy predating it never paid that toll, so an audit (2026-06-19) found **41 of the then-55 policies fully dark** — their `Violation{}` construction code ran in no test, meaning there was zero evidence they could detect the regression they exist to catch. A vacuous chokepoint is worse than none: it reads as a guarantee in this table while guarding nothing. The firing-fixture meta-gate makes "every policy can fire" a *total, permanent* property instead of a diff-scoped one. The gate's criterion is *any* dark firing line, so its `grandfatherDark` ledger seeds at **44** — the 41 fully-dark plus the 3 partially-dark policies (the remaining 11, plus this gate itself, were already lit).
-
-- The engine is `internal/policies/firing_fixture_presence.go` (`PolicyFiringFixturePresence`), run as the `TestPolicy_FiringFixturePresence` Go test. It scans `internal/policies/*.go` for `Policy: "<id>"` construction lines and flags any whose enclosing coverage block ran zero times — the **same definition of "dark" as the audit**, so the gate cannot drift from its own finding. It reuses the `parseCoverProfile`/`coverBlock` machinery and reads `AIWF_COVERAGE_PROFILE`; with no profile env it skips, firing once in CI's coverage-gate step with the complete profile. **Fail-closed:** if the profile carries no `internal/policies` blocks (e.g. someone drops `-coverpkg=./internal/...`), it errors loudly rather than silently passing every policy.
-- **The ratchet.** A policy dark at the audit is listed in `grandfatherDark` (a `map[string]bool` ledger) and tolerated. A policy added *after* this gate has no allowlist entry, so its dark construction line fails the gate until a firing test covers it. The companion `TestPolicy_FiringFixtureNoStaleAllowlist` fails if a `grandfatherDark` id is no longer dark — so adding a firing fixture *forces* the matching deletion and the ledger shrinks monotonically toward empty. **Burning it down is G-0262.** The easy majority need a cheap firing fixture beside the policy; the structure-auditors (e.g. `fsm-invariants`, `trailer-order-matches-constants` — they fire only by mutating a hardcoded Go structure) route through `mutate-hunt` and keep their `grandfatherDark` entry with that note.
-- **Run it locally** with `make coverage-gate` (it runs alongside the diff-scoped gate). Unlike that gate this one is *total*, not diff-scoped, so it does not depend on committing first.
-
-#### Beyond line coverage: fuzz, property, and mutation testing
-
-Line coverage measures *what code runs under the test suite*; it does not measure whether the assertions are strong enough to catch a regression. Three additional layers complement coverage on the load-bearing paths:
-
-- **Fuzz tests (G44 item 1)** — `Fuzz*` functions in `internal/{entity,gitops,version,pathutil}/` exercise high-value parsers (Slugify, Split, parseTrailers, Parse, Inside) against arbitrary input. Seed corpora run as part of the routine `go test`; full fuzzing (`-fuzztime=2m` per target) runs on the `fuzz` workflow (`workflow_dispatch` + weekly cron). New corpus seeds discovered by fuzzing belong under `testdata/fuzz/Fuzz<Name>/` and get committed alongside any related fix.
-- **Property tests (G44 item 2)** — `internal/entity/transition_property_test.go` asserts the FSM closed-set invariants exhaustively (state-set agreement, terminality, reachability, totality of `ValidateTransition`). The drift-prevention follow-up (`PolicyFSMInvariants` in `internal/policies/`) catches "new Kind without FSM wiring" and "FSM cycle introduced" — invariants the original tests miss because their iteration source is also their test target.
-- **Mutation testing (G44 item 3)** — `mutate-hunt` workflow runs gremlins against a chosen package pattern. **Workflow_dispatch only**; never on push. Use before tagging a release or after a substantive test-suite change. Read survivors carefully: equivalent-mutant noise (e.g., `a > b` and `a >= b` after a `a != b` guard) and unreachable-branch noise are common false positives — don't chase them. Real survivors are concrete file:line entries that warrant either a new test or a refactor that eliminates the mutation site. Required tuning for this repo: `--workers 1` (default parallelism contends on the test-binary build cache and times out) and `--timeout-coefficient 15`.
+- **Diff-scoped coverage gate.** Every statement on a line changed since the base ref must be tested or `//coverage:ignore`'d — an untested changed branch fails CI naming the `file:line`. Engine: `internal/policies/branch_coverage_audit.go`; run locally with `make coverage-gate` (compares committed `HEAD` to the merge-base, so commit first). It's *statement* coverage with the ignore-escape, not true per-arm branch coverage.
+- **Firing-fixture meta-gate.** Every policy's `Policy: "<id>"` construction line must be covered by some test (no vacuous chokepoints), else it fails unless its id is in the shrinking `grandfatherDark` ledger. Engine: `internal/policies/firing_fixture_presence.go`; runs with `make coverage-gate`. Fail-closed if the profile carries no `internal/policies` blocks.
+- **Beyond line coverage.** Fuzz targets (`Fuzz*` in `internal/{entity,gitops,version,pathutil}/`, full runs on the `fuzz` workflow); property tests (`internal/entity/transition_property_test.go` + `PolicyFSMInvariants`); mutation testing (`mutate-hunt`, workflow_dispatch only, `--workers 1 --timeout-coefficient 15`; ignore equivalent-mutant / unreachable-branch noise).
 
 ### Error handling
 
-- Wrap every error returned across a function boundary with context: `fmt.Errorf("loading frontmatter from %s: %w", path, err)`.
-- Compare errors with `errors.Is(err, ErrFoo)` and `errors.As(err, &target)`. Never `err == ErrFoo` except for sentinels you own.
-- Sentinel errors (`var ErrNotFound = errors.New("not found")`) for stable conditions. Typed errors (`type ValidationError struct{...}`) when the error carries data.
-- **Library code never panics or `os.Exit`s.** Only `cmd/<tool>/main.go` calls `os.Exit`.
+- Wrap across boundaries: `fmt.Errorf("loading %s: %w", path, err)`. Compare with `errors.Is`/`errors.As`, never `==` (except sentinels you own).
+- Sentinel errors for stable conditions; typed errors when the error carries data.
+- **Library code never `panic`s or `os.Exit`s** — only `cmd/<tool>/main.go` exits.
 
 ### Concurrency
 
-- Pass `context.Context` as the first argument of every IO-touching function.
-- Use `context` for cancellation only. Don't stuff request-scoped data via `context.WithValue` except across API boundaries.
+- `context.Context` is the first arg of every IO-touching function (cancellation only; don't stuff request data via `WithValue` except across API boundaries).
 - Never hold a mutex across an IO call.
 
 ### CLI conventions
 
-Every binary (currently just `aiwf`) follows:
-
-- **Framework:** [`github.com/spf13/cobra`](https://github.com/spf13/cobra) is the standard CLI library. Each verb is a `cobra.Command`; a `runXCmd(...)` helper holds the verb's body and is called from `RunE`. Closed-set flag values bind to completion via `cmd.RegisterFlagCompletionFunc(name, cobra.FixedCompletions(...))`; entity-id flags use the dynamic `completeEntityIDFlag(kind)` helper. New commands are added under `cmd/aiwf/` and wired from `newRootCmd`. The drift test in `cmd/aiwf/completion_drift_test.go` is the chokepoint — a flag added without completion wiring (or an entry in the opt-out list) fails CI.
-- **Exit codes:** `0` ok, `1` findings (validation succeeded but reported issues), `2` usage error, `3` internal error. Verbs return `int`; the Cobra `RunE` adapter wraps the value via `wrapExitCode` and `run()` translates it back through the `*exitError` typed shuttle.
-- **Output:** Human-readable text by default; `--format=json` emits a structured JSON envelope for CI scripts and downstream tools. `--pretty` (with `--format=json`) indents the envelope. `aiwf` is an interactive CLI first; the JSON shape is the secondary surface.
-- **JSON envelope:** `{ tool, version, status, findings, result, metadata }`. `status` is one of `ok`, `findings`, `error`. `findings` is an array (possibly empty); `result` carries the verb's payload; `metadata` carries timing, counts, and the calling correlation_id when present.
-- **Logging:** `log/slog` to stderr (default level `INFO`). Tool output goes to stdout. `fmt.Fprintln(os.Stderr, …)` is not a substitute.
-- **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; everything via flags, env, or `aiwf.yaml` at the consumer repo root.
-- **No package-level mutable state.** Pass dependencies via struct fields. In particular, don't introduce production patterns purely to satisfy test-injection — if tests need to swap a dependency, the production code uses constructor injection (`func New(deps Deps) *T`); never a package-level `var registry = map[…]` that tests mutate.
+- **`github.com/spf13/cobra`.** Each verb is a `cobra.Command` with a `runXCmd(...)` body called from `RunE`; wire from `newRootCmd`. Closed-set flag values bind completion via `cobra.FixedCompletions(...)`; entity-id flags use `completeEntityIDFlag(kind)`. Chokepoint: `cmd/aiwf/completion_drift_test.go`.
+- **Exit codes:** `0` ok, `1` findings, `2` usage, `3` internal. Verbs return `int`; the `RunE` adapter shuttles via `*exitError`.
+- **Output:** human-readable by default; `--format=json` emits `{ tool, version, status, findings, result, metadata }` (`status` ∈ `ok`/`findings`/`error`); `--pretty` indents. `log/slog` → stderr; tool output → stdout.
+- **Flags:** `--help`, `--version`, `-v`, `--pretty` plus verb-specific. No global config files; config via flags, env, or `aiwf.yaml`.
+- **No package-level mutable state.** Inject dependencies via struct fields / constructors (`func New(deps Deps) *T`) — never a package var tests mutate.
 
 ### Commit conventions
 
-Every mutating verb writes a structured trailer in its commit message so `aiwf history` can render per-entity timelines:
+Every mutating verb writes trailers so `aiwf history` can render timelines:
 
 ```
 aiwf-verb: promote
-aiwf-entity: M-001
+aiwf-entity: M-0001
 aiwf-actor: human/peter
 ```
 
-Commit subject lines follow Conventional Commits (`feat(plan): ...`, `chore(plan): ...`, `docs(adr): ...`).
+Subjects follow Conventional Commits (`feat(plan): …`, `chore(plan): …`, `docs(adr): …`) — say *why*, one logical change per commit.
 
 ### Release process
 
-Releases of `aiwf` are git tags on `main` (the trunk) of the form `vX.Y.Z`. The Go module proxy resolves them when a consumer runs `aiwf upgrade` or `go install <pkg>@latest`. There is no separate release artifact to publish, but the user-facing changelog must stay in step.
-
-Before tagging `vX.Y.Z`:
-
-1. In a single release-prep commit, edit [`CHANGELOG.md`](CHANGELOG.md):
-   - Rename the `## [Unreleased]` heading to `## [X.Y.Z] — YYYY-MM-DD`.
-   - Add a fresh empty `## [Unreleased]` heading at the top (above the new version section).
-   - Verify the moved entries summarize the user-visible delta — gaps closed, verbs added, behavior changes. Internal refactors that change nothing observable can be omitted.
-2. Use commit subject `release(aiwf): vX.Y.Z`.
-3. Push the commit, then `git tag vX.Y.Z` pointing at it, then `git push origin vX.Y.Z`.
-
-Skipping the changelog edit means the tag-push CI check fails: the workflow at [`.github/workflows/changelog-check.yml`](.github/workflows/changelog-check.yml) verifies that every pushed `v*` tag is reachable from a commit whose `CHANGELOG.md` contains a matching `## [X.Y.Z]` heading. Per the kernel's "framework correctness must not depend on the LLM's behavior" rule, the check is the guarantee — the human-facing rule above is just the convenient version.
-
-Patch releases that are pure-mechanical (e.g. a `go.sum` refresh with no behavior delta) still require a CHANGELOG entry, even if it is a single line saying "no functional changes" — the workflow does not distinguish empty from missing.
+Releases are git tags `vX.Y.Z` on `main`. Before tagging, in one `release(aiwf): vX.Y.Z` commit edit [`CHANGELOG.md`](CHANGELOG.md): rename `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`, add a fresh empty `## [Unreleased]` above it, verify the moved entries summarize the user-visible delta. Then push the commit, `git tag vX.Y.Z`, `git push origin vX.Y.Z`. The [`changelog-check.yml`](.github/workflows/changelog-check.yml) workflow fails a `v*` tag whose commit's `CHANGELOG.md` lacks a matching `## [X.Y.Z]` heading — even pure-mechanical patches need a one-line entry.
 
 ### Dependencies
 
-- Minimize external deps. Each new dep needs a one-line justification in the commit message or PR description.
-- `CGO_ENABLED=0` — binaries must be statically linked.
-- `go 1.24` minimum (consumer floor in `go.mod`). Bump deliberately. Last bumped from 1.22 → 1.24 in G43; rationale on file.
-- **CI build toolchain is decoupled** from the `go.mod` floor: the workflow files pin `go-version: "1.25"` so `actions/setup-go` resolves to the latest patched 1.25.x, picking up stdlib backports the 1.24.x line lacks. The directive in `go.mod` is the consumer-compatibility commitment; the CI version is the build-time toolchain. Bump CI when `govulncheck` reports stdlib CVEs only fixed in a newer minor; bump `go.mod` only when the codebase needs a feature that `go.mod`'s current floor doesn't provide.
-- One `go.mod` for the entire module.
+Minimize external deps (one-line justification per new one). `CGO_ENABLED=0` (static binaries). `go 1.24` minimum in `go.mod` (the consumer-compatibility floor); CI toolchain is pinned separately to `go-version: "1.25"` (bump CI for stdlib CVEs, bump the floor only for a needed language feature). One `go.mod` for the module.
 
 ### Naming
 
-- Package names: short, lowercase, no underscores, no plurals (`entity` not `entities`).
-- Avoid stuttering: `entity.Entity` is wrong; `entity.Load` or `entity.Result` is right.
-- Exported identifiers must have a doc comment starting with the identifier name.
-- Acronyms stay capitalized: `parseURL`, `httpClient`, `jsonOut` — not `parseUrl`.
+Package names short, lowercase, singular (`entity` not `entities`). Avoid stuttering (`entity.Load`, not `entity.Entity`). Exported identifiers get a doc comment starting with the name. Acronyms stay capitalized (`parseURL`, `jsonOut`).
 
 ### Type design
 
-- **Closed-set enums ship only used values.** When defining a closed set of constants or enum values (status, kind, action), ship only the values that have a current call site. Speculative future values violate YAGNI even when they're "just constants."
-- **The PoC's six kinds** (epic, milestone, ADR, gap, decision, contract) and their **status sets** are hardcoded in Go for the PoC. They are intentionally not driven by external YAML — that move is deferred until a real consumer needs to customize the vocabulary.
-- **`entities.title_max_length` in `aiwf.yaml`** caps both the title (at `aiwf add`, `aiwf retitle`, `aiwf import`) and the slug (at `aiwf rename`). G-0102. Default 80 chars — the Conventional Commits subject-line convention, so entity-touching commit subjects that quote the title stay scannable in `git log` / `aiwf history`. The cap is hard-reject, not silent-truncate: the operator gets a write-time error pointing them at `--body-file` (or post-add `aiwf edit-body`) for the elaboration that belongs in the body, not the title. Title and slug share the same budget so on-disk filenames and frontmatter titles stay in sync — every render surface (CLI tables, HTML, git log, `aiwf history`, filesystem) inherits the same width. Non-positive configured values fall back to the kernel default. Existing entities with pre-cap titles over the limit are grandfathered (write-time policy doesn't retroact). Cleaning them up is a one-verb operation: `aiwf retitle G-NNNN "..."` updates the frontmatter title and re-derives the on-disk slug from it in the same commit (G-0108), so the filesystem and the frontmatter never drift apart. The companion `aiwf check` rule recognizes git renames since the merge-base with trunk and treats them as the same entity moved, so a retitle batch on a feature branch pushes cleanly (G-0109). The slug-only verb `aiwf rename` stays for the rare "tweak the slug without touching the title" case.
+- **Closed-set enums ship only values with a current call site.** Speculative future values violate YAGNI.
+- **The six kinds and their status sets are hardcoded in Go**, not external YAML (deferred until a real consumer needs custom vocabulary).
+- **`entities.title_max_length` in `aiwf.yaml`** caps title (at `add`/`retitle`/`import`) and slug (at `rename`); default 80. Hard-reject, not truncate — the error points at `--body-file`. Title and slug share the budget so filenames and frontmatter stay in sync. Pre-cap titles are grandfathered; clean up with `aiwf retitle` (re-derives the slug), which the check treats as a git rename so a retitle batch pushes cleanly.
 
 ### Designing a new verb
 
-Before adding a verb to `cmd/aiwf/`, the design isn't done until you can answer **"what verb undoes this?"** Acceptable answers:
-
-- *Another invocation of the same verb with different inputs.* Most state-transition verbs reverse this way (e.g. `aiwf promote E-01 active` undoes `aiwf promote E-01 done` if the kind allows it).
-- *An explicit terminal-state transition.* `aiwf cancel`, `aiwf reallocate` (renumbers; the old id's history terminates with the rename event).
-- *"You can't, and that's deliberate — here's why."* `aiwf init` is one-shot; `aiwf import` for already-present ids needs `--on-collision`. The reason gets written down.
-- *"You'd open a new entity for the inverse."* Bug-fix-style reversals (e.g., add a hotfix milestone) belong here.
-
-Not acceptable: *"we'll figure that out later"* — the verb isn't ready. See [docs/pocv3/design/design-lessons.md](docs/pocv3/design/design-lessons.md) §"On reversal" for the principle this comes from.
+The design isn't done until you can answer **"what verb undoes this?"** Acceptable: another invocation of the same verb; an explicit terminal transition (`aiwf cancel`, `aiwf reallocate`); "you can't, deliberately — here's why" (`aiwf init` is one-shot; written down); "you'd open a new entity for the inverse." Not acceptable: "we'll figure it out later." See [docs/pocv3/design/design-lessons.md](docs/pocv3/design/design-lessons.md) §"On reversal".
 
 ### Skills policy
 
-Every top-level Cobra verb is reachable through some AI-discoverable channel. The shape of that coverage follows four cases — **per-verb skill** (default for mutating verbs that carry decision logic), **topical multi-verb skill** (when users reach for the concept rather than the verb; precedent: `aiwf-contract`), **no skill** (when `--help` plus tab-completion fully cover the surface; e.g. `aiwf version`, `aiwf init`), and **discoverability-priority split** (when a topical group's prompt shapes diverge enough to dilute one bundled description; precedent: `aiwf-list` and `aiwf-status`).
+Every top-level Cobra verb is reachable through some AI-discoverable channel, in one of four shapes (per-verb skill / topical multi-verb skill / no skill when `--help`+completion suffice / discoverability-priority split). Judgment rule in [ADR-0006](docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md); mechanical companion `internal/policies/skill_coverage.go` (every verb has an `aiwf-<verb>` skill or an allowlist entry; every skill carries valid `name:`/`description:` frontmatter; every backticked `` `aiwf <verb>` `` in a skill body resolves).
 
-The judgment rule lives in [ADR-0006](docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md). The mechanical companion is [`internal/policies/skill_coverage.go`](internal/policies/skill_coverage.go) — it asserts that every verb has either a same-named `aiwf-<verb>` skill or an entry in `skillCoverageAllowlist` with a one-line rationale, that every embedded skill carries valid `name:` and `description:` frontmatter, and that every backticked `` `aiwf <verb>` `` mention inside a skill body resolves to a registered top-level verb. CI fails any future PR that adds a verb without satisfying both bars.
-
-When designing a new verb, answer the *what verb undoes this?* question above first, then *which case from ADR-0006 applies, and where does this verb's skill live?*
-
-**Shipped skill bodies cite no real entity id, filesystem path, or inline lifecycle status.** A skill materializes into consumer repos where aiwf's own ids are meaningless and rot as entities change status, archive, or rewidth — so a real-id reference in a shipped body is both stale-prone and contextually wrong. Illustrative content uses canonical `<prefix>-NNNN` placeholders (the letter-N form) or shape-descriptions; the one carve-out is a markdown link to a design or ADR doc, where the id rides in the link destination and the visible text stays descriptive. The mechanical chokepoint is the `skill-body-id` check (G-0299) in `internal/check`: it fires pre-push over `internal/skills/embedded{,-rituals}/**`, is the mirror image of `body-prose-id` (there a real id is *required*; here it is the *defect*), and is inert in a consumer repo because the skill-source tree is absent — so it costs consumers nothing. Like `body-prose-id`, the check masks code constructs and link destinations, so its mechanical guarantee is **prose-scoped**: a real id inside an inline-code span, a fenced block, or a link destination is exempt — code legitimately carries both leakage *and* syntax-teaching format-examples (e.g. `body-prose-id`'s own `M-0001` hint) the masker cannot tell apart. A real id used as a *reference* inside a code example is therefore an authoring discipline caught at review, not by the check. The standing rule here is the convenient version; the check is the prose-level guarantee. Provenance — *why* a feature exists — has durable homes already (this CLAUDE.md, the design docs, commit trailers) and does not belong in a consumer-facing behavioral skill body.
+**Shipped skill bodies cite no real entity id, filesystem path, or inline lifecycle status.** A skill materializes into consumer repos where aiwf's own ids are meaningless and rot as entities change status/archive/rewidth. Illustrative content uses canonical `<prefix>-NNNN` placeholders (the letter-N form) or shape-descriptions; the one carve-out is a markdown link to a design/ADR doc (id rides in the destination, visible text stays descriptive). Provenance belongs in this `CLAUDE.md`, the design docs, and commit trailers — not in a consumer-facing skill body. Chokepoint: the `skill-body-id` check (`internal/check`) fires pre-push over `internal/skills/embedded{,-rituals}/**`, is the mirror of `body-prose-id`, is prose-scoped (masks code spans / fenced blocks / link destinations), and is inert in a consumer repo.
 
 ### What's enforced and where
 
-The kernel's "framework correctness must not depend on LLM behavior" principle applies here too: the rules below are enforced by tooling at named chokepoints, not by remembering to tick a checklist. This section names the chokepoint for each rule so a contributor (human or LLM) can see what will block a bad commit and what is still advisory.
+Rules are enforced at named chokepoints, not by remembering a checklist. **Fire as early as the class allows:** pre-commit (shape-only) → pre-push (full `aiwf check` + lint + gitleaks) → CI (`internal/policies/` Go tests, coverage gates, build/vet/race matrix). An `aiwf check` finding catches in-context before the work leaves the machine; a CI-only policy test is a backstop that fires after the trunk push has landed. For judgment classes no check can cover (prose coherence, design soundness, cross-reference correctness) the timely catch is the in-context wrap-ritual review, which feeds the human gate.
 
-**Chokepoint timeliness — fire as early as the class allows.** The *tier* a chokepoint fires at decides whether the operator catches the problem **in context** or after they have moved on. Earliest first: **pre-commit** (shape-only) → **pre-push** (full `aiwf check` + lint + gitleaks) → **CI** (the `internal/policies/` Go tests, coverage gates, the build/vet/race matrix). Prefer the earliest tier a check's class permits. An `aiwf check` finding fires pre-push — in-context, before the work leaves the machine; a Go policy test fires only at CI — *after* a trunk-based push has already landed on `main`, when the context window has closed. A CI-only check is therefore a **backstop** (it guarantees the rule cannot be silently skipped forever), not the **catch** (the in-context moment when a fix is cheap). When a rule's class can be expressed as an `aiwf check` finding, place it there rather than as a CI-only policy test. And for the judgment classes no mechanical check can cover — prose coherence, design soundness, cross-reference correctness — the timely catch is the **in-context review** (the wrap rituals' independent two-lens pass), which *feeds* the human gate and is never replaced by a CI gate. Mechanical ≠ timely: a guarantee that only arrives at CI is real, but late.
+- **Blocking via CI lint / test / build:** the full `golangci-lint` set + `go vet` + `go test -race` + `go build` + `aiwf doctor --self-check` + `govulncheck`; and the `internal/policies/` Go tests — repo-specific invariants (trailer keys, sovereign acts, FSM wiring/no-cycle, `-parallel 8` cap, setup_test presence, git-test-env harden, enum-literal adoption, closed-set status constants, trailer-order sync, atomic-write chokepoint, version single-source, validate/is-never-writes, layering direction, no-`time.Now`-in-core), the diff-scoped coverage gate + firing-fixture meta-gate, and the skill/finding-code discoverability + ritual `skill_edit_structural_test_backstop.go` backstop + guidance-anchor + trailer-commit-drift policies.
+- **Blocking pre-commit / pre-push:** `aiwf check --shape-only` (pre-commit); full `aiwf check` incl. `body-prose-id` and `skill-body-id` (pre-push); the `golangci-lint` pre-push hook (`make install-hooks`, pinned by `prepush_lint_hook_test.go`); gitleaks path/secret scan (pre-push + CI).
+- **Advisory (code review):** `context.Context` first-arg, no new package-level mutable state, one-line dep justification, deliberate `go.mod` floor bumps.
 
-| Rule                                                         | Chokepoint                                                       | Status                  |
-|--------------------------------------------------------------|------------------------------------------------------------------|-------------------------|
-| `gofmt` / `goimports` / `gofumpt` clean                      | `golangci-lint run` (formatters block) — CI `lint` job           | Blocking via CI         |
-| Lint set passes (`errcheck`, `govet`, `staticcheck`, …)      | `golangci-lint run` — CI `lint` job                              | Blocking via CI         |
-| `go vet` clean                                               | `go vet ./...` — CI `vet` job                                    | Blocking via CI         |
-| Tests pass with race detector                                | `go test -race ./...` — CI `test` job                            | Blocking via CI         |
-| Build succeeds (`CGO_ENABLED=0`)                             | `go build` — CI `build` job                                      | Blocking via CI         |
-| End-to-end verb regressions                                  | `aiwf doctor --self-check` — CI `selfcheck` job (G9)             | Blocking via CI         |
-| Vulnerable transitive deps                                   | `govulncheck ./...` — CI `vuln` job (G43)                        | Blocking via CI         |
-| Library code does not `panic` or `os.Exit`                   | `forbidigo` (G43)                                                | Blocking via CI lint    |
-| Test helpers call `t.Helper()`                               | `thelper` (G43)                                                  | Blocking via CI lint    |
-| Errors compared with `errors.Is`/`As`, wraps use `%w`        | `errorlint` (G43)                                                | Blocking via CI lint    |
-| Planning-tree shape (no stray files under `work/`)           | `aiwf check --shape-only` — pre-commit hook (G41)                | Blocking pre-commit     |
-| Full planning-tree validation (refs, ids, FSM, contracts)    | `aiwf check` — pre-push hook                                     | Blocking pre-push       |
-| Repo-specific invariants (trailer keys, sovereign acts, etc.) | `internal/policies/` — runs as a Go test package                 | Blocking via CI test    |
-| Every verb has skill coverage or an allowlist entry; every `aiwf <verb>` mention in a skill resolves | `internal/policies/skill_coverage.go` — runs as a Go test (M-074) | Blocking via CI test    |
-| Every `internal/*` test-bearing package has a `setup_test.go` with `TestMain` | `internal/policies/test_setup_presence.go` — runs as a Go test (M-0093) | Blocking via CI test    |
-| Race-mode `go test` invocations carry `-parallel 8` uniformly across Makefile + workflows | `internal/policies/race_parallel_cap.go` — runs as a Go test (M-0091/AC-1) | Blocking via CI test    |
-| Closed-set `Status*` constants are used at comparison sites (no `s == "open"` outside `internal/entity/`) | `internal/policies/enum_literal_adoption.go` — runs as a Go test (M-0119) | Blocking via CI test    |
-| Closed-set status literal *values* aren't hardcoded in status *contexts* — `Status:` / `TDDPhase:` assignment, `.Status` / `.TDDPhase` comparisons, trailer `Value:`, and `switch` `case` labels — outside `internal/entity/` (the value-context complement to the comparison-site rule above) | `internal/policies/closed_set_status_constants.go` — runs as a Go test | Blocking via CI test    |
-| Every entity Kind has FSM wiring, and the status FSMs contain no cycle (the one-directional / no-demote kernel commitment) — checked by runtime introspection over `entity.AllKinds()`, catching the two drift modes co-located `internal/entity/` tests miss (new Kind with no FSM; a back-edge that closes a cycle) | `internal/policies/fsm_invariants.go` — runs as a Go test (G44 item 2 follow-up) | Blocking via CI test    |
-| `Trailer*` constants and `trailerOrder` slice stay in sync in `internal/gitops/trailers.go` | `internal/policies/trailer_order_matches_constants.go` — runs as a Go test (G-0195) | Blocking via CI test    |
-| Persistent-file writes route through `pathutil.AtomicWriteFile` (no raw `os.WriteFile` / `os.Create` / write-mode `os.OpenFile` in production code) | `internal/policies/atomic_write_chokepoint.go` — runs as a Go test (G-0221) | Blocking via CI test    |
-| Exec-bearing `internal/*` test packages call `testsupport.HardenGitTestEnv()` in TestMain (scrub git locator vars + disable auto-gc) | `internal/policies/git_test_env_harden.go` — runs as a Go test (G-0250/G-0251) | Blocking via CI test    |
-| Binary version has a single source: the ldflags stamp lives only in `internal/version.Stamp`, resolved everywhere through `version.Current()` (no parallel version global outside `internal/version`) | `internal/policies/version_single_source.go` — runs as a Go test (G-0235) | Blocking via CI test    |
-| Query-family functions (`Validate*` / `Is*` / `Check*` / `Has*`) under `internal/` never call a filesystem/git write primitive (`os.WriteFile` / `os.Create` / write-mode `os.OpenFile` / `os.Remove*` / `os.Mkdir*` / `os.Rename` / `pathutil.AtomicWriteFile` / `gitops` writers) | `internal/policies/validate_check_is_never_writes.go` — runs as a Go test (G-0235) | Blocking via CI test    |
-| Import direction is monotonically downward (no upward dependency): `cmd → cli → verb → check/render/… → tree/scope/… → entity/gitops/… → codes/pathutil`. A package may import the same or a lower layer, never a higher one (sideways allowed; `cellcoverage`/`testsupport` allowlisted as test-only) | `internal/policies/layering_direction.go` — runs as a Go test (G-0227) | Blocking via CI test    |
-| The domain core (layer tier ≥ 2: `verb` and below) never reads the ambient wall clock (`time.Now`/`time.Since`/`time.Until`) — logical time is injected from the edge (tier ≤ 1); `repolock` (lock-timeout) and `htmlrender` (perf metric) allowlisted as operational time | `internal/policies/no_time_now_in_core.go` — runs as a Go test (G-0235) | Blocking via CI test    |
-| Diff-scoped statement coverage: every changed line is tested or `//coverage:ignore`'d | `internal/policies/branch_coverage_audit.go` via the CI test job's coverage-gate step + `make coverage-gate` (G-0067) | Blocking via CI |
-| Every policy in `internal/policies/` has a test that covers its firing branch (no vacuous chokepoints): a `Policy: "<id>"` construction line covered by no test fails the gate unless its id is in `grandfatherDark` (the shrinking G-0259-audit ledger, burned down by G-0262) | `internal/policies/firing_fixture_presence.go` via the CI test job's coverage-gate step + `make coverage-gate` (G-0259) | Blocking via CI |
-| Entity body prose contains no malformed or unallocated id-shaped tokens outside backticks | `internal/check/body_prose_id.go` — runs as `aiwf check` (G-0184) | Blocking pre-push       |
-| Shipped skill bodies (`internal/skills/embedded{,-rituals}/**`) cite no real entity id — canonical `<prefix>-NNNN` placeholders or design/ADR doc-links only; inert in a consumer repo | `internal/check/skill_body_id.go` — runs as `aiwf check` (G-0299) | Blocking pre-push       |
-| Ritual `SKILL.md` edits under `internal/skills/embedded-rituals/**` are paired with a referencing structural test under `internal/policies/` (no drive-by skill edit ships without a mechanical backstop) | `internal/policies/skill_edit_structural_test_backstop.go` — runs as a Go test, diff-scoped in the CI coverage-gate step (G-0220 / M-0196) | Blocking via CI test    |
-| Every finding code emitted by `internal/check` is documented as a Findings-table row in the `aiwf-check` skill body (a new code can't ship undocumented) | `internal/policies/finding_codes_documented_in_skill.go` — runs as a Go test (G-0283 / M-0197) | Blocking via CI test    |
-| The trailered-commit / trailered-merge prescription in `aiwfx-wrap-epic` and `aiwfx-wrap-milestone` carries all three trailer keys plus the variant-casings caveat and (at merge sites) the `git config user.email` identity rule — no wrap ships its trailered commit stripped of the prescription | `internal/policies/m0210_trailer_commit_drift.go` — runs as a Go test (G-0219 / M-0210) | Blocking via CI test    |
-| A curated set of consumer-operating anchors (gate-per-mutation, reallocate-not-`git mv`, AC-evidence, one-decision, never-pause, `body-prose-id`, cross-branch allocation) stays present in the shippable embedded guidance — an operating rule can't drift out of the always-on fragment | `internal/policies/m0211_guidance_operating_anchors.go` — runs as a Go test (G-0313 / M-0211) | Blocking via CI test    |
-| `context.Context` as first arg of new IO function            | Code review                                                      | Advisory                |
-| No new package-level mutable state                           | Code review                                                      | Advisory                |
-| Each new dep has a one-line justification                    | Code review (commit message / PR description)                    | Advisory                |
-| Mutating-verb commits carry `aiwf-verb` / `aiwf-entity` / `aiwf-actor` trailers | `internal/policies/trailer_keys.go` + the `principal_write_sites` policy + the untrailered-entity audit (G24, G31, G32) | Blocking via CI test    |
-| Bumping the Go floor in `go.mod`                             | Deliberate decision; document rationale in commit message        | Advisory                |
-| Contributor-state / path-leak in committed text (`/Users/<name>/`, `/home/<name>/`, `C:\Users\<name>\`) | `gitleaks git --config=.gitleaks.toml` — `.github/workflows/gitleaks.yml` (CI, full history + `.gitleaksignore`) and the pre-push hook (G-0103 / G-0291 / G-0292) | Blocking via CI + pre-push |
-| Lint debt crossing the push boundary (`golangci-lint` on pushed Go changes) | `scripts/git-hooks/pre-push` → `.git/hooks/pre-push.local` via `make install-hooks`; contract pinned by `internal/policies/prepush_lint_hook_test.go` (G-0179) | Blocking pre-push (per-clone install) |
-
-The four advisory lines are the items where mechanical enforcement is either too noisy (context.Context first arg — generics make a literal regex unreliable), too contextual (package-level mutable state — sometimes legitimate behind a guard), or self-policing (dep justification, deliberate floor bumps). Reviewers and the `Go conventions` section above are the chokepoint there.
-
-If a blocking rule needs to be relaxed for a specific call site, route it through the linter's allowlist (e.g., `forbidigo` exclusion for the verb/apply.go re-panic site) with a one-line rationale, not a `//nolint:rule` directive without explanation.
+Relax a blocking rule for a specific call site via the linter's allowlist with a one-line rationale, never a bare `//nolint`.
 
 <!-- aiwf:guidance:START - DO NOT EDIT, regenerated by aiwf update -->
 @.claude/aiwf-guidance.md
