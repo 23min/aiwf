@@ -1,6 +1,6 @@
 ---
 id: M-0223
-title: Guard the unconditional authorize-opener grep in aiwf history
+title: Guard the unconditional authorize-opener grep in the read verbs
 status: draft
 parent: E-0054
 tdd: required
