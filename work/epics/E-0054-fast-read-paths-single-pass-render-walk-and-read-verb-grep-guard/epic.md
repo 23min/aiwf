@@ -1,6 +1,6 @@
 ---
 id: E-0054
-title: 'Fast read paths: batch history walks and path-scope single-entity reads'
+title: 'Fast read paths: single-pass render walk and read-verb grep guard'
 status: proposed
 ---
 ## Goal
