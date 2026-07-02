@@ -1,7 +1,9 @@
 ---
 id: G-0313
 title: Consumer operating guidance drifts into CLAUDE.md, not the shippable guidance
-status: open
+status: addressed
+addressed_by:
+    - M-0211
 ---
 ## Problem
 
