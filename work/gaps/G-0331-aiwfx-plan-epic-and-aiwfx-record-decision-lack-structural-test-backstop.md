@@ -1,8 +1,10 @@
 ---
 id: G-0331
 title: aiwfx-plan-epic and aiwfx-record-decision lack structural-test backstop
-status: open
+status: addressed
 discovered_in: M-0197
+addressed_by:
+    - M-0201
 ---
 ## What's missing
 
