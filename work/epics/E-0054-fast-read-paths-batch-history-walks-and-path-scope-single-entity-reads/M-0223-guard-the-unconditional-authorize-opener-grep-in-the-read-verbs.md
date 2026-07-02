@@ -10,7 +10,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: history output is byte-identical for a scoped entity after the guard
+      title: history and show output identical for scoped and scopeless entities
       status: open
       tdd_phase: red
     - id: AC-3
@@ -46,7 +46,7 @@ renders identical scope info. The shared scope map benefits `render` too.
 
 ### AC-1 — guard predicate returns skip for events with no scope data
 
-### AC-2 — history output is byte-identical for a scoped entity after the guard
+### AC-2 — history and show output identical for scoped and scopeless entities
 
 ### AC-3 — measured history text wall-time delta recorded in Validation
 
