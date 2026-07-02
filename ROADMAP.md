@@ -588,7 +588,7 @@ sibling-worktree git convention.
 | M-0193 | Statusline health indicator from a cached check-findings signal | done |
 | M-0194 | Ship the statusline via aiwf init/update with portability fixes | cancelled |
 
-## E-0048 — Skill & ritual content integrity (with drift chokepoints) (active)
+## E-0048 — Skill & ritual content integrity (with drift chokepoints) (done)
 
 ### Goal
 
@@ -695,4 +695,33 @@ that never share a loaded history.
 | M-0218 | Drive the internal/policies test suite below its ~9s floor | cancelled |
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | cancelled |
 | M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
+
+## E-0054 — Fast read paths: batch history walks and path-scope single-entity reads (proposed)
+
+### Goal
+
+Make aiwf's read verbs — `render`, `history`, `show` — fast in the devcontainer,
+where they are subprocess-*wait* bound (the Docker/linuxkit `fork`/`exec` tax), by
+cutting per-invocation git-subprocess count from O(entities × commits) to a single
+shared history pass, and by letting git's own changed-path bloom filters skip
+history for single-entity queries.
+
+Measured on the kernel tree (5,510 commits, 657 pages, this devcontainer):
+`aiwf render --format=html` takes **28 minutes** because it issues ~1,000+
+per-entity `git log --grep` walks across **two** walk families — per-entity history
+(`resolver.history`, N+2× per milestone) and per-milestone provenance/scopes
+(`show.LoadEntityScopeViews`, 2 more full greps each). A throwaway single-pass spike
+rendered **byte-identical** output in **12.8s** (~130×). Single-entity
+`aiwf history` pays ~1s per full-history grep that a path-scoped `git log -- <path>`
+with changed-path bloom filters reduces to ~14ms (measured).
+
+This epic adds a derived *read strategy*, not a second source of truth. `git log` +
+trailers stays canonical (per `design-decisions.md`); the design and per-lever
+worktree/merge safety analysis live in
+[`docs/pocv3/design/performance.md`](../../../docs/pocv3/design/performance.md).
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0221 | Single unified history walk for render | draft |
+| M-0222 | Path-scoped single-entity history with bloom-filter maintenance | draft |
 
