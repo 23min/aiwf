@@ -1,7 +1,9 @@
 ---
 id: G-0283
 title: aiwf-check skill finding-code docs drift from emitted codes
-status: open
+status: addressed
+addressed_by:
+    - M-0197
 ---
 ## What's missing
 
