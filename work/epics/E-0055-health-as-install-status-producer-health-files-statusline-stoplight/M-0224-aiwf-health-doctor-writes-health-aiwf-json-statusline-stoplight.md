@@ -1,6 +1,6 @@
 ---
 id: M-0224
-title: doctor surfaces warn/error and writes health.aiwf.json
+title: 'aiwf health: doctor writes health.aiwf.json + statusline stoplight'
 status: in_progress
 parent: E-0055
 tdd: required
