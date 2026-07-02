@@ -74,3 +74,35 @@ func TestAiwfxRecordDecision_AC2_ADRAuthoringDiscipline(t *testing.T) {
 		t.Error(`AC-2: record-decision must carry the "decision is decision" no-gate-language discipline (no gate/schedule language in ADR bodies)`)
 	}
 }
+
+// TestAiwfxRecordDecision_RichTemplateSelfLocating pins G-0345: step 3 points
+// the author at the *materialized* template path (`.claude/templates/…`, what
+// an AI in a consumer repo can actually find) rather than an authoring-relative
+// "this plugin's" reference, names the `aiwf update` self-heal when it's
+// absent, and warns against reconstructing the format by copying an existing
+// entity — the failure mode that produced an ADR missing its H1 and Date header.
+func TestAiwfxRecordDecision_RichTemplateSelfLocating(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxRecordDecisionFixture(t)
+
+	step3 := extractMarkdownSection(body, 3, "3.")
+	if step3 == "" {
+		t.Fatal("G-0345: record-decision must retain a `### 3.` rich-template step")
+	}
+	for _, want := range []string{
+		".claude/templates/adr.md",      // materialized, locatable path for ADR
+		".claude/templates/decision.md", // and for D-NNNN
+		"aiwf update",                   // self-heal when the template isn't materialized
+	} {
+		if !strings.Contains(step3, want) {
+			t.Errorf("G-0345: record-decision step 3 must name %q so the author locates the rich template instead of copying an existing entity", want)
+		}
+	}
+	if !strings.Contains(strings.ToLower(step3), "copying an existing") {
+		t.Error("G-0345: record-decision step 3 must warn against reconstructing the body by copying an existing entity (it drifts from the template and drops the H1/header)")
+	}
+	// The obsolete authoring-relative reference must be gone from step 3.
+	if strings.Contains(step3, "this plugin's") {
+		t.Error("G-0345: record-decision step 3 must drop the authoring-relative `this plugin's templates/…` reference (no live plugin exists)")
+	}
+}

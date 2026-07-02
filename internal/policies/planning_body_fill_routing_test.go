@@ -218,3 +218,37 @@ func TestPlanningNextStep_AC3_StatusAwareRouting(t *testing.T) {
 		}
 	})
 }
+
+// TestPlanningBodyFill_RichTemplateSelfLocating pins G-0345 for the two
+// planning skills: the step-5 body-fill step names the *materialized*
+// `.claude/templates/<spec>.md` path (locatable in a consumer repo) and the
+// `aiwf update` self-heal, dropping the authoring-relative "this plugin's"
+// reference that resolves nowhere in a consumer tree.
+func TestPlanningBodyFill_RichTemplateSelfLocating(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, path, wantPath string
+	}{
+		{"plan-epic", aiwfxPlanEpicFixturePath, ".claude/templates/epic-spec.md"},
+		{"plan-milestones", aiwfxPlanMilestonesFixturePath, ".claude/templates/milestone-spec.md"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body := loadPolishFixture(t, tc.path)
+			step := findNumberedStep(body, "rich template")
+			if step == "" {
+				t.Fatalf("G-0345: %s must retain a body-fill step naming the rich template", tc.name)
+			}
+			if !strings.Contains(step, tc.wantPath) {
+				t.Errorf("G-0345: %s step 5 must name the materialized path %q", tc.name, tc.wantPath)
+			}
+			if !strings.Contains(step, "aiwf update") {
+				t.Errorf("G-0345: %s step 5 must name the `aiwf update` self-heal", tc.name)
+			}
+			if strings.Contains(step, "this plugin's") {
+				t.Errorf("G-0345: %s step 5 must drop the authoring-relative `this plugin's` reference", tc.name)
+			}
+		})
+	}
+}

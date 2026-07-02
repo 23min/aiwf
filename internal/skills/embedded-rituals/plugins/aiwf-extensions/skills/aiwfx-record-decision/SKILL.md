@@ -1,6 +1,6 @@
 ---
 name: aiwfx-record-decision
-description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate plugin template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
+description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
 ---
 
 # aiwfx-record-decision
@@ -52,7 +52,9 @@ aiwf creates the file with the minimal body skeleton, sets frontmatter, produces
 
 ### 3. Replace the body with the rich template
 
-For an ADR: read this plugin's `templates/adr.md`. Fill in:
+The rich template — **not** the minimal skeleton `aiwf add` just wrote — is the source for the full body, including the `# ADR-NNNN — <title>` H1 and the `> **Date:** … · **Decided by:** …` header from step 4. It ships materialized at `.claude/templates/adr.md` (ADR) and `.claude/templates/decision.md` (D-NNNN); `aiwf update` re-materializes both. If the file is absent, run `aiwf update` — **don't** reconstruct the format by copying an existing ADR or decision, which drifts from the canonical template and silently drops the H1 and header.
+
+For an ADR: read `.claude/templates/adr.md`. Fill in:
 
 - **Status** — keep `proposed` while the decision is open for ratification; flip to `accepted` once it's in force.
 - **Context** — what forces shape the choice; what alternatives were considered.
@@ -62,7 +64,7 @@ For an ADR: read this plugin's `templates/adr.md`. Fill in:
 
 **ADR authoring discipline** (CLAUDE.md §"Authoring an ADR"). *Decision is decision.* Record *what* was chosen and *why*, never *when* to act on it. Keep gate/schedule language out of the ADR body — no "ratify after X", no "status stays proposed through Y", no "accept once the epic closes." Whether the decision is in force is the `status:` field (`proposed` → `accepted`); *when to act on it* is a planning concern that lives in the planning surface, not the ADR prose.
 
-For a D-NNNN: read this plugin's `templates/decision.md`. Fill in:
+For a D-NNNN: read `.claude/templates/decision.md`. Fill in:
 
 - **Status** — same vocabulary.
 - **Question** — what was being decided; what made the answer non-obvious.

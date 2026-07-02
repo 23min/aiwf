@@ -213,3 +213,25 @@ func TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites(t *testing.T) {
 		t.Errorf("aiwf-add skill cites a doc by fragile pinned line number (%q); cite the section name instead", loc)
 	}
 }
+
+// TestAiwfAdd_RichTemplateLocationNote pins G-0345: the aiwf-add skill's
+// "Locating the rich body template" section tells the author where the rich
+// per-kind template lives (`.claude/templates/…`), names the `aiwf update`
+// self-heal, and records that gap/contract have no rich template (the skeleton
+// is their whole shape).
+func TestAiwfAdd_RichTemplateLocationNote(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, aiwfAddSkillPath)
+	section := sectionUnder(body, "Locating the rich body template")
+	if section == "" {
+		t.Fatal("G-0345: aiwf-add must carry a `Locating the rich body template` section")
+	}
+	for _, want := range []string{".claude/templates/", "aiwf update"} {
+		if !strings.Contains(section, want) {
+			t.Errorf("G-0345: aiwf-add locate-template section must name %q", want)
+		}
+	}
+	if !strings.Contains(strings.ToLower(section), "no rich template") {
+		t.Error("G-0345: aiwf-add must record that gap/contract have no rich template (skeleton is the whole shape)")
+	}
+}

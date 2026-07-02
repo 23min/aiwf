@@ -1,6 +1,6 @@
 ---
 name: aiwfx-plan-milestones
-description: Decomposes an approved aiwf epic into a sequenced set of independently-shippable milestones. Allocates each M-NNNN via `aiwf add milestone --epic E-NNNN`, scaffolds each milestone spec from the plugin's template, sequences them by dependency. Use after `aiwfx-plan-epic` when the user says "break this into milestones" or "plan the work for E-NNNN".
+description: Decomposes an approved aiwf epic into a sequenced set of independently-shippable milestones. Allocates each M-NNNN via `aiwf add milestone --epic E-NNNN`, scaffolds each milestone spec from its template, sequences them by dependency. Use after `aiwfx-plan-epic` when the user says "break this into milestones" or "plan the work for E-NNNN".
 ---
 
 # aiwfx-plan-milestones
@@ -37,7 +37,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    `aiwf` allocates the next free `M-NNNN` (global, not epic-scoped), creates `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md` with the minimal body skeleton, sets `parent: E-NNNN` in frontmatter, and produces one commit per milestone with `aiwf-verb: add` trailers.
 
-5. **Replace each milestone's body with the rich template** at this plugin's `templates/milestone-spec.md`. Fill in:
+5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in:
    - **Goal** — 1–2 sentences.
    - **Context** — what exists before; what must be in place; why now.
    - **Acceptance criteria** — testable, numbered (AC1, AC2, …).
