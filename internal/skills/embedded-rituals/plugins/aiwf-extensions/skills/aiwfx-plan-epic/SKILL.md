@@ -1,6 +1,6 @@
 ---
 name: aiwfx-plan-epic
-description: Scopes, refines, and documents a new aiwf epic. Allocates the next E-NN id via `aiwf add epic`, scaffolds an epic spec from the plugin's template, fills in goal/context/scope/constraints/success criteria, and stages the spec for the user's review. Use when the user says "plan feature X", "design the system for Y", or "I need to build Z". Calls aiwf — install only with the aiwf-extensions plugin.
+description: Scopes, refines, and documents a new aiwf epic. Allocates the next E-NN id via `aiwf add epic`, scaffolds an epic spec from its template, fills in goal/context/scope/constraints/success criteria, and stages the spec for the user's review. Use when the user says "plan feature X", "design the system for Y", or "I need to build Z". Calls aiwf — requires the aiwf binary.
 ---
 
 # aiwfx-plan-epic

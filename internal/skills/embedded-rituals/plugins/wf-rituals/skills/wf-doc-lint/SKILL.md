@@ -51,7 +51,7 @@ So this belongs in a **standalone tool the consumer's repo owns and configures**
 
 Patterns worth catching: `/Users/<name>/…` (macOS home), `/home/<name>/…` (Linux home; allowlist well-known devcontainer users like `/home/vscode/`), `C:\Users\<name>\…` (Windows), `~/…` / `$HOME/…` in prose (idiomatic in shell scripts — allowlist by file path), and machine-state paths (`/tmp/`, `/private/`, `/var/`, `/opt/`).
 
-**Recommended tool family:** [gitleaks](https://github.com/gitleaks/gitleaks) (also viable: `detect-secrets`, `ggshield`). The plugin ships no rules; the consumer's repo owns its `.gitleaks.toml`, tuned to its own contributors and allowlist.
+**Recommended tool family:** [gitleaks](https://github.com/gitleaks/gitleaks) (also viable: `detect-secrets`, `ggshield`). aiwf ships no rules; the consumer's repo owns its `.gitleaks.toml`, tuned to its own contributors and allowlist.
 
 **Where to wire it — the push is the trust boundary.** A secret is not exposed until it is **pushed**, so the scan belongs at **pre-push** (the real boundary) plus an operator-independent **CI** job (the authoritative chokepoint a skipped local hook can't bypass). A *pre-commit* hook only taxes every commit's latency without being the boundary — recommend against it.
 

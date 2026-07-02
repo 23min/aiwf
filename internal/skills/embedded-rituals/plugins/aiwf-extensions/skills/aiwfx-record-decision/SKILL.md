@@ -1,6 +1,6 @@
 ---
 name: aiwfx-record-decision
-description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate plugin template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
+description: Records a decision that surfaces during planning, implementation, or review — as an ADR (architectural, long-lived) or as an aiwf D-NNNN entity (project-scoped). Allocates the id via `aiwf add`, fills the body from the appropriate template, commits. Invoke in-flow whenever a decision worth keeping for future readers becomes clear; the calling skill (start-milestone, wrap-milestone, review-code, plan-epic, etc.) just hands off and continues.
 ---
 
 # aiwfx-record-decision

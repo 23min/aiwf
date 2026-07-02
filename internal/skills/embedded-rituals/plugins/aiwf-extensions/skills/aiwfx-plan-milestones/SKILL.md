@@ -1,6 +1,6 @@
 ---
 name: aiwfx-plan-milestones
-description: Decomposes an approved aiwf epic into a sequenced set of independently-shippable milestones. Allocates each M-NNNN via `aiwf add milestone --epic E-NNNN`, scaffolds each milestone spec from the plugin's template, sequences them by dependency. Use after `aiwfx-plan-epic` when the user says "break this into milestones" or "plan the work for E-NNNN".
+description: Decomposes an approved aiwf epic into a sequenced set of independently-shippable milestones. Allocates each M-NNNN via `aiwf add milestone --epic E-NNNN`, scaffolds each milestone spec from its template, sequences them by dependency. Use after `aiwfx-plan-epic` when the user says "break this into milestones" or "plan the work for E-NNNN".
 ---
 
 # aiwfx-plan-milestones
