@@ -167,11 +167,15 @@ HEAD walk. `aiwf add` still spawns ~13–14, scaling O(local branches) because i
 `git ls-tree` per branch (see class 3). On the devcontainer each `fork`/`exec` is
 expensive, so subprocess count is the felt-latency driver.
 
-The structural fix is already partly in the codebase: `internal/gitops/revwalk.go`
-`BulkRevwalk` runs **one** `git log --all --raw` subprocess emitting every commit's
-trailers + touched paths, replacing per-entity fan-out. `check` uses it; **`render`
-and `history` do not** — routing them through it collapses ~600 subprocesses → 1
-(see the render spike below).
+The structural fix is partly in the codebase, but the reusable piece is the
+HEAD-scoped walker, **not** `BulkRevwalk`. `internal/gitops/revwalk.go` `BulkRevwalk`
+runs **one** `git log --all --raw` subprocess for `check`, but it walks `--all` and
+collapses repeating trailers to a last-value map — unsafe for the read verbs, whose
+output is HEAD-scoped and needs `aiwf-scope-ends` / `aiwf-to` / `aiwf-prior-entity`.
+E-0053's `check.WalkHeadCommits` is the HEAD-scoped, full-trailer precedent to build
+on. Routing `render` through one such shared HEAD pass collapses ~1,860 walks → 1
+(see the render spike below); `history` / `show` instead drop the redundant
+authorize-opener grep (M-0223), not via a batched walker.
 
 ### 3. O(refs) fan-out
 
@@ -274,7 +278,7 @@ Which levers touch persistent state at all:
 | lever | persists state? | worktree/merge safe? |
 |---|---|---|
 | commit-graph + bloom filters | git-managed | ✅ SHA-keyed, immutable |
-| `BulkRevwalk` batching (render/history) | **no** | ✅ pure recompute |
+| shared HEAD-walk batching (render); grep guard (history/show) | **no** | ✅ pure recompute |
 | path-scoped history queries | **no** | ✅ a query, not a cache |
 | read-model projection cache | yes | ✅ **only if** SHA-keyed (above) |
 | incremental check "watermark" | yes | ⚠️ only as per-SHA memoization (above) |
