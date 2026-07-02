@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Drift chokepoint asserts operating anchors present in shipped guidance
-      status: open
+      status: met
     - id: AC-3
       title: Authoring rule records the audience dividing principle in CLAUDE.md
       status: open
