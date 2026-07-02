@@ -1,7 +1,9 @@
 ---
 id: G-0337
 title: statusline project-scope command breaks in worktree sessions
-status: open
+status: addressed
+addressed_by_commit:
+    - 8ad9ba0d
 ---
 ## Problem
 
