@@ -4,6 +4,15 @@ title: Structured, severity-tagged doctor findings + JSON envelope
 status: draft
 parent: E-0055
 tdd: required
+acs:
+    - id: AC-1
+      title: doctor emits typed severity-tagged findings the text report renders from
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf doctor --format=json emits the standard findings envelope
+      status: open
+      tdd_phase: red
 ---
 ## Deliverable
 
@@ -30,3 +39,8 @@ the text report and the JSON envelope render from.
   the verb, parses the envelope, and asserts a known finding (e.g. a missing
   `aiwf.yaml` on a non-initialized repo) appears at `severity: error`; plus the
   `--format` completion-drift test.
+
+### AC-1 — doctor emits typed severity-tagged findings the text report renders from
+
+### AC-2 — aiwf doctor --format=json emits the standard findings envelope
+
