@@ -4,7 +4,7 @@ title: Four-state statusline health stoplight from producer files
 status: draft
 parent: E-0055
 depends_on:
-    - M-0225
+    - M-0224
 tdd: required
 ---
 ## Deliverable
