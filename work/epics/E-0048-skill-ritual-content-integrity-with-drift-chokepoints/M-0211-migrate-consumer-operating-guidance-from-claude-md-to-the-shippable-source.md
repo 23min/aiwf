@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Authoring rule records the audience dividing principle in CLAUDE.md
-      status: open
+      status: met
 ---
 ## Goal
 
