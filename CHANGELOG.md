@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-07-02
+
 ### Changed — E-0053: faster `aiwf check`
 
 `aiwf check` now derives each commit's git history once per run instead of
