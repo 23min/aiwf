@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0055: installation-health stoplight in the statusline
+
+`aiwf doctor` now surfaces its warnings and errors as structured problems and writes them
+to `.claude/health.aiwf.json` (the fixed ai-dotfiles per-producer schema), refreshed on
+`aiwf update` and on demand via `aiwf doctor --write-health`. The aiwf-aware statusline
+reads and unions `.claude/health.*.json` and prefixes the line with a four-state
+installation-health stoplight — green `●` healthy, yellow `▲` warning, red `▲` error, gray
+`●` unknown — at the maximum severity, never running a check on the render path. This
+supersedes the earlier tree-check `⚠` glyph (M-0193), which surfaced planning-tree drift
+and rendered nothing when healthy (ADR-0026).
+
 ## [0.21.1] — 2026-07-02
 
 ### Fixed — G-0339: `aiwf contract` subverbs rejected by their own commit-msg hook
