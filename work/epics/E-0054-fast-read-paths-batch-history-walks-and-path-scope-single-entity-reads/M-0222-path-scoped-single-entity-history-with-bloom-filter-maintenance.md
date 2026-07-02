@@ -1,7 +1,7 @@
 ---
 id: M-0222
 title: Path-scoped single-entity history with bloom-filter maintenance
-status: draft
+status: cancelled
 parent: E-0054
 tdd: required
 acs:
