@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: doctor exposes its warnings and errors with severity and message
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
       status: open
