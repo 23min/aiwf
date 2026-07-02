@@ -93,7 +93,7 @@ func TestContractBind_NewBinding(t *testing.T) {
 	if !strings.Contains(string(res.Plan.Ops[0].Content), "C-0001") {
 		t.Errorf("aiwf.yaml content missing the new entry id:\n%s", res.Plan.Ops[0].Content)
 	}
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "bind")
+	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "contract-bind")
 	mustHaveTrailerInPlan(t, res.Plan, "aiwf-entity", "C-0001")
 }
 
@@ -226,7 +226,7 @@ func TestContractUnbind_Removes(t *testing.T) {
 	if strings.Contains(got, "C-0001") {
 		t.Errorf("entry not removed from aiwf.yaml:\n%s", got)
 	}
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "unbind")
+	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "contract-unbind")
 	mustHaveTrailerInPlan(t, res.Plan, "aiwf-entity", "C-0001")
 }
 

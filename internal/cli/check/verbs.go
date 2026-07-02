@@ -43,6 +43,21 @@ import (
 //
 // Closes G-0150.
 func enumerateRegisteredVerbs(root *cobra.Command) map[string]struct{} {
+	return enumerateRegisteredVerbsImpl(root)
+}
+
+// EnumerateRegisteredVerbs is the exported entry point onto the same
+// closed-set derivation the trailer-verb check consumes at RunE time.
+// It exists so consistency tests in sibling packages (e.g. the
+// integration suite that asserts every verb's stamped `aiwf-verb:`
+// trailer value is a member of this set — G-0339) reason about the
+// live command tree through the exact code path the check uses, rather
+// than re-implementing the hyphen-join walk and drifting from it.
+func EnumerateRegisteredVerbs(root *cobra.Command) map[string]struct{} {
+	return enumerateRegisteredVerbsImpl(root)
+}
+
+func enumerateRegisteredVerbsImpl(root *cobra.Command) map[string]struct{} {
 	if root == nil {
 		return nil
 	}

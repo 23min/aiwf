@@ -122,7 +122,7 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	return plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract bind %s", id),
 		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "bind"},
+			{Key: gitops.TrailerVerb, Value: "contract-bind"},
 			{Key: gitops.TrailerEntity, Value: id},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
@@ -182,7 +182,7 @@ func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Co
 	return plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract unbind %s", id),
 		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "unbind"},
+			{Key: gitops.TrailerVerb, Value: "contract-unbind"},
 			{Key: gitops.TrailerEntity, Value: id},
 			{Key: gitops.TrailerActor, Value: actor},
 		},

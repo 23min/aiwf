@@ -31,7 +31,7 @@ func TestRecipeInstall_NewValidator(t *testing.T) {
 	if !strings.Contains(got, "cue") {
 		t.Errorf("aiwf.yaml missing the new validator:\n%s", got)
 	}
-	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "recipe-install")
+	mustHaveTrailerInPlan(t, res.Plan, "aiwf-verb", "contract-recipe-install")
 }
 
 func TestRecipeInstall_IdempotentExactMatch(t *testing.T) {

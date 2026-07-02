@@ -158,7 +158,7 @@ entities:
 		// its own commit). At test time there are no bindings yet, so
 		// the install/remove commits carry zero aiwf-entity trailers
 		// — which is the documented shape (no entity to attribute).
-		{"contract recipe install jsonschema", []string{"contract", "recipe", "install", "jsonschema", "--actor", "human/test", "--root", root}, "recipe-install", 0},
+		{"contract recipe install jsonschema", []string{"contract", "recipe", "install", "jsonschema", "--actor", "human/test", "--root", root}, "contract-recipe-install", 0},
 	}
 
 	for _, s := range steps {
@@ -185,9 +185,9 @@ entities:
 	}
 
 	bindSteps := []step{
-		{"contract bind C-001", []string{"contract", "bind", "C-0001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}, "bind", 1},
-		{"contract unbind C-001", []string{"contract", "unbind", "C-0001", "--actor", "human/test", "--root", root}, "unbind", 1},
-		{"contract recipe remove jsonschema", []string{"contract", "recipe", "remove", "jsonschema", "--actor", "human/test", "--root", root}, "recipe-remove", 0},
+		{"contract bind C-001", []string{"contract", "bind", "C-0001", "--validator", "jsonschema", "--schema", "fixtures-contract-schema.json", "--fixtures", "fixtures-contract-data", "--actor", "human/test", "--root", root}, "contract-bind", 1},
+		{"contract unbind C-001", []string{"contract", "unbind", "C-0001", "--actor", "human/test", "--root", root}, "contract-unbind", 1},
+		{"contract recipe remove jsonschema", []string{"contract", "recipe", "remove", "jsonschema", "--actor", "human/test", "--root", root}, "contract-recipe-remove", 0},
 	}
 	for _, s := range bindSteps {
 		t.Run(s.name, func(t *testing.T) {

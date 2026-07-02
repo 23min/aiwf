@@ -56,7 +56,7 @@ func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Con
 	}
 
 	trailers := []gitops.Trailer{
-		{Key: gitops.TrailerVerb, Value: "recipe-install"},
+		{Key: gitops.TrailerVerb, Value: "contract-recipe-install"},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
 	for _, id := range bindingsReferencing(current, name) {
@@ -97,7 +97,7 @@ func RecipeRemove(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Cont
 	return plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract recipe remove %s", name),
 		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "recipe-remove"},
+			{Key: gitops.TrailerVerb, Value: "contract-recipe-remove"},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
