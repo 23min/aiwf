@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.21.1] — 2026-07-02
+
+### Fixed — G-0339: `aiwf contract` subverbs rejected by their own commit-msg hook
+
+The four `aiwf contract` subverbs — `recipe install`, `recipe remove`, `bind`,
+and `unbind` — stamped an `aiwf-verb:` trailer (`recipe-install`,
+`recipe-remove`, `bind`, `unbind`) that was absent from the closed verb set the
+trailer-verb check derives from the command tree. In any repo initialized with
+the `commit-msg` hook (v0.21.0's G-0218 chokepoint), each verb's own commit was
+refused and the verb aborted, leaving the contract feature unusable. The
+trailers now carry the full hyphen-joined command path
+(`contract-recipe-install`, `contract-recipe-remove`, `contract-bind`,
+`contract-unbind`), agreeing with the single mechanical source of truth. A new
+policy test asserts every verb's stamped trailer is a member of the registered
+set, so the class cannot recur.
+
 ## [0.21.0] — 2026-07-02
 
 ### Changed — E-0053: faster `aiwf check`
