@@ -1,8 +1,10 @@
 ---
 id: G-0220
 title: Ritual SKILL.md edits without structural AC pins have no mechanical backstop
-status: open
+status: addressed
 discovered_in: M-0160
+addressed_by:
+    - M-0196
 ---
 
 ## What's missing
