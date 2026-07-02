@@ -1,7 +1,7 @@
 ---
 id: E-0055
 title: 'Health as install status: producer health files + statusline stoplight'
-status: proposed
+status: active
 ---
 ## Goal
 
