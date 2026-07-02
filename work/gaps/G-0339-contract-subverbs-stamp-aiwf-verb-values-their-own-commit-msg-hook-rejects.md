@@ -1,7 +1,9 @@
 ---
 id: G-0339
 title: contract subverbs stamp aiwf-verb values their own commit-msg hook rejects
-status: open
+status: addressed
+addressed_by_commit:
+    - 1853ee7f
 ---
 ## What's missing
 
