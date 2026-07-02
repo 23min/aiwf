@@ -1,7 +1,9 @@
 ---
 id: G-0345
 title: Skills cite rich-template paths that don't resolve in consumer repos
-status: open
+status: addressed
+addressed_by_commit:
+    - 04c3db35
 ---
 ## What's missing
 
