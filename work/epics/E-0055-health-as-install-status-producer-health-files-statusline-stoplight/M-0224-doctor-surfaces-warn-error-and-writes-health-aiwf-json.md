@@ -10,7 +10,7 @@ acs:
       status: open
       tdd_phase: red
     - id: AC-2
-      title: aiwf doctor --format=json emits the standard findings envelope
+      title: aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
       status: open
       tdd_phase: red
 ---
@@ -42,5 +42,5 @@ the text report and the JSON envelope render from.
 
 ### AC-1 — doctor exposes its warnings and errors with severity and message
 
-### AC-2 — aiwf doctor --format=json emits the standard findings envelope
+### AC-2 — aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
 
