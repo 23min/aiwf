@@ -30,11 +30,13 @@ node_modules/
 .github/skills/
 
 # .claude/ is gitignored except shared project config and chokepoint hooks:
-# the status line script, the project-level settings.json, and any tracked
-# hook scripts under .claude/hooks/. Per-user files stay local.
+# the project-level settings.json and any tracked hook scripts under
+# .claude/hooks/. The statusline script is a materialized artifact — its
+# source of truth is the embedded snapshot at
+# internal/skills/embedded-statusline/statusline.sh, regenerated locally by
+# `aiwf update --statusline` — so it stays ignored. Per-user files stay local.
 .claude/*
 !.claude/settings.json
-!.claude/statusline.sh
 !.claude/hooks/
 
 # Drafts that ship to proliminal.net/notes are written and revised locally,

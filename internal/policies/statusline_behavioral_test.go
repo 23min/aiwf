@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/skills"
 )
 
 // --- M-0191 / G-0187: behavioral harness for .claude/statusline.sh ----------
@@ -31,10 +33,23 @@ import (
 // statuslineANSI strips ANSI SGR escape sequences from rendered output.
 var statuslineANSI = regexp.MustCompile("\x1b\\[[0-9;]*m")
 
-// statuslineScript is the absolute path to the worktree's statusline.sh.
+// statuslineScript materializes the embedded statusline script
+// (`skills.StatuslineBytes`) to an executable temp file and returns its
+// path. The behavioral harness execs the single source of truth — the
+// embedded snapshot — rather than a materialized `.claude/statusline.sh`
+// copy, which the repo no longer tracks. Each caller gets its own
+// t.TempDir copy, so this is safe under t.Parallel.
 func statuslineScript(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(repoRoot(t), ".claude", "statusline.sh")
+	body := skills.StatuslineBytes()
+	if len(body) == 0 {
+		t.Fatal("skills.StatuslineBytes() returned empty — the go:embed directive is not wired or the source file is empty")
+	}
+	dest := filepath.Join(t.TempDir(), "statusline.sh")
+	if err := os.WriteFile(dest, body, 0o755); err != nil {
+		t.Fatalf("materializing statusline.sh: %v", err)
+	}
+	return dest
 }
 
 // gitIn runs git in dir, failing the test on error, returning trimmed stdout.

@@ -1,28 +1,28 @@
 package policies
 
 import (
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/skills"
 )
 
-const statuslineRelPath = ".claude/statusline.sh"
-
-// loadStatusline reads the canonical aiwf-aware Claude Code
-// statusline script from the repo root and returns its content.
-// The script is the test target for M-0153's three content-assertion
-// ACs and ships verbatim in the consumer's `.claude/statusline.sh`
-// once M-0155's `--statusline` scaffold lands.
+// loadStatusline returns the aiwf-aware Claude Code statusline script
+// from the embedded snapshot (`skills.StatuslineBytes`) — the single
+// source of truth. The repo no longer tracks a materialized
+// `.claude/statusline.sh` copy; the embedded snapshot under
+// `internal/skills/embedded-statusline/statusline.sh` is authoritative
+// and is materialized verbatim into a consumer's `.claude/statusline.sh`
+// by the `--statusline` scaffold. The script is the test target for
+// M-0153's three content-assertion ACs.
 func loadStatusline(t *testing.T) string {
 	t.Helper()
-	root := repoRoot(t)
-	data, err := os.ReadFile(filepath.Join(root, statuslineRelPath))
-	if err != nil {
-		t.Fatalf("reading %s: %v", statuslineRelPath, err)
+	body := skills.StatuslineBytes()
+	if len(body) == 0 {
+		t.Fatal("skills.StatuslineBytes() returned empty — the go:embed directive is not wired or the source file is empty")
 	}
-	return string(data)
+	return string(body)
 }
 
 // TestStatusline_M0153_AC1_TranscriptWalkPortable asserts M-0153/AC-1:
