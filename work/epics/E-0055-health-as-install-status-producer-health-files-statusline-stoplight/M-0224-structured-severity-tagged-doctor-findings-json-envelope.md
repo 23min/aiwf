@@ -1,7 +1,7 @@
 ---
 id: M-0224
 title: Structured, severity-tagged doctor findings + JSON envelope
-status: draft
+status: in_progress
 parent: E-0055
 tdd: required
 acs:
