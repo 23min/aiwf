@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf writes .claude/health.aiwf.json from doctor's warnings and errors
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: statusline reads the health files and renders the four-state stoplight
