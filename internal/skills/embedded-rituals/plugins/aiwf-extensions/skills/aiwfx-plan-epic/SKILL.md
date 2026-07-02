@@ -37,7 +37,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    `aiwf` allocates the next free `E-NN`, creates `work/epics/E-NN-<slug>/epic.md` with the minimal body skeleton (`## Goal / ## Scope / ## Out of scope`), and produces one commit with `aiwf-verb: add` trailers.
 
-5. **Replace the body with the rich template** at this plugin's `templates/epic-spec.md`. Fill in:
+5. **Replace the body with the rich template** at `.claude/templates/epic-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing epic spec). Fill in:
    - **Goal** — 1–2 sentences, value-shaped.
    - **Context** — what exists; why now; prior epics this builds on.
    - **Scope** — in / out, both populated.
