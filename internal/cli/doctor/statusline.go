@@ -183,7 +183,7 @@ func appendProjectCommandCheck(in []string, rootDir string) []string {
 	}
 	if fb := resolvedFallbackPath(cmd); fb != "" {
 		if _, err := os.Stat(fb); err != nil {
-			return append(in, subIndent+fmt.Sprintf("command: project statusLine fallback %q does not resolve (stale after a move/remount) — re-run `aiwf update --statusline` or switch to `--scope user`", fb))
+			return append(in, subIndent+fmt.Sprintf("command: project statusLine fallback %q does not resolve (e.g. stale after a move/remount) — re-run `aiwf update --statusline` or switch to `--scope user`", fb))
 		}
 	}
 	return in

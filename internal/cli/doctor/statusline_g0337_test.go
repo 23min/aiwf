@@ -59,6 +59,16 @@ func TestStatuslineReport_G0337_PrecedenceConflict(t *testing.T) {
 			t.Errorf("expected no precedence warning when only user is wired; got %v", out)
 		}
 	})
+	t.Run("only project wired → silent", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		home := t.TempDir()
+		writeSettingsWithCommand(t, root, "settings.local.json", "${CLAUDE_PROJECT_DIR:-"+root+"}/.claude/statusline.sh")
+		out := appendPrecedenceCheck(nil, root, home)
+		if containsSub(out, "precedence:") {
+			t.Errorf("expected no precedence warning when only project is wired; got %v", out)
+		}
+	})
 }
 
 // TestStatuslineReport_G0337_ProjectCommandHealth asserts the project

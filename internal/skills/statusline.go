@@ -49,8 +49,8 @@ type StatuslineScaffoldResult struct {
 	// Wrote is true when the script was written or refreshed on this
 	// invocation. False when an already-current copy (byte-equal to the
 	// embed) was left untouched. The scaffold is idempotent: it refreshes
-	// a stale copy on every `aiwf update` rather than preserving it
-	// (G-0337, superseding the earlier scaffold-once lifecycle).
+	// a stale copy on every `aiwf update --statusline` rather than
+	// preserving it (G-0337, superseding the earlier scaffold-once lifecycle).
 	Wrote bool
 
 	// GitignoreAppended is true when `.claude/statusline.sh` was added
@@ -76,9 +76,9 @@ type StatuslineScaffoldResult struct {
 // user's home directory is resolved via `os.UserHomeDir()`; tests that
 // need a deterministic home use `ScaffoldStatuslineWithHome`.
 //
-// The on-disk script is an aiwf-owned artifact: like the materialized
-// skills and hooks it is byte-refreshed on every `aiwf update` (G-0337),
-// so a local edit does not survive — customize by wiring your own
+// The on-disk script is an aiwf-owned artifact, byte-refreshed to the
+// embedded copy on every `aiwf update --statusline` (G-0337) — so a
+// local edit does not survive; customize by wiring your own
 // `statusLine.command`, not by editing this copy.
 func ScaffoldStatusline(root string, scope StatuslineScope) (StatuslineScaffoldResult, error) {
 	home, err := os.UserHomeDir()

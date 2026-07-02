@@ -55,7 +55,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&actor, "actor", "", "default actor for the commit trailer (overrides git config derivation)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what init would do without writing anything")
 	cmd.Flags().BoolVar(&skipHook, "skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
-	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (byte-refreshed on every update)")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (refreshed to the embedded copy on each --statusline run)")
 	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script: user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
 	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},

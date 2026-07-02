@@ -46,7 +46,7 @@ func NewCmd() *cobra.Command {
   aiwf update
 
   # Refresh as above plus scaffold the aiwf-aware statusline
-  # (byte-refreshed on every update; user scope by default)
+  # (refreshed to the embedded copy each run; user scope by default)
   aiwf update --statusline
   aiwf update --statusline --scope project`,
 		Args:          cobra.NoArgs,
@@ -57,7 +57,7 @@ func NewCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
-	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (byte-refreshed on every update)")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (refreshed to the embedded copy on each --statusline run)")
 	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script: user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
 	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},

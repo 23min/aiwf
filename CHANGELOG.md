@@ -27,6 +27,18 @@ check rendering test to a synthetic fixture and sharing the built binary
 across check tests (M-0220). Three further candidate optimizations
 (M-0217/M-0218/M-0219) were measured and dropped as not worth the risk.
 
+### Fixed — G-0337: statusline resolves in git worktrees
+
+`aiwf init/update --statusline` now defaults to **user scope**
+(`$HOME/.claude/statusline.sh`), which resolves from any working directory —
+including the git worktrees aiwf's own epic/milestone rituals run in, where
+the previous cwd-relative project-scope command silently rendered a blank
+statusline. Project scope stays available via `--scope project` and now emits
+a `${CLAUDE_PROJECT_DIR:-<root>}`-anchored command. The script is refreshed to
+the embedded copy on every `--statusline` run (no longer scaffold-once), and
+`aiwf doctor` now warns on a project/user statusLine precedence conflict and
+on a stale or cwd-relative project command.
+
 ## [0.20.0] — 2026-06-29
 
 ### Changed — E-0052: the id allocator catches cross-branch collisions at allocation time
