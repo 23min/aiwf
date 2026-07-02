@@ -1,7 +1,9 @@
 ---
 id: G-0338
 title: Compress CLAUDE.md to a primed rules-only digest under the size limit
-status: open
+status: addressed
+addressed_by_commit:
+    - 4a61ffb4
 ---
 ## What's missing
 
