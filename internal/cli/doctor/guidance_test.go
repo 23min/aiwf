@@ -35,7 +35,8 @@ func guidanceFixture(t *testing.T, withGuidanceFile, withImport bool) string {
 func TestGuidanceImportReport_UnwiredEmitsAdvisory(t *testing.T) {
 	t.Parallel()
 	root := guidanceFixture(t, true, false)
-	out := strings.Join(appendGuidanceImportReport(nil, root), "\n")
+	lines, _ := appendGuidanceImportReport(nil, nil, root)
+	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "claudemd-guidance-unwired") {
 		t.Errorf("AC-1: expected the unwired advisory; got:\n%s", out)
 	}
@@ -52,7 +53,8 @@ func TestGuidanceImportReport_RespectsOptOut(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"), []byte("guidance:\n  wire_claudemd: false\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out := strings.Join(appendGuidanceImportReport(nil, root), "\n")
+	lines, _ := appendGuidanceImportReport(nil, nil, root)
+	out := strings.Join(lines, "\n")
 	if strings.Contains(out, "claudemd-guidance-unwired") {
 		t.Errorf("opt-out: doctor should not nag when wiring is disabled; got:\n%s", out)
 	}
@@ -77,7 +79,8 @@ func TestGuidanceImportReport_States(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			root := guidanceFixture(t, tc.withGuidanceFile, tc.withImport)
-			out := strings.Join(appendGuidanceImportReport(nil, root), "\n")
+			lines, _ := appendGuidanceImportReport(nil, nil, root)
+			out := strings.Join(lines, "\n")
 			if got := strings.Contains(out, "claudemd-guidance-unwired"); got != tc.wantUnwired {
 				t.Errorf("AC-2/AC-3 [%s]: unwired advisory present=%v, want %v; out:\n%s", tc.name, got, tc.wantUnwired, out)
 			}
@@ -96,7 +99,8 @@ func TestGuidanceImportReport_GuidancePresentNoClaudeMd(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, ".claude", "aiwf-guidance.md"), []byte("g"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out := strings.Join(appendGuidanceImportReport(nil, root), "\n")
+	lines, _ := appendGuidanceImportReport(nil, nil, root)
+	out := strings.Join(lines, "\n")
 	if !strings.Contains(out, "claudemd-guidance-unwired") {
 		t.Errorf("guidance present but no CLAUDE.md should be unwired; got:\n%s", out)
 	}

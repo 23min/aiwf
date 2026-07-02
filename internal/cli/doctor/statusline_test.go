@@ -16,7 +16,7 @@ func TestStatuslineReport_AC1_NotEmittedWithoutInstall(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	home := t.TempDir()
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	for _, line := range lines {
 		if strings.Contains(line, "statusline:") {
 			t.Errorf("AC-1: statusline block must not be emitted when the script is not installed; got line: %s", line)
@@ -35,7 +35,7 @@ func TestStatuslineReport_AC1_EmittedWhenInstalled(t *testing.T) {
 	home := t.TempDir()
 	installStatusline(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	found := false
 	for _, line := range lines {
 		if strings.Contains(line, "statusline:") && strings.Contains(line, "installed") {
@@ -81,7 +81,7 @@ func TestStatuslineReport_AC3_NotWiredPrintsSnippet(t *testing.T) {
 	home := t.TempDir()
 	installStatusline(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	foundWiring := false
 	for _, line := range lines {
 		if strings.Contains(line, "wiring:") && strings.Contains(line, "not found") {
@@ -103,7 +103,7 @@ func TestStatuslineReport_AC3_WiredSuppressesSnippet(t *testing.T) {
 	installStatusline(t, root)
 	wireSettings(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	for _, line := range lines {
 		if strings.Contains(line, "wiring:") {
 			t.Errorf("AC-3: wiring hint must not be emitted when statusLine is already wired; got line: %s", line)
@@ -123,7 +123,7 @@ func TestStatuslineReport_AC4_DriftDetected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	foundDrift := false
 	for _, line := range lines {
 		if strings.Contains(line, "drift:") {
@@ -144,7 +144,7 @@ func TestStatuslineReport_AC4_NoDriftWhenMatching(t *testing.T) {
 	home := t.TempDir()
 	installStatusline(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	for _, line := range lines {
 		if strings.Contains(line, "drift:") {
 			t.Errorf("AC-4: drift line must not be emitted when on-disk matches embedded; got line: %s", line)
@@ -160,7 +160,7 @@ func TestStatuslineReport_AC5_ContainerNudge(t *testing.T) {
 	home := t.TempDir()
 	installStatusline(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, true)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, true)
 	foundNudge := false
 	for _, line := range lines {
 		if strings.Contains(line, "nudge:") && strings.Contains(line, "--scope user") {
@@ -181,7 +181,7 @@ func TestStatuslineReport_AC5_NoNudgeOutsideContainer(t *testing.T) {
 	home := t.TempDir()
 	installStatusline(t, root)
 
-	lines := appendStatuslineReportWithHome(nil, root, home, false)
+	lines, _ := appendStatuslineReportWithHome(nil, nil, root, home, false)
 	for _, line := range lines {
 		if strings.Contains(line, "nudge:") {
 			t.Errorf("AC-5: nudge must not be emitted outside container; got line: %s", line)

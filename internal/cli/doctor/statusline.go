@@ -18,20 +18,21 @@ import (
 // os.UserHomeDir(). Tests use appendStatuslineReportWithHome.
 //
 // M-0157.
-func appendStatuslineReport(in []string, rootDir string) []string {
+func appendStatuslineReport(in []string, problemsIn []Problem, rootDir string) (lines []string, problems []Problem) {
 	home, _ := os.UserHomeDir()
 	inContainer, _ := InContainer()
-	return appendStatuslineReportWithHome(in, rootDir, home, inContainer)
+	return appendStatuslineReportWithHome(in, problemsIn, rootDir, home, inContainer)
 }
 
 // appendStatuslineReportWithHome is the testable core. Emitted only
 // when `.claude/statusline.sh` exists in the repo (project scope) or
-// the user's home (user scope). Advisory only — never increments the
-// problem count.
+// the user's home (user scope). Advisories surface as SeverityWarn
+// problems (never SeverityError) — they inform but do not gate exit.
 //
 // Reports: dep availability (jq, gh), wiring state, embedded-vs-on-disk
 // drift, and a container + project-scope nudge toward --scope user.
-func appendStatuslineReportWithHome(in []string, rootDir, home string, inContainer bool) []string {
+func appendStatuslineReportWithHome(in []string, problemsIn []Problem, rootDir, home string, inContainer bool) (lines []string, problems []Problem) {
+	problems = problemsIn
 	projectPath := filepath.Join(rootDir, ".claude", "statusline.sh")
 	userPath := ""
 	if home != "" {
@@ -40,11 +41,14 @@ func appendStatuslineReportWithHome(in []string, rootDir, home string, inContain
 
 	installedPath, scope := resolveInstalledStatusline(projectPath, userPath)
 	if installedPath == "" {
-		return in
+		return in, problems
 	}
 
 	out := in
 	out = append(out, fmt.Sprintf("%sinstalled (%s scope: %s)", label("statusline:"), scope, installedPath))
+	// The `installed` header is a status line, not an advisory; every
+	// sub-line the checks below emit is an actionable warning.
+	advisoryStart := len(out)
 
 	out = appendDepCheck(out, "jq", jqInstallHint())
 	out = appendDepCheck(out, "gh", ghInstallHint())
@@ -58,7 +62,13 @@ func appendStatuslineReportWithHome(in []string, rootDir, home string, inContain
 		out = append(out, subIndent+"nudge: running in a container with project scope — consider `aiwf update --statusline --scope user` so the statusline works across all repos in this container")
 	}
 
-	return out
+	// Surface each advisory sub-line as a SeverityWarn without disturbing
+	// the byte-for-byte report lines the checks already produced.
+	for _, ln := range out[advisoryStart:] {
+		problems = append(problems, Problem{Severity: SeverityWarn, Message: strings.TrimSpace(ln)})
+	}
+
+	return out, problems
 }
 
 // resolveInstalledStatusline returns the path and scope label of the

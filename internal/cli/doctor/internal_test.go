@@ -10,7 +10,7 @@ import (
 // materialized and points at `aiwf update`.
 func TestAppendMaterializedRitualsReport_EmptyRoot(t *testing.T) {
 	t.Parallel()
-	out := appendMaterializedRitualsReport(nil, t.TempDir())
+	out, _ := appendMaterializedRitualsReport(nil, nil, t.TempDir())
 	joined := strings.Join(out, "\n")
 	if !strings.Contains(joined, "not materialized") || !strings.Contains(joined, "aiwf update") {
 		t.Errorf("empty root should report rituals not materialized; got:\n%s", joined)

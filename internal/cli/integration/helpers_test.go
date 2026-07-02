@@ -7,7 +7,23 @@ import (
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/doctor"
 )
+
+// doctorReport runs doctor.DoctorReport and collapses its []Problem
+// return to the count of error-severity problems — the exit-relevant
+// count these tests assert against (warnings never gate doctor's exit,
+// so an advisory-only report still counts as zero problems here).
+func doctorReport(root string, opts doctor.DoctorOptions) (lines []string, errs int) {
+	var problems []doctor.Problem
+	lines, problems = doctor.DoctorReport(root, opts)
+	for i := range problems {
+		if problems[i].Severity == doctor.SeverityError {
+			errs++
+		}
+	}
+	return lines, errs
+}
 
 // setupCLITestRepo gives the test process a git identity and an
 // initialized repo; returns the repo root.

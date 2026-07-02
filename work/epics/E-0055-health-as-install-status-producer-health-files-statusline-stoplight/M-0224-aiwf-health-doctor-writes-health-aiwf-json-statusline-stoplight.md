@@ -55,3 +55,33 @@ with a four-state stoplight at the maximum severity: green `●` healthy, yellow
 red `▲` error, gray `●` unknown (no readable file). It runs no check on the render path.
 Evidence: behavioral tests per state, the cross-producer union (max severity wins), and the
 all-corrupt → gray degrade.
+
+## Work log
+
+- **AC-1 / AC-2 / AC-3 — met.** `aiwf doctor` surfaces warnings/errors as `[]Problem`
+  (byte-identical human report); `WriteHealth` + `aiwf doctor --write-health` writes
+  `.claude/health.aiwf.json` (main-checkout-resolved, atomic), refreshed by `aiwf update`;
+  the statusline renders the four-state stoplight from the health files. Delivered as one
+  change; per-AC phase timeline in `aiwf history M-0224/AC-<N>`.
+
+## Validation
+
+- `make check-fast` green (full `golangci-lint` + `go vet` + full `go test` suite).
+- `go build ./...` clean; `bash -n internal/skills/embedded-statusline/statusline.sh` clean.
+- Diff-scoped coverage: the two CLI seams (`runWriteHealth`, `aiwf update`'s refresh call)
+  are exercised by `internal/cli/integration/health_producer_test.go`; the two unreachable
+  filesystem-fault error branches carry `//coverage:ignore`.
+
+## Reviewer notes
+
+- Two rounds of independent fresh-context review (`reviewer` agent) gated closure. Round 1
+  → request-changes: B1 (untested CLI seams), B2 (no worktree-resolution evidence), B3
+  (all-corrupt rendered green vs ADR-0026's "none parse → gray"), C1 (consumer implemented
+  off its own milestone). Round 2 verified five of six resolved and caught R1 (an
+  `update.go` error branch missing the `//coverage:ignore`); R1 fixed → approve.
+- Scope was deliberately minimized after an initial over-built single-source-of-truth
+  refactor of the whole doctor report was reverted. The shipped change is an additive
+  `problems int → []Problem` thread; doctor's human output is unchanged.
+- M-0226 (originally the statusline-consumer split) was folded in as AC-3 and cancelled;
+  M-0225 (originally the producer split) was folded into AC-2 and cancelled — the whole
+  feature lands as this one milestone.
