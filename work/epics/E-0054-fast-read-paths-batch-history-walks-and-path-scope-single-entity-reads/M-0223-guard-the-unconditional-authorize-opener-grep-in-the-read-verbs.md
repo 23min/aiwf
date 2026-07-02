@@ -6,7 +6,7 @@ parent: E-0054
 tdd: required
 acs:
     - id: AC-1
-      title: authorize-opener grep is skipped for an entity with no scope data
+      title: guard predicate returns skip for events with no scope data
       status: open
       tdd_phase: red
     - id: AC-2
@@ -44,7 +44,7 @@ renders identical scope info. The shared scope map benefits `render` too.
 
 ## Acceptance criteria
 
-### AC-1 — authorize-opener grep is skipped for an entity with no scope data
+### AC-1 — guard predicate returns skip for events with no scope data
 
 ### AC-2 — history output is byte-identical for a scoped entity after the guard
 
