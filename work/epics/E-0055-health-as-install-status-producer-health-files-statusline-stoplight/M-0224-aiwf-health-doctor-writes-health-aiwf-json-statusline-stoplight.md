@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: statusline reads the health files and renders the four-state stoplight
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Deliverable
 
