@@ -1,7 +1,9 @@
 ---
 id: G-0300
 title: Ritual body-fill commits must route through aiwf edit-body (trailered)
-status: open
+status: addressed
+addressed_by:
+    - M-0201
 ---
 ## Problem
 
