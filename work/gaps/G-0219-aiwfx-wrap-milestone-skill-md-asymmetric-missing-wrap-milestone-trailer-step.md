@@ -1,8 +1,11 @@
 ---
 id: G-0219
 title: 'aiwfx-wrap-milestone SKILL.md asymmetric: missing wrap-milestone trailer step'
-status: open
+status: addressed
 discovered_in: M-0160
+addressed_by:
+    - M-0196
+    - M-0210
 ---
 
 ## What's missing
