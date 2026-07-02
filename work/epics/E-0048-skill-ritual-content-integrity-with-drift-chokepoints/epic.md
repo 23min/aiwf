@@ -37,17 +37,19 @@ commit/TDD-model subset is lifecycle epic E-0049.
   (G-0294); descriptions + whiteboard + prose polish (G-0298); planning-ritual
   body-fill routing through edit-body (G-0300); plan-milestones Next-step (G-0248);
   devcontainer onboarding banner (G-0279).
-- **Cross-ritual deduplication:** extract the trailered-commit / merge block and
-  its caveats — duplicated across `aiwfx-wrap-epic`, `aiwfx-wrap-milestone`, and
-  `aiwfx-release` — into a `wf-commit-trailers` reference skill the rituals cite,
-  per the mechanism ratified in ADR-0024 (M-0210).
+- **Cross-ritual drift protection:** guard the trailered-commit / merge block and
+  its caveats — duplicated across `aiwfx-wrap-epic` and `aiwfx-wrap-milestone`
+  (`aiwfx-release` carries no such block) — against drift with a mechanical
+  chokepoint. This reframed M-0210: the originally-proposed extraction into a
+  `wf-commit-trailers` reference skill (ADR-0024) was **rejected** in favour of
+  keeping the block inline and policing it, so no reference skill was created.
 
 ### Out of scope
 
 - The gate-discipline model (foundation epic E-0050) and the commit/TDD model
   (lifecycle epic E-0049).
 - The tier-C ritual-design gaps (separate triage).
-- New kernel verbs or features beyond the three chokepoint policies.
+- New kernel verbs or features beyond the chokepoint policies described in scope.
 
 ## Constraints
 
@@ -91,5 +93,5 @@ commit/TDD-model subset is lifecycle epic E-0049.
 6. Descriptions + whiteboard + prose polish (G-0298).
 7. Planning-ritual body-fill routing + plan-milestones Next-step (G-0300, G-0248, G-0331). The G-0300 edits to `aiwfx-plan-epic` + `aiwfx-record-decision` trip the skill-edit backstop ratchet, forcing G-0331's two structural tests here (M-0200's G-0298 edit to `aiwfx-record-decision` may clear that half earlier).
 8. Devcontainer onboarding banner (G-0279).
-9. Extract trailered-commit duplication into a `wf-commit-trailers` reference skill (M-0210, ADR-0024).
+9. Drift chokepoint for the trailered-commit block in the wrap rituals, reframed from the ADR-0024 reference-skill extraction (M-0210). ADR-0024 was rejected; the block stays inline, policed by `PolicyM0210TrailerCommitDrift`.
 10. Migrate consumer operating guidance from CLAUDE.md to the shippable embedded-guidance source, plus a drift chokepoint (G-0313).
