@@ -4,6 +4,19 @@ title: Guard the unconditional authorize-opener grep in aiwf history
 status: draft
 parent: E-0054
 tdd: required
+acs:
+    - id: AC-1
+      title: authorize-opener grep is skipped for an entity with no scope data
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: history output is byte-identical for a scoped entity after the guard
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: measured history text wall-time delta recorded in Validation
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -30,3 +43,10 @@ renders identical scope info. The shared scope map benefits `render` too.
   (remove a whole-history grep that shouldn't run); land it independently.
 
 ## Acceptance criteria
+
+### AC-1 — authorize-opener grep is skipped for an entity with no scope data
+
+### AC-2 — history output is byte-identical for a scoped entity after the guard
+
+### AC-3 — measured history text wall-time delta recorded in Validation
+
