@@ -1,7 +1,9 @@
 ---
 id: G-0312
 title: materialized statusline never refreshes on aiwf update (write-only-if-absent)
-status: open
+status: addressed
+addressed_by_commit:
+    - 8ad9ba0d
 ---
 ## What's missing
 
