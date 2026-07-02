@@ -1,7 +1,9 @@
 ---
 id: G-0341
 title: Shipped aiwf-guidance carves an approval-batching exception it doesn't own
-status: open
+status: addressed
+addressed_by_commit:
+    - c9d988b3
 ---
 ## Problem
 
