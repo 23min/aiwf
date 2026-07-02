@@ -1,7 +1,9 @@
 ---
 id: G-0294
 title: 'wf-doc-lint ships stale gitleaks advice: pre-commit + deprecated detect'
-status: open
+status: addressed
+addressed_by:
+    - M-0199
 ---
 ## Problem
 
