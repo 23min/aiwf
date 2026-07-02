@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: statusline reads the health files and renders the four-state stoplight
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Deliverable
