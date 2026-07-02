@@ -27,26 +27,48 @@ acs:
 Replace render's per-entity git-history fan-out with one shared single-pass walk,
 covering **both** walk families the spike identified:
 
-1. **Per-entity events** — `resolver.history(id)`, called N+2× per milestone (once
-   per AC composite `M-NNNN/AC-N`, plus the commits table, plus the provenance
-   timeline).
-2. **Provenance/scopes** — `show.LoadEntityScopeViews(m.ID)`, which itself runs a
-   per-milestone `history.ReadHistory` plus a full `readAllAuthorizeOpeners` grep.
+1. **Per-entity events** — `resolver.history(id)` → `history.ReadHistory`, one HEAD
+   walk per epic / milestone / AC composite (`M-NNNN/AC-N`) / other-entity, cached
+   per id in the resolver.
+2. **Provenance/scopes** — `show.LoadEntityScopeViews(m.ID)`, run once per
+   milestone, which *re-walks* the milestone's history uncached **and** runs a full
+   `readAllAuthorizeOpeners` grep (an unbounded HEAD `git log`), plus per-scope
+   `LoadEntityScopes` walks and per-SHA `git show` date lookups.
 
-On the kernel tree that is ~1,000+ subprocesses and 28 minutes. Feed the per-entity
-event lists (bucketed by `aiwf-entity` / `aiwf-prior-entity`) and the authorize-opener
-map from one `BulkRevwalk`-shaped HEAD walk. The spike proved 12.8s, byte-identical
-across all 657 pages.
+On the kernel tree that is ~1,860+ `git log` walks / ~3,500 subprocesses and
+~28 minutes. Feed the per-entity event lists (bucketed by `aiwf-entity` /
+`aiwf-prior-entity`) and the authorize-opener / scope map from one shared HEAD-scoped
+pass. The spike proved ~12.8s, byte-identical across all 657 pages.
 
 ## Notes
 
-- Ref scope must match `ReadHistoryChain` (HEAD, not `--all`) so output is preserved.
-- The bare-milestone query must still fold in its `M-NNNN/AC-N` AC events; width
-  tolerance (`E-22` vs `E-0022`) handled by canonicalizing both sides.
-- Batching history alone still timed out — the provenance/scope family must be
-  batched in the same change, ideally from the same pass.
-- The throwaway spike (`resolver_bulkspike.go`, reverted) is the reference
-  implementation; productionize with tests, don't ship the env-gated form.
+- **Reuse, don't reinvent.** Build on E-0053's HEAD-scoped `check.WalkHeadCommits`
+  (extend it, or a shared helper, with author-date `%aI` — which also eliminates the
+  per-SHA `git show` date lookups in the scope views). `resolver.go` already imports
+  `internal/check`, so the dependency direction is sanctioned. The genuinely new code
+  is the bucketing + authorize-opener map + scope-FSM replay layer on top of one
+  pass — not a new walker.
+- **Do NOT reuse `gitops.BulkRevwalk`.** It walks `--all` (would leak feature-branch
+  commits and break AC-3 byte-identity) and collapses repeating trailers to a last
+  value (would drop multi-scope `aiwf-scope-ends`). It is pinned to the check side.
+- **Correctness traps to preserve, all load-bearing:**
+  - HEAD ref scope, not `--all` (matches `ReadHistoryChain`).
+  - Fold `M-NNNN/AC-N` events into **both** the AC bucket and the parent milestone
+    bucket (a bare `ReadHistory(m.ID)` folds AC events in today).
+  - Canonicalize width on **both** the bucket key and the query id (`E-22` ↔
+    `E-0022`) so narrow/wide commits don't split into two buckets.
+  - Keep the full trailer slice (repeating `aiwf-scope-ends`), not a last-value map.
+  - Per-bucket SHA dedup; oldest-first order (`--reverse`).
+  - Drop bucketed commits with an `aiwf-entity` trailer but empty verb+actor (the
+    prose-mention false-positive `ReadHistoryChain` already excludes).
+  - Replay the scope FSM (authorize opened/paused/resumed + `scope-ends`) in-memory
+    from the buckets; take open/end dates from the walk's `%aI`.
+- **Decide the error semantic deliberately.** Render today swallows a per-entity
+  history error into one blank tab (`resolver.go` best-effort). A single shared pass
+  that errors must not silently blank *every* page — pick fail-loud or degrade, and
+  pin it.
+- The throwaway spike (`resolver_bulkspike.go`, reverted, env-gated) is the reference
+  behavior only; productionize with tests — do **not** ship the env-gated form.
 
 ### AC-1 — render resolves all entity histories from a single git-history pass
 
@@ -55,4 +77,3 @@ across all 657 pages.
 ### AC-3 — rendered site byte-identical before and after the refactor
 
 ### AC-4 — measured render wall-time delta recorded in Validation
-
