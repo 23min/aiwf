@@ -27,50 +27,64 @@ grep on every invocation. The same waste has two near-duplicate implementations:
   unconditionally in the `history` **text** path — a milestone with zero scopes
   measured ~2.2s text vs ~1.2s `--format=json` (which skips it): ~1.0s / ~40% waste.
 - `show.readAllAuthorizeOpeners` via `LoadEntityScopeViews` (`internal/cli/show/
-  scopes.go`), called **before** the `interested` set is computed, so every
+  scopes.go:59`), called **before** the `interested` set is computed, so every
   `aiwf show` pays it too — measured ~3.4s.
 
-Guard **both**: skip the grep when the entity's *loaded events* carry no scope data
-(no `AuthorizedBy`, no `aiwf-scope-ends`); when scope data is present, bound the grep
-to the referenced SHAs rather than the whole history. **Consolidate** the two
-implementations into one shared helper rather than fixing each separately (single
-source of truth) — the render single-pass (M-0221) should reuse the same helper, not
-add a third copy.
+Guard both, but the two verbs are **asymmetric** — get this right or `show` breaks:
+
+- **`history` is safe to skip on `AuthorizedBy`/`ScopeEnds`.** `RenderScopeChips`
+  (`history.go:472`) consumes the opener map *only* via `e.AuthorizedBy` and
+  `e.ScopeEnds`; an authorize opener's own `[scope: …]` chip renders from `e.Scope`
+  without the map (`history.go:475`). So skip `BuildScopeEntityMap` when the loaded
+  events carry no `AuthorizedBy` and no `ScopeEnds`.
+- **`show` must NOT skip merely on those fields.** `LoadEntityScopeViews` builds its
+  `interested` set from two sources: the entity's own `AuthorizedBy` events
+  (`scopes.go:66`) **and** the global opener map filtered to scopes where the entity
+  *is* the scope entity (`scopes.go:70-73`). An active/paused/resumed scope opener
+  has `Scope` but no `AuthorizedBy`/`ScopeEnds`, so an `AuthorizedBy`-only guard would
+  drop its scope table. But source (b) doesn't need the global grep at all: a scope
+  opened on `id` is authored by a commit carrying `aiwf-entity: id`, i.e. it's in
+  `id`'s own history — derive it from `LoadEntityScopes(id)` directly, and run the
+  global `readAllAuthorizeOpeners` grep **only** when the entity has `AuthorizedBy`
+  events (source (a): resolving which scope authorized foreign work).
+
+Consolidate into one shared helper (single source of truth): a predicate that decides
+whether the global grep is needed, plus a direct-scope derivation for `show`/render —
+so the render single-pass (M-0221) reuses it rather than adding a third copy.
 
 ## Notes
 
-- **Key the guard off the loaded event slice, not entity frontmatter.**
-  `aiwf-scope-ends` is a commit trailer on the terminal-promote commit with no
-  frontmatter counterpart; a guard reading only `authorized_by` frontmatter would
-  silently drop the `[<entity> ended]` chips for a scope-ending entity. The events
-  are already loaded (`ReadHistoryChain` / `ReadHistory`) before the grep runs, so the
-  predicate is free.
-- **Low risk, verified — not "zero".** The scope map is consumed only via
-  `AuthorizedBy` and `ScopeEnds` (in `RenderScopeChips` and `LoadEntityScopeViews`'s
-  `interested` set); an authorize *opener* event renders its `[scope: …]` chip from
-  `e.Scope` without the map. So skipping when neither is present is output-identical —
-  but only if the fixture proves it (see AC-2).
-- Orthogonal to M-0221's single-pass but shares the theme; land independently. No
-  `depends_on` — they touch different call sites (history/show vs resolver) — but both
-  must use the one consolidated helper.
+- **Key the predicate off the loaded event slice, not entity frontmatter.**
+  `aiwf-scope-ends` and the authorize opener are commit trailers with no frontmatter
+  counterpart. The events are already loaded (`ReadHistoryChain` / `ReadHistory`)
+  before the grep, so the predicate is free.
+- **Low risk, verified — not "zero".** History: the map is consumed only via
+  `AuthorizedBy`/`ScopeEnds`. Show: direct derivation covers source (b); the grep
+  covers source (a). Correct only if the fixture proves the opener case (AC-2).
+- Orthogonal to M-0221's single-pass; land independently. No `depends_on` — different
+  call sites — but both must use the one consolidated helper.
 
 ## Acceptance criteria
 
 ### AC-1 — guard predicate returns skip for events with no scope data
 
-Unit test on the extracted predicate (not on subprocess count, which a Go test can't
-observe): given an event slice with no `AuthorizedBy` and no `ScopeEnds`, the guard
-returns skip; given either present, it returns run. Extracting the predicate as a
-testable seam is part of the AC.
+Unit test on the extracted predicate (not subprocess count, which a Go test can't
+observe). For the **history** map: given events with no `AuthorizedBy` and no
+`ScopeEnds`, return skip; given either present, return run. For **show**: given an
+entity that is a scope opener (an `authorize` event in its own stream) but has no
+`AuthorizedBy`, the global grep is still skipped **and** the direct-scope derivation
+returns its scopes. Extracting the predicate/derivation as a testable seam is part of
+the AC.
 
 ### AC-2 — history and show output identical for scoped and scopeless entities
 
 Byte-identical `aiwf history` (text and JSON) **and** `aiwf show` output, guarded vs
-unguarded, over a fixture of at least three entities: (i) a scopeless entity (guard
-skips), (ii) an entity worked *under* a scope — has `AuthorizedBy` (guard must run),
-and (iii) an **active-scope opener** — verb `authorize`, no `AuthorizedBy`/`ScopeEnds`
-(guard skips, its `[scope:]` chip must still render). Omit (iii) and the test passes
-vacuously.
+unguarded, over a fixture of at least four entities: (i) a scopeless entity (skips);
+(ii) an entity worked *under* a scope — has `AuthorizedBy` (grep runs); (iii) an
+**active direct-scope opener** — `authorize` verb, no `AuthorizedBy`/`ScopeEnds` — for
+which `show`'s scope **table** must be non-empty and identical (history renders its
+chip from `e.Scope`); (iv) a scope-ended entity (`ScopeEnds` present). Omit (iii) and
+the test passes vacuously while `show` silently loses direct scopes.
 
 ### AC-3 — measured read-verb wall-time delta recorded in Validation
 
