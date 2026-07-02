@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/23min/aiwf/internal/skills"
 )
@@ -49,6 +50,8 @@ func appendStatuslineReportWithHome(in []string, rootDir, home string, inContain
 	out = appendDepCheck(out, "gh", ghInstallHint())
 
 	out = appendWiringCheck(out, rootDir, home, scope)
+	out = appendPrecedenceCheck(out, rootDir, home)
+	out = appendProjectCommandCheck(out, rootDir)
 	out = appendDriftCheck(out, installedPath)
 
 	if inContainer && scope == "project" {
@@ -122,7 +125,7 @@ func appendWiringCheck(in []string, rootDir, home, scope string) []string {
 	}
 
 	if !wired {
-		cmdPath := statuslineCmdPathForScope(scope, filepath.Join(rootDir, ".claude", "statusline.sh"))
+		cmdPath := statuslineCmdPathForScope(scope, rootDir)
 		return append(in,
 			subIndent+"wiring: statusLine key not found in any settings file — the script is installed but inactive",
 			subIndent+fmt.Sprintf("run `aiwf update --statusline --wire-settings` or add to your settings: %s", skills.FormatStatuslineSnippet(cmdPath)),
@@ -131,13 +134,100 @@ func appendWiringCheck(in []string, rootDir, home, scope string) []string {
 	return in
 }
 
-// statuslineCmdPathForScope returns the command path for the
-// snippet based on scope — relative for project, absolute for user.
-func statuslineCmdPathForScope(scope, installedPath string) string {
+// statuslineCmdPathForScope returns the `statusLine.command` value the
+// remediation hint should show, reusing the skills single-source helpers
+// so the hint matches what wiring actually writes (G-0337).
+func statuslineCmdPathForScope(scope, rootDir string) string {
 	if scope == "project" {
-		return ".claude/statusline.sh"
+		return skills.ProjectStatuslineCommand(rootDir)
 	}
-	return installedPath
+	return skills.UserStatuslineCommand()
+}
+
+// appendPrecedenceCheck warns when a statusLine is wired in BOTH a
+// project settings file and the user settings file. Claude Code's
+// project settings take precedence, so the project key silently wins and
+// shadows the user one — the trap that let G-0337 hide (a correct
+// user-scope wiring rendered nothing because a stale project key
+// overrode it).
+func appendPrecedenceCheck(in []string, rootDir, home string) []string {
+	projWired := hasStatusLineKey(filepath.Join(rootDir, ".claude", "settings.local.json")) ||
+		hasStatusLineKey(filepath.Join(rootDir, ".claude", "settings.json"))
+	userWired := home != "" && hasStatusLineKey(filepath.Join(home, ".claude", "settings.json"))
+	if projWired && userWired {
+		return append(in, subIndent+"precedence: a statusLine is wired in BOTH project and user settings — the project key wins and shadows the user one; remove the project statusLine to use the user-scope one")
+	}
+	return in
+}
+
+// appendProjectCommandCheck warns when a project-scope statusLine command
+// cannot resolve from a git worktree: a bare cwd-relative path (breaks
+// the moment the session cwd is a worktree), or a
+// `${CLAUDE_PROJECT_DIR:-<fallback>}` whose fallback path no longer
+// exists (stale after a move/remount, as in the G-0337 report). Reads the
+// project settings only — user-scope `$HOME` commands are inherently
+// resolvable.
+func appendProjectCommandCheck(in []string, rootDir string) []string {
+	cmd := ""
+	for _, name := range []string{"settings.local.json", "settings.json"} {
+		if c := statusLineCommand(filepath.Join(rootDir, ".claude", name)); c != "" {
+			cmd = c
+			break
+		}
+	}
+	if cmd == "" {
+		return in
+	}
+	if !strings.HasPrefix(cmd, "/") && !strings.HasPrefix(cmd, "$") && !strings.HasPrefix(cmd, "~") {
+		return append(in, subIndent+fmt.Sprintf("command: project statusLine %q is cwd-relative — it will not resolve in a git worktree; re-run `aiwf update --statusline` or switch to `--scope user`", cmd))
+	}
+	if fb := resolvedFallbackPath(cmd); fb != "" {
+		if _, err := os.Stat(fb); err != nil {
+			return append(in, subIndent+fmt.Sprintf("command: project statusLine fallback %q does not resolve (stale after a move/remount) — re-run `aiwf update --statusline` or switch to `--scope user`", fb))
+		}
+	}
+	return in
+}
+
+// statusLineCommand reads a settings file and returns its
+// statusLine.command value, or "" on any error or absence.
+func statusLineCommand(path string) string {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(raw, &obj) != nil {
+		return ""
+	}
+	sl, ok := obj["statusLine"]
+	if !ok {
+		return ""
+	}
+	var v struct {
+		Command string `json:"command"`
+	}
+	if json.Unmarshal(sl, &v) != nil {
+		return ""
+	}
+	return v.Command
+}
+
+// resolvedFallbackPath extracts the fallback-resolved path from a
+// `${CLAUDE_PROJECT_DIR:-<fallback>}<tail>` command — i.e. the path the
+// command resolves to when CLAUDE_PROJECT_DIR is unset. Returns "" when
+// the command is not in that form.
+func resolvedFallbackPath(cmd string) string {
+	const prefix = "${CLAUDE_PROJECT_DIR:-"
+	rest, ok := strings.CutPrefix(cmd, prefix)
+	if !ok {
+		return ""
+	}
+	fallback, tail, ok := strings.Cut(rest, "}")
+	if !ok {
+		return ""
+	}
+	return fallback + tail
 }
 
 // hasStatusLineKey reads a JSON settings file and reports whether it
@@ -168,7 +258,7 @@ func appendDriftCheck(in []string, installedPath string) []string {
 		return in
 	}
 	if !bytes.Equal(onDisk, embedded) {
-		return append(in, subIndent+"drift: on-disk statusline differs from the embedded copy — run `aiwf update --statusline` to see the latest (your edits will be preserved; only a fresh scaffold overwrites)")
+		return append(in, subIndent+"drift: on-disk statusline differs from the embedded copy — run `aiwf update --statusline` to refresh it (the script is aiwf-owned and byte-refreshed; local edits are overwritten)")
 	}
 	return in
 }

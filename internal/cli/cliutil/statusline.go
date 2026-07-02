@@ -39,7 +39,7 @@ func RunStatuslineScaffold(opts StatuslineOpts) int {
 	if res.Wrote {
 		fmt.Printf("\naiwf --statusline: wrote %s\n", res.Path)
 	} else {
-		fmt.Printf("\naiwf --statusline: %s already exists, left untouched\n", res.Path)
+		fmt.Printf("\naiwf --statusline: %s already current, left untouched\n", res.Path)
 	}
 	if res.GitignoreAppended {
 		fmt.Println("aiwf --statusline: appended `.claude/statusline.sh` to .gitignore")
@@ -57,7 +57,7 @@ func RunStatuslineScaffold(opts StatuslineOpts) int {
 		return ExitUsage
 	}
 
-	cmdPath := statuslineCmdPath(res)
+	cmdPath := res.Command
 
 	consent := opts.WireSettings
 	if !consent && !opts.FormatJSON && render.IsTTY(os.Stdin) {
@@ -92,33 +92,6 @@ func RunStatuslineScaffold(opts StatuslineOpts) int {
 	}
 	fmt.Printf("aiwf --statusline: wired statusLine into %s\n", settingsPath)
 	return ExitOK
-}
-
-// statuslineCmdPath extracts the command path from the scaffold
-// result's snippet. The snippet has the shape:
-//
-//	"statusLine": {
-//	  "type": "command",
-//	  "command": "<path>"
-//	}
-//
-// We parse the command value out. For project scope it's relative
-// (`.claude/statusline.sh`); for user scope it's absolute.
-func statuslineCmdPath(res skills.StatuslineScaffoldResult) string {
-	for _, line := range strings.Split(res.Snippet, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, `"command"`) {
-			// "command": "<path>"
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				v := strings.TrimSpace(parts[1])
-				v = strings.TrimSuffix(v, ",")
-				v = strings.Trim(v, `"`)
-				return v
-			}
-		}
-	}
-	return ".claude/statusline.sh"
 }
 
 // promptYN prints prompt + " [y/N] " to stderr and reads one line

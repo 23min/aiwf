@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,15 +17,20 @@ type StatuslineScope string
 const (
 	// StatuslineScopeProject writes to `<root>/.claude/statusline.sh`
 	// (per-repo) and appends `.claude/statusline.sh` to `<root>/.gitignore`
-	// idempotently. The activation snippet's command path is repo-relative,
-	// so the snippet works regardless of where Claude Code launches inside
-	// the repo.
+	// idempotently. The activation snippet's command is
+	// `${CLAUDE_PROJECT_DIR:-<root>}/.claude/statusline.sh` — anchored on the
+	// repo root, not the cwd, so it resolves from a git worktree (aiwf's own
+	// ritual working dir) where a cwd-relative path would not (G-0337). This
+	// is the explicit opt-in scope; user scope is the default.
 	StatuslineScopeProject StatuslineScope = "project"
 
 	// StatuslineScopeUser writes to `<home>/.claude/statusline.sh` (per-user,
 	// shared across every project) and does not touch any gitignore. The
-	// activation snippet's command path is absolute, so the snippet works
-	// from any worktree of any repo in the same (dev)container.
+	// activation snippet's command is `$HOME/.claude/statusline.sh` — anchored
+	// on `$HOME`, which is POSIX-guaranteed and per-environment-correct, so a
+	// single settings file resolves on both the host and inside a container
+	// that shares `~/.claude` via a mount. Independent of repo location,
+	// worktree, and mount layout — the default scope (G-0337).
 	StatuslineScopeUser StatuslineScope = "user"
 )
 
@@ -37,12 +43,14 @@ const statuslineRelPath = ".claude/statusline.sh"
 type StatuslineScaffoldResult struct {
 	// Path is the absolute destination path. Always set, even when
 	// Wrote is false (so a caller can include it in a "script already
-	// present at <Path>; left untouched" message).
+	// current at <Path>" message).
 	Path string
 
-	// Wrote is true when the script was actually written. False when a
-	// pre-existing file was preserved verbatim (the scaffold-once
-	// lifecycle's load-bearing guard).
+	// Wrote is true when the script was written or refreshed on this
+	// invocation. False when an already-current copy (byte-equal to the
+	// embed) was left untouched. The scaffold is idempotent: it refreshes
+	// a stale copy on every `aiwf update` rather than preserving it
+	// (G-0337, superseding the earlier scaffold-once lifecycle).
 	Wrote bool
 
 	// GitignoreAppended is true when `.claude/statusline.sh` was added
@@ -51,21 +59,27 @@ type StatuslineScaffoldResult struct {
 	// (user scope lives outside any repo's tracked tree).
 	GitignoreAppended bool
 
+	// Command is the `statusLine.command` value for the wired settings —
+	// `$HOME/.claude/statusline.sh` for user scope,
+	// `${CLAUDE_PROJECT_DIR:-<root>}/.claude/statusline.sh` for project.
+	// The single source of truth for the command string; callers consume
+	// this rather than re-deriving it (G-0337).
+	Command string
+
 	// Snippet is the activation snippet the operator pastes into their
-	// Claude Code settings file. Repo-relative path for project scope,
-	// absolute path for user scope.
+	// Claude Code settings file, wrapping Command in the JSON-ish block.
 	Snippet string
 }
 
-// ScaffoldStatusline materializes the embedded statusline script to
-// the scope-appropriate destination if no copy already exists there.
-// The user's home directory is resolved via `os.UserHomeDir()`; tests
-// that need a deterministic home use `ScaffoldStatuslineWithHome`.
+// ScaffoldStatusline materializes the embedded statusline script to the
+// scope-appropriate destination, refreshing a stale copy in place. The
+// user's home directory is resolved via `os.UserHomeDir()`; tests that
+// need a deterministic home use `ScaffoldStatuslineWithHome`.
 //
-// Per M-0155: this is a *separate* write path from `Materialize` —
-// not routed through the wipe-and-rewrite refresh set — so any
-// consumer edits to the on-disk script survive a subsequent
-// `aiwf update --statusline`.
+// The on-disk script is an aiwf-owned artifact: like the materialized
+// skills and hooks it is byte-refreshed on every `aiwf update` (G-0337),
+// so a local edit does not survive — customize by wiring your own
+// `statusLine.command`, not by editing this copy.
 func ScaffoldStatusline(root string, scope StatuslineScope) (StatuslineScaffoldResult, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -86,37 +100,37 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 
 	res := StatuslineScaffoldResult{
 		Path:    dest,
+		Command: snippetCmd,
 		Snippet: FormatStatuslineSnippet(snippetCmd),
 	}
 
-	// Skip if a copy already exists — the scaffold-once invariant.
-	if _, statErr := os.Stat(dest); statErr == nil {
-		// Even when the file exists, project scope still ensures the
-		// gitignore entry is present (a consumer who hand-placed the
-		// script wouldn't have it). Idempotent: no-op when present.
-		if scope == StatuslineScopeProject {
-			appended, gErr := ensureStatuslineGitignoreEntry(root)
-			if gErr != nil {
-				return res, gErr
+	// Always byte-refresh: write the embed when the destination is
+	// absent or its content differs. A byte-equal copy is left untouched
+	// (idempotent — no needless write, no mtime churn).
+	existing, readErr := os.ReadFile(dest)
+	switch {
+	case readErr == nil:
+		if !bytes.Equal(existing, statuslineEmbed) {
+			if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults (disk-full/permission); tempdir-based tests can't reproduce
+				return res, fmt.Errorf("refreshing %s: %w", dest, err)
 			}
-			res.GitignoreAppended = appended
+			res.Wrote = true
 		}
-		return res, nil
-	} else if !os.IsNotExist(statErr) {
-		return res, fmt.Errorf("stat %s: %w", dest, statErr)
+	case os.IsNotExist(readErr):
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil { //coverage:ignore MkdirAll fails only on filesystem faults; tempdir-based tests can't reproduce
+			return res, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
+		}
+		if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil { //coverage:ignore AtomicWriteFile fails only on filesystem faults; tempdir-based tests can't reproduce
+			return res, fmt.Errorf("writing %s: %w", dest, err)
+		}
+		res.Wrote = true
+	default:
+		return res, fmt.Errorf("reading %s: %w", dest, readErr)
 	}
-
-	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-		return res, fmt.Errorf("creating %s: %w", filepath.Dir(dest), err)
-	}
-	if err := pathutil.AtomicWriteFile(dest, statuslineEmbed, 0o755); err != nil {
-		return res, fmt.Errorf("writing %s: %w", dest, err)
-	}
-	res.Wrote = true
 
 	if scope == StatuslineScopeProject {
 		appended, gErr := ensureStatuslineGitignoreEntry(root)
-		if gErr != nil {
+		if gErr != nil { //coverage:ignore ensureStatuslineGitignoreEntry fails only on filesystem faults; tempdir-based tests can't reproduce
 			return res, gErr
 		}
 		res.GitignoreAppended = appended
@@ -124,21 +138,38 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 	return res, nil
 }
 
-// statuslineDest resolves the absolute destination path and the
-// command-path string the activation snippet should display, based on
-// the scope.
+// statuslineDest resolves the absolute on-disk destination path and the
+// `statusLine.command` string the activation snippet should carry, based
+// on the scope.
 func statuslineDest(root, home string, scope StatuslineScope) (dest, snippetCmd string, err error) {
 	switch scope {
 	case StatuslineScopeProject:
-		// Absolute on-disk destination; relative snippet command (cwd-relative).
-		return filepath.Join(root, statuslineRelPath), statuslineRelPath, nil
+		return filepath.Join(root, statuslineRelPath), ProjectStatuslineCommand(root), nil
 	case StatuslineScopeUser:
-		// Absolute on-disk destination and absolute snippet command.
-		abs := filepath.Join(home, statuslineRelPath)
-		return abs, abs, nil
+		return filepath.Join(home, statuslineRelPath), UserStatuslineCommand(), nil
 	default:
 		return "", "", fmt.Errorf("unknown --scope %q (want %q or %q)", scope, StatuslineScopeProject, StatuslineScopeUser)
 	}
+}
+
+// ProjectStatuslineCommand returns the project-scope `statusLine.command`
+// value. It anchors on `$CLAUDE_PROJECT_DIR` (Claude Code sets it to the
+// project root) and falls back to the absolute install-time root, so it
+// resolves from a git worktree where a cwd-relative path would not
+// (G-0337). The command runs in a shell, so the `${VAR:-default}`
+// expansion is evaluated. Single source of truth for the string —
+// doctor's remediation hint reuses it.
+func ProjectStatuslineCommand(root string) string {
+	return fmt.Sprintf("${CLAUDE_PROJECT_DIR:-%s}/%s", root, statuslineRelPath)
+}
+
+// UserStatuslineCommand returns the user-scope `statusLine.command`
+// value: `$HOME/.claude/statusline.sh`. `$HOME` is POSIX-guaranteed and
+// per-environment-correct, so one settings file (e.g. a `~/.claude`
+// shared between host and container via a mount) resolves on both sides
+// (G-0337).
+func UserStatuslineCommand() string {
+	return "$HOME/" + statuslineRelPath
 }
 
 // FormatStatuslineSnippet renders the JSON-ish activation snippet

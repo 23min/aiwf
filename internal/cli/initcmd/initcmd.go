@@ -41,8 +41,9 @@ func NewCmd() *cobra.Command {
   aiwf init --dry-run
 
   # Same scaffolding plus the aiwf-aware Claude Code statusline
+  # (user scope by default; add --scope project to keep it in-repo)
   aiwf init --statusline
-  aiwf init --statusline --scope user`,
+  aiwf init --statusline --scope project`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -54,8 +55,8 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&actor, "actor", "", "default actor for the commit trailer (overrides git config derivation)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "report what init would do without writing anything")
 	cmd.Flags().BoolVar(&skipHook, "skip-hook", false, "skip installing the pre-push hook (every other step still runs)")
-	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (writes only if absent; never clobbers an existing copy)")
-	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeProject), "where --statusline writes the script: project (<repo>/.claude) or user (~/.claude)")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (byte-refreshed on every update)")
+	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script: user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
 	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,

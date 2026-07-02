@@ -260,7 +260,7 @@ func wireSettings(t *testing.T, root string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	content := []byte(`{"statusLine":{"type":"command","command":".claude/statusline.sh"}}` + "\n")
+	content := []byte(`{"statusLine":{"type":"command","command":"${CLAUDE_PROJECT_DIR:-` + root + `}/.claude/statusline.sh"}}` + "\n")
 	if err := os.WriteFile(filepath.Join(dir, "settings.json"), content, 0o644); err != nil {
 		t.Fatal(err)
 	}

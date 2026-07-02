@@ -45,10 +45,10 @@ func NewCmd() *cobra.Command {
 		Example: `  # Refresh skills + hooks against the current binary version
   aiwf update
 
-  # Refresh as above plus scaffold the aiwf-aware statusline if absent
-  # (never clobbers an existing copy)
+  # Refresh as above plus scaffold the aiwf-aware statusline
+  # (byte-refreshed on every update; user scope by default)
   aiwf update --statusline
-  aiwf update --statusline --scope user`,
+  aiwf update --statusline --scope project`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -57,8 +57,8 @@ func NewCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
-	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (writes only if absent; never clobbers an existing copy)")
-	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeProject), "where --statusline writes the script: project (<repo>/.claude) or user (~/.claude)")
+	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (byte-refreshed on every update)")
+	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script: user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
 	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
@@ -69,9 +69,8 @@ func NewCmd() *cobra.Command {
 
 // Run executes `aiwf update`. Returns one of the cliutil.Exit* codes.
 // When `statusline` is true, also runs the shared statusline scaffold
-// (scope-appropriate destination, scaffold-if-absent — never clobbers
-// a pre-existing copy). The scaffold action runs after the artifact
-// refresh succeeds.
+// (scope-appropriate destination, byte-refreshed on every update). The
+// scaffold action runs after the artifact refresh succeeds.
 func Run(root string, statusline bool, scope string, wireSettings bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
