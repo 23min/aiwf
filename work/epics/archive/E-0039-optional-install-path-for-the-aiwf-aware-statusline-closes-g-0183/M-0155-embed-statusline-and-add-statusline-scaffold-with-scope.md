@@ -30,6 +30,17 @@ acs:
 ---
 # M-0155 — Embed statusline and add --statusline scaffold with --scope
 
+> **Superseded in part by G-0337.** The scope, snippet-path, and "excluded
+> from the unconditional refresh set" behavior described below is the
+> *original* statusline lifecycle. G-0337 reversed three of those choices:
+> `--statusline` now defaults to **user scope**; the user command is
+> `$HOME/.claude/statusline.sh` and the project command is
+> `${CLAUDE_PROJECT_DIR:-<root>}/.claude/statusline.sh` (anchored, not
+> cwd-relative); and the script is byte-refreshed on every
+> `aiwf update --statusline` (no longer scaffold-once). This milestone stays
+> `done`; its `internal/policies/` tests were revised in place. See G-0337
+> for the current contract.
+
 ## Goal
 
 Ship the statusline in the binary and let a consumer scaffold it via
