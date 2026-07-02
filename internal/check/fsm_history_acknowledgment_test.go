@@ -40,8 +40,8 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentExemptsIllegalTransition(t *test
 	// internally; the caller (CLI gather layer in production)
 	// computes it once and passes it in. Test mirrors that shape
 	// by calling WalkAcknowledgedSHAs and passing the result.
-	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root, mustHead(t, r.root))
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs, mustHead(t, r.root))
 	for _, f := range got {
 		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
 			t.Errorf("expected no illegal-transition for E-0001 (acknowledged via aiwf-force-for: %s); got finding %+v",
@@ -70,8 +70,8 @@ func TestFSMHistoryConsistent_AC3_NoAcknowledgmentStillFires(t *testing.T) {
 	// internally; the caller (CLI gather layer in production)
 	// computes it once and passes it in. Test mirrors that shape
 	// by calling WalkAcknowledgedSHAs and passing the result.
-	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root, mustHead(t, r.root))
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs, mustHead(t, r.root))
 	var hasFinding bool
 	for _, f := range got {
 		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "illegal-transition" && f.EntityID == "E-0001" {
@@ -111,8 +111,8 @@ func TestFSMHistoryConsistent_AC2_AcknowledgmentScopedToTarget(t *testing.T) {
 	// internally; the caller (CLI gather layer in production)
 	// computes it once and passes it in. Test mirrors that shape
 	// by calling WalkAcknowledgedSHAs and passing the result.
-	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root)
-	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs)
+	ackedSHAs := WalkAcknowledgedSHAs(context.Background(), r.root, mustHead(t, r.root))
+	got := FSMHistoryConsistent(context.Background(), r.root, r.tree(), ackedSHAs, mustHead(t, r.root))
 	var exemptStillFires, otherFires bool
 	for _, f := range got {
 		if f.Code != CodeFSMHistoryConsistent || f.Subcode != "illegal-transition" {

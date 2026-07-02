@@ -92,7 +92,7 @@ type gitBranchOracle struct {
 // FirstParentBranches always returns nil and OracleErrors is
 // empty. This matches the rule's "unknown branch, silent"
 // contract — no false positives on the startup edge.
-func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, error) {
+func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG) (*gitBranchOracle, error) {
 	// M-0161/AC-4 — shallow detection first. A shallow repo
 	// short-circuits the index build because any partial index
 	// would produce silent false-negatives for commits beyond
@@ -137,25 +137,40 @@ func newGitBranchOracle(ctx context.Context, root string) (*gitBranchOracle, err
 	dist := map[string]map[string]int{}
 	var perRefErrs []check.OracleErr
 	for _, b := range branches {
-		shas, err := firstParentSHAs(ctx, root, b)
-		if err != nil {
-			perRefErrs = append(perRefErrs, check.OracleErr{
-				Ref:        b,
-				Capability: "ref-resolution-failed",
-				Err:        err,
-			})
-			continue
+		// M-0216 AC-6: derive the branch's first-parent chain from the
+		// shared in-memory DAG (the same `git rev-list --all --reflog
+		// --parents` artifact the orphaned-AI-commit walk uses), instead
+		// of one `git rev-list --first-parent <branch>` per branch (46
+		// subprocesses on the kernel tree). dag.FirstParentChain(tip)
+		// reproduces rev-list --first-parent exactly. If the DAG is
+		// unavailable (build failed), fall back to the per-branch
+		// rev-list so behavior and the per-ref error contract are
+		// preserved.
+		var shas []string
+		if dag != nil {
+			shas = dag.FirstParentChain(b.Tip)
+		} else {
+			var ferr error
+			shas, ferr = firstParentSHAs(ctx, root, b.Name)
+			if ferr != nil {
+				perRefErrs = append(perRefErrs, check.OracleErr{
+					Ref:        b.Name,
+					Capability: "ref-resolution-failed",
+					Err:        ferr,
+				})
+				continue
+			}
 		}
 		// Build per-branch distance-from-tip index. shas[0] is the
 		// tip (distance 0); shas[1] is the parent (distance 1);
 		// etc. The distance lets BranchOfSHA prefer the branch
 		// where the recorded SHA is closest to the tip (M-0161/
 		// AC-6 rename-invariant).
-		dist[b] = map[string]int{}
+		dist[b.Name] = map[string]int{}
 		for i, sha := range shas {
-			idx[sha] = append(idx[sha], b)
-			if _, already := dist[b][sha]; !already {
-				dist[b][sha] = i
+			idx[sha] = append(idx[sha], b.Name)
+			if _, already := dist[b.Name][sha]; !already {
+				dist[b.Name][sha] = i
 			}
 		}
 	}
@@ -284,13 +299,21 @@ func (o *gitBranchOracle) BranchOfSHA(sha string) string {
 // Compile-time check: gitBranchOracle satisfies check.BranchOracle.
 var _ check.BranchOracle = (*gitBranchOracle)(nil)
 
+// ritualBranch is one local ritual-shape branch: its short name and its
+// tip commit SHA. The tip feeds CommitDAG.FirstParentChain (M-0216
+// AC-6); the name keys the oracle's per-branch indexes.
+type ritualBranch struct {
+	Name string
+	Tip  string
+}
+
 // listRitualBranches returns the local-branch set filtered to main
-// + ritual shapes (epic/E-NNNN-..., milestone/M-NNNN-..., patch/...).
-// Other-shape branches (feature/foo, chore/bar, the integration
-// branches the kernel doesn't recognize) are excluded — commits on
-// them are intentionally "unknown" to the rule.
-func listRitualBranches(ctx context.Context, root string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "refs/heads/", "--format=%(refname:short)")
+// + ritual shapes (epic/E-NNNN-..., milestone/M-NNNN-..., patch/...),
+// each paired with its tip SHA. Other-shape branches (feature/foo,
+// chore/bar, the integration branches the kernel doesn't recognize) are
+// excluded — commits on them are intentionally "unknown" to the rule.
+func listRitualBranches(ctx context.Context, root string) ([]ritualBranch, error) {
+	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "refs/heads/", "--format=%(refname:short)%00%(objectname)")
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
@@ -300,14 +323,20 @@ func listRitualBranches(ctx context.Context, root string) ([]string, error) {
 		}
 		return nil, fmt.Errorf("git for-each-ref: %w", err)
 	}
-	var ritual []string
+	var ritual []ritualBranch
 	for _, line := range strings.Split(string(out), "\n") {
-		name := strings.TrimSpace(line)
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		name, tip, _ := strings.Cut(line, "\x00")
+		name = strings.TrimSpace(name)
+		tip = strings.TrimSpace(tip)
 		if name == "" {
 			continue
 		}
 		if name == "main" || branchparse.ParseEntityFromBranch(name) != "" {
-			ritual = append(ritual, name)
+			ritual = append(ritual, ritualBranch{Name: name, Tip: tip})
 		}
 	}
 	return ritual, nil

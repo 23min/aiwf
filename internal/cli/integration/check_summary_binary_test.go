@@ -26,9 +26,12 @@ import (
 // exercised end-to-end. AC-3 ("--verbose reproduces the current
 // behavior byte-for-byte") and AC-4 ("JSON envelope is unchanged")
 // are byte-equal assertions against goldens captured from the
-// pre-M-0089 binary; AC-7 ("kernel-tree integration test — default
-// output is short") is a structural assertion against this repo's
-// own planning tree.
+// pre-M-0089 binary. M-0089's AC-7 ("kernel-tree integration test")
+// originally ran the binary against this repo's own ~5,500-commit
+// planning tree; M-0220 removed that real-tree run (a 35s long pole)
+// and folded its warning-collapse property into the synthetic
+// TestBinary_CheckDefault_SummarizesWarnings, which proves the same
+// property in <1s.
 //
 // The fixture is a temp copy of internal/check/testdata/messy so the
 // test runs outside any .git context (provenance audit and
@@ -53,7 +56,7 @@ func TestBinary_CheckVerbose_ByteIdenticalToBaseline(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 	fixture := copyFixture(t, fixtureCheckSource, tmp)
 
 	out, err := runBinaryStdout(bin, "check", "--verbose", "--root", fixture)
@@ -87,7 +90,7 @@ func TestBinary_CheckJSON_ByteIdenticalToBaseline(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 	fixture := copyFixture(t, fixtureCheckSource, tmp)
 
 	want := parseEnvelope(t, readGolden(t, "testdata/m0089/json.golden"))
@@ -117,7 +120,7 @@ func TestBinary_CheckJSONPretty_ByteIdenticalToBaseline(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 	fixture := copyFixture(t, fixtureCheckSource, tmp)
 
 	out, err := runBinaryStdout(bin, "check", "--format=json", "--pretty", "--root", fixture)
@@ -150,12 +153,27 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
 	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 	fixture := copyFixture(t, fixtureCheckSource, tmp)
 
 	out, err := runBinaryStdout(bin, "check", "--root", fixture)
 	if err != nil && !testutil.ExitedWithCode(err, 1) {
 		t.Fatalf("aiwf check: %v\n%s", err, out)
+	}
+
+	// Warning-collapse property (migrated here from the removed
+	// real-tree TestBinary_CheckDefault_KernelTreeShortOutput, M-0220):
+	// default mode must never emit a per-instance warning line — every
+	// warning collapses into the per-code summary form. The property is
+	// fixture-source-agnostic (the renderer treats a finding the same
+	// regardless of which check produced it), so the synthetic messy
+	// fixture pins it without the 5,500-commit real-tree history walk.
+	// The regex's teeth are proved by
+	// TestWarningCollapse_StructuralAssertion_CatchesPerInstanceWarnings.
+	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
+	if matches := warningPerInstanceRE.FindAllString(out, -1); len(matches) > 0 {
+		t.Errorf("default mode leaked %d per-instance warning lines (warning-collapse regression):\n%s",
+			len(matches), strings.Join(matches, "\n"))
 	}
 
 	// Structural parse: collect summary lines (warning codes) and
@@ -235,88 +253,10 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	}
 }
 
-// TestBinary_CheckDefault_KernelTreeShortOutput (M-0089 AC-7):
-// run the binary against this repo's actual planning tree and assert
-// the structural property M-0089 actually promises — warnings collapse
-// into per-code summary lines, errors print per-instance.
-//
-// Originally the test asserted a soft ≤10-line bound. The bound was a
-// proxy for "default mode keeps output scannable," sized when the
-// kernel tree had zero errors and the post-collapse baseline was 5
-// lines. M-0130's FSM-history check surfaced real per-instance errors
-// from historical squash-merges, and the soft bound started straining
-// against legitimate growth. Per the CLAUDE.md *"Test the seam, not
-// just the layer"* and *"Substring assertions are not structural
-// assertions"* discipline, this test now pins the actual regression
-// class (warning collapse breaks → warnings appear per-instance)
-// directly, not via a brittle line count.
-//
-// Per CLAUDE.md *"Render output must be human-verified before the
-// iteration closes"*: this test pins the structural shape; the human
-// pass at wrap also reads the actual output and confirms it scans
-// cleanly. The two checks are complementary, not redundant.
-func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
-	t.Parallel()
-	testutil.SkipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
-	repo := repoRootForTest(t)
-
-	out, err := runBinaryStdout(bin, "check", "--root", repo)
-	if err != nil && !testutil.ExitedWithCode(err, 1) {
-		t.Fatalf("aiwf check (kernel tree): %v\n%s", err, out)
-	}
-
-	// Structural: no per-instance warning lines. Warnings must always
-	// collapse into the per-code summary form in default mode (errors
-	// print per-instance by design). A regression that breaks the
-	// collapse path would surface here as `<path>: warning <code>: ...`
-	// lines, recreating the pre-M-0089 wall-of-warnings UX. This is
-	// the actual property AC-7 was sized for. Holds unconditionally —
-	// even in the clean-tree state (no findings at all), a per-instance
-	// warning line leaking through would still be a regression.
-	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
-	if matches := warningPerInstanceRE.FindAllString(out, -1); len(matches) > 0 {
-		t.Errorf("default mode leaked %d per-instance warning lines (warning-collapse regression):\n%s",
-			len(matches), strings.Join(matches, "\n"))
-	}
-
-	// Clean-tree state: when the kernel tree has zero findings the
-	// renderer emits the `ok — no findings` short form with no summary
-	// lines and no footer. That state is legitimate (chronic-warning
-	// codes like acs-tdd-audit and entity-body-empty get resolved over
-	// time), so the with-findings assertions below only run when there
-	// is something to summarize.
-	if strings.TrimSpace(out) == "ok — no findings" {
-		return
-	}
-
-	// With-findings state: at least one summary line is present and
-	// every summary line is severity=warning. A zero-summary state
-	// here means the collapse path is broken or the renderer
-	// accidentally dropped warnings altogether. Errors must not
-	// collapse into summary form — they are per-instance-actionable
-	// per M-0089's contract.
-	summaries := parseSummaryLines(t, out)
-	if len(summaries) == 0 {
-		t.Errorf("expected at least one summary line; got none:\n%s", out)
-	}
-	for _, s := range summaries {
-		if s.severity != "warning" {
-			t.Errorf("summary line has unexpected severity %q (errors must print per-instance, not in summary form): %+v",
-				s.severity, s)
-		}
-	}
-
-	// Footer line must be present so the human knows totals.
-	if !regexp.MustCompile(`\d+ findings \(\d+ errors, \d+ warnings\)`).MatchString(out) {
-		t.Errorf("footer line missing:\n%s", out)
-	}
-}
-
-// TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings
-// is a meta-test for the assertion in
-// TestBinary_CheckDefault_KernelTreeShortOutput. It synthesizes a
+// TestWarningCollapse_StructuralAssertion_CatchesPerInstanceWarnings
+// is a meta-test for the warning-collapse assertion in
+// TestBinary_CheckDefault_SummarizesWarnings (the property migrated
+// there from the removed real-tree kernel test, M-0220). It synthesizes a
 // "what a warning-collapse regression looks like" output and asserts
 // the regex used by that test would catch it, so we have evidence
 // the structural assertion actually fires on the regression class it
@@ -328,7 +268,7 @@ func TestBinary_CheckDefault_KernelTreeShortOutput(t *testing.T) {
 // <message>`. The structural assertion's regex is
 // `^\S+: warning ` (with multi-line flag). This test feeds three
 // hand-crafted regression shapes and asserts each is caught.
-func TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings(t *testing.T) {
+func TestWarningCollapse_StructuralAssertion_CatchesPerInstanceWarnings(t *testing.T) {
 	t.Parallel()
 	warningPerInstanceRE := regexp.MustCompile(`(?m)^\S+: warning `)
 	cases := []struct {
@@ -378,8 +318,7 @@ func TestKernelTreeShortOutput_StructuralAssertion_CatchesPerInstanceWarnings(t 
 func TestBinary_CheckHelp_DocumentsVerbose(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
-	tmp := t.TempDir()
-	bin := testutil.BuildBinary(t, tmp)
+	bin := testutil.AiwfBinary(t)
 
 	// Cobra writes --help output to stderr, not stdout, so use the
 	// combined-output helper.

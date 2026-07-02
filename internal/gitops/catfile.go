@@ -102,16 +102,42 @@ func NewBlobReader(ctx context.Context, root string) (*BlobReader, error) {
 // Returns (nil, err) for real failure modes: subprocess crash,
 // protocol violation, post-Close call.
 func (br *BlobReader) Read(commit, path string) ([]byte, error) {
+	return br.request(commit + ":" + path)
+}
+
+// ReadObject fetches the object content named directly by its object
+// id (a full 40-char or abbreviated blob/commit/tree SHA), rather than
+// by `<commit>:<path>`. Resolving by object id is a direct object
+// lookup — it skips the per-read tree walk `<commit>:<path>` forces
+// git to perform from the commit root down to the blob — so callers
+// that already hold the blob id (e.g. from `git log --raw`'s pre/post
+// object-id columns, [PathTouch].PreSHA / PostSHA) read content far
+// more cheaply (E-0053 / M-0216 AC-2).
+//
+// Returns (nil, ErrBlobMissing) when the id doesn't resolve to an
+// object (malformed or unknown id), matching Read's missing-blob
+// signal. git's all-zero id is one such missing case; callers that
+// hold a raw-diff column guard it via [BlobAllZero] before calling,
+// but a passed-through all-zero id still resolves to ErrBlobMissing
+// here rather than a protocol error.
+func (br *BlobReader) ReadObject(sha string) ([]byte, error) {
+	return br.request(sha)
+}
+
+// request writes one `git cat-file --batch` query line and parses the
+// single response (header + content + trailing LF). Shared by Read
+// (which queries `<commit>:<path>`) and ReadObject (which queries a
+// bare object id).
+func (br *BlobReader) request(spec string) ([]byte, error) {
 	if br.closed {
 		return nil, errBlobReaderClosed
 	}
-	request := commit + ":" + path + "\n"
-	if _, err := io.WriteString(br.stdin, request); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: write request: %w", err)
+	if _, err := io.WriteString(br.stdin, spec+"\n"); err != nil {
+		return nil, fmt.Errorf("gitops: BlobReader: write request: %w", err) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
 	}
 	headerLine, err := br.stdout.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read header: %w", err)
+		return nil, fmt.Errorf("gitops: BlobReader: read header: %w", err) //coverage:ignore cat-file --batch protocol errors (truncated/garbled response) are not reproducible against a healthy subprocess
 	}
 	header := strings.TrimRight(headerLine, "\n")
 	missing, size, parseErr := parseBatchHeader(header)
@@ -123,11 +149,11 @@ func (br *BlobReader) Read(commit, path string) ([]byte, error) {
 	}
 	content := make([]byte, size)
 	if _, err := io.ReadFull(br.stdout, content); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read content (%d bytes): %w", size, err)
+		return nil, fmt.Errorf("gitops: BlobReader: read content (%d bytes): %w", size, err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
 	}
 	// Consume the trailing LF git appends after content.
 	if _, err := br.stdout.ReadByte(); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader.Read: read trailing LF: %w", err)
+		return nil, fmt.Errorf("gitops: BlobReader: read trailing LF: %w", err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
 	}
 	return content, nil
 }
