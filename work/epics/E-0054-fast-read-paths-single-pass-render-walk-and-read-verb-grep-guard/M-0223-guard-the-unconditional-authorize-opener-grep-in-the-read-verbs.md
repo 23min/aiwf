@@ -60,7 +60,18 @@ so the render single-pass (M-0221) reuses it rather than adding a third copy.
   before the grep, so the predicate is free.
 - **Low risk, verified — not "zero".** History: the map is consumed only via
   `AuthorizedBy`/`ScopeEnds`. Show: direct derivation covers source (b); the grep
-  covers source (a). Correct only if the fixture proves the opener case (AC-2).
+  covers source (a). Verified by differential diagnostic on the live tree —
+  `LoadEntityScopes(id)` reproduces the current `show` scope table for openers
+  (E-0032, E-0014); where foreign `AuthorizedBy` is present (E-0029) the grep is
+  still used and own scopes remain a subset. Correct only if the fixture proves the
+  opener case (AC-2).
+- **Incidental fix (finish-in-context).** `show` currently passes the **raw** id to
+  `LoadEntityScopeViews`, whose source-(b) test compares a *canonicalized* map value
+  against the raw id (`scopes.go:71`, `ent == id`), so `aiwf show <narrow-id>`
+  silently omits the scope table — confirmed live: `aiwf show E-14` shows none while
+  `aiwf show E-0014` shows two. Deriving source (b) from the width-tolerant
+  `LoadEntityScopes(id)` corrects this for free; pin it in AC-2. Not a separate gap —
+  it is the exact path this milestone rewrites.
 - Orthogonal to M-0221's single-pass; land independently. No `depends_on` — different
   call sites — but both must use the one consolidated helper.
 
@@ -78,13 +89,18 @@ the AC.
 
 ### AC-2 — history and show output identical for scoped and scopeless entities
 
-Byte-identical `aiwf history` (text and JSON) **and** `aiwf show` output, guarded vs
-unguarded, over a fixture of at least four entities: (i) a scopeless entity (skips);
-(ii) an entity worked *under* a scope — has `AuthorizedBy` (grep runs); (iii) an
-**active direct-scope opener** — `authorize` verb, no `AuthorizedBy`/`ScopeEnds` — for
-which `show`'s scope **table** must be non-empty and identical (history renders its
-chip from `e.Scope`); (iv) a scope-ended entity (`ScopeEnds` present). Omit (iii) and
-the test passes vacuously while `show` silently loses direct scopes.
+Two-part oracle. **(a) Equivalence** — `aiwf history` (text and JSON) **and**
+`aiwf show` output byte-identical guarded-vs-unguarded for **canonical-id**
+invocations, over a fixture of at least four entities: (i) a scopeless entity
+(skips); (ii) an entity worked *under* a scope — has `AuthorizedBy` (grep runs);
+(iii) an **active direct-scope opener** — `authorize` verb, no `AuthorizedBy`/
+`ScopeEnds` — whose `show` scope **table** must be non-empty (history renders its
+chip from `e.Scope`); omit (iii) and the test passes vacuously while `show` silently
+loses direct scopes; (iv) a scope-ended entity (`ScopeEnds` present). **(b) Width
+fix** — a **narrow-width opener** (an `E-NN` legacy id) queried by its narrow id:
+`show`'s scope table must render. This is a deliberate correction of the raw-id
+omission, *not* asserted as guarded==unguarded (the unguarded raw-id path is the
+bug).
 
 ### AC-3 — measured read-verb wall-time delta recorded in Validation
 
