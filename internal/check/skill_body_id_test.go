@@ -323,3 +323,79 @@ func TestSkillBodyIDReference_SkipsNonMarkdown(t *testing.T) {
 		t.Errorf("finding should name M-0001 (the .md), got %q", hits[0].Message)
 	}
 }
+
+// TestStatuslineCommentIDReference_Seam (M-0227 AC-2) drives the statusline
+// comment scan through check.Run: a real id in a shell comment fires exactly
+// one skill-body-id finding, a canonical placeholder is silent, a real id in
+// shell CODE is exempt (no Markdown mask applies to shell), and a non-.sh
+// sibling under the statusline dir is skipped.
+func TestStatuslineCommentIDReference_Seam(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		relPath  string
+		content  string
+		wantFire bool
+	}{
+		{
+			name:     "comment real id fires",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\n# See G-0001 for detail.\necho hi\n",
+			wantFire: true,
+		},
+		{
+			name:     "comment placeholder silent",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\n# See G-NNNN for detail.\necho hi\n",
+			wantFire: false,
+		},
+		{
+			name:     "real id in shell code exempt",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\nlabel=\"G-0001\"\n",
+			wantFire: false,
+		},
+		{
+			name:     "non-shell sibling skipped",
+			relPath:  "internal/skills/embedded-statusline/notes.txt",
+			content:  "plain notes citing G-0001\n",
+			wantFire: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			full := filepath.Join(root, filepath.FromSlash(tc.relPath))
+			if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(full, []byte(tc.content), 0o644); err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+
+			var hits []check.Finding
+			for _, f := range check.Run(&tree.Tree{Root: root}, nil) {
+				if f.Code == check.CodeSkillBodyID {
+					hits = append(hits, f)
+				}
+			}
+
+			if !tc.wantFire {
+				if len(hits) != 0 {
+					t.Fatalf("expected no skill-body-id findings, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+				}
+				return
+			}
+			if len(hits) != 1 {
+				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+			}
+			if hits[0].Severity != check.SeverityError {
+				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityError)
+			}
+			if want := filepath.FromSlash(tc.relPath); hits[0].Path != want {
+				t.Errorf("path = %q, want %q", hits[0].Path, want)
+			}
+		})
+	}
+}
