@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: history and show output identical for scoped and scopeless entities
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: measured read-verb wall-time delta recorded in Validation
       status: open
