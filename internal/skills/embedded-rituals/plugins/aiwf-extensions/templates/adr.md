@@ -10,9 +10,9 @@ superseded_by:           # optional: ADR id that replaces this one
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
-> **Provenance.** This template follows [Michael Nygard's 2011 ADR pattern](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) — the de-facto standard adopted by `adr-tools`, the ThoughtWorks Technology Radar, and most ADR guides in the wild. Context → Decision → Consequences is the Nygard core; aiwf's status vocabulary is a tightened subset. Delete this blockquote after copying.
+> This template follows the [Nygard ADR pattern](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) — Context → Decision → Consequences; aiwf tightens the status vocabulary. Delete this blockquote after copying.
 >
-> **Why date and decided_by are in the body, not frontmatter.** aiwf core's frontmatter parser is strict — it only accepts the fields it validates (`id`, `title`, `status`, `supersedes`, `superseded_by`). Putting `date:` or `decided_by:` in frontmatter would fail `aiwf check`. Keep them in the body header line above. The canonical commit timestamp and actor are also recoverable via `aiwf history ADR-NNNN`.
+> **Put `date` and `decided_by` on the body header line above, not in frontmatter** — the strict frontmatter parser accepts only the fields it validates.
 
 ## Status vocabulary (aiwf)
 

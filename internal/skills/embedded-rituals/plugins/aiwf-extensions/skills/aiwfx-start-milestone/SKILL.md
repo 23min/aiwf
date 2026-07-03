@@ -5,7 +5,7 @@ description: Sets up and begins an aiwf milestone — preflight checks, branch s
 
 # aiwfx-start-milestone
 
-Begins implementation of an existing milestone. Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`); the v1 separate tracking-doc convention is gone.
+Begins implementation of an existing milestone. Per the branch-model sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`).
 
 ## When to use
 
@@ -29,7 +29,7 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
   Each invocation appends one AC and scaffolds the body heading; `aiwf check` will surface drift between frontmatter and body if the two disagree.
 
 - Confirm the milestone's `tdd:` policy is intentional. `tdd: required` makes the audit `met requires phase: done` an error (blocks pre-push); `tdd: advisory` makes it a warning; `tdd: none` or absent skips it. If the user wants TDD discipline tracked mechanically, set `tdd: required` in the spec's frontmatter before starting.
-- **Parent epic branch must exist locally and be the operator's current checkout.** Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), the state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
+- **Parent epic branch must exist locally and be the operator's current checkout.** The state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
 - Run the project's build. **Confirm green** before introducing any change.
 - Run the project's tests. **Confirm green.**
 
@@ -42,7 +42,7 @@ Ask the operator whether the milestone proceeds in-loop (the operator drives eve
 - **In-loop** — no scope opened. Step 4 is skipped.
 - **Delegate to `ai/<id>`** — step 4 runs `aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug>`. The operator names the agent.
 
-The delegation choice is asked BEFORE the sovereign acts (steps 3 and 4) because the authorize trailer (if delegating) binds the scope to the future milestone branch, and the milestone-branch name should be known when the authorize commit lands on the parent epic branch. Per the branch-model ADR, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 5.
+The delegation choice is asked BEFORE the sovereign acts (steps 3 and 4) because the authorize trailer (if delegating) binds the scope to the future milestone branch, and the milestone-branch name should be known when the authorize commit lands on the parent epic branch. The authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 5.
 
 The milestone scope is independent of any epic scope opened at `aiwfx-start-epic` step 7. Kernel semantics: one scope per entity; the milestone's scope is opened, paused, and resumed on its own entity, with its own `aiwf-branch:` (the milestone branch).
 
@@ -74,7 +74,7 @@ If step 2 chose delegation, the operator runs (still on the parent epic branch):
 aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug> --reason "<one-sentence rationale>"
 ```
 
-The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the ritual-current carve-out: from a ritual-shape current checkout (here `epic/E-NNNN-<slug>` satisfies that), an explicit `--branch` whose value matches the ritual shape (`milestone/`/`patch/` per [`internal/branchparse/`](../../../../../../internal/branchparse/branchparse.go)) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
+The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the ritual-current carve-out: from a ritual-shape current checkout (here `epic/E-NNNN-<slug>` satisfies that), an explicit `--branch` whose value matches the ritual shape (`milestone/` / `patch/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
 
 This is a *separate* commit from step 3, landed on the same parent epic branch. The scope is `active` from this commit forward; the agent operates within it until the milestone reaches a terminal status or the operator pauses the scope.
 
@@ -98,11 +98,11 @@ git checkout -b milestone/M-NNNN-<slug>
 
 The branch operation does not produce an aiwf commit; it is plain git plumbing. If a delegated `aiwf authorize` commit was produced at step 4, the named branch now resolves and the binding closes — the trailer's forward-reference becomes a live ref.
 
-**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`, [the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild. If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), default it to in-repo under the same `worktree.dir`, read with `aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'` rather than hardcoded. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock.
+**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild. If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), default it to in-repo under the same `worktree.dir`, read with `aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'` rather than hardcoded. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock.
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section). The v1 separate tracking doc is gone — `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
+AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section); `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
 
 For each AC, in sequence:
 
@@ -145,7 +145,7 @@ Do not commit the implementation yet — `aiwfx-wrap-milestone` bundles the impl
 
 - 🛑 **Never commit or push without explicit human approval.** Every commit gate is the human's, not the AI's.
 - 🛑 **Branch-coverage hard rule** (see `wf-tdd-cycle`). Audit runs before declaring complete, not after the human asks.
-- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Per the branch-model ADR, steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel's preflight enforces this for the authorize commit (the ritual-current carve-out allows the `--branch milestone/...` future-binding from a ritual-shape current checkout).
+- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel's preflight enforces this for the authorize commit (the ritual-current carve-out allows the `--branch milestone/...` future-binding from a ritual-shape current checkout).
 - 🛑 **Parent epic branch must exist locally and be the current checkout before this skill runs.** If it doesn't exist, the parent epic has not been activated — `aiwfx-start-epic E-NNNN` is the right entry point, not this skill. No silent fallthrough that materializes the parent branch on the operator's behalf.
 - Tests must be deterministic. No clock, no network, no flakes shipped.
 - Build must be green before declaring done.

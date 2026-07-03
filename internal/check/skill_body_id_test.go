@@ -142,3 +142,260 @@ func TestSkillBodyIDReference_Seam(t *testing.T) {
 		t.Errorf("finding line = %d, want file-relative 8", hits[0].Line)
 	}
 }
+
+// TestSkillBodyIDReference_BroadenedSurfaces (M-0227 AC-1) pins the
+// broadened whole-file *.md scan: a real (digit-bearing) id planted in each
+// newly-covered surface — the description: frontmatter field, a non-SKILL.md
+// entity template, a role-agent card, and the guidance fragment — produces a
+// skill-body-id finding, while a canonical letter-N placeholder in the same
+// position is silent. Driven through check.Run so it exercises the directory
+// walk, the *.md filter, and the whole-file (frontmatter-inclusive) scan the
+// seam adds. The wantLine assertions pin that a finding in the frontmatter
+// region carries a correct file-relative line (no body-offset regression).
+func TestSkillBodyIDReference_BroadenedSurfaces(t *testing.T) {
+	t.Parallel()
+
+	const (
+		skillDir    = "internal/skills/embedded/aiwf-x"
+		templateDir = "internal/skills/embedded-rituals/plugins/aiwf-extensions/templates"
+		agentDir    = "internal/skills/embedded-rituals/plugins/aiwf-extensions/agents"
+		guidanceDir = "internal/skills/embedded-guidance"
+	)
+
+	cases := []struct {
+		name     string
+		relPath  string
+		content  string
+		wantFire bool
+		wantLine int // asserted only when wantFire
+	}{
+		// Surface 1: the description: frontmatter field, previously split
+		// off and never scanned.
+		{
+			name:    "description field real id fires",
+			relPath: skillDir + "/SKILL.md",
+			content: "---\n" +
+				"name: aiwf-x\n" +
+				"description: See M-0001 for the worked example.\n" +
+				"---\n\n# aiwf-x\n\nBody prose without an id.\n",
+			wantFire: true,
+			wantLine: 3,
+		},
+		{
+			name:    "description field placeholder silent",
+			relPath: skillDir + "/SKILL.md",
+			content: "---\n" +
+				"name: aiwf-x\n" +
+				"description: See M-NNNN for the worked example.\n" +
+				"---\n\n# aiwf-x\n\nBody prose without an id.\n",
+			wantFire: false,
+		},
+		// Surface 2: a non-SKILL.md entity template, with the real id in a
+		// frontmatter comment (mirrors epic-spec.md's depends_on example).
+		{
+			name:    "template frontmatter-comment real id fires",
+			relPath: templateDir + "/x-spec.md",
+			content: "---\n" +
+				"id: E-NNNN\n" +
+				"title: <imperative title>\n" +
+				"depends_on: []           # optional: prior epic ids; e.g. [E-0002]\n" +
+				"---\n\n# E-NNNN — <Epic Title>\n\nBody prose.\n",
+			wantFire: true,
+			wantLine: 4,
+		},
+		{
+			name:    "template frontmatter-comment placeholder silent",
+			relPath: templateDir + "/x-spec.md",
+			content: "---\n" +
+				"id: E-NNNN\n" +
+				"title: <imperative title>\n" +
+				"depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]\n" +
+				"---\n\n# E-NNNN — <Epic Title>\n\nBody prose.\n",
+			wantFire: false,
+		},
+		// Surface 3: a role-agent card (non-SKILL.md .md under the ritual
+		// tree).
+		{
+			name:    "agent card real id fires",
+			relPath: agentDir + "/x.md",
+			content: "---\n" +
+				"name: x-agent\n" +
+				"description: A synthetic agent card.\n" +
+				"---\n\n# x-agent\n\nThis card cites G-0001 in its body.\n",
+			wantFire: true,
+			wantLine: 8,
+		},
+		{
+			name:    "agent card placeholder silent",
+			relPath: agentDir + "/x.md",
+			content: "---\n" +
+				"name: x-agent\n" +
+				"description: A synthetic agent card.\n" +
+				"---\n\n# x-agent\n\nThis card cites G-NNNN in its body.\n",
+			wantFire: false,
+		},
+		// Surface 4: the guidance fragment, a newly-scanned root with no
+		// frontmatter.
+		{
+			name:     "guidance fragment real id fires",
+			relPath:  guidanceDir + "/aiwf-guidance.md",
+			content:  "# Guidance\n\nThis fragment cites ADR-0001 in prose.\n",
+			wantFire: true,
+			wantLine: 3,
+		},
+		{
+			name:     "guidance fragment placeholder silent",
+			relPath:  guidanceDir + "/aiwf-guidance.md",
+			content:  "# Guidance\n\nThis fragment cites ADR-NNNN in prose.\n",
+			wantFire: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			full := filepath.Join(root, filepath.FromSlash(tc.relPath))
+			if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(full, []byte(tc.content), 0o644); err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+
+			var hits []check.Finding
+			for _, f := range check.Run(&tree.Tree{Root: root}, nil) {
+				if f.Code == check.CodeSkillBodyID {
+					hits = append(hits, f)
+				}
+			}
+
+			if !tc.wantFire {
+				if len(hits) != 0 {
+					t.Fatalf("expected no skill-body-id findings, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+				}
+				return
+			}
+			if len(hits) != 1 {
+				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+			}
+			got := hits[0]
+			if got.Severity != check.SeverityError {
+				t.Errorf("severity = %q, want %q", got.Severity, check.SeverityError)
+			}
+			if want := filepath.FromSlash(tc.relPath); got.Path != want {
+				t.Errorf("path = %q, want %q", got.Path, want)
+			}
+			if got.Line != tc.wantLine {
+				t.Errorf("line = %d, want file-relative %d", got.Line, tc.wantLine)
+			}
+		})
+	}
+}
+
+// TestSkillBodyIDReference_SkipsNonMarkdown (M-0227 AC-1) covers both arms of
+// the *.md extension filter: a .md surface with a real id fires, while a
+// sibling non-.md file (a plugin.json) carrying the same id-shape is skipped.
+func TestSkillBodyIDReference_SkipsNonMarkdown(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal", "skills", "embedded-rituals", "plugins", "aiwf-extensions", "templates")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "x-spec.md"), []byte("Body cites M-0001.\n"), 0o644); err != nil {
+		t.Fatalf("write md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "plugin.json"), []byte(`{"note": "M-0002 lives here"}`+"\n"), 0o644); err != nil {
+		t.Fatalf("write json: %v", err)
+	}
+
+	var hits []check.Finding
+	for _, f := range check.Run(&tree.Tree{Root: root}, nil) {
+		if f.Code == check.CodeSkillBodyID {
+			hits = append(hits, f)
+		}
+	}
+	if len(hits) != 1 {
+		t.Fatalf("expected exactly one finding (the .md only), got %d:\n%+v", len(hits), hits)
+	}
+	if !strings.Contains(hits[0].Message, "M-0001") {
+		t.Errorf("finding should name M-0001 (the .md), got %q", hits[0].Message)
+	}
+}
+
+// TestStatuslineCommentIDReference_Seam (M-0227 AC-2) drives the statusline
+// comment scan through check.Run: a real id in a shell comment fires exactly
+// one skill-body-id finding, a canonical placeholder is silent, a real id in
+// shell CODE is exempt (no Markdown mask applies to shell), and a non-.sh
+// sibling under the statusline dir is skipped.
+func TestStatuslineCommentIDReference_Seam(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		relPath  string
+		content  string
+		wantFire bool
+	}{
+		{
+			name:     "comment real id fires",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\n# See G-0001 for detail.\necho hi\n",
+			wantFire: true,
+		},
+		{
+			name:     "comment placeholder silent",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\n# See G-NNNN for detail.\necho hi\n",
+			wantFire: false,
+		},
+		{
+			name:     "real id in shell code exempt",
+			relPath:  "internal/skills/embedded-statusline/x.sh",
+			content:  "#!/usr/bin/env bash\nlabel=\"G-0001\"\n",
+			wantFire: false,
+		},
+		{
+			name:     "non-shell sibling skipped",
+			relPath:  "internal/skills/embedded-statusline/notes.txt",
+			content:  "plain notes citing G-0001\n",
+			wantFire: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			full := filepath.Join(root, filepath.FromSlash(tc.relPath))
+			if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(full, []byte(tc.content), 0o644); err != nil {
+				t.Fatalf("write fixture: %v", err)
+			}
+
+			var hits []check.Finding
+			for _, f := range check.Run(&tree.Tree{Root: root}, nil) {
+				if f.Code == check.CodeSkillBodyID {
+					hits = append(hits, f)
+				}
+			}
+
+			if !tc.wantFire {
+				if len(hits) != 0 {
+					t.Fatalf("expected no skill-body-id findings, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+				}
+				return
+			}
+			if len(hits) != 1 {
+				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
+			}
+			if hits[0].Severity != check.SeverityError {
+				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityError)
+			}
+			if want := filepath.FromSlash(tc.relPath); hits[0].Path != want {
+				t.Errorf("path = %q, want %q", hits[0].Path, want)
+			}
+		})
+	}
+}

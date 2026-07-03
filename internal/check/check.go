@@ -113,6 +113,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	// G-0184: id-shape chokepoint at the committed body-prose layer.
 	findings = append(findings, bodyProseID(t)...)
 	findings = append(findings, skillBodyIDReference(t)...)
+	findings = append(findings, statuslineCommentIDReference(t)...)
 	// M-0094: epic-active preflight signal per G-0063.
 	findings = append(findings, epicActiveNoDraftedMilestones(t)...)
 	// I2: AC and TDD checks.

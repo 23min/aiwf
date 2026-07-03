@@ -627,6 +627,7 @@ by the foundation epic E-0050, which this epic builds on.
 | M-0205 | Milestone review framing and wrap-milestone trailer test | draft |
 | M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
 | M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
+| M-0230 | Make roadmap regeneration zero-friction in the wrap rituals | draft |
 
 ## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (done)
 
@@ -696,7 +697,7 @@ that never share a loaded history.
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | cancelled |
 | M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
 
-## E-0054 — Fast read paths: single-pass render walk and read-verb grep guard (active)
+## E-0054 — Fast read paths: single-pass render walk and read-verb grep guard (done)
 
 ### Goal
 
@@ -733,7 +734,7 @@ worktree/merge safety analysis live in
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0221 | Single unified history walk for render | draft |
+| M-0221 | Single unified history walk for render | done |
 | M-0222 | Path-scoped single-entity history with bloom-filter maintenance | cancelled |
 | M-0223 | Guard the unconditional authorize-opener grep in the read verbs | done |
 
@@ -752,4 +753,21 @@ files and shows the maximum severity — never running a check on the render pat
 | M-0224 | aiwf health: doctor writes health.aiwf.json + statusline stoplight | done |
 | M-0225 | aiwf health producer: doctor --write-health + lifecycle refresh | cancelled |
 | M-0226 | Four-state statusline health stoplight from producer files | cancelled |
+
+## E-0056 — Extend the id chokepoint across shipped surfaces; strip provenance prose (active)
+
+### Goal
+
+Every surface aiwf materializes into a consumer's `.claude/` — verb and ritual
+skills, role-agent cards, entity templates, the always-on guidance fragment, and
+the statusline — reads as imperative, consumer-scoped instruction: no
+aiwf-internal entity ids, no development history, no provenance tags, no
+rationale or war-stories, and no dead references to artifacts that do not ship.
+The id chokepoint covers every shipped surface, so the leak class cannot recur.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0227 | Extend the id chokepoint to all shipped surfaces; clean id leaks | done |
+| M-0228 | Strip shipped-prose history/rationale; broaden the authoring principle | done |
+| M-0229 | Drop dead doc-links; encode reference discipline in record-decision | done |
 
