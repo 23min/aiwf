@@ -55,6 +55,12 @@ Verb wall-times (warm OS cache, devcontainer on Docker/linuxkit):
 | `aiwf render --format=html` | **28 min** (657 pages) | ~N+2 full-history greps *per milestone*, ×2 walk families |
 | `aiwf check` | **78s** | subprocess-bound: 11s user + 29s system |
 
+> **Since shipped (E-0054):** the `render` and read-verb rows above are the *before*
+> baseline. E-0054 landed two of the levers below — `aiwf render --format=html` is now
+> **~4.5s** (688 pages, ~466×; M-0221's single unified history walk) and `aiwf history` /
+> `aiwf show` shed ~44% / ~32% on scopeless entities (M-0223's grep guard). See the
+> "Recommended sequence" section for the shipped-vs-deferred status of each lever.
+
 > The devcontainer runs on a Docker/linuxkit VM where `fork`/`exec`/filesystem
 > syscalls are far slower than native Linux or CI. The 29s of *system* time in
 > `aiwf check` is that tax. **Felt latency is dominated by subprocess count**, more
@@ -335,20 +341,23 @@ Largely yes:
 
 0. **Branch hygiene** (G-0324) — prune the merged local branches. Free; shrinks
    allocator + check fan-out immediately.
-1. **Route `render` through a single unified history walk** (M-0221) — build on
-   E-0053's HEAD-scoped `check.WalkHeadCommits` (extend with `%aI`); **not**
-   `gitops.BulkRevwalk`, which walks `--all` (leaks branch commits, breaks
-   byte-identity) and collapses repeating trailers. The genuinely new code is the
-   bucketing + authorize-opener map + scope-FSM replay on top of one HEAD pass. Must
-   batch **both** render walk families (per-entity events *and* the
-   authorize-opener/provenance map) — the spike proved 12.8s vs 28 min, byte-identical.
-   Biggest single render win.
-1b. **Guard the unconditional authorize grep across the read verbs** (M-0223) — the
-   cheap single-entity win. The same grep runs unconditionally in `history` text
-   (`BuildScopeEntityMap`) *and* `show` (`readAllAuthorizeOpeners` via
-   `LoadEntityScopeViews`, ~3.4s); skip it when the entity's loaded events carry no
-   scope data, and consolidate the two near-duplicate impls into one shared helper.
-   Roughly halves both commands; low risk (verified), gated on a non-vacuous fixture.
+1. **Route `render` through a single unified history walk** — ✅ **shipped (E-0054 /
+   M-0221).** Built on E-0053's HEAD-scoped `check.WalkHeadCommits` (extended additively
+   with `%aI` + `%s`); **not** `gitops.BulkRevwalk`, which walks `--all` (leaks branch
+   commits, breaks byte-identity) and collapses repeating trailers. The genuinely new
+   code is `render`'s in-memory `historyIndex`: one HEAD pass bucketed into per-entity
+   events + the authorize-opener map + a scope-FSM replay, so every resolver read is a
+   map lookup. Batches **both** render walk families (per-entity events *and* the
+   authorize-opener/provenance map). Measured **~35 min → ~4.5s** (688 pages, ~466×),
+   byte-identical (data differential vs the untouched `ReadHistoryChain` /
+   `LoadEntityScopeViews` oracles + a real-tree `diff -rq`). Biggest single render win.
+1b. **Guard the unconditional authorize grep across the read verbs** — ✅ **shipped
+   (E-0054 / M-0223).** The same grep ran unconditionally in `history` text and `show`
+   (`~3.4s`); it now runs only when the entity's loaded events carry scope data, and the
+   two near-duplicate private impls were consolidated into one shared helper,
+   `cliutil.AuthorizeOpeners` (reused by the M-0221 render pass — no third copy).
+   Measured **~44%** off `aiwf history` and **~32%** off `aiwf show` on a scopeless
+   entity; low risk (verified), gated on a non-vacuous fixture.
 2. **Path-scoped history + maintained changed-path bloom filters** (deferred, G-0340)
    — per-entity history ~1.3s → ~65ms, but only once the query-equivalence gaps
    (pathless commits, path-set derivation, history simplification) are handled; the
