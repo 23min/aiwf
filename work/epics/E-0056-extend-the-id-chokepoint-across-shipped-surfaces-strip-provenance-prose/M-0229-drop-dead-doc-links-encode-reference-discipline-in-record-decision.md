@@ -1,7 +1,7 @@
 ---
 id: M-0229
 title: Drop dead doc-links; encode reference discipline in record-decision
-status: draft
+status: in_progress
 parent: E-0056
 depends_on:
     - M-0227
