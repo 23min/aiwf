@@ -66,6 +66,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		"internal/cli/integration/canonicalize_render_test.go":  "AC-3 narrow-tree fixture exercising canonical render output (relocated from cmd/aiwf in M-0118/AC-6)",
 		"internal/cli/integration/canonicalize_history_test.go": "AC-4 narrow trailer matches canonical query (relocated from cmd/aiwf in M-0118/AC-6)",
 		"internal/cli/integration/scope_grep_guard_test.go":     "M-0223 AC-2(b) width-fix fixture: a legacy narrow-width authorize opener (E-14) proving aiwf show renders its scope table by narrow-id query",
+		"internal/cli/render/singlepass_test.go":                "M-0221 AC-3 width trap: the single-pass differential exercises a narrow (E-22) and canonical (E-0022) width for the same entity, proving both bucket into one key",
+		"internal/cli/cliutil/scopes_pure_test.go":              "M-0221 pure-primitive test: OpenersFrom canonicalizes a narrow-width (E-14) opener entity id to canonical width",
 
 		// Entity-grammar tests — the narrow ids are inputs to grammar
 		// validators (idPatterns, ParseCompositeID, KindFromID, IDFromPath).
