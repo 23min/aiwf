@@ -260,33 +260,39 @@ func TestFindSovereignAuthorizeSection_BranchCoverage(t *testing.T) {
 	}
 }
 
-// TestAiwfxStartEpic_M0104_AC2_G0059Removed_ADR0010Referenced pins
-// M-0104/AC-2: the stale "G-0059 frames the open question of which
-// branch-model convention aiwf should bless" paragraph at the
-// original step 6 is removed; the replacement names ADR-0010
-// explicitly.
+// TestAiwfxStartEpic_M0104_AC2_G0059Removed_SovereignSequencingStated
+// pins M-0104/AC-2, reconciled by M-0229/AC-3: the stale "G-0059 frames
+// the open question of which branch-model convention aiwf should bless"
+// paragraph at the original step 6 is removed; the replacement states
+// the branch-model sequencing directly.
 //
-// Two-sided assertion. G-0059 absence is checked over the WHOLE
-// fixture body (substring is unambiguous and the only legitimate
-// reason it would re-appear is precisely the regression this test
-// catches). ADR-0010 presence is asserted under `## Workflow` to
-// scope it to the orchestration prose — the marker most worth pinning
-// is the workflow-side commitment, not a stray frontmatter or
-// constraints-section mention.
-func TestAiwfxStartEpic_M0104_AC2_G0059Removed_ADR0010Referenced(t *testing.T) {
+// Originally this asserted a bare `ADR-0010` reference under `## Workflow`.
+// M-0229 drops the dead `docs/adr/` doc-link from the shipped skill (the
+// id is meaningless in a consumer tree and the link is dead there), so
+// the marker becomes the self-contained behavioral fact the reference
+// stood in for: the sovereign acts run before the branch cut. G-0059
+// absence is still checked over the whole body (an unambiguous substring
+// whose only legitimate re-appearance is the regression this catches).
+func TestAiwfxStartEpic_M0104_AC2_G0059Removed_SovereignSequencingStated(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfxStartEpicFixture(t)
 
 	if strings.Contains(body, "G-0059") {
-		t.Error("M-0104/AC-2: fixture body must not contain `G-0059` — the deferral paragraph was retired per ADR-0010")
+		t.Error("M-0104/AC-2: fixture body must not contain `G-0059` — the deferral paragraph was retired for the branch-model sequencing")
 	}
 
 	workflow := extractMarkdownSection(body, 2, "Workflow")
 	if workflow == "" {
 		t.Fatal("M-0104/AC-2: body must contain a `## Workflow` section")
 	}
-	if !strings.Contains(workflow, "ADR-0010") {
-		t.Error("M-0104/AC-2: `## Workflow` must reference `ADR-0010` (the branch-model decision that replaced the G-0059 deferral)")
+	// The sovereign-acts-before-branch-cut sequencing must be stated in the
+	// workflow prose itself, not deferred to a doc-link (M-0229/AC-3).
+	lower := strings.ToLower(workflow)
+	if !strings.Contains(lower, "sovereign") {
+		t.Error("M-0104/AC-2: `## Workflow` must name the sovereign acts (the promote/authorize that land before the branch cut)")
+	}
+	if !strings.Contains(lower, "cut afterwards") {
+		t.Error("M-0104/AC-2: `## Workflow` must state the branch is cut afterwards — the branch-model sequencing stated self-contained, not via a doc-link")
 	}
 }
 

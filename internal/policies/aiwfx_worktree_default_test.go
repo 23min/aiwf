@@ -109,7 +109,9 @@ func TestAiwfxStartEpic_M0190_AC1_WorktreeDefaultsToInRepo(t *testing.T) {
 	// bullet there ("a prompt rather than picking on the operator's behalf")
 	// silently steers it back to the pre-M-0190 behavior — a contradiction the
 	// step-8-scoped check above cannot see (different section). Pin it: the
-	// Principles worktree bullet now states the in-repo default, citing the ADR.
+	// Principles worktree bullet now states the in-repo default. (M-0229/AC-3
+	// dropped the ADR-0023 citation marker — the id-bearing doc-link is gone;
+	// the in-repo/default behavioral markers pin the bullet.)
 	principles := extractMarkdownSection(body, 2, "Principles")
 	if principles == "" {
 		t.Fatal("AC-1: start-epic must contain a `## Principles` section")
@@ -117,7 +119,6 @@ func TestAiwfxStartEpic_M0190_AC1_WorktreeDefaultsToInRepo(t *testing.T) {
 	assertMarkers(t, "AC-1: start-epic Principles worktree bullet", principles, []marker{
 		{"the in-repo default", "in-repo", true},
 		{"the default framing", "default", true},
-		{"the ADR-0023 citation", "ADR-0023", false},
 	})
 }
 
@@ -152,11 +153,12 @@ func TestStartRituals_M0190_AC2_OverrideRetained(t *testing.T) {
 }
 
 // TestStartRituals_M0190_AC3_SandboxRationale pins M-0190/AC-3: both start
-// rituals record the devcontainer-sandbox rationale for the in-repo default
-// and cite ADR-0023. Heading-scoped to each ritual's worktree guidance — the
-// rationale must live with the placement guidance, not in an unrelated
-// section. The ADR id is matched verbatim (case-sensitive); the rationale
-// prose is matched case-insensitively.
+// rituals record the devcontainer-sandbox rationale for the in-repo default.
+// Heading-scoped to each ritual's worktree guidance — the rationale must live
+// with the placement guidance, not in an unrelated section; the rationale
+// prose is matched case-insensitively. (M-0229/AC-3 dropped the ADR-0023
+// citation marker: the shipped skill's id-bearing doc-link is gone, and the
+// sandbox/devcontainer/rebuild behavioral markers pin the guidance.)
 func TestStartRituals_M0190_AC3_SandboxRationale(t *testing.T) {
 	t.Parallel()
 
@@ -172,7 +174,6 @@ func TestStartRituals_M0190_AC3_SandboxRationale(t *testing.T) {
 			t.Fatalf("AC-3: %s must contain its worktree-guidance subsection", s.ritual)
 		}
 		assertMarkers(t, "AC-3: "+s.ritual+" worktree guidance", s.section, []marker{
-			{"the ADR-0023 citation", "ADR-0023", false},
 			{"the sandbox confinement rationale", "sandbox", true},
 			{"the devcontainer context", "devcontainer", true},
 			{"the container-rebuild loss rationale", "rebuild", true},

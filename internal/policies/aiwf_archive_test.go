@@ -173,16 +173,20 @@ func TestAiwfArchive_AC3_PerKindStorageSection(t *testing.T) {
 	}
 }
 
-// TestAiwfArchive_AC3_CitesADR0004 pins the citation invariant:
-// every embedded skill that flows from an ADR cites the ADR by id
-// (per CLAUDE.md §"Kernel functionality must be AI-discoverable" —
-// the reader who lands on the skill must be able to follow the
-// thread back to the ratified decision).
-func TestAiwfArchive_AC3_CitesADR0004(t *testing.T) {
+// TestAiwfArchive_M0229_StatesConventionSelfContained reconciles the
+// former "cites ADR-0004 by id" invariant per M-0229/AC-3. A shipped
+// verb skill materializes into consumer trees where aiwf's own ADR id
+// is meaningless and the `docs/adr/` link is dead, so the skill states
+// the archive convention self-contained rather than citing the ADR by
+// id (which now conflicts with the "cite no real entity id" principle
+// M-0228 broadened across shipped surfaces). The behavioral anchor: the
+// convention is decoupled from FSM promotion — the fact the ADR link
+// stood in for.
+func TestAiwfArchive_M0229_StatesConventionSelfContained(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfArchiveSkill(t)
-	if !strings.Contains(body, "ADR-0004") {
-		t.Error("AC-3: SKILL.md must cite ADR-0004 by id")
+	if !strings.Contains(strings.ToLower(body), "decoupled from fsm") {
+		t.Error("M-0229/AC-3: aiwf-archive must state the archive convention self-contained (decoupled from FSM promotion), not defer it to a docs/adr doc-link")
 	}
 }
 
