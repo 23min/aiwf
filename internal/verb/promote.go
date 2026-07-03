@@ -399,14 +399,32 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 }
 
 // validateAddressedByCommit returns an error if any --by-commit SHA in
-// opts does not resolve to a commit in the repo at root (G-0186). It
-// mirrors the --by entity-id existence check: a resolver pointer that
-// points at nothing is worse than an empty field, since it reads as
-// authoritative. Resolution is done via gitops.CommitExists, which uses
-// `git rev-parse --verify --quiet <sha>^{commit}` and therefore accepts
-// abbreviated SHAs natively (the legitimate value f7fd1f99 is a short
-// SHA). The caller invokes this on the non-force path only; --force is
-// the sovereign override for commits not yet present locally.
+// opts fails either of two checks on the non-force path:
+//
+//  1. Existence (G-0186): the SHA resolves to a commit in the repo at
+//     root, via gitops.CommitExists (`git rev-parse --verify --quiet
+//     <sha>^{commit}`, which accepts abbreviated SHAs natively — the
+//     legitimate value f7fd1f99 is a short SHA). A resolver pointer that
+//     points at nothing is worse than an empty field, since it reads as
+//     authoritative.
+//
+//  2. Reachability (G-0355): the SHA is an ancestor of HEAD, via
+//     gitops.IsAncestor. A gap's addressed_by_commit is a claim that the
+//     gap is closed by that commit; the claim is only truthful if the
+//     commit is in the history we are recording the closure onto. HEAD —
+//     not a configured trunk ref — is the right anchor: the verb may run
+//     on any branch, and "the history this promote commits onto" is
+//     exactly what must contain the commit. In the wf-patch wrap the
+//     tracker closure runs *after* the merge to mainline, so HEAD is
+//     mainline and this asserts trunk-reachability directly. This is the
+//     mechanical backstop for the G-0346 failure: a merge that did not
+//     land leaves the fixing commit off HEAD, so recording the closure
+//     is refused rather than silently corrupting the resolver.
+//
+// The caller invokes this on the non-force path only; --force is the
+// sovereign override for the documented exceptions (a cross-repo
+// reference, or a commit on an unmerged fixing branch the operator
+// records on their own authority).
 //
 // A nil/empty AddressedByCommit makes this a no-op — the loop body never
 // runs, so a promote without --by-commit is unaffected.
@@ -419,6 +437,14 @@ func validateAddressedByCommit(ctx context.Context, root string, opts PromoteOpt
 		}
 		if !ok {
 			return fmt.Errorf("--by-commit %q does not resolve to a commit in this repo; pass a real commit SHA, or --force to record it anyway (sovereign override)", sha)
+		}
+		reachable, err := gitops.IsAncestor(ctx, root, sha, "HEAD")
+		if err != nil {
+			//coverage:ignore defensive: IsAncestor maps "not an ancestor" to (false,nil); a non-nil err needs a bad ref or broken workdir, not reachable deterministically in-process
+			return fmt.Errorf("checking --by-commit %q is reachable from HEAD: %w", sha, err)
+		}
+		if !reachable {
+			return fmt.Errorf("--by-commit %q resolves to a commit not reachable from HEAD; the closure would record a commit this branch does not contain (did a merge fail to land?). Reconcile and merge first, or pass --force to record it anyway (sovereign override)", sha)
 		}
 	}
 	return nil

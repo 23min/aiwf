@@ -431,9 +431,26 @@ func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
 		t.Fatal("could not extract the `### 5. Reconcile the epic branch with mainline` section")
 	}
 
-	wantGuard := "git merge-base --is-ancestor origin/main epic/E-NN-<slug>"
+	// The ancestor guard compares against *local* mainline, not the
+	// remote-tracking ref: local `main` advancing under a concurrent
+	// session is a divergence `origin/main` would not reflect. The
+	// remote-tracking ref appears only in the fetch/fast-forward
+	// preamble that folds in the origin axis before the check.
+	wantGuard := "git merge-base --is-ancestor main epic/E-NN-<slug>"
 	if !strings.Contains(reconcile, wantGuard) {
-		t.Errorf("reconcile step must name the ancestor guard %q", wantGuard)
+		t.Errorf("reconcile step must name the ancestor guard %q (local mainline, not origin/main)", wantGuard)
+	}
+
+	// The fetch/fast-forward preamble folds in commits another clone
+	// pushed before the ancestor guard runs, and must precede it.
+	fetchIdx := strings.Index(reconcile, "git fetch")
+	ffIdx := strings.Index(reconcile, "--ff-only origin/main")
+	guardIdx := strings.Index(reconcile, wantGuard)
+	if fetchIdx < 0 || ffIdx < 0 {
+		t.Fatal("reconcile step must document `git fetch` and fast-forwarding local main to origin/main")
+	}
+	if fetchIdx >= guardIdx || ffIdx >= guardIdx {
+		t.Errorf("reconcile step must run the fetch/fast-forward preamble BEFORE the ancestor guard (fetch=%d, ff=%d, guard=%d)", fetchIdx, ffIdx, guardIdx)
 	}
 
 	// Ordering: integrate mainline into the epic branch, then re-run
