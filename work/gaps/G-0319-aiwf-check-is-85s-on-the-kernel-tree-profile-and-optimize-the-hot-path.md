@@ -1,8 +1,10 @@
 ---
 id: G-0319
 title: aiwf check is ~85s on the kernel tree — profile and optimize the hot path
-status: open
+status: addressed
 discovered_in: M-0196
+addressed_by:
+    - E-0053
 ---
 ## What's missing
 
