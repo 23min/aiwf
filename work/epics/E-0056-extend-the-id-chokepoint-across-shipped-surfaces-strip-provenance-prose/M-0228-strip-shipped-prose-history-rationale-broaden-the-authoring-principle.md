@@ -99,3 +99,82 @@ until the paragraph is broadened; three fixtures in
 `firing_fixtures_multi_site_test.go` (missing file, missing section, missing
 markers) keep the policy's construction sites lit under the firing-fixture
 meta-gate and cover every branch.
+
+## Work log
+
+- **AC-1** — met. `4e3c0f76` (red — `PolicyM0228SkillsPolicyBroadenedPrinciple` +
+  its real-tree test + three `firing_fixtures_multi_site_test.go` rows; all six
+  section markers fail on the pre-broadening §"Skills policy") → `973c8876` (green
+  — `CLAUDE.md` §"Skills policy" broadened to the full shipped-surface list and the
+  history/provenance/rationale content class). Phases red→green→done ran live;
+  `db167628` promoted met. 100% statement coverage of the new policy.
+- **Prose cleanup (review backstop — not an AC)** — `f55c05c8`. Stripped the "v1
+  tracking-doc is gone" asides (`aiwfx-start-milestone` ×2, `aiwfx-wrap-milestone`
+  ×1, `templates/milestone-spec.md` ×2 — whole mention removed so the
+  `embedded-rituals-no-retired-tracking-doc` policy stays satisfied), reduced the
+  "why date" argumentation blocks (`templates/adr.md`, `templates/decision.md`) to
+  imperative, and trimmed the Nygard "Provenance" war-story in `templates/adr.md`
+  to a one-line orientation. Verified at the independent wrap review, not a test.
+
+## Decisions made during implementation
+
+- The vestigial statusline bullet in the Approach was dropped at start-milestone:
+  `M-0227` already owned the full statusline comment rewrite, so this milestone's
+  statusline residual was empty. Recorded in the setup `edit-body`; no decision
+  entity required.
+- The Nygard "Provenance" blockquote in `templates/adr.md` — not named in the
+  original Approach — was **trimmed** (not removed, not left) to a one-line
+  orientation, an operator call during the cleanup: it is provenance war-story in a
+  shipped surface, the class this milestone codifies against, and leaving it would
+  contradict the principle just written into `CLAUDE.md`. A prose-scope call, not
+  durable architecture — no `D-NNN` minted.
+
+## Validation
+
+- `go build ./...` — clean.
+- `make check-fast` (golangci-lint + `go vet` + `go test`) — all packages green; 0
+  lint issues.
+- `make coverage-gate` — diff-scoped branch-coverage audit, firing-fixture-presence
+  meta-gate, and skill-edit-structural-test backstop all green;
+  `PolicyM0228SkillsPolicyBroadenedPrinciple` at 100.0% statement coverage.
+- `aiwf check` (worktree binary, real tree) — 0 errors, 12 pre-existing warnings; 0
+  `skill-body-id` / `body-prose-id`.
+- AC-1 red→green proven independently: the reviewer materialized HEAD and reverted
+  only the broadened paragraph — all six markers went missing.
+
+## Deferrals
+
+None. No AC was deferred or cancelled; no work was punted to a gap. Enforcing the
+history/provenance/rationale content class only for the id-shaped subset (the rest
+held at review) is the milestone's deliberate, reasoned design (see the
+evidence-split section above), not a deferral.
+
+## Reviewer notes
+
+- Independent fresh-context review (code-quality + prose-quality lenses):
+  **approve**, no blocking findings. Every claim verified by measurement — the AC-1
+  test's non-vacuousness by reverting the paragraph and observing red; section
+  scoping by confirming the six marker words appear many times elsewhere in
+  `CLAUDE.md` yet the reverted section still reports them missing; coverage,
+  id-leak, and tracking-doc-policy each re-run.
+- **Marker choice is deliberate.** The test pins four surface markers (`statusline`,
+  `template`, `agent`, `guidance`) plus two content-class markers (`history`,
+  `rationale`), all absent pre-broadening. `description` and `provenance` were
+  omitted as required markers on purpose — both already appear in the section
+  pre-broadening, so requiring them would make the assertion vacuous. This pins
+  against a literal narrowing back to "just skill bodies"; semantic drift (keeping a
+  marker word while dropping the real broadening) is out of a structural
+  assertion's reach and accepted per the repo's section-scoping rule.
+- **A pre-existing test also guards this paragraph** (`m0195`, asserting `cite no
+  real entity id` plus five required phrases). The broadening retains all of them,
+  so it stays green — confirmed by the reviewer and the full suite.
+- **DRY (considered, not a defect):** the section extraction is an inline
+  heading-walk, not the shared `extractMarkdownSection` helper. That helper lives in
+  a `_test.go` file (unavailable to a production policy `.go` file) and lacks the
+  parent-H2 (`## Go conventions`) scoping this policy needs. The inline walk is
+  required, not avoidable duplication.
+- **Content class is review-enforced by design** for the non-id subset — no
+  non-brittle structural assertion exists (the crux of the evidence split). Future
+  shipped-surface edits carry no mechanical guard against reintroducing
+  history/rationale; the wrap-ritual review is the standing backstop. Accepted
+  trade-off, reasoned in the AC-split.
