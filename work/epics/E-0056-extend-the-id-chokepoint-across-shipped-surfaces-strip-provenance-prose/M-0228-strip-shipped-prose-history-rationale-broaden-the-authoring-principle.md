@@ -1,7 +1,7 @@
 ---
 id: M-0228
 title: Strip shipped-prose history/rationale; broaden the authoring principle
-status: draft
+status: in_progress
 parent: E-0056
 depends_on:
     - M-0227
