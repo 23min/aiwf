@@ -1,6 +1,6 @@
 ---
 id: G-0296
-title: aiwf.yaml opt-in knob for declared-sequence wrap gates
+title: aiwf.yaml knob for declared-sequence wrap gates
 status: open
 ---
 ## Problem
