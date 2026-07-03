@@ -141,6 +141,16 @@ aiwf cancel  ADR-NNNN              # rejected (terminal)
 
 Same for D-NNNN. aiwf validates each transition; illegal moves error out.
 
+## Referencing a decision
+
+A ritual or behavioral skill states its behavioral fact directly and
+self-contained. It does not embed a markdown link to a decision record or design
+doc under `docs/` (or another non-shipping repo path). A decision's rationale
+lives in its own entry, authored via this skill — not in a link from a
+behavioral skill. When the "why" matters, record it as a decision
+(`aiwf add adr` / `aiwf add decision`) and name it in prose; do not point at a
+repo file the reader does not have.
+
 ## Anti-patterns
 
 - *Capturing implementation details as decisions.* "We named the variable foo" is not a decision; "we chose to model auth as a service rather than a library" is.

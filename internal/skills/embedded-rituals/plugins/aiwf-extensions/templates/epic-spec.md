@@ -61,8 +61,8 @@ completed:               # optional: YYYY-MM-DD, filled at wrap
      in each milestone's frontmatter. Update this list when milestones are added, renamed,
      or re-sequenced. Milestone ids are global (M-NNNN), not epic-scoped. -->
 
-- [M-NNNN](work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md) — <one-line description> · depends on: —
-- [M-NNNN](work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md) — <one-line description> · depends on: M-NNNN
+- `M-NNNN` — <one-line description> · depends on: —
+- `M-NNNN` — <one-line description> · depends on: `M-NNNN`
 
 ## ADRs produced (optional)
 

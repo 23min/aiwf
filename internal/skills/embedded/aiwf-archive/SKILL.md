@@ -9,8 +9,6 @@ The `aiwf archive` verb sweeps terminal-status entities into per-kind `archive/`
 
 The kernel principle the verb embodies: location is a redundant projection of status. The decoupling buys (1) a grace period after close for inspection and wrap rituals, and (2) one-purpose promotion verbs with no file-move side effects to test. The cost is bounded drift (the period between promotion and the next sweep); the drift is policed via the `archive-sweep-pending` advisory finding and the `archive.sweep_threshold` knob below.
 
-See [the uniform-archive-convention ADR](../../../../docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) for the full design rationale.
-
 ## When to use
 
 - `aiwf check` reports `archive-sweep-pending` and the operator wants the tree back to convergence.

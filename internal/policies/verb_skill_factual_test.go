@@ -177,20 +177,23 @@ func TestAiwfContractSkill_RecipePathAndCancelFSM(t *testing.T) {
 	}
 }
 
-// TestAiwfAuthorizeSkill_ProvenanceDocLinkResolves pins AC-4: the
-// aiwf-authorize provenance-model doc-link resolves to a real file.
-func TestAiwfAuthorizeSkill_ProvenanceDocLinkResolves(t *testing.T) {
+// TestAiwfAuthorizeSkill_ProvenanceModesSelfContained reconciles the
+// former "provenance-model doc-link resolves" invariant per M-0229/AC-3.
+// The shipped skill no longer carries a repo-relative link into the
+// non-shipping `docs/` tree (dead in a consumer). Instead the skill
+// states the two provenance modes self-contained — the behavioral fact
+// the doc-link stood in for — in its `Tool vs. agent` section.
+func TestAiwfAuthorizeSkill_ProvenanceModesSelfContained(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, aiwfAuthorizeSkillPath)
-	re := regexp.MustCompile(`\]\((\.\.[^)]*provenance-model\.md)\)`)
-	m := re.FindStringSubmatch(body)
-	if m == nil {
-		t.Fatal("aiwf-authorize skill has no relative provenance-model doc-link")
+	section := sectionUnder(body, "Tool vs. agent")
+	if section == "" {
+		t.Fatal("M-0229/AC-3: aiwf-authorize must carry a `Tool vs. agent` section stating the provenance modes self-contained")
 	}
-	skillDir := filepath.Dir(filepath.Join(repoRoot(t), aiwfAuthorizeSkillPath))
-	target := filepath.Clean(filepath.Join(skillDir, m[1]))
-	if _, err := os.Stat(target); err != nil {
-		t.Errorf("provenance-model doc-link %q resolves to %q, which does not exist: %v", m[1], target, err)
+	for _, want := range []string{"Tool mode", "Agent mode"} {
+		if !strings.Contains(section, want) {
+			t.Errorf("M-0229/AC-3: aiwf-authorize `Tool vs. agent` section must state %q self-contained, not defer it to a docs/ doc-link", want)
+		}
 	}
 }
 

@@ -46,7 +46,7 @@ html:
 
 `out_dir` is the directory the renderer writes into; absolute paths are honored, relative paths resolve against the repo root. `commit_output: false` (default) means the framework adds `<out_dir>/` to `.gitignore` on the next `aiwf init`/`aiwf update`. Set `commit_output: true` and re-run `aiwf update` to remove the gitignore line and commit the rendered HTML alongside source.
 
-Most projects publish via CI rather than committing the output. Four deployment patterns (local, GitHub Pages artifact, `gh-pages` branch, committed-to-source) are documented in [`docs/pocv3/plans/governance-html-plan.md`](../../docs/pocv3/plans/governance-html-plan.md) §2.
+Most projects publish via CI rather than committing the output. The four deployment patterns are local, a GitHub Pages artifact, a `gh-pages` branch, or committed-to-source.
 
 ## Flags
 
