@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Discoverability tests pin behavior, not the removed ADR ids
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
