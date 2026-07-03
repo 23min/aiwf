@@ -106,7 +106,7 @@ AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus bod
 
 For each AC, in sequence:
 
-- Invoke `wf-tdd-cycle` (red → green → refactor → done). When the milestone is `tdd: required`, `wf-tdd-cycle` drives `aiwf promote M-NNNN/AC-<N> --phase <p>` at each phase transition; the timeline shows up in `aiwf history M-NNNN/AC-<N>` automatically.
+- Invoke `wf-tdd-cycle` (red → green → refactor → done). When the milestone is `tdd: required`, `wf-tdd-cycle` drives `aiwf promote M-NNNN/AC-<N> --phase <p>` at each phase transition — **live, the moment each transition happens, never deferred or bursted at wrap.** The timeline in `aiwf history M-NNNN/AC-<N>` is the evidence the test came before the code; a phase ladder stamped in a batch later is indistinguishable from one back-stamped after the fact.
 - After the cycle ends green and clean, advance the AC status:
 
   ```bash
@@ -115,6 +115,7 @@ For each AC, in sequence:
 
   Under `tdd: required`, the kernel audit refuses `met` without `phase: done` — keep them in this order. The kernel records both events in `aiwf history`.
 
+- 🛑 **Commit the AC's implementation code now** — the changed source and test files, on the milestone branch — before starting the next AC. This is a real commit, not deferred to wrap: `feat(<scope>): <AC summary> (M-NNNN/AC-<N>)`. Every commit is the human's gate; wait for explicit approval. The resulting SHA is what the Work log entry below cites.
 - Append a Work log entry to the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`. Don't duplicate the phase timeline — `aiwf history M-NNNN/AC-<N>` is the authoritative record.
 - At this AC boundary, if the user asks for a handoff or context is getting long before the next AC, invoke `aiwfx-handoff` to emit a paste-ready `/compact` prime block. Emission here is on-demand — every-AC is noise.
 
@@ -140,7 +141,7 @@ When self-review is clean, declare:
 
 > *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, self-review passed. Ready for `aiwfx-wrap-milestone`."*
 
-Do not commit the implementation yet — `aiwfx-wrap-milestone` bundles the implementation, the wrap-side spec updates (Validation, Reviewer notes, Deferrals), and the milestone-status closure into a single approved sequence.
+The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` commits only the wrap-side spec updates (Work log, Validation, Reviewer notes, Deferrals) and then closes the milestone via its own declared-sequence gate.
 
 ## Constraints
 
