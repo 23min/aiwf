@@ -131,14 +131,21 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 
 	fmt.Println("\naiwf update: done.")
 
+	statuslineRC := cliutil.ExitOK
 	if statusline {
-		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+		// A settings-wiring finding (e.g. a pre-existing, differing
+		// statusLine key) is orthogonal to the artifact refresh: the
+		// statusline script itself is written and version-marked first, so
+		// the health file below must still reflect it. Capture the rc and
+		// return it after WriteHealth rather than early-returning here — an
+		// early return would skip the health refresh and leave the stoplight
+		// rendering a stale pre-mark warning about the marker just written
+		// (G-0347).
+		statuslineRC = cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
 			RootDir:      rootDir,
 			Scope:        scope,
 			WireSettings: wireSettings,
-		}); rc != cliutil.ExitOK {
-			return rc
-		}
+		})
 	} else {
 		// Plain `aiwf update`: upgrade-only auto-refresh of an
 		// already-installed statusline (G-0344). Refreshes only an
@@ -158,7 +165,7 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 		fmt.Fprintf(os.Stderr, "aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
 	}
 
-	return cliutil.ExitOK
+	return statuslineRC
 }
 
 // refreshStatuslineInPlace runs the upgrade-only statusline

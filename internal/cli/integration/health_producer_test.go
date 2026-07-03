@@ -41,6 +41,43 @@ func TestRun_UpdateWritesHealth(t *testing.T) {
 	assertHealthFile(t, health)
 }
 
+// TestRun_UpdateStatuslineRefreshesHealthDespiteSettingsConflict pins G-0347:
+// `aiwf update --statusline` must still refresh .claude/health.aiwf.json when the
+// settings-wiring step reports a finding (a pre-existing, differing statusLine
+// key). The statusline script + version marker are written before the wiring
+// conflict, so the health stoplight must reflect the just-marked statusline —
+// not a stale pre-mark warning. Before the fix an early `return rc` on the
+// findings code skipped the WriteHealth step. Project scope keeps the settings
+// file under the test root (no $HOME juggling), so the test stays parallel.
+func TestRun_UpdateStatuslineRefreshesHealthDespiteSettingsConflict(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	// Seed the project-scope settings file (settings.local.json) with a DIFFERENT
+	// statusLine command so the wiring step returns a findings code (not
+	// idempotent, not overwritten).
+	settings := filepath.Join(root, ".claude", "settings.local.json")
+	if err := os.WriteFile(settings, []byte(`{"statusLine":{"type":"command","command":"/foreign/statusline.sh"}}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	health := filepath.Join(root, ".claude", "health.aiwf.json")
+	_ = os.Remove(health) // ensure the update run is what (re)writes it
+
+	rc := cli.Execute([]string{"update", "--statusline", "--scope", "project", "--wire-settings", "--root", root})
+	if rc != cliutil.ExitFindings {
+		t.Fatalf("update --statusline with a conflicting statusLine key = %d, want ExitFindings %d (the conflict must still be reported)", rc, cliutil.ExitFindings)
+	}
+
+	// G-0347: the early return on the findings rc used to skip WriteHealth,
+	// leaving the stoplight reading a stale pre-mark warning. Health must be
+	// refreshed despite the wiring finding.
+	assertHealthFile(t, health)
+}
+
 // TestRun_DoctorWriteHealth_NonGitErrors: on a non-git dir the main checkout
 // can't be resolved, so --write-health surfaces an internal error — covering
 // runWriteHealth's WriteHealth-failure branch.
