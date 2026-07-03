@@ -46,6 +46,10 @@ the remaining start/wrap ritual fixes.
   unblocked — its blocker G-0059 is addressed).
 - aiwf.yaml declared-sequence-wraps opt-in knob (G-0296) — deferred; drop if the
   Tier-1 rule (delivered by E-0050) suffices.
+- `wf-patch` worktree-placement default (G-0349): cut the patch branch in an
+  in-repo worktree by default (mirroring `aiwfx-start-epic`), removing the hazard
+  where a concurrent `aiwf` verb commits onto an in-place patch branch. The
+  shipped-skill edit follows the consumer-surface id and reference rules.
 
 ### Out of scope
 
