@@ -1,7 +1,9 @@
 ---
 id: G-0347
 title: update --statusline skips the health refresh on a settings-wiring finding
-status: open
+status: addressed
+addressed_by_commit:
+    - 1e2ce27b
 ---
 ## What's missing
 
