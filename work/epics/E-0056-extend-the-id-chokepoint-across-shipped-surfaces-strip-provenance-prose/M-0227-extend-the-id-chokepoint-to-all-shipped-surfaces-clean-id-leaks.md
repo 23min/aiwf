@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Whole shipped tree green under the broadened check
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
