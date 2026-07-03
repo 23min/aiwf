@@ -107,3 +107,29 @@ bug).
 Structural assertion: the Validation section is present and records a before/after
 wall-time measurement for `aiwf history` **and** `aiwf show` via `performance.md`'s
 "How to measure" recipe. The absolute number is environment-specific, not a CI gate.
+
+## Validation
+
+Measured on the kernel tree in this devcontainer (Docker/linuxkit, ~5,500 commits)
+with the `performance.md` "How to measure" recipe: `strace -f -e trace=execve` for
+the git-subprocess count, a byte-diff of each verb's output before/after, and
+best-of-7 wall-time. The **before** binary is the unguarded read verbs (this
+milestone's source changes stashed); the **after** binary is the guarded build.
+The target is a scopeless entity — one whose loaded events carry no
+`aiwf-authorized-by`, no `aiwf-scope-ends`, and no own authorize-opener — the
+common case, where both guards skip their walk.
+
+| verb | before | after | saved | git subprocesses (before → after) |
+|---|---|---|---|---|
+| `aiwf history <scopeless>` | 2.33s | 1.30s | 1.03s (~44%) | 5 → 3 |
+| `aiwf show <scopeless>` | 3.61s | 2.44s | 1.16s (~32%) | 7 → 6 |
+
+Output is **byte-identical** before/after for both verbs on the scopeless target —
+the guard changes performance, not results. `aiwf history` drops the two
+subprocesses of the guarded `BuildScopeEntityMap` (its own `HasCommits` probe plus
+the authorize grep); `aiwf show` drops the global authorize grep and — because the
+entity has no own opener — the per-entity `LoadEntityScopes` walk too, so its cost
+falls to the same order as `aiwf history`. Absolute numbers are devcontainer-specific
+and not a CI gate; the load-bearing mechanical evidence for this milestone is the
+guard predicates, the guarded-vs-unguarded equivalence, and the width fix under
+`internal/cli/`.
