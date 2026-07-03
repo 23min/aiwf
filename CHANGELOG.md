@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0056: shipped consumer surfaces free of aiwf-internal ids, history, and dead links
+
+The `skill-body-id` chokepoint now covers every surface `aiwf init` / `aiwf update`
+materializes into a consumer's `.claude/` — skill bodies *and* their `description:`
+frontmatter, entity templates, role-agent cards, the always-on guidance fragment, and the
+statusline comments — not just `SKILL.md` bodies (M-0227). The shipped skills, templates,
+and statusline carry no aiwf-internal entity ids, development history, rationale, or
+war-stories (M-0227, M-0228), and no dead repo-relative doc-links: a new guard bars any
+repo-relative markdown link in a shipped skill, and the reference discipline is stated in
+`aiwfx-record-decision` (M-0229). Closes the epic seed G-0348 and G-0315.
+
 ### Changed — E-0054: fast read paths (single-pass render walk + read-verb grep guard)
 
 - `aiwf render --format=html` now runs in ~4.5s instead of ~35 min on a ~700-entity tree
