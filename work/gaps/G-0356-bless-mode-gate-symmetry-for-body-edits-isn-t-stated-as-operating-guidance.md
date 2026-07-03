@@ -1,7 +1,9 @@
 ---
 id: G-0356
 title: Bless-mode gate-symmetry for body edits isn't stated as operating guidance
-status: open
+status: addressed
+addressed_by_commit:
+    - 5bdd4fd2
 ---
 ## What's missing
 
