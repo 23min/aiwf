@@ -7,18 +7,20 @@ status: open
 
 `tdd: required` milestones record each AC's phase progression
 (red -> green -> done -> met) as `aiwf promote M-NNNN/AC-N --phase ...` /
-`... met` commits. Under the current gate discipline (CLAUDE.md §"Gate
-discipline survives compaction"), every mutating commit is a human gate and
-phase promotes are flagged *timing-bearing* (can't be batched). The literal
-reading is one HITL approval per phase per AC — up to four round-trips per AC,
-before any implementation code is even committed. For a 5-AC milestone that is
-~20 stop-and-ask gates for local, reversible, mechanically-grounded state
-transitions.
+`... met` commits. Streamlined cadence — each phase promote fires live as its
+own mechanically-evidenced commit, without a per-promote human approval ask —
+is now the shipped default: the embedded guidance fragment
+(`internal/skills/embedded-guidance/aiwf-guidance.md`) states it directly, so
+every consumer gets the relief this gap originally argued for, not just this
+repo. That closes the friction this gap documented: up to four HITL
+round-trips per AC before any implementation code even lands.
 
-## Why the per-phase gate is low-value
+What remains open is the opt-in direction: a team that wants tighter,
+per-phase human control over `tdd: required` promotes has no supported way to
+ask for it today short of hand-editing their own CLAUDE.md, which forks from
+the shipped guidance.
 
-A gate lets the human redirect before something costly or irreversible. The
-phase/met promotes are none of those:
+## Why streamlined is the right default
 
 - **Local + reversible** — frontmatter transitions on the AC's own lifecycle,
   undoable by another promote; nothing leaves the machine.
@@ -26,51 +28,40 @@ phase/met promotes are none of those:
   The test is the evidence (per "framework correctness must not depend on LLM
   behavior"); a human approving promote-to-green adds no correctness the test
   did not already provide.
-- **The real control points are elsewhere** — the wrap review (re-verifies every
-  AC + its test) and the push (outward, always gated).
+- **The real control points are elsewhere** — the wrap review (re-verifies
+  every AC + its test) and the push (outward, always gated).
+- **Approval and timing are independent axes.** The "never batch timing-bearing
+  mutations" rule protects *timing fidelity*; per-phase HITL *approval* was a
+  separate concern this gap conflated. Streamlined cadence actually *improves*
+  timing fidelity: promoting `green` the instant the test passes fires the
+  commit at the real moment, whereas HITL-gating delays it and creates the very
+  batching pressure the timing-bearing rule warns against.
 
-## The orthogonality insight
-
-Approval and timing are independent axes. The "never burst phase promotes" rule
-protects *timing fidelity*; per-phase HITL *approval* is a separate concern. And
-auto-flow actually *improves* timing fidelity: promoting `green` the instant the
-test passes fires the commit at the real moment, whereas HITL-gating delays it
-and creates the very batching pressure the rule warns against. The per-phase gate
-is the worst of both — friction now, burst pressure later.
-
-## Proposed fix
+## Remaining scope: a `strict` opt-in
 
 An `aiwf.yaml` knob — `tdd.promote_gate: streamlined | strict` (name TBD):
 
-- **streamlined (default)** — the assistant flows the intra-cycle AC-state
-  promotes (red / green / done / met) live, without a per-promote HITL gate; the
-  wrap review and the push are the human control points.
-- **strict (opt-in)** — every phase / met promote is an individual HITL gate, for
-  projects that want tight control.
+- **streamlined (default, shipped)** — intra-cycle AC-state promotes
+  (red/green/done/met) flow live without a per-promote gate; the wrap review
+  and the push are the human control points.
+- **strict (opt-in, not yet built)** — every phase/met promote is an
+  individual HITL gate, for projects that want tight control.
 
-It is **advisory assistant-behavior config**, not a kernel mechanism: read by the
-`wf-tdd-cycle` ritual and the guidance fragment (the same layer the gate
-discipline itself lives in). The kernel just runs the verb.
+Advisory assistant-behavior config only (not a kernel mechanism): read by the
+`wf-tdd-cycle` ritual and the guidance fragment. The kernel just runs the verb.
+Guardrails carried over unchanged: outward/irreversible actions never
+streamline regardless of the knob; the wrap review and push gate remain; the
+assistant still reports met transitions even when un-gated, so the human sees
+them at the wrap.
 
-### Guardrails (must survive streamlining)
-
-- **Outward / irreversible actions never streamline** — push, merge-to-mainline,
-  tag, `--force` stay individually gated regardless of the knob. The knob is
-  narrowly about intra-cycle AC-state promotes.
-- **The implementation-commit checkpoint stays** — wherever code lands, the wrap
-  review plus push gate remain.
-- **Visibility** — even un-gated, the assistant reports the met transitions; the
-  human sees them at the wrap.
-
-Pairs naturally with the foreseen per-AC test-existence check (CLAUDE.md §"AC
-promotion requires mechanical evidence": "Discipline is the chokepoint until a
-kernel finding-rule lands that polices test-existence per AC"). Once `met` is
-mechanically guarded by "has a test," streamlined cadence is even safer.
+**Deferred** until a concrete team asks for `strict`: building the config
+surface (schema field, config-loader wiring, ritual conditional) for a value
+nobody has requested yet is speculative ahead of real demand. Build it when
+that demand shows up, not before.
 
 ## Sequencing
 
-Belongs in E-0049 (ritual lifecycle: gate discipline and commit/TDD model), next
-to M-0204 (commit implementation per AC; live phase promotes) — not E-0048.
-Surfaced 2026-06-29 during M-0195's first TDD cycle, when the per-phase gate
-count made the friction concrete. Interim: M-0195 and the rest of E-0048 adopt
-the streamlined cadence by operator direction pending this knob.
+If/when built, still belongs in E-0049, next to M-0204 (commit implementation
+per AC; live phase promotes) — not the now-closed E-0048. No longer blocking
+or urgent: the default-cadence fix that motivated this gap has already
+shipped independently of the opt-in knob.
