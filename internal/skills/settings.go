@@ -129,6 +129,83 @@ func handleExistingKey(res SettingsWriteResult, raw json.RawMessage, cmdPath str
 	return res, nil
 }
 
+// StatuslineSettingsKeyStatus is the read-only inspection of a scope's
+// statusLine settings key — G-0354's precondition check for
+// `aiwf update --remove`. It never mutates anything, so a caller can
+// inspect both the script and the settings key *before* deciding
+// whether either mutation is authorized (see RemoveStatuslineSettingsKey).
+//
+//   - existed reports whether the settings file contained a statusLine
+//     key at all.
+//   - matches reports whether that key's command equals cmdPath — i.e.
+//     it looks like aiwf's own wiring for this scope.
+//   - existingValue is the pretty-printed key value when it existed but
+//     did not match, for the caller's refusal message; empty otherwise.
+func StatuslineSettingsKeyStatus(settingsPath, cmdPath string) (existed, matches bool, existingValue string, err error) {
+	existing, readErr := os.ReadFile(settingsPath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			return false, false, "", nil
+		}
+		return false, false, "", fmt.Errorf("reading %s: %w", settingsPath, readErr)
+	}
+
+	obj, parseErr := parseSettingsJSON(existing)
+	if parseErr != nil {
+		return false, false, "", fmt.Errorf("parsing %s: %w", settingsPath, parseErr)
+	}
+
+	raw, ok := obj["statusLine"]
+	if !ok {
+		return false, false, "", nil
+	}
+
+	var cur statusLineValue
+	if uErr := json.Unmarshal(raw, &cur); uErr != nil || cur.Command != cmdPath {
+		var pretty any
+		_ = json.Unmarshal(raw, &pretty)
+		b, _ := json.Marshal(pretty)
+		return true, false, string(b), nil
+	}
+	return true, true, "", nil
+}
+
+// RemoveStatuslineSettingsKey strips the statusLine key from
+// settingsPath unconditionally — the caller (RunStatuslineRemove) must
+// have already authorized this via StatuslineSettingsKeyStatus (a
+// match, or an operator --force) before calling. No-op (removed=false)
+// when the file doesn't exist or carries no statusLine key, so it's
+// safe to call even when the inspection already reported nothing to do.
+func RemoveStatuslineSettingsKey(settingsPath string) (removed bool, err error) {
+	existing, readErr := os.ReadFile(settingsPath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading %s: %w", settingsPath, readErr)
+	}
+
+	obj, parseErr := parseSettingsJSON(existing)
+	if parseErr != nil {
+		return false, fmt.Errorf("parsing %s: %w", settingsPath, parseErr)
+	}
+
+	if _, ok := obj["statusLine"]; !ok {
+		return false, nil
+	}
+
+	delete(obj, "statusLine")
+	out, mErr := json.MarshalIndent(obj, "", "  ")
+	if mErr != nil { //coverage:ignore unreachable: obj's remaining values are json.RawMessage already proven valid by the parseSettingsJSON unmarshal above, so re-marshaling never fails
+		return false, fmt.Errorf("marshaling settings: %w", mErr)
+	}
+	out = append(out, '\n')
+	if wErr := pathutil.AtomicWriteFile(settingsPath, out, 0o644); wErr != nil {
+		return false, fmt.Errorf("writing %s: %w", settingsPath, wErr) //coverage:ignore AtomicWriteFile fails only on filesystem faults; tempdir-based tests can't reproduce
+	}
+	return true, nil
+}
+
 // SettingsPathForScope returns the absolute path to the settings file
 // the consent-gated wiring should target, based on scope.
 //

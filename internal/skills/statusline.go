@@ -325,6 +325,51 @@ func ScaffoldStatuslineWithHome(root, home string, scope StatuslineScope) (Statu
 	return res, nil
 }
 
+// StatuslineDestForScope resolves the absolute on-disk script path and
+// the `statusLine.command` value for scope, without writing anything —
+// the read-only counterpart ScaffoldStatuslineWithHome uses internally,
+// exposed for callers (like `aiwf update --remove`) that need to locate
+// a scope's wiring without scaffolding it.
+func StatuslineDestForScope(root, home string, scope StatuslineScope) (dest, cmdPath string, err error) {
+	return statuslineDest(root, home, scope)
+}
+
+// StatuslineScriptStatus is the read-only inspection of the statusline
+// script at dest — G-0354's precondition check for `aiwf update
+// --remove`. It never deletes anything, so a caller can inspect both
+// the script and the settings key *before* deciding whether either
+// mutation is authorized (see RemoveStatuslineScriptFile).
+//
+//   - existed reports whether a file was present at dest.
+//   - aiwfAuthored reports whether it carries the aiwf version marker
+//     (`# aiwf-statusline version: …`).
+func StatuslineScriptStatus(dest string) (existed, aiwfAuthored bool, err error) {
+	content, readErr := os.ReadFile(dest)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			return false, false, nil
+		}
+		return false, false, fmt.Errorf("reading %s: %w", dest, readErr)
+	}
+	_, marked := InstalledStatuslineVersion(content)
+	return true, marked, nil
+}
+
+// RemoveStatuslineScriptFile deletes dest unconditionally — the caller
+// (RunStatuslineRemove) must have already authorized this via
+// StatuslineScriptStatus (aiwf-authored, or an operator --force) before
+// calling. No-op (removed=false) when dest doesn't exist, so it's safe
+// to call even when the inspection already reported nothing to do.
+func RemoveStatuslineScriptFile(dest string) (removed bool, err error) {
+	if err := os.Remove(dest); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("removing %s: %w", dest, err)
+	}
+	return true, nil
+}
+
 // statuslineDest resolves the absolute on-disk destination path and the
 // `statusLine.command` string the activation snippet should carry, based
 // on the scope.

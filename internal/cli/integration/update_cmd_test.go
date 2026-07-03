@@ -245,3 +245,135 @@ func TestRun_UpdateFromWorktree_WritesSharedHooks(t *testing.T) {
 		t.Errorf("update output should mention 'affects all worktrees' notice when run from a worktree:\nstdout: %s\nstderr: %s", stdout, stderr)
 	}
 }
+
+// TestRun_UpdateRemoveDeletesAiwfAuthoredWiring is the end-to-end
+// happy path for G-0354: `--statusline --wire-settings` installs the
+// project-scope script + settings key, and a follow-up
+// `--scope project --remove` deletes both without needing --force
+// because they look aiwf-authored.
+func TestRun_UpdateRemoveDeletesAiwfAuthoredWiring(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := cli.Execute([]string{"update", "--root", root, "--statusline", "--scope", "project", "--wire-settings"}); rc != cliutil.ExitOK {
+		t.Fatalf("update --statusline: %d", rc)
+	}
+
+	scriptPath := filepath.Join(root, ".claude", "statusline.sh")
+	settingsPath := filepath.Join(root, ".claude", "settings.local.json")
+	if _, err := os.Stat(scriptPath); err != nil {
+		t.Fatalf("precondition: statusline script must exist after --statusline: %v", err)
+	}
+	settingsBefore, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("precondition: settings file must exist after --wire-settings: %v", err)
+	}
+	if !strings.Contains(string(settingsBefore), `"statusLine"`) {
+		t.Fatalf("precondition: settings file must contain statusLine key:\n%s", settingsBefore)
+	}
+
+	if rc := cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove"}); rc != cliutil.ExitOK {
+		t.Fatalf("update --remove: %d", rc)
+	}
+
+	if _, statErr := os.Stat(scriptPath); !os.IsNotExist(statErr) {
+		t.Errorf("statusline script must be deleted after --remove, stat err=%v", statErr)
+	}
+	settingsAfter, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("settings file must still exist (only the key is stripped): %v", err)
+	}
+	if strings.Contains(string(settingsAfter), `"statusLine"`) {
+		t.Errorf("statusLine key must be stripped after --remove:\n%s", settingsAfter)
+	}
+}
+
+// TestRun_UpdateRemoveRefusesForeignScriptWithoutForce asserts a
+// hand-authored (unmarked) statusline script at the target scope is
+// left in place and `--remove` reports findings, not success, unless
+// --force is also given.
+//
+// Serial (no t.Parallel): uses testutil.CaptureRun, which mutates
+// os.Stdout/os.Stderr (process-level fds); see setup_test.go.
+func TestRun_UpdateRemoveRefusesForeignScriptWithoutForce(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	scriptPath := filepath.Join(root, ".claude", "statusline.sh")
+	if err := os.MkdirAll(filepath.Dir(scriptPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(scriptPath, []byte("#!/usr/bin/env bash\necho hand-written\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove"})
+	})
+	if rc != cliutil.ExitFindings {
+		t.Fatalf("rc = %d, want cliutil.ExitFindings; stderr: %s", rc, stderr)
+	}
+	if _, err := os.Stat(scriptPath); err != nil {
+		t.Errorf("foreign script must be left on disk without --force: %v", err)
+	}
+	if !strings.Contains(stderr, "--force") {
+		t.Errorf("refusal message should mention --force:\n%s", stderr)
+	}
+
+	// --force overrides the refusal.
+	if rc := cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove", "--force"}); rc != cliutil.ExitOK {
+		t.Fatalf("update --remove --force: %d", rc)
+	}
+	if _, err := os.Stat(scriptPath); !os.IsNotExist(err) {
+		t.Errorf("foreign script must be deleted with --force, stat err=%v", err)
+	}
+}
+
+// TestRun_UpdateRemoveAndStatuslineMutuallyExclusive asserts the CLI
+// rejects `--statusline` combined with `--remove` with a usage error
+// (exit code 2), reachable through the full cobra dispatch path.
+//
+// Serial (no t.Parallel): uses testutil.CaptureRun, which mutates
+// os.Stdout/os.Stderr (process-level fds); see setup_test.go.
+func TestRun_UpdateRemoveAndStatuslineMutuallyExclusive(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--statusline", "--remove"})
+	})
+	if rc != cliutil.ExitUsage {
+		t.Fatalf("rc = %d, want cliutil.ExitUsage; stderr: %s", rc, stderr)
+	}
+	if !strings.Contains(stderr, "mutually exclusive") {
+		t.Errorf("expected a mutually-exclusive usage message, got: %s", stderr)
+	}
+}
+
+// TestRun_UpdateRemoveNothingToRemoveIsANoOp asserts `--remove` at a
+// scope with no script and no settings key succeeds (ExitOK) rather
+// than erroring.
+//
+// Serial (no t.Parallel): uses testutil.CaptureRun, which mutates
+// os.Stdout/os.Stderr (process-level fds); see setup_test.go.
+func TestRun_UpdateRemoveNothingToRemoveIsANoOp(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove"})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want cliutil.ExitOK; stdout: %s stderr: %s", rc, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "nothing to remove") {
+		t.Errorf("expected a 'nothing to remove' message, got stdout: %s", stdout)
+	}
+}

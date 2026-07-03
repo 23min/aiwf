@@ -40,6 +40,8 @@ func NewCmd() *cobra.Command {
 		statusline   bool
 		scope        string
 		wireSettings bool
+		remove       bool
+		force        bool
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -50,30 +52,44 @@ func NewCmd() *cobra.Command {
   # Refresh as above plus scaffold the aiwf-aware statusline
   # (refreshed to the embedded copy each run; user scope by default)
   aiwf update --statusline
-  aiwf update --statusline --scope project`,
+  aiwf update --statusline --scope project
+
+  # Remove a scope's statusline script + settings wiring (G-0354)
+  aiwf update --scope project --remove
+  aiwf update --scope project --remove --force`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, remove, force))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&statusline, "statusline", false, "also scaffold the aiwf-aware Claude Code statusline script (refreshed to the embedded copy on each --statusline run)")
-	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script: user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
+	cmd.Flags().StringVar(&scope, "scope", string(skills.StatuslineScopeUser), "where --statusline writes the script (or --remove deletes it): user (~/.claude, default — resolves in any worktree) or project (<repo>/.claude, opt-in)")
 	_ = cmd.RegisterFlagCompletionFunc("scope", cobra.FixedCompletions(
 		[]string{string(skills.StatuslineScopeProject), string(skills.StatuslineScopeUser)},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
+	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
+	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
 	return cmd
 }
 
 // Run executes `aiwf update`. Returns one of the cliutil.Exit* codes.
 // When `statusline` is true, also runs the shared statusline scaffold
-// (scope-appropriate destination, byte-refreshed on every update). The
-// scaffold action runs after the artifact refresh succeeds.
-func Run(root string, statusline bool, scope string, wireSettings bool) int {
+// (scope-appropriate destination, byte-refreshed on every update). When
+// `remove` is true, instead removes the --scope statusline's script +
+// settings key (G-0354); `statusline` and `remove` are mutually
+// exclusive. The statusline action runs after the artifact refresh
+// succeeds.
+func Run(root string, statusline bool, scope string, wireSettings, remove, force bool) int {
+	if statusline && remove {
+		fmt.Fprintln(os.Stderr, "aiwf update: --statusline and --remove are mutually exclusive")
+		return cliutil.ExitUsage
+	}
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
@@ -132,7 +148,8 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 	fmt.Println("\naiwf update: done.")
 
 	statuslineRC := cliutil.ExitOK
-	if statusline {
+	switch {
+	case statusline:
 		// A settings-wiring finding (e.g. a pre-existing, differing
 		// statusLine key) is orthogonal to the artifact refresh: the
 		// statusline script itself is written and version-marked first, so
@@ -146,7 +163,16 @@ func Run(root string, statusline bool, scope string, wireSettings bool) int {
 			Scope:        scope,
 			WireSettings: wireSettings,
 		})
-	} else {
+	case remove:
+		// Explicit removal (G-0354): mutually exclusive with the
+		// upgrade-only auto-refresh below -- the operator asked to
+		// tear this scope's wiring down, not refresh it.
+		statuslineRC = cliutil.RunStatuslineRemove(cliutil.StatuslineRemoveOpts{
+			RootDir: rootDir,
+			Scope:   scope,
+			Force:   force,
+		})
+	default:
 		// Plain `aiwf update`: upgrade-only auto-refresh of an
 		// already-installed statusline (G-0344). Refreshes only an
 		// aiwf-marked copy, never below its installed version, and never
