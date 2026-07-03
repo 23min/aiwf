@@ -696,24 +696,35 @@ that never share a loaded history.
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | cancelled |
 | M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
 
-## E-0054 — Fast read paths: batch history walks and path-scope single-entity reads (proposed)
+## E-0054 — Fast read paths: single-pass render walk and read-verb grep guard (active)
 
 ### Goal
 
-Make aiwf's read verbs — `render`, `history`, `show` — fast in the devcontainer,
+Make aiwf's read verbs — `render`, `history`, and `show` — fast in the devcontainer,
 where they are subprocess-*wait* bound (the Docker/linuxkit `fork`/`exec` tax), by
 cutting per-invocation git-subprocess count from O(entities × commits) to a single
-shared history pass, and by letting git's own changed-path bloom filters skip
-history for single-entity queries.
+shared history pass, and by removing a repo-wide authorize grep that `aiwf history`
+and `aiwf show` run unconditionally.
 
-Measured on the kernel tree (5,510 commits, 657 pages, this devcontainer):
-`aiwf render --format=html` takes **28 minutes** because it issues ~1,000+
-per-entity `git log --grep` walks across **two** walk families — per-entity history
-(`resolver.history`, N+2× per milestone) and per-milestone provenance/scopes
-(`show.LoadEntityScopeViews`, 2 more full greps each). A throwaway single-pass spike
-rendered **byte-identical** output in **12.8s** (~130×). Single-entity
-`aiwf history` pays ~1s per full-history grep that a path-scoped `git log -- <path>`
-with changed-path bloom filters reduces to ~14ms (measured).
+Measured on the kernel tree (this devcontainer):
+
+- `aiwf render --format=html` takes **~28 minutes** because it issues **~1,860+
+  per-entity `git log` walks** (~3,500 subprocesses, estimated) across **two** walk
+  families: per-entity history (`resolver.history` → `history.ReadHistory`, one walk
+  per epic/milestone/AC/other-entity) and per-milestone provenance/scopes
+  (`show.LoadEntityScopeViews`, which re-walks the milestone's history *uncached*
+  and runs a full `readAllAuthorizeOpeners` grep — once **per milestone**). A
+  throwaway single-pass spike rendered **byte-identical** output in **~12.8s**
+  (~130×).
+- `aiwf history <id>` (default text) is **~2×** slower than it needs to be: it runs
+  `BuildScopeEntityMap` — a repo-wide `git log --grep 'aiwf-verb: authorize'` — on
+  **every** invocation, even though the entity has no authorization and the whole
+  tree holds only a handful of authorize openers (4). On a milestone with zero scopes
+  the text path measured ~2.2s vs ~1.2s for `--format=json` (which skips that grep):
+  ~1.0s of pure waste per call.
+- `aiwf show <id>` pays the **identical** grep by a different route
+  (`LoadEntityScopeViews` → `readAllAuthorizeOpeners`, run before it knows the entity
+  has any scope) and measured ~3.4s. Same waste, a *second* implementation.
 
 This epic adds a derived *read strategy*, not a second source of truth. `git log` +
 trailers stays canonical (per `design-decisions.md`); the design and per-lever
@@ -723,5 +734,22 @@ worktree/merge safety analysis live in
 | Milestone | Title | Status |
 |---|---|---|
 | M-0221 | Single unified history walk for render | draft |
-| M-0222 | Path-scoped single-entity history with bloom-filter maintenance | draft |
+| M-0222 | Path-scoped single-entity history with bloom-filter maintenance | cancelled |
+| M-0223 | Guard the unconditional authorize-opener grep in the read verbs | done |
+
+## E-0055 — Health as install status: producer health files + statusline stoplight (done)
+
+### Goal
+
+Give operators visibility of `aiwf` installation and configuration warnings and errors
+in the Claude Code statusline: an always-visible stoplight (gray / green / yellow / red)
+fed by per-producer `.claude/health.*.json` files. `aiwf` writes its own health file
+from `aiwf doctor`'s warnings and errors; the statusline reads and unions the health
+files and shows the maximum severity — never running a check on the render path.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0224 | aiwf health: doctor writes health.aiwf.json + statusline stoplight | done |
+| M-0225 | aiwf health producer: doctor --write-health + lifecycle refresh | cancelled |
+| M-0226 | Four-state statusline health stoplight from producer files | cancelled |
 

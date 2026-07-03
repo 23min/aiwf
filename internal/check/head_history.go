@@ -32,12 +32,21 @@ import (
 const headRecMarker = "===AIWF-HEADREC==="
 
 // HeadCommit is one HEAD-reachable commit captured by WalkHeadCommits:
-// the union of fields the five trailer-reading gather rules need.
+// the union of fields the five trailer-reading gather rules need, plus
+// the author date and subject the render single pass (M-0221) reads.
 //
 // Trailers is parsed once (from `%(trailers:unfold=true)`) and shared;
 // AuthorEmail / CommitterEmail feed the cherry-pick identity-gap check;
 // Body feeds the cherry-pick marker match and the provenance
 // aiwf-trailer grep.
+//
+// AuthorDate (%aI) and Subject (%s) are additive (M-0221): no check
+// consumer reads them, so extending the record leaves every check
+// gather byte-identical. render's single pass uses them to reproduce
+// history.HistoryEvent (Date + Detail) and to date scope open/end
+// events without the per-SHA `git show` the scope views used. Body
+// stays %B (the full raw message) so the two check body-greps are
+// unchanged; the render bucketer derives the prose body from it.
 //
 // Trailer-shape assumption (M-0216 AC-5): the provenance gather replaced
 // `%(trailers:only=true,unfold=true)` with this `%(trailers:unfold=true)`
@@ -53,6 +62,8 @@ type HeadCommit struct {
 	Trailers       []gitops.Trailer
 	AuthorEmail    string
 	CommitterEmail string
+	AuthorDate     string
+	Subject        string
 	Body           string
 }
 
@@ -87,8 +98,10 @@ func WalkHeadCommits(ctx context.Context, root string) ([]HeadCommit, error) {
 	// Marker-first, then US-separated fixed fields, with %B (the body,
 	// which carries newlines) LAST so a SplitN on the unit separator
 	// keeps the body intact. Field order: SHA, author-email,
-	// committer-email, trailers, body.
-	format := "tformat:" + headRecMarker + "%n%H%x1f%ae%x1f%ce%x1f%(trailers:unfold=true)%x1f%B"
+	// committer-email, author-date, subject, trailers, body. The two
+	// multi-line fields (trailers, body) sit last; author-date and
+	// subject are single-line, so they add no ambiguity to the split.
+	format := "tformat:" + headRecMarker + "%n%H%x1f%ae%x1f%ce%x1f%aI%x1f%s%x1f%(trailers:unfold=true)%x1f%B"
 	cmd := exec.CommandContext(ctx, "git", "log", "--reverse", "--pretty="+format, "HEAD")
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -101,16 +114,17 @@ func WalkHeadCommits(ctx context.Context, root string) ([]HeadCommit, error) {
 // parseHeadCommits splits WalkHeadCommits' marker-delimited output into
 // HeadCommit values. Each record is the text between two marker lines:
 //
-//	<SHA><US><author-email><US><committer-email><US><trailers…><US><body…>
+//	<SHA><US><author-email><US><committer-email><US><author-date><US><subject><US><trailers…><US><body…>
 //
 // Trailers and body may both span multiple lines; SplitN with a limit
-// of 5 keeps the body (the last field) whole.
+// of 7 keeps the body (the last field) whole. author-date and subject
+// are single-line fields added for the render single pass (M-0221).
 func parseHeadCommits(out string) []HeadCommit {
 	var commits []HeadCommit
 	for _, chunk := range splitOnLineMarker(out, headRecMarker) {
 		chunk = strings.TrimPrefix(chunk, "\n")
-		fields := strings.SplitN(chunk, "\x1f", 5)
-		if len(fields) < 5 {
+		fields := strings.SplitN(chunk, "\x1f", 7)
+		if len(fields) < 7 {
 			continue
 		}
 		sha := strings.TrimSpace(fields[0])
@@ -121,8 +135,10 @@ func parseHeadCommits(out string) []HeadCommit {
 			SHA:            sha,
 			AuthorEmail:    strings.TrimSpace(fields[1]),
 			CommitterEmail: strings.TrimSpace(fields[2]),
-			Trailers:       gitops.ParseTrailers(fields[3]),
-			Body:           fields[4],
+			AuthorDate:     strings.TrimSpace(fields[3]),
+			Subject:        strings.TrimSpace(fields[4]),
+			Trailers:       gitops.ParseTrailers(fields[5]),
+			Body:           fields[6],
 		})
 	}
 	return commits

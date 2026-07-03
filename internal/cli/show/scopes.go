@@ -2,15 +2,12 @@ package show
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
-	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -39,13 +36,18 @@ type ScopeView struct {
 // scopes opened ON id (directly), plus scopes from elsewhere that
 // authorized work touching id (via `aiwf-authorized-by:`).
 //
-// Implementation: one global `git log` pass over authorize-opened
-// commits to build authSHA → scope-entity. Then we walk id's
-// history (readHistory) and collect every distinct auth-SHA the
-// entity references (its own opener SHAs plus authorized-by
-// references). For each scope-entity touched, cliutil.LoadEntityScopes
-// materializes the FSM; we then filter to the interested SHAs and
-// convert to ScopeView.
+// Source (b) — scopes opened directly on id — comes from id's own history
+// via cliutil.LoadEntityScopes, which is width-tolerant: this is both the
+// single source of truth for direct scopes and the fix for the narrow-id
+// omission (a raw-id `ent == id` compare against a canonicalized map value
+// silently dropped `aiwf show E-14`'s table; M-0223).
+//
+// Source (a) — scopes opened elsewhere that authorized work on id — is the
+// only reason to run the repo-wide authorize-opener grep
+// (cliutil.AuthorizeOpeners), and only when id was actually worked under a
+// foreign scope (history.HasAuthorizedBy). An active direct-scope opener,
+// which has no `aiwf-authorized-by`, resolves entirely from source (b)
+// without the grep (E-0054 read-verb guard).
 //
 // Empty / pre-aiwf repos return (nil, nil).
 func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, error) {
@@ -54,55 +56,103 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 	}
 	events, err := history.ReadHistory(ctx, root, id)
 	if err != nil {
-		return nil, err
+		return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
 	}
-	scopeEntityByAuthSHA, err := readAllAuthorizeOpeners(ctx, root)
-	if err != nil {
-		return nil, err
+	// Source (b): scopes opened directly on id, derived from id's own
+	// history (width-tolerant) — but only walk when the already-loaded
+	// events show id actually has an own authorize-opener. A scopeless
+	// entity skips this walk entirely (E-0054 / M-0223).
+	var ownScopes []*scope.Scope
+	if history.HasOwnScope(events) {
+		ownScopes, err = cliutil.LoadEntityScopes(ctx, root, id)
+		if err != nil {
+			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
+		}
+	}
+	// Source (a): the repo-wide opener map, loaded only when id was worked
+	// under a foreign scope (M-0223 guard). When nil, AssembleScopeViews
+	// finds no foreign scope-entity and never invokes the foreign resolver.
+	var openers map[string]string
+	if history.HasAuthorizedBy(events) {
+		openers, err = cliutil.AuthorizeOpeners(ctx, root)
+		if err != nil {
+			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
+		}
 	}
 
+	dateCache := map[string]string{}
+	return AssembleScopeViews(id, events, ownScopes, openers,
+		func(ent string) ([]*scope.Scope, error) { return cliutil.LoadEntityScopes(ctx, root, ent) },
+		func(sha string) string { return LookupCommitDateCached(ctx, root, sha, dateCache) },
+	)
+}
+
+// AssembleScopeViews is the pure, git-free core of LoadEntityScopeViews:
+// given an entity's loaded history events, its own scopes (source b), the
+// repo-wide authorize-opener map, a resolver for a foreign scope-entity's
+// scopes (source a), and a commit-date resolver, it assembles the
+// scope-view list. The git-touching gather is the caller's job, so
+// render's single pass (E-0054 / M-0221) assembles byte-identical views
+// from its shared HEAD walk (opener map + replayed scopes + %aI dates)
+// through this exact code path — no fourth copy of the assembly logic.
+//
+// The M-0223 cost gates live in the caller (LoadEntityScopeViews loads
+// ownScopes / openers only when the events warrant it); Assemble stays
+// gate-free because the gates are pure optimizations — an empty openers
+// map yields no foreign lookups, and empty ownScopes contributes nothing,
+// so the assembled views are identical whether or not the caller gated.
+//
+// foreignScopes is invoked only for a scope-entity that (a) an
+// aiwf-authorized-by event references and (b) differs from id, so a
+// caller that passes a nil openers map never triggers a foreign resolve.
+// dateOf resolves a commit SHA to its author date (git show for the verb
+// path; a lookup into the shared pass's %aI map for render).
+func AssembleScopeViews(
+	id string,
+	events []history.HistoryEvent,
+	ownScopes []*scope.Scope,
+	openers map[string]string,
+	foreignScopes func(ent string) ([]*scope.Scope, error),
+	dateOf func(sha string) string,
+) ([]ScopeView, error) {
 	interested := map[string]struct{}{}
 	for i := range events {
 		if events[i].AuthorizedBy != "" {
 			interested[events[i].AuthorizedBy] = struct{}{}
 		}
 	}
-	for sha, ent := range scopeEntityByAuthSHA {
-		if ent == id {
-			interested[sha] = struct{}{}
-		}
+	for _, s := range ownScopes {
+		interested[s.AuthSHA] = struct{}{}
 	}
 	if len(interested) == 0 {
 		return nil, nil
 	}
 
-	scopeEntitiesNeeded := map[string]struct{}{}
+	allScopes := ownScopes
+	foreignNeeded := map[string]struct{}{}
 	for sha := range interested {
-		if ent, ok := scopeEntityByAuthSHA[sha]; ok {
-			scopeEntitiesNeeded[ent] = struct{}{}
+		if ent, ok := openers[sha]; ok && ent != id {
+			foreignNeeded[ent] = struct{}{}
 		}
 	}
-
-	var allScopes []*scope.Scope
-	for ent := range scopeEntitiesNeeded {
-		scopes, err := cliutil.LoadEntityScopes(ctx, root, ent)
+	for ent := range foreignNeeded {
+		scopes, err := foreignScopes(ent)
 		if err != nil {
-			return nil, err
+			return nil, err //coverage:ignore foreign-resolver error is git-read failure, unreachable after HasCommits in the production caller
 		}
 		allScopes = append(allScopes, scopes...)
 	}
 
-	dateCache := map[string]string{}
 	var views []ScopeView
 	for _, s := range allScopes {
 		if _, ok := interested[s.AuthSHA]; !ok {
 			continue
 		}
-		opened := LookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
+		opened := dateOf(s.AuthSHA)
 		var ended string
 		if s.State == scope.StateEnded {
 			if last := LastEventSHA(s, scope.StateEnded); last != "" {
-				ended = LookupCommitDateCached(ctx, root, last, dateCache)
+				ended = dateOf(last)
 			}
 		}
 		views = append(views, ScopeView{
@@ -120,49 +170,6 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 		return views[i].Opened < views[j].Opened
 	})
 	return views, nil
-}
-
-// readAllAuthorizeOpeners returns a map from each authorize-opener
-// commit's full SHA to its scope-entity id. Used by show to know
-// which entity a scope was opened against without per-row lookups.
-func readAllAuthorizeOpeners(ctx context.Context, root string) (map[string]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"-E",
-		"--grep", "^aiwf-verb: authorize$",
-		"--grep", "^aiwf-scope: opened$",
-		"--all-match",
-		"--pretty=tformat:%H\x1f%(trailers:key=aiwf-entity,valueonly=true,unfold=true)\x1e")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
-		}
-		return nil, fmt.Errorf("git log: %w", err)
-	}
-	result := map[string]string{}
-	for _, rec := range strings.Split(string(out), "\x1e") {
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
-			continue
-		}
-		parts := strings.SplitN(rec, "\x1f", 2)
-		if len(parts) < 2 {
-			continue
-		}
-		sha := strings.TrimSpace(parts[0])
-		ent := strings.TrimSpace(parts[1])
-		if sha == "" || ent == "" {
-			continue
-		}
-		// Canonicalize the trailer-stored entity id so callers comparing
-		// against tree-loaded ids never have to disambiguate widths.
-		// Per AC-2 in M-081: the read side is the chokepoint for
-		// width tolerance.
-		result[sha] = entity.Canonicalize(ent)
-	}
-	return result, nil
 }
 
 // LookupCommitDateCached returns the ISO-8601 author date of the

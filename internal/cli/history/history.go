@@ -105,10 +105,10 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 			fmt.Printf("no history for %s\n", id)
 			return cliutil.ExitOK
 		}
-		// Resolve authorize-SHA → scope-entity once; chip rendering
-		// reads from the map. Pre-I2.5 commits and pure entity-only
-		// histories produce an empty map (no chips).
-		scopeEntities := BuildScopeEntityMap(context.Background(), rootDir, events)
+		// Resolve authorize-SHA → scope-entity for the chip labels, but
+		// only when the loaded events actually reference a scope (E-0054 /
+		// M-0223 guard — see ScopeMapFor).
+		scopeEntities := ScopeMapFor(context.Background(), rootDir, events)
 		for i := range events {
 			e := &events[i]
 			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
@@ -496,54 +496,6 @@ func RenderScopeChips(e HistoryEvent, scopeEntities map[string]string, showAuth 
 		return ""
 	}
 	return "  " + strings.Join(chips, " ")
-}
-
-// BuildScopeEntityMap walks every authorize-opener commit visible
-// from HEAD once and returns auth-SHA → scope-entity. Used by
-// RenderScopeChips to label the [<entity> <sha>] chip without a
-// per-row git lookup. Pre-I2.5 repos with no authorize commits
-// produce an empty map; the renderer falls back gracefully.
-//
-// The walk is bounded by the existing event set: any auth SHA the
-// rendered events reference is looked up via this map; SHAs absent
-// from the map render as "?", which is benign.
-func BuildScopeEntityMap(ctx context.Context, root string, events []HistoryEvent) map[string]string {
-	out := map[string]string{}
-	if !cliutil.HasCommits(ctx, root) {
-		return out
-	}
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"-E",
-		"--grep", "^aiwf-verb: authorize$",
-		"--grep", "^aiwf-scope: opened$",
-		"--all-match",
-		"--pretty=tformat:%H\x1f%(trailers:key=aiwf-entity,valueonly=true,unfold=true)\x1e")
-	cmd.Dir = root
-	outBytes, err := cmd.Output()
-	if err != nil {
-		// Treat lookup failure as a missing map: chips render with "?"
-		// rather than blocking the verb on a metadata read.
-		return out
-	}
-	for _, rec := range strings.Split(string(outBytes), "\x1e") {
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
-			continue
-		}
-		parts := strings.SplitN(rec, "\x1f", 2)
-		if len(parts) < 2 {
-			continue
-		}
-		sha := strings.TrimSpace(parts[0])
-		entID := strings.TrimSpace(parts[1])
-		if sha == "" || entID == "" {
-			continue
-		}
-		// Canonicalize per AC-2 in M-081 so consumers can compare
-		// against tree-loaded ids without re-disambiguating widths.
-		out[sha] = entity.Canonicalize(entID)
-	}
-	return out
 }
 
 // bareMilestoneIDPattern recognizes a top-level milestone id (`M-NNN`).
