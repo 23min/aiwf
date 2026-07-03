@@ -1,7 +1,9 @@
 ---
 id: G-0351
 title: aiwfx-handoff skill emits a compaction prime block at AC/milestone boundaries
-status: open
+status: addressed
+addressed_by_commit:
+    - e6f60d81
 ---
 ## Problem
 
