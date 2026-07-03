@@ -16,6 +16,84 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-07-03
+
+### Added — G-0353: per-agent model/effort tiering via `aiwf.yaml`
+
+A new `agents:` block in `aiwf.yaml` lets you pin a shipped role agent (builder, reviewer,
+planner, deployer) to a specific model tier and reasoning effort — e.g. `reviewer: {model:
+sonnet, effort: high}`. `aiwf init` / `aiwf update` inject the configured values into the
+materialized agent-card frontmatter under `.claude/agents/`, so tiering an agent is a config
+edit instead of a hand-edit the next `update` clobbers. An omitted field inherits the session
+default; an unrecognized agent name is reported in the step ledger and ignored. Advisory only —
+never load-bearing for a guarantee.
+
+### Added — G-0326: refuse empty load-bearing bodies on gap/decision/ADR/contract creation
+
+`aiwf add` now refuses to create a gap, decision, ADR, or contract whose body has an empty
+required section — these kinds have no draft phase, so a hollow body was referenceable
+immediately with no way to backfill it later. A new inline `--body` flag lets quick captures
+skip `--body-file`; `--force --reason "..."` overrides the gate and records the override in the
+create commit. The underlying `entity-body-empty` check finding is now unconditionally `error`
+severity for these four kinds (previously `warning` unless `tdd.strict` was set).
+**Upgrade impact:** if your tree already has a gap, decision, ADR, or contract with an empty
+required body section, `aiwf check` (and the pre-push hook) will start failing on it after
+upgrading, even with no `aiwf.yaml` change on your part — fix with `aiwf edit-body <id>`.
+
+### Added — G-0354: `aiwf update --remove` for statusline scope cleanup
+
+`aiwf doctor` could detect a statusline wired into both project and user scope, but there was
+no verb to fix it short of hand-editing `settings.json` and deleting the script. `aiwf update
+--remove` (paired with `--scope`) inspects both the script and the settings key first and
+refuses the whole call unless both look aiwf-authored (or `--force` is given), so a mixed
+aiwf/foreign pair is never partially torn down.
+
+### Added — G-0351: `aiwfx-handoff` skill for `/compact` priming
+
+A new advisory ritual skill, `aiwfx-handoff`, emits a short paste-ready prime block for
+`/compact` — the live reasoning thread, session gotchas, and the exact next action, plus
+pointers into the tree (`aiwf show`/`status`/`history`) for durable state, so the block can't
+drift into a second source of truth. It fires on request and is referenced from
+`aiwfx-wrap-milestone` and the AC boundary in `aiwfx-start-milestone`.
+
+### Changed — G-0346: wrap rituals reconcile mainline before merging
+
+`wf-patch`, `aiwfx-wrap-milestone`, and `aiwfx-wrap-epic` previously merged a ritual branch onto
+a checkout of its integration target directly — if the target had diverged, conflicts were
+resolved on the target itself with no validated gate re-run, so "gate green before merge" could
+pass vacuously. These rituals now integrate the target into the branch first, re-run the full
+local gate there, then merge, so the target only ever receives an already-validated result. The
+reconcile step compares against local `main` (not `origin/main`) with a fetch + fast-forward
+preamble immediately before the merge.
+
+### Changed — G-0293: milestone AC implementation commits land per-AC, not bundled at wrap
+
+`aiwfx-start-milestone`'s per-AC loop now commits each acceptance criterion's implementation
+code on the milestone branch as it completes, instead of deferring (and never actually landing)
+that commit until wrap. `wf-tdd-cycle`'s record step stops at `phase: done` and no longer
+promotes an AC to `met` or cites a commit SHA before the commit exists.
+
+### Changed — G-0314: streamlined TDD phase-promote cadence is now the default
+
+Acceptance-criterion phase promotes (`red`/`green`/`done`/`met`) on `tdd: required` milestones
+now flow live and ungated by default in the shipped guidance — previously this relief only
+applied inside the aiwf repo itself via a non-shipping override.
+
+### Changed — G-0356: bless-mode guidance for reviewable body-edit commits
+
+The shipped guidance and the `aiwf-edit-body` skill now recommend "bless mode" for body edits:
+edit the working tree, let the human review the diff, then commit via `aiwf edit-body <id>` —
+giving a reviewable-diff gate to a mutation that previously only offered a commit-on-stated-intent
+path.
+
+### Fixed — G-0355: `aiwf promote --by-commit` refuses SHAs unreachable from HEAD
+
+`--by-commit` previously only checked that the given SHA resolved to a real commit, so a gap
+closure could record `addressed_by_commit` for a commit the current history doesn't actually
+contain (possible when a wrap merge fails to land but a batched tracker-closure still runs). The
+non-force path now requires the SHA to be an ancestor of HEAD; `--force` still bypasses this for
+documented cross-repo / unmerged-branch cases.
+
 ## [0.23.0] — 2026-07-03
 
 ### Changed — E-0056: shipped consumer surfaces free of aiwf-internal ids, history, and dead links
