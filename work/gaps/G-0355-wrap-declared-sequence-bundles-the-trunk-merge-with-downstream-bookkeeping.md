@@ -1,7 +1,9 @@
 ---
 id: G-0355
 title: Wrap declared-sequence bundles the trunk merge with downstream bookkeeping
-status: open
+status: addressed
+addressed_by_commit:
+    - b2f7d7e7
 ---
 ## What's missing
 
