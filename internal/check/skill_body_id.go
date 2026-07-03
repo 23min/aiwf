@@ -102,7 +102,7 @@ func scanMaskedForRealIDs(masked, path string) []Finding {
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
 			Severity: SeverityError,
-			Message:  fmt.Sprintf("skill body cites real entity id %q — shipped skills use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok),
+			Message:  fmt.Sprintf("shipped surface cites real entity id %q — shipped surfaces use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok),
 			Path:     path,
 			Line:     line,
 			Field:    "body",
