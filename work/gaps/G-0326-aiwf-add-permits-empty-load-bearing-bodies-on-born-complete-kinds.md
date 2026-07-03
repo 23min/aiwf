@@ -1,7 +1,9 @@
 ---
 id: G-0326
 title: aiwf add permits empty load-bearing bodies on born-complete kinds
-status: open
+status: addressed
+addressed_by_commit:
+    - 346374ec
 ---
 ## What's missing
 
