@@ -16,8 +16,10 @@ var shippedSkillRoots = []string{
 	"internal/skills/embedded-rituals",
 }
 
-// mdLinkDestRe matches the destination of an inline markdown link:
-// the `(...)` of `[text](dest)`.
+// mdLinkDestRe matches the destination of an inline markdown link: the
+// `(...)` of `[text](dest)`. Only the inline form is scanned — reference-style
+// (`[ref]: dest`) and angle-bracket (`](<dest>)`) links are not used by the
+// shipped skills; extend this pattern if one is ever introduced.
 var mdLinkDestRe = regexp.MustCompile(`\]\(([^)]+)\)`)
 
 // linkHit is a repo-relative markdown link destination and the 1-based
