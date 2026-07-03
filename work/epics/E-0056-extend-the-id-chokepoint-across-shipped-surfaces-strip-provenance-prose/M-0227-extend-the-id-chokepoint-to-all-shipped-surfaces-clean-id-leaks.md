@@ -4,6 +4,23 @@ title: Extend the id chokepoint to all shipped surfaces; clean id leaks
 status: in_progress
 parent: E-0056
 tdd: required
+acs:
+    - id: AC-1
+      title: Broadened markdown scan fires on real ids; placeholder silent
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Statusline comment scan fires on real ids; shell code exempt
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Code, fenced, and link-destination carve-outs preserved
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: Whole shipped tree green under the broadened check
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,3 +61,12 @@ Sketch — formalized at start-milestone:
    fenced example or an ADR doc-link destination produces no finding.
 3. The full shipped tree is green under the broadened check — every existing
    real-id leak found by the G-0348 audit is cleaned.
+
+### AC-1 — Broadened markdown scan fires on real ids; placeholder silent
+
+### AC-2 — Statusline comment scan fires on real ids; shell code exempt
+
+### AC-3 — Code, fenced, and link-destination carve-outs preserved
+
+### AC-4 — Whole shipped tree green under the broadened check
+
