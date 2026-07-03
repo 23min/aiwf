@@ -165,7 +165,7 @@ func appendPrecedenceCheck(in []string, rootDir, home string) []string {
 		hasStatusLineKey(filepath.Join(rootDir, ".claude", "settings.json"))
 	userWired := home != "" && hasStatusLineKey(filepath.Join(home, ".claude", "settings.json"))
 	if projWired && userWired {
-		return append(in, subIndent+"precedence: a statusLine is wired in BOTH project and user settings — the project key wins and shadows the user one; remove the project statusLine to use the user-scope one")
+		return append(in, subIndent+"precedence: a statusLine is wired in BOTH project and user settings — the project key wins and shadows the user one; run `aiwf update --scope project --remove` to clear the project one and use the user-scope wiring")
 	}
 	return in
 }
