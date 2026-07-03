@@ -106,3 +106,38 @@ func TestAiwfxRecordDecision_RichTemplateSelfLocating(t *testing.T) {
 		t.Error("G-0345: record-decision step 3 must drop the authoring-relative `this plugin's templates/…` reference (no live plugin exists)")
 	}
 }
+
+// TestAiwfxRecordDecision_M0229_AC1_ReferencingDecisionSection pins M-0229/AC-1:
+// the record-decision skill — the ritual that authors decisions — carries a
+// `## Referencing a decision` section stating the self-contained reference
+// rule. A behavioral skill states its fact directly and self-contained; it does
+// not embed a repo-path link to a decision record or design doc under `docs/`;
+// a decision's rationale lives in its own entry, not in a link from a
+// behavioral skill.
+//
+// Section-scoped per CLAUDE.md §"Substring assertions are not structural
+// assertions": each marker must appear inside the named section, not merely
+// somewhere in the file (`docs/` already appears in the ADR-vs-D table up top).
+// Every marker is absent before the section lands, so the assertion is
+// non-vacuous — it goes red if the section is dropped or narrowed.
+func TestAiwfxRecordDecision_M0229_AC1_ReferencingDecisionSection(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxRecordDecisionFixture(t)
+
+	section := extractMarkdownSection(body, 2, "Referencing a decision")
+	if section == "" {
+		t.Fatal("M-0229/AC-1: record-decision must carry a `## Referencing a decision` section stating the self-contained reference rule")
+	}
+	lower := strings.ToLower(section)
+	for _, m := range []struct{ name, needle string }{
+		{"the self-contained framing", "self-contained"},
+		{"the no-repo-link rule", "does not embed"},
+		{"the docs/ non-shipping path", "docs/"},
+		{"the rationale-in-its-own-entry rule", "rationale"},
+		{"the own-entry rule", "own entry"},
+	} {
+		if !strings.Contains(lower, m.needle) {
+			t.Errorf("M-0229/AC-1: `## Referencing a decision` section must state %s (substring %q)", m.name, m.needle)
+		}
+	}
+}
