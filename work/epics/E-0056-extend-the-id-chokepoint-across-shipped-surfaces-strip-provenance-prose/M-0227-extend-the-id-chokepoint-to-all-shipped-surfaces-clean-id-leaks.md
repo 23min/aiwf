@@ -101,3 +101,49 @@ from "skill body" to "shipped surface" to match the broadened scope, the finding
 code unchanged. Mechanical evidence: `TestSkillBodyID_WholeShippedTreeClean` in
 `internal/check/`, which drives the production `*.md` and statusline walkers over
 the real tree.
+
+## Work log
+
+- **AC-1** — `81e039f0` (red fixtures) + `a4226d0a` (whole-file Design B `*.md`
+  scan + coupled cleanup of the `aiwf-list` / `aiwfx-start-epic` descriptions and
+  the `epic-spec` template). Met.
+- **AC-2** — `4093e33f` (seam test) + `4bbc3e74` (`shellCommentMask` + walker +
+  statusline comment cleanup) + `b314d94f` (metacharacter-boundary fix from the
+  wrap review). Met.
+- **AC-3** — `f7cf3445` (carve-out regression lock). Met.
+- **AC-4** — `8fca6f55` (whole-tree seam test) + `6ebc1f46` (finding-text
+  generalization + `aiwf-check` doc row). Met.
+- Formalized AC bodies filled in `b531d17f`.
+
+## Validation
+
+- `go test ./...` — all packages pass; `go build ./...` clean.
+- `golangci-lint run` — 0 issues; `go vet` clean; `gofumpt` clean.
+- `aiwf check` (worktree binary, real tree) — 0 `skill-body-id` findings, 0
+  errors overall.
+- Branch coverage: `scanMaskedForRealIDs` / `shellCommentMask` / `shellWordBoundary`
+  / `ScanSkillBodyID` at 100%; the two tree walkers' only uncovered lines are their
+  `//coverage:ignore` TOCTOU read guards.
+
+## Reviewer notes
+
+- Independent fresh-context review (code-quality lens): **approve**. Every AC claim
+  verified by measurement — plant-and-check a real id into a real shipped surface,
+  adversarial white-box probing of `shellCommentMask`, coverage inspection.
+- One non-blocking finding fixed in-context (`b314d94f`): `shellCommentMask` missed
+  comments after a shell word-boundary metacharacter (`;#`, `)#`, …) — a silent
+  false-negative in a leak detector. Now recognized via `shellWordBoundary`.
+- **Non-goal (not a deferral):** the placeholder-canonicality axis is deliberately
+  not extended to the newly-scanned surfaces — agent cards and templates use
+  narrow-N placeholders (`E-NN`, `M-NNN`) a canonicality sweep would flag. This
+  milestone pins real-id *firing* only.
+- `Field: "body"` is hardcoded on findings even for `description:` / statusline
+  hits — harmless (path + line + message carry the locator), consistent with the
+  pre-existing rule.
+- The `CLAUDE.md` §"Skills policy" paragraph still under-describes the broadened
+  check (missing `-guidance`, the statusline scan, the whole-file surfaces). That
+  broadening is milestone `M-0228`'s declared scope, not a deferral of this one.
+
+## Deferrals
+
+None. No AC was deferred or cancelled; no work was punted to a gap.
