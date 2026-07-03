@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: measured read-verb wall-time delta recorded in Validation
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
