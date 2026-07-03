@@ -1,6 +1,7 @@
 package verb_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -9,6 +10,19 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/verb"
 )
+
+// mustGit runs a git subcommand in root and fatals on error, returning
+// trimmed stdout. It keeps the reachability-setup below free of the
+// repetitive err plumbing (and the govet shadow) that branching a side
+// commit off HEAD would otherwise invite.
+func mustGit(t *testing.T, root string, args ...string) string {
+	t.Helper()
+	out, err := runGit(context.Background(), root, args...)
+	if err != nil {
+		t.Fatalf("git %s: %v", strings.Join(args, " "), err)
+	}
+	return strings.TrimSpace(out)
+}
 
 // TestPromote_GapAddressedBy: gap → addressed with PromoteOptions.AddressedBy
 // writes addressed_by atomically with the status change (M-059/AC-1, AC-3).
@@ -134,6 +148,75 @@ func TestPromote_GapAddressedByCommit_RejectsUnresolvableSHA(t *testing.T) {
 
 	// Non-mutation: the verb errored before projecting, so the gap is
 	// untouched on disk — still open, no resolver recorded.
+	g := r.tree().ByID("G-0001")
+	if g == nil {
+		t.Fatal("G-0001 missing")
+	}
+	if g.Status != "open" {
+		t.Errorf("status = %q, want open (rejected promote must not mutate)", g.Status)
+	}
+	if len(g.AddressedByCommit) != 0 || len(g.AddressedBy) != 0 {
+		t.Errorf("resolver fields must stay empty after rejection; got addressed_by=%v addressed_by_commit=%v",
+			g.AddressedBy, g.AddressedByCommit)
+	}
+}
+
+// TestPromote_GapAddressedByCommit_RejectsUnreachableSHA pins G-0355:
+// on the normal (non-force) path, a --by-commit SHA that resolves to a
+// real commit but is NOT reachable from HEAD is refused. This is the
+// exact shape of the G-0346 corruption — a fixing commit that lives on
+// an unmerged branch while the tracker closure records onto a trunk that
+// does not yet contain it. Existence alone (the G-0186 check) passes
+// here; reachability is the strengthening. The gap is NOT mutated, and
+// the error names the SHA, --by-commit, the reachability failure, and
+// the --force escape.
+func TestPromote_GapAddressedByCommit_RejectsUnreachableSHA(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by unmerged fix", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+
+	// Capture the current branch (gitops.Init's default name — main or
+	// master — is not assumed) so we can return to it.
+	branch := mustGit(t, r.root, "rev-parse", "--abbrev-ref", "HEAD")
+
+	// Build a commit that EXISTS but is NOT reachable from HEAD: branch
+	// off, commit on the side branch, switch back.
+	mustGit(t, r.root, "checkout", "-b", "sidebranch")
+	if err := gitops.CommitAllowEmpty(r.ctx, r.root, "unreachable side commit", "", nil); err != nil {
+		t.Fatalf("side commit: %v", err)
+	}
+	sideSHA := mustGit(t, r.root, "rev-parse", "HEAD")
+	mustGit(t, r.root, "checkout", branch)
+
+	// Precondition: the side commit exists (existence check would pass)
+	// yet is not an ancestor of HEAD — so only the new reachability
+	// strengthening can refuse it.
+	if ok, err := gitops.CommitExists(r.ctx, r.root, sideSHA); err != nil || !ok {
+		t.Fatalf("precondition: side commit should exist; ok=%v err=%v", ok, err)
+	}
+	if anc, err := gitops.IsAncestor(r.ctx, r.root, sideSHA, "HEAD"); err != nil || anc {
+		t.Fatalf("precondition: side commit should be unreachable from HEAD; anc=%v err=%v", anc, err)
+	}
+
+	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{sideSHA}})
+	if err == nil {
+		t.Fatal("expected error for unreachable --by-commit SHA; got nil")
+	}
+	if !strings.Contains(err.Error(), sideSHA) {
+		t.Errorf("error should name the unreachable SHA; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "--by-commit") {
+		t.Errorf("error should mention --by-commit; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "reachable") {
+		t.Errorf("error should explain the SHA is not reachable; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "--force") {
+		t.Errorf("error should point at the --force sovereign override; got %v", err)
+	}
+
+	// Non-mutation: rejected promote must leave the gap untouched.
 	g := r.tree().ByID("G-0001")
 	if g == nil {
 		t.Fatal("G-0001 missing")

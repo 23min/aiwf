@@ -1,7 +1,9 @@
 ---
 id: G-0314
 title: 'Configurable TDD promote-gate cadence: streamlined default, strict opt-in'
-status: open
+status: addressed
+addressed_by_commit:
+    - 4e1c54e3
 ---
 ## Problem
 

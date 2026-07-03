@@ -1,10 +1,12 @@
 ---
 id: G-0293
 title: Promote tdd_phase live, not in a burst at milestone wrap
-status: open
+status: addressed
 prior_ids:
     - G-0292
 discovered_in: M-0189
+addressed_by_commit:
+    - 76829a69
 ---
 ## Problem
 
