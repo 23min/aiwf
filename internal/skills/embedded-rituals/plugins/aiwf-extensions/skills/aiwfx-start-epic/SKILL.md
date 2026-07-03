@@ -10,9 +10,9 @@ Activates an epic. Activation is a sovereign moment — the kernel treats `aiwf 
 ## Principles
 
 - **Activation is sovereign.** The kernel refuses `aiwf promote E-NN active` from a non-`human/` actor unless `--force --reason "..."` is used. The skill's promotion step runs as the human; an AI assistant orchestrating the conversation hands the verb off to the operator.
-- **Sovereign acts on `main`; branch cut afterwards.** Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), state-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is the kernel's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The from-main `--branch` carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8). The `isolation-escape` kernel finding provides post-hoc detection at `aiwf check` (warning severity) for branch-binding drift that escapes both the session-layer hook and the kernel's at-dispatch refusal.
+- **Sovereign acts on `main`; branch cut afterwards.** State-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is the kernel's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The from-main `--branch` carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8). The `isolation-escape` kernel finding provides post-hoc detection at `aiwf check` (warning severity) for branch-binding drift that escapes both the session-layer hook and the kernel's at-dispatch refusal.
 - **Preflight uses kernel signals.** Body completeness, drafted-milestone presence, and `aiwf check` cleanliness all surface through existing kernel rules (`entity-body-empty`, `epic-active-no-drafted-milestones`, the standard refusal-severity findings). The skill reads — it does not duplicate the rule.
-- **Worktree placement defaults to in-repo.** The recommended placement is in-repo under the configured `worktree.dir` ([the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)) — reachable as a sandboxed devcontainer session's cwd and persistent under the mounted workspace. The default is a recommendation, not a lock: the per-invocation override (main-checkout / sibling) stays a Q&A choice, since each option still trades off parallel work, IDE state, and `aiwf check` blast radius.
+- **Worktree placement defaults to in-repo.** The recommended placement is in-repo under the configured `worktree.dir` — reachable as a sandboxed devcontainer session's cwd and persistent under the mounted workspace. The default is a recommendation, not a lock: the per-invocation override (main-checkout / sibling) stays a Q&A choice, since each option still trades off parallel work, IDE state, and `aiwf check` blast radius.
 - **The promotion commit and any authorize commit are separate.** One verb = one commit. The skill orchestrates both in sequence; it never bundles them.
 
 ## Precondition
@@ -60,7 +60,7 @@ The delegation choice is asked BEFORE the sovereign acts because the authorize t
 
 ### 6. Sovereign promotion
 
-Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
+Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
 
 Activation is the sovereign moment. The operator runs:
 
@@ -104,7 +104,7 @@ If step 5 chose in-loop, skip.
 
 ### 8. Worktree placement and branch creation (Q&A)
 
-Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`, [the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`). Read the resolved directory from the kernel rather than hardcoding it:
+Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`). Read the resolved directory from the kernel rather than hardcoding it:
 
 ```bash
 aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'

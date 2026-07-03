@@ -5,7 +5,7 @@ description: Sets up and begins an aiwf milestone — preflight checks, branch s
 
 # aiwfx-start-milestone
 
-Begins implementation of an existing milestone. Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`).
+Begins implementation of an existing milestone. Per the branch-model sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`).
 
 ## When to use
 
@@ -29,7 +29,7 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
   Each invocation appends one AC and scaffolds the body heading; `aiwf check` will surface drift between frontmatter and body if the two disagree.
 
 - Confirm the milestone's `tdd:` policy is intentional. `tdd: required` makes the audit `met requires phase: done` an error (blocks pre-push); `tdd: advisory` makes it a warning; `tdd: none` or absent skips it. If the user wants TDD discipline tracked mechanically, set `tdd: required` in the spec's frontmatter before starting.
-- **Parent epic branch must exist locally and be the operator's current checkout.** Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md), the state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
+- **Parent epic branch must exist locally and be the operator's current checkout.** The state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
 - Run the project's build. **Confirm green** before introducing any change.
 - Run the project's tests. **Confirm green.**
 
@@ -74,7 +74,7 @@ If step 2 chose delegation, the operator runs (still on the parent epic branch):
 aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug> --reason "<one-sentence rationale>"
 ```
 
-The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the ritual-current carve-out: from a ritual-shape current checkout (here `epic/E-NNNN-<slug>` satisfies that), an explicit `--branch` whose value matches the ritual shape (`milestone/`/`patch/` per [`internal/branchparse/`](../../../../../../internal/branchparse/branchparse.go)) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
+The `--branch` flag names the *future* milestone branch — the one step 5 will cut. The branch does not yet exist when this verb runs. The kernel's AI-target preflight permits this combination via the ritual-current carve-out: from a ritual-shape current checkout (here `epic/E-NNNN-<slug>` satisfies that), an explicit `--branch` whose value matches the ritual shape (`milestone/` / `patch/`) accepts even when the named branch does not yet exist. The commit's `aiwf-branch:` trailer carries the future milestone ref; step 5's branch cut closes the binding.
 
 This is a *separate* commit from step 3, landed on the same parent epic branch. The scope is `active` from this commit forward; the agent operates within it until the milestone reaches a terminal status or the operator pauses the scope.
 
@@ -98,7 +98,7 @@ git checkout -b milestone/M-NNNN-<slug>
 
 The branch operation does not produce an aiwf commit; it is plain git plumbing. If a delegated `aiwf authorize` commit was produced at step 4, the named branch now resolves and the binding closes — the trailer's forward-reference becomes a live ref.
 
-**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`, [the in-repo placement convention](../../../../../../docs/adr/ADR-0023-default-to-in-repo-worktree-placement-under-claude-worktrees.md)) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild. If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), default it to in-repo under the same `worktree.dir`, read with `aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'` rather than hardcoded. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock.
+**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild. If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), default it to in-repo under the same `worktree.dir`, read with `aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'` rather than hardcoded. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock.
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
