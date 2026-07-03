@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: render resolves all entity histories from a single git-history pass
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: provenance and scope views resolve from the shared pass, not per-milestone
