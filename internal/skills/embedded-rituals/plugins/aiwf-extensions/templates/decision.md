@@ -15,7 +15,7 @@ aiwf decisions (`D-NNN`) capture project-scoped choices — typically tied to an
 
 If the decision is architectural, durable, and crosses multiple epics — author it as an ADR (`ADR-NNNN`) instead.
 
-> **Why date and decided_by are in the body, not frontmatter.** aiwf core's frontmatter parser is strict — it only accepts the fields it validates (`id`, `title`, `status`, `relates_to`, `supersedes`, `superseded_by`). Putting `date:` or `decided_by:` in frontmatter would fail `aiwf check`. Keep them in the body header line above. The canonical commit timestamp and actor are also recoverable via `aiwf history D-NNN`. Delete this blockquote after copying.
+> **Put `date` and `decided_by` on the body header line above, not in frontmatter** — the strict frontmatter parser accepts only the fields it validates. Delete this blockquote after copying.
 
 ## Question
 
