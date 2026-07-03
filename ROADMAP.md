@@ -767,6 +767,6 @@ The id chokepoint covers every shipped surface, so the leak class cannot recur.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0227 | Extend the id chokepoint to all shipped surfaces; clean id leaks | done |
-| M-0228 | Strip shipped-prose history/rationale; broaden the authoring principle | draft |
+| M-0228 | Strip shipped-prose history/rationale; broaden the authoring principle | done |
 | M-0229 | Drop dead doc-links; encode reference discipline in record-decision | draft |
 
