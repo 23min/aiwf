@@ -35,6 +35,13 @@ func TestShellCommentMask(t *testing.T) {
 		{"real id in shell code string is exempt", "echo \"G-0001\"\n", false},
 		{"line with no hash is exempt", "label=\"epic G-0001 here\"\n", false},
 		{"placeholder in comment is silent", "# See G-NNNN\n", false},
+		// Metacharacter-preceded '#' begins a comment in bash (word
+		// boundary), so a real id after ;#/)#/|#/&# must fire — the
+		// unsafe-if-missed direction for a leak detector.
+		{"semicolon-preceded comment fires", "foo;# note G-0001\n", true},
+		{"paren-preceded comment fires", "(echo hi)# note G-0001\n", true},
+		{"pipe-preceded comment fires", "cmd|# note G-0001\n", true},
+		{"ampersand-preceded comment fires", "cmd&# note G-0001\n", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

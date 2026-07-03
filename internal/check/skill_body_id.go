@@ -162,18 +162,22 @@ var statuslineScanDir = filepath.Join("internal", "skills", "embedded-statusline
 // analogue of proseMask's code-span carve-out.
 //
 // A comment starts at the first '#' on a line that is either the line's
-// first non-whitespace character OR immediately preceded by a space or tab,
-// and runs to end-of-line. That rule exempts the common shell forms where
-// '#' is not a comment: parameter expansion (`${x#foo}`, `${x##*/}` — '#'
-// preceded by a letter or '#'), the positional-count `$#` ('#' preceded by
-// '$'), and (harmlessly) the `#!` shebang, which carries no id.
+// first non-whitespace character OR immediately preceded by a shell word
+// boundary — whitespace or a word-terminating metacharacter (`;` `|` `&`
+// `(` `)` `<` `>`) — and runs to end-of-line. This matches bash's rule (a
+// word beginning with '#' starts a comment) in the leak-safe direction: a
+// real id in a `;#` / `)#` trailing comment fires rather than shipping
+// silently. The rule exempts the common shell forms where '#' is not a
+// comment: parameter expansion (`${x#foo}`, `${x##*/}` — '#' preceded by a
+// letter or '#'), the positional-count `$#` ('#' preceded by '$'), and
+// (harmlessly) the `#!` shebang, which carries no id.
 //
 // Deliberately ignored edge cases — KISS, since this scans a single file we
 // author, not a general shell tokenizer: a '#' inside a quoted string that
-// is preceded by whitespace (`echo "a # b"`) is treated as a comment start,
-// so a real id there would fire — acceptable, as a real id in a shipped
-// statusline string is itself a leak; here-doc bodies; and backslash
-// line-continuation.
+// is preceded by a boundary char (`echo "a # b"`, `echo "a;#b"`) is treated
+// as a comment start, so a real id there would fire — acceptable, as a real
+// id in a shipped statusline string is itself a leak; here-doc bodies; and
+// backslash line-continuation.
 func shellCommentMask(src []byte) string {
 	masked := make([]byte, len(src))
 	lineStart := 0
@@ -189,7 +193,7 @@ func shellCommentMask(src []byte) string {
 			inComment = false
 		case inComment:
 			masked[i] = b
-		case b == '#' && (!sawNonSpace || (i > lineStart && (src[i-1] == ' ' || src[i-1] == '\t'))):
+		case b == '#' && (!sawNonSpace || (i > lineStart && shellWordBoundary(src[i-1]))):
 			inComment = true
 			masked[i] = b
 		default:
@@ -200,6 +204,18 @@ func shellCommentMask(src []byte) string {
 		}
 	}
 	return string(masked)
+}
+
+// shellWordBoundary reports whether b terminates a shell word, so a '#'
+// immediately after it begins a comment. Bash treats whitespace and the
+// metacharacters ; | & ( ) < > as word terminators.
+func shellWordBoundary(b byte) bool {
+	switch b {
+	case ' ', '\t', ';', '|', '&', '(', ')', '<', '>':
+		return true
+	default:
+		return false
+	}
 }
 
 // statuslineCommentIDReference walks the statusline authoring tree under the
