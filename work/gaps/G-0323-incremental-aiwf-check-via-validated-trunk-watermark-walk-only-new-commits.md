@@ -1,7 +1,7 @@
 ---
 id: G-0323
 title: Incremental aiwf check via validated trunk watermark (walk only new commits)
-status: open
+status: wontfix
 discovered_in: M-0216
 ---
 
