@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: aiwfx-record-decision encodes the self-contained reference rule
       status: open
+    - id: AC-2
+      title: No shipped-skill markdown link targets a repo-relative path
+      status: open
 ---
 ## Goal
 
@@ -53,4 +56,6 @@ Sketch — formalized at start-milestone:
    one (reconciled, not silently contradicted).
 
 ### AC-1 — aiwfx-record-decision encodes the self-contained reference rule
+
+### AC-2 — No shipped-skill markdown link targets a repo-relative path
 
