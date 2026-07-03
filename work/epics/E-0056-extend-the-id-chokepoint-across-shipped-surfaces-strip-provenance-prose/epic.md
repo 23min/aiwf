@@ -1,7 +1,7 @@
 ---
 id: E-0056
 title: Extend the id chokepoint across shipped surfaces; strip provenance prose
-status: proposed
+status: active
 ---
 ## Goal
 
