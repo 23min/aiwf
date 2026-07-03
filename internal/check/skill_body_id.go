@@ -33,7 +33,6 @@ package check
 // carve-out, and fires.
 
 import (
-	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -76,8 +75,18 @@ var skillScanDirs = []string{
 // stateless, so it runs against on-disk content (skillBodyIDReference) or
 // against literal test bytes.
 func ScanSkillBodyID(body []byte, path string) []Finding {
-	masked := proseMask(body)
+	return scanMaskedForRealIDs(proseMask(body), path)
+}
 
+// scanMaskedForRealIDs classifies every id-shaped token in masked — the
+// same-length, exempt-content-blanked projection of a source produced by
+// proseMask (Markdown prose) or shellCommentMask (shell comments) — and
+// returns one finding per unique real-id token, deduped within masked. A
+// token fires only when it matches a kind's strict, digit-bearing id
+// pattern (bare or composite); canonical letter-N placeholders and
+// malformed shapes are not this rule's concern. Both masks preserve
+// newline positions, so the line counted in masked is the source line.
+func scanMaskedForRealIDs(masked, path string) []Finding {
 	var findings []Finding
 	seen := map[string]bool{}
 	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
@@ -89,7 +98,7 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 			continue
 		}
 		seen[tok] = true
-		line := 1 + bytes.Count(body[:m[0]], []byte{'\n'})
+		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
 			Severity: SeverityError,
@@ -137,5 +146,86 @@ func skillBodyIDReference(t *tree.Tree) []Finding {
 			return nil
 		})
 	}
+	return findings
+}
+
+// statuslineScanDir is the authoring-source root for the shipped statusline
+// script, relative to the tree root. Absent in a consumer repo, which is
+// what makes the rule inert there.
+var statuslineScanDir = filepath.Join("internal", "skills", "embedded-statusline")
+
+// shellCommentMask returns a same-length copy of src in which every byte
+// outside a shell comment is replaced with a space (newlines preserved, so
+// downstream line-number resolution stays exact). The scanner then runs
+// against comment text only — a real id in shell CODE (a string literal, a
+// parameter expansion, a variable) is exempt by construction, the shell
+// analogue of proseMask's code-span carve-out.
+//
+// A comment starts at the first '#' on a line that is either the line's
+// first non-whitespace character OR immediately preceded by a space or tab,
+// and runs to end-of-line. That rule exempts the common shell forms where
+// '#' is not a comment: parameter expansion (`${x#foo}`, `${x##*/}` — '#'
+// preceded by a letter or '#'), the positional-count `$#` ('#' preceded by
+// '$'), and (harmlessly) the `#!` shebang, which carries no id.
+//
+// Deliberately ignored edge cases — KISS, since this scans a single file we
+// author, not a general shell tokenizer: a '#' inside a quoted string that
+// is preceded by whitespace (`echo "a # b"`) is treated as a comment start,
+// so a real id there would fire — acceptable, as a real id in a shipped
+// statusline string is itself a leak; here-doc bodies; and backslash
+// line-continuation.
+func shellCommentMask(src []byte) string {
+	masked := make([]byte, len(src))
+	lineStart := 0
+	sawNonSpace := false
+	inComment := false
+	for i := 0; i < len(src); i++ {
+		b := src[i]
+		switch {
+		case b == '\n':
+			masked[i] = '\n'
+			lineStart = i + 1
+			sawNonSpace = false
+			inComment = false
+		case inComment:
+			masked[i] = b
+		case b == '#' && (!sawNonSpace || (i > lineStart && (src[i-1] == ' ' || src[i-1] == '\t'))):
+			inComment = true
+			masked[i] = b
+		default:
+			masked[i] = ' '
+			if b != ' ' && b != '\t' {
+				sawNonSpace = true
+			}
+		}
+	}
+	return string(masked)
+}
+
+// statuslineCommentIDReference walks the statusline authoring tree under the
+// tree root and emits skill-body-id findings for every *.sh file whose
+// COMMENTS cite a real entity id. Shell has no Markdown prose mask, so
+// shellCommentMask selects comment text and exempts shell code. The rule is
+// inert when the dir is absent (a consumer repo): the walk is skipped, so it
+// contributes no findings rather than erroring.
+func statuslineCommentIDReference(t *tree.Tree) []Finding {
+	base := filepath.Join(t.Root, statuslineScanDir)
+	if _, err := os.Stat(base); err != nil {
+		return nil
+	}
+	var findings []Finding
+	_ = fs.WalkDir(os.DirFS(base), ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || strings.ToLower(filepath.Ext(p)) != ".sh" {
+			return nil
+		}
+		raw, readErr := os.ReadFile(filepath.Join(base, p))
+		if readErr != nil {
+			//coverage:ignore defensive: WalkDir just yielded this path; a read error here means the file vanished or became unreadable between walk and read (TOCTOU). Skip it.
+			return nil
+		}
+		rel := filepath.Join(statuslineScanDir, p)
+		findings = append(findings, scanMaskedForRealIDs(shellCommentMask(raw), rel)...)
+		return nil
+	})
 	return findings
 }

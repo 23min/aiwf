@@ -124,9 +124,9 @@ read_status() {
 # --- Repo name --------------------------------------------------------------
 #
 # The MAIN repo's name, stable across linked worktrees. A worktree's
-# --show-toplevel is the worktree dir (e.g. .../worktrees/G-0304), which would
-# render the worktree's id as the repo name and duplicate the session-entity HUD
-# (G-0304). --git-common-dir points every worktree at the one shared .git, so
+# --show-toplevel is the worktree dir (e.g. .../worktrees/<branch>), which would
+# render the worktree's id as the repo name and duplicate the session-entity HUD.
+# --git-common-dir points every worktree at the one shared .git, so
 # its parent is always the main repo root.
 
 repo=""
@@ -175,7 +175,7 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   fi
 fi
 
-# --- Session-entity HUD (G-0188, narrowed/extended by G-0304) ---------------
+# --- Session-entity HUD ------------------------------------------------------
 #
 # Show ONLY the entity the current session is working in, with its status glyph
 # (→ active, ○ proposed/draft/open, ✓ done/addressed, ✗ cancelled/…) and color:
@@ -183,8 +183,7 @@ fi
 #     branch belongs to — plus its milestone inline on a milestone branch.
 #   - Patch branch (patch/G-NNNN-*): the gap the wf-patch is fixing.
 #   - Anything else (main, gap-less patch/<slug>, …): nothing. The session isn't
-#     in an entity, so the backlog belongs in `aiwf status`, not the statusline
-#     (G-0304, superseding the earlier in-flight-list behavior).
+#     in an entity, so the backlog belongs in `aiwf status`, not the statusline.
 #
 # The ctx_* derivation below decides whether — and which — entity renders.
 
@@ -241,7 +240,7 @@ if [ -n "$ctx_epic_id" ]; then
   fi
 elif [ -n "$ctx_gap_id" ]; then
   # Patch branch (patch/G-NNNN-*): the gap this wf-patch is fixing, with its
-  # status glyph/color — the same session-entity treatment epics get (G-0304).
+  # status glyph/color — the same session-entity treatment epics get.
   g_file="$(git ls-files "work/gaps/${ctx_gap_id}-*.md" "work/gaps/archive/${ctx_gap_id}-*.md" 2>/dev/null | head -1)"
   g_status=""
   [ -n "$g_file" ] && g_status="$(read_status "$g_file")"
@@ -250,7 +249,7 @@ elif [ -n "$ctx_gap_id" ]; then
   ctx_hud="${bold}${g_clr}▸ ${g_glyph} ${ctx_gap_id}${reset}"
 fi
 # On a non-ritual / non-patch branch all three ctx ids are empty, so ctx_hud
-# stays empty and no session-entity segment renders (G-0304).
+# stays empty and no session-entity segment renders.
 
 # --- Other in-flight ritual worktrees count (+N⎇) --------------------------
 #
@@ -288,7 +287,7 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
   head_sha="$(git rev-parse --verify HEAD 2>/dev/null)"
   # HEAD is folded into the cache key so a new commit (or a push that moves
   # HEAD) invalidates a prior verdict immediately, instead of the TTL serving
-  # the pre-commit result for up to $ttl seconds. (G-0189)
+  # the pre-commit result for up to $ttl seconds.
   cache_key="$(printf '%s/%s/%s' "$(git rev-parse --show-toplevel 2>/dev/null)" "$ci_branch" "$head_sha" | shasum | awk '{print $1}')"
   # Cache dir is overridable (hermetic tests point it at a temp dir); /tmp
   # otherwise.
@@ -300,9 +299,9 @@ if command -v gh >/dev/null 2>&1 && [ -n "$branch_seg" ]; then
     # $1 = branch, $2 = expected HEAD sha ("" → use the latest run's commit, the
     # main-fallback proxy). Aggregates ALL workflow runs for the target commit
     # to the worst state, so one failed workflow is never masked by a passing
-    # sibling that happens to be the most-recent run (G-0303). Returns the stale
+    # sibling that happens to be the most-recent run. Returns the stale
     # glyph (…) when no run exists for the expected HEAD — its verdict would be
-    # for a different commit (G-0189). Any failure → ✗; else any still-running →
+    # for a different commit. Any failure → ✗; else any still-running →
     # →; else any success → ✓ (tolerating benign skipped/neutral siblings from
     # path-filtered or if:-gated workflows); else ? (e.g. all skipped).
     local b="$1" expected_sha="$2" out
@@ -385,7 +384,7 @@ if [ -n "$health_common" ]; then
     health_blob="$(cat "$health_root/.claude"/health.*.json 2>/dev/null)"
     if ! printf '%s' "$health_blob" | grep -q '"findings"'; then
       # files present but none parse (no "findings" key) — unknown, not a
-      # false green (ADR-0026: "no health file present, or none parse").
+      # false green ("no health file present, or none parse").
       health_prefix="${gray}●${reset} "
     elif printf '%s' "$health_blob" | grep -q '"severity"[[:space:]]*:[[:space:]]*"error"'; then
       health_prefix="${red}▲${reset} "
@@ -399,7 +398,7 @@ if [ -n "$health_common" ]; then
   fi
 fi
 
-# --- Subscription-usage dots (G-0310) --------------------------------------
+# --- Subscription-usage dots -------------------------------------------------
 # rate_limits.{seven_day,five_hour}.used_percentage from the stdin JSON — the
 # figures /usage shows (Pro/Max only, present after the first API response, each
 # window independently optional). One colored dot + label per present window,
