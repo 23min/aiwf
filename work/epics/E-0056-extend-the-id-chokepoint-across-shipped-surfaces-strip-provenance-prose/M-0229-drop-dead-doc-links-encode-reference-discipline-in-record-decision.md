@@ -6,6 +6,10 @@ parent: E-0056
 depends_on:
     - M-0227
 tdd: advisory
+acs:
+    - id: AC-1
+      title: aiwfx-record-decision encodes the self-contained reference rule
+      status: open
 ---
 ## Goal
 
@@ -47,3 +51,6 @@ Sketch — formalized at start-milestone:
    doc-link (or other path into the repo's non-shipping `docs/` tree) remains.
 3. The prior discoverability ACs that required an ADR reference no longer mandate
    one (reconciled, not silently contradicted).
+
+### AC-1 — aiwfx-record-decision encodes the self-contained reference rule
+
