@@ -1,7 +1,7 @@
 ---
 id: E-0054
 title: 'Fast read paths: single-pass render walk and read-verb grep guard'
-status: active
+status: done
 ---
 ## Goal
 
