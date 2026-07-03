@@ -78,7 +78,7 @@ func TestRunAdd_AreaSetViaDispatcher(t *testing.T) {
 // not just the predicate.
 func TestRunAdd_AreaGlobalAccepted(t *testing.T) {
 	root := setupAreaRepo(t)
-	mustRun(t, "add", "adr", "--title", "Cross-cutting decision", "--area", "global", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Cross-cutting decision", "--area", "global", "--actor", "human/test", "--root", root)
 	fm := frontmatterOf(readOne(t, root, "docs/adr/ADR-*.md"))
 	if !strings.Contains(fm, "area: global") {
 		t.Errorf("ADR frontmatter missing `area: global`:\n%s", fm)
@@ -95,7 +95,7 @@ func TestRunAdd_AreaGlobalNoBlockRejected(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	rc, _, stderr := testutil.CaptureRun(t, func() int {
-		return cli.Execute([]string{"add", "adr", "--title", "X", "--area", "global", "--actor", "human/test", "--root", root})
+		return cli.Execute([]string{"add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "X", "--area", "global", "--actor", "human/test", "--root", root})
 	})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
@@ -193,7 +193,7 @@ func TestRunAdd_GapDerivesArea(t *testing.T) {
 			// E-0002 untagged.
 			mustRun(t, "add", "epic", "--title", "Untagged", "--actor", "human/test", "--root", root)
 
-			args := []string{"add", "gap", "--title", "Leak", "--discovered-in", tc.discoveredIn, "--actor", "human/test", "--root", root}
+			args := []string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Leak", "--discovered-in", tc.discoveredIn, "--actor", "human/test", "--root", root}
 			if tc.explicitArea != "" {
 				args = append(args, "--area", tc.explicitArea)
 			}
@@ -242,7 +242,7 @@ func TestRunAdd_GapDerivesUndeclaredAreaAsIs(t *testing.T) {
 		t.Fatalf("write epic: %v", err)
 	}
 
-	mustRun(t, "add", "gap", "--title", "Leak", "--discovered-in", "E-0001", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Leak", "--discovered-in", "E-0001", "--actor", "human/test", "--root", root)
 	fm := frontmatterOf(readOne(t, root, "work/gaps/G-*.md"))
 	if !strings.Contains(fm, "area: legacy-undeclared") {
 		t.Errorf("derivation should copy the effective area verbatim (no re-validation); gap frontmatter:\n%s", fm)

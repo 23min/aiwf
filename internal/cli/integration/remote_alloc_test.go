@@ -31,7 +31,7 @@ func TestAdd_AllocatesPastNonTrunkRemoteRef(t *testing.T) {
 
 	clone := cloneAt(t, up)
 
-	mustRun(t, "add", "gap", "--title", "next", "--root", clone, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "next", "--root", clone, "--actor", "human/test")
 	got := gapIDs(t, clone)
 	if !slices.Contains(got, "G-0010") {
 		t.Errorf("clone gaps = %v, want G-0010 (allocated past non-trunk remote-branch G-0009)", got)
@@ -59,13 +59,13 @@ func TestAdd_FetchAllReflectsNonTrunkRemoteID(t *testing.T) {
 
 	// --fetch (git fetch --all) brings refs/remotes/origin/feature → the
 	// scan sees G-0009 → allocate G-0010.
-	mustRun(t, "add", "gap", "--fetch", "--title", "fetched", "--root", cloneFetch, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--fetch", "--title", "fetched", "--root", cloneFetch, "--actor", "human/test")
 	if got := gapIDs(t, cloneFetch); !slices.Contains(got, "G-0010") {
 		t.Errorf("--fetch clone gaps = %v, want G-0010 (git fetch --all brought non-trunk feature/G-0009)", got)
 	}
 
 	// Without --fetch, feature is unknown locally → allocate G-0002.
-	mustRun(t, "add", "gap", "--title", "unfetched", "--root", cloneNoFetch, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "unfetched", "--root", cloneNoFetch, "--actor", "human/test")
 	if got := gapIDs(t, cloneNoFetch); !slices.Contains(got, "G-0002") {
 		t.Errorf("no-fetch clone gaps = %v, want G-0002 (feature branch unknown without --fetch)", got)
 	}
@@ -83,7 +83,7 @@ func TestAdd_FetchBadRemote_WarnsButSucceeds(t *testing.T) {
 
 	var rc int
 	stderr := captureStderr(t, func() {
-		rc = cli.Execute([]string{"add", "gap", "--fetch", "--root", repo, "--title", "x", "--actor", "human/test"})
+		rc = cli.Execute([]string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--fetch", "--root", repo, "--title", "x", "--actor", "human/test"})
 	})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("aiwf add --fetch (bad remote) rc = %d, want OK (best-effort never blocks)\nstderr: %s", rc, stderr)

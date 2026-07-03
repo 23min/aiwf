@@ -293,7 +293,7 @@ func TestBinary_ContractFamily_Subprocess(t *testing.T) {
 
 	// Create a contract entity to bind against.
 	runVerb("add contract",
-		append([]string{"add", "contract", "--title", "Sample API contract"}, rootArgs...)...)
+		append([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample API contract"}, rootArgs...)...)
 
 	// Plant minimal schema and fixtures paths so bind has something
 	// concrete to record (ContractBind validates the paths exist).

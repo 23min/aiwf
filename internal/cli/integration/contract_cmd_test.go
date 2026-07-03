@@ -43,7 +43,7 @@ func TestRun_ContractVerifyClean(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -88,7 +88,7 @@ func TestRun_ContractVerifyReportsFixtureRejected(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -136,7 +136,7 @@ func TestRun_CheckIncludesContractFindings(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -182,7 +182,7 @@ func TestRun_CheckSkipsTerminalContracts(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Old API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	if rc := cli.Execute([]string{"cancel", "--root", root, "--actor", "human/test", "C-0001"}); rc != cliutil.ExitOK {
@@ -229,7 +229,7 @@ func TestRun_ContractVerifyReportsConfigMissingSchema(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 
@@ -277,7 +277,7 @@ func TestRun_ContractVerify_ValidatorUnavailableIsWarning(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -324,7 +324,7 @@ func TestRun_ContractVerify_StrictValidators_IsError(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -404,7 +404,7 @@ args:
 	// commit that creates the contract entity AND adds the binding
 	// to aiwf.yaml. We verify both artifacts after the run.
 	if rc := cli.Execute([]string{
-		"add", "contract", "--title", "Public API", "--root", root, "--actor", "human/test",
+		"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Public API", "--root", root, "--actor", "human/test",
 		"--validator", "fake", "--schema", "schema.cue", "--fixtures", "fixtures",
 	}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract atomic: %d", rc)
@@ -502,7 +502,7 @@ args: ["{{fixture}}"]
 	if rc := cli.Execute([]string{"contract", "recipe", "install", "--from", customPath, "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("recipe install: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "API", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	mustWriteFile(t, filepath.Join(root, "schema.cue"), "")
@@ -546,7 +546,7 @@ args: ["{{fixture}}"]
 		t.Fatalf("recipe install: %d", rc)
 	}
 	if rc := cli.Execute([]string{
-		"add", "contract", "--title", "API", "--root", root, "--actor", "human/test",
+		"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "API", "--root", root, "--actor", "human/test",
 		"--validator", "fake",
 	}); rc != cliutil.ExitUsage {
 		t.Errorf("partial-triplet add: rc=%d, want %d", rc, cliutil.ExitUsage)

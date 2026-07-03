@@ -101,7 +101,7 @@ func makeSiblingClone(t *testing.T, bare, name string) string {
 // caller sees the failure point clearly.
 func aiwfAddGap(t *testing.T, clone, binDir, title string) string {
 	t.Helper()
-	out, err := testutil.RunBin(t, clone, binDir, nil, "add", "gap", "--title", title)
+	out, err := testutil.RunBin(t, clone, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", title)
 	if err != nil {
 		t.Fatalf("aiwf add gap %q in %s: %v\n%s", title, clone, err, out)
 	}
@@ -112,7 +112,7 @@ func aiwfAddGap(t *testing.T, clone, binDir, title string) string {
 // have to remember which kind needs which flags.
 func aiwfAddADR(t *testing.T, clone, binDir, title string) string {
 	t.Helper()
-	out, err := testutil.RunBin(t, clone, binDir, nil, "add", "adr", "--title", title)
+	out, err := testutil.RunBin(t, clone, binDir, nil, "add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", title)
 	if err != nil {
 		t.Fatalf("aiwf add adr %q in %s: %v\n%s", title, clone, err, out)
 	}
@@ -143,7 +143,7 @@ func aiwfAddEpic(t *testing.T, clone, binDir, title string) string {
 // The relatesTo slice is comma-joined and passed verbatim.
 func aiwfAddDecision(t *testing.T, clone, binDir, title string, relatesTo []string) string {
 	t.Helper()
-	args := []string{"add", "decision", "--title", title}
+	args := []string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", title}
 	if len(relatesTo) > 0 {
 		args = append(args, "--relates-to", strings.Join(relatesTo, ","))
 	}

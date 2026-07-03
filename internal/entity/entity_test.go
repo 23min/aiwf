@@ -58,6 +58,35 @@ func TestIsAllowedStatus(t *testing.T) {
 	}
 }
 
+// TestIsBornComplete pins G-0326: gap, decision, adr, and contract
+// have no draft phase and are born-complete; epic and milestone are
+// not (epic is explicitly excluded from the born-complete set per
+// the gap's scope, despite starting at a non-draft status; milestone
+// starts draft). Table-driven over every kind so the closed set
+// can't silently grow or shrink without a test update.
+func TestIsBornComplete(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		kind Kind
+		want bool
+	}{
+		{KindEpic, false},
+		{KindMilestone, false},
+		{KindADR, true},
+		{KindGap, true},
+		{KindDecision, true},
+		{KindContract, true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.kind), func(t *testing.T) {
+			t.Parallel()
+			if got := IsBornComplete(tt.kind); got != tt.want {
+				t.Errorf("IsBornComplete(%s) = %v, want %v", tt.kind, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestValidateID(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

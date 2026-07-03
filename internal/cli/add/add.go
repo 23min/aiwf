@@ -48,6 +48,9 @@ func NewCmd() *cobra.Command {
 		bindSchema    string
 		bindFixtures  string
 		bodyFile      string
+		bodyText      string
+		force         bool
+		reason        string
 		fetch         bool
 		out           *cliutil.OutputFormat
 	)
@@ -87,7 +90,7 @@ func NewCmd() *cobra.Command {
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
 				epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
-				bindValidator, bindSchema, bindFixtures, bodyFile, fetch, *out))
+				bindValidator, bindSchema, bindFixtures, bodyFile, bodyText, reason, fetch, force, *out))
 		},
 	}
 	// PersistentFlags are inherited by the `add ac` child so the shared
@@ -108,7 +111,10 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&bindValidator, "validator", "", "validator name (contract only; if set, --schema and --fixtures are also required and the binding is added atomically)")
 	cmd.Flags().StringVar(&bindSchema, "schema", "", "repo-relative path to the schema (contract only; pairs with --validator and --fixtures)")
 	cmd.Flags().StringVar(&bindFixtures, "fixtures", "", "repo-relative path to the fixtures-tree root (contract only; pairs with --validator and --schema)")
-	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused`)
+	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter (use "-" to read from stdin); replaces the per-kind default template; the file must contain body content only — leading "---" is refused; mutually exclusive with --body`)
+	cmd.Flags().StringVar(&bodyText, "body", "", `inline text that becomes the entity body, in the same atomic commit as the frontmatter; replaces the per-kind default template; must not begin with a "---" frontmatter delimiter; mutually exclusive with --body-file`)
+	cmd.Flags().BoolVar(&force, "force", false, "bypass the born-complete-kind empty-body gate (gap/decision/adr/contract only — G-0326: these kinds have no draft phase, so an empty body is refused at creation); requires --reason; inert on epic/milestone (no gate to bypass there)")
+	cmd.Flags().StringVar(&reason, "reason", "", `sovereign-override justification recorded in the "aiwf-force:" commit trailer; required (non-empty after trim) when --force is set`)
 	cmd.Flags().BoolVar(&fetch, "fetch", false, "before allocating the id, best-effort `git fetch --all` to refresh every remote-tracking ref, so the id is computed against the freshest published view across all branches (not just trunk); a fetch failure (offline, unreachable remote) degrades to local-only allocation with a warning and never blocks the add (M-0214)")
 	out = cliutil.AddFormatFlags(cmd)
 
@@ -135,8 +141,22 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
 	epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
-	bindValidator, bindSchema, bindFixtures, bodyFile string, fetch bool, out cliutil.OutputFormat,
+	bindValidator, bindSchema, bindFixtures, bodyFile, bodyText, reason string, fetch, force bool, out cliutil.OutputFormat,
 ) int {
+	// G-0326: --body and --body-file are mutually exclusive ride-along
+	// body sources; --force requires a non-empty --reason (mirrors
+	// `aiwf promote --force --reason`). Both are pure usage-shape
+	// checks, independent of the tree, so they run before any
+	// root-resolution or disk work.
+	if bodyFile != "" && bodyText != "" {
+		fmt.Fprintln(os.Stderr, "aiwf add: --body and --body-file are mutually exclusive; pass one or the other")
+		return cliutil.ExitUsage
+	}
+	if force && strings.TrimSpace(reason) == "" {
+		fmt.Fprintln(os.Stderr, "aiwf add: --reason \"...\" is required when --force is set (non-empty after trim)")
+		return cliutil.ExitUsage
+	}
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
@@ -241,18 +261,23 @@ func Run(k entity.Kind, title, actor, principal, root,
 		BindSchema:     bindSchema,
 		BindFixtures:   bindFixtures,
 		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
+		Force:          force,
+		Reason:         reason,
 	}
 	opts.RelatesTo = cliutil.SplitCommaList(relatesTo)
 	opts.LinkedADRs = cliutil.SplitCommaList(linkedADRs)
 	opts.DependsOn = cliutil.SplitCommaList(dependsOn)
 
-	if bodyFile != "" {
+	switch {
+	case bodyFile != "":
 		body, readErr := cliutil.ReadBodyFile(bodyFile)
 		if readErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
 			return cliutil.ExitUsage
 		}
 		opts.BodyOverride = body
+	case bodyText != "":
+		opts.BodyOverride = []byte(bodyText)
 	}
 
 	if k == entity.KindContract && bindValidator != "" {

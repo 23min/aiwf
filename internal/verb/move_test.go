@@ -65,7 +65,7 @@ func TestMove_PreservesReferencingGap(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Travelling", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Found something", testActor, verb.AddOptions{DiscoveredIn: "M-0001"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Found something", testActor, verb.AddOptions{DiscoveredIn: "M-0001", BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	r.must(verb.Move(r.ctx, r.tree(), "M-0001", "E-0002", testActor))
 
@@ -118,7 +118,7 @@ func TestMove_RejectsTargetWrongKind(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	_, err := verb.Move(r.ctx, r.tree(), "M-0001", "G-0001", testActor)
 	if err == nil || !strings.Contains(err.Error(), "is not an epic") {

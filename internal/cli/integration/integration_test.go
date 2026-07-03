@@ -234,7 +234,7 @@ func TestIntegration_TrunkExplicitMissingIsHardError(t *testing.T) {
 		t.Fatalf("git remote add: %v\n%s", gitErr, out)
 	}
 
-	out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Should fail")
+	out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Should fail")
 	if err == nil {
 		t.Fatalf("expected aiwf add to fail when trunk ref is missing; output:\n%s", out)
 	}

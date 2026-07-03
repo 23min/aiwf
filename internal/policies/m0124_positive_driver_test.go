@@ -317,7 +317,13 @@ func deriveBringOpts(rule spec.Rule) cellcoverage.BringOpts {
 func ensureSupersedingADR(t *testing.T, f *cellcoverage.CellFixture) string {
 	t.Helper()
 	ctx := context.Background()
-	res, err := verb.Add(ctx, f.Tree(), entity.KindADR, "Superseding ADR", "human/test", verb.AddOptions{})
+	// G-0326: gap/decision/adr/contract refuse an empty body at
+	// creation; this fixture ADR's body content isn't the subject
+	// under test, so supply minimal real prose satisfying the gate.
+	body := []byte("## Context\n\nFixture prose for test setup; not the subject under test.\n\n" +
+		"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
+		"## Consequences\n\nFixture prose for test setup; not the subject under test.\n")
+	res, err := verb.Add(ctx, f.Tree(), entity.KindADR, "Superseding ADR", "human/test", verb.AddOptions{BodyOverride: body})
 	f.Must(res, err)
 	for _, tr := range res.Plan.Trailers {
 		if tr.Key == gitops.TrailerEntity {

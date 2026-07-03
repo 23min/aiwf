@@ -63,6 +63,7 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 		// Free-form text.
 		{flag: "reason"}: "free-form prose",
 		{flag: "title"}:  "free-form entity title",
+		{flag: "body"}:   "free-form entity body prose (G-0326); no closed set",
 		{flag: "tests"}:  "structured 'pass=N fail=N skip=N total=N' grammar; no closed set",
 		{flag: "since"}:  "git ref string",
 

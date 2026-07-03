@@ -16,6 +16,35 @@ import (
 
 const testActor = "human/test"
 
+// bornCompleteFixtureBody returns minimal real prose satisfying every
+// load-bearing section the G-0326 empty-body gate checks for kind k,
+// for tests that create a gap/decision/adr/contract fixture as
+// scaffolding for something else under test (a promote resolver, a
+// cancel, a move, a reallocate, an authorize refusal...) rather than
+// testing body content itself. Real per-kind prose rather than a
+// single placeholder line, since the gate walks named `## <Section>`
+// headings. Returns nil for kinds the gate doesn't apply to.
+func bornCompleteFixtureBody(k entity.Kind) []byte {
+	switch k {
+	case entity.KindGap:
+		return []byte("## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Why it matters\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindDecision:
+		return []byte("## Question\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Reasoning\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindADR:
+		return []byte("## Context\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Consequences\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindContract:
+		return []byte("## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Stability\n\nFixture prose for test setup; not the subject under test.\n")
+	default:
+		return nil
+	}
+}
+
 // runner bundles the per-test context (testing.T, ctx, root) so verb
 // invocations can use multi-value passing: r.must(verb.Add(context.Background(), ...)).
 type runner struct {
@@ -155,7 +184,7 @@ completed: 2026-04-30
 	// Add a gap that references the stubbed E-01. Pre-fix, the
 	// projection check would surface a refs-resolve/unresolved on the
 	// new gap and the verb would fail. Post-fix the stub resolves it.
-	res, err := verb.Add(r.ctx, tr, entity.KindGap, "Flaky", testActor, verb.AddOptions{DiscoveredIn: "E-0001"})
+	res, err := verb.Add(r.ctx, tr, entity.KindGap, "Flaky", testActor, verb.AddOptions{DiscoveredIn: "E-0001", BodyOverride: bornCompleteFixtureBody(entity.KindGap)})
 	if err != nil {
 		t.Fatalf("verb.Add: %v", err)
 	}
@@ -331,7 +360,7 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 func TestReallocate_PopulatesPriorIDs(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "First gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "First gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	r.must(verb.Reallocate(r.ctx, r.tree(), "G-0001", testActor))
 
 	tr := r.tree()
@@ -353,7 +382,7 @@ func TestReallocate_PopulatesPriorIDs(t *testing.T) {
 func TestReallocate_PriorIDsChainAcrossMultipleRenumbers(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Original gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Original gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	// First reallocate: G-001 → G-002. PriorIDs should be [G-001].
 	r.must(verb.Reallocate(r.ctx, r.tree(), "G-0001", testActor))
@@ -623,7 +652,7 @@ func TestAddContract_Minimal(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 
 	contractDir := filepath.Join(r.root, "work", "contracts", "C-0001-orders-api")
 	if _, err := os.Stat(filepath.Join(contractDir, "contract.md")); err != nil {
@@ -729,7 +758,7 @@ func TestReallocate_Contract(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 
 	// Trigger reallocate (any reason — we're testing the directory move).
 	r.must(verb.Reallocate(r.ctx, r.tree(), "C-0001", testActor))
@@ -1125,7 +1154,7 @@ func TestCancel_OnAlreadyDoneEpic(t *testing.T) {
 func TestCancel_DeprecatedContractLandsAtRetired(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Orders API", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 	// Drive proposed -> accepted -> deprecated via force-promote.
 	// Real proposed -> accepted requires ContractBind, which is
 	// orthogonal to the cancel projection under test.
@@ -1171,7 +1200,7 @@ func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			r := newRunner(t)
-			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{}))
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 			// Force into the terminal status. The non-FSM intermediate
 			// hops aren't relevant to the assertion under test.
 			r.must(verb.Promote(r.ctx, r.tree(), "C-0001", tc.terminalStatus, testActor, "test setup", true, verb.PromoteOptions{}))
@@ -1203,7 +1232,7 @@ func TestAdd_GapWithDiscoveredIn(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Need a thing", testActor, verb.AddOptions{DiscoveredIn: "M-0001"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Need a thing", testActor, verb.AddOptions{DiscoveredIn: "M-0001", BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	g := r.tree().ByID("G-0001")
 	if g == nil || g.DiscoveredIn != "M-0001" {
@@ -1271,7 +1300,8 @@ func TestAdd_DecisionWithRelatesTo(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Pin the order", testActor, verb.AddOptions{
-		RelatesTo: []string{"E-0001", "M-0001"},
+		RelatesTo:    []string{"E-0001", "M-0001"},
+		BodyOverride: bornCompleteFixtureBody(entity.KindDecision),
 	}))
 
 	d := r.tree().ByID("D-0001")

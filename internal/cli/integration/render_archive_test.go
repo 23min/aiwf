@@ -31,7 +31,7 @@ func setupArchiveRenderFixture(t *testing.T) string {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Active Epic", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "gap", "--title", "Active gap", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Active gap", "--actor", "human/test", "--root", root)
 
 	// Archived gap: terminal status, lives under work/gaps/archive/
 	// per ADR-0004 storage table.

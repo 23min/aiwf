@@ -108,7 +108,7 @@ func TestEditBody_StdinEndToEnd(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "gap", "--title", "Stdin gap"); err != nil {
+	if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Stdin gap"); err != nil {
 		t.Fatalf("add gap: %v\n%s", err, out)
 	}
 
@@ -288,7 +288,7 @@ func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Quiet gap"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Quiet gap"); err != nil {
 		t.Fatalf("add gap: %v\n%s", err, out)
 	}
 

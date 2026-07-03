@@ -121,9 +121,9 @@ entities:
 		{"add epic E-02 (engine)", []string{"add", "epic", "--title", "Engine", "--actor", "human/test", "--root", root}},
 		{"add milestone M-001 (tdd none)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Cache", "--actor", "human/test", "--root", root}},
 		{"add ac M-001/AC-1", []string{"add", "ac", "M-0001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}},
-		{"add gap G-001", []string{"add", "gap", "--title", "Sample gap", "--actor", "human/test", "--root", root}},
-		{"add adr ADR-0001", []string{"add", "adr", "--title", "Sample ADR", "--actor", "human/test", "--root", root}},
-		{"add decision D-001", []string{"add", "decision", "--title", "Sample decision", "--actor", "human/test", "--root", root}},
+		{"add gap G-001", []string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample gap", "--actor", "human/test", "--root", root}},
+		{"add adr ADR-0001", []string{"add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample ADR", "--actor", "human/test", "--root", root}},
+		{"add decision D-001", []string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample decision", "--actor", "human/test", "--root", root}},
 		{"add milestone M-002 (tdd required)", []string{"add", "milestone", "--tdd", "required", "--epic", "E-0002", "--title", "Strict", "--actor", "human/test", "--root", root}},
 		{"add ac M-002/AC-1 (under tdd-required)", []string{"add", "ac", "M-0002", "--title", "AC: under tdd required", "--actor", "human/test", "--root", root}},
 
@@ -163,7 +163,7 @@ entities:
 		{"reallocate E-02", []string{"reallocate", "E-0002", "--actor", "human/test", "--root", root}},
 
 		// contract family — recipe install / bind / unbind / recipe remove.
-		{"add contract C-001", []string{"add", "contract", "--title", "Sample API contract", "--actor", "human/test", "--root", root}},
+		{"add contract C-001", []string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample API contract", "--actor", "human/test", "--root", root}},
 		{"contract recipe install jsonschema", []string{"contract", "recipe", "install", "jsonschema", "--actor", "human/test", "--root", root}},
 		// `contract bind` needs concrete schema + fixtures paths to
 		// validate against. Plant minimal placeholders before the verb.

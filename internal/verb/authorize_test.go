@@ -797,7 +797,7 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 			kind: entity.KindGap,
 			id:   "G-0001",
 			add: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test Gap", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test Gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 			},
 		},
 		{
@@ -805,7 +805,7 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 			kind: entity.KindDecision,
 			id:   "D-0001",
 			add: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Test Decision", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindDecision, "Test Decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindDecision)}))
 			},
 		},
 		{
@@ -813,7 +813,7 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 			kind: entity.KindContract,
 			id:   "C-0001",
 			add: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Test Contract", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Test Contract", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 			},
 		},
 		{
@@ -821,7 +821,7 @@ func TestAuthorize_Open_RefusesNonScopeEntityKind(t *testing.T) {
 			kind: entity.KindADR,
 			id:   "ADR-0001",
 			add: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Test ADR", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Test ADR", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 			},
 		},
 	}

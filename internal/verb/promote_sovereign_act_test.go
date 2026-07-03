@@ -126,7 +126,7 @@ func TestPromote_EpicActive_OtherKindsUnaffected(t *testing.T) {
 		{
 			name: "contract proposed -> active",
 			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 			},
 			id:        "C-0001",
 			newStatus: entity.StatusActive,
@@ -134,7 +134,7 @@ func TestPromote_EpicActive_OtherKindsUnaffected(t *testing.T) {
 		{
 			name: "gap open -> addressed",
 			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Missing", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Missing", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 			},
 			id:        "G-0001",
 			newStatus: entity.StatusAddressed,
@@ -142,7 +142,7 @@ func TestPromote_EpicActive_OtherKindsUnaffected(t *testing.T) {
 		{
 			name: "adr proposed -> accepted",
 			setup: func(r *runner) {
-				r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Choice", testActor, verb.AddOptions{}))
+				r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Choice", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 			},
 			id:        "ADR-0001",
 			newStatus: "accepted",

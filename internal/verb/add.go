@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
@@ -82,6 +83,19 @@ type AddOptions struct {
 	// — and, for a gap with --discovered-in and no explicit --area,
 	// derives it from the discovered-in entity's effective area.
 	Area string
+	// Force bypasses the born-complete-kind empty-body gate (G-0326):
+	// without it, `aiwf add` refuses to create a gap/decision/adr/
+	// contract whose resolved body has an empty load-bearing section
+	// (entity.IsBornComplete; see requireNonEmptyBornCompleteBody).
+	// Mirrors the sovereign-override shape of `aiwf promote --force
+	// --reason` — the CLI dispatcher requires a non-empty Reason
+	// whenever Force is set. Has no effect on kinds the gate doesn't
+	// apply to (epic, milestone) — passing it there is inert.
+	Force bool
+	// Reason is the free-form justification recorded in the create
+	// commit's `aiwf-force:` trailer and body when Force is set.
+	// Ignored when Force is false.
+	Reason string
 }
 
 // Add creates a new entity of the given kind. Allocates the next free
@@ -141,6 +155,11 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		return nil, err
 	}
 
+	gateBypassed, gateErr := requireNonEmptyBornCompleteBody(id, kind, body, opts)
+	if gateErr != nil {
+		return nil, gateErr
+	}
+
 	// G-0184 verb-time scan: vet operator-supplied body content before
 	// constructing the Plan. The projection-time bodyProseID rule reads
 	// from disk and the new file doesn't exist yet, so this is the
@@ -174,19 +193,97 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 		ops = append(ops, bindOps...)
 	}
 
+	trailers := []gitops.Trailer{
+		{Key: gitops.TrailerVerb, Value: "add"},
+		{Key: gitops.TrailerEntity, Value: id},
+		{Key: gitops.TrailerActor, Value: actor},
+	}
+	// commitBody carries opts.Reason only when the gate was actually
+	// bypassed (see the gateBypassed branch below) — an unused
+	// --reason on a no-op --force shouldn't land in the commit either.
+	var commitBody string
+	if gateBypassed {
+		// Stamped only when opts.Force actually bypassed a real
+		// refusal (entity.IsBornComplete(kind) AND the body would
+		// otherwise have failed the gate) — opts.Force is a no-op on
+		// a kind with no gate to bypass (epic, milestone) or on a
+		// born-complete kind whose body was already non-empty, and a
+		// no-op must not fabricate a "sovereign override happened"
+		// provenance record. Mirrors transitionTrailers' force
+		// handling (promote.go): the trailer is the audit record of
+		// an actual override, not of the flag's mere presence.
+		// Force-non-human is caught by the check-time
+		// provenance-force-non-human audit (internal/check/
+		// provenance.go), the same backstop every other --force path
+		// relies on rather than a verb-time human-actor gate here.
+		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerForce, Value: strings.TrimSpace(opts.Reason)})
+		commitBody = opts.Reason
+	}
+
 	subject := fmt.Sprintf("aiwf add %s %s %q", kind, id, title)
 	return &Result{
 		Findings: slugNotices,
 		Plan: &Plan{
-			Subject: subject,
-			Trailers: []gitops.Trailer{
-				{Key: gitops.TrailerVerb, Value: "add"},
-				{Key: gitops.TrailerEntity, Value: id},
-				{Key: gitops.TrailerActor, Value: actor},
-			},
-			Ops: ops,
+			Subject:  subject,
+			Body:     commitBody,
+			Trailers: trailers,
+			Ops:      ops,
 		},
 	}, nil
+}
+
+// requireNonEmptyBornCompleteBody refuses to create a born-complete
+// kind (gap, decision, adr, contract — entity.IsBornComplete; no
+// draft phase, live and referenceable the instant the create commit
+// lands) whose resolved body has any empty load-bearing section, per
+// check.EmptyRequiredSections — the same emptiness test the
+// entity-body-empty check rule applies (G-0326). Kinds with a draft
+// phase (epic, milestone) are unaffected; their placeholder-then-fill
+// workflow and the milestone/AC lifecycle-gated warning stay exactly
+// as they were.
+//
+// opts.Force bypasses the gate as a sovereign override, mirroring
+// `aiwf promote --force --reason`; the CLI dispatcher is responsible
+// for requiring a non-empty opts.Reason whenever Force is set.
+//
+// Returns bypassed=true only when a real refusal was actually
+// overridden — kind is born-complete AND the body would otherwise
+// have failed the gate. On any other combination (kind has no gate,
+// or the body was already non-empty) bypassed is false even if
+// opts.Force is set: --force is a no-op there, and the caller uses
+// bypassed to decide whether the create commit may honestly claim a
+// sovereign override happened (the aiwf-force trailer, the commit
+// body carrying opts.Reason). A no-op --force must not fabricate that
+// provenance record.
+func requireNonEmptyBornCompleteBody(id string, kind entity.Kind, body []byte, opts AddOptions) (bypassed bool, err error) {
+	if !entity.IsBornComplete(kind) {
+		return false, nil
+	}
+	empty := check.EmptyRequiredSections(kind, body)
+	if len(empty) == 0 {
+		return false, nil
+	}
+	if opts.Force {
+		return true, nil
+	}
+	headings := make([]string, len(empty))
+	for i, name := range empty {
+		headings[i] = "`## " + name + "`"
+	}
+	return false, fmt.Errorf(
+		"%s: empty load-bearing body section(s) %s; %s %s is referenceable the instant this commit lands, so its body must carry meaning at creation — pass --body \"...\" or --body-file <path> with real prose, or --force --reason \"...\" to create anyway (aiwf check will still flag it at error severity and the pre-push hook will still block until it's filled in)",
+		id, strings.Join(headings, ", "), articleFor(kind), kind,
+	)
+}
+
+// articleFor returns "an" for a kind spoken letter-by-letter with a
+// leading vowel sound (adr → "A-D-R"), "a" otherwise. Purely a
+// grammar nicety for requireNonEmptyBornCompleteBody's error message.
+func articleFor(kind entity.Kind) string {
+	if kind == entity.KindADR {
+		return "an"
+	}
+	return "a"
 }
 
 // slugDroppedFinding builds the warning surfaced when SlugifyDetailed
@@ -419,15 +516,19 @@ func buildAddOps(e *entity.Entity, body []byte) ([]FileOp, error) {
 
 // resolveAddBody returns the body bytes for the new entity. When
 // opts.BodyOverride is set it replaces the kind's default template
-// (M-056 — `aiwf add --body-file`); validateUserBodyBytes refuses
-// content that begins with a frontmatter delimiter so the create
-// commit can't accidentally produce a double-frontmatter file.
+// (M-056 — `aiwf add --body-file`; G-0326 — `aiwf add --body`);
+// validateUserBodyBytes refuses content that begins with a
+// frontmatter delimiter so the create commit can't accidentally
+// produce a double-frontmatter file. BodyOverride carries the same
+// validation regardless of which of the two mutually-exclusive flags
+// supplied it, so the error is worded generically rather than naming
+// one flag.
 func resolveAddBody(kind entity.Kind, opts AddOptions) ([]byte, error) {
 	if opts.BodyOverride == nil {
 		return entity.BodyTemplate(kind), nil
 	}
 	if err := validateUserBodyBytes(opts.BodyOverride); err != nil {
-		return nil, fmt.Errorf("--body-file: %w", err)
+		return nil, fmt.Errorf("--body/--body-file: %w", err)
 	}
 	return opts.BodyOverride, nil
 }

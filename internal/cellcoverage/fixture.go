@@ -33,6 +33,33 @@ import (
 
 const testActor = "human/test"
 
+// bornCompleteFixtureBody returns minimal real prose satisfying every
+// load-bearing section the G-0326 empty-body gate checks for kind k,
+// for cell fixtures whose subject is an FSM transition, not body
+// content. Returns nil for kinds the gate doesn't apply to (epic,
+// milestone), which is a no-op BodyOverride (falls back to the
+// per-kind template as before).
+func bornCompleteFixtureBody(k entity.Kind) []byte {
+	switch k {
+	case entity.KindGap:
+		return []byte("## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Why it matters\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindDecision:
+		return []byte("## Question\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Reasoning\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindADR:
+		return []byte("## Context\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Decision\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Consequences\n\nFixture prose for test setup; not the subject under test.\n")
+	case entity.KindContract:
+		return []byte("## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n" +
+			"## Stability\n\nFixture prose for test setup; not the subject under test.\n")
+	default:
+		return nil
+	}
+}
+
 // CellFixture is a fresh isolated repo with aiwf init applied.
 // Methods walk the kernel's verb surface in-process to drive the
 // fixture to the required state. The cell-under-test in the
@@ -232,7 +259,7 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 
 func (f *CellFixture) adrAt(t *testing.T, fromState string) string {
 	t.Helper()
-	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindADR, "Cell-coverage ADR", testActor, verb.AddOptions{}))
+	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindADR, "Cell-coverage ADR", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	switch fromState {
 	case entity.StatusProposed:
 		return "ADR-0001"
@@ -253,7 +280,7 @@ func (f *CellFixture) adrAt(t *testing.T, fromState string) string {
 
 func (f *CellFixture) gapAt(t *testing.T, fromState string) string {
 	t.Helper()
-	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindGap, "Cell-coverage Gap", testActor, verb.AddOptions{}))
+	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindGap, "Cell-coverage Gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	switch fromState {
 	case entity.StatusOpen:
 		return "G-0001"
@@ -275,7 +302,7 @@ func (f *CellFixture) gapAt(t *testing.T, fromState string) string {
 
 func (f *CellFixture) decisionAt(t *testing.T, fromState string) string {
 	t.Helper()
-	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindDecision, "Cell-coverage Decision", testActor, verb.AddOptions{}))
+	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindDecision, "Cell-coverage Decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindDecision)}))
 	switch fromState {
 	case entity.StatusProposed:
 		return "D-0001"
@@ -296,7 +323,7 @@ func (f *CellFixture) decisionAt(t *testing.T, fromState string) string {
 
 func (f *CellFixture) contractAt(t *testing.T, fromState string) string {
 	t.Helper()
-	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindContract, "Cell-coverage Contract", testActor, verb.AddOptions{}))
+	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindContract, "Cell-coverage Contract", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 	switch fromState {
 	case entity.StatusProposed:
 		return "C-0001"
@@ -526,7 +553,7 @@ func (f *CellFixture) satisfyADRSuperseded(t *testing.T, adrID string) {
 	// Allocate a sibling ADR to serve as the supersession target.
 	// Determine its id by reading the aiwf-entity trailer the verb
 	// stamps on its plan.
-	res, err := verb.Add(f.ctx, f.Tree(), entity.KindADR, "Superseding ADR", testActor, verb.AddOptions{})
+	res, err := verb.Add(f.ctx, f.Tree(), entity.KindADR, "Superseding ADR", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)})
 	f.Must(res, err)
 	supersedingID := trailerValue(res.Plan, gitops.TrailerEntity)
 	if supersedingID == "" {

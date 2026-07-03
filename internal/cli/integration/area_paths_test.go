@@ -121,7 +121,7 @@ func TestObjectFormConfig_NameReadersWork(t *testing.T) {
 
 	t.Run("add --area accepts a declared member", func(t *testing.T) {
 		root := setupObjectAreaRepo(t, body)
-		mustRun(t, "add", "gap", "--title", "Known", "--area", "app-a", "--actor", "human/test", "--root", root)
+		mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Known", "--area", "app-a", "--actor", "human/test", "--root", root)
 		fm := frontmatterOf(readOne(t, root, "work/gaps/G-*.md"))
 		if !strings.Contains(fm, "area: app-a") {
 			t.Errorf("gap frontmatter missing `area: app-a`:\n%s", fm)
@@ -131,7 +131,7 @@ func TestObjectFormConfig_NameReadersWork(t *testing.T) {
 	t.Run("add --area rejects an undeclared member", func(t *testing.T) {
 		root := setupObjectAreaRepo(t, body)
 		rc, _, stderr := testutil.CaptureRun(t, func() int {
-			return cli.Execute([]string{"add", "gap", "--title", "X", "--area", "app-z", "--actor", "human/test", "--root", root})
+			return cli.Execute([]string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "X", "--area", "app-z", "--actor", "human/test", "--root", root})
 		})
 		if rc != cliutil.ExitUsage {
 			t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
@@ -147,8 +147,8 @@ func TestObjectFormConfig_NameReadersWork(t *testing.T) {
 	t.Run("check flags an undeclared area but not a declared one", func(t *testing.T) {
 		root := setupObjectAreaRepo(t, body)
 		// One gap tagged with a declared area, one with an undeclared area.
-		mustRun(t, "add", "gap", "--title", "Known", "--area", "app-a", "--actor", "human/test", "--root", root)
-		mustRun(t, "add", "gap", "--title", "Drift", "--actor", "human/test", "--root", root)
+		mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Known", "--area", "app-a", "--actor", "human/test", "--root", root)
+		mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Drift", "--actor", "human/test", "--root", root)
 
 		driftMatches, _ := filepath.Glob(filepath.Join(root, "work", "gaps", "G-0002-*.md"))
 		if len(driftMatches) != 1 {

@@ -164,7 +164,7 @@ func TestScopeReach_DiscoveredInFriction_AC3(t *testing.T) {
 	// Agent files a gap discovered_in M-0001 — a creation act whose ref
 	// (M-0001) reaches E-0001 via parent, so it is in scope.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
-		"add", "gap", "--discovered-in", "M-0001", "--title", "Cache thrash",
+		"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--discovered-in", "M-0001", "--title", "Cache thrash",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
 		t.Fatalf("agent add gap (in-scope creation): %v\n%s", err, out)
 	}

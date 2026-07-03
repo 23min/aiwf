@@ -37,7 +37,7 @@ func TestAuditOnly_CancelG24Recovery(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Validators leak temp files"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Validators leak temp files"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
 	// Simulate the manual commit that reached `wontfix` outside the

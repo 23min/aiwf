@@ -165,7 +165,7 @@ func TestRunAdd_PathHintAmbiguousFallsBackToDiscoveredIn(t *testing.T) {
 	mustRun(t, "add", "epic", "--title", "Source", "--area", "platform", "--actor", "human/test", "--root", root)
 	rc, _, stderr := testutil.CaptureRun(t, func() int {
 		return cli.Execute([]string{
-			"add", "gap", "--title", "Leak",
+			"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Leak",
 			"--discovered-in", "E-0001", "--path-hint", "projects/shared/x.go",
 			"--actor", "human/test", "--root", root,
 		})
