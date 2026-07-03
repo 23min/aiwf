@@ -1,7 +1,9 @@
 ---
 id: G-0344
 title: 'statusline: version-stamp + upgrade-only auto-refresh on plain aiwf update'
-status: open
+status: addressed
+addressed_by_commit:
+    - 367a7fdb
 ---
 ## Problem
 
