@@ -1,7 +1,9 @@
 ---
 id: G-0348
 title: Shipped consumer surfaces leak aiwf-internal ids, history, and rationale
-status: open
+status: addressed
+addressed_by:
+    - E-0056
 ---
 ## What's missing
 
