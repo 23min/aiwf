@@ -90,21 +90,15 @@ Skipping the invocation because "the tests look fine" is the failure mode this s
 
 The AC is promoted to `met` only *after* the branch-coverage audit and the vacuity check above have run. `met` is the "this AC is done" judgment; it sits after the evidence that substantiates it, never before — a judgment recorded before its evidence is a vacuous gate.
 
-- If the project uses aiwf:
+- If the project uses aiwf and this cycle is driving a milestone AC:
     - Advance the AC's `tdd_phase` to `done`:
 
       ```bash
       aiwf promote M-NNN/AC-<N> --phase done
       ```
 
-    - Mark the acceptance criterion `met`:
-
-      ```bash
-      aiwf promote M-NNN/AC-<N> met
-      ```
-
-      Under `tdd: required`, the `acs-tdd-audit` refuses `met` while `tdd_phase` is not `done` — and **`--force` does not get you around it.** Force relaxes only the status/phase FSM *transition* check; the audit runs as a projection finding **regardless of `--force`**, so there is no `--force met` shortcut. Keep the order: reach `--phase done` first, then `met`. `--force` itself is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor) — if you think an exception genuinely needs it, the honest lever is fixing the *phase* (or reconsidering the milestone's `tdd:` setting), not forcing the *status*; surface that to the human rather than reaching for `--force met` yourself.
-    - Append a Work log entry under the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`.
+      Under `tdd: required`, the kernel's `acs-tdd-audit` refuses `met` while `tdd_phase` is not `done` — and **`--force` does not get you around it.** Force relaxes only the status/phase FSM *transition* check; the audit runs as a projection finding **regardless of `--force`**, so there is no `--force met` shortcut. `--force` itself is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor) — if you think an exception genuinely needs it, the honest lever is fixing the *phase* (or reconsidering the milestone's `tdd:` setting), not forcing the *status*; surface that to the human rather than reaching for `--force met` yourself.
+    - Stop here — this cycle's job ends at `phase: done`. Promoting the AC to `met`, committing the implementation, and appending the Work log entry belong to the *calling* milestone ritual (e.g. `aiwfx-start-milestone` step 6), never to this cycle: the Work log's `commit <SHA>` citation needs the implementation commit's SHA, which does not exist until this cycle returns control and that commit lands. Doing `met` + Work log here, before that commit exists, is the exact "SHA doesn't exist yet" ordering bug the milestone-level commit-per-AC model exists to avoid.
     - The kernel records the phase + status timeline via `aiwf history M-NNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
 - If the project doesn't use aiwf:
     - Mark the acceptance criterion done in whatever the project uses to track AC progress (an issue, a checklist).

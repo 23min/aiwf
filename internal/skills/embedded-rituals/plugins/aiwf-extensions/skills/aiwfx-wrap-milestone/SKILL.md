@@ -83,7 +83,7 @@ The roadmap reflects the milestone's new status without hand-edits.
 
 ### 6. Stage all changes and prepare the wrap commit
 
-The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes). Stage it:
+The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes); that's the only thing left to stage:
 
 ```bash
 git add work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md
@@ -98,7 +98,7 @@ Draft a conventional commit message: `feat(<scope>): <one-line summary> (M-NNNN)
 Show the user:
 - `git diff --staged --stat`
 - The proposed commit message.
-- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids).
+- A summary of what landed: AC count green, doc-lint summary, deferrals opened (with gap ids), and a pointer to the per-AC implementation commits already on the branch (their SHAs are in the Work log — this commit adds no source or test files, only the wrap-side spec prose).
 
 **Stop and wait for explicit "commit" approval.**
 
