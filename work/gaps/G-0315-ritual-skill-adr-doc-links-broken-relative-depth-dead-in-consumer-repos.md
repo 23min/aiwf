@@ -1,8 +1,10 @@
 ---
 id: G-0315
 title: 'Ritual-skill ADR doc-links: broken relative depth + dead in consumer repos'
-status: open
+status: addressed
 discovered_in: M-0195
+addressed_by:
+    - M-0229
 ---
 ## Problem
 
