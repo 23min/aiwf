@@ -1,7 +1,9 @@
 ---
 id: G-0358
 title: G-0354 introduced an os.Stderr data race in cliutil parallel tests
-status: open
+status: addressed
+addressed_by_commit:
+    - 4b7634e9
 ---
 ## What's missing
 
