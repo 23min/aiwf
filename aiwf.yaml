@@ -12,3 +12,14 @@ tree:
   # ritual writes it nowhere else. First exemption added at E-17 wrap.
   allow_paths:
     - work/epics/*/wrap.md
+
+# Per-agent compute policy (G-0353): model + effort injected into the
+# materialized `.claude/agents/*.md` cards on `aiwf update`. Advisory —
+# a cheaper, independent check (Opus reviews the Sonnet builder's work).
+agents:
+  builder:
+    model: sonnet
+    effort: high
+  reviewer:
+    model: opus
+    effort: high
