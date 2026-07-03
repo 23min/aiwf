@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0054: fast read paths (single-pass render walk + read-verb grep guard)
+
+- `aiwf render --format=html` now runs in ~4.5s instead of ~35 min on a ~700-entity tree
+  (M-0221): its per-entity `git log` history fan-out collapses into one shared HEAD-history
+  walk bucketed in memory. Output is byte-identical.
+- `aiwf history` and `aiwf show` skip the repo-wide authorize-opener `git log` scan unless
+  the entity's events reference a scope (M-0223) — roughly ~44% / ~32% faster on scopeless
+  entities. The two near-duplicate grep implementations are consolidated into one shared
+  helper. Output is byte-identical.
+
 ## [0.22.0] — 2026-07-03
 
 ### Changed — G-0344: version-stamped statusline with upgrade-only auto-refresh

@@ -361,7 +361,20 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	}
 	cfg, _ := config.Load(rootDir)
 	findings := check.Run(tr, loadErrs)
-	resolver := NewRenderResolver(ctx, rootDir, tr, cfg, findings)
+
+	// One shared HEAD-history walk feeds every per-entity history row and
+	// scope view (E-0054 / M-0221), replacing render's ~N-per-milestone
+	// git-log fan-out. Fail loud on a walk error: degrading here would
+	// silently blank the history / provenance section of *every* page —
+	// strictly worse than the old per-entity best-effort that dropped one
+	// tab. A healthy tree never triggers this; a corrupt/partial repo
+	// should stop the render, not emit a misleadingly-empty site.
+	head, err := check.WalkHeadCommits(ctx, rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf render: reading history: %v\n", err)
+		return cliutil.ExitInternal
+	}
+	resolver := NewRenderResolver(ctx, rootDir, tr, cfg, findings, head)
 
 	outDir := resolveHTMLOutDir(rootDir, out)
 	res, err := htmlrender.Render(htmlrender.Options{

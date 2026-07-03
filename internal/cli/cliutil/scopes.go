@@ -45,6 +45,21 @@ func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, err
 	if err != nil {
 		return nil, err
 	}
+	return ReplayScopes(commits), nil
+}
+
+// ReplayScopes replays the scope FSM over commits (oldest-first,
+// already filtered to one entity's `aiwf-entity:` trailer) and returns
+// every scope ever opened, in open-order, each carrying its current
+// state. It is the pure, git-free core lifted out of LoadEntityScopes
+// so render's single pass (M-0221) replays scopes from the shared HEAD
+// walk through the SAME code path — no second copy of the FSM. The
+// transition rules are documented on LoadEntityScopes.
+//
+// Callers pass a per-entity commit slice: LoadEntityScopes from its
+// grep, render from the per-entity bucket of the one HEAD pass. The
+// replay itself is identical either way.
+func ReplayScopes(commits []CommitTrailers) []*scope.Scope {
 	var scopes []*scope.Scope
 	byAuth := map[string]*scope.Scope{}
 	for _, c := range commits {
@@ -88,7 +103,7 @@ func LoadEntityScopes(ctx context.Context, root, id string) ([]*scope.Scope, err
 			s.Events = append(s.Events, scope.Event{SHA: c.SHA, State: scope.StateEnded, Reason: idx[gitops.TrailerReason]})
 		}
 	}
-	return scopes, nil
+	return scopes
 }
 
 // mostRecent returns the most-recently-opened scope whose current
@@ -116,9 +131,13 @@ func indexCommitTrailers(trailers []gitops.Trailer) map[string]string {
 	return out
 }
 
-// commitTrailers is the per-commit shape consumed by LoadEntityScopes:
-// the SHA plus the parsed trailer set.
-type commitTrailers struct {
+// CommitTrailers is the per-commit shape the pure scope/opener replays
+// consume: a commit's SHA plus its parsed trailer set. Exported so
+// render's single pass (M-0221) can feed the same ReplayScopes /
+// OpenersFrom helpers this package's grep-based loaders use — render
+// converts each check.HeadCommit to this shape (SHA + Trailers) and
+// replays through one code path rather than a fourth copy.
+type CommitTrailers struct {
 	SHA      string
 	Trailers []gitops.Trailer
 }
@@ -129,7 +148,7 @@ type commitTrailers struct {
 // may appear on any verb's commit). Pre-aiwf commits whose `aiwf-entity:`
 // trailer happens to match a future id are not in scope (the regex is
 // anchored on `^aiwf-entity: <id>$`).
-func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrailers, error) {
+func readEntityScopeCommits(ctx context.Context, root, id string) ([]CommitTrailers, error) {
 	const fieldSep = "\x1f"
 	const recSep = "\x1e\n"
 	args := []string{
@@ -151,7 +170,7 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 		}
 		return nil, fmt.Errorf("git log: %w", err)
 	}
-	var commits []commitTrailers
+	var commits []CommitTrailers
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -161,7 +180,7 @@ func readEntityScopeCommits(ctx context.Context, root, id string) ([]commitTrail
 		if len(parts) < 2 {
 			continue
 		}
-		commits = append(commits, commitTrailers{
+		commits = append(commits, CommitTrailers{
 			SHA:      strings.TrimSpace(parts[0]),
 			Trailers: gitops.ParseTrailers(parts[1]),
 		})
@@ -249,4 +268,101 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 		}
 	}
 	return "", nil
+}
+
+// AuthorizeOpeners returns a map from each authorize-opener commit's full
+// SHA to its scope-entity id (canonicalized). It walks every commit whose
+// trailers carry both `aiwf-verb: authorize` and `aiwf-scope: opened` once.
+//
+// This is the single source of truth for the repo-wide authorize-opener
+// map: `aiwf show`'s scope table (foreign source (a)) and `aiwf history`'s
+// scope chips both consume it — replacing the two byte-identical private
+// copies (show.readAllAuthorizeOpeners and history.BuildScopeEntityMap) that
+// predated it, and available for E-0054's render single-pass (M-0221) to
+// reuse rather than add a third copy. Both read verbs now guard the call
+// behind the loaded-event predicates (history.HasScopeData /
+// history.HasAuthorizedBy), so the walk runs only when an entity's events
+// actually reference a scope.
+//
+// An empty / pre-aiwf repo returns (empty, nil). A genuine `git log` failure
+// on a repo with commits returns (nil, error); the history caller renders
+// unresolved chips as "?" rather than blocking, while show propagates it.
+func AuthorizeOpeners(ctx context.Context, root string) (map[string]string, error) {
+	if !HasCommits(ctx, root) {
+		return map[string]string{}, nil
+	}
+	commits, err := readAuthorizeOpenerCommits(ctx, root)
+	if err != nil {
+		return nil, err //coverage:ignore propagates the readAuthorizeOpenerCommits git error, itself unreachable after HasCommits on a valid repo
+	}
+	return OpenersFrom(commits), nil
+}
+
+// readAuthorizeOpenerCommits greps HEAD for commits carrying BOTH
+// aiwf-verb: authorize and aiwf-scope: opened (the --all-match narrows
+// the walk to opener commits), returning each with its full parsed
+// trailer set. OpenersFrom re-applies the predicate, so it is equally
+// correct over this pre-filtered slice or render's unfiltered whole-HEAD
+// pass (M-0221).
+func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrailers, error) {
+	const fieldSep = "\x1f"
+	const recSep = "\x1e"
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"-E",
+		"--grep", "^"+gitops.TrailerVerb+": authorize$",
+		"--grep", "^"+gitops.TrailerScope+": opened$",
+		"--all-match",
+		"--pretty=tformat:%H"+fieldSep+"%(trailers:unfold=true)"+recSep)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		// Defensive: with fixed args and HasCommits already true, `git log`
+		// fails only on a corrupt / partial clone between the two calls — a
+		// tempdir-based test can't reproduce it. The show caller surfaces
+		// this error; the history caller swallows it and renders "?" chips.
+		return nil, fmt.Errorf("git log authorize-openers in %s: %w", root, err) //coverage:ignore
+	}
+	var commits []CommitTrailers
+	for _, rec := range strings.Split(string(out), recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, fieldSep, 2)
+		if len(parts) < 2 { //coverage:ignore unreachable: the \x1f is a literal in the pretty-format, so every non-empty record splits into ≥2 parts
+			continue
+		}
+		commits = append(commits, CommitTrailers{
+			SHA:      strings.TrimSpace(parts[0]),
+			Trailers: gitops.ParseTrailers(parts[1]),
+		})
+	}
+	return commits, nil
+}
+
+// OpenersFrom maps each authorize-opener commit's SHA to its
+// scope-entity id (canonicalized). It filters commits to those carrying
+// aiwf-verb: authorize AND aiwf-scope: opened, so it is correct over
+// either a pre-filtered opener slice (AuthorizeOpeners' grep) or an
+// unfiltered whole-HEAD slice (render's single pass, M-0221). Blank
+// SHAs and blank/absent entity ids are skipped — defends against
+// hand-edited history and matches AuthorizeOpeners' prior behavior.
+//
+// Canonicalizing the trailer-stored entity id means callers comparing
+// against tree-loaded ids never disambiguate widths (M-081 AC-2: the
+// read side owns width tolerance).
+func OpenersFrom(commits []CommitTrailers) map[string]string {
+	result := map[string]string{}
+	for _, c := range commits {
+		idx := indexCommitTrailers(c.Trailers)
+		if idx[gitops.TrailerVerb] != "authorize" || idx[gitops.TrailerScope] != "opened" {
+			continue
+		}
+		ent := strings.TrimSpace(idx[gitops.TrailerEntity])
+		if c.SHA == "" || ent == "" {
+			continue
+		}
+		result[c.SHA] = entity.Canonicalize(ent)
+	}
+	return result
 }
