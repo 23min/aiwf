@@ -4,23 +4,24 @@ package check
 //
 // The mirror image of body-prose-id (G-0184). body-prose-id walks ENTITY
 // bodies, where a real id is required and a placeholder is the defect.
-// This rule walks shipped SKILL.md BODIES, where the polarity is inverted:
-// a real (digit-bearing) entity id is the defect and a canonical letter-N
-// placeholder is correct.
+// This rule walks shipped Markdown surfaces whole-file (SKILL.md bodies
+// AND descriptions, entity templates, role-agent cards, and the guidance
+// fragment), where the polarity is inverted: a real (digit-bearing) entity
+// id is the defect and a canonical letter-N placeholder is correct.
 //
-// Why: skills ship to consumer repos (materialized into `.claude/skills/`
-// by `aiwf init` / `aiwf update`). aiwf's own ids are meaningless in a
-// consumer tree and rot as entities change status / archive / rewidth, so
-// a real-id reference in a shipped skill body is both stale-prone and
-// contextually wrong. Illustrative content uses canonical-shape
-// placeholders (`G-NNNN`) or shape-descriptions; a markdown link to a
-// design/ADR doc is the one carve-out.
+// Why: these surfaces ship to consumer repos (materialized into
+// `.claude/` by `aiwf init` / `aiwf update`). aiwf's own ids are
+// meaningless in a consumer tree and rot as entities change status /
+// archive / rewidth, so a real-id reference in a shipped surface is both
+// stale-prone and contextually wrong. Illustrative content uses
+// canonical-shape placeholders (`G-NNNN`) or shape-descriptions; a
+// markdown link to a design/ADR doc is the one carve-out.
 //
-// Dogfooding scope: the authoring source for skill bodies lives under this
-// repo's `internal/skills/embedded{,-rituals}/`. A consumer repo has no
-// such tree, so the rule is inert there by construction (the dirs are
-// absent). This is why the rule lives in internal/check (pre-push, the
-// earliest in-context tier for aiwf's own development) rather than a
+// Dogfooding scope: the authoring source for these surfaces lives under
+// this repo's `internal/skills/embedded{,-rituals,-guidance}/`. A consumer
+// repo has no such tree, so the rule is inert there by construction (the
+// dirs are absent). This is why the rule lives in internal/check (pre-push,
+// the earliest in-context tier for aiwf's own development) rather than a
 // CI-only policy test — and why it costs consumers nothing.
 //
 // Carve-out for free: the scan reuses body-prose-id's proseMask, which
@@ -37,34 +38,39 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
 
 // The CodeSkillBodyID constant is declared in check.go alongside the
 // other finding codes per the closed-set convention (G-0129).
 
-// skillBodyDirs are the authoring-source roots scanned for SKILL.md
-// bodies, relative to the tree root. Absent in a consumer repo, which is
-// what makes the rule inert there.
-var skillBodyDirs = []string{
+// skillScanDirs are the authoring-source roots scanned for real-id
+// references in shipped Markdown surfaces, relative to the tree root.
+// Every *.md under these roots is scanned whole-file (frontmatter
+// included) — SKILL.md bodies AND descriptions, entity templates,
+// role-agent cards, and the always-on guidance fragment. Absent in a
+// consumer repo, which is what makes the rule inert there.
+var skillScanDirs = []string{
 	filepath.Join("internal", "skills", "embedded"),
 	filepath.Join("internal", "skills", "embedded-rituals"),
+	filepath.Join("internal", "skills", "embedded-guidance"),
 }
 
-// ScanSkillBodyID classifies every id-shaped token in a skill body (the
-// bytes after any YAML frontmatter) and returns one finding per unique
-// real-id token, deduped within this body. A token fires only when it
-// matches a kind's strict, digit-bearing id pattern (bare or composite);
-// canonical letter-N placeholders and malformed shapes are not this
-// rule's concern (placeholder normalization is policed separately).
+// ScanSkillBodyID classifies every id-shaped token in the given content
+// (a whole shipped *.md file, frontmatter included, or a bare body) and
+// returns one finding per unique real-id token, deduped within this
+// content. A token fires only when it matches a kind's strict,
+// digit-bearing id pattern (bare or composite); canonical letter-N
+// placeholders and malformed shapes are not this rule's concern
+// (placeholder normalization is policed separately).
 //
 // Non-prose content is masked (not stripped) via proseMask before
 // scanning, so byte offsets stay stable and tokens inside code constructs
 // or non-prose link carriers are exempt by construction. Finding.Line is
-// 1-based within body; callers that want file-relative Line add the body's
-// start-of-file offset themselves (skillBodyIDReference does).
+// 1-based within the given content; when the caller passes the whole file
+// (skillBodyIDReference does), that line is already file-relative.
 //
 // Path populates the finding locator only; the scanner is otherwise
 // stateless, so it runs against on-disk content (skillBodyIDReference) or
@@ -97,19 +103,22 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 }
 
 // skillBodyIDReference walks the authoring-source skill trees under the
-// tree root and emits skill-body-id findings for every SKILL.md whose body
-// cites a real entity id. The rule is inert when the skill dirs are absent
-// (a consumer repo): each missing dir is skipped, so the rule contributes
-// no findings rather than erroring.
+// tree root and emits skill-body-id findings for every *.md file whose
+// content cites a real entity id. Each Markdown surface is scanned
+// whole-file (frontmatter included), so a real id in a description: field
+// or a template's frontmatter comment fires alongside one in the body.
+// The rule is inert when the scan dirs are absent (a consumer repo): each
+// missing dir is skipped, so the rule contributes no findings rather than
+// erroring.
 func skillBodyIDReference(t *tree.Tree) []Finding {
 	var findings []Finding
-	for _, dir := range skillBodyDirs {
+	for _, dir := range skillScanDirs {
 		base := filepath.Join(t.Root, dir)
 		if _, err := os.Stat(base); err != nil {
 			continue
 		}
 		_ = fs.WalkDir(os.DirFS(base), ".", func(p string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || d.Name() != "SKILL.md" {
+			if err != nil || d.IsDir() || strings.ToLower(filepath.Ext(p)) != ".md" {
 				return nil
 			}
 			full := filepath.Join(base, p)
@@ -118,22 +127,13 @@ func skillBodyIDReference(t *tree.Tree) []Finding {
 				//coverage:ignore defensive: WalkDir just yielded this path; a read error here means the file vanished or became unreadable between walk and read (TOCTOU). Skip it like body-prose-id does.
 				return nil
 			}
-			body := raw
-			if _, b, ok := entity.Split(raw); ok {
-				body = b
-			}
 			// The finding path is repo-relative: dir is already
 			// repo-relative and p is relative to base (= Root/dir), so
 			// dir/p is the repo-relative path without a filepath.Rel call.
+			// The whole file is scanned, so ScanSkillBodyID's line is
+			// already file-relative — no body-offset adjustment.
 			rel := filepath.Join(dir, p)
-			scanned := ScanSkillBodyID(body, rel)
-			if offset := bytes.Index(raw, body); offset > 0 {
-				preBody := bytes.Count(raw[:offset], []byte{'\n'})
-				for i := range scanned {
-					scanned[i].Line += preBody
-				}
-			}
-			findings = append(findings, scanned...)
+			findings = append(findings, ScanSkillBodyID(raw, rel)...)
 			return nil
 		})
 	}

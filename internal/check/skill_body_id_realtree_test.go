@@ -47,7 +47,7 @@ type skillBody struct {
 func collectSkillBodies(t *testing.T, root string) []skillBody {
 	t.Helper()
 	var out []skillBody
-	for _, dir := range skillBodyDirs {
+	for _, dir := range skillScanDirs {
 		base := filepath.Join(root, dir)
 		if _, err := os.Stat(base); err != nil {
 			t.Fatalf("skill source tree %s missing: %v", dir, err)

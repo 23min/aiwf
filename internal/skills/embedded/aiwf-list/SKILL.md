@@ -1,6 +1,6 @@
 ---
 name: aiwf-list
-description: Use to filter the planning tree by kind, status, parent, area, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under E-13", "filter milestones by parent epic", "everything in the platform workstream", "every gap that's still open", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
+description: Use to filter the planning tree by kind, status, parent, area, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under an epic", "filter milestones by parent epic", "everything in the platform workstream", "every gap that's still open", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
 ---
 
 # aiwf-list

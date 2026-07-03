@@ -2,7 +2,7 @@
 id: E-NNNN
 title: <imperative title>
 status: proposed         # aiwf epic statuses: proposed | active | done | cancelled
-depends_on: []           # optional: prior epic ids; e.g. [E-0002]
+depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 completed:               # optional: YYYY-MM-DD, filled at wrap
 ---
 

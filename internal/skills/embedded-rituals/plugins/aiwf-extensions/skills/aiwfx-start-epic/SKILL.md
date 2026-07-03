@@ -1,6 +1,6 @@
 ---
 name: aiwfx-start-epic
-description: Activates an aiwf epic — runs the preflight checks (epic body complete, drafted-milestone present, kernel `aiwf check` clean), defaults the worktree placement to in-repo (ADR-0023, overridable) and cuts the epic branch, optionally opens an `aiwf authorize` delegation scope, and lands the sovereign `aiwf promote E-NN active` commit. Use when the user says "start E-NN", "activate the auth epic", or "let's begin work on E-03". The promote step requires a `human/` actor unless `--force --reason "..."` is used; commit and any agent delegation require explicit human approval.
+description: Activates an aiwf epic — runs the preflight checks (epic body complete, drafted-milestone present, kernel `aiwf check` clean), defaults the worktree placement to in-repo (overridable) and cuts the epic branch, optionally opens an `aiwf authorize` delegation scope, and lands the sovereign `aiwf promote E-NN active` commit. Use when the user says "start E-NN", "activate the auth epic", or "let's begin work on the auth epic". The promote step requires a `human/` actor unless `--force --reason "..."` is used; commit and any agent delegation require explicit human approval.
 ---
 
 # aiwfx-start-epic
