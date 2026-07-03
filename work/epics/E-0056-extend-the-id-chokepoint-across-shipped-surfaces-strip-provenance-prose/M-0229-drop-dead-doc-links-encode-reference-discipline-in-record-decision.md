@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwfx-record-decision encodes the self-contained reference rule
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: No shipped-skill markdown link targets a repo-relative path
