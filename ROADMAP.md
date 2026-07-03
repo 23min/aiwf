@@ -754,7 +754,7 @@ files and shows the maximum severity — never running a check on the render pat
 | M-0225 | aiwf health producer: doctor --write-health + lifecycle refresh | cancelled |
 | M-0226 | Four-state statusline health stoplight from producer files | cancelled |
 
-## E-0056 — Extend the id chokepoint across shipped surfaces; strip provenance prose (active)
+## E-0056 — Extend the id chokepoint across shipped surfaces; strip provenance prose (done)
 
 ### Goal
 
