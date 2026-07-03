@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: provenance and scope views resolve from the shared pass, not per-milestone
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: rendered site byte-identical before and after the refactor
