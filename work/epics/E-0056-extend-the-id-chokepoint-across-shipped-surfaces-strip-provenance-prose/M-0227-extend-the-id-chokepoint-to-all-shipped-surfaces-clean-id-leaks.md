@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Code, fenced, and link-destination carve-outs preserved
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Whole shipped tree green under the broadened check
       status: open
