@@ -31,6 +31,12 @@ aiwf edit-body <id> --body-file <path> --reason "<why>"
 
 Both modes refuse leading `---` (frontmatter delimiter) in body content — the verb is body-only, so a body file containing its own frontmatter would produce a malformed double-block file.
 
+### Gate symmetry — prefer bless mode when a human is reviewing
+
+A structured-state verb (`aiwf promote` / `aiwf cancel` / `aiwf reallocate`) mutates and commits in one step, so its approval gate sits on your *stated intent* — there is no reviewable staged diff before the commit lands. A body edit doesn't have to work that way. In bless mode the edit lives in the working tree first: edit the file, let the human read the actual diff, then gate one `aiwf edit-body <id>` that commits exactly what they saw. That restores the edit → review → commit rhythm a plain file edit has for free.
+
+Reach for `--body-file` only when the body content is produced *outside* the working copy — an LLM session, a script, a pipeline — where there is no on-disk diff to review first; there the gate necessarily sits on the supplied content. For an interactive edit a human is about to approve, bless mode is the better default.
+
 ### Bless mode rules
 
 - **No diff**: refuses with "no changes to commit" rather than producing an empty commit.

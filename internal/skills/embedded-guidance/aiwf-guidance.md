@@ -17,6 +17,15 @@ digest of the highest-leverage code-quality forces, with the full rubric in the
   enumerates every action and lets you approve a subset. Outward or irreversible
   actions (push, `gh pr create`, tag-push, `--force`) and timing-bearing ones
   (`tdd: required` phase promotes) never batch.
+- **Body edits keep a review-before-commit window — prefer bless mode.** A
+  structured-state verb (`aiwf promote` / `cancel` / `reallocate`) mutates and
+  commits in one step, so its gate sits on your *stated intent*. A body edit
+  need not: edit the entity file in the working tree (nothing committed yet),
+  let the human read the real diff, then gate one `aiwf edit-body <id>` that
+  commits exactly what they saw — the same edit → review → commit rhythm a plain
+  file edit has. Reach for `--body-file` only when the body is produced outside
+  the working copy (an LLM/script pipeline), where there is no on-disk diff to
+  review first.
 - **Never suggest the human pause.** When to stop is the human's call. Surface
   any risk and keep going, or ask what's next; don't propose pausing, banking
   progress, or resuming later.
