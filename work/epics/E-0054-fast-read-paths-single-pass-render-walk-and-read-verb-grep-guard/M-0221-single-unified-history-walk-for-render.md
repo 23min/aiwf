@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: measured render wall-time delta recorded in Validation
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
