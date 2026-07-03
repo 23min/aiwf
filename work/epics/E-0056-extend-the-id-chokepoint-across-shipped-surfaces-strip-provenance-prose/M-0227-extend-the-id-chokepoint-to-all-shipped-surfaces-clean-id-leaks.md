@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Broadened markdown scan fires on real ids; placeholder silent
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Statusline comment scan fires on real ids; shell code exempt
