@@ -20,27 +20,31 @@ that reintroduces history or rationale is held to it at review.
 
 ## Approach
 
-Rewrite the history/rationale prose the extended check cannot catch:
+`M-0227` already stripped the statusline's provenance comments (it owned the full
+statusline comment rewrite), so the residual work here is the history/rationale
+prose that carries no machine-detectable shape:
 
-- the statusline's provenance comments (the "superseding the earlier ..."
-  narrative and any remaining prose provenance in `#` comments);
 - the "the v1 separate tracking doc is gone" asides in `aiwfx-start-milestone`,
-  `aiwfx-wrap-milestone`, and `templates/milestone-spec.md`;
+  `aiwfx-wrap-milestone`, and `templates/milestone-spec.md` — remove the whole
+  tracking-doc mention (`PolicyEmbeddedRitualsNoRetiredTrackingDoc` requires any
+  surviving "tracking doc" reference to carry "v1" on the same line, so softening
+  a bare one is not an option — it goes entirely);
 - the "Why date and decided_by are in the body ..." argumentation blocks in
   `templates/adr.md` and `templates/decision.md` — reduce each to the imperative
   instruction, drop the "why".
 
 Extend `CLAUDE.md` § "Skills policy" (the existing "Shipped skill bodies cite no
-real entity id" paragraph) to name the full surface list and add the content
-class: no development history, no provenance tags, no rationale or war-stories.
-(The reference/dead-link discipline is owned separately by the doc-link
-milestone, which encodes it in the `aiwfx-record-decision` skill.)
+real entity id" paragraph) to name the full surface list — `SKILL.md` bodies and
+`description:` frontmatter, entity templates, role-agent cards, the guidance
+fragment, and the statusline's comments — and add the content class: no
+development history, no provenance tags, no rationale or war-stories. (The
+reference/dead-link discipline is owned separately by the doc-link milestone,
+which encodes it in the `aiwfx-record-decision` skill.)
 
-Depends on the broadened check (`M-0227`) landing first: it mechanically removes
+Depends on the broadened check (`M-0227`) landing first: it mechanically removed
 every *id-bearing* provenance tag from the scanned surfaces, so what this
-milestone rewrites is the residual *non-id* history/rationale prose —
-"superseding the earlier ...", "the v1 ... is gone", the "why" blocks — which
-carries no stable machine-detectable shape.
+milestone rewrites is the residual *non-id* history/rationale prose — "the v1 ...
+is gone", the "why" blocks — which carries no stable machine-detectable shape.
 
 ## Acceptance criteria — evidence split (load-bearing; do not blur)
 
@@ -57,22 +61,40 @@ machine-detectable shape. Forcing it into an AC would demand either a vacuous
 test or a rule violation. So it is delivered as the milestone's work and verified
 at the wrap review — never promoted to `met` against a test.
 
-Sketch — formalized at start-milestone:
+Formalized at start-milestone into the single met-with-a-test AC below, plus the
+review-backstop item that is deliberately not an AC:
 
-1. **(met-with-a-test AC)** `CLAUDE.md` § "Skills policy" states the broadened
-   authoring principle — the full surface list plus the history / provenance /
-   rationale content class — pinned by a structural assertion scoped to that
-   named section (not a bare substring grep).
+1. **(met-with-a-test AC → AC-1)** `CLAUDE.md` § "Skills policy" states the
+   broadened authoring principle — the full surface list plus the history /
+   provenance / rationale content class — pinned by a structural assertion scoped
+   to that named section (not a bare substring grep).
 
 2. **(review backstop — NOT an AC)** The named surfaces read as imperative,
    consumer-scoped instruction with no development-history aside, rationale
    block, or war-story. Delivered work, verified at wrap review, not against a
    test.
 
-A second met-with-a-test AC may be added at start-milestone *only* if a
-non-brittle structural assertion presents itself (e.g. a targeted absence guard
-over a specific cleaned file). If none does, this milestone ships with the single
-mechanizable AC above — and that is correct, not a coverage gap.
+A second met-with-a-test AC was to be added *only* if a non-brittle structural
+assertion presented itself (e.g. a targeted absence guard over a specific cleaned
+file). None did — a phrase-coupled absence guard over the cleaned prose is exactly
+the brittle/vacuous test the split exists to avoid — so this milestone ships with
+the single mechanizable AC above, and that is correct, not a coverage gap.
 
 ### AC-1 — CLAUDE.md Skills-policy states the broadened authoring principle
 
+`CLAUDE.md` § "Skills policy" states the broadened authoring principle for shipped
+surfaces: the full surface list — `SKILL.md` bodies *and* `description:`
+frontmatter, entity templates, role-agent cards, the guidance fragment, and the
+statusline's comments — plus the content class it now forbids: no development
+history, no provenance narrative, no rationale or war-stories (alongside the
+pre-existing no-real-id rule). Mechanical evidence:
+`PolicyM0228SkillsPolicyBroadenedPrinciple` in `internal/policies/`, which walks
+the `CLAUDE.md` heading hierarchy to the `(## Go conventions, ### Skills policy)`
+span and asserts each broadened-surface and content-class marker (`statusline`,
+`template`, `agent`, `guidance`, `history`, `rationale`) is present *within that
+section* — a section-scoped structural assertion, not a bare whole-file grep. All
+six markers are absent from the section before the rewrite, so the test is red
+until the paragraph is broadened; three fixtures in
+`firing_fixtures_multi_site_test.go` (missing file, missing section, missing
+markers) keep the policy's construction sites lit under the firing-fixture
+meta-gate and cover every branch.
