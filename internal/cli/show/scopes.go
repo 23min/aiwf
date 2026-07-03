@@ -2,15 +2,12 @@ package show
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
-	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -39,13 +36,18 @@ type ScopeView struct {
 // scopes opened ON id (directly), plus scopes from elsewhere that
 // authorized work touching id (via `aiwf-authorized-by:`).
 //
-// Implementation: one global `git log` pass over authorize-opened
-// commits to build authSHA → scope-entity. Then we walk id's
-// history (readHistory) and collect every distinct auth-SHA the
-// entity references (its own opener SHAs plus authorized-by
-// references). For each scope-entity touched, cliutil.LoadEntityScopes
-// materializes the FSM; we then filter to the interested SHAs and
-// convert to ScopeView.
+// Source (b) — scopes opened directly on id — comes from id's own history
+// via cliutil.LoadEntityScopes, which is width-tolerant: this is both the
+// single source of truth for direct scopes and the fix for the narrow-id
+// omission (a raw-id `ent == id` compare against a canonicalized map value
+// silently dropped `aiwf show E-14`'s table; M-0223).
+//
+// Source (a) — scopes opened elsewhere that authorized work on id — is the
+// only reason to run the repo-wide authorize-opener grep
+// (cliutil.AuthorizeOpeners), and only when id was actually worked under a
+// foreign scope (history.HasAuthorizedBy). An active direct-scope opener,
+// which has no `aiwf-authorized-by`, resolves entirely from source (b)
+// without the grep (E-0054 read-verb guard).
 //
 // Empty / pre-aiwf repos return (nil, nil).
 func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, error) {
@@ -54,11 +56,18 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 	}
 	events, err := history.ReadHistory(ctx, root, id)
 	if err != nil {
-		return nil, err
+		return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
 	}
-	scopeEntityByAuthSHA, err := readAllAuthorizeOpeners(ctx, root)
-	if err != nil {
-		return nil, err
+	// Source (b): scopes opened directly on id, derived from id's own
+	// history (width-tolerant) — but only walk when the already-loaded
+	// events show id actually has an own authorize-opener. A scopeless
+	// entity skips this walk entirely (E-0054 / M-0223).
+	var ownScopes []*scope.Scope
+	if history.HasOwnScope(events) {
+		ownScopes, err = cliutil.LoadEntityScopes(ctx, root, id)
+		if err != nil {
+			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
+		}
 	}
 
 	interested := map[string]struct{}{}
@@ -67,29 +76,35 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 			interested[events[i].AuthorizedBy] = struct{}{}
 		}
 	}
-	for sha, ent := range scopeEntityByAuthSHA {
-		if ent == id {
-			interested[sha] = struct{}{}
-		}
+	for _, s := range ownScopes {
+		interested[s.AuthSHA] = struct{}{}
 	}
 	if len(interested) == 0 {
 		return nil, nil
 	}
 
-	scopeEntitiesNeeded := map[string]struct{}{}
-	for sha := range interested {
-		if ent, ok := scopeEntityByAuthSHA[sha]; ok {
-			scopeEntitiesNeeded[ent] = struct{}{}
-		}
-	}
-
-	var allScopes []*scope.Scope
-	for ent := range scopeEntitiesNeeded {
-		scopes, err := cliutil.LoadEntityScopes(ctx, root, ent)
+	allScopes := ownScopes
+	// Source (a): resolve foreign scope-entities only when id carries
+	// `aiwf-authorized-by` events. This is the guarded grep — skipped for
+	// scopeless entities and direct-scope openers alike.
+	if history.HasAuthorizedBy(events) {
+		openers, err := cliutil.AuthorizeOpeners(ctx, root)
 		if err != nil {
-			return nil, err
+			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
 		}
-		allScopes = append(allScopes, scopes...)
+		foreignNeeded := map[string]struct{}{}
+		for sha := range interested {
+			if ent, ok := openers[sha]; ok && ent != id {
+				foreignNeeded[ent] = struct{}{}
+			}
+		}
+		for ent := range foreignNeeded {
+			scopes, err := cliutil.LoadEntityScopes(ctx, root, ent)
+			if err != nil {
+				return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
+			}
+			allScopes = append(allScopes, scopes...)
+		}
 	}
 
 	dateCache := map[string]string{}
@@ -120,49 +135,6 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 		return views[i].Opened < views[j].Opened
 	})
 	return views, nil
-}
-
-// readAllAuthorizeOpeners returns a map from each authorize-opener
-// commit's full SHA to its scope-entity id. Used by show to know
-// which entity a scope was opened against without per-row lookups.
-func readAllAuthorizeOpeners(ctx context.Context, root string) (map[string]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"-E",
-		"--grep", "^aiwf-verb: authorize$",
-		"--grep", "^aiwf-scope: opened$",
-		"--all-match",
-		"--pretty=tformat:%H\x1f%(trailers:key=aiwf-entity,valueonly=true,unfold=true)\x1e")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
-		}
-		return nil, fmt.Errorf("git log: %w", err)
-	}
-	result := map[string]string{}
-	for _, rec := range strings.Split(string(out), "\x1e") {
-		rec = strings.TrimSpace(rec)
-		if rec == "" {
-			continue
-		}
-		parts := strings.SplitN(rec, "\x1f", 2)
-		if len(parts) < 2 {
-			continue
-		}
-		sha := strings.TrimSpace(parts[0])
-		ent := strings.TrimSpace(parts[1])
-		if sha == "" || ent == "" {
-			continue
-		}
-		// Canonicalize the trailer-stored entity id so callers comparing
-		// against tree-loaded ids never have to disambiguate widths.
-		// Per AC-2 in M-081: the read side is the chokepoint for
-		// width tolerance.
-		result[sha] = entity.Canonicalize(ent)
-	}
-	return result, nil
 }
 
 // LookupCommitDateCached returns the ISO-8601 author date of the
