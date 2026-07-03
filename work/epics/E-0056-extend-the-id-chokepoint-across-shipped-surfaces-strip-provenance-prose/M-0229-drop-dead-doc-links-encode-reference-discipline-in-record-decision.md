@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: No shipped-skill markdown link targets a repo-relative path
       status: open
+    - id: AC-3
+      title: Discoverability tests pin behavior, not the removed ADR ids
+      status: open
 ---
 ## Goal
 
@@ -58,4 +61,6 @@ Sketch — formalized at start-milestone:
 ### AC-1 — aiwfx-record-decision encodes the self-contained reference rule
 
 ### AC-2 — No shipped-skill markdown link targets a repo-relative path
+
+### AC-3 — Discoverability tests pin behavior, not the removed ADR ids
 
