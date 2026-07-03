@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: guard predicate returns skip for events with no scope data
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: history and show output identical for scoped and scopeless entities
