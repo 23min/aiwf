@@ -1,7 +1,7 @@
 ---
 id: M-0223
 title: Guard the unconditional authorize-opener grep in the read verbs
-status: draft
+status: in_progress
 parent: E-0054
 tdd: required
 acs:
