@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: provenance and scope views resolve from the shared pass, not per-milestone
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: rendered site byte-identical before and after the refactor
       status: open
