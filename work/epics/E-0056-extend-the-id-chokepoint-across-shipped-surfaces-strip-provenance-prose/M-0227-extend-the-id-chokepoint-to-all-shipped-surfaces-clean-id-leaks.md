@@ -1,7 +1,7 @@
 ---
 id: M-0227
 title: Extend the id chokepoint to all shipped surfaces; clean id leaks
-status: draft
+status: in_progress
 parent: E-0056
 tdd: required
 ---
