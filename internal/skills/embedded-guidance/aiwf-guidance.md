@@ -3,9 +3,8 @@
 
 These rules govern how you operate aiwf and collaborate with the human here.
 They have no mechanical chokepoint, so they bind only if you follow them every
-turn. The one exception is the **Code-health priming** section at the end — a
-digest of the highest-leverage code-quality forces, with the full rubric in the
-`wf-codebase-health` skill.
+turn. The exception is **Code-health priming** at the end — the full rubric
+lives in the `wf-codebase-health` skill.
 
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
@@ -15,8 +14,9 @@ digest of the highest-leverage code-quality forces, with the full rubric in the
   rituals use to cover a terminal sequence of *local, reversible* mutations
   (promote-done, local merge, cleanup) under a single approval — one that
   enumerates every action and lets you approve a subset. Outward or irreversible
-  actions (push, `gh pr create`, tag-push, `--force`) and timing-bearing ones
-  (`tdd: required` phase promotes) never batch.
+  actions (push, `gh pr create`, tag-push, `--force`) never batch. `tdd:
+  required` phase promotes (red/green/done/met) streamline by default — live,
+  ungated, test-evidenced — wrap review and push stay the control points.
 - **Body edits keep a review-before-commit window — prefer bless mode.** A
   structured-state verb (`aiwf promote` / `cancel` / `reallocate`) mutates and
   commits in one step, so its gate sits on your *stated intent*. A body edit
