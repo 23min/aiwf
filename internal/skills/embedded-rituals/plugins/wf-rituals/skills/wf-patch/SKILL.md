@@ -61,6 +61,8 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 9. 🛑 **Wrap gate (declared sequence).** Present the enumerated terminal sequence and wait for approval:
    - Merge to mainline. The mechanism — fast-forward, rebase-and-merge, cherry-pick — follows the consuming project's `CLAUDE.md` §"Working in this repo" policy (or equivalent). The skill does not prescribe the mechanism; the project does.
+
+     **Reconcile first, merge second.** Check whether mainline has advanced past the patch branch's fork point: `git merge-base --is-ancestor origin/main <branch>` (substitute the project's mainline ref). If that's false, don't merge yet — integrate current mainline into the patch branch first, resolve any conflicts there, and re-run the full local CI gate (step 4) on the reconciled branch. Only once that gate is green does the merge below run — for a linear trunk it is then a clean fast-forward. Resolving a conflict on mainline itself, mid-merge, is the failure mode this ordering avoids: mainline would receive a result no gate ever validated.
    - Tracker closure, if the patch closes a tracked item (e.g. `aiwf promote G-NNNN addressed --by-commit <sha>`).
    - Cleanup: delete the local branch; remove the worktree if one was used.
 

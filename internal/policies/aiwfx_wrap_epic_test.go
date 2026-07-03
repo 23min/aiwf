@@ -371,3 +371,80 @@ func TestAiwfxWrapEpic_AC4_RitualsRepoSHARecordedAtWrap(t *testing.T) {
 		t.Errorf("AC-4: milestone spec's *Validation* section must either carry a `(pending)` placeholder (during implementation) or a rituals-repo SHA (post-wrap). Current section reads:\n%s", validation)
 	}
 }
+
+// TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge pins the
+// reconcile-first practice: before the epic-to-mainline merge, if
+// mainline has advanced past the epic branch's fork point, mainline
+// must be integrated into the epic branch and the full local gate
+// re-run there — never resolved on mainline itself, mid-merge.
+//
+// Structural per CLAUDE.md *Substring assertions are not structural
+// assertions*: the reconcile step must exist as its own `### `
+// subsection inside `## Workflow`, positioned BEFORE the merge
+// subsection (not folded into the merge step's own prose, and not
+// appearing after the merge already ran). The precondition must also
+// name the "after integrating current mainline" qualifier — "gate
+// green on the epic branch" alone is the exact gap this pins closed:
+// a gate run that predates mainline's latest commits is green on a
+// tree that omits them.
+func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapEpicFixture(t)
+
+	precondition := extractMarkdownSection(body, 2, "Precondition")
+	if precondition == "" {
+		t.Fatal("SKILL.md must have a `## Precondition` section")
+	}
+	if !strings.Contains(strings.ToLower(precondition), "after integrating current mainline") {
+		t.Error("Precondition section must require the full local CI gate green on the epic branch AFTER integrating current mainline, not merely green on the epic branch in isolation")
+	}
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("SKILL.md must have a `## Workflow` section")
+	}
+	reconcileIdx, mergeIdx := -1, -1
+	for i, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		text := strings.ToLower(strings.TrimPrefix(line, "### "))
+		switch {
+		case reconcileIdx < 0 && strings.Contains(text, "reconcile") && strings.Contains(text, "mainline"):
+			reconcileIdx = i
+		case mergeIdx < 0 && strings.Contains(text, "merge epic branch"):
+			mergeIdx = i
+		}
+	}
+	if reconcileIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Reconcile…mainline…` step")
+	}
+	if mergeIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Merge epic branch…` step")
+	}
+	if reconcileIdx >= mergeIdx {
+		t.Errorf("the reconcile step must appear BEFORE the merge step in `## Workflow` (reconcile at line %d, merge at line %d), so the merge that follows is already-validated", reconcileIdx, mergeIdx)
+	}
+
+	reconcile := extractMarkdownSection(body, 3, "5. Reconcile")
+	if reconcile == "" {
+		t.Fatal("could not extract the `### 5. Reconcile the epic branch with mainline` section")
+	}
+
+	wantGuard := "git merge-base --is-ancestor origin/main epic/E-NN-<slug>"
+	if !strings.Contains(reconcile, wantGuard) {
+		t.Errorf("reconcile step must name the ancestor guard %q", wantGuard)
+	}
+
+	// Ordering: integrate mainline into the epic branch, then re-run
+	// the gate, then (and only then) proceed to the merge step.
+	integrateIdx := strings.Index(reconcile, "Integrate current mainline into the epic branch")
+	gateIdx := strings.Index(reconcile, "re-run the project's full local CI gate")
+	proceedIdx := strings.Index(reconcile, "Only proceed to the next step")
+	if integrateIdx < 0 || gateIdx < 0 || proceedIdx < 0 {
+		t.Fatal("reconcile step must document integrate-mainline, re-run-the-gate, and only-then-proceed-to-merge")
+	}
+	if integrateIdx >= gateIdx || gateIdx >= proceedIdx {
+		t.Errorf("reconcile step must order integrate mainline -> re-run gate -> only then proceed to merge (got indices %d, %d, %d)", integrateIdx, gateIdx, proceedIdx)
+	}
+}

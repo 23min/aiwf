@@ -154,3 +154,42 @@ func findWrapMilestoneMergeStepSection(body string) string {
 	}
 	return ""
 }
+
+// TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge pins the
+// reconcile-first practice scoped to this ritual's integration
+// target — the EPIC branch, not mainline (a milestone wrap merges
+// into the epic branch, never mainline directly). Before the
+// milestone-to-epic merge, if the epic branch has advanced past the
+// milestone branch's fork point, the epic branch must be integrated
+// into the milestone branch and the full local gate re-run there —
+// never resolved on the epic branch itself, mid-merge.
+//
+// Structural per CLAUDE.md *Substring assertions are not structural
+// assertions*: the guard, the integrate-and-re-gate instruction, and
+// the merge command itself must all live inside the merge-step
+// subsection located by findWrapMilestoneMergeStepSection, in that
+// order.
+func TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapMilestoneFixture(t)
+
+	merge := findWrapMilestoneMergeStepSection(body)
+	if merge == "" {
+		t.Fatal("`## Workflow` must contain a `### …merge…` subsection")
+	}
+
+	wantGuard := "git merge-base --is-ancestor epic/E-NNNN-<slug> milestone/M-NNNN-<slug>"
+	if !strings.Contains(merge, wantGuard) {
+		t.Errorf("merge-step subsection must name the ancestor guard %q, scoped to the epic branch as the integration target", wantGuard)
+	}
+
+	integrateIdx := strings.Index(merge, "Integrate the epic branch into the milestone branch")
+	gateIdx := strings.Index(merge, "re-run the full local CI gate")
+	stageIdx := strings.Index(merge, "git merge --no-ff --no-commit milestone/M-NNNN-<slug>")
+	if integrateIdx < 0 || gateIdx < 0 || stageIdx < 0 {
+		t.Fatal("merge-step subsection must document integrate-the-epic-branch, re-run-the-gate, and the staged-merge command")
+	}
+	if integrateIdx >= gateIdx || gateIdx >= stageIdx {
+		t.Errorf("merge-step subsection must order integrate epic branch -> re-run gate -> staged merge (got indices %d, %d, %d)", integrateIdx, gateIdx, stageIdx)
+	}
+}

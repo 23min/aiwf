@@ -133,6 +133,8 @@ The enumerated local sequence is **merge → promote-done → local cleanup**:
 
 **1. Merge** the milestone branch into the epic branch. If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
+**Reconcile first, merge second.** The epic branch is this merge's integration target. Check whether it has advanced past the milestone branch's fork point: `git merge-base --is-ancestor epic/E-NNNN-<slug> milestone/M-NNNN-<slug>`. If that's false, the epic branch carries commits the milestone branch doesn't — don't merge yet. Integrate the epic branch into the milestone branch first, resolve any conflicts there, and re-run the full local CI gate (step 1) on the reconciled milestone branch. Only once that gate is green does the merge below run — a milestone branch that never fell behind gets a clean fast-forward-shaped merge; one that needed reconciliation lands only after its integrated state is validated. Resolving a conflict on the epic branch itself, mid-merge, is the failure mode this ordering avoids: the epic branch would receive a result no gate ever validated.
+
 ```bash
 git checkout epic/E-NNNN-<slug>
 git merge --no-ff --no-commit milestone/M-NNNN-<slug>
