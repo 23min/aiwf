@@ -1,7 +1,9 @@
 ---
 id: G-0346
 title: Wrap rituals merge onto mainline without reconciling a diverged trunk first
-status: open
+status: addressed
+addressed_by_commit:
+    - 906d2e99
 ---
 ## What's missing
 
