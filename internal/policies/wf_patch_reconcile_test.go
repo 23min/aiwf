@@ -83,9 +83,34 @@ func TestWfPatch_ReconcileMainlineBeforeMerge(t *testing.T) {
 		t.Fatal("could not locate wf-patch's step 9 (wrap gate) inside `## Workflow`")
 	}
 
-	wantGuard := "git merge-base --is-ancestor origin/main <branch>"
+	// The ancestor guard compares against *local* mainline, not the
+	// remote-tracking ref: the G-0346 divergence was local `main`
+	// advancing under a concurrent session, which `origin/main` would
+	// not reflect. The remote-tracking ref appears only in the
+	// fetch/fast-forward preamble that folds in the origin axis.
+	wantGuard := "git merge-base --is-ancestor main <branch>"
 	if !strings.Contains(step, wantGuard) {
-		t.Errorf("step 9 must name the ancestor guard %q", wantGuard)
+		t.Errorf("step 9 must name the ancestor guard %q (local mainline, not origin/main)", wantGuard)
+	}
+
+	// The fetch/fast-forward preamble must precede the ancestor guard so
+	// the local target reflects both divergence axes (local concurrent
+	// commits, already present; and commits another clone pushed, folded
+	// in via the fetch) before the check runs.
+	fetchIdx := strings.Index(step, "git fetch")
+	ffIdx := strings.Index(step, "--ff-only origin/main")
+	guardIdx := strings.Index(step, wantGuard)
+	if fetchIdx < 0 || ffIdx < 0 {
+		t.Fatal("step 9 must document `git fetch` and fast-forwarding local main to origin/main before the ancestor guard")
+	}
+	if fetchIdx >= guardIdx || ffIdx >= guardIdx {
+		t.Errorf("step 9 must run the fetch/fast-forward preamble BEFORE the ancestor guard (fetch=%d, ff=%d, guard=%d)", fetchIdx, ffIdx, guardIdx)
+	}
+
+	// The tracker-closure bullet must document the mechanical backstop:
+	// the reachability check that refuses a --by-commit SHA not on HEAD.
+	if !strings.Contains(step, "reachable from `HEAD`") {
+		t.Error("step 9's tracker-closure bullet must note the mechanical guard (a --by-commit SHA must be reachable from `HEAD`)")
 	}
 
 	mergeIdx := strings.Index(step, "Merge to mainline.")
