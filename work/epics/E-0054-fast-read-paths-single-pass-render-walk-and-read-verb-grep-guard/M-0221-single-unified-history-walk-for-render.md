@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: render resolves all entity histories from a single git-history pass
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: provenance and scope views resolve from the shared pass, not per-milestone
       status: open
