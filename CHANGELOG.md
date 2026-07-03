@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-07-03
+
 ### Changed — G-0344: version-stamped statusline with upgrade-only auto-refresh
 
 The embedded statusline script now carries an `# aiwf-statusline version:` marker stamped
@@ -39,6 +41,18 @@ installation-health stoplight — green `●` healthy, yellow `▲` warning, red
 `●` unknown — at the maximum severity, never running a check on the render path. This
 supersedes the earlier tree-check `⚠` glyph (M-0193), which surfaced planning-tree drift
 and rendered nothing when healthy (ADR-0026).
+
+### Fixed — G-0345: rich body templates discoverable to the ritual skills
+
+The `aiwfx-record-decision`, `aiwfx-plan-epic`, and `aiwfx-plan-milestones` skills
+pointed at their rich body template by an authoring-relative path — "this plugin's
+`templates/…`" — that does not resolve in a consumer repo, where the template is
+materialized (and gitignored) at `.claude/templates/<kind>.md`. An assistant that
+couldn't find it would hand-copy an existing entity, drifting from the canonical
+template and dropping its H1/date header. The skills now cite the materialized path
+with an `aiwf update` self-heal, and the `aiwf-add` skill gains a per-kind
+"Locating the rich body template" note. Obsolete "plugin" wording (the rituals ship
+as one embedded snapshot, not a live plugin) is dropped across the affected skills.
 
 ## [0.21.1] — 2026-07-02
 
