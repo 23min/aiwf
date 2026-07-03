@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-07-03
+
 ### Changed — E-0056: shipped consumer surfaces free of aiwf-internal ids, history, and dead links
 
 The `skill-body-id` chokepoint now covers every surface `aiwf init` / `aiwf update`
