@@ -627,6 +627,7 @@ by the foundation epic E-0050, which this epic builds on.
 | M-0205 | Milestone review framing and wrap-milestone trailer test | draft |
 | M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
 | M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
+| M-0230 | Make roadmap regeneration zero-friction in the wrap rituals | draft |
 
 ## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (done)
 
@@ -696,7 +697,7 @@ that never share a loaded history.
 | M-0219 | Wire git commit-graph maintenance into aiwf init and update | cancelled |
 | M-0220 | Re-fixture heavy real-tree check integration tests to synthetic fixtures | done |
 
-## E-0054 — Fast read paths: single-pass render walk and read-verb grep guard (active)
+## E-0054 — Fast read paths: single-pass render walk and read-verb grep guard (done)
 
 ### Goal
 
@@ -733,9 +734,9 @@ worktree/merge safety analysis live in
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0221 | Single unified history walk for render | draft |
+| M-0221 | Single unified history walk for render | done |
 | M-0222 | Path-scoped single-entity history with bloom-filter maintenance | cancelled |
-| M-0223 | Guard the unconditional authorize-opener grep in the read verbs | draft |
+| M-0223 | Guard the unconditional authorize-opener grep in the read verbs | done |
 
 ## E-0055 — Health as install status: producer health files + statusline stoplight (done)
 
