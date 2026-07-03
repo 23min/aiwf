@@ -5,9 +5,39 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/gitops"
 )
+
+// TestWalkHeadCommits_CapturesAuthorDateAndSubject pins M-0221's
+// additive extension: the shared HEAD walk now also captures the author
+// date (%aI) and subject (%s). render's single pass reproduces
+// history.HistoryEvent's Date + Detail and derives scope open/end dates
+// from these fields — eliminating the per-SHA `git show` the scope views
+// used. The existing check consumers read neither field, so this is
+// purely additive; TestParseHeadCommits pins the widened record layout.
+func TestWalkHeadCommits_CapturesAuthorDateAndSubject(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	sha := r.gitCommit("feat(x): a subject line")
+	head := mustHead(t, r.root)
+	if len(head) != 1 {
+		t.Fatalf("WalkHeadCommits returned %d commits, want 1", len(head))
+	}
+	c := head[0]
+	if c.SHA != sha {
+		t.Errorf("SHA = %q, want %q", c.SHA, sha)
+	}
+	if c.Subject != "feat(x): a subject line" {
+		t.Errorf("Subject = %q, want %q", c.Subject, "feat(x): a subject line")
+	}
+	// %aI is an ISO-8601 author date; assert it round-trips through
+	// RFC3339 so the render date derivation has a well-formed input.
+	if _, err := time.Parse(time.RFC3339, c.AuthorDate); err != nil {
+		t.Errorf("AuthorDate = %q, not RFC3339-parseable: %v", c.AuthorDate, err)
+	}
+}
 
 // mustHead runs WalkHeadCommits over a healthy fixture repo, asserting
 // the Finding-1 fail-loud error is nil. Every fixture these tests build
@@ -23,30 +53,39 @@ func mustHead(t *testing.T, root string) []HeadCommit {
 	return h
 }
 
-// TestParseHeadCommits covers WalkHeadCommits' pure parser: a valid
-// two-record stream, a record with too few unit-separated fields
-// (dropped), and a record with an empty SHA (dropped).
+// TestParseHeadCommits covers WalkHeadCommits' pure parser over the
+// M-0221 seven-field layout: a valid two-record stream (asserting the
+// added author-date and subject fields), a record with too few
+// unit-separated fields (dropped), and a record with an empty SHA
+// (dropped). Field order: SHA, author-email, committer-email,
+// author-date, subject, trailers, body.
 func TestParseHeadCommits(t *testing.T) {
 	t.Parallel()
 	const m = headRecMarker
 	out := m + "\n" +
-		"sha1\x1fauthor@a\x1fcommitter@a\x1faiwf-verb: add\x1fsubject one\nbody one\n" +
+		"sha1\x1fauthor@a\x1fcommitter@a\x1f2026-01-01T00:00:00Z\x1fsubject one\x1faiwf-verb: add\x1fbody one\n" +
 		m + "\n" +
-		"\x1fauthor@b\x1fcommitter@b\x1faiwf-verb: edit\x1fempty-sha record\n" + // empty SHA → dropped
+		"\x1fauthor@b\x1fcommitter@b\x1f2026-01-02T00:00:00Z\x1fsubj\x1faiwf-verb: edit\x1fbody\n" + // empty SHA → dropped
 		m + "\n" +
-		"sha3-too-few-fields\n" + // no \x1f separators → len(fields)<5 → dropped
+		"sha3-too-few-fields\n" + // no \x1f separators → len(fields)<7 → dropped
 		m + "\n" +
-		"sha4\x1fa@x\x1fb@y\x1faiwf-verb: promote\x1fsubject four\n"
+		"sha4\x1fa@x\x1fb@y\x1f2026-01-03T00:00:00Z\x1fsubject four\x1faiwf-verb: promote\x1fbody four\n"
 
 	got := parseHeadCommits(out)
 	if len(got) != 2 {
 		t.Fatalf("parseHeadCommits returned %d records, want 2 (sha1, sha4); got %+v", len(got), got)
 	}
 	if got[0].SHA != "sha1" || got[0].AuthorEmail != "author@a" || got[0].CommitterEmail != "committer@a" {
-		t.Errorf("record 0 = %+v, want sha1/author@a/committer@a", got[0])
+		t.Errorf("record 0 identity = %+v, want sha1/author@a/committer@a", got[0])
 	}
-	if got[1].SHA != "sha4" {
-		t.Errorf("record 1 SHA = %q, want sha4", got[1].SHA)
+	if got[0].AuthorDate != "2026-01-01T00:00:00Z" || got[0].Subject != "subject one" {
+		t.Errorf("record 0 date/subject = (%q, %q), want (2026-01-01T00:00:00Z, subject one)", got[0].AuthorDate, got[0].Subject)
+	}
+	if got[0].Body != "body one\n" {
+		t.Errorf("record 0 Body = %q, want %q", got[0].Body, "body one\n")
+	}
+	if got[1].SHA != "sha4" || got[1].AuthorDate != "2026-01-03T00:00:00Z" || got[1].Subject != "subject four" {
+		t.Errorf("record 1 = %+v, want sha4 / 2026-01-03 / subject four", got[1])
 	}
 }
 

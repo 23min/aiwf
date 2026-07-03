@@ -25,30 +25,33 @@ import (
 // commits / build / tests / provenance tabs, and reads the scope
 // FSM for the scopes table.
 //
-// One resolver instance per render — internal caches live for the
-// duration of the call. History results are cached per id so the
-// epic page (recent activity) and milestone page (commits + build
-// + tests + provenance) don't read git twice for the same entity.
+// One resolver instance per render. Per-entity history and scope views
+// come from a single shared HEAD walk built once into historyIndex
+// (E-0054 / M-0221): every resolver read is an in-memory lookup, so the
+// epic / milestone / AC / provenance surfaces never re-read git.
 type Resolver struct {
-	ctx          context.Context
-	root         string
-	tree         *tree.Tree
-	cfg          *config.Config
-	historyCache map[string][]history.HistoryEvent
-	findings     []check.Finding // pre-computed once per render
+	ctx      context.Context
+	root     string
+	tree     *tree.Tree
+	cfg      *config.Config
+	index    *historyIndex   // per-entity events + scopes + opener/date maps, from one HEAD walk
+	findings []check.Finding // pre-computed once per render
 }
 
 // NewRenderResolver builds a resolver bound to a single render
-// invocation. cfg may be nil (the consumer's aiwf.yaml might be
+// invocation. head is the one HEAD-history walk (check.WalkHeadCommits)
+// the caller already performed — RunSite owns the fail-loud handling of
+// its error, so the resolver receives a ready slice and buckets it into
+// the in-memory index. cfg may be nil (the consumer's aiwf.yaml might be
 // missing); the resolver treats nil as "default settings."
-func NewRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *config.Config, findings []check.Finding) *Resolver {
+func NewRenderResolver(ctx context.Context, root string, tr *tree.Tree, cfg *config.Config, findings []check.Finding, head []check.HeadCommit) *Resolver {
 	return &Resolver{
-		ctx:          ctx,
-		root:         root,
-		tree:         tr,
-		cfg:          cfg,
-		historyCache: map[string][]history.HistoryEvent{},
-		findings:     findings,
+		ctx:      ctx,
+		root:     root,
+		tree:     tr,
+		cfg:      cfg,
+		index:    buildHistoryIndex(head),
+		findings: findings,
 	}
 }
 
@@ -511,19 +514,15 @@ func (r *Resolver) milestonesUnder(epicID string) []*entity.Entity {
 	return out
 }
 
-// history returns events for id, cached per resolver instance.
+// history returns events for id from the shared single-pass index
+// (E-0054 / M-0221) — a width-canonicalized in-memory lookup, no git.
+// The index bucket reproduces ReadHistoryChain([id]); a missing bucket
+// (an entity with no aiwf trailers) yields nil, exactly as the old
+// per-entity walk returned an empty slice. The fail-loud handling of a
+// history-walk failure now lives once at the walk's call site (RunSite),
+// so this read cannot error.
 func (r *Resolver) history(id string) []history.HistoryEvent {
-	if events, ok := r.historyCache[id]; ok {
-		return events
-	}
-	events, err := history.ReadHistory(r.ctx, r.root, id)
-	if err != nil {
-		// Best-effort: a history-walk error degrades the page (empty
-		// Commits / Build / Tests tabs) but doesn't fail the render.
-		events = nil
-	}
-	r.historyCache[id] = events
-	return events
+	return r.index.events[entity.Canonicalize(id)]
 }
 
 // historyRows materializes the renderer-facing rows from cached
@@ -603,23 +602,23 @@ func (r *Resolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.LinkedEntity
 }
 
 // provenanceFor builds the Provenance tab payload for a milestone:
-// scope-table + chronological timeline.
+// scope-table + chronological timeline. Both come from the shared
+// single-pass index (E-0054 / M-0221): scopeViewsFor reproduces
+// show.LoadEntityScopeViews with no git, and the timeline is the same
+// in-memory history bucket the Commits tab uses.
 func (r *Resolver) provenanceFor(m *entity.Entity) htmlrender.ProvenanceData {
 	var data htmlrender.ProvenanceData
-	scopes, err := show.LoadEntityScopeViews(r.ctx, r.root, m.ID)
-	if err == nil {
-		for _, s := range scopes {
-			data.Scopes = append(data.Scopes, htmlrender.ScopeRow{
-				AuthSHA:    shortSHA(s.AuthSHA, 8),
-				FullSHA:    s.AuthSHA,
-				Agent:      s.Agent,
-				Principal:  s.Principal,
-				Opened:     dateOnlyOrEmpty(s.Opened),
-				EndedAt:    dateOnlyOrEmpty(s.EndedAt),
-				State:      s.State,
-				EventCount: s.EventCount,
-			})
-		}
+	for _, s := range r.scopeViewsFor(m.ID) {
+		data.Scopes = append(data.Scopes, htmlrender.ScopeRow{
+			AuthSHA:    shortSHA(s.AuthSHA, 8),
+			FullSHA:    s.AuthSHA,
+			Agent:      s.Agent,
+			Principal:  s.Principal,
+			Opened:     dateOnlyOrEmpty(s.Opened),
+			EndedAt:    dateOnlyOrEmpty(s.EndedAt),
+			State:      s.State,
+			EventCount: s.EventCount,
+		})
 	}
 	timelineEvents := r.history(m.ID)
 	for i := range timelineEvents {

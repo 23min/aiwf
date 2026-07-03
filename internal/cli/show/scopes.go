@@ -69,7 +69,52 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
 		}
 	}
+	// Source (a): the repo-wide opener map, loaded only when id was worked
+	// under a foreign scope (M-0223 guard). When nil, AssembleScopeViews
+	// finds no foreign scope-entity and never invokes the foreign resolver.
+	var openers map[string]string
+	if history.HasAuthorizedBy(events) {
+		openers, err = cliutil.AuthorizeOpeners(ctx, root)
+		if err != nil {
+			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
+		}
+	}
 
+	dateCache := map[string]string{}
+	return AssembleScopeViews(id, events, ownScopes, openers,
+		func(ent string) ([]*scope.Scope, error) { return cliutil.LoadEntityScopes(ctx, root, ent) },
+		func(sha string) string { return LookupCommitDateCached(ctx, root, sha, dateCache) },
+	)
+}
+
+// AssembleScopeViews is the pure, git-free core of LoadEntityScopeViews:
+// given an entity's loaded history events, its own scopes (source b), the
+// repo-wide authorize-opener map, a resolver for a foreign scope-entity's
+// scopes (source a), and a commit-date resolver, it assembles the
+// scope-view list. The git-touching gather is the caller's job, so
+// render's single pass (E-0054 / M-0221) assembles byte-identical views
+// from its shared HEAD walk (opener map + replayed scopes + %aI dates)
+// through this exact code path — no fourth copy of the assembly logic.
+//
+// The M-0223 cost gates live in the caller (LoadEntityScopeViews loads
+// ownScopes / openers only when the events warrant it); Assemble stays
+// gate-free because the gates are pure optimizations — an empty openers
+// map yields no foreign lookups, and empty ownScopes contributes nothing,
+// so the assembled views are identical whether or not the caller gated.
+//
+// foreignScopes is invoked only for a scope-entity that (a) an
+// aiwf-authorized-by event references and (b) differs from id, so a
+// caller that passes a nil openers map never triggers a foreign resolve.
+// dateOf resolves a commit SHA to its author date (git show for the verb
+// path; a lookup into the shared pass's %aI map for render).
+func AssembleScopeViews(
+	id string,
+	events []history.HistoryEvent,
+	ownScopes []*scope.Scope,
+	openers map[string]string,
+	foreignScopes func(ent string) ([]*scope.Scope, error),
+	dateOf func(sha string) string,
+) ([]ScopeView, error) {
 	interested := map[string]struct{}{}
 	for i := range events {
 		if events[i].AuthorizedBy != "" {
@@ -84,40 +129,30 @@ func LoadEntityScopeViews(ctx context.Context, root, id string) ([]ScopeView, er
 	}
 
 	allScopes := ownScopes
-	// Source (a): resolve foreign scope-entities only when id carries
-	// `aiwf-authorized-by` events. This is the guarded grep — skipped for
-	// scopeless entities and direct-scope openers alike.
-	if history.HasAuthorizedBy(events) {
-		openers, err := cliutil.AuthorizeOpeners(ctx, root)
-		if err != nil {
-			return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
-		}
-		foreignNeeded := map[string]struct{}{}
-		for sha := range interested {
-			if ent, ok := openers[sha]; ok && ent != id {
-				foreignNeeded[ent] = struct{}{}
-			}
-		}
-		for ent := range foreignNeeded {
-			scopes, err := cliutil.LoadEntityScopes(ctx, root, ent)
-			if err != nil {
-				return nil, err //coverage:ignore git-read failure unreachable after HasCommits guards a valid repo
-			}
-			allScopes = append(allScopes, scopes...)
+	foreignNeeded := map[string]struct{}{}
+	for sha := range interested {
+		if ent, ok := openers[sha]; ok && ent != id {
+			foreignNeeded[ent] = struct{}{}
 		}
 	}
+	for ent := range foreignNeeded {
+		scopes, err := foreignScopes(ent)
+		if err != nil {
+			return nil, err //coverage:ignore foreign-resolver error is git-read failure, unreachable after HasCommits in the production caller
+		}
+		allScopes = append(allScopes, scopes...)
+	}
 
-	dateCache := map[string]string{}
 	var views []ScopeView
 	for _, s := range allScopes {
 		if _, ok := interested[s.AuthSHA]; !ok {
 			continue
 		}
-		opened := LookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
+		opened := dateOf(s.AuthSHA)
 		var ended string
 		if s.State == scope.StateEnded {
 			if last := LastEventSHA(s, scope.StateEnded); last != "" {
-				ended = LookupCommitDateCached(ctx, root, last, dateCache)
+				ended = dateOf(last)
 			}
 		}
 		views = append(views, ScopeView{
