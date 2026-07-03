@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Statusline comment scan fires on real ids; shell code exempt
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Code, fenced, and link-destination carve-outs preserved
