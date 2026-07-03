@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: CLAUDE.md Skills-policy states the broadened authoring principle
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
