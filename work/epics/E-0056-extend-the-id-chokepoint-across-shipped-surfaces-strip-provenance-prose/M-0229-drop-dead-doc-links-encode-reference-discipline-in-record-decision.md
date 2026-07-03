@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: No shipped-skill markdown link targets a repo-relative path
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Discoverability tests pin behavior, not the removed ADR ids
