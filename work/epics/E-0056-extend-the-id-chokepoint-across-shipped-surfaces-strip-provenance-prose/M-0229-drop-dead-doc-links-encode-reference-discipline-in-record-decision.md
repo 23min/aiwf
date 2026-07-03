@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Discoverability tests pin behavior, not the removed ADR ids
       status: open
+      tdd_phase: red
 ---
 ## Goal
 
