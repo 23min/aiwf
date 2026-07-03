@@ -133,3 +133,70 @@ falls to the same order as `aiwf history`. Absolute numbers are devcontainer-spe
 and not a CI gate; the load-bearing mechanical evidence for this milestone is the
 guard predicates, the guarded-vs-unguarded equivalence, and the width fix under
 `internal/cli/`.
+
+## Work log
+
+### AC-1 — guard predicate returns skip for events with no scope data
+Extracted `HasScopeData`, `HasAuthorizedBy`, and `HasOwnScope`
+(`internal/cli/history/scopeguard.go`) as testable seams keyed off the already-loaded
+event slice, not entity frontmatter. Pinned by `TestHasScopeData` / `TestHasAuthorizedBy`
+/ `TestHasOwnScope` (predicate tables, both directions) plus
+`TestScopeGuard_ShowDerivationForActiveOpener` (the `show` source-(b) derivation for an
+active opener carrying no `aiwf-authorized-by`).
+
+### AC-2 — history and show output identical for scoped and scopeless entities
+Consolidated the two byte-identical greps into `cliutil.AuthorizeOpeners`; guarded
+`aiwf history`'s chip map behind `ScopeMapFor`, and rewrote `show.LoadEntityScopeViews`
+— source (b) from the width-tolerant `cliutil.LoadEntityScopes` gated by `HasOwnScope`,
+source (a) via the guarded global grep gated by `HasAuthorizedBy`, with an `ent != id`
+guard against self-scope double-counting. Equivalence pinned by
+`TestScopeGuard_ShowViewsEquivalence` (guarded vs an unguarded oracle over a five-entity
+fixture — scopeless, worked-under-scope, active-opener, scope-ended, self-scope) and
+`TestScopeGuard_HistoryChipsEquivalence`; the incidental narrow-id width fix by
+`TestScopeGuard_ShowWidthFix`. The removed `BuildScopeEntityMap` test migrated to
+`TestAuthorizeOpeners_NonRepoReturnsEmpty`.
+
+### AC-3 — measured read-verb wall-time delta recorded in Validation
+Measured before/after on the kernel tree (see `## Validation`) with the `performance.md`
+recipe; structural evidence `TestM0223_AC3_ValidationRecordsReadVerbMeasurement`
+(section-scoped via `extractMarkdownSection`; asserts both verbs, a before/after axis,
+and ≥4 wall-time values).
+
+The authoritative per-AC phase/status timeline lives in `aiwf history M-0223/AC-N`.
+
+## Deferrals
+
+None originate in this milestone. The path-scoped-history sibling was cancelled pre-start
+and its constraints captured in G-0340. The `performance.md` ground-doc refresh — renaming
+the removed private impls to `cliutil.AuthorizeOpeners` and marking the grep-guard lever
+shipped — is owned by the E-0054 epic wrap, deferred so it lands together with M-0221's
+render lever; an epic-wrap doc task, not gap-worthy milestone work.
+
+## Reviewer notes
+
+Independent fresh-context review (code-quality lens, `wf-review-code`): **APPROVE**. The
+reviewer ran its own five mutation probes, a merged-profile coverage sweep, and
+live-binary checks (a narrow-id `aiwf show` query rendered the same scope table as its
+canonical-width form); every load-bearing claim held. Design lens (`wf-rethink`) on the
+guard module: keep, no rewrite — KISS, single source of truth for the grep, layering
+`history → cliutil` and `show → history + cliutil`.
+
+Three non-blocking findings, dispositions:
+
+- **Comment tense** (`cliutil.AuthorizeOpeners`): reworded — render (M-0221) *will* reuse
+  the helper; it does not call it yet.
+- **Error-detail trade-off** (`cliutil.AuthorizeOpeners`): the consolidated helper wraps a
+  `git log` failure without the `exec.ExitError` stderr extraction the removed
+  `readAllAuthorizeOpeners` surfaced. Deliberate KISS choice — the failure path is
+  unreachable after `HasCommits` on a valid repo (it carries `//coverage:ignore`), and
+  collapsing it to one return avoids three untestable defensive branches. Kept.
+- **History equivalence granularity**: the committed differential asserts guarded ==
+  unguarded at the `RenderScopeChips` chip level — the precise seam, since the guard's
+  only effect is the map handed to that function — plus a binary wiring check;
+  `--format=json` never consumed the map, so is vacuously preserved. Full-output
+  byte-identity was additionally confirmed by the `## Validation` measurement's `diff`
+  step. Kept.
+
+`make coverage-gate` was run against a throwaway commit of this implementation and passed
+(diff-scoped: every changed statement tested or `//coverage:ignore`'d); it re-runs
+authoritatively on the wrap commit at CI-on-push.

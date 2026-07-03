@@ -250,3 +250,64 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 	}
 	return "", nil
 }
+
+// AuthorizeOpeners returns a map from each authorize-opener commit's full
+// SHA to its scope-entity id (canonicalized). It walks every commit whose
+// trailers carry both `aiwf-verb: authorize` and `aiwf-scope: opened` once.
+//
+// This is the single source of truth for the repo-wide authorize-opener
+// map: `aiwf show`'s scope table (foreign source (a)) and `aiwf history`'s
+// scope chips both consume it — replacing the two byte-identical private
+// copies (show.readAllAuthorizeOpeners and history.BuildScopeEntityMap) that
+// predated it, and available for E-0054's render single-pass (M-0221) to
+// reuse rather than add a third copy. Both read verbs now guard the call
+// behind the loaded-event predicates (history.HasScopeData /
+// history.HasAuthorizedBy), so the walk runs only when an entity's events
+// actually reference a scope.
+//
+// An empty / pre-aiwf repo returns (empty, nil). A genuine `git log` failure
+// on a repo with commits returns (nil, error); the history caller renders
+// unresolved chips as "?" rather than blocking, while show propagates it.
+func AuthorizeOpeners(ctx context.Context, root string) (map[string]string, error) {
+	result := map[string]string{}
+	if !HasCommits(ctx, root) {
+		return result, nil
+	}
+	cmd := exec.CommandContext(ctx, "git", "log",
+		"-E",
+		"--grep", "^"+gitops.TrailerVerb+": authorize$",
+		"--grep", "^"+gitops.TrailerScope+": opened$",
+		"--all-match",
+		"--pretty=tformat:%H\x1f%(trailers:key="+gitops.TrailerEntity+",valueonly=true,unfold=true)\x1e")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		// Defensive: with fixed args and HasCommits already true, `git log`
+		// fails only on a corrupt / partial clone between the two calls — a
+		// tempdir-based test can't reproduce it. The show caller surfaces
+		// this error; the history caller swallows it and renders "?" chips.
+		return nil, fmt.Errorf("git log authorize-openers in %s: %w", root, err) //coverage:ignore
+	}
+	for _, rec := range strings.Split(string(out), "\x1e") {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, "\x1f", 2)
+		if len(parts) < 2 { //coverage:ignore unreachable: the \x1f is a literal in the pretty-format, so every non-empty record splits into ≥2 parts
+			continue
+		}
+		sha := strings.TrimSpace(parts[0])
+		ent := strings.TrimSpace(parts[1])
+		// An opener commit missing aiwf-entity yields a blank id; skip it
+		// rather than mapping a blank (defends against hand-edited history).
+		if sha == "" || ent == "" {
+			continue
+		}
+		// Canonicalize the trailer-stored entity id so callers comparing
+		// against tree-loaded ids never have to disambiguate widths
+		// (M-081 AC-2: the read side owns width tolerance).
+		result[sha] = entity.Canonicalize(ent)
+	}
+	return result, nil
+}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/show"
@@ -35,16 +36,21 @@ func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 	}
 }
 
-// TestBuildScopeEntityMap_GitFailureFallback: pointing at a non-
-// repo directory makes the underlying git invocation fail. The
-// helper swallows the error and returns an empty map so chip
-// rendering falls back to "?" without blocking the verb.
-func TestBuildScopeEntityMap_GitFailureFallback(t *testing.T) {
+// TestAuthorizeOpeners_NonRepoReturnsEmpty: the consolidated
+// authorize-opener helper (which replaced history.BuildScopeEntityMap and
+// show.readAllAuthorizeOpeners) returns an empty map with no error for a
+// non-repo directory — HasCommits is false, so it never shells out. The
+// history text path relies on this so chip rendering falls back to "?"
+// without blocking the verb.
+func TestAuthorizeOpeners_NonRepoReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
-	got := history.BuildScopeEntityMap(context.Background(), tmp, nil)
+	got, err := cliutil.AuthorizeOpeners(context.Background(), tmp)
+	if err != nil {
+		t.Fatalf("AuthorizeOpeners on non-repo: unexpected error %v", err)
+	}
 	if len(got) != 0 {
-		t.Errorf("buildScopeEntityMap on non-repo = %v, want empty map", got)
+		t.Errorf("AuthorizeOpeners on non-repo = %v, want empty map", got)
 	}
 }
 
