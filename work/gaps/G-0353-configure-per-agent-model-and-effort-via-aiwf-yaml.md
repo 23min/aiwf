@@ -1,7 +1,9 @@
 ---
 id: G-0353
 title: Configure per-agent model and effort via aiwf.yaml
-status: open
+status: addressed
+addressed_by_commit:
+    - 19cefbb9
 ---
 ## What's missing
 
