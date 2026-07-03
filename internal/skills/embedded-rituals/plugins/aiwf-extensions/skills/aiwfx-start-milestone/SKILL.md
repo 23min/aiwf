@@ -116,6 +116,7 @@ For each AC, in sequence:
   Under `tdd: required`, the kernel audit refuses `met` without `phase: done` — keep them in this order. The kernel records both events in `aiwf history`.
 
 - Append a Work log entry to the milestone spec's `## Work log` section: `### AC-<N> — <short title>` followed by `<one-line outcome> · commit <SHA> · tests <N/M>`. Don't duplicate the phase timeline — `aiwf history M-NNNN/AC-<N>` is the authoritative record.
+- At this AC boundary, if the user asks for a handoff or context is getting long before the next AC, invoke `aiwfx-handoff` to emit a paste-ready `/compact` prime block. Emission here is on-demand — every-AC is noise.
 
 If a decision surfaces mid-implementation that wasn't pre-locked in the spec, invoke `aiwfx-record-decision` to capture it. Mirror the decision id under the spec's `## Decisions made during implementation` section.
 

@@ -196,5 +196,7 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 
 ## Next step
 
+The milestone close is a natural `/compact` point — invoke `aiwfx-handoff` to emit a prime block before moving on.
+
 If this is the last milestone in the epic: → `aiwfx-wrap-epic E-NNNN`.
 Otherwise: → `aiwfx-start-milestone <next-M>`.
