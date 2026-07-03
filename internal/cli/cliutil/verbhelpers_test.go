@@ -37,10 +37,11 @@ func TestParseKind(t *testing.T) {
 // TestParseTestsFlag covers the three behavior arms: empty input
 // (flag unset, returns nil/nil), valid input (returns parsed metrics),
 // malformed input (returns parse error, writes one-line to stderr).
+// TestParseTestsFlag stays serial: its "malformed" subtest redirects the
+// process-global os.Stderr, which races any parallel test that reads it
+// (e.g. RunStatuslineRemove's Fprintf refusal paths). See setup_test.go.
 func TestParseTestsFlag(t *testing.T) {
-	t.Parallel()
 	t.Run("empty", func(t *testing.T) {
-		t.Parallel()
 		got, err := cliutil.ParseTestsFlag("", "aiwf test")
 		if err != nil {
 			t.Errorf("empty: err = %v; want nil", err)
@@ -50,7 +51,6 @@ func TestParseTestsFlag(t *testing.T) {
 		}
 	})
 	t.Run("whitespace_only", func(t *testing.T) {
-		t.Parallel()
 		got, err := cliutil.ParseTestsFlag("   ", "aiwf test")
 		if err != nil {
 			t.Errorf("whitespace: err = %v; want nil", err)
@@ -60,7 +60,6 @@ func TestParseTestsFlag(t *testing.T) {
 		}
 	})
 	t.Run("valid", func(t *testing.T) {
-		t.Parallel()
 		got, err := cliutil.ParseTestsFlag("pass=12 fail=0 skip=0", "aiwf test")
 		if err != nil {
 			t.Fatalf("valid: err = %v", err)
@@ -73,7 +72,6 @@ func TestParseTestsFlag(t *testing.T) {
 		}
 	})
 	t.Run("malformed", func(t *testing.T) {
-		t.Parallel()
 		// Redirect stderr for the duration of the call so the test
 		// output stays clean.
 		oldStderr := os.Stderr
