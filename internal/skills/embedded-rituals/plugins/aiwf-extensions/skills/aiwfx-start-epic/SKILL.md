@@ -56,7 +56,7 @@ Ask the operator whether the work proceeds in-loop (the operator drives every mi
 - **In-loop** — no scope opened. Step 7 is skipped.
 - **Delegate to `ai/<id>`** — step 7 runs `aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug>`. The operator names the agent and the future epic branch (typically `epic/E-NN-<slug>` derived from the epic id and slug).
 
-The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. Per the branch-model ADR, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
+The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. The authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
 
 ### 6. Sovereign promotion
 
@@ -130,7 +130,7 @@ If a delegation scope was opened in step 7, the hand-off is to the named agent (
 
 - 🛑 **Never commit or push without explicit human approval.** Step 6's promotion and step 7's authorize each require human confirmation.
 - 🛑 **Sovereign promotion requires a `human/` actor.** Per the kernel's sovereignty rule, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. An AI assistant orchestrating the conversation does not run the verb itself.
-- 🛑 **Sovereign acts land on `main` before the branch cut.** Per the branch-model convention, steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The kernel's preflight enforces this for the authorize commit (the from-main `--branch` carve-out allows the `--branch <future>` form from `main`).
+- 🛑 **Sovereign acts land on `main` before the branch cut.** Steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The kernel's preflight enforces this for the authorize commit (the from-main `--branch` carve-out allows the `--branch <future>` form from `main`).
 - The promotion commit and any authorize commit are separate. One verb = one commit.
 - Worktree placement defaults to in-repo under the configured `worktree.dir` (the in-repo placement convention), but the default is a recommendation, not a lock — the per-invocation override (main-checkout / sibling) stays a Q&A choice. The branch shape follows the branch model — `epic/E-NN-<slug>` — and is not surfaced as a prompt.
 

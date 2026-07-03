@@ -42,7 +42,7 @@ Ask the operator whether the milestone proceeds in-loop (the operator drives eve
 - **In-loop** — no scope opened. Step 4 is skipped.
 - **Delegate to `ai/<id>`** — step 4 runs `aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug>`. The operator names the agent.
 
-The delegation choice is asked BEFORE the sovereign acts (steps 3 and 4) because the authorize trailer (if delegating) binds the scope to the future milestone branch, and the milestone-branch name should be known when the authorize commit lands on the parent epic branch. Per the branch-model ADR, the authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 5.
+The delegation choice is asked BEFORE the sovereign acts (steps 3 and 4) because the authorize trailer (if delegating) binds the scope to the future milestone branch, and the milestone-branch name should be known when the authorize commit lands on the parent epic branch. The authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 5.
 
 The milestone scope is independent of any epic scope opened at `aiwfx-start-epic` step 7. Kernel semantics: one scope per entity; the milestone's scope is opened, paused, and resumed on its own entity, with its own `aiwf-branch:` (the milestone branch).
 
@@ -145,7 +145,7 @@ Do not commit the implementation yet — `aiwfx-wrap-milestone` bundles the impl
 
 - 🛑 **Never commit or push without explicit human approval.** Every commit gate is the human's, not the AI's.
 - 🛑 **Branch-coverage hard rule** (see `wf-tdd-cycle`). Audit runs before declaring complete, not after the human asks.
-- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Per the branch-model ADR, steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel's preflight enforces this for the authorize commit (the ritual-current carve-out allows the `--branch milestone/...` future-binding from a ritual-shape current checkout).
+- 🛑 **Sovereign acts land on the parent epic branch before the milestone-branch cut.** Steps 3 and 4 run with HEAD on `epic/E-NNNN-<slug>`; step 5 cuts `milestone/M-NNNN-<slug>` afterwards. The kernel's preflight enforces this for the authorize commit (the ritual-current carve-out allows the `--branch milestone/...` future-binding from a ritual-shape current checkout).
 - 🛑 **Parent epic branch must exist locally and be the current checkout before this skill runs.** If it doesn't exist, the parent epic has not been activated — `aiwfx-start-epic E-NNNN` is the right entry point, not this skill. No silent fallthrough that materializes the parent branch on the operator's behalf.
 - Tests must be deterministic. No clock, no network, no flakes shipped.
 - Build must be green before declaring done.
