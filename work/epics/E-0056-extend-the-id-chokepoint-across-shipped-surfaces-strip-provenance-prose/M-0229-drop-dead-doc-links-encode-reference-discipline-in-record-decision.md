@@ -109,7 +109,21 @@ missing, green with the ids gone.
 
 ## Work log
 
-<!-- One entry per AC; append-only. Populated through implementation. -->
+### AC-1 — aiwfx-record-decision encodes the self-contained reference rule
+
+`04b22960` (red — section-scoped test `TestAiwfxRecordDecision_M0229_AC1_ReferencingDecisionSection`; fails on the absent `## Referencing a decision` section) → `6173f530` (green — the section added to the record-decision skill). Phases red→green→done ran live; met. Five markers, all absent before the edit, so the test is non-vacuous.
+
+### AC-2 — No shipped-skill markdown link targets a repo-relative path
+
+`c41bfafd` (red — universal-predicate guard `TestShippedSkills_NoRepoRelativeLinks` + fence-aware scanner + two non-vacuousness unit tests; fails on 13 repo-relative links) → `25585c75` (green — 13 links dropped across 6 surfaces, prose reworded self-contained). Phases red→green→done; met.
+
+### AC-3 — Discoverability tests pin behavior, not the removed ADR ids
+
+`31919699` — 5 discoverability tests reconciled to assert the behavioral fact instead of the ADR id (`M-0104/AC-2` ADR-0010; `M-0190/AC-1`+`AC-3` ADR-0023; `aiwf-archive` cite-ADR-0004; `aiwf-authorize` provenance-link-resolves). Green with the links still present; stayed green after AC-2 removed them (that is the reconciliation's proof). Phases red→green→done; met.
+
+### Review-backstop cleanup (not an AC)
+
+`581fbb62` — dropped four soft `Per the branch-model ADR/convention` prose attributions from the start skills (self-contained sentences; folded in at review per the operator). `607e5bcd` — documented the guard's inline-`](dest)`-only scope. Verified at the independent wrap review, not a test.
 
 ## Decisions made during implementation
 
@@ -117,10 +131,24 @@ missing, green with the ids gone.
   (adding the three verb-skill links) at start-milestone — same defect class, and
   it resolves the `aiwf-archive` `ADR-0004`-citation tension with `M-0228`. An
   operator scope call recorded here; no `D-` entity required.
+- At wrap review, the four surviving `Per the branch-model ADR/convention` prose
+  attributions in the start skills were **reworded to self-contained sentences**
+  (operator Option A) rather than left as rule-compliant. They are prose, not
+  links (outside AC-2's guard scope), but attribute to an ADR a consumer lacks —
+  E-0056's "strip provenance prose" theme. A prose-scope call; no `D-` entity.
 
 ## Validation
 
-<!-- Pasted at wrap: test-suite, build, lint, coverage-gate, aiwf check. -->
+- `make check-fast` (golangci-lint + `go vet` + `go test`) — all packages green.
+- `golangci-lint run ./internal/policies/...` — 0 issues.
+- `make coverage-gate` — diff-scoped branch-coverage audit, firing-fixture
+  presence, and the skill-edit-structural-test backstop (run against the real
+  committed diff) all green.
+- `aiwf check` (worktree binary, real tree) — 0 errors; 0 `skill-body-id` /
+  `body-prose-id`; no M-0229 findings.
+- Non-vacuousness proven: injecting a repo-relative link turns the AC-2 guard red
+  (13→0 links across the milestone); the five reconciled tests go red when the
+  pinned behavioral phrase is mutated (reviewer probes, reverted).
 
 ## Deferrals
 
@@ -128,4 +156,24 @@ missing, green with the ids gone.
 
 ## Reviewer notes
 
-<!-- Trade-offs and deliberate omissions; filled at wrap. -->
+- Independent fresh-context review (code-quality lens): **approve**, no blocking
+  findings. Every load-bearing claim verified by measurement, not reasoning — the
+  guard by injecting a repo-relative link (→ red, reverted), the reconciled tests
+  by mutating the pinned phrase (→ red, reverted), the AC-1 section by removing a
+  marker (→ red), id-leak by a full `aiwf check`. The `wf-rethink` design lens had
+  no target: the milestone introduced no new module, abstraction, or data model.
+- Three non-blocking findings, disposed:
+  1. Four `Per the branch-model ADR/convention` prose attributions — **folded in**
+     (reworded self-contained; see Decisions).
+  2. `TestAiwfArchive_M0229_StatesConventionSelfContained` asserts `decoupled from
+     FSM` whole-body, not section-scoped like its siblings — **left**: the phrase
+     is distinctive and appears once (the "substring vs structural" rule permits a
+     distinctive literal), and it lives in the skill's H1 preamble with no `##` to
+     scope to.
+  3. The guard scans inline `](dest)` links only (reference-style / angle-bracket
+     forms are unused in the shipped skills) — **addressed** with a scope comment
+     (`607e5bcd`).
+- AC-2 predicate is universal (external-URL-or-anchor; every repo-relative
+  destination barred), chosen over a `docs/`+`internal/` denylist so it can never
+  gap on a newly-referenced tree — grounded in the measured fact that the shipped
+  skills carry no legitimate repo-relative link.
