@@ -290,7 +290,104 @@ func ListRitualTemplates() ([]Skill, error) {
 // This is the operation behind both `aiwf init` (first-time setup) and
 // `aiwf update` (refresh after a binary upgrade).
 func Materialize(root string) error {
-	return MaterializeTo(root, ClaudeTarget)
+	return materializeTo(root, ClaudeTarget, nil)
+}
+
+// MaterializeWithTiers is Materialize with per-agent model/effort tiers
+// (G-0353) injected into the materialized agent-card frontmatter. initrepo
+// derives tiers from aiwf.yaml's `agents:` block and passes them on every
+// init/update; callers that don't tier use Materialize (nil tiers leaves the
+// embedded card frontmatter unchanged).
+func MaterializeWithTiers(root string, tiers map[string]AgentTier) error {
+	return materializeTo(root, ClaudeTarget, tiers)
+}
+
+// AgentTier pins the model and reasoning effort a materialized agent card is
+// written with (G-0353). An empty field is omitted from the card frontmatter,
+// leaving that dimension inheriting the session default. It is the skills-layer
+// mirror of config.Agent, kept here so skills stays free of a config import.
+type AgentTier struct {
+	Model  string
+	Effort string
+}
+
+// AgentNames returns the base names (no ".md") of the shipped role agents, in
+// sorted order. initrepo uses it to flag aiwf.yaml `agents:` keys that match no
+// shipped agent, since config cannot enumerate them without importing skills.
+func AgentNames() ([]string, error) {
+	agents, err := ListRitualAgents()
+	if err != nil {
+		return nil, err //coverage:ignore ListRitualAgents walks a compiled-in embed; it cannot fail at runtime
+	}
+	names := make([]string, 0, len(agents))
+	for _, a := range agents {
+		names = append(names, strings.TrimSuffix(a.Name, ".md"))
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+// applyAgentTiers returns cards with each card whose name (sans ".md") has a
+// tier entry rewritten to carry the tier's model/effort in its frontmatter. A
+// nil/empty tiers map returns cards unchanged; a card with no matching entry is
+// left untouched. Pure: the input slice's card content is not mutated.
+func applyAgentTiers(cards []Skill, tiers map[string]AgentTier) []Skill {
+	if len(tiers) == 0 {
+		return cards
+	}
+	out := make([]Skill, len(cards))
+	for i, c := range cards {
+		out[i] = c
+		if tier, ok := tiers[strings.TrimSuffix(c.Name, ".md")]; ok {
+			out[i].Content = injectAgentFrontmatter(c.Content, tier)
+		}
+	}
+	return out
+}
+
+// injectAgentFrontmatter rewrites a card's YAML frontmatter to carry the tier's
+// model/effort keys. It drops any existing top-level model:/effort: lines first,
+// so the result is idempotent and independent of whether the embedded card
+// already carried them. Empty tier fields are not written. The card is returned
+// unchanged when it has no leading `---` frontmatter fence or the fence is
+// unterminated. Assumes LF line endings (the embedded cards are LF).
+func injectAgentFrontmatter(content []byte, tier AgentTier) []byte {
+	if tier.Model == "" && tier.Effort == "" {
+		return content
+	}
+	s := string(content)
+	if !strings.HasPrefix(s, "---\n") {
+		return content
+	}
+	lines := strings.Split(s, "\n")
+	closeIdx := -1
+	for i := 1; i < len(lines); i++ {
+		if lines[i] == "---" {
+			closeIdx = i
+			break
+		}
+	}
+	if closeIdx == -1 {
+		return content
+	}
+	out := make([]string, 0, len(lines)+2)
+	out = append(out, lines[0]) // opening "---"
+	for i := 1; i < closeIdx; i++ {
+		// Drop only column-0 model:/effort: keys — an indented occurrence is a
+		// nested mapping value, not the top-level field this function manages.
+		if strings.HasPrefix(lines[i], "model:") || strings.HasPrefix(lines[i], "effort:") {
+			continue
+		}
+		out = append(out, lines[i])
+	}
+	if tier.Model != "" {
+		out = append(out, "model: "+tier.Model)
+	}
+	if tier.Effort != "" {
+		out = append(out, "effort: "+tier.Effort)
+	}
+	out = append(out, lines[closeIdx:]...) // closing "---" and the body
+	return []byte(strings.Join(out, "\n"))
 }
 
 // MaterializeTo is Materialize parameterized by agent target (ADR-0014
@@ -300,6 +397,13 @@ func Materialize(root string) error {
 // agents — the agent writer is a no-op for an agent host with no subagent
 // concept. The Claude target reproduces the exact M-0149/M-0150 layout.
 func MaterializeTo(root string, target Target) error {
+	return materializeTo(root, target, nil)
+}
+
+// materializeTo is the shared implementation behind Materialize, MaterializeTo,
+// and MaterializeWithTiers. tiers (may be nil) inject per-agent model/effort
+// into the agent-card frontmatter before the flat agent files are written.
+func materializeTo(root string, target Target, tiers map[string]AgentTier) error {
 	skillsRoot := filepath.Join(root, target.SkillsDir)
 	if err := os.MkdirAll(skillsRoot, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", target.SkillsDir, err)
@@ -373,6 +477,7 @@ func MaterializeTo(root string, target Target) error {
 		if aErr != nil {
 			return aErr
 		}
+		agents = applyAgentTiers(agents, tiers)
 		if mErr := materializeFlatFiles(root, target.AgentsDir, agents); mErr != nil {
 			return mErr
 		}

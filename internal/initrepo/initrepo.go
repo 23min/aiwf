@@ -713,14 +713,61 @@ func ensureSkills(root string, dryRun bool) (StepResult, error) {
 			Detail: fmt.Sprintf("would materialize %d skills from embedded", len(embedded)),
 		}, nil
 	}
-	if err := skills.Materialize(root); err != nil {
+	tiers, unknown, err := agentTiersFromConfig(root)
+	if err != nil {
+		return StepResult{}, err
+	}
+	if err := skills.MaterializeWithTiers(root, tiers); err != nil {
 		return StepResult{}, fmt.Errorf("materializing skills: %w", err)
+	}
+	detail := "materialized from embedded skills"
+	if len(unknown) > 0 {
+		detail += fmt.Sprintf("; ignored aiwf.yaml agents keys with no shipped agent: %s", strings.Join(unknown, ", "))
 	}
 	return StepResult{
 		What:   ".claude/skills/aiwf-*",
 		Action: ActionUpdated,
-		Detail: "materialized from embedded skills",
+		Detail: detail,
 	}, nil
+}
+
+// agentTiersFromConfig loads aiwf.yaml's `agents:` block (G-0353) and returns
+// the per-agent model/effort tiers to inject into materialized cards, plus the
+// sorted list of configured keys that match no shipped agent (a likely typo,
+// surfaced in the step ledger rather than silently dropped). A missing
+// aiwf.yaml or an empty agents block yields nil tiers and no unknown keys.
+func agentTiersFromConfig(root string) (tiers map[string]skills.AgentTier, unknown []string, err error) {
+	cfg, err := config.Load(root)
+	if errors.Is(err, config.ErrNotFound) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(cfg.Agents) == 0 {
+		return nil, nil, nil
+	}
+	names, err := skills.AgentNames()
+	if err != nil {
+		return nil, nil, err //coverage:ignore AgentNames walks a compiled-in embed; it cannot fail at runtime
+	}
+	known := make(map[string]bool, len(names))
+	for _, n := range names {
+		known[n] = true
+	}
+	tiers = make(map[string]skills.AgentTier, len(cfg.Agents))
+	for name, a := range cfg.Agents {
+		if !known[name] {
+			unknown = append(unknown, name)
+			continue
+		}
+		tiers[name] = skills.AgentTier{Model: a.Model, Effort: a.Effort}
+	}
+	sort.Strings(unknown)
+	if len(tiers) == 0 {
+		tiers = nil
+	}
+	return tiers, unknown, nil
 }
 
 // ensureGuidance materializes the consumer CLAUDE.md guidance fragment

@@ -66,19 +66,20 @@ var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 // runtime-derived); the field exists so `aiwf doctor` can surface a
 // deprecation note pointing the user at `git config user.email`.
 type Config struct {
-	LegacyAiwfVersion string   `yaml:"aiwf_version,omitempty"`
-	LegacyActor       string   `yaml:"actor,omitempty"`
-	Hosts             []string `yaml:"hosts,omitempty"`
-	StatusMd          StatusMd `yaml:"status_md,omitempty"`
-	TDD               TDD      `yaml:"tdd,omitempty"`
-	HTML              HTML     `yaml:"html,omitempty"`
-	Allocate          Allocate `yaml:"allocate,omitempty"`
-	Tree              Tree     `yaml:"tree,omitempty"`
-	Archive           Archive  `yaml:"archive,omitempty"`
-	Entities          Entities `yaml:"entities,omitempty"`
-	Guidance          Guidance `yaml:"guidance,omitempty"`
-	Areas             Areas    `yaml:"areas,omitempty"`
-	Worktree          Worktree `yaml:"worktree,omitempty"`
+	LegacyAiwfVersion string           `yaml:"aiwf_version,omitempty"`
+	LegacyActor       string           `yaml:"actor,omitempty"`
+	Hosts             []string         `yaml:"hosts,omitempty"`
+	StatusMd          StatusMd         `yaml:"status_md,omitempty"`
+	TDD               TDD              `yaml:"tdd,omitempty"`
+	HTML              HTML             `yaml:"html,omitempty"`
+	Allocate          Allocate         `yaml:"allocate,omitempty"`
+	Tree              Tree             `yaml:"tree,omitempty"`
+	Archive           Archive          `yaml:"archive,omitempty"`
+	Entities          Entities         `yaml:"entities,omitempty"`
+	Guidance          Guidance         `yaml:"guidance,omitempty"`
+	Areas             Areas            `yaml:"areas,omitempty"`
+	Worktree          Worktree         `yaml:"worktree,omitempty"`
+	Agents            map[string]Agent `yaml:"agents,omitempty"`
 }
 
 // Member is a single declared workstream area (E-0044, M-0179): a Name (the
@@ -667,6 +668,52 @@ func (c *Config) WorktreeDir() string {
 	return dir
 }
 
+// Agent configures the model tier and reasoning effort a single shipped
+// role agent's card is materialized with (G-0353). Both fields are optional:
+// an omitted field is left off the card frontmatter, so that agent inherits
+// the session default. The map key on Config.Agents is the shipped agent's
+// name (e.g. "reviewer"); an unrecognized name is ignored at materialization
+// time (initrepo reports it), not rejected here — config cannot enumerate the
+// shipped agent set without importing skills (a layering inversion).
+//
+// This is advisory, never load-bearing: a guarantee must not depend on which
+// tier ran. Validation therefore only checks that a *set* value is in the
+// closed vocabulary; it does not police model×effort compatibility (that is
+// the operator's experiment, and the compatible set shifts as models change).
+type Agent struct {
+	Model  string `yaml:"model,omitempty"`
+	Effort string `yaml:"effort,omitempty"`
+}
+
+// validAgentModels is the closed set of model aliases an agent may pin. Aliases
+// (not dated ids) so a pinned value survives model refreshes. "inherit" is the
+// explicit form of "use the session model" — the same effect as omitting Model.
+var validAgentModels = map[string]bool{
+	"opus": true, "sonnet": true, "haiku": true, "fable": true, "inherit": true,
+}
+
+// validAgentEfforts is the closed set of reasoning-effort levels Claude Code
+// accepts on an agent card. Membership is validated; per-model availability
+// (e.g. "max" is unsupported on some tiers) is not — that is advisory.
+var validAgentEfforts = map[string]bool{
+	"low": true, "medium": true, "high": true, "xhigh": true, "max": true,
+}
+
+// validateAgents enforces the closed-set vocabulary on every configured agent's
+// model and effort. Empty (omitted) fields are always legal. The map key is
+// echoed in the error so the operator can locate the offending entry.
+func (c *Config) validateAgents() error {
+	for name, a := range c.Agents {
+		if a.Model != "" && !validAgentModels[a.Model] {
+			return fmt.Errorf("agents.%s.model: unknown model %q (want one of opus, sonnet, haiku, fable, inherit)", name, a.Model)
+		}
+		if a.Effort != "" && !validAgentEfforts[a.Effort] {
+			return fmt.Errorf("agents.%s.effort: unknown effort %q (want one of low, medium, high, xhigh, max)", name, a.Effort)
+		}
+	}
+	return nil
+}
+
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is
 // absent so callers can distinguish "missing config" (acceptable
 // pre-init) from "malformed config" (always an error).
@@ -705,7 +752,10 @@ func Load(root string) (*Config, error) {
 // The areas block (E-0043) is the first cross-field constraint validated
 // here; the method remains the entry point for future rules.
 func (c *Config) Validate() error {
-	return c.Areas.validate()
+	if err := c.Areas.validate(); err != nil {
+		return err
+	}
+	return c.validateAgents()
 }
 
 // StripLegacyActor removes any top-level `actor:` line from
