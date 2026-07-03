@@ -82,9 +82,9 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 ---
 
 <!-- The sections below are populated continuously through implementation and
-     finalized at `aiwfx-wrap-milestone`. They replace the v1 `tracking-doc.md`
-     convention; aiwf does not validate their contents (prose is human-owned),
-     but `aiwfx-start-milestone` / `aiwfx-wrap-milestone` rely on the structure. -->
+     finalized at `aiwfx-wrap-milestone`. aiwf does not validate their contents
+     (prose is human-owned), but `aiwfx-start-milestone` / `aiwfx-wrap-milestone`
+     rely on the structure. -->
 
 ## Work log
 
@@ -114,7 +114,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 ## Validation
 
 <!-- Pasted at wrap. Test-suite results, build output, any project-specific lint
-     or type-check. Replaces the v1 tracking-doc's Validation block. -->
+     or type-check. -->
 
 ## Deferrals
 

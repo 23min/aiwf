@@ -57,7 +57,7 @@ If the report is clean, note "doc-lint: clean" and continue. If findings:
 
 ### 4. Finalize the milestone spec's wrap-side sections
 
-The v1 separate tracking doc is gone. The milestone spec itself carries the wrap-side sections; finalize them in place:
+The milestone spec itself carries the wrap-side sections; finalize them in place:
 
 - `## Work log` — confirm one entry per AC with the final outcome and commit SHA. The phase timeline is in `aiwf history M-NNNN/AC-<N>`; don't duplicate dates here.
 - `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNN` from `aiwfx-record-decision` invocations during work).

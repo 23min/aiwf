@@ -64,6 +64,23 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files:  map[string]string{"CLAUDE.md": "# X\n\n## Operator setup\n\nbody without the devcontainer subsection\n"},
 		},
 
+		// m0228-skills-policy-broadened-principle: missing file (read-error
+		// site) + present-but-no-section (missing-section report branch) +
+		// section-present-but-no-markers (marker report branch). The three
+		// together light both construction sites and cover every not-green
+		// branch of the section walk.
+		{name: "m0228-skills-policy/missing", policy: PolicyM0228SkillsPolicyBroadenedPrinciple, files: map[string]string{}},
+		{
+			name:   "m0228-skills-policy/no-section",
+			policy: PolicyM0228SkillsPolicyBroadenedPrinciple,
+			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\nbody with no ### Skills policy subsection\n"},
+		},
+		{
+			name:   "m0228-skills-policy/no-markers",
+			policy: PolicyM0228SkillsPolicyBroadenedPrinciple,
+			files:  map[string]string{"CLAUDE.md": "# X\n\n## Go conventions\n\n### Skills policy\n\nshipped skill bodies cite no real entity id, and nothing else here\n"},
+		},
+
 		// m0132-devcontainer-readme: missing + missing-required-sections.
 		{name: "m0132-readme/missing", policy: PolicyM0132DevcontainerReadme, files: map[string]string{}},
 		{

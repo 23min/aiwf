@@ -5,7 +5,7 @@ description: Sets up and begins an aiwf milestone — preflight checks, branch s
 
 # aiwfx-start-milestone
 
-Begins implementation of an existing milestone. Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`); the v1 separate tracking-doc convention is gone.
+Begins implementation of an existing milestone. Per [the branch-model ADR](../../../../../../docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md)'s sequencing rule, the state-announcement commits (promote at step 3, optional authorize at step 4) land on the parent epic branch BEFORE the milestone branch is cut at step 5. AC progress lives in the milestone spec's frontmatter `acs[]` (kernel-validated via `aiwf check`).
 
 ## When to use
 
@@ -102,7 +102,7 @@ The branch operation does not produce an aiwf commit; it is plain git plumbing. 
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 
-AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section). The v1 separate tracking doc is gone — `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
+AC progress lives inside the milestone spec itself (frontmatter `acs[]` plus body `## Work log` section); `templates/milestone-spec.md` carries the full set of sections (Work log, Decisions made during implementation, Validation, Deferrals, Reviewer notes).
 
 For each AC, in sequence:
 
