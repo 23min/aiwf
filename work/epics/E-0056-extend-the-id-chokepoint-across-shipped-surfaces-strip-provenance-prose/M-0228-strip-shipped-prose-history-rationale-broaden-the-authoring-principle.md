@@ -6,6 +6,10 @@ parent: E-0056
 depends_on:
     - M-0227
 tdd: advisory
+acs:
+    - id: AC-1
+      title: CLAUDE.md Skills-policy states the broadened authoring principle
+      status: open
 ---
 ## Goal
 
@@ -69,3 +73,6 @@ A second met-with-a-test AC may be added at start-milestone *only* if a
 non-brittle structural assertion presents itself (e.g. a targeted absence guard
 over a specific cleaned file). If none does, this milestone ships with the single
 mechanizable AC above — and that is correct, not a coverage gap.
+
+### AC-1 — CLAUDE.md Skills-policy states the broadened authoring principle
+
