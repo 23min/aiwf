@@ -1,7 +1,7 @@
 ---
 id: G-0340
 title: Path-scoped single-entity history acceleration with bloom-filter maintenance
-status: open
+status: wontfix
 discovered_in: E-0054
 ---
 ## What's missing
