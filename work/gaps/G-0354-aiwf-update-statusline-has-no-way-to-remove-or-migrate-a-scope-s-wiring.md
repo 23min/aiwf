@@ -1,7 +1,9 @@
 ---
 id: G-0354
 title: aiwf update --statusline has no way to remove or migrate a scope's wiring
-status: open
+status: addressed
+addressed_by_commit:
+    - adfb96f7dee129b9c7a859ebef839c51ff998863
 ---
 ## What's missing
 
