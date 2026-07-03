@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // repoRootForTest resolves the module root from this test file's compiled
@@ -47,7 +48,7 @@ type skillBody struct {
 func collectSkillBodies(t *testing.T, root string) []skillBody {
 	t.Helper()
 	var out []skillBody
-	for _, dir := range skillBodyDirs {
+	for _, dir := range skillScanDirs {
 		base := filepath.Join(root, dir)
 		if _, err := os.Stat(base); err != nil {
 			t.Fatalf("skill source tree %s missing: %v", dir, err)
@@ -138,5 +139,38 @@ func TestSkillBodyID_PlaceholdersAreCanonical(t *testing.T) {
 		sort.Strings(bad)
 		t.Fatalf("%d non-canonical placeholder(s) in skill-body prose (normalize to <prefix>-NNNN):\n%s",
 			len(bad), strings.Join(bad, "\n"))
+	}
+}
+
+// TestSkillBodyID_WholeShippedTreeClean (M-0227 AC-4) is the comprehensive
+// real-tree assertion: it drives the production check over the repo root and
+// asserts zero skill-body-id findings across EVERY shipped surface. Unlike
+// the per-body collection tests above (SKILL.md bodies only), this reuses the
+// registered production walkers — the whole-file *.md scan
+// (skillBodyIDReference) AND the statusline #-comment scan
+// (statuslineCommentIDReference) — so it is the truest seam: the same rules
+// the pre-push hook runs, over the real shipped bytes. Green once AC-1 and
+// AC-2 cleaned every leak (descriptions, entity template, statusline).
+//
+// An in-memory tree rooted at the repo suffices: the two walkers key only on
+// t.Root (they walk the filesystem), and the entity-driven checks see no
+// entities, so the only findings that can surface are skill-body-id.
+func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
+	t.Parallel()
+	root := repoRootForTest(t)
+	var msgs []string
+	for _, f := range Run(&tree.Tree{Root: root}, nil) {
+		if f.Code == CodeSkillBodyID {
+			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
+		}
+	}
+	if len(msgs) != 0 {
+		sort.Strings(msgs)
+		shown := msgs
+		if len(shown) > 25 {
+			shown = shown[:25]
+		}
+		t.Fatalf("%d real-id citation(s) remain in shipped surfaces (cleanup incomplete):\n%s",
+			len(msgs), strings.Join(shown, "\n"))
 	}
 }
