@@ -40,7 +40,7 @@ func TestCheck_AreaRequiredExitsNonZero(t *testing.T) {
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	// Create the untagged gap BEFORE areas.required is set — otherwise the
 	// add dispatcher would refuse the untagged create (AC-5).
-	mustRun(t, "add", "gap", "--title", "Leak", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Leak", "--actor", "human/test", "--root", root)
 
 	yamlPath := filepath.Join(root, "aiwf.yaml")
 	raw, err := os.ReadFile(yamlPath)
@@ -98,7 +98,7 @@ func TestAdd_RefusesUntaggedWhenRequired(t *testing.T) {
 	//    the refusal guard, so a gap discovered in the tagged E-0001 resolves to
 	//    "platform" and is NOT refused. Guards against a refactor that moves the
 	//    guard above the derivation.
-	mustRun(t, "add", "gap", "--title", "Found in tagged epic", "--discovered-in", "E-0001", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Found in tagged epic", "--discovered-in", "E-0001", "--actor", "human/test", "--root", root)
 	if matches, _ := filepath.Glob(filepath.Join(root, "work", "gaps", "G-*.md")); len(matches) != 1 {
 		t.Fatalf("discovered-in gap should be created (exempt); found %v", matches)
 	}
@@ -122,7 +122,7 @@ func TestAdd_UntaggedAllowedWhenRequiredOff(t *testing.T) {
 func TestCheck_AreaUnknownErrorsUnderRequired(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-	mustRun(t, "add", "gap", "--title", "Leak", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Leak", "--actor", "human/test", "--root", root)
 
 	// Hand-edit the gap to carry an undeclared area (a typo of "platform").
 	// Non-empty area, so area-required never fires — this isolates the

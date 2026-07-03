@@ -124,6 +124,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Validators leak temp files", testActor, verb.AddOptions{
 		DiscoveredIn: "",
+		BodyOverride: bornCompleteFixtureBody(entity.KindGap),
 	}))
 	// Move the gap to `wontfix` via the normal path so the test's
 	// fixture ends in a state where audit-only is the meaningful op.
@@ -157,7 +158,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 func TestCancelAuditOnly_RefusesWhenNotAtTerminal(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Untriaged gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Untriaged gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	_, err := verb.CancelAuditOnly(r.ctx, r.tree(), "G-0001", testActor, "no")
 	if err == nil || !strings.Contains(err.Error(), "audit-only records what's already true") {
 		t.Errorf("expected refusal; got %v", err)
@@ -185,7 +186,7 @@ func TestCancelAuditOnly_AcceptsBothContractTerminals(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			r := newRunner(t)
-			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{}))
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindContract, "Schema "+tc.name, testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
 			r.must(verb.Promote(r.ctx, r.tree(), "C-0001", tc.terminalStatus, testActor, "test setup", true, verb.PromoteOptions{}))
 
 			res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "C-0001", testActor, "backfilling manual flip")

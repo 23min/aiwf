@@ -48,7 +48,7 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Resolver"); err != nil {
 		t.Fatalf("aiwf add milestone: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Hand-edit gap"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Hand-edit gap"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
 
@@ -109,10 +109,10 @@ func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "adr", "--title", "Old call"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Old call"); err != nil {
 		t.Fatalf("aiwf add adr: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "adr", "--title", "New call"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "New call"); err != nil {
 		t.Fatalf("aiwf add adr: %v\n%s", err, out)
 	}
 	for _, id := range []string{"ADR-0001", "ADR-0002"} {
@@ -187,7 +187,7 @@ func TestPromote_ByCommitFlag_RejectsUnresolvableSHA_BinaryEndToEnd(t *testing.T
 	if out, err := testutil.RunBin(t, root, binDir, nil, "init"); err != nil {
 		t.Fatalf("aiwf init: %v\n%s", err, out)
 	}
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Closed by some commit"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Closed by some commit"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
 

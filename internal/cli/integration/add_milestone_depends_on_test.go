@@ -133,7 +133,7 @@ func TestAddMilestone_DependsOnRejectedOnNonMilestone(t *testing.T) {
 	t.Parallel()
 	root := setupCLITestRepo(t)
 	rc := cli.Execute([]string{
-		"add", "gap",
+		"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n",
 		"--title", "stray",
 		"--depends-on", "M-0001",
 		"--actor", "human/test",

@@ -29,7 +29,8 @@ func TestAdd_Area_WritesFrontmatter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			r := newRunner(t)
 			r.must(verb.Add(r.ctx, r.tree(), tc.kind, tc.name+" entity", testActor, verb.AddOptions{
-				Area: "platform",
+				Area:         "platform",
+				BodyOverride: bornCompleteFixtureBody(tc.kind),
 			}))
 			matches, err := filepath.Glob(filepath.Join(r.root, tc.glob))
 			if err != nil || len(matches) != 1 {

@@ -19,7 +19,7 @@ func TestRun_CheckShapeOnly_CleanTree(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "gap", "--title", "Real gap", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Real gap", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
 		t.Fatalf("add gap: %d", rc)
 	}
 

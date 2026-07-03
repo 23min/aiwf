@@ -217,6 +217,34 @@ func TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites(t *testing.T) {
 	}
 }
 
+// TestAiwfAddSkill_EmptyBodyGateNamesBornCompleteKinds pins G-0326:
+// the aiwf-add skill's empty-body-gate section names every kind the
+// kernel treats as born-complete (entity.IsBornComplete) and
+// documents the --force/--reason escape hatch. Source-derived over
+// entity.AllKinds() so a future addition to the born-complete set
+// can't silently drift the skill out of sync.
+func TestAiwfAddSkill_EmptyBodyGateNamesBornCompleteKinds(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, aiwfAddSkillPath)
+	section := sectionUnder(body, "Empty-body gate for born-complete kinds")
+	if section == "" {
+		t.Fatal("G-0326: aiwf-add must carry an `Empty-body gate for born-complete kinds` section")
+	}
+	for _, k := range entity.AllKinds() {
+		if !entity.IsBornComplete(k) {
+			continue
+		}
+		if !strings.Contains(section, string(k)) {
+			t.Errorf("G-0326: empty-body-gate section omits born-complete kind %q", k)
+		}
+	}
+	for _, want := range []string{"--force", "--reason"} {
+		if !strings.Contains(section, want) {
+			t.Errorf("G-0326: empty-body-gate section omits %q", want)
+		}
+	}
+}
+
 // TestAiwfAdd_RichTemplateLocationNote pins G-0345: the aiwf-add skill's
 // "Locating the rich body template" section tells the author where the rich
 // per-kind template lives (`.claude/templates/…`), names the `aiwf update`

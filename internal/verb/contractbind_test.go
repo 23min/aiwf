@@ -37,6 +37,14 @@ func bindRepo(t *testing.T) string {
 	return root
 }
 
+// contractFixtureBody returns minimal real prose satisfying the
+// G-0326 empty-body gate for kind=contract, for tests in this file
+// whose subject is the atomic add+bind wiring, not body content.
+func contractFixtureBody() []byte {
+	return []byte("## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n" +
+		"## Stability\n\nFixture prose for test setup; not the subject under test.\n")
+}
+
 const baseAiwfYAML = `aiwf_version: 0.1.0
 actor: human/test
 contracts:
@@ -314,6 +322,7 @@ func TestAdd_ContractWithBindingProducesTwoOps(t *testing.T) {
 		AiwfDoc:       d,
 		AiwfContracts: c,
 		RepoRoot:      bindRepo(t),
+		BodyOverride:  contractFixtureBody(),
 	})
 	if err != nil {
 		t.Fatalf("Add: %v", err)
@@ -401,6 +410,7 @@ func TestAdd_ContractBindWithUndeclaredValidatorRejected(t *testing.T) {
 		BindFixtures:  "fixtures",
 		AiwfDoc:       d,
 		AiwfContracts: c,
+		BodyOverride:  contractFixtureBody(),
 	})
 	if err == nil || !strings.Contains(err.Error(), "ghost") {
 		t.Errorf("expected error naming the undeclared validator; got %v", err)
@@ -574,6 +584,7 @@ func TestAdd_ContractWithBindBadPathsCaughtAtVerb(t *testing.T) {
 		AiwfDoc:       d,
 		AiwfContracts: c,
 		RepoRoot:      t.TempDir(), // empty tmpdir; nothing on disk
+		BodyOverride:  contractFixtureBody(),
 	})
 	if err != nil {
 		t.Fatalf("unexpected Go error: %v", err)

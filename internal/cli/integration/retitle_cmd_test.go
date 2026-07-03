@@ -28,16 +28,16 @@ func retitleSetup(t *testing.T) string {
 	if rc := cli.Execute([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "First Milestone", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add milestone: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "adr", "--title", "First ADR", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "First ADR", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add adr: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "gap", "--title", "First Gap", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "First Gap", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add gap: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "decision", "--title", "First Decision", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", "First Decision", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add decision: %d", rc)
 	}
-	if rc := cli.Execute([]string{"add", "contract", "--title", "First Contract", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"add", "contract", "--body", "## Purpose\n\nFixture prose for test setup; not the subject under test.\n\n## Stability\n\nFixture prose for test setup; not the subject under test.\n", "--title", "First Contract", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add contract: %d", rc)
 	}
 	return root

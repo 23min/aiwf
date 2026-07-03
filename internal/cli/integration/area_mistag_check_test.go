@@ -45,7 +45,7 @@ func TestRunCheck_AreaMistagSurfacesViaDispatcher(t *testing.T) {
 
 	// A gap tagged app-a, then a commit trailered to it that touches ONLY
 	// billing — work that landed entirely in a foreign area.
-	mustRun(t, "add", "gap", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login timeout fix")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login timeout fix")
 	if err = os.WriteFile(filepath.Join(root, "projects", "billing", "invoice.go"), []byte("package billing\n"), 0o644); err != nil {
 		t.Fatalf("write invoice: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestRunCheck_AreaMistag_AcknowledgeSuppresses(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	mustRun(t, "add", "gap", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login timeout fix")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login timeout fix")
 	if err = os.WriteFile(filepath.Join(root, "projects", "billing", "invoice.go"), []byte("package billing\n"), 0o644); err != nil {
 		t.Fatalf("write invoice: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestRunCheck_AreaMistag_InertWhenNoAreaDeclaresPaths(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	mustRun(t, "add", "gap", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login fix")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--root", root, "--actor", "human/test", "--area", "app-a", "--title", "login fix")
 	if err = os.MkdirAll(filepath.Join(root, "projects", "billing"), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestRunCheck_AreaMistag_SkipsGlobalTaggedEntity(t *testing.T) {
 		t.Fatalf("write aiwf.yaml: %v", err)
 	}
 
-	mustRun(t, "add", "gap", "--root", root, "--actor", "human/test", "--area", "global", "--title", "shared migration")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--root", root, "--actor", "human/test", "--area", "global", "--title", "shared migration")
 	if err = os.WriteFile(filepath.Join(root, "projects", "billing", "shared.go"), []byte("package billing\n"), 0o644); err != nil {
 		t.Fatalf("write shared.go: %v", err)
 	}

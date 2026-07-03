@@ -84,7 +84,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 			Name: "single-step renumber preserves id-grammar and allocates next free id (M-0160/AC-1: corpus baseline)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
-				env.MustRunBin("add", "gap", "--title", "First gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "First gap")
 				oldPath := findEntityFile(t, env, "G-0001")
 				if oldPath == "" {
 					t.Fatalf("G-0001 not found after `aiwf add gap`")
@@ -125,7 +125,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 			Name: "chained renumber across two reallocates grows prior_ids oldest-first (M-0160/AC-1: G-0118 invariant)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
-				env.MustRunBin("add", "gap", "--title", "Chained gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Chained gap")
 				env.MustRunBin("reallocate", "G-0001")
 				env.MustRunBin("reallocate", "G-0002")
 
@@ -163,7 +163,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 				t.Helper()
 
 				// Trunk-side: allocate G-0001 + push origin/main forward.
-				env.MustRunBin("add", "gap", "--title", "Trunk-side gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Trunk-side gap")
 				env.MustRunGit("push", "origin", "main")
 
 				// Cut a feature branch from origin/main pre-push (the
@@ -253,8 +253,8 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 				t.Helper()
 
 				// Two gaps: A references B in its body.
-				env.MustRunBin("add", "gap", "--title", "Referencing gap")
-				env.MustRunBin("add", "gap", "--title", "Referenced gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Referencing gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Referenced gap")
 
 				gapA := findEntityFile(t, env, "G-0001")
 				if gapA == "" {
@@ -312,7 +312,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 			Name: "reallocate commit carries aiwf-prior-entity trailer and aiwf history bridges old to new (M-0160/AC-1: audit-trail invariant)",
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
-				env.MustRunBin("add", "gap", "--title", "Bridging gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Bridging gap")
 				env.MustRunBin("reallocate", "G-0001")
 
 				// HEAD's trailer set: aiwf-verb: reallocate +
@@ -413,7 +413,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 				t.Helper()
 
 				// Trunk-side: allocate G-0001 + push.
-				env.MustRunBin("add", "gap", "--title", "Trunk gap")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Trunk gap")
 				env.MustRunGit("push", "origin", "main")
 
 				// Feature branch from the post-push state.
@@ -421,7 +421,7 @@ func TestReallocateScenarios_AC1_HistoricalCorpus(t *testing.T) {
 
 				// `aiwf add gap` on feature: allocator must skip
 				// G-0001 (already on origin/main) and produce G-0002.
-				out := env.MustRunBin("add", "gap", "--title", "Feature gap")
+				out := env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Feature gap")
 				if !strings.Contains(out, "G-0002") {
 					t.Errorf("feature-side allocator did not skip trunk-side G-0001; got:\n%s", out)
 				}

@@ -39,7 +39,7 @@ func TestAdd_TitleMaxLength_DefaultRejectsLong(t *testing.T) {
 	// 150-char title — well over the 80-char default cap.
 	longTitle := strings.Repeat("a", 150)
 	out, err := testutil.RunBin(t, root, binDir, nil,
-		"add", "gap", "--title", longTitle)
+		"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", longTitle)
 	if err == nil {
 		t.Fatalf("aiwf add gap (long title) succeeded but should have been rejected:\n%s", out)
 	}
@@ -84,7 +84,7 @@ func TestAdd_TitleMaxLength_AcceptsShort(t *testing.T) {
 
 	title := "Short and descriptive gap title"
 	if out, err := testutil.RunBin(t, root, binDir, nil,
-		"add", "gap", "--title", title); err != nil {
+		"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", title); err != nil {
 		t.Fatalf("aiwf add gap (short title): %v\n%s", err, out)
 	}
 
@@ -139,7 +139,7 @@ func TestAdd_TitleMaxLength_ConfiguredOverride(t *testing.T) {
 	// 50-char title — under the default 80, over the configured 30.
 	title := strings.Repeat("a", 50)
 	out, err := testutil.RunBin(t, root, binDir, nil,
-		"add", "gap", "--title", title)
+		"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", title)
 	if err == nil {
 		t.Fatalf("aiwf add gap (50-char title under configured cap 30) succeeded but should have been rejected:\n%s", out)
 	}

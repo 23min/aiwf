@@ -44,6 +44,28 @@ func CarriesOwnArea(k Kind) bool {
 	return k != KindMilestone
 }
 
+// IsBornComplete reports whether a kind has no draft phase — the
+// entity is live and referenceable from the moment its create commit
+// lands, with no intermediate status in which an empty body is by
+// design (G-0326). True for adr, gap, decision, contract. False for
+// epic and milestone: an epic is born `proposed` but epics are
+// exempted per G-0326's explicit scope (only gap/decision/adr/
+// contract gate at creation); a milestone is born `draft` and grows
+// prose as planning/TDD proceeds — see entity-body-empty's draft-
+// status suppression. The single source of truth consulted by both
+// the `aiwf add` verb-time gate (internal/verb/add.go) and the
+// entity-body-empty check rule's severity escalation
+// (internal/check/entity_body.go), so the two chokepoints cannot
+// drift apart.
+func IsBornComplete(k Kind) bool {
+	switch k {
+	case KindADR, KindGap, KindDecision, KindContract:
+		return true
+	default:
+		return false
+	}
+}
+
 // Status constants for the closed sets. Hardcoded; see
 // docs/pocv3/design/design-decisions.md and the schemas table for
 // per-kind allowance. Use these constants instead of bare string

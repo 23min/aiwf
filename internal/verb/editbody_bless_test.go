@@ -66,7 +66,7 @@ func TestEditBody_Bless_RoundTrip(t *testing.T) {
 func TestEditBody_Bless_RefusesWhenNoChanges(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Quiet gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Quiet gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	_, err := verb.EditBody(r.ctx, r.tree(), "G-0001", nil, testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "no changes to commit") {
@@ -150,7 +150,7 @@ func TestEditBody_Bless_RefusesNewEntity(t *testing.T) {
 func TestEditBody_Bless_PreservesYAMLFormatting(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Format gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Format gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	gapPath := filepath.Join(r.root, "work", "gaps", "G-0001-format-gap.md")
 	original, err := os.ReadFile(gapPath)

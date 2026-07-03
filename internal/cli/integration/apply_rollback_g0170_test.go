@@ -95,7 +95,7 @@ func TestApplyRollback_AC3_G0170_BlessModePreservesPreApplyDirtyBytes(t *testing
 	// Step 1: Create a gap entity. `aiwf add gap` produces a stub
 	// body the kernel recognizes; the entity gives us a real
 	// kernel-managed path to test bless-mode rollback against.
-	env.MustRunBin("add", "gap", "--title", "G-0170 fixture entity")
+	env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "G-0170 fixture entity")
 
 	entityPath := findEntityFile(t, env, "G-0001")
 	if entityPath == "" {

@@ -22,8 +22,8 @@ import (
 func TestPromote_SupersededByWritesReciprocalSupersedes(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New decision", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0002", "accepted", testActor, "", false, verb.PromoteOptions{}))
 
@@ -57,8 +57,8 @@ func TestPromote_SupersededByWritesReciprocalSupersedes(t *testing.T) {
 func TestPromote_SupersededByReciprocalIdempotent(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New decision", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0002", "accepted", testActor, "", false, verb.PromoteOptions{}))
 
@@ -107,7 +107,7 @@ func TestPromote_SupersededByReciprocalIdempotent(t *testing.T) {
 func TestPromote_SupersededByAbsentTargetNoReciprocal(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 
 	res, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false,

@@ -176,9 +176,9 @@ func TestAddMilestone_TDDOnlyForMilestones(t *testing.T) {
 		args []string
 	}{
 		{"epic", []string{"add", "epic", "--title", "X", "--tdd", "required"}},
-		{"gap", []string{"add", "gap", "--title", "X", "--tdd", "required"}},
-		{"adr", []string{"add", "adr", "--title", "X", "--tdd", "required"}},
-		{"decision", []string{"add", "decision", "--title", "X", "--tdd", "required"}},
+		{"gap", []string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "X", "--tdd", "required"}},
+		{"adr", []string{"add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "X", "--tdd", "required"}},
+		{"decision", []string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", "X", "--tdd", "required"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -66,7 +66,7 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 				t.Helper()
 
 				// Trunk-side: aiwf add gap → G-0001 at the original slug.
-				env.MustRunBin("add", "gap", "--title", "Trunk gap original slug")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Trunk gap original slug")
 				env.MustRunGit("push", "origin", "main")
 
 				// Feature branch from origin/main's tip.
@@ -136,7 +136,7 @@ func TestIDRenameUntrailered_AC4_InlineGitMvFiresFinding(t *testing.T) {
 			Setup: func(t *testing.T, env *ScenarioEnv) {
 				t.Helper()
 
-				env.MustRunBin("add", "gap", "--title", "Trunk gap for rename control")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Trunk gap for rename control")
 				env.MustRunGit("push", "origin", "main")
 
 				env.MustRunGit("checkout", "-b", "feature/aiwf-rename-control")
@@ -172,7 +172,7 @@ func TestIDRenameUntrailered_AC4_AcknowledgeIllegalSilences(t *testing.T) {
 				t.Helper()
 
 				// Trunk-side: gap with one slug + push.
-				env.MustRunBin("add", "gap", "--title", "Trunk gap original slug")
+				env.MustRunBin("add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Trunk gap original slug")
 				env.MustRunGit("push", "origin", "main")
 
 				// Feature branch + inline git mv with no trailer

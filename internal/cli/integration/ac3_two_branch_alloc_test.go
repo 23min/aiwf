@@ -28,14 +28,14 @@ func TestAdd_TwoBranchesNoCollision(t *testing.T) {
 
 	// Branch A forks from the base commit and allocates the first gap.
 	mustGit(t, root, "checkout", "-b", "branchA")
-	mustRun(t, "add", "gap", "--title", "Alpha gap", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Alpha gap", "--actor", "human/test", "--root", root)
 	gotA := soleGapID(t, root)
 
 	// Branch B forks from BEFORE A's add commit (branchA~1 = the init
 	// commit), so its working tree does not contain A's gap. A naive
 	// {working-tree + trunk} allocator would hand back the same id.
 	mustGit(t, root, "checkout", "-b", "branchB", "branchA~1")
-	mustRun(t, "add", "gap", "--title", "Bravo gap", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Bravo gap", "--actor", "human/test", "--root", root)
 	gotB := soleGapID(t, root)
 
 	if gotB == gotA {

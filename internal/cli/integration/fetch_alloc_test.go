@@ -37,20 +37,20 @@ func TestAdd_FetchReflectsUpstreamID(t *testing.T) {
 	cloneNoFetch := cloneAt(t, up)
 
 	// Advance upstream out-of-band; the clones' tracking refs are now stale.
-	mustRun(t, "add", "gap", "--title", "upstream two", "--root", up, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "upstream two", "--root", up, "--actor", "human/test")
 	if got := gapIDs(t, up); !slices.Contains(got, "G-0002") {
 		t.Fatalf("precondition: upstream should carry G-0002, got %v", got)
 	}
 
 	// --fetch refreshes origin/main → sees G-0002 → skips to G-0003.
-	mustRun(t, "add", "gap", "--fetch", "--title", "fetch three", "--root", cloneFetch, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--fetch", "--title", "fetch three", "--root", cloneFetch, "--actor", "human/test")
 	gotFetch := gapIDs(t, cloneFetch)
 	if !slices.Contains(gotFetch, "G-0003") || slices.Contains(gotFetch, "G-0002") {
 		t.Errorf("--fetch clone gaps = %v, want G-0003 (skipped past upstream G-0002), not G-0002", gotFetch)
 	}
 
 	// Without --fetch, the stale trunk ref hides G-0002, so it is re-allocated.
-	mustRun(t, "add", "gap", "--title", "nofetch two", "--root", cloneNoFetch, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "nofetch two", "--root", cloneNoFetch, "--actor", "human/test")
 	gotNoFetch := gapIDs(t, cloneNoFetch)
 	if !slices.Contains(gotNoFetch, "G-0002") {
 		t.Errorf("no-fetch clone gaps = %v, want G-0002 (stale trunk re-allocates upstream id)", gotNoFetch)
@@ -71,7 +71,7 @@ func TestAdd_FetchBestEffort_NoRemote(t *testing.T) {
 
 	var rc int
 	stderr := captureStderr(t, func() {
-		rc = cli.Execute([]string{"add", "gap", "--fetch", "--root", repo, "--title", "local only", "--actor", "human/test"})
+		rc = cli.Execute([]string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--fetch", "--root", repo, "--title", "local only", "--actor", "human/test"})
 	})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("aiwf add --fetch (no remote) rc = %d, want OK (best-effort never blocks)\nstderr: %s", rc, stderr)
@@ -106,7 +106,7 @@ func newRepoNoRemote(t *testing.T) string {
 func newUpstreamWithGap(t *testing.T) string {
 	t.Helper()
 	dir := newRepoNoRemote(t)
-	mustRun(t, "add", "gap", "--title", "upstream one", "--root", dir, "--actor", "human/test")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "upstream one", "--root", dir, "--actor", "human/test")
 	if got := gapIDs(t, dir); !slices.Contains(got, "G-0001") {
 		t.Fatalf("upstream setup: expected G-0001, got %v", got)
 	}

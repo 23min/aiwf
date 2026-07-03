@@ -351,7 +351,7 @@ func TestScenario_MultiCloneIdentity(t *testing.T) {
 func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
 	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--title", "Validators leak"); err != nil {
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Validators leak"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
 	// Create the lock file synthetically — git refuses to start a

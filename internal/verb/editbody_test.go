@@ -53,7 +53,7 @@ func TestEditBody_RoundTrip(t *testing.T) {
 func TestEditBody_SingleOpWriteAndCommit(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Test gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	res, err := verb.EditBody(r.ctx, r.tree(), "G-0001", []byte("## Body\n\nupdated\n"), testActor, "")
 	if err != nil {

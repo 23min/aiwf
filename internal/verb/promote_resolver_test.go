@@ -19,7 +19,7 @@ func TestPromote_GapAddressedBy(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Resolver", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Hand-edit gap", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Hand-edit gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
@@ -52,7 +52,7 @@ func TestPromote_GapAddressedByMultiple(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Co-resolved", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Co-resolved", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{AddressedBy: []string{"M-0001", "M-0002"}}))
@@ -77,7 +77,7 @@ func TestPromote_GapAddressedByMultiple(t *testing.T) {
 func TestPromote_GapAddressedByCommit(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by hardening commit", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Closed by hardening commit", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	// Resolve a real commit SHA from the repo. verb.Add committed the
 	// gap, so HEAD points at a genuine commit; ShortSHA returns its
@@ -118,7 +118,7 @@ func TestPromote_GapAddressedByCommit(t *testing.T) {
 func TestPromote_GapAddressedByCommit_RejectsUnresolvableSHA(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Bogus commit ref", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Bogus commit ref", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{AddressedByCommit: []string{"deadbeef"}})
@@ -158,7 +158,7 @@ func TestPromote_GapAddressedByCommit_RejectsUnresolvableSHA(t *testing.T) {
 func TestPromote_GapAddressedByCommit_ForceBypassesValidation(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Forced commit ref", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Forced commit ref", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "reference an unmerged fix", true,
 		verb.PromoteOptions{AddressedByCommit: []string{"deadbeef"}}))
@@ -180,8 +180,8 @@ func TestPromote_GapAddressedByCommit_ForceBypassesValidation(t *testing.T) {
 func TestPromote_ADRSupersededBy(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Replacement decision", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Replacement decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	// Walk both ADRs to "accepted" — the FSM only lets accepted → superseded.
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0002", "accepted", testActor, "", false, verb.PromoteOptions{}))
@@ -214,7 +214,7 @@ func TestPromote_ResolverWrongKind(t *testing.T) {
 		t.Errorf("expected gap-only error, got %v", err)
 	}
 
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	_, err = verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{SupersededBy: "ADR-0001"})
 	if err == nil || !strings.Contains(err.Error(), "only valid for ADR entities") {
@@ -227,7 +227,7 @@ func TestPromote_ResolverWrongKind(t *testing.T) {
 func TestPromote_ResolverWrongStatus(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "wontfix", testActor, "", false,
 		verb.PromoteOptions{AddressedBy: []string{"M-0001"}})
@@ -262,7 +262,7 @@ func TestPromote_ResolverAtomicSingleCommit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "G", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	beforeStatus := r.tree().ByID("G-0001").Status
 	beforeResolver := append([]string(nil), r.tree().ByID("G-0001").AddressedBy...)

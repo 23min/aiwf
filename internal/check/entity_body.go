@@ -82,6 +82,13 @@ var h3ACHeading = regexp.MustCompile(`^###\s+AC-(\d+)(?:\s*[—\-:]\s*(.+))?$`)
 // undeclared` (G-0268). The bumper is intentionally narrow: codes
 // outside this set pass through unchanged regardless of the flag.
 //
+// entity-body-empty findings against a born-complete kind
+// (entity.IsBornComplete — gap/decision/adr/contract) are already
+// SeverityError as emitted by entityBodyEmpty, independent of strict
+// (G-0326); this bumper re-applying SeverityError to them under
+// strict=true is a harmless no-op. Only epic/milestone (and the AC
+// subcode) findings are actually escalated by this function.
+//
 // Callers run this AFTER `Run` (or after appending the rule's
 // findings to their own slice) so the rule's emission stays
 // config-agnostic and the strictness bump is a separate, testable
@@ -98,10 +105,45 @@ func ApplyTDDStrict(findings []Finding, strict bool) {
 	}
 }
 
+// EmptyRequiredSections returns the names of kind's load-bearing
+// top-level body sections (per requiredSectionsByKind) that ARE
+// PRESENT in body but empty per isAllWhitespaceOrHeadings. A section
+// whose heading is missing outright is not "empty" in this rule's
+// sense — the same stance entityBodyEmpty has always taken (a body
+// using an unrecognized heading shape is a different problem, not
+// this one). Returns nil when kind has no required-sections entry, or
+// when every present required section carries content.
+//
+// Shared by the `aiwf add` verb-time gate for born-complete kinds
+// (internal/verb/add.go, G-0326) so the verb-time refusal and this
+// file's entityBodyEmpty check rule can never drift out of agreement
+// on what "empty" means — both read the same body-parsing helpers.
+func EmptyRequiredSections(k entity.Kind, body []byte) []string {
+	sections, has := requiredSectionsByKind[k]
+	if !has {
+		return nil
+	}
+	stripped := stripHTMLComments(body)
+	present := scanH2Sections(stripped)
+	var empty []string
+	for _, name := range sections {
+		content, found := present[name]
+		if !found {
+			continue
+		}
+		if isAllWhitespaceOrHeadings(content, false) {
+			empty = append(empty, name)
+		}
+	}
+	return empty
+}
+
 // entityBodyEmpty fires for any entity whose load-bearing body
-// section is empty. Warning severity by default; severity escalation
-// to error under aiwf.yaml tdd.strict is applied separately via
-// ApplyTDDStrict (M-066/AC-2).
+// section is empty. Warning severity by default for kinds with a
+// draft phase (epic, milestone); error unconditionally for
+// born-complete kinds (entity.IsBornComplete — G-0326). Severity
+// escalation for the warning-default kinds under aiwf.yaml
+// tdd.strict is applied separately via ApplyTDDStrict (M-066/AC-2).
 func entityBodyEmpty(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
@@ -144,25 +186,34 @@ func entityBodyEmpty(t *tree.Tree) []Finding {
 		// every top-level entity kind; the `has=false` arm only fires
 		// for synthetic/unknown Kind values that the tree loader does
 		// not produce. Documented unreachable in production.
-		if sections, has := requiredSectionsByKind[e.Kind]; has {
-			present := scanH2Sections(stripped)
-			for _, name := range sections {
-				content, found := present[name]
-				if !found {
-					continue
-				}
-				if isAllWhitespaceOrHeadings(content, false) {
-					findings = append(findings, Finding{
-						Code:     CodeEntityBodyEmpty,
-						Severity: SeverityWarning,
-						Subcode:  string(e.Kind),
-						Message: fmt.Sprintf("%s body section `## %s` is empty",
-							e.ID, name),
-						Path:     e.Path,
-						EntityID: e.ID,
-						Field:    "body",
-					})
-				}
+		if _, has := requiredSectionsByKind[e.Kind]; has {
+			// G-0326: born-complete kinds (gap/decision/adr/contract)
+			// have no draft phase — the entity is live and referenceable
+			// from the create commit, so an empty load-bearing section
+			// is an error unconditionally, not gated behind aiwf.yaml:
+			// tdd.strict (ApplyTDDStrict still re-applies SeverityError
+			// for these when strict is set, a harmless no-op). Epic and
+			// milestone keep the warning default that ApplyTDDStrict
+			// escalates.
+			severity := SeverityWarning
+			if entity.IsBornComplete(e.Kind) {
+				severity = SeverityError
+			}
+			// EmptyRequiredSections is the single definition of "empty"
+			// this rule and the `aiwf add` verb-time gate both consult;
+			// it re-derives `stripped` internally (idempotent, cheap on
+			// entity-sized bodies) so both callers pass raw body bytes.
+			for _, name := range EmptyRequiredSections(e.Kind, body) {
+				findings = append(findings, Finding{
+					Code:     CodeEntityBodyEmpty,
+					Severity: severity,
+					Subcode:  string(e.Kind),
+					Message: fmt.Sprintf("%s body section `## %s` is empty",
+						e.ID, name),
+					Path:     e.Path,
+					EntityID: e.ID,
+					Field:    "body",
+				})
 			}
 		}
 

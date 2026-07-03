@@ -122,7 +122,7 @@ func TestCodedEnvelope_VerbRefusal_AC2(t *testing.T) {
 
 	t.Run("authorize-kind-not-allowed via authorize", func(t *testing.T) {
 		// Authorizing a non-epic/milestone scope -> AuthorizeKindError.
-		if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "gap", "--title", "Scope target"); err != nil {
+		if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Scope target"); err != nil {
 			t.Fatalf("aiwf add gap: %v\n%s", err, out)
 		}
 		stdout, stderr, code := runSplit(t, root, bin, "authorize", "G-0001", "--to", "ai/claude", "--format=json")

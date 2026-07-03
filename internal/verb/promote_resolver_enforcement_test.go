@@ -20,7 +20,7 @@ import (
 func TestPromote_GapAddressedRequiresResolver(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Empty resolver", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Empty resolver", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, verb.PromoteOptions{})
 	if err == nil {
@@ -38,7 +38,7 @@ func TestPromote_GapAddressedRequiresResolver(t *testing.T) {
 func TestPromote_ADRSupersededRequiresResolver(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false, verb.PromoteOptions{})
@@ -58,7 +58,7 @@ func TestPromote_ADRSupersededRequiresResolver(t *testing.T) {
 func TestPromote_ResolverRequirementBypassedByForce(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Force-resolved", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Force-resolved", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "manual cleanup", true, verb.PromoteOptions{}))
 
@@ -83,7 +83,7 @@ func TestPromote_BackfillResolverOnAddressedGap(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Closer", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	// Land the gap in the no-resolver `addressed` state via --force,
 	// simulating a pre-G-0096 promote. From here the only path to a
 	// resolver is the new same-status back-fill.
@@ -119,7 +119,7 @@ func TestPromote_BackfillRejectedWhenResolverAlreadySet(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "First", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Already-resolved", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Already-resolved", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
 		verb.PromoteOptions{AddressedBy: []string{"E-0001"}}))
 
@@ -142,8 +142,8 @@ func TestPromote_BackfillRejectedWhenResolverAlreadySet(t *testing.T) {
 func TestPromote_ADRSupersededBackfill(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
 	// Force the no-superseded-by superseded state (legacy simulation).
 	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "simulate legacy", true, verb.PromoteOptions{}))

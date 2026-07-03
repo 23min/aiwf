@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -28,6 +30,11 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 		wantEntityID string
 		wantSubcode  string
 		wantSection  string // appears in Message
+		// wantSeverity pins G-0326: born-complete kinds (gap, adr,
+		// decision, contract) fire at error unconditionally; kinds
+		// with a draft phase (epic, milestone, and the AC subcode)
+		// keep the warning default that ApplyTDDStrict escalates.
+		wantSeverity Severity
 	}{
 		{
 			name:         "epic with empty Scope",
@@ -35,6 +42,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "E-0001",
 			wantSubcode:  "epic",
 			wantSection:  "Scope",
+			wantSeverity: SeverityWarning,
 		},
 		{
 			name:         "milestone with empty Approach",
@@ -42,6 +50,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "M-0001",
 			wantSubcode:  "milestone",
 			wantSection:  "Approach",
+			wantSeverity: SeverityWarning,
 		},
 		{
 			name:         "AC body empty under heading",
@@ -49,6 +58,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "M-0001/AC-1",
 			wantSubcode:  "ac",
 			wantSection:  "AC-1",
+			wantSeverity: SeverityWarning,
 		},
 		{
 			name:         "gap with empty `Why it matters`",
@@ -56,6 +66,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "G-0001",
 			wantSubcode:  "gap",
 			wantSection:  "Why it matters",
+			wantSeverity: SeverityError,
 		},
 		{
 			name:         "adr with empty Decision",
@@ -63,6 +74,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "ADR-0001",
 			wantSubcode:  "adr",
 			wantSection:  "Decision",
+			wantSeverity: SeverityError,
 		},
 		{
 			name:         "decision with empty Reasoning",
@@ -70,6 +82,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "D-0001",
 			wantSubcode:  "decision",
 			wantSection:  "Reasoning",
+			wantSeverity: SeverityError,
 		},
 		{
 			name:         "contract with empty Stability",
@@ -77,6 +90,7 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			wantEntityID: "C-0001",
 			wantSubcode:  "contract",
 			wantSection:  "Stability",
+			wantSeverity: SeverityError,
 		},
 	}
 
@@ -98,8 +112,8 @@ func TestEntityBodyEmpty_FiresPerKind_OneSectionEmpty(t *testing.T) {
 			if f.Code != CodeEntityBodyEmpty {
 				t.Errorf("Code = %q, want entity-body-empty", f.Code)
 			}
-			if f.Severity != SeverityWarning {
-				t.Errorf("Severity = %v, want warning", f.Severity)
+			if f.Severity != tc.wantSeverity {
+				t.Errorf("Severity = %v, want %v", f.Severity, tc.wantSeverity)
 			}
 			if f.Subcode != tc.wantSubcode {
 				t.Errorf("Subcode = %q, want %q", f.Subcode, tc.wantSubcode)
@@ -1515,6 +1529,97 @@ acs:
 					TDDPhase: entity.TDDPhaseRed,
 				},
 			},
+		})
+	}
+}
+
+// TestEmptyRequiredSections pins G-0326: the shared definition of
+// "empty" the `aiwf add` verb-time gate reuses from this file's own
+// entity-body-empty check rule. Table-driven over the cases that
+// matter for the gate: every section populated (nil result), one
+// section present-but-empty (named in the result), a section heading
+// missing entirely (NOT treated as empty — matches entityBodyEmpty's
+// long-standing stance, so a body using a non-standard heading shape
+// isn't double-penalized here), an HTML-comment-only placeholder
+// (empty), and the has=false branch for a kind carrying no
+// required-sections entry (only reachable directly against the
+// exported function — every real entity.Kind has an entry).
+func TestEmptyRequiredSections(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		kind entity.Kind
+		body []byte
+		want []string
+	}{
+		{
+			name: "gap fully populated",
+			kind: entity.KindGap,
+			body: []byte("## What's missing\n\nReal prose.\n\n## Why it matters\n\nReal prose.\n"),
+			want: nil,
+		},
+		{
+			name: "gap one section empty",
+			kind: entity.KindGap,
+			body: []byte("## What's missing\n\nReal prose.\n\n## Why it matters\n\n"),
+			want: []string{"Why it matters"},
+		},
+		{
+			name: "gap both sections empty (default template shape)",
+			kind: entity.KindGap,
+			body: []byte("## What's missing\n\n## Why it matters\n\n"),
+			want: []string{"What's missing", "Why it matters"},
+		},
+		{
+			name: "gap section heading missing entirely is not empty",
+			kind: entity.KindGap,
+			body: []byte("## Some other heading\n\nReal prose under an unrecognized heading.\n"),
+			want: nil,
+		},
+		{
+			name: "gap section is HTML-comment-only placeholder",
+			kind: entity.KindGap,
+			body: []byte("## What's missing\n\n<!-- TODO: write this -->\n\n## Why it matters\n\nReal prose.\n"),
+			want: []string{"What's missing"},
+		},
+		{
+			name: "adr fully populated",
+			kind: entity.KindADR,
+			body: []byte("## Context\n\nX.\n\n## Decision\n\nX.\n\n## Consequences\n\nX.\n"),
+			want: nil,
+		},
+		{
+			name: "decision one section empty",
+			kind: entity.KindDecision,
+			body: []byte("## Question\n\nX.\n\n## Decision\n\n\n\n## Reasoning\n\nX.\n"),
+			want: []string{"Decision"},
+		},
+		{
+			name: "contract fully populated",
+			kind: entity.KindContract,
+			body: []byte("## Purpose\n\nX.\n\n## Stability\n\nX.\n"),
+			want: nil,
+		},
+		{
+			name: "milestone acceptance-criteria section satisfied by AC sub-heading, not top-level prose",
+			kind: entity.KindMilestone,
+			body: []byte("## Goal\n\nX.\n\n## Approach\n\nX.\n\n## Acceptance criteria\n\n### AC-1 — X\n"),
+			want: nil,
+		},
+		{
+			name: "kind with no required-sections entry returns nil (has=false branch)",
+			kind: entity.Kind("bogus-unknown-kind"),
+			body: []byte("## Anything\n\n"),
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := EmptyRequiredSections(tt.kind, tt.body)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("EmptyRequiredSections(%s, ...) mismatch (-want +got):\n%s", tt.kind, diff)
+			}
 		})
 	}
 }
