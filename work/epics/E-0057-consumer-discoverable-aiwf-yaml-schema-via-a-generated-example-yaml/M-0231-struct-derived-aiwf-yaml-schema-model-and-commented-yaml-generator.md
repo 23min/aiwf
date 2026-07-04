@@ -159,6 +159,33 @@ populating Description — otherwise it would duplicate the registry's content
 into a second hardcoded place. A 2-mutation vacuity pass (delete a registry
 entry; swap the lookup key from Path to Type) both caught, 0 survivors.
 
+### AC-3 — Commented, reparseable YAML generator
+
+GenerateExample() renders Schema() as fully-commented YAML (every line,
+container and leaf, is comment-prefixed); defaultFor() resolves the effective
+default per leaf, calling the real accessor for the six fields whose zero
+value would lie · commit 9d896a62 · tests 7/7
+
+Extracted `DefaultStatusMdAutoUpdate`/`DefaultWireClaudeMd` constants so
+those two getters stop hiding a bare literal (small, behavior-preserving
+refactor, in scope per the Design notes). The trickiest bit was YAML syntax
+for the slice-of-struct (areas.members) and map-of-struct (agents) blocks:
+a dash-prefixed example item for the former, a synthetic `<key>:`
+placeholder line for the latter (no real SchemaField represents it). Hit and
+fixed a real bug during GREEN — the dash must render *after* the `# `
+comment marker, not before, or YAML reads it as a live empty list item with
+the rest as a trailing comment. Refactored the type-dispatch conditions in
+GenerateExample into named predicates (`isSliceOfStruct`/`isMapOfStruct`/
+`isStructContainer`) during REFACTOR so each is directly unit-testable —
+closes a branch-coverage gap the real schema can't reach on its own (no
+map-of-scalar field exists today). A 3-mutation vacuity pass found one real
+survivor: only `allocate.trunk`'s resolver was pinned to its actual getter
+value, so a broken `html.out_dir` resolver (and, by the same gap, four
+others) went undetected; strengthened `TestDefaultFor_ResolverPaths` to pin
+all six against their real accessors, confirmed the fix catches it, then
+confirmed two further mutations (dash-ordering regression, a missing
+state-reset causing a panic) both caught.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
