@@ -186,6 +186,17 @@ all six against their real accessors, confirmed the fix catches it, then
 confirmed two further mutations (dash-ordering regression, a missing
 state-reset causing a panic) both caught.
 
+### AC-4 — Exported accepted-key registry
+
+AcceptedKeys() derives the full set of accepted key paths from Schema() as a
+map[string]bool, the single-source registry G-0307's strict-decode guard is
+meant to consume instead of a parallel allowlist · commit d9f64b09 · tests 2/2
+
+Membership-checked against the exact typo examples G-0307's gap body cites
+(`tdd.stict`, `araes`) rather than only asserting full-set equality, so the
+test also pins the actual consumer use case. A 2-mutation vacuity pass
+(key by Type instead of Path; filter out all nested keys) both caught.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
