@@ -46,15 +46,15 @@ Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance c
 
 ## Handoff
 
-Before declaring ready, run a self-review pass:
+Before declaring ready, run a readiness check — not a review; the milestone's independent review happens at wrap:
 
 1. Re-read the milestone spec — confirm every AC is covered by at least one test.
 2. Run the **branch-coverage audit** from `wf-tdd-cycle` → "Branch-coverage audit." AC coverage alone is not sufficient.
-3. Run through the `wf-review-code` checklist mentally (correctness, edge cases, conventions, no unrelated changes).
+3. Tidy the diff: remove debug output, unrelated changes, and stale comments so the reviewer's attention lands on substance, not lint.
 4. If the project has its own end-to-end smoke procedure, run it.
 5. Fix anything you find. Then declare:
 
-   *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, self-review passed. Ready for `aiwfx-wrap-milestone`."*
+   *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, diff tidied. Ready for `aiwfx-wrap-milestone` — which runs the independent review before closing."*
 
 Hand off to **reviewer** for an external review pass now, or proceed to `aiwfx-wrap-milestone` — its wrap dispatches an independent review (step 2) before closing, so the milestone gets an external pass either way.
 

@@ -78,7 +78,7 @@ The `--branch` flag names the *future* milestone branch — the one step 5 will 
 
 This is a *separate* commit from step 3, landed on the same parent epic branch. The scope is `active` from this commit forward; the agent operates within it until the milestone reaches a terminal status or the operator pauses the scope.
 
-If the operator is NOT on the parent epic branch when this step runs (e.g. they jumped to a feature branch first), the kernel's preflight refuses with `branch-context-required` or `branch-not-found`. The override path is the same sovereign-act shape:
+If the operator is NOT on the parent epic branch when this step runs (e.g. they jumped to a feature branch first), the preflight classifies the current checkout's rung against the `--branch` target's rung; a pair that isn't a legal ritual flow (here `epic → milestone`) refuses with `rung-pair-illegal`, naming both branches' rungs. (Omitting `--branch` from a non-ritual checkout instead refuses with `branch-context-required`.) The override path is the same sovereign-act shape:
 
 ```bash
 aiwf authorize M-NNNN --to ai/<id> --branch milestone/M-NNNN-<slug> --force --reason "<one-sentence justification>"
@@ -123,25 +123,25 @@ If a decision surfaces mid-implementation that wasn't pre-locked in the spec, in
 
 If a piece of work surfaces that's deferred, open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNN` id under the spec's `## Deferrals` section.
 
-### 7. Self-review before declaring complete
+### 7. Readiness check before handoff
 
-Run a self-review pass before invoking `aiwfx-wrap-milestone`:
+Before invoking `aiwfx-wrap-milestone`, confirm the change is *ready to be reviewed* — not that it *has been* reviewed. These are gates you clear yourself so a broken or noisy diff never reaches an independent reviewer; none of them is the review:
 
 - Re-read the milestone spec; confirm every AC has at least one passing test.
 - Run `aiwf check` (or `aiwf show M-NNNN`); confirm zero error-severity findings on the milestone. The `acs-tdd-audit`, `milestone-done-incomplete-acs`, and `acs-shape` codes are the AC-related ones to watch for.
 - Run the **branch-coverage audit** from `wf-tdd-cycle` — every reachable conditional branch in the diff has an explicit test. This is a hard rule.
-- Run through the `wf-review-code` checklist mentally (correctness, edge cases, conventions, no unrelated changes).
+- Tidy the diff: remove debug output, unrelated changes, and stale comments so the reviewer's attention lands on substance, not lint. Reading your own code for correctness catches little — which is exactly why the review that follows is *independent*, not another pass by you.
 - If the project has its own end-to-end smoke procedure, run it.
 
-Fix anything you find before declaring done.
+Fix anything you find before handing off. **The review itself runs at `aiwfx-wrap-milestone`: an independent, fresh-context two-lens pass — code-quality (`wf-review-code`) and design-quality (`wf-rethink`) — dispatched before the milestone closes. It is the authoritative check; this readiness pass never stands in for it.**
 
 ### 8. Hand off to wrap
 
-When self-review is clean, declare:
+When the readiness checks are clean, declare:
 
-> *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, self-review passed. Ready for `aiwfx-wrap-milestone`."*
+> *"Implementation complete. <N> tests passing, build green, branch-coverage audit clean, diff tidied. Ready for `aiwfx-wrap-milestone` — which runs the independent review before closing."*
 
-The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` commits only the wrap-side spec updates (Work log, Validation, Reviewer notes, Deferrals) and then closes the milestone via its own declared-sequence gate.
+The implementation is already committed, per-AC, from step 6 — there is nothing left to bundle. `aiwfx-wrap-milestone` dispatches the independent two-lens review, then commits only the wrap-side spec updates (Work log, Validation, Reviewer notes, Deferrals) and closes the milestone via its own declared-sequence gate.
 
 ## Constraints
 
@@ -166,4 +166,4 @@ The implementation is already committed, per-AC, from step 6 — there is nothin
 
 ## Next step
 
-→ `aiwfx-wrap-milestone M-NNNN` after self-review is clean.
+→ `aiwfx-wrap-milestone M-NNNN` after the readiness check is clean.

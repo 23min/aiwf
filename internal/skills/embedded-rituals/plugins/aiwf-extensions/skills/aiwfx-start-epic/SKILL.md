@@ -92,7 +92,7 @@ The `--branch` flag names the *future* epic branch — the one step 8 will cut. 
 
 This is a *separate* commit from step 6. The scope is `active` from this commit forward; the agent operates within it until the epic reaches a terminal status or the operator pauses the scope.
 
-If the operator is NOT on `main` when this step runs (e.g. they jumped to a feature branch first), the kernel's preflight refuses with `branch-context-required` or `branch-not-found`. The override path is the same sovereign-act shape:
+If the operator is NOT on `main` when this step runs (e.g. they jumped to a feature branch first), the preflight classifies the current checkout's rung against the `--branch` target's rung; a pair that isn't a legal ritual flow (here `trunk → epic`) refuses with `rung-pair-illegal`, naming both branches' rungs. (Omitting `--branch` from a non-ritual checkout instead refuses with `branch-context-required`.) The override path is the same sovereign-act shape:
 
 ```bash
 aiwf authorize E-NN --to ai/<id> --branch epic/E-NN-<slug> --force --reason "<one-sentence justification>"
