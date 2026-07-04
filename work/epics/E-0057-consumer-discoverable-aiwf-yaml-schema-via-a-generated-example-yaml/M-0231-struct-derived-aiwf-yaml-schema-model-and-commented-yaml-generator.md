@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Accepted-key set is exported as a reusable registry
-      status: open
+      status: met
       tdd_phase: done
 ---
 
