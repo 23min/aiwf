@@ -1,7 +1,9 @@
 ---
 id: G-0361
 title: aiwfx-release never routes release intent to the deployer agent
-status: open
+status: addressed
+addressed_by_commit:
+    - f27265f3
 ---
 ## Problem
 
