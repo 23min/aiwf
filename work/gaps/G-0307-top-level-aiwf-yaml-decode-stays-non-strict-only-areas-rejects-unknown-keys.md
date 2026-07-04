@@ -35,3 +35,33 @@ tolerates two legacy keys on read during the migration window — `actor:`
 `LegacyAiwfVersion` and stripped on `aiwf update`. A naive strict decode would
 reject those and break that documented read-tolerance, so the fix must allowlist
 the legacy keys (or strip-then-strict) rather than blanket-strict.
+
+## Coordinate with E-0057 — derive the accepted-key set from its schema registry
+
+E-0057 builds a struct-derived schema model of every valid `aiwf.yaml` key (to
+generate a consumer-discoverable `aiwf.example.yaml`). Documentation and this
+strict-decode guard are the two halves of "safe to hand-author a config field":
+E-0057 tells the user which keys exist; this gap makes a mistyped key fail loud.
+A key that is documented but still silently ignored on a typo is only
+half-solved.
+
+Sequence this **after** E-0057 and consume its output rather than hand-listing
+keys:
+
+- **Derive the accepted-key set from E-0057's exported schema registry**, not a
+  parallel allowlist maintained here. Two independent key lists drift — a block
+  added to the schema model but forgotten in this allowlist (or the reverse)
+  reintroduces exactly the silent-misconfiguration class this guard exists to
+  kill.
+- **Land the enforcing test here, not in E-0057.** Assert the strict decoder's
+  accepted-key set equals the schema registry, so the two cannot fall out of
+  sync. That equality test can only exist once strict-decode exists, so it is
+  this gap's deliverable — E-0057 only exposes the registry and records this
+  instruction.
+- The legacy-key allowlist above (`actor:`, `aiwf_version:`) is orthogonal: the
+  registry supplies the *current* accepted keys; the legacy tolerance is layered
+  on top (allowlist or strip-then-strict).
+
+Soft dependency, not a hard block: this gap *could* ship with a hand-maintained
+allowlist, but doing so forfeits the single-source guarantee — so wait for
+E-0057's registry.
