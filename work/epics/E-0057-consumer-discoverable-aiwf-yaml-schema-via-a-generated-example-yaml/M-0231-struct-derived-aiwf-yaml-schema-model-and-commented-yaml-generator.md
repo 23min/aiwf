@@ -13,6 +13,10 @@ acs:
       title: Anti-drift test fails when a yaml field has no schema-model entry
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Generator output is valid, reparseable YAML with defaults and descriptions
+      status: open
+      tdd_phase: red
 ---
 
 # M-0231 — Struct-derived aiwf.yaml schema model and commented-YAML generator
@@ -116,4 +120,6 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
 ### AC-1 — Schema model enumerates every yaml field across the config structs
 
 ### AC-2 — Anti-drift test fails when a yaml field has no schema-model entry
+
+### AC-3 — Generator output is valid, reparseable YAML with defaults and descriptions
 
