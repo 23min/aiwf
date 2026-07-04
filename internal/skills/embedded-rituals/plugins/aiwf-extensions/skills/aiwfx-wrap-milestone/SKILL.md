@@ -125,15 +125,35 @@ git push -u origin milestone/M-NNNN-<slug>
 
 Open the PR if the project's flow is PR-driven. Reference the milestone id in the PR title.
 
-### 10. 🛑 Declared-sequence gate — merge the milestone branch and close
+### 10. 🛑 Declared-sequence gate — close the milestone (terminal local sequence)
 
 This is the milestone's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 9, outward) and any origin-branch delete (outward) — those stand as their own gates and are never batched here.
 
 The enumerated local sequence is **merge → promote-done → local cleanup**:
 
-**1. Merge** the milestone branch into the epic branch. If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
+1. **Merge** the milestone branch into the epic branch, with a trailered merge commit (step 12).
+2. **Promote** the milestone to `done` (step 13).
+3. **Local cleanup** — delete the local milestone branch and its worktree, if one was used (step 14).
 
-**Reconcile first, merge second.** The epic branch is this merge's integration target. Check whether it has advanced past the milestone branch's fork point: `git merge-base --is-ancestor epic/E-NNNN-<slug> milestone/M-NNNN-<slug>`. If that's false, the epic branch carries commits the milestone branch doesn't — don't merge yet. Integrate the epic branch into the milestone branch first, resolve any conflicts there, and re-run the full local CI gate (step 1) on the reconciled milestone branch. Only once that gate is green does the merge below run — a milestone branch that never fell behind gets a clean fast-forward-shaped merge; one that needed reconciliation lands only after its integrated state is validated. Resolving a conflict on the epic branch itself, mid-merge, is the failure mode this ordering avoids: the epic branch would receive a result no gate ever validated.
+Once the sequence is approved, execute it in order:
+
+### 11. Reconcile the milestone branch with the epic branch
+
+Run this immediately before the merge — not as an earlier precondition. The epic branch is this merge's integration target.
+
+1. Check whether the epic branch has advanced past the milestone branch's fork point:
+
+   ```bash
+   git merge-base --is-ancestor epic/E-NNNN-<slug> milestone/M-NNNN-<slug>
+   ```
+
+2. If that check fails: the epic branch carries commits the milestone branch doesn't. Integrate the epic branch into the milestone branch, resolve any conflicts there, and re-run the full local CI gate (step 1) on the reconciled milestone branch.
+
+3. Only once the check passes does the merge (step 12) run.
+
+### 12. Merge the milestone branch into the epic branch with a trailered merge commit
+
+If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
 ```bash
 git checkout epic/E-NNNN-<slug>
@@ -157,7 +177,7 @@ The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — `
 
 Record the resulting merge commit SHA wherever the project tracks merge history (the milestone's `## Work log` section is the natural place).
 
-**2. Promote** the milestone to `done`:
+### 13. Promote the milestone to `done`
 
 ```bash
 aiwf promote M-NNNN done
@@ -165,7 +185,9 @@ aiwf promote M-NNNN done
 
 aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge so a delegated milestone's authorize scope is still live for the merge commit.
 
-**3. Local cleanup** — delete the local milestone branch (and its worktree, if one was used):
+### 14. Local cleanup
+
+Delete the local milestone branch (and its worktree, if one was used):
 
 ```bash
 git branch -d milestone/M-NNNN-<slug>
@@ -173,7 +195,7 @@ git branch -d milestone/M-NNNN-<slug>
 
 These are local and reversible, so they belong inside the gate above.
 
-### 11. Origin cleanup and housekeeping
+### 15. Origin cleanup and housekeeping
 
 After the declared-sequence gate, finish up. The origin-branch delete is an **outward action — its own gate**, never batched into step 10:
 

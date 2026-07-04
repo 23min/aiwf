@@ -12,7 +12,8 @@ import (
 // follow-up.
 //
 // Structural drift-check pins for the aiwfx-wrap-milestone SKILL.md
-// step 11 ("After merge") trailer prescription. Mirrors
+// merge-step trailer prescription (the "Merge the milestone branch
+// into the epic branch with a trailered merge commit" step). Mirrors
 // internal/policies/aiwfx_wrap_epic_test.go's
 // TestAiwfxWrapEpic_AC6_StructuralMergeStepDriftCheck pattern: walks
 // the markdown heading hierarchy to locate the merge-step section,
@@ -129,14 +130,13 @@ func TestAiwfxWrapMilestone_StructuralMergeStepDriftCheck(t *testing.T) {
 // `### ` heading is identified by a case-insensitive substring match
 // on "merge". Returns "" if no matching subsection is found.
 //
-// Distinct from aiwfx_wrap_epic_test.go's findMergeStepSection
-// (which matches on "merge" AND "epic branch", scoped to the
-// epic-to-trunk merge step) because the wrap-milestone skill's
-// merge step is the milestone-to-epic merge — its heading text is
-// "After merge" rather than mentioning "epic branch" explicitly.
-// A single-substring "merge" match is sufficient because the
-// wrap-milestone skill's only `###` heading containing "merge" IS
-// the relevant one.
+// A single-substring "merge" match is sufficient: the declared-
+// sequence gate step's own heading ("Declared-sequence gate — close
+// the milestone") deliberately avoids the word "merge" so it can't be
+// confused with the merge-action step ("Merge the milestone branch
+// into the epic branch with a trailered merge commit") — the
+// wrap-milestone skill's only `###` heading containing "merge" IS the
+// relevant one.
 func findWrapMilestoneMergeStepSection(body string) string {
 	workflow := extractMarkdownSection(body, 2, "Workflow")
 	if workflow == "" {
@@ -158,38 +158,67 @@ func findWrapMilestoneMergeStepSection(body string) string {
 // TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge pins the
 // reconcile-first practice scoped to this ritual's integration
 // target — the EPIC branch, not mainline (a milestone wrap merges
-// into the epic branch, never mainline directly). Before the
-// milestone-to-epic merge, if the epic branch has advanced past the
-// milestone branch's fork point, the epic branch must be integrated
-// into the milestone branch and the full local gate re-run there —
-// never resolved on the epic branch itself, mid-merge.
+// into the epic branch, never mainline directly). The reconcile step
+// lives as its own `### ` subsection inside `## Workflow` (G-0359: not
+// folded into the merge step's own prose), positioned BEFORE the
+// merge subsection: before the milestone-to-epic merge, if the epic
+// branch has advanced past the milestone branch's fork point, the
+// epic branch must be integrated into the milestone branch and the
+// full local gate re-run there — never resolved on the epic branch
+// itself, mid-merge.
 //
 // Structural per CLAUDE.md *Substring assertions are not structural
-// assertions*: the guard, the integrate-and-re-gate instruction, and
-// the merge command itself must all live inside the merge-step
-// subsection located by findWrapMilestoneMergeStepSection, in that
-// order.
+// assertions*: the reconcile step must exist as its own subsection,
+// ordered before the merge subsection, with the guard and the
+// integrate-and-re-gate instruction in the right order inside it.
 func TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfxWrapMilestoneFixture(t)
 
-	merge := findWrapMilestoneMergeStepSection(body)
-	if merge == "" {
-		t.Fatal("`## Workflow` must contain a `### …merge…` subsection")
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("SKILL.md must have a `## Workflow` section")
+	}
+	reconcileIdx, mergeIdx := -1, -1
+	for i, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		text := strings.ToLower(strings.TrimPrefix(line, "### "))
+		switch {
+		case reconcileIdx < 0 && strings.Contains(text, "reconcile") && strings.Contains(text, "epic branch"):
+			reconcileIdx = i
+		case mergeIdx < 0 && strings.Contains(text, "merge") && strings.Contains(text, "epic branch"):
+			mergeIdx = i
+		}
+	}
+	if reconcileIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Reconcile…epic branch…` step")
+	}
+	if mergeIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Merge…epic branch…` step")
+	}
+	if reconcileIdx >= mergeIdx {
+		t.Errorf("the reconcile step must appear BEFORE the merge step in `## Workflow` (reconcile at line %d, merge at line %d), so the merge that follows is already-validated", reconcileIdx, mergeIdx)
+	}
+
+	reconcile := extractMarkdownSection(body, 3, "11. Reconcile")
+	if reconcile == "" {
+		t.Fatal("could not extract the `### 11. Reconcile the milestone branch with the epic branch` section")
 	}
 
 	wantGuard := "git merge-base --is-ancestor epic/E-NNNN-<slug> milestone/M-NNNN-<slug>"
-	if !strings.Contains(merge, wantGuard) {
-		t.Errorf("merge-step subsection must name the ancestor guard %q, scoped to the epic branch as the integration target", wantGuard)
+	if !strings.Contains(reconcile, wantGuard) {
+		t.Errorf("reconcile step must name the ancestor guard %q, scoped to the epic branch as the integration target", wantGuard)
 	}
 
-	integrateIdx := strings.Index(merge, "Integrate the epic branch into the milestone branch")
-	gateIdx := strings.Index(merge, "re-run the full local CI gate")
-	stageIdx := strings.Index(merge, "git merge --no-ff --no-commit milestone/M-NNNN-<slug>")
-	if integrateIdx < 0 || gateIdx < 0 || stageIdx < 0 {
-		t.Fatal("merge-step subsection must document integrate-the-epic-branch, re-run-the-gate, and the staged-merge command")
+	guardIdx := strings.Index(reconcile, wantGuard)
+	integrateIdx := strings.Index(reconcile, "Integrate the epic branch into the milestone branch")
+	gateIdx := strings.Index(reconcile, "re-run the full local CI gate")
+	if integrateIdx < 0 || gateIdx < 0 {
+		t.Fatal("reconcile step must document integrate-the-epic-branch and re-run-the-gate")
 	}
-	if integrateIdx >= gateIdx || gateIdx >= stageIdx {
-		t.Errorf("merge-step subsection must order integrate epic branch -> re-run gate -> staged merge (got indices %d, %d, %d)", integrateIdx, gateIdx, stageIdx)
+	if guardIdx >= integrateIdx || integrateIdx >= gateIdx {
+		t.Errorf("reconcile step must order the ancestor guard -> integrate epic branch -> re-run gate (got indices guard=%d, integrate=%d, gate=%d)", guardIdx, integrateIdx, gateIdx)
 	}
 }

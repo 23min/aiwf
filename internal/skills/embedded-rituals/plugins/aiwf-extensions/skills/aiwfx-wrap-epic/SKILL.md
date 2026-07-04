@@ -113,9 +113,24 @@ Once the sequence is approved, execute it:
 
 ### 5. Reconcile the epic branch with mainline
 
-Run this immediately before the merge — the merge target is your *local* mainline (the branch the epic merges into), not the remote-tracking ref, and an earlier check a concurrent push invalidates is worse than no check. Make local mainline current first: `git fetch`, then fast-forward your local mainline to its upstream (`git checkout main && git merge --ff-only origin/main` — substitute your mainline branch and remote) to fold in commits another clone pushed; concurrent *local* commits are already on it. Then check whether mainline has advanced past the epic branch's fork point: `git merge-base --is-ancestor main epic/E-NN-<slug>` (substitute the project's mainline ref). A true result means mainline is already an ancestor of the epic branch — the merge in the next step will be a clean integration; skip ahead. (A project with no remote skips the fetch and fast-forward; the local ancestor check still applies.)
+Run this immediately before the merge — not as an earlier precondition a concurrent push can invalidate. The target is your *local* mainline (the branch the epic merges into), not the remote-tracking ref.
 
-A false result means mainline has moved on since the epic branch forked. Resolving that gap on mainline itself, mid-merge, in the next step is the failure mode to avoid: the merge target's own newer commits never ran through a gate, and "gate green on the epic branch" (precondition 5) would be true only of a tree that omits them. Integrate current mainline into the epic branch instead — merge or rebase mainline into `epic/E-NN-<slug>`, resolve any conflicts there, and re-run the project's full local CI gate on the reconciled epic branch. Only proceed to the next step once that gate is green: mainline then only ever receives an already-validated result, and the merge is a clean fast-forward where the project's merge policy allows one.
+1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips this step):
+
+   ```bash
+   git fetch
+   git checkout main && git merge --ff-only origin/main
+   ```
+
+2. Check whether mainline has advanced past the epic branch's fork point (substitute the project's mainline ref):
+
+   ```bash
+   git merge-base --is-ancestor main epic/E-NN-<slug>
+   ```
+
+3. If that check fails: integrate mainline into the epic branch, resolve any conflicts there, and re-run the project's full local CI gate on the reconciled epic branch. Mainline can move again during that gate, so re-run this check immediately before merging.
+
+4. Only once the check passes does the merge (step 6) run.
 
 ### 6. Merge epic branch into integration target with a trailered merge commit
 
