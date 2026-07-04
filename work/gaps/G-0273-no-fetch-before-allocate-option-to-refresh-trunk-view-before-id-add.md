@@ -1,7 +1,9 @@
 ---
 id: G-0273
 title: No fetch-before-allocate option to refresh trunk view before id add
-status: open
+status: addressed
+addressed_by:
+    - M-0213
 ---
 ## Problem
 
