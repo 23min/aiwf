@@ -100,6 +100,12 @@ func Schema() []SchemaField {
 // against, rather than a hand-maintained parallel allowlist — see G-0307's
 // "Coordinate with E-0057" section. Every call recomputes from Schema()
 // (no cached package-level state), matching Schema()'s own no-caching shape.
+//
+// A map-of-struct field's children carry the literal placeholder segment
+// "<key>" (e.g. "agents.<key>.model"), matching SchemaField.Path — a
+// consumer validating a real decoded key (e.g. "agents.reviewer.model")
+// must substitute the concrete map key for "<key>" before checking
+// membership; this set is not pre-expanded per possible key name.
 func AcceptedKeys() map[string]bool {
 	keys := make(map[string]bool)
 	for _, f := range Schema() {
@@ -185,6 +191,18 @@ func isStructContainer(t string) bool {
 // map-of-struct field gets a synthetic "<key>:" placeholder line between the
 // map and its example entry's fields, since no real SchemaField represents
 // that placeholder.
+//
+// The two example-item blocks (areas.members, agents.<key>) render
+// illustrative placeholder values, not usable defaults, and behave
+// differently if uncommented verbatim: areas.members's placeholder (an
+// empty member name) fails config.Load's validation outright; agents.<key>'s
+// placeholder passes validation but is meaningless — Agent's own semantics
+// tolerate an unrecognized name, silently ignoring it at skill-materialization
+// time rather than erroring at config load, so it's accepted-but-useless, not
+// rejected. Every other (scalar) field's rendered default passes full loader
+// validation and is meaningful as-is. A writer consuming this output
+// (M-0232) should tell the reader to customize both example-item blocks
+// before uncommenting, not just uncomment-and-go.
 func GenerateExample() string {
 	var b strings.Builder
 	inListItem := false

@@ -223,6 +223,90 @@ func TestGenerateExample_ProducesValidReparseableYAML(t *testing.T) {
 	}
 }
 
+// TestGenerateExample_ScalarDefaultsPassLoaderValidation narrows AC-3's
+// "uncommenting a block yields a value the loader accepts" constraint to
+// what is actually true. Config.Validate() only checks two things —
+// Areas.validate() and validateAgents() — so this test's real guarantee is
+// narrower than "every scalar field individually validated": it confirms
+// the decoded config, once the two example-item placeholder blocks
+// (areas.members, agents.<key>) are cleared, passes the loader's full
+// validation with no error from either check. The scalar fields themselves
+// have no per-field Validate() logic to exercise; their claim rests on
+// decoding without error (TestGenerateExample_ProducesValidReparseableYAML)
+// plus each one being a real accessor-resolved default
+// (TestDefaultFor_ResolverPaths), not on this test.
+func TestGenerateExample_ScalarDefaultsPassLoaderValidation(t *testing.T) {
+	t.Parallel()
+	uncommented := uncommentYAML(GenerateExample())
+
+	var cfg Config
+	if err := yaml.Unmarshal([]byte(uncommented), &cfg); err != nil {
+		t.Fatalf("uncommented output does not decode into Config: %v", err)
+	}
+
+	cfg.Areas.Members = nil
+	cfg.Agents = nil
+
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("Validate() rejected the scalar-default fields: %v", err)
+	}
+}
+
+// TestGenerateExample_AreasExampleItemRejectedVerbatim documents, rather
+// than silently ships, one of the two known example-item limitations: an
+// independent fresh review of the first fix found this test's original name
+// ("ExampleItemPlaceholdersRejectedVerbatim", plural) overclaimed — only
+// areas.members actually fails Validate() verbatim (an empty member name is
+// invalid); agents.<key> does not (see
+// TestGenerateExample_AgentsExampleItemSilentlyAcceptedVerbatim below). If
+// this test starts passing, the placeholder has silently become a valid
+// default, which is worth a second look, not a quiet win.
+func TestGenerateExample_AreasExampleItemRejectedVerbatim(t *testing.T) {
+	t.Parallel()
+	uncommented := uncommentYAML(GenerateExample())
+
+	var cfg Config
+	if err := yaml.Unmarshal([]byte(uncommented), &cfg); err != nil {
+		t.Fatalf("uncommented output does not decode into Config: %v", err)
+	}
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("Validate() unexpectedly accepted the areas.members example item verbatim — the placeholder-rejection contract may have changed")
+	}
+	if !strings.Contains(err.Error(), "empty member") {
+		t.Errorf("Validate() error = %q, want it to name the empty example member", err.Error())
+	}
+}
+
+// TestGenerateExample_AgentsExampleItemSilentlyAcceptedVerbatim pins the
+// other half of the asymmetry: uncommenting agents.<key> verbatim (without
+// replacing the placeholder key name) decodes to an Agent literally named
+// "<key>" with empty Model/Effort, and Validate() accepts it — Agent.Model/
+// Effort are optional by design (see the Agent doc comment), and an agent
+// NAME is never validated against a closed set (config cannot enumerate the
+// shipped agent set without importing skills), so nothing rejects the
+// nonsense name. This is accepted-but-useless, not rejected — the opposite
+// failure mode from areas.members, and worth pinning precisely rather than
+// leaving as an assumption.
+func TestGenerateExample_AgentsExampleItemSilentlyAcceptedVerbatim(t *testing.T) {
+	t.Parallel()
+	uncommented := uncommentYAML(GenerateExample())
+
+	var cfg Config
+	if err := yaml.Unmarshal([]byte(uncommented), &cfg); err != nil {
+		t.Fatalf("uncommented output does not decode into Config: %v", err)
+	}
+	cfg.Areas.Members = nil // isolate the agents block from areas' own rejection
+
+	if _, ok := cfg.Agents["<key>"]; !ok {
+		t.Fatalf("expected the example agent literally named %q, got %#v", "<key>", cfg.Agents)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("Validate() = %v, want nil — agents.<key> is expected to be silently accepted, not rejected", err)
+	}
+}
+
 // hasKey reports whether m contains key, avoiding a govet shadow warning
 // from repeated `if _, ok := m[key]; !ok` blocks in the same function scope.
 func hasKey(m map[string]any, key string) bool {
@@ -353,6 +437,29 @@ func TestAcceptedKeys_MembershipChecks(t *testing.T) {
 	for _, c := range cases {
 		if got := keys[c.key]; got != c.want {
 			t.Errorf("AcceptedKeys()[%q] = %v, want %v", c.key, got, c.want)
+		}
+	}
+}
+
+// TestFieldRegistries_NoOrphanKeys pins the reverse of the direction
+// TestSchema_EveryFieldHasDescription already covers: not just "every real
+// path has a registry entry," but "every registry entry is a real path."
+// Without this, renaming or removing a yaml tag leaves the OLD registry key
+// silently orphaned in fieldDescriptions or fieldDefaultResolvers — no
+// finding, no test failure, just a resolver that will never match again and
+// a description nobody reads (surfaced in the M-0231 design-quality review).
+func TestFieldRegistries_NoOrphanKeys(t *testing.T) {
+	t.Parallel()
+	valid := AcceptedKeys()
+
+	for path := range fieldDescriptions {
+		if !valid[path] {
+			t.Errorf("fieldDescriptions has orphan key %q — no such Schema() path", path)
+		}
+	}
+	for path := range fieldDefaultResolvers {
+		if !valid[path] {
+			t.Errorf("fieldDefaultResolvers has orphan key %q — no such Schema() path", path)
 		}
 	}
 }
