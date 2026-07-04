@@ -129,3 +129,35 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
 
 ### AC-4 — Accepted-key set is exported as a reusable registry
 
+---
+
+## Work log
+
+### AC-1 — Struct-derived field walker
+
+Schema() reflects the Config struct tree into one SchemaField (path + type)
+per yaml-tagged field, recursing into nested structs and slice/map-of-struct
+element types, excluding the two Legacy* migration-shim fields · commit
+8b82f931 · tests 3/3
+
+A fixture-based test (`TestWalkSchema_HandlesAllFieldShapes`) drives shapes
+the real Config struct doesn't exercise (untagged/`-`-tagged fields, a
+non-struct map value). A 5-mutation vacuity pass found the primary tests'
+sort-before-compare was silently hiding Schema()'s documented
+struct-declaration-order guarantee; removed the sort so order is asserted
+directly, confirmed via a reverse-iteration mutant.
+
+## Decisions made during implementation
+
+- (none — all decisions are pre-locked above in Design notes)
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
+
