@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Fresh-repo init writes aiwf.yaml as the fully-commented schema scaffold
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Existing aiwf.yaml is never rewritten by init or update
       status: open
