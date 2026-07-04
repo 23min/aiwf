@@ -1,8 +1,10 @@
 ---
 id: G-0271
 title: Milestone skills prescribe author self-review, not independent review
-status: open
+status: addressed
 discovered_in: M-0171
+addressed_by_commit:
+    - f3c01667
 ---
 ## Problem
 
