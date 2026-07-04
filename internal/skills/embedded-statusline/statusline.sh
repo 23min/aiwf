@@ -35,34 +35,42 @@ model="$(jq_get '.model.display_name')"
 [ -z "$model" ] && model="?"
 
 # Compress "Opus 4.7 (1M context)" → "Opus 4.7". The "(1M context)" suffix
-# is implicit in the high ctx_max threshold + colored ball; redundant now
-# that the token count sits inline next to the model name.
+# is redundant now that the token count sits inline next to the model name.
 model_short="${model% (*}"
 
-# Detect 1M-context variant from the display name.
-case "$model" in
-  *"1M"*|*"1m"*) ctx_max=1000000 ;;
-  *)             ctx_max=200000  ;;
-esac
+# --- Token usage from stdin context_window ----------------------------------
+#
+# Claude Code's stdin JSON carries a `context_window` object reflecting the
+# *current* context (context_window.{total_input_tokens,used_percentage,
+# context_window_size}), landed in Claude Code v2.1.132. It replaces walking
+# the transcript file for the last assistant `usage` block — that walk went
+# stale for one render after `/compact` (no fresh usage entry is appended for
+# the compacted context) and needed a BSD tail -r/GNU tac portability dance.
+# context_window is this session's own accounting, so there is no separate
+# transcript read to fall back to: each field degrades independently to 0
+# when absent or non-numeric, never a hard error.
+is_num() {
+  case "$1" in
+    ''|*[!0-9.]*) return 1 ;;
+    *)            return 0 ;;
+  esac
+}
+to_int() { local n="${1%%.*}"; printf '%s' "${n:-0}"; }  # truncate a possibly-float numeric string to int; dot-only input truncates to "" -> 0
 
-# --- Token usage from transcript -------------------------------------------
-
-transcript="$(jq_get '.transcript_path')"
 tokens=0
-if [ -n "$transcript" ] && [ -r "$transcript" ]; then
-  # Walk transcript bottom-up; first assistant message with usage wins.
-  # tail -r is BSD/macOS; tac is GNU. Brace-group so both branches
-  # feed jq — `|` binds tighter than `||`, so without the group a
-  # successful `tail -r` would route its raw output to the command
-  # substitution and bypass the jq filter entirely.
-  tokens="$({ tail -r "$transcript" 2>/dev/null || tac "$transcript" 2>/dev/null; } \
-    | jq -r 'select(.message.usage != null)
-             | .message.usage
-             | (.input_tokens // 0)
-             + (.cache_read_input_tokens // 0)
-             + (.cache_creation_input_tokens // 0)' 2>/dev/null \
-    | head -n 1)"
-  [ -z "$tokens" ] && tokens=0
+cw_tokens="$(jq_get '.context_window.total_input_tokens')"
+is_num "$cw_tokens" && tokens="$(to_int "$cw_tokens")"
+
+pct=0
+cw_pct="$(jq_get '.context_window.used_percentage')"
+if is_num "$cw_pct"; then
+  pct="$(to_int "$cw_pct")"
+else
+  cw_size="$(jq_get '.context_window.context_window_size')"
+  if is_num "$cw_size"; then
+    size="$(to_int "$cw_size")"
+    [ "$size" -gt 0 ] && pct=$(( tokens * 100 / size ))
+  fi
 fi
 
 # Format token count: 116k, 1.2M, 950 etc.
@@ -78,7 +86,6 @@ fmt_tokens() {
 }
 # Color thresholds — same scale for ball and token text.
 # green <50%, yellow <80%, red >=80% (start a new session soon).
-pct=$(( tokens * 100 / ctx_max ))
 if   [ "$pct" -lt 50 ]; then color=$'\033[32m'   # green
 elif [ "$pct" -lt 80 ]; then color=$'\033[33m'   # yellow
 else                         color=$'\033[31m'   # red
