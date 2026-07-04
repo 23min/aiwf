@@ -617,17 +617,17 @@ pre-push where the check can live there, CI at the latest.
 
 The ritual lifecycle's commit/TDD model is coherent and matches CLAUDE.md:
 milestone implementation commits plus TDD phase evidence are honest, and the
-start/wrap rituals are internally consistent. The gate model itself is delivered
-by the foundation epic E-0050, which this epic builds on.
+start/wrap rituals are internally consistent. The gate model itself was delivered
+by the foundation epic E-0050 (now done), which this epic builds on.
 
 | Milestone | Title | Status |
 |---|---|---|
 | M-0203 | Generalize the declared-sequence gate; fix wrap/release drift | cancelled |
-| M-0204 | Model 1: commit implementation per AC; live phase promotes | draft |
-| M-0205 | Milestone review framing and wrap-milestone trailer test | draft |
-| M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | draft |
-| M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | draft |
-| M-0230 | Make roadmap regeneration zero-friction in the wrap rituals | draft |
+| M-0204 | Model 1: commit implementation per AC; live phase promotes | cancelled |
+| M-0205 | Milestone review framing and wrap-milestone trailer test | cancelled |
+| M-0206 | Start-ritual fixes: branch-not-found and sovereign-acts-on-trunk | cancelled |
+| M-0207 | aiwf.yaml declared-sequence-wraps opt-in knob | cancelled |
+| M-0230 | Make roadmap regeneration zero-friction in the wrap rituals | cancelled |
 
 ## E-0050 — Gate-discipline foundation: generalize the declared-sequence gate (done)
 
@@ -770,4 +770,18 @@ The id chokepoint covers every shipped surface, so the leak class cannot recur.
 | M-0227 | Extend the id chokepoint to all shipped surfaces; clean id leaks | done |
 | M-0228 | Strip shipped-prose history/rationale; broaden the authoring principle | done |
 | M-0229 | Drop dead doc-links; encode reference discipline in record-decision | done |
+
+## E-0057 — Consumer-discoverable aiwf.yaml schema via a generated example.yaml (proposed)
+
+### Goal
+
+Give every aiwf consumer a discoverable, always-fresh reference for the whole
+`aiwf.yaml` schema — inside their own repo, without reading aiwf's source. A
+config surface a user cannot discover is a feature that effectively does not
+exist; today the entire schema is documented only in Go struct doc comments.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0231 | Struct-derived aiwf.yaml schema model and commented-YAML generator | draft |
+| M-0232 | Wire generator into init/update: fresh-repo scaffold and example.yaml | draft |
 
