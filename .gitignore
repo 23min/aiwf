@@ -52,6 +52,9 @@ docs/notes/
 # decided one-by-one (codify or drop). Not tracked.
 /rules.md
 
+# Personal append-only work scratchpad — hand-edited, not tracked.
+/TODO.md
+
 # `aiwf render --format=html` output directory.
 site/
 
