@@ -1,7 +1,7 @@
 ---
 id: E-0057
 title: Consumer-discoverable aiwf.yaml schema via a generated example.yaml
-status: proposed
+status: active
 ---
 
 # E-0057 — Consumer-discoverable aiwf.yaml schema via a generated example.yaml
