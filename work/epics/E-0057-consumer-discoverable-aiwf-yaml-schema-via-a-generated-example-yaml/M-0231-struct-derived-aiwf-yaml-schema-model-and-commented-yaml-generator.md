@@ -4,6 +4,11 @@ title: Struct-derived aiwf.yaml schema model and commented-YAML generator
 status: draft
 parent: E-0057
 tdd: required
+acs:
+    - id: AC-1
+      title: Schema model enumerates every yaml field across the config structs
+      status: open
+      tdd_phase: red
 ---
 
 # M-0231 — Struct-derived aiwf.yaml schema model and commented-YAML generator
@@ -103,3 +108,6 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
 - [`E-0057`](epic.md) — parent epic
 - [`G-0307`](../../gaps/G-0307-top-level-aiwf-yaml-decode-stays-non-strict-only-areas-rejects-unknown-keys.md) — strict-decode; consumes this milestone's exported registry
 - `internal/config/config.go` — schema source of truth
+
+### AC-1 — Schema model enumerates every yaml field across the config structs
+
