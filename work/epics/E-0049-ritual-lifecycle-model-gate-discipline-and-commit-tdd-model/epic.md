@@ -45,8 +45,7 @@ out-of-band — the sections below are annotated accordingly:
 
 What genuinely remains: the start-milestone review-framing forward reference
 (G-0271 defect #1), the stale `branch-not-found` code name in two skills (G-0224),
-the deferred config knob (G-0296), roadmap-regen zero-friction (G-0350), and the
-`wf-patch` worktree-placement default (G-0349, no milestone yet).
+the deferred config knob (G-0296), and roadmap-regen zero-friction (G-0350).
 
 ## Scope
 
@@ -67,11 +66,6 @@ the deferred config knob (G-0296), roadmap-regen zero-friction (G-0350), and the
 - aiwf.yaml declared-sequence-wraps knob (G-0296) — deferred; drop if the Tier-1 rule
   (delivered by E-0050) suffices. The default is on, so the knob is an opt-*out*, not
   opt-in.
-- `wf-patch` worktree-placement default (G-0349): cut the patch branch in an in-repo
-  worktree by default (mirroring `aiwfx-start-epic`), removing the hazard where a
-  concurrent `aiwf` verb commits onto an in-place patch branch. The shipped-skill
-  edit follows the consumer-surface id and reference rules. **No milestone yet** —
-  needs one, or land it as a standalone `wf-patch` and drop from scope.
 - Roadmap-regen zero-friction in the wrap rituals (G-0350) — M-0230.
 
 ### Out of scope
@@ -87,6 +81,10 @@ the deferred config knob (G-0296), roadmap-regen zero-friction (G-0350), and the
   ship-to-consumers (G-0104), Codex materializer target (G-0178) — separate
   standing/deferred work. G-0175 (ritual trailer-key) is closed `wontfix`, superseded
   by G-0190's ritualVerbs allowlist.
+- `wf-patch` worktree-placement default (G-0349) — closed `wontfix`: a worktree in the
+  lowest-ceremony ritual taxes the common solo/sequential path for a hazard that only
+  bites concurrent multi-session use. Revisit with a targeted guard (warn when an
+  `aiwf` mutation lands on a `patch/` branch) if it recurs.
 
 ## Constraints
 
@@ -116,8 +114,7 @@ the deferred config knob (G-0296), roadmap-regen zero-friction (G-0350), and the
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| tier-C lifecycle disposition | resolved | G-0116 folded in (now addressed); G-0111 is its own future epic; G-0175 closed `wontfix` (superseded by G-0190) |
-| G-0349 milestone home | open | give it a milestone under this epic, or land it as a standalone `wf-patch` and drop from scope |
+| tier-C lifecycle disposition | resolved | G-0116 folded in (now addressed); G-0111 is its own future epic; G-0175 closed `wontfix` (superseded by G-0190); G-0349 closed `wontfix` |
 | M-0204 disposition | open | cancel-as-delivered (mirroring M-0203) or keep as a draft record — its scope already landed via the G-0293 patch |
 
 ## Milestones
@@ -136,5 +133,3 @@ the deferred config knob (G-0296), roadmap-regen zero-friction (G-0350), and the
   neutral framing (opt-out, not opt-in). Title still reads "opt-in" and needs an
   `aiwf retitle`.
 - **M-0230** — roadmap-regen zero-friction in the wrap rituals (G-0350).
-- **(unassigned)** — `wf-patch` worktree-placement default (G-0349): needs a
-  milestone or a standalone `wf-patch`.
