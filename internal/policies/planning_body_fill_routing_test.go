@@ -252,3 +252,42 @@ func TestPlanningBodyFill_RichTemplateSelfLocating(t *testing.T) {
 		})
 	}
 }
+
+// TestPlanningRoadmapRegen_G0350_WriteOnlyThenCommit pins G-0350's fix for
+// the two planning skills' roadmap-update step: `aiwf render roadmap
+// --write` no longer commits on its own, so the step must document that
+// and hand-compose its own commit (with the ritual's own verb name as the
+// trailer) rather than leaving the regenerated ROADMAP.md as an
+// uncommitted stray file that the planning-session merge silently drops.
+func TestPlanningRoadmapRegen_G0350_WriteOnlyThenCommit(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, path, wantVerb string
+	}{
+		{"plan-epic", aiwfxPlanEpicFixturePath, "plan-epic"},
+		{"plan-milestones", aiwfxPlanMilestonesFixturePath, "plan-milestones"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body := loadPolishFixture(t, tc.path)
+			step := findNumberedStep(body, "ROADMAP")
+			if step == "" {
+				t.Fatalf("G-0350: %s must retain a `## Workflow` step naming ROADMAP.md", tc.name)
+			}
+			if !strings.Contains(step, "aiwf render roadmap --write") {
+				t.Errorf("G-0350: %s roadmap step must run `aiwf render roadmap --write`", tc.name)
+			}
+			if !strings.Contains(step, "does not commit") {
+				t.Errorf("G-0350: %s roadmap step must document that --write does not commit", tc.name)
+			}
+			wantTrailer := `--trailer "aiwf-verb: ` + tc.wantVerb + `"`
+			if !strings.Contains(step, wantTrailer) {
+				t.Errorf("G-0350: %s roadmap step must hand-compose the commit with trailer flag %q", tc.name, wantTrailer)
+			}
+			if !strings.Contains(step, `--trailer "aiwf-actor: human/`) {
+				t.Errorf("G-0350: %s roadmap step must hand-compose the commit with an aiwf-actor trailer", tc.name)
+			}
+		})
+	}
+}

@@ -52,23 +52,22 @@ Bonus simplification if the swap holds: it removes the transcript read, the `tai
 BSD-vs-GNU portability dance, and the manual `ctx_max` 1M/200k detection (use
 `context_window_size` directly).
 
-## The load-bearing caveat — verify immediacy before committing to the swap
+## The immediacy caveat — no longer a precondition for the swap
 
-The entire payoff is "updates right away at the `/compact` render." That is **not**
-doc-guaranteed and must be verified empirically before the change is worth making:
+The original framing gated the swap on proving it fixes the `/compact` staleness: Claude
+Code docs state `context_window.current_usage` is `null` after `/compact` until the next API
+call repopulates it, and the compaction summarization call itself reads the *full*
+pre-compaction context — so the stdin `context_window` field may lag exactly like the
+transcript walk does, in which case the swap would be a cleanup, not a fix for the reported
+symptom.
 
-- Claude Code docs state `context_window.current_usage` is `null` after `/compact` until the
-  next API call repopulates it.
-- The compaction summarization call itself reads the *full* pre-compaction context, so its
-  input token figure is large, not small.
-
-So the stdin `context_window` field may *also* lag until the next turn — in which case the
-swap is a cleanup but does **not** fix the immediacy, and the honest outcome is "no
-mechanism updates it at the compact render; it self-heals one turn later." The implementing
-change must observe a live `/compact` on the target Claude Code version and record which of
-these holds, rather than assuming the swap fixes it. If it does not deliver immediacy, either
-keep the swap purely as a simplification (and document the one-render lag as expected) or
-drop it.
+Re-evaluated: that risk doesn't justify blocking the swap. `context_window` is Claude Code's
+own accounting of the *current* session (this repo is well past v2.1.132), so it is at worst
+equivalent to the transcript walk and at best fixes the staleness — either way strictly
+better than today, while also removing the transcript read, the `tail -r`/`tac`
+BSD-vs-GNU dance, and the manual `ctx_max` 1M/200k string-sniffing. **Make the swap
+unconditionally**; treat the live-`/compact` immediacy observation as evidence to capture
+opportunistically during or after implementation, not a gate before starting.
 
 ## Build requirements
 
@@ -94,7 +93,7 @@ drop it.
    in `statusline_behavioral_test.go`.
 2. Absent or malformed `context_window` degrades to the fallback path without erroring;
    asserted by a defensive-input test.
-3. A recorded empirical observation of a live `/compact` on the target version documents
-   whether the token segment updates at the compact render or one turn later — captured in
-   the change's notes so the immediacy claim is evidence-backed, not assumed.
+3. (Optional, non-blocking) If a live `/compact` is observed on the target version during
+   implementation, record whether the token segment updates at the compact render or one
+   turn later — nice-to-have evidence, not a precondition for landing the change.
 4. The full statusline behavioral suite and `aiwf check` are clean.

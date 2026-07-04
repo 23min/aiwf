@@ -220,11 +220,13 @@ entities:
 		})
 	}
 
+	// `aiwf render roadmap --write` is intentionally NOT covered here.
+	// G-0350 decoupled it into a plain write-only file operation — it
+	// no longer commits or stamps trailers at all, so it no longer fits
+	// this test's per-mutating-verb-commits-with-trailers shape.
+	// Coverage lives in internal/cli/integration/render_cmd_test.go.
+
 	newVerbs := []step{
-		// render-roadmap: emits aiwf-verb: render-roadmap, no
-		// aiwf-entity (roadmap is a global view, not per-entity).
-		// Routes through verb.Apply per G-0231 item 2.
-		{"render roadmap --write", []string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}, "render-roadmap", 0},
 		// milestone-depends-on writes aiwf-entity for the source
 		// milestone whose depends_on list was rewritten.
 		{"milestone depends-on M-002 → M-003", []string{"milestone", "depends-on", "M-0002", "--on", "M-0003", "--actor", "human/test", "--root", root}, "milestone-depends-on", 1},

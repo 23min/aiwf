@@ -1,7 +1,7 @@
 ---
 id: M-0230
 title: Make roadmap regeneration zero-friction in the wrap rituals
-status: draft
+status: cancelled
 parent: E-0049
 tdd: advisory
 ---

@@ -253,7 +253,7 @@ func TestM0209_AC3_WrapMilestoneDeclaredSequenceGate(t *testing.T) {
 	// executed in order once the gate approves.
 	merge := extractMarkdownSection(body, 3, "12. Merge")
 	promote := extractMarkdownSection(body, 3, "13. Promote")
-	cleanup := extractMarkdownSection(body, 3, "14. Local cleanup")
+	cleanup := extractMarkdownSection(body, 3, "15. Local cleanup")
 	if merge == "" || promote == "" || cleanup == "" {
 		t.Fatalf("AC-3: `## Workflow` must contain separate merge, promote, and local-cleanup subsections (found merge=%t, promote=%t, cleanup=%t)", merge != "", promote != "", cleanup != "")
 	}
@@ -274,9 +274,9 @@ func TestM0209_AC3_WrapMilestoneDeclaredSequenceGate(t *testing.T) {
 	workflow := extractMarkdownSection(body, 2, "Workflow")
 	mergeIdx := strings.Index(workflow, "### 12. Merge")
 	promoteIdx := strings.Index(workflow, "### 13. Promote")
-	cleanupIdx := strings.Index(workflow, "### 14. Local cleanup")
+	cleanupIdx := strings.Index(workflow, "### 15. Local cleanup")
 	if mergeIdx < 0 || promoteIdx < 0 || cleanupIdx < 0 {
-		t.Fatal("AC-3: could not locate the `### 12. Merge`, `### 13. Promote`, and `### 14. Local cleanup` headings")
+		t.Fatal("AC-3: could not locate the `### 12. Merge`, `### 13. Promote`, and `### 15. Local cleanup` headings")
 	}
 	if mergeIdx >= promoteIdx || promoteIdx >= cleanupIdx {
 		t.Errorf("AC-3: the terminal sequence must execute merge -> promote-done -> local cleanup in that heading order (got indices merge=%d, promote=%d, cleanup=%d)", mergeIdx, promoteIdx, cleanupIdx)

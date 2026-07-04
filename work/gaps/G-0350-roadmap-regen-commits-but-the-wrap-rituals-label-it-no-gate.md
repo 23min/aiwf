@@ -1,8 +1,10 @@
 ---
 id: G-0350
 title: Roadmap regen commits but the wrap rituals label it no-gate
-status: open
+status: addressed
 discovered_in: M-0223
+addressed_by_commit:
+    - 06daf8e1
 ---
 ## Problem
 

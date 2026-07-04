@@ -64,11 +64,16 @@ func TestRun_RenderRoadmap_Stdout(t *testing.T) {
 	}
 }
 
-// TestRun_RenderRoadmap_WriteCommits: --write writes ROADMAP.md and
-// produces a commit with structured trailers. A second --write is a
-// no-op (HEAD doesn't advance) because content is unchanged.
-func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
-	t.Parallel()
+// TestRun_RenderRoadmap_WriteNoCommit: --write writes ROADMAP.md to
+// disk only — no commit, no trailers (G-0350). HEAD never advances;
+// committing the file is the caller's concern. A second --write with
+// unchanged content is a no-op, reported via the "already up to date"
+// message rather than a re-write.
+//
+// Serial, not t.Parallel(): calls testutil.CaptureStdout, which
+// mutates the process-level os.Stdout fd (see setup_test.go's serial
+// skip-list rationale).
+func TestRun_RenderRoadmap_WriteNoCommit(t *testing.T) {
 	root := setupCLITestRepo(t)
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
@@ -77,7 +82,13 @@ func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 		t.Fatalf("add: %d", rc)
 	}
 
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	ctx := context.Background()
+	subjectBefore, err := gitops.HeadSubject(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("render --write: %d", rc)
 	}
 
@@ -89,43 +100,55 @@ func TestRun_RenderRoadmap_WriteCommits(t *testing.T) {
 		t.Errorf("ROADMAP.md missing epic title:\n%s", body)
 	}
 
-	ctx := context.Background()
-	subj, err := gitops.HeadSubject(ctx, root)
+	subjectAfter, err := gitops.HeadSubject(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if subj != "aiwf render roadmap" {
-		t.Errorf("HEAD subject = %q, want %q", subj, "aiwf render roadmap")
+	if subjectAfter != subjectBefore {
+		t.Errorf("--write must not commit: HEAD advanced %q -> %q", subjectBefore, subjectAfter)
 	}
-	trailers, err := gitops.HeadTrailers(ctx, root)
+	staged, err := gitops.StagedPaths(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantPairs := map[string]string{
-		"aiwf-verb":  "render-roadmap",
-		"aiwf-actor": "human/test",
+	if len(staged) != 0 {
+		t.Errorf("--write must not stage anything either; staged: %v", staged)
 	}
-	for _, tr := range trailers {
-		if want, ok := wantPairs[tr.Key]; ok {
-			if tr.Value != want {
-				t.Errorf("trailer %s = %q, want %q", tr.Key, tr.Value, want)
-			}
-			delete(wantPairs, tr.Key)
-		}
-	}
-	for k := range wantPairs {
-		t.Errorf("missing trailer %q", k)
+	if changed := workingTreeModifiedFiles(t, root); !containsString(changed, "ROADMAP.md") {
+		t.Errorf("ROADMAP.md should show as an unstaged working-tree change: %v", changed)
 	}
 
-	// Second --write with no tree changes should be a no-op.
-	subjectBefore, _ := gitops.HeadSubject(ctx, root)
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
-		t.Fatalf("re-render --write: %d", rc)
+	// Second --write with no tree changes should be a no-op: reported
+	// via the "already up to date" message, not a re-write.
+	out := testutil.CaptureStdout(t, func() {
+		if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
+			t.Fatalf("re-render --write: %d", rc)
+		}
+	})
+	if !strings.Contains(string(out), "already up to date") {
+		t.Errorf("idempotent --write should report up-to-date, got:\n%s", out)
 	}
-	subjectAfter, _ := gitops.HeadSubject(ctx, root)
-	if subjectAfter != subjectBefore {
-		t.Errorf("idempotent --write should not advance HEAD: %q -> %q", subjectBefore, subjectAfter)
+}
+
+// workingTreeModifiedFiles returns the repo-relative paths `git status
+// --porcelain` reports as changed — tracked-modified or untracked.
+// Callers pair this with an explicit gitops.StagedPaths check to
+// confirm the change is unstaged, since porcelain's two-column status
+// covers both staged and unstaged state.
+func workingTreeModifiedFiles(t *testing.T, root string) []string {
+	t.Helper()
+	out, err := exec.Command("git", "-C", root, "status", "--porcelain").Output()
+	if err != nil {
+		t.Fatalf("git status: %v", err)
 	}
+	var files []string
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if len(line) < 4 {
+			continue
+		}
+		files = append(files, strings.TrimSpace(line[3:]))
+	}
+	return files
 }
 
 // TestRun_RenderRoadmap_UnknownSubcommand reports a usage error.
@@ -191,7 +214,13 @@ func TestRun_RenderRoadmap_ReconcilesLowercase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	ctx := context.Background()
+	subjectBefore, err := gitops.HeadSubject(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("render --write: %d", rc)
 	}
 
@@ -212,57 +241,40 @@ func TestRun_RenderRoadmap_ReconcilesLowercase(t *testing.T) {
 		t.Errorf("ROADMAP.md should not exist; case-reconciliation must target roadmap.md (err=%v)", statErr)
 	}
 
-	// The commit staged roadmap.md: HEAD advanced with the render
-	// subject, and the working tree is clean afterward (the regenerated
-	// content is committed, not left dangling).
-	ctx := context.Background()
-	subj, err := gitops.HeadSubject(ctx, root)
+	// --write never commits (G-0350): HEAD stays put and roadmap.md
+	// shows up as an unstaged working-tree change, not a commit.
+	subjectAfter, err := gitops.HeadSubject(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if subj != "aiwf render roadmap" {
-		t.Errorf("HEAD subject = %q, want %q", subj, "aiwf render roadmap")
+	if subjectAfter != subjectBefore {
+		t.Errorf("--write must not commit: HEAD advanced %q -> %q", subjectBefore, subjectAfter)
 	}
 	staged, err := gitops.StagedPaths(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(staged) != 0 {
-		t.Errorf("working tree should be clean after the render commit; staged: %v", staged)
+		t.Errorf("--write must not stage anything; staged: %v", staged)
 	}
-	// The HEAD commit changed roadmap.md and not ROADMAP.md.
-	changed := headChangedFiles(t, root)
+	changed := workingTreeModifiedFiles(t, root)
 	if !containsString(changed, "roadmap.md") {
-		t.Errorf("HEAD commit did not change roadmap.md; changed: %v", changed)
+		t.Errorf("roadmap.md should show as an unstaged working-tree change: %v", changed)
 	}
 	if containsString(changed, "ROADMAP.md") {
-		t.Errorf("HEAD commit unexpectedly changed ROADMAP.md; changed: %v", changed)
+		t.Errorf("ROADMAP.md unexpectedly touched: %v", changed)
 	}
-}
-
-// headChangedFiles returns the repo-relative paths changed by the HEAD
-// commit, via `git show --name-only`. Used to assert which roadmap
-// variant the render commit actually touched.
-func headChangedFiles(t *testing.T, root string) []string {
-	t.Helper()
-	out, err := exec.Command("git", "-C", root, "show", "--name-only", "--pretty=format:", "HEAD").Output()
-	if err != nil {
-		t.Fatalf("git show HEAD: %v", err)
-	}
-	var files []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if line != "" {
-			files = append(files, line)
-		}
-	}
-	return files
 }
 
 // TestRun_RenderRoadmap_ReconcilesLowercase_Idempotent: a second --write
 // against the reconciled lowercase file with unchanged content is a
-// no-op (HEAD does not advance), keyed off the resolved name.
+// no-op, reported via the "already up to date" message rather than a
+// re-write, keyed off the resolved name.
+//
+// Serial, not t.Parallel(): calls testutil.CaptureStdout, which
+// mutates the process-level os.Stdout fd (see setup_test.go's serial
+// skip-list rationale).
 func TestRun_RenderRoadmap_ReconcilesLowercase_Idempotent(t *testing.T) {
-	t.Parallel()
 	root := initRepoWithEpic(t)
 
 	lower := filepath.Join(root, "roadmap.md")
@@ -276,37 +288,32 @@ func TestRun_RenderRoadmap_ReconcilesLowercase_Idempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// First --write reconciles to roadmap.md and commits.
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	// First --write reconciles to roadmap.md.
+	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("first render --write: %d", rc)
-	}
-	ctx := context.Background()
-	subjectBefore, err := gitops.HeadSubject(ctx, root)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	// Second --write with no tree changes must be a no-op.
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
-		t.Fatalf("second render --write: %d", rc)
-	}
-	subjectAfter, err := gitops.HeadSubject(ctx, root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if subjectAfter != subjectBefore {
-		t.Errorf("idempotent --write advanced HEAD: %q -> %q", subjectBefore, subjectAfter)
+	out := testutil.CaptureStdout(t, func() {
+		if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
+			t.Fatalf("second render --write: %d", rc)
+		}
+	})
+	if !strings.Contains(string(out), "already up to date") {
+		t.Errorf("idempotent --write should report up-to-date, got:\n%s", out)
 	}
 	if _, statErr := os.Stat(filepath.Join(root, "ROADMAP.md")); !os.IsNotExist(statErr) {
 		t.Errorf("ROADMAP.md should not exist after idempotent reconcile (err=%v)", statErr)
 	}
 }
 
-// TestRun_RenderRoadmap_StagedLowercaseGuard: the staged-edit guard
-// trips (usage exit, no commit) when the resolved lowercase roadmap.md
-// is already staged with the user's own edits — the case-insensitive
-// guard catches the variant the old case-sensitive compare would miss.
-func TestRun_RenderRoadmap_StagedLowercaseGuard(t *testing.T) {
+// TestRun_RenderRoadmap_WriteOverwritesDespiteStagedEdit: --write no
+// longer touches git state at all (G-0350), so a pre-staged edit to
+// the resolved roadmap file no longer blocks it — the write proceeds,
+// overwrites the working-tree copy, and leaves the user's staged index
+// entry untouched (committing, and reconciling any conflict with it,
+// is the caller's concern now).
+func TestRun_RenderRoadmap_WriteOverwritesDespiteStagedEdit(t *testing.T) {
 	t.Parallel()
 	root := initRepoWithEpic(t)
 
@@ -329,22 +336,27 @@ func TestRun_RenderRoadmap_StagedLowercaseGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("render --write should succeed despite a staged edit; got %d", rc)
+	}
+
+	body, err := os.ReadFile(lower)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "Foundations") {
+		t.Errorf("write should have overwritten the working tree with regenerated content:\n%s", body)
+	}
+
+	// The index still carries the user's staged edit — write touched
+	// only the working tree, not the index.
 	ctx := context.Background()
-	subjectBefore, err := gitops.HeadSubject(ctx, root)
+	staged, err := gitops.StagedPaths(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitUsage {
-		t.Fatalf("staged roadmap.md should trip the guard with usage exit; got %d", rc)
-	}
-
-	subjectAfter, err := gitops.HeadSubject(ctx, root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if subjectAfter != subjectBefore {
-		t.Errorf("guard should prevent a commit: HEAD advanced %q -> %q", subjectBefore, subjectAfter)
+	if !containsString(staged, "roadmap.md") {
+		t.Errorf("the user's staged edit should remain in the index: staged=%v", staged)
 	}
 }
 
@@ -355,7 +367,7 @@ func TestRun_RenderRoadmap_FreshRepoCreatesCanonical(t *testing.T) {
 	t.Parallel()
 	root := initRepoWithEpic(t)
 
-	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+	if rc := cli.Execute([]string{"render", "roadmap", "--write", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("render --write: %d", rc)
 	}
 

@@ -277,6 +277,74 @@ func TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle(t *testing.T) {
 	}
 }
 
+// TestAiwfxWrapEpic_RoadmapRegenWriteOnlyAfterPromote pins G-0350's fix:
+// the roadmap-regen step lands between the promote-done and push-gate
+// steps (so it captures the epic's actual final `done` status rather
+// than a stale pre-promote snapshot), documents that `--write` no
+// longer commits, and hand-composes its own commit (never routing
+// through a kernel verb) — the one deliberate exception to "promote is
+// last among entity-mutating commits" the "Why promote is last" section
+// carves out. Mirrors TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle's
+// heading-walk shape.
+func TestAiwfxWrapEpic_RoadmapRegenWriteOnlyAfterPromote(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapEpicFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("SKILL.md must have a `## Workflow` section")
+	}
+
+	promoteIdx, regenIdx, pushIdx := -1, -1, -1
+	for i, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		lower := strings.ToLower(strings.TrimPrefix(line, "### "))
+		switch {
+		case strings.Contains(lower, "promote the epic to `done`"):
+			promoteIdx = i
+		case strings.Contains(lower, "regenerate the roadmap"):
+			regenIdx = i
+		case strings.Contains(lower, "push gate"):
+			pushIdx = i
+		}
+	}
+	if promoteIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Promote the epic to `done`…` step")
+	}
+	if regenIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Regenerate the roadmap` step")
+	}
+	if pushIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Push gate` step")
+	}
+	if promoteIdx >= regenIdx || regenIdx >= pushIdx {
+		t.Errorf("roadmap-regen step must land after promote-done and before the push gate (got line indices: promote=%d, regen=%d, push=%d)", promoteIdx, regenIdx, pushIdx)
+	}
+
+	regen := extractMarkdownSection(body, 3, "9. Regenerate the roadmap")
+	if regen == "" {
+		t.Fatal("could not extract the `### 9. Regenerate the roadmap` section")
+	}
+	if !strings.Contains(regen, "aiwf render roadmap --write") {
+		t.Error("roadmap-regen step must run `aiwf render roadmap --write`")
+	}
+	if !strings.Contains(regen, "never commits") {
+		t.Error("roadmap-regen step must document that --write never commits (G-0350)")
+	}
+	requiredTrailerFlags := []string{
+		`--trailer "aiwf-verb: wrap-epic"`,
+		`--trailer "aiwf-entity: E-NNNN"`,
+		`--trailer "aiwf-actor: human/`,
+	}
+	for _, flag := range requiredTrailerFlags {
+		if !strings.Contains(regen, flag) {
+			t.Errorf("roadmap-regen step must hand-compose the commit with trailer flag %q", flag)
+		}
+	}
+}
+
 // TestAiwfxWrapEpic_AC5_KernelRuleUnchanged was M-0090's
 // implementation-window self-discipline: during M-0090's
 // implementation, no commit may touch trailer_keys.go or

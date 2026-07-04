@@ -82,6 +82,18 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    aiwf render roadmap --write
    ```
 
+   `--write` only rewrites the file on disk — it does not commit. If the content changed, stage and commit it:
+
+   ```bash
+   git add ROADMAP.md
+   git commit -m "docs(roadmap): regenerate after planning E-NN milestones" \
+     --trailer "aiwf-verb: plan-milestones" \
+     --trailer "aiwf-entity: E-NN" \
+     --trailer "aiwf-actor: human/<id>"
+   ```
+
+   The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date.
+
 9. **Confirm the sequence with the user.** Walk through the milestone list together. Identify any scope adjustments before drafting begins.
 
 10. **Merge planning to main.** Planning is closed; the entity tree on this ritual branch now diverges from main. Default behavior is to merge to main now so the freshly-allocated `M-NNNN` ids, the epic's updated Milestones list, and any `depends_on` edges are visible to other worktrees, machines, or operators. Held on a long-lived branch, planning data is hostage: other Claude Code sessions see only main's view, parallel epics walk separate filesystem-only `next-free-id` views (id collisions surface only at eventual merge), and milestone branches stack on a long-lived parent — making the epic-wrap diff balloon.

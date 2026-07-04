@@ -60,7 +60,7 @@ A live snapshot of the entity tree (in flight, roadmap, open decisions, open gap
 
 ## Roadmap
 
-The planned and in-flight work — epics and their milestones — lives in [ROADMAP.md](ROADMAP.md), generated from the planning tree by `aiwf render roadmap --write`. Edit the entities under `work/`, not the file directly; the one hand-maintained part is a `## Candidates` block at the bottom, which survives regenerations.
+The planned and in-flight work — epics and their milestones — lives in [ROADMAP.md](ROADMAP.md), generated from the planning tree by `aiwf render roadmap --write` (writes the file only; the caller commits it). Edit the entities under `work/`, not the file directly; the one hand-maintained part is a `## Candidates` block at the bottom, which survives regenerations.
 
 ---
 
@@ -266,7 +266,7 @@ The output is a pure function of the planning tree: render twice into separate d
 | `aiwf history <id>` | Render `git log` filtered for the entity's structured trailers; dual-matches reallocate's old/new id; matches AC composite ids under a milestone. |
 | `aiwf show <id>` | Aggregate view: frontmatter + ACs + recent history + active findings + `referenced_by`. Composite ids accepted. |
 | `aiwf status` | Project snapshot: in-flight work, open decisions, gaps, recent activity. Same data the auto-regenerated local `STATUS.md` shows. |
-| `aiwf render roadmap` | Markdown table of epics + milestones. `--write` updates `ROADMAP.md` and commits. |
+| `aiwf render roadmap` | Markdown table of epics + milestones. `--write` updates `ROADMAP.md` on disk only — no commit; the caller commits it. |
 | `aiwf render --format=html` | Static-site governance render: `index.html` + one HTML per epic and milestone, plus an embedded stylesheet. Output dir defaults to `site/` (configurable via `aiwf.yaml.html.out_dir` or `--out`). Read-only — no commit. JSON envelope on stdout reports `out_dir / files_written / elapsed_ms`. |
 | `aiwf schema [kind]` | Print the frontmatter contract for one kind (or all six); machine-readable via `--format=json --pretty`. |
 | `aiwf template [kind]` | Print the body-section template `aiwf add` would scaffold. |
@@ -295,7 +295,7 @@ The output is a pure function of the planning tree: render twice into separate d
 | `--audit-only --reason "<text>"` | `promote`, `cancel` | record an empty-diff commit when the entity is already at the target state (G24 recovery); human-only |
 | `--format <fmt>` | `check`, `history`, `contract verify`, `schema`, `template`, `show` | `text` (alternative: `json`) |
 | `--pretty` | with `--format=json` | indented JSON |
-| `--write` | `render roadmap` | print to stdout (no commit); with `--write` updates `ROADMAP.md` and commits |
+| `--write` | `render roadmap` | print to stdout (no commit); with `--write` updates `ROADMAP.md` on disk (still no commit — the caller commits it) |
 | `--self-check` | `doctor` | run normal diagnostics; with `--self-check` drives every verb against a temp repo |
 | `--check-latest` | `doctor` | hit the Go module proxy for the latest published version (advisory; honors `GOPROXY=off`) |
 | `--check`, `--version vX.Y.Z` | `upgrade` | `--check`: print comparison and exit; `--version`: pin install target |

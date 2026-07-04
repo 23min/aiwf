@@ -65,7 +65,17 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
    aiwf render roadmap --write
    ```
 
-   This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
+   `--write` only rewrites the file on disk — it does not commit. If the content changed, stage and commit it:
+
+   ```bash
+   git add ROADMAP.md
+   git commit -m "docs(roadmap): regenerate after planning E-NN" \
+     --trailer "aiwf-verb: plan-epic" \
+     --trailer "aiwf-entity: E-NN" \
+     --trailer "aiwf-actor: human/<id>"
+   ```
+
+   The trailer keys are quoted from CLAUDE.md §"Commit conventions" verbatim — variant casings (e.g. `Aiwf-Verb`) fail the kernel's trailer-keys policy. Skip the `git add`/`git commit` if the render reported the file already up to date. This regenerates the markdown table of epics + milestones from the current tree. Don't hand-edit the roadmap.
 
 8. **Optional tracker linkage.** If the project mirrors planning into an external issue tracker, create or link the epic record according to the project's convention.
 
