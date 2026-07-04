@@ -147,6 +147,18 @@ sort-before-compare was silently hiding Schema()'s documented
 struct-declaration-order guarantee; removed the sort so order is asserted
 directly, confirmed via a reverse-iteration mutant.
 
+### AC-2 — Description registry + anti-drift test
+
+fieldDescriptions is an explicit, hand-maintained one-line-per-path registry;
+Schema() attaches Description by Path lookup; TestSchema_EveryFieldHasDescription
+fails whenever a returned path has no entry · commit 048eb434 · tests 4/4
+
+The pre-existing golden test (AC-1) needed
+`cmpopts.IgnoreFields(SchemaField{}, "Description")` once Schema() started
+populating Description — otherwise it would duplicate the registry's content
+into a second hardcoded place. A 2-mutation vacuity pass (delete a registry
+entry; swap the lookup key from Path to Type) both caught, 0 survivors.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
