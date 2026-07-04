@@ -11,10 +11,10 @@ Every aiwf mutating verb isolates its commit by `git stash push --staged` then `
 
 aiwf builds each verb's commit via a **temp-index + `commit-tree` plumbing primitive** in `internal/gitops/`: construct the commit object from `(parent commit tree, set of path→blob writes)` against a throwaway `GIT_INDEX_FILE`, then `update-ref` HEAD. The live index and worktree are never read or written to isolate the commit.
 
-Because `commit-tree` fires no git hooks, the validation the pre-commit hook performs today relocates (Option C):
+Because `commit-tree` fires no git hooks, the validation the pre-commit hook performs today relocates for verb commits specifically (Option C):
 
-- **Shape validity** is owned by the verb *by construction* — the verb writes a shape-valid tree; the redundant per-commit `aiwf check --shape-only` is dropped.
-- **Secret/path-leak scanning** (gitleaks, G-0103) relocates to the **pre-push** hook (range scan over the pushed commits).
+- **Shape validity** is owned by the verb *by construction* — the verb writes a shape-valid tree, so `aiwf check --shape-only` is inapplicable to verb commits (they bypass hooks structurally, like any `commit-tree`-built commit). The installed pre-commit hook itself is unaffected and keeps running `aiwf check --shape-only` for hand-made commits (a `git commit` outside verb plumbing), which still get immediate shape feedback.
+- **Secret/path-leak scanning** (gitleaks, G-0103) already relocated to the **pre-push** hook as the general case (G-0291: scans the pushed commit range for every commit, not just verb commits) — no further change needed here.
 - **Pre-push `aiwf check`** remains the authoritative full-validation gate (kernel commitment #3).
 
 ## Consequences
@@ -24,8 +24,9 @@ Because `commit-tree` fires no git hooks, the validation the pre-commit hook per
 - A single commit-construction substrate serves all verbs and, later, the G-0281 gaps-inbox (M-0187) — no parallel commit path.
 - Kernel commitment #7 (exactly one commit per verb) is preserved; only the construction mechanism changes.
 - **Rejected alternative — index save/reset/restore:** preserves hook firing but still mutates the shared live index (a crash window; exposure to the shared-worktree index race). The plumbing approach is strictly more isolated and hook-install-independent.
+- **Commit-signing parity.** `git commit-tree` does not transparently honor `commit.gpgsign` the way `git commit` does. M-0186 must read the repo's signing config (`commit.gpgsign`, `user.signingkey`/`gpg.format`) and pass the equivalent `-S`/`--gpg-sign` to `commit-tree`, or a signed-commit consumer repo silently regresses to unsigned verb commits.
 - The never-checked-out-ref and push-inside-a-verb decisions for the gaps-inbox are deliberately deferred to M-0187's own ADR.
 
 ## References
 
-E-0045 (epic), M-0186 (first implementation), G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why `git commit --only` was abandoned), ADR-0001 (related: mint ids at trunk integration).
+E-0045 (epic), M-0186 (first implementation), G-0276 (driver), G-0275 (fail-loud floor), G-0291 (gitleaks generalized to pre-push for all commits, already addressed), the G-0034 → G-0112 history (why `git commit --only` was abandoned), ADR-0001 (related: mint ids at trunk integration).
