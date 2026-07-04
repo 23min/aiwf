@@ -52,6 +52,40 @@ func TestParseEntityFromBranch(t *testing.T) {
 	}
 }
 
+// TestParseEpicFromWorktreePath covers the G-0332 path-based epic
+// signal: the in-repo ritual worktree placement
+// (`.claude/worktrees/epic/E-NNNN-<slug>/`, ADR-0023) embeds the
+// `epic/E-NNNN-...` shape directly into the worktree's filesystem
+// path, independent of whichever branch is currently checked out
+// inside it.
+func TestParseEpicFromWorktreePath(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, path, want string
+	}{
+		{"in-repo ritual placement with slug", "/repo/.claude/worktrees/epic/E-0048-skill-drift", "E-0048"},
+		{"in-repo ritual placement id-only", "/repo/.claude/worktrees/epic/E-0048", "E-0048"},
+		{"epic segment mid-path with trailing segment", "/repo/.claude/worktrees/epic/E-0048-skill-drift/sub", "E-0048"},
+		{"epic segment at path root", "epic/E-0007-x", "E-0007"},
+		{"narrow-legacy id width preserved on output", "/repo/.claude/worktrees/epic/E-01-old", "E-01"},
+		{"lowercase e- id still accepted (case-insensitive)", "/repo/.claude/worktrees/epic/e-0001-x", "E-0001"},
+		{"sibling-style path with no epic segment returns empty", "/workspaces/aiwf-epic-E-0048-slug", ""},
+		{"milestone worktree path returns empty", "/repo/.claude/worktrees/milestone/M-0197-pass-c", ""},
+		{"patch worktree path returns empty", "/repo/.claude/worktrees/patch/G-0332-fix", ""},
+		{"epic without id segment returns empty", "/repo/.claude/worktrees/epic/no-id-here", ""},
+		{"epic as a substring of another segment returns empty", "/repo/myepic/E-0048-x", ""},
+		{"empty path returns empty", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ParseEpicFromWorktreePath(tc.path); got != tc.want {
+				t.Errorf("ParseEpicFromWorktreePath(%q) = %q, want %q", tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestRungOf pins the M-0161/AC-2 (G-0201) rung classifier. The helper
 // maps a branch name to its ritual rung — "trunk", "epic", "milestone",
 // "patch", or "" (no match). The trunk-rung detection is config-driven,

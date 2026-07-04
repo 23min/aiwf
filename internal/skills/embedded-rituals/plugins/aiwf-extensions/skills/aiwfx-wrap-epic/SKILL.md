@@ -101,13 +101,14 @@ Append the report to `wrap.md` under a `## Doc findings` section. If findings in
 
 ### 4. 🛑 Declared-sequence gate — close the epic (terminal local sequence)
 
-This is the epic's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 9) and the origin-branch deletes (step 10) — those are outward and stand as their own gates, never batched here.
+This is the epic's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 10) and the origin-branch deletes (step 11) — those are outward and stand as their own gates, never batched here.
 
-The enumerated local sequence is **merge → wrap-artefact commit → promote-done**:
+The enumerated local sequence is **merge → wrap-artefact commit → promote-done → roadmap regen**:
 
 1. **Merge** the epic branch into the integration target with a trailered merge commit (step 6).
 2. **Wrap-artefact commit** — the CHANGELOG `[Unreleased]` entry + `wrap.md`, trailered (step 7).
-3. **Promote** the epic to `done` — the last commit in the bundle (step 8).
+3. **Promote** the epic to `done` — status-flip commit (step 8).
+4. **Roadmap regen** — regenerate `ROADMAP.md` now that the epic shows `done` (step 9), committed before the push gate (step 10).
 
 Once the sequence is approved, execute it:
 
@@ -179,7 +180,7 @@ git commit -m "chore(E-NN): wrap epic — <one-line summary>" \
   --trailer "aiwf-actor: human/<id>"
 ```
 
-### 8. Promote the epic to `done` — last commit in the bundle
+### 8. Promote the epic to `done` — last entity-mutating commit in the bundle
 
 ```bash
 aiwf promote E-NN done
@@ -187,11 +188,29 @@ aiwf promote E-NN done
 
 aiwf validates `active → done`, rewrites frontmatter, commits with `aiwf-verb: promote`. (If the epic is still `proposed`, that means no milestone ever started — wrap doesn't apply. Investigate.)
 
-**Why promote is last.** The `aiwf promote E-NN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this — wrap artefact, CHANGELOG entry, reallocates, or other wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NN done` as the last commit in the wrap bundle guarantees every other wrap commit lives under the live scope, and the scope-ending promote is itself the natural last act before the push gate.
+**Why promote is last among entity-mutating commits.** The `aiwf promote E-NN done` commit ends the authorize scope that opened with `aiwfx-start-epic`. Any commit produced *after* this that goes through a kernel verb — wrap artefact, CHANGELOG entry, reallocates, or other verb-driven wrap-bundle commits — would carry `aiwf-authorized-by:` referencing the just-ended scope and trigger the kernel's `provenance-authorization-ended` finding on push, blocking the wrap with no clean remediation short of `--no-verify` or history rewrite. Keeping `aiwf promote E-NN done` as the last *verb-driven* commit in the wrap bundle guarantees every other verb commit lives under the live scope. The one exception is step 9's roadmap-regen commit: it's hand-composed via plain `git commit` (never routed through the CLI's scope-lookup/trailer-decoration path), so it can never receive an auto-stamped `aiwf-authorized-by` — safe to land after promote-done, which is also the only point in the sequence where the roadmap can reflect the epic's actual final `done` state.
 
 The completion date is recorded in `wrap.md` (step 1) and is recoverable from the `aiwf-verb: promote` commit via `aiwf history E-NN`. Do not add a `completed:` field to the epic frontmatter — aiwf's epic schema does not include it, and the parse failure cascades into unresolved-reference findings on every entity that links to this epic.
 
-### 9. 🛑 Push gate
+### 9. Regenerate the roadmap
+
+```bash
+aiwf render roadmap --write
+```
+
+`--write` only rewrites `ROADMAP.md` on disk — it never commits. Now that the epic shows `done`, stage and commit any resulting change as its own small step, with the same trailer set as the rest of the bundle:
+
+```bash
+git add ROADMAP.md
+git commit -m "docs(roadmap): regenerate after E-NN wrap" \
+  --trailer "aiwf-verb: wrap-epic" \
+  --trailer "aiwf-entity: E-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+```
+
+If `aiwf render roadmap --write` reported the file already up to date, skip the `git add`/`git commit` — there is nothing to stage. This step still runs inside the declared-sequence gate from step 4 (item 4) — no separate approval, and no `--no-ff` merge output to reconcile since it's a plain file regen.
+
+### 10. 🛑 Push gate
 
 Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Confirm. Then:
 
@@ -199,7 +218,7 @@ Push is outward and irreversible — its own gate, never part of the declared-se
 git push origin main
 ```
 
-### 10. 🛑 Origin branch cleanup — one gate per delete
+### 11. 🛑 Origin branch cleanup — one gate per delete
 
 Plan the deletions first. List the milestone and epic branches to delete. For each, verify it's merged:
 
@@ -217,17 +236,11 @@ git push origin --delete milestone/M-NNN-<slug>   # its own gate
 git push origin --delete epic/E-NN-<slug>          # its own gate
 ```
 
-### 11. Update the roadmap
-
-```bash
-aiwf render roadmap --write
-```
-
 ## Constraints
 
-- 🛑 **The terminal local sequence — merge, wrap-artefact commit, promote-done — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 9) and each origin-branch delete (step 10) are outward and keep their own gates; never batch them.
+- 🛑 **The terminal local sequence — merge, wrap-artefact commit, promote-done, roadmap regen — runs under one declared-sequence gate (step 4)**, enumerated verbatim and subset-approvable. The push (step 10) and each origin-branch delete (step 11) are outward and keep their own gates; never batch them.
 - 🛑 **The merge commit and the wrap-artefact commit both carry the three required trailers.** Skipping either is the regression the kernel's `provenance-untrailered-entity-commit` finding catches.
-- 🛑 **`aiwf promote E-NN done` is the last commit in the bundle** (step 8). It ends the active authorize scope; any commit produced after it carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push.
+- 🛑 **`aiwf promote E-NN done` is the last *verb-driven* commit in the bundle** (step 8). It ends the active authorize scope; any commit produced after it that routes through a kernel verb carries an ended-scope `aiwf-authorized-by:` and fails the kernel's `provenance-authorization-ended` check on push. The step-9 roadmap-regen commit is the sole, deliberate exception — hand-composed via plain `git commit`, never routed through the CLI's scope-lookup path, so it cannot receive that trailer regardless of position.
 - 🛑 **Mainline is reconciled into the epic branch before the merge (step 5), not resolved on mainline mid-merge.** After fetching and fast-forwarding local `main`, if `git merge-base --is-ancestor main epic/E-NN-<slug>` is false, integrate mainline into the epic branch, resolve conflicts, and re-run the full local gate there first.
 - Every milestone must be `done` before wrap — `aiwf check` and `aiwf history E-NN` confirm.
 - Branch-cleanup is origin-only. Do not delete local branches.
@@ -242,7 +255,7 @@ aiwf render roadmap --write
 - *Pushing before approval.*
 - *Merging without `--no-commit`.* Produces an untrailered merge commit; the kernel rule fires once per entity file touched.
 - *Hardcoding `<id>` in the actor trailer.* Resolve from `git config user.email` at run time per the provenance model.
-- *Promoting the epic to `done` before the wrap-artefact and other wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 8, after the wrap-artefact commit — the "Why promote is last" section above explains why.
+- *Promoting the epic to `done` before the wrap-artefact and other verb-driven wrap-bundle commits.* Ends the authorize scope mid-bundle; subsequent verb-driven commits carry an ended-scope `aiwf-authorized-by:` and fail `provenance-authorization-ended` on push. Promote is step 8, after the wrap-artefact commit — the "Why promote is last among entity-mutating commits" section above explains why (and why the step-9 roadmap regen is the one safe exception).
 - *Resolving a mainline conflict on mainline itself, mid-merge.* If mainline has advanced past the epic branch's fork point, reconcile on the epic branch (step 5) and re-run the gate there — mainline only ever receives an already-validated result.
 
 ## Out of scope

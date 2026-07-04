@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // TestParentEntity verifies AC composite ids strip to their parent
@@ -253,6 +255,55 @@ func TestCorrelateFromTrailerEvents(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMarkCheckedOutMilestone covers the G-0332 overlay helper: the
+// row matching checkedOut's (canonicalized) id gets flagged and its ACs
+// attached; siblings are untouched; a checkedOut milestone absent from
+// rows (e.g. it belongs to a different epic) is a no-op rather than a
+// panic.
+func TestMarkCheckedOutMilestone(t *testing.T) {
+	t.Parallel()
+	baseRows := func() []EpicChildRow {
+		return []EpicChildRow{
+			{ID: "M-0123", Title: "Pass C", Status: "in_progress"},
+			{ID: "M-0197", Title: "Altitude fix", Status: "in_progress"},
+		}
+	}
+	t.Run("flags matching row and attaches ACs", func(t *testing.T) {
+		t.Parallel()
+		rows := baseRows()
+		checkedOut := &entity.Entity{
+			ID: "M-0197",
+			ACs: []entity.AcceptanceCriterion{
+				{ID: "AC-1", Title: "Parse epic from path", Status: "met"},
+			},
+		}
+		markCheckedOutMilestone(rows, checkedOut)
+		if !rows[1].CheckedOut {
+			t.Errorf("rows[1] (M-0197) CheckedOut = false, want true")
+		}
+		if len(rows[1].ACs) != 1 || rows[1].ACs[0].ID != "AC-1" {
+			t.Errorf("rows[1].ACs = %+v, want one AC-1 row", rows[1].ACs)
+		}
+		if rows[0].CheckedOut {
+			t.Errorf("sibling row[0] (M-0123) should stay CheckedOut=false")
+		}
+		if len(rows[0].ACs) != 0 {
+			t.Errorf("sibling row[0].ACs should stay empty, got %+v", rows[0].ACs)
+		}
+	})
+	t.Run("checked-out milestone absent from rows is a no-op", func(t *testing.T) {
+		t.Parallel()
+		rows := baseRows()
+		checkedOut := &entity.Entity{ID: "M-9999"}
+		markCheckedOutMilestone(rows, checkedOut)
+		for i, r := range rows {
+			if r.CheckedOut {
+				t.Errorf("row[%d] (%s) unexpectedly flagged CheckedOut", i, r.ID)
+			}
+		}
+	})
 }
 
 // TestRenderAge covers the relative-time formatting across the grain
@@ -663,6 +714,61 @@ func TestRenderWorktreeViews(t *testing.T) {
 			},
 		},
 		{
+			// G-0332: an epic worktree with a milestone branch checked
+			// out inside it still renders at epic altitude — the
+			// checked-out milestone gets a `→ (checked out)` marker plus
+			// its ACs nested under its row; the sibling milestone stays
+			// collapsed to its one-line status badge, no AC detail.
+			name: "epic-driver overlays the checked-out milestone with ACs; siblings stay collapsed",
+			views: []WorktreeView{
+				{
+					Path: "/repo/.claude/worktrees/epic/E-0048-skill-drift", Branch: "milestone/M-0197-altitude",
+					DriverEntityID: "E-0048", DriverKind: "epic",
+					DriverStatus: "active", DriverTitle: "Skill drift",
+					EpicMilestones: []EpicChildRow{
+						{ID: "M-0123", Title: "Pass C", Status: "in_progress"},
+						{
+							ID: "M-0197", Title: "Altitude fix", Status: "in_progress",
+							CheckedOut: true,
+							ACs: []ACRow{
+								{ID: "AC-1", Title: "Parse epic from path", Status: "met", TDDPhase: "done"},
+							},
+						},
+					},
+				},
+			},
+			mustHave: []string{
+				"E-0048 — Skill drift [active]",
+				"M-0123 — Pass C [in_progress]",
+				"M-0197 — Altitude fix [in_progress]",
+				"        → (checked out)",
+				"        ACs:",
+				"AC-1 — Parse epic from path [met, done]",
+			},
+		},
+		{
+			// G-0332: a checked-out milestone with no ACs yet (e.g. still
+			// a draft) gets the `→ (checked out)` marker but no "ACs:"
+			// block — the len(m.ACs) > 0 guard must not print an empty
+			// section header.
+			name: "epic-driver checked-out milestone with zero ACs: marker only, no ACs block",
+			views: []WorktreeView{
+				{
+					Path: "/repo/.claude/worktrees/epic/E-0048-skill-drift", Branch: "milestone/M-0198-empty",
+					DriverEntityID: "E-0048", DriverKind: "epic",
+					DriverStatus: "active", DriverTitle: "Skill drift",
+					EpicMilestones: []EpicChildRow{
+						{ID: "M-0198", Title: "No ACs yet", Status: "in_progress", CheckedOut: true},
+					},
+				},
+			},
+			mustHave: []string{
+				"M-0198 — No ACs yet [in_progress]",
+				"        → (checked out)",
+			},
+			mustNot: []string{"ACs:"},
+		},
+		{
 			name: "blank line separator between two worktree sections",
 			views: []WorktreeView{
 				{Path: "/repo/wt-a", Branch: "milestone/M-0001-a", DriverEntityID: "M-0001", DriverKind: "milestone", DriverStatus: "in_progress", DriverTitle: "A"},
@@ -696,5 +802,41 @@ func TestRenderWorktreeViews(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestRenderEpicExpansion_CheckedOutOverlayIsPerRow guards against the
+// checked-out overlay leaking onto every milestone row instead of just
+// the flagged one (G-0332): with two milestones and only one flagged
+// CheckedOut, exactly one "→ (checked out)" marker and one "ACs:"
+// block must appear — a plain substring "mustHave" check can't tell
+// "appears once" from "appears on every row," so this counts.
+func TestRenderEpicExpansion_CheckedOutOverlayIsPerRow(t *testing.T) {
+	t.Parallel()
+	views := []WorktreeView{
+		{
+			Path: "/repo/.claude/worktrees/epic/E-0048-skill-drift", Branch: "milestone/M-0197-altitude",
+			DriverEntityID: "E-0048", DriverKind: "epic",
+			DriverStatus: "active", DriverTitle: "Skill drift",
+			EpicMilestones: []EpicChildRow{
+				{ID: "M-0123", Title: "Pass C", Status: "in_progress"},
+				{
+					ID: "M-0197", Title: "Altitude fix", Status: "in_progress",
+					CheckedOut: true,
+					ACs:        []ACRow{{ID: "AC-1", Title: "Parse epic from path", Status: "met"}},
+				},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	if err := RenderWorktreeViews(&buf, views, false); err != nil {
+		t.Fatalf("RenderWorktreeViews: %v", err)
+	}
+	got := buf.String()
+	if n := strings.Count(got, "→ (checked out)"); n != 1 {
+		t.Errorf(`"→ (checked out)" appears %d times, want exactly 1:\n%s`, n, got)
+	}
+	if n := strings.Count(got, "ACs:"); n != 1 {
+		t.Errorf(`"ACs:" appears %d times, want exactly 1:\n%s`, n, got)
 	}
 }
