@@ -1,7 +1,7 @@
 ---
 id: G-0349
 title: wf-patch defaults to in-place branch, not the in-repo-worktree placement
-status: open
+status: wontfix
 ---
 ## What's missing
 
