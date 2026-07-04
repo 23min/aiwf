@@ -15,7 +15,9 @@ import (
 // `internal/skills/embedded-statusline/statusline.sh` is authoritative
 // and is materialized verbatim into a consumer's `.claude/statusline.sh`
 // by the `--statusline` scaffold. The script is the test target for
-// M-0153's three content-assertion ACs.
+// M-0153's remaining two content-assertion ACs (AC-1, the transcript-walk
+// portability chain, was retired by G-0352 along with the transcript walk
+// itself — token/color now source from the stdin context_window object).
 func loadStatusline(t *testing.T) string {
 	t.Helper()
 	body := skills.StatuslineBytes()
@@ -23,38 +25,6 @@ func loadStatusline(t *testing.T) string {
 		t.Fatal("skills.StatuslineBytes() returned empty — the go:embed directive is not wired or the source file is empty")
 	}
 	return string(body)
-}
-
-// TestStatusline_M0153_AC1_TranscriptWalkPortable asserts M-0153/AC-1:
-// the transcript-walk reader uses BSD/macOS `tail -r` as the primary
-// command with GNU `tac` as the fallback, so the token segment renders
-// correctly on both platforms. macOS lacks `tac`; a bare `tac` invocation
-// silently fails to a zero-token read on Darwin.
-//
-// Two anchored assertions per CLAUDE.md's "substring assertions are not
-// structural assertions" rule:
-//
-//   - Presence: the exact fallback chain
-//     `tail -r "$transcript" ... || tac "$transcript"` appears on a single
-//     line (structural position, not just two substrings co-occurring).
-//   - Absence: no `$(tac "$transcript"` — `tac` may only appear in a
-//     fallback position, never as the command-substitution entry point.
-//     This is the baseline form the fix removes; a later reflow that
-//     drops the `tail -r` half would reintroduce the bug and is caught
-//     by this absence rule.
-func TestStatusline_M0153_AC1_TranscriptWalkPortable(t *testing.T) {
-	t.Parallel()
-	body := loadStatusline(t)
-
-	presence := regexp.MustCompile(`tail -r\s+"\$transcript"[^|]*\|\|\s*tac\s+"\$transcript"`)
-	if !presence.MatchString(body) {
-		t.Errorf("AC-1: statusline.sh must read the transcript via a `tail -r \"$transcript\" ... || tac \"$transcript\"` fallback chain (BSD/macOS first, GNU second); robust form not found")
-	}
-
-	bareTac := regexp.MustCompile(`\$\(\s*tac\s+"\$transcript"`)
-	if bareTac.MatchString(body) {
-		t.Errorf("AC-1: statusline.sh must not invoke `tac` as the command-substitution entry point — `tac` may only appear in a `|| tac` fallback position (the bare form silently produces zero tokens on macOS, which lacks `tac`)")
-	}
 }
 
 // TestStatusline_M0153_AC2_AheadBehindParseRobust asserts M-0153/AC-2:
