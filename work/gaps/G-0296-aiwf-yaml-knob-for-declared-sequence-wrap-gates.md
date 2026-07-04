@@ -1,7 +1,7 @@
 ---
 id: G-0296
 title: aiwf.yaml knob for declared-sequence wrap gates
-status: open
+status: wontfix
 ---
 ## Problem
 
