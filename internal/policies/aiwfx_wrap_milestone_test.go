@@ -193,3 +193,59 @@ func TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge(t *testing.T) {
 		t.Errorf("merge-step subsection must order integrate epic branch -> re-run gate -> staged merge (got indices %d, %d, %d)", integrateIdx, gateIdx, stageIdx)
 	}
 }
+
+// TestAiwfxWrapMilestone_RoadmapRegenWriteOnlyAfterPromote pins G-0350's
+// fix in the wrap-milestone declared-sequence gate (`### 10.`): the
+// roadmap-regen sub-step lands between the promote and the local-cleanup
+// sub-steps (so it captures the milestone's actual `done` status rather
+// than a stale pre-promote snapshot), documents that `--write` no longer
+// commits, and — because it's landing after the status-flip promote
+// commit — commits its own result by hand rather than relying on
+// `aiwf render roadmap --write` to commit for it. A regression that
+// dropped the hand-composed commit (reverting to the old
+// commits-automatically verb contract) or reordered the sub-step before
+// the promote would fail this test even though a flat grep for
+// "render roadmap" would still pass.
+func TestAiwfxWrapMilestone_RoadmapRegenWriteOnlyAfterPromote(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapMilestoneFixture(t)
+
+	gate := extractMarkdownSection(body, 3, "10.")
+	if gate == "" {
+		t.Fatal("SKILL.md must have a `### 10.` declared-sequence-gate section")
+	}
+
+	promoteIdx := strings.Index(gate, "**2. Promote**")
+	regenIdx := strings.Index(gate, "**3. Regenerate the roadmap**")
+	cleanupIdx := strings.Index(gate, "**4. Local cleanup**")
+	if promoteIdx < 0 || regenIdx < 0 || cleanupIdx < 0 {
+		t.Fatal("declared-sequence gate must contain, in order, the promote, roadmap-regen, and local-cleanup sub-steps")
+	}
+	if promoteIdx >= regenIdx || regenIdx >= cleanupIdx {
+		t.Errorf("declared-sequence gate must order promote -> roadmap regen -> local cleanup (got indices promote=%d, regen=%d, cleanup=%d)", promoteIdx, regenIdx, cleanupIdx)
+	}
+
+	// Scope the content assertions to just the roadmap-regen sub-step
+	// (between its own marker and the next one), not the whole gate —
+	// the merge sub-step earlier in this same section also carries an
+	// `aiwf-verb: wrap-milestone` trailer, so an unscoped Contains check
+	// would pass vacuously even if this sub-step's own commit block were
+	// deleted.
+	regenStep := gate[regenIdx:cleanupIdx]
+	if !strings.Contains(regenStep, "aiwf render roadmap --write") {
+		t.Error("roadmap-regen sub-step must run `aiwf render roadmap --write`")
+	}
+	if !strings.Contains(regenStep, "never commits") {
+		t.Error("roadmap-regen sub-step must document that --write never commits (G-0350)")
+	}
+	requiredTrailerFlags := []string{
+		`--trailer "aiwf-verb: wrap-milestone"`,
+		`--trailer "aiwf-entity: M-NNNN"`,
+		`--trailer "aiwf-actor: human/`,
+	}
+	for _, flag := range requiredTrailerFlags {
+		if !strings.Contains(regenStep, flag) {
+			t.Errorf("roadmap-regen sub-step must hand-compose the commit with trailer flag %q", flag)
+		}
+	}
+}

@@ -79,17 +79,19 @@ For ACs that were `cancelled` mid-implementation, link to the `D-NNN` decision (
 aiwf render roadmap --write
 ```
 
-The roadmap reflects the milestone's new status without hand-edits.
+`--write` only rewrites `ROADMAP.md` on disk — it does not commit. It rides into the wrap commit below (step 6) alongside the milestone spec, so there is no separate roadmap commit and no separate gate for it. This render still reflects the milestone as `in_progress` (the promote to `done` hasn't happened yet) — that's expected, not a bug: step 10's declared-sequence gate regenerates and commits it again once `done` actually lands, superseding this one. Keep both: dropping either reintroduces a dirty-tree or stray-uncommitted-file problem.
 
 ### 6. Stage all changes and prepare the wrap commit
 
-The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes); that's the only thing left to stage:
+The implementation is already committed, per-AC, from `aiwfx-start-milestone` step 6 — this step does not bundle any source or test files. The milestone spec carries all the wrap-side prose now (Work log, Validation, Deferrals, Reviewer notes); that, plus the regenerated roadmap from step 5, is what's left to stage:
 
 ```bash
-git add work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md
+git add work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md ROADMAP.md
 git status
 git diff --staged --stat
 ```
+
+(`git add` on an unchanged `ROADMAP.md` is a no-op — step 5 already skipped the write when content was unchanged, so nothing spurious lands here.)
 
 Draft a conventional commit message: `feat(<scope>): <one-line summary> (M-NNNN)`.
 
@@ -129,7 +131,7 @@ Open the PR if the project's flow is PR-driven. Reference the milestone id in th
 
 This is the milestone's terminal sequence of *local, reversible* mutations. Per CLAUDE.md's gate-discipline section, present it as a single **declared-sequence gate** that enumerates every action verbatim; the user may approve a subset ("all except the promote"), and any deviation (a merge conflict, a check finding, unexpected dirty state) aborts the sequence and re-gates from the point of deviation. **Excluded from this gate:** the push (step 9, outward) and any origin-branch delete (outward) — those stand as their own gates and are never batched here.
 
-The enumerated local sequence is **merge → promote-done → local cleanup**:
+The enumerated local sequence is **merge → promote-done → roadmap regen → local cleanup**:
 
 **1. Merge** the milestone branch into the epic branch. If the project uses an epic-integration branch, follow the same pattern as `aiwfx-wrap-epic`'s epic-into-trunk merge: stage the merge **without committing** so the merge commit's trailer set can be attached explicitly.
 
@@ -165,7 +167,25 @@ aiwf promote M-NNNN done
 
 aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge so a delegated milestone's authorize scope is still live for the merge commit.
 
-**3. Local cleanup** — delete the local milestone branch (and its worktree, if one was used):
+**3. Regenerate the roadmap**, now that the milestone's status has actually landed as `done` (step 5's render ran before this promotion, so it's stale the moment promote-done commits):
+
+```bash
+aiwf render roadmap --write
+```
+
+`--write` only rewrites the file on disk — it never commits. Landing this after promote-done is safe despite promote being "the last status-flip commit": the regen commit below is hand-composed via plain `git commit`, never routed through the CLI's scope-lookup/trailer-decoration path, so it cannot pick up an ended-scope `aiwf-authorized-by:` trailer regardless of position (unlike a kernel-verb commit, which would). If the content changed, stage and commit it as its own small step in this same declared sequence, with the ritual's trailers (mirroring the merge commit's hand-composed trailer set above):
+
+```bash
+git add ROADMAP.md
+git commit -m "docs(roadmap): regenerate after M-NNNN wrap" \
+  --trailer "aiwf-verb: wrap-milestone" \
+  --trailer "aiwf-entity: M-NNNN" \
+  --trailer "aiwf-actor: human/<id>"
+```
+
+If `aiwf render roadmap --write` reported the file already up to date, skip the `git add`/`git commit` — there is nothing to stage.
+
+**4. Local cleanup** — delete the local milestone branch (and its worktree, if one was used):
 
 ```bash
 git branch -d milestone/M-NNNN-<slug>
@@ -173,17 +193,16 @@ git branch -d milestone/M-NNNN-<slug>
 
 These are local and reversible, so they belong inside the gate above.
 
-### 11. Origin cleanup and housekeeping
+### 11. Origin cleanup
 
 After the declared-sequence gate, finish up. The origin-branch delete is an **outward action — its own gate**, never batched into step 10:
 
 - Delete the milestone branch on origin (`git push origin --delete milestone/M-NNNN-<slug>`) if the branch/PR flow created one — outward, its own gate.
-- Run `aiwf render roadmap --write` once more if the merge introduced any state aiwf would notice (a local change, no gate needed).
 
 ## Constraints
 
 - 🛑 **Never commit or push without explicit human approval** — the commit gate (step 7) and the push gate (step 9) are separate human gates.
-- 🛑 **The terminal local sequence — local merge, promote-done, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
+- 🛑 **The terminal local sequence — local merge, promote-done, roadmap regen, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
 - Deferrals must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at.

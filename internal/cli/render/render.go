@@ -17,12 +17,11 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/htmlrender"
+	"github.com/23min/aiwf/internal/pathutil"
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/roadmap"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -117,8 +116,9 @@ func printRenderHelp() {
 Surfaces:
   aiwf render roadmap [--write]
       Markdown roadmap (epics + milestones). Prints to stdout by
-      default; with --write replaces ROADMAP.md and creates a
-      single commit.
+      default; with --write replaces ROADMAP.md on disk only — no
+      commit. The caller commits it as part of whatever change
+      they were already making.
 
   aiwf render --format=html [--out <dir>] [--scope <id>] [--no-history] [--pretty]
       Static-site governance render: index.html + one page per
@@ -132,15 +132,17 @@ See 'aiwf help' for the master verb catalog.`)
 }
 
 // newRoadmapCmd builds `aiwf render roadmap`: prints the markdown
-// roadmap to stdout, or with --write replaces ROADMAP.md and creates a
-// single commit. When the rendered output already matches the on-disk
-// file, --write is a no-op (no commit) so the verb is safely re-runnable
-// in CI.
+// roadmap to stdout, or with --write replaces ROADMAP.md on disk.
+// --write never commits — the caller stages and commits ROADMAP.md as
+// part of whatever change they were already making (G-0350: this used
+// to route through verb.Apply and commit on its own, which forced a
+// separate gate and refused to run on a dirty tree). When the rendered
+// output already matches the on-disk file, --write is a no-op so the
+// verb is safely re-runnable in CI.
 func newRoadmapCmd() *cobra.Command {
 	var (
 		root  string
 		write bool
-		actor string
 	)
 	cmd := &cobra.Command{
 		Use:   "roadmap",
@@ -148,23 +150,22 @@ func newRoadmapCmd() *cobra.Command {
 		Example: `  # Print the markdown roadmap to stdout
   aiwf render roadmap
 
-  # Replace ROADMAP.md and create a single commit
+  # Replace ROADMAP.md on disk (does not commit)
   aiwf render roadmap --write`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(RunRoadmap(root, write, actor))
+			return cliutil.WrapExitCode(RunRoadmap(root, write))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
-	cmd.Flags().BoolVar(&write, "write", false, "write ROADMAP.md and commit (no-op when content is unchanged)")
-	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (only with --write)")
+	cmd.Flags().BoolVar(&write, "write", false, "write ROADMAP.md to disk, no commit (no-op when content is unchanged)")
 	return cmd
 }
 
 // RunRoadmap executes `aiwf render roadmap`. Returns one of the cliutil.Exit* codes.
-func RunRoadmap(root string, write bool, actor string) int {
+func RunRoadmap(root string, write bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
@@ -221,63 +222,15 @@ func RunRoadmap(root string, write bool, actor string) int {
 		return cliutil.ExitOK
 	}
 
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
-		return cliutil.ExitUsage
-	}
-
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf render roadmap")
-	if release == nil {
-		return rc
-	}
-	defer release()
-
-	// Case-insensitive pre-check (G-0185): if the user has staged a
-	// roadmap-shaped path under a different casing than the one we
-	// resolved to (e.g. user staged `roadmap.md`, we resolved to
-	// `ROADMAP.md` because the case-sensitive FS lookup missed),
-	// verb.Apply's exact-match conflict guard would let the verb
-	// proceed and create a divergent second file. Catch it here with
-	// EqualFold before handing off to Apply. The verb.Apply path
-	// then handles the normal stash/conflict/rollback envelope for
-	// every other pre-staged path.
-	staged, err := gitops.StagedPaths(ctx, rootDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: checking pre-staged changes: %v\n", err)
-		return cliutil.ExitInternal
-	}
-	for _, p := range staged {
-		if strings.EqualFold(p, resolvedName) {
-			fmt.Fprintf(os.Stderr,
-				"aiwf render roadmap: %s is already staged with your own edits.\n"+
-					"  run `git restore --staged %s` (or `git stash`) and re-run.\n",
-				resolvedName, resolvedName)
-			return cliutil.ExitUsage
-		}
-	}
-
-	// Route the write+stage+commit through verb.Apply (G-0231 item 2).
-	// This restores the verb-validate-then-write chokepoint, gives the
-	// commit the kernel's rollback envelope under partial failure, and
-	// keeps the trailer keys behind gitops constants so the
-	// trailer-keys-via-constants policy applies uniformly.
-	subject := "aiwf render roadmap"
-	plan := &verb.Plan{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "render-roadmap"},
-			{Key: gitops.TrailerActor, Value: actorStr},
-		},
-		Ops: []verb.FileOp{
-			{Type: verb.OpWrite, Path: resolvedName, Content: content},
-		},
-	}
-	if err := verb.Apply(ctx, rootDir, plan); err != nil {
+	// Plain atomic write, no git involvement (G-0350): committing
+	// ROADMAP.md is the caller's concern, folded into whatever change
+	// they were already making. This also means the write runs
+	// regardless of what else is staged or dirty in the tree.
+	if err := pathutil.AtomicWriteFile(dest, content, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	fmt.Println(subject)
+	fmt.Printf("aiwf render roadmap: wrote %s\n", resolvedName)
 	return cliutil.ExitOK
 }
 
