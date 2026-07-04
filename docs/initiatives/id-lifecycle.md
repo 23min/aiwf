@@ -589,59 +589,72 @@ under TLC once per mechanism.
 
 ## Loom (github.com/23min/loom) — assessed fit
 
-Loom is the user's own project, researched for this document. Summary of
-what it actually is, since this matters for whether it fits *today*:
+Loom is the user's own project. This section was originally written when
+loom was seed-stage with no working code; it has since moved fast enough
+that the original assessment is stale, and the correction matters — the
+conclusion flips.
 
-- **What it is.** A research prototype of the "Verifiable Umbrella"
-  architecture: a three-layer model (prose → *umbrella* of structured
-  formal claims → LLM-authored implementation) where the umbrella is small
+- **What it is.** A three-layer model (prose → *umbrella* of structured
+  formal claims → LLM-authored implementation), where the umbrella is small
   enough for a human to read end-to-end and precise enough for a verifier
   to check the implementation against, claim by claim. The umbrella
-  language (`.lm`) has five registers — `knows` (vocabulary: types,
-  predicates, constants), `relates` (operation contracts), `shows`
-  (concrete examples), `does` (implementation), `proves` (universal
-  properties) — with cross-register coverage rules (every operation needs
-  an example *and* a property, etc.) designed specifically to resist an
-  LLM gaming a weak spec.
-- **What it compiles to.** Dafny initially (F* considered) — loom does not
-  invent verification semantics; it targets a mature verifier and reads its
-  results back as a **gap report**: what the umbrella claims versus what
-  the verifier actually proved, with unproved claims surfaced explicitly
-  rather than silently absorbed.
-- **Current status.** Seed stage — "code does not yet exist." The
-  repository holds `PLAN.md`, a project-structure doc, and `docs/`
-  (language reference, claims reference, verification internals,
-  bidirectional refinement, an ADR backlog, and background research). One
-  example directory (`examples/05-composition/`) exists as a worked
-  illustration of the architecture, not yet a working compiler artifact.
+  language (`.lm`) has five registers — `knows` (vocabulary), `relates`
+  (operation contracts), `shows` (examples), `does` (implementation),
+  `proves` (universal properties) — with cross-register coverage rules
+  designed to resist an LLM gaming a weak spec.
+- **What it verifies against — now dual-backend.** Originally Dafny-only;
+  `M-0018` ("force the second substrate: add a model-checker backend
+  through the seam," `status: done`) added a **TLC model-checker backend
+  through the same seam**, so an umbrella's `proves` claims can now be
+  checked by whichever backend fits the claim's shape — Dafny for
+  per-function contracts, TLC for concurrency/interleaving properties. This
+  is exactly the Dafny/TLA+ split this initiative's "Formal methods fit"
+  section argues for, now available through one tool instead of two
+  separately-run ones.
+- **Current status — active development, not seed stage.** E-0001 through
+  E-0004 (validating the differentiator, re-validating the value gate
+  twice, dogfooding the umbrella loop on real aiwf code) are all `done`.
+  `E-0005` ("build loom-light: the opt-in, contained verification overlay
+  and runner," `status: active`) has landed five of its six milestones:
+  the overlay/runner and frozen contracts (`M-0016`), **self-hosting** —
+  loom's own trust-critical plumbing (atomic crash safety, dispatch
+  totality, parser totality) verified *by loom itself* (`M-0017`), the TLC
+  backend above (`M-0018`), and an authoring loop, `loom author`, that
+  turns prose and examples into a verified umbrella end to end (`M-0019`,
+  `M-0020`). Only `M-0021` (`loom suggest` — proposing loomable invariants
+  from source) remains `draft`. Code exists, runs, and verifies itself.
+- **A reciprocal finding.** Loom's own tree already carries `G-0018`
+  ("scope the aiwf id-lifecycle protocol as loom's next worked example"),
+  filed against this exact document — it names this initiative doc by path,
+  quotes its "Formal methods fit" recommendation back, and observes that
+  loom's `examples/` directory has no worked example exercising *both*
+  backends together on a single non-trivial, externally-motivated protocol
+  yet (`examples/05-composition/` is Dafny-only). It also names two
+  supporting gaps already filed: `G-0013` (automatic Dafny-vs-TLC substrate
+  selection in `loom author`) and `G-0014` (assembling the TLA+
+  model/`.cfg` overlay via the interface) — i.e., the specific mechanics
+  this protocol's `Ref`-parameterized, per-mechanism instantiation table
+  would need are already scoped on loom's side, not hypothetical.
 
-**Fit assessment:** loom is not usable *today* as a tool — there is nothing
-to run yet. But the conceptual fit is real and worth naming precisely:
+**Fit assessment, revised:** loom is usable *today*, not a future
+possibility — the earlier "nothing to run yet" framing no longer holds.
+The protocol specification above is already written at the granularity an
+umbrella needs (`knows`: `Session`, `Ref`, `Kind`, `Id`; `relates`:
+`ConfirmAgainstRef`, `BatchConfirmAgainstRef`, `ResyncRef`,
+`MaterializeFromRef`, `DetectCollision`, `RenumberOnCollision`; `proves`:
+`InstantaneousUniqueness`/`EventualUniqueness`, `NoPrematureReference`,
+`ReferentialIntegrityUnderRenumber`, `Convergence`, `RetryTermination`) —
+authoring it as a loom umbrella, rather than a hand-written standalone
+`.tla` file plus a separately hand-written Dafny model, gets the two
+backends through one seam and one gap report instead of two disconnected
+artifacts.
 
-- The id-lifecycle protocol this initiative describes is exactly the shape
-  of thing loom's `proves` register exists for: crisp, checkable universal
-  properties (uniqueness, no-premature-reference, referential integrity)
-  over a small number of operations (`propose`, `confirm`, `reconcile`,
-  `reallocate`) — a natural-sized umbrella, not a sprawling one.
-- Loom's compile target is Dafny — so writing this protocol's core
-  functions in Dafny now (per the "Formal methods fit" section above) is
-  not wasted effort if loom matures: the same Dafny model is close to what
-  a loom umbrella for this problem would need to produce anyway.
-- Loom explicitly treats its `examples/` directory as load-bearing to its
-  own correctness story ("the examples are part of the project's
-  correctness story; they are continuously verified by CI") — meaning a
-  real, external, non-trivial protocol (this one) is exactly the kind of
-  dogfooding content loom's own v0 will eventually want, not a distraction
-  from it.
-- The reverse dependency does not hold: this initiative should not block
-  on loom reaching a working v0. The recommended TLA+/TLC-then-Dafny path
-  above is independently actionable now, using existing mature tooling.
-
-**Recommendation:** treat loom as a **future candidate consumer** of
-whatever formal model comes out of this initiative (a well-scoped worked
-example loom could adopt once it has a compiler), not as the tool used to
-build the model now. Revisit if loom reaches a working v0 before aiwf's own
-formalization work starts.
+**Recommendation:** author this protocol as a loom umbrella directly.
+Loom's own `G-0018` already proposes this from the other side — the two
+repos are now pointing at each other, and the sequencing question (TLA+/TLC
+first, Dafny second, per "Formal methods fit" above) maps onto loom's
+existing per-property backend selection rather than onto two separate
+manual tool invocations.
 
 ## Existing aiwf surfaces this touches
 
@@ -705,11 +718,16 @@ of which this problem needs. Avoid by scoping the model to the six stages
 named above and the properties listed, not the full generality of
 distributed consensus theory.
 
-### Risk: treating loom as a dependency
+### Risk: this document's loom assessment goes stale again
 
-Loom is pre-code. Avoid making any part of this initiative's near-term
-value contingent on loom shipping; the TLA+/TLC-then-Dafny path stands on
-its own with tools that exist today.
+It already did once, within the same session's writing: loom moved from
+"seed stage, no code" to "active development, dual-backend, self-hosting"
+between this section's first and second draft, days apart, because it's a
+fast-moving sibling project the user also actively develops. Avoid trusting
+this section as a permanent snapshot — re-check loom's actual `README.md`
+and epic/milestone status against this section before acting on it if any
+real time has passed, rather than assuming the assessment above still
+holds.
 
 ### Risk: the comparison table oversimplifies a genuine placement difference
 
