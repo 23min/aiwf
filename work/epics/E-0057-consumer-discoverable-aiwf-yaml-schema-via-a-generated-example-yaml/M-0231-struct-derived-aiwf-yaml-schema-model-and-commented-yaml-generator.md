@@ -62,8 +62,15 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
   field on the config structs has no schema-model entry. A hand-maintained model
   is not an acceptable implementation.
 - **The generator's output must be valid, reparseable `aiwf.yaml`.** Rendered
-  commented YAML must round-trip: uncommenting a block yields a value the loader
-  accepts.
+  commented YAML must round-trip: uncommenting a *scalar* field's rendered
+  default yields a value the loader's full validation (`config.Load`, not just
+  `yaml.Unmarshal`) accepts. The two example-item blocks (`areas.members`,
+  `agents.<key>`) are illustrative placeholders, not usable defaults, and
+  behave *differently* if uncommented verbatim: `areas.members`'s placeholder
+  (an empty member name) fails validation outright; `agents.<key>`'s
+  placeholder passes validation but is meaningless — an unrecognized agent
+  name is silently ignored at skill-materialization time, not rejected at
+  config load. Both behaviors are tested.
 - **Effective defaults, not lying zero-values.** A rendered default must match
   what `config.Load` actually applies, not a struct zero that misrepresents
   behavior (see Design notes — defaults source).
