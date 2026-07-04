@@ -1,7 +1,9 @@
 ---
 id: G-0363
 title: 'epic-spec template ships completed: field the strict decoder rejects'
-status: open
+status: addressed
+addressed_by_commit:
+    - a4926d18
 ---
 ## What's missing
 
