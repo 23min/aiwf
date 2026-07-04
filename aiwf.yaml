@@ -16,10 +16,19 @@ tree:
 # Per-agent compute policy (G-0353): model + effort injected into the
 # materialized `.claude/agents/*.md` cards on `aiwf update`. Advisory —
 # a cheaper, independent check (Opus reviews the Sonnet builder's work).
+# deployer matches reviewer's tier (G-0361): every irreversible step is
+# already human-gated, but classifying the semver bump correctly and
+# writing an accurate CHANGELOG summary is a judgment call a human
+# reviewing a "confirm?" prompt won't necessarily re-derive from
+# scratch — worth the stronger tier even though the safety net here is
+# heavier than reviewer's.
 agents:
   builder:
     model: sonnet
     effort: xhigh
   reviewer:
+    model: opus
+    effort: xhigh
+  deployer:
     model: opus
     effort: xhigh

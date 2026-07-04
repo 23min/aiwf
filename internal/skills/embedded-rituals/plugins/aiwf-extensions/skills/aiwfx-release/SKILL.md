@@ -1,6 +1,6 @@
 ---
 name: aiwfx-release
-description: Tags a release after an aiwf epic is closed and merged. Determines the semver bump, updates CHANGELOG.md, creates an annotated git tag, runs health checks. The aiwf epic is already `done` at this point — this skill captures the release act in CHANGELOG and git, not in aiwf state. Never tags or pushes without explicit human approval.
+description: Tags a release after an aiwf epic is closed and merged. Determines the semver bump, updates CHANGELOG.md, creates an annotated git tag, runs health checks. The aiwf epic is already `done` at this point — this skill captures the release act in CHANGELOG and git, not in aiwf state. Use when the user says "cut a release", "let's ship", "ship it", "let's release", "release v1.2", "make a new version", "tag a release", or "publish". Dispatch the `deployer` subagent to run it. Never tags or pushes without explicit human approval.
 ---
 
 # aiwfx-release
@@ -9,9 +9,11 @@ Tags and publishes a release. aiwf has no `released` status — `done` is the te
 
 ## When to use
 
-An epic has been wrapped (`aiwfx-wrap-epic` ran, status is `done`, integration branch merged to mainline). The user says: *"release v1.2"*, *"tag a release"*, *"publish"*.
+An epic has been wrapped (`aiwfx-wrap-epic` ran, status is `done`, integration branch merged to mainline). The user says: *"release v1.2"*, *"tag a release"*, *"cut a release"*, *"let's release"*, *"let's ship"*, *"ship it"*, *"make a new version"*, *"publish"*.
 
 If the epic isn't wrapped yet, run `aiwfx-wrap-epic` first.
+
+**Dispatch the `deployer` subagent** to run this ritual rather than executing it inline in the calling session. The `deployer` agent card already names this skill under "Skills you use" — dispatching is what lets an `aiwf.yaml`-configured `agents.deployer` model/effort tier actually apply, and keeps release mechanics out of whatever session just wrapped the epic. Run inline only when already executing inside the deployer agent's own context, or when the operator explicitly asks to skip delegation.
 
 ## Gate discipline
 
