@@ -238,11 +238,52 @@ test also pins the actual consumer use case. A 2-mutation vacuity pass
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go test ./internal/config/...` — 78 passing, 0 failures.
+- `go test -race ./internal/config/...` — clean, no races.
+- `golangci-lint run ./internal/config/...` (and repo-wide `./...`) — 0 issues.
+- `aiwf check` — 0 error-severity findings on the milestone (only the
+  pre-existing, unrelated `G-0288` archive warnings and this milestone's own
+  `entity-body-empty`, tracked by `G-0364`, deferred as a template/tooling
+  gap out of this milestone's scope).
+
 ## Deferrals
 
 - [`G-0364`](../../gaps/G-0364-entity-body-empty-fires-on-acceptance-criteria-despite-populated-ac-bodies.md) — `entity-body-empty` stays flagged on `## Acceptance criteria` regardless of AC-heading prose, on any milestone using the current full template (`aiwf add ac` appends at body-end, past several intervening `## ` sections). Discovered while filling in this milestone's AC-heading prose; out of scope here — a template/verb/check-level fix, not this milestone's deliverable.
 
 ## Reviewer notes
 
-- (none)
+- **Code-quality review** (fresh-context, `wf-review-code`): approve, no
+  blocking findings. Addressed: the round-trip test's claim was broader than
+  what `config.Load`'s `Validate()` actually accepts — the `areas.members`
+  example item is rejected verbatim (empty placeholder name); narrowed the
+  constraint and added tests pinning the true, per-block behavior. Also fixed
+  a rendering defect in `G-0364`'s body (literal escaped backticks instead of
+  code spans). Accepted as-is, non-blocking: `fieldDescriptions` prose
+  hand-repeats a few "default X" fragments the render pipeline already
+  derives from the real accessor — free prose, not load-bearing, currently
+  consistent; a `defaultFor` switch arm silently catching any future
+  unlisted leaf type is YAGNI-acknowledged (a new such field would already
+  trip `TestSchema_EnumeratesEveryYAMLField` and the round-trip decode).
+- **Design-quality review** (fresh-context, `wf-rethink`): keep. The
+  reflection-walk-plus-side-table design is sound; keying by string `Path` is
+  the right choice for a reflection-derived model (nothing stronger is
+  available). One real gap found and fixed: `fieldDescriptions` /
+  `fieldDefaultResolvers` had no check that every registry key is a real
+  `Schema()` path (only the reverse — every real path has an entry — was
+  tested), so a renamed yaml tag would leave a stale key silently orphaned.
+  Added `TestFieldRegistries_NoOrphanKeys`. Accepted as-is: the "assumes a
+  flat, non-nested element type" YAGNI calls are test-backstopped, not
+  landmines; promoting the effective default onto `SchemaField` itself is
+  deferred until a non-renderer consumer needs it.
+- **Fresh re-review of the corrective diff**: found the first correction's
+  prose itself overclaimed — it said uncommenting *either* example-item
+  block (`areas.members` or `agents.<key>`) verbatim fails validation, but
+  `agents.<key>` is actually silently *accepted* (an unrecognized agent name
+  with empty `Model`/`Effort` passes `Agent`'s own validation, which
+  tolerates both by design). Verified this independently before accepting
+  it, then corrected the prose and added a symmetric test
+  (`TestGenerateExample_AgentsExampleItemSilentlyAcceptedVerbatim`) pinning
+  the true, asymmetric behavior instead of assuming parity between the two
+  blocks.
 
