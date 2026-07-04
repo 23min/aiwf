@@ -107,6 +107,12 @@ Before `aiwf promote M-NNNN/AC-<N> met`, there must be a mechanical assertion th
 
 ---
 
+## Default to a worktree for any branch work in this repo
+
+When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, default to an in-repo worktree (`.claude/worktrees/<branch>/`, per ADR-0023) rather than switching the main checkout in place. This applies to the session's own direct work, not just subagent dispatch. Skip only when explicitly told to work in the main checkout for that invocation.
+
+---
+
 ## Subagent worktree isolation
 
 When dispatching a subagent that must work in an isolated worktree, **the parent bootstraps the worktree before invoking `Agent`** — never rely on the `isolation: "worktree"` kwarg (it has been observed to silently drop, leaving work in the live tree undetected; [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)):

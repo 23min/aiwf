@@ -1,7 +1,9 @@
 ---
 id: G-0359
 title: wf-patch's reconcile-before-merge step is a dense paragraph, not a checklist
-status: open
+status: addressed
+addressed_by_commit:
+    - 6c74894a
 ---
 ## Problem
 

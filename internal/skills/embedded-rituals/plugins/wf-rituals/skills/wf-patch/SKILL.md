@@ -33,68 +33,142 @@ If any of those break — unrelated changes bundled, an AC list emerging, or a p
 
 ## Workflow
 
-1. **Read the linked issue or task** if one exists. State the user-observable goal in your own words before touching code; if you can't, the change isn't ready.
+### 1. Read the linked issue or task
 
-2. **Create a descriptive branch** from the project's mainline, named for the
-   gap it closes so the statusline can surface it:
-   - `patch/G-NNNN-<short-slug>` — closes a tracked gap (the common case). The
-     statusline's session-entity HUD shows `G-NNNN` with its status glyph and
-     color while you work — the same treatment epics get on a ritual branch.
-   - `patch/<short-slug>` — no tracked gap (a typo, a config nudge). No HUD
-     entry, which is fine.
+If one exists, state the user-observable goal in your own words before touching code; if you can't, the change isn't ready.
 
-   Keep the slug short and conventional. Branch lifetime is the duration of the patch.
+### 2. Create a descriptive branch
 
-3. **Implement the change.** Touch only what's needed. Resist refactoring along the way — that's what a milestone is for, not a patch.
+Create it from the project's mainline, named for the gap it closes so the statusline can surface it:
 
-4. **Verify locally.** While iterating, a fast inner-loop gate (e.g. a `make check-fast` target: vet + lint + tests, without the race detector / coverage / end-to-end self-check) gives quicker feedback. Before staging the commit, run the project's full local CI gate — the same checks CI runs on push (e.g. a `make ci` target), not a subset — and confirm green; that gate, not the fast one, is what protects the merge to mainline in the wrap step. A linter that only runs in CI is debt waiting at the push boundary.
+- `patch/G-NNNN-<short-slug>` — closes a tracked gap (the common case). The
+  statusline's session-entity HUD shows `G-NNNN` with its status glyph and
+  color while you work — the same treatment epics get on a ritual branch.
+- `patch/<short-slug>` — no tracked gap (a typo, a config nudge). No HUD
+  entry, which is fine.
 
-5. **Independent review of the diff — not self-review.** Dispatch a *fresh-context* reviewer (a subagent with no authorship attachment) over the staged diff, briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run the **code-quality lens** (`wf-review-code`: correctness, untested branches, conventions, documentation); if the patch introduced a non-trivial design — a new module/package boundary, core abstraction, or data model (the `wf-rethink` trigger; see its §"The non-trivial-design trigger" for the full criterion and the skip-list) — also run the **design-quality lens** (`wf-rethink`) on that unit. **If the patch added or changed tested logic, also run the test-sufficiency lens** (`wf-vacuity`) on the unit's assertions — a required invocation whenever there are assertions to attack; it is automatically satisfied when the change ran through `wf-tdd-cycle` (whose own vacuity step covers it), so this is the backstop for logic touched outside a full cycle. `wf-vacuity`'s output is advisory: strengthen a weak assertion or surviving mutant where you can, otherwise surface it at the commit gate for the human to weigh — it does not mechanically block. Fix every blocking finding inline; re-run step 4 if code changed; then **confirm the fixes** — mechanically for mechanical findings (re-run the gate/scan), by re-dispatching a fresh reviewer for judgment-level ones. The author re-reading their own diff is *not* a substitute — it is the failure mode this step exists to close. The commit gate presents the independently-reviewed diff and the review outcome, not a raw one.
+Keep the slug short and conventional. Branch lifetime is the duration of the patch.
 
-   *The one carve-out:* a change with no logic to review — a typo, whitespace, a dependency-version bump, a pure-config nudge — may rely on the mechanical gates plus a self-skim, **but only if you state that explicitly at the commit gate** ("no independent review: <reason>"), so the skip is the human's to veto rather than a silent default.
+### 3. Implement the change
 
-6. **Stage the change** and draft a commit message: one-line subject, optional body explaining *why*.
+Touch only what's needed. Resist refactoring along the way — that's what a milestone is for, not a patch.
 
-7. 🛑 **Commit gate.** Show the user the staged diff, the independent-review outcome (or the named carve-out from step 5), the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
+### 4. Verify locally
 
-8. **After commit approval:** commit. The patch branch is normally never pushed — the merge in step 9 is local, so the branch lives and dies on this machine.
+While iterating, a fast inner-loop gate (e.g. a `make check-fast` target: vet + lint + tests, without the race detector / coverage / end-to-end self-check) gives quicker feedback. Before staging the commit, run the project's full local CI gate — the same checks CI runs on push (e.g. a `make ci` target), not a subset — and confirm green; that gate, not the fast one, is what protects the merge to mainline in the wrap step. A linter that only runs in CI is debt waiting at the push boundary.
 
-9. 🛑 **Wrap gate (declared sequence).** Present the enumerated terminal sequence and wait for approval:
-   - Merge to mainline. The mechanism — fast-forward, rebase-and-merge, cherry-pick — follows the consuming project's `CLAUDE.md` §"Working in this repo" policy (or equivalent). The skill does not prescribe the mechanism; the project does.
+### 5. Independent review of the diff — not self-review
 
-     **Reconcile first, merge second — run this immediately before the merge, not as an earlier precondition a concurrent push can invalidate.** The merge target is your *local* mainline (the branch the patch forked from and merges into), not the remote-tracking ref. Make it current on both axes first: `git fetch`, then fast-forward your local mainline to its upstream (`git checkout main && git merge --ff-only origin/main` — substitute your mainline branch and remote) to fold in commits another clone pushed; concurrent *local* commits are already on it. Then check whether it has advanced past the patch branch's fork point: `git merge-base --is-ancestor main <branch>` (substitute the project's mainline ref). If that's false, don't merge yet — integrate current mainline into the patch branch first, resolve any conflicts there, and re-run the full local CI gate (step 4) on the reconciled branch; mainline can move again during that gate, so re-run this check right before merging. Only once it passes does the merge below run — for a linear trunk it is then a clean fast-forward. Resolving a conflict on mainline itself, mid-merge, is the failure mode this ordering avoids: mainline would receive a result no gate ever validated. (A project with no remote skips the fetch and fast-forward; the local ancestor check still applies.)
-   - Tracker closure, if the patch closes a tracked item (e.g. `aiwf promote G-NNNN addressed --by-commit <sha>`). This closure is mechanically guarded: `aiwf` refuses a `--by-commit` SHA that is not reachable from `HEAD`, so a closure written before the merge lands is rejected rather than recording a commit mainline does not contain. If that refusal fires, the merge did not land — reconcile and merge first; don't `--force` past it.
-   - Cleanup: delete the local branch; remove the worktree if one was used.
+Dispatch a *fresh-context* reviewer (a subagent with no authorship attachment) over the staged diff, briefed adversarially per `wf-review-code` §"Independence" (enumerate the load-bearing claims, instruct *verify by measuring not reasoning*, name the risk areas). Run the **code-quality lens** (`wf-review-code`: correctness, untested branches, conventions, documentation); if the patch introduced a non-trivial design — a new module/package boundary, core abstraction, or data model (the `wf-rethink` trigger; see its §"The non-trivial-design trigger" for the full criterion and the skip-list) — also run the **design-quality lens** (`wf-rethink`) on that unit. **If the patch added or changed tested logic, also run the test-sufficiency lens** (`wf-vacuity`) on the unit's assertions — a required invocation whenever there are assertions to attack; it is automatically satisfied when the change ran through `wf-tdd-cycle` (whose own vacuity step covers it), so this is the backstop for logic touched outside a full cycle. `wf-vacuity`'s output is advisory: strengthen a weak assertion or surviving mutant where you can, otherwise surface it at the commit gate for the human to weigh — it does not mechanically block. Fix every blocking finding inline; re-run step 4 if code changed; then **confirm the fixes** — mechanically for mechanical findings (re-run the gate/scan), by re-dispatching a fresh reviewer for judgment-level ones. The author re-reading their own diff is *not* a substitute — it is the failure mode this step exists to close. The commit gate presents the independently-reviewed diff and the review outcome, not a raw one.
 
-   List each action verbatim in the gate question. Approval binds to exactly the list; honor a partial approval. If anything deviates mid-sequence — conflict, check finding, dirty state — stop and re-gate.
+*The one carve-out:* a change with no logic to review — a typo, whitespace, a dependency-version bump, a pure-config nudge — may rely on the mechanical gates plus a self-skim, **but only if you state that explicitly at the commit gate** ("no independent review: <reason>"), so the skip is the human's to veto rather than a silent default.
 
-   *PR-flow projects:* if the project merges via PR rather than locally, the declared sequence does not apply — pushing the branch and opening the PR are outward actions. Gate the branch push, open the PR per project policy, and let the forge's review flow take over.
+### 6. Stage the change and draft a commit message
 
-10. **After wrap approval:** execute exactly the approved sequence, in order. Report each action as it completes.
+One-line subject, optional body explaining *why*.
 
-11. 🛑 **Push gate.** Mainline now carries the patch (and the closure commit, if any). Show what will be pushed and wait for explicit "push" approval. If a remote copy of the patch branch exists, confirm its deletion separately — remote deletes are not recoverable from local state.
+### 7. 🛑 Commit gate
 
-12. **After push approval:** push.
+Show the user the staged diff, the independent-review outcome (or the named carve-out from step 5), the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
 
-13. **Reflection (optional).** If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, record it where the project records such things. If the project has no such habit, skip — don't invent file conventions on the fly.
+### 8. After commit approval
+
+Commit. The patch branch is normally never pushed — the merge in step 11 is local, so the branch lives and dies on this machine.
+
+### 9. 🛑 Wrap gate (declared sequence)
+
+Present the enumerated terminal sequence and wait for approval:
+
+- **Merge** the patch branch to mainline (step 11).
+- **Tracker closure**, if the patch closes a tracked item (step 12).
+- **Cleanup** — delete the local branch; remove the worktree if one was used (step 13).
+
+List each action verbatim in the gate question. Approval binds to exactly the list; honor a partial approval. If anything deviates mid-sequence — conflict, check finding, dirty state — stop and re-gate.
+
+*PR-flow projects:* if the project merges via PR rather than locally, the declared sequence does not apply — pushing the branch and opening the PR are outward actions. Gate the branch push, open the PR per project policy, and let the forge's review flow take over.
+
+Once the sequence is approved, execute it in order:
+
+### 10. Reconcile mainline with the patch branch
+
+Run this immediately before the merge — not as an earlier precondition a concurrent push can invalidate. The target is your *local* mainline (the branch the patch forked from and merges into), not the remote-tracking ref.
+
+1. Fetch, then fast-forward local mainline to its upstream — folds in commits another clone pushed; concurrent local commits are already on it (substitute your mainline branch and remote; a project with no remote skips this step):
+
+   ```bash
+   git fetch
+   git checkout main && git merge --ff-only origin/main
+   ```
+
+2. Check whether mainline has advanced past the patch branch's fork point (substitute the project's mainline ref):
+
+   ```bash
+   git merge-base --is-ancestor main <branch>
+   ```
+
+3. If that check fails: integrate mainline into the patch branch, resolve any conflicts there, and re-run the full local CI gate (step 4) on the reconciled branch. Mainline can move again during that gate, so re-run this check immediately before merging.
+
+4. Only once the check passes does the merge (step 11) run.
+
+### 11. Merge the patch branch to mainline
+
+```bash
+git checkout main
+git merge --no-ff --no-commit <branch>
+git commit -m "Merge patch/<branch>: <summary>"
+```
+
+`--no-ff` keeps the patch as one identifiable merge commit — the branch + explicit-merge audit trail this ritual exists to produce. `--no-commit` leaves the merge staged so the commit above carries the deliberate summary message, not git's default.
+
+### 12. Tracker closure
+
+If the patch closes a tracked item:
+
+```bash
+aiwf promote G-NNNN addressed --by-commit <sha>
+```
+
+This closure is mechanically guarded: `aiwf` refuses a `--by-commit` SHA that is not reachable from `HEAD`. If that refusal fires, the merge did not land — reconcile and merge first (steps 10–11); don't `--force` past it.
+
+### 13. Cleanup
+
+Delete the local branch; remove the worktree if one was used.
+
+```bash
+git branch -d <branch>
+```
+
+### 14. 🛑 Push gate
+
+Mainline now carries the patch (and the closure commit, if any). Push is outward and irreversible — its own gate, never part of the declared-sequence gate above. Show what will be pushed and wait for explicit "push" approval. Then:
+
+```bash
+git push origin main
+```
+
+If a remote copy of the patch branch exists, confirm its deletion separately — remote deletes are not recoverable from local state.
+
+### 15. Reflection (optional)
+
+If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, record it where the project records such things. If the project has no such habit, skip — don't invent file conventions on the fly.
 
 ## What this skill explicitly does not do
 
 - Does not write a spec or acceptance criteria. If you're tempted to, the work is too big for `wf-patch`.
 - Does not run a TDD cycle. If the change requires test-first development, escalate to `wf-tdd-cycle` on the same patch branch.
 - Does not touch planning state, milestones, or roadmaps. Patches are off-roadmap by design. (Tracker closure of the item the patch fixes — a gap promote, an issue close — is the one exception, and it rides the wrap gate.)
-- Does not merge without approval. The wrap gate is the handoff; the merge mechanism is the project's.
+- Does not merge without approval. The wrap gate is the handoff; the merge always lands as a `--no-ff` commit, never a fast-forward.
 
 ## Anti-patterns
 
 - *"While I was in there I also fixed X"* — split into two patches.
-- *"It's just one line, no need for a separate branch"* — every patch goes through a branch and an explicit merge. The branch is the audit trail; the merge mechanism is project-specific.
+- *"It's just one line, no need for a separate branch"* — every patch goes through a branch and an explicit `--no-ff` merge. That pairing is the audit trail.
 - *"The wrap was approved, so I'll push too"* — the wrap gate never covers the push. Outward actions stand alone.
 - *"I reviewed it myself, it looks fine"* — self-review is not the gate. Step 5 dispatches a fresh-context reviewer; the author cannot see their own blind spots. The only exception is the explicitly-stated no-logic carve-out.
 - *"I'll update the roadmap from this patch"* — never.
 
 ## Constraints
 
-- 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 7), wrap (step 9, declared sequence), push (step 11).
+- 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 7), wrap (step 9, declared sequence), push (step 14).
 - The full local CI gate must be green before the commit gate.
 - Branch is `patch/G-NNNN-<short-slug>` when the patch closes a gap, else `patch/<short-slug>`. The single `patch/` prefix is the convention for this skill; the gap id, when present, is what the statusline's session-entity HUD reads.

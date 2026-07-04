@@ -204,8 +204,12 @@ func findWorkflowSubsection(body, needle string) string {
 // gate, with push excluded as its own outward gate.
 //
 // Structural per CLAUDE.md *Substring assertions are not structural
-// assertions*: the claims are scoped to the gate subsection, not grepped over
-// the whole file.
+// assertions*: the gate's own ask enumerates the three actions by name (the
+// gate section itself no longer carries the literal commands — G-0359 split
+// the bundled gate+execution into one heading per action, mirroring
+// aiwfx-wrap-epic's shape); the actual commands are asserted inside their own
+// per-action subsections, and cross-heading order pins merge before
+// promote-done before local cleanup.
 func TestM0209_AC3_WrapMilestoneDeclaredSequenceGate(t *testing.T) {
 	t.Parallel()
 	data, err := os.ReadFile(filepath.Join(repoRoot(t), m0209WrapMilestoneFixturePath))
@@ -219,28 +223,16 @@ func TestM0209_AC3_WrapMilestoneDeclaredSequenceGate(t *testing.T) {
 		t.Fatal("AC-3: `## Workflow` must contain a `### …declared-sequence…` gate governing the terminal local sequence")
 	}
 
-	// The gate's enumerated local sequence: promote-done, the local merge,
-	// and local cleanup.
-	if !strings.Contains(gate, "aiwf promote M-NNNN done") {
-		t.Error("AC-3: the declared-sequence gate must enumerate the promote-done step (`aiwf promote M-NNNN done`) — promote is no longer a separate ungated step")
-	}
-	if !strings.Contains(gate, "git merge --no-ff") {
-		t.Error("AC-3: the declared-sequence gate must include the local merge into the epic branch")
-	}
-	if !strings.Contains(gate, "git branch -d") {
-		t.Error("AC-3: the declared-sequence gate must include local cleanup (delete the local milestone branch)")
-	}
-
-	// The local merge must precede promote-done in the gate: promote lands last
-	// so a delegated milestone's authorize scope stays live for the merge commit
-	// (the G-0119 invariant, applied at milestone scope).
-	if mi, pi := strings.Index(gate, "git merge --no-ff"), strings.Index(gate, "aiwf promote M-NNNN done"); mi >= 0 && pi >= 0 && mi > pi {
-		t.Error("AC-3: the local merge must appear before `aiwf promote M-NNNN done` in the gate (promote lands last, per G-0119)")
+	// The gate's own ask enumerates the three local actions by name.
+	lowerGate := strings.ToLower(gate)
+	for _, w := range []string{"merge", "promote", "cleanup"} {
+		if !strings.Contains(lowerGate, w) {
+			t.Errorf("AC-3: the declared-sequence gate must enumerate %q", w)
+		}
 	}
 
 	// Push is excluded from the gate (outward action, its own gate).
-	lower := strings.ToLower(gate)
-	if !strings.Contains(lower, "push") || !strings.Contains(lower, "exclud") {
+	if !strings.Contains(lowerGate, "push") || !strings.Contains(lowerGate, "exclud") {
 		t.Error("AC-3: the declared-sequence gate must state that push is excluded (outward actions stand as their own gate)")
 	}
 	if strings.Contains(gate, "git push") {
@@ -255,6 +247,39 @@ func TestM0209_AC3_WrapMilestoneDeclaredSequenceGate(t *testing.T) {
 	// The old ungated standalone promote step must be gone.
 	if findWorkflowSubsection(body, "promote the milestone status") != "" {
 		t.Error("AC-3: the ungated `### Promote the milestone status` step must be folded into the declared-sequence gate")
+	}
+
+	// The actual commands live in their own per-action subsections,
+	// executed in order once the gate approves.
+	merge := extractMarkdownSection(body, 3, "12. Merge")
+	promote := extractMarkdownSection(body, 3, "13. Promote")
+	cleanup := extractMarkdownSection(body, 3, "15. Local cleanup")
+	if merge == "" || promote == "" || cleanup == "" {
+		t.Fatalf("AC-3: `## Workflow` must contain separate merge, promote, and local-cleanup subsections (found merge=%t, promote=%t, cleanup=%t)", merge != "", promote != "", cleanup != "")
+	}
+	if !strings.Contains(merge, "git merge --no-ff") {
+		t.Error("AC-3: the merge step must include the local merge into the epic branch")
+	}
+	if !strings.Contains(promote, "aiwf promote M-NNNN done") {
+		t.Error("AC-3: the promote step must include `aiwf promote M-NNNN done`")
+	}
+	if !strings.Contains(cleanup, "git branch -d") {
+		t.Error("AC-3: the local-cleanup step must include deleting the local milestone branch")
+	}
+
+	// The local merge must precede promote-done, which precedes local
+	// cleanup: promote lands last among the entity-mutating steps so a
+	// delegated milestone's authorize scope stays live for the merge commit
+	// (the G-0119 invariant, applied at milestone scope).
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	mergeIdx := strings.Index(workflow, "### 12. Merge")
+	promoteIdx := strings.Index(workflow, "### 13. Promote")
+	cleanupIdx := strings.Index(workflow, "### 15. Local cleanup")
+	if mergeIdx < 0 || promoteIdx < 0 || cleanupIdx < 0 {
+		t.Fatal("AC-3: could not locate the `### 12. Merge`, `### 13. Promote`, and `### 15. Local cleanup` headings")
+	}
+	if mergeIdx >= promoteIdx || promoteIdx >= cleanupIdx {
+		t.Errorf("AC-3: the terminal sequence must execute merge -> promote-done -> local cleanup in that heading order (got indices merge=%d, promote=%d, cleanup=%d)", mergeIdx, promoteIdx, cleanupIdx)
 	}
 }
 

@@ -19,7 +19,7 @@ tree:
 agents:
   builder:
     model: sonnet
-    effort: high
+    effort: xhigh
   reviewer:
     model: opus
-    effort: high
+    effort: xhigh

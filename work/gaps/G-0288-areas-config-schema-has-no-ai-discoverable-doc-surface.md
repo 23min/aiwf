@@ -1,7 +1,7 @@
 ---
 id: G-0288
 title: 'areas: config schema has no AI-discoverable doc surface'
-status: open
+status: wontfix
 discovered_in: M-0179
 ---
 ## Problem
