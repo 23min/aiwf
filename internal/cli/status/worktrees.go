@@ -61,11 +61,20 @@ type WorktreeView struct {
 
 // EpicChildRow is one row under an epic-driver worktree's expanded
 // listing: a milestone or a gap the epic owns / closes.
+//
+// CheckedOut and ACs are populated only for a milestone row whose
+// branch is the one actually checked out in this same epic worktree
+// (G-0332): the epic's directory path drives the section's altitude
+// regardless of the checked-out branch, and the active milestone gets
+// AC-level detail nested under its row while sibling milestones stay
+// collapsed to their status badge.
 type EpicChildRow struct {
-	ID           string `json:"id"`
-	Title        string `json:"title"`
-	Status       string `json:"status"`
-	DrivenByPath string `json:"driven_by_path,omitempty"` // worktree path driving this child, if any (omit when self-driven)
+	ID           string  `json:"id"`
+	Title        string  `json:"title"`
+	Status       string  `json:"status"`
+	DrivenByPath string  `json:"driven_by_path,omitempty"` // worktree path driving this child, if any (omit when self-driven)
+	CheckedOut   bool    `json:"checked_out,omitempty"`
+	ACs          []ACRow `json:"acs,omitempty"`
 }
 
 // OtherInFlightRow is one in-flight entity that no worktree is driving
@@ -163,6 +172,25 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			continue
 		}
 		driverID := correlateBranchToEntity(ctx, rootDir, wt.Branch)
+		// G-0332: the worktree *directory* may independently encode an
+		// epic id (`.claude/worktrees/epic/E-NNNN-…`, ADR-0023's in-repo
+		// placement) — a signal distinct from, and more stable than,
+		// whichever branch happens to be checked out inside it. When it
+		// does, the epic drives the section regardless of the branch; a
+		// milestone-branch driver becomes the "checked out" overlay
+		// (below) instead of collapsing the whole view to milestone
+		// altitude.
+		var checkedOutMilestone *entity.Entity
+		if epicPathID := branchparse.ParseEpicFromWorktreePath(wt.Path); epicPathID != "" {
+			if epicEntity := wtTree.ByID(epicPathID); epicEntity != nil && epicEntity.Kind == entity.KindEpic {
+				if driverID != "" {
+					if m := wtTree.ByID(driverID); m != nil && m.Kind == entity.KindMilestone {
+						checkedOutMilestone = m
+					}
+				}
+				driverID = epicEntity.ID
+			}
+		}
 		if driverID == "" {
 			views = append(views, v)
 			continue
@@ -200,6 +228,9 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		switch e.Kind {
 		case entity.KindEpic:
 			v.EpicMilestones, v.EpicClosesGaps, v.EpicSurfacedGaps = epicExpansion(wtTree, e.ID, worktrees)
+			if checkedOutMilestone != nil {
+				markCheckedOutMilestone(v.EpicMilestones, checkedOutMilestone)
+			}
 		case entity.KindMilestone:
 			if parent := wtTree.ByID(e.Parent); parent != nil {
 				v.ParentEpicID = parent.ID
@@ -603,6 +634,27 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 	return milestones, closesGaps, surfacedGaps
 }
 
+// markCheckedOutMilestone flags checkedOut's row in rows (if present)
+// as CheckedOut and attaches its ACs, so the epic-altitude view
+// (G-0332) nests AC-level detail under the one milestone whose branch
+// is actually checked out in this worktree, while sibling milestones
+// stay collapsed to their status badge. A no-op when checkedOut's
+// milestone isn't among rows (e.g. it belongs to a different epic than
+// the one driving this worktree's path).
+func markCheckedOutMilestone(rows []EpicChildRow, checkedOut *entity.Entity) {
+	target := entity.Canonicalize(checkedOut.ID)
+	for i := range rows {
+		if entity.Canonicalize(rows[i].ID) != target {
+			continue
+		}
+		rows[i].CheckedOut = true
+		for _, ac := range checkedOut.ACs {
+			rows[i].ACs = append(rows[i].ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
+		}
+		return
+	}
+}
+
 // RenderWorktreeViews writes one section per worktree to w. Each
 // section carries the worktree path as a header, the branch on its own
 // line prefixed with the bold ⎇ glyph, the driver entity row, and any
@@ -868,6 +920,23 @@ func renderEpicExpansion(w io.Writer, v *WorktreeView, colorEnabled bool) error 
 					return err
 				}
 			}
+			// G-0332: the milestone whose branch is actually checked out
+			// in this epic worktree gets the same AC-level detail a
+			// milestone-driver worktree shows standalone, nested under
+			// its row here instead of replacing the whole epic view.
+			if m.CheckedOut {
+				if _, err := fmt.Fprintln(w, render.Dim("        → (checked out)", colorEnabled)); err != nil {
+					return err //coverage:ignore write to the destination writer (bytes.Buffer in tests, stdout in production) never fails in practice; mirrors this file's other untested Fprint*-error-propagation arms
+				}
+				if len(m.ACs) > 0 {
+					if _, err := fmt.Fprintln(w, "        ACs:"); err != nil {
+						return err //coverage:ignore see the CheckedOut marker's Fprintln above
+					}
+					if err := renderACRows(w, "          ", m.ACs, colorEnabled); err != nil {
+						return err //coverage:ignore propagates renderACRows' own untriggerable writer error
+					}
+				}
+			}
 		}
 	}
 	if len(v.EpicClosesGaps) > 0 {
@@ -902,6 +971,26 @@ func renderChildRow(w io.Writer, indent, status, id, title string, colorEnabled 
 	badge := render.StatusColor("["+status+"]", status, colorEnabled)
 	_, err := fmt.Fprintf(w, "%s%s %s — %s %s\n", indent, glyph, id, title, badge)
 	return err
+}
+
+// renderACRows writes one "<indent><glyph> <ID> — <title> [<status>,
+// <tdd_phase>]" row per AC. Shared by the milestone-driver detail block
+// and the epic-driver's checked-out-milestone overlay (G-0332) so both
+// render ACs identically.
+func renderACRows(w io.Writer, indent string, acs []ACRow, colorEnabled bool) error {
+	for _, ac := range acs {
+		tail := "[" + ac.Status
+		if ac.TDDPhase != "" {
+			tail += ", " + ac.TDDPhase
+		}
+		tail += "]"
+		glyph := render.StatusColor(render.StatusGlyph(ac.Status), ac.Status, colorEnabled)
+		badge := render.StatusColor(tail, ac.Status, colorEnabled)
+		if _, err := fmt.Fprintf(w, "%s%s %s — %s %s\n", indent, glyph, ac.ID, ac.Title, badge); err != nil {
+			return err //coverage:ignore write to the destination writer (bytes.Buffer in tests, stdout in production) never fails in practice; mirrors this file's other untested Fprint*-error-propagation arms
+		}
+	}
+	return nil
 }
 
 // renderMilestoneDriver renders a milestone-driver worktree's body:
@@ -943,17 +1032,8 @@ func renderMilestoneDriver(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 		if _, err := fmt.Fprintln(w, "    ACs:"); err != nil {
 			return err
 		}
-		for _, ac := range v.ACs {
-			tail := "[" + ac.Status
-			if ac.TDDPhase != "" {
-				tail += ", " + ac.TDDPhase
-			}
-			tail += "]"
-			glyph := render.StatusColor(render.StatusGlyph(ac.Status), ac.Status, colorEnabled)
-			badge := render.StatusColor(tail, ac.Status, colorEnabled)
-			if _, err := fmt.Fprintf(w, "      %s %s — %s %s\n", glyph, ac.ID, ac.Title, badge); err != nil {
-				return err
-			}
+		if err := renderACRows(w, "      ", v.ACs, colorEnabled); err != nil {
+			return err //coverage:ignore propagates renderACRows' own untriggerable writer error
 		}
 	}
 	if len(v.SurfacedGaps) > 0 {

@@ -90,6 +90,25 @@ func RungOf(branch, trunkShort string) string {
 	return m[1]
 }
 
+// epicWorktreePathPattern matches an `epic/E-NNNN-<slug>` segment pair
+// anywhere within a worktree's filesystem path. The in-repo ritual
+// placement (`.claude/worktrees/epic/E-NNNN-<slug>/`, ADR-0023) embeds
+// the branch shape directly into the directory path — a signal
+// distinct from, and more stable than, whichever branch happens to be
+// checked out inside that worktree at any given moment (G-0332).
+var epicWorktreePathPattern = regexp.MustCompile(`(?:^|/)epic/([Ee]-\d+)(?:-|/|$)`)
+
+// ParseEpicFromWorktreePath tries to derive an epic id from a
+// worktree's filesystem path. Returns "" when the path carries no
+// `epic/E-NNNN-...` segment. G-0332.
+func ParseEpicFromWorktreePath(path string) string {
+	m := epicWorktreePathPattern.FindStringSubmatch(path)
+	if m == nil {
+		return ""
+	}
+	return strings.ToUpper(m[1])
+}
+
 // legalRungPairs is the closed set of (currentRung, targetRung) pairs
 // the M-0161/AC-2 authorize-predicate accepts. Every other pair refuses.
 // Per ADR-0010:
