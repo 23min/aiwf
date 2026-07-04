@@ -30,22 +30,38 @@ landed there, so every milestone wrap in this epic runs under the corrected gate
 E-0049 covers the commit/TDD model (problem 2) and the remaining start/wrap ritual
 fixes.
 
-**Current state (2026-07-04).** Much of this epic's scope has already landed, some
-out-of-band — the sections below are annotated accordingly:
+**Current state (2026-07-04, settled).** Every piece of this epic's originally
+planned scope is now terminal — landed, cancelled, or wontfixed — except one:
 
-- Problem (2) itself is **resolved**: `aiwfx-start-milestone` now commits per AC and
-  fires phase promotes live (G-0293, addressed via a standalone `wf-patch`; pinned
-  by `internal/policies/g0293_live_phase_promotes_test.go`). M-0204 records this; its
-  milestone disposition (cancel-as-delivered vs. keep-as-record) is an open
-  follow-up.
-- The wrap-milestone trailer step is done and structurally tested (G-0219,
-  addressed).
-- The sovereign-acts-on-trunk ordering was fixed by M-0104 under E-0030 before this
-  epic existed (G-0116, addressed).
+- Problem (2) itself **landed**: `aiwfx-start-milestone` commits per AC and fires
+  phase promotes live (G-0293, addressed via a standalone `wf-patch`; pinned by
+  `internal/policies/g0293_live_phase_promotes_test.go`). M-0204 was cancelled as
+  delivered, mirroring M-0203.
+- The wrap-milestone trailer step **landed**, structurally tested (G-0219,
+  addressed). M-0205's other half, the start-milestone review-framing forward
+  reference (G-0271), also **landed**: `aiwfx-start-milestone` step 7 was reframed
+  from "self-review" to a "readiness check before handoff" that forward-references
+  wrap's independent two-lens review — propagated to `aiwfx-wrap-milestone` and the
+  `builder` agent card, which had repeated the same misframing. M-0205 was
+  cancelled as delivered.
+- The sovereign-acts-on-trunk ordering **landed** via M-0104 under E-0030 before
+  this epic existed (G-0116, addressed). M-0206's other half, the stale
+  `branch-not-found` code name (G-0224), also **landed** in the same patch as
+  G-0271: both start rituals now name the live `rung-pair-illegal` /
+  `branch-context-required` codes. M-0206 was cancelled as delivered.
+  - G-0271 and G-0224 landed together as one `wf-patch` (implementation commit
+    `f3c01667`, merged to mainline at `11860d38`), independently reviewed over two
+    rounds (round 1 approved the core wording and flagged an incomplete
+    propagation to sibling surfaces; round 2 confirmed the propagation complete).
+- The deferred config knob **closed `wontfix`**: G-0296 was YAGNI — the knob
+  defaults `true`, so the only config anyone would ever write is the opt-out, over
+  advisory ritual prose with no kernel teeth, with no consumer demand. M-0207 was
+  cancelled to match.
 
-What genuinely remains: the start-milestone review-framing forward reference
-(G-0271 defect #1), the stale `branch-not-found` code name in two skills (G-0224),
-the deferred config knob (G-0296), and roadmap-regen zero-friction (G-0350).
+**What remains: roadmap-regen zero-friction (G-0350), tracked as M-0230** — the
+epic's sole live milestone. E-0049 continues as a slim container for it rather
+than closing outright, since the fix is topically at home under "ritual lifecycle
+model" and needs a landing place.
 
 ## Scope
 
@@ -57,16 +73,13 @@ the deferred config knob (G-0296), and roadmap-regen zero-friction (G-0350).
 - **Model 1 commit model** (G-0293) — **delivered**: commit implementation per AC on
   the milestone branch; phase promotes fire live during the cycle, never bursted at
   wrap.
-- start-milestone review framing (G-0271 defect #1, open) + wrap-milestone
-  trailer-step structural test (G-0219, done).
-- start-ritual fix (G-0224, open): replace the stale `branch-not-found` code name —
-  dead at its emission site, `rung-pair-illegal` is what the verb emits today — in
-  the two start skills. The sovereign-acts-on-trunk ordering half (G-0116) is already
-  done via M-0104.
-- aiwf.yaml declared-sequence-wraps knob (G-0296) — deferred; drop if the Tier-1 rule
-  (delivered by E-0050) suffices. The default is on, so the knob is an opt-*out*, not
-  opt-in.
-- Roadmap-regen zero-friction in the wrap rituals (G-0350) — M-0230.
+- start-milestone review framing (G-0271) + wrap-milestone trailer-step structural
+  test (G-0219) — **both delivered**.
+- start-ritual fix (G-0224) — **delivered**: the stale `branch-not-found` code name
+  replaced with the live `rung-pair-illegal` in both start skills. The
+  sovereign-acts-on-trunk ordering half (G-0116) was already delivered via M-0104.
+- **Roadmap-regen zero-friction in the wrap rituals (G-0350) — M-0230, the epic's
+  sole remaining live milestone.**
 
 ### Out of scope
 
@@ -85,6 +98,10 @@ the deferred config knob (G-0296), and roadmap-regen zero-friction (G-0350).
   lowest-ceremony ritual taxes the common solo/sequential path for a hazard that only
   bites concurrent multi-session use. Revisit with a targeted guard (warn when an
   `aiwf` mutation lands on a `patch/` branch) if it recurs.
+- aiwf.yaml declared-sequence-wraps knob (G-0296) — closed `wontfix`: the knob
+  defaults `true`, so the only config anyone would ever write is the opt-out, over
+  advisory ritual prose with no kernel teeth, with no consumer demand today. M-0207
+  cancelled to match. Reopen if real demand appears.
 
 ## Constraints
 
@@ -104,32 +121,38 @@ the deferred config knob (G-0296), and roadmap-regen zero-friction (G-0350).
       burst) — delivered via G-0293, pinned by
       `internal/policies/g0293_live_phase_promotes_test.go`.
 - [x] The wrap-milestone trailer step is fixed and structurally tested (G-0219).
-- [ ] The start-milestone review framing forward-references the wrap's independent
-      two-lens review, structurally tested (G-0271 defect #1).
-- [ ] The start-ritual stale `branch-not-found` code name is corrected to
-      `rung-pair-illegal`, structurally tested (G-0224).
+- [x] The start-milestone review framing forward-references the wrap's independent
+      two-lens review, structurally tested (G-0271) — commit `f3c01667`.
+- [x] The start-ritual stale `branch-not-found` code name is corrected to
+      `rung-pair-illegal`, structurally tested (G-0224) — commit `f3c01667`.
 - [x] The sovereign-acts-on-trunk ordering is corrected (G-0116, done via M-0104).
+- [ ] Roadmap-regen zero-friction lands in the wrap rituals (G-0350, M-0230) — the
+      epic's sole remaining open criterion.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| tier-C lifecycle disposition | resolved | G-0116 folded in (now addressed); G-0111 is its own future epic; G-0175 closed `wontfix` (superseded by G-0190); G-0349 closed `wontfix` |
-| M-0204 disposition | open | cancel-as-delivered (mirroring M-0203) or keep as a draft record — its scope already landed via the G-0293 patch |
+| tier-C lifecycle disposition | resolved | G-0116 folded in (addressed); G-0111 is its own future epic; G-0175 closed `wontfix` (superseded by G-0190); G-0349 closed `wontfix` |
+| M-0204 disposition | resolved | cancelled 2026-07-04 as delivered via the G-0293 patch, mirroring M-0203 |
+| M-0207 / G-0296 disposition | resolved | G-0296 closed `wontfix` (YAGNI — no consumer demand for the knob); M-0207 cancelled to match |
+| G-0271 / G-0224 delivery vehicle | resolved | both addressed via one `wf-patch` (commit `f3c01667`, merged `11860d38`), independently reviewed over two rounds; M-0205 and M-0206 cancelled as delivered |
+| epic disposition | resolved | kept as a slim container for M-0230 (the sole remaining live milestone) rather than closed outright — G-0350 is topically at home here |
 
 ## Milestones
 
-<!-- status of each milestone; E-0050 (foundation) has landed -->
+<!-- status of each milestone — settled 2026-07-04; only M-0230 remains live -->
 
 - **M-0203** — generalize the declared-sequence gate — **cancelled** (extracted to
   E-0050).
-- **M-0204** — Model 1 commit + live phase promotes (G-0293) — **delivered** via
-  patch; milestone disposition open.
+- **M-0204** — Model 1 commit + live phase promotes (G-0293) — **cancelled**,
+  delivered via the G-0293 `wf-patch`, mirroring M-0203.
 - **M-0205** — start-milestone review framing + wrap-milestone trailer test (G-0271,
-  G-0219) — G-0219 done; **G-0271 defect #1 remains**.
-- **M-0206** — start-ritual fixes — the G-0116 sovereign-acts-on-trunk half is
-  already done via M-0104, leaving **only G-0224** (`branch-not-found` code name).
-- **M-0207** — aiwf.yaml declared-sequence-wraps knob (G-0296) — optional/deferred;
-  neutral framing (opt-out, not opt-in). Title still reads "opt-in" and needs an
-  `aiwf retitle`.
-- **M-0230** — roadmap-regen zero-friction in the wrap rituals (G-0350).
+  G-0219) — **cancelled**, both delivered (G-0219 earlier; G-0271 via commit
+  `f3c01667`).
+- **M-0206** — start-ritual fixes (G-0224, G-0116) — **cancelled**, both delivered
+  (G-0116 via M-0104; G-0224 via commit `f3c01667`).
+- **M-0207** — aiwf.yaml declared-sequence-wraps knob (G-0296) — **cancelled**;
+  G-0296 closed `wontfix` as YAGNI.
+- **M-0230** — roadmap-regen zero-friction in the wrap rituals (G-0350) — **draft,
+  the epic's sole remaining live milestone.**
