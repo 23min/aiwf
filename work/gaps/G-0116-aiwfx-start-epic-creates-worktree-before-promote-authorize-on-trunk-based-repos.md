@@ -1,8 +1,10 @@
 ---
 id: G-0116
 title: aiwfx-start-epic creates worktree before promote/authorize on trunk-based repos
-status: open
+status: addressed
 discovered_in: E-0029
+addressed_by:
+    - M-0104
 ---
 ## What's missing
 
