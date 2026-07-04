@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Generator output is valid, reparseable YAML with defaults and descriptions
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Accepted-key set is exported as a reusable registry
       status: open
