@@ -120,8 +120,6 @@ only half-solved.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Description source: parse Go doc comments via `go/ast` vs. an explicit description registry keyed by field path? | no | Settle in the schema-model milestone; `go/ast` reuses the comment already present (single source) but adds tooling; a registry is explicit but duplicates. |
-| Defaults source-of-truth: read from the loader's defaults-applier vs. struct zero-values vs. a declared default per field? | no | Settle in the schema-model milestone; must render the *effective* default the loader applies, not a struct zero that lies. |
 | Should the generator also back an always-live `aiwf config schema` verb, or is the generated file surface enough for the PoC? | no | Decide during milestone planning; YAGNI unless a second consumer earns the verb. |
 | Placement/wording when both surfaces could apply (e.g. `aiwf.yaml` deleted but `aiwf.example.yaml` present)? | no | Milestone-level; define the init/update decision table when wiring the writers. |
 
