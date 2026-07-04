@@ -19,6 +19,11 @@ import "testing"
 // G-0193 retired the upstream authoring channel and landed the
 // wrap-milestone trailer stamp on the embedded snapshot in the same
 // patch, so `wrap-milestone` joins `wrap-epic` in the expected set.
+// G-0350 decoupled `aiwf render roadmap --write` from committing, so
+// the roadmap-regen step in each ritual that calls it now hand-composes
+// its own commit — `aiwfx-plan-epic` and `aiwfx-plan-milestones` stamp
+// `--trailer "aiwf-verb: plan-epic"` / `plan-milestones` for the first
+// time, joining the two wrap verbs already in the expected set.
 func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 	t.Parallel()
 	got, err := RitualTrailerVerbs()
@@ -26,8 +31,10 @@ func TestRitualTrailerVerbs_DerivedFromEmbedded(t *testing.T) {
 		t.Fatalf("RitualTrailerVerbs(): %v", err)
 	}
 	want := map[string]struct{}{
-		"wrap-epic":      {},
-		"wrap-milestone": {},
+		"wrap-epic":       {},
+		"wrap-milestone":  {},
+		"plan-epic":       {},
+		"plan-milestones": {},
 	}
 	if len(got) != len(want) {
 		t.Errorf("RitualTrailerVerbs set size = %d, want %d (got=%v want=%v)", len(got), len(want), sortedKeys(got), sortedKeys(want))

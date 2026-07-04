@@ -222,3 +222,76 @@ func TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge(t *testing.T) {
 		t.Errorf("reconcile step must order the ancestor guard -> integrate epic branch -> re-run gate (got indices guard=%d, integrate=%d, gate=%d)", guardIdx, integrateIdx, gateIdx)
 	}
 }
+
+// TestAiwfxWrapMilestone_RoadmapRegenWriteOnlyAfterPromote pins G-0350's
+// fix: the ritual's own `### ` step sequence inside `## Workflow` places
+// "Regenerate the roadmap" strictly between "Promote the milestone to
+// `done`" and "Local cleanup" (so it captures the milestone's actual
+// `done` status rather than a stale pre-promote snapshot), and that
+// step's content documents `--write` no longer commits and hand-composes
+// its own commit — because it's landing after the status-flip promote
+// commit — rather than relying on `aiwf render roadmap --write` to
+// commit for it. A regression that dropped the hand-composed commit
+// (reverting to the old commits-automatically verb contract) or
+// reordered the step before the promote would fail this test even
+// though a flat grep for "render roadmap" would still pass. Mirrors
+// TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge's heading-walk
+// shape (G-0359 restructured this ritual's sub-steps into their own
+// numbered `### ` headings rather than nested bold sub-items).
+func TestAiwfxWrapMilestone_RoadmapRegenWriteOnlyAfterPromote(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapMilestoneFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("SKILL.md must have a `## Workflow` section")
+	}
+	promoteIdx, regenIdx, cleanupIdx := -1, -1, -1
+	for i, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		lower := strings.ToLower(strings.TrimPrefix(line, "### "))
+		switch {
+		case promoteIdx < 0 && strings.Contains(lower, "promote the milestone to `done`"):
+			promoteIdx = i
+		case regenIdx < 0 && strings.Contains(lower, "regenerate the roadmap"):
+			regenIdx = i
+		case cleanupIdx < 0 && strings.Contains(lower, "local cleanup"):
+			cleanupIdx = i
+		}
+	}
+	if promoteIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Promote the milestone to `done`…` step")
+	}
+	if regenIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Regenerate the roadmap` step")
+	}
+	if cleanupIdx < 0 {
+		t.Fatal("`## Workflow` must contain a `### …Local cleanup` step")
+	}
+	if promoteIdx >= regenIdx || regenIdx >= cleanupIdx {
+		t.Errorf("roadmap-regen step must land after promote-done and before local cleanup (got line indices: promote=%d, regen=%d, cleanup=%d)", promoteIdx, regenIdx, cleanupIdx)
+	}
+
+	regen := extractMarkdownSection(body, 3, "14. Regenerate the roadmap")
+	if regen == "" {
+		t.Fatal("could not extract the `### 14. Regenerate the roadmap` section")
+	}
+	if !strings.Contains(regen, "aiwf render roadmap --write") {
+		t.Error("roadmap-regen step must run `aiwf render roadmap --write`")
+	}
+	if !strings.Contains(regen, "never commits") {
+		t.Error("roadmap-regen step must document that --write never commits (G-0350)")
+	}
+	requiredTrailerFlags := []string{
+		`--trailer "aiwf-verb: wrap-milestone"`,
+		`--trailer "aiwf-entity: M-NNNN"`,
+		`--trailer "aiwf-actor: human/`,
+	}
+	for _, flag := range requiredTrailerFlags {
+		if !strings.Contains(regen, flag) {
+			t.Errorf("roadmap-regen step must hand-compose the commit with trailer flag %q", flag)
+		}
+	}
+}
