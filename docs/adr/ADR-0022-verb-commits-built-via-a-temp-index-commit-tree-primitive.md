@@ -1,7 +1,7 @@
 ---
 id: ADR-0022
 title: Verb commits built via a temp-index commit-tree primitive
-status: proposed
+status: accepted
 ---
 ## Context
 
