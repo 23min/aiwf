@@ -11,6 +11,10 @@ acs:
       title: Fresh-repo init writes aiwf.yaml as the fully-commented schema scaffold
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Existing aiwf.yaml is never rewritten by init or update
+      status: open
+      tdd_phase: red
 ---
 
 # M-0232 — Wire generator into init/update: fresh-repo scaffold and example.yaml
@@ -93,4 +97,6 @@ never-stale reference lives in a generated sibling the user never owns, so
 - ADR-0018 — the marker-managed in-file pattern deliberately not used here
 
 ### AC-1 — Fresh-repo init writes aiwf.yaml as the fully-commented schema scaffold
+
+### AC-2 — Existing aiwf.yaml is never rewritten by init or update
 
