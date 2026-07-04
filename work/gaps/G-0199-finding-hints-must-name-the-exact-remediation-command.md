@@ -1,7 +1,10 @@
 ---
 id: G-0199
 title: finding hints must name the exact remediation command
-status: open
+status: addressed
+addressed_by_commit:
+    - a1780edf
+    - 43a2a7ea
 ---
 ## What's missing
 
