@@ -1,6 +1,6 @@
 ---
 name: aiwfx-wrap-milestone
-description: Closes an aiwf milestone — verifies all ACs met, runs scoped doc-lint, finalizes the milestone spec's wrap-side sections, promotes status to done, prepares the wrap commit. Use when the user says "wrap M-NNNN" or "finish the cache milestone" and self-review per `aiwfx-start-milestone` has passed. Commit and push require explicit human approval.
+description: Closes an aiwf milestone — verifies all ACs met, runs scoped doc-lint, finalizes the milestone spec's wrap-side sections, promotes status to done, prepares the wrap commit. Use when the user says "wrap M-NNNN" or "finish the cache milestone" and the readiness check per `aiwfx-start-milestone` has passed. Commit and push require explicit human approval.
 ---
 
 # aiwfx-wrap-milestone
@@ -9,7 +9,7 @@ Closes a milestone. Verifies completeness, finalizes the milestone spec's wrap-s
 
 ## When to use
 
-The milestone's implementation is complete and self-reviewed (`aiwfx-start-milestone` step 7 ran clean). The user says: *"wrap M-NNNN"*, *"finish the auth milestone"*, *"close out the cache milestone"*.
+The milestone's implementation is complete and the readiness check has passed (`aiwfx-start-milestone` step 7 ran clean). The user says: *"wrap M-NNNN"*, *"finish the auth milestone"*, *"close out the cache milestone"*.
 
 If the milestone isn't actually done — failing tests, unmet ACs, broken build — stop and report. Don't paper over.
 
@@ -185,7 +185,7 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - 🛑 **Never commit or push without explicit human approval** — the commit gate (step 7) and the push gate (step 9) are separate human gates.
 - 🛑 **The terminal local sequence — local merge, promote-done, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
-- Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s self-review.
+- Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
 - Deferrals must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at.
 
 ## Anti-patterns

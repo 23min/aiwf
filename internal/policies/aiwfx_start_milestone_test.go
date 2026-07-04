@@ -137,8 +137,9 @@ func TestFindStartMilestoneAuthorizeSection_BranchCoverage(t *testing.T) {
 // + 5 (self-review) + 6 (hand off) become 1 (preflight, tightened)
 // + 2 (delegation prompt, new) + 3 (sovereign promote on parent) +
 // 4 (sovereign authorize on parent, new, only if delegating) + 5
-// (cut milestone branch) + 6 (implementation) + 7 (self-review) + 8
-// (hand off). The sequencing implements ADR-0010.
+// (cut milestone branch) + 6 (implementation) + 7 (readiness check,
+// reframed from "self-review" per G-0271) + 8 (hand off). The
+// sequencing implements ADR-0010.
 //
 // The 8-step count is asserted structurally — exactly the integers
 // 1..8 appear as `### N.` subheadings under `## Workflow`, with no
@@ -264,7 +265,7 @@ func TestAiwfxStartMilestone_M0105_AC3_NoSilentFallthroughToParentCheckout(t *te
 // M-0105/AC-4: the workflow headings, parsed structurally, appear
 // in the new order — preflight → delegation prompt → sovereign
 // promote → sovereign authorize → cut milestone branch →
-// implementation → self-review → hand off to wrap.
+// implementation → readiness check → hand off to wrap.
 //
 // Heading-content driven per CLAUDE.md §"Substring assertions are
 // not structural assertions": each expected step asserts that the
@@ -294,7 +295,7 @@ func TestAiwfxStartMilestone_M0105_AC4_WorkflowHeadingsInNewOrder(t *testing.T) 
 		"sovereign authoriz", // step 4 — new (only if delegating)
 		"cut",                // step 5 — was buried in old step 3's branch-setup
 		"implementation",     // step 6 — was step 4
-		"self-review",        // step 7 — was step 5
+		"readiness",          // step 7 — reframed from "self-review" per G-0271
 		"hand off",           // step 8 — was step 6
 	}
 	if len(gotHeadings) != len(wantOrderTokens) {
@@ -380,5 +381,97 @@ func TestAiwfxStartMilestone_M0105_AC5_SovereignActsNameOverride(t *testing.T) {
 		if !strings.Contains(authorizeSection, w.marker) {
 			t.Errorf("AC-5: sovereign-authorize subsection must name %s (substring %q)", w.name, w.marker)
 		}
+	}
+}
+
+// TestAiwfxStartMilestone_G0271_ReadinessNotReview pins G-0271
+// defect #1: the pre-handoff pass is framed as a readiness check, not
+// "self-review", and it forward-references the authoritative
+// independent review that runs at aiwfx-wrap-milestone. The property:
+// a reader of start-milestone alone comes away knowing the author
+// pass is NOT the final review.
+//
+// Two assertions: (1) no `### N.` workflow heading is labelled
+// "self-review" (the misleading label is gone); (2) the reframed
+// step-7 subsection names the independent review at
+// aiwfx-wrap-milestone as the authoritative check.
+func TestAiwfxStartMilestone_G0271_ReadinessNotReview(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxStartMilestoneFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("G-0271: body must contain a `## Workflow` section")
+	}
+
+	// (1) No workflow step heading may reintroduce the "self-review"
+	// label that let a reader believe review was already done.
+	var readiness string
+	for _, line := range strings.Split(workflow, "\n") {
+		if !strings.HasPrefix(line, "### ") {
+			continue
+		}
+		text := strings.TrimPrefix(line, "### ")
+		if strings.Contains(strings.ToLower(text), "self-review") {
+			t.Errorf("G-0271: no workflow step heading may be labelled self-review; got %q", strings.TrimSpace(line))
+		}
+		if strings.Contains(strings.ToLower(text), "readiness") {
+			readiness = extractMarkdownSection(body, 3, text)
+		}
+	}
+
+	// (2) The readiness step must forward-reference the authoritative
+	// independent review at wrap.
+	if readiness == "" {
+		t.Fatal("G-0271: `## Workflow` must contain a `### …readiness…` subsection (the reframed step 7)")
+	}
+	wantForward := []struct {
+		name   string
+		marker string
+	}{
+		{"the review is independent", "independent"},
+		{"the review runs at wrap", "aiwfx-wrap-milestone"},
+	}
+	for _, w := range wantForward {
+		if !strings.Contains(readiness, w.marker) {
+			t.Errorf("G-0271: readiness subsection must state %s (substring %q) so the author pass is not read as the final review", w.name, w.marker)
+		}
+	}
+}
+
+// TestStartSkills_G0224_LiveRefusalCodesNamed pins G-0224: both start
+// rituals name the refusal code the kernel actually emits
+// (`rung-pair-illegal`, from PreflightRungPairError) rather than the
+// dead `branch-not-found` code — PreflightBranchNotFoundError is
+// defined but never constructed, subsumed by the rung-pair check in
+// internal/verb/authorize.go. Scoped to each skill's sovereign-
+// authorize subsection (where the refusal sentence lives), plus a
+// whole-body guard against the dead code reappearing anywhere.
+func TestStartSkills_G0224_LiveRefusalCodesNamed(t *testing.T) {
+	t.Parallel()
+
+	epicBody := loadAiwfxStartEpicFixture(t)
+	msBody := loadAiwfxStartMilestoneFixture(t)
+	cases := []struct {
+		skill   string
+		body    string
+		section string
+	}{
+		{"aiwfx-start-epic", epicBody, findSovereignAuthorizeSection(epicBody)},
+		{"aiwfx-start-milestone", msBody, findStartMilestoneAuthorizeSection(msBody)},
+	}
+	for _, c := range cases {
+		t.Run(c.skill, func(t *testing.T) {
+			t.Parallel()
+			if c.section == "" {
+				t.Fatalf("G-0224: %s must contain a sovereign-authorize subsection", c.skill)
+			}
+			if strings.Contains(c.body, "branch-not-found") {
+				t.Errorf("G-0224: %s must not name the dead `branch-not-found` code (the authorize preflight never constructs it)", c.skill)
+			}
+			if !strings.Contains(c.section, "rung-pair-illegal") {
+				t.Errorf("G-0224: %s sovereign-authorize subsection must name the live `rung-pair-illegal` refusal code", c.skill)
+			}
+		})
 	}
 }
