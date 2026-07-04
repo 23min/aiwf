@@ -1,7 +1,7 @@
 ---
 id: D-0028
 title: Resolve G-0078 priority field design questions
-status: proposed
+status: accepted
 relates_to:
     - G-0078
 ---
