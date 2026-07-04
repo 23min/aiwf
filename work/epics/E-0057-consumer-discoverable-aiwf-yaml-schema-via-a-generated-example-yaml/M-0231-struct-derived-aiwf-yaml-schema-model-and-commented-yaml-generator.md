@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Schema model enumerates every yaml field across the config structs
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Anti-drift test fails when a yaml field has no schema-model entry
       status: open
