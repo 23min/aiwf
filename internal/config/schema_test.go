@@ -1,11 +1,14 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"gopkg.in/yaml.v3"
 )
 
 // TestSchema_EnumeratesEveryYAMLField pins Schema()'s coverage of the full
@@ -139,5 +142,174 @@ func TestWalkSchema_HandlesAllFieldShapes(t *testing.T) {
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("walkSchema mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// uncommentYAML strips a leading "# " (after any indentation) from every
+// line, simulating a consumer deleting the comment markers on a block they
+// want to activate. It is test-only: the real interaction is a human
+// manually uncommenting the lines they care about, never a programmatic step.
+func uncommentYAML(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		indent := line[:len(line)-len(trimmed)]
+		if rest, ok := strings.CutPrefix(trimmed, "# "); ok {
+			lines[i] = indent + rest
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// TestGenerateExample_ProducesValidReparseableYAML pins M-0231 AC-3: once
+// every comment marker is stripped, GenerateExample's output must be valid
+// YAML that decodes into Config, and the nested/list/map rendering paths
+// (areas.members' list-of-struct, agents' map-of-struct) must actually
+// reconstruct the right structure — not just parse as *something*.
+func TestGenerateExample_ProducesValidReparseableYAML(t *testing.T) {
+	t.Parallel()
+	uncommented := uncommentYAML(GenerateExample())
+
+	var cfg Config
+	if err := yaml.Unmarshal([]byte(uncommented), &cfg); err != nil {
+		t.Fatalf("uncommented output does not decode into Config: %v\n---\n%s", err, uncommented)
+	}
+
+	var generic map[string]any
+	if err := yaml.Unmarshal([]byte(uncommented), &generic); err != nil {
+		t.Fatalf("uncommented output does not parse as a YAML mapping: %v", err)
+	}
+
+	tdd, ok := generic["tdd"].(map[string]any)
+	if !ok {
+		t.Fatalf("tdd is not a mapping: %#v", generic["tdd"])
+	}
+	if !hasKey(tdd, "strict") {
+		t.Error("tdd.strict missing from parsed output")
+	}
+
+	areas, ok := generic["areas"].(map[string]any)
+	if !ok {
+		t.Fatalf("areas is not a mapping: %#v", generic["areas"])
+	}
+	members, ok := areas["members"].([]any)
+	if !ok || len(members) == 0 {
+		t.Fatalf("areas.members is not a non-empty list: %#v", areas["members"])
+	}
+	firstMember, ok := members[0].(map[string]any)
+	if !ok {
+		t.Fatalf("areas.members[0] is not a mapping: %#v", members[0])
+	}
+	if !hasKey(firstMember, "name") {
+		t.Error("areas.members[0].name missing")
+	}
+	if !hasKey(firstMember, "paths") {
+		t.Error("areas.members[0].paths missing")
+	}
+
+	agents, ok := generic["agents"].(map[string]any)
+	if !ok {
+		t.Fatalf("agents is not a mapping: %#v", generic["agents"])
+	}
+	exampleAgent, ok := agents["<key>"].(map[string]any)
+	if !ok {
+		t.Fatalf("agents.<key> is not a mapping: %#v", agents["<key>"])
+	}
+	if !hasKey(exampleAgent, "model") {
+		t.Error("agents.<key>.model missing")
+	}
+	if !hasKey(exampleAgent, "effort") {
+		t.Error("agents.<key>.effort missing")
+	}
+}
+
+// hasKey reports whether m contains key, avoiding a govet shadow warning
+// from repeated `if _, ok := m[key]; !ok` blocks in the same function scope.
+func hasKey(m map[string]any, key string) bool {
+	_, ok := m[key]
+	return ok
+}
+
+// TestIsSliceOfStruct_MapOfStruct_StructContainer drives the three type
+// predicates directly, including the map-of-a-plain-scalar shape ("map[string]int")
+// that the real Config schema doesn't currently exercise — Agents is the
+// only map field, and it happens to be map[string]config.Agent.
+func TestIsSliceOfStruct_MapOfStruct_StructContainer(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		typ             string
+		wantSliceStruct bool
+		wantMapStruct   bool
+		wantStructTop   bool
+	}{
+		{"[]config.Member", true, false, false},
+		{"[]string", false, false, false},
+		{"map[string]config.Agent", false, true, false},
+		{"map[string]int", false, false, false},
+		{"config.TDD", false, false, true},
+		{"bool", false, false, false},
+		{"string", false, false, false},
+	}
+	for _, c := range cases {
+		if got := isSliceOfStruct(c.typ); got != c.wantSliceStruct {
+			t.Errorf("isSliceOfStruct(%q) = %v, want %v", c.typ, got, c.wantSliceStruct)
+		}
+		if got := isMapOfStruct(c.typ); got != c.wantMapStruct {
+			t.Errorf("isMapOfStruct(%q) = %v, want %v", c.typ, got, c.wantMapStruct)
+		}
+		if got := isStructContainer(c.typ); got != c.wantStructTop {
+			t.Errorf("isStructContainer(%q) = %v, want %v", c.typ, got, c.wantStructTop)
+		}
+	}
+}
+
+// TestDefaultFor_HandlesAllLeafTypes drives defaultFor directly, including
+// the "*bool" leaf shape that the real schema never reaches through this
+// switch — both real *bool leaf fields (status_md.auto_update,
+// guidance.wire_claudemd) have a fieldDefaultResolvers override and return
+// before the switch runs.
+func TestDefaultFor_HandlesAllLeafTypes(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		field SchemaField
+		want  string
+	}{
+		{SchemaField{Path: "no.such.path", Type: "*bool"}, ""},
+		{SchemaField{Path: "no.such.path", Type: "*int"}, ""},
+		{SchemaField{Path: "no.such.path", Type: "[]string"}, "[]"},
+		{SchemaField{Path: "no.such.path", Type: "bool"}, "false"},
+		{SchemaField{Path: "no.such.path", Type: "string"}, `""`},
+	}
+	for _, c := range cases {
+		if got := defaultFor(c.field); got != c.want {
+			t.Errorf("defaultFor(%+v) = %q, want %q", c.field, got, c.want)
+		}
+	}
+}
+
+// TestDefaultFor_ResolverPaths pins every fieldDefaultResolvers entry to the
+// value its real accessor actually returns (not a hand-copied literal) —
+// each is compared against the getter/constant it wraps, so a resolver that
+// silently stopped calling through would be caught here.
+func TestDefaultFor_ResolverPaths(t *testing.T) {
+	t.Parallel()
+	zero := &Config{}
+	wantTrunk, _ := zero.AllocateTrunkRef()
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"allocate.trunk", wantTrunk},
+		{"html.out_dir", zero.HTMLOutDir()},
+		{"entities.title_max_length", fmt.Sprintf("%d", zero.EntityTitleMaxLength())},
+		{"worktree.dir", zero.WorktreeDir()},
+		{"status_md.auto_update", fmt.Sprintf("%t", zero.StatusMdAutoUpdate())},
+		{"guidance.wire_claudemd", fmt.Sprintf("%t", zero.WireClaudeMd())},
+	}
+	for _, c := range cases {
+		got := defaultFor(SchemaField{Path: c.path, Type: "string"})
+		if got != c.want {
+			t.Errorf("defaultFor(%q) = %q, want %q (from the real accessor)", c.path, got, c.want)
+		}
 	}
 }

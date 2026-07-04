@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -91,6 +92,113 @@ func Schema() []SchemaField {
 		fields[i].Description = fieldDescriptions[fields[i].Path]
 	}
 	return fields
+}
+
+// fieldDefaultResolvers overrides the effective default for the few leaf
+// fields whose Go zero value would not match what config.Load actually
+// applies (the locked design decision: call the real accessor, never
+// hand-transcribe a duplicate literal — see M-0231's Design notes). Every
+// other leaf field's zero value is already the true default, so defaultFor
+// renders it generically from the field's Type.
+var fieldDefaultResolvers = map[string]func() string{
+	"allocate.trunk": func() string {
+		ref, _ := (&Config{}).AllocateTrunkRef()
+		return ref
+	},
+	"html.out_dir": func() string { return (&Config{}).HTMLOutDir() },
+	"entities.title_max_length": func() string {
+		return fmt.Sprintf("%d", (&Config{}).EntityTitleMaxLength())
+	},
+	"worktree.dir": func() string { return (&Config{}).WorktreeDir() },
+	"status_md.auto_update": func() string {
+		return fmt.Sprintf("%t", (&Config{}).StatusMdAutoUpdate())
+	},
+	"guidance.wire_claudemd": func() string {
+		return fmt.Sprintf("%t", (&Config{}).WireClaudeMd())
+	},
+}
+
+// defaultFor renders the effective default for a leaf schema field as it
+// should appear after the YAML colon. A path in fieldDefaultResolvers calls
+// the real accessor; every other leaf type covers exactly the five leaf
+// shapes the current schema contains (*bool/*int, []string, bool, string) —
+// see the milestone's Design notes for why each is provably zero-value-safe.
+func defaultFor(f SchemaField) string {
+	if resolve, ok := fieldDefaultResolvers[f.Path]; ok {
+		return resolve()
+	}
+	switch f.Type {
+	case "*bool", "*int":
+		return ""
+	case "[]string":
+		return "[]"
+	case "bool":
+		return "false"
+	default: // "string"
+		return `""`
+	}
+}
+
+// isSliceOfStruct reports whether a schema Type string is a slice whose
+// element is a nested config struct (e.g. "[]config.Member"), as opposed to
+// a slice of a plain scalar (e.g. "[]string").
+func isSliceOfStruct(t string) bool {
+	return strings.HasPrefix(t, "[]") && strings.Contains(t, "config.")
+}
+
+// isMapOfStruct reports whether a schema Type string is a map whose value
+// is a nested config struct (e.g. "map[string]config.Agent"), as opposed to
+// a map of a plain scalar.
+func isMapOfStruct(t string) bool {
+	return strings.HasPrefix(t, "map[string]") && strings.Contains(t, "config.")
+}
+
+// isStructContainer reports whether a schema Type string is a directly
+// nested config struct block (e.g. "config.TDD").
+func isStructContainer(t string) bool {
+	return strings.HasPrefix(t, "config.")
+}
+
+// GenerateExample renders Schema() as fully-commented, reparseable YAML: a
+// consumer reads it as reference and uncomments only the blocks they want to
+// override, so every line — container and leaf alike — stays commented (the
+// file is inert until acted on). A leaf field renders as
+// "# key: <default>  # <description>"; a struct-typed field renders as
+// "# key:  # <description>" with its children nested two spaces deeper. A
+// slice-of-struct field's first child is dash-prefixed to form one example
+// list item — this assumes a flat, non-nested element type, true of the
+// current schema (Member has no struct-typed field of its own). A
+// map-of-struct field gets a synthetic "<key>:" placeholder line between the
+// map and its example entry's fields, since no real SchemaField represents
+// that placeholder.
+func GenerateExample() string {
+	var b strings.Builder
+	inListItem := false
+	for _, f := range Schema() {
+		depth := strings.Count(f.Path, ".")
+		key := f.Path[strings.LastIndex(f.Path, ".")+1:]
+		spaces := strings.Repeat("  ", depth)
+		dash := ""
+		if inListItem {
+			spaces = strings.Repeat("  ", depth-1)
+			dash = "- "
+			inListItem = false
+		}
+
+		switch {
+		case isSliceOfStruct(f.Type):
+			fmt.Fprintf(&b, "%s# %s%s:  # %s\n", spaces, dash, key, f.Description)
+			inListItem = true
+		case isMapOfStruct(f.Type):
+			fmt.Fprintf(&b, "%s# %s%s:  # %s\n", spaces, dash, key, f.Description)
+			fmt.Fprintf(&b, "%s  # <key>:\n", spaces)
+		case isStructContainer(f.Type):
+			fmt.Fprintf(&b, "%s# %s%s:  # %s\n", spaces, dash, key, f.Description)
+		default:
+			fmt.Fprintf(&b, "%s# %s%s: %s  # %s\n", spaces, dash, key, defaultFor(f), f.Description)
+		}
+	}
+	return b.String()
 }
 
 func walkSchema(t reflect.Type, prefix string, out *[]SchemaField) {
