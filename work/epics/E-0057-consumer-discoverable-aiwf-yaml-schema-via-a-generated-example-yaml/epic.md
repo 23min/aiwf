@@ -137,9 +137,15 @@ only half-solved.
 
 <!-- Refined via aiwfx-plan-milestones. Ids assigned at allocation. -->
 
-- `M-NNNN` — Struct-derived config-schema model + one generator; anti-drift field-coverage test · depends on: —
-- `M-NNNN` — `init` inline-scaffolds a fresh `aiwf.yaml`; `init`/`update` write+refresh the gitignored `aiwf.example.yaml`; existing `aiwf.yaml` never touched; `init --help` re-run-safety line · depends on: `M-NNNN`
-- `M-NNNN` — Coordinate the documented key-set with `G-0307` strict-decode (one source for documented + enforced keys) · depends on: `M-NNNN`
+- `M-0231` — Struct-derived config-schema model + one generator; anti-drift field-coverage test; exports the reusable accepted-key registry · depends on: —
+- `M-0232` — `init` inline-scaffolds a fresh `aiwf.yaml`; `init`/`update` write+refresh the gitignored `aiwf.example.yaml`; existing `aiwf.yaml` never touched; `init --help` re-run-safety line · depends on: `M-0231`
+
+The sketched third item — "coordinate the documented key-set with `G-0307`
+strict-decode" — is not a standalone milestone: E-0057 puts the strict-decode
+change itself out of scope (it is `G-0307`'s), so it cannot ship independently
+here. Its substance is folded in as `M-0231`'s exported accepted-key registry
+plus a forward note recorded in `G-0307` (the *Coordinate with E-0057* section):
+G-0307 consumes the registry and lands the equality test on its side.
 
 ## ADRs produced (optional)
 
