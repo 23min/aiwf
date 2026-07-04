@@ -1,8 +1,10 @@
 ---
 id: G-0332
 title: status --worktrees shows a milestone-focused view from an epic worktree
-status: open
+status: addressed
 discovered_in: E-0048
+addressed_by_commit:
+    - 35a62edd
 ---
 ## Problem
 
