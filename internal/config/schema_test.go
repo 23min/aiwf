@@ -313,3 +313,46 @@ func TestDefaultFor_ResolverPaths(t *testing.T) {
 		}
 	}
 }
+
+// TestAcceptedKeys_MatchesSchemaPaths pins M-0231 AC-4: AcceptedKeys() is
+// derived from Schema(), not a parallel hand-maintained list — the exact
+// single-source guarantee G-0307's strict-decode guard is meant to consume
+// (see G-0307's "Coordinate with E-0057" section).
+func TestAcceptedKeys_MatchesSchemaPaths(t *testing.T) {
+	t.Parallel()
+	want := map[string]bool{}
+	for _, f := range Schema() {
+		want[f.Path] = true
+	}
+
+	got := AcceptedKeys()
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("AcceptedKeys() mismatch vs Schema() paths (-want +got):\n%s", diff)
+	}
+}
+
+// TestAcceptedKeys_MembershipChecks drives AcceptedKeys() through the actual
+// consumer use case a strict-decode guard needs: exact membership at the
+// top level and inside a nested block, and rejection of both a made-up
+// top-level key and a typo'd nested key.
+func TestAcceptedKeys_MembershipChecks(t *testing.T) {
+	t.Parallel()
+	keys := AcceptedKeys()
+
+	cases := []struct {
+		key  string
+		want bool
+	}{
+		{"tdd", true},
+		{"tdd.strict", true},
+		{"tdd.stict", false}, // the exact typo G-0307 cites
+		{"araes", false},     // the exact typo G-0307 cites
+		{"agents.<key>.model", true},
+	}
+	for _, c := range cases {
+		if got := keys[c.key]; got != c.want {
+			t.Errorf("AcceptedKeys()[%q] = %v, want %v", c.key, got, c.want)
+		}
+	}
+}

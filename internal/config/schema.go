@@ -94,6 +94,20 @@ func Schema() []SchemaField {
 	return fields
 }
 
+// AcceptedKeys returns the full set of accepted aiwf.yaml key paths (the
+// same paths Schema() enumerates), as a set for O(1) membership checks. This
+// is the single source G-0307's strict-decode guard is meant to validate
+// against, rather than a hand-maintained parallel allowlist — see G-0307's
+// "Coordinate with E-0057" section. Every call recomputes from Schema()
+// (no cached package-level state), matching Schema()'s own no-caching shape.
+func AcceptedKeys() map[string]bool {
+	keys := make(map[string]bool)
+	for _, f := range Schema() {
+		keys[f.Path] = true
+	}
+	return keys
+}
+
 // fieldDefaultResolvers overrides the effective default for the few leaf
 // fields whose Go zero value would not match what config.Load actually
 // applies (the locked design decision: call the real accessor, never
