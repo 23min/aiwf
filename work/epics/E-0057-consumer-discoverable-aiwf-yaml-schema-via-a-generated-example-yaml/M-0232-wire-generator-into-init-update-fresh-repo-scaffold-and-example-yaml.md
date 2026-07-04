@@ -19,6 +19,10 @@ acs:
       title: init and update write and refresh gitignored aiwf.example.yaml
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: aiwf.example.yaml is added to the marker-managed .gitignore
+      status: open
+      tdd_phase: red
 ---
 
 # M-0232 — Wire generator into init/update: fresh-repo scaffold and example.yaml
@@ -105,4 +109,6 @@ never-stale reference lives in a generated sibling the user never owns, so
 ### AC-2 — Existing aiwf.yaml is never rewritten by init or update
 
 ### AC-3 — init and update write and refresh gitignored aiwf.example.yaml
+
+### AC-4 — aiwf.example.yaml is added to the marker-managed .gitignore
 
