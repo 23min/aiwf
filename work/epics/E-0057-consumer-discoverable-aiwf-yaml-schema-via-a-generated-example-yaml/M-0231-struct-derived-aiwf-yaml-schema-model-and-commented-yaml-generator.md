@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Accepted-key set is exported as a reusable registry
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0231 — Struct-derived aiwf.yaml schema model and commented-YAML generator
