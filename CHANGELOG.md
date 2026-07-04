@@ -16,6 +16,37 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.24.1] — 2026-07-04
+
+### Changed — G-0359: reconcile-before-merge is a checklist, not a paragraph
+
+`wf-patch`'s reconcile-before-merge instruction was a ~180-word argued paragraph nested inside a
+bullet — easy to skim past at the exact point of use. It now has its own heading in `wf-patch`,
+`aiwfx-wrap-epic`, and `aiwfx-wrap-milestone`, placed immediately before the merge step, with the
+rationale stripped to a plain checklist. "Fast-forward" language is retired (every merge in this
+repo's history is `--no-ff`), and `wf-patch` now hardcodes `git merge --no-ff --no-commit` instead
+of deferring to an unwritten project policy, matching its sibling rituals.
+
+### Changed — G-0271: start-milestone frames step 7 as a readiness check, not self-review
+
+`aiwfx-start-milestone` step 7 previously read as author "self-review"; it now reads as a
+"readiness check before handoff" that forward-references the authoritative independent two-lens
+review in `aiwfx-wrap-milestone`. The reframing is propagated to `aiwfx-wrap-milestone`'s
+cross-references and the builder agent card.
+
+### Fixed — G-0224: start rituals cite a live authorize-preflight finding code
+
+`aiwfx-start-epic` and `aiwfx-start-milestone` named `branch-not-found`, a code the authorize
+preflight never constructs. Both now name the live `rung-pair-illegal` code, and note
+`branch-context-required` for the omitted-`--branch` case.
+
+### Fixed — G-0199: every finding hint names its exact remediation command
+
+Roughly a third of `aiwf check` finding hints named a field or config to change without naming
+which command does it. Every hint now carries a backtick-delimited `aiwf …` / `git …` invocation
+(with placeholder ids), or names `aiwf check` / `aiwf contract verify` as the re-validation step
+for config-only fixes. Finding shapes and counts are unchanged — hint text only.
+
 ## [0.24.0] — 2026-07-03
 
 ### Added — G-0353: per-agent model/effort tiering via `aiwf.yaml`
