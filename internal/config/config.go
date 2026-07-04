@@ -595,10 +595,15 @@ func (c *Config) EntityTitleMaxLength() int {
 // the file is deleted.
 func (c *Config) StatusMdAutoUpdate() bool {
 	if c.StatusMd.AutoUpdate == nil {
-		return true
+		return DefaultStatusMdAutoUpdate
 	}
 	return *c.StatusMd.AutoUpdate
 }
+
+// DefaultStatusMdAutoUpdate is the value StatusMdAutoUpdate returns when
+// aiwf.yaml.status_md.auto_update is unset (E-0057: named so the schema
+// generator can cite it instead of a bare literal hiding inside the getter).
+const DefaultStatusMdAutoUpdate = true
 
 // Guidance carries the consumer's opt-out for aiwf maintaining its
 // per-turn LLM guidance import in the repo-root `CLAUDE.md` (ADR-0018).
@@ -621,10 +626,15 @@ type Guidance struct {
 // loaded Config.
 func (c *Config) WireClaudeMd() bool {
 	if c == nil || c.Guidance.WireClaudeMd == nil {
-		return true
+		return DefaultWireClaudeMd
 	}
 	return *c.Guidance.WireClaudeMd
 }
+
+// DefaultWireClaudeMd is the value WireClaudeMd returns when
+// aiwf.yaml.guidance.wire_claudemd is unset (E-0057: named so the schema
+// generator can cite it instead of a bare literal hiding inside the getter).
+const DefaultWireClaudeMd = true
 
 // Worktree carries the consumer's default placement for the git
 // worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)
