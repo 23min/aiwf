@@ -1,7 +1,7 @@
 ---
 id: M-0207
 title: aiwf.yaml declared-sequence-wraps opt-in knob
-status: draft
+status: cancelled
 parent: E-0049
 depends_on:
     - M-0203
