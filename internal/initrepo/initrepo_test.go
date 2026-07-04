@@ -127,6 +127,26 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 }
 
+// TestInit_FreshRepo_WritesFullyCommentedScaffold: aiwf.yaml on a
+// fresh repo must be exactly config.GenerateExample()'s output — the
+// discoverability payoff (M-0232/AC-1). Complements TestInit_FreshRepo
+// (which pins the legacy-field omissions and the rest of the ledger).
+func TestInit_FreshRepo_WritesFullyCommentedScaffold(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.yaml diverges from config.GenerateExample():\n got  %q\n want %q", got, want)
+	}
+}
+
 // TestInit_Idempotent re-runs Init and confirms it preserves
 // pre-existing aiwf.yaml and CLAUDE.md byte-for-byte.
 func TestInit_Idempotent(t *testing.T) {

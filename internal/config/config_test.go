@@ -361,6 +361,28 @@ func TestWrite_FreshDir(t *testing.T) {
 	}
 }
 
+// TestWrite_EmitsFullyCommentedScaffold: a fresh-repo Write (the only
+// real call shape — Write's sole caller passes &Config{}) must emit
+// GenerateExample()'s fully-commented reference, not a bare two-line
+// header (M-0232/AC-1: the fresh-repo scaffold is the discoverability
+// payoff — every block documented from first touch).
+func TestWrite_EmitsFullyCommentedScaffold(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	cfg := &Config{}
+	if err := Write(root, cfg); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := GenerateExample()
+	if string(got) != want {
+		t.Errorf("Write output diverges from GenerateExample():\n got  %q\n want %q", got, want)
+	}
+}
+
 func TestWrite_RefusesOverwrite(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -505,10 +527,46 @@ func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 	}
 }
 
+// hasActiveTopLevelKey reports whether yamlText contains a live
+// (uncommented) top-level "key:" line, as opposed to the same key
+// appearing only inside a "# ..." reference comment.
+func hasActiveTopLevelKey(yamlText, key string) bool {
+	for line := range strings.SplitSeq(yamlText, "\n") {
+		if strings.HasPrefix(line, key+":") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestHasActiveTopLevelKey(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		text string
+		key  string
+		want bool
+	}{
+		{"active key present", "status_md:\n  auto_update: true\n", "status_md", true},
+		{"only a commented reference", "# status_md:  # opt-out\n", "status_md", false},
+		{"key absent entirely", "hosts: []\n", "status_md", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := hasActiveTopLevelKey(tc.text, tc.key); got != tc.want {
+				t.Errorf("hasActiveTopLevelKey(%q, %q) = %v, want %v", tc.text, tc.key, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestWrite_OmitsStatusMdByDefault: a Config with no explicit
-// status_md setting must not emit a `status_md:` block — preserving
-// the file-shape guarantee that "default behavior" is also "default
-// file shape" (no surprise YAML on `aiwf init`).
+// status_md setting must not emit an active `status_md:` key —
+// preserving the guarantee that "default behavior" is also "default
+// file shape" (no surprise live YAML on `aiwf init`). Since M-0232,
+// GenerateExample()'s commented reference to status_md is expected
+// and does not opt the consumer into anything.
 func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -520,8 +578,8 @@ func TestWrite_OmitsStatusMdByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(got), "status_md") {
-		t.Errorf("status_md present in default-Write output: %q", got)
+	if hasActiveTopLevelKey(string(got), "status_md") {
+		t.Errorf("active status_md: key present in default-Write output: %q", got)
 	}
 }
 
@@ -1069,10 +1127,11 @@ func TestConfig_AreasRequired_ParsesAndValidates(t *testing.T) {
 	}
 }
 
-// TestWrite_OmitsArchiveByDefault: a default Config must not emit
-// an `archive:` block on Write — mirrors the StatusMd default-shape
-// guarantee. Otherwise `aiwf init` would surprise the operator
-// with a knob they didn't set.
+// TestWrite_OmitsArchiveByDefault: a default Config must not emit an
+// active `archive:` key on Write — mirrors the StatusMd default-shape
+// guarantee. Otherwise `aiwf init` would surprise the operator with a
+// knob they didn't set. Since M-0232, GenerateExample()'s commented
+// reference to archive is expected and does not opt the consumer in.
 func TestWrite_OmitsArchiveByDefault(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -1084,8 +1143,8 @@ func TestWrite_OmitsArchiveByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(got), "archive") {
-		t.Errorf("archive present in default-Write output: %q", got)
+	if hasActiveTopLevelKey(string(got), "archive") {
+		t.Errorf("active archive: key present in default-Write output: %q", got)
 	}
 }
 

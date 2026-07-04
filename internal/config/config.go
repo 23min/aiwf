@@ -932,11 +932,12 @@ func Write(root string, cfg *Config) error {
 	// bad: (1) the file looks like noise to a reader, and (2) any
 	// later hand-edit that *appends* a yaml block (e.g., `html: ...`)
 	// produces a two-document stream where only the first ("{}") is
-	// loaded, silently dropping the user's edit. Write a friendly
-	// comment header instead so the file reads as intentional and
-	// appended blocks are parsed by `config.Load`.
+	// loaded, silently dropping the user's edit. Write the fully-
+	// commented schema scaffold instead (M-0232/AC-1) — every field
+	// documented with its default, all commented so the file is inert
+	// until acted on; appended blocks still parse via `config.Load`.
 	if strings.TrimSpace(string(out)) == "{}" {
-		out = []byte("# aiwf consumer-repo config. Append top-level keys (e.g. html: { commit_output: true })\n# to opt into framework features. See `aiwf doctor` and the README for the full list.\n")
+		out = []byte(GenerateExample())
 	}
 	if err := pathutil.AtomicWriteFile(path, out, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", FileName, err)
