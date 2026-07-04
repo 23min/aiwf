@@ -54,10 +54,20 @@ marker for it (e.g. flag the current milestone row with `→ (checked out)` /
 its `in_progress` status) so the operator still sees which one they're on,
 without losing the whole-epic altitude.
 
+The checked-out (active) milestone additionally expands its ACs as subitems,
+nested under its row in the merged milestone list — each AC with its own
+status, the same detail `renderMilestoneDriver` already prints today when a
+milestone worktree is viewed standalone. Sibling milestones stay collapsed to
+their one-line status badge; only the active milestone gets AC-level detail,
+since a milestone-branch worktree's frontmatter can only speak authoritatively
+for its own ACs.
+
 The signal to do this already exists and is distinct from the checked-out
 branch: the worktree directory path encodes the epic id, so a fix has a clean
 anchor (parse the epic from the worktree path, render `epicExpansion`, overlay
-the checked-out milestone as a marker).
+the checked-out milestone as a marker, and nest `WorktreeView.ACs` — already
+populated for the driven milestone today — under that marker instead of
+discarding it).
 
 ## Relationship to neighbours
 
