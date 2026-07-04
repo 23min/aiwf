@@ -1,10 +1,12 @@
 ---
 id: G-0224
 title: aiwfx-start-epic/start-milestone SKILL.md cites retired branch-not-found code
-status: open
+status: addressed
 prior_ids:
     - G-0222
 discovered_in: M-0161
+addressed_by_commit:
+    - f3c01667
 ---
 ## What's stale
 
