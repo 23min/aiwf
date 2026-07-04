@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 // TestSchema_EnumeratesEveryYAMLField pins Schema()'s coverage of the full
@@ -53,9 +54,14 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 
 	got := Schema()
 
+	// Description is out of scope here (AC-2's fieldDescriptions registry
+	// owns it, pinned by TestSchema_EveryFieldHasDescription) — comparing it
+	// too would duplicate that registry's content into a second place.
+	ignoreDescription := cmpopts.IgnoreFields(SchemaField{}, "Description")
+
 	// Order asserted as-is (no sort): Schema's doc comment promises
 	// struct-declaration order, and want above is written in that order.
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff(want, got, ignoreDescription); diff != "" {
 		t.Errorf("Schema() mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -68,6 +74,19 @@ func TestSchema_ExcludesLegacyFields(t *testing.T) {
 	for _, f := range Schema() {
 		if f.Path == "aiwf_version" || f.Path == "actor" {
 			t.Errorf("Schema() includes legacy field %q; want excluded", f.Path)
+		}
+	}
+}
+
+// TestSchema_EveryFieldHasDescription is the anti-drift backbone (M-0231
+// AC-2): every path Schema() returns must have a non-empty entry in
+// fieldDescriptions. A newly-added yaml field with no registry entry fails
+// this test, rather than silently shipping an undocumented block.
+func TestSchema_EveryFieldHasDescription(t *testing.T) {
+	t.Parallel()
+	for _, f := range Schema() {
+		if f.Description == "" {
+			t.Errorf("Schema() field %q has no description in fieldDescriptions", f.Path)
 		}
 	}
 }
