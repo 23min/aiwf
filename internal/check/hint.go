@@ -7,17 +7,25 @@ package check
 //
 // Keep hints actionable and verb-led ("run X", "set Y", "remove Z").
 // Avoid restating the failure — the message already does that.
+//
+// Every hint names the exact remediation command — a backtick-delimited
+// `aiwf ...` or `git ...` invocation (with placeholder ids) — so an LLM
+// or operator reading the finding has the fix in hand and never has to
+// grep source or guess a verb. Config-only remediations that no single
+// verb performs still name `aiwf check` / `aiwf contract verify` as the
+// re-validation step. The `finding-hints-name-command` chokepoint
+// (internal/check/hint_test.go) reddens on any hint that names none.
 var hintTable = map[string]string{
-	"load-error":                        "fix the file's structure (YAML frontmatter delimited by `---`), or remove the file if it's not an aiwf entity",
+	"load-error":                        "repair the YAML frontmatter (delimited by `---`) by hand and re-run `aiwf check`, or `git rm <path>` if the file is not an aiwf entity",
 	"ids-unique":                        "run `aiwf reallocate <path>` on one of the duplicates to renumber it",
 	"case-paths":                        "rename one of the colliding paths via `aiwf rename` so they differ in more than just case (case-insensitive filesystems treat them as the same dir)",
-	"frontmatter-shape":                 "set the missing field, or correct the id format to match the kind's pattern",
+	"frontmatter-shape":                 "add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate <path>` so it emits at canonical width",
 	"id-path-consistent":                "renumber via `aiwf reallocate <path>` (rewrites both sides + updates references), rename the slug via `aiwf rename` if only the slug drifted, or correct the side that's wrong by hand if you're certain which",
-	"status-valid":                      "use one of the allowed statuses listed above",
-	"refs-resolve/unresolved":           "check the spelling, or remove the reference if the target was deleted",
-	"refs-resolve/wrong-kind":           "use a reference of the expected kind",
-	"refs-resolve/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or create the milestone",
-	"refs-resolve/unresolved-ac":        "the parent milestone exists but has no AC with that id; add it to acs[] or fix the reference",
+	"status-valid":                      "correct the `status:` field in the frontmatter to one of the kind's allowed states by hand, then re-run `aiwf check`; `aiwf promote` can't move an entity whose current status is unrecognized (it reads that status to compute the transition and refuses)",
+	"refs-resolve/unresolved":           "confirm the target with `aiwf show <target-id>`, then correct the spelling in the referencing frontmatter (or remove the reference) and re-run `aiwf check`",
+	"refs-resolve/wrong-kind":           "replace the reference with an id of the expected kind — list candidates via `aiwf list --kind <kind>` — then re-run `aiwf check`",
+	"refs-resolve/unresolved-milestone": "the composite id's parent milestone does not exist; verify with `aiwf show M-NNNN`, or create it via `aiwf add milestone --epic E-NNNN --tdd <policy> --title \"...\"`",
+	"refs-resolve/unresolved-ac":        "the parent milestone exists but has no AC with that id; add it via `aiwf add ac <milestone-id> --title \"...\"`, or correct the reference and re-run `aiwf check`",
 
 	// G-0184: body-prose-id chokepoint. The check scans entity body
 	// prose (frontmatter is covered by refs-resolve) for id-shaped
@@ -26,22 +34,22 @@ var hintTable = map[string]string{
 	// wrapping the token in backticks when the prose is discussing id
 	// syntax rather than referencing a real entity. The bare-code hint
 	// is the catch-all when the subcode lookup misses.
-	"body-prose-id":                      "the body prose contains an id-shaped token that is either malformed or unallocated; reference real entities by their canonical id (e.g. `M-0001`), and wrap hypothetical or syntax-discussion tokens in backticks",
-	"body-prose-id/malformed-shape":      "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form). If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists.",
-	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
-	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; check the spelling or remove the reference",
-	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; check the AC number or add the AC entry to acs[]",
+	"body-prose-id":                      "the body prose contains an id-shaped token that is either malformed or unallocated; fix it with `aiwf edit-body <id>` — reference real entities by their canonical id (e.g. `M-0001`) and wrap hypothetical or syntax-discussion tokens in backticks",
+	"body-prose-id/malformed-shape":      "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form); fix it with `aiwf edit-body <id>`. If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists.",
+	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; fix it with `aiwf edit-body <id>` — check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
+	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; fix the prose with `aiwf edit-body <id>` — check the spelling or remove the reference",
+	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; fix the prose with `aiwf edit-body <id>` — check the AC number, or add the AC entry via `aiwf add ac <milestone-id> --title \"...\"`",
 	// G-0299 / M-0227: skill-body-id chokepoint. Shipped consumer surfaces
 	// (every *.md under embedded{,-rituals,-guidance}/ plus statusline
 	// comments) must cite no real entity id (the mirror image of
 	// body-prose-id). The fix is a canonical placeholder or a design/ADR
 	// doc-link, not a real id.
-	"skill-body-id":              "a shipped surface cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description, or cite a design/ADR doc as a markdown link (the id rides in the link destination, the visible text stays descriptive)",
-	"no-cycles/depends_on":       "remove one edge in the cycle to keep the milestone DAG acyclic",
-	"no-cycles/supersedes":       "remove the loop in the supersedes/superseded_by chain",
-	"titles-nonempty":            "set a non-empty `title:` in the frontmatter",
-	"adr-supersession-mutual":    "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference",
-	"gap-addressed-has-resolver": "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`",
+	"skill-body-id":              "a shipped surface cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description (or cite a design/ADR doc as a markdown link, so the id rides in the destination while the visible text stays descriptive), then re-run `aiwf check`",
+	"no-cycles/depends_on":       "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it)",
+	"no-cycles/supersedes":       "break the loop in the supersedes/superseded_by chain — inspect it with `aiwf history ADR-NNNN`, correct the errant `supersedes:`/`superseded_by:` frontmatter entry by hand, then re-run `aiwf check`",
+	"titles-nonempty":            "set a non-empty title via `aiwf retitle <id> \"...\"`",
+	"adr-supersession-mutual":    "record the supersession through the verb so both sides stay in sync: `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` writes the reciprocal `supersedes:` automatically",
+	"gap-addressed-has-resolver": "name the resolver atomically with the status change via `aiwf promote <id> addressed --by <milestone-id>` (or `--by-commit <sha>` when a specific commit closed it), or step back with `aiwf promote <id> open` / `aiwf promote <id> wontfix`",
 
 	// G-0155: misset core.worktree silently redirects every git op
 	// against the wrong worktree. The hint points at the precise
@@ -65,7 +73,7 @@ var hintTable = map[string]string{
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not
 	// to move the file out of archive. There is no reverse-archive verb.
-	"archived-entity-not-terminal": "revert the hand-edit so the status returns to a terminal value; if the entity genuinely needs revisiting, file a new entity that references the archived one (ADR-0004 §Reversal)",
+	"archived-entity-not-terminal": "revert the hand-edit so the status returns to a terminal value (`git checkout -- <path>` if the change is uncommitted), then re-run `aiwf check`; if the entity genuinely needs revisiting, open a new one that references it via `aiwf add <kind> --title \"...\"` (ADR-0004 §Reversal)",
 	// M-0086: terminal-entity-not-archived is the pending-sweep
 	// finding. Advisory by default; the M-0088 threshold knob will
 	// promote it to blocking past N for opted-in consumers.
@@ -76,18 +84,18 @@ var hintTable = map[string]string{
 	// remediation.
 	"archive-sweep-pending": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings",
 
-	"acs-shape/id":                         "fix the AC's id to match `AC-N` and equal its position+1 (cancelled entries count toward position)",
-	"acs-shape/title":                      "set a non-empty `title:` on the AC entry",
-	"acs-shape/status":                     "use one of the allowed AC statuses listed above",
-	"acs-shape/tdd-phase":                  "set tdd_phase to one of red|green|refactor|done (required when the milestone is tdd: required)",
-	"acs-shape/tdd-policy":                 "set the milestone's tdd: to one of required|advisory|none (or omit to default to none)",
-	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body for this AC, or remove it from acs[]",
-	"acs-body-coherence/orphan-heading":    "add the AC to the milestone's frontmatter acs[], or remove the body heading",
-	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading in the `## Acceptance criteria` section; keep exactly one per AC",
+	"acs-shape/id":                         "fix the AC's id to match `AC-N` (position+1; cancelled entries still count) by correcting the `acs:` frontmatter, then re-run `aiwf check`",
+	"acs-shape/title":                      "set a non-empty AC title via `aiwf retitle <milestone-id>/AC-N \"...\"`",
+	"acs-shape/status":                     "correct the AC's status in the `acs:` frontmatter to a legal value by hand, then re-run `aiwf check`; `aiwf promote <milestone-id>/AC-N <status>` can't transition an AC whose current status is unrecognized",
+	"acs-shape/tdd-phase":                  "advance the AC's tdd_phase via `aiwf promote <milestone-id>/AC-N --phase <red|green|refactor|done>` (required when the milestone is `tdd: required`)",
+	"acs-shape/tdd-policy":                 "declare the milestone's TDD policy at creation via `aiwf add milestone --tdd <required|advisory|none>`; for an existing milestone, set `tdd:` in the frontmatter by hand and re-run `aiwf check` (there is no post-create --tdd verb)",
+	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body via `aiwf edit-body <milestone-id>`, or drop the AC from the `acs:` frontmatter",
+	"acs-body-coherence/orphan-heading":    "register the AC in the milestone's `acs:` frontmatter via `aiwf add ac <milestone-id> --title \"...\"`, or remove the stray body heading via `aiwf edit-body <milestone-id>`",
+	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading via `aiwf edit-body <milestone-id>`; keep exactly one per AC",
 	"acs-tdd-audit":                        "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting",
 	"acs-tdd-tests-missing":                "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
-	"acs-title-prose":                      "shorten the AC title to a single short label and move the detail prose into the body section under `### AC-N`; titles render as one big heading",
-	"milestone-done-incomplete-acs":        "promote the open ACs to met / deferred / cancelled, or use --force --reason to override (the standing check still surfaces this)",
+	"acs-title-prose":                      "shorten the AC title via `aiwf retitle <milestone-id>/AC-N \"...\"` and move the detail prose into the body under `### AC-N` via `aiwf edit-body <milestone-id>`; titles render as one big heading",
+	"milestone-done-incomplete-acs":        "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`, or override with `aiwf promote <milestone-id> done --force --reason \"...\"` (the standing check still surfaces this)",
 
 	// M-066 entity-body-empty: each kind's load-bearing body sections
 	// must contain non-empty prose. AC bodies have a verb-side shortcut
@@ -116,7 +124,7 @@ var hintTable = map[string]string{
 	// never flagged and the rule is inert when no areas block exists, so
 	// the only remediation paths are fixing the typo, declaring the value,
 	// or removing the field.
-	"area-unknown": "the entity's `area` is not in the declared set — fix the typo to match a member of `aiwf.yaml: areas.members`, add the value to that member set if it's a legitimate new workstream, or remove the `area` field; absence and an absent `areas` block are never flagged",
+	"area-unknown": "the entity's `area` is not in the declared set — retag it to a real member with `aiwf set-area <id> <member>`, add the value under `areas.members` in aiwf.yaml if it's a legitimate new workstream, or clear it with `aiwf set-area <id> --clear`; absence and an absent `areas` block are never flagged",
 
 	// M-0178 area-required: the entity has no `area` but the consumer opted
 	// into strictness via `aiwf.yaml: areas.required: true`. The remediation
@@ -129,37 +137,37 @@ var hintTable = map[string]string{
 	// file or directory — dead config (a renamed / deleted / typo'd path).
 	// Per-glob; warning by default, error under areas.required. The
 	// remediation is fixing the glob, recreating the path, or dropping it.
-	"area-dead-glob": "an `aiwf.yaml: areas.members` path glob matches no file or directory — correct the glob to the path's real location, recreate the moved/renamed directory, or remove the dead glob from that member's `paths:`",
+	"area-dead-glob": "an `aiwf.yaml` area path glob matches no file or directory — correct the glob under that member's `paths:`, recreate the moved/renamed directory, or remove the dead glob, then re-run `aiwf check`",
 
 	// M-0180 area-overlap: two declared areas' `paths:` globs both claim the
 	// same directory — ambiguous attribution. Warning by default, error under
 	// areas.required. The remediation is to make the globs disjoint.
-	"area-overlap": "two `aiwf.yaml: areas.members` claim the same directory — narrow one area's `paths:` glob so each directory belongs to at most one area (overlap makes the path-based area checks ambiguous)",
+	"area-overlap": "two `aiwf.yaml` areas claim the same directory — narrow one member's `paths:` glob so each directory belongs to at most one area, then re-run `aiwf check` (overlap makes the path-based area checks ambiguous)",
 
 	// M-0185 area-unslotted: an immediate child directory of a declared
 	// coverage root (aiwf.yaml: areas.coverage_roots) is claimed by no area's
 	// `paths:` glob — an unslotted project. Warning by default, error under
 	// areas.required. The remediation is to slot it into an area, narrow the
 	// coverage root, or drop the root.
-	"area-unslotted": "a directory under an `aiwf.yaml: areas.coverage_roots` entry is claimed by no area's `paths:` glob — slot it into an area (add the directory to a member's `paths:`), or remove the coverage root if that subtree is not a project-tiling scope; absence of a coverage root makes this check inert",
+	"area-unslotted": "a directory under an `aiwf.yaml` coverage root is claimed by no area's `paths:` glob — slot it into a member's `paths:`, or remove the coverage root if that subtree is not a project-tiling scope, then re-run `aiwf check`; absence of a coverage root makes this check inert",
 
 	// M-0185 area-coverage-root-missing: a declared coverage root resolves to
 	// no directory (typo, deleted, or a file) — dead config, the coverage
 	// analogue of area-dead-glob. A silently-skipped dead root gives false
 	// confidence that coverage is active.
-	"area-coverage-root-missing": "an `aiwf.yaml: areas.coverage_roots` entry points at no directory — correct the path to the real coverage-scope directory, or remove the dead entry; a dead root silently disables coverage for that scope",
+	"area-coverage-root-missing": "an `aiwf.yaml` coverage-root entry points at no directory — correct the path to the real coverage-scope directory, or remove the dead entry, then re-run `aiwf check`; a dead root silently disables coverage for that scope",
 
 	// M-0185 area-coverage-no-paths: coverage_roots is declared but no area
 	// declares `paths:`, so the path oracle is dormant and coverage is inert.
 	// Surfaced rather than silently no-op'd.
-	"area-coverage-no-paths": "`aiwf.yaml: areas.coverage_roots` is declared but no area declares `paths:`, so coverage has nothing to match against and is inert — add `paths:` to a member (areas.members[].paths), or remove the coverage roots if path-based coverage isn't wanted yet",
+	"area-coverage-no-paths": "`aiwf.yaml` coverage_roots is declared but no area declares `paths:`, so coverage has nothing to match against and is inert — add `paths:` to a member (areas.members[].paths), or remove the coverage roots if path-based coverage isn't wanted yet, then re-run `aiwf check`",
 
 	// M-0181 area-mistag: an entity's linked commits (via the aiwf-entity
 	// trailer) touched only a DIFFERENT area's `paths:` territory than the one
 	// the entity is tagged to. Warning only — never escalated, because
 	// cross-cutting work is legitimate. The remediation is to retag the entity
 	// (`aiwf set-area`) or, if the work really is cross-cutting, acknowledge it.
-	"area-mistag": "the entity's `area` tag and its commits disagree — its work landed entirely in another area's `paths:` territory; fix the tag with `aiwf set-area`, or if the work is genuinely cross-cutting, acknowledge it (the acknowledge path, M-0181)",
+	"area-mistag": "the entity's `area` tag and its commits disagree — its work landed entirely in another area's `paths:` territory; fix the tag with `aiwf set-area <id> <member>`, or if the work is genuinely cross-cutting, acknowledge it via `aiwf acknowledge mistag <id> --reason \"...\"`",
 
 	// M-0130/AC-5: fsm-history-consistent fires when a status-change
 	// commit bypasses the kernel's FSM in a way the per-subcode predicate
@@ -171,7 +179,7 @@ var hintTable = map[string]string{
 	// one-directional (fires on emitted codes lacking hints, not on hints
 	// lacking codes), so landing the hints first is safe.
 	"fsm-history-consistent/illegal-transition": "the status change is not a legal step in the kind's FSM and the commit has no `aiwf-force:` trailer; re-route through `aiwf promote <id> <to>` (which only accepts legal moves), or wield sovereign override via `aiwf <verb> --force --reason \"...\"` when the exceptional flip is genuinely warranted",
-	"fsm-history-consistent/forced-untrailered": "the status change matches a sovereign-act shape (e.g., epic `proposed → active`) that requires explicit override but the commit has no `aiwf-force:` trailer; re-run the verb with `--force --reason \"...\"` so the override is recorded in the trailers, or undo the change via the corresponding inverse verb",
+	"fsm-history-consistent/forced-untrailered": "the status change matches a sovereign-act shape (e.g., epic `proposed → active`) that requires explicit override but the commit has no `aiwf-force:` trailer; re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"` so the override lands in the trailers, or undo the change via the corresponding inverse verb",
 	"fsm-history-consistent/manual-edit":        "the status change has no `aiwf-verb:` trailer (manual `git commit` bypassed the kernel); re-route through the appropriate verb (`aiwf promote`, `aiwf cancel`), or record the exceptional flip via `aiwf <verb> --audit-only --reason \"...\"` after correcting the file by hand — the audit-only commit clears the finding",
 	// M-0137/AC-4: history-walk-error subcode. The M-0130 walker
 	// silently swallowed walker failures; M-0137 surfaces them as
@@ -180,28 +188,28 @@ var hintTable = map[string]string{
 	"fsm-history-consistent/history-walk-error": "the walker hit a real failure reading the named entity's commit history (subprocess crash, blob read error, context cancelled mid-walk); other entities' findings are still surfaced alongside per the partial-preservation contract. Re-run `aiwf check` to confirm whether the failure is transient; if it repeats, inspect git's reachable-objects health (`git fsck`) or the consumer-repo permissions on `.git/objects/`",
 
 	"contract-config/missing-entity":        "create a contract entity for this id (`aiwf add contract`), or remove the entry from aiwf.yaml.contracts.entries[]",
-	"contract-config/missing-schema":        "fix the `schema:` path in aiwf.yaml.contracts.entries[], or create the file at that location",
-	"contract-config/missing-fixtures":      "fix the `fixtures:` path in aiwf.yaml.contracts.entries[], or create the directory",
+	"contract-config/missing-schema":        "correct the `schema:` path under `contracts` in aiwf.yaml (or create the file at that location), then re-run `aiwf contract verify`",
+	"contract-config/missing-fixtures":      "correct the `fixtures:` path under `contracts` in aiwf.yaml (or create the directory), then re-run `aiwf contract verify`",
 	"contract-config/no-binding":            "bind the contract via `aiwf contract bind`, or accept it as a registry-only record",
-	"contract-config/path-escape":           "ensure schema and fixtures paths in aiwf.yaml resolve inside the repo; check for `..` segments or out-of-repo symlinks",
-	"contract-config/validator-unavailable": "install the validator binary on this machine, or set `contracts.strict_validators: false` in aiwf.yaml to demote this to a warning team-wide",
-	"fixture-rejected":                      "make the schema accept this fixture, or remove the fixture from valid/",
-	"fixture-accepted":                      "tighten the schema to reject this fixture, or move it to valid/",
-	"evolution-regression":                  "revert the schema change or migrate the historical fixture",
-	"validator-error":                       "every valid fixture failed; the schema or validator invocation is likely broken",
-	"environment":                           "install the validator binary or fix `command:` in aiwf.yaml.contracts.validators",
+	"contract-config/path-escape":           "make the `schema:`/`fixtures:` paths under `contracts` in aiwf.yaml resolve inside the repo (drop `..` segments and out-of-repo symlinks), then re-run `aiwf contract verify`",
+	"contract-config/validator-unavailable": "install the validator via `aiwf contract recipe install <name>` (or install its binary on this machine), or set `contracts.strict_validators: false` in aiwf.yaml to demote this to a warning team-wide",
+	"fixture-rejected":                      "make the schema accept this fixture, or `git rm` the fixture out of valid/, then re-run `aiwf contract verify`",
+	"fixture-accepted":                      "tighten the schema to reject this fixture, or `git mv` it into valid/, then re-run `aiwf contract verify`",
+	"evolution-regression":                  "revert the schema change (`git checkout -- <schema>`) or migrate the historical fixture, then re-run `aiwf contract verify`",
+	"validator-error":                       "every valid fixture failed — the schema or the validator invocation is likely broken; fix the `command:` under `contracts.validators` in aiwf.yaml (or the schema) and re-run `aiwf contract verify`",
+	"environment":                           "install the validator via `aiwf contract recipe install <name>`, or fix its `command:` under `contracts.validators` in aiwf.yaml",
 
 	// I2.5 provenance standing rules. These fire on commit history,
 	// not on tree state — hints point to the verb / repair path that
 	// would have produced a coherent commit.
-	"provenance-trailer-incoherent":                     "rewrite or amend the offending commit so the trailer set obeys the required-together / mutually-exclusive rules in `docs/pocv3/design/provenance-model.md`",
-	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human invoke the verb directly, or drop the force",
+	"provenance-trailer-incoherent":                     "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/pocv3/design/provenance-model.md`",
+	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb",
 	"provenance-actor-malformed":                        "set `git config user.email` to a valid address and re-run via `aiwf doctor`; the actor trailer is derived from `<localpart>` of the email",
-	"provenance-principal-non-human":                    "`aiwf-principal:` must be `human/<id>`; agents and bots cannot be principals",
-	"provenance-on-behalf-of-non-human":                 "`aiwf-on-behalf-of:` must name a human principal; rebuild the trailer from the originating authorize commit's `aiwf-actor:` value",
+	"provenance-principal-non-human":                    "`aiwf-principal:` must be `human/<id>` (agents and bots cannot be principals); re-run the verb with `--principal human/<id>`, or amend the trailer via `git commit --amend`",
+	"provenance-on-behalf-of-non-human":                 "`aiwf-on-behalf-of:` must name a human principal; read the originating authorize commit with `aiwf history <scope-entity>` and amend the trailer via `git commit --amend`",
 	"provenance-authorized-by-malformed":                "`aiwf-authorized-by:` must be 7–40 hex (the SHA of the authorize commit); copy it from `aiwf history <scope-entity>`",
-	"provenance-authorization-missing":                  "the SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit; check for typos or use the full SHA",
-	"provenance-authorization-out-of-scope":             "the scope-entity does not reach the target via the reference graph; either authorize the right entity or run the verb on something the existing scope already reaches",
+	"provenance-authorization-missing":                  "the SHA does not name an `aiwf-verb: authorize / aiwf-scope: opened` commit; find it with `aiwf history <scope-entity>` and use the full SHA",
+	"provenance-authorization-out-of-scope":             "the scope-entity does not reach the target via the reference graph; open a scope on the right entity with `aiwf authorize <id> --to <agent>`, or run the verb on something the existing scope already reaches",
 	"provenance-authorization-ended":                    "the scope was already ended (terminal-promote or revoke); open a fresh scope with `aiwf authorize <id> --to <agent>`",
 	"provenance-no-active-scope":                        "an `ai/...` actor needs an active authorization; run `aiwf authorize <id> --to <agent>` before retrying the verb",
 	"provenance-audit-only-non-human":                   "`--audit-only` is a sovereign act; only humans may backfill audit trails (have a human invoke `aiwf <verb> --audit-only --reason ...`)",
@@ -215,7 +223,7 @@ var hintTable = map[string]string{
 	// value (e.g. `aiwf-verb: implement`) on a hand-rolled Conventional-
 	// Commits commit. Known ritual lifecycle verbs (e.g. `wrap-epic`) are
 	// allowlisted (G-0180) and do not fire.
-	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), amend the commit and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
+	"trailer-verb-unknown": "the commit's `aiwf-verb:` value is not a registered top-level verb or subverb, nor a recognized ritual verb; if it's a typo (or an LLM fabrication), `git commit --amend` and drop the trailer — plain `feat(...)` / `fix(...)` commits don't need an `aiwf-verb:` line; if it's a new ritual verb, add it to the ritualVerbs allowlist in internal/check/trailer_verb_unknown.go",
 
 	// M-0160/AC-4: id-rename-untrailered fires when a commit between
 	// merge-base(HEAD, trunk) and HEAD renames an id-bearing entity
@@ -230,11 +238,11 @@ var hintTable = map[string]string{
 	"id-rename-untrailered": "the commit renamed an id-bearing entity file without an `aiwf-verb` trailer in the rename-class set (retitle/rename/reallocate/archive/move). Canonical resolution: run `aiwf reallocate <new-id-or-path>` to record the renumber with the proper trailer set — that rewrites cross-references and bridges `aiwf history` from the old id; alternatively, if the original rename was deliberate sovereign-human work, run `aiwf acknowledge illegal <sha> --reason \"<text>\"` to silence this specific commit's finding without rewriting history. See CLAUDE.md §\"Id-collision resolution at merge time\".",
 
 	// Verb-emitted findings (from internal/verb/).
-	"unexpected-tree-file": "remove the file or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
+	"unexpected-tree-file": "remove the file with `git rm <path>` or move it outside `work/`; if it genuinely belongs there, add a glob to `tree.allow_paths` in aiwf.yaml — but tree-shape changes (new entities, renames, status transitions) go through `aiwf <verb>`, not direct writes",
 
 	"slug-dropped-chars":  "the title contained non-ASCII runes that the slug omits; rename via `aiwf rename` if the resulting slug isn't what you want",
 	"import-duplicate-id": "the manifest declares the same id more than once; deduplicate the entries before re-running `aiwf import`",
-	"import-collision":    "the manifest's explicit id is already taken by an existing entity; re-run with `--on-collision skip|update`, or change the manifest's id",
+	"import-collision":    "the manifest's explicit id is already taken by an existing entity; re-run with `aiwf import --on-collision skip|update`, or change the manifest's id",
 
 	// G-0185: roadmap-case-collision fires when more than one
 	// case-variant of the generated ROADMAP.md artifact exists at the
@@ -257,7 +265,7 @@ var hintTable = map[string]string{
 	// `aiwf history` covers M-0106 (original 2-path hint) and
 	// M-0159/AC-9 (acknowledge-illegal addition).
 	"isolation-escape":                    "the AI-actor commit landed on a branch that doesn't match the active scope's recorded `aiwf-branch:`. Override paths: (a) canonical: run `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor — records a separate audit-trail commit (aiwf-verb: acknowledge-illegal + aiwf-force-for: <sha>) that silences the finding without rewriting the original commit; (b) re-author via `git cherry-pick -x <sha>` — preserves the marker and changes the committer to a human, suppressing the finding; (c) amend the violating commit with `git commit --amend --trailer 'aiwf-force: <reason>'` and an `aiwf-actor: human/<id>` trailer to record the sovereign override. See E-0030 epic body §\"Sovereign override surface\" for the audit trail each path produces.",
-	"isolation-escape-oracle-failure":     "advisory: the branch-choreography oracle could not resolve one or more refs, so isolation-escape could not be checked for the affected commits. It fails shut on correctness (no false positives) and fails open on coverage, so this is operator visibility, not a blocker — inspect the named ref/failure mode; it clears once the ref resolves. See D-0019 for the contract.",
+	"isolation-escape-oracle-failure":     "advisory: the branch-choreography oracle could not resolve one or more refs, so isolation-escape could not be checked for the affected commits. It fails shut on correctness (no false positives) and fails open on coverage, so this is operator visibility, not a blocker — inspect the named ref (`git show-ref <ref>`) and re-run `aiwf check` once it resolves. See D-0019 for the contract.",
 	"isolation-escape-shallow-clone":      "the repository is a shallow clone, so the per-commit branch map is left empty and isolation-escape can't run (a total-coverage gap). Unshallow with `git fetch --unshallow`, or in CI use `actions/checkout@vN` with `fetch-depth: 0`.",
 	"isolation-escape-orphaned-ai-commit": "an AI-actor commit was orphaned by a non-fast-forward update (force-push) on a ritual branch, so the kernel can't tell whether it was on the correct branch. Review the commit; if it was deliberate sovereign-human work, record it via `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor.",
 	"promote-on-wrong-branch":             "an activating-promote (e.g. `aiwf promote E-NNNN active` / `aiwf promote M-NNNN in_progress`) landed on a branch other than the entity's expected parent branch, contrary to ADR-0010 (sovereign acts land on the parent branch before the ritual branch is cut). Land future activations on the parent branch; if this placement was deliberate, silence the commit via `aiwf acknowledge illegal <sha> --reason \"<text>\"` as a human actor, or add an `aiwf-force: <reason>` trailer to the promote commit.",

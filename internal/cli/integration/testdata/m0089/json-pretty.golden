@@ -11,7 +11,7 @@
       "line": 9,
       "entity_id": "G-001",
       "subcode": "malformed-shape",
-      "hint": "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form). If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists."
+      "hint": "the body prose contains an id-shaped token that is not a valid id (letter suffix, uppercase placeholder, or narrow-numeric form); fix it with `aiwf edit-body \u003cid\u003e`. If it references a real entity, use the canonical id (`M-0001`, not `M-1` or `M-NNNN`); if it is discussing id syntax, wrap it in backticks. Conversational sequential labels (`M-1`, `M-2`) belong in chat, not committed prose — replace with the allocator-assigned canonical id once the entity exists."
     },
     {
       "code": "body-prose-id",
@@ -21,7 +21,7 @@
       "line": 10,
       "entity_id": "G-001",
       "subcode": "unresolved",
-      "hint": "the body prose references a well-formed id that resolves to no entity; check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference"
+      "hint": "the body prose references a well-formed id that resolves to no entity; fix it with `aiwf edit-body \u003cid\u003e` — check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference"
     },
     {
       "code": "frontmatter-shape",
@@ -30,7 +30,7 @@
       "path": "work/epics/E-01-orig/M-005-missing-parent.md",
       "line": 1,
       "entity_id": "M-005",
-      "hint": "set the missing field, or correct the id format to match the kind's pattern"
+      "hint": "add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate \u003cpath\u003e` so it emits at canonical width"
     },
     {
       "code": "id-path-consistent",
@@ -58,7 +58,7 @@
       "line": 5,
       "entity_id": "ADR-0001",
       "subcode": "supersedes",
-      "hint": "remove the loop in the supersedes/superseded_by chain"
+      "hint": "break the loop in the supersedes/superseded_by chain — inspect it with `aiwf history ADR-NNNN`, correct the errant `supersedes:`/`superseded_by:` frontmatter entry by hand, then re-run `aiwf check`"
     },
     {
       "code": "no-cycles",
@@ -68,7 +68,7 @@
       "line": 5,
       "entity_id": "ADR-0002",
       "subcode": "supersedes",
-      "hint": "remove the loop in the supersedes/superseded_by chain"
+      "hint": "break the loop in the supersedes/superseded_by chain — inspect it with `aiwf history ADR-NNNN`, correct the errant `supersedes:`/`superseded_by:` frontmatter entry by hand, then re-run `aiwf check`"
     },
     {
       "code": "no-cycles",
@@ -78,7 +78,7 @@
       "line": 6,
       "entity_id": "M-001",
       "subcode": "depends_on",
-      "hint": "remove one edge in the cycle to keep the milestone DAG acyclic"
+      "hint": "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on \u003cmilestone-id\u003e --on \u003cremaining-ids\u003e` (or `--clear` to empty it)"
     },
     {
       "code": "no-cycles",
@@ -88,7 +88,7 @@
       "line": 6,
       "entity_id": "M-002",
       "subcode": "depends_on",
-      "hint": "remove one edge in the cycle to keep the milestone DAG acyclic"
+      "hint": "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on \u003cmilestone-id\u003e --on \u003cremaining-ids\u003e` (or `--clear` to empty it)"
     },
     {
       "code": "refs-resolve",
@@ -98,7 +98,7 @@
       "line": 5,
       "entity_id": "M-003",
       "subcode": "unresolved",
-      "hint": "check the spelling, or remove the reference if the target was deleted"
+      "hint": "confirm the target with `aiwf show \u003ctarget-id\u003e`, then correct the spelling in the referencing frontmatter (or remove the reference) and re-run `aiwf check`"
     },
     {
       "code": "refs-resolve",
@@ -108,7 +108,7 @@
       "line": 5,
       "entity_id": "M-004",
       "subcode": "wrong-kind",
-      "hint": "use a reference of the expected kind"
+      "hint": "replace the reference with an id of the expected kind — list candidates via `aiwf list --kind \u003ckind\u003e` — then re-run `aiwf check`"
     },
     {
       "code": "status-valid",
@@ -117,7 +117,7 @@
       "path": "work/epics/E-01-orig/M-003-bad-status.md",
       "line": 4,
       "entity_id": "M-003",
-      "hint": "use one of the allowed statuses listed above"
+      "hint": "correct the `status:` field in the frontmatter to one of the kind's allowed states by hand, then re-run `aiwf check`; `aiwf promote` can't move an entity whose current status is unrecognized (it reads that status to compute the transition and refuses)"
     },
     {
       "code": "adr-supersession-mutual",
@@ -126,7 +126,7 @@
       "path": "docs/adr/ADR-0001-supersedes-cycle-a.md",
       "line": 5,
       "entity_id": "ADR-0001",
-      "hint": "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference"
+      "hint": "record the supersession through the verb so both sides stay in sync: `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` writes the reciprocal `supersedes:` automatically"
     },
     {
       "code": "adr-supersession-mutual",
@@ -135,7 +135,7 @@
       "path": "docs/adr/ADR-0002-supersedes-cycle-b.md",
       "line": 5,
       "entity_id": "ADR-0002",
-      "hint": "add this ADR to the other ADR's `supersedes:` list, or remove the back-reference"
+      "hint": "record the supersession through the verb so both sides stay in sync: `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` writes the reciprocal `supersedes:` automatically"
     },
     {
       "code": "archive-sweep-pending",
@@ -159,7 +159,7 @@
       "path": "work/gaps/G-001-addressed-no-resolver.md",
       "line": 1,
       "entity_id": "G-001",
-      "hint": "list the resolving milestone(s) in `addressed_by:` or commit SHA(s) in `addressed_by_commit:`, or revert the status to `open`/`wontfix`"
+      "hint": "name the resolver atomically with the status change via `aiwf promote \u003cid\u003e addressed --by \u003cmilestone-id\u003e` (or `--by-commit \u003csha\u003e` when a specific commit closed it), or step back with `aiwf promote \u003cid\u003e open` / `aiwf promote \u003cid\u003e wontfix`"
     },
     {
       "code": "terminal-entity-not-archived",
@@ -195,7 +195,7 @@
       "path": "work/epics/E-01-dup/epic.md",
       "line": 3,
       "entity_id": "E-01",
-      "hint": "set a non-empty `title:` in the frontmatter"
+      "hint": "set a non-empty title via `aiwf retitle \u003cid\u003e \"...\"`"
     }
   ],
   "metadata": {
