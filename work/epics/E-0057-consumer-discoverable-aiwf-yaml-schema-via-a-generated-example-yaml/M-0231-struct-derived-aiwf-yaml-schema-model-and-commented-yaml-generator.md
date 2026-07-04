@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Anti-drift test fails when a yaml field has no schema-model entry
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Generator output is valid, reparseable YAML with defaults and descriptions
