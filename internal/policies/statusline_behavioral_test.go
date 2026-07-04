@@ -22,9 +22,9 @@ import (
 // run cannot exercise, so they stay.
 //
 // This file adds the axis G-0187 says is missing: it *runs* the script against
-// a hermetic git repo + transcript fixture + a stubbed `gh`, strips ANSI, and
-// asserts the rendered segments — token count, ahead/behind sync, repo/branch,
-// and the CI glyph. The CI cases drive the G-0189 stale-after-push fix:
+// a hermetic git repo + a stubbed `gh`, strips ANSI, and asserts the rendered
+// segments — token count, ahead/behind sync, repo/branch, and the CI glyph.
+// The CI cases drive the G-0189 stale-after-push fix:
 //   - AC-2: a run whose headSha differs from local HEAD must render the
 //     stale-pending glyph (…), not the previous commit's verdict.
 //   - AC-3: folding HEAD into the cache key must make a new commit invalidate
@@ -96,20 +96,6 @@ func writeFile(t *testing.T, path, content string) {
 	}
 }
 
-// writeTranscript writes a JSONL transcript whose last usage-bearing line sums
-// to 6000 tokens (1000 input + 5000 cache_read), rendered as "6k". Lives
-// outside the repo so it does not dirty the working tree.
-func writeTranscript(t *testing.T) string {
-	t.Helper()
-	p := filepath.Join(t.TempDir(), "transcript.jsonl")
-	lines := []string{
-		`{"message":{"role":"user"}}`,
-		`{"message":{"usage":{"input_tokens":1000,"cache_read_input_tokens":5000,"cache_creation_input_tokens":0}}}`,
-	}
-	writeFile(t, p, strings.Join(lines, "\n")+"\n")
-	return p
-}
-
 // writeGhStub writes a fake `gh` to a fresh dir (returned for PATH prepend).
 // For `gh run list --branch <b> ...` it prints $STUB_GH_JSON, except it prints
 // "[]" when <b> equals $STUB_GH_EMPTY_BRANCH (used to force the no-runs →
@@ -137,10 +123,13 @@ func writeGhStub(t *testing.T) string {
 	return dir
 }
 
-// statuslineStdin builds the session-context JSON Claude Code feeds on stdin.
-func statuslineStdin(transcriptPath, repoDir string) string {
+// statuslineStdin builds the session-context JSON Claude Code feeds on stdin,
+// with a context_window object whose total_input_tokens renders "6k" — a safe
+// default for tests that don't care about token rendering. Tests that do care
+// build their own context_window-bearing stdin directly.
+func statuslineStdin(repoDir string) string {
 	return `{"model":{"display_name":"Opus 4.8 (1M context)"},` +
-		`"transcript_path":"` + transcriptPath + `",` +
+		`"context_window":{"total_input_tokens":6000,"context_window_size":200000},` +
 		`"workspace":{"current_dir":"` + repoDir + `"},` +
 		`"effort":{"level":"xhigh"}}`
 }
@@ -162,7 +151,8 @@ func runStatuslineCache(t *testing.T, repoDir, cacheDir, stdinJSON string, extra
 		}
 		env = append(env, e)
 	}
-	env = append(env,
+	env = append(
+		env,
 		"PATH="+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"AIWF_STATUSLINE_CACHE_DIR="+cacheDir,
 	)
@@ -190,18 +180,17 @@ func ghRunJSON(headSha, conclusion, status string) string {
 
 // TestStatusline_M0191_AC1_RendersRealSegments establishes the behavioral
 // harness (G-0187): it runs statusline.sh end-to-end and asserts the rendered
-// output reflects the fixture — token count from the transcript, ahead/behind
+// output reflects the fixture — token count from context_window, ahead/behind
 // sync, repo + branch names, and a green CI glyph for a success run at HEAD.
 func TestStatusline_M0191_AC1_RendersRealSegments(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 
-	out := runStatusline(t, repo, statuslineStdin(tr, repo), ghRunJSON(head, "success", "completed"))
+	out := runStatusline(t, repo, statuslineStdin(repo), ghRunJSON(head, "success", "completed"))
 
 	checks := []struct{ want, why string }{
-		{"6k", "token count summed from the transcript usage (1000+5000)"},
+		{"6k", "token count from context_window.total_input_tokens (6000)"},
 		{"main↑1", "branch + sync, contiguous: on main, one commit ahead of upstream"},
 		{"myrepo", "repo name from git toplevel"},
 		{"✓ ci", "success run whose headSha == HEAD"},
@@ -213,6 +202,126 @@ func TestStatusline_M0191_AC1_RendersRealSegments(t *testing.T) {
 	}
 }
 
+// --- G-0352: token/color source from stdin context_window, not the transcript
+//
+// Claude Code's stdin JSON carries a context_window object reflecting the
+// *current* context. The statusline used to walk the transcript file for the
+// last assistant usage block instead, which read stale for one render after
+// /compact. These tests pin the replacement: context_window is the sole
+// source (no transcript fallback — see G-0352), with each field degrading
+// independently to 0 on absence/malformation, never a hard error.
+
+// TestStatusline_G0352_TokensFromContextWindow proves the primary path: the
+// token segment renders context_window.total_input_tokens (not a fixture
+// value coincidentally matching it), and used_percentage drives the color.
+// used_percentage is deliberately 85 with no context_window_size present: the
+// size-fallback path (used when used_percentage is ignored) would compute
+// pct=0 (green) here, so red is only reachable if used_percentage is actually
+// read — a regression that dropped the used_percentage read would still pass
+// a green-vs-green assertion, which is why this isn't e.g. 22.6.
+func TestStatusline_G0352_TokensFromContextWindow(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	stdin := `{"model":{"display_name":"Opus 4.8"},` +
+		`"context_window":{"total_input_tokens":45231,"used_percentage":85},` +
+		`"workspace":{"current_dir":"` + repo + `"}}`
+
+	raw := runStatuslineUsageRaw(t, repo, stdin)
+	if !strings.Contains(raw, "\x1b[31m45k") {
+		t.Errorf("G-0352: expected total_input_tokens 45231 to render red \"45k\" (used_percentage 85 >= 80; a green result would mean used_percentage was ignored)\n raw: %q", raw)
+	}
+}
+
+// TestStatusline_G0352_PctFallsBackToContextWindowSize: when used_percentage
+// is absent, the color derives from total_input_tokens/context_window_size
+// (30000/200000 = 15% -> green) rather than defaulting to green regardless.
+// The operand order matters: total_input_tokens=30000 and
+// context_window_size=200000 are deliberately far apart (not e.g. 180000/
+// 200000) so a swapped-operand bug (size*100/tokens = 666%) crosses out of
+// the green bucket into red — a same-bucket fixture wouldn't catch that.
+func TestStatusline_G0352_PctFallsBackToContextWindowSize(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	stdin := `{"model":{"display_name":"Opus 4.8"},` +
+		`"context_window":{"total_input_tokens":30000,"context_window_size":200000},` +
+		`"workspace":{"current_dir":"` + repo + `"}}`
+
+	raw := runStatuslineUsageRaw(t, repo, stdin)
+	if !strings.Contains(raw, "\x1b[32m30k") {
+		t.Errorf("G-0352: absent used_percentage should derive pct from total_input_tokens/context_window_size (30000/200000 = 15%% -> green)\n raw: %q", raw)
+	}
+}
+
+// TestStatusline_G0352_ColorThresholds pins the 50/80 color-bucket boundaries
+// for the context_window-sourced pct — the ball/token color path. This is a
+// structurally separate code path from usage_color() (which colors the
+// rate-limit dots and is already boundary-tested by
+// TestStatusline_G0310_UsageDotColorReflectsThreshold): the two share a
+// numeric scale but not an implementation, so boundary coverage on one
+// doesn't imply it on the other.
+func TestStatusline_G0352_ColorThresholds(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		pct  int
+		want string
+	}{
+		{"49 -> green", 49, "\x1b[32m"},
+		{"50 -> yellow (lower boundary)", 50, "\x1b[33m"},
+		{"79 -> yellow", 79, "\x1b[33m"},
+		{"80 -> red (lower boundary)", 80, "\x1b[31m"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			repo := newStatuslineRepo(t)
+			stdin := `{"model":{"display_name":"Opus 4.8"},` +
+				`"context_window":{"total_input_tokens":500,"used_percentage":` + strconv.Itoa(c.pct) + `},` +
+				`"workspace":{"current_dir":"` + repo + `"}}`
+
+			raw := runStatuslineUsageRaw(t, repo, stdin)
+			want := c.want + "500"
+			if !strings.Contains(raw, want) {
+				t.Errorf("pct=%d: want color %q before the token text\n raw: %q", c.pct, c.want, raw)
+			}
+		})
+	}
+}
+
+// TestStatusline_G0352_MissingContextWindowDegradesToZero: an absent
+// context_window degrades to "0" tokens, green — never a hard error. Also
+// proves there is no transcript fallback left: this stdin carries no
+// transcript_path at all.
+func TestStatusline_G0352_MissingContextWindowDegradesToZero(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	stdin := `{"model":{"display_name":"Opus 4.8"},"workspace":{"current_dir":"` + repo + `"}}`
+
+	raw := runStatuslineUsageRaw(t, repo, stdin) // Fatals on non-zero exit -> proves no hard error
+	if !strings.Contains(raw, "\x1b[32m0") {
+		t.Errorf("G-0352: absent context_window must degrade to \"0\" tokens, green\n raw: %q", raw)
+	}
+}
+
+// TestStatusline_G0352_MalformedContextWindowDegradesToZero: non-numeric
+// total_input_tokens AND used_percentage must not crash the render; both
+// degrade to their zero default independently. used_percentage is the
+// string "abc" (not JSON null/absent — jq's `// empty` already collapses
+// null to the same code path the missing-context_window test covers, so a
+// null here wouldn't exercise numeric-malformation at all).
+func TestStatusline_G0352_MalformedContextWindowDegradesToZero(t *testing.T) {
+	t.Parallel()
+	repo := newStatuslineRepo(t)
+	stdin := `{"model":{"display_name":"Opus 4.8"},` +
+		`"context_window":{"total_input_tokens":"not-a-number","used_percentage":"abc"},` +
+		`"workspace":{"current_dir":"` + repo + `"}}`
+
+	raw := runStatuslineUsageRaw(t, repo, stdin) // Fatals on non-zero exit -> proves no hard error
+	if !strings.Contains(raw, "\x1b[32m0") {
+		t.Errorf("G-0352: malformed context_window fields must degrade to \"0\" tokens, green\n raw: %q", raw)
+	}
+}
+
 // TestStatusline_M0191_AC2_StaleCIShowsPending drives the G-0189 fix: when the
 // latest CI run is for a different commit than local HEAD, its verdict does not
 // apply to what is checked out. The statusline must render stale-pending "… ci"
@@ -220,10 +329,9 @@ func TestStatusline_M0191_AC1_RendersRealSegments(t *testing.T) {
 func TestStatusline_M0191_AC2_StaleCIShowsPending(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	const otherSha = "0000000000000000000000000000000000000000"
 
-	out := runStatusline(t, repo, statuslineStdin(tr, repo), ghRunJSON(otherSha, "success", "completed"))
+	out := runStatusline(t, repo, statuslineStdin(repo), ghRunJSON(otherSha, "success", "completed"))
 
 	if strings.Contains(out, "✓ ci") {
 		t.Errorf("AC-2: a success run for a non-HEAD commit must not render \"✓ ci\" (stale)\n got: %q", out)
@@ -240,11 +348,10 @@ func TestStatusline_M0191_AC2_StaleCIShowsPending(t *testing.T) {
 func TestStatusline_M0191_AC3_CacheKeyIncludesHEAD(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	cache := t.TempDir()
 
 	headA := gitIn(t, repo, "rev-parse", "HEAD")
-	out1 := runStatuslineCache(t, repo, cache, statuslineStdin(tr, repo), ghRunJSON(headA, "success", "completed"))
+	out1 := runStatuslineCache(t, repo, cache, statuslineStdin(repo), ghRunJSON(headA, "success", "completed"))
 	if !strings.Contains(out1, "✓ ci") {
 		t.Fatalf("AC-3 precondition: run 1 should render \"✓ ci\" for a success run at HEAD\n got: %q", out1)
 	}
@@ -254,7 +361,7 @@ func TestStatusline_M0191_AC3_CacheKeyIncludesHEAD(t *testing.T) {
 	gitIn(t, repo, "commit", "-m", "second")
 	headB := gitIn(t, repo, "rev-parse", "HEAD")
 
-	out2 := runStatuslineCache(t, repo, cache, statuslineStdin(tr, repo), ghRunJSON(headB, "failure", "completed"))
+	out2 := runStatuslineCache(t, repo, cache, statuslineStdin(repo), ghRunJSON(headB, "failure", "completed"))
 	if strings.Contains(out2, "✓ ci") {
 		t.Errorf("AC-3: after a new commit the cached \"✓ ci\" must be invalidated (HEAD in cache key)\n got stale: %q", out2)
 	}
@@ -271,17 +378,16 @@ func TestStatusline_M0191_AC3_CacheKeyIncludesHEAD(t *testing.T) {
 func TestStatusline_M0191_CacheHitServesWithinTTL(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	cache := t.TempDir()
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 
-	out1 := runStatuslineCache(t, repo, cache, statuslineStdin(tr, repo), ghRunJSON(head, "success", "completed"))
+	out1 := runStatuslineCache(t, repo, cache, statuslineStdin(repo), ghRunJSON(head, "success", "completed"))
 	if !strings.Contains(out1, "✓ ci") {
 		t.Fatalf("precondition: run 1 should render \"✓ ci\"\n got: %q", out1)
 	}
 	// Same HEAD + shared cache, but gh now reports failure. Within the TTL the
 	// cached ✓ must win (no re-fetch).
-	out2 := runStatuslineCache(t, repo, cache, statuslineStdin(tr, repo), ghRunJSON(head, "failure", "completed"))
+	out2 := runStatuslineCache(t, repo, cache, statuslineStdin(repo), ghRunJSON(head, "failure", "completed"))
 	if !strings.Contains(out2, "✓ ci") {
 		t.Errorf("cache: a same-HEAD re-render within TTL must serve the cached \"✓ ci\", not re-fetch\n got: %q", out2)
 	}
@@ -296,13 +402,12 @@ func TestStatusline_M0191_CacheHitServesWithinTTL(t *testing.T) {
 func TestStatusline_M0191_MainFallbackSkipsStaleness(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	gitIn(t, repo, "checkout", "-b", "feature/x")
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 
 	// feature/x has no runs (STUB_GH_EMPTY_BRANCH) -> fall back to main, which
 	// has a success run. The "m:" prefix marks the proxy.
-	out := runStatusline(t, repo, statuslineStdin(tr, repo),
+	out := runStatusline(t, repo, statuslineStdin(repo),
 		"STUB_GH_EMPTY_BRANCH=feature/x",
 		ghRunJSON(head, "success", "completed"))
 
@@ -397,7 +502,6 @@ func newEpicHUDRepo(t *testing.T) string {
 func TestStatusline_G0304_NonRitualRendersNoEpicHUD(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t) // stays on main (non-ritual)
-	tr := writeTranscript(t)
 
 	// Several in-flight epics exist — none should appear in the HUD.
 	writeEpicFixture(t, repo, "E-1001", "alpha", "active")
@@ -406,7 +510,7 @@ func TestStatusline_G0304_NonRitualRendersNoEpicHUD(t *testing.T) {
 	writeEpicFixture(t, repo, "E-1004", "delta", "proposed")
 	commitFixtures(t, repo)
 
-	out := runStatusline(t, repo, statuslineStdin(tr, repo))
+	out := runStatusline(t, repo, statuslineStdin(repo))
 	if hud := epicHUDSegment(out); hud != "" {
 		t.Errorf("non-ritual branch must render no epic HUD; got %q", hud)
 	}
@@ -431,10 +535,9 @@ func TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic(t *testing.T) {
 	t.Run("epic branch", func(t *testing.T) {
 		t.Parallel()
 		repo := newEpicHUDRepo(t)
-		tr := writeTranscript(t)
 		gitIn(t, repo, "checkout", "-b", "epic/E-1005-echo")
 
-		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(repo)))
 		if !strings.Contains(hud, "E-1005") {
 			t.Errorf("AC-2 epic branch: HUD must show the current epic E-1005\n hud: %q", hud)
 		}
@@ -451,10 +554,9 @@ func TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic(t *testing.T) {
 	t.Run("milestone branch", func(t *testing.T) {
 		t.Parallel()
 		repo := newEpicHUDRepo(t)
-		tr := writeTranscript(t)
 		gitIn(t, repo, "checkout", "-b", "milestone/M-2001-work")
 
-		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+		hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(repo)))
 		if !strings.Contains(hud, "E-1005") {
 			t.Errorf("AC-2 milestone branch: HUD must show the parent epic E-1005\n hud: %q", hud)
 		}
@@ -480,10 +582,9 @@ func TestStatusline_M0192_AC2_RitualShowsOnlyCurrentEpic(t *testing.T) {
 func TestStatusline_M0192_RitualEpicMissingFileFallsBackToUnknownGlyph(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	gitIn(t, repo, "checkout", "-b", "epic/E-9999-ghost") // no epic.md for E-9999
 
-	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	hud := epicHUDSegment(runStatusline(t, repo, statuslineStdin(repo)))
 	if !strings.Contains(hud, "? E-9999") {
 		t.Errorf("missing epic.md should fall back to \"? E-9999\" (unknown glyph)\n hud: %q", hud)
 	}
@@ -542,10 +643,9 @@ func newHealthRepo(t *testing.T) string {
 func TestStatusline_HealthStoplight_Error(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "aiwf", healthJSON("aiwf", "error", "aiwf.yaml not found"))
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphError) {
 		t.Errorf("an error finding must lead with the red ▲\n out: %q", out)
 	}
@@ -556,10 +656,9 @@ func TestStatusline_HealthStoplight_Error(t *testing.T) {
 func TestStatusline_HealthStoplight_Warn(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "aiwf", healthJSON("aiwf", "warn", "hook not aiwf-managed"))
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphWarn) {
 		t.Errorf("a warn finding must lead with the yellow ▲\n out: %q", out)
 	}
@@ -570,10 +669,9 @@ func TestStatusline_HealthStoplight_Warn(t *testing.T) {
 func TestStatusline_HealthStoplight_HealthyGreen(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "aiwf", `{"generated_at":"x","findings":[]}`)
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphHealthy) {
 		t.Errorf("a present, clean health file must lead with the green ●\n out: %q", out)
 	}
@@ -584,9 +682,8 @@ func TestStatusline_HealthStoplight_HealthyGreen(t *testing.T) {
 func TestStatusline_HealthStoplight_NoFileGray(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t) // aiwf.yaml present, no health file
-	tr := writeTranscript(t)
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphUnknown) {
 		t.Errorf("an aiwf repo with no health file must lead with the gray ●\n out: %q", out)
 	}
@@ -597,11 +694,10 @@ func TestStatusline_HealthStoplight_NoFileGray(t *testing.T) {
 func TestStatusline_HealthStoplight_UnionMaxSeverity(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "aiwf", `{"generated_at":"x","findings":[]}`)
 	writeHealthFixture(t, repo, "dotfiles", healthJSON("dotfiles", "error", "boom"))
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphError) {
 		t.Errorf("the union must take the max severity (error) across producers\n out: %q", out)
 	}
@@ -612,11 +708,10 @@ func TestStatusline_HealthStoplight_UnionMaxSeverity(t *testing.T) {
 func TestStatusline_HealthStoplight_CorruptDegrades(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "dotfiles", "{ this is not json")
 	writeHealthFixture(t, repo, "aiwf", healthJSON("aiwf", "warn", "advisory"))
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphWarn) {
 		t.Errorf("a corrupt sibling must not suppress the valid file's yellow ▲\n out: %q", out)
 	}
@@ -628,11 +723,10 @@ func TestStatusline_HealthStoplight_CorruptDegrades(t *testing.T) {
 func TestStatusline_HealthStoplight_AllCorruptGray(t *testing.T) {
 	t.Parallel()
 	repo := newHealthRepo(t)
-	tr := writeTranscript(t)
 	writeHealthFixture(t, repo, "aiwf", "{ this is not json")
 	writeHealthFixture(t, repo, "dotfiles", "also not json")
 
-	out := runStatuslineUsageRaw(t, repo, statuslineStdin(tr, repo))
+	out := runStatuslineUsageRaw(t, repo, statuslineStdin(repo))
 	if !strings.HasPrefix(out, glyphUnknown) {
 		t.Errorf("an all-corrupt health file set must lead with the gray ● (unknown), not a false green\n out: %q", out)
 	}
@@ -673,11 +767,10 @@ func ciSegment(out string) string {
 func TestStatusline_G0303_FailedWorkflowMaskedByPassingSibling(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"failure", "completed"})
 
-	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(repo), stub))
 	if !strings.Contains(seg, "✗") {
 		t.Errorf("a failed workflow must render ✗ even when the latest run passed\n ci segment: %q", seg)
 	}
@@ -691,11 +784,10 @@ func TestStatusline_G0303_FailedWorkflowMaskedByPassingSibling(t *testing.T) {
 func TestStatusline_G0303_AllWorkflowsSucceed(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"success", "completed"})
 
-	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(repo), stub))
 	if !strings.Contains(seg, "✓") {
 		t.Errorf("all-success runs must render ✓\n ci segment: %q", seg)
 	}
@@ -709,11 +801,10 @@ func TestStatusline_G0303_AllWorkflowsSucceed(t *testing.T) {
 func TestStatusline_G0303_InProgressAmongSuccess(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"", "in_progress"})
 
-	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(repo), stub))
 	if !strings.Contains(seg, "→") {
 		t.Errorf("an in-progress workflow (no failures) must render →\n ci segment: %q", seg)
 	}
@@ -725,10 +816,9 @@ func TestStatusline_G0303_InProgressAmongSuccess(t *testing.T) {
 func TestStatusline_G0303_StaleWhenNoRunForHead(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	stub := ghMultiRunJSON("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", [2]string{"failure", "completed"})
 
-	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(repo), stub))
 	if !strings.Contains(seg, "…") {
 		t.Errorf("a run for a different commit must render the stale glyph …\n ci segment: %q", seg)
 	}
@@ -740,11 +830,10 @@ func TestStatusline_G0303_StaleWhenNoRunForHead(t *testing.T) {
 func TestStatusline_G0303_SuccessWithSkippedSibling(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	head := gitIn(t, repo, "rev-parse", "HEAD")
 	stub := ghMultiRunJSON(head, [2]string{"success", "completed"}, [2]string{"skipped", "completed"})
 
-	seg := ciSegment(runStatusline(t, repo, statuslineStdin(tr, repo), stub))
+	seg := ciSegment(runStatusline(t, repo, statuslineStdin(repo), stub))
 	if !strings.Contains(seg, "✓") {
 		t.Errorf("a skipped sibling must not demote a passing commit; want ✓\n ci segment: %q", seg)
 	}
@@ -791,12 +880,11 @@ func writeGapFixture(t *testing.T, repo, id, slug, status string) {
 func TestStatusline_G0304_PatchBranchShowsGap(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	writeGapFixture(t, repo, "G-0500", "fix-thing", "open")
 	commitFixtures(t, repo)
 	gitIn(t, repo, "checkout", "-b", "patch/G-0500-fix-thing")
 
-	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(repo)))
 	if !strings.Contains(hud, "G-0500") {
 		t.Errorf("patch branch must show its gap G-0500\n hud: %q", hud)
 	}
@@ -810,12 +898,11 @@ func TestStatusline_G0304_PatchBranchShowsGap(t *testing.T) {
 func TestStatusline_G0304_PatchBranchAddressedGapGlyph(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	writeGapFixture(t, repo, "G-0500", "fix-thing", "addressed")
 	commitFixtures(t, repo)
 	gitIn(t, repo, "checkout", "-b", "patch/G-0500-fix-thing")
 
-	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(repo)))
 	if !strings.Contains(hud, "✓ G-0500") {
 		t.Errorf("an addressed gap should render \"✓ G-0500\"\n hud: %q", hud)
 	}
@@ -827,10 +914,9 @@ func TestStatusline_G0304_PatchBranchAddressedGapGlyph(t *testing.T) {
 func TestStatusline_G0304_PatchBranchMissingGapFileFallsBack(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	gitIn(t, repo, "checkout", "-b", "patch/G-9999-ghost") // no gap file for G-9999
 
-	hud := hudSegment(runStatusline(t, repo, statuslineStdin(tr, repo)))
+	hud := hudSegment(runStatusline(t, repo, statuslineStdin(repo)))
 	if !strings.Contains(hud, "? G-9999") {
 		t.Errorf("missing gap file should fall back to \"? G-9999\"\n hud: %q", hud)
 	}
@@ -842,12 +928,11 @@ func TestStatusline_G0304_PatchBranchMissingGapFileFallsBack(t *testing.T) {
 // (.../worktrees/G-0500) doesn't render its id as the repo name.
 func TestStatusline_G0304_RepoNameIsMainRepoNotWorktreeDir(t *testing.T) {
 	t.Parallel()
-	repo := newStatuslineRepo(t) // main repo basename: "myrepo"
-	tr := writeTranscript(t)
+	repo := newStatuslineRepo(t)               // main repo basename: "myrepo"
 	wt := filepath.Join(t.TempDir(), "G-0500") // worktree dir literally "G-0500"
 	gitIn(t, repo, "worktree", "add", "-b", "patch/G-0500-x", wt)
 
-	out := runStatusline(t, wt, statuslineStdin(tr, wt))
+	out := runStatusline(t, wt, statuslineStdin(wt))
 	mainSeen := false
 	for seg := range strings.SplitSeq(out, " · ") {
 		s := strings.TrimSpace(seg)
@@ -873,7 +958,7 @@ func TestStatusline_G0304_RepoNameIsMainRepoNotWorktreeDir(t *testing.T) {
 
 // statuslineStdinRates is statuslineStdin plus a rate_limits block. A negative
 // percentage omits that window (models an absent field).
-func statuslineStdinRates(transcriptPath, repoDir string, sevenDay, fiveHour float64) string {
+func statuslineStdinRates(repoDir string, sevenDay, fiveHour float64) string {
 	var w []string
 	if fiveHour >= 0 {
 		w = append(w, `"five_hour":{"used_percentage":`+strconv.FormatFloat(fiveHour, 'f', -1, 64)+`,"resets_at":1738425600}`)
@@ -886,7 +971,7 @@ func statuslineStdinRates(transcriptPath, repoDir string, sevenDay, fiveHour flo
 		rl = `,"rate_limits":{` + strings.Join(w, ",") + `}`
 	}
 	return `{"model":{"display_name":"Opus 4.8 (1M context)"},` +
-		`"transcript_path":"` + transcriptPath + `",` +
+		`"context_window":{"total_input_tokens":6000,"context_window_size":200000},` +
 		`"workspace":{"current_dir":"` + repoDir + `"},` +
 		`"effort":{"level":"xhigh"}` + rl + `}`
 }
@@ -907,7 +992,8 @@ func runStatuslineUsageRaw(t *testing.T, repoDir, stdinJSON string) string {
 		}
 		env = append(env, e)
 	}
-	env = append(env,
+	env = append(
+		env,
 		"PATH="+ghDir+string(os.PathListSeparator)+os.Getenv("PATH"),
 		"AIWF_STATUSLINE_CACHE_DIR="+t.TempDir(),
 	)
@@ -924,8 +1010,7 @@ func runStatuslineUsageRaw(t *testing.T, repoDir, stdinJSON string) string {
 func TestStatusline_G0310_UsageDotsRenderWhenPresent(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
-	out := runStatusline(t, repo, statuslineStdinRates(tr, repo, 90, 20))
+	out := runStatusline(t, repo, statuslineStdinRates(repo, 90, 20))
 	if !strings.Contains(out, "● 7d") {
 		t.Errorf("weekly usage dot ● 7d missing\n out: %q", out)
 	}
@@ -937,9 +1022,8 @@ func TestStatusline_G0310_UsageDotsRenderWhenPresent(t *testing.T) {
 func TestStatusline_G0310_UsageDotsAbsentWhenNoRateLimits(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	// plain stdin: no rate_limits block (non-subscriber / pre-first-API-response)
-	out := runStatusline(t, repo, statuslineStdin(tr, repo))
+	out := runStatusline(t, repo, statuslineStdin(repo))
 	if strings.Contains(out, "7d") || strings.Contains(out, "5h") {
 		t.Errorf("no rate_limits -> no usage dots, got\n out: %q", out)
 	}
@@ -948,9 +1032,8 @@ func TestStatusline_G0310_UsageDotsAbsentWhenNoRateLimits(t *testing.T) {
 func TestStatusline_G0310_OneWindowAbsentRendersOnlyTheOther(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	// weekly present, five_hour omitted (negative) — windows are independently optional
-	out := runStatusline(t, repo, statuslineStdinRates(tr, repo, 90, -1))
+	out := runStatusline(t, repo, statuslineStdinRates(repo, 90, -1))
 	if !strings.Contains(out, "● 7d") {
 		t.Errorf("weekly present -> ● 7d expected\n out: %q", out)
 	}
@@ -962,7 +1045,6 @@ func TestStatusline_G0310_OneWindowAbsentRendersOnlyTheOther(t *testing.T) {
 func TestStatusline_G0310_UsageDotColorReflectsThreshold(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	const red, green, yellow, reset = "\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[0m"
 	cases := []struct {
 		name               string
@@ -981,7 +1063,7 @@ func TestStatusline_G0310_UsageDotColorReflectsThreshold(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			raw := runStatuslineUsageRaw(t, repo, statuslineStdinRates(tr, repo, c.sevenDay, c.fiveHour))
+			raw := runStatuslineUsageRaw(t, repo, statuslineStdinRates(repo, c.sevenDay, c.fiveHour))
 			want := c.wantWeekly + "●" + reset + " 7d"
 			if !strings.Contains(raw, want) {
 				t.Errorf("weekly dot color: want %q in raw output\n raw: %q", want, raw)
@@ -993,12 +1075,10 @@ func TestStatusline_G0310_UsageDotColorReflectsThreshold(t *testing.T) {
 func TestStatusline_G0310_NonNumericUsageRendersNothing(t *testing.T) {
 	t.Parallel()
 	repo := newStatuslineRepo(t)
-	tr := writeTranscript(t)
 	// rate_limits present but used_percentage is non-numeric: the defensive guard
 	// (`*[!0-9.]*`) must render no dot and emit no shell error. The float64-typed
 	// statuslineStdinRates can't express this, so craft the stdin directly.
 	stdin := `{"model":{"display_name":"Opus 4.8 (1M context)"},` +
-		`"transcript_path":"` + tr + `",` +
 		`"workspace":{"current_dir":"` + repo + `"},` +
 		`"effort":{"level":"xhigh"},` +
 		`"rate_limits":{"seven_day":{"used_percentage":"oops"},"five_hour":{"used_percentage":"n/a"}}}`

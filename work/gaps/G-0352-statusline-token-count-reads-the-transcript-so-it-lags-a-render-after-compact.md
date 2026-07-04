@@ -1,7 +1,9 @@
 ---
 id: G-0352
 title: Statusline token count reads the transcript, so it lags a render after /compact
-status: open
+status: addressed
+addressed_by_commit:
+    - 2eb55bec
 ---
 ## Problem
 
