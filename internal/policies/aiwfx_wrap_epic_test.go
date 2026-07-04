@@ -455,9 +455,9 @@ func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
 
 	// Ordering: integrate mainline into the epic branch, then re-run
 	// the gate, then (and only then) proceed to the merge step.
-	integrateIdx := strings.Index(reconcile, "Integrate current mainline into the epic branch")
+	integrateIdx := strings.Index(reconcile, "integrate mainline into the epic branch")
 	gateIdx := strings.Index(reconcile, "re-run the project's full local CI gate")
-	proceedIdx := strings.Index(reconcile, "Only proceed to the next step")
+	proceedIdx := strings.Index(reconcile, "Only once the check passes does the merge")
 	if integrateIdx < 0 || gateIdx < 0 || proceedIdx < 0 {
 		t.Fatal("reconcile step must document integrate-mainline, re-run-the-gate, and only-then-proceed-to-merge")
 	}
