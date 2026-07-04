@@ -123,11 +123,39 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
 
 ### AC-1 — Schema model enumerates every yaml field across the config structs
 
+`Schema()` reflects over the `Config` struct tree and returns one
+`SchemaField` (`Path`, `Type`) per `yaml:`-tagged field, in
+struct-declaration order — recursing into nested structs and slice/map-of-
+struct element types (`areas.members[].name`, `agents.<key>.model`). The two
+legacy migration-shim fields (`LegacyAiwfVersion`, `LegacyActor`) are
+excluded by name-prefix: decode-only compatibility fields, never a
+documented, hand-authorable key.
+
 ### AC-2 — Anti-drift test fails when a yaml field has no schema-model entry
+
+`fieldDescriptions` is an explicit registry mapping each schema `Path` to a
+one-line, consumer-facing description (not parsed from Go doc comments —
+see Design notes). `TestSchema_EveryFieldHasDescription` fails whenever
+`Schema()` returns a path with no registry entry, so a newly-added `yaml:`
+field can't ship undocumented.
 
 ### AC-3 — Generator output is valid, reparseable YAML with defaults and descriptions
 
+`GenerateExample()` renders `Schema()` as fully-commented YAML: every line —
+container and leaf alike — is comment-prefixed, so the reference is inert
+until a consumer uncomments the block they want. `defaultFor()` resolves
+each leaf's effective default, calling the real accessor for the six fields
+whose Go zero value would misrepresent the true default (e.g.
+`StatusMd.AutoUpdate`, `Guidance.WireClaudeMd` default to `true` but zero to
+`nil`). Round-trip is tested by stripping every comment marker and decoding
+the result back into `Config`.
+
 ### AC-4 — Accepted-key set is exported as a reusable registry
+
+`AcceptedKeys()` returns the full set of accepted `aiwf.yaml` key paths as a
+`map[string]bool`, derived directly from `Schema()` so it can never drift
+from the documented schema — the single source `G-0307`'s strict-decode
+guard will validate against instead of a hand-maintained parallel allowlist.
 
 ---
 
@@ -205,7 +233,7 @@ test also pins the actual consumer use case. A 2-mutation vacuity pass
 
 ## Deferrals
 
-- (none)
+- [`G-0364`](../../gaps/G-0364-entity-body-empty-fires-on-acceptance-criteria-despite-populated-ac-bodies.md) — `entity-body-empty` stays flagged on `## Acceptance criteria` regardless of AC-heading prose, on any milestone using the current full template (`aiwf add ac` appends at body-end, past several intervening `## ` sections). Discovered while filling in this milestone's AC-heading prose; out of scope here — a template/verb/check-level fix, not this milestone's deliverable.
 
 ## Reviewer notes
 
