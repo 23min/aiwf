@@ -59,13 +59,28 @@ epic's discoverability payoff lands when M-0232 wires it into `init`/`update`.
   allowlist, and lands the equality test on its side. See the *Coordinate with
   E-0057* section in `G-0307`. This milestone only exposes the registry and does
   not implement strict-decode.
-- **Open — description source** (carried from E-0057): parse Go doc comments via
-  `go/ast` (reuses the comment already present; single source) vs. an explicit
-  description registry keyed by field path (explicit but duplicates). Settle
-  before implementation.
-- **Open — defaults source** (carried from E-0057): the loader's
-  defaults-applier vs. a declared default per field. Must render the *effective*
-  default.
+- **Locked: description source is an explicit registry, not `go/ast` parsing.**
+  `config.go`'s doc comments attach at the struct level, not per field (e.g.
+  `TDD`'s comment describes both `RequireTestMetrics` and `Strict` in one prose
+  block; most `Config` fields carry no per-field comment at all) — `go/ast`
+  field-attachment would resolve empty or wrong for most fields as the file
+  stands today, and fixing that would mean an out-of-scope rewrite of existing
+  comments serving a different (Go-developer, design-rationale) audience. The
+  description is one field on the same unified per-field schema entry (key
+  path, type, default, description) — not a parallel side-table that could
+  drift from it.
+- **Locked: defaults are read from the config package's real accessors, not
+  reflected from struct zero-values and not hand-declared.** Instantiate a
+  zero-value `Config{}` and call each field's existing getter/constant when one
+  exists (`WorktreeDir()`, `HTMLOutDir()`, `EntityTitleMaxLength()`,
+  `AllocateTrunkRef()`, `StatusMdAutoUpdate()`, `WireClaudeMd()`); fall back to
+  the literal zero value only for fields with no override getter (provably safe
+  there — no logic says the zero value is anything but the real default).
+  Struct zero-values alone would lie for `StatusMd.AutoUpdate` and
+  `Guidance.WireClaudeMd`: their zero is `nil`, but the real default is `true`.
+  This milestone also extracts the two named constants those getters are
+  currently missing (`DefaultStatusMdAutoUpdate`, `DefaultWireClaudeMd`) so the
+  effective default is never a bare literal hiding inside a getter body.
 
 ## Surfaces touched
 
