@@ -26,6 +26,14 @@ design docs / source — not from anything in their own repo. `aiwf init` writes
 *minimal* `aiwf.yaml`, so a fresh repo gives no hint the block (or any other)
 exists. `--help` on `init`/`update` says nothing about it.
 
+The same blind spot covers `init`/`update`'s own *contract*. That re-running
+either verb is idempotent and never overwrites an existing `aiwf.yaml`,
+`.claude/settings.json` (consent-gated per ADR-0015), or user git hooks
+(marker-managed — chained to `<hook>.local`, not clobbered), while only derived
+artifacts are byte-refreshed, is documented only in ADR-0015 and source
+comments. A user reasonably reads "init" as a destructive reset and hesitates to
+re-run it — a discoverability failure of the same class as the missing schema.
+
 ## Why it matters
 
 A configuration surface a user cannot discover is a feature that effectively
@@ -65,8 +73,17 @@ Pick one (or a primary + backstop); cover the full block list above so the whole
 schema is reachable, not just the block that prompted this. Sequence with G-0307
 so a mistyped key errors instead of no-op'ing once the shape is documented.
 
+**Also document the `init`/`update` re-run contract**, not just the field
+schema. The chosen surface — plus a one-line `aiwf init --help` reassurance —
+should state that re-running is idempotent and never overwrites an existing
+`aiwf.yaml`, `.claude/settings.json`, or user git hooks (only derived artifacts
+refresh). This is the same consumer-operating-knowledge-in-a-repo-development-
+surface failure, and a single sentence defuses the common "is `init` safe to
+re-run?" hesitation that the verb's name invites.
+
 ## Scope
 
 The chosen documentation surface + tests asserting it stays in sync with the
 config structs (the anti-drift assertion is the load-bearing part — a hand-kept
-doc rots). Retiring G-0288. Coordinating with G-0307's strict-decode work.
+doc rots). The `aiwf init --help` re-run-safety line. Retiring G-0288.
+Coordinating with G-0307's strict-decode work.
