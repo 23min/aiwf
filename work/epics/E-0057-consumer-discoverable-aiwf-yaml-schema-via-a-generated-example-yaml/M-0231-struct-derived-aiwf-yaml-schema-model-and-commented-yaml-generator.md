@@ -1,7 +1,7 @@
 ---
 id: M-0231
 title: Struct-derived aiwf.yaml schema model and commented-YAML generator
-status: draft
+status: in_progress
 parent: E-0057
 tdd: required
 acs:
