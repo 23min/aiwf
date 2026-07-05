@@ -137,6 +137,46 @@ func ParseBodySectionsOrdered(body []byte) []BodySection {
 	return sections
 }
 
+// SectionLineBounds locates the first `## <heading>` line in body and
+// returns the line-index range that section spans: start is the
+// heading line itself; end is the index of the line that terminates
+// the section — the next `## ` heading (of any name) or `# ` heading
+// found after start, or len(lines) when the section runs to body-end.
+// found=false when no `## <heading>` line exists in body.
+//
+// Same heading-boundary rules as ParseBodySections (`## `/`# ` prefix
+// on the raw line, not a trimmed or regex match) — deliberately kept
+// in this file next to it so the two rule sets are checked together on
+// any future change.
+//
+// Unlike ParseBodySections, this returns positions rather than
+// content: callers that need to splice new content into a section
+// (rather than just read it) use this to find where to insert.
+func SectionLineBounds(body []byte, heading string) (start, end int, found bool) {
+	lines := bytes.Split(body, []byte("\n"))
+	start = -1
+	for i, line := range lines {
+		switch {
+		case bytes.HasPrefix(line, []byte("## ")):
+			if !found {
+				if name := strings.TrimSpace(string(line[len("## "):])); name == heading {
+					start, found = i, true
+				}
+				continue
+			}
+			return start, i, true
+		case bytes.HasPrefix(line, []byte("# ")):
+			if found {
+				return start, i, true
+			}
+		}
+	}
+	if found {
+		return start, len(lines), true
+	}
+	return -1, -1, false
+}
+
 // sectionSlugReplaceRE matches every run of non-alphanumeric runes; we
 // collapse each run to a single `_` to avoid double-underscore slugs
 // for headings like `What's missing` (apostrophe + space).
