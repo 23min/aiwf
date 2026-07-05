@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: verb.Apply retrofit onto primitive with git-stash isolation removed
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: commit-tree output honors commit.gpgsign parity
       status: open
