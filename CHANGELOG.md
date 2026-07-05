@@ -58,14 +58,22 @@ milestone-only view instead of the whole-epic view. The worktree's directory pat
 altitude; the checked-out milestone is overlaid as a marker with its ACs expanded, while sibling
 milestones stay collapsed to their status badge.
 
+### Fixed — G-0364: `aiwf add ac` no longer misplaces new AC headings past a trailing section
+
+`aiwf add ac` appended a new `AC-N` heading at absolute body-end, so on milestone templates that
+place other sections after `Acceptance criteria` (Constraints, Work log, ...), the new heading
+landed outside `entity-body-empty`'s scan window and the check falsely reported the section as
+empty despite genuine AC content. The heading now inserts inside the `Acceptance criteria` section
+itself, via a new `SectionLineBounds` boundary helper.
+
 ### Changed — G-0365: `wf-patch` requires a CHANGELOG entry, every time
 
 `wf-patch` had no step adding a `CHANGELOG.md` entry, and unlike a milestone (whose change can
 roll up into its parent epic's entry at wrap time), a patch has no parent to roll up into — so a
 skipped entry here was permanent. The ritual now has a mandatory "Add a CHANGELOG entry" step
 (step 4): every patch adds one under `## [Unreleased]`, with a minimal one-line form allowed for
-genuinely internal-only changes, never a full skip. Five patches merged before this fix
-(G-0363, G-0361, G-0352, G-0332, G-0350) are backfilled above.
+genuinely internal-only changes, never a full skip. Six patches merged before this fix
+(G-0363, G-0361, G-0352, G-0332, G-0364, G-0350) are backfilled above.
 
 ### Changed — G-0350: `aiwf render roadmap --write` only writes; it no longer commits
 
