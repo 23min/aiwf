@@ -145,6 +145,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// tests above.
 		"internal/check/body_prose_id_test.go": "G-0184 body-prose-id rule: narrow-numeric ids are the malformed-shape input space",
 
+		// M-0181/AC-6 WalkAcknowledgedMistags: a narrow-width `aiwf-entity`
+		// trailer value (`M-123`) is the canonicalization input space this
+		// test pins (narrow → M-0123), fed both via a real git commit
+		// trailer and an equivalent hand-built []HeadCommit fixture
+		// (G-0372 Fix 2's identical-derivation regression test).
+		"internal/check/area_mistag_test.go": "M-0181/AC-6 narrow-id canonicalization input space (real head walk + hand-built fixture)",
+
 		// G-0184 follow-through: widenEntityID's input space is bare-id
 		// shapes at every width including below-grammar narrow forms
 		// (E-1, M-77, G-9, etc.). Same shape as the entity-grammar

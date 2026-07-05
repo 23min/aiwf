@@ -14,12 +14,13 @@ import (
 // the paths it touched (with rename info when -M detected one), and
 // the aiwf-* trailers parsed from the commit message.
 //
-// For multi-parent (merge) commits, the underlying `git log -m` emits
-// one record per parent-diff — the same merge SHA may appear in
-// multiple records, each carrying that parent's diff in Paths. The
-// Parents field is identical across the duplicate records (it lists
-// all parents). Consumers needing one-record-per-commit semantics
-// dedupe by Commit SHA.
+// For a multi-parent (merge) commit, Paths is always empty: `git log
+// --raw` suppresses diff output for merge commits by default (the
+// per-parent fan-out `-m` would force is deliberately not requested,
+// G-0372 Fix 1 — every current consumer discards merge-commit
+// observations unconditionally). The commit still gets exactly one
+// record (Commit / Parents / Trailers, from the tformat pretty-print,
+// which isn't diff-dependent).
 //
 // Trailers is keyed by the bare trailer name (no "aiwf-" prefix
 // stripping). Multi-value trailers collapse to the last value, matching
@@ -43,9 +44,9 @@ type CommitRecord struct {
 // PreSHA and PostSHA are the pre-image and post-image blob object
 // ids from `git log --raw` (the `:<srcmode> <dstmode> <presha>
 // <postsha> <status>` prefix). PostSHA is the blob at this commit;
-// PreSHA is the blob at the parent THIS diff record is against (the
-// single parent for a non-merge commit; under `-m`, the specific
-// parent of this per-parent record). An all-zero id ("000…0", which
+// PreSHA is the blob at the parent THIS diff record is against — the
+// single parent for a non-merge commit (merge commits never carry a
+// PathTouch at all, per [CommitRecord]'s doc). An all-zero id ("000…0", which
 // [BlobAllZero] reports) means "no blob on that side" — a delete has
 // an all-zero PostSHA, an add has an all-zero PreSHA. Both are empty
 // when BulkRevwalk's underlying diff format carried no object ids
@@ -112,7 +113,7 @@ var bulkTrailerKeys = []string{
 }
 
 // BulkRevwalk runs a single
-// `git log --all --raw --no-abbrev -M -m --pretty=...` subprocess,
+// `git log --all --raw --no-abbrev -M --pretty=...` subprocess,
 // reads its full output, then calls fn for each commit-diff [CommitRecord]
 // in walk order. The single-subprocess shape replaces the per-entity
 // `git log --follow` fan-out used by callers that walk every entity
@@ -137,11 +138,30 @@ var bulkTrailerKeys = []string{
 //
 // The walk includes all reachable refs (--all) so feature-branch
 // history is observed; -M enables rename detection (PathTouch.Status
-// "R" with SrcPath set rather than separate D + A entries); -m forces
-// per-parent diff fan-out so merge commits' --raw output is
-// non-empty (a merge with N parents produces N records, each with the
-// same Commit / Parents but its parent-specific Paths).
+// "R" with SrcPath set rather than separate D + A entries). `-m`
+// (the per-parent diff fan-out for merge commits) is deliberately NOT
+// requested (G-0372 Fix 1): every current consumer of BulkRevwalk's
+// output discards merge-commit observations unconditionally (D-0010),
+// so paying for the fan-out bought nothing — dropping it measurably
+// cuts this walk's cost with no behavior change for any consumer.
+// Without -m, a merge commit's record still carries Commit / Parents
+// / Trailers, just an empty Paths (see [CommitRecord]).
 func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) error {
+	return bulkRevwalk(ctx, root, nil, fn)
+}
+
+// bulkRevwalk is BulkRevwalk's implementation, parameterized by extra `git
+// log` arguments inserted before --pretty. BulkRevwalk itself always passes
+// nil; the sole other caller is the gitops package's own property test
+// (TestBulkRevwalk_DropM_Property in revwalk_property_test.go), which passes
+// []string{"-m"} to reconstruct the pre-G-0372 behavior as an oracle to
+// compare against — proving the -m removal changes nothing for any
+// non-merge commit, across many randomly generated histories, not just the
+// hand-picked example fixtures in revwalk_test.go. Kept unexported: this is
+// not a production knob, it exists only so the test can call the identical
+// command-building and parsing logic BulkRevwalk uses, rather than
+// duplicating (and risking drift from) it.
+func bulkRevwalk(ctx context.Context, root string, extraArgs []string, fn func(CommitRecord) error) error {
 	if root == "" {
 		return nil
 	}
@@ -153,14 +173,10 @@ func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) 
 	}
 
 	pretty := buildBulkPretty()
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--all",
-		"--raw",
-		"--no-abbrev",
-		"-M",
-		"-m",
-		"--pretty="+pretty,
-	)
+	args := []string{"log", "--all", "--raw", "--no-abbrev", "-M"}
+	args = append(args, extraArgs...)
+	args = append(args, "--pretty="+pretty)
+	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {

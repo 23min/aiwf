@@ -229,8 +229,13 @@ func TestBulkRevwalk_Rename(t *testing.T) {
 }
 
 // TestBulkRevwalk_MergeCommit pins the merge-commit shape: Parents
-// contains both incoming commit SHAs, and the union of changed paths
-// appears in Paths.
+// contains both incoming commit SHAs. G-0372 Fix 1 drops the `-m` flag
+// from the underlying `git log`, so --raw's diff output is suppressed
+// for merge commits (git's default without -m/-c/--cc) — the merge
+// commit's record still appears (via the tformat pretty-print, which
+// isn't diff-dependent) with Parents populated, but Paths is empty.
+// This is safe because every current consumer of BulkRevwalk's output
+// discards merge-commit observations unconditionally (D-0010).
 func TestBulkRevwalk_MergeCommit(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -297,6 +302,13 @@ func TestBulkRevwalk_MergeCommit(t *testing.T) {
 	sort.Strings(sortedWant)
 	if diff := cmp.Diff(sortedWant, sortedGot); diff != "" {
 		t.Errorf("merge Parents mismatch (-want +got):\n%s", diff)
+	}
+
+	// G-0372 Fix 1: without -m, `git log --raw` emits no diff records
+	// for a merge commit — Paths must be empty even though this merge
+	// integrated a branch that added beta.md.
+	if len(mergeRec.Paths) != 0 {
+		t.Errorf("merge record Paths = %+v, want empty (no -m fan-out)", mergeRec.Paths)
 	}
 }
 

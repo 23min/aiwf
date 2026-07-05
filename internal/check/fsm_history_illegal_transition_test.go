@@ -11,8 +11,9 @@ import (
 
 // Predicate-level tests for M-0130/AC-2: illegalTransitionFindings
 // fires on observations whose (Prior, Next) is outside the FSM AND
-// whose commit lacks the aiwf-force trailer. Per D-0009 the predicate
-// ignores IsMergeCommit (the AC-2 policy is "fire on merges too").
+// whose commit lacks the aiwf-force trailer. Per D-0010 (supersedes
+// D-0009) the predicate skips IsMergeCommit observations — see
+// TestIllegalTransitionFindings_MergeSkippedPerD0010 below.
 
 // TestIllegalTransitionFindings_FiresOnIllegalNoForce — the load-
 // bearing positive case: illegal transition, no force trailer, fires.
