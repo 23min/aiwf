@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0371: `wf-vacuity`'s mutation probe now names a safe revert mechanism
+
+The mutation probe's revert step named no safe mechanism, so a reviewer filled the gap with
+`git stash`/`pop` against a working tree shared with a pending commit — a plain stash/pop restores
+content unstaged regardless of prior staged state, and once silently desynced the index from what
+actually landed (a commit missing its fix, caught only by after-the-fact inspection). `wf-vacuity`
+now specifies capturing pre-mutation content directly (or via `git show HEAD:<path>`) and writing it
+back byte-for-byte, and forbids `git stash`/`checkout`/`restore` as reverts. `wf-patch` adds an
+orchestrator-side backstop — a diff fingerprint captured before dispatching a reviewer, re-verified
+at the commit gate and again immediately before `git commit` — plus a reviewer-dispatch contract (no
+shared-tree mutation; use `git show` or an isolated worktree instead), mirrored in `wf-tdd-cycle`'s
+vacuity check, the ritual's other required call site.
+
 ### Fixed — G-0373: `aiwfx-release`'s CI-green check is stack-neutral, not Go-specific
 
 The pre-release CI-green check named `go.yml` as "the primary Go workflow", grepped
