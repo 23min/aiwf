@@ -5,6 +5,10 @@ status: proposed
 relates_to:
     - M-0186
 ---
+# D-0029 — Unify applyTx rollback into a single LIFO undo journal
+
+> **Date:** 2026-07-05 · **Decided by:** human/peter
+
 ## Question
 
 M-0186/AC-3 retrofits `verb.Apply` onto the temp-index commit primitive and needs correct rollback of partial failures, including an `OpMove` that relocates an entire directory (not just a flat file) — directories can't be captured as a single byte blob the way a file's content can. The implementation as first written tracked directory moves (`applyTx.dirMoves`) separately from flat-file content capture (`applyTx.preApply` / `touchedPaths`), with `rollback()` always reversing directory moves first, before restoring any captured file content. Is that two-mechanism, fixed-order design correct, or does it need to change before AC-3 lands?
