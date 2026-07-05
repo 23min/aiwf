@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: temp-index primitive never touches the live index or worktree
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: post-commit reconciliation touches only the verb's written paths
