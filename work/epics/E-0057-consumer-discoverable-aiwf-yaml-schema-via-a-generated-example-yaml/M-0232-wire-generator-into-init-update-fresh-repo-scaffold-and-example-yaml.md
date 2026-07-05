@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: init --help documents idempotent re-run and untouched files
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0232 — Wire generator into init/update: fresh-repo scaffold and example.yaml
