@@ -1,7 +1,7 @@
 ---
 id: ADR-0028
 title: Role-agent routing stays advisory via broadened guidance
-status: proposed
+status: accepted
 ---
 
 # ADR-0028 — Role-agent routing stays advisory via broadened guidance
