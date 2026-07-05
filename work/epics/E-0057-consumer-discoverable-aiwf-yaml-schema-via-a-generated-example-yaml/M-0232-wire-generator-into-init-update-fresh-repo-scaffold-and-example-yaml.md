@@ -164,6 +164,27 @@ triggerable outside disk-full/permission errors). A 3-mutation vacuity
 pass (wrong content; dry-run guard disabled; wiring call removed
 entirely) all caught, reverted byte-identical; `-race -count=20` clean.
 
+### AC-4 — addExampleYAML in ensureGitignore
+
+`ensureGitignore` gains an unconditional `addExampleYAML` flag (no
+opt-out, unlike STATUS.md's `status_md.auto_update` toggle), folded
+into the trigger condition and `buildGitignoreDetail` · commit
+2825b4b9 · tests 3/3
+
+The branch-coverage audit surfaced a real gap: the first pass folded
+`addExampleYAML`'s write into the existing "marker-managed framework
+artifacts" block but left the *outer* trigger condition unchanged, so
+a repo where every other managed line was already present would never
+add the example-file line. Added
+`TestInit_GitignoreExampleYAMLIsolatedTrigger` (pre-populate a
+.gitignore with everything else present, confirm the line still gets
+added and the output has no malformed blank-line gap) specifically to
+close that gap — confirmed by a targeted mutation (dropping
+`addExampleYAML` from the outer OR) that only this test caught, while
+the fresh-init test passed regardless (missing skill patterns already
+satisfied that same OR). Two further mutations (flag hardcoded false;
+write block disabled) both caught by all three tests.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
