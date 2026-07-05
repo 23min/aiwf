@@ -31,4 +31,4 @@ agents:
     effort: xhigh
   deployer:
     model: opus
-    effort: xhigh
+    effort: high
