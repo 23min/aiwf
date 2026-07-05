@@ -494,7 +494,7 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 	steps = append(steps, legacyVersionStep)
 
 	exampleStep, err := ensureExampleYAML(root, opts.DryRun)
-	if err != nil {
+	if err != nil { //coverage:ignore only reachable if ensureExampleYAML's AtomicWriteFile call fails (already coverage:ignored there); same disk-full/permission non-triggerability
 		return nil, false, err
 	}
 	steps = append(steps, exampleStep)
