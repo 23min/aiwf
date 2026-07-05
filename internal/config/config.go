@@ -43,6 +43,12 @@ import (
 // FileName is the canonical filename at the consumer repo root.
 const FileName = "aiwf.yaml"
 
+// ExampleFileName is the generated, gitignored reference file `aiwf
+// init`/`aiwf update` write and refresh every run (M-0232/AC-3) —
+// GenerateExample()'s output, always in sync with the schema this
+// binary accepts.
+const ExampleFileName = "aiwf.example.yaml"
+
 // ErrNotFound reports that aiwf.yaml does not exist in the queried
 // directory. Callers (notably resolveActor) handle this gracefully,
 // since the file is optional pre-`aiwf init`.

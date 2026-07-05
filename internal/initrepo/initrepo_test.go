@@ -147,6 +147,54 @@ func TestInit_FreshRepo_WritesFullyCommentedScaffold(t *testing.T) {
 	}
 }
 
+// TestInit_FreshRepo_WritesExampleYAML: `aiwf init` writes
+// aiwf.example.yaml — the always-fresh reference sibling — from
+// config.GenerateExample(), alongside the fresh-repo aiwf.yaml scaffold
+// (M-0232/AC-3).
+func TestInit_FreshRepo_WritesExampleYAML(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.ExampleFileName))
+	if err != nil {
+		t.Fatalf("read aiwf.example.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.example.yaml diverges from config.GenerateExample():\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestRefreshArtifacts_RefreshesExampleYAML: `aiwf update` (via
+// RefreshArtifacts) rewrites a stale aiwf.example.yaml back to
+// config.GenerateExample()'s current output every run — the derived-
+// artifact contract (M-0232/AC-3): always regenerated, never
+// hand-edited.
+func TestRefreshArtifacts_RefreshesExampleYAML(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	stale := []byte("stale: content\n")
+	if err := os.WriteFile(filepath.Join(root, config.ExampleFileName), stale, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+		t.Fatalf("RefreshArtifacts: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.ExampleFileName))
+	if err != nil {
+		t.Fatalf("read aiwf.example.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.example.yaml not refreshed:\n got  %q\n want %q", got, want)
+	}
+}
+
 // TestInit_Idempotent re-runs Init and confirms it preserves
 // pre-existing aiwf.yaml and CLAUDE.md byte-for-byte.
 func TestInit_Idempotent(t *testing.T) {
@@ -805,6 +853,7 @@ func TestInit_DryRun(t *testing.T) {
 	// No artifacts on disk.
 	for _, p := range []string{
 		config.FileName,
+		config.ExampleFileName,
 		"CLAUDE.md",
 		".gitignore",
 		filepath.Join("work", "epics"),

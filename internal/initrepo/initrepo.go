@@ -446,11 +446,12 @@ func Init(ctx context.Context, root string, opts Options) (*Result, error) {
 // Step order:
 //  1. .claude/skills/aiwf-* (skills materialization)
 //  2. aiwf.yaml legacy `actor:` strip (idempotent)
-//  3. .gitignore (skill cache patterns + STATUS.md)
-//  4. .git/hooks/pre-push (the validation chokepoint)
-//  5. .git/hooks/pre-commit (G41 tree-discipline gate — always
+//  3. aiwf.example.yaml (always-fresh schema reference; M-0232/AC-3)
+//  4. .gitignore (skill cache patterns + STATUS.md)
+//  5. .git/hooks/pre-push (the validation chokepoint)
+//  6. .git/hooks/pre-commit (G41 tree-discipline gate — always
 //     installs when aiwf is adopted in the repo)
-//  6. .git/hooks/post-commit (gated by StatusMdAutoUpdate; G-0112)
+//  7. .git/hooks/post-commit (gated by StatusMdAutoUpdate; G-0112)
 //
 // SkipHooks bypasses every hook step; each is reported as a
 // Skipped row in the ledger so the user sees what was deliberately
@@ -491,6 +492,12 @@ func RefreshArtifacts(ctx context.Context, root string, opts RefreshOptions) ([]
 		return nil, false, err
 	}
 	steps = append(steps, legacyVersionStep)
+
+	exampleStep, err := ensureExampleYAML(root, opts.DryRun)
+	if err != nil {
+		return nil, false, err
+	}
+	steps = append(steps, exampleStep)
 
 	gitignoreStep, err := ensureGitignore(root, opts.StatusMdAutoUpdate, opts.DryRun)
 	if err != nil {
@@ -768,6 +775,31 @@ func agentTiersFromConfig(root string) (tiers map[string]skills.AgentTier, unkno
 		tiers = nil
 	}
 	return tiers, unknown, nil
+}
+
+// ensureExampleYAML writes/refreshes aiwf.example.yaml from
+// config.GenerateExample() — the always-fresh, gitignored schema
+// reference (M-0232/AC-3). Unlike ensureConfig, this is unconditional:
+// the file is a derived artifact, byte-refreshed on every init/update,
+// matching the STATUS.md / site/ / materialized .claude/ convention
+// rather than aiwf.yaml's create-once-then-preserve contract.
+func ensureExampleYAML(root string, dryRun bool) (StepResult, error) {
+	if dryRun {
+		return StepResult{
+			What:   config.ExampleFileName,
+			Action: ActionUpdated,
+			Detail: "would regenerate from the current schema",
+		}, nil
+	}
+	path := filepath.Join(root, config.ExampleFileName)
+	if err := pathutil.AtomicWriteFile(path, []byte(config.GenerateExample()), 0o644); err != nil { //coverage:ignore not portably triggerable: AtomicWriteFile fails only on disk-full / permission / device errors
+		return StepResult{}, fmt.Errorf("writing %s: %w", config.ExampleFileName, err)
+	}
+	return StepResult{
+		What:   config.ExampleFileName,
+		Action: ActionUpdated,
+		Detail: "regenerated from the current schema",
+	}, nil
 }
 
 // ensureGuidance materializes the consumer CLAUDE.md guidance fragment
