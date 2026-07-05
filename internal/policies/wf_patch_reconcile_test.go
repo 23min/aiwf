@@ -82,9 +82,9 @@ func TestWfPatch_ReconcileMainlineBeforeMerge(t *testing.T) {
 		t.Errorf("the reconcile step must appear BEFORE the merge step in `## Workflow` (reconcile at line %d, merge at line %d), so the merge that follows is already-validated", reconcileIdx, mergeIdx)
 	}
 
-	reconcile := extractMarkdownSection(body, 3, "10. Reconcile")
+	reconcile := extractMarkdownSection(body, 3, "11. Reconcile")
 	if reconcile == "" {
-		t.Fatal("could not extract the `### 10. Reconcile mainline with the patch branch` section")
+		t.Fatal("could not extract the `### 11. Reconcile mainline with the patch branch` section")
 	}
 
 	// The ancestor guard compares against *local* mainline, not the
@@ -132,9 +132,9 @@ func TestWfPatch_MergeHardcodesNoFF(t *testing.T) {
 	t.Parallel()
 	body := loadWfPatchFixture(t)
 
-	merge := extractMarkdownSection(body, 3, "11. Merge")
+	merge := extractMarkdownSection(body, 3, "12. Merge")
 	if merge == "" {
-		t.Fatal("could not extract the `### 11. Merge the patch branch to mainline` section")
+		t.Fatal("could not extract the `### 12. Merge the patch branch to mainline` section")
 	}
 	if !strings.Contains(merge, "git merge --no-ff --no-commit <branch>") {
 		t.Error("merge step must hardcode `git merge --no-ff --no-commit <branch>`, not defer the mechanism to project policy")
@@ -157,9 +157,9 @@ func TestWfPatch_TrackerClosureMechanicalGuard(t *testing.T) {
 	t.Parallel()
 	body := loadWfPatchFixture(t)
 
-	closure := extractMarkdownSection(body, 3, "12. Tracker closure")
+	closure := extractMarkdownSection(body, 3, "13. Tracker closure")
 	if closure == "" {
-		t.Fatal("could not extract the `### 12. Tracker closure` section")
+		t.Fatal("could not extract the `### 13. Tracker closure` section")
 	}
 	if !strings.Contains(closure, "reachable from `HEAD`") {
 		t.Error("tracker-closure section must note the mechanical guard (a --by-commit SHA must be reachable from `HEAD`)")

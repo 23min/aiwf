@@ -28,6 +28,53 @@ refresh a gitignored `aiwf.example.yaml` sibling every run, so the reference nev
 over in-file regeneration, extending ADR-0015's posture). Closes G-0360; see every milestone listed in
 `work/epics/E-0057-*/wrap.md`.
 
+### Fixed — G-0363: epic-spec template no longer ships a `completed:` key the strict decoder rejects
+
+The embedded epic-spec template scaffolded a `completed:` frontmatter field that no entity struct
+field accepts; filling it in verbatim and running `aiwf check` produced a hard `load-error` instead
+of a clean tree. The stray key is dropped from the template.
+
+### Changed — G-0361: `aiwfx-release` routes release-cutting intent to the `deployer` agent
+
+`aiwfx-release`'s trigger phrases and "When to use" section now cover common release-cutting
+language ("let's ship", "let's release") and explicitly delegate to the `deployer` subagent
+instead of running inline — so the agent's configurable model/effort tier (`aiwf.yaml`'s `agents:`
+block) actually applies, and the release ritual runs in its own context budget rather than the
+calling session's.
+
+### Fixed — G-0352: statusline token count sources from the stdin `context_window` field, not the transcript
+
+The statusline's token segment previously replayed the last assistant `usage` block from the
+transcript, so it stayed stale for one render after `/compact`. It now reads Claude Code's own
+`context_window.total_input_tokens` / `used_percentage` from stdin, removing the transcript walk
+and the BSD/GNU `tail -r`/`tac` portability dance entirely — there is no fallback source left;
+a missing or malformed `context_window` field degrades independently to 0 rather than erroring.
+
+### Fixed — G-0332: `aiwf status --worktrees` renders full epic altitude from an epic worktree, regardless of the checked-out branch
+
+Rendering keyed off the checked-out branch name, so an epic worktree with a milestone branch
+checked out inside it — the common one-worktree-rotating-branches workflow — collapsed to a
+milestone-only view instead of the whole-epic view. The worktree's directory path now drives the
+altitude; the checked-out milestone is overlaid as a marker with its ACs expanded, while sibling
+milestones stay collapsed to their status badge.
+
+### Changed — G-0365: `wf-patch` requires a CHANGELOG entry, every time
+
+`wf-patch` had no step adding a `CHANGELOG.md` entry, and unlike a milestone (whose change can
+roll up into its parent epic's entry at wrap time), a patch has no parent to roll up into — so a
+skipped entry here was permanent. The ritual now has a mandatory "Add a CHANGELOG entry" step
+(step 4): every patch adds one under `## [Unreleased]`, with a minimal one-line form allowed for
+genuinely internal-only changes, never a full skip. Five patches merged before this fix
+(G-0363, G-0361, G-0352, G-0332, G-0350) are backfilled above.
+
+### Changed — G-0350: `aiwf render roadmap --write` only writes; it no longer commits
+
+`--write` previously coupled regenerating `ROADMAP.md` with committing it as one atomic step (and
+refused to run on a dirty tree), even though the wrap rituals described the step as "no gate
+needed" — silently contradicting that framing with a real commit. The verb now only writes the
+file; committing is the caller's already-gated concern, and the wrap rituals stage/commit the
+regenerated file as part of their existing declared-sequence gate.
+
 ## [0.24.1] — 2026-07-04
 
 ### Changed — G-0359: reconcile-before-merge is a checklist, not a paragraph
