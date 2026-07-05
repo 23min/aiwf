@@ -46,14 +46,13 @@ branch or machine might be allocating at once":
    merges to trunk; use a slug as the pre-mint handle; provide a `--to-trunk`
    escape hatch for gaps/ADRs/decisions that need a real id immediately.
 3. **Eager allocation via a coordinated side channel** (G-0281 /
-   ADR-0022 §Consequences / M-0186 / M-0187, all in-flight this session,
-   `status: open`/`proposed`/`draft`) — allocate a real numeric id immediately
-   by fetching, allocating, and pushing to a dedicated never-checked-out ref,
-   retrying on collision, then reconciling the result back into the working
-   branch.
+   ADR-0022 §Consequences / M-0186 / M-0187, `status: open`/`proposed`/`draft`)
+   — allocate a real numeric id immediately by fetching, allocating, and
+   pushing to a dedicated never-checked-out ref, retrying on collision, then
+   reconciling the result back into the working branch.
 4. **Ephemeral mutation branch, "EMB"** (this document, `status: captured`,
-   not yet filed as its own gap or ADR — surfaced in a later session pressure-
-   testing (3) against real push-cost data) — wrap every Tier-1 (main-direct)
+   not yet filed as its own gap or ADR — surfaced pressure-testing (3)
+   against real push-cost data) — wrap every Tier-1 (main-direct)
    mutation in a short-lived branch, created and checked out **in the
    operator's own worktree** at current HEAD, committed via the existing
    ADR-0022 primitive, then landed onto trunk via an ordinary
@@ -125,22 +124,18 @@ machines, genuinely concurrent — unknowable locally") as the one
 `aiwf reallocate` exists for, with **ADR-0001 named as the structural
 endpoint on the same axis** if class-3 friction ever justifies it.
 
-**Housekeeping note, resolved:** an earlier draft of this section flagged
-`G-0272` and `G-0273` as stuck `status: open` despite E-0052 — which both
-milestones (`M-0212`, `M-0213`) cite as `Source: G-0272` / `Source: G-0273`
-— already shipping their resolution. Verified directly against the tree
-(2026-07-05): both are now `status: addressed` and archived, as is `G-0316`
-(cited in `M-0214` as the gap E-0052's remote-tracking-refs milestone
-closes, previously flagged here as "not audited" — see "Open gaps" below).
-All three are closed; nothing left to do. `G-0274` (batch reallocate)
-remains the one legitimately open gap in this cluster — E-0052 explicitly
-held it out of scope.
+**Housekeeping:** `G-0272` and `G-0273` — both cited by `M-0212`/`M-0213` as
+`Source: G-0272` / `Source: G-0273` — are `status: addressed` and archived,
+as is `G-0316` (cited in `M-0214` as the gap E-0052's remote-tracking-refs
+milestone closes). All three are closed; nothing outstanding in this
+cluster. `G-0274` (batch reallocate) remains the one legitimately open gap
+here — E-0052 explicitly held it out of scope.
 
 ### 2. Deferred minting at trunk integration — proposed, `ADR-0001` (`status: proposed`)
 
 `ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md`
-is a complete, general design that predates this session's G-0281 work and
-answers a wider version of the same question, uniformly across **all six
+is a complete, general design that predates G-0281 and answers a wider
+version of the same question, uniformly across **all six
 kinds** (epics, milestones, ADRs, gaps, decisions, contracts):
 
 - **Default path.** On a non-trunk branch, `aiwf add <kind>` doesn't
@@ -166,10 +161,10 @@ kinds** (epics, milestones, ADRs, gaps, decisions, contracts):
   (id-keyed) commits as one timeline via the `aiwf-mint:` trailer recorded
   on the assignment commit.
 
-**This already solves several of the hardest problems this session's G-0281
-work ran into, structurally, not procedurally:**
+**This already solves several of the hardest problems G-0281's design ran
+into, structurally, not procedurally:**
 
-| Problem this session wrestled with | ADR-0001's answer |
+| Problem G-0281's design wrestled with | ADR-0001's answer |
 |---|---|
 | "How do we know for sure we got the id?" (confirmation semantics) | The `--to-trunk` push either lands on the *real* trunk branch or is rejected — no side channel, so no separate "is it confirmed" question distinct from "did the push succeed." |
 | Reconciliation — nothing lands in `work/gaps/` until a separate import step | Doesn't exist as a problem for the default path: the entity is already a real file on the operator's own branch (as a slug-keyed inbox file) from the moment it's created. For `--to-trunk`, the file lands directly on trunk with no side ref and no import step at all. |
@@ -177,7 +172,7 @@ work ran into, structurally, not procedurally:**
 | "Only reference it after confirmed" as an operator discipline | Enforced structurally for the default path: you cannot reference a numeric id that doesn't exist yet, because there isn't one — you reference the slug, which is stable from the moment of creation. |
 
 **The uncomfortable implication, stated plainly:** a meaningful fraction of
-this session's G-0281 design work (retry-on-reject semantics, two-layer
+G-0281's design work (retry-on-reject semantics, two-layer
 push-confirmation, offline-divergence renumbering, cross-reference blast
 radius) is solving a problem that **would not exist** if ADR-0001's default
 mechanism were adopted for gaps — because ADR-0001 never eagerly mints a
@@ -200,53 +195,49 @@ genuinely different placement semantics, not just different mechanisms for
 the same outcome; a reconciliation decision needs to weigh which one the
 "collision fear" workflow actually wants.
 
-### 3. Eager allocation via a coordinated side channel — this session, `G-0281` / `ADR-0022` / `M-0186` / `M-0187`
+### 3. Eager allocation via a coordinated side channel — `G-0281` (`status: open`) / `ADR-0022` (`status: accepted`) / `M-0186` / `M-0187` (`status: draft`)
 
-The design built up over this session's conversation, summarized for
-completeness (full detail lives in the gap/ADR/milestone files themselves,
-now including the additions made this session):
+Summarized for completeness; full detail lives in the gap/ADR/milestone
+files themselves:
 
-- **`ADR-0022`** (`status: accepted` as of this session) — verb commits move
-  from `git stash push --staged` isolation to a temp-index + `commit-tree`
-  plumbing primitive. Orthogonal to the minting-strategy question: whichever
-  of (2) or (3) wins, this primitive is what constructs the commit either
-  way (including ADR-0001's own `--to-trunk` and mint-hook commits, which
-  are exactly this shape). This session also corrected two gaps in the
-  ADR's own text: the pre-commit shape-check's fate for hand-made commits,
-  and commit-signing parity (`commit.gpgsign`) for `commit-tree`-built
-  commits — see the ADR body for the current text.
-- **`G-0281`** (`status: open`) — file a gap onto a dedicated
-  never-checked-out `refs/aiwf/*`-class ref via fetch → allocate → CAS
-  `update-ref` → opt-in push. This session added, in order:
-  - a **Reconciliation** section: materialization needs an explicit
-    `aiwf gaps import` verb (the `git stash pop` analogy, not the `git
-    notes` / `ghp-import` / GitHub-API analogy, none of which actually
-    match this problem's shape); read-only peek surfaces (`status`,
-    `show`, `render`) can show pending inbox entries without any change to
-    the mutating-verb surface.
-  - two **Risks** additions: retry-on-reject should reuse `aiwf
-    reallocate`'s existing cross-reference-rewrite machinery, not a
-    bespoke rename, because a provisional id may already be referenced by
-    other local work before it's confirmed; deferred (opt-in) push
-    compounds both collision odds and the blast radius of a required
-    renumber.
-  - a **"Why a git ref, not a real allocator service"** section identifying
-    the mechanism as a compare-and-swap sequence generator built on git's
-    own ref semantics (a non-force push already *is* CAS on a pointer —
-    the same primitive GitHub's `createCommitOnBranch`/`expectedHeadOid`
-    exposes), and explaining why that's an acceptable, bounded exception to
-    aiwf's otherwise fully-offline verb model, scoped to one entity kind.
-- **`M-0186` / `M-0187`** (`status: draft`) — E-0045's two milestones:
-  the shared commit-construction primitive, then the gaps-inbox as its
-  second consumer. Neither has started; `M-0187`'s own ADR (not yet
-  written) is where G-0281's open questions were always meant to land.
+- **`ADR-0022`** — verb commits move from `git stash push --staged`
+  isolation to a temp-index + `commit-tree` plumbing primitive. Orthogonal
+  to the minting-strategy question: whichever of (2) or (3) wins, this
+  primitive is what constructs the commit either way (including ADR-0001's
+  own `--to-trunk` and mint-hook commits, which are exactly this shape).
+  The pre-commit shape-check's fate for hand-made commits, and
+  commit-signing parity (`commit.gpgsign`) for `commit-tree`-built commits,
+  are both covered in the ADR body.
+- **`G-0281`** — file a gap onto a dedicated never-checked-out `refs/aiwf/*`-
+  class ref via fetch → allocate → CAS `update-ref` → opt-in push. Its
+  current design includes: a **Reconciliation** section (materialization
+  needs an explicit `aiwf gaps import` verb — the `git stash pop` analogy,
+  not the `git notes` / `ghp-import` / GitHub-API analogy, none of which
+  actually match this problem's shape — plus read-only peek surfaces
+  (`status`, `show`, `render`) that can show pending inbox entries without
+  any change to the mutating-verb surface); a **Risks** section (retry-on-
+  reject reuses `aiwf reallocate`'s existing cross-reference-rewrite
+  machinery rather than a bespoke rename, because a provisional id may
+  already be referenced by other local work before it's confirmed;
+  deferred (opt-in) push compounds both collision odds and the blast
+  radius of a required renumber); and a **"Why a git ref, not a real
+  allocator service"** section identifying the mechanism as a
+  compare-and-swap sequence generator built on git's own ref semantics (a
+  non-force push already *is* CAS on a pointer — the same primitive
+  GitHub's `createCommitOnBranch`/`expectedHeadOid` exposes), explaining
+  why that's an acceptable, bounded exception to aiwf's otherwise
+  fully-offline verb model, scoped to one entity kind.
+- **`M-0186` / `M-0187`** — E-0045's two milestones: the shared
+  commit-construction primitive, then the gaps-inbox as its second
+  consumer. Neither has started; `M-0187`'s own ADR (not yet written) is
+  where G-0281's open questions were always meant to land.
 
 ### 4. Ephemeral mutation branch ("EMB") — this document, not yet filed
 
-Surfaced in a later session, while pressure-testing whether G-0281's
-side-channel model was actually the best answer once its discoverability
-cost (§"Discoverability contention" below) was taken seriously. The
-mechanism: every Tier-1 (main-direct, per `ADR-0010`) mutation, instead of
+Surfaced while pressure-testing whether G-0281's side-channel model is
+actually the best answer once its discoverability cost (§"Discoverability
+contention" below) is taken seriously. The mechanism: every Tier-1
+(main-direct, per `ADR-0010`) mutation, instead of
 committing straight onto trunk, creates a short-lived branch at current
 HEAD, checks it out **in the operator's own worktree** (not a side ref, not
 a detached-elsewhere temp worktree), commits via the existing
@@ -278,11 +269,8 @@ introduces no new git primitive (ordinary branches, no dedicated ref).
   A worktree mid-rebase-of-something-unrelated can't safely branch-and-commit
   in place; EMB needs a fallback for that narrow case (unresolved — see
   "Open design questions").
-- **Correction, stated plainly:** an earlier pass through this same
-  conversation claimed EMB "is the natural implementation of ADR-0010's
-  already-deferred AI chokepoint mechanism." That's wrong, and worth
-  recording as a correction rather than silently fixing. Reading
-  `internal/verb/allow.go` directly: the actual authorization gate
+- **EMB does not implement `ADR-0010`'s "AI chokepoint."** Per
+  `internal/verb/allow.go`, the actual authorization gate
   (`scopeAllows(actor, verb, entity)`) is governed by **entity-reference-graph
   reachability** — does the mutated entity (or its outbound references, for a
   creation) reach the scope-entity named in an open `aiwf authorize` scope —
@@ -290,11 +278,11 @@ introduces no new git primitive (ordinary branches, no dedicated ref).
   mechanism has **no bearing whatsoever** on AI-actor authorization, in
   either direction; it solves id-collision and discoverability, a
   completely orthogonal axis. `ADR-0010`'s own "AI chokepoint" section left
-  its actual mechanism as a downstream planning question — whatever answered
-  it landed on entity-reachability, not branch topology, and EMB should not
-  be credited with closing that question.
+  its actual mechanism as a downstream planning question — whatever answers
+  it, it's entity-reachability, not branch topology, and EMB should not be
+  credited with closing that question.
 
-**Risks discovered under pressure-testing, not yet resolved:**
+**Risks, not yet resolved:**
 
 - **Nested/concurrent EMB within one session.** If a second mutation fires
   while a first mutation's ephemeral branch is still checked out mid-retry,
@@ -546,7 +534,7 @@ of*.
 - `owner : confirmed → Session` — which session's candidate produced each
   confirmed id. **Updated by `RenumberOnCollision` too:** when `old`
   becomes `new`, `owner[new] := owner[old]` — the owning session doesn't
-  change, only the id does. (Missing from earlier drafts of this section.)
+  change, only the id does.
 
 ### Per-session local state
 
@@ -606,34 +594,31 @@ of*.
   the *entire* `pending[s]` sequence moves to `confirmed` atomically, in
   order, preserving each entry's `refs`; `refValue[ref]` advances by
   `Len(pending[s])`. This covers ADR-0001 default's mint-at-merge trigger.
-  **Correction from an earlier draft:** this action is *not* exempt from
-  the CAS guard — an earlier version of this section claimed a real git
-  merge "already serializes through git's own merge machinery" and left the
-  guard out. That's only true if the guard is actually present in git-terms
-  (an ordinary non-fast-forward push rejection on `ref`) *and* the
-  triggering mint logic recomputes ids against the post-rebase state rather
-  than replaying a cached decision from before the rejection. Both are real
-  requirements on the implementation, not automatic consequences of "it's a
-  merge" — so the model keeps the same guard here as the single-candidate
-  action, deliberately, rather than assuming git's plumbing makes it
-  unnecessary.
+  **This action is *not* exempt from the CAS guard**, even though a real
+  git merge might seem to serialize automatically. That's only true if the
+  guard is actually present in git-terms (an ordinary non-fast-forward push
+  rejection on `ref`) *and* the triggering mint logic recomputes ids
+  against the post-rebase state rather than replaying a cached decision
+  from before the rejection. Both are real requirements on the
+  implementation, not automatic consequences of "it's a merge" — so the
+  model keeps the same guard here as the single-candidate action,
+  deliberately, rather than assuming git's plumbing makes it unnecessary.
 - **`MaterializeFromRef(s, ref)`.** Enabled if `confirmed` contains ids
   (confirmed via `ref`) not yet in `materialized[s]`. Effect: adds them to
   `materialized[s]`. Covers both `aiwf gaps import` (G-0281's side ref) and
   the ordinary "pull trunk into my branch" action that ADR-0001-based
   mechanisms need before another session can reference something someone
-  else minted — the latter was missing entirely from an earlier draft of
-  this section, which defined an import action for the side ref but nothing
-  symmetric for trunk, silently making `NoPrematureReference` untestable
-  for the trunk-based mechanisms.
+  else minted — both must be modeled, or `NoPrematureReference` is
+  untestable for the trunk-based mechanisms.
 - **`DetectCollision(s1, s2)`.** Enabled when two sessions' locally-visible
   states each believe they hold the same id in `confirmed` — possible only
   under mechanisms that skip `ConfirmAgainstRef`'s CAS guard entirely (see
   `EventualUniqueness` below). Effect: marks the pair for
   `RenumberOnCollision`. Models `aiwf check`'s `ids-unique`/`trunk-collision`
-  finding. **This action did not exist in an earlier draft**, which is why
-  that draft's single `Uniqueness` property was actually false for two of
-  the four mechanisms — see below.
+  finding. **Necessary because `EventualUniqueness` (below) is a real,
+  non-vacuous property for two of the four mechanisms** — without this
+  action, a single `Uniqueness` property would incorrectly claim to hold for
+  mechanisms that only ever provide the weaker guarantee.
 - **`RenumberOnCollision(s, old, new)`.** Enabled after `DetectCollision`,
   or synchronously after a failed `ConfirmAgainstRef` guard for a candidate
   that, on resync, turns out to collide with something already confirmed.
@@ -662,10 +647,9 @@ of*.
   actually provide — **not** `InstantaneousUniqueness`, matching
   `id-allocation.md`'s own description of collisions surfacing at merge
   time and being fixed by `aiwf reallocate` after the fact. Stating both
-  properties, rather than one `Uniqueness` property applied uniformly, is
-  the fix for the biggest error in the earlier draft: as written, that
-  draft's single invariant was simply false for two of the four mechanisms
-  it claimed to model.
+  properties, rather than one `Uniqueness` property applied uniformly,
+  matters: a single invariant would be simply false for two of the four
+  mechanisms, which only ever provide the weaker guarantee.
 - **`NoPrematureReference`.** Implied by construction via `Reference`'s
   enabling condition; stated as an invariant for defense in depth: `∀`
   recorded edge `(from, to)`: `to` was in `materialized[s]` (for the owning
@@ -758,7 +742,7 @@ of the problem:
   a git costume. A TLA+ spec would let this initiative *search for*
   counterexamples (e.g., "can two operators both believe they hold gap
   G-50 under some interleaving of network delays") rather than reasoning
-  about them by hand, the way this session's conversation had to.
+  about them by hand.
 - **Dafny** (or F*) is the natural fit for **per-function contract
   verification** once the protocol design is settled: proving that a
   specific `AllocateID`, `Reconcile`, or `Reallocate` implementation
@@ -786,10 +770,8 @@ under TLC once per mechanism.
 
 ## Loom (github.com/23min/loom) — assessed fit
 
-Loom is the user's own project. This section was originally written when
-loom was seed-stage with no working code; it has since moved fast enough
-that the original assessment is stale, and the correction matters — the
-conclusion flips.
+Loom is the user's own project, and a fast-moving one — see the risk entry
+below on re-checking this section before trusting it.
 
 - **What it is.** A three-layer model (prose → *umbrella* of structured
   formal claims → LLM-authored implementation), where the umbrella is small
@@ -833,9 +815,8 @@ conclusion flips.
   this protocol's `Ref`-parameterized, per-mechanism instantiation table
   would need are already scoped on loom's side, not hypothetical.
 
-**Fit assessment, revised:** loom is usable *today*, not a future
-possibility — the earlier "nothing to run yet" framing no longer holds.
-The protocol specification above is already written at the granularity an
+**Fit assessment:** loom is usable *today*, not a future possibility. The
+protocol specification above is already written at the granularity an
 umbrella needs (`knows`: `Session`, `Ref`, `Kind`, `Id`; `relates`:
 `ConfirmAgainstRef`, `BatchConfirmAgainstRef`, `ResyncRef`,
 `MaterializeFromRef`, `DetectCollision`, `RenumberOnCollision`; `proves`:
@@ -878,9 +859,8 @@ manual tool invocations.
   *within* (it only wraps Tier-1, main-direct mutations). Its "AI chokepoint"
   section left the actual AI-authorization mechanism as a downstream
   planning question; `internal/verb/allow.go` (entity-reference-graph
-  reachability, not branch topology) is what actually answers it — EMB does
-  not, despite an earlier pass through this same conversation claiming
-  otherwise. See §4's correction above.
+  reachability, not branch topology) is what actually answers it — EMB
+  does not. See §4 above.
 - `docs/initiatives/check-performance-incremental-revwalk-cache.md` — a
   sibling initiative, spawned directly from pressure-testing EMB's retry
   cost against this repo's real pre-push hook. Its finding (aiwf check costs
@@ -893,26 +873,23 @@ manual tool invocations.
 - `G-0372` — aiwf check's full-history git revwalks run unconditionally on
   every push; the concrete performance blocker this initiative's EMB
   discussion surfaced, filed against `check-performance-incremental-revwalk-cache.md`.
-- `G-0281` — opt-in gaps inbox on a never-checked-out ref; the session-long
-  design thread this initiative was extracted from.
+- `G-0281` — opt-in gaps inbox on a never-checked-out ref; the design
+  thread this initiative was extracted from.
 - `G-0274` — batch reallocate; legitimately still open, explicitly deferred
   by E-0052; relevant to the "offline-divergence bound" property above
   (reconciling N colliding entities in one pass is exactly a batch-reallocate
   shape).
 - `G-0272` / `G-0273` / `G-0316` — **resolved, not part of this initiative's
-  open surface.** Flagged in earlier drafts of this document as stale-open
-  despite E-0052 already shipping their fix; verified directly (2026-07-05)
-  as `status: addressed` and archived, all three. See the Housekeeping note
-  under §1 above.
+  open surface.** All three are `status: addressed` and archived. See the
+  Housekeeping note under §1 above.
 
 ### Milestones and epics
 
 - `E-0052` (`done`, archived) — the shipped, cheaper point on the same axis;
   this initiative's comparison table leans on its epic spec's own framing.
 - `E-0045` / `M-0186` / `M-0187` (`draft`) — the commit-construction epic
-  this session's G-0281 work sits under; `M-0187`'s not-yet-written ADR is
-  where this initiative's central open question ultimately needs to be
-  decided.
+  G-0281 sits under; `M-0187`'s not-yet-written ADR is where this
+  initiative's central open question ultimately needs to be decided.
 
 ## Risks and boundaries
 
@@ -934,9 +911,8 @@ distributed consensus theory.
 
 ### Risk: this document's loom assessment goes stale again
 
-It already did once, within the same session's writing: loom moved from
-"seed stage, no code" to "active development, dual-backend, self-hosting"
-between this section's first and second draft, days apart, because it's a
+It already did once: loom moved from "seed stage, no code" to "active
+development, dual-backend, self-hosting" within days, because it's a
 fast-moving sibling project the user also actively develops. Avoid trusting
 this section as a permanent snapshot — re-check loom's actual `README.md`
 and epic/milestone status against this section before acting on it if any
@@ -1036,16 +1012,14 @@ an initiative document rather than an ADR:
 
 ## Recommendation — defer all three unratified mechanisms, pending measured evidence
 
-Added after the rest of this document, once the EMB pressure-testing above
-prompted the actual question underneath all four mechanisms: is any of this
-solving a *measured* problem, or an anticipated one? Consistent with the
-classifier note's "not a plan, not an ADR" stance — this recommends
-*building nothing new yet*, which is a deferral, not a commitment to any
-epic, milestone, or timeline.
+The EMB pressure-testing above prompts the actual question underneath all
+four mechanisms: is any of this solving a *measured* problem, or an
+anticipated one? Consistent with the classifier note's "not a plan, not an
+ADR" stance — this recommends *building nothing new yet*, which is a
+deferral, not a commitment to any epic, milestone, or timeline.
 
 **The measurement.** This repo's own git history is the only real data
-source available, and it hasn't been consulted anywhere else in this
-document until now:
+source available:
 
 ```
 git log --all --grep="^aiwf-verb: reallocate$" --format="%ad" --date=short   # 34 events
@@ -1087,11 +1061,7 @@ which of the three wins:**
    grew from ("main moved" warnings) with zero new engineering, using
    `E-0052` — already shipped — at its already-measured ~96.6% first-try
    success rate.
-3. ~~Promote `G-0272` / `G-0273` to `addressed` and archive them~~ — already
-   done. Verified directly (2026-07-05): `G-0272`, `G-0273`, and `G-0316` are
-   all `status: addressed` and archived. No action needed; left here so the
-   list's own history is legible rather than silently edited away.
-4. Explicitly defer `ADR-0001`, `G-0281`, and EMB. Not reject — defer, with
+3. Explicitly defer `ADR-0001`, `G-0281`, and EMB. Not reject — defer, with
    a named trigger below.
 
 **The trigger for revisiting**, stated so it's checkable rather than a
@@ -1123,5 +1093,4 @@ reference outlive the id it points at, always converges after any finite
 amount of offline divergence, and never leaves a genuinely-filed entity
 invisible to ordinary search or agent tooling for longer than the chosen
 mechanism's own confirmation window requires — not just a prose argument
-that reads convincingly the way this session's conversation, before this
-document, did.
+that merely reads convincingly.
