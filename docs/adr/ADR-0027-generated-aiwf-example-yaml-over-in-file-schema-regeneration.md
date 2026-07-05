@@ -1,7 +1,7 @@
 ---
 id: ADR-0027
 title: Generated aiwf.example.yaml over in-file schema regeneration
-status: proposed
+status: accepted
 ---
 # ADR-0027 — Generated aiwf.example.yaml over in-file schema regeneration
 
