@@ -51,6 +51,46 @@ The pattern is proven in headless contexts (GitHub's `createCommitOnBranch` with
 `expectedHeadOid`, `ghp-import` onto gh-pages, `git notes`, `git stash`, every
 server-side receive). The novel cut is exposing it as a local developer CLI.
 
+## Reconciliation
+
+Filing writes only to the inbox ref — nothing lands in `work/gaps/` on any
+checked-out branch until a separate, explicit step moves it there. That step
+isn't decided yet and must be before M-0187 gets ACs:
+
+- **Materialization is an explicit verb, not automatic.** `aiwf gaps import`
+  (naming TBD) fetches the inbox ref, diffs its `work/gaps/` tree against the
+  current branch's, and lands any new files as one ordinary commit via the
+  M-0186 primitive (parent = current HEAD, blob writes = the new files). No
+  auto-triggering — not on `add`, not on push, not from a hook — the operator
+  decides when to reconcile. Of the headless precedents cited above, only one
+  actually matches this problem's shape: GitHub's `createCommitOnBranch` and
+  ordinary server-side `receive-pack` write straight to the real target
+  branch (no worktree exists server-side to desync, so no side ref and no
+  reconciliation step are needed at all); `ghp-import`/`gh-pages` and `git
+  notes` are deliberately *permanent* side channels never meant to rejoin the
+  primary tree, so nothing reconciles because reconciliation was never the
+  goal. `git stash` is the one built for exactly this: a temporary parking
+  ref with a deliberate, named move-back command (`stash pop`/`apply`).
+  `aiwf gaps import` is that same shape, applied to `refs/aiwf/gaps` instead
+  of `refs/stash`. Because import lands as an ordinary verb-commit, it needs
+  no new collision handling — the existing `ids-unique` / `aiwf reallocate`
+  cure already covers it once it lands.
+- **Read-only visibility can go further than materialization, cheaply.**
+  `aiwf status`, `aiwf show`, and `aiwf render --format=html` can each
+  optionally peek at the inbox ref (fetch + list, no write) and surface
+  pending entries clearly marked "inbox — not yet imported," without
+  touching the mutating-verb surface at all: nothing mutable lives there
+  until import, so `promote`/`edit-body`/`cancel` never need to understand a
+  third storage location. This is a narrower, read-only cousin of "the
+  loader unions the inbox," which was considered and rejected for the write
+  path — rejected there because it would make every mutating verb reason
+  about three possible entity locations instead of two.
+- **Fetch-cost tradeoff for peek surfaces.** A live "N pending" count needs a
+  fresh `git fetch` of the inbox ref — real network cost on `status`, which
+  is otherwise fast and local. Follow the existing `aiwf add --fetch`
+  convention: local-ref state by default, an explicit `--fetch` flag to
+  force a refresh.
+
 ## Risks (to weigh at the ADR / epic)
 
 - **Tree-construction footgun:** build the new tree from the parent's full tree,
@@ -63,6 +103,26 @@ server-side receive). The novel cut is exposing it as a local developer CLI.
   "push is its own gate" norm — must be explicit opt-in, never silent.
 - **Operator confusion / signing:** a commit appears on a ref with no working-tree
   action; honour signed-commit policy via `commit-tree -S` where required.
+- **Retry-on-reject is cheap only while the id stays a leaf.** A losing push
+  is an ordinary non-fast-forward rejection, not data loss, and the verb
+  should auto-retry (fetch → re-allocate → rebuild → push) a bounded number
+  of times before giving up. But "re-allocate" is a pure rename only if
+  nothing yet references the provisional id. The moment local work builds on
+  it before reconciliation lands — an epic or milestone citing the gap,
+  another gap's Kindred concerns section — renumbering also means rewriting
+  every one of those references: structurally the same operation `aiwf
+  reallocate` already performs for today's merge-time-discovered collision.
+  The retry loop should invoke that existing reallocate machinery, not a
+  bespoke rename, and should not be sold as free.
+- **Deferred push compounds both odds and blast radius.** Allocation reads
+  whatever was last fetched; because push is opt-in and not automatic, the
+  gap between "I allocated" and "I actually pushed" can be arbitrarily long.
+  The longer it is, the more likely someone else pushed a colliding
+  allocation in the interim (raising the odds of a collision) *and* the more
+  local work has had time to reference the provisional id (raising the cost
+  of fixing one, per the point above). Prompt, frequent pushes of the inbox
+  ref keep both risks small — an operator-discipline argument for pushing
+  often even though the flag makes it optional.
 
 ## Relationship to the collision cluster
 
@@ -77,6 +137,35 @@ server-side receive). The novel cut is exposing it as a local developer CLI.
   boundary** — a hand-filed gap that is wrong is caught by `check` exactly as
   anywhere, so enforcing verb-only writes would duplicate the existing chokepoint.
   Make the verb the easy path; let `check` stay the authority.
+
+## Why a git ref, not a real allocator service
+
+The fetch → allocate → CAS-update → push cycle is a **compare-and-swap
+sequence generator** — the same primitive as `UPDATE seq SET value = value +
+1 WHERE value = expected_old_value`, retry on zero-rows-affected — built on
+git's own ref semantics instead of a database row. A non-force push already
+*is* CAS on a pointer: "update this ref only if it's still at the sha I last
+read, else reject." Nothing new is invented here; it's the same primitive
+GitHub's `createCommitOnBranch`/`expectedHeadOid` exposes as a first-class
+API feature, and the same guarantee every ordinary git push already relies
+on. Building it out of a git ref rather than a real external database, a
+Redis `INCR`, or a lock service (Zookeeper/etcd) avoids a new infrastructure
+dependency, a new credential/access-control surface, and keeps everything
+offline until the push step — origin already is the coordination point every
+git workflow depends on; this just narrows what's coordinated to one small
+dedicated ref instead of a whole branch.
+
+This also explains, not just justifies, why the feature stays **gaps-only
+and opt-in, default-off** rather than becoming the allocation mechanism for
+every entity kind on day one: every other aiwf verb is fully offline —
+commit, promote, edit-body all work with zero network reachability. Routing
+gap-filing through the inbox introduces a dependency on reaching the remote
+(at least at push time) that nothing else in the kernel has. That's a
+deliberate, bounded departure from aiwf's otherwise fully offline, git-native
+design; confining it to one entity kind behind a config flag is how the
+pattern gets tried without committing the whole kernel to it. Whether it
+later generalizes to other entity kinds is a separate decision this gap does
+not make.
 
 ## Provenance
 

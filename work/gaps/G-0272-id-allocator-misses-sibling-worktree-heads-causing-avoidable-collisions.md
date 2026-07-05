@@ -1,7 +1,9 @@
 ---
 id: G-0272
 title: ID allocator misses sibling worktree heads, causing avoidable collisions
-status: open
+status: addressed
+addressed_by:
+    - M-0212
 ---
 ## Problem
 
