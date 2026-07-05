@@ -56,13 +56,55 @@ G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why a 
 
 ### AC-1 — temp-index primitive never touches the live index or worktree
 
+A new `gitops` function builds a commit from `(parent SHA, []PathWrite)` via
+`GIT_INDEX_FILE=<temp>` → `git read-tree HEAD` → `git update-index --add
+--cacheinfo` (or equivalent) per write → `git write-tree` → `git commit-tree`
+→ `update-ref HEAD`. Test: stage unrelated content in the live index and make
+an unrelated worktree edit before calling the primitive; assert both are
+byte-identical afterward (`git diff --cached` / worktree diff empty).
+
 ### AC-2 — post-commit reconciliation touches only the verb's written paths
+
+After the commit-tree commit lands, only the verb's own written paths are
+reconciled into the live index (`git status` clean for them) — every other
+staged/unstaged path is untouched. Test: pre-stage path A with distinct
+content, run a verb that writes path B, assert A's staged content is
+unchanged and B is clean in the live index.
 
 ### AC-3 — verb.Apply retrofit onto primitive with git-stash isolation removed
 
+`internal/verb/apply.go` builds its commit via the AC-1 primitive instead of
+`gitops.Commit` + stash dance. `StashStaged` / `StashPop` / `StashTopRef` /
+`StashDrop` and the pre-verb conflict-guard-then-stash path are deleted from
+`internal/gitops`. Test: the existing `verb.Apply` test suite (including the
+G-0275 dangling-stash regression tests, rewritten for the new failure shape)
+passes against the retrofit; a structural test asserts the `Stash*` symbols
+no longer exist in the package.
+
 ### AC-4 — commit-tree output honors commit.gpgsign parity
+
+`git commit-tree` does not consult `commit.gpgsign` automatically the way
+`git commit` does. The primitive must replicate signing behavior explicitly.
+Test: with `commit.gpgsign=true` and a test GPG key configured, assert the
+resulting commit carries a valid signature (`git verify-commit`); with
+`commit.gpgsign` unset, assert no signature is present.
 
 ### AC-5 — commit-construction core exposes a reusable seam
 
+The commit-construction logic is factored into an exported entry point
+usable by a future verb-commit consumer (the gaps-inbox milestone) without a
+second commit path. Test: a structural test asserts the exported function
+signature exists and that `verb.Apply` is its only current caller (no
+duplicate ad hoc commit-construction logic elsewhere in `internal/verb` or
+`internal/gitops`).
+
 ### AC-6 — per-commit shape validation dropped from verb-commit path
+
+The pre-commit-hook shape check no longer fires on a verb's commit (`git
+commit-tree` fires no hooks) — shape correctness is guaranteed by
+construction at the verb layer instead. Test: a verb producing a
+deliberately malformed entity (in a test harness that bypasses the verb's
+own construction guarantee) is still caught by `aiwf check` at the pre-push
+boundary, confirming pre-push remains the authoritative backstop with no
+silent gap left by the removed pre-commit check.
 
