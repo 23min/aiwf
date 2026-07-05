@@ -1,7 +1,9 @@
 ---
 id: G-0362
 title: Decide whether aiwf ships a mechanical role-agent routing mechanism
-status: open
+status: addressed
+addressed_by:
+    - ADR-0028
 ---
 ## Problem
 
