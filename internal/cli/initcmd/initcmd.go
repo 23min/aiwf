@@ -23,13 +23,14 @@ import (
 // --skip-hook performs every other step but omits hook installation.
 func NewCmd() *cobra.Command {
 	var (
-		root         string
-		actor        string
-		dryRun       bool
-		skipHook     bool
-		statusline   bool
-		scope        string
-		wireSettings bool
+		root          string
+		actor         string
+		dryRun        bool
+		skipHook      bool
+		statusline    bool
+		scope         string
+		wireSettings  bool
+		allowUntagged bool
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -51,7 +52,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, allowUntagged))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -65,6 +66,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
+	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	return cmd
 }
 
@@ -74,7 +76,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 // clobbers a pre-existing copy). The scaffold action runs after the
 // main init pipeline succeeds; a `--dry-run` init reports without
 // scaffolding.
-func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings bool) int {
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -143,9 +145,10 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 
 	if statusline && !dryRun {
 		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
-			RootDir:      rootDir,
-			Scope:        scope,
-			WireSettings: wireSettings,
+			RootDir:       rootDir,
+			Scope:         scope,
+			WireSettings:  wireSettings,
+			AllowUntagged: allowUntagged,
 		}); rc != cliutil.ExitOK {
 			return rc
 		}

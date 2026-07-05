@@ -36,12 +36,13 @@ import (
 // `aiwf init`'s conflict path.
 func NewCmd() *cobra.Command {
 	var (
-		root         string
-		statusline   bool
-		scope        string
-		wireSettings bool
-		remove       bool
-		force        bool
+		root          string
+		statusline    bool
+		scope         string
+		wireSettings  bool
+		allowUntagged bool
+		remove        bool
+		force         bool
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -61,7 +62,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, remove, force))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, allowUntagged, remove, force))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -72,6 +73,7 @@ func NewCmd() *cobra.Command {
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
+	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
 	return cmd
@@ -84,7 +86,7 @@ func NewCmd() *cobra.Command {
 // settings key (G-0354); `statusline` and `remove` are mutually
 // exclusive. The statusline action runs after the artifact refresh
 // succeeds.
-func Run(root string, statusline bool, scope string, wireSettings, remove, force bool) int {
+func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force bool) int {
 	if statusline && remove {
 		fmt.Fprintln(os.Stderr, "aiwf update: --statusline and --remove are mutually exclusive")
 		return cliutil.ExitUsage
@@ -159,9 +161,10 @@ func Run(root string, statusline bool, scope string, wireSettings, remove, force
 		// rendering a stale pre-mark warning about the marker just written
 		// (G-0347).
 		statuslineRC = cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
-			RootDir:      rootDir,
-			Scope:        scope,
-			WireSettings: wireSettings,
+			RootDir:       rootDir,
+			Scope:         scope,
+			WireSettings:  wireSettings,
+			AllowUntagged: allowUntagged,
 		})
 	case remove:
 		// Explicit removal (G-0354): mutually exclusive with the
