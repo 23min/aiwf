@@ -137,6 +137,19 @@ literal; disabled the helper's found-branch) both caught, 0 survivors;
 `-race -parallel 8 -count=20` on both touched packages confirmed no
 G-0358-shaped data race from the new `t.Parallel()` tests.
 
+### AC-2 — Pin the never-rewrite invariant for both verbs
+
+No production code changed: `ensureConfig`'s exists-check already gates
+`init`, and `update`'s `RefreshArtifacts` never calls `ensureConfig` at
+all, so the invariant already held structurally · commit 6009303f ·
+tests 1/1
+
+Added `TestRefreshArtifacts_PreservesExistingConfig` (the `update` half;
+`TestInit_PreservesExistingConfig` already covered `init`). A 1-mutation
+vacuity pass (injected an unconditional `aiwf.yaml` write into
+`RefreshArtifacts`, simulating a hypothetical future regression) caught
+it, reverted byte-identical.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
