@@ -254,6 +254,72 @@ session) is now a genuine, weighable tradeoff — not a strict dominance
 either way. This is folded into the protocol specification below as a
 first-class, checkable quantity, not just a comparison-table entry.
 
+## Discoverability contention — search and LLM blindness for un-materialized entities
+
+A fifth comparison axis, surfaced independently of the trunk-contention one
+above: **can a plain filesystem search — `grep`/`rg`, an editor's
+search-in-files, or an LLM agent reading the working tree cold — see a
+pending entity at all, without invoking any aiwf-specific verb?** This is
+not a safety property (no kernel guarantee depends on it) and it is not the
+`ResyncBurden` cost metric either — it is a third, independent kind of cost,
+orthogonal to both confirmation-instantaneousness and trunk-contention.
+
+It is not a new state in the six-stage lifecycle or the protocol
+specification below. It is a named cost attached to the existing gap
+between `confirmed` (stages 3–4) and `materialized[s]` (stage 5) —
+`materialized[s]` was already defined above as "everything session `s` can
+currently see as a real file in its own working tree," which is precisely
+the grep/editor-search-visible set. What is new here is naming the
+*practical* consequence of that gap's size, not its formal shape: how long
+an entity can sit confirmed-but-unmaterialized (or, for the inbox model,
+how long it can sit proposed-but-not-yet-a-file — moot there, see below)
+differs enormously across mechanisms, and that duration is exactly the
+window during which grep, editor search, and an LLM agent's cold read
+return a false negative for a pending entity that genuinely exists.
+
+- **E-0052 / ADR-0001 default (inbox file).** No blindness window at all.
+  The moment `Propose` fires, the entity is an ordinary file at
+  `work/<kind>/inbox/<slug>.md` in the operator's own working tree —
+  `materialized[s]` is populated at propose time, not at some later confirm
+  step. Grep, ripgrep, VSCode search, and any LLM reading the repo see it
+  exactly as they would a fully-minted entity; the slug-keyed
+  cross-references (`gap:auth-redirect-loop`) are themselves greppable
+  strings.
+- **ADR-0001 `--to-trunk`.** A brief, bounded blindness window: during the
+  retry loop (steps 2–4 of the escape hatch) the entity exists only inside a
+  detached temp worktree that most tooling never looks at. Short-lived
+  (bounded retries) and self-resolving, but not zero.
+- **G-0281 side channel.** Full blindness by construction, for as long as
+  the operator defers import. "Never checked out" is the load-bearing design
+  choice (see "Design direction" above) — deliberately, nothing lands in the
+  operator's working tree until `MaterializeFromRef` (`aiwf gaps import`)
+  runs. Between `Propose` and that action, the entity is a real git object
+  (reachable via `git show refs/aiwf/gaps:work/gaps/G-NNNN-slug.md`) but
+  invisible to every path-based tool. G-0281's own "Read-only visibility"
+  mitigation (peek via `aiwf status`/`show`/`render`) only closes this for a
+  human or agent that already knows to run an aiwf-specific command against
+  the inbox ref — it does nothing for the default discovery path (grep,
+  editor search, or an LLM agent listing/searching the working tree), which
+  is exactly the path an agent exploring a repo cold, or an operator
+  scanning for "what gaps mention X," takes first. Because import is
+  explicitly opt-in and un-scheduled ("the operator decides when to
+  reconcile" — see "Reconciliation" above), this window has no upper bound
+  in the design as written.
+
+The practical failure mode this produces: a pending gap parked in the inbox
+ref is, for any tool or agent that discovers work by reading the filesystem
+rather than by knowing to ask aiwf, functionally identical to a gap that was
+never filed. An LLM asked "are there any known gaps about X" that greps
+`work/gaps/` gets a false negative for anything still parked in the side
+channel — a wrong answer to a real question, even though no kernel safety
+property is violated and `aiwf check` would report the tree as clean.
+
+| Mechanism | `materialized[s]` populated at `Propose` time? | Grep/editor-search visible? | LLM-agent-cold-read visible? |
+|---|---|---|---|
+| E-0052 / ADR-0001 default | Yes | Yes | Yes |
+| ADR-0001 `--to-trunk` | Briefly no (temp worktree, bounded by retry count) | No, transiently | No, transiently |
+| G-0281 side channel | No — deferred to an unscheduled, opt-in import | No, until import | No, until import |
+
 ## The lifecycle this initiative is actually about
 
 Stripped of which specific mechanism implements it, every one of the three
@@ -768,6 +834,15 @@ an initiative document rather than an ADR:
   (as a correctness oracle checked in CI) or remain a standalone proof
   artifact that informs the Go implementation without being mechanically
   linked to it?
+- If G-0281 proceeds despite the discoverability-contention cost above,
+  what closes the grep/LLM-cold-read blindness window — a bounded
+  auto-import cadence, a materialized read-only mirror of the inbox ref
+  that ordinary tooling can see without going through `aiwf`, an operator
+  habit of frequent `aiwf gaps import`, or is the window accepted as a
+  deliberate, documented tradeoff for the trunk-decoupling benefit? Is this
+  cost alone enough to prefer ADR-0001's inbox-file model for gaps
+  specifically, independent of the trunk-contention and placement-semantic
+  questions above?
 
 ## Desired future property
 
@@ -777,6 +852,9 @@ one settled design — not reconstruct, from three scattered documents and a
 long conversation, which of three overlapping mechanisms currently applies.
 That design should carry a machine-checked argument (via TLA+/TLC, and
 later Dafny) for why it cannot silently duplicate an id, cannot let a
-reference outlive the id it points at, and always converges after any
-finite amount of offline divergence — not just a prose argument that reads
-convincingly the way this session's conversation, before this document, did.
+reference outlive the id it points at, always converges after any finite
+amount of offline divergence, and never leaves a genuinely-filed entity
+invisible to ordinary search or agent tooling for longer than the chosen
+mechanism's own confirmation window requires — not just a prose argument
+that reads convincingly the way this session's conversation, before this
+document, did.
