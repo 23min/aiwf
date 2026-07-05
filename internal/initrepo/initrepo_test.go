@@ -193,6 +193,33 @@ func TestInit_PreservesExistingConfig(t *testing.T) {
 	}
 }
 
+// TestRefreshArtifacts_PreservesExistingConfig: `aiwf update` calls
+// RefreshArtifacts directly, bypassing Init's first-time-only
+// ensureConfig step. It must never touch an existing aiwf.yaml
+// (M-0232/AC-2) — this is the update half; TestInit_PreservesExistingConfig
+// covers the init half.
+func TestRefreshArtifacts_PreservesExistingConfig(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	custom := []byte("hosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, config.FileName), custom, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+		t.Fatalf("RefreshArtifacts: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, custom) {
+		t.Errorf("aiwf.yaml after RefreshArtifacts:\n got  %q\n want %q (update must never rewrite an existing aiwf.yaml)", got, custom)
+	}
+}
+
 // TestInit_PreservesExistingClaudeMd: do not overwrite a project's own
 // CLAUDE.md.
 func TestInit_PreservesExistingClaudeMd(t *testing.T) {
