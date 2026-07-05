@@ -17,4 +17,6 @@ Without this decision, 'is deployer reliably discoverable' stays bounded by what
 
 ## Shape (sketch)
 
-An ADR (via `aiwfx-record-decision`) weighing at least: (a) ritual-content-only, stay advisory; (b) strengthen the always-on embedded guidance fragment (broader reach than one skill's description, still advisory, no new consent surface); (c) a new opt-in hook-materialization feature mirroring the statusline consent pattern (aiwf init/update flag, gated like ADR-0015's statusline opt-in), with the same hook-chaining composability aiwf's git hooks already have (G45) so it never clobbers a consumer's own hooks.
+An ADR (via `aiwfx-record-decision`) weighing at least: (a) ritual-content-only, stay advisory; (b) strengthen the always-on embedded guidance fragment (broader reach than one skill's description, still advisory, no new consent surface); (c) a new opt-in hook-materialization feature mirroring the statusline consent pattern (aiwf init/update flag, gated like ADR-0015's statusline opt-in), with the same hook-chaining composability aiwf's git hooks already have (G-0045) so it never clobbers a consumer's own hooks.
+
+Resolved via ADR-0028: option (b), broaden the always-on embedded guidance fragment; option (c) rejected for now.
