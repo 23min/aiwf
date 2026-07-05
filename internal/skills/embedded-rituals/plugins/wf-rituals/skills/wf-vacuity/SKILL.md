@@ -35,7 +35,7 @@ Pick the unit's core logic. Introduce a deliberate, realistic bug and run the te
 
 Confirm at least one test goes red for each mutation. A mutation that leaves the suite green is a **surviving mutant** — a hole where the assertions don't constrain the behaviour. Record it.
 
-Mutate one thing at a time; revert between mutations. The implementation must be back to its original state when you finish.
+Mutate one thing at a time. Revert using a safe, non-git-index-touching mechanism: capture the pre-mutation content directly — read the file, or `git show HEAD:<path>` when the file matches `HEAD` — before mutating, then write that captured content back byte-for-byte once you've recorded the test result. Never revert via `git stash`, `git checkout <path>`, or `git restore <path>`: those mutate the shared index and working tree and can silently interact with a commit-in-progress in the same checkout (see the constraint below). If you are auditing as a reviewer dispatched into an orchestrator's shared checkout rather than your own unit, do the mutate/revert cycle in an isolated worktree instead of touching that shared tree at all. The implementation must be back to its original state when you finish.
 
 ### 2. Tautology / narrowing probe — do the assertions mean anything?
 
@@ -78,6 +78,7 @@ If nothing is weak, the report says so: every mutation was caught and every asse
 ## Anti-patterns
 
 - *Leaving a mutation in place.* Every deliberate bug is reverted; the implementation ends exactly as it started. A vacuity audit that ships a mutant is worse than none.
+- *Reverting via `git stash`/`checkout`/`restore`.* Those touch the shared index and working tree; if a commit is staged and in flight in the same checkout, this can silently desync the index from what actually gets committed. Capture-and-restore (or an isolated worktree for a dispatched reviewer) is the safe mutation-probe revert.
 - *Treating coverage as the answer.* "100% covered" says the lines ran, not that a bug would be caught. Coverage and vacuity are different axes.
 - *Rewriting the tests inside the audit.* `wf-vacuity` reports; strengthening happens in `wf-tdd-cycle` / `wf-property-test` as its own reviewed change.
 - *Auditing tests that don't exist yet.* This is a checking ritual — it needs assertions to attack.
@@ -85,7 +86,7 @@ If nothing is weak, the report says so: every mutation was caught and every asse
 
 ## Constraints
 
-- 🛑 Revert every mutation. The implementation is byte-identical before and after the audit.
+- 🛑 Revert every mutation via captured content or `git show HEAD:<path>` — never a git-index-touching verb (`stash`, `checkout`, `restore`) that can corrupt a commit-in-progress sharing the same checkout. The implementation is byte-identical before and after the audit.
 - 🛑 `wf-vacuity` reports; it never rewrites the unit's tests. Strengthening is a separate, reviewed change.
 - Where a real mutation-testing tool is wired up, run it and read survivors — the manual probe is the stop-gap, not the preferred path.
 - The audit is LLM-judged; size the claim to that. A clean report is "no weakness found," not "tests verified correct."
