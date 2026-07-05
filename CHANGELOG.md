@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0373: `aiwfx-release`'s CI-green check is stack-neutral, not Go-specific
+
+The pre-release CI-green check named `go.yml` as "the primary Go workflow", grepped
+`*.go`/`go.mod`/`go.sum` to find "the most recent Go-affecting commit", and cited a
+`release(aiwf): vX.Y.Z` example commit — aiwf's own commit scope, meaningless in a consumer
+repo. Every `aiwfx-*` ritual materializes into consumer repos of any language via `aiwf
+init`/`update`; the check now asks for the project's own primary CI workflow and build-input
+files, substituting the Go example only as an illustration.
+
 ## [0.25.0] — 2026-07-05
 
 ### Added — E-0057: consumer-discoverable `aiwf.yaml` schema via a generated `aiwf.example.yaml`

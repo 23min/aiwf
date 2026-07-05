@@ -97,3 +97,50 @@ func TestAiwfxRelease_FrontmatterDescriptionRoutesToDeployer(t *testing.T) {
 		}
 	}
 }
+
+// TestAiwfxRelease_PreReleaseCheckIsStackNeutral pins G-0373's fix: the
+// `### 1. Pre-release checks` CI-green check previously hardcoded Go as the
+// consumer's stack (naming `go.yml` as "the primary Go workflow", grepping
+// `*.go`/`go.mod`/`go.sum` to find "the most recent Go-affecting commit",
+// and citing a `release(aiwf): vX.Y.Z` example commit — aiwf's own commit
+// scope, meaningless in a consumer repo). Every aiwfx-* skill materializes
+// into consumer repos of any language via `aiwf init`/`update`, so the only
+// mechanically-followable step of a shipped release ritual must not assume
+// the consumer's stack or project name.
+//
+// Scoped to the `### 1. Pre-release checks` step per CLAUDE.md *Substring
+// assertions are not structural assertions* — the forbidden strings could
+// otherwise pass vacuously if they appeared, or failed to appear, somewhere
+// unrelated in the file.
+func TestAiwfxRelease_PreReleaseCheckIsStackNeutral(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxReleaseFixture(t)
+
+	step := extractMarkdownSection(body, 3, "1. Pre-release checks")
+	if step == "" {
+		t.Fatal("G-0373: aiwfx-release must have a `### 1. Pre-release checks` section")
+	}
+
+	forbidden := []string{
+		"go.yml",
+		"Go-affecting",
+		"primary Go workflow",
+		"release(aiwf)",
+	}
+	for _, f := range forbidden {
+		if strings.Contains(step, f) {
+			t.Errorf("G-0373: `### 1. Pre-release checks` must not hardcode %q — the CI-green check must stay stack-neutral for non-Go consumers", f)
+		}
+	}
+
+	required := []string{
+		"primary CI workflow",
+		"build-relevant commit",
+		"substitute the equivalents",
+	}
+	for _, r := range required {
+		if !strings.Contains(step, r) {
+			t.Errorf("G-0373: `### 1. Pre-release checks` must say %q — the CI-green check must generalize to the consumer's own stack", r)
+		}
+	}
+}
