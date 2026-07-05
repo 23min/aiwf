@@ -150,6 +150,20 @@ vacuity pass (injected an unconditional `aiwf.yaml` write into
 `RefreshArtifacts`, simulating a hypothetical future regression) caught
 it, reverted byte-identical.
 
+### AC-3 — ensureExampleYAML, wired into RefreshArtifacts
+
+New `ensureExampleYAML` step, mirroring `ensureGuidance`'s unconditional
+wipe-and-rewrite shape, wired into `RefreshArtifacts` (shared by `init`
+and `update`) between the legacy-strip and gitignore steps · commit
+8714d91c · tests 2/2
+
+Extended `TestInit_DryRun`'s no-artifacts-on-disk list to cover the new
+file. The write-failure branch is `//coverage:ignore`d, matching
+`pathutil.AtomicWriteFile`'s own established precedent (not portably
+triggerable outside disk-full/permission errors). A 3-mutation vacuity
+pass (wrong content; dry-run guard disabled; wiring call removed
+entirely) all caught, reverted byte-identical; `-race -count=20` clean.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
