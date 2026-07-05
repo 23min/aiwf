@@ -60,7 +60,7 @@ Deliberately excluded (each addable later when real friction demands it): an eve
 
 ```bash
 go test -race ./...              # unit tests
-golangci-lint run                # linters
+make lint                        # linters (worktree-scoped cache; bare `golangci-lint run` leaks stale findings across worktrees, G-0179)
 go build -o /tmp/aiwf ./cmd/aiwf # binary builds
 ```
 

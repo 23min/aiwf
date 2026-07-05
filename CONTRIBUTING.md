@@ -50,7 +50,7 @@ PRs are welcome from outside contributors. The expectations:
 - **Cite the prior conversation** in the description (Issue # or Discussion link). Drive-by PRs without prior context will be asked to start one.
 - **Keep changes small.** One logical change per PR.
 - **Update [`CHANGELOG.md`](CHANGELOG.md)** under `[Unreleased]` for any user-visible change, or apply the `internal-only` label.
-- **Run the validation set** from [`CLAUDE.md` § How to validate changes](CLAUDE.md#how-to-validate-changes): `go test -race ./...`, `golangci-lint run`, `go build`.
+- **Run the validation set** from [`CLAUDE.md` § How to validate changes](CLAUDE.md#how-to-validate-changes): `go test -race ./...`, `make lint`, `go build`.
 
 `pr-conventions.yml` mechanically checks the first three; the rest is on you.
 
