@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -136,6 +137,59 @@ func TestParseBodySections_EdgeCases(t *testing.T) {
 		want := map[string]string{"goal": "second"}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+	})
+}
+
+// TestSectionLineBounds covers the G-0364 fix's reusable boundary
+// helper: callers that need to splice new content into a `## ` section
+// (aiwf add ac's heading insertion) rather than just read it.
+func TestSectionLineBounds(t *testing.T) {
+	t.Parallel()
+	t.Run("terminated by a later heading of a different name", func(t *testing.T) {
+		t.Parallel()
+		body := []byte("# M-0001 — First\n\n## Goal\n\ngoal body\n\n## Acceptance criteria\n\n### AC-1 — x\n\nprose\n\n## Constraints\n\n- c\n")
+		lines := bytes.Split(body, []byte("\n"))
+		start, end, found := SectionLineBounds(body, "Acceptance criteria")
+		if !found {
+			t.Fatal("found = false, want true")
+		}
+		if got := string(lines[start]); got != "## Acceptance criteria" {
+			t.Errorf("lines[start] = %q, want the section heading", got)
+		}
+		if got := string(lines[end]); got != "## Constraints" {
+			t.Errorf("lines[end] = %q, want the terminating heading", got)
+		}
+	})
+	t.Run("terminated by a level-1 heading", func(t *testing.T) {
+		t.Parallel()
+		body := []byte("## Acceptance criteria\n\n### AC-1 — x\n\nprose\n\n# Aside\n\nignored\n")
+		lines := bytes.Split(body, []byte("\n"))
+		_, end, found := SectionLineBounds(body, "Acceptance criteria")
+		if !found {
+			t.Fatal("found = false, want true")
+		}
+		if got := string(lines[end]); got != "# Aside" {
+			t.Errorf("lines[end] = %q, want the level-1 terminator", got)
+		}
+	})
+	t.Run("runs to body-end when nothing follows", func(t *testing.T) {
+		t.Parallel()
+		body := []byte("## Goal\n\ngoal\n\n## Acceptance criteria\n\n### AC-1 — x\n\nprose\n")
+		lines := bytes.Split(body, []byte("\n"))
+		_, end, found := SectionLineBounds(body, "Acceptance criteria")
+		if !found {
+			t.Fatal("found = false, want true")
+		}
+		if end != len(lines) {
+			t.Errorf("end = %d, want len(lines) = %d", end, len(lines))
+		}
+	})
+	t.Run("heading not present", func(t *testing.T) {
+		t.Parallel()
+		_, _, found := SectionLineBounds([]byte("## Goal\n\ngoal\n"), "Acceptance criteria")
+		if found {
+			t.Error("found = true, want false")
 		}
 	})
 }

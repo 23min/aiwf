@@ -9,6 +9,7 @@
 package verb
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -20,6 +21,12 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
+
+// acceptanceCriteriaHeading is the exact `## ` heading text milestone
+// bodies use for their Acceptance-criteria section — the same literal
+// requiredSectionsByKind (internal/check/entity_body.go) dispatches on
+// for the KindMilestone entry.
+const acceptanceCriteriaHeading = "Acceptance criteria"
 
 // AddAC creates a new acceptance criterion under the named milestone.
 // Single-title convenience wrapper around AddACBatch — the existing
@@ -428,11 +435,7 @@ func standardTrailers(verbName, id, actor string) []gitops.Trailer {
 // acs-body-coherence/duplicate-heading finding flags them.
 func upsertACSection(body []byte, acID, title string, content []byte, hasBody bool) []byte {
 	if !acHeadingExists(body, acID) {
-		body = appendACHeading(body, acID, title)
-		if hasBody {
-			body = appendACBody(body, content)
-		}
-		return body
+		return insertNewACHeading(body, acID, title, content, hasBody)
 	}
 	repl := fmt.Sprintf("### %s — %s", acID, title)
 	if hasBody {
@@ -460,26 +463,70 @@ func acHeadingExists(body []byte, acID string) bool {
 	return false
 }
 
-// appendACHeading scaffolds a `### AC-<N> — <title>` heading at the
-// end of the body so the new AC has prose anchor. The em-dash form
-// is the canonical scaffold; the validator's coherence check accepts
-// hyphen and colon variants when humans hand-edit.
+// insertNewACHeading scaffolds a `### AC-<N> — <title>` heading (and
+// any supplied body content beneath it) inside the milestone's `##
+// Acceptance criteria` section — positioned right after that section's
+// existing content, i.e. immediately before whatever heading closes the
+// section (or at body-end when Acceptance criteria has no successor).
+// The em-dash form is the canonical scaffold; the validator's coherence
+// check accepts hyphen and colon variants when humans hand-edit.
 //
-// Adds a leading blank line if the body doesn't already end with one,
-// keeping markdown rendering tidy.
-func appendACHeading(body []byte, acID, title string) []byte {
-	suffix := fmt.Sprintf("\n### %s — %s\n\n", acID, title)
-	trimmed := strings.TrimRight(string(body), "\n")
-	return []byte(trimmed + "\n" + suffix)
+// This keeps the new heading inside entity_body.go's scanH2Sections
+// window for that section. Appending at absolute body-end put it past
+// any sections a template places after Acceptance criteria (Constraints,
+// Work log, …), which made entity-body-empty fire on a populated AC
+// section forever (G-0364).
+//
+// Falls back to a plain body-end append when body has no recognizable
+// `## Acceptance criteria` heading at all — the historical behavior,
+// preserved since there is no section to insert into.
+func insertNewACHeading(body []byte, acID, title string, content []byte, hasBody bool) []byte {
+	block := acHeadingBlock(acID, title, content, hasBody)
+	_, end, found := entity.SectionLineBounds(body, acceptanceCriteriaHeading)
+	if !found {
+		trimmed := strings.TrimRight(string(body), "\n")
+		return []byte(trimmed + "\n\n" + block)
+	}
+	lines := bytes.Split(body, []byte("\n"))
+	before := trimTrailingBlankLines(lines[:end])
+	after := lines[end:]
+	var out bytes.Buffer
+	out.Write(bytes.Join(before, []byte("\n")))
+	out.WriteString("\n\n")
+	out.WriteString(block)
+	if len(after) > 0 {
+		out.Write(bytes.Join(after, []byte("\n")))
+	}
+	return out.Bytes()
 }
 
-// appendACBody appends user-supplied body content directly after the
-// most recently appended AC heading. Trailing newlines on content are
-// trimmed and replaced with `\n\n` so the next heading (or EOF) keeps
-// a clean blank-line separator.
-func appendACBody(body, content []byte) []byte {
-	trimmed := strings.TrimRight(string(content), "\n")
-	return append(body, []byte(trimmed+"\n\n")...)
+// acHeadingBlock renders a `### AC-N — title` heading plus optional
+// body content as a self-contained text block ending in exactly one
+// blank line, ready to be spliced into a body at any insertion point.
+// Mirrors the historical appendACHeading+appendACBody byte shape
+// exactly (no emptiness guard on content — matching the pre-G-0364
+// behavior callers already depend on).
+func acHeadingBlock(acID, title string, content []byte, hasBody bool) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "### %s — %s\n", acID, title)
+	if hasBody {
+		b.WriteString("\n")
+		b.WriteString(strings.TrimRight(string(content), "\n"))
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+// trimTrailingBlankLines drops trailing empty (whitespace-only) lines
+// from lines so callers can splice new content after the section's
+// last real line without accumulating blank runs.
+func trimTrailingBlankLines(lines [][]byte) [][]byte {
+	end := len(lines)
+	for end > 0 && len(bytes.TrimSpace(lines[end-1])) == 0 {
+		end--
+	}
+	return lines[:end]
 }
 
 // acHeadingLinePattern matches a `### AC-N <separator> <title>` line
