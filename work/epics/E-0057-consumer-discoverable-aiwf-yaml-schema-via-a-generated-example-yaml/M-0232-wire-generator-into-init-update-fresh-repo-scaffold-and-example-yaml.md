@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Existing aiwf.yaml is never rewritten by init or update
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: init and update write and refresh gitignored aiwf.example.yaml
       status: open
