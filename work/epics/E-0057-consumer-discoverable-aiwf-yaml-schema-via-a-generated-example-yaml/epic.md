@@ -147,9 +147,12 @@ G-0307 consumes the registry and lands the equality test on its side.
 
 ## ADRs produced (optional)
 
-<!-- None anticipated; the never-touch-user-config posture and generated-sibling
-     decision may warrant one if a reader would later ask "why not the marker
-     pattern?" — decide at wrap. -->
+- `ADR-0027` — Generated `aiwf.example.yaml` over in-file schema regeneration.
+  Ratified at wrap: the generated-sibling posture (never touching the user's
+  live `aiwf.yaml` after creation) extends `ADR-0015`, and is deliberately
+  narrower than `ADR-0018`'s marker-managed in-file pattern, which stays
+  correct for markdown-shaped surfaces (CLAUDE.md) but not for a live YAML
+  document.
 
 ## References
 
