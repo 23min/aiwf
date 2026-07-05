@@ -1,7 +1,9 @@
 ---
 id: G-0365
 title: wf-patch has no CHANGELOG entry step; patch fixes go unrecorded
-status: open
+status: addressed
+addressed_by_commit:
+    - 3406e50a
 ---
 ## Problem
 
