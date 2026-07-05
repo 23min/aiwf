@@ -185,6 +185,20 @@ the fresh-init test passed regardless (missing skill patterns already
 satisfied that same OR). Two further mutations (flag hardcoded false;
 write block disabled) both caught by all three tests.
 
+### AC-5 — Idempotent re-run stated in --help
+
+New `Long` field on `aiwf init`'s Cobra command naming the idempotent
+re-run contract and everything never overwritten (aiwf.yaml,
+.claude/settings.json, user-authored git hooks) · commit ce467d1c ·
+tests 1/1
+
+Doc-shaped AC: the test scopes its assertion to the `Long` field
+specifically (the real surface `--help` renders from), not a blind
+grep. Human-verified via a real `aiwf init --help` invocation. A
+2-mutation vacuity pass (dropped the "idempotent" claim; dropped one
+never-overwritten item from the list) both caught, reverted
+byte-identical.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked above in Design notes)
