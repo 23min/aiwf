@@ -1,7 +1,10 @@
 ---
 id: G-0360
 title: aiwf.yaml has no consumer-discoverable schema reference for its blocks
-status: open
+status: addressed
+addressed_by:
+    - M-0231
+    - M-0232
 ---
 ## Problem
 
