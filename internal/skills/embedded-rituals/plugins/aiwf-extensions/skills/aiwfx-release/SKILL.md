@@ -31,24 +31,26 @@ This applies regardless of any cadence pattern inherited from a prior session's 
 - Working tree clean.
 - All tests pass.
 - Build is green.
-- **CI is green on the last Go-affecting commit reachable from HEAD.**
+- **CI is green on the last build-relevant commit reachable from HEAD.**
   Run `gh api "repos/<org>/<repo>/actions/runs?head_sha=$(git rev-parse HEAD)" --jq '.workflow_runs[] | "\(.conclusion // .status) \(.name)"'`
   to see every workflow run on the current HEAD. If the project's
-  primary Go workflow (e.g. `go.yml`) isn't in the list, the path
-  filter excluded HEAD — typical when HEAD is a markdown-only commit
-  (`aiwf promote`, `aiwf archive`, `aiwf edit-body`, the
-  `release(aiwf): vX.Y.Z` prep commit itself). In that case walk
-  back to the most recent Go-affecting commit
-  (`git log --oneline -- '**/*.go' 'go.mod' 'go.sum' | head -1`)
+  primary CI workflow isn't in the list, its path filter excluded
+  HEAD — typical when HEAD is a markdown-only commit (`aiwf promote`,
+  `aiwf archive`, `aiwf edit-body`, a `docs(changelog): vX.Y.Z` prep
+  commit itself). In that case walk back to the most recent commit
+  that touches a build input — the project's source and
+  dependency-manifest files (e.g. for a Go project,
+  `git log --oneline -- '**/*.go' 'go.mod' 'go.sum' | head -1`;
+  substitute the equivalents for the project's actual language) —
   and verify it ran green via
-  `gh run list --workflow=go.yml --commit <sha> --limit 1`.
-  If any reachable Go-affecting commit's most recent run is `failure`
+  `gh run list --workflow=<workflow-file> --commit <sha> --limit 1`.
+  If any reachable build-relevant commit's most recent run is `failure`
   or anything other than `success`, **stop** and resolve before
   crossing the Commit gate. The Constraints section asserts
   "releases ride on green commits"; this step is where the assertion
-  binds. Local `go test` green is necessary but not sufficient —
-  `vuln`, `lint`, and any project-specific jobs also need to pass
-  at the CI level.
+  binds. A local test-suite pass is necessary but not sufficient —
+  lint, vulnerability scanning, and any project-specific jobs also
+  need to pass at the CI level.
 - The epic that justifies this release has `status: done`.
 
 If anything is red, stop. Releases ride on green commits.
@@ -146,7 +148,7 @@ If a notable release-time decision was made (rolled back, hotfixed, deferred a f
 ## Constraints
 
 - 🛑 **Never commit, tag, or push without explicit human approval** — each is its own gate (steps 4, 5, 6, 7); the commit push and the tag push are two separate gates, never bundled.
-- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch." **Green is CI-green, not just locally-green** — step 1's `gh run list` check is where this binds; a local `go test ./...` pass does not substitute for it.
+- Releases run on green commits only. No "release this with the failing test, we'll fix in a patch." **Green is CI-green, not just locally-green** — step 1's `gh run list` check is where this binds; a local test-suite pass does not substitute for it.
 - Versions are immutable. If `vX.Y.Z` has a problem, the next release is `vX.Y.(Z+1)` — don't move the tag.
 - Don't skip CHANGELOG. Future-you and downstream consumers depend on it.
 
