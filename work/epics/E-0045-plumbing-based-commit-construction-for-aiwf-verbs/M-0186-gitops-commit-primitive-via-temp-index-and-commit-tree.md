@@ -158,6 +158,39 @@ absent from the parent tree (`aiwf add`'s write shape). No bug found;
 landed as a permanent regression test rather than a throwaway check.
 Final count: tests 11/11.
 
+### AC-2 — post-commit reconciliation touches only the verb's written paths
+
+Implemented · commit ef99d581 · tests 6/6
+
+`internal/gitops/reconcile.go` adds `ReconcilePaths`, the deliberately
+narrow follow-up to `CommitTree`: for each write it re-hashes the
+content (a cheap content-addressed no-op repeat of the hash `CommitTree`
+already wrote) and stages it into the *live* index via `update-index
+--add --cacheinfo`, one path at a time — never touching any other
+staged or unstaged path. This is the step that makes `git status`
+report clean for a verb's own written paths without a `git add -A`-style
+sweep that would silently re-stage the caller's unrelated pending work.
+
+Branch-coverage audit: every branch has a direct test, no
+`//coverage:ignore` needed. The hash-object failure branch is exercised
+by a read-only object database (mirroring AC-1); the update-index
+failure branch is exercised by a stale `.git/index.lock` left behind by
+a crashed or still-running git process — a real, deterministically
+reproducible failure mode, not a contrived one.
+
+`wf-vacuity` mutation probe: 3 mutations (wrong file mode on the
+cacheinfo string, a hardcoded wrong path ignoring the write's real
+path, dropping the `--add` flag) were all caught cleanly by the
+existing `git diff --cached` assertions on the first attempt — no
+surviving mutants, no weak assertions to strengthen.
+
+Post-vacuity confidence check added
+`TestReconcilePaths_OverwritesExistingTrackedFile`, mirroring AC-1's
+same real-world-shape check: reconciling a path whose live index entry
+still holds the *old* pre-commit content (the primary case per AC-3 —
+`promote`/`edit-body`/`cancel` all rewrite existing entity files, not
+add new ones). No bug found; landed as a permanent regression test.
+
 ## Decisions made during implementation
 
 - None yet — all decisions are pre-locked in `## Approach` above.
