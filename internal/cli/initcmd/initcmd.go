@@ -34,6 +34,9 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "One-time setup: aiwf.yaml, scaffolding, skills, pre-push hook",
+		Long: `One-time setup: writes aiwf.yaml, scaffolds entity directories, materializes skills, appends to .gitignore, writes a CLAUDE.md template, and installs the pre-push hook.
+
+Safe to re-run: init is idempotent. A second run never overwrites an existing aiwf.yaml, .claude/settings.json, or user-authored git hooks — only derived artifacts (skills, aiwf.example.yaml, the hooks aiwf manages, STATUS.md wiring) refresh.`,
 		Example: `  # Scaffold a fresh consumer repo (run once)
   aiwf init
 
