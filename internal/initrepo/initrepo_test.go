@@ -127,6 +127,74 @@ func TestInit_FreshRepo(t *testing.T) {
 	}
 }
 
+// TestInit_FreshRepo_WritesFullyCommentedScaffold: aiwf.yaml on a
+// fresh repo must be exactly config.GenerateExample()'s output — the
+// discoverability payoff (M-0232/AC-1). Complements TestInit_FreshRepo
+// (which pins the legacy-field omissions and the rest of the ledger).
+func TestInit_FreshRepo_WritesFullyCommentedScaffold(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.yaml diverges from config.GenerateExample():\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestInit_FreshRepo_WritesExampleYAML: `aiwf init` writes
+// aiwf.example.yaml — the always-fresh reference sibling — from
+// config.GenerateExample(), alongside the fresh-repo aiwf.yaml scaffold
+// (M-0232/AC-3).
+func TestInit_FreshRepo_WritesExampleYAML(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.ExampleFileName))
+	if err != nil {
+		t.Fatalf("read aiwf.example.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.example.yaml diverges from config.GenerateExample():\n got  %q\n want %q", got, want)
+	}
+}
+
+// TestRefreshArtifacts_RefreshesExampleYAML: `aiwf update` (via
+// RefreshArtifacts) rewrites a stale aiwf.example.yaml back to
+// config.GenerateExample()'s current output every run — the derived-
+// artifact contract (M-0232/AC-3): always regenerated, never
+// hand-edited.
+func TestRefreshArtifacts_RefreshesExampleYAML(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	stale := []byte("stale: content\n")
+	if err := os.WriteFile(filepath.Join(root, config.ExampleFileName), stale, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+		t.Fatalf("RefreshArtifacts: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.ExampleFileName))
+	if err != nil {
+		t.Fatalf("read aiwf.example.yaml: %v", err)
+	}
+	want := config.GenerateExample()
+	if string(got) != want {
+		t.Errorf("aiwf.example.yaml not refreshed:\n got  %q\n want %q", got, want)
+	}
+}
+
 // TestInit_Idempotent re-runs Init and confirms it preserves
 // pre-existing aiwf.yaml and CLAUDE.md byte-for-byte.
 func TestInit_Idempotent(t *testing.T) {
@@ -170,6 +238,33 @@ func TestInit_PreservesExistingConfig(t *testing.T) {
 	want := []byte("hosts: [claude-code]\n")
 	if !bytes.Equal(got, want) {
 		t.Errorf("aiwf.yaml after init:\n got  %q\n want %q (both legacy fields stripped, hosts preserved)", got, want)
+	}
+}
+
+// TestRefreshArtifacts_PreservesExistingConfig: `aiwf update` calls
+// RefreshArtifacts directly, bypassing Init's first-time-only
+// ensureConfig step. It must never touch an existing aiwf.yaml
+// (M-0232/AC-2) — this is the update half; TestInit_PreservesExistingConfig
+// covers the init half.
+func TestRefreshArtifacts_PreservesExistingConfig(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	custom := []byte("hosts: [claude-code]\n")
+	if err := os.WriteFile(filepath.Join(root, config.FileName), custom, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := RefreshArtifacts(context.Background(), root, RefreshOptions{StatusMdAutoUpdate: true}); err != nil {
+		t.Fatalf("RefreshArtifacts: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, custom) {
+		t.Errorf("aiwf.yaml after RefreshArtifacts:\n got  %q\n want %q (update must never rewrite an existing aiwf.yaml)", got, custom)
 	}
 }
 
@@ -491,6 +586,102 @@ func TestInit_GitignoreNoDoubleAppend(t *testing.T) {
 	}
 }
 
+// TestInit_GitignoreIncludesExampleYAML: aiwf.example.yaml (M-0232/AC-4)
+// is added to the marker-managed .gitignore on a fresh init, alongside
+// the skill-cache patterns.
+func TestInit_GitignoreIncludesExampleYAML(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasActiveTopLevelLine(string(got), config.ExampleFileName) {
+		t.Errorf(".gitignore missing %s line: %s", config.ExampleFileName, got)
+	}
+}
+
+// TestInit_GitignoreExampleYAMLNoDoubleAppend: re-running init does not
+// add the aiwf.example.yaml line twice.
+func TestInit_GitignoreExampleYAMLNoDoubleAppend(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init #1: %v", err)
+	}
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init #2: %v", err)
+	}
+	got, _ := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if c := strings.Count(string(got), config.ExampleFileName); c != 1 {
+		t.Errorf("%s appears %d times, want 1\n%s", config.ExampleFileName, c, got)
+	}
+}
+
+// hasActiveTopLevelLine reports whether text contains an exact
+// (whitespace-trimmed) line equal to target — the same shape
+// ensureGitignore's own haveLine closure checks against.
+func hasActiveTopLevelLine(text, target string) bool {
+	for line := range strings.SplitSeq(text, "\n") {
+		if strings.TrimSpace(line) == target {
+			return true
+		}
+	}
+	return false
+}
+
+// TestInit_GitignoreExampleYAMLIsolatedTrigger: when every other
+// managed line is already present and only aiwf.example.yaml is
+// missing, ensureGitignore still adds it and produces well-formed
+// output (no stray blank-line gap) — the branch where addExampleYAML
+// is the sole trigger, distinct from a fresh init where missing skill
+// patterns also drive the rewrite (M-0232/AC-4).
+func TestInit_GitignoreExampleYAMLIsolatedTrigger(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	if _, err := Init(context.Background(), root, Options{}); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+	giPath := filepath.Join(root, ".gitignore")
+	before, err := os.ReadFile(giPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Remove the block and its preceding blank-line separator, then
+	// renormalize the trailing newline — a realistic "every other
+	// managed line already present" fixture, not an artifact of the
+	// surgery leaving a dangling blank line.
+	stripped := strings.ReplaceAll(string(before),
+		"\n# aiwf: gitignored schema reference, regenerated by aiwf init/update\n"+config.ExampleFileName+"\n", "")
+	if stripped == string(before) {
+		t.Fatal("test setup: example.yaml block not found in .gitignore to strip")
+	}
+	stripped = strings.TrimRight(stripped, "\n") + "\n"
+	if wErr := os.WriteFile(giPath, []byte(stripped), 0o644); wErr != nil {
+		t.Fatal(wErr)
+	}
+	step, err := ensureGitignore(root, true, false)
+	if err != nil {
+		t.Fatalf("ensureGitignore: %v", err)
+	}
+	if step.Action != ActionUpdated {
+		t.Errorf("Action = %q, want %q (example.yaml alone should still trigger an update)", step.Action, ActionUpdated)
+	}
+	got, err := os.ReadFile(giPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasActiveTopLevelLine(string(got), config.ExampleFileName) {
+		t.Errorf(".gitignore missing %s after isolated re-add:\n%s", config.ExampleFileName, got)
+	}
+	if strings.Contains(string(got), "\n\n\n") {
+		t.Errorf(".gitignore has a malformed multi-blank-line gap:\n%s", got)
+	}
+}
+
 // TestInit_GitignoreFutureProof: a consumer with a pre-existing
 // .gitignore that already covers the wildcard should not get the
 // wildcard appended a second time, even if their .gitignore predates
@@ -758,6 +949,7 @@ func TestInit_DryRun(t *testing.T) {
 	// No artifacts on disk.
 	for _, p := range []string{
 		config.FileName,
+		config.ExampleFileName,
 		"CLAUDE.md",
 		".gitignore",
 		filepath.Join("work", "epics"),
