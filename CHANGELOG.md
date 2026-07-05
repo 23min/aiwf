@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0057: consumer-discoverable `aiwf.yaml` schema via a generated `aiwf.example.yaml`
+
+Every `aiwf.yaml` config block was previously documented only in Go struct doc comments — invisible
+to a consumer unless they read aiwf's source. `aiwf init` now scaffolds a fresh `aiwf.yaml` as a
+fully-commented reference (every block, its default, and a one-line description), generated from the
+same struct-derived schema model that decodes the file, so a newly-added field can't ship
+undocumented. An existing `aiwf.yaml` is never rewritten; instead, `aiwf init`/`aiwf update` write and
+refresh a gitignored `aiwf.example.yaml` sibling every run, so the reference never goes stale.
+`aiwf init --help` documents the idempotent re-run contract. Ratified in ADR-0027 (generated sibling
+over in-file regeneration, extending ADR-0015's posture). Closes G-0360; see every milestone listed in
+`work/epics/E-0057-*/wrap.md`.
+
 ## [0.24.1] — 2026-07-04
 
 ### Changed — G-0359: reconcile-before-merge is a checklist, not a paragraph
