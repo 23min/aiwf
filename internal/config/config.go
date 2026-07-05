@@ -43,6 +43,12 @@ import (
 // FileName is the canonical filename at the consumer repo root.
 const FileName = "aiwf.yaml"
 
+// ExampleFileName is the generated, gitignored reference file `aiwf
+// init`/`aiwf update` write and refresh every run (M-0232/AC-3) —
+// GenerateExample()'s output, always in sync with the schema this
+// binary accepts.
+const ExampleFileName = "aiwf.example.yaml"
+
 // ErrNotFound reports that aiwf.yaml does not exist in the queried
 // directory. Callers (notably resolveActor) handle this gracefully,
 // since the file is optional pre-`aiwf init`.
@@ -595,10 +601,15 @@ func (c *Config) EntityTitleMaxLength() int {
 // the file is deleted.
 func (c *Config) StatusMdAutoUpdate() bool {
 	if c.StatusMd.AutoUpdate == nil {
-		return true
+		return DefaultStatusMdAutoUpdate
 	}
 	return *c.StatusMd.AutoUpdate
 }
+
+// DefaultStatusMdAutoUpdate is the value StatusMdAutoUpdate returns when
+// aiwf.yaml.status_md.auto_update is unset (E-0057: named so the schema
+// generator can cite it instead of a bare literal hiding inside the getter).
+const DefaultStatusMdAutoUpdate = true
 
 // Guidance carries the consumer's opt-out for aiwf maintaining its
 // per-turn LLM guidance import in the repo-root `CLAUDE.md` (ADR-0018).
@@ -621,10 +632,15 @@ type Guidance struct {
 // loaded Config.
 func (c *Config) WireClaudeMd() bool {
 	if c == nil || c.Guidance.WireClaudeMd == nil {
-		return true
+		return DefaultWireClaudeMd
 	}
 	return *c.Guidance.WireClaudeMd
 }
+
+// DefaultWireClaudeMd is the value WireClaudeMd returns when
+// aiwf.yaml.guidance.wire_claudemd is unset (E-0057: named so the schema
+// generator can cite it instead of a bare literal hiding inside the getter).
+const DefaultWireClaudeMd = true
 
 // Worktree carries the consumer's default placement for the git
 // worktrees the start rituals (`aiwfx-start-epic` / `aiwfx-start-milestone`)
@@ -922,11 +938,12 @@ func Write(root string, cfg *Config) error {
 	// bad: (1) the file looks like noise to a reader, and (2) any
 	// later hand-edit that *appends* a yaml block (e.g., `html: ...`)
 	// produces a two-document stream where only the first ("{}") is
-	// loaded, silently dropping the user's edit. Write a friendly
-	// comment header instead so the file reads as intentional and
-	// appended blocks are parsed by `config.Load`.
+	// loaded, silently dropping the user's edit. Write the fully-
+	// commented schema scaffold instead (M-0232/AC-1) — every field
+	// documented with its default, all commented so the file is inert
+	// until acted on; appended blocks still parse via `config.Load`.
 	if strings.TrimSpace(string(out)) == "{}" {
-		out = []byte("# aiwf consumer-repo config. Append top-level keys (e.g. html: { commit_output: true })\n# to opt into framework features. See `aiwf doctor` and the README for the full list.\n")
+		out = []byte(GenerateExample())
 	}
 	if err := pathutil.AtomicWriteFile(path, out, 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", FileName, err)

@@ -771,7 +771,7 @@ The id chokepoint covers every shipped surface, so the leak class cannot recur.
 | M-0228 | Strip shipped-prose history/rationale; broaden the authoring principle | done |
 | M-0229 | Drop dead doc-links; encode reference discipline in record-decision | done |
 
-## E-0057 — Consumer-discoverable aiwf.yaml schema via a generated example.yaml (proposed)
+## E-0057 — Consumer-discoverable aiwf.yaml schema via a generated example.yaml (active)
 
 ### Goal
 
@@ -782,6 +782,6 @@ exist; today the entire schema is documented only in Go struct doc comments.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0231 | Struct-derived aiwf.yaml schema model and commented-YAML generator | draft |
-| M-0232 | Wire generator into init/update: fresh-repo scaffold and example.yaml | draft |
+| M-0231 | Struct-derived aiwf.yaml schema model and commented-YAML generator | done |
+| M-0232 | Wire generator into init/update: fresh-repo scaffold and example.yaml | in_progress |
 
