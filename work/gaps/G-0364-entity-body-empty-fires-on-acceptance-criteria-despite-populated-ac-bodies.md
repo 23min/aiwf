@@ -1,8 +1,10 @@
 ---
 id: G-0364
 title: entity-body-empty fires on Acceptance criteria despite populated AC bodies
-status: open
+status: addressed
 discovered_in: M-0231
+addressed_by_commit:
+    - 2eed14d0
 ---
 
 ## What's missing
