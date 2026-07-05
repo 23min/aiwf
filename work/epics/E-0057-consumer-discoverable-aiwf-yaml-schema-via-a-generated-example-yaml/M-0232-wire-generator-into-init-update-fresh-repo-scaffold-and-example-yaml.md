@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: init and update write and refresh gitignored aiwf.example.yaml
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: aiwf.example.yaml is added to the marker-managed .gitignore
       status: open
