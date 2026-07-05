@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: aiwf.example.yaml is added to the marker-managed .gitignore
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: init --help documents idempotent re-run and untouched files
       status: open
