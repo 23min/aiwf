@@ -74,6 +74,34 @@ func TestStatuslineBodyDrifted(t *testing.T) {
 	})
 }
 
+// TestStatuslineWriteNeedsConfirmation pins G-0367's version gate for the
+// explicit `--statusline` write: a tagged (release) binary needs no
+// confirmation — the deliberate-operator-forcing-a-refresh case the
+// explicit path exists for — while an untagged binary (a dev/worktree
+// build, or any pseudo/devel value version.Compare can't order) does, since
+// that write lands unconditionally in the shared, cross-project user scope
+// with no version marker distinguishing it as non-release.
+func TestStatuslineWriteNeedsConfirmation(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		binary version.Info
+		want   bool
+	}{
+		{"tagged release binary needs no confirmation", version.Parse("v1.2.3"), false},
+		{"devel binary needs confirmation", version.Parse(version.DevelVersion), true},
+		{"dirty worktree stamp needs confirmation", version.Parse("main@abc1234-dirty"), true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := StatuslineWriteNeedsConfirmation(tc.binary); got != tc.want {
+				t.Errorf("StatuslineWriteNeedsConfirmation(%+v) = %v, want %v", tc.binary, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestDecideStatuslineRefresh pins the pure upgrade-only decision matrix
 // (G-0344): never downgrade, never act on an unorderable pair, heal an
 // equal-version body edit, and stay silent when already current.

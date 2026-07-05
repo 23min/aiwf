@@ -8,7 +8,17 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/version"
 )
+
+// taggedTestBinary is a stand-in tagged (release) version these tests
+// inject via RunStatuslineScaffoldForVersion, bypassing G-0367's
+// version-confirmation gate deterministically — these tests pin
+// ADR-0015's settings-consent behavior, not the version gate, and
+// `go test`'s own binary is always untagged (which would otherwise
+// short-circuit every call below before it ever reached the
+// settings-consent logic under test).
+var taggedTestBinary = version.Info{Version: "v1.0.0", Tagged: true}
 
 // TestM0156_AC5_NonTTYWithoutWireSettingsSkipsWrite asserts M-0156/AC-5:
 // when --wire-settings is false and we are not on a TTY (the default
@@ -28,12 +38,12 @@ func TestM0156_AC5_NonTTYWithoutWireSettingsSkipsWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+	rc := cliutil.RunStatuslineScaffoldForVersion(cliutil.StatuslineOpts{
 		RootDir:      root,
 		Scope:        "project",
 		WireSettings: false,
 		FormatJSON:   false,
-	})
+	}, taggedTestBinary)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("AC-5: RunStatuslineScaffold returned %d, want %d", rc, cliutil.ExitOK)
 	}
@@ -60,12 +70,12 @@ func TestM0156_AC5_WireSettingsWritesWithoutPrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+	rc := cliutil.RunStatuslineScaffoldForVersion(cliutil.StatuslineOpts{
 		RootDir:      root,
 		Scope:        "project",
 		WireSettings: true,
 		FormatJSON:   false,
-	})
+	}, taggedTestBinary)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("AC-5: RunStatuslineScaffold returned %d, want %d", rc, cliutil.ExitOK)
 	}
@@ -94,12 +104,12 @@ func TestM0156_AC5_FormatJSONWithoutWireSettingsSkipsWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
+	rc := cliutil.RunStatuslineScaffoldForVersion(cliutil.StatuslineOpts{
 		RootDir:      root,
 		Scope:        "project",
 		WireSettings: false,
 		FormatJSON:   true,
-	})
+	}, taggedTestBinary)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("AC-5: RunStatuslineScaffold returned %d, want %d", rc, cliutil.ExitOK)
 	}

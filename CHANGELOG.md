@@ -41,6 +41,16 @@ repos with sizeable history, with no change to which findings are reported. This
 G-0372's full scope (every history-walking rule still walks from scratch on each invocation) —
 only these two provably-safe reductions.
 
+### Fixed — G-0367: `aiwf init/update --statusline` gates untagged binaries before a shared-scope write
+
+`--statusline` always rendered and wrote to the running binary's embedded version with no ordering
+check at all — unlike the upgrade-only auto-refresh (`aiwf update`'s passive refresh), which skips
+whenever the two versions can't be ordered. A dev/worktree build's untagged version (e.g.
+`<branch>@<sha>[-dirty]`) landed unconditionally in the shared, cross-project user scope regardless.
+`--statusline` now requires confirmation (an interactive `[y/N]` prompt on a TTY, or the new
+`--allow-untagged-statusline` flag otherwise) before writing when the running binary's version is
+untagged; a tagged release binary is unaffected and still writes unconditionally, as before.
+
 ### Fixed — G-0373: `aiwfx-release`'s CI-green check is stack-neutral, not Go-specific
 
 The pre-release CI-green check named `go.yml` as "the primary Go workflow", grepped
