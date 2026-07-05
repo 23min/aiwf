@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: post-commit reconciliation touches only the verb's written paths
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: verb.Apply retrofit onto primitive with git-stash isolation removed
