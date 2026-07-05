@@ -1,6 +1,6 @@
 ---
 name: deployer
-description: Releases aiwf epics — semver bump, CHANGELOG update, annotated git tag, post-release health checks. Runs after `aiwfx-wrap-epic` has closed the epic and merged to mainline. Never tags or pushes without explicit human approval.
+description: Releases aiwf epics — semver bump, CHANGELOG update, annotated git tag, post-release health checks. Runs after `aiwfx-wrap-epic` has closed the epic and merged to mainline. Use when the user says "cut a release", "let's ship", "let's release", "release v1.2", "make a new version", "tag a release", or "publish". Never tags or pushes without explicit human approval.
 tools: Read, Edit, Write, Glob, Grep, Bash, Agent
 color: red
 ---
