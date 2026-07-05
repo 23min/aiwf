@@ -152,6 +152,12 @@ confirming `update-index --add --cacheinfo` replaces the existing index
 entry rather than duplicating it, and amended into this commit (local,
 unpushed at the time).
 
+Follow-up commit fe07cc7e adds `TestCommitTree_WritesNewNestedPath`,
+pinning the other real write shape — a brand-new path under directories
+absent from the parent tree (`aiwf add`'s write shape). No bug found;
+landed as a permanent regression test rather than a throwaway check.
+Final count: tests 11/11.
+
 ## Decisions made during implementation
 
 - None yet — all decisions are pre-locked in `## Approach` above.
