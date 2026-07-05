@@ -4,6 +4,31 @@ title: gitops commit primitive via temp-index and commit-tree
 status: draft
 parent: E-0045
 tdd: required
+acs:
+    - id: AC-1
+      title: temp-index primitive never touches the live index or worktree
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: post-commit reconciliation touches only the verb's written paths
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: verb.Apply retrofit onto primitive with git-stash isolation removed
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: commit-tree output honors commit.gpgsign parity
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: commit-construction core exposes a reusable seam
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: per-commit shape validation dropped from verb-commit path
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -28,3 +53,16 @@ Still exactly one commit per verb; "undo" is unchanged (another verb invocation 
 ## References
 
 G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why a naive `git commit --only` revert is unsafe — do not re-propose it). ACs authored at start-milestone (contract-first).
+
+### AC-1 — temp-index primitive never touches the live index or worktree
+
+### AC-2 — post-commit reconciliation touches only the verb's written paths
+
+### AC-3 — verb.Apply retrofit onto primitive with git-stash isolation removed
+
+### AC-4 — commit-tree output honors commit.gpgsign parity
+
+### AC-5 — commit-construction core exposes a reusable seam
+
+### AC-6 — per-commit shape validation dropped from verb-commit path
+
