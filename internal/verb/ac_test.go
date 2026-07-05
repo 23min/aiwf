@@ -3,9 +3,11 @@ package verb_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/verb"
@@ -120,6 +122,125 @@ func TestAddAC_AppendsBodyContentWhenNoPlaceholder(t *testing.T) {
 	ci := strings.Index(body, "The contract prose.")
 	if hi < 0 || ci < 0 || ci < hi {
 		t.Errorf("body content should follow the appended heading; heading@%d prose@%d:\n%s", hi, ci, body)
+	}
+}
+
+// TestAddAC_InsertsHeadingInsideAcceptanceCriteriaSection_WhenLaterSectionsExist
+// is the G-0364 regression: when the milestone body carries sections
+// after `## Acceptance criteria` (the ritual milestone template's
+// Constraints/Design notes/…/Work log), a new AC with no existing
+// placeholder heading must land inside the Acceptance-criteria section
+// — not at absolute body-end, past those later sections, where
+// `entity-body-empty` cannot see it.
+func TestAddAC_InsertsHeadingInsideAcceptanceCriteriaSection_WhenLaterSectionsExist(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	m := r.tree().ByID("M-0001")
+	abs := filepath.Join(r.root, m.Path)
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Simulate the rich milestone-spec.md template: sections after
+	// Acceptance criteria, no AC placeholder headings at all.
+	richened := string(raw) + "\n## Constraints\n\n- none\n\n## Work log\n\n## Reviewer notes\n\n- (none)\n"
+	if writeErr := os.WriteFile(abs, []byte(richened), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	headingIdx := strings.Index(body, "### AC-1 — Real criterion")
+	constraintsIdx := strings.Index(body, "## Constraints")
+	if headingIdx < 0 || constraintsIdx < 0 {
+		t.Fatalf("expected both the new heading and `## Constraints` present:\n%s", body)
+	}
+	if headingIdx > constraintsIdx {
+		t.Errorf("new AC heading landed at %d, after `## Constraints` at %d — should be inside Acceptance criteria, not past later sections:\n%s", headingIdx, constraintsIdx, body)
+	}
+	// The gap's actual claim (G-0364): entity-body-empty must not fire
+	// on `## Acceptance criteria` once it holds a real AC heading. Pin
+	// that directly via the same emptiness rule the check runs, not
+	// just the heading's textual position.
+	if empty := check.EmptyRequiredSections(entity.KindMilestone, []byte(body)); slices.Contains(empty, "Acceptance criteria") {
+		t.Errorf("entity-body-empty would still fire on `## Acceptance criteria`: %v", empty)
+	}
+}
+
+// TestAddACBatch_MultipleNewHeadingsInsertInOrder covers batch creation
+// against a body with sections following Acceptance criteria: each new
+// AC in the batch must land inside the section, in allocation order,
+// rather than all landing at body-end or reversed.
+func TestAddACBatch_MultipleNewHeadingsInsertInOrder(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	m := r.tree().ByID("M-0001")
+	abs := filepath.Join(r.root, m.Path)
+	raw, err := os.ReadFile(abs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	richened := string(raw) + "\n## Constraints\n\n- none\n"
+	if writeErr := os.WriteFile(abs, []byte(richened), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001",
+		[]string{"First new", "Second new"}, nil, testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	firstIdx := strings.Index(body, "### AC-1 — First new")
+	secondIdx := strings.Index(body, "### AC-2 — Second new")
+	constraintsIdx := strings.Index(body, "## Constraints")
+	if firstIdx < 0 || secondIdx < 0 || constraintsIdx < 0 {
+		t.Fatalf("expected both new headings and `## Constraints` present:\n%s", body)
+	}
+	if firstIdx >= secondIdx || secondIdx >= constraintsIdx {
+		t.Errorf("expected AC-1 < AC-2 < Constraints (got %d, %d, %d):\n%s", firstIdx, secondIdx, constraintsIdx, body)
+	}
+	if empty := check.EmptyRequiredSections(entity.KindMilestone, []byte(body)); slices.Contains(empty, "Acceptance criteria") {
+		t.Errorf("entity-body-empty would still fire on `## Acceptance criteria`: %v", empty)
+	}
+}
+
+// TestAddAC_FallsBackToBodyEndWhenNoAcceptanceCriteriaHeading covers
+// insertNewACHeading's fallback: a malformed body with no `##
+// Acceptance criteria` heading at all still gets the new heading
+// appended at body-end — the historical behavior, since there is no
+// section to insert into.
+func TestAddAC_FallsBackToBodyEndWhenNoAcceptanceCriteriaHeading(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	m := r.tree().ByID("M-0001")
+	abs := filepath.Join(r.root, m.Path)
+	if err := os.WriteFile(abs, []byte("---\nid: M-0001\ntitle: First\nstatus: draft\nparent: E-0001\ntdd: none\n---\n\n## Goal\n\nship it\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor, nil))
+
+	body, err := readMilestoneBody(r.root, r.tree().ByID("M-0001").Path)
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	if !strings.Contains(body, "### AC-1 — Real criterion") {
+		t.Errorf("expected the heading appended at body-end:\n%s", body)
 	}
 }
 
