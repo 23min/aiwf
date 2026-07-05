@@ -365,6 +365,13 @@ func TestWalkAcknowledgedMistags(t *testing.T) {
 	f.writeFile("d.txt", "1\n")
 	f.commit("ack blank", "aiwf-verb: acknowledge-mistag", "aiwf-entity:")
 
+	// A single ack commit carrying TWO aiwf-entity trailers acknowledges
+	// BOTH — the multi-value collection branch (a real gap this test closes:
+	// neither the pre-G-0372 bespoke walk nor its predecessor test ever
+	// exercised more than one aiwf-entity trailer per ack commit).
+	f.writeFile("e.txt", "1\n")
+	f.commit("ack two entities", "aiwf-verb: acknowledge-mistag", "aiwf-entity: G-0010", "aiwf-entity: G-0011")
+
 	head := mustHead(t, f.root)
 	got := WalkAcknowledgedMistags(head)
 	if !got["G-0001"] {
@@ -376,11 +383,14 @@ func TestWalkAcknowledgedMistags(t *testing.T) {
 	if !got["M-0123"] {
 		t.Errorf("narrow M-123 should canonicalize to M-0123; got %v", got)
 	}
+	if !got["G-0010"] || !got["G-0011"] {
+		t.Errorf("expected BOTH G-0010 and G-0011 acknowledged from the two-trailer commit; got %v", got)
+	}
 	if _, ok := got[""]; ok {
 		t.Errorf("empty-valued entity trailer must not create a \"\" key; got %v", got)
 	}
 
-	// Hand-built []HeadCommit fixture carrying the SAME trailers as the four
+	// Hand-built []HeadCommit fixture carrying the SAME trailers as the five
 	// real commits above (seed commit omitted — it carries no trailers and
 	// contributes nothing either way). No git subprocess involved here.
 	handBuilt := []HeadCommit{
@@ -400,6 +410,11 @@ func TestWalkAcknowledgedMistags(t *testing.T) {
 		{SHA: "sha-4", Trailers: []gitops.Trailer{
 			{Key: "aiwf-verb", Value: "acknowledge-mistag"},
 			{Key: "aiwf-entity", Value: ""},
+		}},
+		{SHA: "sha-5", Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "acknowledge-mistag"},
+			{Key: "aiwf-entity", Value: "G-0010"},
+			{Key: "aiwf-entity", Value: "G-0011"},
 		}},
 	}
 	gotFromFixture := WalkAcknowledgedMistags(handBuilt)

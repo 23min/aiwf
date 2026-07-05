@@ -147,6 +147,21 @@ var bulkTrailerKeys = []string{
 // Without -m, a merge commit's record still carries Commit / Parents
 // / Trailers, just an empty Paths (see [CommitRecord]).
 func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) error {
+	return bulkRevwalk(ctx, root, nil, fn)
+}
+
+// bulkRevwalk is BulkRevwalk's implementation, parameterized by extra `git
+// log` arguments inserted before --pretty. BulkRevwalk itself always passes
+// nil; the sole other caller is the gitops package's own property test
+// (TestBulkRevwalk_DropM_Property in revwalk_property_test.go), which passes
+// []string{"-m"} to reconstruct the pre-G-0372 behavior as an oracle to
+// compare against — proving the -m removal changes nothing for any
+// non-merge commit, across many randomly generated histories, not just the
+// hand-picked example fixtures in revwalk_test.go. Kept unexported: this is
+// not a production knob, it exists only so the test can call the identical
+// command-building and parsing logic BulkRevwalk uses, rather than
+// duplicating (and risking drift from) it.
+func bulkRevwalk(ctx context.Context, root string, extraArgs []string, fn func(CommitRecord) error) error {
 	if root == "" {
 		return nil
 	}
@@ -158,13 +173,10 @@ func BulkRevwalk(ctx context.Context, root string, fn func(CommitRecord) error) 
 	}
 
 	pretty := buildBulkPretty()
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--all",
-		"--raw",
-		"--no-abbrev",
-		"-M",
-		"--pretty="+pretty,
-	)
+	args := []string{"log", "--all", "--raw", "--no-abbrev", "-M"}
+	args = append(args, extraArgs...)
+	args = append(args, "--pretty="+pretty)
+	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = root
 	out, err := cmd.Output()
 	if err != nil {
