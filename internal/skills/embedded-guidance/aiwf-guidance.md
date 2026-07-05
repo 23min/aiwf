@@ -43,6 +43,14 @@ lives in the `wf-codebase-health` skill.
 - **Fix closely-related issues in place.** A small adjacent correction is part of
   the work, not a new entity; file a separate gap only when the issue is
   architecturally distinct.
+- **State the conclusion in entity bodies and docs, not the drafting
+  history.** ADR / gap / decision bodies, milestone specs, and any doc you
+  author record the current design, not how the text got there — no "an
+  earlier draft said X," "this session added Y," "as of this session." If a
+  corrected assumption explains a non-obvious design choice, keep the
+  *reasoning* and state it as direct exposition; drop the draft-history
+  framing around it. Provenance (when, from what conversation) belongs in
+  one labeled section, not scattered through body prose as asides.
 - **Never write a fake id-shaped token in committed prose** (`M-alpha`, a number
   for an entity that doesn't exist); wrap an id-shape in backticks when discussing
   syntax. `aiwf check`'s `body-prose-id` rule enforces this.
