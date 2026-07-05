@@ -14,9 +14,10 @@ following the precedent of
 [`agent-agnostic-execution-topology.md`](agent-agnostic-execution-topology.md).
 
 This is not an ADR: it does not ratify a decision — if anything, it surfaces
-that **two existing, unratified designs already answer overlapping parts of
-this question**, and the first job of any follow-on work is reconciling them,
-not inventing a third.
+that **three existing, unratified designs already answer overlapping parts of
+this question** (a count that grew by one, EMB, within this same document's
+lifetime — see §4 below), and the first job of any follow-on work is
+reconciling them, not inventing a fifth.
 
 This is not research: the need is not speculative — it emerged from a live
 design conversation (2026-07-04) about G-0281's gaps-inbox that kept growing
@@ -32,7 +33,7 @@ long enough that a plan can be drafted from a coherent center.
 
 ## Initiative statement
 
-aiwf has, across separate sessions and separate artifacts, designed **three
+aiwf has, across separate sessions and separate artifacts, designed **four
 different answers** to "how does an entity get a stable id when more than one
 branch or machine might be allocating at once":
 
@@ -50,14 +51,27 @@ branch or machine might be allocating at once":
    by fetching, allocating, and pushing to a dedicated never-checked-out ref,
    retrying on collision, then reconciling the result back into the working
    branch.
+4. **Ephemeral mutation branch, "EMB"** (this document, `status: captured`,
+   not yet filed as its own gap or ADR — surfaced in a later session pressure-
+   testing (3) against real push-cost data) — wrap every Tier-1 (main-direct)
+   mutation in a short-lived branch, created and checked out **in the
+   operator's own worktree** at current HEAD, committed via the existing
+   ADR-0022 primitive, then landed onto trunk via an ordinary
+   fetch → attempt → reject-and-retry cycle — the same CAS-guarded
+   confirmation `--to-trunk` and G-0281 already use, just targeting trunk
+   directly from a branch that never leaves the operator's own worktree. See
+   §4 below.
 
-These are not three independent features. They sit on **one axis** —
+These are not four independent features. They sit on **one axis** —
 E-0052's own epic spec says as much for (1) vs (2) ("cheap-now /
 structural-later on one axis, not competitors") — but (3) was designed this
 session without weighing it against (2), and (2) already has an answer to
 several of the hardest questions (3) ran into: confirmation semantics,
 avoidance of a reconciliation step, and uniform treatment across all six
-kinds rather than gaps-only.
+kinds rather than gaps-only. (4) was designed later still, specifically
+*because* pressure-testing (3) surfaced a cost neither (2) nor (3) had
+reckoned with — see "Trunk contention" and the new initiative this spawned,
+`check-performance-incremental-revwalk-cache.md` / G-0372.
 
 The initiative is: **before any of G-0281 / M-0186 / M-0187 gets an ADR of
 its own, reconcile it explicitly against ADR-0001.** Separately, the
@@ -79,7 +93,7 @@ other guarantee (history, provenance, cross-reference integrity, the
 wrong doesn't just create friction, it silently corrupts the one property
 (id stability) the kernel promises above all others.
 
-## Prior art — three existing answers, not fully reconciled
+## Prior art — four existing answers, not fully reconciled
 
 ### 1. Incremental allocator widening — shipped, `E-0052` (`status: done`)
 
@@ -111,16 +125,16 @@ machines, genuinely concurrent — unknowable locally") as the one
 `aiwf reallocate` exists for, with **ADR-0001 named as the structural
 endpoint on the same axis** if class-3 friction ever justifies it.
 
-**Housekeeping note surfaced while researching this initiative:** `G-0272`
-and `G-0273` are still `status: open` in the active tree
-(`work/gaps/G-0272-*.md`, `work/gaps/G-0273-*.md`), but E-0052 — which both
+**Housekeeping note, resolved:** an earlier draft of this section flagged
+`G-0272` and `G-0273` as stuck `status: open` despite E-0052 — which both
 milestones (`M-0212`, `M-0213`) cite as `Source: G-0272` / `Source: G-0273`
-— is `status: done` and archived. These two gaps appear to have already
-shipped their resolution and should be promoted to `addressed` (citing the
-M-0212/M-0213 commits) and archived; they are not part of this initiative's
-scope, but they're cheap to fix and currently misrepresent the tree's true
-open-work state. `G-0274` (batch reallocate) remains legitimately open —
-E-0052 explicitly held it out of scope.
+— already shipping their resolution. Verified directly against the tree
+(2026-07-05): both are now `status: addressed` and archived, as is `G-0316`
+(cited in `M-0214` as the gap E-0052's remote-tracking-refs milestone
+closes, previously flagged here as "not audited" — see "Open gaps" below).
+All three are closed; nothing left to do. `G-0274` (batch reallocate)
+remains the one legitimately open gap in this cluster — E-0052 explicitly
+held it out of scope.
 
 ### 2. Deferred minting at trunk integration — proposed, `ADR-0001` (`status: proposed`)
 
@@ -227,6 +241,111 @@ now including the additions made this session):
   second consumer. Neither has started; `M-0187`'s own ADR (not yet
   written) is where G-0281's open questions were always meant to land.
 
+### 4. Ephemeral mutation branch ("EMB") — this document, not yet filed
+
+Surfaced in a later session, while pressure-testing whether G-0281's
+side-channel model was actually the best answer once its discoverability
+cost (§"Discoverability contention" below) was taken seriously. The
+mechanism: every Tier-1 (main-direct, per `ADR-0010`) mutation, instead of
+committing straight onto trunk, creates a short-lived branch at current
+HEAD, checks it out **in the operator's own worktree** (not a side ref, not
+a detached-elsewhere temp worktree), commits via the existing
+temp-index/commit-tree primitive (`ADR-0022`), then attempts to land it —
+fetch, push (or fast-forward-then-push) straight onto trunk, retry with a
+rebase-and-recheck on rejection, bounded. Structurally this is
+`--to-trunk`'s retry loop done in place instead of in a throwaway detached
+worktree elsewhere — the same `ConfirmAgainstRef(s, trunk)` action from the
+protocol below, just with `materialized[s]` populated at commit time instead
+of at confirmation time.
+
+**What it solves, that G-0281 and `--to-trunk` don't, together:**
+`InstantaneousUniqueness` (same CAS-guarded confirmation as both), *and*
+zero discoverability blindness (unlike G-0281 — see the table below), *and*
+generalizes to all six kinds with one mechanism instead of gaps-only, *and*
+introduces no new git primitive (ordinary branches, no dedicated ref).
+
+**What it does not solve, and should not be sold as solving:**
+
+- **Does not remove contention, only makes each instance mechanical.** Under
+  real concurrency you still lose races; EMB just makes losing one cheap to
+  recover from (fetch, rebase, recheck id, retry) instead of a manual
+  redo — *provided* that recovery cycle itself is cheap, which depends
+  entirely on the G-0372 finding below.
+- **Does not solve genuine content conflicts.** Two sessions editing the
+  *same* entity concurrently still produce an ordinary merge conflict EMB
+  can't auto-resolve — same as today, no better, no worse.
+- **Does not preserve G-0281's "works in any working-tree state" property.**
+  A worktree mid-rebase-of-something-unrelated can't safely branch-and-commit
+  in place; EMB needs a fallback for that narrow case (unresolved — see
+  "Open design questions").
+- **Correction, stated plainly:** an earlier pass through this same
+  conversation claimed EMB "is the natural implementation of ADR-0010's
+  already-deferred AI chokepoint mechanism." That's wrong, and worth
+  recording as a correction rather than silently fixing. Reading
+  `internal/verb/allow.go` directly: the actual authorization gate
+  (`scopeAllows(actor, verb, entity)`) is governed by **entity-reference-graph
+  reachability** — does the mutated entity (or its outbound references, for a
+  creation) reach the scope-entity named in an open `aiwf authorize` scope —
+  not by which git ref or branch a commit lands on. EMB's branch-per-mutation
+  mechanism has **no bearing whatsoever** on AI-actor authorization, in
+  either direction; it solves id-collision and discoverability, a
+  completely orthogonal axis. `ADR-0010`'s own "AI chokepoint" section left
+  its actual mechanism as a downstream planning question — whatever answered
+  it landed on entity-reachability, not branch topology, and EMB should not
+  be credited with closing that question.
+
+**Risks discovered under pressure-testing, not yet resolved:**
+
+- **Nested/concurrent EMB within one session.** If a second mutation fires
+  while a first mutation's ephemeral branch is still checked out mid-retry,
+  the Tier-1-vs-ritual-branch detection logic must distinguish "my own
+  in-flight ephemeral branch" from "a real ritual branch" — undesigned.
+- **The "checked out in place" property is two-sided.** It is EMB's whole
+  reason for having zero discoverability blindness, and it is also the
+  source of a real, structural cost nothing else in this document's
+  mechanisms carries: the ephemeral branch **shares the working tree** with
+  whatever else the operator is doing there, and the retry step cannot
+  fully avoid touching that shared state. An attempted fix — do the retry's
+  recompute via the same commit-tree plumbing every verb already uses,
+  never touching the real working tree or index — does not fully work: the
+  branch is *currently checked out*, so repointing its ref via raw
+  `update-ref` leaves the actual files on disk stale relative to what HEAD
+  now claims, and reconciling that requires a checkout/reset refresh — the
+  exact working-tree-touching operation the fix was trying to avoid. Two
+  concrete consequences follow: (a) if the retry's recompute is a genuine
+  `git rebase` and it hits a real content conflict (not just an id
+  collision), the operator's actual working directory is left mid-conflict
+  — and since EMB can't safely operate in an abnormal working-tree state,
+  a *later* EMB-wrapped mutation in the same worktree is blocked by the
+  *earlier* one's stuck retry, with no fallback, until a human resolves it
+  by hand; (b) even absent any conflict, unrelated uncommitted edits sitting
+  in the same worktree at retry time are exposed to whatever the refresh
+  touches. G-0281 and `--to-trunk` are structurally immune to both, because
+  neither ever shares the operator's primary worktree.
+- **Retry cost was, until this same investigation, an open question mark —
+  now it's a shared, tracked dependency, not an EMB-specific flaw.**
+  Pressure-testing EMB's retry loop against this repo's actual pre-push hook
+  found the hook costs ~22 seconds, unconditionally, on every push,
+  regardless of contention or of which of these four mechanisms is used —
+  see `check-performance-incremental-revwalk-cache.md` and **G-0372**,
+  filed directly from this finding. That initiative's prototyped fix (an
+  immutable per-commit-sha cache; measured 33x speedup, formally verified
+  correct) is a prerequisite for EMB, G-0281's opt-in push, *and* plain
+  "push after every commit" discipline alike — it does not favor EMB over
+  G-0281 or vice versa. Evaluating any of these four mechanisms against
+  *today's* push cost, rather than the cost once G-0372 lands, risks biasing
+  the comparison against all of them equally, not just against EMB.
+
+**Trunk-contention profile, stated once here since it changes the "Trunk
+contention" table below:** EMB lands directly on trunk (the ephemeral
+branch's tip is pushed straight onto `refs/heads/<trunk>` at origin, or
+fast-forwards local trunk then pushes) — it is on the **same side** of that
+axis as `--to-trunk`, not G-0281's decoupled side. It does *not* inherit
+G-0281's "no population-wide resync tax" property just because it also
+avoids G-0281's discoverability cost; those are two independent axes, and
+EMB trades one for the other differently than either existing mechanism
+does, rather than winning on both.
+
 ## Trunk contention — the friction the operator actually felt
 
 A fourth comparison axis, surfaced by lived experience rather than by reading
@@ -243,6 +362,7 @@ exactly the kind of thing multiple worktrees make visible.
 | ADR-0001 default (slug + mint-at-merge) | No — mint fires inside a merge that was already happening. | Nobody new; same as above. |
 | ADR-0001 `--to-trunk` | **Yes** — every successful call pushes straight to `origin/<trunk>`. | Every worktree/checkout that was caught up with trunk, every time *any* session uses it — the cost scales with population-wide usage, not with the caller's own usage. |
 | G-0281 side channel | No — pushes only advance the dedicated, never-checked-out ref. | Only sessions that plan to `aiwf gaps import`, on their own schedule; nobody else's view of trunk is ever invalidated by it. |
+| EMB | **Yes** — same as `--to-trunk`: every landing attempt pushes straight onto `refs/heads/<trunk>`. | Same as `--to-trunk` — population-wide, scales with usage. EMB's zero-blindness win (below) is a *different* axis from trunk-contention; it does not also buy G-0281's decoupling. |
 
 This means the "uncomfortable implication" drawn earlier — that `--to-trunk`
 might make G-0281 redundant — was incomplete. `--to-trunk` and G-0281 solve
@@ -305,6 +425,15 @@ return a false negative for a pending entity that genuinely exists.
   explicitly opt-in and un-scheduled ("the operator decides when to
   reconcile" — see "Reconciliation" above), this window has no upper bound
   in the design as written.
+- **EMB.** No blindness window, structurally — for the same reason as the
+  inbox-file default, not for G-0281's reason: `materialized[s]` is
+  populated at commit time because the branch is checked out in the
+  operator's own worktree the entire time, not because content is
+  eagerly written before confirmation. This is EMB's central
+  differentiator from G-0281: the same CAS-guarded confirmation
+  mechanism, targeting trunk directly like `--to-trunk`, without either
+  G-0281's unbounded blindness or `--to-trunk`'s brief detached-worktree
+  window.
 
 The practical failure mode this produces: a pending gap parked in the inbox
 ref is, for any tool or agent that discovers work by reading the filesystem
@@ -319,6 +448,7 @@ property is violated and `aiwf check` would report the tree as clean.
 | E-0052 / ADR-0001 default | Yes | Yes | Yes |
 | ADR-0001 `--to-trunk` | Briefly no (temp worktree, bounded by retry count) | No, transiently | No, transiently |
 | G-0281 side channel | No — deferred to an unscheduled, opt-in import | No, until import | No, until import |
+| EMB | Yes — checked out in the operator's own worktree from commit time | Yes | Yes |
 
 ## The lifecycle this initiative is actually about
 
@@ -598,6 +728,7 @@ belongs in this section:
 | ADR-0001 default | `trunk` | `BatchConfirmAgainstRef(s, trunk)`, fired by an ordinary merge | Eventual (only truly `Instantaneous` if the merge-time CAS guard and id-recompute-on-rebase are both actually implemented, per the correction above) | Yes — every ordinary branch integration touches `trunk` |
 | ADR-0001 `--to-trunk` | `trunk` | `ConfirmAgainstRef(s, trunk)` | Instantaneous | Yes — every checkout tracking `main` |
 | G-0281 | `refs/aiwf/gaps` | `ConfirmAgainstRef(s, gapsRef)` | Instantaneous | No — dedicated, never checked out |
+| EMB | `trunk` | `ConfirmAgainstRef(s, trunk)`, from a branch checked out in `s`'s own worktree | Instantaneous | Yes — every checkout tracking `main`, same as `--to-trunk` |
 
 **Mixed adoption falls out for free.** Because the confirm action is
 generic over `ref`, a realistic near-term deployment — some sessions using
@@ -741,21 +872,38 @@ manual tool invocations.
   ergonomics" — the kernel commitment this whole initiative serves.
 - `docs/pocv3/design/provenance-model.md` — principal × agent × scope
   provenance that any new commit-construction path (mint hooks, `--to-trunk`,
-  the gaps-inbox) must continue to stamp correctly.
+  the gaps-inbox, EMB) must continue to stamp correctly.
+- `docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md`
+  (`status: accepted`) — the Tier-1/Tier-2 branch model EMB operates
+  *within* (it only wraps Tier-1, main-direct mutations). Its "AI chokepoint"
+  section left the actual AI-authorization mechanism as a downstream
+  planning question; `internal/verb/allow.go` (entity-reference-graph
+  reachability, not branch topology) is what actually answers it — EMB does
+  not, despite an earlier pass through this same conversation claiming
+  otherwise. See §4's correction above.
+- `docs/initiatives/check-performance-incremental-revwalk-cache.md` — a
+  sibling initiative, spawned directly from pressure-testing EMB's retry
+  cost against this repo's real pre-push hook. Its finding (aiwf check costs
+  ~22s unconditionally, on every push, today) is the shared prerequisite for
+  EMB, G-0281's opt-in push, and plain frequent-push discipline alike — not
+  an EMB-specific concern, despite surfacing from an EMB pressure-test.
 
 ### Open gaps
 
+- `G-0372` — aiwf check's full-history git revwalks run unconditionally on
+  every push; the concrete performance blocker this initiative's EMB
+  discussion surfaced, filed against `check-performance-incremental-revwalk-cache.md`.
 - `G-0281` — opt-in gaps inbox on a never-checked-out ref; the session-long
   design thread this initiative was extracted from.
-- `G-0272` / `G-0273` — **appear to already be resolved by E-0052** (see
-  Housekeeping note above) but remain `status: open`; a cheap, separate fix.
 - `G-0274` — batch reallocate; legitimately still open, explicitly deferred
   by E-0052; relevant to the "offline-divergence bound" property above
   (reconciling N colliding entities in one pass is exactly a batch-reallocate
   shape).
-- `G-0316` — cited in `M-0214` as the gap E-0052's remote-tracking-refs
-  milestone closes; worth checking whether it's correctly archived (not
-  audited for this document).
+- `G-0272` / `G-0273` / `G-0316` — **resolved, not part of this initiative's
+  open surface.** Flagged in earlier drafts of this document as stale-open
+  despite E-0052 already shipping their fix; verified directly (2026-07-05)
+  as `status: addressed` and archived, all three. See the Housekeeping note
+  under §1 above.
 
 ### Milestones and epics
 
@@ -802,6 +950,33 @@ trunk directly" are not strictly ranked — one isn't simply better. Avoid
 collapsing this initiative's central question into "ADR-0001 wins" without
 weighing which placement semantic the actual gaps-filing workflow needs.
 
+### Risk: EMB's "checked out in place" property can produce the very abnormal working-tree state it can't operate in
+
+EMB's zero-discoverability-blindness win depends on the ephemeral branch
+staying checked out in the operator's own worktree throughout a retry, not
+just at initial commit. But the retry's recompute step, done safely, cannot
+fully avoid touching that same working tree (see §4's "checked out in place
+is two-sided" above) — so a retry that hits a genuine content conflict
+leaves the worktree mid-conflict, and any *later* EMB-wrapped mutation in
+that same worktree is then blocked by the earlier one's stuck state, with no
+designed fallback. Avoid treating this as a minor implementation detail —
+it's a structural tension between EMB's headline property and its own
+recovery mechanism that needs a real answer (abort-and-cleanly-report? a
+narrower detached-worktree fallback for the conflict case only, à la
+`--to-trunk`?) before EMB is built, not discovered after.
+
+### Risk: evaluating any of these four mechanisms against today's push cost, rather than G-0372's prospective fix
+
+`aiwf check` costs ~22s unconditionally on every push today (G-0372). Every
+comparison in this document that touches retry cost or "push often" as a
+mitigation was reasoned about against that number. Once G-0372's cache
+lands, the real cost is likely closer to the incremental-walk numbers
+measured there (tens of ms to a couple seconds for a realistic delta) — a
+large enough change that conclusions drawn under today's cost (e.g., "EMB's
+retry loop is too expensive to trust") may not hold once it ships. Avoid
+treating a conclusion reached under today's cost as durable; re-check it
+once G-0372 lands, not just once per mechanism.
+
 ## Open design questions
 
 These are intentionally not answered here — they are the reason this stays
@@ -843,6 +1018,98 @@ an initiative document rather than an ADR:
   cost alone enough to prefer ADR-0001's inbox-file model for gaps
   specifically, independent of the trunk-contention and placement-semantic
   questions above?
+- **EMB-specific, all unresolved:** how does the Tier-1-vs-ritual-branch
+  detection logic recognize "this is my own in-flight ephemeral branch,
+  don't wrap it again" for nested/concurrent invocations within one session?
+  What does EMB fall back to when the current worktree is genuinely in an
+  abnormal state (mid-rebase, mid-conflict) at mutation time — a narrower
+  detached-worktree escape hatch scoped to just that case, à la
+  `--to-trunk`? Should EMB's retry-recompute step ever touch the checked-out
+  working tree at all, or is the tension between "stays checked out
+  throughout" and "retry can't safely touch the working tree" fundamentally
+  unresolvable, meaning EMB has to give up one of those two properties
+  rather than have both?
+- Now that G-0372 exists as a separately-tracked, prototyped fix: should
+  evaluating EMB / G-0281 / `--to-trunk` against each other wait until it
+  ships, or proceed now on the understanding that all four mechanisms in
+  this document inherit today's ~22s-per-push cost until then?
+
+## Recommendation — defer all three unratified mechanisms, pending measured evidence
+
+Added after the rest of this document, once the EMB pressure-testing above
+prompted the actual question underneath all four mechanisms: is any of this
+solving a *measured* problem, or an anticipated one? Consistent with the
+classifier note's "not a plan, not an ADR" stance — this recommends
+*building nothing new yet*, which is a deferral, not a commitment to any
+epic, milestone, or timeline.
+
+**The measurement.** This repo's own git history is the only real data
+source available, and it hasn't been consulted anywhere else in this
+document until now:
+
+```
+git log --all --grep="^aiwf-verb: reallocate$" --format="%ad" --date=short   # 34 events
+git log --all --grep="^aiwf-verb: add$"        --format="%H"                 # 986 events
+```
+
+**34 reallocate events against 986 add events — a ~3.4% collision rate** —
+over this repo's ~2.3 months of history (2026-04-26 to 2026-07-05). More
+telling than the rate: those 34 events land on only 11 distinct calendar
+days, clustering into roughly five or six identifiable multi-day episodes
+(e.g., six on 2026-06-28, four the day before, three the day before that —
+the exact window G-0281 itself was designed in and cites as its own
+provenance) rather than spreading evenly across ~70 days of activity. This
+is bursty, tied to specific known episodes of heavy concurrent-worktree
+work, not a steady background tax. Every one of the 34 was resolved by a
+single `aiwf reallocate` invocation.
+
+**The verdict.** This document's own words, from the "Relationship to the
+collision cluster" note already carried in G-0281 itself, apply better here
+than anything new: *"Collisions are friction, not correctness... this whole
+effort optimizes file-time friction, not a correctness hole."* A ~3.4% rate,
+fixed in one command each time, concentrated in identifiable episodes, is
+friction `E-0052` + `aiwf reallocate` is already absorbing adequately. None
+of ADR-0001, G-0281, or EMB should be built on the strength of anticipated
+"collision fear" alone — each is real, non-trivial engineering (a new
+minting model touching all six kinds; a dedicated coordination ref plus an
+import verb; a branch-per-mutation wrapper with two open design gaps) being
+proposed against a problem the data says is small and already handled.
+
+**What to actually do now, in order, none of it contingent on resolving
+which of the three wins:**
+
+1. Land the two provably-safe fixes from `G-0372` / `check-performance-incremental-revwalk-cache.md`
+   — dropping the dead `-m` fan-out and de-duplicating the mistag walk.
+   ~5.5s off `aiwf check`'s ~22s (~25%), already verified safe, no
+   dependency on any id-minting decision.
+2. Once that lands, reinstate tight push-after-every-Tier-1-mutation
+   discipline. This targets the *original* complaint this whole initiative
+   grew from ("main moved" warnings) with zero new engineering, using
+   `E-0052` — already shipped — at its already-measured ~96.6% first-try
+   success rate.
+3. ~~Promote `G-0272` / `G-0273` to `addressed` and archive them~~ — already
+   done. Verified directly (2026-07-05): `G-0272`, `G-0273`, and `G-0316` are
+   all `status: addressed` and archived. No action needed; left here so the
+   list's own history is legible rather than silently edited away.
+4. Explicitly defer `ADR-0001`, `G-0281`, and EMB. Not reject — defer, with
+   a named trigger below.
+
+**The trigger for revisiting**, stated so it's checkable rather than a
+vibe: the reallocate rate climbing meaningfully above the measured ~3-4%,
+or the bursts stopping being tied to identifiable concurrent-work episodes
+and becoming constant background noise across ordinary activity. That
+mirrors `E-0052`'s own rejected-alternatives text near-verbatim: *"If real
+friction shows up later, any of them can earn its own design."* Re-run the
+same two `git log --grep` queries above periodically (e.g., at each epic
+wrap) rather than relying on memory or anecdote to judge whether the
+trigger has fired.
+
+**If the trigger does fire:** this document's comparison work above is not
+wasted by this deferral — it's exactly what a future decision would need,
+already reconciled. The lean, per the EMB pressure-testing, would be EMB
+first, contingent on `G-0372` having landed by then (evaluating any of the
+three against today's push cost rather than the post-`G-0372` cost risks
+biasing the decision — see the risk entry above).
 
 ## Desired future property
 
