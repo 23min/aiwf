@@ -1,7 +1,7 @@
 ---
 id: M-0186
 title: gitops commit primitive via temp-index and commit-tree
-status: draft
+status: in_progress
 parent: E-0045
 tdd: required
 acs:
