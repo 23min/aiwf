@@ -458,3 +458,38 @@ func TestCommitTree_OverwritesExistingTrackedFile(t *testing.T) {
 		t.Errorf("base.md appears %d times in the tree, want exactly 1: %q", got, entries)
 	}
 }
+
+// TestCommitTree_WritesNewNestedPath pins the other real-world write
+// shape: a brand-new path under directories that don't exist in the
+// parent tree yet (e.g. `aiwf add` creating a new entity file). Neither
+// read-tree nor update-index needs an explicit mkdir step — the index
+// and tree model paths are flat strings — but that's worth pinning
+// directly rather than assumed from the flat-path happy-path test.
+func TestCommitTree_WritesNewNestedPath(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	sha, err := CommitTree(ctx, root, []PathWrite{
+		{Path: "work/gaps/G-0999-example.md", Content: []byte("nested\n")},
+	}, "add nested entity", "", nil)
+	if err != nil {
+		t.Fatalf("CommitTree: %v", err)
+	}
+
+	entries, err := output(ctx, root, "ls-tree", "-r", "--name-only", sha)
+	if err != nil {
+		t.Fatalf("ls-tree %s: %v", sha, err)
+	}
+	if !slices.Contains(strings.Fields(entries), "work/gaps/G-0999-example.md") {
+		t.Errorf("nested path missing from tree: %q", entries)
+	}
+
+	content, err := output(ctx, root, "show", sha+":work/gaps/G-0999-example.md")
+	if err != nil {
+		t.Fatalf("show %s:work/gaps/G-0999-example.md: %v", sha, err)
+	}
+	if content != "nested\n" {
+		t.Errorf("nested file content = %q, want %q", content, "nested\n")
+	}
+}
