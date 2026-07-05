@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-07-05
+
 ### Added — E-0057: consumer-discoverable `aiwf.yaml` schema via a generated `aiwf.example.yaml`
 
 Every `aiwf.yaml` config block was previously documented only in Go struct doc comments — invisible
