@@ -108,3 +108,63 @@ own construction guarantee) is still caught by `aiwf check` at the pre-push
 boundary, confirming pre-push remains the authoritative backstop with no
 silent gap left by the removed pre-commit check.
 
+## Work log
+
+### AC-1 — temp-index primitive never touches the live index or worktree
+
+Implemented · commit 5be6580d · tests 10/10
+
+`internal/gitops/committree.go` adds `CommitTree` (resolves current HEAD as
+parent) and `commitTreeFromParent` (the actual construction: temp
+`GIT_INDEX_FILE` → `read-tree` → per-write `hash-object` + `update-index
+--cacheinfo` → `write-tree` → `commit-tree` → `update-ref HEAD` with
+compare-and-swap against the captured parent). The temp index lives under
+the repo's own `.git/` dir, not system `/tmp`. `commitTreeFromParent` is
+split out from `CommitTree` specifically so a test can drive the real
+construction-and-update-ref path against a deliberately stale parent,
+deterministically reproducing a concurrent-HEAD-move race without an
+actual race.
+
+Branch-coverage audit: 3 statements (`update-index`, `write-tree`,
+`commit-tree` generic failure branches) are `//coverage:ignore`'d — each
+requires object-database corruption or a disk-full condition between two
+git subprocess calls a few milliseconds apart, not a reachable
+input-driven branch. Every other branch (HEAD resolution failure, git-dir
+resolution failure, temp-dir creation failure, read-tree failure via a
+corrupted tree object, hash-object failure via a read-only objects dir,
+the update-ref compare-and-swap failure) has a dedicated test.
+
+`wf-vacuity` mutation probe found 3 surviving mutants on the first pass —
+read-tree silently skipped (only caught incidentally by an unrelated
+corruption test, not a direct assertion), the written blob's file mode
+silently wrong, and trailers silently dropped from the commit message —
+all fixed by strengthening the happy-path test to assert the full
+resulting tree (`git ls-tree -r`), the exact file mode, and the exact
+trailer list via `HeadTrailers`. A 4th probe (dropping the update-ref
+compare-and-swap argument) was caught clean on the first attempt.
+
+Post-vacuity confidence check surfaced one more real gap before the
+commit gate: every test used a brand-new path, and none exercised
+overwriting an already-tracked file — the primary real-world case for
+most aiwf verbs (`promote`, `edit-body`, `cancel` all rewrite an existing
+entity file). Added `TestCommitTree_OverwritesExistingTrackedFile`
+confirming `update-index --add --cacheinfo` replaces the existing index
+entry rather than duplicating it, and amended into this commit (local,
+unpushed at the time).
+
+## Decisions made during implementation
+
+- None yet — all decisions are pre-locked in `## Approach` above.
+
+## Validation
+
+<!-- Pasted at wrap. -->
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
+
