@@ -311,15 +311,49 @@ a marker so it isn't rediscovered from scratch later.
   the fix that avoids that trade entirely, by making the local, blocking,
   every-push check itself cheap rather than removing it.
 - **Sequencing: after the quick fixes land and their real impact is
-  measured, not before.** Findings 1 and 2 (a `wf-patch`, in progress) get
-  `aiwf check` from ~22s to roughly ~16.5s — real, but a stopgap: the
-  underlying "cost scales with total history" problem doesn't go away at
-  16.5s, it only buys time, and history only grows (986 `aiwf add` events
-  in this repo's first 2.3 months alone). If 16.5s is still felt as painful
-  once measured for real, that's the evidence-based trigger to scope this
-  as an epic promptly — with the refinements in this document (shared
-  cache, `merge-base`-based reconciliation, the unified primitive, the
-  testing bar above) already folded in rather than rediscovered mid-build.
+  measured, not before.** Findings 1 and 2 have since shipped as a
+  `wf-patch`; measured before/after on this repo (same tree, two binaries,
+  byte-identical findings): ~25.5s → ~19.1s, about a quarter faster — real,
+  but a stopgap, and the two-fixes number came in higher than this
+  document's original ~16.5s estimate (environment noise in this
+  container's git-subprocess overhead, not a flaw in the fixes; the
+  *relative* improvement matched). The underlying "cost scales with total
+  history" problem doesn't go away at ~19s, it only buys time, and history
+  only grows (986 `aiwf add` events in this repo's first 2.3 months alone).
+  This was the evidence-based trigger to scope the structural fix as an
+  epic — see *Provenance* below for what happened when that was tried.
+
+## A correctness constraint any future design must satisfy
+
+`fsm-history-consistent`'s verdict on a given commit is **not** a pure
+function of that commit's own blobs and parents, despite that being the
+premise both attempted designs (this document's, and a simpler alternative
+described in *Provenance* below) started from. The rule's
+`illegalTransitionFindings` / `manualEditFindings` / `forcedUntraileredFindings`
+predicates additionally exempt a commit when it appears in `ackedSHAs` (or
+the composite `ackedObs` set), and that exemption set comes from
+`WalkAcknowledgedSHAs` / `computeAckedObservations`, which walk
+**`HEAD`-reachable history only** — not `--all`. So the finding a walk
+reports for a given illegal commit depends on which `aiwf acknowledge
+illegal` commits are reachable from *the current checkout's HEAD at check
+time* — a quantity that varies per branch, per worktree, and over time.
+
+Any design that persists a "this range/ref/commit is already verified
+clean" fact across checks — or shares that fact across worktrees, which
+this repo routinely runs many of concurrently — must account for this, or
+it risks a genuine, silent false negative: a state verified clean under one
+HEAD (because an acknowledgment exempted an illegal transition) gets
+memoized and is later reused from a different HEAD that doesn't reach that
+acknowledgment, reporting "clean" where a full walk would report the
+now-unexempted illegal transition. This reproduces with two ordinary
+worktrees on different branches and one normal acknowledgment commit — no
+history rewrite required.
+
+A design that memoizes per-ref or per-commit-range cleanliness must
+therefore make the memo's validity a function of the reachable
+acknowledgment set as well as the commit range — or refuse to memoize any
+region whose "clean" verdict depended on an acknowledgment, re-verifying
+those regions on every check regardless of range.
 
 ## Desired future property
 
@@ -345,3 +379,32 @@ concurrent-writer/fail-safe testing requirements, and sighting `loom`) were
 added in a follow-on pass the same day, before any of this was built —
 tightening the design while it was still cheap to change, ahead of the
 `wf-patch` for Findings 1/2 that's scoped to land first.
+
+Findings 1 and 2 shipped as that `wf-patch`. This design was then scoped as
+epic E-0058 and subjected to four independent adversarial reviews
+(correctness, scope/sequencing, evidence-bar, operational realism). The
+reviews found it workable in principle but too complex and risky to build
+as specified: a self-contradiction between this document's shared-storage
+design and the epic's own worktree-scoped claim, a simplification that
+silently dropped the `merge-base`-based reconciliation above in favor of a
+cruder full-ref-walk fallback on force-push, missing FSM states, and a
+testing bar (property tests over stateful git operations, mutation
+testing, non-deterministic concurrent-writer tests) that didn't fit this
+repo's existing tooling or a realistic CI time budget. E-0058 was
+cancelled.
+
+A simpler alternative was then designed: a single last-verified-clean
+ref-tip watermark bounding `BulkRevwalk` via git's native `log --not <tips>`
+idiom, deliberately avoiding per-commit storage and the reconciliation/
+concurrency machinery above (the premise being that a stale watermark
+could only cause a redundant walk, never a wrong finding). Three further
+independent reviews found the core git set-algebra and boundary mechanics
+sound, but surfaced the disqualifying defect recorded in *A correctness
+constraint any future design must satisfy* above — the design's content-
+purity premise is false, because acknowledgments are HEAD-relative. That
+alternative was set aside as specified.
+
+G-0372 stays open. Both attempts, the concrete counterexample, and the
+correctness constraint they surfaced are preserved here so the
+acknowledgment-interaction problem in particular isn't rediscovered from
+scratch by whoever revisits this next.
