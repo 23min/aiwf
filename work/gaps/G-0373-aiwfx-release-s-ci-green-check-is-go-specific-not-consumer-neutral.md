@@ -1,7 +1,9 @@
 ---
 id: G-0373
 title: aiwfx-release's CI-green check is Go-specific, not consumer-neutral
-status: open
+status: addressed
+addressed_by_commit:
+    - "19041166"
 ---
 ## Problem
 
