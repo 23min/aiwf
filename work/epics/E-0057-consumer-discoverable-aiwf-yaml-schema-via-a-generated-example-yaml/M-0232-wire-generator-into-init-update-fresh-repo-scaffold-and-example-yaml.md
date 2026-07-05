@@ -205,7 +205,16 @@ byte-identical.
 
 ## Validation
 
-<!-- Pasted at wrap: test-suite results, build output, lint. -->
+- `go build ./...` — clean.
+- `go test ./internal/config/...` — 80 passing, 0 failures.
+- `go test ./internal/initrepo/...` — 109 passing, 0 failures.
+- `go test ./internal/cli/initcmd/...` — 2 passing, 0 failures.
+- `go test ./...` (full repo) — all packages pass.
+- `go test -race -parallel 8 -count=20 ./internal/config/... ./internal/initrepo/...` — clean, no races (the two packages carrying new `t.Parallel()` tests this milestone).
+- `golangci-lint run ./...` — 0 issues.
+- `aiwf check` — 0 error-severity findings (10 warnings: pre-existing `G-0288` archive noise, this milestone's own `entity-body-empty` tracked by `G-0364`, advisory `epic-active-no-drafted-milestones` and `provenance-untrailered-scope-undefined` — none attributable to this diff).
+- `make coverage-gate` — pass (diff-scoped statement coverage + firing-fixture meta-gate). One follow-up commit was needed: the readiness pass caught an untested error-propagation branch in `RefreshArtifacts` (AC-3's `ensureExampleYAML` call site) that AC-3's own cycle missed running the gate for; annotated `//coverage:ignore` consistent with the already-ignored `AtomicWriteFile` failure it can only originate from.
+- `aiwf init --help` human-verified via a real binary invocation.
 
 ## Deferrals
 
@@ -213,5 +222,30 @@ byte-identical.
 
 ## Reviewer notes
 
-- (none)
+- **Code-quality review** (fresh-context, `wf-review-code`): approve, no blocking
+  findings. Verified every AC's load-bearing claim by measurement rather than
+  trusting the spec — traced `config.Write`'s sole call site for AC-1, live-
+  reproduced the never-rewrite invariant for AC-2, reproduced the
+  refresh-on-update behavior for AC-3, confirmed the isolated-trigger test
+  genuinely isolates the branch it claims to for AC-4, and grepped the
+  codebase to confirm AC-5's `--help` claims are true. Both `//coverage:ignore`
+  annotations checked against the block-scoped audit engine, not rubber-stamped.
+  Two non-blocking notes, no action needed: `TestWrite_OmitsStatusMdByDefault` /
+  `TestWrite_OmitsArchiveByDefault` are now largely subsumed by
+  `TestWrite_EmitsFullyCommentedScaffold`'s exact-equality assertion but pin a
+  narrower, independently-useful invariant; `ensureExampleYAML` always reports
+  `Action: ActionUpdated` even on first creation (cosmetic ledger label,
+  consistent with `ensureGuidance`'s derived-artifact framing).
+- **Design-quality review** (`wf-rethink`): skipped, with reasoning recorded
+  here rather than run reflexively. This milestone extends existing pipelines
+  (`RefreshArtifacts`, `ensureGitignore`) with new steps that closely mirror an
+  established pattern (`ensureExampleYAML` follows `ensureGuidance`'s shape) —
+  no new package boundary, core abstraction, or data model, unlike M-0231's
+  reflection-based schema model. The code-quality review's full pass over the
+  same diff raised no design concern that would have called for `wf-rethink`.
+- `G-0364` (`entity-body-empty` firing on `## Acceptance criteria` regardless
+  of AC-heading prose) recurs on this milestone for the same structural reason
+  documented in `M-0231`'s Validation section — not re-filed, since the gap
+  already exists and is scoped correctly; mirrored here so the warning doesn't
+  sit undocumented in this milestone's own record.
 
