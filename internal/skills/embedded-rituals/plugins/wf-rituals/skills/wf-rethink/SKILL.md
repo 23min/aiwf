@@ -39,7 +39,7 @@ It is **not** warranted when the change is mechanical or local: a bug fix, a con
 
 The calling rituals fire `wf-rethink` on exactly this trigger, each on the **named unit** the change introduced:
 
-- `wf-patch` — at its commit gate (step 5), when the patch introduced one of the surfaces above.
+- `wf-patch` — at its independent-review step (step 6), when the patch introduced one of the surfaces above.
 - `aiwfx-wrap-milestone` — at its pre-wrap review (step 2), on the design unit(s) the milestone introduced.
 
 It is deliberately **not** wired per-AC inside `wf-tdd-cycle`: mid-cycle the design is still in flux, so a rethink there is premature and churny. The before-wrap review is the right moment — the design is settled, but still cheap to change.
