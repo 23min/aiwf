@@ -118,3 +118,38 @@ never-stale reference lives in a generated sibling the user never owns, so
 
 ### AC-5 — init --help documents idempotent re-run and untouched files
 
+## Work log
+
+### AC-1 — Fresh-repo scaffold via GenerateExample()
+
+`config.Write`'s sole caller (`ensureConfig`) always passes `&Config{}`, so its
+`"{}"` special case is the only real code path; swapped the two-line friendly
+header for `GenerateExample()`'s output · commit 685b6452 · tests 3/3
+
+Two pre-existing tests (`TestWrite_OmitsStatusMdByDefault`,
+`TestWrite_OmitsArchiveByDefault`) broke on GREEN — they asserted "no
+`status_md`/`archive` substring anywhere in the file," which the new
+commented-scaffold output legitimately contains. Fixed in place: the real
+invariant (no *active*, uncommented opt-in key) still holds, so both were
+rewritten against a new `hasActiveTopLevelKey` helper, itself covered by a
+dedicated 3-case table test. A 2-mutation vacuity pass (wrong scaffold
+literal; disabled the helper's found-branch) both caught, 0 survivors;
+`-race -parallel 8 -count=20` on both touched packages confirmed no
+G-0358-shaped data race from the new `t.Parallel()` tests.
+
+## Decisions made during implementation
+
+- (none — all decisions are pre-locked above in Design notes)
+
+## Validation
+
+<!-- Pasted at wrap: test-suite results, build output, lint. -->
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
+
