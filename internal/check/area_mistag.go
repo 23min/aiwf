@@ -140,39 +140,34 @@ func AnyAreaHasPaths(areas []AreaPaths) bool {
 	return false
 }
 
-// WalkAcknowledgedMistags walks HEAD-reachable history for commits carrying
-// `aiwf-verb: acknowledge-mistag` and returns the set of canonical entity ids
-// those commits acknowledge (via their `aiwf-entity:` trailer). AreaMistag
-// exempts these entities — the sovereign-traced escape valve for legitimate
-// cross-cutting work (M-0181/AC-6, written by `aiwf acknowledge mistag`).
+// WalkAcknowledgedMistags returns the set of canonical entity ids acknowledged
+// by an `aiwf-verb: acknowledge-mistag` commit (via that commit's
+// `aiwf-entity:` trailer) among head's commits. AreaMistag exempts these
+// entities — the sovereign-traced escape valve for legitimate cross-cutting
+// work (M-0181/AC-6, written by `aiwf acknowledge mistag`).
 //
-// Returns nil for a non-git root or empty history. Entity ids are rolled up to
-// their root and canonicalized at ingest, so a narrow-legacy trailer and a
-// canonical-width entity lookup agree (the WalkAcknowledgedSHAEntities ingest
-// convention). The verb-value match is the contract this shares with the verb
-// that emits it; the M-0181/AC-6 end-to-end test (ack → suppressed) is the
-// drift guard tying the two literals together.
-func WalkAcknowledgedMistags(ctx context.Context, root string) map[string]bool {
-	if root == "" || !hasGitCommits(ctx, root) {
+// Returns nil for an empty head. Entity ids are rolled up to their root and
+// canonicalized at ingest, so a narrow-legacy trailer and a canonical-width
+// entity lookup agree (the WalkAcknowledgedSHAEntities ingest convention).
+// The verb-value match is the contract this shares with the verb that emits
+// it; the M-0181/AC-6 end-to-end test (ack → suppressed) is the drift guard
+// tying the two literals together.
+//
+// G-0372 Fix 2: derives from the shared HEAD walk (head) instead of spawning
+// its own `git log HEAD` — the CLI gather layer at
+// internal/cli/check/check.go::Run computes WalkHeadCommits once (M-0216/AC-5)
+// and now threads it here too, mirroring WalkCherryPicks / the other
+// FromHead-converted gathers. A nil/empty head yields nil, the same "no
+// commits / no acks" signal the prior git-walk returned.
+func WalkAcknowledgedMistags(head []HeadCommit) map[string]bool {
+	if len(head) == 0 {
 		return nil
 	}
-	cmd := exec.CommandContext(ctx, "git", "log",
-		"--pretty=format:%H%x00%(trailers:unfold=true)%x00", "HEAD")
-	cmd.Dir = root
-	out, err := cmd.Output()
-	if err != nil {
-		return nil //coverage:ignore git log on a hasGitCommits-verified repo fails only on exotic IO; not deterministically reproducible.
-	}
 	acked := map[string]bool{}
-	parts := strings.Split(string(out), "\x00")
-	for i := 0; i+1 < len(parts); i += 2 {
-		block := parts[i+1]
-		if block == "" {
-			continue
-		}
+	for i := range head {
 		isMistagAck := false
 		var ids []string
-		for _, tr := range gitops.ParseTrailers(block) {
+		for _, tr := range head[i].Trailers {
 			switch tr.Key {
 			case gitops.TrailerVerb:
 				if strings.TrimSpace(tr.Value) == "acknowledge-mistag" {

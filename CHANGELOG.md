@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0372: `aiwf check` drops two unconditional-but-wasted git costs
+
+`gitops.BulkRevwalk` (the fsm-history-consistent git walk) no longer requests `-m`, which forced
+a separate diff record per parent for every merge commit even though every current consumer
+discards merge-commit observations unconditionally — a pure cost with no observable effect.
+`WalkAcknowledgedMistags` (the area-mistag acknowledgment gather) no longer spawns its own `git
+log HEAD` subprocess; it now derives the same result from the HEAD walk `aiwf check` already
+computes once per invocation. Together these measurably reduce `aiwf check`'s wall-clock cost on
+repos with sizeable history, with no change to which findings are reported. This does not resolve
+G-0372's full scope (every history-walking rule still walks from scratch on each invocation) —
+only these two provably-safe reductions.
+
 ### Fixed — G-0373: `aiwfx-release`'s CI-green check is stack-neutral, not Go-specific
 
 The pre-release CI-green check named `go.yml` as "the primary Go workflow", grepped

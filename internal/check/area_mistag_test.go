@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // TestGatherEntityPaths pins M-0181/AC-1: the gather walks HEAD-reachable
@@ -336,6 +337,14 @@ func TestMatchesAnyGlob(t *testing.T) {
 // canonical entity ids acknowledged by `aiwf-verb: acknowledge-mistag` commits,
 // canonicalizes narrow widths, skips empty-valued entity trailers, and ignores
 // commits whose verb is anything else.
+//
+// G-0372 Fix 2: WalkAcknowledgedMistags no longer spawns its own `git log
+// HEAD` — it derives from the shared []HeadCommit the CLI gather layer
+// already computed via WalkHeadCommits. This test feeds it a REAL head walk
+// (mustHead over the fixture repo built below) and additionally asserts that
+// an equivalent hand-built []HeadCommit fixture (constructed independently,
+// without touching git at all) produces an IDENTICAL acked-set — proving the
+// derivation only depends on SHA + trailers, not on any other git state.
 func TestWalkAcknowledgedMistags(t *testing.T) {
 	t.Parallel()
 	f := newWalkerFixture(t)
@@ -356,7 +365,8 @@ func TestWalkAcknowledgedMistags(t *testing.T) {
 	f.writeFile("d.txt", "1\n")
 	f.commit("ack blank", "aiwf-verb: acknowledge-mistag", "aiwf-entity:")
 
-	got := WalkAcknowledgedMistags(context.Background(), f.root)
+	head := mustHead(t, f.root)
+	got := WalkAcknowledgedMistags(head)
 	if !got["G-0001"] {
 		t.Errorf("expected G-0001 acknowledged; got %v", got)
 	}
@@ -369,20 +379,46 @@ func TestWalkAcknowledgedMistags(t *testing.T) {
 	if _, ok := got[""]; ok {
 		t.Errorf("empty-valued entity trailer must not create a \"\" key; got %v", got)
 	}
+
+	// Hand-built []HeadCommit fixture carrying the SAME trailers as the four
+	// real commits above (seed commit omitted — it carries no trailers and
+	// contributes nothing either way). No git subprocess involved here.
+	handBuilt := []HeadCommit{
+		{SHA: "sha-1", Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "acknowledge-mistag"},
+			{Key: "aiwf-entity", Value: "G-0001"},
+			{Key: "aiwf-actor", Value: "human/test"},
+		}},
+		{SHA: "sha-2", Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "promote"},
+			{Key: "aiwf-entity", Value: "G-0002"},
+		}},
+		{SHA: "sha-3", Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "acknowledge-mistag"},
+			{Key: "aiwf-entity", Value: "M-123"},
+		}},
+		{SHA: "sha-4", Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "acknowledge-mistag"},
+			{Key: "aiwf-entity", Value: ""},
+		}},
+	}
+	gotFromFixture := WalkAcknowledgedMistags(handBuilt)
+	if diff := cmp.Diff(got, gotFromFixture); diff != "" {
+		t.Errorf("real-head-derived acked set differs from hand-built-fixture-derived acked set (-realHead +fixture):\n%s", diff)
+	}
 }
 
-// TestWalkAcknowledgedMistags_Inert pins the early-return arms: an empty root,
-// a non-git directory, and a git repo with no mistag acks all yield nil.
+// TestWalkAcknowledgedMistags_Inert pins the early-return arms: a nil head
+// and a head with no mistag acks both yield nil. Unlike the pre-G-0372
+// signature, there is no root/non-git-dir case to cover — the function no
+// longer touches the filesystem or spawns git at all.
 func TestWalkAcknowledgedMistags_Inert(t *testing.T) {
 	t.Parallel()
-	if got := WalkAcknowledgedMistags(context.Background(), ""); got != nil {
-		t.Errorf("empty root: want nil, got %v", got)
-	}
-	if got := WalkAcknowledgedMistags(context.Background(), t.TempDir()); got != nil {
-		t.Errorf("non-git dir: want nil, got %v", got)
+	if got := WalkAcknowledgedMistags(nil); got != nil {
+		t.Errorf("nil head: want nil, got %v", got)
 	}
 	f := newWalkerFixture(t) // only an untrailered seed commit
-	if got := WalkAcknowledgedMistags(context.Background(), f.root); got != nil {
+	if got := WalkAcknowledgedMistags(mustHead(t, f.root)); got != nil {
 		t.Errorf("no mistag acks: want nil, got %v", got)
 	}
 }
