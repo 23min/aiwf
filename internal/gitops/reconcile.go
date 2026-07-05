@@ -14,6 +14,11 @@ import (
 // only the paths the commit actually wrote, leaving whatever else the
 // caller has staged or modified untouched.
 //
+// removes mirrors CommitTree's own removes: a rename's vacated old path
+// must be evicted from the live index too, or `git status` would keep
+// reporting it as present. A remove for a path the live index doesn't
+// have is a no-op, not an error.
+//
 // Each write's content is hashed into the object database (an identical
 // hash-object call already ran inside CommitTree for the same content —
 // git is content-addressed, so this is a cheap no-op repeat, not a
@@ -21,7 +26,13 @@ import (
 // against the real index, one path at a time — a failure partway through
 // leaves every already-processed path reconciled rather than aborting
 // the whole batch.
-func ReconcilePaths(ctx context.Context, workdir string, writes []PathWrite) error {
+func ReconcilePaths(ctx context.Context, workdir string, removes []string, writes []PathWrite) error {
+	for _, path := range removes {
+		err := run(ctx, workdir, "update-index", "--force-remove", path)
+		if err != nil {
+			return fmt.Errorf("removing %s: %w", path, err)
+		}
+	}
 	for _, w := range writes {
 		blobSHA, err := hashObject(ctx, workdir, w.Content)
 		if err != nil {

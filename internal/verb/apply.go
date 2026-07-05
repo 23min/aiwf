@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,38 +15,41 @@ import (
 )
 
 // Apply executes a verb's Plan against the consumer repo at root: it
-// runs every OpMove via `git mv`, every OpWrite atomically to disk
-// via pathutil.AtomicWriteFile (creating parent directories as
-// needed), stages the writes with `git add`, then creates the single
-// commit with the plan's subject and trailers.
+// runs every OpMove via a pure filesystem rename, every OpWrite
+// atomically to disk via pathutil.AtomicWriteFile (creating parent
+// directories as needed), builds the single commit via
+// gitops.CommitTree, then reconciles exactly the touched paths into
+// the live index via gitops.ReconcilePaths.
 //
 // Moves run before writes so that when a verb (notably reallocate)
 // renames a file/dir and also rewrites files inside that dir, the
 // writes land at the new locations.
 //
-// Atomicity: Apply is all-or-nothing. If any step after the first
-// mutation fails (write error, commit failure, panic), the worktree
-// and index are restored to their pre-Apply state via a deferred
-// rollback. The repo ends up exactly as if Apply had never been
-// called. This preserves the framework's "every mutating verb
-// produces exactly one git commit" guarantee under partial failure.
+// Isolation (M-0186): CommitTree builds the commit from HEAD's tree
+// plus the verb's own removes/writes, entirely against a throwaway
+// index — it never reads or writes the live index or worktree. Phase
+// 1/2 are pure filesystem operations too (os.Rename,
+// pathutil.AtomicWriteFile), so nothing is ever staged into the live
+// index before a successful commit. This replaces the earlier
+// git-stash isolation dance (G-0275/G-0276): there is nothing left to
+// stash, because the live index is never touched until the one,
+// narrowly-scoped ReconcilePaths call after the commit lands.
 //
-// G34 isolation: the verb's commit must capture exactly the verb's
-// mutation (plus whatever pre-commit hooks add — notably the aiwf
-// STATUS.md regenerator), and nothing of the user's pre-existing
-// staged work. Apply enforces this in two halves:
+// Conflict guard: if the user has already staged a path the verb is
+// about to write, Apply refuses before any disk mutation. The two
+// intents — the user's staged content, the verb's computed content —
+// disagree on what that path should hold; letting the verb proceed
+// would have ReconcilePaths silently overwrite the user's staged
+// version with the verb's once the commit lands.
 //
-//  1. Conflict guard. If the user has staged a path the verb is
-//     about to write, refuse before any disk mutation — the two
-//     intents disagree on what to commit, and the kernel will not
-//     silently pick one. Error names the conflicting path and
-//     points at `git restore --staged` / `git stash`.
-//
-//  2. Stash isolation. If the user has staged anything else, those
-//     entries are pushed onto the stash for the duration of the
-//     commit and popped after. The verb runs against a clean index,
-//     hooks fire normally (their `git add` lands in the verb's
-//     commit), and the user's staged work is restored after.
+// Atomicity: Apply is all-or-nothing up to the commit. If any step
+// before a successful commit fails (write error, commit failure,
+// panic), the worktree is restored to its pre-Apply state via a
+// deferred rollback — a pure filesystem operation with no git call, so
+// it cannot itself be blocked by lock contention or any other git
+// failure. Once the commit lands, it is never rolled back (it's git
+// history); a subsequent reconciliation failure is reported but does
+// not undo the commit — see reconcileFailureError.
 func Apply(ctx context.Context, root string, p *Plan) (err error) {
 	verbPaths := planPaths(p)
 	staged, stagedErr := gitops.StagedPaths(ctx, root)
@@ -56,17 +60,7 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		return conflictErr
 	}
 
-	tx := &applyTx{root: root, ctx: ctx, preApply: make(map[string][]byte)}
-	if len(staged) > 0 {
-		stashMsg := fmt.Sprintf("aiwf pre-verb stash: %s", p.Subject)
-		// Capture the stash top before the push so the failure path can
-		// tell whether git created an entry before aborting (G-0275).
-		beforeRef, _ := gitops.StashTopRef(ctx, root)
-		if stashErr := gitops.StashStaged(ctx, root, stashMsg); stashErr != nil {
-			return stashIsolationError(ctx, root, beforeRef, stashErr)
-		}
-		tx.stashed = true
-	}
+	tx := &applyTx{root: root, ctx: ctx}
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.rollback()
@@ -76,65 +70,50 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 			if rbErr := tx.rollback(); rbErr != nil { //coverage:ignore defensive: requires both primary error and rollback failure simultaneously
 				err = fmt.Errorf("%w (rollback also failed: %w — manual cleanup may be needed)", err, rbErr)
 			}
-			return
-		}
-		// Success path: pop the stash so the user's staged work is
-		// back in the index for their next commit. A pop failure
-		// here is reported but does not retroactively fail the
-		// verb's commit (which already landed); the user can
-		// recover with `git stash pop` and `git stash list`.
-		if tx.stashed {
-			tx.stashed = false
-			if popErr := gitops.StashPop(ctx, root); popErr != nil {
-				err = fmt.Errorf(
-					"verb commit landed but restoring your pre-staged changes failed: %w\n"+
-						"  your work is safe in `git stash list`; run `git stash pop` to restore it",
-					popErr,
-				)
-			}
 		}
 	}()
 
-	// Phase 1: moves. `git mv` does not auto-create parent directories
+	// Phase 1: moves. A pure filesystem rename — CommitTree builds the
+	// commit from HEAD's tree plus explicit removes/writes below, not
+	// from the live index, so there is no reason to stage the rename
+	// there at all. os.Rename does not auto-create parent directories
 	// for the destination, so we MkdirAll the target's parent first.
-	// This is a no-op when the parent already exists (the common case
-	// for rename/reallocate, which move within an existing dir) and a
-	// bootstrap when it doesn't (archive's first sweep, which creates
-	// per-kind `archive/` subdirectories on demand). Idempotent;
-	// MkdirAll on existing returns nil.
+	//
+	// One rename undoes the move regardless of file vs. directory (see
+	// moveUndo, D-0029): it doesn't need to read what's inside a moved
+	// directory, so reversal stays correct even with a permission-denied
+	// entry nested inside, and — recorded in the same chronological
+	// journal as Phase 2's writes, replayed LIFO on rollback — composes
+	// correctly with a later OpWrite that rewrites a file inside the
+	// moved directory (undo the rewrite before reversing the move).
 	for _, op := range p.Ops {
 		if op.Type != OpMove {
 			continue
 		}
-		// Capture pre-Apply worktree state of BOTH endpoints before
-		// `git mv` mutates the tree, so a rollback restores src's bytes
-		// and removes dest if dest didn't exist pre-Apply. G-0170.
-		if capErr := tx.capturePreApply(op.Path); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
-			return capErr
-		}
-		if capErr := tx.capturePreApply(op.NewPath); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
-			return capErr
-		}
+		srcFull := filepath.Join(root, op.Path)
 		destFull := filepath.Join(root, op.NewPath)
 		if mkdirErr := os.MkdirAll(filepath.Dir(destFull), 0o755); mkdirErr != nil {
 			return fmt.Errorf("creating parent of %s: %w", op.NewPath, mkdirErr)
 		}
-		if mvErr := gitops.Mv(ctx, root, op.Path, op.NewPath); mvErr != nil {
-			return classifyGitError(ctx, root, fmt.Sprintf("git mv %s -> %s", op.Path, op.NewPath), mvErr)
+		if mvErr := os.Rename(srcFull, destFull); mvErr != nil {
+			return fmt.Errorf("moving %s -> %s: %w", op.Path, op.NewPath, mvErr)
 		}
-		tx.touchedPaths = append(tx.touchedPaths, op.Path, op.NewPath)
+		tx.journal = append(tx.journal, moveUndo{from: op.Path, to: op.NewPath})
 	}
 
 	// Phase 2: writes.
-	writtenPaths := []string{}
 	for _, op := range p.Ops {
 		if op.Type != OpWrite {
 			continue
 		}
-		// Capture pre-Apply worktree bytes (or absent marker) BEFORE
-		// overwriting on disk so rollback can restore the exact pre-Apply
-		// state — not HEAD — when the commit fails. G-0170.
-		if capErr := tx.capturePreApply(op.Path); capErr != nil { //coverage:ignore requires concurrent FS mutation: capturePreApply only errors when Lstat or post-IsRegular ReadFile race the file
+		// Capture whatever is on disk at op.Path RIGHT BEFORE this write
+		// — not once per path, but once per write. A path written twice
+		// (or moved into, then rewritten) gets an undo step per write;
+		// LIFO replay on rollback naturally lands a repeatedly-written
+		// path on its true pre-Apply state, since each step restores
+		// what was there immediately before it ran. G-0170.
+		undo, capErr := captureWrite(root, op.Path)
+		if capErr != nil {
 			return capErr
 		}
 		full := filepath.Join(root, op.Path)
@@ -144,37 +123,129 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		if writeErr := pathutil.AtomicWriteFile(full, op.Content, 0o644); writeErr != nil {
 			return fmt.Errorf("writing %s: %w", op.Path, writeErr)
 		}
-		writtenPaths = append(writtenPaths, op.Path)
-		tx.touchedPaths = append(tx.touchedPaths, op.Path)
+		tx.journal = append(tx.journal, undo)
 	}
 
-	if len(writtenPaths) > 0 {
-		if addErr := gitops.Add(ctx, root, writtenPaths...); addErr != nil {
-			return classifyGitError(ctx, root, "git add", addErr)
-		}
+	removes, writes, gatherErr := gatherCommitOps(root, p)
+	if gatherErr != nil {
+		return gatherErr
 	}
 
-	commit := gitops.Commit
-	if p.AllowEmpty {
-		commit = gitops.CommitAllowEmpty
+	// git commit-tree (unlike git commit) has no built-in refusal for a
+	// same-tree commit — without this guard, a plan that computes zero
+	// Ops without setting AllowEmpty (a verb bug) would silently create
+	// an empty commit instead of failing loudly.
+	if !p.AllowEmpty && len(removes) == 0 && len(writes) == 0 {
+		return errors.New("nothing to commit: plan has no file operations")
 	}
-	if commitErr := commit(ctx, root, p.Subject, p.Body, p.Trailers); commitErr != nil {
-		return classifyGitError(ctx, root, "git commit", commitErr)
+
+	sha, commitErr := gitops.CommitTree(ctx, root, removes, writes, p.Subject, p.Body, p.Trailers)
+	if commitErr != nil {
+		return fmt.Errorf("commit-tree: %w", commitErr)
 	}
 	tx.committed = true
+
+	// CommitTree is plumbing (commit-tree + update-ref) — it fires no
+	// git hooks at all, unlike the `git commit` porcelain it replaces.
+	// Firing post-commit explicitly restores parity for the STATUS.md
+	// regeneration hook (G-0112) and any hook a user has chained into
+	// post-commit.local. Best-effort, matching git's own tolerance for
+	// this hook: its exit status is informational only.
+	_ = gitops.RunPostCommitHook(ctx, root)
+
+	if reconcileErr := gitops.ReconcilePaths(ctx, root, removes, writes); reconcileErr != nil {
+		return reconcileFailureError(ctx, root, sha, reconcileErr)
+	}
 	return nil
 }
 
+// gatherCommitOps determines the full removes/writes sets CommitTree
+// needs, reading back the worktree's current state after both phases
+// have fully run — rather than trusting op.Content — so a plan that
+// both moves and rewrites the same destination (reallocate, move)
+// lands the FINAL bytes regardless of Ops order.
+//
+// An OpMove's destination may be a single file OR a directory (an
+// epic/contract dir move, potentially containing a nested milestone):
+// os.Rename moves a directory atomically without altering its internal
+// relative structure, so a directory destination is walked recursively,
+// producing one old-path/new-path pair per file inside by substituting
+// the op's Path/NewPath prefixes. An OpWrite contributes its own path
+// directly (including one that rewrites a file inside a just-moved
+// directory). Paths are deduped by final path so a move-then-rewrite
+// pair produces exactly one write.
+func gatherCommitOps(root string, p *Plan) (removes []string, writes []gitops.PathWrite, err error) {
+	seen := make(map[string]bool, len(p.Ops))
+	addFile := func(oldPath, newPath string) error {
+		if seen[newPath] {
+			return nil
+		}
+		seen[newPath] = true
+		content, readErr := os.ReadFile(filepath.Join(root, newPath))
+		if readErr != nil {
+			return fmt.Errorf("reading %s for commit: %w", newPath, readErr)
+		}
+		if oldPath != "" {
+			removes = append(removes, oldPath)
+		}
+		writes = append(writes, gitops.PathWrite{Path: newPath, Content: content})
+		return nil
+	}
+
+	for _, op := range p.Ops {
+		if op.Type != OpMove {
+			continue
+		}
+		destFull := filepath.Join(root, op.NewPath)
+		info, statErr := os.Lstat(destFull)
+		if statErr != nil {
+			return nil, nil, fmt.Errorf("stat %s for commit: %w", op.NewPath, statErr)
+		}
+		if !info.IsDir() {
+			if addErr := addFile(op.Path, op.NewPath); addErr != nil {
+				return nil, nil, addErr
+			}
+			continue
+		}
+		walkErr := filepath.WalkDir(destFull, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil { //coverage:ignore requires the destination directory to change under us mid-walk (removed/permission-denied) — a race, not a reachable input-driven branch
+				return walkErr
+			}
+			if d.IsDir() {
+				return nil
+			}
+			rel, relErr := filepath.Rel(destFull, path)
+			if relErr != nil { //coverage:ignore WalkDir always yields paths rooted at destFull; Rel can only fail for a path outside destFull's tree
+				return relErr
+			}
+			rel = filepath.ToSlash(rel)
+			return addFile(op.Path+"/"+rel, op.NewPath+"/"+rel)
+		})
+		if walkErr != nil {
+			return nil, nil, fmt.Errorf("walking %s for commit: %w", op.NewPath, walkErr)
+		}
+	}
+
+	for _, op := range p.Ops {
+		if op.Type != OpWrite {
+			continue
+		}
+		if addErr := addFile("", op.Path); addErr != nil {
+			return nil, nil, addErr
+		}
+	}
+
+	return removes, writes, nil
+}
+
 // planPaths returns the union of every path a Plan touches: every
-// OpMove's source and destination, plus every OpWrite's path. The
-// commit step uses this set to scope `git commit -- <paths>` so the
-// commit boundary is the verb's mutation rather than the entire
-// index. Order matches git's typical iteration (moves first, then
-// writes); duplicates are removed.
+// OpMove's source and destination, plus every OpWrite's path. Used to
+// scope the pre-flight conflict guard against the verb's mutation.
+// Order matches git's typical iteration (moves first, then writes);
+// duplicates are removed.
 //
 // A plan with only AllowEmpty (authorize, audit-only) and no Ops
-// returns nil — there's no diff to scope, and the commit becomes a
-// trailers-only `git commit --allow-empty` with no pathspec.
+// returns nil — there's no path set to guard.
 func planPaths(p *Plan) []string {
 	if p == nil || len(p.Ops) == 0 {
 		return nil
@@ -194,15 +265,16 @@ func planPaths(p *Plan) []string {
 // checkStagedConflict refuses Apply when the user has already staged
 // content for a path the verb is about to write or rename. The two
 // intents (the user's staged content for that path, the verb's
-// computed content) cannot both land in the verb's commit. Stashing
-// would lose the user's staged version (the verb's worktree write
-// already overwrote it on disk), so we refuse before any mutation.
+// computed content) cannot both land in the verb's commit, and letting
+// the verb proceed would have the post-commit ReconcilePaths step
+// silently overwrite the user's staged version with the verb's once
+// the commit lands. The error message names every conflicting path and
+// points the user at `git restore --staged` / `git stash` so recovery
+// is mechanical.
 //
-// Pre-staged paths *outside* the verb's path set are isolated by the
-// stash dance in Apply, not by this guard — they survive the verb's
-// commit and are restored to the index after. The error message names
-// every conflicting path and points the user at `git restore --staged`
-// / `git stash` so recovery is mechanical.
+// Pre-staged paths *outside* the verb's path set are simply left
+// alone — Apply never touches the live index for any path it did not
+// itself write, so they survive the verb's commit untouched.
 func checkStagedConflict(staged, verbPaths []string) error {
 	if len(staged) == 0 || len(verbPaths) == 0 {
 		return nil
@@ -230,75 +302,37 @@ func checkStagedConflict(staged, verbPaths []string) error {
 	)
 }
 
-// stashIsolationError turns a failed pre-verb StashStaged into a
-// transactional, actionable error (G-0275). `git stash push --staged`
-// can abort *after* creating its stash entry — notably when a staged
-// rename's old path is occupied by an untracked file, so reverting the
-// rename can't recreate the old path. Left alone, that entry dangles on
-// the stack and the verb's mutation never lands: a silent half-state.
-//
-// We drop the entry git created — detected by comparing the current
-// stash top against beforeRef — so no residue is left, then return a
-// message naming the likely cause and the fix. Dropping (not popping)
-// is correct: the entry is a redundant snapshot of work still present
-// in the index and worktree; a pop would re-trigger the conflict that
-// failed the push. Cleanup is best-effort — a probe/drop error does not
-// mask the original stash failure the caller needs to see.
-func stashIsolationError(ctx context.Context, root, beforeRef string, stashErr error) error {
-	if afterRef, refErr := gitops.StashTopRef(ctx, root); refErr == nil && afterRef != "" && afterRef != beforeRef {
-		_ = gitops.StashDrop(ctx, root)
+// reconcileFailureError composes the error Apply returns when the
+// commit landed but ReconcilePaths (syncing the verb's paths into the
+// live index) failed. `--audit-only` recovery does not apply here —
+// the commit already exists in git history, complete with trailers.
+// The fix is re-running `git add` for the affected paths once the
+// underlying issue (commonly `.git/index.lock` contention from an
+// unrelated process — the one lock ReconcilePaths can still hit, since
+// unlike CommitTree it does touch the live index) clears.
+func reconcileFailureError(ctx context.Context, root, sha string, reconcileErr error) error {
+	var hint string
+	if isIndexLockError(reconcileErr.Error()) {
+		hint = lockContentionHint(ctx, root)
 	}
-	return fmt.Errorf(
-		"couldn't set aside your pre-staged changes to isolate this verb's commit: %w\n"+
-			"  this usually means a staged rename has an untracked file at its old path\n"+
-			"  (git stash can't recreate the old path over the untracked file)\n"+
-			"  commit or unstage your pending changes, then re-run the verb",
-		stashErr,
-	)
-}
-
-// classifyGitError inspects a git CLI failure (mv, add, or commit)
-// and, when the underlying cause is `.git/index.lock` contention
-// from another process (a file watcher, an editor's git extension,
-// or a stale lock from a prior crash), wraps the error with
-// diagnostic detail and a hint pointing at the G24 audit-only
-// recovery path. The classification fires on every git step Apply
-// runs, since any of them can hit the lock first.
-//
-// Lock-holder lookup is best-effort: if `lsof` is missing, exits
-// non-zero, or returns no lines, the function falls back to the
-// bare error. The kernel never blocks the user on diagnostic
-// gathering, and never silently retries — silent retries hide real
-// environmental problems and can race against the holder.
-//
-// Reference: docs/pocv3/plans/provenance-model-plan.md §"Step 5c"
-// and docs/pocv3/gaps.md G24.
-func classifyGitError(ctx context.Context, root, step string, gitErr error) error {
-	if !isIndexLockError(gitErr.Error()) {
-		return fmt.Errorf("%s: %w", step, gitErr)
-	}
-	hint := lockContentionHint(ctx, root)
 	if hint == "" {
 		return fmt.Errorf(
-			"%s failed due to .git/index.lock contention\n"+
-				"  another process holds the index lock; wait for it to finish, kill the holder,\n"+
-				"  or — if you completed the work manually — re-run with `--audit-only --reason \"...\"`\n"+
-				"  underlying error: %w",
-			step, gitErr,
+			"verb commit %s landed but syncing your index failed: %w\n"+
+				"  your commit is safe; run `git add` for the affected paths once the issue clears\n"+
+				"  (`git status` shows what's affected)",
+			sha, reconcileErr,
 		)
 	}
 	return fmt.Errorf(
-		"%s failed due to .git/index.lock contention\n"+
+		"verb commit %s landed but syncing your index failed: %w\n"+
 			"  %s\n"+
-			"  wait for the holder to finish, kill it, or — if you completed the work manually —\n"+
-			"  re-run with `--audit-only --reason \"...\"`\n"+
-			"  underlying error: %w",
-		step, hint, gitErr,
+			"  your commit is safe; run `git add` for the affected paths once the issue clears",
+		sha, reconcileErr, hint,
 	)
 }
 
-// isIndexLockError reports whether the error string from a failed
-// `git commit` indicates `.git/index.lock` contention. Git's exact
+// isIndexLockError reports whether the error string from a failed git
+// operation indicates `.git/index.lock` contention. Git's exact
 // wording varies across versions; we match on the load-bearing
 // substrings without anchoring on a full message template.
 //
@@ -335,8 +369,8 @@ func lockContentionHint(ctx context.Context, root string) string {
 	}
 	lockPath := filepath.Join(gitDir, "index.lock")
 	if _, statErr := os.Stat(lockPath); statErr != nil {
-		// The lock cleared between commit failure and our diagnostic
-		// — race, but harmless; nothing to report.
+		// The lock cleared between the failure and our diagnostic —
+		// race, but harmless; nothing to report.
 		return ""
 	}
 	if _, lookErr := exec.LookPath("lsof"); lookErr != nil {
@@ -351,7 +385,7 @@ func lockContentionHint(ctx context.Context, root string) string {
 	if pid == "" {
 		return ""
 	}
-	if name == "" {
+	if name == "" { //coverage:ignore parseLsof only pairs a non-empty pid with an empty name if fields[0] were empty, which strings.Fields never produces — structurally unreachable given parseLsof's own contract, not a race
 		return fmt.Sprintf("lock holder: PID %s", pid)
 	}
 	return fmt.Sprintf("lock holder: PID %s (%s)", pid, name)
@@ -377,119 +411,114 @@ func parseLsof(out string) (pid, name string) {
 	return fields[1], fields[0]
 }
 
-// applyTx tracks the paths a partial Apply has touched so the
-// deferred rollback can restore the repo to its pre-call state.
-//
-// preApply holds the captured pre-Apply worktree state of each touched
-// path, populated by capturePreApply *before* any mutation runs: nil
-// bytes encode "path was absent on disk pre-Apply" (its rollback is a
-// remove), non-nil bytes encode "path's worktree content pre-Apply"
-// (its rollback is a write-back of those bytes). This makes a failed
-// commit leave the worktree exactly as the operator left it — including
-// uncommitted edits at touched paths — rather than reverting to HEAD.
-// G-0170.
-type applyTx struct {
-	root         string
-	ctx          context.Context
-	touchedPaths []string          // every path that may need restoring (sources + dests)
-	preApply     map[string][]byte // captured pre-Apply worktree state; nil = absent
-	committed    bool              // when true, rollback is a no-op for the verb's mutations
-	stashed      bool              // when true, the user's pre-existing stage was pushed; rollback pops it
+// undoStep reverses one completed Phase 1/2 mutation. applyTx.journal
+// records these in execution order; rollback replays them in reverse
+// (LIFO) — see D-0029. LIFO is what makes a directory move composed
+// with a later rewrite of a file inside it reversible: the rewrite's
+// undo (restore pre-rewrite bytes) runs before the move's undo
+// (rename the directory back), so the directory carries the
+// correctly-restored file back with it in one rename.
+type undoStep interface {
+	undo(root string) error
 }
 
-// capturePreApply records the worktree bytes (or an absent marker) of
-// rel BEFORE Apply touches it, so rollback can restore the exact
-// pre-Apply state for that path. Idempotent: a second call for the
-// same path is a no-op so that an intermediate-mutation read can't
-// overwrite the genuine pre-Apply snapshot.
-//
-// G-0170.
-func (t *applyTx) capturePreApply(rel string) error {
-	if _, already := t.preApply[rel]; already {
+// moveUndo reverses a completed OpMove (file or directory alike) via a
+// direct rename back. A rename doesn't need to read what's inside a
+// directory, so this stays correct even with a permission-denied entry
+// nested inside — the property the pre-unification `dirMoves` design
+// also relied on (see D-0029).
+type moveUndo struct {
+	from, to string
+}
+
+func (u moveUndo) undo(root string) error {
+	toFull := filepath.Join(root, u.to)
+	if _, statErr := os.Lstat(toFull); statErr != nil {
+		// Already gone (removed by something else before rollback ran,
+		// or never really landed) — nothing to reverse.
 		return nil
 	}
-	full := filepath.Join(t.root, rel)
-	info, err := os.Lstat(full)
-	if errors.Is(err, os.ErrNotExist) {
-		t.preApply[rel] = nil
-		return nil
+	fromFull := filepath.Join(root, u.from)
+	if mvErr := os.Rename(toFull, fromFull); mvErr != nil {
+		return fmt.Errorf("reversing move %s -> %s on rollback: %w", u.to, u.from, mvErr)
 	}
-	if err != nil { //coverage:ignore requires concurrent FS mutation: Lstat returns non-ErrNotExist only when the path changes type or perms between the two stat-class calls
-		return fmt.Errorf("capturing pre-apply state of %s: %w", rel, err)
-	}
-	if !info.Mode().IsRegular() {
-		// Directories (aiwf rename/reallocate move epic and contract
-		// dirs) and other non-regular files can't be captured as bytes.
-		// Don't record an entry — rollback then falls through to the
-		// existing `git restore --staged --worktree` path for that
-		// pathspec, which handles tracked directory contents correctly.
-		return nil
-	}
-	data, err := os.ReadFile(full)
-	if err != nil { //coverage:ignore requires concurrent FS mutation: ReadFile fails after a successful IsRegular check only if the file is unlinked or chmoded between the calls
-		return fmt.Errorf("capturing pre-apply state of %s: %w", rel, err)
-	}
-	t.preApply[rel] = data
 	return nil
 }
 
-// rollback restores the worktree and index for every touched path to
-// the operator's pre-Apply state — not HEAD — and, if the user's stage
-// was pushed for verb isolation, pops it back into the index. Safe to
-// call multiple times. Returns the first non-nil error encountered.
-//
-// Two-step restore: first `git restore --staged --worktree -- <paths>`
-// clears the verb's staged entries (the worktree side reverts to HEAD,
-// which is fine because the next step overwrites it). Then each touched
-// path is restored to its captured pre-Apply state — write back the
-// captured bytes, or remove the file if it didn't exist pre-Apply.
-// This is the load-bearing step that closes G-0170: pre-existing
-// uncommitted edits at touched paths survive a failed commit.
-//
-// Stash pop runs even when committed=true is false, because a partial
-// failure between stash-push and commit-success leaves the stash on
-// the stack — we must restore the user's index regardless of whether
-// the verb's mutations rolled back.
-func (t *applyTx) rollback() error {
-	var firstErr error
-	if !t.committed && len(t.touchedPaths) > 0 {
-		dedup := dedupePaths(t.touchedPaths)
-		// Step 1: clear the verb's index entries. The worktree-revert
-		// side-effect (paths revert to HEAD) is harmless — step 2
-		// overwrites the worktree from the captured pre-Apply state.
-		if rErr := restorePaths(t.ctx, t.root, dedup); rErr != nil {
-			firstErr = rErr
+// writeUndo reverses a completed OpWrite by restoring the bytes
+// captured immediately before that write ran (captureWrite), or
+// removing the path if it didn't exist before that write.
+type writeUndo struct {
+	path    string
+	existed bool
+	content []byte
+}
+
+func (u writeUndo) undo(root string) error {
+	full := filepath.Join(root, u.path)
+	if !u.existed {
+		if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			return fmt.Errorf("removing %s on rollback: %w", u.path, rmErr)
 		}
-		// Step 2: write each touched path back to its pre-Apply bytes,
-		// or remove it if it was absent on disk pre-Apply. Apply
-		// guarantees every touchedPaths entry is also in preApply
-		// (capture runs before each mutation, append runs after),
-		// so we look up unconditionally.
-		for _, p := range dedup {
-			captured := t.preApply[p]
-			full := filepath.Join(t.root, p)
-			if captured == nil {
-				if rmErr := os.Remove(full); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) && firstErr == nil {
-					firstErr = fmt.Errorf("removing %s on rollback: %w", p, rmErr)
-				}
-				continue
-			}
-			if mkErr := os.MkdirAll(filepath.Dir(full), 0o755); mkErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the parent was readable at capture time
-				firstErr = fmt.Errorf("creating parent of %s on rollback: %w", p, mkErr)
-			}
-			if wErr := pathutil.AtomicWriteFile(full, captured, 0o644); wErr != nil && firstErr == nil { //coverage:ignore requires concurrent FS mutation: the path was a regular file readable at capture time
-				firstErr = fmt.Errorf("restoring %s to pre-apply state: %w", p, wErr)
-			}
-		}
+		return nil
 	}
-	if t.stashed {
-		// Restore the user's pre-existing stage. If pop fails (e.g.,
-		// a worktree change conflicts), the entry is preserved in
-		// `git stash list`; the user can recover manually.
-		if popErr := gitops.StashPop(t.ctx, t.root); popErr != nil && firstErr == nil {
-			firstErr = fmt.Errorf("popping pre-verb stash on rollback: %w (run `git stash pop` to restore your work)", popErr)
+	if mkErr := os.MkdirAll(filepath.Dir(full), 0o755); mkErr != nil { //coverage:ignore requires concurrent FS mutation: the parent was readable moments earlier when this write's capture ran
+		return fmt.Errorf("creating parent of %s on rollback: %w", u.path, mkErr)
+	}
+	if wErr := pathutil.AtomicWriteFile(full, u.content, 0o644); wErr != nil {
+		return fmt.Errorf("restoring %s to pre-apply state: %w", u.path, wErr)
+	}
+	return nil
+}
+
+// captureWrite returns the undoStep that reverses a write about to
+// happen at rel, snapshotting whatever is currently on disk there (or
+// recording its absence). Must be called immediately before the write
+// it protects — capturing per-write, not once per path, is what lets
+// LIFO replay land a repeatedly-written path on its true pre-Apply
+// state. G-0170.
+func captureWrite(root, rel string) (writeUndo, error) {
+	full := filepath.Join(root, rel)
+	data, err := os.ReadFile(full)
+	if errors.Is(err, os.ErrNotExist) {
+		return writeUndo{path: rel, existed: false}, nil
+	}
+	if err != nil {
+		return writeUndo{}, fmt.Errorf("capturing pre-write state of %s: %w", rel, err)
+	}
+	return writeUndo{path: rel, existed: true, content: data}, nil
+}
+
+// applyTx tracks a partial Apply's completed mutations so the deferred
+// rollback can restore the repo to its pre-call state.
+//
+// journal is the chronological undo log Phase 1/2 append to as each
+// mutation succeeds; rollback replays it LIFO. This makes a failed
+// commit leave the worktree exactly as the operator left it — including
+// uncommitted edits at touched paths, and any directory moves composed
+// with rewrites of files inside them — rather than reverting to HEAD
+// or mishandling the composition (G-0170, D-0029).
+type applyTx struct {
+	root      string
+	ctx       context.Context
+	journal   []undoStep
+	committed bool // when true, rollback is a no-op — the mutation succeeded
+}
+
+// rollback reverses every recorded mutation in strict LIFO order — the
+// most recent action undone first. Pure filesystem: no git call runs
+// here, so rollback cannot itself be blocked by lock contention or any
+// other git failure. Safe to call multiple times. A no-op once the
+// verb's commit has landed (nothing to undo — the mutation succeeded).
+func (t *applyTx) rollback() error {
+	if t.committed {
+		return nil
+	}
+	var firstErr error
+	for i := len(t.journal) - 1; i >= 0; i-- {
+		if err := t.journal[i].undo(t.root); err != nil && firstErr == nil {
+			firstErr = err
 		}
-		t.stashed = false
 	}
 	return firstErr
 }
@@ -506,13 +535,4 @@ func dedupePaths(in []string) []string {
 		out = append(out, p)
 	}
 	return out
-}
-
-// restorePaths runs `git restore --staged --worktree -- <paths>` to
-// reset the index and worktree to HEAD for every path. Brand-new
-// paths produce a pathspec warning that we ignore — they are
-// unstaged separately, and the worktree file is removed by the
-// caller.
-func restorePaths(ctx context.Context, root string, paths []string) error {
-	return gitops.Restore(ctx, root, paths...)
 }

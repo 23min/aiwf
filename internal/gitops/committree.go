@@ -3,6 +3,7 @@ package gitops
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,13 +37,28 @@ type PathWrite struct {
 // Reconciling the written paths into the live index (so `git status` is
 // clean for them) is a separate concern — see the post-commit
 // reconciliation this primitive is paired with.
-func CommitTree(ctx context.Context, workdir string, writes []PathWrite, subject, body string, trailers []Trailer) (string, error) {
+//
+// removes evicts paths from the tree seeded by read-tree — the
+// mechanism a rename needs: read-tree carries the parent's tree forward
+// unchanged, so a rename's old path stays present unless explicitly
+// removed. A remove for a path absent from the parent tree is a no-op,
+// not an error.
+//
+// A repo with no commits yet (unborn HEAD) is not an error: CommitTree
+// builds a root commit instead, the same as `git commit` does on a
+// fresh repository. This matters for verb.Apply's very first commit
+// against a brand-new consumer repo.
+func CommitTree(ctx context.Context, workdir string, removes []string, writes []PathWrite, subject, body string, trailers []Trailer) (string, error) {
+	if !IsRepo(ctx, workdir) {
+		return "", errors.New("resolving HEAD: not a git repository")
+	}
 	parent, err := output(ctx, workdir, "rev-parse", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("resolving HEAD: %w", err)
+		// Unborn HEAD (no commits yet) — build a root commit.
+		return commitTreeFromParent(ctx, workdir, "", removes, writes, subject, body, trailers)
 	}
 	parent = strings.TrimSpace(parent)
-	return commitTreeFromParent(ctx, workdir, parent, writes, subject, body, trailers)
+	return commitTreeFromParent(ctx, workdir, parent, removes, writes, subject, body, trailers)
 }
 
 // commitTreeFromParent does the work of CommitTree against an explicit
@@ -51,7 +67,7 @@ func CommitTree(ctx context.Context, workdir string, writes []PathWrite, subject
 // stale parent — reproducing a concurrent-HEAD-move race deterministically,
 // without an actual race — while CommitTree's public contract stays
 // "build against current HEAD."
-func commitTreeFromParent(ctx context.Context, workdir, parent string, writes []PathWrite, subject, body string, trailers []Trailer) (string, error) {
+func commitTreeFromParent(ctx context.Context, workdir, parent string, removes []string, writes []PathWrite, subject, body string, trailers []Trailer) (string, error) {
 	gitDir, err := GitDir(ctx, workdir)
 	if err != nil {
 		return "", fmt.Errorf("resolving git dir: %w", err)
@@ -70,9 +86,21 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, writes []
 	}()
 	indexPath := filepath.Join(tmpDir, "index")
 
-	err = runIndexed(ctx, workdir, indexPath, "read-tree", parent)
-	if err != nil {
-		return "", fmt.Errorf("read-tree %s: %w", parent, err)
+	// An empty parent means a root commit (no commits yet) — the temp
+	// index starts empty (GIT_INDEX_FILE auto-creates it on first
+	// write) rather than seeded from a parent tree that doesn't exist.
+	if parent != "" {
+		err = runIndexed(ctx, workdir, indexPath, "read-tree", parent)
+		if err != nil {
+			return "", fmt.Errorf("read-tree %s: %w", parent, err)
+		}
+	}
+
+	for _, path := range removes {
+		err = runIndexed(ctx, workdir, indexPath, "update-index", "--force-remove", path)
+		if err != nil {
+			return "", fmt.Errorf("removing %s: %w", path, err) //coverage:ignore requires the freshly read-tree'd temp index to become corrupted or unwritable between read-tree and this call — no CommitTree code path produces that starting state
+		}
 	}
 
 	var blobSHA string
@@ -95,7 +123,11 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, writes []
 	treeSHA = strings.TrimSpace(treeSHA)
 
 	msg := CommitMessage(subject, body, trailers)
-	commitSHA, err := output(ctx, workdir, "commit-tree", treeSHA, "-p", parent, "-m", msg)
+	commitTreeArgs := []string{"commit-tree", treeSHA, "-m", msg}
+	if parent != "" {
+		commitTreeArgs = []string{"commit-tree", treeSHA, "-p", parent, "-m", msg}
+	}
+	commitSHA, err := output(ctx, workdir, commitTreeArgs...)
 	if err != nil {
 		return "", fmt.Errorf("commit-tree: %w", err) //coverage:ignore requires the tree object write-tree just produced, or the parent commit resolved moments earlier, to vanish from the object database in between — object-database corruption mid-call, not a reachable input-driven branch
 	}

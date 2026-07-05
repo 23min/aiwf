@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -33,12 +34,12 @@ func TestReconcilePaths_StagesOnlyWrittenPaths(t *testing.T) {
 	}
 
 	bWrite := PathWrite{Path: "b.md", Content: []byte("B content\n")}
-	sha, err := CommitTree(ctx, root, []PathWrite{bWrite}, "write b", "", nil)
+	sha, err := CommitTree(ctx, root, nil, []PathWrite{bWrite}, "write b", "", nil)
 	if err != nil {
 		t.Fatalf("CommitTree: %v", err)
 	}
 
-	err = ReconcilePaths(ctx, root, []PathWrite{bWrite})
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{bWrite})
 	if err != nil {
 		t.Fatalf("ReconcilePaths: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestReconcilePaths_HashObjectFails_ObjectsDirReadOnly(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(objectsDir, 0o755) })
 
-	err = ReconcilePaths(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}})
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}})
 	if err == nil {
 		t.Fatal("want error with a read-only objects dir, got nil")
 	}
@@ -130,7 +131,7 @@ func TestReconcilePaths_UpdateIndexFails_StaleLock(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Remove(lockPath) })
 
-	err = ReconcilePaths(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}})
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}})
 	if err == nil {
 		t.Fatal("want error with a stale index.lock, got nil")
 	}
@@ -151,12 +152,12 @@ func TestReconcilePaths_OverwritesExistingTrackedFile(t *testing.T) {
 	root := seedRepo(t, ctx) // base.md = "base\n", tracked and clean at HEAD
 
 	write := PathWrite{Path: "base.md", Content: []byte("overwritten\n")}
-	_, err := CommitTree(ctx, root, []PathWrite{write}, "overwrite base.md", "", nil)
+	_, err := CommitTree(ctx, root, nil, []PathWrite{write}, "overwrite base.md", "", nil)
 	if err != nil {
 		t.Fatalf("CommitTree: %v", err)
 	}
 
-	err = ReconcilePaths(ctx, root, []PathWrite{write})
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{write})
 	if err != nil {
 		t.Fatalf("ReconcilePaths: %v", err)
 	}
@@ -178,6 +179,92 @@ func TestReconcilePaths_OverwritesExistingTrackedFile(t *testing.T) {
 	}
 }
 
+// TestReconcilePaths_HandlesRename mirrors TestCommitTree_HandlesRename
+// on the live-index side: after a rename lands via CommitTree (old path
+// removed from the commit's tree, new path added), ReconcilePaths must
+// evict the OLD path's stale entry from the live index too — otherwise
+// `git status` would keep reporting the vacated path as still tracked
+// with content that no longer matches HEAD.
+func TestReconcilePaths_HandlesRename(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx) // base.md tracked at HEAD
+
+	write := PathWrite{Path: "renamed.md", Content: []byte("base\n")}
+	_, err := CommitTree(ctx, root, []string{"base.md"}, []PathWrite{write}, "rename base.md", "", nil)
+	if err != nil {
+		t.Fatalf("CommitTree: %v", err)
+	}
+
+	err = ReconcilePaths(ctx, root, []string{"base.md"}, []PathWrite{write})
+	if err != nil {
+		t.Fatalf("ReconcilePaths: %v", err)
+	}
+
+	staged, err := output(ctx, root, "ls-files")
+	if err != nil {
+		t.Fatalf("ls-files: %v", err)
+	}
+	fields := strings.Fields(staged)
+	if slices.Contains(fields, "base.md") {
+		t.Errorf("base.md still present in the live index after rename reconciliation: %q", staged)
+	}
+	if !slices.Contains(fields, "renamed.md") {
+		t.Errorf("renamed.md missing from the live index after reconciliation: %q", staged)
+	}
+
+	diff, err := output(ctx, root, "diff", "--cached", "--", "renamed.md")
+	if err != nil {
+		t.Fatalf("diff --cached -- renamed.md: %v", err)
+	}
+	if diff != "" {
+		t.Errorf("renamed.md not clean in the live index after ReconcilePaths: %q", diff)
+	}
+}
+
+// TestReconcilePaths_ForceRemoveFails_StaleLock exercises ReconcilePaths'
+// own removes-loop error branch directly: a stale `.git/index.lock`
+// makes `update-index --force-remove` fail before any write is ever
+// attempted (removes run first).
+func TestReconcilePaths_ForceRemoveFails_StaleLock(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	gitDir, err := GitDir(ctx, root)
+	if err != nil {
+		t.Fatalf("GitDir: %v", err)
+	}
+	lockPath := filepath.Join(gitDir, "index.lock")
+	err = os.WriteFile(lockPath, nil, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(lockPath) })
+
+	err = ReconcilePaths(ctx, root, []string{"base.md"}, nil)
+	if err == nil {
+		t.Fatal("want error with a stale index.lock, got nil")
+	}
+	if !strings.Contains(err.Error(), "removing base.md") {
+		t.Errorf("error %q should mention removing base.md", err.Error())
+	}
+}
+
+// TestReconcilePaths_RemoveOfAbsentPathIsNoOp: removing a path the live
+// index never had is a no-op, not an error — mirrors CommitTree's own
+// no-op-remove behavior on the live-index side.
+func TestReconcilePaths_RemoveOfAbsentPathIsNoOp(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	err := ReconcilePaths(ctx, root, []string{"never-existed.md"}, nil)
+	if err != nil {
+		t.Errorf("ReconcilePaths with a no-op remove = %v, want nil", err)
+	}
+}
+
 // TestReconcilePaths_EmptyWrites is a no-op: no paths to reconcile means
 // no git subprocess runs and no error.
 func TestReconcilePaths_EmptyWrites(t *testing.T) {
@@ -185,7 +272,7 @@ func TestReconcilePaths_EmptyWrites(t *testing.T) {
 	ctx := context.Background()
 	root := seedRepo(t, ctx)
 
-	if err := ReconcilePaths(ctx, root, nil); err != nil {
+	if err := ReconcilePaths(ctx, root, nil, nil); err != nil {
 		t.Errorf("ReconcilePaths(nil) = %v, want nil", err)
 	}
 }

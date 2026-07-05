@@ -77,7 +77,7 @@ func TestCommitTree_DoesNotTouchLiveIndexOrWorktree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sha, err := CommitTree(ctx, root, []PathWrite{
+	sha, err := CommitTree(ctx, root, nil, []PathWrite{
 		{Path: "new.md", Content: []byte("new content\n")},
 	}, "verb commit via temp index", "", []Trailer{
 		{Key: "aiwf-verb", Value: "add"},
@@ -191,7 +191,7 @@ func TestCommitTree_HEADResolutionFails_NotARepo(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
 
-	_, err := CommitTree(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
+	_, err := CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error in a non-repo directory, got nil")
 	}
@@ -211,7 +211,7 @@ func TestCommitTreeFromParent_GitDirFails_NotARepo(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
 
-	_, err := commitTreeFromParent(ctx, root, "0000000000000000000000000000000000000000", nil, "subject", "", nil)
+	_, err := commitTreeFromParent(ctx, root, "0000000000000000000000000000000000000000", nil, nil, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error in a non-repo directory, got nil")
 	}
@@ -220,9 +220,12 @@ func TestCommitTreeFromParent_GitDirFails_NotARepo(t *testing.T) {
 	}
 }
 
-// TestCommitTree_HEADResolutionFails_NoCommits exercises the branch
-// where the repo is real but has no commits yet, so HEAD doesn't resolve.
-func TestCommitTree_HEADResolutionFails_NoCommits(t *testing.T) {
+// TestCommitTree_CreatesRootCommitWhenNoHEAD exercises the case where
+// the repo is real but has no commits yet (unborn HEAD): CommitTree
+// must build a root commit — the same as `git commit` does on a fresh
+// repository — rather than erroring, since verb.Apply's very first
+// commit against a brand-new consumer repo hits exactly this path.
+func TestCommitTree_CreatesRootCommitWhenNoHEAD(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	root := t.TempDir()
@@ -230,12 +233,33 @@ func TestCommitTree_HEADResolutionFails_NoCommits(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 
-	_, err := CommitTree(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
-	if err == nil {
-		t.Fatal("want error with no commits yet, got nil")
+	sha, err := CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "root commit", "", nil)
+	if err != nil {
+		t.Fatalf("CommitTree: %v", err)
 	}
-	if !strings.Contains(err.Error(), "resolving HEAD") {
-		t.Errorf("error %q should mention resolving HEAD", err.Error())
+
+	parents, err := output(ctx, root, "log", "-1", "--pretty=%P", sha)
+	if err != nil {
+		t.Fatalf("log -1 --pretty=%%P: %v", err)
+	}
+	if strings.TrimSpace(parents) != "" {
+		t.Errorf("root commit has parents %q, want none", parents)
+	}
+
+	entries, err := output(ctx, root, "ls-tree", "-r", "--name-only", sha)
+	if err != nil {
+		t.Fatalf("ls-tree %s: %v", sha, err)
+	}
+	if !slices.Contains(strings.Fields(entries), "a.md") {
+		t.Errorf("root commit tree missing a.md: %q", entries)
+	}
+
+	headSHA, err := output(ctx, root, "rev-parse", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-parse HEAD: %v", err)
+	}
+	if strings.TrimSpace(headSHA) != sha {
+		t.Errorf("HEAD = %q, want %q", strings.TrimSpace(headSHA), sha)
 	}
 }
 
@@ -257,7 +281,7 @@ func TestCommitTree_MkdirTempFails_GitDirReadOnly(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(gitDir, 0o755) })
 
-	_, err = CommitTree(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
+	_, err = CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error with a read-only git dir, got nil")
 	}
@@ -291,7 +315,7 @@ func TestCommitTree_ReadTreeFails_CorruptedTreeObject(t *testing.T) {
 		t.Fatalf("removing tree object %s: %v", objectPath, err)
 	}
 
-	_, err = CommitTree(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
+	_, err = CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error with a missing tree object, got nil")
 	}
@@ -319,7 +343,7 @@ func TestCommitTree_HashObjectFails_ObjectsDirReadOnly(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chmod(objectsDir, 0o755) })
 
-	_, err = CommitTree(ctx, root, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
+	_, err = CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error with a read-only objects dir, got nil")
 	}
@@ -364,7 +388,7 @@ func TestCommitTreeFromParent_RefusesStaleParent_ConcurrentHEADMove(t *testing.T
 		t.Fatalf("concurrent commit: %v", err)
 	}
 
-	_, err = commitTreeFromParent(ctx, root, staleParent, []PathWrite{
+	_, err = commitTreeFromParent(ctx, root, staleParent, nil, []PathWrite{
 		{Path: "should-not-land.md", Content: []byte("nope\n")},
 	}, "should be refused", "", nil)
 	if err == nil {
@@ -435,7 +459,7 @@ func TestCommitTree_OverwritesExistingTrackedFile(t *testing.T) {
 	ctx := context.Background()
 	root := seedRepo(t, ctx) // base.md = "base\n", tracked at HEAD
 
-	sha, err := CommitTree(ctx, root, []PathWrite{
+	sha, err := CommitTree(ctx, root, nil, []PathWrite{
 		{Path: "base.md", Content: []byte("overwritten\n")},
 	}, "overwrite base.md", "", []Trailer{{Key: "aiwf-verb", Value: "edit-body"}})
 	if err != nil {
@@ -459,6 +483,75 @@ func TestCommitTree_OverwritesExistingTrackedFile(t *testing.T) {
 	}
 }
 
+// TestCommitTree_HandlesRename pins M-0186/AC-3's rename requirement:
+// read-tree seeds the temp index with the OLD path from the parent
+// tree, so a rename must explicitly evict it via `removes` — otherwise
+// the resulting tree would carry both the old and new paths. A rename
+// is a delete-old + add-new against the same commit tree, in one atomic
+// commit-tree call.
+func TestCommitTree_HandlesRename(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx) // base.md tracked at HEAD
+
+	sha, err := CommitTree(ctx, root, []string{"base.md"}, []PathWrite{
+		{Path: "renamed.md", Content: []byte("base\n")},
+	}, "rename base.md", "", nil)
+	if err != nil {
+		t.Fatalf("CommitTree: %v", err)
+	}
+
+	entries, err := output(ctx, root, "ls-tree", "-r", "--name-only", sha)
+	if err != nil {
+		t.Fatalf("ls-tree %s: %v", sha, err)
+	}
+	fields := strings.Fields(entries)
+	if slices.Contains(fields, "base.md") {
+		t.Errorf("base.md still present in renamed commit's tree: %q", entries)
+	}
+	if !slices.Contains(fields, "renamed.md") {
+		t.Errorf("renamed.md missing from commit's tree: %q", entries)
+	}
+
+	// The live index and worktree are untouched by the rename either —
+	// same AC-1 guarantee, now also proven for the remove side.
+	if _, statErr := os.Stat(filepath.Join(root, "renamed.md")); !os.IsNotExist(statErr) {
+		t.Errorf("renamed.md materialized into the worktree (stat err: %v)", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(root, "base.md")); statErr != nil {
+		t.Errorf("base.md removed from the worktree; CommitTree must not touch it (stat err: %v)", statErr)
+	}
+}
+
+// TestCommitTree_RemoveOfAbsentPathIsNoOp pins the underlying git
+// primitive's own behavior for a defensive edge: removing a path that
+// never existed in the parent tree does not error — the tree is built
+// as if that remove were never requested.
+func TestCommitTree_RemoveOfAbsentPathIsNoOp(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	sha, err := CommitTree(ctx, root, []string{"never-existed.md"}, []PathWrite{
+		{Path: "new.md", Content: []byte("new\n")},
+	}, "remove of absent path is a no-op", "", nil)
+	if err != nil {
+		t.Fatalf("CommitTree: %v", err)
+	}
+
+	entries, err := output(ctx, root, "ls-tree", "-r", "--name-only", sha)
+	if err != nil {
+		t.Fatalf("ls-tree %s: %v", sha, err)
+	}
+	fields := strings.Fields(entries)
+	if !slices.Contains(fields, "base.md") {
+		t.Errorf("base.md missing (unrelated no-op remove should not disturb read-tree's seed): %q", entries)
+	}
+	if !slices.Contains(fields, "new.md") {
+		t.Errorf("new.md missing from commit's tree: %q", entries)
+	}
+}
+
 // TestCommitTree_WritesNewNestedPath pins the other real-world write
 // shape: a brand-new path under directories that don't exist in the
 // parent tree yet (e.g. `aiwf add` creating a new entity file). Neither
@@ -470,7 +563,7 @@ func TestCommitTree_WritesNewNestedPath(t *testing.T) {
 	ctx := context.Background()
 	root := seedRepo(t, ctx)
 
-	sha, err := CommitTree(ctx, root, []PathWrite{
+	sha, err := CommitTree(ctx, root, nil, []PathWrite{
 		{Path: "work/gaps/G-0999-example.md", Content: []byte("nested\n")},
 	}, "add nested entity", "", nil)
 	if err != nil {

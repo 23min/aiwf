@@ -1,7 +1,6 @@
 package gitops
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -278,164 +277,6 @@ func TestRun_ErrorIncludesStderr(t *testing.T) {
 	}
 }
 
-// TestStashStaged_PushPopRoundTrip is the gitops-level pin for the
-// G34 stash-isolation primitive: StashStaged pushes only the staged
-// part of the index, leaving the worktree alone; StashPop restores
-// the staging exactly. This is the contract verb.Apply relies on to
-// isolate the user's pre-staged work from a verb's commit while
-// letting the verb's normal `git commit` flow (and any pre-commit
-// hooks that auto-add files) run unchanged.
-func TestStashStaged_PushPopRoundTrip(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	root := t.TempDir()
-
-	if err := Init(ctx, root); err != nil {
-		t.Fatalf("init: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := Add(ctx, root, "seed.md"); err != nil {
-		t.Fatalf("add seed: %v", err)
-	}
-	if err := Commit(ctx, root, "seed", "", nil); err != nil {
-		t.Fatalf("seed commit: %v", err)
-	}
-
-	// Stage a new file as if the user had work in flight.
-	userPath := filepath.Join(root, "user.md")
-	userContent := []byte("user wip\n")
-	if err := os.WriteFile(userPath, userContent, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := Add(ctx, root, "user.md"); err != nil {
-		t.Fatalf("add user: %v", err)
-	}
-
-	// Push the stage onto the stash.
-	if err := StashStaged(ctx, root, "test push"); err != nil {
-		t.Fatalf("StashStaged: %v", err)
-	}
-
-	// After push, the index must be clean of the user's stage.
-	postPush, postPushErr := StagedPaths(ctx, root)
-	if postPushErr != nil {
-		t.Fatalf("StagedPaths after push: %v", postPushErr)
-	}
-	if len(postPush) != 0 {
-		t.Errorf("StashStaged left paths staged: %v", postPush)
-	}
-
-	// Simulate the verb's commit landing — write and commit an
-	// unrelated file. This is the production scenario the stash is
-	// meant to support.
-	if err := os.WriteFile(filepath.Join(root, "verb.md"), []byte("verb\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := Add(ctx, root, "verb.md"); err != nil {
-		t.Fatalf("add verb: %v", err)
-	}
-	if err := Commit(ctx, root, "verb commit", "", nil); err != nil {
-		t.Fatalf("verb commit: %v", err)
-	}
-
-	// HEAD captured only verb.md — user's stash content is not in HEAD.
-	headFiles, headErr := output(ctx, root, "show", "--name-only", "--format=", "HEAD")
-	if headErr != nil {
-		t.Fatal(headErr)
-	}
-	files := strings.Fields(strings.TrimSpace(headFiles))
-	if len(files) != 1 || files[0] != "verb.md" {
-		t.Errorf("HEAD captured wrong paths: %v, want only [verb.md]", files)
-	}
-
-	// Pop the stash; user's stage must be back.
-	if err := StashPop(ctx, root); err != nil {
-		t.Fatalf("StashPop: %v", err)
-	}
-	postPop, postPopErr := StagedPaths(ctx, root)
-	if postPopErr != nil {
-		t.Fatalf("StagedPaths after pop: %v", postPopErr)
-	}
-	want := []string{"user.md"}
-	if diff := cmp.Diff(want, postPop); diff != "" {
-		t.Errorf("StashPop did not restore user's stage (-want +got):\n%s", diff)
-	}
-
-	// Worktree content of the popped file matches what was staged.
-	gotContent, readErr := os.ReadFile(userPath)
-	if readErr != nil {
-		t.Fatal(readErr)
-	}
-	if !bytes.Equal(gotContent, userContent) {
-		t.Errorf("worktree content after pop: %q, want %q", gotContent, userContent)
-	}
-}
-
-// TestStashTopRefAndDrop pins the G-0275 cleanup primitives:
-// StashTopRef reports "" on an empty stack and the top commit SHA when
-// an entry exists; StashDrop removes the top entry without applying it.
-// verb.Apply composes these to drop a stash that `git stash push
-// --staged` created before aborting, so no dangling entry is left.
-func TestStashTopRefAndDrop(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	root := t.TempDir()
-
-	if err := Init(ctx, root); err != nil {
-		t.Fatalf("init: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := Add(ctx, root, "seed.md"); err != nil {
-		t.Fatalf("add seed: %v", err)
-	}
-	if err := Commit(ctx, root, "seed", "", nil); err != nil {
-		t.Fatalf("seed commit: %v", err)
-	}
-
-	// Empty stack → "".
-	if top, err := StashTopRef(ctx, root); err != nil {
-		t.Fatalf("StashTopRef (empty): %v", err)
-	} else if top != "" {
-		t.Errorf("StashTopRef on empty stack = %q, want \"\"", top)
-	}
-
-	// Create a stash entry from a staged file.
-	if err := os.WriteFile(filepath.Join(root, "wip.md"), []byte("wip\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := Add(ctx, root, "wip.md"); err != nil {
-		t.Fatalf("add wip: %v", err)
-	}
-	if err := StashStaged(ctx, root, "test entry"); err != nil {
-		t.Fatalf("StashStaged: %v", err)
-	}
-
-	// Populated stack → top SHA matches `git rev-parse refs/stash`.
-	wantSHA, shaErr := output(ctx, root, "rev-parse", "refs/stash")
-	if shaErr != nil {
-		t.Fatalf("rev-parse refs/stash: %v", shaErr)
-	}
-	if top, err := StashTopRef(ctx, root); err != nil {
-		t.Fatalf("StashTopRef (populated): %v", err)
-	} else if want := strings.TrimSpace(wantSHA); top == "" || top != want {
-		t.Errorf("StashTopRef (populated) = %q, want %q", top, want)
-	}
-
-	// Drop removes the entry without applying it.
-	if err := StashDrop(ctx, root); err != nil {
-		t.Fatalf("StashDrop: %v", err)
-	}
-	if top, err := StashTopRef(ctx, root); err != nil {
-		t.Fatalf("StashTopRef (after drop): %v", err)
-	} else if top != "" {
-		t.Errorf("StashTopRef after drop = %q, want \"\"", top)
-	}
-}
-
 // TestStagedPaths reports paths in the index that differ from HEAD.
 // Used by Apply's conflict guard; the load-bearing assertions are
 // "clean index → nil/empty" and "staged file → file's path returned."
@@ -631,4 +472,134 @@ func TestHooksDir(t *testing.T) {
 			t.Errorf("HooksDir = %q, want %q", got, want)
 		}
 	})
+}
+
+// TestRunPostCommitHook_HooksDirFails exercises RunPostCommitHook's own
+// error branch directly: a non-repo workdir makes HooksDir fail before
+// any hook-file lookup happens.
+func TestRunPostCommitHook_HooksDirFails(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+
+	err := RunPostCommitHook(ctx, root)
+	if err == nil {
+		t.Fatal("want error outside a git repository, got nil")
+	}
+	if !strings.Contains(err.Error(), "resolving hooks dir") {
+		t.Errorf("error %q should mention resolving hooks dir", err.Error())
+	}
+}
+
+// TestRunPostCommitHook_NoHookInstalled is a no-op: no post-commit hook
+// file at all is not an error, mirroring git's own silent skip.
+func TestRunPostCommitHook_NoHookInstalled(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+
+	if err := RunPostCommitHook(ctx, root); err != nil {
+		t.Errorf("RunPostCommitHook with no hook installed = %v, want nil", err)
+	}
+}
+
+// TestRunPostCommitHook_NonExecutableHookIsSkipped: a post-commit file
+// exists but lacks the executable bit — git itself silently ignores a
+// non-executable hook file, and so does this.
+func TestRunPostCommitHook_NonExecutableHookIsSkipped(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	gitDir, err := GitDir(ctx, root)
+	if err != nil {
+		t.Fatalf("GitDir: %v", err)
+	}
+	hookPath := filepath.Join(gitDir, "hooks", "post-commit")
+	marker := filepath.Join(root, "hook-ran.marker")
+	script := "#!/bin/sh\ntouch '" + marker + "'\n"
+	if err := os.WriteFile(hookPath, []byte(script), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := RunPostCommitHook(ctx, root); err != nil {
+		t.Errorf("RunPostCommitHook with a non-executable hook = %v, want nil", err)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Errorf("non-executable hook ran (marker present); stat err = %v", statErr)
+	}
+}
+
+// TestRunPostCommitHook_ExecutesInstalledHook is the load-bearing
+// positive case: an installed, executable post-commit hook actually
+// runs, with workdir as its cwd. Pins M-0186's fix for the STATUS.md
+// regeneration hook (G-0112) losing its trigger once verb.Apply moved
+// to gitops.CommitTree, which fires no git hooks at all.
+func TestRunPostCommitHook_ExecutesInstalledHook(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	gitDir, err := GitDir(ctx, root)
+	if err != nil {
+		t.Fatalf("GitDir: %v", err)
+	}
+	hookPath := filepath.Join(gitDir, "hooks", "post-commit")
+	marker := filepath.Join(root, "hook-ran.marker")
+	script := "#!/bin/sh\npwd > '" + marker + "'\n"
+	err = os.WriteFile(hookPath, []byte(script), 0o755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = RunPostCommitHook(ctx, root)
+	if err != nil {
+		t.Fatalf("RunPostCommitHook: %v", err)
+	}
+	got, err := os.ReadFile(marker)
+	if err != nil {
+		t.Fatalf("hook did not run (marker missing): %v", err)
+	}
+	canonicalRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalGot, err := filepath.EvalSymlinks(strings.TrimSpace(string(got)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if canonicalGot != canonicalRoot {
+		t.Errorf("hook ran with cwd %q, want %q", canonicalGot, canonicalRoot)
+	}
+}
+
+// TestRunPostCommitHook_ToleratesHookFailure: per githooks(5), a
+// post-commit hook's exit status is informational only. A hook that
+// exits non-zero must not surface as an error.
+func TestRunPostCommitHook_ToleratesHookFailure(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	gitDir, err := GitDir(ctx, root)
+	if err != nil {
+		t.Fatalf("GitDir: %v", err)
+	}
+	hookPath := filepath.Join(gitDir, "hooks", "post-commit")
+	if err := os.WriteFile(hookPath, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := RunPostCommitHook(ctx, root); err != nil {
+		t.Errorf("RunPostCommitHook with a failing hook = %v, want nil (exit status is informational only)", err)
+	}
 }
