@@ -1,7 +1,7 @@
 ---
 id: D-0030
 title: fsm-history-consistent caches must respect ack reachability
-status: proposed
+status: accepted
 relates_to:
     - G-0372
     - E-0058
