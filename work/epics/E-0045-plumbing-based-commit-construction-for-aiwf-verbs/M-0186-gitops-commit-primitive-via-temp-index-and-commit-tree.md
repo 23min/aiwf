@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: temp-index primitive never touches the live index or worktree
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: post-commit reconciliation touches only the verb's written paths
       status: open
