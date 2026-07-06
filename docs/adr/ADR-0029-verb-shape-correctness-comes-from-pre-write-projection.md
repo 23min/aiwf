@@ -3,6 +3,11 @@ id: ADR-0029
 title: Verb shape correctness comes from pre-write projection
 status: proposed
 ---
+
+# ADR-0029 — Verb shape correctness comes from pre-write projection
+
+> **Date:** 2026-07-06 · **Decided by:** human/peter
+
 ## Context
 
 `verb.Apply` (`internal/verb/apply.go`) performs zero content validation: it runs every `OpMove`/`OpWrite` from a `*Plan` as a pure filesystem operation, then commits. Nothing in `Apply` checks that a written entity's frontmatter has a valid `id`, a non-empty `status`, or its kind's required fields. A reader encountering this for the first time can reasonably ask: what stops a verb from writing a shape-invalid entity into git history?
