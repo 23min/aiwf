@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: git worktree add failures surface directly; never reports false success
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Flag completion and --help wired per completion-drift chokepoint
