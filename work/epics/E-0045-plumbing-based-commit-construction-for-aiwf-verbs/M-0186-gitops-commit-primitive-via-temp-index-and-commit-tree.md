@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: per-commit shape validation dropped from verb-commit path
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 ## Goal
 
