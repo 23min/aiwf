@@ -251,6 +251,59 @@ journal found and fixed two more surviving mutants (LIFO→forward-order,
 and an inverted "already gone, skip" check in `moveUndo.undo`) — both now
 caught by dedicated tests.
 
+### AC-4 — commit-tree output honors commit.gpgsign parity
+
+Implemented · commit 797f5110 · tests 4/4
+
+`git commit-tree` does not consult `commit.gpgsign` the way `git commit`
+does, so `commitTreeFromParent` now reads the config explicitly via a new
+`gpgSignEnabled` helper (`git config --type=bool --get commit.gpgsign`,
+delegating git's own truthy-string parsing rather than reimplementing
+it) and passes `-S` when it reports true. Signing itself — key
+resolution, `gpg.program`, `gpg.format` — is left entirely to git's own
+machinery; `-S` alone is sufficient because `commit-tree -S` shares that
+machinery with `commit -S`.
+
+Tests use a once-generated, passphrase-less ephemeral GPG key
+(`sync.Once`, mirroring the shared-fixture convention used for expensive
+read-only test setup elsewhere in the repo) and route GNUPGHOME through
+a per-repo `gpg.program` wrapper script rather than an env var, since
+`t.Setenv` panics under `t.Parallel`. `git verify-commit` confirms the
+signed case; the unsigned case covers both an unset key and an
+explicitly-`false` one.
+
+Checking harder after a first green pass (challenged directly — "are you
+sure?") surfaced two `//coverage:ignore` mistakes rather than genuine
+gaps: the new `gpgSignEnabled` error branch was marked as requiring
+config-file corruption, but `commit.gpgsign = banana` (an ordinary typo)
+reaches it directly — `git commit` itself hard-errors identically. And
+an AC-1-era ignore on the `commit-tree` failure branch, justified purely
+by object-database corruption, stopped being accurate the moment `-S`
+became conditional: `commit.gpgsign=true` with no usable signing key is
+an entirely ordinary misconfiguration that reaches the same line. Both
+are now real tests (`TestCommitTree_MalformedGPGSignConfigIsAnError`,
+`TestCommitTree_ErrorsWhenSigningKeyUnavailable`) instead of ignores;
+`wf-vacuity` mutation probes on all three signing branches caught every
+probe on the first attempt.
+
+Pushing further on the same "are you sure?" challenge surfaced a wider,
+pre-existing gap: since `gpgSignEnabled` reads the full merged git config
+(by design — parity with `git commit` requires it), it also reads the
+invoking machine's real global config, and a reproduction (`HOME` pointed
+at a `.gitconfig` with `commit.gpgsign=true`, no working key) took down
+221 tests in `internal/verb` and 62 in `internal/gitops`. A `git stash`
+of every M-0186 change confirmed this predates the milestone entirely —
+`gitops.Commit`/`CommitAllowEmpty` (plain `git commit`) have always been
+exposed; AC-4 only extended the same exposure to `CommitTree`. A first
+fix attempt (redirecting `testsupport.HardenGitTestEnv` to cut off
+global/system config wholesale) was tried and reverted: it broke
+`internal/policies`'s cell-coverage fixtures, which intentionally inherit
+identity from the real global config to exercise aiwf's own
+actor-resolution feature. Filed as G-0375 rather than patched ad hoc —
+the correct fix is per-key (insulate `commit.gpgsign`, keep
+`user.email`/`user.name` resolving from global config), and touches
+several shared fixtures outside this milestone's scope.
+
 ## Decisions made during implementation
 
 - D-0029 — Unify applyTx rollback into a single LIFO undo journal.
