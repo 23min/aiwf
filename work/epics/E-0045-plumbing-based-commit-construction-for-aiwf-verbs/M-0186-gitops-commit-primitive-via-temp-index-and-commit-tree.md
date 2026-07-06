@@ -354,9 +354,42 @@ similarly widened to hit its unparseable-file skip, its body-less-decl
 skip, and the "`CommitVerbChange` called from outside `Apply`" branch —
 all dark on the first pass.
 
+### AC-6 — per-commit shape validation dropped from verb-commit path
+
+Implemented · commit ec15c4c9 · tests 2/2 (verb)
+
+Scoping this AC surfaced that its premise was imprecise: the pre-commit
+hook only ever ran `check.TreeDiscipline` (stray-file tree layout) via
+`aiwf check --shape-only`, never `frontmatterShape`. So removing
+hook-firing from the verb-commit path (`git commit-tree` fires no hooks)
+changed nothing for frontmatter-shape enforcement — that guarantee has
+always come from each verb's own pre-write `projectionFindings` check
+(`internal/verb/common.go`), independent of git hooks entirely. What
+actually stopped firing at commit-time for verb commits is
+`TreeDiscipline` itself. Recorded as ADR-0029, since "what guarantees
+verb-authored entities are shape-valid" turned out to be a real,
+previously-undocumented architectural property, not just an AC-6
+implementation detail.
+
+`internal/verb/apply_check_backstop_test.go` adds two tests, each
+driving `verb.Apply` directly with a hand-built `*Plan` — bypassing the
+projection check a real verb (`add`/`promote`/…) would normally run
+first, exactly the "test harness that bypasses the verb's own
+construction guarantee" AC-6 calls for — then confirming full `aiwf
+check` (not `--shape-only`) still catches the result:
+`TestApply_MalformedFrontmatterStillCaughtByFullCheck` (a missing
+`status` field; `frontmatterShape`, unaffected by the hook's removal)
+and `TestApply_StrayFileStillCaughtByFullCheck` (a file with no
+frontmatter at all under `work/gaps/`; `unexpected-tree-file`, the
+check the retired hook actually ran). Neither test installs a git hook —
+`Apply`'s `commit-tree` path never triggers one regardless, matching
+production.
+
 ## Decisions made during implementation
 
 - D-0029 — Unify applyTx rollback into a single LIFO undo journal.
+- ADR-0029 — Verb shape correctness comes from pre-write projection, not
+  type-safe construction or a git hook.
 
 ## Validation
 
