@@ -586,3 +586,45 @@ func TestCommitTree_WritesNewNestedPath(t *testing.T) {
 		t.Errorf("nested file content = %q, want %q", content, "nested\n")
 	}
 }
+
+// TestCommitTree_RemovesInvalidPathIsAnError pins the real (not
+// corruption-only) failure shape of the removes-loop's update-index
+// call: a path git itself rejects as invalid — outside the repository,
+// via `..` traversal — fails with an ordinary git error, not index
+// corruption. A milestone-wrap review found the branch's original
+// //coverage:ignore claimed corruption was required; it isn't — this
+// mirrors the AC-4 pattern of two other ignores that turned out to be
+// ordinary, reachable misconfigurations rather than corruption-only.
+func TestCommitTree_RemovesInvalidPathIsAnError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	_, err := CommitTree(ctx, root, []string{"../escape.md"}, nil, "should not land", "", nil)
+	if err == nil {
+		t.Fatal("expected an error removing a path outside the repository, got nil")
+	}
+	if !strings.Contains(err.Error(), "removing") {
+		t.Errorf("error %q should mention the removing step", err.Error())
+	}
+}
+
+// TestCommitTree_WritesInvalidPathIsAnError is the writes-loop
+// counterpart of TestCommitTree_RemovesInvalidPathIsAnError: the same
+// class of ordinary, reachable misconfiguration (a path outside the
+// repository) at the update-index --add --cacheinfo call.
+func TestCommitTree_WritesInvalidPathIsAnError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	_, err := CommitTree(ctx, root, nil, []PathWrite{
+		{Path: "../escape.md", Content: []byte("hi\n")},
+	}, "should not land", "", nil)
+	if err == nil {
+		t.Fatal("expected an error writing a path outside the repository, got nil")
+	}
+	if !strings.Contains(err.Error(), "update-index") {
+		t.Errorf("error %q should mention update-index", err.Error())
+	}
+}

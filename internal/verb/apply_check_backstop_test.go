@@ -66,11 +66,15 @@ func TestApply_MalformedFrontmatterStillCaughtByFullCheck(t *testing.T) {
 		}
 	})
 	out := string(captured)
-	if !strings.Contains(out, check.CodeFrontmatterShape) {
-		t.Errorf("expected a %s finding:\n%s", check.CodeFrontmatterShape, out)
-	}
-	if !strings.Contains(out, "work/gaps/G-0001-broken.md") {
-		t.Errorf("expected the offending path in output:\n%s", out)
+	// Tied to the offending path on the same line — not just "the code
+	// appears somewhere" — so this can't pass on the shared fixture's
+	// own pre-existing frontmatter-shape violation (newApplyTestRepo's
+	// seed entity is also missing `status`, at a different path). A
+	// milestone-wrap review found the untied checks below were
+	// independently satisfiable by that unrelated seed defect.
+	want := "work/gaps/G-0001-broken.md:1: error " + check.CodeFrontmatterShape
+	if !strings.Contains(out, want) {
+		t.Errorf("expected %q in output:\n%s", want, out)
 	}
 }
 
@@ -111,10 +115,16 @@ func TestApply_StrayFileStillCaughtByFullCheck(t *testing.T) {
 		}
 	})
 	out := string(captured)
-	if !strings.Contains(out, check.CodeUnexpectedTreeFile) {
-		t.Errorf("expected a %s finding:\n%s", check.CodeUnexpectedTreeFile, out)
-	}
-	if !strings.Contains(out, "work/gaps/scratch.md") {
-		t.Errorf("expected the stray path in output:\n%s", out)
+	// Asserting "error" (not just the code's presence) is what actually
+	// makes tree.strict load-bearing: without it, TreeDiscipline's
+	// default severity is warning, and this exact string would not
+	// appear even though the code and path still would. A milestone-wrap
+	// review found the prior version's untied checks passed identically
+	// whether or not tree.strict was set, since the shared fixture's own
+	// pre-existing frontmatter-shape violation drove ExitFindings on its
+	// own regardless.
+	want := "work/gaps/scratch.md: error " + check.CodeUnexpectedTreeFile
+	if !strings.Contains(out, want) {
+		t.Errorf("expected %q in output:\n%s", want, out)
 	}
 }

@@ -44,8 +44,12 @@ func commitConstructionViolation(file string, line int, detail string) Violation
 //
 //  1. gitops.CommitVerbChange is declared in commitConstructionSeamFile.
 //  2. Nothing outside that file calls gitops.CommitTree or
-//     gitops.ReconcilePaths directly — a second file composing the two
-//     primitives would be a duplicate, ad hoc commit-construction path.
+//     gitops.ReconcilePaths through a gitops.-qualified selector — a
+//     second consumer composing the two primitives would be a
+//     duplicate, ad hoc commit-construction path. Scoped to
+//     gitops.-qualified call sites (the shape every out-of-package
+//     caller must use); an unqualified call from a second file inside
+//     package gitops itself would not be caught by this check.
 //  3. Nothing outside verb.Apply calls gitops.CommitVerbChange — a
 //     second caller today would contradict the AC's "sole caller"
 //     claim; a real second consumer arriving later updates this policy

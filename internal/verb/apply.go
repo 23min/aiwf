@@ -203,7 +203,7 @@ func gatherCommitOps(root string, p *Plan) (removes []string, writes []gitops.Pa
 			continue
 		}
 		walkErr := filepath.WalkDir(destFull, func(path string, d fs.DirEntry, walkErr error) error {
-			if walkErr != nil { //coverage:ignore requires the destination directory to change under us mid-walk (removed/permission-denied) — a race, not a reachable input-driven branch
+			if walkErr != nil {
 				return walkErr
 			}
 			if d.IsDir() {

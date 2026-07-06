@@ -99,7 +99,7 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, removes [
 	for _, path := range removes {
 		err = runIndexed(ctx, workdir, indexPath, "update-index", "--force-remove", path)
 		if err != nil {
-			return "", fmt.Errorf("removing %s: %w", path, err) //coverage:ignore requires the freshly read-tree'd temp index to become corrupted or unwritable between read-tree and this call — no CommitTree code path produces that starting state
+			return "", fmt.Errorf("removing %s: %w", path, err)
 		}
 	}
 
@@ -112,7 +112,7 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, removes [
 		cacheInfo := fmt.Sprintf("100644,%s,%s", blobSHA, w.Path)
 		err = runIndexed(ctx, workdir, indexPath, "update-index", "--add", "--cacheinfo", cacheInfo)
 		if err != nil {
-			return "", fmt.Errorf("update-index %s: %w", w.Path, err) //coverage:ignore requires the freshly-created temp index to become corrupted or unwritable between read-tree and this call — no CommitTree code path produces that starting state; would need external interference or a disk-full simulation
+			return "", fmt.Errorf("update-index %s: %w", w.Path, err)
 		}
 	}
 
@@ -182,13 +182,32 @@ func hashObject(ctx context.Context, workdir string, content []byte) (string, er
 	return strings.TrimSpace(string(out)), nil
 }
 
+// indexedEnv builds the environment for a git index-manipulating
+// command: whatever gitEnv() provides, plus GIT_INDEX_FILE pointed at
+// indexPath. gitEnv() returning nil means "inherit the parent
+// environment" (exec.Cmd's own convention) — appending directly to nil
+// would instead mean "only this one variable," silently dropping the
+// rest of the environment, so this materializes os.Environ() first
+// whenever gitEnv() hasn't overridden it. Keeping this as the one
+// composition point (rather than each call site appending
+// os.Environ() directly) means a future gitEnv() that starts
+// scrubbing/injecting variables is honored here too, not silently
+// bypassed.
+func indexedEnv(indexPath string) []string {
+	env := gitEnv()
+	if env == nil {
+		env = os.Environ()
+	}
+	return append(env, "GIT_INDEX_FILE="+indexPath)
+}
+
 // runIndexed runs a git index-manipulating command with GIT_INDEX_FILE
 // pointed at indexPath, so it reads and writes that file instead of the
 // repo's live index.
 func runIndexed(ctx context.Context, workdir, indexPath string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = workdir
-	cmd.Env = append(os.Environ(), "GIT_INDEX_FILE="+indexPath)
+	cmd.Env = indexedEnv(indexPath)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git %s: %w\n%s", args[0], err, strings.TrimSpace(string(out)))
@@ -200,7 +219,7 @@ func runIndexed(ctx context.Context, workdir, indexPath string, args ...string) 
 func outputIndexed(ctx context.Context, workdir, indexPath string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = workdir
-	cmd.Env = append(os.Environ(), "GIT_INDEX_FILE="+indexPath)
+	cmd.Env = indexedEnv(indexPath)
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
