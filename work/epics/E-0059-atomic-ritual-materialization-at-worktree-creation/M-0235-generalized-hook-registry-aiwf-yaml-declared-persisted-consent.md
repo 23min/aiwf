@@ -1,7 +1,7 @@
 ---
 id: M-0235
 title: 'Generalized hook registry: aiwf.yaml-declared, persisted consent'
-status: draft
+status: in_progress
 parent: E-0059
 tdd: required
 acs:
