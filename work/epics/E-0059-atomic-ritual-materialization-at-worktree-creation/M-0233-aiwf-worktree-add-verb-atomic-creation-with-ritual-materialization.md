@@ -9,6 +9,10 @@ acs:
       title: aiwf worktree add creates worktree + materializes rituals atomically
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Explicit path honored verbatim; default resolves via worktree.dir
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -53,6 +57,8 @@ backstop (M-0235). Builds on the existing `worktree.dir` config knob and
   completion-drift chokepoint (`cmd/aiwf/completion_drift_test.go`).
 
 ### AC-1 — aiwf worktree add creates worktree + materializes rituals atomically
+
+### AC-2 — Explicit path honored verbatim; default resolves via worktree.dir
 
 ## Constraints
 
