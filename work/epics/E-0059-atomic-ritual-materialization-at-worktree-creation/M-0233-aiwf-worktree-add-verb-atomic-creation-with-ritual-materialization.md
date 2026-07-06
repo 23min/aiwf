@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: Flag completion and --help wired per completion-drift chokepoint
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 
 ## Goal
