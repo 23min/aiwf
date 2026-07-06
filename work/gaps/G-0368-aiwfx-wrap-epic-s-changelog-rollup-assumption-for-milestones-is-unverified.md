@@ -5,51 +5,36 @@ status: open
 ---
 ## Problem
 
-`aiwfx-wrap-epic`'s CHANGELOG step (step 7) assumes every milestone's user-visible
-delta ends up captured in the epic's own single `CHANGELOG.md` entry, added once at
-wrap time. But `aiwfx-wrap-milestone` has no CHANGELOG step of its own — grepping its
-`SKILL.md` for "changelog" returns zero hits, mirroring what G-0365 found for
-`wf-patch` before that fix — and nothing forces the epic-wrap author to enumerate
-every milestone's user-visible change when writing that one entry. `aiwfx-release`'s
-own skill only moves whatever already sits under `[Unreleased]`; it never synthesizes
-entries from milestone or wrap history.
+`aiwfx-wrap-epic` step 7 authors the epic's `CHANGELOG.md` `[Unreleased]` entry
+independently from `wrap.md`'s own `## Summary` section, even though both are
+written in the same wrap sitting and describe the same epic. Nothing links the
+two, so the CHANGELOG entry can silently drop a milestone's user-visible delta
+without the `wrap.md` summary catching it. `aiwfx-wrap-milestone` has no
+CHANGELOG step of its own (only epic wrap ever touches `CHANGELOG.md`), and
+`aiwfx-release` only moves whatever already sits under `[Unreleased]` — it
+never synthesizes entries from milestone or wrap history.
 
-G-0365 raised this as an aside while fixing the unambiguous, adjacent gap: a
-`wf-patch` has no parent epic to roll its change into, so its own missing CHANGELOG
-step was a clear-cut bug. This gap is the epic/milestone side of the same question,
-deliberately left unresolved there to avoid bundling two different fixes into one
-patch.
+## Direction
 
-## Why it matters
+Per D-0031: `wrap.md` becomes the single point of authorship for what to tell
+people about an epic, split by audience into two adjacent sections —
+`## Summary` (internal, unchanged) and a new `## Changelog entry` (written for
+a release-notes reader, Keep-a-Changelog heading shape, optional bullet per
+milestone), sitting directly beneath `## Milestones delivered`.
+`aiwfx-wrap-epic` step 7 changes from freely re-authoring a CHANGELOG
+paragraph to copying `## Changelog entry` verbatim into `CHANGELOG.md` under
+`[Unreleased]`. `aiwfx-wrap-milestone` stays changelog-free.
 
-If an epic ships several milestones and the wrap author's one CHANGELOG entry only
-mentions a subset — the most memorable milestone, or the last one worked — the rest
-go unrecorded: the same "real, shipped, user-visible change with zero CHANGELOG
-trace" failure mode G-0365 fixed for patches, one level up. This case is easier to
-miss than the patch case, because it has a plausible-looking safety net: `wrap.md`
-already enumerates every milestone delivered. It is tempting to assume that
-enumeration is equivalent to a CHANGELOG record, but `wrap.md` and `CHANGELOG.md` are
-different documents for different audiences with no mechanical link between them —
-whether the assumption actually holds in practice is exactly what this gap should
-settle.
+## Scope
 
-## Direction (not prescribed)
-
-Audit past epic CHANGELOG entries against their `wrap.md` milestone lists: does every
-delivered milestone get at least a mention in the epic's entry, or have some been
-silently dropped? If gaps turn up, candidate fixes to weigh when this is worked:
-
-1. **A structural check** — every milestone listed in an epic's `wrap.md` is
-   referenced (by id) somewhere in that epic's `CHANGELOG.md` entry.
-2. **Push the source of truth down** — have `aiwfx-wrap-milestone` append a short
-   changelog-relevant note to the milestone's own record (not `CHANGELOG.md`
-   directly, since a milestone isn't independently releasable), which the epic wrap
-   step then folds in verbatim instead of re-deriving each milestone's user-visible
-   delta from memory.
+- Add `## Changelog entry` to the `wrap.md` template in `aiwfx-wrap-epic`'s
+  `SKILL.md` (step 1's scaffold), directly beneath `## Milestones delivered`.
+- Rewrite step 7's instructions: copy `## Changelog entry` verbatim into
+  `CHANGELOG.md` instead of distilling a new paragraph.
+- Check the "Out of scope" note still holds the copy-not-synthesize boundary.
+- A hand-written pinning test under `internal/policies/`, per this repo's
+  `skill-edit-structural-test-backstop` convention for `SKILL.md` edits.
 
 ## Provenance
 
-Raised as an aside in G-0365 ("worth confirming that's actually the intended design
-rather than the same gap") while adding `wf-patch`'s own missing CHANGELOG-entry
-step; deliberately scoped out of that patch per `wf-patch`'s own anti-pattern rule
-against bundling unrelated fixes into one change.
+Direction settled in D-0031 (2026-07-06).
