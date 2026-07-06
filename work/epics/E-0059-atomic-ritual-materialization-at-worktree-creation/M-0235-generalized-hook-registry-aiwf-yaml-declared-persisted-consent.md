@@ -21,6 +21,10 @@ acs:
       title: 'Hooks settings writer: no-clobber, .bak backup, multi-event-array composition'
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: New hooks materialization category + aiwf doctor drift reporting
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -79,6 +83,8 @@ the next milestone's job, registered against what this one builds.
 ### AC-3 — aiwf update gates only newly-introduced hooks; syncs decided hooks silently
 
 ### AC-4 — Hooks settings writer: no-clobber, .bak backup, multi-event-array composition
+
+### AC-5 — New hooks materialization category + aiwf doctor drift reporting
 
 ## Constraints
 
