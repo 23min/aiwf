@@ -251,6 +251,48 @@ error) — no surviving mutants; one precedented weak-assertion class (three
 malformed-input tests check only `err != nil`, not error identity, matching
 every analogous test already in this package) left unstrengthened.
 
+### AC-5 — New hooks materialization category + aiwf doctor drift reporting
+
+Landed `Target.HooksDir` (`.claude/hooks`) and `skills.SharedSettingsRelPath`
+(`.claude/settings.json`) alongside `HookDef.Content` and `HookSkillsFrom` —
+the hooks-category lister, parallel in shape to `ListRitualAgents`/
+`ListRitualTemplates` but sourced from the consent registry rather than the
+vendored `embedded-rituals` snapshot (`TestRituals_NoHookSurface`/ADR-0014 §3
+forbids hooks living there). `MaterializeHooks` syncs a hook's script
+against its `aiwf.yaml` decision (write executable on true, remove on false,
+untouched while undecided); `HookCommandWired` + `HookDrift`/
+`HookDriftReport` classify each registry hook into ADR-0032's three drift
+classes (undecided, materialized-not-wired, wired-but-stale), consumed by
+`aiwf doctor`'s new `hooks:` report line (`appendHookMaterializationReport`)
+· commit a9f6c936 · tests 34/34 new, full repo suite green, `make lint`
+clean, real mechanized `make coverage-gate` clean. Branch-coverage audit
+found one real design gap beyond the obvious: the first `HookDrift` draft
+classified "decided true, wired, but never materialized" as `WiredButStale`
+and left "decided true, neither materialized nor wired" entirely
+unclassified (clean) — a test written against the intended behavior (not
+fully synced toward "on" should never read as clean) caught this before it
+shipped, and the classification was corrected to bucket every not-fully-
+applied enabled hook under `MaterializedNotWired` (one remedy, `aiwf
+update`, regardless of which half is missing) and every not-fully-removed
+disabled hook under `WiredButStale`; two further reachable-but-easily-missed
+branches (`os.Remove` on a non-empty directory, `os.MkdirAll` under a
+path segment that's a file) were closed with deterministic tests rather than
+annotated as filesystem-fault-only, since both are reproducible without any
+real disk fault. Adversarial mutation probe (`wf-vacuity`): 6/6 mutants
+caught (decided/undecided branch inversion, enable/decline branch inversion,
+drift-classification first-case inversion, wired-check forced-false,
+dropped Content copy in `HookSkillsFrom`, clean/drift guard forced-true) —
+no surviving mutants.
+
+Two assumptions this AC bakes in are unverified against any real hook and
+are tracked as explicit Constraints on M-0236 (which registers the first
+concrete entry): (1) `HookDrift`'s "wired" check matches the literal string
+`<Target.HooksDir>/<hook-name>` — a different command shape from
+`WireHookSettings` would silently break detection; (2) "wired-but-stale"
+means decision-drift only (presence via `os.Stat`, no content comparison
+against `HookDef.Content`) — content-staleness is out of scope unless
+M-0236 decides otherwise.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked in ADR-0032 / this spec's Design notes)
