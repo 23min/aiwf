@@ -225,6 +225,32 @@ the concrete hook's future `--help` text standalone — no CLAUDE.md mention,
 no reference to the sibling ADR-0015/ADR-0018 consent mechanisms — is now
 locked into M-0236's Constraints · commit 43c2c4c9.
 
+### AC-4 — Hooks settings writer: no-clobber, .bak backup, multi-event-array composition
+
+Landed `WireHookSettings` (`internal/skills/hooks_settings.go`): wires a
+command-type hook under one or more named `hooks.<event>` arrays in the
+shared `.claude/settings.json`. Append-only and idempotent per event — an
+event already carrying the command is left untouched (no duplicate entry on
+repeat runs), a pre-existing entry is never edited or removed regardless of
+whether it originated from aiwf, and every unrelated top-level key and every
+event not named in the call is preserved byte-for-byte. A `.bak` of the
+pre-edit file is written once, only when an actual edit happens, mirroring
+`WireStatuslineSettings`'s existing no-clobber discipline · commit 92df1ef4
+· tests 11/11 new, full repo suite green, `make lint` clean, real mechanized
+`make coverage-gate` clean (no gaps beyond the manual audit). Branch-coverage
+audit found two real gaps beyond the obvious — the non-`ENOENT` read-error
+branch, and an explicit `"hooks": null` value (valid JSON, unmarshals to a
+nil map without error) — both closed with dedicated tests rather than
+assumed covered; three filesystem-fault-only branches (backup write,
+`MkdirAll`, final write) were annotated `//coverage:ignore`, mirroring
+`WireStatuslineSettings`'s own identical, equally-untested shape. Adversarial
+mutation probe (`wf-vacuity`): 6/6 mutants caught (idempotency-check
+inversion, early-return-guard inversion, disabled backup write,
+replace-instead-of-append clobber, dropped nil-map guard, swallowed parse
+error) — no surviving mutants; one precedented weak-assertion class (three
+malformed-input tests check only `err != nil`, not error identity, matching
+every analogous test already in this package) left unstrengthened.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked in ADR-0032 / this spec's Design notes)
