@@ -524,7 +524,7 @@ func TestRenamesFromRef_IgnoresParallelClonesG37Case(t *testing.T) {
 
 // TestRenamesFromRef_NoRenamesEmptyMap verifies that an unmodified
 // working tree returns an empty (non-nil) map. Empty vs nil matters
-// because the caller assigns into Tree.TrunkRenames; nil-vs-empty would
+// because the caller assigns into Tree.TrunkCollisionRenames; nil-vs-empty would
 // be observable in tests that lookup keys.
 func TestRenamesFromRef_NoRenamesEmptyMap(t *testing.T) {
 	t.Parallel()
@@ -561,6 +561,230 @@ func TestRenamesFromRef_AbsentRefReturnsNil(t *testing.T) {
 	}
 	if got != nil {
 		t.Errorf("RenamesFromRef with absent ref = %+v, want nil", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_DetectsTrailerDrivenRenameOnRef pins G-0378's
+// primary path: a rename committed *on the trunk ref* (e.g. `aiwf
+// retitle`, which stamps an `aiwf-verb: retitle` trailer) after HEAD
+// has already forked away from it. RenamesFromRef's merge-base..HEAD
+// scope can't see this — it only sees renames HEAD itself committed —
+// so this is the reverse-direction mirror the gap requires.
+func TestTrunkRenamesFromRef_DetectsTrailerDrivenRenameOnRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const oldPath = "work/gaps/G-0035-very-long-historical-slug.md"
+	const newPath = "work/gaps/G-0035-short.md"
+	body := "---\nid: G-0035\ntitle: example\nstatus: open\n---\nbody text\n"
+	commitFile(t, ctx, dir, oldPath, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	// HEAD forks away (an unrelated commit on main) before trunk's
+	// retitle lands, so the rename is invisible to HEAD's own history.
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, dir, "README.md", "feature work\n")
+
+	// Trunk retitles: rename + stamped trailer, committed on "trunk"
+	// (not on the feature branch).
+	mustRun(t, ctx, dir, "checkout", "-q", "trunk")
+	mustRun(t, ctx, dir, "mv", oldPath, newPath)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0035 -> short\n\naiwf-verb: retitle\naiwf-entity: G-0035\naiwf-actor: human/test")
+	mustRun(t, ctx, dir, "checkout", "-q", "feature")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	want := map[string]string{oldPath: newPath}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("TrunkRenamesFromRef mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestTrunkRenamesFromRef_NoDashMFallback_ManualGitMvNotDetected pins
+// ADR-0031's core safety property: unlike RenamesFromRef's branch-side
+// pass, the trunk-side detector has NO git-diff-M content-similarity
+// fallback, ever. A manual, non-kernel-verb `git mv` performed
+// directly on trunk (no aiwf-verb trailer) must NOT be recognized as
+// a rename, even though it would trivially clear the default -M50
+// threshold. This is the deliberate, documented cost of ruling out
+// the false-negative risk a mirrored -M fallback would carry.
+func TestTrunkRenamesFromRef_NoDashMFallback_ManualGitMvNotDetected(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const oldPath = "work/gaps/G-0036-original.md"
+	const newPath = "work/gaps/G-0036-after.md"
+	body := "---\nid: G-0036\ntitle: example\nstatus: open\n---\nbody text\n"
+	commitFile(t, ctx, dir, oldPath, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, dir, "README.md", "feature work\n")
+
+	// Trunk-side rename with NO aiwf-verb trailer — a manual git mv,
+	// exactly the case this design deliberately leaves unrecognized.
+	mustRun(t, ctx, dir, "checkout", "-q", "trunk")
+	mustRun(t, ctx, dir, "mv", oldPath, newPath)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "manual rename, no trailer")
+	mustRun(t, ctx, dir, "checkout", "-q", "feature")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("manual non-trailered trunk-side rename must NOT be detected (no -M fallback); got %+v", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_NoRenamesEmptyMap verifies the clean-tree
+// contract: no trunk-side commits since the fork means an empty
+// (non-nil) map.
+func TestTrunkRenamesFromRef_NoRenamesEmptyMap(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-a.md", "x\n")
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	if got == nil {
+		t.Fatal("TrunkRenamesFromRef returned nil map, want empty non-nil")
+	}
+	if len(got) != 0 {
+		t.Errorf("TrunkRenamesFromRef on clean tree = %+v, want empty", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_AbsentRefReturnsEmptyMap verifies the
+// degraded-graceful path when the named ref doesn't resolve: an empty
+// map, not an error. Unlike RenamesFromRef (which returns nil here so
+// its caller can distinguish "no trunk view" from "trunk view, no
+// renames"), TrunkRenamesFromRef always returns non-nil — its sole
+// caller merges it into Tree.TrunkCollisionRenames, where nil-vs-empty
+// carries no distinct meaning.
+func TestTrunkRenamesFromRef_AbsentRefReturnsEmptyMap(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "x")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "refs/remotes/origin/nope")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	if got == nil {
+		t.Error("TrunkRenamesFromRef with absent ref = nil, want empty non-nil")
+	}
+	if len(got) != 0 {
+		t.Errorf("TrunkRenamesFromRef with absent ref = %+v, want empty", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_HeadUnbornReturnsEmptyMap verifies the
+// degraded-graceful path when HEAD itself has no commits yet (a
+// freshly-orphaned or newly-init'd branch): an empty map, not an
+// error. "hasref" already resolves to a real commit before HEAD is
+// switched to the unborn orphan branch, so this exercises the
+// `!headExists` branch specifically, distinct from the "ref absent"
+// case above.
+func TestTrunkRenamesFromRef_HeadUnbornReturnsEmptyMap(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "on hasref\n")
+	mustRun(t, ctx, dir, "branch", "hasref")
+	mustRun(t, ctx, dir, "checkout", "-q", "--orphan", "unborn")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "hasref")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	if got == nil {
+		t.Error("TrunkRenamesFromRef with unborn HEAD = nil, want empty non-nil")
+	}
+	if len(got) != 0 {
+		t.Errorf("TrunkRenamesFromRef with unborn HEAD = %+v, want empty", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_NoCommonAncestorReturnsEmptyMap pins
+// ADR-0031's fail-closed degraded tier: when HEAD and ref share no
+// common ancestor (git merge-base exits 1), the function returns an
+// empty map rather than erroring — the trunk-collision rule then
+// finds no exemption and correctly still fires. An orphan branch is
+// the cheapest way to construct "no common ancestor" in-process; it
+// exercises the identical `git merge-base` failure a shallow clone or
+// genuinely unrelated histories would also produce.
+//
+// HEAD must land back on the ORIGINAL branch before calling
+// TrunkRenamesFromRef — passing the orphan branch as both HEAD and
+// ref would make merge-base trivially resolve to the orphan's own tip
+// (a branch is its own ancestor), never reaching the no-common-
+// ancestor path at all. Naming the original branch explicitly (rather
+// than relying on git's implicit default branch, which varies by host
+// config) lets the test return to it after the orphan checkout;
+// `checkout -f` is required since the orphan's `rm --cached` leaves
+// a.txt untracked-but-present, which a plain checkout back refuses to
+// clobber.
+func TestTrunkRenamesFromRef_NoCommonAncestorReturnsEmptyMap(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "on HEAD\n")
+	mustRun(t, ctx, dir, "branch", "original")
+
+	mustRun(t, ctx, dir, "checkout", "-q", "--orphan", "unrelated-trunk")
+	mustRun(t, ctx, dir, "rm", "--cached", "-r", "-q", ".")
+	commitFile(t, ctx, dir, "b.txt", "unrelated history\n")
+	mustRun(t, ctx, dir, "checkout", "-f", "-q", "original")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "unrelated-trunk")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("no-common-ancestor case must degrade to empty, not error or misdetect; got %+v", got)
+	}
+}
+
+// TestTrunkRenamesFromRef_ChainsForwardThroughMultipleRetitles mirrors
+// RenamesFromRef's chain-forward contract on the trunk side: two
+// trunk-side retitles (A→B, then B→C) must collapse to A→C, since the
+// trunk-collision rule looks up the id's ORIGINAL (fork-time) path.
+func TestTrunkRenamesFromRef_ChainsForwardThroughMultipleRetitles(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	const pathA = "work/gaps/G-0060-first-slug.md"
+	const pathB = "work/gaps/G-0060-second-slug.md"
+	const pathC = "work/gaps/G-0060-third-slug.md"
+	body := "---\nid: G-0060\ntitle: a\nstatus: open\n---\nbody\n"
+	commitFile(t, ctx, dir, pathA, body)
+	mustRun(t, ctx, dir, "branch", "trunk")
+
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, dir, "README.md", "feature work\n")
+
+	mustRun(t, ctx, dir, "checkout", "-q", "trunk")
+	mustRun(t, ctx, dir, "mv", pathA, pathB)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0060 -> b\n\naiwf-verb: retitle\naiwf-entity: G-0060\naiwf-actor: human/test")
+	mustRun(t, ctx, dir, "mv", pathB, pathC)
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "aiwf retitle G-0060 -> c\n\naiwf-verb: retitle\naiwf-entity: G-0060\naiwf-actor: human/test")
+	mustRun(t, ctx, dir, "checkout", "-q", "feature")
+
+	got, err := TrunkRenamesFromRef(ctx, dir, "trunk")
+	if err != nil {
+		t.Fatalf("TrunkRenamesFromRef: %v", err)
+	}
+	want := map[string]string{pathA: pathC}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("expected chained rename A→C, not {A:B, B:C}; mismatch (-want +got):\n%s", diff)
 	}
 }
 

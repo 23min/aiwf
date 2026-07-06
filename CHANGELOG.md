@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0378: `ids-unique/trunk-collision` now recognizes a rename landed on trunk after a branch forked
+
+Previously, the `trunk-collision` check only recognized a rename the *branch itself* committed
+relative to trunk — a rename landed directly on trunk (e.g. `aiwf retitle`) after a feature branch
+had already forked away from it produced a false-positive collision, and the only documented
+remediation (`aiwf reallocate`) made it worse by creating a genuine duplicate entity. `aiwf check`
+now also detects trunk-side renames via a trailer-only walk (no content-similarity fallback, to keep
+a real cross-branch collision from ever being silently misclassified as a rename); the git work is
+skipped entirely when no working-tree id is even in dispute against trunk, so this adds no cost to
+the common case.
+
 ### Added — G-0380: STATUS.md gains a today's-work / since-release activity digest
 
 `aiwf status --format=md` (the source of STATUS.md) had no curated summary of what happened

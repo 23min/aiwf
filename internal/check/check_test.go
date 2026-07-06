@@ -208,7 +208,7 @@ func TestIDsUnique_GitRenameNotCollision(t *testing.T) {
 	tr.TrunkIDs = []trunk.ID{
 		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-0035-very-long-historical-slug-that-was-the-original-shape.md"},
 	}
-	tr.TrunkRenames = map[string]string{
+	tr.TrunkCollisionRenames = map[string]string{
 		"work/gaps/G-0035-very-long-historical-slug-that-was-the-original-shape.md": "work/gaps/G-0035-short-new-slug.md",
 	}
 	got := idsUnique(tr)
@@ -233,7 +233,7 @@ func TestIDsUnique_GitRenameToDifferentPathStillFires(t *testing.T) {
 	// Rename map says trunk path moved to a DIFFERENT branch path. The
 	// working-tree entity is at a third location — the rename exception
 	// must not apply, and the collision finding must still fire.
-	tr.TrunkRenames = map[string]string{
+	tr.TrunkCollisionRenames = map[string]string{
 		"work/gaps/G-0035-trunk.md": "work/gaps/G-0035-renamed-elsewhere.md",
 	}
 	got := idsUnique(tr)
@@ -260,6 +260,144 @@ func TestIDsUnique_TrunkOnlyID_NoFinding(t *testing.T) {
 	got := idsUnique(tr)
 	if len(got) != 0 {
 		t.Errorf("expected no findings (trunk-only id is not a collision), got %+v", got)
+	}
+}
+
+// TestDisputedTrunkIDs_SamePathNotDisputed pins the common case (every
+// push, no rename in flight): an id that exists in the working tree
+// at the exact same path trunk has it is not disputed. This is the
+// predicate cliutil's dispatcher gates the trunk-side git rename walk
+// on (ADR-0031/G-0378) — it must stay empty in the steady state so
+// that walk is skipped entirely.
+func TestDisputedTrunkIDs_SamePathNotDisputed(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-001-foo.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	if len(got) != 0 {
+		t.Errorf("DisputedTrunkIDs = %+v, want empty (same path is not a dispute)", got)
+	}
+}
+
+// TestDisputedTrunkIDs_DifferentPathIsDisputed pins the positive case:
+// same id, different path, is exactly the candidate set idsUnique's
+// trunk-collision rule needs a rename exemption for.
+func TestDisputedTrunkIDs_DifferentPathIsDisputed(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-035-local.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-035-trunk.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	want := []trunk.ID{{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-035-trunk.md"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DisputedTrunkIDs mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestDisputedTrunkIDs_ArchiveSweepNotDisputed pins the archive-sweep
+// pre-filter (G-0101): a branch/trunk path pair that normalizes to the
+// same active-form path is the archive-sweep rename, not a dispute —
+// this must stay a cheap, git-free, in-memory exclusion (ADR-0031),
+// computed before any git work is even considered.
+func TestDisputedTrunkIDs_ArchiveSweepNotDisputed(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/archive/G-0001-foo.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	if len(got) != 0 {
+		t.Errorf("DisputedTrunkIDs = %+v, want empty (archive-sweep rename is not a dispute)", got)
+	}
+}
+
+// TestDisputedTrunkIDs_TrunkOnlyNotDisputed pins the negative case: an
+// id that only exists on trunk (not in the working tree at all) has
+// nothing to collide with locally, so it's not disputed.
+func TestDisputedTrunkIDs_TrunkOnlyNotDisputed(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0007", Path: "work/gaps/G-007-trunk-only.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	if len(got) != 0 {
+		t.Errorf("DisputedTrunkIDs = %+v, want empty (trunk-only id is not a dispute)", got)
+	}
+}
+
+// TestDisputedTrunkIDs_OnlyDisputedSubsetReturned verifies that among
+// several trunk ids, only the genuinely disputed one is returned —
+// the gate must not over-fire and trigger the git walk for the whole
+// batch when only one id is actually in question.
+func TestDisputedTrunkIDs_OnlyDisputedSubsetReturned(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-001-foo.md"},
+		&entity.Entity{ID: "G-0035", Kind: entity.KindGap, Path: "work/gaps/G-035-local.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-001-foo.md"},
+		{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-035-trunk.md"},
+		{Kind: entity.KindGap, ID: "G-0007", Path: "work/gaps/G-007-trunk-only.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	want := []trunk.ID{{Kind: entity.KindGap, ID: "G-0035", Path: "work/gaps/G-035-trunk.md"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DisputedTrunkIDs mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestDisputedTrunkIDs_LocalDuplicateFirstEntityWins pins a subtle
+// interaction: when an id is ALSO duplicated locally (two entities in
+// the working tree sharing one id — orthogonal to any trunk dispute),
+// the predicate must name the FIRST-encountered local entity as "the"
+// branch-side path for that id, exactly matching idsUnique's own
+// `seen` map semantics (its `check` closure never overwrites an id
+// already recorded). Regression pin: an earlier draft built this
+// predicate's map with a plain unconditional assignment (last entity
+// wins); when the LAST-encountered local duplicate happened to share
+// trunk's own path, the dispute was silently swallowed — the exact
+// shape TestReallocateScenarios_AC1_HistoricalCorpus's cross-branch
+// merge collision scenario exercises through the real binary.
+func TestDisputedTrunkIDs_LocalDuplicateFirstEntityWins(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-0001-different-thing-from-feature.md"},
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Path: "work/gaps/G-0001-trunk-side-gap.md"},
+	)
+	tr.TrunkIDs = []trunk.ID{
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-trunk-side-gap.md"},
+	}
+	got := DisputedTrunkIDs(tr)
+	want := []trunk.ID{{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-trunk-side-gap.md"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DisputedTrunkIDs mismatch (-want +got):\n%s", diff)
+	}
+	// The same fixture through the full rule: the local duplicate
+	// fires its own plain ids-unique finding AND the trunk-collision
+	// finding must ALSO fire (both conditions are independently true
+	// and neither should mask the other).
+	findings := idsUnique(tr)
+	var sawTrunkCollision bool
+	for _, f := range findings {
+		if f.Code == CodeIDsUnique && f.Subcode == "trunk-collision" {
+			sawTrunkCollision = true
+		}
+	}
+	if !sawTrunkCollision {
+		t.Errorf("idsUnique did not fire trunk-collision alongside the local duplicate finding; got %+v", findings)
 	}
 }
 

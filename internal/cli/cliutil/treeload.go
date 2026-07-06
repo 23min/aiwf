@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -40,19 +41,67 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	if !res.Skipped {
 		ref, _ := cfg.AllocateTrunkRef()
 		tr.TrunkRef = ref
-		// G-0109: hand the ids-unique trunk-collision check the set
-		// of renames git detects between trunk and the working tree,
-		// so a feature-branch slug rename of an existing entity is
-		// treated as the same entity moved rather than a duplicate id
-		// allocation. RenamesFromRef returns nil (no map) when the
-		// trunk ref doesn't resolve — but res.Skipped already covers
-		// the no-remotes case, so reaching here implies the ref
-		// resolved.
-		renames, err := gitops.RenamesFromRef(ctx, rootDir, ref)
-		if err != nil {
-			return tr, loadErrs, err
+		// G-0378/ADR-0031: gate both rename-detection git calls behind
+		// the in-memory disputed-id set — zero git cost in the common
+		// case (every push) where no working-tree id even collides
+		// with trunk at a different path. check.DisputedTrunkIDs reads
+		// only tr.Entities/tr.Stubs/tr.TrunkIDs, all already populated
+		// above, so it's safe to compute before either git call.
+		if disputed := check.DisputedTrunkIDs(tr); len(disputed) > 0 {
+			// G-0109: hand the ids-unique trunk-collision check the
+			// set of renames git detects between trunk and the
+			// working tree, so a feature-branch slug rename of an
+			// existing entity is treated as the same entity moved
+			// rather than a duplicate id allocation. RenamesFromRef
+			// returns nil (no map) when the trunk ref doesn't resolve
+			// — but res.Skipped already covers the no-remotes case,
+			// so reaching here implies the ref resolved.
+			renames, err := gitops.RenamesFromRef(ctx, rootDir, ref)
+			if err != nil { //coverage:ignore not portably triggerable: RenamesFromRef only errors on a git-level fault (bad workdir, a merge-base failure other than "no common ancestor") the unit harness cannot stage once ref and HEAD both resolve
+				return tr, loadErrs, err
+			}
+			tr.TrunkCollisionRenames = renames
+
+			// G-0378: the reverse direction (ADR-0031) — a rename
+			// committed directly on trunk after this branch forked,
+			// invisible to the branch-side walk above. Its result is
+			// keyed oldPath→newPath in trunk's OWN walk direction
+			// (oldPath = the branch's current path, i.e. the shared
+			// path at the fork point; newPath = trunk's current tip
+			// path) — the reverse of TrunkCollisionRenames's
+			// convention (trunk-current-path → branch-current-path),
+			// since this walk traverses trunk's history forward from
+			// the fork point rather than the branch's. Invert on
+			// merge so idsUnique's single lookup keeps working
+			// unchanged regardless of which detector explains a given
+			// pair. Branch-side entries take precedence on a key
+			// collision, mirroring the trailer-vs--M precedence
+			// already used within each individual detector.
+			trunkSideRenames, err := gitops.TrunkRenamesFromRef(ctx, rootDir, ref)
+			if err != nil { //coverage:ignore not portably triggerable: same class as the RenamesFromRef error check above
+				return tr, loadErrs, err
+			}
+			if tr.TrunkCollisionRenames == nil { //coverage:ignore not portably triggerable: RenamesFromRef only returns nil when ref or HEAD fails to resolve, and reaching this point already implies both resolved (ref via trunk.Read above, HEAD via tree.Load); defensive nil-guard for a case the call sequence already rules out
+				tr.TrunkCollisionRenames = make(map[string]string, len(trunkSideRenames))
+			}
+			for oldPath, newPath := range trunkSideRenames {
+				// Branch-side and trunk-side entries can only share a
+				// key by coincidence the current design rules out:
+				// TrunkCollisionRenames' branch-side entries are keyed
+				// by the entity's path AT THE FORK POINT, which equals
+				// trunk's CURRENT path only when trunk did NOT rename
+				// that entity — but trunkSideRenames only ever contains
+				// entries for ids trunk DID rename. The two key sets are
+				// structurally disjoint; this precedence check is
+				// defensive symmetry with the trailer-vs--M precedence
+				// pattern used within each individual detector, not a
+				// reachable case in practice.
+				if _, exists := tr.TrunkCollisionRenames[newPath]; exists { //coverage:ignore not portably triggerable: see comment above — the two maps' key sets don't overlap by construction
+					continue
+				}
+				tr.TrunkCollisionRenames[newPath] = oldPath
+			}
 		}
-		tr.TrunkRenames = renames
 	}
 	// M-0212: stamp the allocator's broadened cross-branch view — ids
 	// reachable from every local branch ref. Best-effort and read-only:

@@ -1,7 +1,7 @@
 ---
 id: ADR-0031
 title: idsUnique's trunk-side rename detection is trailer-only, never similarity-based
-status: proposed
+status: accepted
 ---
 ## Context
 
