@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: commit-construction core exposes a reusable seam
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: per-commit shape validation dropped from verb-commit path
