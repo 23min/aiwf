@@ -7,28 +7,28 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf worktree add creates worktree + materializes rituals atomically
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Explicit path honored verbatim; default resolves via worktree.dir
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Repo-escape rejection applies only to default path, not explicit path
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: --print-path emits only the absolute path on success, nothing on failure
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: git worktree add failures surface directly; never reports false success
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: Flag completion and --help wired per completion-drift chokepoint
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -112,3 +112,129 @@ chokepoint (`cmd/aiwf/completion_drift_test.go`).
 - ADR-0018 — materialize-on-demand model.
 - ADR-0023 / E-0046 — in-repo worktree placement default; M-0189/M-0190 — the
   config knob and escape-rejection this milestone reuses and constrains.
+
+## Work log
+
+### AC-1 — aiwf worktree add creates worktree + materializes rituals atomically
+
+Verb lands with `gitops.WorktreeAdd`/`WorktreeAddNewBranch` + an in-process
+call to `initrepo.RefreshArtifacts` (the same pipeline `aiwf update` runs) ·
+commit 4f577230 · tests 1/1
+
+### AC-2 — Explicit path honored verbatim; default resolves via worktree.dir
+
+Default-path branch routes through `config.WorktreeDir()`; explicit-path
+branch never calls it · commit 4f577230 · tests 2/2
+
+### AC-3 — Repo-escape rejection applies only to default path, not explicit path
+
+Falls out of AC-2's branching directly — no additional code path, covered by
+a dedicated test asserting a repo-escaping explicit path is honored ·
+commit 4f577230 · tests 1/1
+
+### AC-4 — --print-path emits only the absolute path on success, nothing on failure
+
+Every error path in `Run` writes to stderr only; `--print-path` short-circuits
+the success path before any ledger/JSON output · commit 4f577230 · tests 3/3
+(binary-level subprocess tests, including a real `sh -c 'cd "$(...)" && pwd'`
+composition)
+
+### AC-5 — git worktree add failures surface directly; never reports false success
+
+`gitops.WorktreeAdd`/`WorktreeAddNewBranch` wrap git's combined output into the
+returned error, which `Run` writes verbatim to stderr · commit 4f577230 ·
+tests 2/2
+
+### AC-6 — Flag completion and --help wired per completion-drift chokepoint
+
+`--base` and the `<branch>`/`[path]` positionals added to
+`completion_drift_test.go`'s opt-out lists with rationale; new `aiwf-worktree`
+embedded skill added for `skill_coverage.go` and the M-0123 legality-verb
+allowlist · commit 4f577230 · tests 3/3 (existing repo-wide policy tests:
+`TestPolicy_FlagsHaveCompletion`, `TestPolicy_PositionalsHaveCompletion`,
+`TestPolicy_SkillCoverageMatchesVerbs`)
+
+### JSON envelope ordering + coverage gaps
+
+The diff-scoped branch-coverage gate exposed two real problems: the
+`--format=json` success path printed the materialization ledger before the
+JSON envelope (violating D-0013's single-clean-envelope contract — the
+unit test written to close the coverage gap caught it directly), and several
+branches (the Cobra `RunE` dispatch itself, the hook-conflict path, and the
+JSON/print-path success paths) were only reachable through the binary-level
+subprocess tests, whose execution the `go test` coverage instrumentation
+cannot see across a process boundary. Fixed the ordering bug, added
+Cobra-dispatch/hook-conflict/unit-level print-path and JSON tests, and
+`//coverage:ignore`'d the remaining defensive error branches consistent with
+this repo's existing `ResolveRoot`/`AcquireRepoLock`/`filepath.Abs`
+conventions · commit b7e191d4 · tests 6/6
+
+### Independent review fix-up
+
+The code-quality review (verdict: request-changes) found two blocking gaps:
+the existing-branch-reuse dispatch arm had no test driving it through to a
+successful full pipeline, and a failure after `git worktree add` succeeded
+left the just-created worktree (and branch, if new) registered on disk with
+no cleanup — contradicting the verb's atomic-step framing. Added
+`gitops.WorktreeRemove`/`DeleteBranch` and a rollback path in `Run` that
+undoes worktree + branch creation on any failure after the git step
+succeeds; added the missing success-path test; also fixed the non-blocking
+`--print-path` + `--format=json` precedence gap flagged as track-for-later
+rather than deferring it. The design-quality review (`wf-rethink`) returned
+keep-as-is with no blocking findings · commit 7023cf6a · tests 17/17 (11
+new/updated in `internal/cli/worktree`, 3 new in `internal/gitops`)
+
+## Decisions made during implementation
+
+None — all decisions in this milestone (branch-exists detection to choose
+between reusing vs. creating a branch, `--base` rejected as a usage error
+against an existing branch, mapping git-level failures to `ExitInternal`,
+shipping a dedicated skill rather than an allowlist entry, rolling back
+worktree + branch creation on any post-creation failure) followed existing
+codebase precedent (`FinishVerb`'s error-code convention, the
+`rev-parse --verify --quiet` existence-probe idiom already used by
+`StashTopRef`/`ReadFromHEAD`, and the `move`/`rewidth` vs. `aiwf-add`-style
+skill-coverage split) or were direct fixes to review findings, rather than
+introducing a new cross-cutting decision.
+
+## Validation
+
+- `make check-fast` (go vet + golangci-lint + full race test suite): clean,
+  64 packages `ok`, 0 failures.
+- `make coverage-gate` (diff-scoped branch-coverage audit + firing-fixture
+  meta-gate): clean.
+- Manual binary verification against a built `aiwf` binary (not inferred
+  from source): `--print-path` success/failure stdout hygiene, a real
+  `cd "$(...)" && pwd` subshell composition, `--format=json` single-envelope
+  output, explicit-path repo-escape bypass, existing-branch reuse, and
+  post-creation rollback (orphaned worktree + branch confirmed removed via
+  `git worktree list` / `git branch`).
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+Independent two-lens review before wrap (fresh-context subagents, no
+authorship attachment):
+
+- **Code-quality** (`wf-review-code`): verdict *request-changes* on first
+  pass. Verified all 6 ACs' literal claims by running the built binary
+  directly (not just reading the tests), then found the two blocking gaps
+  described above under Work log / Decisions. Both fixed and independently
+  re-verified — gates re-run clean, and the reviewer's own repro steps
+  (missing `aiwf.yaml`, existing-branch reuse) re-run manually against the
+  built binary to confirm the fix, not just re-read.
+- **Design-quality** (`wf-rethink` on the `internal/cli/worktree` package):
+  verdict *keep as-is*, no blocking findings. The branch-exists-then-choose-
+  variant design, the `gitops` layering of the new git-wrapper functions,
+  and the inline output-mode branching all matched established sibling-verb
+  precedent (`update.Run`, `render.go`) rather than introducing a new
+  pattern. Confirmed M-0234 (this epic's next milestone) only needs the CLI
+  invocation string, not in-process Go reuse, so this verb's public shape
+  imposes no friction there.
+- `wf-doc-lint` (scoped to this milestone's change-set): clean, 0 findings.
+  Design docs still describing raw `git worktree add` (ADR-0009,
+  `agent-orchestration.md`) are pre-existing and explicitly out of this
+  milestone's scope — M-0234 rewires them.

@@ -92,6 +92,7 @@ func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 		"init", "update", "upgrade", "history", "doctor", "render",
 		"import", "whoami", "status", "list", "schema", "show",
 		"template", "contract", "milestone", "authorize", "version",
+		"worktree",
 	}
 	got := map[string]bool{}
 	for _, c := range root.Commands() {
