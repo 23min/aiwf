@@ -4,6 +4,11 @@ title: 'aiwf worktree add verb: atomic creation with ritual materialization'
 status: draft
 parent: E-0059
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf worktree add creates worktree + materializes rituals atomically
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -46,6 +51,8 @@ backstop (M-0235). Builds on the existing `worktree.dir` config knob and
   directly; the verb never reports success on a failed creation.
 - **AC-6 candidate** — Flag completion and `--help` text are wired per the
   completion-drift chokepoint (`cmd/aiwf/completion_drift_test.go`).
+
+### AC-1 — aiwf worktree add creates worktree + materializes rituals atomically
 
 ## Constraints
 
