@@ -4,6 +4,11 @@ title: 'Generalized hook registry: aiwf.yaml-declared, persisted consent'
 status: draft
 parent: E-0059
 tdd: required
+acs:
+    - id: AC-1
+      title: 'aiwf.yaml hooks: schema + aiwf.example.yaml regen'
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -54,6 +59,8 @@ the next milestone's job, registered against what this one builds.
   the existing skills/agents/templates categories) embeds hook scripts;
   `aiwf doctor` reports drift (missing / stale / unwired / still-undecided)
   the same way it already does for rituals.
+
+### AC-1 — aiwf.yaml hooks: schema + aiwf.example.yaml regen
 
 ## Constraints
 
