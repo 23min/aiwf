@@ -95,7 +95,7 @@ func emptyGPGWrapper(t *testing.T) string {
 	if err := os.Chmod(home, 0o700); err != nil {
 		t.Fatalf("chmod GNUPGHOME: %v", err)
 	}
-	wrapperPath := filepath.Join(t.TempDir(), "gpg-wrapper.sh")
+	wrapperPath := filepath.Join(home, "gpg-wrapper.sh")
 	wrapper := "#!/bin/sh\nexport GNUPGHOME=" + home + "\nexec gpg \"$@\"\n"
 	if err := os.WriteFile(wrapperPath, []byte(wrapper), 0o700); err != nil {
 		t.Fatalf("writing gpg wrapper script: %v", err)
