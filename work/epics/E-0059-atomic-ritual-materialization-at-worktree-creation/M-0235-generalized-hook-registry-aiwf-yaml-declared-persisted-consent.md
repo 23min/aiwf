@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: aiwf update gates only newly-introduced hooks; syncs decided hooks silently
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: 'Hooks settings writer: no-clobber, .bak backup, multi-event-array composition'
