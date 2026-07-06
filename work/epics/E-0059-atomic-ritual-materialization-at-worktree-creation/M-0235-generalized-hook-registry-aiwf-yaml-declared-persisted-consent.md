@@ -51,16 +51,11 @@ the next milestone's job, registered against what this one builds.
 ## Acceptance criteria
 
 Tracked in frontmatter `acs[]` and detailed in the `### AC-1` … `### AC-5` sections
-below. AC-1 is landed; AC-2 through AC-5 remain drafted here as prose hints
-(not yet kernel state) pending their own TDD cycles.
+below. AC-1 and AC-2 are landed; AC-3 through AC-5 remain drafted here as
+prose hints (not yet kernel state) pending their own TDD cycles.
 
 <!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0235 --title "..."`. -->
 
-- **AC-2 candidate** — On a fresh repo, `aiwf init` gates every registry hook
-  with no recorded decision: a TTY `[y/N]` prompt (default declines) naming
-  the hook and its one-line effect, or, absent a TTY, silent refusal unless
-  `--enable-hook <name>` (repeatable) is passed. The decision — enabled or
-  not — is baked into the freshly-written `aiwf.yaml`.
 - **AC-3 candidate** — On an existing `aiwf.yaml`, `aiwf update` gates only
   hooks absent from the `hooks:` map (introduced by a newer aiwf version);
   every already-decided hook syncs silently every run — materialize +
@@ -95,6 +90,36 @@ enabled-absent, explicit true/false, nil receiver) in
 `TestAcceptedKeys_MembershipChecks` in `internal/config/schema_test.go`.
 
 ### AC-2 — aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
+
+`aiwf init` gates every hook in the shipped registry (`internal/skills.HookDef`
+/ `ShippedHooks`, empty until M-0236 registers its first entry): a hook named
+via the repeatable `--enable-hook <name>` flag is enabled without prompting
+(the non-TTY consent escape hatch, mirroring `--wire-settings`); with a TTY
+present it prompts `[y/N]` naming the hook and its one-line effect (default
+declines); absent both, it silently declines. The gate (`cliutil.GateHookDecisions`)
+is a pure decision function taking the registry as an explicit parameter, so
+tests exercise it with a synthetic registry rather than depending on a real
+hook existing.
+
+The decision lands in the freshly-written `aiwf.yaml` via a new step in
+`aiwf init`'s pipeline, running after `initrepo.Init` has already written the
+file — not by populating `Config.Hooks` before `config.Write`'s marshal, which
+would have silently dropped the full commented schema reference the moment
+any hook carried a decision (`yaml.Marshal(cfg)` would no longer trim to `"{}"`,
+skipping the `GenerateExample()` substitution). Instead the gate persists via
+a new surgical `hooks:` block reader/writer in `internal/aiwfyaml`
+(`Doc.Hooks()`/`Doc.SetHooks()`), mirroring the existing `contracts:`
+whole-block splice so every other byte of the file survives untouched.
+
+Evidence: `TestGateHookDecisions_*` (6 cases) in
+`internal/cli/cliutil/hooks_test.go`; `TestHooks_*`/`TestSetHooks_*` (11 cases,
+including the `hasHooks` detection, unknown-field rejection, and no-trailing-
+newline append path) in `internal/aiwfyaml/hooks_test.go`; `TestRun_*` (4 cases,
+including the dry-run-skips-gating and empty-registry-no-op cases) and
+`TestNewCmd_EnableHookFlagParsesAndReachesRun` (the real Cobra flag-parsing
+seam, not just a direct `Run` call) in `internal/cli/initcmd/initcmd_test.go`;
+`TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal` in
+`internal/cli/initcmd/gate_test.go`.
 
 ### AC-3 — aiwf update gates only newly-introduced hooks; syncs decided hooks silently
 
@@ -152,6 +177,24 @@ schema/example tests), full repo suite green, `make lint` clean, branch-
 coverage audit and adversarial mutation probe (3/3 mutants caught) both
 clean, real-binary `aiwf init` output manually inspected for the generated
 `aiwf.example.yaml` hooks block.
+
+### AC-2 — aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
+
+Landed `internal/skills.HookDef`/`ShippedHooks` (empty registry), the
+`hooks:` block reader/writer in `internal/aiwfyaml` (mirroring the existing
+`contracts:` surgical splice), `cliutil.GateHookDecisions` (reusing the
+statusline's existing `promptYN`/TTY detection), and the `--enable-hook`
+flag + wiring in `aiwf init` · commits 5459e35d, ecae87d9 · tests 22/22 new,
+full repo suite green, `make lint` clean. Branch-coverage audit found and
+closed two real gaps beyond the obvious: a `blockByteRange` error path in
+the new hooks-detection code and the `gateAndPersistHookDecisions` failure-
+propagation line in `Run`, both marked `//coverage:ignore` with a traced
+rationale (not just asserted). Ran the actual mechanized `make
+coverage-gate` (not just manual `go tool cover` reasoning) and it caught one
+real miss my own analysis wrongly assumed was an accepted, unflagged
+precedent — the interactive-prompt branch — fixed in a second, separate
+commit rather than folded into the first. Adversarial mutation probe: 5/5
+mutants caught (including the CLI-level `!dryRun` gate inversion).
 
 ## Decisions made during implementation
 
