@@ -201,9 +201,11 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 }
 
 // statusChange records one observed status-change for an entity at
-// one commit, relative to one of the commit's parents. Multi-parent
-// (merge) commits may yield one observation per parent where the
-// status differs at that parent's path-at-commit.
+// one commit, relative to one of the commit's parents. In practice a
+// multi-parent (merge) commit never yields an observation at all
+// since G-0372 Fix 1 (gitops.BulkRevwalk no longer requests -m, so a
+// merge commit's diff is never observed); IsMergeCommit and the
+// per-subcode skip below are kept as defense-in-depth per D-0010.
 //
 // Unexported because it's an intermediate value passed from the
 // walker to the per-subcode predicates that land in AC-2/3/4 — not a

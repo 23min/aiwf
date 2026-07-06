@@ -257,7 +257,10 @@ func TestRun_UpdateRemoveDeletesAiwfAuthoredWiring(t *testing.T) {
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
-	if rc := cli.Execute([]string{"update", "--root", root, "--statusline", "--scope", "project", "--wire-settings"}); rc != cliutil.ExitOK {
+	// --allow-untagged-statusline bypasses G-0367's version-confirmation
+	// gate deterministically: this in-process test binary is itself
+	// untagged, orthogonal to what this test pins (G-0354's remove flow).
+	if rc := cli.Execute([]string{"update", "--root", root, "--statusline", "--scope", "project", "--wire-settings", "--allow-untagged-statusline"}); rc != cliutil.ExitOK {
 		t.Fatalf("update --statusline: %d", rc)
 	}
 

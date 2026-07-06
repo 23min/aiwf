@@ -42,6 +42,29 @@ func TestRun_InitThroughDispatcher(t *testing.T) {
 	}
 }
 
+// TestRun_InitStatuslineScaffoldsScript confirms `aiwf init --statusline`
+// reaches the shared scaffold and writes the script — this path had no
+// end-to-end coverage before G-0367 (only `aiwf update --statusline` did).
+// --allow-untagged-statusline bypasses G-0367's version-confirmation gate
+// deterministically (this in-process test binary is itself untagged).
+func TestRun_InitStatuslineScaffoldsScript(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+
+	rc := cli.Execute([]string{
+		"init", "--root", root, "--actor", "human/test", "--skip-hook",
+		"--statusline", "--scope", "project", "--allow-untagged-statusline",
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("init --statusline: %d", rc)
+	}
+
+	scriptPath := filepath.Join(root, ".claude", "statusline.sh")
+	if _, err := os.Stat(scriptPath); err != nil {
+		t.Errorf("statusline script must exist after init --statusline: %v", err)
+	}
+}
+
 // TestRun_InitDryRun confirms `aiwf init --dry-run` reports the
 // would-be ledger, prefixes the output with a dry-run banner, and
 // writes nothing to disk.

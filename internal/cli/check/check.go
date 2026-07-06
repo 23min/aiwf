@@ -262,7 +262,10 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// inert anyway, and the walk would be pure waste.
 	if check.AnyAreaHasPaths(areaPaths) {
 		touchedByEntity := check.GatherEntityPaths(ctx, resolved)
-		ackedMistags := check.WalkAcknowledgedMistags(ctx, resolved)
+		// G-0372 Fix 2: derives from the shared head walk (line ~116)
+		// instead of spawning its own `git log HEAD` — the fifth
+		// consumer M-0216/AC-5 missed.
+		ackedMistags := check.WalkAcknowledgedMistags(head)
 		findings = append(findings, check.AreaMistag(tr, areaPaths, touchedByEntity, ackedMistags)...)
 	}
 

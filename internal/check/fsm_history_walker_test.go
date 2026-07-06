@@ -80,18 +80,18 @@ func TestBatchedWalker_RenameChainTracking(t *testing.T) {
 	}
 }
 
-// TestBatchedWalker_OctopusMerge pins the walker's behavior on a
-// merge commit with three parents. M-0130 / M-0137 both inherit
-// `git log -m`'s per-parent-diff fan-out for merges; the M-0137 walker
-// dedupes observations by (commit, parent, path) so each real
-// (commit, parent) tuple emits at most one observation, even when
-// BulkRevwalk yields multiple CommitRecord chunks for the same merge.
-//
-// Scenario: an octopus merge integrating two feature branches into
-// main, where the entity's status differs across all three parents.
-// Expected: per-parent observations emerge for each parent whose
-// state differs from the merge's resolved state, each (commit, parent)
-// pair counted at most once.
+// TestBatchedWalker_OctopusMerge pins the walker's behavior on a merge
+// commit with three parents. Before G-0372 Fix 1, `git log -m` fanned
+// out one diff record per parent for a merge commit, and the walker
+// deduped observations by (commit, parent, path) so each real
+// (commit, parent) tuple emitted at most one observation. Fix 1 drops
+// `-m`: `git log --raw` now suppresses diff output for merge commits
+// entirely (git's default without -m/-c/--cc), so no observation is
+// ever produced at a merge commit — safe because every current
+// consumer of these observations discards merge-commit observations
+// unconditionally (D-0010). This test now characterizes THAT: even a
+// conflicted octopus merge whose resolved state differs from all three
+// parents produces zero observations.
 func TestBatchedWalker_OctopusMerge(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
@@ -136,26 +136,13 @@ func TestBatchedWalker_OctopusMerge(t *testing.T) {
 		t.Fatalf("walkStatusChanges: %v", err)
 	}
 
-	// Dedup invariant: no (commit, parent) pair appears more than once
-	// in the observations.
-	seen := map[string]int{}
+	// G-0372 Fix 1: without -m, `git log --raw` emits no diff records for
+	// a merge commit — the octopus merge itself contributes zero
+	// observations, regardless of how many parents' state it resolved.
 	for _, o := range obs {
-		key := o.Commit + "::" + o.Parent
-		seen[key]++
-	}
-	for key, count := range seen {
-		if count > 1 {
-			t.Errorf("octopus merge (commit, parent) %q appears %d times; dedup should collapse to 1", key, count)
+		if o.IsMergeCommit {
+			t.Errorf("expected no merge-commit observations (Fix 1 drops -m), got %+v", o)
 		}
-	}
-
-	// Sanity: the merge integrated three branches with differing
-	// statuses, so at least one merge-commit observation should
-	// emerge. (Some git versions fall back to sequential 2-parent
-	// merges under conflicts; either shape still produces multi-
-	// parent merge commits the walker dedups uniformly.)
-	if len(obs) == 0 {
-		t.Errorf("expected merge-commit observations for the octopus fixture; got 0")
 	}
 }
 

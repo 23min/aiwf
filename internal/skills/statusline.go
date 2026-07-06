@@ -109,6 +109,22 @@ func (o StatuslineRefreshOutcome) LedgerLine() (line string, show bool) {
 	return fmt.Sprintf("  %-9s  statusline (%s scope)  (%s)", o.Action, o.Scope, o.Detail), true
 }
 
+// StatuslineWriteNeedsConfirmation reports whether an explicit
+// `--statusline` scaffold write (ScaffoldStatuslineWithHome, called by
+// `aiwf init --statusline` / `aiwf update --statusline`) should be gated
+// behind operator confirmation before it lands in the shared,
+// cross-project scope (G-0367). True when binary's version is untagged —
+// a dev/worktree build, or any dev/pseudo/pre-release value
+// version.Compare can't order — the one case the explicit write path
+// applies identically to a real release AND a worktree build with no
+// ordering check at all, unlike the upgrade-only auto-refresh
+// (decideStatuslineRefresh's SkewUnknown arm, which simply skips). The
+// single source of truth for that predicate; callers gate the write on
+// it rather than re-deriving `!binary.Tagged` themselves.
+func StatuslineWriteNeedsConfirmation(binary version.Info) bool {
+	return !binary.Tagged
+}
+
 // decideStatuslineRefresh is the pure upgrade-only decision (G-0344):
 // given the binary's version, the version parsed from the installed
 // copy (marked=false when the marker is absent), and whether the body

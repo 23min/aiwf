@@ -16,6 +16,41 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0371: `wf-vacuity`'s mutation probe now names a safe revert mechanism
+
+The mutation probe's revert step named no safe mechanism, so a reviewer filled the gap with
+`git stash`/`pop` against a working tree shared with a pending commit — a plain stash/pop restores
+content unstaged regardless of prior staged state, and once silently desynced the index from what
+actually landed (a commit missing its fix, caught only by after-the-fact inspection). `wf-vacuity`
+now specifies capturing pre-mutation content directly (or via `git show HEAD:<path>`) and writing it
+back byte-for-byte, and forbids `git stash`/`checkout`/`restore` as reverts. `wf-patch` adds an
+orchestrator-side backstop — a diff fingerprint captured before dispatching a reviewer, re-verified
+at the commit gate and again immediately before `git commit` — plus a reviewer-dispatch contract (no
+shared-tree mutation; use `git show` or an isolated worktree instead), mirrored in `wf-tdd-cycle`'s
+vacuity check, the ritual's other required call site.
+
+### Changed — G-0372: `aiwf check` drops two unconditional-but-wasted git costs
+
+`gitops.BulkRevwalk` (the fsm-history-consistent git walk) no longer requests `-m`, which forced
+a separate diff record per parent for every merge commit even though every current consumer
+discards merge-commit observations unconditionally — a pure cost with no observable effect.
+`WalkAcknowledgedMistags` (the area-mistag acknowledgment gather) no longer spawns its own `git
+log HEAD` subprocess; it now derives the same result from the HEAD walk `aiwf check` already
+computes once per invocation. Together these measurably reduce `aiwf check`'s wall-clock cost on
+repos with sizeable history, with no change to which findings are reported. This does not resolve
+G-0372's full scope (every history-walking rule still walks from scratch on each invocation) —
+only these two provably-safe reductions.
+
+### Fixed — G-0367: `aiwf init/update --statusline` gates untagged binaries before a shared-scope write
+
+`--statusline` always rendered and wrote to the running binary's embedded version with no ordering
+check at all — unlike the upgrade-only auto-refresh (`aiwf update`'s passive refresh), which skips
+whenever the two versions can't be ordered. A dev/worktree build's untagged version (e.g.
+`<branch>@<sha>[-dirty]`) landed unconditionally in the shared, cross-project user scope regardless.
+`--statusline` now requires confirmation (an interactive `[y/N]` prompt on a TTY, or the new
+`--allow-untagged-statusline` flag otherwise) before writing when the running binary's version is
+untagged; a tagged release binary is unaffected and still writes unconditionally, as before.
+
 ### Fixed — G-0373: `aiwfx-release`'s CI-green check is stack-neutral, not Go-specific
 
 The pre-release CI-green check named `go.yml` as "the primary Go workflow", grepped

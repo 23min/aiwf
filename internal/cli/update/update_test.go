@@ -35,6 +35,17 @@ func TestNewCmd_RemoveAndForceFlags(t *testing.T) {
 	}
 }
 
+// TestNewCmd_AllowUntaggedStatuslineFlag asserts G-0367's version-gate
+// override is wired and discoverable via --help (bool flag, no
+// completion registration required).
+func TestNewCmd_AllowUntaggedStatuslineFlag(t *testing.T) {
+	t.Parallel()
+	cmd := update.NewCmd()
+	if cmd.Flags().Lookup("allow-untagged-statusline") == nil {
+		t.Error("missing --allow-untagged-statusline flag")
+	}
+}
+
 // TestRun_RemoveAndStatuslineMutuallyExclusive asserts G-0354: passing
 // both --statusline and --remove is a usage error, and neither the
 // artifact refresh nor either statusline action runs.
@@ -42,7 +53,7 @@ func TestRun_RemoveAndStatuslineMutuallyExclusive(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 
-	rc := update.Run(root, true /* statusline */, "project", false, true /* remove */, false)
+	rc := update.Run(root, true /* statusline */, "project", false, false /* allowUntagged */, true /* remove */, false)
 	if rc != cliutil.ExitUsage {
 		t.Fatalf("rc = %d, want cliutil.ExitUsage", rc)
 	}
