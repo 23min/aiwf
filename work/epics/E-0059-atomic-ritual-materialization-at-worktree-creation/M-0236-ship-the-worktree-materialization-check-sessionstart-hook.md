@@ -61,6 +61,13 @@ renders the notice itself.
   whole point is removing the LLM-memory dependency.
 - Advisory only — never hard-refuses, per the epic's own risk mitigation
   against false positives on an intentionally bare worktree.
+- Ships complete, standalone `--help` documentation for this concrete
+  hook: replace M-0235's placeholder `aiwf init --enable-hook <hook-name>`
+  / `aiwf update --enable-hook <hook-name>` Example lines with this hook's
+  real name, and state plainly what enabling it does. `--help` is the
+  shippable discovery channel for `init`/`update` (both allowlisted
+  no-skill ops verbs per ADR-0006) — no CLAUDE.md mention needed, and no
+  reference to any sibling consent mechanism (ADR-0015/ADR-0018).
 
 ## Out of scope
 
