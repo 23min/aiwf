@@ -83,12 +83,16 @@ to edit.
   absolute worktree path into the subagent's prompt rather than relying on `cd`,
   since the new verb has no more ability to change a subagent's cwd than the raw
   command did.
-- **Session-level detection backstop.** A harness-executed hook (same pattern as the
-  existing `.claude/hooks/validate-agent-isolation.sh` PreToolUse hook from G-0099)
-  that checks whether cwd is under `.claude/worktrees/` with `.claude/skills/` absent
-  or stale, and warns before the session proceeds — the mechanism that catches any
-  worktree created outside the wrapper (a bare `git worktree add`, or a path this
-  epic doesn't rewire).
+- **Materialized hook registry with persisted consent.** `aiwf.yaml` gains a
+  `hooks:` table so any Claude Code hook aiwf ships can be materialized and
+  wired into a consumer's `.claude/settings.json`, gated by a per-hook
+  decision that persists once made (ADR-0032) — replacing the ad-hoc,
+  per-feature consent-flag model. The first (and, for now, only) hook this
+  registry ships is the session-level backstop: it checks whether cwd is
+  under `.claude/worktrees/` with rituals absent or stale, and warns via a
+  harness-rendered notice before the session or subagent proceeds — the
+  mechanism that catches any worktree created outside the wrapper (a bare
+  `git worktree add`, or a path this epic doesn't rewire).
 
 ### Out of scope
 
@@ -149,33 +153,26 @@ to edit.
   `.claude/worktrees/` checkout (created outside the wrapper) receives a visible
   warning before proceeding, rather than silently degrading.
 
-## Open questions
-
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Does `aiwfx-start-epic` create worktrees directly, or only via `aiwfx-start-milestone`'s cut-branch step? | no | Confirm during milestone decomposition; rewire whichever is true. |
-| Can a Claude Code `SessionStart` hook actually block/warn before the session proceeds, or only inject context after the fact? | yes, for backstop milestone | Spike the hook mechanism early in that milestone; fall back to a loud injected warning if hard-blocking isn't available. |
-
 ## Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Rewiring multiple `SKILL.md` bodies (each needing its own structural test) balloons one milestone's scope. | med | Give the rewiring its own milestone, sized per call site, separate from the new-verb milestone. |
 | The backstop hook false-positives on an intentionally bare worktree (e.g. a throwaway checkout for unrelated inspection). | low | Scope detection strictly to `.claude/worktrees/` (the aiwf-owned convention per ADR-0023); default the hook to advisory/warn, not hard-refuse. |
-| `SessionStart` hooks may not support blocking in the current harness. | med | Covered by the open question above; the milestone spikes this before committing to exact UX. |
+| `SessionStart`/`SubagentStart` hooks do not support blocking. | med | Confirmed unsupported against the official Claude Code hooks documentation — mitigated by the harness-rendered exit-code/stderr notice, visible to the human without depending on blocking or LLM mediation (ADR-0032, M-0236). |
 | A stray stdout write (a progress ping, a future debug print) silently corrupts the `--print-path` / `cd "$(...)"` composition — looks fine in a manual check, breaks only under real shell composition. | med | Dedicated binary-level subprocess test asserting `cd "$(...)" && pwd` lands correctly on success and fails loudly on error; not satisfied by a Go-level string-return test. |
 
 ## Milestones
 
 - [M-0233](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0233-aiwf-worktree-add-verb-atomic-creation-with-ritual-materialization.md) — `aiwf worktree add`: atomic git-worktree-add + init/update materialization, with completion and tests. · depends on: —
 - [M-0234](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0234-rewire-aiwf-rituals-and-claude-md-to-use-aiwf-worktree-add.md) — Rewire aiwf's own rituals and CLAUDE.md to the new verb. · depends on: `M-0233`
-- [M-0235](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0235-session-start-hook-flags-worktrees-missing-materialized-rituals.md) — Session-start detection backstop for worktrees created outside the wrapper. · depends on: —
+- [M-0235](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0235-generalized-hook-registry-aiwf-yaml-declared-persisted-consent.md) — Generalized hook registry: aiwf.yaml-declared, persisted per-hook consent. · depends on: —
+- [M-0236](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0236-ship-the-worktree-materialization-check-sessionstart-hook.md) — Ship the worktree-materialization-check SessionStart/SubagentStart hook. · depends on: `M-0235`
 
 ## ADRs produced (optional)
 
-- None anticipated; this is an implementation epic, not a kernel-model decision. Flag
-  during planning if the wrapper-verb design turns out to need one (e.g. if it
-  changes the worktree-placement decision itself rather than just materializing).
+- [ADR-0032](docs/adr/ADR-0032-materialized-hook-consent-persisted-per-hook-aiwf-yaml-registry.md) — Materialized hook consent: persisted per-hook aiwf.yaml registry, the
+  third instance of the risk-calibrated-consent family (ADR-0015, ADR-0018).
 
 ## References
 
