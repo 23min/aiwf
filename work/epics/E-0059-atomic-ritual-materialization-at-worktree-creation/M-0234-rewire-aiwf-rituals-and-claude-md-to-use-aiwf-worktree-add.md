@@ -164,3 +164,28 @@ suite re-run clean)
 ## Deferrals
 
 - None.
+
+## Reviewer notes
+
+Independent fresh-context reviewer (code-quality lens, `wf-review-code`):
+**APPROVE**, verified by measuring — checked each SKILL.md's pre-edit text
+against `git show da32ab99:<path>` to confirm the "previously named no
+concrete command" claims, built the binary and cross-checked every new
+example invocation against `aiwf worktree add --help`'s real flag/positional
+contract, confirmed the new tests are heading-scoped (not whole-body
+substring greps) and RED-on-revert, and scanned all three rewritten
+`SKILL.md` bodies for shipped-surface violations (none found — only canonical
+placeholder shapes). No blocking or advisory findings.
+
+Design-quality lens (`wf-rethink`) not run: this milestone introduced no new
+module/package boundary, core abstraction, or data model — pure doc
+rewiring — so there is nothing to rethink.
+
+Doc-lint (scoped to the 6 changed files): clean, 0 findings.
+
+One pre-existing, out-of-scope item surfaced during the readiness check and
+confirmed unrelated by the reviewer: `aiwf check` reports an
+`ids-unique/trunk-collision` error on `G-0368` (independently allocated with
+different slugs on this branch vs. trunk), predating this milestone's work.
+Not fixed here — resolving it is a separate `aiwf reallocate` action, out of
+this milestone's scope.
