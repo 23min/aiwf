@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: aiwf update gates only newly-introduced hooks; syncs decided hooks silently
       status: open
@@ -50,12 +50,12 @@ the next milestone's job, registered against what this one builds.
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0235 --title "..."`.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
+Tracked in frontmatter `acs[]` and detailed in the `### AC-1` … `### AC-5` sections
+below. AC-1 is landed; AC-2 through AC-5 remain drafted here as prose hints
+(not yet kernel state) pending their own TDD cycles.
 
-- **AC-1 candidate** — `aiwf.yaml`'s schema gains a `hooks:` map
-  (`hooks.<name>.enabled: true|false`); an absent key means undecided.
-  `aiwf.example.yaml` regenerates to document it (ADR-0027).
+<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0235 --title "..."`. -->
+
 - **AC-2 candidate** — On a fresh repo, `aiwf init` gates every registry hook
   with no recorded decision: a TTY `[y/N]` prompt (default declines) naming
   the hook and its one-line effect, or, absent a TTY, silent refusal unless
@@ -77,6 +77,22 @@ the next milestone's job, registered against what this one builds.
   the same way it already does for rituals.
 
 ### AC-1 — aiwf.yaml hooks: schema + aiwf.example.yaml regen
+
+`aiwf.yaml`'s schema gains `Config.Hooks map[string]Hook` (`hooks.<name>.enabled:
+true|false`), a tristate `*bool` mirroring `StatusMd.AutoUpdate`: absence of the
+map key, or an entry present but omitting `enabled:`, both read as undecided —
+never as an implicit decline. `Config.HookDecision(name)` is the single getter
+consumers use, returning `(enabled, decided bool)`. `aiwf.example.yaml`
+regenerates to document the block (verified against the real `aiwf init` output,
+not just the unit test), following the map-of-struct pattern `agents:` already
+established and ADR-0027's generated-example convention.
+
+Evidence: `TestHookDecision_*` (6 cases: no block, name absent, entry-present-
+enabled-absent, explicit true/false, nil receiver) in
+`internal/config/config_test.go`; `TestSchema_EnumeratesEveryYAMLField`,
+`TestGenerateExample_ProducesValidReparseableYAML`,
+`TestGenerateExample_HooksExampleItemUndecidedVerbatim`,
+`TestAcceptedKeys_MembershipChecks` in `internal/config/schema_test.go`.
 
 ### AC-2 — aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
 
@@ -124,3 +140,19 @@ the next milestone's job, registered against what this one builds.
 - ADR-0027 — the generated-`aiwf.example.yaml` convention this milestone's
   schema change follows.
 - G-0374 — the gap this epic closes.
+
+## Work log
+
+### AC-1 — aiwf.yaml hooks: schema + aiwf.example.yaml regen
+
+Landed the `hooks:` map-of-struct schema field, `Hook` tristate struct, and
+`Config.HookDecision` getter, following the existing `agents:` map-of-struct
+pattern · commit 31ff89a9 · tests 9/9 new (6 `TestHookDecision_*` + 3
+schema/example tests), full repo suite green, `make lint` clean, branch-
+coverage audit and adversarial mutation probe (3/3 mutants caught) both
+clean, real-binary `aiwf init` output manually inspected for the generated
+`aiwf.example.yaml` hooks block.
+
+## Decisions made during implementation
+
+- (none — all decisions are pre-locked in ADR-0032 / this spec's Design notes)
