@@ -37,34 +37,73 @@ G-0368 -> G-0376`, a spurious duplicate later reverted by hand.
 
 ## Direction
 
-Detect trunk-side renames too, not just branch-side ones: extend the rename
-view (or add a second one) covering `merge-base(HEAD, ref)..ref` — the
-renames trunk committed since the fork point — and treat a hit there as the
-same "same entity moved" case the existing `TrunkRenames` escape hatch
-already handles for the branch-side direction. The G37 false-positive risk
-`RenamesFromRef`'s current one-directional scoping was built to avoid
-(independent parallel-clone allocations misread as a rename) applies
-symmetrically to this direction too, so the same merge-base-scoped,
-same-branch-history-only comparison approach should carry over without
-reintroducing that risk — needs confirming when this is worked.
+Per `ADR-0031`: detect trunk-side renames too, but not as a direct mirror of
+the branch-side mechanism. A naive symmetric mirror (trailer walk + `git
+diff -M` content-similarity fallback, scoped `merge-base(HEAD, ref)..ref`)
+was adversarially reviewed before any code was written and found unsafe —
+extending the `-M` fallback to the trunk side risks spuriously pairing two
+unrelated, boilerplate-similar entities over a potentially large range
+(trunk's full history since an old branch forked), which can silently
+misclassify a genuine id collision as "same entity, moved" and merge it to
+trunk unnoticed. That failure mode is strictly worse than the false
+positive being fixed.
+
+The corrected design (`ADR-0031`):
+
+- **Trunk side: trailer walk only, no `-M` fallback, ever.** A manual,
+  non-kernel-verb `git mv` performed directly on trunk stays an
+  unrecognized (safe) false positive — consistent with this repo's existing
+  `id-rename-untrailered` check, which already discourages non-kernel-verb
+  renames.
+- **Branch side: unchanged** — today's trailer walk + `-M` fallback stays,
+  since its range (bounded by the branch's own divergence) doesn't carry
+  the same risk.
+- **`entity.ActiveFormOf`'s archive-sweep pre-filter stays separate**, run
+  before any merge-base/rename analysis — not subsumed into the general
+  mechanism.
+- **Cost model: in-memory guard first, batched not per-id.** Compute the
+  disputed-id set (same id, different path, working tree vs. `Tree.TrunkIDs`)
+  in memory, at zero git cost. Empty → skip all git work. Non-empty → one
+  batched computation covering every disputed id at once, never a per-id
+  loop (a naive per-id design was shown to be 50-100x slower than today's
+  single batched diff on a large rename batch — e.g. an unmerged `aiwf
+  rewidth --apply` or `archive --apply` sweep).
+- **Default to firing when `merge-base` is unreachable** (shallow clone,
+  unrelated histories) — an explicit degraded tier, not silently assumed
+  away.
+- Does not claim to eliminate every false positive "by construction": a
+  stale branch spanning a trunk-side `aiwf reallocate` remains a known,
+  out-of-scope residual limitation.
 
 ## Scope
 
-- `internal/gitops/refs.go`: a trunk-side counterpart to `RenamesFromRef`
-  (or a widened version covering both directions), scoped by the same
-  merge-base logic.
-- `internal/check/check.go`'s `idsUnique`: consult the new trunk-side rename
-  view as a third escape hatch alongside the existing two.
-- Tests: a fixture reproducing the exact scenario (rename an entity on
-  trunk after a branch forks, without merging trunk back into the branch;
-  `aiwf check` on the branch must not fire `trunk-collision`), plus a
-  regression test confirming a genuine cross-branch collision (two
-  different entities independently allocated the same id) still fires.
+- `internal/gitops/refs.go`: a trunk-side rename view scoped to
+  `merge-base(HEAD, ref)..ref`, trailer-driven only (reuses the existing
+  `renamesFromAiwfVerbTrailers` shape; does not add a `-M` diff pass for
+  this direction).
+- `internal/check/check.go`'s `idsUnique`: the in-memory disputed-id guard,
+  the retained `ActiveFormOf` pre-filter, then the new trailer-only
+  trunk-side escape hatch alongside the existing branch-side one.
+- If the implementation needs an id-at-a-commit lookup, reuse the existing
+  (currently-unexported) `trunk.idsFromPaths` helper rather than
+  re-deriving it, per `ADR-0031`'s note for `E-0060` consistency.
+- Tests, using real git fixtures (not the in-memory fake-tree shape the
+  current branch-side tests use): a trunk-side retitle after a fork clears
+  `trunk-collision`; a genuine cross-branch collision (two independent
+  entities, no rename relationship, high content similarity) still fires;
+  a shallow-clone / no-merge-base case still fires (degraded tier); the
+  existing archive-sweep and branch-side-rename unit tests are unaffected.
 
 ## Related
 
+- `ADR-0031` — records the trailer-only-on-trunk-side decision and the
+  supporting cost-model / pre-filter-retention / degraded-tier decisions
+  this Direction implements.
 - `E-0060`, `ADR-0025`, `ADR-0030` — a related but distinct concern
   (resolving *references* to ids absent from the local tree via the
-  cross-branch view); both epics explicitly keep `ids-unique`'s
-  trunk-anchored collision basis out of scope, so this gap is deliberately
+  cross-branch view); confirmed via independent review to ask a genuinely
+  different question at a different commit-ish, so this gap is deliberately
   not folded into that epic.
+- A separate gap tracks the misleading `aiwf reallocate` remediation hint
+  for this finding, since that's wrong regardless of this design's
+  implementation timeline.
