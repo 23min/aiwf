@@ -27,7 +27,13 @@ const hookScriptMode = 0o755
 // via an ownership manifest across renames), a hook's own registry
 // name is its identity: this function only ever touches paths named
 // in hooks, so a foreign or user-authored file is never at risk.
+//
+// A target with an empty HooksDir has no hooks concept — a no-op,
+// mirroring materializeTo's identical AgentsDir == "" convention.
 func MaterializeHooks(root string, target Target, hooks []HookDef, decisions map[string]bool) error {
+	if target.HooksDir == "" {
+		return nil
+	}
 	dir := filepath.Join(root, target.HooksDir)
 	for _, h := range hooks {
 		enabled, decided := decisions[h.Name]
@@ -74,7 +80,13 @@ type HookDriftReport struct {
 // that is exactly as its decision demands — enabled/materialized/wired
 // all true, or disabled/absent/unwired all true — appears in none of
 // the three lists.
+//
+// A target with an empty HooksDir has no hooks concept — an empty
+// report, mirroring MaterializeHooks's identical no-op convention.
 func HookDrift(root string, target Target, hooks []HookDef, decisions map[string]bool, settingsPath string) (HookDriftReport, error) {
+	if target.HooksDir == "" {
+		return HookDriftReport{}, nil
+	}
 	var report HookDriftReport
 	for _, h := range hooks {
 		enabled, decided := decisions[h.Name]
@@ -86,8 +98,7 @@ func HookDrift(root string, target Target, hooks []HookDef, decisions map[string
 		_, statErr := os.Stat(filepath.Join(root, target.HooksDir, h.Name))
 		materialized := statErr == nil
 
-		command := target.HooksDir + "/" + h.Name
-		wired, err := HookCommandWired(settingsPath, command)
+		wired, err := HookCommandWired(settingsPath, h.Command(target))
 		if err != nil {
 			return HookDriftReport{}, err
 		}

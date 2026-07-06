@@ -38,15 +38,11 @@ func HookNamesFrom(hooks []HookDef) []string {
 	return names
 }
 
-// HookSkillsFrom converts a hook registry into the flat-file Skill shape
-// MaterializeHooks writes — the hooks-category lister, parallel to
-// ListRitualAgents/ListRitualTemplates (ADR-0032). Takes the registry
-// explicitly, like HookNamesFrom, so tests can exercise it against a
-// synthetic registry ahead of any concrete hook landing (M-0236).
-func HookSkillsFrom(hooks []HookDef) []Skill {
-	out := make([]Skill, 0, len(hooks))
-	for _, h := range hooks {
-		out = append(out, Skill{Name: h.Name, Content: h.Content})
-	}
-	return out
+// Command returns the command string a materialized hook wires into
+// settings.json under target — the single source of truth for that
+// convention, so HookDrift's "wired" check and a future WireHookSettings
+// caller (M-0236) always derive the identical string rather than each
+// reconstructing it independently.
+func (h HookDef) Command(target Target) string {
+	return target.HooksDir + "/" + h.Name
 }

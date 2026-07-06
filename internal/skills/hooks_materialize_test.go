@@ -6,34 +6,51 @@ import (
 	"testing"
 )
 
-// TestHookSkillsFrom_ConvertsNameAndContent covers the pure HookDef ->
-// Skill conversion the materialization category's lister uses.
-func TestHookSkillsFrom_ConvertsNameAndContent(t *testing.T) {
+// TestHookDef_CommandDerivesFromTargetHooksDir covers the single-source
+// convention HookDrift's wired-check and a future WireHookSettings caller
+// both derive from, rather than each reconstructing the string.
+func TestHookDef_CommandDerivesFromTargetHooksDir(t *testing.T) {
 	t.Parallel()
-	hooks := []HookDef{
-		{Name: "b-hook", Description: "second", Content: []byte("script-b")},
-		{Name: "a-hook", Description: "first", Content: []byte("script-a")},
-	}
-	got := HookSkillsFrom(hooks)
-	if len(got) != 2 {
-		t.Fatalf("HookSkillsFrom: got %d skills, want 2", len(got))
-	}
-	if got[0].Name != "b-hook" || string(got[0].Content) != "script-b" {
-		t.Errorf("HookSkillsFrom[0] = %+v, want {b-hook script-b}", got[0])
-	}
-	if got[1].Name != "a-hook" || string(got[1].Content) != "script-a" {
-		t.Errorf("HookSkillsFrom[1] = %+v, want {a-hook script-a}", got[1])
+	h := HookDef{Name: "check.sh"}
+	got := h.Command(ClaudeTarget)
+	want := ClaudeTarget.HooksDir + "/check.sh"
+	if got != want {
+		t.Errorf("Command() = %q, want %q", got, want)
 	}
 }
 
-// TestHookSkillsFrom_EmptyInputReturnsEmpty covers the boundary: an
-// empty registry (ShippedHooks today) converts to an empty slice, not
-// an error.
-func TestHookSkillsFrom_EmptyInputReturnsEmpty(t *testing.T) {
+// TestMaterializeHooks_EmptyHooksDirIsNoOp covers a target with no
+// hooks concept (HooksDir == ""), mirroring materializeTo's identical
+// AgentsDir == "" convention: nothing is written anywhere under root,
+// not even at root's own top level.
+func TestMaterializeHooks_EmptyHooksDirIsNoOp(t *testing.T) {
 	t.Parallel()
-	got := HookSkillsFrom(nil)
-	if len(got) != 0 {
-		t.Errorf("HookSkillsFrom(nil) = %v, want empty", got)
+	root := t.TempDir()
+	noHooksTarget := Target{Name: "no-hooks", SkillsDir: ".x/skills"}
+	hooks := []HookDef{{Name: "check.sh", Content: []byte("script")}}
+	if err := MaterializeHooks(root, noHooksTarget, hooks, map[string]bool{"check.sh": true}); err != nil {
+		t.Fatalf("MaterializeHooks: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "check.sh")); !os.IsNotExist(err) {
+		t.Errorf("expected no file written for an empty-HooksDir target: stat err = %v", err)
+	}
+}
+
+// TestHookDrift_EmptyHooksDirReturnsEmptyReport covers the same no-op
+// convention on the read side: a target with no hooks concept reports
+// no drift at all, not "everything undecided".
+func TestHookDrift_EmptyHooksDirReturnsEmptyReport(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	noHooksTarget := Target{Name: "no-hooks", SkillsDir: ".x/skills"}
+	hooks := []HookDef{{Name: "check.sh", Content: []byte("script")}}
+	settingsPath := filepath.Join(root, ".claude", "settings.json")
+	report, err := HookDrift(root, noHooksTarget, hooks, map[string]bool{}, settingsPath)
+	if err != nil {
+		t.Fatalf("HookDrift: %v", err)
+	}
+	if len(report.Undecided) != 0 || len(report.MaterializedNotWired) != 0 || len(report.WiredButStale) != 0 {
+		t.Errorf("expected an empty report for an empty-HooksDir target, got %+v", report)
 	}
 }
 
@@ -224,8 +241,7 @@ func TestHookDrift_FullySyncedHookReportsClean(t *testing.T) {
 	if err := MaterializeHooks(root, ClaudeTarget, hooks, decisions); err != nil {
 		t.Fatalf("MaterializeHooks: %v", err)
 	}
-	command := ClaudeTarget.HooksDir + "/check.sh"
-	if _, err := WireHookSettings(settingsPath, command, []string{"SessionStart"}); err != nil {
+	if _, err := WireHookSettings(settingsPath, hooks[0].Command(ClaudeTarget), []string{"SessionStart"}); err != nil {
 		t.Fatalf("WireHookSettings: %v", err)
 	}
 	report, err := HookDrift(root, ClaudeTarget, hooks, decisions, settingsPath)
@@ -269,8 +285,7 @@ func TestHookDrift_WiredDespiteDeclinedReported(t *testing.T) {
 	root := t.TempDir()
 	settingsPath := filepath.Join(root, ".claude", "settings.json")
 	hooks := []HookDef{{Name: "check.sh", Content: []byte("script")}}
-	command := ClaudeTarget.HooksDir + "/check.sh"
-	if _, err := WireHookSettings(settingsPath, command, []string{"SessionStart"}); err != nil {
+	if _, err := WireHookSettings(settingsPath, hooks[0].Command(ClaudeTarget), []string{"SessionStart"}); err != nil {
 		t.Fatalf("WireHookSettings: %v", err)
 	}
 	report, err := HookDrift(root, ClaudeTarget, hooks, map[string]bool{"check.sh": false}, settingsPath)
@@ -294,8 +309,7 @@ func TestHookDrift_EnabledButUnmaterializedReportsNotFullySynced(t *testing.T) {
 	root := t.TempDir()
 	settingsPath := filepath.Join(root, ".claude", "settings.json")
 	hooks := []HookDef{{Name: "check.sh", Content: []byte("script")}}
-	command := ClaudeTarget.HooksDir + "/check.sh"
-	if _, err := WireHookSettings(settingsPath, command, []string{"SessionStart"}); err != nil {
+	if _, err := WireHookSettings(settingsPath, hooks[0].Command(ClaudeTarget), []string{"SessionStart"}); err != nil {
 		t.Fatalf("WireHookSettings: %v", err)
 	}
 	report, err := HookDrift(root, ClaudeTarget, hooks, map[string]bool{"check.sh": true}, settingsPath)
