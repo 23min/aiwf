@@ -9,6 +9,10 @@ acs:
       title: 'aiwf.yaml hooks: schema + aiwf.example.yaml regen'
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -61,6 +65,8 @@ the next milestone's job, registered against what this one builds.
   the same way it already does for rituals.
 
 ### AC-1 — aiwf.yaml hooks: schema + aiwf.example.yaml regen
+
+### AC-2 — aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
 
 ## Constraints
 
