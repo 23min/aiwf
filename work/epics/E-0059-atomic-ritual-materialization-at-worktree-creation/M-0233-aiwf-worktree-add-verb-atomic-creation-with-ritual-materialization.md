@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: --print-path emits only the absolute path on success, nothing on failure
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: git worktree add failures surface directly; never reports false success
