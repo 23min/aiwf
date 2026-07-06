@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Repo-escape rejection applies only to default path, not explicit path
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: --print-path emits only the absolute path on success, nothing on failure
       status: open
