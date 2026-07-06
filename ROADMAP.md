@@ -561,7 +561,7 @@ Replace aiwf's fragile `git stash`-based per-verb commit isolation with a plumbi
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0186 | gitops commit primitive via temp-index and commit-tree | in_progress |
+| M-0186 | gitops commit primitive via temp-index and commit-tree | done |
 | M-0187 | Opt-in gaps inbox on a never-checked-out ref | draft |
 
 ## E-0046 — Formalize in-repo worktrees as the default placement (done)
