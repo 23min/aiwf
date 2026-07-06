@@ -94,9 +94,9 @@ func NewCmd() *cobra.Command {
 // succeeds.
 //
 // hooks is the shipped hook registry (ADR-0032); the production call site
-// passes skills.ShippedHooks (empty until a milestone registers its first
-// concrete hook), and tests inject a synthetic registry to exercise the
-// sync step without depending on a real hook existing. Every registry
+// passes skills.ShippedHooks, and tests inject a synthetic registry to
+// exercise the sync step independent of the real registry's current
+// contents. Every registry
 // hook absent from the existing aiwf.yaml's hooks: map is gated
 // (enableHooks bypasses the interactive prompt for the named ones); every
 // already-decided hook syncs forward unchanged, with no re-prompt
@@ -166,6 +166,9 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 
 	if len(hooks) > 0 {
 		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
+			return rc
+		}
+		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
 			return rc
 		}
 	}

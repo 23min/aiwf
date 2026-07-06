@@ -6,6 +6,23 @@ parent: E-0059
 depends_on:
     - M-0235
 tdd: required
+acs:
+    - id: AC-1
+      title: Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: Hook registered in the registry for both SessionStart and SubagentStart events
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: Subprocess policy test pins exit code and stderr for both hook cases
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: init/update materialize and wire the hook per consent; doctor reports its state
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -55,6 +72,14 @@ renders the notice itself.
   M-0235's registry mechanism; `aiwf doctor` reports the hook's
   materialized/wired state.
 
+### AC-1 — Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+
+### AC-2 — Hook registered in the registry for both SessionStart and SubagentStart events
+
+### AC-3 — Subprocess policy test pins exit code and stderr for both hook cases
+
+### AC-4 — init/update materialize and wire the hook per consent; doctor reports its state
+
 ## Constraints
 
 - Detection is harness-executed only — no skill-instruction fallback; the
@@ -100,3 +125,189 @@ renders the notice itself.
 - G-0374 — the gap this epic closes.
 - G-0099 — the sibling isolation-guard hook; its migration into this
   registry is a follow-up gap, not this milestone's work.
+
+## Work log
+
+### AC-1 — Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+
+Added `aiwf doctor --check-rituals [--root <path>]`: a terse,
+exit-code-meaningful check reusing `skills.MaterializedRituals` rather
+than reimplementing materialization detection — silent + exit 0 when
+every ritual artifact is present, a single actionable stderr line +
+exit 1 otherwise. The plain `aiwf doctor` report keeps rituals
+advisory-only (unchanged), since `--check-rituals` is a distinct mode
+built for automation, not a change to the default report's exit-code
+contract.
+
+Added the hook script itself (`internal/skills/embedded-hooks/
+worktree-rituals-check.sh`, go:embed'd as `skills.WorktreeRitualsCheckScript`):
+gates on cwd being inside a `.claude/worktrees/` checkout, resolves the
+worktree's own root via `git rev-parse --show-toplevel` (robust to
+branch names containing `/`, unlike string-parsing the path), and
+`exec`s into `aiwf doctor --check-rituals --root <root>` rather than
+reimplementing detection in shell. Not yet registered into
+`skills.ShippedHooks` or wired to any settings.json event — that's
+AC-2's job.
+
+`wf-vacuity` (6 mutations) found one real surviving mutant: the
+script-gate test's `strings.Contains(script, ".claude/worktrees/")`
+assertion matched the file's own header comment, not the functional
+`case` line, so a broken gate pattern went undetected. Strengthened to
+match the actual case-pattern token (`*/.claude/worktrees/*)`); the
+same mutation now fails as expected. 0 surviving mutants after the fix.
+
+Branch-coverage audit: both directions of `checkRitualsResult`'s
+ok/not-ok split, both of `RunCheckRituals`'s exit-code arms (Go-level
+and via the actual Cobra `--check-rituals` flag wiring), and the
+script's own gate/delegation assertions are each covered by a
+dedicated test. The two defensive error arms
+(`cliutil.ResolveRoot`'s error path, `skills.MaterializedRituals`'s
+error path) are unreachable at runtime — `//coverage:ignore`d, mirroring
+the identical pattern already used elsewhere in this file.
+
+commit `05d50627` · tests 8/8
+
+### AC-2 — Hook registered in the registry for both SessionStart and SubagentStart events
+
+Added `HookDef.Events []string` (the settings.json event arrays a hook
+wires into once enabled — read by a future `WireHookSettings` caller,
+AC-4's job, rather than each call site hardcoding the event list) and
+populated `skills.ShippedHooks` with the one entry AC-1 shipped the
+script for, registered under both `SessionStart` and `SubagentStart`.
+
+This flips three tests that had explicitly pinned "the registry is
+empty until M-0236" as their expected state (per their own doc
+comments naming this milestone as the trigger) — updated to assert the
+real registry contents instead of rewriting around them.
+
+`wf-vacuity` (2 mutations: dropping `SubagentStart` from Events;
+appending a bogus second registry entry) — both caught, 0 surviving
+mutants. No new conditional branches in this diff (a struct field plus
+a registry literal) — nothing for the branch-coverage audit to walk.
+
+commit `f92c261c` · tests 3/3
+
+### AC-3 — Subprocess policy test pins exit code and stderr for both hook cases
+
+Added `internal/policies/worktree_rituals_check_hook_test.go`, mirroring
+`TestAgentIsolationHook_*`'s subprocess-level shape: builds the real
+`aiwf` binary once (`sync.Once`, `os.MkdirTemp` rather than
+`t.TempDir()` since the fixture must outlive whichever test builds it
+first), writes the embedded hook script's actual bytes
+(`skills.WorktreeRitualsCheckScript`) to an executable file, and execs
+it with `Dir` set to a real git-repo fixture. Covers three cases:
+not-a-worktree (exit 0, silent — the primary, most-common invocation),
+healthy worktree (fully materialized via `initrepo.Init`, exit 0,
+silent), and stale/missing worktree (bare git repo, no materialization
+run, nonzero exit + actionable stderr).
+
+`wf-vacuity` found one real surviving mutant: an invalid
+`git rev-parse --show-toplevel` flag doesn't error (git silently
+echoes the bogus flag back as a relative-path string rather than
+failing), so `cliutil.ResolveRoot` resolves it relative to cwd —
+landing a nonzero exit and an "aiwf update" message from the WRONG
+root, one that happens to be prefixed by the real worktree path. The
+stale-case assertion couldn't tell "correctly detected missing
+rituals" from "resolved a garbage nested path that also reports 0
+artifacts present." Strengthened to pin the message's root segment
+exactly via the format string's own `" —"` delimiter
+(`under <resolved-path> —`), which only the correct root satisfies.
+Re-verified: real script passes, mutation now caught, implementation
+confirmed byte-identical after revert. 0 surviving mutants after the
+fix.
+
+A synthetic fixture path segment (`M-9999-test`) initially tripped
+this repo's own `no-hardcoded-entity-paths` policy (fires on any
+literal matching the `M-\d+-` entity-slug shape regardless of whether
+it names a real entity) — renamed to `milestone-fixture-branch` to
+avoid the false collision.
+
+commit `30e8d5b3` · tests 3/3
+
+### AC-4 — init/update materialize and wire the hook per consent; doctor reports its state
+
+M-0235 built the primitives (`MaterializeHooks`, `WireHookSettings`,
+`HookDrift`) but never called them from `aiwf init`/`update`'s actual
+`Run` flow — confirmed by grep before writing any code: a consented
+hook's decision landed in aiwf.yaml with no script on disk and nothing
+wired into settings.json. Added `cliutil.SyncHookMaterialization`, a
+shared call site both verbs invoke right after their own
+consent-gating step: reads decisions back fresh from aiwf.yaml
+(avoiding a signature change to the existing gate functions), then
+materializes each hook's script and wires or unwires its settings.json
+entries per its current decision. `aiwf doctor`'s existing
+`appendHookMaterializationReport` (M-0235) needed no changes — it
+already reports real state once init/update actually produce one;
+confirmed via manual end-to-end smoke test (`aiwf init --enable-hook`
+→ `aiwf doctor` → `hooks: ok (1 hooks synced)`, script present and
+executable, settings.json wired under both events).
+
+Also added `skills.UnwireHookSettings` (with `removeCommandFromEntries`)
+— `WireHookSettings` was append-only with no removal counterpart, so
+ADR-0032's "remove both when false" promise had no settings-side
+implementation. This was surfaced as a decision point before coding
+(user chose to close the gap now rather than defer it as a gap, since
+`HookDrift`'s "wired-but-stale" remedy message would otherwise be false
+advertising the first time a hook is actually flipped from enabled to
+declined) — resolved by adding the primitive and wiring it into
+`SyncHookMaterialization`'s declined-hook branch alongside
+`MaterializeHooks`'s existing script-removal half.
+
+`wf-vacuity` (4 mutations across the wiring: swap the enabled/declined
+branch; drop `removeCommandFromEntries`'s empty-group check; drop the
+`SyncHookMaterialization` call from `initcmd.go`; drop it from
+`update.go`) found 2 real surviving mutants:
+- The empty-group-check drop wasn't caught because the existing test
+  only asserted the flattened command list was empty, not that the
+  emptied matcher-group object itself was removed from the raw JSON —
+  a lingering empty group reports zero commands too. Strengthened with
+  a raw matcher-group-count assertion.
+- Dropping `update.go`'s wiring call still passed
+  `TestRun_HookRemovedWhenFlippedFromEnabledToDeclined` because the
+  priming (enable) call's own effect was never verified before
+  asserting the decline call removed it — with the wiring gone,
+  nothing was ever created, so "removed" held vacuously. Strengthened
+  to assert the primed state exists before flipping to declined.
+Both re-verified: real code passes, mutation now caught, implementation
+byte-identical after revert. 0 surviving mutants after the fixes; the
+other 2 mutations (branch-swap, initcmd.go call-drop) were caught
+cleanly on the first pass.
+
+Branch-coverage audit: `UnwireHookSettings`'s not-wired/missing-file/
+malformed-JSON/malformed-hooks-key/read-error arms, `removeCommandFromEntries`'s
+keep-whole/drop-whole/partial-within-one-group arms, and
+`SyncHookMaterialization`'s empty-registry/undecided/enabled/declined/
+each-of-its-three-callee-errors arms are each covered by a dedicated
+test (mirroring `WireHookSettings`'s and `gateAndSyncHookDecisions`'s
+own precedent fixture shapes where the error is genuinely reachable).
+The four defensive backup/marshal-error arms in `UnwireHookSettings`
+are `//coverage:ignore`d, mirroring `WireHookSettings`'s identical,
+equally-untestable-without-a-disk-fault shape.
+
+commit `8a7b81fd` · tests 21/21
+
+## Validation
+
+- `go test ./...` — all packages pass.
+- `make check-fast` (vet + lint + full test suite) — clean.
+- `make coverage-gate` (diff-scoped statement coverage against the epic branch merge-base) — clean, no violations.
+- `aiwf check` — 0 error-severity findings; 4 pre-existing warnings unrelated to this milestone (archive-sweep-pending, epic-active-no-drafted-milestones, provenance-untrailered-scope-undefined, terminal-entity-not-archived).
+- Manual end-to-end smoke test: `aiwf init --skip-hook --enable-hook worktree-rituals-check.sh` on a fresh repo → script materialized under `.claude/hooks/` (executable), `.claude/settings.json` wired under both `SessionStart` and `SubagentStart`, `aiwf doctor` reports `hooks: ok (1 hooks synced)`.
+
+## Deferrals
+
+None — all 4 ACs are delivered in full per spec. See Reviewer notes below for two non-blocking design observations that are conditional on future changes, not current scope cuts.
+
+## Reviewer notes
+
+Independent two-lens review: 2 code-quality passes (sliced AC-1/AC-2 and AC-3/AC-4) plus 1 design-quality pass over the milestone's new abstractions (`cliutil.SyncHookMaterialization`, `skills.UnwireHookSettings`, `HookDef.Events`, `doctor --check-rituals`). All three verdicts: **APPROVE**, no blocking findings.
+
+- Code-quality surfaced 2 worth-fixing-now items, both fixed as corrective commits `5050897d` and `d44b5b83`:
+  - A real bug: `UnwireHookSettings` dropped an emptied matcher-group entry correctly but left the event key itself in the map as JSON `null` rather than deleting it — a wire→unwire round-trip didn't leave settings.json clean. The existing test couldn't catch this (`len(nil) == 0` reads the same as "key absent"); strengthened with an explicit key-presence assertion.
+  - A duplication/hygiene issue: the AC-3 subprocess policy test hand-rolled its own `aiwf` binary build instead of reusing `internal/cli/cliutil/testutil.AiwfBinary`, which several sibling policy tests already share — the hand-rolled copy also lacked the darwin ad-hoc-`codesign` step other policy tests rely on for G-0128, a real hazard for a test that `exec`s the built binary. Refactored to reuse the shared helper.
+  - 3 stale doc comments (also fixed) still claimed "ShippedHooks is empty until M-0236" after AC-2 made that false.
+- Design-quality: all 4 units are the right shape as shipped. Two non-blocking track-for-later notes, neither describing a current unmet need (no gap filed; each is conditional on a future change that hasn't happened):
+  - `HookDrift`'s wired-check is coarser than a hook's own `Events` set (checks "wired under any event," not "wired under exactly this hook's declared events") — harmless with today's one fixed-event hook; would only matter if a future hook's `Events` set changes across versions.
+  - `doctor`'s mode flags (`--self-check`, `--write-health`, `--check-rituals`) resolve conflicts by silent code-order precedence rather than a validated mutual-exclusion error (`update`'s `--statusline`/`--remove` pair does validate). Worth tightening if a fifth mode is ever added.
+
+Process note: the three review agents were dispatched directly against this session's live worktree rather than an isolated copy — a deviation from this repo's own "Subagent worktree isolation" convention. One agent's exploration appears to have run a `git checkout <sha>`, detaching this session's HEAD mid-review; the two corrective commits above landed on that detached HEAD as a result. Recovered cleanly — checked out the milestone branch and cherry-picked both commits onto it, confirming byte-identical content via diff — no work lost. Noted as a reminder that read-oriented review dispatches warrant the same worktree-isolation discipline as mutating ones when they run in the same session as live branch work.

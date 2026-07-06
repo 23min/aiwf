@@ -10,20 +10,30 @@ import "sort"
 // how Skill.Name for agents/templates already carries its own extension).
 // Description is the one-line effect shown in the consent prompt at
 // `aiwf init`/`aiwf update`. Content is the script's bytes, materialized
-// verbatim when the hook is enabled.
+// verbatim when the hook is enabled. Events names the settings.json hook
+// event arrays (e.g. "SessionStart", "SubagentStart") this hook is wired
+// into once enabled — the single source a WireHookSettings caller reads
+// rather than hardcoding the event list per hook.
 type HookDef struct {
 	Name        string
 	Description string
 	Content     []byte
+	Events      []string
 }
 
-// ShippedHooks is the registry of hooks aiwf currently ships. Empty until a
-// milestone registers its first concrete hook (M-0236) — the consent-gating
-// machinery this registry feeds (M-0235) is built and tested ahead of any
-// real entry, via an explicit registry parameter callers can substitute in
-// tests, mirroring how ListRitualAgents/AgentNames back Config.Agents
-// validation without config itself depending on skills.
-var ShippedHooks = []HookDef{}
+// ShippedHooks is the registry of hooks aiwf currently ships: the
+// worktree-materialization-check hook (M-0236), registered for both
+// SessionStart (an interactively started session) and SubagentStart (a
+// dispatched subagent) so a stale/missing-rituals worktree is flagged
+// either way it's entered.
+var ShippedHooks = []HookDef{
+	{
+		Name:        "worktree-rituals-check.sh",
+		Description: "Warns (without blocking) when a session or subagent starts inside a .claude/worktrees/ checkout whose rituals aren't materialized.",
+		Content:     WorktreeRitualsCheckScript,
+		Events:      []string{"SessionStart", "SubagentStart"},
+	},
+}
 
 // HookNamesFrom returns the sorted names of hooks, the derived form callers
 // validating aiwf.yaml's `hooks:` map keys or building shell completion need.

@@ -37,10 +37,11 @@ import (
 // works end-to-end.
 func NewCmd() *cobra.Command {
 	var (
-		root        string
-		selfCheck   bool
-		checkLatest bool
-		writeHealth bool
+		root         string
+		selfCheck    bool
+		checkLatest  bool
+		writeHealth  bool
+		checkRituals bool
 	)
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -52,11 +53,18 @@ func NewCmd() *cobra.Command {
   aiwf doctor --self-check
 
   # Compare to the latest published release on the Go module proxy
-  aiwf doctor --check-latest`,
+  aiwf doctor --check-latest
+
+  # Terse, exit-code-meaningful ritual-materialization check (for
+  # automation, e.g. the worktree-materialization SessionStart hook)
+  aiwf doctor --check-rituals --root <worktree-path>`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
+			if checkRituals {
+				return cliutil.WrapExitCode(RunCheckRituals(root))
+			}
 			if writeHealth {
 				return cliutil.WrapExitCode(runWriteHealth(root))
 			}
@@ -67,6 +75,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&selfCheck, "self-check", false, "run every verb against a temp repo and report pass/fail")
 	cmd.Flags().BoolVar(&checkLatest, "check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
 	cmd.Flags().BoolVar(&writeHealth, "write-health", false, "write .claude/health.aiwf.json from doctor's warnings and errors (consumed by the statusline health stoplight)")
+	cmd.Flags().BoolVar(&checkRituals, "check-rituals", false, "check only whether ritual artifacts (skills/agents/templates) are materialized; silent with exit 0 if so, or a single actionable stderr line with exit 1 otherwise")
 	return cmd
 }
 

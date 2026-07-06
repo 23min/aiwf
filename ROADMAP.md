@@ -811,7 +811,7 @@ to be isolated in a worktree.
 | M-0233 | aiwf worktree add verb: atomic creation with ritual materialization | done |
 | M-0234 | Rewire aiwf rituals and CLAUDE.md to use aiwf worktree add | done |
 | M-0235 | Generalized hook registry: aiwf.yaml-declared, persisted consent | done |
-| M-0236 | Ship the worktree-materialization-check SessionStart hook | draft |
+| M-0236 | Ship the worktree-materialization-check SessionStart hook | in_progress |
 
 ## E-0060 — Resolve cross-branch entity references at check and read time (proposed)
 

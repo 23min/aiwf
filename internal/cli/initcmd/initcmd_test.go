@@ -131,6 +131,63 @@ func TestRun_EmptyRegistrySkipsGatingEntirely(t *testing.T) {
 	}
 }
 
+// TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled pins
+// M-0236/AC-4's core claim through the actual Run seam (not just the
+// cliutil.SyncHookMaterialization unit): a hook enabled via
+// --enable-hook gets its script written to disk under the target's
+// hooks dir and its command wired into every one of its Events in
+// .claude/settings.json.
+func TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	hooks := []skills.HookDef{{
+		Name:    "test-hook.sh",
+		Content: []byte("#!/bin/sh\necho hi\n"),
+		Events:  []string{"SessionStart", "SubagentStart"},
+	}}
+
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, []string{"test-hook.sh"}, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	scriptPath := filepath.Join(root, skills.ClaudeTarget.HooksDir, "test-hook.sh")
+	if _, statErr := os.Stat(scriptPath); statErr != nil {
+		t.Errorf("expected %s to exist, stat err=%v", scriptPath, statErr)
+	}
+	settingsPath := filepath.Join(root, skills.SharedSettingsRelPath)
+	wired, wiredErr := skills.HookCommandWired(settingsPath, hooks[0].Command(skills.ClaudeTarget))
+	if wiredErr != nil {
+		t.Fatalf("HookCommandWired: %v", wiredErr)
+	}
+	if !wired {
+		t.Error("expected the enabled hook's command to be wired into settings.json")
+	}
+}
+
+// TestRun_HookNotMaterializedWhenDeclinedByDefault pins the negative
+// case: a registry hook not named via --enable-hook (declines by
+// default, non-TTY) gets no script and no settings.json entry.
+func TestRun_HookNotMaterializedWhenDeclinedByDefault(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	hooks := []skills.HookDef{{
+		Name:    "test-hook.sh",
+		Content: []byte("#!/bin/sh\necho hi\n"),
+		Events:  []string{"SessionStart"},
+	}}
+
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	scriptPath := filepath.Join(root, skills.ClaudeTarget.HooksDir, "test-hook.sh")
+	if _, statErr := os.Stat(scriptPath); !os.IsNotExist(statErr) {
+		t.Errorf("expected no script for a declined hook, stat err=%v", statErr)
+	}
+}
+
 // TestNewCmd_EnableHookFlagParsesAndReachesRun exercises the actual Cobra
 // wiring — flag registration through the RunE closure — rather than
 // calling initcmd.Run directly the way the other Run-level tests do. The

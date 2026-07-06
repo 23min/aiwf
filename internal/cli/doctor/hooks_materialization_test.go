@@ -11,8 +11,9 @@ import (
 )
 
 // TestAppendHookMaterializationReport_EmptyRegistryReportsOk covers
-// today's real state: skills.ShippedHooks is empty until M-0236, so
-// the report is a quiet ok line, not an omitted row.
+// the empty-registry case (passed explicitly, independent of
+// skills.ShippedHooks's real current contents): a quiet ok line, not
+// an omitted row.
 func TestAppendHookMaterializationReport_EmptyRegistryReportsOk(t *testing.T) {
 	t.Parallel()
 	out, problems := appendHookMaterializationReport(nil, nil, t.TempDir(), nil)

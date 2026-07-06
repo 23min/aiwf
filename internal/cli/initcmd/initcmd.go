@@ -94,9 +94,9 @@ func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 // scaffolding.
 //
 // hooks is the shipped hook registry (ADR-0032); the production call site
-// passes skills.ShippedHooks (empty until a milestone registers its first
-// concrete hook), and tests inject a synthetic registry to exercise the
-// consent-gating step without depending on a real hook existing. Every
+// passes skills.ShippedHooks, and tests inject a synthetic registry to
+// exercise the consent-gating step independent of the real registry's
+// current contents. Every
 // registry hook is gated (enableHooks bypasses the interactive prompt for
 // the named ones) and the resulting decisions are baked into the
 // freshly-written aiwf.yaml, after the main init pipeline succeeds — a
@@ -171,6 +171,9 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	if len(hooks) > 0 {
 		if !dryRun {
 			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
+				return rc
+			}
+			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
 				return rc
 			}
 		} else {

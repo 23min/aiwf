@@ -2,6 +2,7 @@ package update_test
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -179,6 +180,84 @@ func TestRun_EmptyRegistryLeavesExistingHooksBlockUntouched(t *testing.T) {
 	enabled, decided := hookDecision(t, root, "existing-hook")
 	if !decided || !enabled {
 		t.Errorf("HookDecision(existing-hook) = (%v, %v), want (true, true) — untouched", enabled, decided)
+	}
+}
+
+// TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled pins
+// M-0236/AC-4's core claim through the actual update.Run seam: a
+// newly-introduced hook enabled via --enable-hook gets its script
+// written to disk and its command wired into every one of its Events.
+func TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled(t *testing.T) {
+	t.Parallel()
+	root := freshInitializedRepo(t)
+	hooks := []skills.HookDef{{
+		Name:    "test-hook.sh",
+		Content: []byte("#!/bin/sh\necho hi\n"),
+		Events:  []string{"SessionStart", "SubagentStart"},
+	}}
+
+	rc := update.Run(root, false, "", false, false, false, false, []string{"test-hook.sh"}, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	scriptPath := filepath.Join(root, skills.ClaudeTarget.HooksDir, "test-hook.sh")
+	if _, statErr := os.Stat(scriptPath); statErr != nil {
+		t.Errorf("expected %s to exist, stat err=%v", scriptPath, statErr)
+	}
+	settingsPath := filepath.Join(root, skills.SharedSettingsRelPath)
+	wired, wiredErr := skills.HookCommandWired(settingsPath, hooks[0].Command(skills.ClaudeTarget))
+	if wiredErr != nil {
+		t.Fatalf("HookCommandWired: %v", wiredErr)
+	}
+	if !wired {
+		t.Error("expected the enabled hook's command to be wired into settings.json")
+	}
+}
+
+// TestRun_HookRemovedWhenFlippedFromEnabledToDeclined pins ADR-0032's
+// "remove both when false" half through the actual update.Run seam: a
+// hook previously enabled+synced, then hand-edited to enabled: false
+// in aiwf.yaml, has both its script and settings.json entry removed on
+// the next `aiwf update` — no re-prompt, no --enable-hook needed.
+func TestRun_HookRemovedWhenFlippedFromEnabledToDeclined(t *testing.T) {
+	t.Parallel()
+	root := freshInitializedRepo(t)
+	hooks := []skills.HookDef{{
+		Name:    "test-hook.sh",
+		Content: []byte("#!/bin/sh\necho hi\n"),
+		Events:  []string{"SessionStart"},
+	}}
+	if rc := update.Run(root, false, "", false, false, false, false, []string{"test-hook.sh"}, hooks); rc != cliutil.ExitOK {
+		t.Fatalf("priming Run() = %d, want ExitOK", rc)
+	}
+	scriptPath := filepath.Join(root, skills.ClaudeTarget.HooksDir, "test-hook.sh")
+	if _, statErr := os.Stat(scriptPath); statErr != nil {
+		t.Fatalf("priming Run() didn't materialize %s, stat err=%v — the removal assertion below would pass vacuously otherwise", scriptPath, statErr)
+	}
+	settingsPathBefore := filepath.Join(root, skills.SharedSettingsRelPath)
+	wiredBefore, wiredBeforeErr := skills.HookCommandWired(settingsPathBefore, hooks[0].Command(skills.ClaudeTarget))
+	if wiredBeforeErr != nil {
+		t.Fatalf("HookCommandWired: %v", wiredBeforeErr)
+	}
+	if !wiredBefore {
+		t.Fatal("priming Run() didn't wire the command into settings.json — the unwire assertion below would pass vacuously otherwise")
+	}
+
+	seedHookDecisions(t, root, map[string]bool{"test-hook.sh": false})
+	if rc := update.Run(root, false, "", false, false, false, false, nil, hooks); rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	if _, statErr := os.Stat(scriptPath); !os.IsNotExist(statErr) {
+		t.Errorf("expected %s to be removed after flipping to declined, stat err=%v", scriptPath, statErr)
+	}
+	wired, wiredErr := skills.HookCommandWired(settingsPathBefore, hooks[0].Command(skills.ClaudeTarget))
+	if wiredErr != nil {
+		t.Fatalf("HookCommandWired: %v", wiredErr)
+	}
+	if wired {
+		t.Error("expected the flipped-to-declined hook's command to be unwired from settings.json")
 	}
 }
 

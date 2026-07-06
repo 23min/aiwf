@@ -3,7 +3,10 @@ package cliutil
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/skills"
 )
@@ -39,4 +42,61 @@ func GateHookDecisions(hooks []skills.HookDef, enableHooks []string, formatJSON 
 		}
 	}
 	return decisions
+}
+
+// SyncHookMaterialization materializes each registry hook's script and
+// wires or unwires its settings.json entries per its current aiwf.yaml
+// decision (ADR-0032: "materialize the script and wire the settings
+// entry when true; remove both when false"). Called after the consent
+// gate (GateHookDecisions plus the caller's own persistence step) has
+// already written decisions to aiwf.yaml — reads them back fresh
+// rather than threading a map through, so `aiwf init` and `aiwf
+// update` share one call site regardless of how each computed its own
+// gating step (init: every registry hook; update: only the
+// newly-introduced ones, unioned with what already existed). An
+// undecided hook (absent from aiwf.yaml's hooks: map) is left
+// untouched — mirrors MaterializeHooks'/HookDrift's identical
+// "undecided = not this function's job" convention.
+func SyncHookMaterialization(rootDir string, target skills.Target, hooks []skills.HookDef) int {
+	if len(hooks) == 0 {
+		return ExitOK
+	}
+
+	configPath := filepath.Join(rootDir, config.FileName)
+	doc, _, err := aiwfyaml.Read(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		return ExitInternal
+	}
+	decisions, err := doc.Hooks()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		return ExitInternal
+	}
+
+	if err := skills.MaterializeHooks(rootDir, target, hooks, decisions); err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		return ExitInternal
+	}
+
+	settingsPath := filepath.Join(rootDir, skills.SharedSettingsRelPath)
+	for _, h := range hooks {
+		enabled, decided := decisions[h.Name]
+		if !decided {
+			continue
+		}
+		command := h.Command(target)
+		if enabled {
+			if _, wireErr := skills.WireHookSettings(settingsPath, command, h.Events); wireErr != nil {
+				fmt.Fprintf(os.Stderr, "aiwf: %v\n", wireErr)
+				return ExitInternal
+			}
+			continue
+		}
+		if _, unwireErr := skills.UnwireHookSettings(settingsPath, command); unwireErr != nil {
+			fmt.Fprintf(os.Stderr, "aiwf: %v\n", unwireErr)
+			return ExitInternal
+		}
+	}
+	return ExitOK
 }
