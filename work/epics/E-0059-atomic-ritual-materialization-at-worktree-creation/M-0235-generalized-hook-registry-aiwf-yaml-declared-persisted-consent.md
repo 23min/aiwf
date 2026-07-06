@@ -196,6 +196,35 @@ precedent — the interactive-prompt branch — fixed in a second, separate
 commit rather than folded into the first. Adversarial mutation probe: 5/5
 mutants caught (including the CLI-level `!dryRun` gate inversion).
 
+### AC-3 — aiwf update gates only newly-introduced hooks; syncs decided hooks silently
+
+Landed `gateAndSyncHookDecisions` (`internal/cli/update/hooks.go`): reads the
+existing `hooks:` decisions via `aiwfyaml.Doc.Hooks()`, gates only registry
+hooks absent from that map through the existing `cliutil.GateHookDecisions`,
+and persists the union via `Doc.SetHooks()` — every already-decided hook
+syncs forward unchanged, with no re-prompt. Wired as a new step in `aiwf
+update`'s `Run`, behind a new repeatable `--enable-hook` flag mirroring
+`aiwf init`'s · commit 828a79d7 · tests 8/8 new (`TestRun_*` × 4,
+`TestGateAndSyncHookDecisions_*` × 2, `TestCompleteHookNames_*` × 1,
+`TestNewCmd_EnableHookFlagParsesAndReachesRun` × 1), full repo suite green,
+`make lint` clean, real mechanized `make coverage-gate` clean (no gaps beyond
+the manual audit). Adversarial mutation probe (`wf-vacuity`) caught one
+coincidental-pass test — the "existing decision left unchanged" fixture had
+seeded the same value the buggy re-gate path's own non-TTY default-decline
+output would coincidentally reproduce; strengthened by seeding a value that
+default path can't itself produce. A second surviving mutant (the ledger-
+print state-label branch) was judged precedented — AC-2's own print loop has
+the identical untested branch — and left unaddressed.
+
+A discoverability check during this AC (verified directly against `aiwf
+init --help`/`aiwf update --help` output, not assumed) found `aiwf init
+--help`'s Example block missing the `--enable-hook` usage line already
+present on `aiwf update --help` — fixed as a standalone docs commit against
+the already-shipped AC-2 surface · commit f9338c1c. The requirement to keep
+the concrete hook's future `--help` text standalone — no CLAUDE.md mention,
+no reference to the sibling ADR-0015/ADR-0018 consent mechanisms — is now
+locked into M-0236's Constraints · commit 43c2c4c9.
+
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked in ADR-0032 / this spec's Design notes)
