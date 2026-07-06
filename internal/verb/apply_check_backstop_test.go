@@ -75,9 +75,14 @@ func TestApply_MalformedFrontmatterStillCaughtByFullCheck(t *testing.T) {
 }
 
 // TestApply_StrayFileStillCaughtByFullCheck bypasses the same guard
-// with a Plan that writes a file under work/gaps/ that doesn't parse
-// as a recognized entity at all (no frontmatter). This is the check
-// class the pre-commit hook actually ran (TreeDiscipline) before
+// with a Plan that writes a file under work/gaps/ whose name doesn't
+// match the entity naming convention (no `G-NNNN-` id prefix) —
+// tree.Load classifies a file as a "stray" by path shape alone
+// (entity.PathKind), before it ever attempts to parse content, so this
+// fires regardless of what the file contains (confirmed by mutation:
+// giving "scratch.md" valid frontmatter does not stop it from being a
+// stray; renaming it to a `G-NNNN-`-prefixed path does). This is the
+// check class the pre-commit hook actually ran (TreeDiscipline) before
 // M-0186 retired hook-firing from the verb-commit path. With
 // `tree.strict: true`, full `aiwf check` must still block on it at
 // the pre-push boundary — proving no silent gap was left behind.
