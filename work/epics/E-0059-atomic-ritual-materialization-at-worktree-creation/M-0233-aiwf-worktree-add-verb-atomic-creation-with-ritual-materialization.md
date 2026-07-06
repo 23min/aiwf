@@ -112,3 +112,59 @@ chokepoint (`cmd/aiwf/completion_drift_test.go`).
 - ADR-0018 — materialize-on-demand model.
 - ADR-0023 / E-0046 — in-repo worktree placement default; M-0189/M-0190 — the
   config knob and escape-rejection this milestone reuses and constrains.
+
+## Work log
+
+### AC-1 — aiwf worktree add creates worktree + materializes rituals atomically
+
+Verb lands with `gitops.WorktreeAdd`/`WorktreeAddNewBranch` + an in-process
+call to `initrepo.RefreshArtifacts` (the same pipeline `aiwf update` runs) ·
+commit 4f577230 · tests 1/1
+
+### AC-2 — Explicit path honored verbatim; default resolves via worktree.dir
+
+Default-path branch routes through `config.WorktreeDir()`; explicit-path
+branch never calls it · commit 4f577230 · tests 2/2
+
+### AC-3 — Repo-escape rejection applies only to default path, not explicit path
+
+Falls out of AC-2's branching directly — no additional code path, covered by
+a dedicated test asserting a repo-escaping explicit path is honored ·
+commit 4f577230 · tests 1/1
+
+### AC-4 — --print-path emits only the absolute path on success, nothing on failure
+
+Every error path in `Run` writes to stderr only; `--print-path` short-circuits
+the success path before any ledger/JSON output · commit 4f577230 · tests 3/3
+(binary-level subprocess tests, including a real `sh -c 'cd "$(...)" && pwd'`
+composition)
+
+### AC-5 — git worktree add failures surface directly; never reports false success
+
+`gitops.WorktreeAdd`/`WorktreeAddNewBranch` wrap git's combined output into the
+returned error, which `Run` writes verbatim to stderr · commit 4f577230 ·
+tests 2/2
+
+### AC-6 — Flag completion and --help wired per completion-drift chokepoint
+
+`--base` and the `<branch>`/`[path]` positionals added to
+`completion_drift_test.go`'s opt-out lists with rationale; new `aiwf-worktree`
+embedded skill added for `skill_coverage.go` and the M-0123 legality-verb
+allowlist · commit 4f577230 · tests 3/3 (existing repo-wide policy tests:
+`TestPolicy_FlagsHaveCompletion`, `TestPolicy_PositionalsHaveCompletion`,
+`TestPolicy_SkillCoverageMatchesVerbs`)
+
+## Decisions made during implementation
+
+None — all decisions in this milestone (branch-exists detection to choose
+between reusing vs. creating a branch, `--base` rejected as a usage error
+against an existing branch, mapping git-level failures to `ExitInternal`,
+shipping a dedicated skill rather than an allowlist entry) followed existing
+codebase precedent (`FinishVerb`'s error-code convention, the
+`rev-parse --verify --quiet` existence-probe idiom already used by
+`StashTopRef`/`ReadFromHEAD`, and the `move`/`rewidth` vs. `aiwf-add`-style
+skill-coverage split) rather than introducing a new cross-cutting decision.
+
+## Deferrals
+
+- (none)
