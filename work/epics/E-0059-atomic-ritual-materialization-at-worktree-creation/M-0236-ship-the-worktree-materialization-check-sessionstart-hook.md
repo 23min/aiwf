@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Subprocess policy test pins exit code and stderr for both hook cases
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: init/update materialize and wire the hook per consent; doctor reports its state
       status: open
