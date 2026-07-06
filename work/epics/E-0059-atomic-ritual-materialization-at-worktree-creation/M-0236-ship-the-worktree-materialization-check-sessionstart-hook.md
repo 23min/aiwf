@@ -68,6 +68,20 @@ renders the notice itself.
   shippable discovery channel for `init`/`update` (both allowlisted
   no-skill ops verbs per ADR-0006) — no CLAUDE.md mention needed, and no
   reference to any sibling consent mechanism (ADR-0015/ADR-0018).
+- The settings.json command this milestone wires via `WireHookSettings`
+  must be exactly `<Target.HooksDir>/<hook-name>` (e.g.
+  `.claude/hooks/<hook-name>`) — `aiwf doctor`'s hook-drift check
+  (`skills.HookDrift`, M-0235/AC-5) detects "wired" by matching that exact
+  string against every command in `settings.json`'s `hooks:` key. A
+  different command shape (an env-var prefix, an absolute path) silently
+  breaks the drift report without erroring — `HookDrift`'s derivation must
+  be revisited if this milestone needs a different convention.
+- `aiwf doctor`'s "wired-but-stale" hook report (`skills.HookDrift`,
+  M-0235/AC-5) checks script presence only (`os.Stat`), not content — it
+  cannot detect an on-disk script whose bytes no longer match the shipped
+  `HookDef.Content`. Confirm presence-only is the intended scope for this
+  hook, or extend `HookDrift` with a content comparison if staleness needs
+  to mean "outdated bytes," not just "decision drift."
 
 ## Out of scope
 
