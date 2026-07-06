@@ -6,6 +6,22 @@ parent: E-0059
 depends_on:
     - M-0233
 tdd: none
+acs:
+    - id: AC-1
+      title: aiwfx-start-milestone's cut-branch step invokes aiwf worktree add
+      status: open
+    - id: AC-2
+      title: wf-patch's branch-creation step invokes aiwf worktree add
+      status: open
+    - id: AC-3
+      title: aiwfx-start-epic's worktree-placement step invokes aiwf worktree add
+      status: open
+    - id: AC-4
+      title: CLAUDE.md worktree sections cite aiwf worktree add instead of raw git
+      status: open
+    - id: AC-5
+      title: Every rewritten SKILL.md/CLAUDE.md edit has a referencing structural test
+      status: open
 ---
 
 ## Goal
@@ -47,6 +63,16 @@ result with structural tests against the embedded `SKILL.md` bytes.
 - **AC-5 candidate** — Each rewritten `SKILL.md` (and any CLAUDE.md prose change)
   lands with its own referencing structural test under `internal/policies/`, per
   the `skill-edit-structural-test-backstop` policy.
+
+### AC-1 — aiwfx-start-milestone's cut-branch step invokes aiwf worktree add
+
+### AC-2 — wf-patch's branch-creation step invokes aiwf worktree add
+
+### AC-3 — aiwfx-start-epic's worktree-placement step invokes aiwf worktree add
+
+### AC-4 — CLAUDE.md worktree sections cite aiwf worktree add instead of raw git
+
+### AC-5 — Every rewritten SKILL.md/CLAUDE.md edit has a referencing structural test
 
 ## Constraints
 
