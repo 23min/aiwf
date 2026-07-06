@@ -53,7 +53,7 @@ func commitConstructionViolation(file string, line int, detail string) Violation
 func PolicyCommitConstructionSingleSeam(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
-		return nil, err
+		return nil, err //coverage:ignore WalkGoFiles errors only on a filesystem walk failure; not reachable with a valid tree root.
 	}
 	var out []Violation
 	fset := token.NewFileSet()
