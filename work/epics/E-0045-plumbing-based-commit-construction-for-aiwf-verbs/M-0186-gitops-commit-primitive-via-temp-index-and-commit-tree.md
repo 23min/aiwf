@@ -191,9 +191,69 @@ still holds the *old* pre-commit content (the primary case per AC-3 —
 `promote`/`edit-body`/`cancel` all rewrite existing entity files, not
 add new ones). No bug found; landed as a permanent regression test.
 
+### AC-3 — verb.Apply retrofit onto primitive with git-stash isolation removed
+
+Implemented · commit 4718d496 · tests 46/46 (verb) + 6/6 (gitops)
+
+`internal/verb/apply.go` no longer stashes staged changes for isolation;
+`Apply` now commits directly via `gitops.CommitTree` /
+`gitops.ReconcilePaths`. Two primitive extensions made this possible:
+
+- `CommitTree`/`ReconcilePaths` gained a `removes []string` parameter so a
+  rename evicts its old path from the temp/live index via `update-index
+  --force-remove` (no-op if the path is already absent).
+- `CommitTree` gained unborn-HEAD support: `IsRepo` distinguishes "not a
+  repo" (hard error) from "repo exists, no commits yet" (build a root
+  commit — skip `read-tree`, omit `-p` on `commit-tree`, and use the
+  empty-string CAS oldvalue on `update-ref HEAD` that is git's own idiom
+  for "ref must not already exist"). Without this, every zero-commit test
+  repo failed with "ambiguous argument 'HEAD'".
+
+`gitops.RunPostCommitHook` was added because `git commit-tree` +
+`update-ref` fire no git hooks at all (unlike `git commit`), silently
+breaking `STATUS.md` regeneration (G-0112). It resolves the hook path via
+the existing `HooksDir` helper, checks the executable bit, and runs it —
+swallowing the hook's exit status entirely, matching git's own tolerance
+for `post-commit` per githooks(5).
+
+`Apply`'s commit write-set is computed by a new `gatherCommitOps`, which
+reads current disk state *after* both Apply phases have run (rather than
+trusting `op.Content`), so a plan that moves a path and then rewrites it
+at the same final location lands the correct final bytes; it also
+descends into directories for `OpMove` destinations that are directories.
+A `wf-vacuity` mutation probe found this directory-walk had no test
+asserting the *committed tree's* content (only worktree state) — fixed by
+`TestApply_DirectoryMoveWithNestedFile_CommitTreeIsCorrect`, which reads
+back via `git ls-tree -r` / `git show` rather than the worktree.
+
+`gitops.StashStaged`/`StashPop`/`StashTopRef`/`StashDrop`/`Restore` and
+`verb.classifyGitError`/`dirMove` were all deleted as dead code once
+commit construction no longer touches `.git/index.lock` or the stash;
+`internal/gitops/no_stash_test.go` AST-walks the package to keep the four
+retired `Stash*` symbols from reappearing.
+
+The most significant change was a mid-implementation redesign of
+`applyTx`'s rollback bookkeeping, captured in D-0029: a `wf-rethink` pass
+(fresh subagent, no sight of the shipped implementation) and an
+independent second-opinion review together found that the original
+two-mechanism, fixed-order rollback (directory moves reversed first, then
+captured file content restored) silently corrupts a plan that moves a
+directory and rewrites a file nested inside it before failing — reachable
+today via `reallocate`/`rewidth` on epic entities. `applyTx` now records
+one `undoStep` per completed mutation (`moveUndo`/`writeUndo`) in
+execution order and replays it strictly LIFO, which is correct by
+construction for any interleaving rather than only the interleavings
+today's verbs happen to produce. `TestApply_RollsBackOnDirectoryMoveThenNestedRewrite_BothSymptoms`
+pins the composite scenario red-to-green.
+
+Branch-coverage audit and a second `wf-vacuity` pass over the rewritten
+journal found and fixed two more surviving mutants (LIFO→forward-order,
+and an inverted "already gone, skip" check in `moveUndo.undo`) — both now
+caught by dedicated tests.
+
 ## Decisions made during implementation
 
-- None yet — all decisions are pre-locked in `## Approach` above.
+- D-0029 — Unify applyTx rollback into a single LIFO undo journal.
 
 ## Validation
 
