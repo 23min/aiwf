@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: aiwf update gates only newly-introduced hooks; syncs decided hooks silently
       status: open
