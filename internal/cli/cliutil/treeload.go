@@ -57,7 +57,7 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 			// — but res.Skipped already covers the no-remotes case,
 			// so reaching here implies the ref resolved.
 			renames, err := gitops.RenamesFromRef(ctx, rootDir, ref)
-			if err != nil {
+			if err != nil { //coverage:ignore not portably triggerable: RenamesFromRef only errors on a git-level fault (bad workdir, a merge-base failure other than "no common ancestor") the unit harness cannot stage once ref and HEAD both resolve
 				return tr, loadErrs, err
 			}
 			tr.TrunkCollisionRenames = renames
@@ -78,14 +78,25 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 			// collision, mirroring the trailer-vs--M precedence
 			// already used within each individual detector.
 			trunkSideRenames, err := gitops.TrunkRenamesFromRef(ctx, rootDir, ref)
-			if err != nil {
+			if err != nil { //coverage:ignore not portably triggerable: same class as the RenamesFromRef error check above
 				return tr, loadErrs, err
 			}
-			if tr.TrunkCollisionRenames == nil {
+			if tr.TrunkCollisionRenames == nil { //coverage:ignore not portably triggerable: RenamesFromRef only returns nil when ref or HEAD fails to resolve, and reaching this point already implies both resolved (ref via trunk.Read above, HEAD via tree.Load); defensive nil-guard for a case the call sequence already rules out
 				tr.TrunkCollisionRenames = make(map[string]string, len(trunkSideRenames))
 			}
 			for oldPath, newPath := range trunkSideRenames {
-				if _, exists := tr.TrunkCollisionRenames[newPath]; exists {
+				// Branch-side and trunk-side entries can only share a
+				// key by coincidence the current design rules out:
+				// TrunkCollisionRenames' branch-side entries are keyed
+				// by the entity's path AT THE FORK POINT, which equals
+				// trunk's CURRENT path only when trunk did NOT rename
+				// that entity — but trunkSideRenames only ever contains
+				// entries for ids trunk DID rename. The two key sets are
+				// structurally disjoint; this precedence check is
+				// defensive symmetry with the trailer-vs--M precedence
+				// pattern used within each individual detector, not a
+				// reachable case in practice.
+				if _, exists := tr.TrunkCollisionRenames[newPath]; exists { //coverage:ignore not portably triggerable: see comment above — the two maps' key sets don't overlap by construction
 					continue
 				}
 				tr.TrunkCollisionRenames[newPath] = oldPath
