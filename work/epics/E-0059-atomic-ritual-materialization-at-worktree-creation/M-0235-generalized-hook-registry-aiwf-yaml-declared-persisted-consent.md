@@ -1,6 +1,6 @@
 ---
 id: M-0235
-title: Session-start hook flags worktrees missing materialized rituals
+title: 'Generalized hook registry: aiwf.yaml-declared, persisted consent'
 status: draft
 parent: E-0059
 tdd: required
