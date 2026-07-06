@@ -220,7 +220,14 @@ func UnwireHookSettings(settingsPath, command string) (HookSettingsRemoveResult,
 		if !changed {
 			continue
 		}
-		hooks[event] = filtered
+		if len(filtered) == 0 {
+			// No matcher-groups left under this event — drop the key
+			// entirely rather than leaving it as a JSON `null` (an
+			// empty-but-present slice marshals to `null`, not `[]`).
+			delete(hooks, event)
+		} else {
+			hooks[event] = filtered
+		}
 		removedFrom = append(removedFrom, event)
 	}
 

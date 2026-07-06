@@ -46,6 +46,36 @@ func hookCommandsForEvent(t *testing.T, settingsPath, event string) []string {
 // matcher-group object just as readily as for a genuinely absent one.
 func hookGroupCountForEvent(t *testing.T, settingsPath, event string) int {
 	t.Helper()
+	return len(rawHookEventEntries(t, settingsPath, event))
+}
+
+// hookEventKeyPresent reports whether event is present as a key in the
+// hooks map at all — distinct from hookGroupCountForEvent, which
+// reports 0 both when the key is absent AND when it's present with a
+// JSON `null` value (`len(nil) == 0` either way); this is the
+// assertion that actually distinguishes "key removed" from "key
+// present as null residue".
+func hookEventKeyPresent(t *testing.T, settingsPath, event string) bool {
+	t.Helper()
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatalf("reading %s: %v", settingsPath, err)
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil {
+		t.Fatalf("unmarshaling %s: %v", settingsPath, err)
+	}
+	var hooks map[string]json.RawMessage
+	if err := json.Unmarshal(obj["hooks"], &hooks); err != nil {
+		t.Fatalf("unmarshaling hooks key: %v", err)
+	}
+	_, present := hooks[event]
+	return present
+}
+
+// rawHookEventEntries is hookGroupCountForEvent's shared unmarshal step.
+func rawHookEventEntries(t *testing.T, settingsPath, event string) []json.RawMessage {
+	t.Helper()
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		t.Fatalf("reading %s: %v", settingsPath, err)
@@ -58,7 +88,7 @@ func hookGroupCountForEvent(t *testing.T, settingsPath, event string) int {
 	if err := json.Unmarshal(obj["hooks"], &hooks); err != nil {
 		t.Fatalf("unmarshaling hooks key: %v", err)
 	}
-	return len(hooks[event])
+	return hooks[event]
 }
 
 // TestWireHookSettings_CreatesFileWhenMissing asserts a missing
@@ -556,6 +586,12 @@ func TestUnwireHookSettings_RemovesCommandFromEveryEventItAppearsIn(t *testing.T
 		// assertion alone can't tell "removed" from "emptied but kept".
 		if groups := hookGroupCountForEvent(t, settingsPath, event); groups != 0 {
 			t.Errorf("event %s has %d matcher-group entries, want 0 (emptied group left as residue)", event, groups)
+		}
+		// The event KEY itself must also be gone — a key present with a
+		// JSON `null` value satisfies the group-count-0 check above
+		// just as readily as a genuinely absent key does.
+		if hookEventKeyPresent(t, settingsPath, event) {
+			t.Errorf("event %s key still present in the hooks map (as null residue) after unwire", event)
 		}
 	}
 	wired, wiredErr := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
