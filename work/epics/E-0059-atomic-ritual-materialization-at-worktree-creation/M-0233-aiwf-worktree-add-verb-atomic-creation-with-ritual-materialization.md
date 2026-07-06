@@ -154,6 +154,21 @@ allowlist · commit 4f577230 · tests 3/3 (existing repo-wide policy tests:
 `TestPolicy_FlagsHaveCompletion`, `TestPolicy_PositionalsHaveCompletion`,
 `TestPolicy_SkillCoverageMatchesVerbs`)
 
+### JSON envelope ordering + coverage gaps
+
+The diff-scoped branch-coverage gate exposed two real problems: the
+`--format=json` success path printed the materialization ledger before the
+JSON envelope (violating D-0013's single-clean-envelope contract — the
+unit test written to close the coverage gap caught it directly), and several
+branches (the Cobra `RunE` dispatch itself, the hook-conflict path, and the
+JSON/print-path success paths) were only reachable through the binary-level
+subprocess tests, whose execution the `go test` coverage instrumentation
+cannot see across a process boundary. Fixed the ordering bug, added
+Cobra-dispatch/hook-conflict/unit-level print-path and JSON tests, and
+`//coverage:ignore`'d the remaining defensive error branches consistent with
+this repo's existing `ResolveRoot`/`AcquireRepoLock`/`filepath.Abs`
+conventions · commit b7e191d4 · tests 6/6
+
 ## Decisions made during implementation
 
 None — all decisions in this milestone (branch-exists detection to choose
