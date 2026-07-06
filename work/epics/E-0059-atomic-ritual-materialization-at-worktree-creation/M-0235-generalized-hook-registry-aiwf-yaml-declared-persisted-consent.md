@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: New hooks materialization category + aiwf doctor drift reporting
-      status: open
+      status: met
       tdd_phase: done
 ---
 
