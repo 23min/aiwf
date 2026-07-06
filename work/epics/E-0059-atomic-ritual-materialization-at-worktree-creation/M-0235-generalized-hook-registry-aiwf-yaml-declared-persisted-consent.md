@@ -296,3 +296,30 @@ M-0236 decides otherwise.
 ## Decisions made during implementation
 
 - (none — all decisions are pre-locked in ADR-0032 / this spec's Design notes)
+
+## Validation
+
+- Full repo test suite (`go test ./...`): green across all packages.
+- `go vet ./...`: clean.
+- `make lint` (`golangci-lint`): 0 issues.
+- `make coverage-gate` (diff-scoped branch-coverage audit): clean, run twice — once after AC-5 landed, once after the wrap-review corrective commits.
+- `wf-vacuity` adversarial mutation probes: 6/6 caught on AC-4's `WireHookSettings`, 6/6 caught on AC-5's `HookDrift`/`MaterializeHooks`/`HookCommandWired`/`HookSkillsFrom`, 3/3 caught on the wrap-review corrective commits' new logic (the two empty-`HooksDir` guards and `HookDef.Command`) — no surviving mutants across the whole milestone.
+- `wf-doc-lint` (scoped to this milestone's change-set): clean — no broken code references, no removed-feature docs, no new orphan files, no TODOs. `--enable-hook` confirmed discoverable via `aiwf init --help` / `aiwf update --help`.
+
+## Deferrals
+
+- (none — the one adjacent follow-up, migrating `.claude/hooks/validate-agent-isolation.sh` into this registry, is already tracked under the pre-existing G-0099, per this spec's Out of scope section)
+
+## Reviewer notes
+
+Independent two-lens review dispatched over the full milestone diff (`a93d5c45..HEAD`, 32 files / ~3200 lines), sliced by concern per the review ritual's own guidance for a diff this size:
+
+- **Code-quality, schema + consent gating (AC-1/AC-2/AC-3):** REQUEST CHANGES — one blocking finding, confirmed by independent re-verification: `internal/cli/update/hooks.go`'s "a decision for a hook removed from the registry survives untouched" claim (asserted in the function's own doc comment) had zero test coverage — every existing test kept the decided hook present in the registry passed to `Run`. Fixed in commit `272a6bdf` with a test that, mutation-verified, catches the exact regression (seeding decisions only from `existing` names present in the current registry, rather than all of `existing`).
+- **Code-quality, settings writer + materialization category (AC-4/AC-5):** APPROVE, no blocking findings. Confirmed by independent re-verification: the ADR-0014 §3 "hooks are not rituals" constraint is honored (no `ritualsFS`/`embedded-rituals` reference anywhere in the hooks materialization code); the `HookDrift` 8-combination classification is exhaustively defensible; both AC-5 open assumptions (the wired-command string convention, presence-only staleness) are pinned as explicit M-0236 Constraints, not silently unaddressed.
+- **Design-quality, hooks drift-classification model (AC-5's `HookDrift`/`MaterializeHooks`):** sound with reservations. Confirmed and fixed in commit `3b9d28f5`: `HookSkillsFrom` had zero production callers (`MaterializeHooks`/`HookDrift` both operate on `[]HookDef` directly) — a real YAGNI violation, removed; the wired-command string convention was independently reconstructed in `HookDrift` and in its own tests — extracted to `HookDef.Command(target)` as the single source; `Target.HooksDir`'s documented empty-string no-op convention (mirroring `AgentsDir`) was unenforced — guarded in both `MaterializeHooks` and `HookDrift`, each with a dedicated, mutation-verified test.
+
+Track-for-later items raised by the reviewers, judged genuinely non-blocking and left as-is (not filed as gaps — each is either explicitly out of this milestone's scope already, or a minor assertion-granularity nicety rather than a real gap in behavior):
+
+- Composing `MaterializeHooks` + `WireHookSettings` into an actual production sync call site is not yet wired into `aiwf update`'s `Run` pipeline — by design: M-0236's own AC-4 candidate is exactly "materialize the script and wire both settings-json event arrays once the operator has consented," so this is that milestone's job, not a gap in this one.
+- `aiwf init`/`aiwf update --enable-hook <name>` on an already-decided or unknown-to-the-registry hook name produces no output — silently a no-op. Consistent with the "no re-prompt once decided" model; a rough UX edge, not a correctness issue.
+- A few additional `HookDrift` per-combination assertions and a `DoctorReport`-level (not just `appendHookMaterializationReport`-level) integration test for the `hooks:` line would harden assertion granularity further, but every reachable branch is already traversed by an existing test.
