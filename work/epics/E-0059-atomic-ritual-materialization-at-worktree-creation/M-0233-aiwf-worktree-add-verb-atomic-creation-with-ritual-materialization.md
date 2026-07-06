@@ -17,6 +17,10 @@ acs:
       title: Repo-escape rejection applies only to default path, not explicit path
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: --print-path emits only the absolute path on success, nothing on failure
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -65,6 +69,8 @@ backstop (M-0235). Builds on the existing `worktree.dir` config knob and
 ### AC-2 — Explicit path honored verbatim; default resolves via worktree.dir
 
 ### AC-3 — Repo-escape rejection applies only to default path, not explicit path
+
+### AC-4 — --print-path emits only the absolute path on success, nothing on failure
 
 ## Constraints
 
