@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: aiwf worktree add creates worktree + materializes rituals atomically
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: Explicit path honored verbatim; default resolves via worktree.dir
       status: open
