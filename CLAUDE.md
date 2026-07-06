@@ -115,7 +115,7 @@ Before `aiwf promote M-NNNN/AC-<N> met`, there must be a mechanical assertion th
 
 ## Default to a worktree for any branch work in this repo
 
-When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, default to an in-repo worktree (`.claude/worktrees/<branch>/`, per ADR-0023) rather than switching the main checkout in place. This applies to the session's own direct work, not just subagent dispatch. Skip only when explicitly told to work in the main checkout for that invocation.
+When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, default to an in-repo worktree (`.claude/worktrees/<branch>/`, per ADR-0023) rather than switching the main checkout in place — create it with `aiwf worktree add <branch> --base <base>`, which materializes rituals (skills, agents, templates, guidance) into the new worktree atomically, in one step. This applies to the session's own direct work, not just subagent dispatch. Skip only when explicitly told to work in the main checkout for that invocation.
 
 ---
 
@@ -123,8 +123,8 @@ When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, d
 
 When dispatching a subagent that must work in an isolated worktree, **the parent bootstraps the worktree before invoking `Agent`** — never rely on the `isolation: "worktree"` kwarg (it has been observed to silently drop, leaving work in the live tree undetected; [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)):
 
-1. Parent runs `git worktree add <path> -b <branch> <base>` (sibling path for session work; `.claude/worktrees/<name>` for transient agent worktrees).
-2. Parent verifies via `git worktree list`.
+1. Parent runs `aiwf worktree add <branch> [<path>] --base <base>` (an explicit `<path>` for a sibling placement; `.claude/worktrees/<name>` — the default — for transient agent worktrees) — creates the worktree and materializes rituals into it atomically, in one step.
+2. Parent verifies with `aiwf doctor --root <path>`, which reports rituals as materialized with no separate `aiwf init`/`aiwf update` step needed.
 3. Parent invokes `Agent` *without* the `isolation` kwarg; the prompt names the worktree path so the subagent uses absolute paths / `git -C <path>`.
 4. On return, parent verifies the subagent's commits live on the worktree branch.
 
