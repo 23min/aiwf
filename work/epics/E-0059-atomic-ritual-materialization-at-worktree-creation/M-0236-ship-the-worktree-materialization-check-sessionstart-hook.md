@@ -186,3 +186,40 @@ mutants. No new conditional branches in this diff (a struct field plus
 a registry literal) — nothing for the branch-coverage audit to walk.
 
 commit `f92c261c` · tests 3/3
+
+### AC-3 — Subprocess policy test pins exit code and stderr for both hook cases
+
+Added `internal/policies/worktree_rituals_check_hook_test.go`, mirroring
+`TestAgentIsolationHook_*`'s subprocess-level shape: builds the real
+`aiwf` binary once (`sync.Once`, `os.MkdirTemp` rather than
+`t.TempDir()` since the fixture must outlive whichever test builds it
+first), writes the embedded hook script's actual bytes
+(`skills.WorktreeRitualsCheckScript`) to an executable file, and execs
+it with `Dir` set to a real git-repo fixture. Covers three cases:
+not-a-worktree (exit 0, silent — the primary, most-common invocation),
+healthy worktree (fully materialized via `initrepo.Init`, exit 0,
+silent), and stale/missing worktree (bare git repo, no materialization
+run, nonzero exit + actionable stderr).
+
+`wf-vacuity` found one real surviving mutant: an invalid
+`git rev-parse --show-toplevel` flag doesn't error (git silently
+echoes the bogus flag back as a relative-path string rather than
+failing), so `cliutil.ResolveRoot` resolves it relative to cwd —
+landing a nonzero exit and an "aiwf update" message from the WRONG
+root, one that happens to be prefixed by the real worktree path. The
+stale-case assertion couldn't tell "correctly detected missing
+rituals" from "resolved a garbage nested path that also reports 0
+artifacts present." Strengthened to pin the message's root segment
+exactly via the format string's own `" —"` delimiter
+(`under <resolved-path> —`), which only the correct root satisfies.
+Re-verified: real script passes, mutation now caught, implementation
+confirmed byte-identical after revert. 0 surviving mutants after the
+fix.
+
+A synthetic fixture path segment (`M-9999-test`) initially tripped
+this repo's own `no-hardcoded-entity-paths` policy (fires on any
+literal matching the `M-\d+-` entity-slug shape regardless of whether
+it names a real entity) — renamed to `milestone-fixture-branch` to
+avoid the false collision.
+
+commit `30e8d5b3` · tests 3/3
