@@ -92,6 +92,21 @@ func canonicalStatusReport() status.StatusReport {
 			},
 		},
 		Health: status.StatusHealthCounts{Entities: 11, Errors: 0, Warnings: 1},
+		TodayDigest: status.ActivityDigest{
+			RangeLabel: "Today's work",
+			GapsOpened: []status.DigestEntry{
+				{ID: "G-0903", Title: "New gap logged today"},
+			},
+			GapsClosed: []status.DigestEntry{
+				{ID: "G-0901", Title: "Refactor leaves a seam", Status: "addressed"},
+			},
+		},
+		ReleaseDigest: status.ActivityDigest{
+			RangeLabel: "Since last release (v0.99.0)",
+			ADRsCreated: []status.DigestEntry{
+				{ID: "ADR-0901", Title: "Adopt fictional convention", Status: "proposed"},
+			},
+		},
 	}
 }
 

@@ -47,6 +47,14 @@ type StatusReport struct {
 	RecentActivity []history.HistoryEvent `json:"recent_activity"`
 	SweepPending   *StatusSweepPending    `json:"sweep_pending,omitempty"`
 	Health         StatusHealthCounts     `json:"health"`
+	// TodayDigest / ReleaseDigest carry the G-0380 activity digests
+	// rendered by the markdown renderer's "Today's work" / "Since
+	// last release" sections. Always populated by BuildActivityDigests
+	// (never the zero value in a real report) — included here even
+	// though only the md renderer displays them today, per this
+	// package's one-source-of-truth convention for StatusReport.
+	TodayDigest   ActivityDigest `json:"today_digest"`
+	ReleaseDigest ActivityDigest `json:"release_digest"`
 	// Worktrees is populated only when `--worktrees` is set (G-0122).
 	// Always omitted from the JSON envelope when nil so the default
 	// shape stays unchanged for existing JSON consumers.
@@ -192,6 +200,32 @@ type StatusHealthCounts struct {
 	Warnings int `json:"warnings"`
 }
 
+// ActivityDigest is a day- or release-scoped activity summary (G-0380):
+// what accumulated in a commit range, bucketed into the three facts a
+// reader most wants at a glance. RangeLabel supplies the section's own
+// header text ("Today's work" / "Yesterday's work" / "Since last
+// release (vX.Y.Z)" / "Since project start") so the renderer stays a
+// pure function of the report rather than re-deriving the label.
+type ActivityDigest struct {
+	RangeLabel  string        `json:"range_label"`
+	GapsOpened  []DigestEntry `json:"gaps_opened"`
+	GapsClosed  []DigestEntry `json:"gaps_closed"`
+	ADRsCreated []DigestEntry `json:"adrs_created"`
+}
+
+// DigestEntry is one entity line inside an ActivityDigest bucket.
+// Title is resolved best-effort from the loaded tree — empty when the
+// entity can't be found there (e.g. a cross-branch commit). Status
+// means different things per bucket: for GapsClosed it's the gap's
+// target status (the commit's aiwf-to trailer); for ADRsCreated it's
+// the ADR's CURRENT status read from the tree (a commit's trailers
+// never carry status); GapsOpened entries carry no status.
+type DigestEntry struct {
+	ID     string `json:"id"`
+	Title  string `json:"title,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
 // NewCmd builds `aiwf status`: a project-wide snapshot of in-flight
 // work, open decisions, open gaps, and recent activity. Read-only;
 // produces no commit. Use it to answer "what's next?", "where are we?",
@@ -274,7 +308,8 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitInternal
 	}
 
-	report := BuildStatus(tr, loadErrs, time.Now())
+	now := time.Now()
+	report := BuildStatus(tr, loadErrs, now)
 	// Scope the entity-derived sections to one workstream when --area is
 	// set (M-0174/AC-2). Recent activity, warnings, and health stay
 	// global — they are cross-cutting tree-health signals, not per-area
@@ -295,6 +330,24 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitInternal
 	}
 	report.RecentActivity = recent
+
+	// G-0380: the day-scoped ("today"/"yesterday") and release-scoped
+	// activity digests behind STATUS.md's "Today's work" / "Since last
+	// release" sections. Computed unconditionally (like RecentActivity
+	// and Health) — these are cross-cutting tree-health signals, not
+	// per-area concepts, so --area never scopes them (FilterStatusByArea
+	// above already left them untouched).
+	today, release, digestErr := BuildActivityDigests(ctx, rootDir, tr, now)
+	if digestErr != nil {
+		//coverage:ignore mirrors the (also untested) ReadRecentActivity
+		// error branch just above: BuildActivityDigests only fails for
+		// a genuine git/environmental fault, not reachable through a
+		// clean deterministic fixture — see its own package-level notes.
+		fmt.Fprintf(os.Stderr, "aiwf status: building activity digest: %v\n", digestErr)
+		return cliutil.ExitInternal
+	}
+	report.TodayDigest = today
+	report.ReleaseDigest = release
 
 	// G-0122: populate Worktrees on every status call (regardless of
 	// --worktrees flag) so default text + JSON output surface the
@@ -631,6 +684,279 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 	return events, nil
 }
 
+// digestCommit is one parsed commit record feeding the G-0380 activity
+// digests: the trailer set BuildActivityDigests needs (verb, entity,
+// promote target) plus the author date used for day-bucketing. A
+// sibling of history.HistoryEvent rather than a shared type — the two
+// digest sections need aiwf-entity/aiwf-to, which ReadRecentActivity's
+// consumers (the "Recent activity" table) have no use for.
+type digestCommit struct {
+	AuthorDate string // %aI (strict ISO 8601, RFC3339-compatible)
+	Verb       string
+	EntityID   string
+	To         string
+}
+
+// readDigestCommits runs `git log` with the trailer set the G-0380
+// digests need (aiwf-verb, aiwf-entity, aiwf-to) plus the author date,
+// following the same tformat + \x1f/\x1e separator convention and
+// prose-mention guard as ReadRecentActivity. extraArgs is appended
+// verbatim after the fixed options — a revision range ("<tag>..HEAD"),
+// a "--since=<bound>" pre-filter, or nothing (full history).
+//
+// Returns (nil, nil) on a repo with no commits yet, matching
+// ReadRecentActivity — a fresh repo is a legitimate state, not a fault.
+func readDigestCommits(ctx context.Context, root string, extraArgs ...string) ([]digestCommit, error) {
+	if !cliutil.HasCommits(ctx, root) {
+		return nil, nil
+	}
+	const sep = "\x1f"
+	const recSep = "\x1e\n"
+	args := []string{
+		"log",
+		"--grep", "^aiwf-verb: ",
+		"--pretty=tformat:%aI" + sep +
+			"%(trailers:key=aiwf-verb,valueonly=true,unfold=true)" + sep +
+			"%(trailers:key=aiwf-entity,valueonly=true,unfold=true)" + sep +
+			"%(trailers:key=aiwf-to,valueonly=true,unfold=true)\x1e",
+	}
+	args = append(args, extraArgs...)
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("git log: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		// cmd.Output() failing with something other than an
+		// *exec.ExitError (e.g. the git binary itself missing) can't be
+		// exercised without breaking the identical HasCommits guard
+		// above first, which would short-circuit to the nil-nil return
+		// instead; mirrors ReadRecentActivity's identically-untested
+		// fallback.
+		return nil, fmt.Errorf("git log: %w", err) //coverage:ignore non-ExitError git-log failure unreachable without breaking the HasCommits guard above (see comment)
+	}
+
+	var commits []digestCommit
+	for _, rec := range strings.Split(string(out), recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, sep, 4)
+		if len(parts) < 4 {
+			//coverage:ignore the tformat string above bakes in exactly 3
+			// literal separator bytes per record regardless of trailer
+			// content, so strings.SplitN always yields 4 parts for any
+			// record git itself produced; unreachable without corrupted
+			// git output.
+			continue
+		}
+		verb := strings.TrimSpace(parts[1])
+		if verb == "" {
+			// Prose-mention false-positive — see ReadRecentActivity's
+			// identical guard (G30).
+			continue
+		}
+		commits = append(commits, digestCommit{
+			AuthorDate: strings.TrimSpace(parts[0]),
+			Verb:       verb,
+			EntityID:   strings.TrimSpace(parts[2]),
+			To:         strings.TrimSpace(parts[3]),
+		})
+	}
+	return commits, nil
+}
+
+// latestReleaseTag returns the most recent "vX.Y.Z"-shaped tag
+// reachable from HEAD, or "" when none exists — a brand-new repo that
+// hasn't cut a release yet, which BuildActivityDigests renders as
+// "Since project start" rather than a release-scoped range.
+//
+// Best-effort: `git describe` exiting non-zero (no matching tag
+// reachable from HEAD, or no commits at all) yields "" rather than an
+// error — an absent release tag is a legitimate repo state, not a
+// fault worth surfacing.
+func latestReleaseTag(ctx context.Context, root string) string {
+	if !cliutil.HasCommits(ctx, root) {
+		return ""
+	}
+	cmd := exec.CommandContext(ctx, "git", "describe", "--tags", "--abbrev=0", "--match", "v*")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// BuildActivityDigests computes the two G-0380 activity digests: a
+// day-scoped digest (today's work, falling back to yesterday's — see
+// buildDayDigest) and a release-scoped digest (since the latest v*
+// release tag, or since project start when none exists). ctx and root
+// drive the git log reads; tr resolves each digest entry's title and
+// (for ADRs) current status. now is the caller's injected clock — the
+// same no-time.Now-in-core convention BuildStatus follows.
+func BuildActivityDigests(ctx context.Context, root string, tr *tree.Tree, now time.Time) (today, release ActivityDigest, err error) {
+	today, err = buildDayDigest(ctx, root, tr, now)
+	if err != nil {
+		//coverage:ignore buildDayDigest's own git-log invocation only
+		// fails for genuine environmental faults (see readDigestCommits'
+		// identical note); not reachable through a clean deterministic
+		// fixture.
+		return ActivityDigest{}, ActivityDigest{}, err
+	}
+	release, err = buildReleaseDigest(ctx, root, tr)
+	if err != nil {
+		//coverage:ignore mirrors the today-digest branch immediately
+		// above — buildReleaseDigest's git-log invocation uses
+		// internally-derived, always-well-formed args.
+		return ActivityDigest{}, ActivityDigest{}, err
+	}
+	return today, release, nil
+}
+
+// buildDayDigest returns today's activity digest, or yesterday's when
+// today has zero qualifying commits (one of the three G-0380 facts) —
+// a single hop back, never further (per the design, a slow day
+// doesn't cascade into a week-old digest). "Today"/"yesterday" are UTC
+// calendar days, matching the convention BuildStatus's own Date field
+// uses (now.UTC().Format("2006-01-02")).
+func buildDayDigest(ctx context.Context, root string, tr *tree.Tree, now time.Time) (ActivityDigest, error) {
+	nowUTC := now.UTC()
+	todayStr := nowUTC.Format("2006-01-02")
+	yesterdayStr := nowUTC.AddDate(0, 0, -1).Format("2006-01-02")
+
+	// The --since bound is an I/O-narrowing pre-filter only (mirrors
+	// ReadRecentActivity's --grep pre-filter doc comment) — a 3-day
+	// margin absorbs any committer-vs-author-date skew git's --since
+	// evaluates against; the exact UTC-day match happens in Go below,
+	// so a loose bound here cannot produce a wrong answer, only extra
+	// rows to filter out.
+	bound := nowUTC.AddDate(0, 0, -3).Format("2006-01-02") + "T00:00:00Z"
+	commits, err := readDigestCommits(ctx, root, "--since="+bound)
+	if err != nil {
+		//coverage:ignore bound is derived from a valid time.Time via
+		// time.Format, so this is never a malformed argument in
+		// practice — see readDigestCommits' own note on its
+		// non-ExitError fallback.
+		return ActivityDigest{}, err
+	}
+
+	todayDigest := digestFromCommits(commits, tr, todayStr, "Today's work")
+	if !isEmptyDigest(todayDigest) {
+		return todayDigest, nil
+	}
+	return digestFromCommits(commits, tr, yesterdayStr, "Yesterday's work"), nil
+}
+
+// buildReleaseDigest returns the digest scoped to every commit since
+// the latest v*-shaped release tag (exclusive), or the full history
+// when no such tag exists yet.
+func buildReleaseDigest(ctx context.Context, root string, tr *tree.Tree) (ActivityDigest, error) {
+	tag := latestReleaseTag(ctx, root)
+	label := "Since project start"
+	var commits []digestCommit
+	var err error
+	if tag == "" {
+		commits, err = readDigestCommits(ctx, root)
+	} else {
+		label = fmt.Sprintf("Since last release (%s)", tag)
+		commits, err = readDigestCommits(ctx, root, tag+"..HEAD")
+	}
+	if err != nil {
+		//coverage:ignore tag is either "" (the branch above, no range
+		// arg) or a real tag name `git describe` itself reported —
+		// git ref names can't contain "..", so `tag+"..HEAD"` is
+		// always a syntactically valid range.
+		return ActivityDigest{}, err
+	}
+	d := bucketDigestCommits(commits, tr)
+	d.RangeLabel = label
+	return d, nil
+}
+
+// digestFromCommits narrows commits to those whose author-date's UTC
+// calendar day equals dayStr, then buckets the result and labels it
+// rangeLabel. A commit whose author-date fails to parse is skipped
+// defensively — %aI always emits a valid ISO-8601 timestamp for a
+// real commit, so this is not expected to fire in practice.
+func digestFromCommits(commits []digestCommit, tr *tree.Tree, dayStr, rangeLabel string) ActivityDigest {
+	var scoped []digestCommit
+	for _, c := range commits {
+		t, err := time.Parse(time.RFC3339, c.AuthorDate)
+		if err != nil {
+			continue
+		}
+		if t.UTC().Format("2006-01-02") == dayStr {
+			scoped = append(scoped, c)
+		}
+	}
+	d := bucketDigestCommits(scoped, tr)
+	d.RangeLabel = rangeLabel
+	return d
+}
+
+// bucketDigestCommits classifies commits into the three G-0380 digest
+// facts: gaps opened (aiwf-verb: add + Gap kind), gaps closed
+// (aiwf-verb: promote + Gap kind + a non-"open" aiwf-to — a promote
+// that (re)opens a gap, if that's ever legal, does not count as
+// closing it), and ADRs created (aiwf-verb: add + ADR kind, annotated
+// with the ADR's CURRENT tree status). A composite id (e.g. an AC
+// promote's `M-NNN/AC-N`) resolves to its parent's kind via
+// entity.KindFromID's own composite handling, so it falls through as
+// "milestone" and is silently outside this function's scope, same as
+// any other verb/kind combination G-0380's digest doesn't track.
+func bucketDigestCommits(commits []digestCommit, tr *tree.Tree) ActivityDigest {
+	var d ActivityDigest
+	for _, c := range commits {
+		kind, ok := entity.KindFromID(c.EntityID)
+		if !ok {
+			continue
+		}
+		switch {
+		case c.Verb == "add" && kind == entity.KindGap:
+			d.GapsOpened = append(d.GapsOpened, digestEntry(tr, c.EntityID, ""))
+		case c.Verb == "promote" && kind == entity.KindGap && c.To != "" && c.To != entity.StatusOpen:
+			d.GapsClosed = append(d.GapsClosed, digestEntry(tr, c.EntityID, c.To))
+		case c.Verb == "add" && kind == entity.KindADR:
+			d.ADRsCreated = append(d.ADRsCreated, digestEntry(tr, c.EntityID, currentADRStatus(tr, c.EntityID)))
+		}
+	}
+	return d
+}
+
+// digestEntry builds one DigestEntry for id, resolving its title from
+// tr — best-effort; left empty when tr can't resolve id (e.g. a
+// cross-branch entity not present in this tree). status is
+// caller-supplied since its meaning varies by bucket (see DigestEntry).
+func digestEntry(tr *tree.Tree, id, status string) DigestEntry {
+	entry := DigestEntry{ID: entity.Canonicalize(id), Status: status}
+	if e := tr.ByID(id); e != nil {
+		entry.Title = e.Title
+	}
+	return entry
+}
+
+// currentADRStatus reads an ADR's live status from the loaded tree.
+// Per G-0380's design, "ADRs created" shows the CURRENT status, not
+// anything a commit's trailers carry (an add commit has no aiwf-to).
+// Empty when tr can't resolve id.
+func currentADRStatus(tr *tree.Tree, id string) string {
+	if e := tr.ByID(id); e != nil {
+		return e.Status
+	}
+	return ""
+}
+
+// isEmptyDigest reports whether every bucket in d is empty — the
+// signal buildDayDigest uses to decide whether today's digest falls
+// back to yesterday's.
+func isEmptyDigest(d ActivityDigest) bool {
+	return len(d.GapsOpened) == 0 && len(d.GapsClosed) == 0 && len(d.ADRsCreated) == 0
+}
+
 // statusEpicArea is the area accessor the grouping helper uses; an epic
 // carries its effective area (populated in BuildStatus).
 func statusEpicArea(e StatusEpic) string { return e.Area }
@@ -861,6 +1187,9 @@ func RenderStatusMarkdown(w io.Writer, r *StatusReport) error {
 		fmt.Fprintf(&b, "> %s\n\n", r.SweepPending.Message)
 	}
 
+	writeActivityDigestMarkdown(&b, r.TodayDigest)
+	writeActivityDigestMarkdown(&b, r.ReleaseDigest)
+
 	b.WriteString("## In flight\n\n")
 	writeStatusEpicsMarkdown(&b, r.InFlightEpics, r.AreaMembers, r.AreaDefault, "_(no active epics)_")
 
@@ -926,6 +1255,45 @@ func RenderStatusMarkdown(w io.Writer, r *StatusReport) error {
 
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// writeActivityDigestMarkdown renders one G-0380 activity-digest
+// section: an h2 header carrying d's own RangeLabel ("Today's work" /
+// "Yesterday's work" / "Since last release (vX.Y.Z)" / "Since project
+// start" — computed once in BuildActivityDigests so the renderer
+// never re-derives it), followed by the three digest facts as
+// bold-labelled bullet sub-lists.
+func writeActivityDigestMarkdown(b *strings.Builder, d ActivityDigest) {
+	fmt.Fprintf(b, "## %s\n\n", d.RangeLabel)
+	writeDigestBucketMarkdown(b, "Gaps opened", d.GapsOpened)
+	writeDigestBucketMarkdown(b, "Gaps closed", d.GapsClosed)
+	writeDigestBucketMarkdown(b, "ADRs created", d.ADRsCreated)
+}
+
+// writeDigestBucketMarkdown renders one digest fact as a bold label
+// plus a bullet per entry ("- ID — Title _(status)_"); an empty
+// bucket renders the file's usual "_(none)_" placeholder, matching
+// writeStatusEpicsMarkdown's empty-state convention. Title and status
+// are each omitted from the bullet when absent (a best-effort-
+// unresolved title, or a bucket with no status concept), so a
+// same-tree entry with a real title never renders a dangling "— ").
+func writeDigestBucketMarkdown(b *strings.Builder, label string, entries []DigestEntry) {
+	fmt.Fprintf(b, "**%s**\n\n", label)
+	if len(entries) == 0 {
+		b.WriteString("_(none)_\n\n")
+		return
+	}
+	for _, e := range entries {
+		line := "- " + e.ID
+		if e.Title != "" {
+			line += " — " + MdEscape(e.Title)
+		}
+		if e.Status != "" {
+			line += fmt.Sprintf(" _(%s)_", e.Status)
+		}
+		b.WriteString(line + "\n")
+	}
+	b.WriteByte('\n')
 }
 
 // writeStatusEpicsMarkdown renders a section's epics, grouped per area
