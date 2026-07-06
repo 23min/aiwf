@@ -123,13 +123,21 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, removes [
 	treeSHA = strings.TrimSpace(treeSHA)
 
 	msg := CommitMessage(subject, body, trailers)
-	commitTreeArgs := []string{"commit-tree", treeSHA, "-m", msg}
+	commitTreeArgs := []string{"commit-tree", treeSHA}
 	if parent != "" {
-		commitTreeArgs = []string{"commit-tree", treeSHA, "-p", parent, "-m", msg}
+		commitTreeArgs = append(commitTreeArgs, "-p", parent)
 	}
+	sign, err := gpgSignEnabled(ctx, workdir)
+	if err != nil {
+		return "", err
+	}
+	if sign {
+		commitTreeArgs = append(commitTreeArgs, "-S")
+	}
+	commitTreeArgs = append(commitTreeArgs, "-m", msg)
 	commitSHA, err := output(ctx, workdir, commitTreeArgs...)
 	if err != nil {
-		return "", fmt.Errorf("commit-tree: %w", err) //coverage:ignore requires the tree object write-tree just produced, or the parent commit resolved moments earlier, to vanish from the object database in between — object-database corruption mid-call, not a reachable input-driven branch
+		return "", fmt.Errorf("commit-tree: %w", err)
 	}
 	commitSHA = strings.TrimSpace(commitSHA)
 
@@ -139,6 +147,23 @@ func commitTreeFromParent(ctx context.Context, workdir, parent string, removes [
 	}
 
 	return commitSHA, nil
+}
+
+// gpgSignEnabled reports whether commit.gpgsign is set to true for
+// workdir. `git commit-tree`, unlike `git commit`, does not consult
+// this config on its own — the caller must pass -S explicitly for the
+// two to behave the same way. An unset key (git config exits 1 with no
+// output) means "not signing," matching commit.gpgsign's own default.
+func gpgSignEnabled(ctx context.Context, workdir string) (bool, error) {
+	out, err := output(ctx, workdir, "config", "--type=bool", "--get", "commit.gpgsign")
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, fmt.Errorf("git config --get commit.gpgsign: %w", err)
+	}
+	return strings.TrimSpace(out) == "true", nil
 }
 
 // hashObject writes content to the object database as a blob (without
