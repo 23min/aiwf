@@ -86,6 +86,7 @@ type Config struct {
 	Areas             Areas            `yaml:"areas,omitempty"`
 	Worktree          Worktree         `yaml:"worktree,omitempty"`
 	Agents            map[string]Agent `yaml:"agents,omitempty"`
+	Hooks             map[string]Hook  `yaml:"hooks,omitempty"`
 }
 
 // Member is a single declared workstream area (E-0044, M-0179): a Name (the
@@ -728,6 +729,43 @@ func (c *Config) validateAgents() error {
 		}
 	}
 	return nil
+}
+
+// Hook configures whether a single materialized Claude Code hook aiwf ships
+// is enabled in this repo (ADR-0032). Enabled is a tristate via *bool,
+// mirroring StatusMd.AutoUpdate/Guidance.WireClaudeMd: nil means "no
+// decision recorded yet — undecided," &false is an explicit decline, &true
+// is an explicit consent. Unlike those two (whose nil means "take the
+// default"), a Hook's nil has no default to fall back to — it must gate
+// through the consent prompt (`aiwf init`/`aiwf update`) rather than being
+// resolved silently one way or the other.
+//
+// The map key on Config.Hooks is the shipped hook's name, mirroring
+// Config.Agents: an unrecognized name is not rejected here — config cannot
+// enumerate the shipped hook set without importing skills (a layering
+// inversion) — it is reported at materialization time instead. Use the
+// getter Config.HookDecision rather than reading the pointer directly.
+type Hook struct {
+	Enabled *bool `yaml:"enabled,omitempty"`
+}
+
+// HookDecision returns the consumer's recorded decision for the named hook
+// and whether a decision has actually been made. decided=false — regardless
+// of the returned enabled value — covers every "no decision yet" shape: no
+// `hooks:` block, the name absent from the map, or an entry present but
+// omitting `enabled:`. Callers (the consent-gating flow in `aiwf init`/`aiwf
+// update`) must treat decided=false as "prompt," never as "declined."
+// Tolerant of a nil receiver so callers can invoke before / without a
+// loaded Config.
+func (c *Config) HookDecision(name string) (enabled, decided bool) {
+	if c == nil {
+		return false, false
+	}
+	h, ok := c.Hooks[name]
+	if !ok || h.Enabled == nil {
+		return false, false
+	}
+	return *h.Enabled, true
 }
 
 // Load reads aiwf.yaml from root. Returns ErrNotFound when the file is

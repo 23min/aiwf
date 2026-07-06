@@ -103,6 +103,8 @@ type Doc struct {
 	contractsAt  byteRange
 	hasContracts bool
 	hasAreas     bool
+	hooksAt      byteRange
+	hasHooks     bool
 }
 
 // byteRange names a half-open [start, end) byte interval inside Doc.raw.
@@ -152,6 +154,22 @@ func ReadBytes(raw []byte) (*Doc, *Contracts, error) {
 	// contracts: key is present.
 	if findMappingKey(top, "areas") >= 0 {
 		doc.hasAreas = true
+	}
+
+	// Detect the hooks: block independently of contracts:, mirroring the
+	// areas: detection above — a repo may declare hooks without contracts,
+	// and the contracts handling below returns early when no contracts:
+	// key is present. Unlike contracts, decoding is lazy (Hooks()), so only
+	// presence and the byte range are recorded here.
+	doc.hooksAt = byteRange{start: len(raw), end: len(raw)}
+	if hooksIdx := findMappingKey(top, "hooks"); hooksIdx >= 0 {
+		hooksKey := top.Content[hooksIdx]
+		start, end, err := blockByteRange(raw, top, hooksKey, hooksIdx)
+		if err != nil { //coverage:ignore blockByteRange only errors via lineToByteOffset, which never errors (returns len past EOF); mirrors the contracts path's identical, identically-ignored check
+			return nil, nil, err
+		}
+		doc.hooksAt = byteRange{start: start, end: end}
+		doc.hasHooks = true
 	}
 
 	keyIdx := findMappingKey(top, "contracts")

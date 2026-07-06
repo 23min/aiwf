@@ -100,27 +100,43 @@ const AgentsDir = ".claude/agents"
 // ("→ their referenced locations") and §4 makes it a per-target value.
 const TemplatesDir = ".claude/templates"
 
+// HooksDir is the host-relative directory consent-gated hook scripts
+// (ADR-0032) materialize into. Sibling of SkillsDir/AgentsDir/TemplatesDir;
+// pre-dates aiwf's own management as the home of the hand-authored
+// validate-agent-isolation.sh (G-0099), a natural future registry entry.
+const HooksDir = ".claude/hooks"
+
+// SharedSettingsRelPath is the repo-relative path to Claude Code's shared
+// settings file — the target ADR-0032 hooks wire into. Never the
+// personal, gitignored settings.local.json SettingsPathForScope's project
+// scope targets: a hook's consent decision is committed and shared, so
+// every clone must see the same wiring.
+const SharedSettingsRelPath = ".claude/settings.json"
+
 // Target names an agent's on-disk layout: the host-relative dirs each
 // materializable artifact kind writes into. It is the seam (ADR-0014 §4)
 // that lets a non-Claude agent become a new value rather than a rewrite —
 // Codex writes the same SKILL.md to `.agents/skills/`, etc. An empty
 // AgentsDir means the target has no subagent concept, so the agent writer
-// is a no-op for it (ADR-0014 §4).
+// is a no-op for it (ADR-0014 §4). HooksDir follows the same optional-empty
+// convention for a future target with no hook concept.
 type Target struct {
 	Name         string // display name, e.g. "claude"
 	SkillsDir    string // host-relative skills dir (dir-per-skill)
 	AgentsDir    string // host-relative agents dir (flat); "" = no agents
 	TemplatesDir string // host-relative templates dir (flat)
+	HooksDir     string // host-relative hooks dir (flat); "" = no hooks
 }
 
 // ClaudeTarget is the only target with a shipped writer today. It pins
-// the `.claude/{skills,agents,templates}` layout that init/update use, so
-// Materialize(root) and every M-0149/M-0150 consumer see no change.
+// the `.claude/{skills,agents,templates,hooks}` layout that init/update
+// use, so Materialize(root) and every M-0149/M-0150 consumer see no change.
 var ClaudeTarget = Target{
 	Name:         "claude",
 	SkillsDir:    SkillsDir,
 	AgentsDir:    AgentsDir,
 	TemplatesDir: TemplatesDir,
+	HooksDir:     HooksDir,
 }
 
 // ManifestFile is the on-disk record of which skill directories aiwf
