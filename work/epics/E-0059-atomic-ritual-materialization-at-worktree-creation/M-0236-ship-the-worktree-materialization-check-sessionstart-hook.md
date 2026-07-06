@@ -166,3 +166,23 @@ error path) are unreachable at runtime — `//coverage:ignore`d, mirroring
 the identical pattern already used elsewhere in this file.
 
 commit `05d50627` · tests 8/8
+
+### AC-2 — Hook registered in the registry for both SessionStart and SubagentStart events
+
+Added `HookDef.Events []string` (the settings.json event arrays a hook
+wires into once enabled — read by a future `WireHookSettings` caller,
+AC-4's job, rather than each call site hardcoding the event list) and
+populated `skills.ShippedHooks` with the one entry AC-1 shipped the
+script for, registered under both `SessionStart` and `SubagentStart`.
+
+This flips three tests that had explicitly pinned "the registry is
+empty until M-0236" as their expected state (per their own doc
+comments naming this milestone as the trigger) — updated to assert the
+real registry contents instead of rewriting around them.
+
+`wf-vacuity` (2 mutations: dropping `SubagentStart` from Events;
+appending a bogus second registry entry) — both caught, 0 surviving
+mutants. No new conditional branches in this diff (a struct field plus
+a registry literal) — nothing for the branch-coverage audit to walk.
+
+commit `f92c261c` · tests 3/3
