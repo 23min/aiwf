@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: init/update materialize and wire the hook per consent; doctor reports its state
-      status: open
+      status: met
       tdd_phase: done
 ---
 
