@@ -815,3 +815,410 @@ func TestReadHistory_SkipsProseMentions(t *testing.T) {
 		t.Errorf("kept event: verb=%q actor=%q", events[0].Verb, events[0].Actor)
 	}
 }
+
+// digestCommitMsg builds a synthetic commit message carrying the
+// trailer set G-0380's activity digest reads, in the same verb/
+// entity/actor/to order transitionTrailers emits in production. to is
+// omitted entirely when empty (an `add` commit carries no aiwf-to).
+func digestCommitMsg(subject, verb, entityID, to string) string {
+	msg := subject + "\n\n" +
+		"aiwf-verb: " + verb + "\n" +
+		"aiwf-entity: " + entityID + "\n" +
+		"aiwf-actor: human/peter\n"
+	if to != "" {
+		msg += "aiwf-to: " + to + "\n"
+	}
+	return msg
+}
+
+// commitAtDate makes an --allow-empty commit in root with both author
+// and committer date pinned to dateISO (strict ISO 8601), so a test
+// can place a commit on a specific UTC calendar day regardless of the
+// real wall clock.
+func commitAtDate(t *testing.T, root, dateISO, msg string) {
+	t.Helper()
+	env := []string{"GIT_AUTHOR_DATE=" + dateISO, "GIT_COMMITTER_DATE=" + dateISO}
+	if out, err := testutil.RunGitWithExtraEnv(root, env, "commit", "--allow-empty", "-m", msg); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+}
+
+// TestBuildActivityDigests_TodayWork verifies the three G-0380 digest
+// facts classify correctly for commits dated the report's own UTC
+// day: a gap add lands in GapsOpened; a gap promote to a non-"open"
+// status lands in GapsClosed with the promote target as Status; a gap
+// promote back to "open" is excluded from GapsClosed (a reopen is not
+// a close); an ADR add lands in ADRsCreated annotated with the ADR's
+// CURRENT tree status (accepted here, not anything the add commit
+// itself carries — an add commit has no aiwf-to); an unrelated
+// milestone add is outside the digest's scope entirely.
+func TestBuildActivityDigests_TodayWork(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	const today = "2026-06-15T09:00:00Z"
+
+	commitAtDate(t, root, today, digestCommitMsg("add gap", "add", "G-0001", ""))
+	commitAtDate(t, root, today, digestCommitMsg("promote gap", "promote", "G-0002", "addressed"))
+	commitAtDate(t, root, today, digestCommitMsg("reopen gap", "promote", "G-0003", "open"))
+	commitAtDate(t, root, today, digestCommitMsg("add ADR", "add", "ADR-0001", ""))
+	commitAtDate(t, root, today, digestCommitMsg("add milestone", "add", "M-0001", ""))
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "First gap", Status: "open"},
+		{Kind: entity.KindGap, ID: "G-0002", Title: "Second gap", Status: "addressed"},
+		{Kind: entity.KindGap, ID: "G-0003", Title: "Third gap", Status: "open"},
+		{Kind: entity.KindADR, ID: "ADR-0001", Title: "Adopt X", Status: "accepted"},
+	}}
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, tr, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+
+	if digest.RangeLabel != "Today's work" {
+		t.Errorf("RangeLabel = %q, want %q", digest.RangeLabel, "Today's work")
+	}
+	if len(digest.GapsOpened) != 1 || digest.GapsOpened[0].ID != "G-0001" || digest.GapsOpened[0].Title != "First gap" {
+		t.Errorf("GapsOpened = %+v", digest.GapsOpened)
+	}
+	if len(digest.GapsClosed) != 1 || digest.GapsClosed[0].ID != "G-0002" || digest.GapsClosed[0].Status != "addressed" {
+		t.Errorf("GapsClosed = %+v, want exactly G-0002/addressed (a reopen-to-open must not count as closed)", digest.GapsClosed)
+	}
+	if len(digest.ADRsCreated) != 1 || digest.ADRsCreated[0].ID != "ADR-0001" || digest.ADRsCreated[0].Status != "accepted" {
+		t.Errorf("ADRsCreated = %+v, want ADR-0001 carrying its CURRENT tree status (accepted)", digest.ADRsCreated)
+	}
+}
+
+// TestBuildActivityDigests_NonUTCOffsetBucketsByUTCDay pins the
+// author-date UTC normalization: a commit whose %aI carries a non-UTC
+// offset such that its LOCAL calendar day differs from its UTC day must
+// bucket by the UTC day. Here the author date reads 2026-06-16 in +05:30
+// local time but is 2026-06-15T20:30:00Z in UTC — the report's own day —
+// so the gap lands in "Today's work". A raw local-time day comparison
+// (the bug this guards against) would read the day as 2026-06-16 and drop
+// the commit from today's digest entirely.
+func TestBuildActivityDigests_NonUTCOffsetBucketsByUTCDay(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	// 2026-06-16T02:00:00+05:30 == 2026-06-15T20:30:00Z: UTC day is the
+	// report's own day; the local day is the next.
+	commitAtDate(t, root, "2026-06-16T02:00:00+05:30", digestCommitMsg("add gap", "add", "G-0001", ""))
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "First gap", Status: "open"},
+	}}
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, tr, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if digest.RangeLabel != "Today's work" {
+		t.Errorf("RangeLabel = %q, want %q (bucket by UTC day, not the local +05:30 day)", digest.RangeLabel, "Today's work")
+	}
+	if len(digest.GapsOpened) != 1 || digest.GapsOpened[0].ID != "G-0001" {
+		t.Errorf("GapsOpened = %+v, want the commit bucketed into today by its UTC day", digest.GapsOpened)
+	}
+}
+
+// TestBuildActivityDigests_FallsBackToYesterday: zero qualifying
+// commits land on the report's own UTC day, but yesterday has one —
+// the digest falls back one day and relabels itself accordingly.
+func TestBuildActivityDigests_FallsBackToYesterday(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 16, 8, 0, 0, 0, time.UTC)
+	const yesterday = "2026-06-15T09:00:00Z"
+
+	commitAtDate(t, root, yesterday, digestCommitMsg("add gap", "add", "G-0001", ""))
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "First gap", Status: "open"},
+	}}
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, tr, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if digest.RangeLabel != "Yesterday's work" {
+		t.Errorf("RangeLabel = %q, want %q", digest.RangeLabel, "Yesterday's work")
+	}
+	if len(digest.GapsOpened) != 1 || digest.GapsOpened[0].ID != "G-0001" {
+		t.Errorf("GapsOpened = %+v", digest.GapsOpened)
+	}
+}
+
+// TestBuildActivityDigests_BothDaysEmptyStillFallsBackOnce: today has
+// a commit, but not one of the three digest facts (a milestone add) —
+// so the fallback fires on "zero qualifying commits," not "zero
+// commits at all." Yesterday has nothing either; per the design this
+// is still a single hop, never further — the result is an all-empty
+// "Yesterday's work" digest, not a search further back.
+func TestBuildActivityDigests_BothDaysEmptyStillFallsBackOnce(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 20, 8, 0, 0, 0, time.UTC)
+	const today = "2026-06-20T09:00:00Z"
+
+	commitAtDate(t, root, today, digestCommitMsg("add milestone", "add", "M-0001", ""))
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, &tree.Tree{}, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if digest.RangeLabel != "Yesterday's work" {
+		t.Errorf("RangeLabel = %q, want %q (single hop, no further)", digest.RangeLabel, "Yesterday's work")
+	}
+	if len(digest.GapsOpened) != 0 || len(digest.GapsClosed) != 0 || len(digest.ADRsCreated) != 0 {
+		t.Errorf("expected an all-empty digest, got %+v", digest)
+	}
+}
+
+// TestBuildActivityDigests_ReleaseScopedToTagRange: the release digest
+// scopes to commits strictly after the latest v*-shaped tag — a gap
+// added at (and tagged as) the release itself is excluded, only
+// activity since the release counts.
+func TestBuildActivityDigests_ReleaseScopedToTagRange(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+
+	commitAtDate(t, root, "2026-01-01T09:00:00Z", digestCommitMsg("add pre-release gap", "add", "G-0001", ""))
+	if out, err := testutil.RunGit(root, "tag", "v0.1.0"); err != nil {
+		t.Fatalf("git tag: %v\n%s", err, out)
+	}
+	commitAtDate(t, root, "2026-02-01T09:00:00Z", digestCommitMsg("add post-release gap", "add", "G-0002", ""))
+	commitAtDate(t, root, "2026-02-02T09:00:00Z", digestCommitMsg("add post-release ADR", "add", "ADR-0001", ""))
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "Pre-release", Status: "open"},
+		{Kind: entity.KindGap, ID: "G-0002", Title: "Post-release", Status: "open"},
+		{Kind: entity.KindADR, ID: "ADR-0001", Title: "Adopt Y", Status: "proposed"},
+	}}
+
+	_, release, err := status.BuildActivityDigests(context.Background(), root, tr, time.Now())
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if release.RangeLabel != "Since last release (v0.1.0)" {
+		t.Errorf("RangeLabel = %q, want %q", release.RangeLabel, "Since last release (v0.1.0)")
+	}
+	if len(release.GapsOpened) != 1 || release.GapsOpened[0].ID != "G-0002" {
+		t.Errorf("GapsOpened = %+v, want only the post-release gap (the tagged commit itself is excluded)", release.GapsOpened)
+	}
+	if len(release.ADRsCreated) != 1 || release.ADRsCreated[0].ID != "ADR-0001" {
+		t.Errorf("ADRsCreated = %+v", release.ADRsCreated)
+	}
+}
+
+// TestBuildActivityDigests_NoTagFallsBackToProjectStart: a repo with
+// commits but no v*-shaped release tag scopes the release digest to
+// the full history and labels it "Since project start" rather than
+// naming a release.
+func TestBuildActivityDigests_NoTagFallsBackToProjectStart(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	commitAtDate(t, root, "2026-01-01T09:00:00Z", digestCommitMsg("add gap", "add", "G-0001", ""))
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "First gap", Status: "open"},
+	}}
+
+	_, release, err := status.BuildActivityDigests(context.Background(), root, tr, time.Now())
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if release.RangeLabel != "Since project start" {
+		t.Errorf("RangeLabel = %q, want %q", release.RangeLabel, "Since project start")
+	}
+	if len(release.GapsOpened) != 1 || release.GapsOpened[0].ID != "G-0001" {
+		t.Errorf("GapsOpened = %+v", release.GapsOpened)
+	}
+}
+
+// TestBuildActivityDigests_SkipsProseMentions covers G30 for the
+// digest reader: a hand-authored commit whose body wraps such that a
+// line starts with "aiwf-verb:" (prose, not a real trailer) must not
+// be misclassified as a digest-worthy commit.
+func TestBuildActivityDigests_SkipsProseMentions(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	const today = "2026-06-15T09:00:00Z"
+
+	commitAtDate(t, root, today, digestCommitMsg("add gap", "add", "G-0001", ""))
+	proseMsg := "docs: note about trailers\n\n" +
+		"This commit folds the audit-trail (no\n" +
+		"aiwf-verb: trailers) into the followup.\n"
+	commitAtDate(t, root, today, proseMsg)
+
+	tr := &tree.Tree{Entities: []*entity.Entity{
+		{Kind: entity.KindGap, ID: "G-0001", Title: "First gap", Status: "open"},
+	}}
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, tr, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if len(digest.GapsOpened) != 1 {
+		t.Errorf("GapsOpened = %+v, want exactly 1 (the prose mention must be excluded)", digest.GapsOpened)
+	}
+}
+
+// TestBuildActivityDigests_CompositeACEntityIgnored: a composite AC id
+// (M-NNN/AC-N) resolves to its parent milestone's kind via
+// entity.KindFromID's own composite handling, so an AC promote lands
+// in no digest bucket — proving the composite case doesn't crash the
+// classifier and correctly falls outside G-0380's three tracked facts.
+func TestBuildActivityDigests_CompositeACEntityIgnored(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	const today = "2026-06-15T09:00:00Z"
+
+	commitAtDate(t, root, today, digestCommitMsg("promote AC", "promote", "M-0001/AC-1", "met"))
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, &tree.Tree{}, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if len(digest.GapsOpened) != 0 || len(digest.GapsClosed) != 0 || len(digest.ADRsCreated) != 0 {
+		t.Errorf("composite AC commit should land in no bucket, got %+v", digest)
+	}
+}
+
+// TestBuildActivityDigests_UnresolvableEntityBestEffortTitle: a
+// digest-worthy commit whose entity isn't present in the supplied
+// tree (e.g. a cross-branch commit) still classifies correctly —
+// Title (and, for the ADR case, the current-status lookup) is left
+// best-effort empty rather than erroring.
+func TestBuildActivityDigests_UnresolvableEntityBestEffortTitle(t *testing.T) {
+	t.Parallel()
+	root := testutil.SetupGitRepoWithUpstream(t, "peter@example.com")
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	const today = "2026-06-15T09:00:00Z"
+
+	commitAtDate(t, root, today, digestCommitMsg("add gap", "add", "G-0009", ""))
+	commitAtDate(t, root, today, digestCommitMsg("add ADR", "add", "ADR-0009", ""))
+
+	digest, _, err := status.BuildActivityDigests(context.Background(), root, &tree.Tree{}, now)
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if len(digest.GapsOpened) != 1 || digest.GapsOpened[0].ID != "G-0009" || digest.GapsOpened[0].Title != "" {
+		t.Errorf("GapsOpened = %+v, want ID=G-0009 with an empty best-effort Title", digest.GapsOpened)
+	}
+	if len(digest.ADRsCreated) != 1 || digest.ADRsCreated[0].ID != "ADR-0009" || digest.ADRsCreated[0].Title != "" || digest.ADRsCreated[0].Status != "" {
+		t.Errorf("ADRsCreated = %+v, want ADR-0009 with an empty best-effort Title and Status", digest.ADRsCreated)
+	}
+}
+
+// TestBuildActivityDigests_NoCommitsYet: a brand-new repo (git init,
+// zero commits) produces both digests without error — the day digest
+// falls back once to an all-empty "Yesterday's work," and the release
+// digest has no tag to find, so it reads "Since project start."
+func TestBuildActivityDigests_NoCommitsYet(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+
+	today, release, err := status.BuildActivityDigests(context.Background(), root, &tree.Tree{}, time.Now())
+	if err != nil {
+		t.Fatalf("status.BuildActivityDigests: %v", err)
+	}
+	if today.RangeLabel != "Yesterday's work" {
+		t.Errorf("today.RangeLabel = %q, want %q (both days empty, single fallback)", today.RangeLabel, "Yesterday's work")
+	}
+	if release.RangeLabel != "Since project start" {
+		t.Errorf("release.RangeLabel = %q, want %q (no commits => no tag)", release.RangeLabel, "Since project start")
+	}
+}
+
+// TestRenderStatusMarkdown_ActivityDigestSections: the two G-0380
+// sections render between the health line and "## In flight," in
+// order; each bucket is a bold label + bullet list; an entry with
+// both a title and a status renders "ID — Title _(status)_"; an entry
+// with no resolvable title (best-effort empty) omits the "— Title"
+// segment rather than leaving a dangling dash.
+func TestRenderStatusMarkdown_ActivityDigestSections(t *testing.T) {
+	r := status.StatusReport{
+		Date: "2026-05-01",
+		TodayDigest: status.ActivityDigest{
+			RangeLabel: "Today's work",
+			GapsOpened: []status.DigestEntry{
+				{ID: "G-0001", Title: "First gap"},
+				{ID: "G-0009"}, // unresolved — no title
+			},
+			GapsClosed: []status.DigestEntry{
+				{ID: "G-0002", Title: "Second gap", Status: "addressed"},
+			},
+		},
+		ReleaseDigest: status.ActivityDigest{
+			RangeLabel: "Since last release (v0.1.0)",
+			ADRsCreated: []status.DigestEntry{
+				{ID: "ADR-0001", Title: "Adopt X", Status: "accepted"},
+			},
+		},
+	}
+	out := testutil.CaptureStdout(t, func() {
+		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
+			t.Fatalf("status.RenderStatusMarkdown: %v", err)
+		}
+	})
+	got := string(out)
+
+	idxToday := strings.Index(got, "## Today's work")
+	idxRelease := strings.Index(got, "## Since last release (v0.1.0)")
+	idxInFlight := strings.Index(got, "## In flight")
+	if idxToday < 0 || idxRelease < 0 || idxInFlight < 0 {
+		t.Fatalf("missing one of the expected headers:\n%s", got)
+	}
+	if idxToday >= idxRelease || idxRelease >= idxInFlight {
+		t.Errorf("section order wrong: today=%d release=%d inFlight=%d\n%s", idxToday, idxRelease, idxInFlight, got)
+	}
+
+	for _, want := range []string{
+		"**Gaps opened**",
+		"- G-0001 — First gap\n",
+		"- G-0009\n", // no title, no dangling dash
+		"**Gaps closed**",
+		"- G-0002 — Second gap _(addressed)_\n",
+		"**ADRs created**",
+		"- ADR-0001 — Adopt X _(accepted)_\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("markdown output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+// TestRenderStatusMarkdown_ActivityDigestEmptyBuckets: an all-empty
+// digest still renders every bucket label with the file's usual
+// "_(none)_" placeholder rather than omitting the bucket.
+func TestRenderStatusMarkdown_ActivityDigestEmptyBuckets(t *testing.T) {
+	r := status.StatusReport{
+		Date:          "2026-05-01",
+		TodayDigest:   status.ActivityDigest{RangeLabel: "Yesterday's work"},
+		ReleaseDigest: status.ActivityDigest{RangeLabel: "Since project start"},
+	}
+	out := testutil.CaptureStdout(t, func() {
+		if err := status.RenderStatusMarkdown(os.Stdout, &r); err != nil {
+			t.Fatalf("status.RenderStatusMarkdown: %v", err)
+		}
+	})
+	got := string(out)
+
+	for _, want := range []string{
+		"## Yesterday's work",
+		"## Since project start",
+		"**Gaps opened**\n\n_(none)_",
+		"**Gaps closed**\n\n_(none)_",
+		"**ADRs created**\n\n_(none)_",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("markdown output missing %q:\n%s", want, got)
+		}
+	}
+}
