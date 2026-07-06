@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Hook flags unmaterialized worktree rituals, nonzero exit with stderr
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Hook registered in the registry for both SessionStart and SubagentStart events
       status: open
