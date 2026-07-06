@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: 'Hooks settings writer: no-clobber, .bak backup, multi-event-array composition'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: New hooks materialization category + aiwf doctor drift reporting
       status: open
