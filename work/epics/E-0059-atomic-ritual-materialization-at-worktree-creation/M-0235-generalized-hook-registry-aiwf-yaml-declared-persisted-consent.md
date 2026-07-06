@@ -13,6 +13,10 @@ acs:
       title: aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: aiwf update gates only newly-introduced hooks; syncs decided hooks silently
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -67,6 +71,8 @@ the next milestone's job, registered against what this one builds.
 ### AC-1 — aiwf.yaml hooks: schema + aiwf.example.yaml regen
 
 ### AC-2 — aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
+
+### AC-3 — aiwf update gates only newly-introduced hooks; syncs decided hooks silently
 
 ## Constraints
 
