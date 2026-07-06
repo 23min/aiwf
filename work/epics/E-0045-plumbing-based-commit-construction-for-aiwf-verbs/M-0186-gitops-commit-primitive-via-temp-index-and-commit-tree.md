@@ -304,6 +304,42 @@ the correct fix is per-key (insulate `commit.gpgsign`, keep
 `user.email`/`user.name` resolving from global config), and touches
 several shared fixtures outside this milestone's scope.
 
+### AC-5 — commit-construction core exposes a reusable seam
+
+Implemented · commit 45d4c3ed · tests 3/3 (gitops) + 2/2 (policies)
+
+`internal/gitops/verbcommit.go` adds `CommitVerbChange`, the one exported
+entry point bundling the full verb-commit sequence — `CommitTree`, the
+best-effort post-commit hook, `ReconcilePaths` — that AC-3 had inlined
+directly into `verb.Apply`. A future verb-commit consumer (the
+gaps-inbox milestone) now reuses this sequence instead of re-deriving
+the three-step ordering. `verb.Apply` is retrofitted onto it as the
+sole caller; a reconciliation failure surfaces as `*gitops.ReconcileError`
+(carrying the landed SHA alongside the underlying error) so `Apply`'s
+existing lock-contention diagnostics still see the commit that landed.
+
+`internal/policies/commit_construction_seam.go` adds
+`PolicyCommitConstructionSingleSeam`, the structural test the AC calls
+for: it asserts `CommitVerbChange` is declared, that nothing outside its
+own file calls `CommitTree`/`ReconcilePaths` directly, and that nothing
+outside `verb.Apply` calls `CommitVerbChange` itself. The three existing
+gitops-mutator policy lists (`read-only-verbs-do-not-mutate`,
+`verbs-validate-then-write`, `validate-check-is-never-writes`) gained the
+new symbol for consistency with how `CommitTree`/`ReconcilePaths` were
+already tracked there.
+
+Branch-coverage audit found `ReconcileError.Error()`/`Unwrap()` dark:
+`Apply` unpacks the struct's `SHA`/`Err` fields directly via `errors.As`
+rather than calling either method, so nothing exercised them. Added
+`TestCommitVerbChange_HappyPath`,
+`TestCommitVerbChange_CommitFailurePropagatesPlainError`, and
+`TestCommitVerbChange_ReconcileFailureWrapsSHA` (the last reusing the
+stale-`.git/index.lock` fixture from AC-2's `ReconcilePaths` tests),
+bringing `verbcommit.go` to 100%. The new policy's firing fixture was
+similarly widened to hit its unparseable-file skip, its body-less-decl
+skip, and the "`CommitVerbChange` called from outside `Apply`" branch —
+all dark on the first pass.
+
 ## Decisions made during implementation
 
 - D-0029 — Unify applyTx rollback into a single LIFO undo journal.
