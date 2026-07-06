@@ -94,9 +94,9 @@ func NewCmd() *cobra.Command {
 // succeeds.
 //
 // hooks is the shipped hook registry (ADR-0032); the production call site
-// passes skills.ShippedHooks (empty until a milestone registers its first
-// concrete hook), and tests inject a synthetic registry to exercise the
-// sync step without depending on a real hook existing. Every registry
+// passes skills.ShippedHooks, and tests inject a synthetic registry to
+// exercise the sync step independent of the real registry's current
+// contents. Every registry
 // hook absent from the existing aiwf.yaml's hooks: map is gated
 // (enableHooks bypasses the interactive prompt for the named ones); every
 // already-decided hook syncs forward unchanged, with no re-prompt

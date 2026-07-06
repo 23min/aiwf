@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
 )
@@ -21,42 +20,6 @@ import (
 // worktree-rituals-check.sh hook script's real, end-to-end contract
 // rather than just the Go-level --check-rituals mechanism AC-1's own
 // tests cover.
-
-var (
-	worktreeHookBinDirOnce sync.Once
-	worktreeHookBinDir     string
-	worktreeHookBinErr     error
-)
-
-// worktreeHookTestBinDir builds the aiwf binary once per test binary run
-// into a directory the tests in this file prepend to PATH — the hook
-// script execs `aiwf doctor --check-rituals`, so a real binary must be
-// reachable for the subprocess to exercise the actual contract, not a
-// stubbed one. Uses os.MkdirTemp (not t.TempDir()) since the directory
-// must outlive whichever individual test happens to build it first.
-// // do not mutate
-func worktreeHookTestBinDir(t *testing.T) string {
-	t.Helper()
-	worktreeHookBinDirOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "aiwf-hook-test-bin-")
-		if err != nil {
-			worktreeHookBinErr = err
-			return
-		}
-		build := exec.Command("go", "build", "-o", filepath.Join(dir, "aiwf"), "./cmd/aiwf")
-		build.Dir = repoRoot(t)
-		build.Env = append(os.Environ(), "CGO_ENABLED=0")
-		if out, buildErr := build.CombinedOutput(); buildErr != nil {
-			worktreeHookBinErr = fmt.Errorf("go build ./cmd/aiwf: %w\n%s", buildErr, out)
-			return
-		}
-		worktreeHookBinDir = dir
-	})
-	if worktreeHookBinErr != nil {
-		t.Fatalf("worktreeHookTestBinDir: %v", worktreeHookBinErr)
-	}
-	return worktreeHookBinDir
-}
 
 // writeWorktreeHookScript writes the embedded hook script's real bytes
 // (the same ones skills.ShippedHooks materializes) to an executable file
@@ -115,7 +78,7 @@ func gitInit(t *testing.T, dir string) {
 // (the main checkout) never invokes aiwf at all — exit 0, no output.
 func TestWorktreeRitualsCheckHook_NotAWorktreeExitsZeroSilently(t *testing.T) {
 	t.Parallel()
-	binDir := worktreeHookTestBinDir(t)
+	binDir := filepath.Dir(testutil.AiwfBinary(t))
 	scriptDir := t.TempDir()
 	scriptPath := writeWorktreeHookScript(t, scriptDir)
 
@@ -135,7 +98,7 @@ func TestWorktreeRitualsCheckHook_NotAWorktreeExitsZeroSilently(t *testing.T) {
 // materialized exits 0 with no output.
 func TestWorktreeRitualsCheckHook_HealthyWorktreeExitsZeroSilently(t *testing.T) {
 	t.Parallel()
-	binDir := worktreeHookTestBinDir(t)
+	binDir := filepath.Dir(testutil.AiwfBinary(t))
 	scriptDir := t.TempDir()
 	scriptPath := writeWorktreeHookScript(t, scriptDir)
 
@@ -166,7 +129,7 @@ func TestWorktreeRitualsCheckHook_HealthyWorktreeExitsZeroSilently(t *testing.T)
 // pointing at the remedy.
 func TestWorktreeRitualsCheckHook_StaleWorktreeExitsNonzeroWithActionableStderr(t *testing.T) {
 	t.Parallel()
-	binDir := worktreeHookTestBinDir(t)
+	binDir := filepath.Dir(testutil.AiwfBinary(t))
 	scriptDir := t.TempDir()
 	scriptPath := writeWorktreeHookScript(t, scriptDir)
 
