@@ -1,11 +1,157 @@
 package initcmd_test
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/initcmd"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/skills"
 )
+
+func freshGitRepo(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	cmd := exec.Command("git", "init", "-q", root)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		c := exec.Command("git", args...)
+		c.Dir = root
+		if out, cErr := c.CombinedOutput(); cErr != nil {
+			t.Fatalf("git %v: %v\n%s", args, cErr, out)
+		}
+	}
+	return root
+}
+
+// TestRun_HooksGatedAndBakedIntoFreshAiwfYaml pins M-0235/AC-2's core
+// claim: a registry hook named via --enable-hook is baked into the
+// freshly-written aiwf.yaml as `enabled: true`, and the full commented
+// schema reference initrepo.Init already wrote survives untouched — the
+// consent gate runs as a separate aiwfyaml splice after the main init
+// pipeline, never through config.Write's marshal-fallback path, so it
+// cannot silently drop the schema documentation the way populating
+// cfg.Hooks before a raw yaml.Marshal(cfg) would.
+func TestRun_HooksGatedAndBakedIntoFreshAiwfYaml(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
+
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, []string{"test-hook"}, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	enabled, decided := cfg.HookDecision("test-hook")
+	if !decided || !enabled {
+		t.Errorf("HookDecision(test-hook) = (%v, %v), want (true, true)", enabled, decided)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	if !strings.Contains(string(raw), "# status_md:") {
+		t.Errorf("aiwf.yaml lost its commented schema reference:\n%s", raw)
+	}
+}
+
+// TestRun_HookDeclinesByDefaultWithoutEnableFlag: a registry hook not named
+// via --enable-hook declines (non-TTY default per ADR-0032), and that
+// decision is still recorded (decided=true, enabled=false) — not left
+// undecided, which would re-prompt on every future `aiwf update`.
+func TestRun_HookDeclinesByDefaultWithoutEnableFlag(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
+
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	enabled, decided := cfg.HookDecision("test-hook")
+	if !decided || enabled {
+		t.Errorf("HookDecision(test-hook) = (%v, %v), want (false, true)", enabled, decided)
+	}
+}
+
+// TestRun_DryRunSkipsHookGatingEntirely: --dry-run writes nothing at all,
+// so the hook consent gate must not run (there is no aiwf.yaml yet to
+// splice into).
+func TestRun_DryRunSkipsHookGatingEntirely(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
+
+	rc := initcmd.Run(root, "", true, true, false, "", false, false, []string{"test-hook"}, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+	if _, err := os.Stat(filepath.Join(root, config.FileName)); !os.IsNotExist(err) {
+		t.Errorf("aiwf.yaml exists after --dry-run: %v", err)
+	}
+}
+
+// TestRun_EmptyRegistrySkipsGatingEntirely pins today's real production
+// behavior: with the shipped registry empty (no concrete hook has landed —
+// M-0236), aiwf.yaml gets no hooks: block at all, unchanged from before
+// this milestone.
+func TestRun_EmptyRegistrySkipsGatingEntirely(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, nil)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, config.FileName))
+	if err != nil {
+		t.Fatalf("read aiwf.yaml: %v", err)
+	}
+	if strings.Contains(string(raw), "hooks:\n") {
+		t.Errorf("aiwf.yaml has a live hooks: block with an empty registry:\n%s", raw)
+	}
+}
+
+// TestNewCmd_EnableHookFlagParsesAndReachesRun exercises the actual Cobra
+// wiring — flag registration through the RunE closure — rather than
+// calling initcmd.Run directly the way the other Run-level tests do. The
+// shipped registry is empty in production, so this cannot observe a hook
+// actually being gated (that's what TestRun_HooksGatedAndBakedIntoFreshAiwfYaml
+// pins); it proves --enable-hook parses without error and the command
+// completes, i.e. the flag-to-Run wiring itself works.
+func TestNewCmd_EnableHookFlagParsesAndReachesRun(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	cmd := initcmd.NewCmd()
+	cmd.SetArgs([]string{"--root", root, "--skip-hook", "--enable-hook", "some-hook"})
+	cmd.SetOut(os.Stderr)
+	cmd.SetErr(os.Stderr)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("cmd.Execute(): %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, config.FileName)); err != nil {
+		t.Errorf("aiwf.yaml not written: %v", err)
+	}
+}
 
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
