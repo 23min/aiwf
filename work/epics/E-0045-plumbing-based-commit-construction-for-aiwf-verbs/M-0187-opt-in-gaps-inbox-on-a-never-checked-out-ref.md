@@ -7,6 +7,21 @@ depends_on:
     - M-0186
 tdd: required
 ---
+## Status
+
+Cancelled, indefinitely deferred pending decision — not rejected. A
+repo-wide measurement in `docs/initiatives/id-lifecycle.md` (§"Recommendation")
+found the id-collision friction this milestone (via `G-0281`) would solve
+is small (~3.4% collision rate, already absorbed by `E-0052`'s incremental
+allocator widening plus a one-command `aiwf reallocate`) relative to the
+engineering cost of a dedicated coordination ref. `G-0281` itself stays
+`open` — the design is sound, only its timing is deferred — with a named,
+checkable trigger for revisiting: the reallocate rate climbing meaningfully
+above the measured ~3-4%, or its bursts stopping being tied to identifiable
+concurrent-work episodes. Not yet ratified as a formal decision; a future
+reopening should start from a real ADR or `D-NNN`-shaped decision, not just
+this note.
+
 ## Goal
 
 Add an opt-in, default-off gaps inbox that files a gap onto a dedicated never-checked-out ref via git plumbing — without touching the operator's HEAD, index, or worktree — by wrapping the M-0186 commit-construction primitive with a fetch → allocate → compare-and-swap → opt-in-push layer.
