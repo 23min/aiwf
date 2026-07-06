@@ -18,7 +18,9 @@ The actual guarantee is architectural, not type-level: most mutating verbs (`add
 
 This was independently confirmed while scoping M-0186/AC-6 (E-0045): M-0186 retrofit `verb.Apply`'s commit mechanism from `git commit` (which fires git hooks) to `git commit-tree` + `update-ref` (which fires none). It would be easy to assume this removed a shape-correctness backstop, since the old pre-commit hook ran `aiwf check --shape-only`. It did not: `--shape-only` only ever ran `TreeDiscipline` (stray-file tree-layout checking), never `frontmatterShape` — so the hook's removal from the verb-commit path has no bearing on frontmatter-shape enforcement, which was never wired through it. The two guarantees are, and always were, independent.
 
-The guarantee is not perfectly uniform. `SetArea` and `RenameArea` skip `projectionFindings` entirely, serializing directly after mutating only the `Area` field — safe today only because `Area` is a field `frontmatterShape` never inspects, not because the gate ran and passed. `Rewidth` opts out explicitly and documents relying on `aiwf check` at the pre-push boundary as its backstop instead. No prior ADR, gap, or decision recorded any of this; it existed only as a package doc comment in `internal/verb/verb.go` and a policy docstring in `internal/policies/verbs_validate_then_write.go`.
+The guarantee is not perfectly uniform. `SetArea` and `RenameArea` skip `projectionFindings` entirely, serializing directly after mutating only the `Area` field — safe today only because `Area` is a field `frontmatterShape` never inspects, not because the gate ran and passed. `Rewidth` opts out explicitly and documents relying on `aiwf check` at the pre-push boundary as its backstop instead.
+
+ADR-0022 (the decision that mandated M-0186's temp-index + `commit-tree` primitive) already asserts the headline claim — "shape validity is owned by the verb *by construction*" — as the justification for why dropping the pre-commit hook's `--shape-only` check on verb commits is safe. This ADR was written without noticing ADR-0022 said this already; a narrower keyword search ("shape correctness," "construction guarantee") missed ADR-0022's "shape validity... by construction" phrasing. It does not supersede ADR-0022 — it elaborates a claim ADR-0022 states as a premise but does not mechanize: which verbs actually run the gate (`projectionFindings`), that the entity type itself carries no such guarantee, and the three verbs that don't run the gate at all. None of that detail existed anywhere before this ADR — only the package doc comment in `internal/verb/verb.go` and the policy docstring in `internal/policies/verbs_validate_then_write.go`, neither of which name the exceptions.
 
 ## Decision
 
@@ -38,4 +40,5 @@ Entity shape correctness for the verb-commit path is guaranteed by a **pre-write
 
 ## References
 
+- Related ADRs: `ADR-0022` (the prior decision this elaborates — asserts "shape validity by construction" as a premise; this ADR mechanizes which verbs actually enforce it and names the exceptions)
 - Linked epics or milestones: `E-0045`, `M-0186` (AC-6 named the gap this ADR documents)
