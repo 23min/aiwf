@@ -1,7 +1,9 @@
 ---
 id: G-0371
 title: 'wf-patch: reviewer git-state mutation can silently corrupt the commit-gate diff'
-status: open
+status: addressed
+addressed_by_commit:
+    - 30afa2ca
 ---
 ## Problem
 

@@ -67,7 +67,11 @@ func TestRun_UpdateStatuslineRefreshesHealthDespiteSettingsConflict(t *testing.T
 	health := filepath.Join(root, ".claude", "health.aiwf.json")
 	_ = os.Remove(health) // ensure the update run is what (re)writes it
 
-	rc := cli.Execute([]string{"update", "--statusline", "--scope", "project", "--wire-settings", "--root", root})
+	// --allow-untagged-statusline bypasses G-0367's version-confirmation
+	// gate deterministically: this in-process test binary is itself
+	// untagged, which is orthogonal to what this test pins (G-0347's
+	// health-refresh-despite-settings-conflict behavior).
+	rc := cli.Execute([]string{"update", "--statusline", "--scope", "project", "--wire-settings", "--allow-untagged-statusline", "--root", root})
 	if rc != cliutil.ExitFindings {
 		t.Fatalf("update --statusline with a conflicting statusLine key = %d, want ExitFindings %d (the conflict must still be reported)", rc, cliutil.ExitFindings)
 	}

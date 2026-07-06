@@ -1,7 +1,9 @@
 ---
 id: G-0367
 title: aiwf update --statusline has no version guard unlike plain update's refresh
-status: open
+status: addressed
+addressed_by_commit:
+    - 5df2aa0b
 ---
 ## What's missing
 

@@ -469,20 +469,22 @@ func TestWalkStatusChanges_TrailerCapture(t *testing.T) {
 }
 
 // TestWalkStatusChanges_MergeWithBothParentsDiffering pins the merge-
-// commit invariant the M-0137 batched walker inherits from M-0130:
-// when a merge resolves to content different from BOTH parents (e.g.,
-// a conflict-resolution that adopts a third state), the walker emits
-// per-parent observations for the merge without inflating the count.
+// commit invariant post G-0372 Fix 1: when a merge resolves to content
+// different from BOTH parents (e.g., a conflict-resolution that adopts
+// a third state), the walker emits ZERO observations for the merge
+// commit — not a per-parent fan-out.
 //
-// Under M-0130's listCommitPathPairs, the underlying `git log --follow
-// -m --name-only` listed the merge once per parent diff and required
-// explicit dedup. Under M-0137's gitops.BulkRevwalk, the same -m fan-
-// out is now handled by the helper: BulkRevwalk emits one
-// CommitRecord per parent diff, and the walker's per-touch path
-// lookup attributes each to the entity once. The behavior the
-// original test pinned (no inflated finding count for conflict-
-// resolution merges) is now exercised end-to-end through
-// walkStatusChanges itself.
+// History: under M-0130's listCommitPathPairs, the underlying `git log
+// --follow -m --name-only` listed the merge once per parent diff and
+// required explicit dedup. Under M-0137's gitops.BulkRevwalk, the same
+// -m fan-out was handled by the helper instead, with per-(commit,
+// parent, path) dedup in the walker. G-0372 Fix 1 drops -m entirely:
+// `git log --raw` now suppresses diff output for merge commits by
+// default, so no PathTouch is ever attributed to a merge commit —
+// safe because every current consumer discards merge-commit
+// observations unconditionally (D-0010). This test now characterizes
+// that: a conflict-resolution merge to a third state produces no
+// observations at all.
 func TestWalkStatusChanges_MergeWithBothParentsDiffering(t *testing.T) {
 	t.Parallel()
 	r := newRepoFixture(t)
@@ -510,18 +512,13 @@ func TestWalkStatusChanges_MergeWithBothParentsDiffering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("walkStatusChanges: %v", err)
 	}
-	// Each (commit, parent) tuple should appear at most once in the
-	// observations slice. With the conflict-resolution shape, the
-	// merge has two distinct (commit, parent) tuples (cancelled vs.
-	// done parent, cancelled vs. active parent), both legitimate.
-	seen := map[string]int{}
+	// G-0372 Fix 1: without -m, `git log --raw` emits no diff records for
+	// a merge commit — the conflict-resolution merge itself contributes
+	// zero observations, even though its resolved state (cancelled)
+	// differs from both parents (active, done).
 	for _, o := range obs {
-		key := o.Commit + "::" + o.Parent
-		seen[key]++
-	}
-	for key, count := range seen {
-		if count > 1 {
-			t.Errorf("(commit, parent) %q appears %d times; dedup should collapse to 1", key, count)
+		if o.IsMergeCommit {
+			t.Errorf("expected no merge-commit observations (Fix 1 drops -m), got %+v", o)
 		}
 	}
 }

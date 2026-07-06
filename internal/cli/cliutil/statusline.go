@@ -8,6 +8,7 @@ import (
 
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/skills"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // StatuslineOpts carries the flags for the statusline scaffold +
@@ -17,19 +18,54 @@ type StatuslineOpts struct {
 	Scope        string
 	WireSettings bool
 	FormatJSON   bool
+
+	// AllowUntagged bypasses the G-0367 version-confirmation gate: when
+	// the running binary's version is untagged (a dev/worktree build),
+	// the explicit scaffold write requires either this flag or an
+	// interactive [y/N] confirmation, since it lands unconditionally in
+	// the shared, cross-project scope with no version marker
+	// distinguishing it as non-release.
+	AllowUntagged bool
 }
 
 // RunStatuslineScaffold invokes the shared scaffold-if-absent helper
 // in skills/ and, when consent is given, wires the statusLine key
-// into the scope-appropriate settings file (M-0156).
-//
-// Consent model (per ADR-0015):
-//   - --wire-settings flag → write unconditionally (non-TTY consent)
-//   - TTY present and not --format=json → interactive [y/N] prompt
-//   - Otherwise (no TTY, or --format=json) → skip write, emit snippet
+// into the scope-appropriate settings file (M-0156). Resolves the
+// running binary's version via version.Current(); RunStatuslineScaffoldForVersion
+// is the testable core with the version injected.
 //
 // Returns one of the Exit* codes.
 func RunStatuslineScaffold(opts StatuslineOpts) int {
+	return RunStatuslineScaffoldForVersion(opts, version.Current())
+}
+
+// RunStatuslineScaffoldForVersion is RunStatuslineScaffold with the
+// running binary's version injected — the testable core, so tests can
+// drive both the G-0367 version gate and the ADR-0015 settings-consent
+// flow without depending on `go test`'s own (always untagged) binary
+// version.
+//
+// Consent model:
+//   - G-0367 version gate (script write): binary untagged (per
+//     skills.StatuslineWriteNeedsConfirmation) and --allow-untagged-statusline
+//     not given → TTY present and not --format=json prompts [y/N];
+//     otherwise refuses (ExitOK, no write, explains the override).
+//   - ADR-0015 (settings wiring, unchanged): --wire-settings flag →
+//     write unconditionally (non-TTY consent); TTY present and not
+//     --format=json → interactive [y/N] prompt; otherwise skip write,
+//     emit snippet.
+//
+// Returns one of the Exit* codes.
+func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) int {
+	if skills.StatuslineWriteNeedsConfirmation(binary) && !opts.AllowUntagged {
+		confirmed := !opts.FormatJSON && render.IsTTY(os.Stdin) &&
+			promptYN(fmt.Sprintf("Binary version %q is untagged (dev/worktree build) — write its statusline script into the shared scope anyway?", binary.Version))
+		if !confirmed {
+			fmt.Printf("aiwf --statusline: binary version %q is untagged — refusing to write without confirmation (re-run with --allow-untagged-statusline, or confirm interactively, to proceed anyway)\n", binary.Version)
+			return ExitOK
+		}
+	}
+
 	sc := skills.StatuslineScope(opts.Scope)
 	res, err := skills.ScaffoldStatusline(opts.RootDir, sc)
 	if err != nil {

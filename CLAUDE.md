@@ -33,6 +33,12 @@ This repo carries `aiwf` — a small framework that helps humans and AI assistan
 
 ---
 
+## Writing docs and entity bodies — state the conclusion, not the drafting history
+
+**State the conclusion, not the drafting history.** Initiative docs, ADR / gap / decision bodies, and milestone specs record the current design, not how the text got there. Don't narrate a document's own revision history inline — no *"this session added…"*, *"an earlier draft claimed X, that's wrong"*, *"as of this session"*, *"in a later pass"*. If a corrected assumption explains a non-obvious aspect of the current design, keep the *reasoning* (why X holds, why Y isn't automatic) and state it as direct exposition — drop the draft-history framing around it. Provenance (when, from what conversation, superseding what) belongs in one clearly-labeled section (`## Provenance`, an ADR's date/decided-by header) — not scattered through the substantive prose as asides. Judgment call, not mechanically checkable (`wf-doc-lint` is grep-based); caught at review the same way prose coherence and design soundness already are.
+
+---
+
 ## What aiwf commits to
 
 Load-bearing properties any change must preserve, distilled in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md). If a change doesn't preserve one, treat it as a kernel-level decision and surface it — not a quiet refactor.
@@ -282,7 +288,7 @@ Rules are enforced at named chokepoints, not by remembering a checklist. **Fire 
 
 - **Blocking via CI lint / test / build:** the full `golangci-lint` set + `go vet` + `go test -race` + `go build` + `aiwf doctor --self-check` + `govulncheck`; and the `internal/policies/` Go tests — repo-specific invariants (trailer keys, sovereign acts, FSM wiring/no-cycle, `-parallel 8` cap, setup_test presence, git-test-env harden, enum-literal adoption, closed-set status constants, trailer-order sync, atomic-write chokepoint, version single-source, validate/is-never-writes, layering direction, no-`time.Now`-in-core), the diff-scoped coverage gate + firing-fixture meta-gate, and the skill/finding-code discoverability + ritual `skill_edit_structural_test_backstop.go` backstop + guidance-anchor + trailer-commit-drift policies.
 - **Blocking pre-commit / pre-push:** `aiwf check --shape-only` (pre-commit); full `aiwf check` incl. `body-prose-id` and `skill-body-id` (pre-push); the `golangci-lint` pre-push hook (`make install-hooks`, pinned by `prepush_lint_hook_test.go`); gitleaks path/secret scan (pre-push + CI).
-- **Advisory (code review):** `context.Context` first-arg, no new package-level mutable state, one-line dep justification, deliberate `go.mod` floor bumps.
+- **Advisory (code review):** `context.Context` first-arg, no new package-level mutable state, one-line dep justification, deliberate `go.mod` floor bumps, docs/entity bodies stating the conclusion rather than the drafting history (§"Writing docs and entity bodies").
 
 Relax a blocking rule for a specific call site via the linter's allowlist with a one-line rationale, never a bare `//nolint`.
 

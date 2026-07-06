@@ -785,3 +785,40 @@ exist; today the entire schema is documented only in Go struct doc comments.
 | M-0231 | Struct-derived aiwf.yaml schema model and commented-YAML generator | done |
 | M-0232 | Wire generator into init/update: fresh-repo scaffold and example.yaml | done |
 
+## E-0058 — Immutable per-commit-sha cache for aiwf check's full-history revwalks (cancelled)
+
+### Goal
+
+Make `aiwf check`'s git-history-dependent rules cost proportional to how much
+changed since the last check, not to total repository history — without
+weakening the correctness guarantee those rules currently provide.
+
+_No milestones yet._
+
+## E-0059 — Atomic ritual materialization at worktree creation (active)
+
+### Goal
+
+Make a freshly-cut git worktree carry the same materialized `.claude/skills/`,
+`.claude/agents/`, `.claude/templates/`, and `.claude/aiwf-guidance.md` as the main
+checkout — atomically at creation time via aiwf's own tooling, with a session-level
+backstop that catches any worktree created outside that path — so ritual discipline
+(TDD, vacuity, rethink, gate rules) is never silently absent just because work happens
+to be isolated in a worktree.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0233 | aiwf worktree add verb: atomic creation with ritual materialization | draft |
+| M-0234 | Rewire aiwf rituals and CLAUDE.md to use aiwf worktree add | draft |
+| M-0235 | Session-start hook flags worktrees missing materialized rituals | draft |
+
+## E-0060 — Resolve cross-branch entity references at check and read time (proposed)
+
+### Goal
+
+Let a branch, worktree, or session validly reference an entity minted on a
+different local branch or worktree — in `aiwf check` and in `aiwf show`/`aiwf
+list` — without waiting for a merge and without copying the entity anywhere.
+
+_No milestones yet._
+

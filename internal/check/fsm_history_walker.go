@@ -81,18 +81,19 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 	var (
 		observations []statusChange
 		walkErrors   []walkError
-		// Dedup by (commit, parent, path). BulkRevwalk emits one
-		// CommitRecord per parent-diff under -m, so a merge commit
-		// whose touched paths differ from BOTH parents appears in
-		// multiple records. Each record's rec.Parents lists ALL
-		// parents — so iterating per-parent inside the callback would
-		// re-emit each (commit, parent, path) tuple once per record.
-		// Dedup at this layer collapses to one observation per real
-		// (commit, parent, path) triple.
+		// Dedup by (commit, parent, path). Historically (pre G-0372 Fix
+		// 1) BulkRevwalk requested `-m`, emitting one CommitRecord per
+		// parent-diff for a merge commit whose touched paths differed
+		// from BOTH parents — dedup here collapsed those duplicate
+		// (commit, parent, path) emissions to one observation. Without
+		// -m, merge commits carry no Paths at all (see
+		// gitops.CommitRecord's doc), so this dedup is now dormant for
+		// merges specifically; kept as-is since it's still correct and
+		// harmless for any future multi-record shape.
 		seen = make(map[string]struct{})
 		// Dedup walk-errors similarly: parent-side read failures for
 		// the same (commit, path) shouldn't be double-counted across
-		// per-parent CommitRecord emissions.
+		// multiple CommitRecord emissions for one commit.
 		seenErr = make(map[string]struct{})
 	)
 
@@ -188,11 +189,14 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 				// the diff kept the same path is it the blob at
 				// touch.Path, so the fast path is restricted to that case:
 				//
-				//   - merge: each per-parent -m record carries one
-				//     parent's PreSHA, but the loop visits all parents, so
-				//     PreSHA can't be matched to `parent` here — keep the
-				//     path-resolving read. (Merges are few, and all three
-				//     predicates discard merge observations anyway.)
+				//   - merge: unreachable in practice since G-0372 Fix 1 —
+				//     BulkRevwalk no longer requests -m, so a merge
+				//     commit's rec.Paths is always empty and this loop
+				//     body never runs for one. Kept as the documented
+				//     fallback in case that ever changes: PreSHA can't be
+				//     matched to a specific `parent` from a fan-out record
+				//     that lists all parents, so the path-resolving read
+				//     is the only correct option here.
 				//   - rename/copy ("R"/"C"): PreSHA points at the *source*
 				//     path's blob, not touch.Path's. The dest path is
 				//     normally created by the commit (absent at the
