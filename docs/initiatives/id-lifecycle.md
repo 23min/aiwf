@@ -863,10 +863,14 @@ manual tool invocations.
   does not. See §4 above.
 - `docs/initiatives/check-performance-incremental-revwalk-cache.md` — a
   sibling initiative, spawned directly from pressure-testing EMB's retry
-  cost against this repo's real pre-push hook. Its finding (aiwf check costs
-  ~22s unconditionally, on every push, today) is the shared prerequisite for
-  EMB, G-0281's opt-in push, and plain frequent-push discipline alike — not
-  an EMB-specific concern, despite surfacing from an EMB pressure-test.
+  cost against this repo's real pre-push hook. Its two independently-safe
+  findings (the dead `-m` fan-out, the redundant mistag walk) have since
+  shipped, cutting real cost from ~25.5s to ~19.1s (~25% faster); the
+  structural fix underneath — making the cost scale with what changed since
+  the last check, not total history — remains unsolved (G-0372, still
+  open) and is the shared prerequisite for EMB, G-0281's opt-in push, and
+  plain frequent-push discipline alike — not an EMB-specific concern,
+  despite surfacing from an EMB pressure-test.
 
 ### Open gaps
 
@@ -941,17 +945,20 @@ recovery mechanism that needs a real answer (abort-and-cleanly-report? a
 narrower detached-worktree fallback for the conflict case only, à la
 `--to-trunk`?) before EMB is built, not discovered after.
 
-### Risk: evaluating any of these four mechanisms against today's push cost, rather than G-0372's prospective fix
+### Risk: evaluating any of these four mechanisms against today's push cost, rather than G-0372's prospective structural fix
 
-`aiwf check` costs ~22s unconditionally on every push today (G-0372). Every
-comparison in this document that touches retry cost or "push often" as a
-mitigation was reasoned about against that number. Once G-0372's cache
+`aiwf check` costs ~19.1s unconditionally on every push today, after the two
+safe G-0372 fixes shipped (down from ~25.5s). Every comparison in this
+document that touches retry cost or "push often" as a mitigation was
+reasoned about against a number in that range. Once G-0372's structural
+fix — the incremental per-commit-sha cache, still unsolved after two
+attempted designs were set aside (see `check-performance-incremental-revwalk-cache.md`) —
 lands, the real cost is likely closer to the incremental-walk numbers
 measured there (tens of ms to a couple seconds for a realistic delta) — a
 large enough change that conclusions drawn under today's cost (e.g., "EMB's
 retry loop is too expensive to trust") may not hold once it ships. Avoid
 treating a conclusion reached under today's cost as durable; re-check it
-once G-0372 lands, not just once per mechanism.
+once G-0372's structural fix lands, not just once per mechanism.
 
 ## Open design questions
 
@@ -1005,10 +1012,11 @@ an initiative document rather than an ADR:
   throughout" and "retry can't safely touch the working tree" fundamentally
   unresolvable, meaning EMB has to give up one of those two properties
   rather than have both?
-- Now that G-0372 exists as a separately-tracked, prototyped fix: should
+- Now that G-0372's structural fix exists as a separately-tracked,
+  prototyped design (the two safe quick fixes already shipped): should
   evaluating EMB / G-0281 / `--to-trunk` against each other wait until it
   ships, or proceed now on the understanding that all four mechanisms in
-  this document inherit today's ~22s-per-push cost until then?
+  this document inherit today's ~19.1s-per-push cost until then?
 
 ## Recommendation — defer all three unratified mechanisms, pending measured evidence
 
@@ -1052,17 +1060,20 @@ proposed against a problem the data says is small and already handled.
 **What to actually do now, in order, none of it contingent on resolving
 which of the three wins:**
 
-1. Land the two provably-safe fixes from `G-0372` / `check-performance-incremental-revwalk-cache.md`
-   — dropping the dead `-m` fan-out and de-duplicating the mistag walk.
-   ~5.5s off `aiwf check`'s ~22s (~25%), already verified safe, no
-   dependency on any id-minting decision.
-2. Once that lands, reinstate tight push-after-every-Tier-1-mutation
-   discipline. This targets the *original* complaint this whole initiative
-   grew from ("main moved" warnings) with zero new engineering, using
-   `E-0052` — already shipped — at its already-measured ~96.6% first-try
-   success rate.
+1. ~~Land the two provably-safe fixes from `G-0372` /
+   `check-performance-incremental-revwalk-cache.md` — dropping the dead
+   `-m` fan-out and de-duplicating the mistag walk.~~ Shipped: cut real
+   cost from ~25.5s to ~19.1s (~25% faster), no dependency on any
+   id-minting decision. `G-0372` stays open for the structural fix
+   underneath, which this did not attempt.
+2. Reinstate tight push-after-every-Tier-1-mutation discipline. This
+   targets the *original* complaint this whole initiative grew from ("main
+   moved" warnings) with zero new engineering, using `E-0052` — already
+   shipped — at its already-measured ~96.6% first-try success rate.
 3. Explicitly defer `ADR-0001`, `G-0281`, and EMB. Not reject — defer, with
-   a named trigger below.
+   a named trigger below. `M-0187` (`G-0281`'s implementation milestone)
+   has since been cancelled on this reasoning, pending that trigger or a
+   ratifying decision.
 
 **The trigger for revisiting**, stated so it's checkable rather than a
 vibe: the reallocate rate climbing meaningfully above the measured ~3-4%,

@@ -27,6 +27,19 @@ branch's entity since the fork (`git log --diff-filter=R --follow` or attempting
 and only recommends `aiwf reallocate` once the two paths are confirmed genuinely unrelated. CLAUDE.md's
 merge-time collision-resolution guidance carries the same caveat.
 
+### Changed — E-0045: verb commits build via a temp-index + `commit-tree` primitive, not `git stash`
+
+Every mutating verb isolated its commit via `git stash push --staged` + `git commit`, fragile on
+staged renames and untracked-path collisions (G-0275's silent half-states). Verb commits now build
+via a plumbing primitive — a throwaway `GIT_INDEX_FILE`, never touching the live index or worktree
+— with `gitops.CommitVerbChange` as the one exported seam for the whole sequence (commit-tree, a
+best-effort post-commit hook, live-index reconciliation). `commit.gpgsign` parity is explicit,
+since plumbing doesn't inherit it the way `git commit` does. A structural check
+(`PolicyCommitConstructionSingleSeam`) pins the seam as the sole commit-construction path. The
+opt-in second consumer this substrate was built to support — filing gaps onto a never-checked-out
+ref — is deferred rather than built now; see every milestone listed in
+`work/epics/E-0045-plumbing-based-commit-construction-for-aiwf-verbs/wrap.md`.
+
 ### Fixed — G-0371: `wf-vacuity`'s mutation probe now names a safe revert mechanism
 
 The mutation probe's revert step named no safe mechanism, so a reviewer filled the gap with

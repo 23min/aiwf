@@ -1,7 +1,7 @@
 ---
 id: E-0045
 title: Plumbing-based commit construction for aiwf verbs
-status: active
+status: done
 ---
 ## Goal
 
@@ -35,4 +35,4 @@ M1 ships first so the correctness win (retiring the stash) isn't gated on the op
 
 ## References
 
-G-0276 (M1 driver), G-0281 (M2 driver), G-0275 (shipped fail-loud floor), ADR-0001 (related: mint ids at trunk integration). Kernel commitments #3 (pre-push chokepoint) and #7 (one commit per verb) are touched — see the M1 ADR.
+G-0276 (M1 driver), G-0281 (M2 driver), G-0275 (shipped fail-loud floor), ADR-0001 (related: mint ids at trunk integration), ADR-0022 (the M1 decision: temp-index + commit-tree primitive, Option C validation relocation). Kernel commitments #3 (pre-push chokepoint) and #7 (one commit per verb) are touched — see ADR-0022.

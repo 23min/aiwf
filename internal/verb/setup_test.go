@@ -21,6 +21,11 @@ import (
 //     clears GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} and overrides
 //     GIT_CONFIG_GLOBAL/SYSTEM to provoke a commit failure; this is
 //     fundamentally an env-mutating test and cannot run in parallel.
+//   - TestApply_MalformedFrontmatterStillCaughtByFullCheck,
+//     TestApply_StrayFileStillCaughtByFullCheck (apply_check_backstop_test.go)
+//     — both call testutil.CaptureStdout, which swaps the process-wide
+//     os.Stdout for the callback's duration; running two concurrently
+//     would interleave each other's captured output.
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")

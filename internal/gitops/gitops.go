@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -78,34 +79,6 @@ func Add(ctx context.Context, workdir string, paths ...string) error {
 	return run(ctx, workdir, args...)
 }
 
-// Restore resets the index and worktree to HEAD for the given paths.
-// Used by Apply to roll back partial verb mutations after a failure.
-// Paths that don't exist at HEAD (brand-new files staged but never
-// committed) produce a "pathspec did not match" warning that this
-// function suppresses — the caller separately removes such files.
-func Restore(ctx context.Context, workdir string, paths ...string) error {
-	if len(paths) == 0 {
-		return nil
-	}
-	args := append([]string{"restore", "--staged", "--worktree", "--"}, paths...)
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = workdir
-	cmd.Env = gitEnv()
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		// `git restore` exits non-zero when ALL pathspecs miss; a
-		// mixed run (some hit, some miss) exits zero with a warning.
-		// We accept the all-miss case silently — it means the
-		// rollback had nothing tracked to restore, which is correct
-		// for a verb whose only ops were OpWrite of brand-new files.
-		if strings.Contains(string(out), "did not match any file") {
-			return nil
-		}
-		return fmt.Errorf("git restore: %w\n%s", err, strings.TrimSpace(string(out)))
-	}
-	return nil
-}
-
 // Commit creates a commit with the given subject line, optional body,
 // and trailers. The commit's index is whatever has been staged with
 // Add prior to this call; this is intentionally low-level — verbs
@@ -152,72 +125,6 @@ func StagedPaths(ctx context.Context, workdir string) ([]string, error) {
 		paths = append(paths, p)
 	}
 	return paths, nil
-}
-
-// StashStaged sets aside the user's currently-staged changes so the
-// verb's commit boundary is exactly the verb's mutation plus any
-// hook-added files (notably the pre-commit STATUS.md regeneration).
-// Pair with StashPop after the commit lands.
-//
-// `git stash push --staged` (git ≥ 2.35) stashes only what's in the
-// index; the worktree side of those paths is left alone. Untracked
-// files and unstaged worktree edits are not affected. The message is
-// stamped into the stash entry so a subsequent `git stash list`
-// makes the source obvious if recovery becomes manual.
-//
-// G34 background: switched from `git commit -- <paths>` (--only) to
-// stash because pre-commit hooks that `git add` extra files (like
-// the aiwf STATUS.md hook) interact poorly with --only — git records
-// the hook's addition in HEAD but resets the post-commit index to
-// only the explicitly-named paths, leaving a phantom staged-deletion
-// behind. Stash gives the verb a clean index to commit against
-// without disturbing hook semantics.
-func StashStaged(ctx context.Context, workdir, message string) error {
-	return run(ctx, workdir, "stash", "push", "--staged", "--quiet", "-m", message)
-}
-
-// StashPop restores the most recently stashed entry into the index,
-// reversing StashStaged. Errors propagate verbatim — a pop failure
-// after the verb's commit landed is recoverable by hand
-// (`git stash list` / `git stash pop`); the kernel does not silently
-// drop the stash.
-func StashPop(ctx context.Context, workdir string) error {
-	return run(ctx, workdir, "stash", "pop", "--quiet")
-}
-
-// StashTopRef returns the commit SHA at the top of the stash stack
-// (`refs/stash`), or "" when the stack is empty. verb.Apply uses it to
-// detect a stash entry that `git stash push --staged` created *before*
-// aborting its worktree reset, so the dangling entry can be dropped
-// rather than left behind (G-0275).
-//
-// Mirrors ReadFromHEAD's existence-probe shape: `--verify --quiet`
-// exits 1 with empty output when the ref is absent, which maps to
-// ("", nil); any other failure is wrapped and returned.
-func StashTopRef(ctx context.Context, workdir string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "refs/stash")
-	cmd.Dir = workdir
-	cmd.Env = gitEnv()
-	out, err := cmd.Output()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-			return "", nil
-		}
-		return "", fmt.Errorf("git rev-parse refs/stash: %w", err) //coverage:ignore requires git rev-parse to fail with a non-exit-1 error (git missing or repo corruption mid-call)
-	}
-	return strings.TrimSpace(string(out)), nil
-}
-
-// StashDrop removes the entry at the top of the stash stack
-// (`stash@{0}`) without applying it. Pairs with StashTopRef in
-// verb.Apply's failure path: when a `git stash push --staged` aborts
-// after creating its entry, that entry is a redundant snapshot of work
-// still present in the index and worktree, so dropping it (not popping
-// it) is the correct cleanup — a pop would re-trigger the same conflict
-// that failed the push (G-0275).
-func StashDrop(ctx context.Context, workdir string) error {
-	return run(ctx, workdir, "stash", "drop", "--quiet")
 }
 
 // IsRepo reports whether workdir is inside a git working tree.
@@ -274,6 +181,39 @@ func HooksDir(ctx context.Context, workdir string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(commonDir, "hooks"), nil
+}
+
+// RunPostCommitHook invokes the repo's post-commit hook, if one is
+// installed and executable, mirroring what `git commit`'s porcelain
+// layer does automatically after landing a commit. CommitTree-based
+// commits (M-0186) bypass git's hook machinery entirely — commit-tree
+// and update-ref are plumbing, and plumbing never fires hooks — so a
+// caller that wants commit-tree-based commits to behave like a normal
+// `git commit` for hook purposes (the STATUS.md regeneration hook,
+// G-0112, or any hook a user has chained into post-commit.local) must
+// invoke this explicitly after a successful commit.
+//
+// Matches git's own tolerance for this specific hook: per githooks(5),
+// post-commit's exit status is informational only and never affects
+// the outcome of the commit that already landed, so it is not
+// surfaced here either. The only error this returns is a genuine
+// environment problem resolving the hooks directory; a missing or
+// non-executable hook file is a silent no-op, exactly as git itself
+// treats it.
+func RunPostCommitHook(ctx context.Context, workdir string) error {
+	hooksDir, err := HooksDir(ctx, workdir)
+	if err != nil {
+		return fmt.Errorf("resolving hooks dir: %w", err)
+	}
+	hookPath := filepath.Join(hooksDir, "post-commit")
+	info, statErr := os.Stat(hookPath)
+	if statErr != nil || info.Mode()&0o111 == 0 {
+		return nil
+	}
+	cmd := exec.CommandContext(ctx, hookPath)
+	cmd.Dir = workdir
+	_ = cmd.Run()
+	return nil
 }
 
 // commonGitDir returns the absolute path to the *shared* git

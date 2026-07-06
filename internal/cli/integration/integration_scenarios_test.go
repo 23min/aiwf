@@ -343,90 +343,85 @@ func TestScenario_MultiCloneIdentity(t *testing.T) {
 	}
 }
 
-// TestScenario_LockContentionThenAuditOnlyRecovery covers G24
-// end-to-end: a process holds .git/index.lock; `aiwf cancel` fails
-// with the lock-contention diagnostic; the user releases the lock
-// and finishes the work via a manual commit; `aiwf cancel
-// --audit-only --reason "..."` backfills the audit trail.
-func TestScenario_LockContentionThenAuditOnlyRecovery(t *testing.T) {
+// TestScenario_LockContentionNoLongerBlocksVerbCommit supersedes the
+// pre-M-0186 G24 lock-contention-then-audit-only scenario. A held
+// `.git/index.lock` used to block `git commit` outright, requiring the
+// user to finish the mutation manually and backfill the audit trail
+// via `--audit-only`. Since verb.Apply now builds its commit via
+// gitops.CommitTree — plumbing against a throwaway index, never the
+// live one — a live-index lock can no longer block the commit at all:
+// `aiwf cancel` under a held lock still lands the correct, fully
+// trailered commit. Only the post-commit index sync (gitops.
+// ReconcilePaths, which does touch the live index) is affected, and
+// that failure is reported without needing any audit-only recovery —
+// the audit trail is already complete because the real commit already
+// carries the right trailers.
+func TestScenario_LockContentionNoLongerBlocksVerbCommit(t *testing.T) {
 	t.Parallel()
 	root, binDir := initRepoFor(t, "peter@example.com")
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Validators leak"); err != nil {
 		t.Fatalf("aiwf add gap: %v\n%s", err, out)
 	}
-	// Create the lock file synthetically — git refuses to start a
-	// commit while .git/index.lock exists, deterministically firing
-	// the lock-contention path.
+	preHead, err := testutil.RunGit(root, "rev-parse", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-parse HEAD: %v", err)
+	}
+
+	// Hold .git/index.lock synthetically — this used to block `git
+	// commit` outright; it no longer blocks gitops.CommitTree at all.
 	lockPath := filepath.Join(root, ".git", "index.lock")
-	if err := os.WriteFile(lockPath, []byte("synthetic"), 0o644); err != nil {
+	err = os.WriteFile(lockPath, []byte("synthetic"), 0o644)
+	if err != nil {
 		t.Fatalf("create lock: %v", err)
 	}
-	out, lockErr := testutil.RunBin(t, root, binDir, nil, "cancel", "G-0001", "--reason", "test under lock")
-	if lockErr == nil {
-		t.Fatalf("expected aiwf cancel to fail under lock contention; got success:\n%s", out)
+	t.Cleanup(func() { _ = os.Remove(lockPath) })
+
+	out, cancelErr := testutil.RunBin(t, root, binDir, nil, "cancel", "G-0001", "--reason", "test under lock")
+	if cancelErr == nil {
+		t.Fatal("expected a non-zero exit — the post-commit index sync fails under the held lock — but the underlying commit still lands")
+	}
+	if !strings.Contains(out, "landed") {
+		t.Errorf("expected the output to confirm the commit landed despite the lock; got:\n%s", out)
 	}
 	if !strings.Contains(out, "index.lock") {
-		t.Errorf("expected lock-contention diagnostic to mention index.lock; got:\n%s", out)
+		t.Errorf("expected the index-sync failure to name index.lock; got:\n%s", out)
 	}
-	// Release the lock. After G-0170, the verb's rollback restores the
-	// touched path to its captured pre-Apply worktree state — pure
-	// filesystem writes, no git lock needed — so the gap file is back
-	// at `status: open`, not the half-applied `wontfix`. Confirm that
-	// (the G-0170 fix is what makes this assertion hold), then perform
-	// the manual mutation that the failed verb would have done, commit
-	// it without trailers, and let --audit-only backfill the trail.
-	if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) { //coverage:ignore defensive: lock file always exists at this point in the scenario
-		t.Fatalf("remove lock: %v", err)
+	if strings.Contains(out, "--audit-only") {
+		t.Errorf("must not suggest --audit-only recovery — the commit already landed correctly; got:\n%s", out)
+	}
+
+	// The commit landed for real, despite the lock: HEAD advanced, the
+	// gap file carries the intended status, and the commit's own
+	// trailers are already complete — no audit-only backfill needed.
+	postHead, err := testutil.RunGit(root, "rev-parse", "HEAD")
+	if err != nil {
+		t.Fatalf("rev-parse HEAD: %v", err)
+	}
+	if postHead == preHead {
+		t.Error("HEAD did not advance — the commit should land despite the live-index lock")
 	}
 	gapRel := mustFindFile(t, root, "G-0001-")
-	gapFull := filepath.Join(root, gapRel)
-	rolledBack, readErr := os.ReadFile(gapFull)
-	if readErr != nil {
-		t.Fatalf("read gap after rollback: %v", readErr)
+	committed, err := testutil.RunGit(root, "show", "HEAD:"+gapRel)
+	if err != nil {
+		t.Fatalf("show HEAD:%s: %v", gapRel, err)
 	}
-	if !strings.Contains(string(rolledBack), "status: open") {
-		t.Errorf("expected rollback to restore status: open (G-0170); got:\n%s", rolledBack)
-	}
-	if strings.Contains(string(rolledBack), "status: wontfix") {
-		t.Errorf("rollback left the half-applied wontfix on disk (G-0170 regression); got:\n%s", rolledBack)
-	}
-	// Manually re-do the mutation the verb intended: flip the
-	// frontmatter status from open → wontfix.
-	manual := strings.Replace(string(rolledBack), "status: open", "status: wontfix", 1)
-	if writeErr := os.WriteFile(gapFull, []byte(manual), 0o644); writeErr != nil {
-		t.Fatalf("write manual edit: %v", writeErr)
-	}
-	if out, err := testutil.RunGit(root, "add", gapRel); err != nil {
-		t.Fatalf("git add: %v\n%s", err, out)
-	}
-	if out, err := testutil.RunGit(root, "commit", "-m", "manually mark G-001 wontfix"); err != nil {
-		t.Fatalf("manual commit: %v\n%s", err, out)
-	}
-	// `aiwf check` should now fire the
-	// provenance-untrailered-entity-commit warning on the manual
-	// commit — the audit-trail hole G24 surfaces.
-	preCheck, _ := testutil.RunBin(t, root, binDir, nil, "check")
-	if !strings.Contains(preCheck, "provenance-untrailered-entity-commit") {
-		t.Errorf("expected provenance-untrailered-entity-commit warning before audit-only; got:\n%s", preCheck)
-	}
-	// Audit-only recovery records the audit trail.
-	if out, err := testutil.RunBin(t, root, binDir, nil,
-		"cancel", "G-0001", "--audit-only", "--reason", "lock contention recovery"); err != nil {
-		t.Fatalf("aiwf cancel --audit-only: %v\n%s", err, out)
+	if !strings.Contains(committed, "status: wontfix") {
+		t.Errorf("expected the committed gap to carry status: wontfix; got:\n%s", committed)
 	}
 	historyOut, err := testutil.RunBin(t, root, binDir, nil, "history", "G-0001")
 	if err != nil {
 		t.Fatalf("history: %v\n%s", err, historyOut)
 	}
-	if !strings.Contains(historyOut, "[audit-only: lock contention recovery]") {
-		t.Errorf("expected [audit-only: ...] chip; got:\n%s", historyOut)
+	if strings.Contains(historyOut, "audit-only") {
+		t.Errorf("no audit-only entry expected — the real commit already carries the full trail; got:\n%s", historyOut)
 	}
-	// After audit-only, the warning must clear — the plan's promise
-	// for step 7b. RunUntrailedAudit suppresses manual commits whose
-	// touched entities have a later audit-only commit covering them.
-	postCheck, _ := testutil.RunBin(t, root, binDir, nil, "check")
-	if strings.Contains(postCheck, "provenance-untrailered-entity-commit") {
-		t.Errorf("warning should clear after audit-only backfill; got:\n%s", postCheck)
+
+	// `aiwf check` finds nothing to complain about: the commit is
+	// properly trailered, even though the live index is momentarily
+	// stale under the held lock.
+	checkOut, _ := testutil.RunBin(t, root, binDir, nil, "check")
+	if strings.Contains(checkOut, "provenance-untrailered-entity-commit") {
+		t.Errorf("commit is fully trailered; unexpected provenance warning:\n%s", checkOut)
 	}
 }
 

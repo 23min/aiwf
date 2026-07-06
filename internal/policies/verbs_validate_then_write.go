@@ -13,10 +13,10 @@ import (
 // returns a *Plan; verb.Apply (in apply.go) is the only writer.
 //
 // Forbidden direct calls inside an exported verb function body:
-// gitops.Mv, gitops.Add, gitops.Restore, gitops.Commit,
-// gitops.CommitAllowEmpty, os.WriteFile, os.Create, os.Remove. A
-// regression — say, a new verb that "just creates the file inline"
-// — surfaces here.
+// gitops.Mv, gitops.Add, gitops.Commit, gitops.CommitAllowEmpty,
+// gitops.CommitTree, gitops.CommitVerbChange, gitops.ReconcilePaths,
+// os.WriteFile, os.Create, os.Remove. A regression — say, a new verb
+// that "just creates the file inline" — surfaces here.
 //
 // Apply itself (the writer) is exempt by name. Helpers like
 // auditOnlyTrailers and helpers prefixed with lowercase are
@@ -31,9 +31,11 @@ func PolicyVerbsValidateThenWrite(root string) ([]Violation, error) {
 	mutators := []string{
 		"gitops.Mv(",
 		"gitops.Add(",
-		"gitops.Restore(",
 		"gitops.Commit(",
 		"gitops.CommitAllowEmpty(",
+		"gitops.CommitTree(",
+		"gitops.CommitVerbChange(",
+		"gitops.ReconcilePaths(",
 		"os.WriteFile(",
 		"os.Create(",
 		"os.Remove(",
