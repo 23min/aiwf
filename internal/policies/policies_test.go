@@ -158,6 +158,11 @@ func TestPolicy_VerbsValidateThenWrite(t *testing.T) {
 	runPolicy(t, PolicyVerbsValidateThenWrite)
 }
 
+func TestPolicy_CommitConstructionSingleSeam(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCommitConstructionSingleSeam)
+}
+
 func TestPolicy_AtomicWriteChokepoint(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyAtomicWriteChokepoint)

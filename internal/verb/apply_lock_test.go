@@ -2,7 +2,7 @@ package verb
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -111,13 +111,19 @@ func TestParseLsof(t *testing.T) {
 }
 
 // TestApply_LockContentionDiagnostic: a stale .git/index.lock is in
-// place; Apply's `git commit` fails. The error wrap names the lock
-// path AND points at --audit-only (G24 recovery). When `lsof` is
-// available on the test machine, it also names the holder PID.
+// place. Unlike the pre-M-0186 design, this no longer blocks the
+// commit itself — gitops.CommitTree builds against a throwaway temp
+// index, never the live one, so a stale `.git/index.lock` can't touch
+// it. The commit lands and HEAD advances; only the post-commit
+// gitops.ReconcilePaths step (which does touch the live index) fails.
+// Apply still surfaces a non-nil error, but it explains that the
+// commit is safe and the index needs a manual `git add` once the lock
+// clears — `--audit-only` recovery no longer applies, since there is
+// no missing commit to backfill.
 //
-// We don't assert the holder section because the stale lock has no
-// holder — the test only asserts the contention-detection path.
-// Holder discovery is exercised by TestApply_LockContentionWithHolder.
+// We don't assert a holder name because the stale lock has no holder —
+// the test only asserts the contention-detection path. Holder
+// discovery is exercised by TestApply_LockContentionWithHolder.
 func TestApply_LockContentionDiagnostic(t *testing.T) {
 	t.Parallel()
 	// GIT_{AUTHOR,COMMITTER}_{NAME,EMAIL} are seeded once in TestMain
@@ -161,23 +167,52 @@ func TestApply_LockContentionDiagnostic(t *testing.T) {
 			{Type: OpWrite, Path: "new.md", Content: []byte("hi")},
 		},
 	}
-	err := Apply(ctx, root, plan)
+	preLock, err := gitopsRevParseHEAD(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = Apply(ctx, root, plan)
 	if err == nil {
-		t.Fatal("expected commit to fail under stale lock; got nil")
+		t.Fatal("expected index sync to fail under stale lock; got nil")
 	}
 	msg := err.Error()
-	if !strings.Contains(msg, "index.lock contention") {
-		t.Errorf("error should name index.lock contention; got:\n%s", msg)
+	if !strings.Contains(msg, "landed") {
+		t.Errorf("error should confirm the commit landed; got:\n%s", msg)
 	}
-	if !strings.Contains(msg, "--audit-only") {
-		t.Errorf("error should hint at --audit-only recovery; got:\n%s", msg)
+	if !strings.Contains(msg, "index.lock") {
+		t.Errorf("error should name index.lock; got:\n%s", msg)
 	}
+	if strings.Contains(msg, "--audit-only") {
+		t.Errorf("error must not suggest --audit-only recovery — the commit already landed; got:\n%s", msg)
+	}
+	postLock, err := gitopsRevParseHEAD(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if postLock == preLock {
+		t.Error("HEAD did not advance — the commit should land despite the live-index lock (CommitTree never touches it)")
+	}
+}
+
+// gitopsRevParseHEAD returns HEAD's commit SHA. A tiny local helper —
+// apply_lock_test.go is package verb (not verb_test), so it can't reach
+// apply_test.go's headSHA.
+func gitopsRevParseHEAD(root string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("rev-parse HEAD: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 // TestApply_LockContentionWithHolder: a fixture goroutine holds a
 // .git/index.lock open via a child `sleep` subprocess (the only way
 // to keep an external process listed in lsof's output for the file).
-// Apply's commit attempt fails; the diagnostic names the holder.
+// The commit itself lands (CommitTree never touches the live index);
+// the post-commit ReconcilePaths step hits the held lock, and its
+// diagnostic names the holder.
 //
 // Skipped on Windows (no lsof) and when lsof is missing locally —
 // the function under test gracefully degrades to the lsof-less
@@ -247,14 +282,14 @@ func TestApply_LockContentionWithHolder(t *testing.T) {
 	}
 	err := Apply(ctx, root, plan)
 	if err == nil {
-		t.Fatal("expected commit to fail under held lock; got nil")
+		t.Fatal("expected index sync to fail under held lock; got nil")
 	}
 	msg := err.Error()
 	if !strings.Contains(msg, "lock holder: PID ") {
 		// Some platforms / sandboxes restrict lsof from reading other
 		// processes' open files. Accept the no-holder branch as well
 		// — the broader contention diagnostic is what we care about.
-		if !strings.Contains(msg, "index.lock contention") {
+		if !strings.Contains(msg, "index.lock") {
 			t.Errorf("expected contention diagnostic; got:\n%s", msg)
 		}
 		t.Logf("lsof did not surface a holder on this platform; diagnostic still fired:\n%s", msg)
@@ -269,18 +304,4 @@ func TestApply_LockContentionWithHolder(t *testing.T) {
 func tinySleep() error {
 	cmd := exec.Command("/bin/sh", "-c", "sleep 0.01")
 	return cmd.Run()
-}
-
-// TestClassifyGitError_NonLockError passes through unmodified so the
-// existing apply tests' error formatting is preserved.
-func TestClassifyGitError_NonLockError(t *testing.T) {
-	t.Parallel()
-	in := errors.New("git commit: detached HEAD")
-	out := classifyGitError(context.Background(), t.TempDir(), "git commit", in)
-	if !strings.Contains(out.Error(), "detached HEAD") {
-		t.Errorf("non-lock error should pass through; got: %v", out)
-	}
-	if strings.Contains(out.Error(), "audit-only") {
-		t.Errorf("non-lock error must not suggest audit-only; got: %v", out)
-	}
 }

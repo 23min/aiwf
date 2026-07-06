@@ -183,6 +183,22 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			policy: PolicyVerbsValidateThenWrite,
 			files:  map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() { os.WriteFile() }\n"},
 		},
+		{
+			id:     "commit-construction-single-seam",
+			policy: PolicyCommitConstructionSingleSeam,
+			files: map[string]string{
+				// Ad hoc CommitTree call outside the seam file, and a
+				// CommitVerbChange call from a function that isn't Apply —
+				// exercises both violation branches.
+				"internal/verb/v.go": "package verb\n\nfunc Foo() { gitops.CommitTree() }\n\nfunc Bar() { gitops.CommitVerbChange() }\n",
+				// A body-less FuncDecl (assembly-style) under a scanned
+				// prefix — exercises the fn.Body == nil skip.
+				"internal/verb/decl.go": "package verb\n\nfunc External()\n",
+				// A syntactically invalid file under a scanned prefix —
+				// exercises the "skip unparseable file" branch.
+				"internal/gitops/broken.go": "package gitops\n\nfunc Broken( {  // deliberate syntax error\n",
+			},
+		},
 	}
 
 	for _, tc := range cases {
