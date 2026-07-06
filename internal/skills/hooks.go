@@ -6,11 +6,15 @@ import "sort"
 // a consumer's `.claude/settings.json`, gated by per-hook consent recorded
 // in aiwf.yaml's `hooks:` map (ADR-0032). Name is the registry key —
 // matches `hooks.<name>` in aiwf.yaml and the map key config.Config.Hooks
-// uses. Description is the one-line effect shown in the consent prompt at
-// `aiwf init`/`aiwf update`.
+// uses, and doubles as the on-disk filename under Target.HooksDir (mirrors
+// how Skill.Name for agents/templates already carries its own extension).
+// Description is the one-line effect shown in the consent prompt at
+// `aiwf init`/`aiwf update`. Content is the script's bytes, materialized
+// verbatim when the hook is enabled.
 type HookDef struct {
 	Name        string
 	Description string
+	Content     []byte
 }
 
 // ShippedHooks is the registry of hooks aiwf currently ships. Empty until a
@@ -32,4 +36,17 @@ func HookNamesFrom(hooks []HookDef) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// HookSkillsFrom converts a hook registry into the flat-file Skill shape
+// MaterializeHooks writes — the hooks-category lister, parallel to
+// ListRitualAgents/ListRitualTemplates (ADR-0032). Takes the registry
+// explicitly, like HookNamesFrom, so tests can exercise it against a
+// synthetic registry ahead of any concrete hook landing (M-0236).
+func HookSkillsFrom(hooks []HookDef) []Skill {
+	out := make([]Skill, 0, len(hooks))
+	for _, h := range hooks {
+		out = append(out, Skill{Name: h.Name, Content: h.Content})
+	}
+	return out
 }

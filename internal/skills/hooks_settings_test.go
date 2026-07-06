@@ -353,3 +353,147 @@ func TestWireHookSettings_NoEventsIsNoOp(t *testing.T) {
 		t.Errorf("no file should be created when events is empty, stat err=%v", err)
 	}
 }
+
+// TestHookCommandWired_MissingFileReportsFalse covers the not-yet-
+// materialized case: no settings.json at all is "not wired", not an
+// error.
+func TestHookCommandWired_MissingFileReportsFalse(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+
+	wired, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
+	if err != nil {
+		t.Fatalf("HookCommandWired: %v", err)
+	}
+	if wired {
+		t.Error("expected wired=false for a missing settings file")
+	}
+}
+
+// TestHookCommandWired_CommandPresentUnderOneEventReportsTrue covers
+// the positive case.
+func TestHookCommandWired_CommandPresentUnderOneEventReportsTrue(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if _, err := WireHookSettings(settingsPath, ".claude/hooks/foo.sh", []string{"SessionStart"}); err != nil {
+		t.Fatalf("WireHookSettings: %v", err)
+	}
+
+	wired, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
+	if err != nil {
+		t.Fatalf("HookCommandWired: %v", err)
+	}
+	if !wired {
+		t.Error("expected wired=true for a command present under SessionStart")
+	}
+}
+
+// TestHookCommandWired_CommandPresentUnderOtherEventStillReportsTrue
+// covers that the check is event-agnostic: the command need not be
+// under any particular event to count as wired.
+func TestHookCommandWired_CommandPresentUnderOtherEventStillReportsTrue(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if _, err := WireHookSettings(settingsPath, ".claude/hooks/foo.sh", []string{"SubagentStart"}); err != nil {
+		t.Fatalf("WireHookSettings: %v", err)
+	}
+
+	wired, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
+	if err != nil {
+		t.Fatalf("HookCommandWired: %v", err)
+	}
+	if !wired {
+		t.Error("expected wired=true regardless of which event carries the command")
+	}
+}
+
+// TestHookCommandWired_CommandAbsentReportsFalse covers the negative
+// case: a settings.json with hooks wired for other commands does not
+// report the queried command as wired.
+func TestHookCommandWired_CommandAbsentReportsFalse(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if _, err := WireHookSettings(settingsPath, ".claude/hooks/other.sh", []string{"SessionStart"}); err != nil {
+		t.Fatalf("WireHookSettings: %v", err)
+	}
+
+	wired, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
+	if err != nil {
+		t.Fatalf("HookCommandWired: %v", err)
+	}
+	if wired {
+		t.Error("expected wired=false for a command that was never wired")
+	}
+}
+
+// TestHookCommandWired_NullHooksKeyReportsFalse covers the same
+// null-vs-absent edge case WireHookSettings handles: an explicit
+// `"hooks": null` is treated as empty, not an error.
+func TestHookCommandWired_NullHooksKeyReportsFalse(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if err := os.WriteFile(settingsPath, []byte(`{"hooks": null}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	wired, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh")
+	if err != nil {
+		t.Fatalf("HookCommandWired: %v", err)
+	}
+	if wired {
+		t.Error("expected wired=false for a null hooks key")
+	}
+}
+
+// TestHookCommandWired_MalformedTopLevelJSONReturnsError covers the
+// error path: malformed settings.json surfaces rather than silently
+// reporting false.
+func TestHookCommandWired_MalformedTopLevelJSONReturnsError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if err := os.WriteFile(settingsPath, []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh"); err == nil {
+		t.Error("expected an error from malformed settings.json, got nil")
+	}
+}
+
+// TestHookCommandWired_MalformedHooksKeyReturnsError covers the
+// second error path: a hooks key present but of the wrong shape.
+func TestHookCommandWired_MalformedHooksKeyReturnsError(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if err := os.WriteFile(settingsPath, []byte(`{"hooks": "not-an-object"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh"); err == nil {
+		t.Error("expected an error from a malformed hooks key, got nil")
+	}
+}
+
+// TestHookCommandWired_ReadErrorSurfacesRatherThanTreatedAsMissing
+// covers the real-read-error arm: a settingsPath that exists but
+// isn't a readable file (here, a directory) must surface as an error,
+// not be silently folded into the not-yet-materialized/false case.
+func TestHookCommandWired_ReadErrorSurfacesRatherThanTreatedAsMissing(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	settingsPath := filepath.Join(dir, "settings.json")
+	if err := os.Mkdir(settingsPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := HookCommandWired(settingsPath, ".claude/hooks/foo.sh"); err == nil {
+		t.Fatal("HookCommandWired: want error when settingsPath is a directory, got nil")
+	}
+}

@@ -163,3 +163,37 @@ func hookCommandPresent(entries []hookMatcherEntry, command string) bool {
 	}
 	return false
 }
+
+// HookCommandWired reports whether command is wired anywhere in the
+// hooks key of the settings file at settingsPath — in any event's
+// matcher-group array, not just one named event (ADR-0032's drift
+// check: a hook's materialized-vs-wired state doesn't depend on which
+// event it's registered under). A missing settings file reports false
+// with no error, mirroring WireHookSettings's own not-yet-materialized
+// case.
+func HookCommandWired(settingsPath, command string) (bool, error) {
+	existing, readErr := os.ReadFile(settingsPath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			return false, nil
+		}
+		return false, fmt.Errorf("reading %s: %w", settingsPath, readErr)
+	}
+
+	obj, parseErr := parseSettingsJSON(existing)
+	if parseErr != nil {
+		return false, fmt.Errorf("parsing %s: %w", settingsPath, parseErr)
+	}
+
+	hooks, hooksErr := parseHooksKey(obj)
+	if hooksErr != nil {
+		return false, fmt.Errorf("parsing %s hooks key: %w", settingsPath, hooksErr)
+	}
+
+	for _, entries := range hooks {
+		if hookCommandPresent(entries, command) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
