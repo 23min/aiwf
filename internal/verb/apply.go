@@ -17,9 +17,10 @@ import (
 // Apply executes a verb's Plan against the consumer repo at root: it
 // runs every OpMove via a pure filesystem rename, every OpWrite
 // atomically to disk via pathutil.AtomicWriteFile (creating parent
-// directories as needed), builds the single commit via
-// gitops.CommitTree, then reconciles exactly the touched paths into
-// the live index via gitops.ReconcilePaths.
+// directories as needed), then builds the single commit and reconciles
+// exactly the touched paths into the live index via
+// gitops.CommitVerbChange — the one exported commit-construction seam
+// (M-0186/AC-5).
 //
 // Moves run before writes so that when a verb (notably reallocate)
 // renames a file/dir and also rewrites files inside that dir, the
@@ -139,22 +140,16 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		return errors.New("nothing to commit: plan has no file operations")
 	}
 
-	sha, commitErr := gitops.CommitTree(ctx, root, removes, writes, p.Subject, p.Body, p.Trailers)
-	if commitErr != nil {
-		return fmt.Errorf("commit-tree: %w", commitErr)
+	sha, commitErr := gitops.CommitVerbChange(ctx, root, removes, writes, p.Subject, p.Body, p.Trailers)
+	if sha != "" {
+		tx.committed = true
 	}
-	tx.committed = true
-
-	// CommitTree is plumbing (commit-tree + update-ref) — it fires no
-	// git hooks at all, unlike the `git commit` porcelain it replaces.
-	// Firing post-commit explicitly restores parity for the STATUS.md
-	// regeneration hook (G-0112) and any hook a user has chained into
-	// post-commit.local. Best-effort, matching git's own tolerance for
-	// this hook: its exit status is informational only.
-	_ = gitops.RunPostCommitHook(ctx, root)
-
-	if reconcileErr := gitops.ReconcilePaths(ctx, root, removes, writes); reconcileErr != nil {
-		return reconcileFailureError(ctx, root, sha, reconcileErr)
+	if commitErr != nil {
+		var reconcileErr *gitops.ReconcileError
+		if errors.As(commitErr, &reconcileErr) {
+			return reconcileFailureError(ctx, root, reconcileErr.SHA, reconcileErr.Err)
+		}
+		return fmt.Errorf("commit-tree: %w", commitErr)
 	}
 	return nil
 }

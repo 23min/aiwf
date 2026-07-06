@@ -183,6 +183,11 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			policy: PolicyVerbsValidateThenWrite,
 			files:  map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() { os.WriteFile() }\n"},
 		},
+		{
+			id:     "commit-construction-single-seam",
+			policy: PolicyCommitConstructionSingleSeam,
+			files:  map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() { gitops.CommitTree() }\n"},
+		},
 	}
 
 	for _, tc := range cases {

@@ -26,8 +26,8 @@ type readOnlyVerb struct {
 // readOnlyVerbs lists every verb the kernel treats as read-only.
 // The kernel principle: reads are pure functions, mutations go
 // through `verb.Apply`. A direct gitops.Commit / gitops.CommitTree /
-// gitops.Mv / gitops.Add or os.WriteFile call from one of these is a
-// regression.
+// gitops.CommitVerbChange / gitops.Mv / gitops.Add or os.WriteFile call
+// from one of these is a regression.
 //
 // Render has two run functions — runRenderSiteCmd (read-only) and
 // runRenderRoadmapCmd (writes only with --write, policed by the
@@ -50,6 +50,7 @@ var forbiddenMutations = []string{
 	"gitops.Commit",
 	"gitops.CommitAllowEmpty",
 	"gitops.CommitTree",
+	"gitops.CommitVerbChange",
 	"gitops.ReconcilePaths",
 	"gitops.Mv",
 	"gitops.Add",
