@@ -25,6 +25,10 @@ acs:
       title: git worktree add failures surface directly; never reports false success
       status: open
       tdd_phase: red
+    - id: AC-6
+      title: Flag completion and --help wired per completion-drift chokepoint
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -77,6 +81,8 @@ backstop (M-0235). Builds on the existing `worktree.dir` config knob and
 ### AC-4 — --print-path emits only the absolute path on success, nothing on failure
 
 ### AC-5 — git worktree add failures surface directly; never reports false success
+
+### AC-6 — Flag completion and --help wired per completion-drift chokepoint
 
 ## Constraints
 
