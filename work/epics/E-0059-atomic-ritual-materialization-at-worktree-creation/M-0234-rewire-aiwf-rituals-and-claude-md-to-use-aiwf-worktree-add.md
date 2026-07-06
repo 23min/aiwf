@@ -1,7 +1,7 @@
 ---
 id: M-0234
 title: Rewire aiwf rituals and CLAUDE.md to use aiwf worktree add
-status: draft
+status: in_progress
 parent: E-0059
 depends_on:
     - M-0233
