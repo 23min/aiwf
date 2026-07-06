@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: 'aiwf.yaml hooks: schema + aiwf.example.yaml regen'
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: aiwf init gates undecided hooks via TTY prompt / --enable-hook flag
       status: open
