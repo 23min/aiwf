@@ -1,7 +1,9 @@
 ---
-id: G-0368
+id: G-0376
 title: aiwfx-wrap-epic's CHANGELOG rollup assumption for milestones is unverified
 status: open
+prior_ids:
+    - G-0368
 ---
 ## Problem
 
