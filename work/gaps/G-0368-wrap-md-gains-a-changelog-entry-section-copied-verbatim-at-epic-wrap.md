@@ -1,6 +1,6 @@
 ---
 id: G-0368
-title: aiwfx-wrap-epic's CHANGELOG rollup assumption for milestones is unverified
+title: wrap.md gains a Changelog entry section, copied verbatim at epic wrap
 status: open
 ---
 ## Problem
