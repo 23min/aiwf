@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: CLAUDE.md worktree sections cite aiwf worktree add instead of raw git
-      status: open
+      status: met
     - id: AC-5
       title: Every rewritten SKILL.md/CLAUDE.md edit has a referencing structural test
       status: open
