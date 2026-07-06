@@ -285,3 +285,29 @@ are `//coverage:ignore`d, mirroring `WireHookSettings`'s identical,
 equally-untestable-without-a-disk-fault shape.
 
 commit `8a7b81fd` · tests 21/21
+
+## Validation
+
+- `go test ./...` — all packages pass.
+- `make check-fast` (vet + lint + full test suite) — clean.
+- `make coverage-gate` (diff-scoped statement coverage against the epic branch merge-base) — clean, no violations.
+- `aiwf check` — 0 error-severity findings; 4 pre-existing warnings unrelated to this milestone (archive-sweep-pending, epic-active-no-drafted-milestones, provenance-untrailered-scope-undefined, terminal-entity-not-archived).
+- Manual end-to-end smoke test: `aiwf init --skip-hook --enable-hook worktree-rituals-check.sh` on a fresh repo → script materialized under `.claude/hooks/` (executable), `.claude/settings.json` wired under both `SessionStart` and `SubagentStart`, `aiwf doctor` reports `hooks: ok (1 hooks synced)`.
+
+## Deferrals
+
+None — all 4 ACs are delivered in full per spec. See Reviewer notes below for two non-blocking design observations that are conditional on future changes, not current scope cuts.
+
+## Reviewer notes
+
+Independent two-lens review: 2 code-quality passes (sliced AC-1/AC-2 and AC-3/AC-4) plus 1 design-quality pass over the milestone's new abstractions (`cliutil.SyncHookMaterialization`, `skills.UnwireHookSettings`, `HookDef.Events`, `doctor --check-rituals`). All three verdicts: **APPROVE**, no blocking findings.
+
+- Code-quality surfaced 2 worth-fixing-now items, both fixed as corrective commits `5050897d` and `d44b5b83`:
+  - A real bug: `UnwireHookSettings` dropped an emptied matcher-group entry correctly but left the event key itself in the map as JSON `null` rather than deleting it — a wire→unwire round-trip didn't leave settings.json clean. The existing test couldn't catch this (`len(nil) == 0` reads the same as "key absent"); strengthened with an explicit key-presence assertion.
+  - A duplication/hygiene issue: the AC-3 subprocess policy test hand-rolled its own `aiwf` binary build instead of reusing `internal/cli/cliutil/testutil.AiwfBinary`, which several sibling policy tests already share — the hand-rolled copy also lacked the darwin ad-hoc-`codesign` step other policy tests rely on for G-0128, a real hazard for a test that `exec`s the built binary. Refactored to reuse the shared helper.
+  - 3 stale doc comments (also fixed) still claimed "ShippedHooks is empty until M-0236" after AC-2 made that false.
+- Design-quality: all 4 units are the right shape as shipped. Two non-blocking track-for-later notes, neither describing a current unmet need (no gap filed; each is conditional on a future change that hasn't happened):
+  - `HookDrift`'s wired-check is coarser than a hook's own `Events` set (checks "wired under any event," not "wired under exactly this hook's declared events") — harmless with today's one fixed-event hook; would only matter if a future hook's `Events` set changes across versions.
+  - `doctor`'s mode flags (`--self-check`, `--write-health`, `--check-rituals`) resolve conflicts by silent code-order precedence rather than a validated mutual-exclusion error (`update`'s `--statusline`/`--remove` pair does validate). Worth tightening if a fifth mode is ever added.
+
+Process note: the three review agents were dispatched directly against this session's live worktree rather than an isolated copy — a deviation from this repo's own "Subagent worktree isolation" convention. One agent's exploration appears to have run a `git checkout <sha>`, detaching this session's HEAD mid-review; the two corrective commits above landed on that detached HEAD as a result. Recovered cleanly — checked out the milestone branch and cherry-picked both commits onto it, confirming byte-identical content via diff — no work lost. Noted as a reminder that read-oriented review dispatches warrant the same worktree-isolation discipline as mutating ones when they run in the same session as live branch work.
