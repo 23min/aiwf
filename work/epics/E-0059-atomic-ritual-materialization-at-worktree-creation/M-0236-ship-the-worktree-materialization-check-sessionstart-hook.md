@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: init/update materialize and wire the hook per consent; doctor reports its state
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
