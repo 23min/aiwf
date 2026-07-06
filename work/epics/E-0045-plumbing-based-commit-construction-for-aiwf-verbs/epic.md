@@ -1,7 +1,7 @@
 ---
 id: E-0045
 title: Plumbing-based commit construction for aiwf verbs
-status: active
+status: done
 ---
 ## Goal
 
