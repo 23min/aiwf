@@ -553,7 +553,7 @@ Make `--area` filtering **trustworthy** for the multi-project monorepo — the a
 | M-0185 | Area-path scoped-coverage check (unslotted-project detection) | done |
 | M-0208 | rename-area preserves comments and sibling keys in the areas block on rename | done |
 
-## E-0045 — Plumbing-based commit construction for aiwf verbs (proposed)
+## E-0045 — Plumbing-based commit construction for aiwf verbs (active)
 
 ### Goal
 
@@ -561,7 +561,7 @@ Replace aiwf's fragile `git stash`-based per-verb commit isolation with a plumbi
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0186 | gitops commit primitive via temp-index and commit-tree | draft |
+| M-0186 | gitops commit primitive via temp-index and commit-tree | in_progress |
 | M-0187 | Opt-in gaps inbox on a never-checked-out ref | draft |
 
 ## E-0046 — Formalize in-repo worktrees as the default placement (done)
