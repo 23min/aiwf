@@ -168,6 +168,9 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
 			return rc
 		}
+		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+			return rc
+		}
 	}
 
 	statuslineRC := cliutil.ExitOK

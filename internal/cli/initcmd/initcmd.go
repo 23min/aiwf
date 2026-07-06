@@ -173,6 +173,9 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
 				return rc
 			}
+			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+				return rc
+			}
 		} else {
 			fmt.Println("aiwf init --enable-hook: dry-run — hook consent gating skipped.")
 		}
