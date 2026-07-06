@@ -1,7 +1,7 @@
 ---
 id: ADR-0029
 title: Verb shape correctness comes from pre-write projection
-status: proposed
+status: accepted
 ---
 
 # ADR-0029 — Verb shape correctness comes from pre-write projection
