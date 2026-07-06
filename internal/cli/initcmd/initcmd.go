@@ -50,7 +50,10 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
   # Same scaffolding plus the aiwf-aware Claude Code statusline
   # (user scope by default; add --scope project to keep it in-repo)
   aiwf init --statusline
-  aiwf init --statusline --scope project`,
+  aiwf init --statusline --scope project
+
+  # Consent to a specific registry hook without an interactive prompt
+  aiwf init --enable-hook <hook-name>`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
