@@ -299,7 +299,7 @@ func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string
 	//
 	// Chains forward: if commit X renames A→B and a later commit Y
 	// renames B→C, the cumulative map records A→C.
-	trailerRenames, err := renamesFromAiwfVerbTrailers(ctx, workdir, mergeBase)
+	trailerRenames, err := renamesFromAiwfVerbTrailers(ctx, workdir, mergeBase, "HEAD")
 	if err != nil {
 		return nil, fmt.Errorf("detecting trailer-driven renames since merge-base with %s: %w", ref, err)
 	}
@@ -345,6 +345,74 @@ func RenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string
 			continue
 		}
 		renames[oldPath] = newPath
+	}
+	return renames, nil
+}
+
+// TrunkRenamesFromRef returns the set of file renames committed on ref
+// since it diverged from HEAD — the trunk-side mirror of
+// RenamesFromRef, scoped **merge-base(HEAD, ref)..ref** rather than
+// merge-base(HEAD, ref)..HEAD. Keys are pre-rename paths, values are
+// post-rename paths, both as observed at ref's tip (repo-relative,
+// slash-separated).
+//
+// Used by `aiwf check`'s ids-unique trunk-collision rule (G-0378) to
+// recognize a rename committed *on trunk* (e.g. `aiwf retitle`) after
+// a feature branch already forked away from it — the reverse
+// direction RenamesFromRef's HEAD-scoped walk cannot see.
+//
+// Trailer-driven only (ADR-0031) — deliberately NO git-diff-M
+// content-similarity fallback, unlike RenamesFromRef's branch-side
+// pass. This range can span trunk's entire history since an old
+// branch forked, potentially large; a similarity heuristic over that
+// range risks spuriously pairing two unrelated, boilerplate-similar
+// entities and silently misclassifying a genuine id collision as
+// "same entity, moved" — a false negative in a correctness gate,
+// strictly worse than the false positive this function exists to fix.
+// A trailer is exact, authored-intent ground truth; restricting to it
+// makes that failure mode structurally impossible, at the cost that a
+// manual, non-kernel-verb `git mv` performed directly on trunk is not
+// auto-recognized (a safe, recoverable false positive, consistent
+// with the existing id-rename-untrailered check).
+//
+// Always returns a non-nil map — empty when ref doesn't resolve, when
+// HEAD has no commits, when ref and HEAD share no common ancestor, or
+// when no rename-shaped trailers exist in range. In every such case
+// the trunk-collision rule correctly finds no exemption and fires,
+// per ADR-0031's fail-closed-on-uncertainty default; unlike
+// RenamesFromRef, no caller here needs to distinguish "no trunk view"
+// from "trunk view, no renames," so there's no nil/empty distinction
+// to preserve.
+func TrunkRenamesFromRef(ctx context.Context, workdir, ref string) (map[string]string, error) {
+	exists, err := HasRef(ctx, workdir, ref)
+	if err != nil { //coverage:ignore not portably triggerable: HasRef itself only returns an error on a git failure other than "ref not found" (exit 1, handled below) — a real git-level fault (corrupt repo, missing binary) that the unit harness cannot stage
+		return nil, err
+	}
+	if !exists {
+		return map[string]string{}, nil
+	}
+	headExists, err := HasRef(ctx, workdir, "HEAD")
+	if err != nil { //coverage:ignore not portably triggerable: same class as the ref HasRef call above
+		return nil, err
+	}
+	if !headExists {
+		return map[string]string{}, nil
+	}
+	mbOut, err := output(ctx, workdir, "merge-base", "HEAD", ref)
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return map[string]string{}, nil
+		}
+		return nil, fmt.Errorf("finding merge-base of HEAD and %s: %w", ref, err) //coverage:ignore not portably triggerable: once ref and HEAD both resolve, `git merge-base` only fails with exit 1 (no common ancestor, handled above) short of a git-level fault the unit harness cannot stage
+	}
+	mergeBase := strings.TrimSpace(mbOut)
+	if mergeBase == "" { //coverage:ignore not portably triggerable: `git merge-base` exiting 0 always prints a resolved SHA; this defensive branch mirrors RenamesFromRef's identical guard
+		return map[string]string{}, nil
+	}
+	renames, err := renamesFromAiwfVerbTrailers(ctx, workdir, mergeBase, ref)
+	if err != nil { //coverage:ignore not portably triggerable: the underlying `git log`/`git show` calls only fail on a git-level fault the unit harness cannot stage
+		return nil, fmt.Errorf("detecting trunk-side trailer-driven renames since merge-base with %s: %w", ref, err)
 	}
 	return renames, nil
 }
@@ -405,15 +473,20 @@ func RenamesInCommit(ctx context.Context, workdir, sha string) (map[string]strin
 	return renamesInCommit(ctx, workdir, sha)
 }
 
-// renamesFromAiwfVerbTrailers walks commits on mergeBase..HEAD and
+// renamesFromAiwfVerbTrailers walks commits on mergeBase..to and
 // returns the cumulative file-rename map produced by aiwf-verb
 // commits whose verb value is in renameVerbs. Chains forward: an
 // A→B rename in commit X followed by a B→C rename in commit Y
 // collapses to A→C in the returned map.
 //
+// to is the walk's upper bound — "HEAD" for RenamesFromRef's
+// branch-side pass, or a trunk ref for TrunkRenamesFromRef's
+// trunk-side pass (ADR-0031); the trailer-walk mechanics are
+// otherwise identical regardless of which side's history is walked.
+//
 // Returns an empty map when no rename-shaped trailers exist in the
 // range.
-func renamesFromAiwfVerbTrailers(ctx context.Context, workdir, mergeBase string) (map[string]string, error) {
+func renamesFromAiwfVerbTrailers(ctx context.Context, workdir, mergeBase, to string) (map[string]string, error) {
 	// Walk commits oldest-first so per-commit renames apply in
 	// chronological order; chain-forward updates downstream entries
 	// when a later commit re-renames an earlier rename's destination.
@@ -426,7 +499,7 @@ func renamesFromAiwfVerbTrailers(ctx context.Context, workdir, mergeBase string)
 	const recordSeparator = "END_COMMIT"
 	out, err := output(ctx, workdir, "log", "--reverse",
 		"--format=COMMIT %H%n%(trailers:only=true,unfold=true)"+recordSeparator,
-		mergeBase+"..HEAD")
+		mergeBase+".."+to)
 	if err != nil {
 		return nil, fmt.Errorf("walking aiwf-verb trailers: %w", err)
 	}
