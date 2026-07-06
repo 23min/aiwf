@@ -809,7 +809,7 @@ to be isolated in a worktree.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0233 | aiwf worktree add verb: atomic creation with ritual materialization | done |
-| M-0234 | Rewire aiwf rituals and CLAUDE.md to use aiwf worktree add | in_progress |
+| M-0234 | Rewire aiwf rituals and CLAUDE.md to use aiwf worktree add | done |
 | M-0235 | Session-start hook flags worktrees missing materialized rituals | draft |
 
 ## E-0060 — Resolve cross-branch entity references at check and read time (proposed)
