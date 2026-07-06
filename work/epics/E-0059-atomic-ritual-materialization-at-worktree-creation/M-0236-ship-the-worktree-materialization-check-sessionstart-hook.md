@@ -223,3 +223,65 @@ it names a real entity) — renamed to `milestone-fixture-branch` to
 avoid the false collision.
 
 commit `30e8d5b3` · tests 3/3
+
+### AC-4 — init/update materialize and wire the hook per consent; doctor reports its state
+
+M-0235 built the primitives (`MaterializeHooks`, `WireHookSettings`,
+`HookDrift`) but never called them from `aiwf init`/`update`'s actual
+`Run` flow — confirmed by grep before writing any code: a consented
+hook's decision landed in aiwf.yaml with no script on disk and nothing
+wired into settings.json. Added `cliutil.SyncHookMaterialization`, a
+shared call site both verbs invoke right after their own
+consent-gating step: reads decisions back fresh from aiwf.yaml
+(avoiding a signature change to the existing gate functions), then
+materializes each hook's script and wires or unwires its settings.json
+entries per its current decision. `aiwf doctor`'s existing
+`appendHookMaterializationReport` (M-0235) needed no changes — it
+already reports real state once init/update actually produce one;
+confirmed via manual end-to-end smoke test (`aiwf init --enable-hook`
+→ `aiwf doctor` → `hooks: ok (1 hooks synced)`, script present and
+executable, settings.json wired under both events).
+
+Also added `skills.UnwireHookSettings` (with `removeCommandFromEntries`)
+— `WireHookSettings` was append-only with no removal counterpart, so
+ADR-0032's "remove both when false" promise had no settings-side
+implementation. This was surfaced as a decision point before coding
+(user chose to close the gap now rather than defer it as a gap, since
+`HookDrift`'s "wired-but-stale" remedy message would otherwise be false
+advertising the first time a hook is actually flipped from enabled to
+declined) — resolved by adding the primitive and wiring it into
+`SyncHookMaterialization`'s declined-hook branch alongside
+`MaterializeHooks`'s existing script-removal half.
+
+`wf-vacuity` (4 mutations across the wiring: swap the enabled/declined
+branch; drop `removeCommandFromEntries`'s empty-group check; drop the
+`SyncHookMaterialization` call from `initcmd.go`; drop it from
+`update.go`) found 2 real surviving mutants:
+- The empty-group-check drop wasn't caught because the existing test
+  only asserted the flattened command list was empty, not that the
+  emptied matcher-group object itself was removed from the raw JSON —
+  a lingering empty group reports zero commands too. Strengthened with
+  a raw matcher-group-count assertion.
+- Dropping `update.go`'s wiring call still passed
+  `TestRun_HookRemovedWhenFlippedFromEnabledToDeclined` because the
+  priming (enable) call's own effect was never verified before
+  asserting the decline call removed it — with the wiring gone,
+  nothing was ever created, so "removed" held vacuously. Strengthened
+  to assert the primed state exists before flipping to declined.
+Both re-verified: real code passes, mutation now caught, implementation
+byte-identical after revert. 0 surviving mutants after the fixes; the
+other 2 mutations (branch-swap, initcmd.go call-drop) were caught
+cleanly on the first pass.
+
+Branch-coverage audit: `UnwireHookSettings`'s not-wired/missing-file/
+malformed-JSON/malformed-hooks-key/read-error arms, `removeCommandFromEntries`'s
+keep-whole/drop-whole/partial-within-one-group arms, and
+`SyncHookMaterialization`'s empty-registry/undecided/enabled/declined/
+each-of-its-three-callee-errors arms are each covered by a dedicated
+test (mirroring `WireHookSettings`'s and `gateAndSyncHookDecisions`'s
+own precedent fixture shapes where the error is genuinely reachable).
+The four defensive backup/marshal-error arms in `UnwireHookSettings`
+are `//coverage:ignore`d, mirroring `WireHookSettings`'s identical,
+equally-untestable-without-a-disk-fault shape.
+
+commit `8a7b81fd` · tests 21/21
