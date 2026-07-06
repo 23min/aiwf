@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: Flag completion and --help wired per completion-drift chokepoint
-      status: open
+      status: met
       tdd_phase: done
 ---
 
