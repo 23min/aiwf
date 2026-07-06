@@ -117,6 +117,33 @@ func TestRun_GatesOnlyNewlyIntroducedHooksAndPreservesExisting(t *testing.T) {
 	}
 }
 
+// TestRun_PreservesDecisionForHookRemovedFromRegistry pins the durability
+// half of gateAndSyncHookDecisions's own doc comment: a decision for a hook
+// no longer named in the current run's registry (e.g. one shipped by an
+// older aiwf and since dropped) survives the union write untouched, rather
+// than being silently dropped because it isn't in `hooks`. Every other
+// test in this file keeps the existing-decision's hook present in the
+// registry passed to Run, so this is the one case that actually exercises
+// "existing survives when absent from hooks", not just "existing survives
+// when also present in hooks".
+func TestRun_PreservesDecisionForHookRemovedFromRegistry(t *testing.T) {
+	t.Parallel()
+	root := freshInitializedRepo(t)
+	seedHookDecisions(t, root, map[string]bool{"gone-hook": false, "kept-hook": true})
+	hooks := []skills.HookDef{{Name: "kept-hook", Description: "does a thing"}}
+
+	rc := update.Run(root, false, "", false, false, false, false, nil, hooks)
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run() = %d, want ExitOK", rc)
+	}
+	if enabled, decided := hookDecision(t, root, "gone-hook"); !decided || enabled {
+		t.Errorf("HookDecision(gone-hook) = (%v, %v), want (false, true) — preserved despite absence from the registry", enabled, decided)
+	}
+	if enabled, decided := hookDecision(t, root, "kept-hook"); !decided || !enabled {
+		t.Errorf("HookDecision(kept-hook) = (%v, %v), want (true, true) — unchanged", enabled, decided)
+	}
+}
+
 // TestRun_NewHookDeclinesByDefaultWithoutEnableFlag: a newly-introduced
 // registry hook not named via --enable-hook declines (non-TTY default per
 // ADR-0032) — recorded as decided=true/enabled=false, not left undecided
