@@ -1,7 +1,7 @@
 ---
 id: M-0187
 title: Opt-in gaps inbox on a never-checked-out ref
-status: draft
+status: cancelled
 parent: E-0045
 depends_on:
     - M-0186
