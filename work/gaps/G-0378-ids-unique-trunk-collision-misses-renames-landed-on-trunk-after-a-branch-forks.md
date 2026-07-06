@@ -1,7 +1,9 @@
 ---
 id: G-0378
 title: ids-unique trunk-collision misses renames landed on trunk after a branch forks
-status: open
+status: addressed
+addressed_by_commit:
+    - 961f9004
 ---
 ## What's missing
 
