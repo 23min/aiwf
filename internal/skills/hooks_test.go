@@ -1,16 +1,42 @@
 package skills
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
-// TestShippedHooks_EmptyUntilAConcreteHookRegisters pins the current,
-// deliberate state (M-0235/AC-2): the hook registry ships with zero entries
-// until a later milestone (M-0236) registers its first concrete hook. A
-// non-empty registry here would mean a hook shipped without its own
-// milestone's TDD cycle covering it.
-func TestShippedHooks_EmptyUntilAConcreteHookRegisters(t *testing.T) {
+// TestShippedHooks_RegistersExactlyTheWorktreeRitualsCheckHook pins
+// M-0236/AC-2's registration claim: the registry ships exactly one entry —
+// the worktree-materialization-check hook — registered for both
+// SessionStart and SubagentStart, with its Content byte-equal to the
+// embedded script AC-1 shipped (never a re-authored copy).
+func TestShippedHooks_RegistersExactlyTheWorktreeRitualsCheckHook(t *testing.T) {
 	t.Parallel()
-	if len(ShippedHooks) != 0 {
-		t.Errorf("ShippedHooks = %#v, want empty (no concrete hook has landed yet)", ShippedHooks)
+	if len(ShippedHooks) != 1 {
+		t.Fatalf("ShippedHooks = %#v, want exactly 1 entry", ShippedHooks)
+	}
+	h := ShippedHooks[0]
+	if h.Name == "" {
+		t.Error("Name is empty")
+	}
+	if h.Description == "" {
+		t.Error("Description is empty")
+	}
+	if !bytes.Equal(h.Content, WorktreeRitualsCheckScript) {
+		t.Error("Content is not byte-equal to WorktreeRitualsCheckScript")
+	}
+	wantEvents := map[string]bool{"SessionStart": false, "SubagentStart": false}
+	for _, e := range h.Events {
+		if _, known := wantEvents[e]; !known {
+			t.Errorf("unexpected event %q in Events %v", e, h.Events)
+			continue
+		}
+		wantEvents[e] = true
+	}
+	for e, seen := range wantEvents {
+		if !seen {
+			t.Errorf("Events %v missing %q", h.Events, e)
+		}
 	}
 }
 
