@@ -6,6 +6,23 @@ parent: E-0059
 depends_on:
     - M-0235
 tdd: required
+acs:
+    - id: AC-1
+      title: Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: Hook registered in the registry for both SessionStart and SubagentStart events
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Subprocess policy test pins exit code and stderr for both hook cases
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: init/update materialize and wire the hook per consent; doctor reports its state
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -54,6 +71,14 @@ renders the notice itself.
   wire both settings-json event arrays once the operator has consented via
   M-0235's registry mechanism; `aiwf doctor` reports the hook's
   materialized/wired state.
+
+### AC-1 — Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+
+### AC-2 — Hook registered in the registry for both SessionStart and SubagentStart events
+
+### AC-3 — Subprocess policy test pins exit code and stderr for both hook cases
+
+### AC-4 — init/update materialize and wire the hook per consent; doctor reports its state
 
 ## Constraints
 
