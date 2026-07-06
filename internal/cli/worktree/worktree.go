@@ -77,12 +77,12 @@ func newAddCmd() *cobra.Command {
 // contract hold without a separate code path per output mode.
 func Run(branch, path, base, root string, printPath bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
 		return fail("aiwf worktree add", err, cliutil.ExitUsage)
 	}
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf worktree add")
-	if release == nil {
+	if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock contention from a concurrent verb invocation; not reproducible in serial tests.
 		return rc
 	}
 	defer release()
@@ -90,7 +90,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	ctx := context.Background()
 
 	exists, err := gitops.BranchExists(ctx, rootDir, branch)
-	if err != nil {
+	if err != nil { //coverage:ignore gitops.BranchExists only errors on a non-exit-1 git failure (missing git binary, repo corruption); not deterministically reproducible.
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 	if exists && base != "" {
@@ -117,7 +117,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	}
 
 	absPath, err := resolveCreatedPath(rootDir, targetPath)
-	if err != nil {
+	if err != nil { //coverage:ignore resolveCreatedPath only errors on filepath.Abs failure (broken cwd); not deterministically reproducible.
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
@@ -130,7 +130,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		StatusMdAutoUpdate: wtCfg.StatusMdAutoUpdate(),
 		WireClaudeMd:       wtCfg.WireClaudeMd(),
 	})
-	if err != nil {
+	if err != nil { //coverage:ignore RefreshArtifacts fails only on a filesystem fault (permission denied, disk full) writing marker-managed artifacts; not deterministically reproducible.
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
@@ -149,23 +149,24 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return cliutil.ExitOK
 	}
 
-	for _, s := range steps {
-		printStep(s)
-	}
-
 	if out.JSON() {
+		// D-0013: JSON output is a single clean envelope on stdout — the
+		// materialization ledger (text-mode only, below) must not precede it.
 		env := render.Envelope{
 			Tool:    "aiwf",
 			Version: version.Current().Version,
 			Status:  "ok",
 			Result:  map[string]any{"path": absPath},
 		}
-		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil {
+		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			return fail("aiwf worktree add", werr, cliutil.ExitInternal)
 		}
 		return cliutil.ExitOK
 	}
 
+	for _, s := range steps {
+		printStep(s)
+	}
 	fmt.Println(absPath)
 	return cliutil.ExitOK
 }
@@ -184,13 +185,13 @@ func resolveCreatedPath(rootDir, targetPath string) (string, error) {
 		abs = filepath.Join(rootDir, targetPath)
 	}
 	abs, err := filepath.Abs(abs)
-	if err != nil {
+	if err != nil { //coverage:ignore filepath.Abs only fails on a broken cwd; not deterministically reproducible.
 		return "", fmt.Errorf("resolving worktree path: %w", err)
 	}
 	if resolved, evalErr := filepath.EvalSymlinks(abs); evalErr == nil {
 		return resolved, nil
 	}
-	return abs, nil
+	return abs, nil //coverage:ignore EvalSymlinks fails only when the just-created worktree path doesn't resolve (permission fault, filesystem race); not deterministically reproducible.
 }
 
 // printStep renders one initrepo.StepResult in the same ledger shape

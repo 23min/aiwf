@@ -2,6 +2,7 @@ package worktree_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,5 +164,157 @@ func TestRun_BaseRejectedForExistingBranch(t *testing.T) {
 	}
 	if !strings.Contains(stderr, "--base") {
 		t.Errorf("stderr should explain the --base conflict; got:\n%s", stderr)
+	}
+}
+
+// TestNewCmd_DispatchesToRun exercises the actual Cobra wiring (NewCmd,
+// newAddCmd, and the RunE closure) end to end — the unit tests above all
+// call worktree.Run directly, which never builds or executes the Cobra
+// command tree itself.
+func TestNewCmd_DispatchesToRun(t *testing.T) {
+	t.Parallel()
+	root := minimalRepo(t, "")
+
+	cmd := worktree.NewCmd()
+	cmd.SetArgs([]string{"add", "feature/cobra-dispatch", "--root", root})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	want := filepath.Join(root, config.DefaultWorktreeDir, "feature", "cobra-dispatch")
+	if _, err := os.Stat(want); err != nil {
+		t.Errorf("worktree not created via Cobra dispatch: %v", err)
+	}
+}
+
+// TestNewCmd_DispatchesToRun_WithPath covers the RunE closure's other
+// branch — a second positional arg supplies an explicit path.
+func TestNewCmd_DispatchesToRun_WithPath(t *testing.T) {
+	t.Parallel()
+	root := minimalRepo(t, "")
+	explicit := filepath.Join(t.TempDir(), "cobra-explicit")
+
+	cmd := worktree.NewCmd()
+	cmd.SetArgs([]string{"add", "feature/cobra-path", explicit, "--root", root})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if _, err := os.Stat(explicit); err != nil {
+		t.Errorf("worktree not created at explicit path via Cobra dispatch: %v", err)
+	}
+}
+
+// TestRun_MissingAiwfYamlInNewWorktree covers the case where the
+// branch being worktree-added never carried aiwf.yaml (a repo not yet
+// aiwf-adopted, or a branch predating adoption) — Run must fail
+// clearly rather than panic on a nil-unsafe config getter.
+func TestRun_MissingAiwfYamlInNewWorktree(t *testing.T) {
+	root := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("no aiwf.yaml here\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "README.md"); err != nil {
+		t.Fatalf("git add: %v", err)
+	}
+	if err := gitops.Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return worktree.Run("feature/no-config", filepath.Join(t.TempDir(), "wt"), "", root, false, cliutil.OutputFormat{})
+	})
+	if rc != cliutil.ExitInternal {
+		t.Fatalf("rc = %d, want ExitInternal", rc)
+	}
+	if !strings.Contains(stderr, "aiwf.yaml") {
+		t.Errorf("stderr should explain the missing aiwf.yaml; got:\n%s", stderr)
+	}
+}
+
+// TestRun_HookConflictReturnsExitFindings covers the hook-collision
+// path RefreshArtifacts can report: a non-aiwf pre-push hook already
+// installed (with a .local sibling already taken) in the shared hooks
+// dir the new worktree resolves to.
+func TestRun_HookConflictReturnsExitFindings(t *testing.T) {
+	root := minimalRepo(t, "")
+	hookDir := filepath.Join(root, ".git", "hooks")
+	if err := os.MkdirAll(hookDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	alien := []byte("#!/bin/sh\n# alien\nexit 0\n")
+	prior := []byte("#!/bin/sh\n# prior local\nexit 0\n")
+	if err := os.WriteFile(filepath.Join(hookDir, "pre-push"), alien, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hookDir, "pre-push.local"), prior, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return worktree.Run("feature/hook-conflict", filepath.Join(t.TempDir(), "wt"), "", root, false, cliutil.OutputFormat{})
+	})
+	if rc != cliutil.ExitFindings {
+		t.Fatalf("rc = %d, want ExitFindings", rc)
+	}
+	if !strings.Contains(stderr, "collision") {
+		t.Errorf("stderr should explain the hook collision; got:\n%s", stderr)
+	}
+}
+
+// TestRun_PrintPath_UnitLevel is the Go-level complement to the
+// binary-level subprocess test in internal/cli/integration: it drives
+// --print-path directly against Run so the branch registers in unit
+// coverage too, not only via a subprocess the coverage instrumentation
+// can't see.
+func TestRun_PrintPath_UnitLevel(t *testing.T) {
+	root := minimalRepo(t, "")
+
+	var rc int
+	stdout := testutil.CaptureStdout(t, func() {
+		rc = worktree.Run("feature/print-unit", "", "", root, true, cliutil.OutputFormat{})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want ExitOK", rc)
+	}
+	want := filepath.Join(root, config.DefaultWorktreeDir, "feature", "print-unit") + "\n"
+	if string(stdout) != want {
+		t.Errorf("stdout = %q, want %q", stdout, want)
+	}
+}
+
+// TestRun_JSONSuccessEnvelope covers --format=json's success path:
+// result.path carries the resulting absolute worktree path.
+func TestRun_JSONSuccessEnvelope(t *testing.T) {
+	root := minimalRepo(t, "")
+
+	rc, stdoutStr, stderrStr := testutil.CaptureRun(t, func() int {
+		return worktree.Run("feature/json", "", "", root, false, cliutil.OutputFormat{Format: "json"})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("rc = %d, want ExitOK", rc)
+	}
+	if stderrStr != "" {
+		t.Errorf("stderr should be empty in JSON mode; got:\n%s", stderrStr)
+	}
+	stdout := []byte(stdoutStr)
+	var env struct {
+		Status string `json:"status"`
+		Result struct {
+			Path string `json:"path"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(stdout, &env); err != nil {
+		t.Fatalf("stdout is not a JSON envelope: %v\nstdout: %s", err, stdout)
+	}
+	if env.Status != "ok" {
+		t.Errorf("status = %q, want ok", env.Status)
+	}
+	want := filepath.Join(root, config.DefaultWorktreeDir, "feature", "json")
+	if env.Result.Path != want {
+		t.Errorf("result.path = %q, want %q", env.Result.Path, want)
 	}
 }
