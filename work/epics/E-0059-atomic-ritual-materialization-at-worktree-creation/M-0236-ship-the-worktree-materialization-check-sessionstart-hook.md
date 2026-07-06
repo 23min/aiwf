@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Hook registered in the registry for both SessionStart and SubagentStart events
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Subprocess policy test pins exit code and stderr for both hook cases
       status: open
