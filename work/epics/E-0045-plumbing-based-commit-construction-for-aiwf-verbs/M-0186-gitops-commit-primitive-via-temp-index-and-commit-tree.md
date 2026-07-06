@@ -100,13 +100,27 @@ duplicate ad hoc commit-construction logic elsewhere in `internal/verb` or
 
 ### AC-6 — per-commit shape validation dropped from verb-commit path
 
-The pre-commit-hook shape check no longer fires on a verb's commit (`git
-commit-tree` fires no hooks) — shape correctness is guaranteed by
-construction at the verb layer instead. Test: a verb producing a
-deliberately malformed entity (in a test harness that bypasses the verb's
-own construction guarantee) is still caught by `aiwf check` at the pre-push
-boundary, confirming pre-push remains the authoritative backstop with no
-silent gap left by the removed pre-commit check.
+The pre-commit hook (`aiwf check --shape-only`, i.e. `TreeDiscipline`
+only — stray-file tree layout, never `frontmatterShape`) no longer fires
+on a verb's commit (`git commit-tree` fires no hooks). Frontmatter-shape
+correctness (`frontmatterShape`/`CodeFrontmatterShape`) is unaffected by
+this — it was never wired through the pre-commit hook to begin with; it
+is guaranteed independently by `projectionFindings` running the full
+`check.Run` before a verb ever produces a `*Plan` (ADR-0029). What
+actually stopped firing at commit-time for verb-issued commits is
+`TreeDiscipline` itself. Two tests, covering both:
+
+- A verb producing a deliberately malformed entity (via a test harness
+  that bypasses the verb's own pre-write projection check — i.e. drives
+  `verb.Apply` directly with a hand-built `*Plan`, the way
+  `apply_test.go` already does) is still caught by `aiwf check` at the
+  pre-push boundary (`frontmatterShape`) — proving that guarantee never
+  depended on the pre-commit hook.
+- A verb-shaped commit that writes a stray/misplaced path under `work/`
+  (bypassing the verb layer the same way) is still caught by `aiwf
+  check` at the pre-push boundary (`TreeDiscipline`) — proving pre-push
+  remains the authoritative backstop for the check class the pre-commit
+  hook's removal actually affects, with no silent gap.
 
 ## Work log
 
