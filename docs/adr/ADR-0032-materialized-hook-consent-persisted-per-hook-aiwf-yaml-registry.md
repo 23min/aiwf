@@ -1,7 +1,7 @@
 ---
 id: ADR-0032
 title: 'Materialized hook consent: persisted per-hook aiwf.yaml registry'
-status: proposed
+status: accepted
 ---
 # ADR-0032 — Materialized hook consent: persisted per-hook aiwf.yaml registry
 
