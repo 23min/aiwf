@@ -167,11 +167,9 @@ to edit.
 
 ## Milestones
 
-<!-- Provisional — formal decomposition happens via aiwfx-plan-milestones. -->
-
-- `M-NNNN` — `aiwf worktree add`: atomic git-worktree-add + init/update materialization, with completion and tests · depends on: —
-- `M-NNNN` — Rewire aiwf's own rituals (start-milestone, wf-patch, start-epic if applicable, CLAUDE.md instructions) to the new verb · depends on: `M-NNNN`
-- `M-NNNN` — Session-start detection backstop for worktrees created outside the wrapper · depends on: —
+- [M-0233](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0233-aiwf-worktree-add-verb-atomic-creation-with-ritual-materialization.md) — `aiwf worktree add`: atomic git-worktree-add + init/update materialization, with completion and tests. · depends on: —
+- [M-0234](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0234-rewire-aiwf-rituals-and-claude-md-to-use-aiwf-worktree-add.md) — Rewire aiwf's own rituals and CLAUDE.md to the new verb. · depends on: `M-0233`
+- [M-0235](work/epics/E-0059-atomic-ritual-materialization-at-worktree-creation/M-0235-session-start-hook-flags-worktrees-missing-materialized-rituals.md) — Session-start detection backstop for worktrees created outside the wrapper. · depends on: —
 
 ## ADRs produced (optional)
 
