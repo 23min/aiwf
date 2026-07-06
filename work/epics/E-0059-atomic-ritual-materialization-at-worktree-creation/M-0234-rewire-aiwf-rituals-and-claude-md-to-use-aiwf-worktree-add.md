@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: aiwfx-start-epic's worktree-placement step invokes aiwf worktree add
-      status: open
+      status: met
     - id: AC-4
       title: CLAUDE.md worktree sections cite aiwf worktree add instead of raw git
       status: open
