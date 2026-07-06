@@ -51,6 +51,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/update"
 	"github.com/23min/aiwf/internal/cli/upgrade"
 	"github.com/23min/aiwf/internal/cli/whoami"
+	"github.com/23min/aiwf/internal/cli/worktree"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -192,6 +193,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(milestone.NewCmd())
 	cmd.AddCommand(authorize.NewCmd())
 	cmd.AddCommand(acknowledge.NewCmd())
+	cmd.AddCommand(worktree.NewCmd())
 
 	// G-0150: snapshot the explicit verb set into Annotations BEFORE
 	// any caller calls Execute (which is when Cobra's `help` and
@@ -245,6 +247,7 @@ Verbs:
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
+  worktree add <branch> [path]   create a git worktree and materialize aiwf's rituals into it atomically; --base <ref> for a new branch (default HEAD), --print-path to emit only the resulting path (for cd "$(...)")
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
   update                         re-materialize embedded skills into .claude/skills/aiwf-*/
   upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
