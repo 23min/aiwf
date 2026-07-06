@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: commit-tree output honors commit.gpgsign parity
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: commit-construction core exposes a reusable seam
