@@ -125,3 +125,44 @@ renders the notice itself.
 - G-0374 — the gap this epic closes.
 - G-0099 — the sibling isolation-guard hook; its migration into this
   registry is a follow-up gap, not this milestone's work.
+
+## Work log
+
+### AC-1 — Hook flags unmaterialized worktree rituals, nonzero exit with stderr
+
+Added `aiwf doctor --check-rituals [--root <path>]`: a terse,
+exit-code-meaningful check reusing `skills.MaterializedRituals` rather
+than reimplementing materialization detection — silent + exit 0 when
+every ritual artifact is present, a single actionable stderr line +
+exit 1 otherwise. The plain `aiwf doctor` report keeps rituals
+advisory-only (unchanged), since `--check-rituals` is a distinct mode
+built for automation, not a change to the default report's exit-code
+contract.
+
+Added the hook script itself (`internal/skills/embedded-hooks/
+worktree-rituals-check.sh`, go:embed'd as `skills.WorktreeRitualsCheckScript`):
+gates on cwd being inside a `.claude/worktrees/` checkout, resolves the
+worktree's own root via `git rev-parse --show-toplevel` (robust to
+branch names containing `/`, unlike string-parsing the path), and
+`exec`s into `aiwf doctor --check-rituals --root <root>` rather than
+reimplementing detection in shell. Not yet registered into
+`skills.ShippedHooks` or wired to any settings.json event — that's
+AC-2's job.
+
+`wf-vacuity` (6 mutations) found one real surviving mutant: the
+script-gate test's `strings.Contains(script, ".claude/worktrees/")`
+assertion matched the file's own header comment, not the functional
+`case` line, so a broken gate pattern went undetected. Strengthened to
+match the actual case-pattern token (`*/.claude/worktrees/*)`); the
+same mutation now fails as expected. 0 surviving mutants after the fix.
+
+Branch-coverage audit: both directions of `checkRitualsResult`'s
+ok/not-ok split, both of `RunCheckRituals`'s exit-code arms (Go-level
+and via the actual Cobra `--check-rituals` flag wiring), and the
+script's own gate/delegation assertions are each covered by a
+dedicated test. The two defensive error arms
+(`cliutil.ResolveRoot`'s error path, `skills.MaterializedRituals`'s
+error path) are unreachable at runtime — `//coverage:ignore`d, mirroring
+the identical pattern already used elsewhere in this file.
+
+commit `05d50627` · tests 8/8
