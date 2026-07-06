@@ -52,7 +52,7 @@ Still exactly one commit per verb; "undo" is unchanged (another verb invocation 
 
 ## References
 
-G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why a naive `git commit --only` revert is unsafe — do not re-propose it). ACs authored at start-milestone (contract-first).
+G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why a naive `git commit --only` revert is unsafe — do not re-propose it), ADR-0022 (the ratifying decision this milestone implements: temp-index + commit-tree primitive, Option C validation relocation, gpgsign parity, no-parallel-commit-path). ACs authored at start-milestone (contract-first).
 
 ### AC-1 — temp-index primitive never touches the live index or worktree
 
