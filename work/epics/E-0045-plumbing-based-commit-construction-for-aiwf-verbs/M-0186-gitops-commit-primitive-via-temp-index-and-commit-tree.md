@@ -379,11 +379,23 @@ construction guarantee" AC-6 calls for — then confirming full `aiwf
 check` (not `--shape-only`) still catches the result:
 `TestApply_MalformedFrontmatterStillCaughtByFullCheck` (a missing
 `status` field; `frontmatterShape`, unaffected by the hook's removal)
-and `TestApply_StrayFileStillCaughtByFullCheck` (a file with no
-frontmatter at all under `work/gaps/`; `unexpected-tree-file`, the
-check the retired hook actually ran). Neither test installs a git hook —
-`Apply`'s `commit-tree` path never triggers one regardless, matching
-production.
+and `TestApply_StrayFileStillCaughtByFullCheck` (a file whose name
+doesn't match the entity naming convention, under `work/gaps/`;
+`unexpected-tree-file`, the check the retired hook actually ran).
+Neither test installs a git hook — `Apply`'s `commit-tree` path never
+triggers one regardless, matching production.
+
+Mutation-checked both before closing the AC: fixing the missing
+`status` field (test 1) makes the assertion correctly fail, confirming
+it isn't satisfied by the shared fixture's own pre-existing
+`frontmatter-shape` violation (`newApplyTestRepo`'s seed entity also
+lacks `status` — a pre-existing, unrelated gap in that fixture, not a
+regression). For test 2, giving the stray file valid frontmatter while
+keeping its non-conforming filename left the finding firing — proving
+`tree.Load` classifies a "stray" by path shape (`entity.PathKind`)
+alone, before ever attempting to parse content; renaming it to a
+`G-NNNN-`-prefixed path is what actually suppresses the finding. Test
+2's doc comment was corrected to describe that mechanism accurately.
 
 ## Decisions made during implementation
 
