@@ -405,13 +405,34 @@ alone, before ever attempting to parse content; renaming it to a
 
 ## Validation
 
-<!-- Pasted at wrap. -->
+At wrap (2026-07-06), against commit `fdfb567f`:
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `golangci-lint run` (full CI config) — 0 issues.
+- `go test` (full suite, `-parallel 8`, matching CI) — 63/63 packages green, 0 failures.
+- `make coverage-gate` (diff-scoped branch-coverage audit + firing-fixture-presence + no-stale-allowlist, against `origin/main` merge-base) — green.
+- `aiwf check` — zero error-severity findings on M-0186 itself (the milestone-relevant codes: `acs-shape`, `acs-tdd-audit`, `milestone-done-incomplete-acs`, `acs-body-coherence` — none fire). One unrelated error-severity finding (`ids-unique/trunk-collision` on `G-0368`) is explicitly out of scope: a deliberate, human-owned revert on an unrelated gap entity, not touched by this milestone.
 
 ## Deferrals
 
-- (none)
+- G-0377 — `Apply`'s staged-conflict guard is coarser than a directory-move's actual writes (found during the pre-wrap independent review; not corruption in practice, tracked rather than fixed — see Reviewer notes).
 
 ## Reviewer notes
 
-- (none)
+Pre-wrap independent review ran four lenses, each a fresh-context subagent with no authorship attachment: three code-quality slices (the gitops commit-construction primitive; the `verb.Apply` retrofit and LIFO rollback journal; the new policies and AC-6 backstop tests) plus one `wf-rethink` design-quality audit of the `CommitTree`/`ReconcilePaths`/`CommitVerbChange` primitive itself.
+
+**Overall verdict: approve / keep across all four.** No blocking correctness or design issues. `wf-rethink`'s independently-reconstructed from-scratch design converged almost completely with the shipped code — the one place it diverged (a from-scratch `ReconcilePaths` that also wrote worktree files), the shipped design was the more correct choice, not the reconstruction.
+
+Findings addressed in a corrective commit (`fdfb567f`) before wrap:
+
+- Two `//coverage:ignore` annotations in `committree.go` (the `update-index` branches in the removes/writes loops) claimed index corruption was required to reach them. Empirically false — an ordinary invalid path (`../escape.md`, outside the repository) reaches both with a plain git error (exit 128), no corruption needed. Converted both into real tests (`TestCommitTree_RemovesInvalidPathIsAnError`, `TestCommitTree_WritesInvalidPathIsAnError`), the same class of stale-ignore bug AC-4 found and fixed twice already.
+- `apply.go`'s `WalkDir`-error `//coverage:ignore` claimed a mid-walk race; a pre-existing 0o000-permission directory reaches it deterministically, and it already had real test coverage from two existing tests. Removed the now-unnecessary ignore.
+- Both AC-6 backstop tests (`apply_check_backstop_test.go`) tied their code+path assertions together onto a single output line instead of checking them independently — the untied form could pass on the shared fixture's own pre-existing `frontmatter-shape` violation (a different, unrelated path) rather than the test's own write. The stray-file test's `tree.strict: true` setup also wasn't actually load-bearing (the seed fixture's own violation drove `ExitFindings` regardless of `strict`). Both fixed by asserting `"<path>: error <code>"` as one string.
+- `commit_construction_seam.go`'s doc comment overstated check 2's scope (it polices `gitops.`-qualified call sites; an unqualified call from a second file inside package `gitops` itself would not be caught). Wording tightened to match the actual mechanism.
+- `runIndexed`/`outputIndexed` (`committree.go`) built their exec environment via `append(os.Environ(), ...)` directly instead of composing through `gitEnv()`, so a future `gitEnv()` change would be silently bypassed by these two call sites specifically. Added `indexedEnv()` as the one composition point — flagged independently by both the `wf-rethink` pass and the gitops-primitive code review, a good independent-signal corroboration.
+
+Deferred rather than fixed: `checkStagedConflict`'s pre-flight guard scopes to `planPaths`, which for a directory `OpMove` names only the directory itself, not the nested files `gatherCommitOps` discovers by walking — coarser than the commit's actual write set. A user's staged edit to a file nested inside a moved directory is neither flagged nor left alone. Not corruption in practice (`reallocate`/`rewidth`, the verbs that move directories, normally run against a clean tree) — tracked as G-0377 rather than fixed here, since the milestone is otherwise closing and the mismatch is narrow.
+
+Also unresolved, explicitly out of this milestone's scope: an `aiwf check` error-severity finding (`ids-unique/trunk-collision` on `G-0368`) surfaced mid-wrap from a deliberate human revert of an unrelated `aiwf reallocate` on a gap entity that predates this epic. Left untouched per explicit instruction — not M-0186's to resolve.
 
