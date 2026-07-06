@@ -21,7 +21,7 @@ acs:
       status: met
     - id: AC-5
       title: Every rewritten SKILL.md/CLAUDE.md edit has a referencing structural test
-      status: open
+      status: met
 ---
 
 ## Goal
