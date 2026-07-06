@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0379: `ids-unique/trunk-collision` hint no longer always tells you to reallocate
+
+The hint for a `trunk-collision` finding fell through to the bare `ids-unique` remediation —
+*"run `aiwf reallocate <path>`"* — for every case, including the common one where a rename landed
+on trunk after the branch forked (G-0378): reallocating there renames the branch's otherwise-correct
+copy and creates a genuine duplicate entity instead of resolving anything. The finding now carries a
+subcode-specific hint that leads with checking whether the trunk-side path is a rename of the
+branch's entity since the fork (`git log --diff-filter=R --follow` or attempting the merge directly),
+and only recommends `aiwf reallocate` once the two paths are confirmed genuinely unrelated. CLAUDE.md's
+merge-time collision-resolution guidance carries the same caveat.
+
 ### Fixed — G-0371: `wf-vacuity`'s mutation probe now names a safe revert mechanism
 
 The mutation probe's revert step named no safe mechanism, so a reviewer filled the gap with

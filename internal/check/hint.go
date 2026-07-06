@@ -16,8 +16,17 @@ package check
 // re-validation step. The `finding-hints-name-command` chokepoint
 // (internal/check/hint_test.go) reddens on any hint that names none.
 var hintTable = map[string]string{
-	"load-error":                        "repair the YAML frontmatter (delimited by `---`) by hand and re-run `aiwf check`, or `git rm <path>` if the file is not an aiwf entity",
-	"ids-unique":                        "run `aiwf reallocate <path>` on one of the duplicates to renumber it",
+	"load-error": "repair the YAML frontmatter (delimited by `---`) by hand and re-run `aiwf check`, or `git rm <path>` if the file is not an aiwf entity",
+	"ids-unique": "run `aiwf reallocate <path>` on one of the duplicates to renumber it",
+	// G-0379: the bare "ids-unique" hint above is wrong for this subcode
+	// in the common case — a rename landed on trunk (`aiwf retitle`/`aiwf
+	// rename`) after the branch forked, invisible to the branch's stale
+	// copy (G-0378). Reallocating there doesn't resolve anything; it
+	// renames the branch's otherwise-correct copy, producing a genuine
+	// duplicate that then needs a manual revert. Lead with the stale-
+	// branch check before recommending reallocate, which remains correct
+	// only for a genuinely unrelated same-id entity (ADR-0031).
+	"ids-unique/trunk-collision":        "first check whether the trunk-side path is a rename of this branch's entity since the branch forked, e.g. `git log --diff-filter=R --follow origin/main -- <trunk-path>` (put the trunk ref before the pathspec, or the check runs against HEAD and misses the rename), or just attempt `git merge origin/main` (or your configured trunk ref) and see whether it resolves the divergence cleanly; if so, merge/rebase trunk into the branch instead of reallocating. Only run `aiwf reallocate <path>` when the two paths are confirmed to be genuinely unrelated entities, not a rename",
 	"case-paths":                        "rename one of the colliding paths via `aiwf rename` so they differ in more than just case (case-insensitive filesystems treat them as the same dir)",
 	"frontmatter-shape":                 "add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate <path>` so it emits at canonical width",
 	"id-path-consistent":                "renumber via `aiwf reallocate <path>` (rewrites both sides + updates references), rename the slug via `aiwf rename` if only the slug drifted, or correct the side that's wrong by hand if you're certain which",
