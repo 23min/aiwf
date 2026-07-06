@@ -27,6 +27,17 @@ a real cross-branch collision from ever being silently misclassified as a rename
 skipped entirely when no working-tree id is even in dispute against trunk, so this adds no cost to
 the common case.
 
+### Added — G-0380: STATUS.md gains a today's-work / since-release activity digest
+
+`aiwf status --format=md` (the source of STATUS.md) had no curated summary of what happened
+*today* or *since the project's last release* — a reader had to scan the count-bounded "Recent
+activity" tail or `git log` by hand. Two new sections now render between the health line and "In
+flight": "Today's work" (falling back to "Yesterday's work" when today has no qualifying
+activity — a single hop, never further) and "Since last release (vX.Y.Z)" (or "Since project
+start" when no release tag exists yet). Each shows three facts read from commit trailers and the
+loaded tree — gaps opened, gaps closed, and ADRs created (with the ADR's current status) — purely
+factual, with no release-readiness heuristic.
+
 ### Fixed — G-0379: `ids-unique/trunk-collision` hint no longer always tells you to reallocate
 
 The hint for a `trunk-collision` finding fell through to the bare `ids-unique` remediation —

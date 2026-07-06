@@ -1,7 +1,9 @@
 ---
 id: G-0380
 title: STATUS.md lacks a today's-work / since-release activity digest
-status: open
+status: addressed
+addressed_by_commit:
+    - 1b49940a
 ---
 ## What's missing
 
