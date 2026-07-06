@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: commit-construction core exposes a reusable seam
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-6
       title: per-commit shape validation dropped from verb-commit path
       status: open
