@@ -1,7 +1,9 @@
 ---
 id: G-0379
 title: trunk-collision hint always suggests reallocate, wrong for stale-branch renames
-status: open
+status: addressed
+addressed_by_commit:
+    - 9302ce61
 ---
 ## What's missing
 
