@@ -114,6 +114,75 @@ func TestWorktreeAdd_SurfacesGitFailure(t *testing.T) {
 	}
 }
 
+func TestWorktreeRemove(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t)
+	wtPath := filepath.Join(t.TempDir(), "wt")
+	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/to-remove", "main"); err != nil {
+		t.Fatalf("WorktreeAddNewBranch: %v", err)
+	}
+
+	if err := WorktreeRemove(ctx, root, wtPath); err != nil {
+		t.Fatalf("WorktreeRemove: %v", err)
+	}
+	if _, err := os.Stat(wtPath); err == nil {
+		t.Error("worktree directory still present after WorktreeRemove")
+	}
+	worktrees, err := ListWorktrees(ctx, root)
+	if err != nil {
+		t.Fatalf("ListWorktrees: %v", err)
+	}
+	if len(worktrees) != 1 {
+		t.Errorf("worktree list = %+v, want only the main checkout", worktrees)
+	}
+}
+
+func TestWorktreeRemove_ForceRemovesDirtyWorktree(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t)
+	wtPath := filepath.Join(t.TempDir(), "wt")
+	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/dirty", "main"); err != nil {
+		t.Fatalf("WorktreeAddNewBranch: %v", err)
+	}
+	// An untracked file makes the worktree "dirty" from git's
+	// perspective; a plain `git worktree remove` (no --force) refuses
+	// in this state. The rollback path this function serves runs
+	// after RefreshArtifacts may have partially written files, so
+	// --force is load-bearing here, not incidental.
+	if err := os.WriteFile(filepath.Join(wtPath, "untracked.txt"), []byte("dirty\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := WorktreeRemove(ctx, root, wtPath); err != nil {
+		t.Fatalf("WorktreeRemove on a dirty worktree: %v", err)
+	}
+	if _, err := os.Stat(wtPath); err == nil {
+		t.Error("dirty worktree directory still present after WorktreeRemove")
+	}
+}
+
+func TestDeleteBranch(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t)
+	wtPath := filepath.Join(t.TempDir(), "wt")
+	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/to-delete", "main"); err != nil {
+		t.Fatalf("WorktreeAddNewBranch: %v", err)
+	}
+	if err := WorktreeRemove(ctx, root, wtPath); err != nil {
+		t.Fatalf("WorktreeRemove: %v", err)
+	}
+
+	if err := DeleteBranch(ctx, root, "feature/to-delete"); err != nil {
+		t.Fatalf("DeleteBranch: %v", err)
+	}
+	if exists, err := BranchExists(ctx, root, "feature/to-delete"); err != nil || exists {
+		t.Errorf("BranchExists after DeleteBranch = %v, %v; want false, nil", exists, err)
+	}
+}
+
 // TestParseWorktreeList covers every documented shape of
 // `git worktree list --porcelain` output: a single main checkout, a
 // main + linked worktrees, a detached-HEAD worktree, a bare repo

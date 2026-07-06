@@ -42,6 +42,23 @@ func minimalRepo(t *testing.T, extraYAML string) string {
 	return root
 }
 
+// createDetachedBranch creates a local branch pointing at root's HEAD
+// with no linked worktree, via a throwaway worktree that's created
+// then immediately removed. Used to set up the "branch already
+// exists" precondition (gitops.BranchExists == true) without the
+// side effect of leaving a worktree behind.
+func createDetachedBranch(t *testing.T, root, branch string) {
+	t.Helper()
+	ctx := context.Background()
+	throwaway := filepath.Join(t.TempDir(), "throwaway-wt")
+	if err := gitops.WorktreeAddNewBranch(ctx, root, throwaway, branch, ""); err != nil {
+		t.Fatalf("creating branch %s via throwaway worktree: %v", branch, err)
+	}
+	if err := gitops.WorktreeRemove(ctx, root, throwaway); err != nil {
+		t.Fatalf("removing throwaway worktree for branch %s: %v", branch, err)
+	}
+}
+
 func extractLine(haystack, prefix string) string {
 	for _, line := range strings.Split(haystack, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), prefix) {
@@ -207,7 +224,10 @@ func TestNewCmd_DispatchesToRun_WithPath(t *testing.T) {
 // TestRun_MissingAiwfYamlInNewWorktree covers the case where the
 // branch being worktree-added never carried aiwf.yaml (a repo not yet
 // aiwf-adopted, or a branch predating adoption) — Run must fail
-// clearly rather than panic on a nil-unsafe config getter.
+// clearly rather than panic on a nil-unsafe config getter, AND must
+// roll back the git worktree and the branch it just created: a failed
+// run leaves no partially-materialized state on disk (the atomic-step
+// contract AC-1 claims).
 func TestRun_MissingAiwfYamlInNewWorktree(t *testing.T) {
 	root := t.TempDir()
 	ctx := context.Background()
@@ -224,14 +244,65 @@ func TestRun_MissingAiwfYamlInNewWorktree(t *testing.T) {
 		t.Fatalf("git commit: %v", err)
 	}
 
+	wtPath := filepath.Join(t.TempDir(), "wt")
 	rc, _, stderr := testutil.CaptureRun(t, func() int {
-		return worktree.Run("feature/no-config", filepath.Join(t.TempDir(), "wt"), "", root, false, cliutil.OutputFormat{})
+		return worktree.Run("feature/no-config", wtPath, "", root, false, cliutil.OutputFormat{})
 	})
 	if rc != cliutil.ExitInternal {
 		t.Fatalf("rc = %d, want ExitInternal", rc)
 	}
 	if !strings.Contains(stderr, "aiwf.yaml") {
 		t.Errorf("stderr should explain the missing aiwf.yaml; got:\n%s", stderr)
+	}
+	if _, err := os.Stat(wtPath); err == nil {
+		t.Error("worktree directory should be rolled back (removed) after a post-creation failure")
+	}
+	if exists, err := gitops.BranchExists(ctx, root, "feature/no-config"); err != nil || exists {
+		t.Errorf("newly-created branch should be rolled back (deleted); BranchExists = %v, %v", exists, err)
+	}
+	if worktrees, err := gitops.ListWorktrees(ctx, root); err != nil || len(worktrees) != 1 {
+		t.Errorf("git worktree list should show only the main checkout after rollback; got %+v (err %v)", worktrees, err)
+	}
+}
+
+// TestRun_ReusesExistingBranchSuccessfully covers the "branch already
+// exists, no worktree for it yet" path all the way to a green
+// completion — the sibling tests that set exists=true
+// (TestRun_GitFailureSurfacesDirectly, TestRun_BaseRejectedForExistingBranch)
+// only ever exercise it through a failure, leaving the success arm of
+// this dispatch (worktree.go's `if exists { WorktreeAdd } else {...}`)
+// without direct regression coverage.
+func TestRun_ReusesExistingBranchSuccessfully(t *testing.T) {
+	t.Parallel()
+	root := minimalRepo(t, "")
+	createDetachedBranch(t, root, "feature/reuse-me")
+
+	rc := worktree.Run("feature/reuse-me", "", "", root, false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("Run rc = %d, want ExitOK", rc)
+	}
+
+	wtPath := filepath.Join(root, config.DefaultWorktreeDir, "feature", "reuse-me")
+	lines, _ := doctor.DoctorReport(wtPath, doctor.DoctorOptions{})
+	ritualsLine := extractLine(strings.Join(lines, "\n"), "rituals:")
+	if !strings.Contains(ritualsLine, "ok") {
+		t.Errorf("doctor rituals line = %q, want it to report ok\nfull report:\n%s", ritualsLine, strings.Join(lines, "\n"))
+	}
+}
+
+// TestRun_PrintPathAndJSONMutuallyExclusive: passing both flags is a
+// usage error rather than silently letting --print-path win.
+func TestRun_PrintPathAndJSONMutuallyExclusive(t *testing.T) {
+	root := minimalRepo(t, "")
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return worktree.Run("feature/both-flags", "", "", root, true, cliutil.OutputFormat{Format: "json"})
+	})
+	if rc != cliutil.ExitUsage {
+		t.Fatalf("rc = %d, want ExitUsage", rc)
+	}
+	if !strings.Contains(stderr, "--print-path") || !strings.Contains(stderr, "--format=json") {
+		t.Errorf("stderr should name both conflicting flags; got:\n%s", stderr)
 	}
 }
 

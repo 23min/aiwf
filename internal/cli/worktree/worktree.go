@@ -74,8 +74,15 @@ func newAddCmd() *cobra.Command {
 // Run executes `aiwf worktree add`. Returns one of the cliutil.Exit*
 // codes. Every error path writes to stderr only — never stdout —
 // which is what makes --print-path's "nothing on stdout on failure"
-// contract hold without a separate code path per output mode.
+// contract hold without a separate code path per output mode. Any
+// failure after the git worktree itself is created rolls that
+// worktree (and a freshly-created branch) back, so a failed run
+// leaves no partially-materialized state behind.
 func Run(branch, path, base, root string, printPath bool, out cliutil.OutputFormat) int {
+	if printPath && out.JSON() {
+		return fail("aiwf worktree add", fmt.Errorf("--print-path and --format=json are mutually exclusive; --print-path always wins silently otherwise"), cliutil.ExitUsage)
+	}
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
 		return fail("aiwf worktree add", err, cliutil.ExitUsage)
@@ -116,13 +123,31 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
+	// From here on, the worktree (and, for a new branch, the branch)
+	// exists on disk. Any failure below must undo it — a half-
+	// materialized, unregistered-with-the-operator worktree left
+	// behind on a failed run contradicts this verb's atomic-step
+	// contract (AC-1: creation and materialization as ONE step).
+	rollback := func() {
+		if rmErr := gitops.WorktreeRemove(ctx, rootDir, targetPath); rmErr != nil { //coverage:ignore WorktreeRemove --force fails only on a filesystem fault (permission denied) removing an already-created worktree; not deterministically reproducible.
+			fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not remove worktree at %s: %v\n", targetPath, rmErr)
+		}
+		if !exists {
+			if brErr := gitops.DeleteBranch(ctx, rootDir, branch); brErr != nil { //coverage:ignore DeleteBranch -D fails only on a repo-state fault (e.g. the branch got checked out elsewhere mid-run); not deterministically reproducible.
+				fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not delete branch %s: %v\n", branch, brErr)
+			}
+		}
+	}
+
 	absPath, err := resolveCreatedPath(rootDir, targetPath)
 	if err != nil { //coverage:ignore resolveCreatedPath only errors on filepath.Abs failure (broken cwd); not deterministically reproducible.
+		rollback()
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 
 	wtCfg, err := config.Load(absPath)
 	if err != nil {
+		rollback()
 		return fail("aiwf worktree add", fmt.Errorf("reading aiwf.yaml in the new worktree: %w", err), cliutil.ExitInternal)
 	}
 
@@ -131,6 +156,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		WireClaudeMd:       wtCfg.WireClaudeMd(),
 	})
 	if err != nil { //coverage:ignore RefreshArtifacts fails only on a filesystem fault (permission denied, disk full) writing marker-managed artifacts; not deterministically reproducible.
+		rollback()
 		return fail("aiwf worktree add", err, cliutil.ExitInternal)
 	}
 

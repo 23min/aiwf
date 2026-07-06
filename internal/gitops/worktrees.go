@@ -126,3 +126,19 @@ func WorktreeAddNewBranch(ctx context.Context, workdir, path, branch, base strin
 	}
 	return run(ctx, workdir, args...)
 }
+
+// WorktreeRemove removes the linked worktree at path, force-removing
+// even if it carries uncommitted or untracked changes. Used by `aiwf
+// worktree add`'s rollback path when a step after worktree creation
+// fails — a partially-materialized worktree must not stay registered.
+func WorktreeRemove(ctx context.Context, workdir, path string) error {
+	return run(ctx, workdir, "worktree", "remove", "--force", path)
+}
+
+// DeleteBranch force-deletes a local branch regardless of merge
+// status. Used by `aiwf worktree add`'s rollback path to undo a
+// branch it just created when a later step in the same atomic
+// operation fails.
+func DeleteBranch(ctx context.Context, workdir, branch string) error {
+	return run(ctx, workdir, "branch", "-D", branch)
+}
