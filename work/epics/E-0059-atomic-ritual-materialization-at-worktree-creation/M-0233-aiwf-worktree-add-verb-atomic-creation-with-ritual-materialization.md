@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Explicit path honored verbatim; default resolves via worktree.dir
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Repo-escape rejection applies only to default path, not explicit path
