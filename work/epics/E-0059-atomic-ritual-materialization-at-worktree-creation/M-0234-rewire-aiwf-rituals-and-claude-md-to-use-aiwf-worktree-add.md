@@ -139,3 +139,28 @@ run confirming the backstop policy raises no violation for this diff.
 - G-0374 — the gap this epic closes.
 - M-0190 (E-0046) — the structural-test precedent for rewriting ritual
   worktree-placement content; `skill-edit-structural-test-backstop` policy.
+
+## Work log
+
+### AC-1 through AC-5 — worktree-creation call sites rewired to aiwf worktree add
+
+All five doc-shaped ACs landed together in one commit — the rewiring is tightly
+coupled across the three `SKILL.md` files and CLAUDE.md's two sections, so
+splitting into five near-trivial diffs would have been artificial (same pattern
+as M-0190/AC-1..AC-3). New structural tests verified RED against the pre-edit
+fixture bytes before the edit landed, then GREEN after · commit e0f02a1b ·
+tests 4/4 new (plus the full pre-existing M-0190/G-0271/G-0224 ritual-content
+suite re-run clean)
+
+## Validation
+
+- `go test -race -parallel 8 ./...` — green, no failures.
+- `golangci-lint run` (via `make lint`) — 0 issues.
+- `aiwf check` — 0 errors introduced by this diff (one pre-existing, unrelated
+  `ids-unique/trunk-collision` finding on G-0368 predates this milestone).
+- Each new AC test verified RED against the pre-edit `SKILL.md`/CLAUDE.md bytes
+  (via `git stash` of just the content files) before the edit, GREEN after.
+
+## Deferrals
+
+- None.
