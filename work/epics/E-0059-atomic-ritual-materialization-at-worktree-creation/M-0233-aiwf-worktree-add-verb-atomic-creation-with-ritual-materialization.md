@@ -21,6 +21,10 @@ acs:
       title: --print-path emits only the absolute path on success, nothing on failure
       status: open
       tdd_phase: red
+    - id: AC-5
+      title: git worktree add failures surface directly; never reports false success
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -71,6 +75,8 @@ backstop (M-0235). Builds on the existing `worktree.dir` config knob and
 ### AC-3 — Repo-escape rejection applies only to default path, not explicit path
 
 ### AC-4 — --print-path emits only the absolute path on success, nothing on failure
+
+### AC-5 — git worktree add failures surface directly; never reports false success
 
 ## Constraints
 
