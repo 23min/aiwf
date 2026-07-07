@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Named bare-stderr call sites emit diagnostic events through the bound logger
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A migrated verb run with AIWF_LOG=info fires the expected structured event
       status: open
@@ -35,11 +35,17 @@ call outside the allowlist fails CI even if the linter is ever disabled.
 ## Context
 
 M-0237 shipped `internal/logger` as a standalone, unused package. This
-milestone is the first thing to actually call it. Five known call sites
-carry bare `fmt.Fprintln(os.Stderr, …)` diagnostic output today:
-`internal/cli/statusline.go`, `internal/cli/root.go`,
-`internal/verb/move.go`, `internal/verb/cancel.go`,
-`internal/verb/upgrade.go`.
+milestone is the first thing to actually call it. Five files anchor AC-1's
+work: `internal/cli/cliutil/statusline.go`, `internal/cli/root.go`,
+`internal/cli/move/move.go`, `internal/cli/cancel/cancel.go`,
+`internal/cli/upgrade/upgrade.go` (paths corrected from the epic-planning
+draft, which predates the verb/cli package split). A repo-wide sweep found
+bare `fmt.Println`/`fmt.Print`/`fmt.Fprintln(os.Stdout|os.Stderr)`/
+`fmt.Fprintf(os.Stdout|os.Stderr)` call sites in roughly forty files, not
+five — every one of them operator-facing CLI text, not diagnostic output.
+AC-3's forbidigo ban covers all of them via the `cliutil` wrapper migration;
+AC-1 is scoped to adding new diagnostic breadcrumbs to the five named
+verbs, not converting any existing print (see AC-1 below).
 
 ## Acceptance criteria
 
@@ -48,18 +54,27 @@ carry bare `fmt.Fprintln(os.Stderr, …)` diagnostic output today:
 Per call site, the classification decision (is this call a diagnostic event
 that belongs on the opt-in logger, or a genuinely operator-facing
 warning/error that must stay visible on stderr regardless of `AIWF_LOG`) is
-made individually — not predetermined by this spec. A site classified as
-diagnostic routes through `logger.Info("verb.<event>", …)` with structured
-fields, never string interpolation. A site classified as operator-facing
-stays on the existing `internal/cli/output` stderr path unchanged.
+made individually — not predetermined by this spec. Applied to the five
+named call sites, every existing bare-print site is operator-facing (flag
+validation, install-progress lines, confirmation prompts, recovery hints) —
+none qualify as a diagnostic event, so none convert. What each of these five
+verbs gains instead is a genuinely new diagnostic breadcrumb: one
+`logger.Info("verb.<name>.completed", …)` call at its outcome point, bound
+via `WithVerb`, with structured fields, never string interpolation. Every
+existing bare-print site — in these five files and everywhere else in the
+tree — is migrated to the `cliutil` text-output wrapper set under AC-3,
+which is the actual "operator-facing path" all such calls now share.
 
 ### AC-2 — A migrated verb run with AIWF_LOG=info fires the expected structured event
 
-Per migrated verb, a test drives it through its real dispatcher with
+Per instrumented verb, a test drives it through its real dispatcher with
 `AIWF_LOG=info` set, captures the `slog` handler, and asserts the expected
-`verb.<event>` fires with the bound fields (`verb`, `entity`, `actor`,
-`run_id`) — "test the seam, not just the layer" (CLAUDE.md §Go conventions),
-applied to the logging seam specifically.
+`verb.<event>` fires with the bound fields (`verb`, `entity`, `actor`) —
+"test the seam, not just the layer" (CLAUDE.md §Go conventions), applied to
+the logging seam specifically. `run_id` is not asserted here: `WithVerb`
+doesn't bind it yet — minting the per-invocation id and wiring it through
+`WithVerb` and the JSON envelope's `metadata.correlation_id` is M-0239's
+scope.
 
 ### AC-3 — A non-allowlisted bare print call fails CI via forbidigo and a policy test
 
@@ -96,11 +111,13 @@ default — won) so an operator can confirm what's on without reading source.
 
 ## Surfaces touched
 
-- `internal/cli/statusline.go`, `internal/cli/root.go`
-- `internal/verb/move.go`, `internal/verb/cancel.go`, `internal/verb/upgrade.go`
+- `internal/cli/cliutil/statusline.go`, `internal/cli/root.go`
+- `internal/cli/move/move.go`, `internal/cli/cancel/cancel.go`, `internal/cli/upgrade/upgrade.go`
+- `internal/cli/cliutil` (new `Errorf`/`Errorln`/`Println`/`Print` wrapper set; new `ResolveLogger` helper)
+- every other `internal/` and `cmd/` file with a bare-print call site (mechanical migration to the `cliutil` wrappers)
 - `.golangci.yml` (forbidigo config)
 - `internal/policies/logging_chokepoint_test.go` (new)
-- `internal/cli` (`aiwf doctor` output)
+- `internal/config`, `internal/cli/doctor` (`aiwf doctor` output)
 
 ## Out of scope
 
