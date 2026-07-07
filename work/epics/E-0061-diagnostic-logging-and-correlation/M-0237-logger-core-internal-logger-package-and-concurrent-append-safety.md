@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: atomic_write_chokepoint.go allowlists internal/logger's append write
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
