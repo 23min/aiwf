@@ -45,6 +45,24 @@ linters:
           msg: "library code must not panic; the only sanctioned site is verb/apply.go's controlled re-panic after rollback (G2)"
         - pattern: '^os\.Exit$'
           msg: "library code must not call os.Exit; only cmd/aiwf/main.go does"
+        # ADR-0017 AC-3: every bare stdio print routes through the
+        # cliutil text-output wrapper set (Errorf/Errorln/Printf/
+        # Println/Print) so a stray print can't reintroduce an
+        # unaccounted-for output path. forbidigo matches only the
+        # callee (fmt.Println), never the argument list — it cannot
+        # tell fmt.Fprintln(os.Stdout, …) apart from
+        # fmt.Fprintln(someOtherWriter, …), so it bans exactly the
+        # three forms that are ALWAYS stdout with no legitimate
+        # writer-parameterized variant. The Fprintln/Fprintf-to-
+        # os.Stdout/os.Stderr shape (which DOES need argument
+        # inspection) is the independent job of
+        # internal/policies/logging_chokepoint_test.go.
+        - pattern: '^fmt\.Println$'
+          msg: "bare fmt.Println; use cliutil.Println (ADR-0017 AC-3)"
+        - pattern: '^fmt\.Print$'
+          msg: "bare fmt.Print; use cliutil.Print (ADR-0017 AC-3)"
+        - pattern: '^fmt\.Printf$'
+          msg: "bare fmt.Printf; use cliutil.Printf (ADR-0017 AC-3)"
     revive:
       rules:
         - name: exported
@@ -96,6 +114,14 @@ linters:
         path: cmd/aiwf/main\.go
       - linters: [forbidigo]
         path: internal/verb/apply\.go
+      # ADR-0017 AC-3: the two sanctioned raw-stdio writers. outputformat.go
+      # is OutputFormat's own text-mode branch; textio.go is the
+      # cliutil.Errorf/Errorln/Printf/Println/Print wrapper set every other
+      # call site routes through instead.
+      - linters: [forbidigo]
+        path: internal/cli/cliutil/outputformat\.go
+      - linters: [forbidigo]
+        path: internal/cli/cliutil/textio\.go
     paths:
       - third_party$
       - builtin$
