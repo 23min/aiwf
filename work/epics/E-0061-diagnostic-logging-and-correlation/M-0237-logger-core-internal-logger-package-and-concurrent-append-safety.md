@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Bound logger fields never leak the operator's home-directory path
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: atomic_write_chokepoint.go allowlists internal/logger's append write
       status: open
