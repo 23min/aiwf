@@ -838,3 +838,14 @@ answer instead of whatever the operator happened to capture from stderr.
 | M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | draft |
 | M-0239 | Correlation id wiring; ratify ADR-0017 | draft |
 
+## E-0062 — Correctness stress harness (proposed)
+
+### Goal
+
+An on-demand, real-git/real-process stress harness that exercises aiwf's
+worktree, concurrency, and verb-sequencing correctness beyond what today's
+example-based unit and integration tests cover, converting any violation it
+finds into a reproducible gap.
+
+_No milestones yet._
+
