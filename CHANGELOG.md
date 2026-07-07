@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0381: `aiwfx-start-epic` gates sovereign promotion instead of handing it off
+
+The `aiwfx-start-epic` ritual's activation step used to instruct the AI assistant to
+refuse `aiwf promote E-NN active` and hand the command off to the operator to type
+themselves. It now presents the exact command as an explicit approve/deny gate and,
+on approval, runs it directly — no `--actor` override, so the commit still resolves
+to the operator's own identity exactly as if they had typed it. The kernel's
+sovereignty rule (human-only actor unless `--force --reason` is used) is unchanged;
+only the ritual's handling of the ordinary, non-delegated case changed.
+
 ## [0.26.0] — 2026-07-07
 
 ### Fixed — G-0277: `aiwf status` flags stale milestone status vs. an unmerged epic worktree
