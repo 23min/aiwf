@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Concurrent writers to the shared log file never interleave or tear a line
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Bound logger fields never leak the operator's home-directory path
       status: open
