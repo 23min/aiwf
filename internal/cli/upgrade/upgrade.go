@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -70,38 +71,38 @@ func NewCmd() *cobra.Command {
 func Run(root, target string, checkOnly bool) int {
 	pkg := version.PackagePath()
 	if pkg == "" {
-		fmt.Fprintln(os.Stderr, "aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
+		cliutil.Errorln("aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
 		return cliutil.ExitInternal
 	}
 
 	current := version.Current()
-	fmt.Printf("current:  %s\n", RenderVersionLabel(current))
+	cliutil.Printf("current:  %s\n", RenderVersionLabel(current))
 
 	resolved, latestErr := ResolveTarget(target)
 	switch {
 	case latestErr == nil:
-		fmt.Printf("target:   %s\n", RenderVersionLabel(resolved))
+		cliutil.Printf("target:   %s\n", RenderVersionLabel(resolved))
 	case errors.Is(latestErr, version.ErrProxyDisabled):
-		fmt.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
+		cliutil.Printf("target:   %s (proxy disabled — go install will resolve at install time)\n", target)
 	default:
-		fmt.Printf("target:   %s (proxy lookup failed: %v)\n", target, latestErr)
-		fmt.Print(proxyLookupFailedHint(pkg))
+		cliutil.Printf("target:   %s (proxy lookup failed: %v)\n", target, latestErr)
+		cliutil.Print(proxyLookupFailedHint(pkg))
 	}
 
 	if latestErr == nil {
 		switch version.Compare(current, resolved) {
 		case version.SkewEqual:
-			fmt.Println("status:   already at target, nothing to do")
+			cliutil.Println("status:   already at target, nothing to do")
 			return cliutil.ExitOK
 		case version.SkewAhead:
-			fmt.Println("status:   binary is ahead of target (downgrade)")
+			cliutil.Println("status:   binary is ahead of target (downgrade)")
 		case version.SkewBehind:
-			fmt.Println("status:   upgrade available")
+			cliutil.Println("status:   upgrade available")
 		default:
-			fmt.Println("status:   skew unknown (devel or pre-release on either side)")
+			cliutil.Println("status:   skew unknown (devel or pre-release on either side)")
 		}
 		if hint := proxyStaleHint(current, resolved); hint != "" {
-			fmt.Print(hint)
+			cliutil.Print(hint)
 		}
 	}
 
@@ -111,15 +112,15 @@ func Run(root, target string, checkOnly bool) int {
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", err)
+		cliutil.Errorf("aiwf upgrade: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	installArg := pkg + "@" + target
-	fmt.Printf("\nrunning:  go install %s\n", installArg)
+	cliutil.Printf("\nrunning:  go install %s\n", installArg)
 
 	if stderrBuf, installErr := runGoInstall(context.Background(), installArg); installErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", installErr)
+		cliutil.Errorf("aiwf upgrade: %v\n", installErr)
 		// G46: detect "module found but does not contain package" — the
 		// signature of a release that relocated the cmd package within
 		// the module. Without remediation the user sees only the raw
@@ -133,15 +134,23 @@ func Run(root, target string, checkOnly bool) int {
 
 	newBinary, err := installedBinaryPath(context.Background(), pkg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf upgrade: install succeeded, but locating the new binary failed: %v\n", err)
+		cliutil.Errorf("aiwf upgrade: install succeeded, but locating the new binary failed: %v\n", err)
 		if hint := InstallLocationHint(pkg); hint != "" {
-			fmt.Fprintf(os.Stderr, "                the new binary is most likely at %s\n", hint)
-			fmt.Fprintf(os.Stderr, "                run `%s update --root %s` to refresh consumer artifacts\n", hint, rootDir)
+			cliutil.Errorf("                the new binary is most likely at %s\n", hint)
+			cliutil.Errorf("                run `%s update --root %s` to refresh consumer artifacts\n", hint, rootDir)
 		} else {
-			fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
+			cliutil.Errorln("                run `aiwf update` manually to refresh consumer artifacts")
 		}
 		return cliutil.ExitInternal
 	}
+
+	// Install genuinely succeeded (a binary exists on disk); this is
+	// upgrade's "verb.completed" moment. Whether the reexec below into
+	// `aiwf update` also succeeds is a separate, subsequent concern.
+	// upgrade has no --actor flag, so actor is bound empty.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+	logger.WithVerb(diagLog, "upgrade", target, "").Info("verb.completed")
+	_ = closeDiagLog()
 
 	// G-0134: ad-hoc sign on Darwin to dodge the Sonoma 14.8.x
 	// syspolicyd crash on unsigned Mach-O binaries. Warn-and-continue
@@ -150,21 +159,21 @@ func Run(root, target string, checkOnly bool) int {
 	// codesign hiccup would be worse UX than a hint that lets the
 	// operator sign manually later.
 	if signErr := signDarwinBinary(newBinary); signErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf upgrade: %v\n", signErr)
-		fmt.Fprintf(os.Stderr, "                manually sign with: codesign -s - -f %s\n", newBinary)
-		fmt.Fprintln(os.Stderr, "                continuing (binary works unsigned but may trigger syspolicyd on stale state)")
+		cliutil.Errorf("aiwf upgrade: %v\n", signErr)
+		cliutil.Errorf("                manually sign with: codesign -s - -f %s\n", newBinary)
+		cliutil.Errorln("                continuing (binary works unsigned but may trigger syspolicyd on stale state)")
 	}
 
 	if os.Getenv("AIWF_NO_REEXEC") != "" {
-		fmt.Printf("install succeeded; new binary at %s\n", newBinary)
-		fmt.Println("AIWF_NO_REEXEC set — skipping re-exec into `aiwf update`")
+		cliutil.Printf("install succeeded; new binary at %s\n", newBinary)
+		cliutil.Println("AIWF_NO_REEXEC set — skipping re-exec into `aiwf update`")
 		return cliutil.ExitOK
 	}
 
-	fmt.Printf("re-exec:  %s update --root %s\n", newBinary, rootDir)
+	cliutil.Printf("re-exec:  %s update --root %s\n", newBinary, rootDir)
 	if err := reexecUpdate(newBinary, rootDir); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf upgrade: re-exec failed: %v\n", err)
-		fmt.Fprintln(os.Stderr, "                run `aiwf update` manually to refresh consumer artifacts")
+		cliutil.Errorf("aiwf upgrade: re-exec failed: %v\n", err)
+		cliutil.Errorln("                run `aiwf update` manually to refresh consumer artifacts")
 		return cliutil.ExitInternal
 	}
 	// reexecUpdate replaces this process; we never return from here on
@@ -313,18 +322,18 @@ func PathChangedFromStderr(stderr string) (string, bool) {
 // or an explicit "vX.Y.Z").
 // missingPkg is the subpath that go install said is missing.
 func printPackagePathChangedHint(pkg, target, missingPkg string) {
-	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "aiwf upgrade: hint — the install path may have changed in the target release.")
-	fmt.Fprintf(os.Stderr, "  This binary's upgrade verb tried `%s@%s`, but the target tag's\n", pkg, target)
-	fmt.Fprintf(os.Stderr, "  module no longer contains that package subpath (`%s`).\n", missingPkg)
-	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "  Recovery:")
-	fmt.Fprintln(os.Stderr, "    1. Find the new install path in the target release's CHANGELOG.")
-	fmt.Fprintln(os.Stderr, "       https://github.com/23min/aiwf/blob/main/CHANGELOG.md")
-	fmt.Fprintf(os.Stderr, "    2. Run `go install <new-path>@%s` manually.\n", target)
-	fmt.Fprintln(os.Stderr, "    3. Run `aiwf update` in your consumer repo to refresh artifacts.")
-	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "  After that, future `aiwf upgrade` runs from the new binary will work end-to-end.")
+	cliutil.Errorln()
+	cliutil.Errorln("aiwf upgrade: hint — the install path may have changed in the target release.")
+	cliutil.Errorf("  This binary's upgrade verb tried `%s@%s`, but the target tag's\n", pkg, target)
+	cliutil.Errorf("  module no longer contains that package subpath (`%s`).\n", missingPkg)
+	cliutil.Errorln()
+	cliutil.Errorln("  Recovery:")
+	cliutil.Errorln("    1. Find the new install path in the target release's CHANGELOG.")
+	cliutil.Errorln("       https://github.com/23min/aiwf/blob/main/CHANGELOG.md")
+	cliutil.Errorf("    2. Run `go install <new-path>@%s` manually.\n", target)
+	cliutil.Errorln("    3. Run `aiwf update` in your consumer repo to refresh artifacts.")
+	cliutil.Errorln()
+	cliutil.Errorln("  After that, future `aiwf upgrade` runs from the new binary will work end-to-end.")
 }
 
 // goBinaryPath returns the path to the `go` toolchain binary,

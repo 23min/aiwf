@@ -140,6 +140,26 @@ default — won) so an operator can confirm what's on without reading source.
 
 ## Work log
 
+### AC-1 / AC-2 — Diagnostic breadcrumbs on the five named verbs
+
+Added `cliutil.ResolveLogger` (env-var-only precedence tier; falls back to a
+discard logger on any resolve/open failure so diagnostic logging can never
+affect a verb's own exit code) and a `cliutil.Errorf`/`Errorln`/`Printf`/
+`Println`/`Print` wrapper set. Instrumented `cancel`, `move`, `upgrade`, and
+the statusline scaffold/remove flows with one `WithVerb`-bound
+`logger.Info("verb.completed", …)` call each, firing only on a genuinely
+successful outcome; migrated all five files' pre-existing operator-facing
+prints to the new wrappers; migrated `root.go`'s prints too (no diagnostic
+event there — it is pure dispatch). Each site's AC-2 seam test drives the
+real Cobra dispatcher (`cli.Execute`) with `AIWF_LOG=info`, reads the
+resulting JSON log line, and separately confirms a failed run emits no
+event and a disabled run creates no log file at all. `wf-vacuity` mutation
+probes (unconditional emission, swapped verb/entity/actor argument order,
+wrong stream, closing the real `os.Stderr`) all caught by the test suite;
+one probe (the stderr-close guard) found and fixed a real test gap where
+the assertion targeted the wrong (capture-swapped) stream. · commit
+`<pending>` · full `internal/cli/...` tree green, `check-fast` clean.
+
 ## Decisions made during implementation
 
 - (none)

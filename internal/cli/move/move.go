@@ -4,7 +4,6 @@ package move
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -36,7 +36,7 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if epic == "" {
-				fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
+				cliutil.Errorln("aiwf move: --epic <E-id> is required")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			return cliutil.WrapExitCode(Run(args[0], epic, actor, principal, root, *out))
@@ -56,12 +56,12 @@ func NewCmd() *cobra.Command {
 func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		cliutil.Errorf("aiwf move: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		cliutil.Errorf("aiwf move: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -74,7 +74,7 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf move: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	// Move endpoints for the allow-rule are the source epic (the
@@ -92,5 +92,11 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 		TargetID:   epic,
 		MoveSource: moveSource,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
+	code := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
+	if code == cliutil.ExitOK {
+		diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+		defer func() { _ = closeDiagLog() }()
+		logger.WithVerb(diagLog, "move", id, actorStr).Info("verb.completed")
+	}
+	return code
 }

@@ -6,7 +6,6 @@ package cancel
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -61,7 +61,7 @@ func NewCmd() *cobra.Command {
 // dispatcher.
 func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) int {
 	if force && auditOnly {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
+		cliutil.Errorln("aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
 	}
 	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
@@ -69,18 +69,18 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		if auditOnly {
 			gateFlag = "--audit-only"
 		}
-		fmt.Fprintf(os.Stderr, "aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
+		cliutil.Errorf("aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		cliutil.Errorf("aiwf cancel: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		cliutil.Errorf("aiwf cancel: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -93,7 +93,7 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf cancel: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	pctx := cliutil.ProvenanceContext{
@@ -103,10 +103,18 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		TargetID:          id,
 		IsTerminalPromote: !entity.IsCompositeID(id),
 	}
+	var code int
 	if auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+		code = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+	} else {
+		result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
+		code = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	}
-	result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+	if code == cliutil.ExitOK {
+		diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+		defer func() { _ = closeDiagLog() }()
+		logger.WithVerb(diagLog, "cancel", id, actorStr).Info("verb.completed")
+	}
+	return code
 }
