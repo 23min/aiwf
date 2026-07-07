@@ -139,19 +139,19 @@ this epic builds.
 
 ## Milestones
 
-<!-- Candidates only; refined and allocated via aiwfx-plan-milestones. -->
-
-- **Logger core** — `internal/logger` package: env/YAML resolution
+- `M-0237` — Logger core: `internal/logger` package, env/YAML resolution
   precedence, no-op-when-off discard handler, XDG-state-home daily-rotated
   file, the `O_APPEND`/one-`Write()`-per-record concurrent-append discipline
   and its concurrent-writer test. · depends on: —
-- **Migration and chokepoint** — migrate the named bare-stderr call sites;
-  wire the `forbidigo` rule plus `logging_chokepoint_test.go`; add the
-  `atomic_write_chokepoint.go` allowlist entry; `logging:` block in
-  `aiwf.yaml` surfaced through `aiwf doctor`. · depends on: Logger core
-- **Correlation wiring** — wire `correlation_id` end-to-end, mutating-verb
-  metadata, the `--trace` flag, `envelope_structural_assertion.go`; ratify
-  ADR-0017. · depends on: Logger core
+- `M-0238` — Migrate bare-stderr call sites; forbidigo chokepoint: migrate
+  the named bare-stderr call sites; wire the `forbidigo` rule plus
+  `logging_chokepoint_test.go`; add the `atomic_write_chokepoint.go`
+  allowlist entry; `aiwf doctor` surfaces the resolved `logging:`
+  configuration. · depends on: `M-0237`
+- `M-0239` — Correlation id wiring; ratify ADR-0017: wire `correlation_id`
+  end-to-end, mutating-verb metadata, the `--trace` flag,
+  `envelope_structural_assertion.go`; ratify ADR-0017. · depends on:
+  `M-0237`, `M-0238`
 
 ## ADRs produced (optional)
 
