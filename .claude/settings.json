@@ -1,4 +1,6 @@
 {
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {},
   "hooks": {
     "PreToolUse": [
       {
@@ -10,8 +12,28 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/worktree-rituals-check.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/worktree-rituals-check.sh"
+          }
+        ]
+      }
     ]
-  },
-  "enabledPlugins": {},
-  "extraKnownMarketplaces": {}
+  }
 }

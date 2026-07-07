@@ -32,3 +32,7 @@ agents:
   deployer:
     model: opus
     effort: high
+
+hooks:
+  worktree-rituals-check.sh:
+    enabled: true
