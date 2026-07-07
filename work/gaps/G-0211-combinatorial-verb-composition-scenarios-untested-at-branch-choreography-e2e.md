@@ -1,8 +1,10 @@
 ---
 id: G-0211
 title: Combinatorial verb-composition scenarios untested at branch-choreography E2E
-status: open
+status: addressed
 discovered_in: M-0159
+addressed_by:
+    - M-0159
 ---
 ## What's missing
 
