@@ -2,7 +2,6 @@
 id: G-0385
 title: aiwf upgrade silently under-reports latest right after a fresh tag
 status: open
-discovered_in: E-0061
 ---
 ## What's missing
 
