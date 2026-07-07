@@ -53,7 +53,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 - **`internal/policies/atomic_write_chokepoint.go` needs an explicit allowlist entry for `internal/logger`'s file writer.** That chokepoint bans raw `O_APPEND`/`O_WRONLY` opens in production code precisely because most persisted files need temp+rename atomicity; the diagnostic log is the one legitimate, reasoned exception (Decision #5), and the allowlist entry's rationale comment should point back to this ADR rather than reading as a bare exemption.
 
-- **`logging:` block added to `aiwf.yaml` schema.** Optional. All three keys optional. The validator under `internal/aiwfyaml/` recognizes the block; absence means default-off; positive `AIWF_LOG_*` env vars override.
+- **`logging:` block added to `aiwf.yaml` schema.** Optional. All three keys optional. The block is never programmatically rewritten by a verb (unlike `contracts:`/`areas:`/`hooks:`), so it needs no `internal/aiwfyaml` surgical-editor entry — `internal/logger` parses and validates it directly. Absence means default-off; positive `AIWF_LOG_*` env vars override.
 
 - **No log file is created when the operator hasn't opted in.** An empty `$XDG_STATE_HOME/aiwf/logs/` directory is never materialized as a side effect of running `aiwf` — only as a side effect of the operator setting `AIWF_LOG=…` (or the `aiwf.yaml` `logging:` block).
 
