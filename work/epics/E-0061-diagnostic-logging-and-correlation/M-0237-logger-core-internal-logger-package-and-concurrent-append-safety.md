@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Diagnostic logging defaults off, opt-in via env then aiwf.yaml
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Opted-in logs land in one daily XDG-state-home file, 30-day retention
       status: open
