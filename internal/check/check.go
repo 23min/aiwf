@@ -20,6 +20,7 @@ import (
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // Severity classifies a finding. Errors block `aiwf check` (exit 1);
@@ -229,6 +230,64 @@ func casePaths(t *tree.Tree) []Finding {
 	return findings
 }
 
+// DisputedTrunkIDs returns the subset of t.TrunkIDs that name an id
+// also present in the working tree (t.Entities/t.Stubs) at a
+// different, non-archive-sweep-equivalent path — the candidate set
+// idsUnique's trunk-collision rule might need a rename exemption for.
+//
+// Computed entirely in memory, at zero git-subprocess cost, so a cmd
+// dispatcher can gate an expensive trunk-side git rename-detection
+// call behind "is there anything to even investigate" (ADR-0031):
+// empty result skips the git work entirely; the common case, every
+// push. idsUnique itself consumes this same predicate for its final
+// exemption check, so the two can never drift apart — a diverging
+// dispatcher-side gate could otherwise skip the git call in a case
+// the rule would have needed it for.
+func DisputedTrunkIDs(t *tree.Tree) []trunk.ID {
+	// First entity wins per id, mirroring idsUnique's own `seen` map
+	// (its `check` closure never overwrites an id already recorded).
+	// This matters when a local within-tree duplicate ALSO happens to
+	// collide with trunk: idsUnique's trunk-collision check reads
+	// whichever local path this predicate names as "the" branch-side
+	// path for that id, so the two must agree on which one that is —
+	// an unconditional last-wins assignment here can land on the
+	// SAME path trunk has, silently masking a genuine dispute.
+	seen := make(map[string]string, len(t.Entities)+len(t.Stubs))
+	record := func(id, path string) {
+		if _, exists := seen[id]; exists {
+			return
+		}
+		seen[id] = path
+	}
+	for _, e := range t.Entities {
+		record(e.ID, e.Path)
+	}
+	for _, e := range t.Stubs {
+		record(e.ID, e.Path)
+	}
+	var disputed []trunk.ID
+	for _, tid := range t.TrunkIDs {
+		branchPath, ok := seen[tid.ID]
+		if !ok {
+			continue
+		}
+		branchPath = filepath.ToSlash(branchPath)
+		if branchPath == tid.Path {
+			continue
+		}
+		// G-0101: an archive sweep (ADR-0004) renames an entity from
+		// `<kind>/<id>.md` on trunk to `<kind>/archive/<id>.md` on the
+		// branch carrying the sweep. The paths differ, but they're the
+		// same entity — not a dispute. Normalize both sides to active
+		// form and re-compare; equal active forms = sweep rename.
+		if entity.ActiveFormOf(branchPath) == entity.ActiveFormOf(tid.Path) {
+			continue
+		}
+		disputed = append(disputed, tid)
+	}
+	return disputed
+}
+
 // idsUnique reports any id that occurs on more than one entity.
 // Reports once per duplicate occurrence (the second, third, ... entity
 // with the same id), so multi-way collisions surface every duplicate.
@@ -269,31 +328,21 @@ func idsUnique(t *tree.Tree) []Finding {
 	for _, e := range t.Stubs {
 		check(e)
 	}
-	for _, tid := range t.TrunkIDs {
-		existing, ok := seen[tid.ID]
-		if !ok {
-			continue
-		}
+	// DisputedTrunkIDs already filtered out same-path and archive-sweep
+	// pairs; every tid reaching this loop is a genuine same-id,
+	// different-path pair that needs a rename exemption or else fires.
+	for _, tid := range DisputedTrunkIDs(t) {
+		existing := seen[tid.ID]
 		branchPath := filepath.ToSlash(existing.Path)
-		if branchPath == tid.Path {
-			continue
-		}
-		// G-0101: an archive sweep (ADR-0004) renames an entity from
-		// `<kind>/<id>.md` on trunk to `<kind>/archive/<id>.md` on the
-		// branch carrying the sweep. The paths differ, but they're the
-		// same entity — not a collision. Normalize both sides to active
-		// form and re-compare; equal active forms = sweep rename.
-		if entity.ActiveFormOf(branchPath) == entity.ActiveFormOf(tid.Path) {
-			continue
-		}
-		// G-0109: any other git-detected rename of the trunk-side path
-		// to the branch-side path is also "same entity moved," not a
-		// collision. Without this, a feature-branch slug rename of an
-		// existing entity produces a finding and the pre-push hook
-		// blocks the push that would resolve it. TrunkRenames is
-		// precomputed by the cmd dispatcher (gitops.RenamesFromRef) and
+		// G-0109/G-0378: a git-detected rename of the trunk-side path
+		// to the branch-side path — whether detected from the branch's
+		// own history or from trunk's (ADR-0031) — is "same entity
+		// moved," not a collision. Without this, a rename of an
+		// existing entity (on either side) produces a finding and the
+		// pre-push hook blocks the push that would resolve it.
+		// TrunkCollisionRenames is precomputed by the cmd dispatcher and
 		// keyed by trunk-side path → branch-side path.
-		if newPath, ok := t.TrunkRenames[tid.Path]; ok && newPath == branchPath {
+		if newPath, ok := t.TrunkCollisionRenames[tid.Path]; ok && newPath == branchPath {
 			continue
 		}
 		findings = append(findings, Finding{

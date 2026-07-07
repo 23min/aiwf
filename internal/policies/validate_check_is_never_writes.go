@@ -31,9 +31,9 @@ import (
 //     (O_WRONLY/O_RDWR/O_APPEND/O_CREATE/O_TRUNC).
 //   - pathutil.AtomicWriteFile — the sanctioned write path is still a
 //     write; a query must not reach even the atomic writer.
-//   - gitops.Mv, gitops.Add, gitops.Restore, gitops.Commit,
-//     gitops.CommitAllowEmpty, gitops.Init, gitops.StashStaged,
-//     gitops.StashPop.
+//   - gitops.Mv, gitops.Add, gitops.Commit, gitops.CommitAllowEmpty,
+//     gitops.CommitTree, gitops.CommitVerbChange, gitops.ReconcilePaths,
+//     gitops.Init.
 //
 // Family membership is word-boundary aware: a name matches a family
 // only when the character after the family prefix is uppercase (or the
@@ -144,7 +144,7 @@ func writePrimitive(call *ast.CallExpr) (string, bool) {
 		}
 	case "gitops":
 		switch name {
-		case "Mv", "Add", "Restore", "Commit", "CommitAllowEmpty", "Init", "StashStaged", "StashPop":
+		case "Mv", "Add", "Commit", "CommitAllowEmpty", "CommitTree", "CommitVerbChange", "ReconcilePaths", "Init":
 			return "gitops." + name, true
 		}
 	}

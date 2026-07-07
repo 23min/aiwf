@@ -1,0 +1,438 @@
+---
+id: M-0186
+title: gitops commit primitive via temp-index and commit-tree
+status: done
+parent: E-0045
+tdd: required
+acs:
+    - id: AC-1
+      title: temp-index primitive never touches the live index or worktree
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: post-commit reconciliation touches only the verb's written paths
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: verb.Apply retrofit onto primitive with git-stash isolation removed
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: commit-tree output honors commit.gpgsign parity
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: commit-construction core exposes a reusable seam
+      status: met
+      tdd_phase: done
+    - id: AC-6
+      title: per-commit shape validation dropped from verb-commit path
+      status: met
+      tdd_phase: done
+---
+## Goal
+
+Retire the fragile `git stash` verb-commit isolation by building a `gitops` commit-construction primitive that constructs each verb's commit against a throwaway index — never reading or writing the live index or worktree — and retrofit every mutating verb onto it.
+
+## Problem
+
+`internal/gitops/gitops.go` isolates a verb's commit via `git stash push --staged` + `git commit`. The stash reverts the worktree for staged renames and collides with untracked files at the old paths, aborting into a silent half-state (G-0275, fail-loud floor already shipped). The tool's per-verb atomicity is only as robust as `git stash` on an arbitrary tree — and it isn't.
+
+## Approach
+
+- New `gitops` primitive: build a commit from `(parent commit, set of path→blob writes)` via `GIT_INDEX_FILE`=temp → `git read-tree`/`git update-index` → `git write-tree` → `git commit-tree` → `update-ref` HEAD. The live index and worktree are never read or written to isolate the commit.
+- Reconcile only the verb's own paths into the live index post-commit so `git status` is clean for them, leaving the user's other staged changes untouched.
+- Retrofit `verb.Apply` onto the primitive; delete `StashStaged` / `StashPop` and the worktree-revert path.
+- **Reusable seam:** the commit-construction core is factored so the later gaps-inbox milestone wraps it without a second commit path. (An AC pins this.)
+- **Validation relocation (Option C):** verb owns shape by construction (drop the per-commit shape-check); relocate gitleaks to pre-push; pre-push `aiwf check` stays authoritative.
+
+## Reversal
+
+Still exactly one commit per verb; "undo" is unchanged (another verb invocation / `aiwf cancel`). Only the mechanism that builds the single commit changes — no new reversal surface.
+
+## References
+
+G-0276 (driver), G-0275 (fail-loud floor), the G-0034 → G-0112 history (why a naive `git commit --only` revert is unsafe — do not re-propose it), ADR-0022 (the ratifying decision this milestone implements: temp-index + commit-tree primitive, Option C validation relocation, gpgsign parity, no-parallel-commit-path). ACs authored at start-milestone (contract-first).
+
+### AC-1 — temp-index primitive never touches the live index or worktree
+
+A new `gitops` function builds a commit from `(parent SHA, []PathWrite)` via
+`GIT_INDEX_FILE=<temp>` → `git read-tree HEAD` → `git update-index --add
+--cacheinfo` (or equivalent) per write → `git write-tree` → `git commit-tree`
+→ `update-ref HEAD`. Test: stage unrelated content in the live index and make
+an unrelated worktree edit before calling the primitive; assert both are
+byte-identical afterward (`git diff --cached` / worktree diff empty).
+
+### AC-2 — post-commit reconciliation touches only the verb's written paths
+
+After the commit-tree commit lands, only the verb's own written paths are
+reconciled into the live index (`git status` clean for them) — every other
+staged/unstaged path is untouched. Test: pre-stage path A with distinct
+content, run a verb that writes path B, assert A's staged content is
+unchanged and B is clean in the live index.
+
+### AC-3 — verb.Apply retrofit onto primitive with git-stash isolation removed
+
+`internal/verb/apply.go` builds its commit via the AC-1 primitive instead of
+`gitops.Commit` + stash dance. `StashStaged` / `StashPop` / `StashTopRef` /
+`StashDrop` and the pre-verb conflict-guard-then-stash path are deleted from
+`internal/gitops`. Test: the existing `verb.Apply` test suite (including the
+G-0275 dangling-stash regression tests, rewritten for the new failure shape)
+passes against the retrofit; a structural test asserts the `Stash*` symbols
+no longer exist in the package.
+
+### AC-4 — commit-tree output honors commit.gpgsign parity
+
+`git commit-tree` does not consult `commit.gpgsign` automatically the way
+`git commit` does. The primitive must replicate signing behavior explicitly.
+Test: with `commit.gpgsign=true` and a test GPG key configured, assert the
+resulting commit carries a valid signature (`git verify-commit`); with
+`commit.gpgsign` unset, assert no signature is present.
+
+### AC-5 — commit-construction core exposes a reusable seam
+
+The commit-construction logic is factored into an exported entry point
+usable by a future verb-commit consumer (the gaps-inbox milestone) without a
+second commit path. Test: a structural test asserts the exported function
+signature exists and that `verb.Apply` is its only current caller (no
+duplicate ad hoc commit-construction logic elsewhere in `internal/verb` or
+`internal/gitops`).
+
+### AC-6 — per-commit shape validation dropped from verb-commit path
+
+The pre-commit hook (`aiwf check --shape-only`, i.e. `TreeDiscipline`
+only — stray-file tree layout, never `frontmatterShape`) no longer fires
+on a verb's commit (`git commit-tree` fires no hooks). Frontmatter-shape
+correctness (`frontmatterShape`/`CodeFrontmatterShape`) is unaffected by
+this — it was never wired through the pre-commit hook to begin with; it
+is guaranteed independently by `projectionFindings` running the full
+`check.Run` before a verb ever produces a `*Plan` (ADR-0029). What
+actually stopped firing at commit-time for verb-issued commits is
+`TreeDiscipline` itself. Two tests, covering both:
+
+- A verb producing a deliberately malformed entity (via a test harness
+  that bypasses the verb's own pre-write projection check — i.e. drives
+  `verb.Apply` directly with a hand-built `*Plan`, the way
+  `apply_test.go` already does) is still caught by `aiwf check` at the
+  pre-push boundary (`frontmatterShape`) — proving that guarantee never
+  depended on the pre-commit hook.
+- A verb-shaped commit that writes a stray/misplaced path under `work/`
+  (bypassing the verb layer the same way) is still caught by `aiwf
+  check` at the pre-push boundary (`TreeDiscipline`) — proving pre-push
+  remains the authoritative backstop for the check class the pre-commit
+  hook's removal actually affects, with no silent gap.
+
+## Work log
+
+### AC-1 — temp-index primitive never touches the live index or worktree
+
+Implemented · commit 5be6580d · tests 10/10
+
+`internal/gitops/committree.go` adds `CommitTree` (resolves current HEAD as
+parent) and `commitTreeFromParent` (the actual construction: temp
+`GIT_INDEX_FILE` → `read-tree` → per-write `hash-object` + `update-index
+--cacheinfo` → `write-tree` → `commit-tree` → `update-ref HEAD` with
+compare-and-swap against the captured parent). The temp index lives under
+the repo's own `.git/` dir, not system `/tmp`. `commitTreeFromParent` is
+split out from `CommitTree` specifically so a test can drive the real
+construction-and-update-ref path against a deliberately stale parent,
+deterministically reproducing a concurrent-HEAD-move race without an
+actual race.
+
+Branch-coverage audit: 3 statements (`update-index`, `write-tree`,
+`commit-tree` generic failure branches) are `//coverage:ignore`'d — each
+requires object-database corruption or a disk-full condition between two
+git subprocess calls a few milliseconds apart, not a reachable
+input-driven branch. Every other branch (HEAD resolution failure, git-dir
+resolution failure, temp-dir creation failure, read-tree failure via a
+corrupted tree object, hash-object failure via a read-only objects dir,
+the update-ref compare-and-swap failure) has a dedicated test.
+
+`wf-vacuity` mutation probe found 3 surviving mutants on the first pass —
+read-tree silently skipped (only caught incidentally by an unrelated
+corruption test, not a direct assertion), the written blob's file mode
+silently wrong, and trailers silently dropped from the commit message —
+all fixed by strengthening the happy-path test to assert the full
+resulting tree (`git ls-tree -r`), the exact file mode, and the exact
+trailer list via `HeadTrailers`. A 4th probe (dropping the update-ref
+compare-and-swap argument) was caught clean on the first attempt.
+
+Post-vacuity confidence check surfaced one more real gap before the
+commit gate: every test used a brand-new path, and none exercised
+overwriting an already-tracked file — the primary real-world case for
+most aiwf verbs (`promote`, `edit-body`, `cancel` all rewrite an existing
+entity file). Added `TestCommitTree_OverwritesExistingTrackedFile`
+confirming `update-index --add --cacheinfo` replaces the existing index
+entry rather than duplicating it, and amended into this commit (local,
+unpushed at the time).
+
+Follow-up commit fe07cc7e adds `TestCommitTree_WritesNewNestedPath`,
+pinning the other real write shape — a brand-new path under directories
+absent from the parent tree (`aiwf add`'s write shape). No bug found;
+landed as a permanent regression test rather than a throwaway check.
+Final count: tests 11/11.
+
+### AC-2 — post-commit reconciliation touches only the verb's written paths
+
+Implemented · commit ef99d581 · tests 6/6
+
+`internal/gitops/reconcile.go` adds `ReconcilePaths`, the deliberately
+narrow follow-up to `CommitTree`: for each write it re-hashes the
+content (a cheap content-addressed no-op repeat of the hash `CommitTree`
+already wrote) and stages it into the *live* index via `update-index
+--add --cacheinfo`, one path at a time — never touching any other
+staged or unstaged path. This is the step that makes `git status`
+report clean for a verb's own written paths without a `git add -A`-style
+sweep that would silently re-stage the caller's unrelated pending work.
+
+Branch-coverage audit: every branch has a direct test, no
+`//coverage:ignore` needed. The hash-object failure branch is exercised
+by a read-only object database (mirroring AC-1); the update-index
+failure branch is exercised by a stale `.git/index.lock` left behind by
+a crashed or still-running git process — a real, deterministically
+reproducible failure mode, not a contrived one.
+
+`wf-vacuity` mutation probe: 3 mutations (wrong file mode on the
+cacheinfo string, a hardcoded wrong path ignoring the write's real
+path, dropping the `--add` flag) were all caught cleanly by the
+existing `git diff --cached` assertions on the first attempt — no
+surviving mutants, no weak assertions to strengthen.
+
+Post-vacuity confidence check added
+`TestReconcilePaths_OverwritesExistingTrackedFile`, mirroring AC-1's
+same real-world-shape check: reconciling a path whose live index entry
+still holds the *old* pre-commit content (the primary case per AC-3 —
+`promote`/`edit-body`/`cancel` all rewrite existing entity files, not
+add new ones). No bug found; landed as a permanent regression test.
+
+### AC-3 — verb.Apply retrofit onto primitive with git-stash isolation removed
+
+Implemented · commit 4718d496 · tests 46/46 (verb) + 6/6 (gitops)
+
+`internal/verb/apply.go` no longer stashes staged changes for isolation;
+`Apply` now commits directly via `gitops.CommitTree` /
+`gitops.ReconcilePaths`. Two primitive extensions made this possible:
+
+- `CommitTree`/`ReconcilePaths` gained a `removes []string` parameter so a
+  rename evicts its old path from the temp/live index via `update-index
+  --force-remove` (no-op if the path is already absent).
+- `CommitTree` gained unborn-HEAD support: `IsRepo` distinguishes "not a
+  repo" (hard error) from "repo exists, no commits yet" (build a root
+  commit — skip `read-tree`, omit `-p` on `commit-tree`, and use the
+  empty-string CAS oldvalue on `update-ref HEAD` that is git's own idiom
+  for "ref must not already exist"). Without this, every zero-commit test
+  repo failed with "ambiguous argument 'HEAD'".
+
+`gitops.RunPostCommitHook` was added because `git commit-tree` +
+`update-ref` fire no git hooks at all (unlike `git commit`), silently
+breaking `STATUS.md` regeneration (G-0112). It resolves the hook path via
+the existing `HooksDir` helper, checks the executable bit, and runs it —
+swallowing the hook's exit status entirely, matching git's own tolerance
+for `post-commit` per githooks(5).
+
+`Apply`'s commit write-set is computed by a new `gatherCommitOps`, which
+reads current disk state *after* both Apply phases have run (rather than
+trusting `op.Content`), so a plan that moves a path and then rewrites it
+at the same final location lands the correct final bytes; it also
+descends into directories for `OpMove` destinations that are directories.
+A `wf-vacuity` mutation probe found this directory-walk had no test
+asserting the *committed tree's* content (only worktree state) — fixed by
+`TestApply_DirectoryMoveWithNestedFile_CommitTreeIsCorrect`, which reads
+back via `git ls-tree -r` / `git show` rather than the worktree.
+
+`gitops.StashStaged`/`StashPop`/`StashTopRef`/`StashDrop`/`Restore` and
+`verb.classifyGitError`/`dirMove` were all deleted as dead code once
+commit construction no longer touches `.git/index.lock` or the stash;
+`internal/gitops/no_stash_test.go` AST-walks the package to keep the four
+retired `Stash*` symbols from reappearing.
+
+The most significant change was a mid-implementation redesign of
+`applyTx`'s rollback bookkeeping, captured in D-0029: a `wf-rethink` pass
+(fresh subagent, no sight of the shipped implementation) and an
+independent second-opinion review together found that the original
+two-mechanism, fixed-order rollback (directory moves reversed first, then
+captured file content restored) silently corrupts a plan that moves a
+directory and rewrites a file nested inside it before failing — reachable
+today via `reallocate`/`rewidth` on epic entities. `applyTx` now records
+one `undoStep` per completed mutation (`moveUndo`/`writeUndo`) in
+execution order and replays it strictly LIFO, which is correct by
+construction for any interleaving rather than only the interleavings
+today's verbs happen to produce. `TestApply_RollsBackOnDirectoryMoveThenNestedRewrite_BothSymptoms`
+pins the composite scenario red-to-green.
+
+Branch-coverage audit and a second `wf-vacuity` pass over the rewritten
+journal found and fixed two more surviving mutants (LIFO→forward-order,
+and an inverted "already gone, skip" check in `moveUndo.undo`) — both now
+caught by dedicated tests.
+
+### AC-4 — commit-tree output honors commit.gpgsign parity
+
+Implemented · commit 797f5110 · tests 4/4
+
+`git commit-tree` does not consult `commit.gpgsign` the way `git commit`
+does, so `commitTreeFromParent` now reads the config explicitly via a new
+`gpgSignEnabled` helper (`git config --type=bool --get commit.gpgsign`,
+delegating git's own truthy-string parsing rather than reimplementing
+it) and passes `-S` when it reports true. Signing itself — key
+resolution, `gpg.program`, `gpg.format` — is left entirely to git's own
+machinery; `-S` alone is sufficient because `commit-tree -S` shares that
+machinery with `commit -S`.
+
+Tests use a once-generated, passphrase-less ephemeral GPG key
+(`sync.Once`, mirroring the shared-fixture convention used for expensive
+read-only test setup elsewhere in the repo) and route GNUPGHOME through
+a per-repo `gpg.program` wrapper script rather than an env var, since
+`t.Setenv` panics under `t.Parallel`. `git verify-commit` confirms the
+signed case; the unsigned case covers both an unset key and an
+explicitly-`false` one.
+
+Checking harder after a first green pass (challenged directly — "are you
+sure?") surfaced two `//coverage:ignore` mistakes rather than genuine
+gaps: the new `gpgSignEnabled` error branch was marked as requiring
+config-file corruption, but `commit.gpgsign = banana` (an ordinary typo)
+reaches it directly — `git commit` itself hard-errors identically. And
+an AC-1-era ignore on the `commit-tree` failure branch, justified purely
+by object-database corruption, stopped being accurate the moment `-S`
+became conditional: `commit.gpgsign=true` with no usable signing key is
+an entirely ordinary misconfiguration that reaches the same line. Both
+are now real tests (`TestCommitTree_MalformedGPGSignConfigIsAnError`,
+`TestCommitTree_ErrorsWhenSigningKeyUnavailable`) instead of ignores;
+`wf-vacuity` mutation probes on all three signing branches caught every
+probe on the first attempt.
+
+Pushing further on the same "are you sure?" challenge surfaced a wider,
+pre-existing gap: since `gpgSignEnabled` reads the full merged git config
+(by design — parity with `git commit` requires it), it also reads the
+invoking machine's real global config, and a reproduction (`HOME` pointed
+at a `.gitconfig` with `commit.gpgsign=true`, no working key) took down
+221 tests in `internal/verb` and 62 in `internal/gitops`. A `git stash`
+of every M-0186 change confirmed this predates the milestone entirely —
+`gitops.Commit`/`CommitAllowEmpty` (plain `git commit`) have always been
+exposed; AC-4 only extended the same exposure to `CommitTree`. A first
+fix attempt (redirecting `testsupport.HardenGitTestEnv` to cut off
+global/system config wholesale) was tried and reverted: it broke
+`internal/policies`'s cell-coverage fixtures, which intentionally inherit
+identity from the real global config to exercise aiwf's own
+actor-resolution feature. Filed as G-0375 rather than patched ad hoc —
+the correct fix is per-key (insulate `commit.gpgsign`, keep
+`user.email`/`user.name` resolving from global config), and touches
+several shared fixtures outside this milestone's scope.
+
+### AC-5 — commit-construction core exposes a reusable seam
+
+Implemented · commit 45d4c3ed · tests 3/3 (gitops) + 2/2 (policies)
+
+`internal/gitops/verbcommit.go` adds `CommitVerbChange`, the one exported
+entry point bundling the full verb-commit sequence — `CommitTree`, the
+best-effort post-commit hook, `ReconcilePaths` — that AC-3 had inlined
+directly into `verb.Apply`. A future verb-commit consumer (the
+gaps-inbox milestone) now reuses this sequence instead of re-deriving
+the three-step ordering. `verb.Apply` is retrofitted onto it as the
+sole caller; a reconciliation failure surfaces as `*gitops.ReconcileError`
+(carrying the landed SHA alongside the underlying error) so `Apply`'s
+existing lock-contention diagnostics still see the commit that landed.
+
+`internal/policies/commit_construction_seam.go` adds
+`PolicyCommitConstructionSingleSeam`, the structural test the AC calls
+for: it asserts `CommitVerbChange` is declared, that nothing outside its
+own file calls `CommitTree`/`ReconcilePaths` directly, and that nothing
+outside `verb.Apply` calls `CommitVerbChange` itself. The three existing
+gitops-mutator policy lists (`read-only-verbs-do-not-mutate`,
+`verbs-validate-then-write`, `validate-check-is-never-writes`) gained the
+new symbol for consistency with how `CommitTree`/`ReconcilePaths` were
+already tracked there.
+
+Branch-coverage audit found `ReconcileError.Error()`/`Unwrap()` dark:
+`Apply` unpacks the struct's `SHA`/`Err` fields directly via `errors.As`
+rather than calling either method, so nothing exercised them. Added
+`TestCommitVerbChange_HappyPath`,
+`TestCommitVerbChange_CommitFailurePropagatesPlainError`, and
+`TestCommitVerbChange_ReconcileFailureWrapsSHA` (the last reusing the
+stale-`.git/index.lock` fixture from AC-2's `ReconcilePaths` tests),
+bringing `verbcommit.go` to 100%. The new policy's firing fixture was
+similarly widened to hit its unparseable-file skip, its body-less-decl
+skip, and the "`CommitVerbChange` called from outside `Apply`" branch —
+all dark on the first pass.
+
+### AC-6 — per-commit shape validation dropped from verb-commit path
+
+Implemented · commit ec15c4c9 · tests 2/2 (verb)
+
+Scoping this AC surfaced that its premise was imprecise: the pre-commit
+hook only ever ran `check.TreeDiscipline` (stray-file tree layout) via
+`aiwf check --shape-only`, never `frontmatterShape`. So removing
+hook-firing from the verb-commit path (`git commit-tree` fires no hooks)
+changed nothing for frontmatter-shape enforcement — that guarantee has
+always come from each verb's own pre-write `projectionFindings` check
+(`internal/verb/common.go`), independent of git hooks entirely. What
+actually stopped firing at commit-time for verb commits is
+`TreeDiscipline` itself. Recorded as ADR-0029, since "what guarantees
+verb-authored entities are shape-valid" turned out to be a real,
+previously-undocumented architectural property, not just an AC-6
+implementation detail.
+
+`internal/verb/apply_check_backstop_test.go` adds two tests, each
+driving `verb.Apply` directly with a hand-built `*Plan` — bypassing the
+projection check a real verb (`add`/`promote`/…) would normally run
+first, exactly the "test harness that bypasses the verb's own
+construction guarantee" AC-6 calls for — then confirming full `aiwf
+check` (not `--shape-only`) still catches the result:
+`TestApply_MalformedFrontmatterStillCaughtByFullCheck` (a missing
+`status` field; `frontmatterShape`, unaffected by the hook's removal)
+and `TestApply_StrayFileStillCaughtByFullCheck` (a file whose name
+doesn't match the entity naming convention, under `work/gaps/`;
+`unexpected-tree-file`, the check the retired hook actually ran).
+Neither test installs a git hook — `Apply`'s `commit-tree` path never
+triggers one regardless, matching production.
+
+Mutation-checked both before closing the AC: fixing the missing
+`status` field (test 1) makes the assertion correctly fail, confirming
+it isn't satisfied by the shared fixture's own pre-existing
+`frontmatter-shape` violation (`newApplyTestRepo`'s seed entity also
+lacks `status` — a pre-existing, unrelated gap in that fixture, not a
+regression). For test 2, giving the stray file valid frontmatter while
+keeping its non-conforming filename left the finding firing — proving
+`tree.Load` classifies a "stray" by path shape (`entity.PathKind`)
+alone, before ever attempting to parse content; renaming it to a
+`G-NNNN-`-prefixed path is what actually suppresses the finding. Test
+2's doc comment was corrected to describe that mechanism accurately.
+
+## Decisions made during implementation
+
+- D-0029 — Unify applyTx rollback into a single LIFO undo journal.
+- ADR-0029 — Verb shape correctness comes from pre-write projection, not
+  type-safe construction or a git hook.
+
+## Validation
+
+At wrap (2026-07-06), against commit `fdfb567f`:
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `golangci-lint run` (full CI config) — 0 issues.
+- `go test` (full suite, `-parallel 8`, matching CI) — 63/63 packages green, 0 failures.
+- `make coverage-gate` (diff-scoped branch-coverage audit + firing-fixture-presence + no-stale-allowlist, against `origin/main` merge-base) — green.
+- `aiwf check` — zero error-severity findings on M-0186 itself (the milestone-relevant codes: `acs-shape`, `acs-tdd-audit`, `milestone-done-incomplete-acs`, `acs-body-coherence` — none fire). One unrelated error-severity finding (`ids-unique/trunk-collision` on `G-0368`) is explicitly out of scope: a deliberate, human-owned revert on an unrelated gap entity, not touched by this milestone.
+
+## Deferrals
+
+- G-0377 — `Apply`'s staged-conflict guard is coarser than a directory-move's actual writes (found during the pre-wrap independent review; not corruption in practice, tracked rather than fixed — see Reviewer notes).
+
+## Reviewer notes
+
+Pre-wrap independent review ran four lenses, each a fresh-context subagent with no authorship attachment: three code-quality slices (the gitops commit-construction primitive; the `verb.Apply` retrofit and LIFO rollback journal; the new policies and AC-6 backstop tests) plus one `wf-rethink` design-quality audit of the `CommitTree`/`ReconcilePaths`/`CommitVerbChange` primitive itself.
+
+**Overall verdict: approve / keep across all four.** No blocking correctness or design issues. `wf-rethink`'s independently-reconstructed from-scratch design converged almost completely with the shipped code — the one place it diverged (a from-scratch `ReconcilePaths` that also wrote worktree files), the shipped design was the more correct choice, not the reconstruction.
+
+Findings addressed in a corrective commit (`fdfb567f`) before wrap:
+
+- Two `//coverage:ignore` annotations in `committree.go` (the `update-index` branches in the removes/writes loops) claimed index corruption was required to reach them. Empirically false — an ordinary invalid path (`../escape.md`, outside the repository) reaches both with a plain git error (exit 128), no corruption needed. Converted both into real tests (`TestCommitTree_RemovesInvalidPathIsAnError`, `TestCommitTree_WritesInvalidPathIsAnError`), the same class of stale-ignore bug AC-4 found and fixed twice already.
+- `apply.go`'s `WalkDir`-error `//coverage:ignore` claimed a mid-walk race; a pre-existing 0o000-permission directory reaches it deterministically, and it already had real test coverage from two existing tests. Removed the now-unnecessary ignore.
+- Both AC-6 backstop tests (`apply_check_backstop_test.go`) tied their code+path assertions together onto a single output line instead of checking them independently — the untied form could pass on the shared fixture's own pre-existing `frontmatter-shape` violation (a different, unrelated path) rather than the test's own write. The stray-file test's `tree.strict: true` setup also wasn't actually load-bearing (the seed fixture's own violation drove `ExitFindings` regardless of `strict`). Both fixed by asserting `"<path>: error <code>"` as one string.
+- `commit_construction_seam.go`'s doc comment overstated check 2's scope (it polices `gitops.`-qualified call sites; an unqualified call from a second file inside package `gitops` itself would not be caught). Wording tightened to match the actual mechanism.
+- `runIndexed`/`outputIndexed` (`committree.go`) built their exec environment via `append(os.Environ(), ...)` directly instead of composing through `gitEnv()`, so a future `gitEnv()` change would be silently bypassed by these two call sites specifically. Added `indexedEnv()` as the one composition point — flagged independently by both the `wf-rethink` pass and the gitops-primitive code review, a good independent-signal corroboration.
+
+Deferred rather than fixed: `checkStagedConflict`'s pre-flight guard scopes to `planPaths`, which for a directory `OpMove` names only the directory itself, not the nested files `gatherCommitOps` discovers by walking — coarser than the commit's actual write set. A user's staged edit to a file nested inside a moved directory is neither flagged nor left alone. Not corruption in practice (`reallocate`/`rewidth`, the verbs that move directories, normally run against a clean tree) — tracked as G-0377 rather than fixed here, since the milestone is otherwise closing and the mismatch is narrow.
+
+Also unresolved, explicitly out of this milestone's scope: an `aiwf check` error-severity finding (`ids-unique/trunk-collision` on `G-0368`) surfaced mid-wrap from a deliberate human revert of an unrelated `aiwf reallocate` on a gap entity that predates this epic. Left untouched per explicit instruction — not M-0186's to resolve.
+

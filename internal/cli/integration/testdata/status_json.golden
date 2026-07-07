@@ -102,6 +102,35 @@
       "entities": 11,
       "errors": 0,
       "warnings": 1
+    },
+    "today_digest": {
+      "range_label": "Today's work",
+      "gaps_opened": [
+        {
+          "id": "G-0903",
+          "title": "New gap logged today"
+        }
+      ],
+      "gaps_closed": [
+        {
+          "id": "G-0901",
+          "title": "Refactor leaves a seam",
+          "status": "addressed"
+        }
+      ],
+      "adrs_created": null
+    },
+    "release_digest": {
+      "range_label": "Since last release (v0.99.0)",
+      "gaps_opened": null,
+      "gaps_closed": null,
+      "adrs_created": [
+        {
+          "id": "ADR-0901",
+          "title": "Adopt fictional convention",
+          "status": "proposed"
+        }
+      ]
     }
   },
   "metadata": {

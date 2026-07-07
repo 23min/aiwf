@@ -45,7 +45,7 @@ import (
 // `RunProvenanceCheck` → `RenamesFromRef` → `ids-unique` rule.
 // Without this seam pin, a regression that detached
 // `RenamesFromRef` from the rule's input (e.g., the CLI gather
-// layer passing `nil` for `TrunkRenames`, exactly the M-0106 / F-1
+// layer passing `nil` for `TrunkCollisionRenames`, exactly the M-0106 / F-1
 // pattern this milestone's epic was conceived to prevent recurring)
 // would surface only at user-push time. Catching it at CI time
 // requires driving the verbs as subprocess and parsing the

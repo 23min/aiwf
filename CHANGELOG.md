@@ -16,6 +16,52 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0378: `ids-unique/trunk-collision` now recognizes a rename landed on trunk after a branch forked
+
+Previously, the `trunk-collision` check only recognized a rename the *branch itself* committed
+relative to trunk — a rename landed directly on trunk (e.g. `aiwf retitle`) after a feature branch
+had already forked away from it produced a false-positive collision, and the only documented
+remediation (`aiwf reallocate`) made it worse by creating a genuine duplicate entity. `aiwf check`
+now also detects trunk-side renames via a trailer-only walk (no content-similarity fallback, to keep
+a real cross-branch collision from ever being silently misclassified as a rename); the git work is
+skipped entirely when no working-tree id is even in dispute against trunk, so this adds no cost to
+the common case.
+
+### Added — G-0380: STATUS.md gains a today's-work / since-release activity digest
+
+`aiwf status --format=md` (the source of STATUS.md) had no curated summary of what happened
+*today* or *since the project's last release* — a reader had to scan the count-bounded "Recent
+activity" tail or `git log` by hand. Two new sections now render between the health line and "In
+flight": "Today's work" (falling back to "Yesterday's work" when today has no qualifying
+activity — a single hop, never further) and "Since last release (vX.Y.Z)" (or "Since project
+start" when no release tag exists yet). Each shows three facts read from commit trailers and the
+loaded tree — gaps opened, gaps closed, and ADRs created (with the ADR's current status) — purely
+factual, with no release-readiness heuristic.
+
+### Fixed — G-0379: `ids-unique/trunk-collision` hint no longer always tells you to reallocate
+
+The hint for a `trunk-collision` finding fell through to the bare `ids-unique` remediation —
+*"run `aiwf reallocate <path>`"* — for every case, including the common one where a rename landed
+on trunk after the branch forked (G-0378): reallocating there renames the branch's otherwise-correct
+copy and creates a genuine duplicate entity instead of resolving anything. The finding now carries a
+subcode-specific hint that leads with checking whether the trunk-side path is a rename of the
+branch's entity since the fork (`git log --diff-filter=R --follow` or attempting the merge directly),
+and only recommends `aiwf reallocate` once the two paths are confirmed genuinely unrelated. CLAUDE.md's
+merge-time collision-resolution guidance carries the same caveat.
+
+### Changed — E-0045: verb commits build via a temp-index + `commit-tree` primitive, not `git stash`
+
+Every mutating verb isolated its commit via `git stash push --staged` + `git commit`, fragile on
+staged renames and untracked-path collisions (G-0275's silent half-states). Verb commits now build
+via a plumbing primitive — a throwaway `GIT_INDEX_FILE`, never touching the live index or worktree
+— with `gitops.CommitVerbChange` as the one exported seam for the whole sequence (commit-tree, a
+best-effort post-commit hook, live-index reconciliation). `commit.gpgsign` parity is explicit,
+since plumbing doesn't inherit it the way `git commit` does. A structural check
+(`PolicyCommitConstructionSingleSeam`) pins the seam as the sole commit-construction path. The
+opt-in second consumer this substrate was built to support — filing gaps onto a never-checked-out
+ref — is deferred rather than built now; see every milestone listed in
+`work/epics/E-0045-plumbing-based-commit-construction-for-aiwf-verbs/wrap.md`.
+
 ### Fixed — G-0371: `wf-vacuity`'s mutation probe now names a safe revert mechanism
 
 The mutation probe's revert step named no safe mechanism, so a reviewer filled the gap with

@@ -80,18 +80,30 @@ type Tree struct {
 	// empty in tests that don't set it (the verb falls back to
 	// today's "ambiguous, pass a path" error in that case).
 	TrunkRef string
-	// TrunkRenames maps a pre-rename path on TrunkRef to the
-	// corresponding post-rename path in the working tree, as detected
-	// by `git diff -M` (gitops.RenamesFromRef). Used by the ids-unique
-	// trunk-collision check to recognize that a branch-side slug
-	// rename of an existing entity is the same entity moved, not a
-	// duplicate id allocation (G-0109).
+	// TrunkCollisionRenames maps a pre-rename path to its post-rename
+	// path, both as observed by the ids-unique trunk-collision rule
+	// (its one and only consumer, today and after G-0378): a
+	// same-id-different-path pair whose paths appear here as a match
+	// is the same entity moved, not a duplicate id allocation. Always
+	// keyed by trunk's current path and valued by the working tree's
+	// current path, regardless of which side's git history explained
+	// the rename.
 	//
-	// Populated alongside TrunkIDs by the cmd dispatcher. Tests that
-	// build trees in-memory leave it nil, in which case the rule
-	// degrades to today's behavior (every different-path same-id pair
-	// surfaces as a collision, modulo the archive-sweep exception).
-	TrunkRenames map[string]string
+	// Populated by two mechanisms merged into one map (ADR-0031): a
+	// branch-side detector (gitops.RenamesFromRef — trailer walk + a
+	// `git diff -M` content-similarity fallback, G-0109) for renames
+	// the branch itself committed, and a trunk-side detector
+	// (gitops.TrunkRenamesFromRef — trailer walk only, no -M fallback,
+	// G-0378) for renames committed directly on trunk after the branch
+	// forked. The cmd dispatcher gates both behind
+	// check.DisputedTrunkIDs, an in-memory, git-free predicate: when
+	// no working-tree id is disputed against trunk, neither detector
+	// runs and this field stays nil.
+	//
+	// Tests that build trees in-memory leave it nil, in which case the
+	// rule degrades to today's behavior (every different-path same-id
+	// pair surfaces as a collision, modulo the archive-sweep exception).
+	TrunkCollisionRenames map[string]string
 	// Strays holds repo-relative file paths (forward-slash form) that
 	// the loader walked under work/{epics,gaps,decisions,contracts}/
 	// but could not classify as a recognized entity file via

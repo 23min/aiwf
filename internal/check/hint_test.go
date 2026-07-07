@@ -87,3 +87,44 @@ func TestHint_AreaRequired(t *testing.T) {
 		t.Errorf("hint %q should point at `aiwf set-area`", h)
 	}
 }
+
+// TestHint_IDsUniqueTrunkCollision pins G-0379: the trunk-collision
+// subcode's hint must lead with checking for a stale-branch-vs-trunk-
+// rename (per G-0378/ADR-0031) rather than jumping straight to
+// `aiwf reallocate`, which only resolves a genuinely unrelated same-id
+// collision. Losing the subcode-specific entry falls back to the bare
+// "ids-unique" hint, which recommends reallocate first — this test
+// reddens that regression by asserting reallocate is not the leading
+// recommendation.
+func TestHint_IDsUniqueTrunkCollision(t *testing.T) {
+	t.Parallel()
+	h := HintFor(CodeIDsUnique, "trunk-collision")
+	if h == "" {
+		t.Fatal("expected a hint for ids-unique/trunk-collision, got empty")
+	}
+	if !strings.Contains(h, "git merge") && !strings.Contains(h, "git log") {
+		t.Errorf("hint %q should name a stale-branch-vs-trunk-rename check before reallocating", h)
+	}
+	reallocateIdx := strings.Index(h, "aiwf reallocate")
+	firstCheckIdx := -1
+	for _, marker := range []string{"git log", "git merge"} {
+		if idx := strings.Index(h, marker); idx != -1 && (firstCheckIdx == -1 || idx < firstCheckIdx) {
+			firstCheckIdx = idx
+		}
+	}
+	if reallocateIdx == -1 || firstCheckIdx == -1 || reallocateIdx < firstCheckIdx {
+		t.Errorf("hint %q should name the stale-branch check before `aiwf reallocate`, not lead with reallocate", h)
+	}
+}
+
+// TestHint_IDsUniqueBareCodeUnchanged pins that the bare "ids-unique"
+// hint (a same-tree, non-trunk collision) still leads with reallocate —
+// the G-0379 fix scopes the caveat to the trunk-collision subcode only,
+// per the gap's explicit "leave the bare hint unchanged" direction.
+func TestHint_IDsUniqueBareCodeUnchanged(t *testing.T) {
+	t.Parallel()
+	h := HintFor(CodeIDsUnique, "")
+	if !strings.Contains(h, "aiwf reallocate") {
+		t.Errorf("hint %q should still recommend `aiwf reallocate` for a bare ids-unique collision", h)
+	}
+}

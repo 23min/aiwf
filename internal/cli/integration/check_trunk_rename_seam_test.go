@@ -16,7 +16,7 @@ import (
 // trunk-collision finding for the renamed entity.
 //
 // The unit test (TestIDsUnique_GitRenameNotCollision) exercises the
-// check rule alone with a hand-set TrunkRenames map; the gitops test
+// check rule alone with a hand-set TrunkCollisionRenames map; the gitops test
 // (TestRenamesFromRef_DetectsCommittedRename) exercises the git
 // helper alone. Neither catches the case where the dispatcher fails
 // to wire the two together. This test does.
