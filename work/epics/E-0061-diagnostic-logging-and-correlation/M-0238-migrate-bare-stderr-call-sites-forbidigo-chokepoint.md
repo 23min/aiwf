@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: A non-allowlisted bare print call fails CI via forbidigo and a policy test
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: aiwf.yaml's logging block is parsed, validated, and surfaced by aiwf doctor
       status: open
