@@ -634,6 +634,58 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 	return milestones, closesGaps, surfacedGaps
 }
 
+// AnnotateWorktreeDivergence flags each in-flight/planned epic's
+// milestones whose status disagrees with the authoritative copy on a
+// sibling epic-branch worktree (G-0277). Without this, the default
+// `aiwf status` view (RenderStatusText / RenderStatusMarkdown) prints
+// the current checkout's milestone status as if it were ground truth
+// even when a more current status already exists on an unmerged epic
+// branch checked out elsewhere — the only existing signal is a soft
+// footer hint pointing at `aiwf status --worktrees`, easy to miss and
+// carrying no per-milestone detail.
+//
+// views is the already-computed BuildWorktreeViews result — no new
+// git-walking. rootDir excludes the current checkout's own worktree
+// entry from consideration: it is never "sibling" to itself, and its
+// epic-driver view (if any) already reflects the same tree report was
+// built from, so it can never disagree.
+func AnnotateWorktreeDivergence(report *StatusReport, views []WorktreeView, rootDir string) {
+	byEpic := make(map[string]*WorktreeView, len(views))
+	for i := range views {
+		v := &views[i]
+		if v.Path == rootDir || v.DriverKind != string(entity.KindEpic) {
+			continue
+		}
+		byEpic[entity.Canonicalize(v.DriverEntityID)] = v
+	}
+	if len(byEpic) == 0 {
+		return
+	}
+	annotate := func(epics []StatusEpic) {
+		for i := range epics {
+			v, ok := byEpic[epics[i].ID]
+			if !ok {
+				continue
+			}
+			statusByID := make(map[string]string, len(v.EpicMilestones))
+			for _, row := range v.EpicMilestones {
+				statusByID[entity.Canonicalize(row.ID)] = row.Status
+			}
+			label := fmt.Sprintf("the %s %s worktree", v.DriverKind, v.DriverEntityID)
+			for j := range epics[i].Milestones {
+				m := &epics[i].Milestones[j]
+				remoteStatus, ok := statusByID[m.ID]
+				if !ok || remoteStatus == m.Status {
+					continue
+				}
+				m.WorktreeDivergence = &StatusWorktreeDivergence{Status: remoteStatus, Label: label}
+			}
+		}
+	}
+	annotate(report.InFlightEpics)
+	annotate(report.PlannedEpics)
+}
+
 // markCheckedOutMilestone flags checkedOut's row in rows (if present)
 // as CheckedOut and attaches its ACs, so the epic-altitude view
 // (G-0332) nests AC-level detail under the one milestone whose branch

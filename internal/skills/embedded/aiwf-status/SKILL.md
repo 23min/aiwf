@@ -80,6 +80,13 @@ The trunk worktree (`main`) gets its own row at the end with a compact `path  �
 
 The short view points at `aiwf status --worktrees` for the full breakdown.
 
+When a sibling epic-branch worktree's own copy of a milestone disagrees with the
+one on the current checkout — the epic branch has moved on but hasn't merged
+back yet — that milestone's own row in the In-flight list is annotated inline
+(e.g. `[draft] · done on the epic E-NNNN worktree`) naming the more current
+status and where it lives, instead of silently showing the checkout's possibly
+stale copy as ground truth.
+
 ## Worktree-organized view (`--worktrees`)
 
 `aiwf status --worktrees` swaps the text output for a worktree-organized layout — per-worktree sections with full entity expansion. Reach for it when the user asks *"where's my work?"*, *"which worktree is on what?"*, *"what's in flight where?"*, or after the user just used `git worktree list` and wants to join that against entity state.

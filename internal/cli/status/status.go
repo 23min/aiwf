@@ -115,6 +115,19 @@ type StatusMilestone struct {
 	Status string            `json:"status"`
 	TDD    string            `json:"tdd,omitempty"`
 	ACs    *StatusACProgress `json:"acs,omitempty"`
+	// WorktreeDivergence is set when a sibling epic-branch worktree
+	// reports a different status for this milestone than the copy
+	// loaded from the current checkout (G-0277) — nil when no sibling
+	// epic worktree drives this milestone's epic, or its copy agrees.
+	WorktreeDivergence *StatusWorktreeDivergence `json:"worktree_divergence,omitempty"`
+}
+
+// StatusWorktreeDivergence names the more current status a milestone
+// carries on a sibling epic-branch worktree, when it disagrees with
+// the status loaded from the current checkout (G-0277).
+type StatusWorktreeDivergence struct {
+	Status string `json:"status"`
+	Label  string `json:"label"`
 }
 
 // StatusACProgress is the per-status count of a milestone's ACs.
@@ -361,6 +374,10 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 		return cliutil.ExitInternal
 	}
 	report.Worktrees = views
+	// G-0277: the default view otherwise presents each milestone's
+	// current-checkout status as if it were authoritative even when a
+	// sibling epic-branch worktree already carries a more current one.
+	AnnotateWorktreeDivergence(&report, views, rootDir)
 	if worktrees && format == "text" {
 		if rErr := RenderWorktreeViews(os.Stdout, views, render.ColorEnabled(os.Stdout)); rErr != nil {
 			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", rErr)
@@ -1027,6 +1044,9 @@ func WriteStatusEpicText(b *strings.Builder, e StatusEpic, termWidth int) {
 		if m.TDD != "" {
 			suffix += "    · tdd: " + m.TDD
 		}
+		if m.WorktreeDivergence != nil {
+			suffix += fmt.Sprintf("    · %s on %s", m.WorktreeDivergence.Status, m.WorktreeDivergence.Label)
+		}
 		msPrefix := fmt.Sprintf("    %s%s — ", marker, m.ID)
 		msTail := fmt.Sprintf("    [%s]%s", m.Status, suffix)
 		msTitle := TruncStatusTitle(m.Title, termWidth, msPrefix, msTail)
@@ -1349,6 +1369,9 @@ func WriteStatusEpicMarkdown(b *strings.Builder, e StatusEpic) {
 		}
 		if m.TDD != "" {
 			suffix += " — tdd: " + m.TDD
+		}
+		if m.WorktreeDivergence != nil {
+			suffix += fmt.Sprintf(" — %s on %s", m.WorktreeDivergence.Status, m.WorktreeDivergence.Label)
 		}
 		fmt.Fprintf(b, "- %s**%s** — %s _(%s)_%s\n", marker, m.ID, MdEscape(m.Title), m.Status, suffix)
 	}

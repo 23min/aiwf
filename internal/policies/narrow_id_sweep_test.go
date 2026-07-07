@@ -157,6 +157,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// (E-1, M-77, G-9, etc.). Same shape as the entity-grammar
 		// tests above.
 		"internal/verb/widen_entity_id_test.go": "G-0184 follow-through: widenEntityID bare-id contract; narrow inputs are the verb's widening input space",
+
+		// G-0277 status cross-worktree divergence: the sibling worktree's
+		// driver-entity id may be recorded at legacy narrow width; a
+		// narrow (E-43) vs canonical (E-0043) fixture pins that the
+		// epic-id map lookup canonicalizes both sides. Same shape as the
+		// AC-2 parser-tolerance tests above.
+		"internal/cli/status/worktrees_divergence_test.go": "G-0277 narrow-vs-canonical epic-id lookup parity",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so
