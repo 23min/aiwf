@@ -1,7 +1,9 @@
 ---
 id: G-0384
 title: Subagent-dispatched git push stalls in the sandboxed network layer
-status: open
+status: addressed
+addressed_by_commit:
+    - ee10940f
 ---
 ## What's missing
 
