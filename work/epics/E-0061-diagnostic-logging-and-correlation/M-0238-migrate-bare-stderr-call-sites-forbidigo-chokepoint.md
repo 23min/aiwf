@@ -167,6 +167,31 @@ one probe (the stderr-close guard) found and fixed a real test gap where
 the assertion targeted the wrong (capture-swapped) stream. · commit
 `14c81e3a` · full `internal/cli/...` tree green, `check-fast` clean.
 
+### AC-3 — forbidigo ban + logging_chokepoint policy backstop
+
+Mechanically migrated every remaining bare `fmt.Println`/`Print`/`Printf`/
+`Fprintln(stdout|stderr)`/`Fprintf(stdout|stderr)` call site (38 files) to
+the `cliutil` wrapper set — pure substitution, zero behavior change,
+confirmed via the full test suite passing unchanged (commit `2ac84846`).
+Added three `forbidigo` rules banning the destination-unambiguous bare
+forms (`fmt.Println`/`Print`/`Printf`); confirmed empirically (a throwaway
+probe rule + file, since forbidigo's actual matching semantics weren't
+documented in this repo) that forbidigo matches only a call's callee
+expression, never its arguments — it structurally cannot distinguish
+`fmt.Fprintln(os.Stdout, …)` from `fmt.Fprintln(someOtherWriter, …)`.
+Added `internal/policies/logging_chokepoint.go` (+ companion test) as the
+independent AST-walking backstop that inspects the actual first argument,
+mirroring `atomic_write_chokepoint.go`'s shape; wired into
+`policies_test.go`'s self-check registry, confirmed clean against aiwf's
+own repo. `wf-vacuity` mutation probes (disable the allowlist, narrow the
+bare-form switch, always-match the writer check) all caught; one probe
+survived undetected on first attempt (the writer-check mutation, since the
+"arbitrary writer" fixture used a bare identifier that fails an earlier
+guard before ever reaching the mutated line) — added a
+non-stdio-but-still-`os.*`-selector fixture to close the gap. · commits
+`14c81e3a`, `2ac84846`, `83afce24` · `check-fast` clean, self-check
+policy passes against aiwf's own tree.
+
 ## Decisions made during implementation
 
 - (none)
