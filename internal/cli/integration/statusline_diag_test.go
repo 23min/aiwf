@@ -51,6 +51,60 @@ func TestStatuslineScaffoldDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 }
 
+// TestStatuslineScaffoldDiag_FailedRunEmitsNoEvent: a scaffold write
+// that fails (a read-only .claude/ directory) must not emit
+// "verb.completed" even with AIWF_LOG=info set.
+func TestStatuslineScaffoldDiag_FailedRunEmitsNoEvent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	claudeDir := filepath.Join(root, ".claude")
+	if err := os.Chmod(claudeDir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(claudeDir, 0o755) })
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, _, _ := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--statusline", "--allow-untagged-statusline"})
+	})
+	if rc == cliutil.ExitOK {
+		t.Fatalf("aiwf update --statusline against a read-only .claude dir: rc=ExitOK, want a failure code")
+	}
+
+	if raw, err := os.ReadFile(logPath); err == nil {
+		t.Errorf("diagnostic log %q written despite a failed scaffold", raw)
+	} else if !os.IsNotExist(err) {
+		t.Errorf("reading diagnostic log: %v", err)
+	}
+}
+
+// TestStatuslineScaffoldDiag_DisabledByDefault_NoLogFileCreated pins
+// the default-off half: without AIWF_LOG set, a successful scaffold
+// creates no diagnostic log.
+func TestStatuslineScaffoldDiag_DisabledByDefault_NoLogFileCreated(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--statusline", "--allow-untagged-statusline"})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("aiwf update --statusline: rc=%d stdout=%s stderr=%s", rc, stdout, stderr)
+	}
+	if _, err := os.Stat(logPath); !os.IsNotExist(err) {
+		t.Errorf("diagnostic log file exists at %s despite AIWF_LOG unset (err=%v)", logPath, err)
+	}
+}
+
 // TestStatuslineRemoveDiag_EmitsVerbCompletedEvent pins the remove
 // flow (`aiwf update --remove`): a successful removal with
 // AIWF_LOG=info fires its own "verb.completed" event.
@@ -87,6 +141,29 @@ func TestStatuslineRemoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Verb != "statusline-remove" {
 		t.Errorf("verb = %q, want %q", rec.Verb, "statusline-remove")
+	}
+}
+
+// TestStatuslineRemoveDiag_DisabledByDefault_NoLogFileCreated pins the
+// default-off half of the remove flow: without AIWF_LOG set, a
+// successful removal creates no diagnostic log.
+func TestStatuslineRemoveDiag_DisabledByDefault_NoLogFileCreated(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "update", "--root", root, "--scope", "project", "--statusline", "--allow-untagged-statusline")
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove"})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("aiwf update --remove: rc=%d stdout=%s stderr=%s", rc, stdout, stderr)
+	}
+	if _, err := os.Stat(logPath); !os.IsNotExist(err) {
+		t.Errorf("diagnostic log file exists at %s despite AIWF_LOG unset (err=%v)", logPath, err)
 	}
 }
 
