@@ -188,9 +188,32 @@ bare-form switch, always-match the writer check) all caught; one probe
 survived undetected on first attempt (the writer-check mutation, since the
 "arbitrary writer" fixture used a bare identifier that fails an earlier
 guard before ever reaching the mutated line) — added a
-non-stdio-but-still-`os.*`-selector fixture to close the gap. · commits
-`14c81e3a`, `2ac84846`, `83afce24` · `check-fast` clean, self-check
-policy passes against aiwf's own tree.
+non-stdio-but-still-`os.*`-selector fixture to close the gap. A later
+pass (commit `cbc7f296`) closed one more real gap `wf-vacuity` had not:
+`isOSStdioWriter`'s `pkg.Name != "os"` arm (a writer that's a selector
+under some other package) had no test — found while investigating the
+epic-level coverage-gate run for AC-4's Deferrals entry below, not part
+of the original mutation-probe pass. · commits `14c81e3a`, `2ac84846`,
+`83afce24`, `cbc7f296` · `check-fast` clean, self-check policy passes
+against aiwf's own tree, `logging_chokepoint.go` 100% covered.
+
+### AC-4 — Logging config moved into internal/config; doctor reporting
+
+Added `Config.Logging` (schema-registered per G-0382, with `Schema()`/
+`fieldDescriptions`/`AcceptedKeys()`/`GenerateExample()` anti-drift
+coverage, not a second private decode path). `internal/logger` cannot
+import `internal/config` (layering direction), so `cliutil.ResolveLogger`
+copies the three parsed strings across as plain values after loading
+`aiwf.yaml` itself. Added `logger.ResolveConfigWithSources` (per-field
+env/yaml/default provenance, `ResolveConfig` now a thin wrapper over it)
+so `aiwf doctor` can report not just the resolved level/format/destination
+but which tier supplied each one — the `logging:` line, informational,
+never a problem when disabled (the documented default-off state), an
+error-severity problem when a value is genuinely invalid. `wf-vacuity`
+mutation probes (skip yaml loading, invert the enabled/disabled branch,
+disable the destination-display guard, ignore a non-nil config) all
+caught. · commit `dfcdd96b` · full `internal/config` + `internal/cli/doctor`
++ `internal/logger` suites green, `check-fast` clean.
 
 ## Decisions made during implementation
 
@@ -198,9 +221,38 @@ policy passes against aiwf's own tree.
 
 ## Validation
 
+`make check-fast` green throughout (build, lint 0 issues, full race test
+suite) after every commit. `internal/cli/...` (172+ tests) and
+`internal/config`/`internal/logger`/`internal/policies` all green.
+`internal/policies.TestPolicy_LoggingChokepoint` (the self-check against
+aiwf's own repo) passes clean, confirming the AC-3 migration left zero
+non-allowlisted bare stdio prints anywhere in `internal/` or `cmd/`.
+
+An epic-level `make coverage-gate` run (base `origin/main`, not required
+for this milestone's own wrap per CLAUDE.md's cadence rule — only
+`make check-fast` gates milestone work on an epic branch) surfaced ~194
+pre-existing, never-exercised error-handling branches across 31 files
+that AC-3's mechanical print-call rename incidentally touched (confirmed
+via `git log -p` on a sample: only the print-call text changed, no
+logic). Filed as G-0386 rather than fixed here — genuinely a different
+concern (CLI-verb error-path coverage hygiene, unrelated to diagnostic
+logging) at a scale (194 lines, 40 unrelated verbs) disproportionate to
+this milestone. Two directly-in-scope gaps this same investigation
+turned up were fixed inline instead of deferred: `logging_chokepoint.go`
+had two real coverage gaps of its own (the writer-check mutation-probe
+blind spot, and the `pkg.Name != "os"` arm), both closed with real tests
+in commits `83afce24` and `cbc7f296`.
+
 ## Deferrals
 
-- (none)
+- G-0386 — backfill test coverage for ~194 pre-existing, untested CLI
+  verb error-handling branches across 31 files, surfaced (not caused) by
+  AC-3's mechanical print-call migration. Recommended as a new epic
+  branched from `main` directly, running in parallel with `E-0061` — the
+  affected lines exist on `main` today in their pre-rename form, so the
+  fix needs no coordination with this epic and will be inherited
+  automatically via the coverage gate's merge-base recomputation if it
+  lands first.
 
 ## Reviewer notes
 
