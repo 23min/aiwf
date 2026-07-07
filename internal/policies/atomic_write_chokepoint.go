@@ -44,6 +44,12 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// The lockfile fd is opened O_RDWR|O_CREATE solely to carry
 		// the flock; no file content is ever written through it.
 		"internal/repolock/repolock_unix.go": "lockfile fd carries flock only; content is never written",
+		// The diagnostic-log file is a shared, append-only, multi-writer
+		// stream (ADR-0017 Decision #5): O_APPEND + one Write() per
+		// record is the correct discipline, not temp+rename, which
+		// would require reading and replacing the entire file per write
+		// and is unsafe under concurrent writers.
+		"internal/logger/destination.go": "append-only diagnostic log writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
