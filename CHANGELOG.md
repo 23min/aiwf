@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-07-07
+
 ### Fixed — G-0277: `aiwf status` flags stale milestone status vs. an unmerged epic worktree
 
 The default `aiwf status` view (text and markdown) now annotates a milestone's row
