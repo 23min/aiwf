@@ -178,6 +178,19 @@ func TestLoad_TreeBlockRoundTrip(t *testing.T) {
 	}
 }
 
+// TestLogging_ToYAMLConfig pins the single conversion point every
+// caller that hands Config.Logging to logger.ResolveConfig routes
+// through, rather than re-declaring the field-by-field copy per
+// call site.
+func TestLogging_ToYAMLConfig(t *testing.T) {
+	t.Parallel()
+	l := Logging{Level: "debug", Format: "json", Destination: "/some.log"}
+	got := l.ToYAMLConfig()
+	if got.Level != "debug" || got.Format != "json" || got.Destination != "/some.log" {
+		t.Errorf("ToYAMLConfig() = %+v, want fields copied verbatim from %+v", got, l)
+	}
+}
+
 // TestLoad_LoggingBlockRoundTrip pins M-0238/AC-4: aiwf.yaml's logging:
 // block decodes into Config.Logging via the real config.Load path
 // (not just a schema-reflection check). Mirrors TestLoad_TreeBlockRoundTrip.

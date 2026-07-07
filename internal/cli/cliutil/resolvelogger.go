@@ -19,17 +19,14 @@ import (
 // falls back to a discard logger, since diagnostic logging must never
 // affect a verb's own behavior or exit code. A missing or unreadable
 // aiwf.yaml is tolerated the same way — treated as an absent logging:
-// block, not an error — since internal/config cannot import
-// internal/logger (config sits above logger in the tier order), the
-// yaml block's three fields are copied across as plain strings.
+// block, not an error. internal/logger cannot import internal/config
+// (the reverse direction is legal, but logger sits below config in the
+// tier order), so config.Logging.ToYAMLConfig() is the conversion
+// point to logger's own decode-target shape.
 func ResolveLogger(rootDir string, getenv func(string) string) (log *slog.Logger, closeLog func() error) {
 	var yamlCfg logger.YAMLConfig
 	if cfg, cfgErr := config.Load(rootDir); cfgErr == nil && cfg != nil {
-		yamlCfg = logger.YAMLConfig{
-			Level:       cfg.Logging.Level,
-			Format:      cfg.Logging.Format,
-			Destination: cfg.Logging.Destination,
-		}
+		yamlCfg = cfg.Logging.ToYAMLConfig()
 	}
 	cfg, err := logger.ResolveConfig(getenv, yamlCfg)
 	if err != nil {

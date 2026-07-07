@@ -201,11 +201,15 @@ func TestResolveConfig_InvalidValues(t *testing.T) {
 }
 
 // TestYAMLConfig_DecodesFromAiwfYAMLLoggingBlock pins YAMLConfig's yaml
-// struct tags against a real aiwf.yaml logging: block — ResolveConfig's
-// tests above construct YAMLConfig literals directly and so never
-// exercise the tags themselves; a tag typo (e.g. yaml:"dest" instead of
-// yaml:"destination") would silently break yaml-driven configuration
-// with none of those tests catching it.
+// struct tags in isolation — ResolveConfig's tests above construct
+// YAMLConfig literals directly and so never exercise the tags
+// themselves; a tag typo (e.g. yaml:"dest" instead of yaml:"destination")
+// would silently break yaml-driven configuration with none of those
+// tests catching it. Since M-0238, config.Logging (whose own tags this
+// test does not cover) is what actually decodes a real aiwf.yaml file;
+// this test's job is narrower than its name suggests — keeping
+// YAMLConfig's own tags correct in case the two types' shapes ever
+// drift apart, not exercising the production decode path.
 func TestYAMLConfig_DecodesFromAiwfYAMLLoggingBlock(t *testing.T) {
 	t.Parallel()
 	const doc = `

@@ -37,6 +37,7 @@ import (
 
 	"github.com/23min/aiwf/internal/areamatch"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/pathutil"
 )
 
@@ -692,14 +693,35 @@ func (c *Config) WorktreeDir() string {
 // env var (env beats yaml beats default, per field). This block only
 // carries the raw, already-parsed strings; internal/logger owns the
 // slog-domain validation (closed level/format sets) and the
-// precedence resolution over them — config cannot import
-// internal/logger without inverting the layering direction (config
-// sits above logger in the tier order), so the two packages share no
-// type, only field values a caller copies across.
+// precedence resolution over them.
+//
+// A separate type here (rather than this field's type being
+// logger.YAMLConfig directly) isn't a layering restriction — config
+// importing logger is a legal downward edge (config is tier 6, logger
+// is tier 7; areamatch, also tier 7, is already imported here). It's
+// schema.go's reflection walker: isStructContainer and its siblings
+// detect a nested block by testing whether the field's rendered type
+// name has a "config." prefix, so a field typed logger.YAMLConfig
+// would render as a flat leaf instead of the nested logging.level /
+// logging.format / logging.destination structure GenerateExample()
+// needs. Use Logging.ToYAMLConfig() to convert at a call site rather
+// than re-declaring the field-by-field copy.
 type Logging struct {
 	Level       string `yaml:"level,omitempty"`
 	Format      string `yaml:"format,omitempty"`
 	Destination string `yaml:"destination,omitempty"`
+}
+
+// ToYAMLConfig converts to internal/logger's own decode-target shape,
+// the single conversion point every caller that hands this block to
+// logger.ResolveConfig routes through — see the Logging doc comment
+// for why the two packages don't share one type.
+func (l Logging) ToYAMLConfig() logger.YAMLConfig {
+	return logger.YAMLConfig{
+		Level:       l.Level,
+		Format:      l.Format,
+		Destination: l.Destination,
+	}
 }
 
 // Agent configures the model tier and reasoning effort a single shipped

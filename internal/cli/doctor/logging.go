@@ -23,11 +23,7 @@ import (
 func appendLoggingReport(lines []string, problems []Problem, cfg *config.Config) ([]string, []Problem) {
 	var yamlCfg logger.YAMLConfig
 	if cfg != nil {
-		yamlCfg = logger.YAMLConfig{
-			Level:       cfg.Logging.Level,
-			Format:      cfg.Logging.Format,
-			Destination: cfg.Logging.Destination,
-		}
+		yamlCfg = cfg.Logging.ToYAMLConfig()
 	}
 	resolved, sources, err := logger.ResolveConfigWithSources(os.Getenv, yamlCfg)
 	if err != nil {

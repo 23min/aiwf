@@ -18,9 +18,13 @@ var levelNames = map[string]slog.Level{
 	"error": slog.LevelError,
 }
 
-// YAMLConfig is the decoded shape of aiwf.yaml's optional top-level
-// logging: block (ADR-0017 Decision #3). All three keys are optional;
-// an absent key decodes to the empty string.
+// YAMLConfig is the argument shape ResolveConfig accepts for aiwf.yaml's
+// optional top-level logging: block (ADR-0017 Decision #3). All three
+// fields are optional; a zero value means "absent." internal/config.Logging
+// (config.Logging.ToYAMLConfig()) is what actually decodes a real
+// aiwf.yaml file today — internal/logger can't import internal/config
+// (see internal/config.Logging's doc comment), so this is a separately
+// declared, structurally identical type callers convert into.
 type YAMLConfig struct {
 	Level       string `yaml:"level"`
 	Format      string `yaml:"format"`
