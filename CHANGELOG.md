@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0277: `aiwf status` flags stale milestone status vs. an unmerged epic worktree
+
+The default `aiwf status` view (text and markdown) now annotates a milestone's row
+when a sibling epic-branch worktree carries a different, more current status than
+the current checkout's own copy — e.g. `M-0171 — ... [draft] · done on the epic
+E-0043 worktree` — instead of silently presenting the current checkout's copy as
+ground truth with only a soft, easy-to-miss footer hinting at `aiwf status
+--worktrees`.
+
 ### Added — E-0059: atomic ritual materialization at worktree creation
 
 A freshly-cut git worktree now carries the same materialized `.claude/skills/`,
