@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A migrated verb run with AIWF_LOG=info fires the expected structured event
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: A non-allowlisted bare print call fails CI via forbidigo and a policy test
       status: open
