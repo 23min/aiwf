@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0059: atomic ritual materialization at worktree creation
+
+A freshly-cut git worktree now carries the same materialized `.claude/skills/`,
+`.claude/agents/`, `.claude/templates/`, and `.claude/aiwf-guidance.md` as the main
+checkout, atomically, via the new `aiwf worktree add` verb — every ritual call site in
+this repo (`aiwfx-start-milestone`, `wf-patch`, CLAUDE.md's own guidance) is rewired to
+it. A generalized, consent-gated hook registry (`aiwf.yaml`'s `hooks:` block,
+ADR-0032) lets `aiwf init`/`update` materialize and wire Claude Code hook scripts
+per-hook, with its first concrete entry: a `SessionStart`/`SubagentStart` hook that
+warns (without blocking) when a session starts inside a worktree whose rituals aren't
+materialized. Closes G-0374; see every milestone listed in
+`work/epics/E-0059-*/wrap.md`.
+
 ### Fixed — G-0378: `ids-unique/trunk-collision` now recognizes a rename landed on trunk after a branch forked
 
 Previously, the `trunk-collision` check only recognized a rename the *branch itself* committed
