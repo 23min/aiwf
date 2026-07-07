@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 // TestResolveConfig_Precedence covers the full env/yaml/default matrix
@@ -109,5 +111,48 @@ func TestResolveConfig_InvalidValues(t *testing.T) {
 				t.Fatalf("ResolveConfig() error = %v, want containing %q", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+// TestYAMLConfig_DecodesFromAiwfYAMLLoggingBlock pins YAMLConfig's yaml
+// struct tags against a real aiwf.yaml logging: block — ResolveConfig's
+// tests above construct YAMLConfig literals directly and so never
+// exercise the tags themselves; a tag typo (e.g. yaml:"dest" instead of
+// yaml:"destination") would silently break yaml-driven configuration
+// with none of those tests catching it.
+func TestYAMLConfig_DecodesFromAiwfYAMLLoggingBlock(t *testing.T) {
+	t.Parallel()
+	const doc = `
+logging:
+  level: debug
+  format: json
+  destination: /var/log/aiwf.log
+`
+	var root struct {
+		Logging YAMLConfig `yaml:"logging"`
+	}
+	if err := yaml.Unmarshal([]byte(doc), &root); err != nil {
+		t.Fatalf("yaml.Unmarshal() error = %v", err)
+	}
+	want := YAMLConfig{Level: "debug", Format: "json", Destination: "/var/log/aiwf.log"}
+	if root.Logging != want {
+		t.Fatalf("decoded YAMLConfig = %+v, want %+v", root.Logging, want)
+	}
+}
+
+// TestYAMLConfig_AbsentBlockDecodesToZeroValue pins the "all three keys
+// optional" half of ADR-0017 Decision #3: an aiwf.yaml with no logging:
+// block at all decodes to the zero value, which ResolveConfig already
+// treats as fully unset.
+func TestYAMLConfig_AbsentBlockDecodesToZeroValue(t *testing.T) {
+	t.Parallel()
+	var root struct {
+		Logging YAMLConfig `yaml:"logging"`
+	}
+	if err := yaml.Unmarshal([]byte("hosts: [claude-code]\n"), &root); err != nil {
+		t.Fatalf("yaml.Unmarshal() error = %v", err)
+	}
+	if root.Logging != (YAMLConfig{}) {
+		t.Fatalf("decoded YAMLConfig = %+v, want the zero value", root.Logging)
 	}
 }
