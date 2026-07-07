@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: A non-allowlisted bare print call fails CI via forbidigo and a policy test
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: aiwf.yaml's logging block is parsed, validated, and surfaced by aiwf doctor
       status: open
@@ -78,14 +78,21 @@ scope.
 
 ### AC-3 — A non-allowlisted bare print call fails CI via forbidigo and a policy test
 
-`forbidigo` is configured in `.golangci.yml` banning bare `fmt.Println`,
-`fmt.Print`, and `fmt.Fprintln(os.Stdout|os.Stderr, …)` outside an explicit
-allowlist (`cmd/aiwf/main.go`, the human-text branch in
-`internal/cli/output/outputformat.go`, golden-file regeneration helpers).
-`internal/policies/logging_chokepoint_test.go` AST-walks `internal/` and
-`cmd/` for the same pattern independently — same shape as
-`PolicyNoHardcodedEntityPaths` — so the discipline holds even if the linter
-rule is ever disabled.
+`forbidigo` is configured in `.golangci.yml` banning the three
+destination-unambiguous bare forms — `fmt.Println`, `fmt.Print`,
+`fmt.Printf` — outside the sanctioned writers (`cmd/aiwf/main.go`,
+`internal/cli/cliutil/outputformat.go`'s text-mode branch,
+`internal/cli/cliutil/textio.go` itself). forbidigo matches only a call's
+callee expression, never its arguments, so it cannot distinguish
+`fmt.Fprintln(os.Stdout, …)` from `fmt.Fprintln(someOtherWriter, …)` —
+banning `Fprintln`/`Fprintf` outright would also catch legitimate
+writer-parameterized code. `internal/policies/logging_chokepoint.go`
+(companion test `logging_chokepoint_test.go`) is the independent
+AST-walking backstop — same shape as `PolicyNoHardcodedEntityPaths` — that
+inspects the actual first argument and flags `fmt.Fprintln`/`fmt.Fprintf`
+specifically when it is the literal `os.Stdout` or `os.Stderr` selector,
+plus redundantly re-flagging the three forbidigo-covered forms so the
+discipline holds even if the linter rule is ever disabled.
 
 ### AC-4 — aiwf.yaml's logging block is parsed, validated, and surfaced by aiwf doctor
 
