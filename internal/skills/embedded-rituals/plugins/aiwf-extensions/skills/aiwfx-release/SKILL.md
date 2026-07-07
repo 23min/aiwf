@@ -15,6 +15,8 @@ If the epic isn't wrapped yet, run `aiwfx-wrap-epic` first.
 
 **Dispatch the `deployer` subagent** to run this ritual rather than executing it inline in the calling session. The `deployer` agent card already names this skill under "Skills you use" — dispatching is what lets an `aiwf.yaml`-configured `agents.deployer` model/effort tier actually apply, and keeps release mechanics out of whatever session just wrapped the epic. Run inline only when already executing inside the deployer agent's own context, or when the operator explicitly asks to skip delegation.
 
+When dispatched, the two push gates (steps 6 and 7) are executed by the orchestrating session, not by the `deployer` subagent itself — a dispatched subagent's own sandboxed tool context has been observed to stall on the network-write phase of `git push` (reads succeed; the push write hangs) even when the identical command succeeds run directly by the orchestrator. At each push gate, report the exact approved command back to the orchestrating session and wait for it to execute the push and confirm the result, rather than running `git push` yourself. Running inline (no dispatch), execute each push directly as shown — there's no separate orchestrator to hand off to.
+
 ## Gate discipline
 
 Per CLAUDE.md §"Working with the user," every mutating action this skill walks you through — committing the CHANGELOG, creating the tag, pushing commits, pushing the tag — is its own gate. The standing invariant is **one approval per action, no bundling**.
@@ -117,6 +119,8 @@ Show the local state: the release-prep commit on the release branch. Confirm wit
 git push origin main
 ```
 
+**When running as a dispatched subagent, hand this command back to the orchestrating session to execute** rather than running it yourself — see the handoff note under "When to use." Report the approved command, then wait for the orchestrator to confirm the push landed before continuing to CI verification.
+
 This push is its own gate — outward and irreversible. The tag push is a separate gate (next step). Per CLAUDE.md's declared-sequence bright line, outward actions are never batched; the two pushes are never collapsed into one approval.
 
 ### 7. 🛑 Push gate (tag)
@@ -126,6 +130,8 @@ Confirm with the user *separately*: *"Push the tag vX.Y.Z to origin?"* Show the 
 ```bash
 git push origin vX.Y.Z
 ```
+
+**When running as a dispatched subagent, hand this command back to the orchestrating session too**, same as step 6 — don't run it from within the subagent's own sandboxed context.
 
 Push is the irreversible boundary. The tag becomes visible to every downstream consumer the moment the push succeeds.
 

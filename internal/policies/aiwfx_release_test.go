@@ -144,3 +144,45 @@ func TestAiwfxRelease_PreReleaseCheckIsStackNeutral(t *testing.T) {
 		}
 	}
 }
+
+// TestAiwfxRelease_G0384_DispatchedPushGatesHandOffToOrchestrator pins
+// G-0384's fix: a dispatched `deployer` subagent's own sandboxed tool
+// context stalled on the network-write phase of `git push` twice during
+// a real release run, even though the identical command succeeded when
+// the orchestrating session ran it directly. Both push-gate steps (6
+// and 7) — and the "When to use" dispatch note — now instruct handing
+// the exact approved command back to the orchestrating session to
+// execute, rather than the subagent running `git push` itself.
+//
+// Heading-scoped per CLAUDE.md §"Substring assertions are not
+// structural assertions": each push gate's handoff instruction must
+// live inside that gate's own step, not float in an unrelated section
+// where a reader looking at step 6 or 7 in isolation would miss it.
+func TestAiwfxRelease_G0384_DispatchedPushGatesHandOffToOrchestrator(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxReleaseFixture(t)
+
+	whenToUse := extractMarkdownSection(body, 2, "When to use")
+	if whenToUse == "" {
+		t.Fatal("G-0384: aiwfx-release must have a `## When to use` section")
+	}
+	if !strings.Contains(whenToUse, "executed by the orchestrating session") {
+		t.Error("G-0384: `## When to use` must state that the push gates are executed by the orchestrating session, not the dispatched subagent")
+	}
+
+	pushGateCommit := extractMarkdownSection(body, 3, "6.")
+	if pushGateCommit == "" {
+		t.Fatal("G-0384: aiwfx-release must have a `### 6. ...` push gate (commit) step")
+	}
+	if !strings.Contains(pushGateCommit, "hand this command back to the orchestrating session") {
+		t.Error("G-0384: step 6 (push gate, commit) must instruct handing the command back to the orchestrating session when dispatched")
+	}
+
+	pushGateTag := extractMarkdownSection(body, 3, "7.")
+	if pushGateTag == "" {
+		t.Fatal("G-0384: aiwfx-release must have a `### 7. ...` push gate (tag) step")
+	}
+	if !strings.Contains(pushGateTag, "hand this command back to the orchestrating session") {
+		t.Error("G-0384: step 7 (push gate, tag) must instruct handing the command back to the orchestrating session when dispatched")
+	}
+}
