@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Concurrent writers to the shared log file never interleave or tear a line
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: Bound logger fields never leak the operator's home-directory path
