@@ -1,7 +1,7 @@
 ---
 id: E-0061
 title: Diagnostic logging and correlation
-status: proposed
+status: active
 ---
 
 # E-0061 — Diagnostic logging and correlation
