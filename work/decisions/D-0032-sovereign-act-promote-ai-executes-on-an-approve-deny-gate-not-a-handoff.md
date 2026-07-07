@@ -3,6 +3,11 @@ id: D-0032
 title: 'Sovereign-act promote: AI executes on an approve/deny gate, not a handoff'
 status: proposed
 ---
+
+# D-0032 — Sovereign-act promote: AI executes on an approve/deny gate, not a handoff
+
+> **Date:** 2026-07-07 · **Decided by:** human/peter
+
 ## Question
 
 `aiwf promote E-NN active` is a sovereign-act-shape transition (M-0095): the kernel refuses it from a non-`human/` actor unless `--force --reason "..."` is used. Since actor resolution defaults to `human/<git-email-localpart>` whenever no `--actor` flag is passed, the kernel already accepts this verb from an AI-run bare command indistinguishably from a human-run one — there is no mechanical way for the kernel to tell the two apart. The only thing currently stopping an AI assistant from running it is a documented ritual-policy line in `aiwfx-start-epic`'s `SKILL.md` ("the operator is human; an AI assistant orchestrating the conversation does not invoke the verb itself"), echoed in `CLAUDE.md` and `provenance-model.md`.
