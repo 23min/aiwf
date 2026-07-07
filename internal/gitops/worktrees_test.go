@@ -10,11 +10,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// seedRepo inits a git repo at t.TempDir() with one commit on the
+// seedWorktreeTestRepo inits a git repo at t.TempDir() with one commit on the
 // default branch, returning the root. Shared setup for the
 // WorktreeAdd family of tests, which all need a base commit to
 // branch from.
-func seedRepo(t *testing.T) string {
+func seedWorktreeTestRepo(t *testing.T) string {
 	t.Helper()
 	ctx := context.Background()
 	root := t.TempDir()
@@ -36,7 +36,7 @@ func seedRepo(t *testing.T) string {
 func TestBranchExists(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 
 	if exists, err := BranchExists(ctx, root, "main"); err != nil || !exists {
 		t.Errorf("BranchExists(main) = %v, %v; want true, nil", exists, err)
@@ -49,7 +49,7 @@ func TestBranchExists(t *testing.T) {
 func TestWorktreeAddNewBranch(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "wt")
 
 	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/x", "main"); err != nil {
@@ -66,7 +66,7 @@ func TestWorktreeAddNewBranch(t *testing.T) {
 func TestWorktreeAddNewBranch_DefaultsToHEAD(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "wt")
 
 	// Omitting base defers to git's own default (HEAD) rather than
@@ -82,7 +82,7 @@ func TestWorktreeAddNewBranch_DefaultsToHEAD(t *testing.T) {
 func TestWorktreeAdd_ExistingBranch(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 
 	if err := run(ctx, root, "branch", "existing-branch"); err != nil {
 		t.Fatalf("git branch: %v", err)
@@ -99,7 +99,7 @@ func TestWorktreeAdd_ExistingBranch(t *testing.T) {
 func TestWorktreeAdd_SurfacesGitFailure(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 
 	// main is already checked out in root itself; checking it out
 	// again into a second worktree is a real git refusal the wrapper
@@ -117,7 +117,7 @@ func TestWorktreeAdd_SurfacesGitFailure(t *testing.T) {
 func TestWorktreeRemove(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "wt")
 	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/to-remove", "main"); err != nil {
 		t.Fatalf("WorktreeAddNewBranch: %v", err)
@@ -141,7 +141,7 @@ func TestWorktreeRemove(t *testing.T) {
 func TestWorktreeRemove_ForceRemovesDirtyWorktree(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "wt")
 	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/dirty", "main"); err != nil {
 		t.Fatalf("WorktreeAddNewBranch: %v", err)
@@ -166,7 +166,7 @@ func TestWorktreeRemove_ForceRemovesDirtyWorktree(t *testing.T) {
 func TestDeleteBranch(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	root := seedRepo(t)
+	root := seedWorktreeTestRepo(t)
 	wtPath := filepath.Join(t.TempDir(), "wt")
 	if err := WorktreeAddNewBranch(ctx, root, wtPath, "feature/to-delete", "main"); err != nil {
 		t.Fatalf("WorktreeAddNewBranch: %v", err)
