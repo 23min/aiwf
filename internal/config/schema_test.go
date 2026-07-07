@@ -53,6 +53,8 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 		{Path: "agents", Type: "map[string]config.Agent"},
 		{Path: "agents.<key>.model", Type: "string"},
 		{Path: "agents.<key>.effort", Type: "string"},
+		{Path: "hooks", Type: "map[string]config.Hook"},
+		{Path: "hooks.<key>.enabled", Type: "*bool"},
 	}
 
 	got := Schema()
@@ -221,6 +223,18 @@ func TestGenerateExample_ProducesValidReparseableYAML(t *testing.T) {
 	if !hasKey(exampleAgent, "effort") {
 		t.Error("agents.<key>.effort missing")
 	}
+
+	hooks, ok := generic["hooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("hooks is not a mapping: %#v", generic["hooks"])
+	}
+	exampleHook, ok := hooks["<key>"].(map[string]any)
+	if !ok {
+		t.Fatalf("hooks.<key> is not a mapping: %#v", hooks["<key>"])
+	}
+	if !hasKey(exampleHook, "enabled") {
+		t.Error("hooks.<key>.enabled missing")
+	}
 }
 
 // TestGenerateExample_ScalarDefaultsPassLoaderValidation narrows AC-3's
@@ -304,6 +318,44 @@ func TestGenerateExample_AgentsExampleItemSilentlyAcceptedVerbatim(t *testing.T)
 	}
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("Validate() = %v, want nil — agents.<key> is expected to be silently accepted, not rejected", err)
+	}
+}
+
+// TestGenerateExample_HooksExampleItemUndecidedVerbatim pins the hooks
+// analogue of the agents placeholder case above, with a different (correct)
+// outcome: uncommenting hooks.<key> verbatim decodes to a Hook literally
+// named "<key>" with Enabled left nil (the "enabled:" line renders with no
+// default value, same as any other *bool leaf with no fieldDefaultResolvers
+// entry) — so HookDecision reports it as undecided, not silently enabled.
+// That is exactly the safe behavior ADR-0032 requires: an unrecognized or
+// placeholder hook name must never read as consented.
+func TestGenerateExample_HooksExampleItemUndecidedVerbatim(t *testing.T) {
+	t.Parallel()
+	uncommented := uncommentYAML(GenerateExample())
+
+	var cfg Config
+	if err := yaml.Unmarshal([]byte(uncommented), &cfg); err != nil {
+		t.Fatalf("uncommented output does not decode into Config: %v", err)
+	}
+	cfg.Areas.Members = nil // isolate the hooks block from areas' own rejection
+
+	hook, ok := cfg.Hooks["<key>"]
+	if !ok {
+		t.Fatalf("expected the example hook literally named %q, got %#v", "<key>", cfg.Hooks)
+	}
+	if hook.Enabled != nil {
+		t.Errorf("hooks.<key>.enabled = %v, want nil (undecided)", *hook.Enabled)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("Validate() = %v, want nil — hooks.<key> is expected to be silently accepted as undecided", err)
+	}
+
+	enabled, decided := cfg.HookDecision("<key>")
+	if decided {
+		t.Errorf("HookDecision(%q) decided = true, want false", "<key>")
+	}
+	if enabled {
+		t.Errorf("HookDecision(%q) enabled = true, want false", "<key>")
 	}
 }
 
@@ -433,6 +485,8 @@ func TestAcceptedKeys_MembershipChecks(t *testing.T) {
 		{"tdd.stict", false}, // the exact typo G-0307 cites
 		{"araes", false},     // the exact typo G-0307 cites
 		{"agents.<key>.model", true},
+		{"hooks.<key>.enabled", true},
+		{"hoosk.<key>.enabled", false}, // typo of the new block name
 	}
 	for _, c := range cases {
 		if got := keys[c.key]; got != c.want {

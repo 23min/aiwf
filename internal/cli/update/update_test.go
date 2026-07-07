@@ -53,7 +53,7 @@ func TestRun_RemoveAndStatuslineMutuallyExclusive(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 
-	rc := update.Run(root, true /* statusline */, "project", false, false /* allowUntagged */, true /* remove */, false)
+	rc := update.Run(root, true /* statusline */, "project", false, false /* allowUntagged */, true /* remove */, false, nil, nil)
 	if rc != cliutil.ExitUsage {
 		t.Fatalf("rc = %d, want cliutil.ExitUsage", rc)
 	}

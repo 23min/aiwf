@@ -43,6 +43,7 @@ func NewCmd() *cobra.Command {
 		allowUntagged bool
 		remove        bool
 		force         bool
+		enableHooks   []string
 	)
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -57,12 +58,15 @@ func NewCmd() *cobra.Command {
 
   # Remove a scope's statusline script + settings wiring (G-0354)
   aiwf update --scope project --remove
-  aiwf update --scope project --remove --force`,
+  aiwf update --scope project --remove --force
+
+  # Consent to a newly-introduced registry hook without an interactive prompt
+  aiwf update --enable-hook <hook-name>`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, allowUntagged, remove, force))
+			return cliutil.WrapExitCode(Run(root, statusline, scope, wireSettings, allowUntagged, remove, force, enableHooks, skills.ShippedHooks))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -76,6 +80,8 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
+	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
+	_ = cmd.RegisterFlagCompletionFunc("enable-hook", completeHookNames)
 	return cmd
 }
 
@@ -86,7 +92,16 @@ func NewCmd() *cobra.Command {
 // settings key (G-0354); `statusline` and `remove` are mutually
 // exclusive. The statusline action runs after the artifact refresh
 // succeeds.
-func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force bool) int {
+//
+// hooks is the shipped hook registry (ADR-0032); the production call site
+// passes skills.ShippedHooks, and tests inject a synthetic registry to
+// exercise the sync step independent of the real registry's current
+// contents. Every registry
+// hook absent from the existing aiwf.yaml's hooks: map is gated
+// (enableHooks bypasses the interactive prompt for the named ones); every
+// already-decided hook syncs forward unchanged, with no re-prompt
+// (M-0235/AC-3).
+func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force bool, enableHooks []string, hooks []skills.HookDef) int {
 	if statusline && remove {
 		fmt.Fprintln(os.Stderr, "aiwf update: --statusline and --remove are mutually exclusive")
 		return cliutil.ExitUsage
@@ -148,6 +163,15 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	fmt.Println("\naiwf update: done.")
+
+	if len(hooks) > 0 {
+		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
+			return rc
+		}
+		if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndSyncHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+			return rc
+		}
+	}
 
 	statuslineRC := cliutil.ExitOK
 	switch {

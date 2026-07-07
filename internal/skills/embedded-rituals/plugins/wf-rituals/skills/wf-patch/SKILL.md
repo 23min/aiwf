@@ -39,7 +39,13 @@ If one exists, state the user-observable goal in your own words before touching 
 
 ### 2. Create a descriptive branch
 
-Create it from the project's mainline, named for the gap it closes so the statusline can surface it:
+Per CLAUDE.md §"Default to a worktree for any branch work," create it from the project's mainline in its own worktree rather than switching the main checkout in place. `aiwf worktree add` creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step (substitute your mainline branch):
+
+```bash
+aiwf worktree add patch/G-NNNN-<short-slug> --base main
+```
+
+Name the branch for the gap it closes so the statusline can surface it:
 
 - `patch/G-NNNN-<short-slug>` — closes a tracked gap (the common case). The
   statusline's session-entity HUD shows `G-NNNN` with its status glyph and

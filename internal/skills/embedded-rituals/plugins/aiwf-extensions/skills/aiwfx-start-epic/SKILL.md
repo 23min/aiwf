@@ -104,21 +104,17 @@ If step 5 chose in-loop, skip.
 
 ### 8. Worktree placement and branch creation (Q&A)
 
-Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`). Read the resolved directory from the kernel rather than hardcoding it:
-
-```bash
-aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'
-```
+Lead with the default: **in-repo placement under the configured `worktree.dir`** (default `.claude/worktrees/<branch>/`). In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd (so cwd-derived surfaces like the statusline never follow the work) and a `$HOME`-placed one is wiped on container rebuild. In-repo worktrees are reachable as the session cwd, persistent under the mounted workspace, and gitignored (`.claude/*`).
 
 The default is a recommendation, not a lock — the per-invocation override stays. The choice still matters (parallel work, IDE state, `aiwf check` blast radius), so surface the three placements and let the operator override:
 
-1. **`.claude/worktrees/<branch>/` (in-repo worktree — the default).** A worktree under the repo's own `.claude/` tree, at the resolved `worktree.dir`. Survives `git checkout` on the main worktree; gitignored; reachable as a sandboxed session's cwd. Recommended placement (see the in-repo placement convention).
+1. **`.claude/worktrees/<branch>/` (in-repo worktree — the default).** Created with `aiwf worktree add epic/E-NN-<slug>` — the verb resolves the path from the same `worktree.dir` knob rather than hardcoding it, and materializes rituals (skills, agents, templates, guidance) into the new worktree atomically, in one step. Survives `git checkout` on the main worktree; gitignored; reachable as a sandboxed session's cwd. Recommended placement (see the in-repo placement convention).
 2. **No worktree, work directly on the epic branch in the main checkout.** The operator's existing checkout switches to `epic/E-NN-<slug>` via `git checkout -b`. Simplest; no extra checkout state to manage. Trade-off: no isolated playground if the epic gets contentious.
-3. **`../aiwf-<branch>/` (sibling-directory worktree).** A worktree as a sibling of the repo root. Fully isolated path; valid on a bare host where the sandbox confinement does not apply. Trade-off: unreachable as a sandboxed session's cwd, requires a deliberate `cd` to enter, and `find`-based tools rooted at the original repo do not see it.
+3. **`../aiwf-<branch>/` (sibling-directory worktree).** Created with `aiwf worktree add epic/E-NN-<slug> ../aiwf-<branch>` — an explicit path is honored verbatim, never redirected back in-repo. Fully isolated path; valid on a bare host where the sandbox confinement does not apply. Trade-off: unreachable as a sandboxed session's cwd, requires a deliberate `cd` to enter, and `find`-based tools rooted at the original repo do not see it.
 
 The branch shape follows the branch-model convention: ritualized work on `epic/E-NN-<slug>`. If step 7's authorize commit was produced (delegated case), the branch name is already in the trailer — this step cuts that exact ref. If step 5 chose in-loop, the operator still cuts `epic/E-NN-<slug>` (the same naming convention; no `aiwf-branch:` trailer was emitted upstream, but the convention is the same).
 
-Execute the branch cut against the chosen worktree (default in-repo under `worktree.dir`, or the main checkout / sibling per the override). The branch operation does not produce an aiwf commit; it is plain git plumbing.
+Execute the branch cut against the chosen placement: `aiwf worktree add` for placements 1 and 3 — confirm materialization afterward with `aiwf doctor --root <path>`, which reports rituals as materialized with no separate `aiwf update` step needed — or plain `git checkout -b` for placement 2 (no new worktree, nothing to materialize; the current checkout already has its skills, agents, templates, and guidance). The branch operation itself does not produce an aiwf commit; it is plain git plumbing.
 
 ### 9. Hand-off
 

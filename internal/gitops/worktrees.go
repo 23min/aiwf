@@ -2,6 +2,9 @@ package gitops
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os/exec"
 	"strings"
 )
 
@@ -79,4 +82,63 @@ func parseWorktreeList(out string) []Worktree {
 	}
 	flush()
 	return worktrees
+}
+
+// BranchExists reports whether branch exists as a local branch in the
+// repo containing workdir. `aiwf worktree add`'s caller uses this to
+// pick between reusing an existing branch (WorktreeAdd) and creating
+// a fresh one (WorktreeAddNewBranch) — plain `git worktree add <path>
+// <branch>` fails on a nonexistent branch, and `-b` fails when the
+// branch already exists, so the two forms are not interchangeable.
+//
+// Mirrors StashTopRef's existence-probe shape: `--verify --quiet`
+// exits 1 with empty output when the ref is absent, which maps to
+// (false, nil); any other failure is wrapped and returned.
+func BranchExists(ctx context.Context, workdir, branch string) (bool, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "refs/heads/"+branch)
+	cmd.Dir = workdir
+	cmd.Env = gitEnv()
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, fmt.Errorf("git rev-parse refs/heads/%s: %w", branch, err) //coverage:ignore requires git rev-parse to fail with a non-exit-1 error (git missing or repo corruption mid-call)
+	}
+	return true, nil
+}
+
+// WorktreeAdd creates a linked worktree at path checked out to the
+// existing local branch. Any git failure (branch already checked out
+// elsewhere, path already exists, etc.) is surfaced verbatim via run's
+// combined-output wrap — the caller must not report success on error.
+func WorktreeAdd(ctx context.Context, workdir, path, branch string) error {
+	return run(ctx, workdir, "worktree", "add", path, branch)
+}
+
+// WorktreeAddNewBranch creates a linked worktree at path with a fresh
+// local branch, starting from base. An empty base defers to git's own
+// default (HEAD).
+func WorktreeAddNewBranch(ctx context.Context, workdir, path, branch, base string) error {
+	args := []string{"worktree", "add", "-b", branch, path}
+	if base != "" {
+		args = append(args, base)
+	}
+	return run(ctx, workdir, args...)
+}
+
+// WorktreeRemove removes the linked worktree at path, force-removing
+// even if it carries uncommitted or untracked changes. Used by `aiwf
+// worktree add`'s rollback path when a step after worktree creation
+// fails — a partially-materialized worktree must not stay registered.
+func WorktreeRemove(ctx context.Context, workdir, path string) error {
+	return run(ctx, workdir, "worktree", "remove", "--force", path)
+}
+
+// DeleteBranch force-deletes a local branch regardless of merge
+// status. Used by `aiwf worktree add`'s rollback path to undo a
+// branch it just created when a later step in the same atomic
+// operation fails.
+func DeleteBranch(ctx context.Context, workdir, branch string) error {
+	return run(ctx, workdir, "branch", "-D", branch)
 }

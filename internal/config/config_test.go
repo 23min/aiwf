@@ -527,6 +527,131 @@ func TestStatusMdAutoUpdate_ExplicitTrue(t *testing.T) {
 	}
 }
 
+// TestHookDecision_NoHooksBlock: no `hooks:` block in the file at all.
+// decided=false — there is no recorded decision for any hook name, so
+// aiwf init/update must gate it via the consent prompt (ADR-0032) rather
+// than treating absence as an implicit decline.
+func TestHookDecision_NoHooksBlock(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	enabled, decided := cfg.HookDecision("worktree-materialization-check")
+	if decided {
+		t.Errorf("HookDecision() decided = true, want false (no hooks: block)")
+	}
+	if enabled {
+		t.Errorf("HookDecision() enabled = true, want false when undecided")
+	}
+}
+
+// TestHookDecision_NameAbsentFromMap: `hooks:` block present, but has no
+// entry for the queried name (e.g. a newer aiwf version shipping a hook
+// this aiwf.yaml predates). Still undecided, same as no block at all.
+func TestHookDecision_NameAbsentFromMap(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hooks:\n  some-other-hook:\n    enabled: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	_, decided := cfg.HookDecision("worktree-materialization-check")
+	if decided {
+		t.Errorf("HookDecision() decided = true, want false (name absent from map)")
+	}
+}
+
+// TestHookDecision_EntryPresentEnabledAbsent: the map has an entry for the
+// name, but the entry itself omits `enabled:` (e.g. `hooks.myhook: {}`).
+// Still undecided — presence of the map key alone must not be read as a
+// decision one way or the other.
+func TestHookDecision_EntryPresentEnabledAbsent(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hooks:\n  worktree-materialization-check: {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	_, decided := cfg.HookDecision("worktree-materialization-check")
+	if decided {
+		t.Errorf("HookDecision() decided = true, want false (enabled key absent)")
+	}
+}
+
+// TestHookDecision_ExplicitTrue: the load-bearing consent case — an
+// explicit `enabled: true` round-trips as decided=true, enabled=true.
+func TestHookDecision_ExplicitTrue(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hooks:\n  worktree-materialization-check:\n    enabled: true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	enabled, decided := cfg.HookDecision("worktree-materialization-check")
+	if !decided {
+		t.Errorf("HookDecision() decided = false, want true")
+	}
+	if !enabled {
+		t.Errorf("HookDecision() enabled = false, want true")
+	}
+}
+
+// TestHookDecision_ExplicitFalse: an explicit decline round-trips as
+// decided=true, enabled=false — distinguishable from "undecided" per
+// ADR-0032, unlike a scheme where absence and false would collapse.
+func TestHookDecision_ExplicitFalse(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName),
+		[]byte("hooks:\n  worktree-materialization-check:\n    enabled: false\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	enabled, decided := cfg.HookDecision("worktree-materialization-check")
+	if !decided {
+		t.Errorf("HookDecision() decided = false, want true")
+	}
+	if enabled {
+		t.Errorf("HookDecision() enabled = true, want false")
+	}
+}
+
+// TestHookDecision_NilReceiver: the getter tolerates a nil Config so
+// callers can invoke before a Config is loaded, mirroring
+// WireClaudeMd/ArchiveSweepThreshold's nil-receiver tolerance.
+func TestHookDecision_NilReceiver(t *testing.T) {
+	t.Parallel()
+	var cfg *Config
+	enabled, decided := cfg.HookDecision("worktree-materialization-check")
+	if decided {
+		t.Errorf("HookDecision() decided = true, want false (nil receiver)")
+	}
+	if enabled {
+		t.Errorf("HookDecision() enabled = true, want false (nil receiver)")
+	}
+}
+
 // hasActiveTopLevelKey reports whether yamlText contains a live
 // (uncommented) top-level "key:" line, as opposed to the same key
 // appearing only inside a "# ..." reference comment.

@@ -37,10 +37,11 @@ import (
 // works end-to-end.
 func NewCmd() *cobra.Command {
 	var (
-		root        string
-		selfCheck   bool
-		checkLatest bool
-		writeHealth bool
+		root         string
+		selfCheck    bool
+		checkLatest  bool
+		writeHealth  bool
+		checkRituals bool
 	)
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -52,11 +53,18 @@ func NewCmd() *cobra.Command {
   aiwf doctor --self-check
 
   # Compare to the latest published release on the Go module proxy
-  aiwf doctor --check-latest`,
+  aiwf doctor --check-latest
+
+  # Terse, exit-code-meaningful ritual-materialization check (for
+  # automation, e.g. the worktree-materialization SessionStart hook)
+  aiwf doctor --check-rituals --root <worktree-path>`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
+			if checkRituals {
+				return cliutil.WrapExitCode(RunCheckRituals(root))
+			}
 			if writeHealth {
 				return cliutil.WrapExitCode(runWriteHealth(root))
 			}
@@ -67,6 +75,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&selfCheck, "self-check", false, "run every verb against a temp repo and report pass/fail")
 	cmd.Flags().BoolVar(&checkLatest, "check-latest", false, "look up the latest published aiwf version on the Go module proxy (one HTTP call; honors GOPROXY=off)")
 	cmd.Flags().BoolVar(&writeHealth, "write-health", false, "write .claude/health.aiwf.json from doctor's warnings and errors (consumed by the statusline health stoplight)")
+	cmd.Flags().BoolVar(&checkRituals, "check-rituals", false, "check only whether ritual artifacts (skills/agents/templates) are materialized; silent with exit 0 if so, or a single actionable stderr line with exit 1 otherwise")
 	return cmd
 }
 
@@ -307,6 +316,7 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	lines, problems = appendPostCommitHookReport(lines, problems, rootDir)
 	lines, problems = appendRenderReport(lines, problems, rootDir)
 	lines, problems = appendMaterializedRitualsReport(lines, problems, rootDir)
+	lines, problems = appendHookMaterializationReport(lines, problems, rootDir, skills.ShippedHooks)
 	lines, problems = appendStatuslineReport(lines, problems, rootDir)
 	lines, problems = appendGuidanceImportReport(lines, problems, rootDir)
 
@@ -340,6 +350,77 @@ func appendMaterializedRitualsReport(in []string, problemsIn []Problem, rootDir 
 		fmt.Sprintf("%sok (%d artifacts materialized)", label("rituals:"), len(present)),
 		subIndent+"managed by aiwf (skills aiwf-*/aiwfx-*/wf-*, agents, templates); `aiwf update` refreshes — do not hand-edit (see .claude/skills/README.md)",
 	), problems
+}
+
+// appendHookMaterializationReport surfaces ADR-0032's three
+// doctor-visible hook-registry drift classes: a shipped hook still
+// undecided in the consumer's aiwf.yaml, one materialized but not
+// wired into the shared settings file, and one wired despite its
+// decision no longer authorizing it (or its script gone missing) —
+// "wired but stale". hooks is passed explicitly (rather than always
+// reading skills.ShippedHooks) so tests can exercise the reporting
+// logic against a synthetic registry ahead of any concrete hook
+// landing (M-0236). An empty registry — today's state — reports a
+// quiet ok line rather than silently omitting the row.
+func appendHookMaterializationReport(in []string, problemsIn []Problem, rootDir string, hooks []skills.HookDef) (lines []string, problems []Problem) {
+	lines = in
+	problems = problemsIn
+	if len(hooks) == 0 {
+		return append(lines, label("hooks:")+"ok (no hooks registered yet)"), problems
+	}
+
+	configPath := filepath.Join(rootDir, config.FileName)
+	doc, _, readErr := aiwfyaml.Read(configPath)
+	var decisions map[string]bool
+	switch {
+	case readErr == nil:
+		var hooksErr error
+		decisions, hooksErr = doc.Hooks()
+		if hooksErr != nil {
+			val := hooksErr.Error()
+			lines = append(lines, label("hooks:")+val)
+			problems = append(problems, Problem{Severity: SeverityError, Message: val})
+			return lines, problems
+		}
+	case errors.Is(readErr, os.ErrNotExist):
+		// No aiwf.yaml yet — every registry hook is undecided, not an
+		// error (mirrors appendRenderReport's config.Load-missing
+		// default-and-continue handling).
+		decisions = map[string]bool{}
+	default:
+		val := readErr.Error()
+		lines = append(lines, label("hooks:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
+		return lines, problems
+	}
+
+	settingsPath := filepath.Join(rootDir, skills.SharedSettingsRelPath)
+	report, err := skills.HookDrift(rootDir, skills.ClaudeTarget, hooks, decisions, settingsPath)
+	if err != nil {
+		val := err.Error()
+		lines = append(lines, label("hooks:")+val)
+		problems = append(problems, Problem{Severity: SeverityError, Message: val})
+		return lines, problems
+	}
+
+	if len(report.Undecided) == 0 && len(report.MaterializedNotWired) == 0 && len(report.WiredButStale) == 0 {
+		return append(lines, fmt.Sprintf("%sok (%d hooks synced)", label("hooks:"), len(hooks))), problems
+	}
+
+	val := fmt.Sprintf("drift: %d undecided, %d materialized-not-wired, %d wired-but-stale — run `aiwf update` to reconcile",
+		len(report.Undecided), len(report.MaterializedNotWired), len(report.WiredButStale))
+	lines = append(lines, label("hooks:")+val)
+	for _, name := range report.Undecided {
+		lines = append(lines, subIndent+"- undecided: "+name)
+	}
+	for _, name := range report.MaterializedNotWired {
+		lines = append(lines, subIndent+"- materialized-not-wired: "+name)
+	}
+	for _, name := range report.WiredButStale {
+		lines = append(lines, subIndent+"- wired-but-stale: "+name)
+	}
+	problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
+	return lines, problems
 }
 
 // appendRenderReport surfaces the consumer's HTML render

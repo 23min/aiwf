@@ -98,7 +98,15 @@ git checkout -b milestone/M-NNNN-<slug>
 
 The branch operation does not produce an aiwf commit; it is plain git plumbing. If a delegated `aiwf authorize` commit was produced at step 4, the named branch now resolves and the binding closes — the trailer's forward-reference becomes a live ref.
 
-**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild. If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), default it to in-repo under the same `worktree.dir`, read with `aiwf doctor | grep '^worktree-dir:' | awk '{print $2}'` rather than hardcoded. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock.
+**Worktree placement.** By default the milestone branch is cut in the parent epic's worktree, which is already in-repo under the configured `worktree.dir` (default `.claude/worktrees/`) when the epic was activated via `aiwfx-start-epic`'s default. In-repo is the default because a Claude Code session in a sandboxed devcontainer is confined to the workspace folder — a sibling or `$HOME` worktree is unreachable as the session's cwd and a `$HOME`-placed one is wiped on container rebuild.
+
+If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), use `aiwf worktree add` in place of the plain `git checkout -b` above — it creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step, in-repo under the same `worktree.dir` by default:
+
+```bash
+aiwf worktree add milestone/M-NNNN-<slug> --base epic/E-NNNN-<slug>
+```
+
+Pass an explicit path as the verb's second argument for a sibling-directory placement instead. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
 
 ### 6. Implementation — iterate via `wf-tdd-cycle`
 

@@ -10,7 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
 )
@@ -31,6 +33,7 @@ func NewCmd() *cobra.Command {
 		scope         string
 		wireSettings  bool
 		allowUntagged bool
+		enableHooks   []string
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -47,12 +50,15 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
   # Same scaffolding plus the aiwf-aware Claude Code statusline
   # (user scope by default; add --scope project to keep it in-repo)
   aiwf init --statusline
-  aiwf init --statusline --scope project`,
+  aiwf init --statusline --scope project
+
+  # Consent to a specific registry hook without an interactive prompt
+  aiwf init --enable-hook <hook-name>`,
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, allowUntagged))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, allowUntagged, enableHooks, skills.ShippedHooks))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -67,7 +73,17 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 	))
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
+	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
+	_ = cmd.RegisterFlagCompletionFunc("enable-hook", completeHookNames)
 	return cmd
+}
+
+// completeHookNames offers the shipped hook registry's names for
+// `--enable-hook <TAB>`. Empty (no completions) until a milestone registers
+// the first concrete hook (M-0236) — mirrors completeDeclaredValidators'
+// shape for a runtime-derived, possibly-empty set.
+func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return skills.HookNamesFrom(skills.ShippedHooks), cobra.ShellCompDirectiveNoFileComp
 }
 
 // Run executes `aiwf init`. Returns one of the cliutil.Exit* codes.
@@ -76,7 +92,16 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 // clobbers a pre-existing copy). The scaffold action runs after the
 // main init pipeline succeeds; a `--dry-run` init reports without
 // scaffolding.
-func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool) int {
+//
+// hooks is the shipped hook registry (ADR-0032); the production call site
+// passes skills.ShippedHooks, and tests inject a synthetic registry to
+// exercise the consent-gating step independent of the real registry's
+// current contents. Every
+// registry hook is gated (enableHooks bypasses the interactive prompt for
+// the named ones) and the resulting decisions are baked into the
+// freshly-written aiwf.yaml, after the main init pipeline succeeds — a
+// `--dry-run` init skips gating entirely, same as the statusline scaffold.
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool, enableHooks []string, hooks []skills.HookDef) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
@@ -143,6 +168,19 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	}
 
+	if len(hooks) > 0 {
+		if !dryRun {
+			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
+				return rc
+			}
+			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
+				return rc
+			}
+		} else {
+			fmt.Println("aiwf init --enable-hook: dry-run — hook consent gating skipped.")
+		}
+	}
+
 	if statusline && !dryRun {
 		if rc := cliutil.RunStatuslineScaffold(cliutil.StatuslineOpts{
 			RootDir:       rootDir,
@@ -154,6 +192,36 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		}
 	} else if statusline && dryRun {
 		fmt.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
+	}
+	return cliutil.ExitOK
+}
+
+// gateAndPersistHookDecisions runs the consent gate (ADR-0032) over every
+// registry hook and splices the resulting decisions into the just-written
+// aiwf.yaml's hooks: block, via aiwfyaml's surgical splice so every other
+// byte of the file — including the full commented schema reference
+// initrepo.Init already wrote — survives untouched.
+func gateAndPersistHookDecisions(rootDir string, hooks []skills.HookDef, enableHooks []string) int {
+	decisions := cliutil.GateHookDecisions(hooks, enableHooks, false)
+
+	configPath := filepath.Join(rootDir, config.FileName)
+	doc, _, err := aiwfyaml.Read(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		return cliutil.ExitInternal
+	}
+	doc.SetHooks(decisions)
+	if err := doc.Write(configPath); err != nil { //coverage:ignore the preceding Read already succeeded against the same path; only external interference (disk failure, permission change between the two calls) reaches this, not any code path this binary's own control flow produces
+		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		return cliutil.ExitInternal
+	}
+
+	for _, h := range hooks {
+		state := "declined"
+		if decisions[h.Name] {
+			state = "enabled"
+		}
+		fmt.Printf("aiwf init: hook %q — %s\n", h.Name, state)
 	}
 	return cliutil.ExitOK
 }

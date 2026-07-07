@@ -70,6 +70,9 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 		// Commit SHAs (no closed set; user enumerates via git log).
 		{flag: "by-commit"}: "comma-separated commit SHAs; no closed set worth enumerating",
 
+		// git ref/commit-ish (no closed set worth enumerating).
+		{cmd: "aiwf worktree add", flag: "base"}: "commit-ish the new branch starts from; no closed set worth enumerating",
+
 		// Integer flags (no closed set worth enumerating).
 		{cmd: "aiwf show", flag: "history"}: "integer event-count cap (0=none, -1=all); no closed set",
 
@@ -156,6 +159,7 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf import":                "<manifest> is a filesystem path; default file completion is correct",
 		"aiwf acknowledge illegal":   "<sha> is a commit SHA; no closed set worth enumerating (operator looks up the offending SHA from aiwf check / git log output)",
 		"aiwf rewidth":               "no positional args (one-shot migration; --apply is a flag)",
+		"aiwf worktree add":          "<branch> is a new or existing git branch name, [path] is a directory path; neither has a closed set worth enumerating",
 		"aiwf archive":               "no positional args (sweep is by status, not by id; per ADR-0004)",
 		"aiwf completion":            "Cobra completion script generator; out of E-14 scope",
 		"aiwf completion bash":       "Cobra completion script generator; out of E-14 scope",
