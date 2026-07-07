@@ -832,5 +832,9 @@ a correlation id that ties one invocation's JSON envelope to its own log
 lines, so "why did this verb do that on someone else's repo?" has a real
 answer instead of whatever the operator happened to capture from stderr.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0237 | Logger core: internal/logger package and concurrent-append safety | draft |
+| M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | draft |
+| M-0239 | Correlation id wiring; ratify ADR-0017 | draft |
 
