@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Named bare-stderr call sites emit diagnostic events through the bound logger
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: A migrated verb run with AIWF_LOG=info fires the expected structured event
       status: open
