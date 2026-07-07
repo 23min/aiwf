@@ -4,7 +4,6 @@ package rewidth
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,12 +86,12 @@ runs.`,
 func Run(actor, principal, root string, apply, skipChecks bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
+		cliutil.Errorf("aiwf rewidth: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
+		cliutil.Errorf("aiwf rewidth: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -102,11 +101,11 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
+		cliutil.Errorf("aiwf rewidth: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
 		return cliutil.ExitUsage
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		fmt.Fprintln(os.Stderr, "aiwf rewidth: --principal is forbidden when --actor is human/ (humans act directly)")
+		cliutil.Errorln("aiwf rewidth: --principal is forbidden when --actor is human/ (humans act directly)")
 		return cliutil.ExitUsage
 	}
 
@@ -137,20 +136,20 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 
 	result, err := verb.Rewidth(ctx, rootDir, actorStr)
 	if err != nil { //coverage:ignore verb.Rewidth only errors on filesystem failures; tempdir-based tests can't reproduce
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", err)
+		cliutil.Errorf("aiwf rewidth: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	if result == nil { //coverage:ignore Rewidth always returns a non-nil Result on success path; defensive against future API drift
-		fmt.Fprintln(os.Stderr, "aiwf rewidth: no result returned")
+		cliutil.Errorln("aiwf rewidth: no result returned")
 		return cliutil.ExitInternal
 	}
 
 	if result.NoOp {
-		fmt.Println(result.NoOpMessage)
+		cliutil.Println(result.NoOpMessage)
 		return cliutil.ExitOK
 	}
 	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today; defensive against future API drift
-		fmt.Fprintln(os.Stderr, "aiwf rewidth: validation passed but no plan produced")
+		cliutil.Errorln("aiwf rewidth: validation passed but no plan produced")
 		return cliutil.ExitInternal
 	}
 
@@ -170,13 +169,13 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 	}
 
 	if applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: %v\n", applyErr)
+		cliutil.Errorf("aiwf rewidth: %v\n", applyErr)
 		return cliutil.ExitInternal
 	}
 	if len(result.Findings) > 0 { //coverage:ignore Rewidth currently never populates Findings (validation is downstream — `aiwf check` post-commit); defensive surface for future projection-finding adoption
 		_ = render.Text(os.Stderr, result.Findings)
 	}
-	fmt.Println(result.Plan.Subject)
+	cliutil.Println(result.Plan.Subject)
 	return cliutil.ExitOK
 }
 
@@ -219,18 +218,18 @@ func rewidthPreflight(ctx context.Context, rootDir string) int {
 		// All expected dirs missing — almost certainly not an aiwf
 		// repo. Bail with a clear usage error rather than producing
 		// a confusing empty-plan or an `aiwf check` torrent.
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: no aiwf-managed directories found under %q\n", rootDir)
-		fmt.Fprintln(os.Stderr, "aiwf rewidth:   expected at least one of: "+strings.Join(rewidthExpectedDirs, ", "))
-		fmt.Fprintln(os.Stderr, "aiwf rewidth:   if this is intentional, re-run with --skip-checks")
+		cliutil.Errorf("aiwf rewidth: no aiwf-managed directories found under %q\n", rootDir)
+		cliutil.Errorln("aiwf rewidth:   expected at least one of: " + strings.Join(rewidthExpectedDirs, ", "))
+		cliutil.Errorln("aiwf rewidth:   if this is intentional, re-run with --skip-checks")
 		return cliutil.ExitUsage
 	}
 	for _, rel := range missing {
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: warning: expected directory %q is missing (advisory; the verb continues)\n", rel)
+		cliutil.Errorf("aiwf rewidth: warning: expected directory %q is missing (advisory; the verb continues)\n", rel)
 	}
 
 	tr, loadErrs, loadErr := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if loadErr != nil { //coverage:ignore cliutil.LoadTreeWithTrunk only fails on filesystem failures; tempdir tests can't reproduce
-		fmt.Fprintf(os.Stderr, "aiwf rewidth: preflight: loading tree: %v\n", loadErr)
+		cliutil.Errorf("aiwf rewidth: preflight: loading tree: %v\n", loadErr)
 		return cliutil.ExitInternal
 	}
 	findings := check.Run(tr, loadErrs)
@@ -241,9 +240,9 @@ func rewidthPreflight(ctx context.Context, rootDir string) int {
 		}
 	}
 	if len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, "aiwf rewidth: preflight: aiwf check has error-severity findings; refusing to --apply")
-		fmt.Fprintln(os.Stderr, "aiwf rewidth:   fix the findings or re-run with --skip-checks to override")
-		fmt.Fprintln(os.Stderr)
+		cliutil.Errorln("aiwf rewidth: preflight: aiwf check has error-severity findings; refusing to --apply")
+		cliutil.Errorln("aiwf rewidth:   fix the findings or re-run with --skip-checks to override")
+		cliutil.Errorln()
 		_ = render.Text(os.Stderr, errs)
 		return cliutil.ExitFindings
 	}
@@ -254,10 +253,10 @@ func rewidthPreflight(ctx context.Context, rootDir string) int {
 // renames + body rewrites. Stdout, not stderr — the user reads this
 // to decide whether to re-run with --apply.
 func printRewidthDryRun(p *verb.Plan) {
-	fmt.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
 	if p.Body != "" {
-		fmt.Println()
-		fmt.Print(p.Body)
+		cliutil.Println()
+		cliutil.Print(p.Body)
 	}
 	// Per-op detail keeps the verb self-documenting in CI logs and
 	// shell sessions.
@@ -271,14 +270,14 @@ func printRewidthDryRun(p *verb.Plan) {
 			writes++
 		}
 	}
-	fmt.Println()
-	fmt.Println("Operations:")
+	cliutil.Println()
+	cliutil.Println("Operations:")
 	for _, op := range p.Ops {
 		switch op.Type {
 		case verb.OpMove:
-			fmt.Printf("  rename  %s -> %s\n", op.Path, op.NewPath)
+			cliutil.Printf("  rename  %s -> %s\n", op.Path, op.NewPath)
 		case verb.OpWrite:
-			fmt.Printf("  rewrite %s (%d bytes)\n", op.Path, len(op.Content))
+			cliutil.Printf("  rewrite %s (%d bytes)\n", op.Path, len(op.Content))
 		}
 	}
 }

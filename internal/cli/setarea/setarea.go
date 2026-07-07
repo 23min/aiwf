@@ -7,8 +7,6 @@ package setarea
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -99,23 +97,23 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 	// Arity-vs-clear: <member> and --clear are mutually exclusive, and
 	// exactly one of them must be supplied.
 	if member != "" && clearTag {
-		fmt.Fprintln(os.Stderr, "aiwf set-area: <member> and --clear are mutually exclusive")
+		cliutil.Errorln("aiwf set-area: <member> and --clear are mutually exclusive")
 		return cliutil.ExitUsage
 	}
 	if member == "" && !clearTag {
-		fmt.Fprintln(os.Stderr, "aiwf set-area: pass <member> to tag, or --clear to untag")
+		cliutil.Errorln("aiwf set-area: pass <member> to tag, or --clear to untag")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		fmt.Fprintf(os.Stderr, "aiwf set-area: %v\n", err)
+		cliutil.Errorf("aiwf set-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf set-area: %v\n", err)
+		cliutil.Errorf("aiwf set-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -129,7 +127,7 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
-		fmt.Fprintf(os.Stderr, "aiwf set-area: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf set-area: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 

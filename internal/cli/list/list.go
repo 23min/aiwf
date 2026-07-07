@@ -131,17 +131,17 @@ func UnionAllStatuses() []string {
 // Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
 func Run(root, kind, status, parent, area string, archived bool, format string, pretty, noTrunc bool) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf list: --format must be 'text' or 'json', got %q\n", format)
+		cliutil.Errorf("aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	if kind != "" && !IsKnownKind(kind) {
-		fmt.Fprintf(os.Stderr, "aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
+		cliutil.Errorf("aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf list: %v\n", err)
+		cliutil.Errorf("aiwf list: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -150,12 +150,12 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 	// only tells the operator the value they typed isn't one they
 	// declared. To stderr so it never pollutes the (stdout) result.
 	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
-		fmt.Fprintln(os.Stderr, note)
+		cliutil.Errorln(note)
 	}
 
 	tr, _, err := tree.Load(context.Background(), rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf list: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf list: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -176,7 +176,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 				},
 			}
 			if err := render.JSON(os.Stdout, env, pretty); err != nil {
-				fmt.Fprintf(os.Stderr, "aiwf list: writing output: %v\n", err)
+				cliutil.Errorf("aiwf list: writing output: %v\n", err)
 				return cliutil.ExitInternal
 			}
 		}
@@ -200,7 +200,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 			},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf list: writing output: %v\n", err)
+			cliutil.Errorf("aiwf list: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

@@ -65,17 +65,17 @@ func SyncHookMaterialization(rootDir string, target skills.Target, hooks []skill
 	configPath := filepath.Join(rootDir, config.FileName)
 	doc, _, err := aiwfyaml.Read(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		Errorf("aiwf: %v\n", err)
 		return ExitInternal
 	}
 	decisions, err := doc.Hooks()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		Errorf("aiwf: %v\n", err)
 		return ExitInternal
 	}
 
 	if err := skills.MaterializeHooks(rootDir, target, hooks, decisions); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+		Errorf("aiwf: %v\n", err)
 		return ExitInternal
 	}
 
@@ -88,13 +88,13 @@ func SyncHookMaterialization(rootDir string, target skills.Target, hooks []skill
 		command := h.Command(target)
 		if enabled {
 			if _, wireErr := skills.WireHookSettings(settingsPath, command, h.Events); wireErr != nil {
-				fmt.Fprintf(os.Stderr, "aiwf: %v\n", wireErr)
+				Errorf("aiwf: %v\n", wireErr)
 				return ExitInternal
 			}
 			continue
 		}
 		if _, unwireErr := skills.UnwireHookSettings(settingsPath, command); unwireErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf: %v\n", unwireErr)
+			Errorf("aiwf: %v\n", unwireErr)
 			return ExitInternal
 		}
 	}

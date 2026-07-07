@@ -4,7 +4,6 @@ package archive
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -86,7 +85,7 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if apply && dryRun {
-				fmt.Fprintln(os.Stderr, "aiwf archive: --apply and --dry-run are mutually exclusive")
+				cliutil.Errorln("aiwf archive: --apply and --dry-run are mutually exclusive")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			return cliutil.WrapExitCode(Run(actor, principal, root, kind, apply))
@@ -119,12 +118,12 @@ func archiveKindCompletions() []string {
 func Run(actor, principal, root, kind string, apply bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
+		cliutil.Errorf("aiwf archive: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
-		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
+		cliutil.Errorf("aiwf archive: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -134,11 +133,11 @@ func Run(actor, principal, root, kind string, apply bool) int {
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		fmt.Fprintf(os.Stderr, "aiwf archive: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
+		cliutil.Errorf("aiwf archive: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
 		return cliutil.ExitUsage
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		fmt.Fprintln(os.Stderr, "aiwf archive: --principal is forbidden when --actor is human/ (humans act directly)")
+		cliutil.Errorln("aiwf archive: --principal is forbidden when --actor is human/ (humans act directly)")
 		return cliutil.ExitUsage
 	}
 
@@ -146,7 +145,7 @@ func Run(actor, principal, root, kind string, apply bool) int {
 	kindStr := strings.TrimSpace(kind)
 	if kindStr != "" {
 		if !validArchiveKind(kindStr) {
-			fmt.Fprintf(os.Stderr, "aiwf archive: --kind %q is not one of %s\n", kindStr, strings.Join(archiveKindCompletions(), ", "))
+			cliutil.Errorf("aiwf archive: --kind %q is not one of %s\n", kindStr, strings.Join(archiveKindCompletions(), ", "))
 			return cliutil.ExitUsage
 		}
 	}
@@ -164,20 +163,20 @@ func Run(actor, principal, root, kind string, apply bool) int {
 
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
-		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", err)
+		cliutil.Errorf("aiwf archive: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	if result == nil { //coverage:ignore Archive always returns a non-nil Result on success
-		fmt.Fprintln(os.Stderr, "aiwf archive: no result returned")
+		cliutil.Errorln("aiwf archive: no result returned")
 		return cliutil.ExitInternal
 	}
 
 	if result.NoOp {
-		fmt.Println(result.NoOpMessage)
+		cliutil.Println(result.NoOpMessage)
 		return cliutil.ExitOK
 	}
 	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today
-		fmt.Fprintln(os.Stderr, "aiwf archive: validation passed but no plan produced")
+		cliutil.Errorln("aiwf archive: validation passed but no plan produced")
 		return cliutil.ExitInternal
 	}
 
@@ -196,13 +195,13 @@ func Run(actor, principal, root, kind string, apply bool) int {
 	}
 
 	if applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
-		fmt.Fprintf(os.Stderr, "aiwf archive: %v\n", applyErr)
+		cliutil.Errorf("aiwf archive: %v\n", applyErr)
 		return cliutil.ExitInternal
 	}
 	if len(result.Findings) > 0 { //coverage:ignore Archive currently never populates Findings
 		_ = render.Text(os.Stderr, result.Findings)
 	}
-	fmt.Println(result.Plan.Subject)
+	cliutil.Println(result.Plan.Subject)
 	return cliutil.ExitOK
 }
 
@@ -222,10 +221,10 @@ func validArchiveKind(s string) bool {
 // moves. Stdout, not stderr — the user reads this to decide whether
 // to re-run with --apply.
 func printArchiveDryRun(p *verb.Plan) {
-	fmt.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
 	if p.Body != "" {
-		fmt.Println()
-		fmt.Print(p.Body)
+		cliutil.Println()
+		cliutil.Print(p.Body)
 	}
 	moves := 0
 	for _, op := range p.Ops {
@@ -233,11 +232,11 @@ func printArchiveDryRun(p *verb.Plan) {
 			moves++
 		}
 	}
-	fmt.Println()
-	fmt.Printf("Moves (%d):\n", moves)
+	cliutil.Println()
+	cliutil.Printf("Moves (%d):\n", moves)
 	for _, op := range p.Ops {
 		if op.Type == verb.OpMove {
-			fmt.Printf("  %s -> %s\n", op.Path, op.NewPath)
+			cliutil.Printf("  %s -> %s\n", op.Path, op.NewPath)
 		}
 	}
 }

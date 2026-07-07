@@ -2,7 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sort"
 
@@ -37,30 +36,30 @@ func newRecipesCmd() *cobra.Command {
 func runRecipes(root string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		cliutil.Errorf("aiwf contract recipes: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	embedded, err := recipe.List()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		cliutil.Errorf("aiwf contract recipes: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	contracts, err := cliutil.LoadContractsBlock(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipes: %v\n", err)
+		cliutil.Errorf("aiwf contract recipes: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
-	fmt.Println("Embedded recipes (install via `aiwf contract recipe install <name>`):")
+	cliutil.Println("Embedded recipes (install via `aiwf contract recipe install <name>`):")
 	for _, r := range embedded {
-		fmt.Printf("  %s\n", r.Name)
+		cliutil.Printf("  %s\n", r.Name)
 	}
-	fmt.Println()
-	fmt.Println("Currently declared validators in aiwf.yaml.contracts.validators:")
+	cliutil.Println()
+	cliutil.Println("Currently declared validators in aiwf.yaml.contracts.validators:")
 	if contracts == nil || len(contracts.Validators) == 0 {
-		fmt.Println("  (none)")
+		cliutil.Println("  (none)")
 	} else {
 		names := make([]string, 0, len(contracts.Validators))
 		for n := range contracts.Validators {
@@ -69,7 +68,7 @@ func runRecipes(root string) int {
 		sort.Strings(names)
 		for _, n := range names {
 			v := contracts.Validators[n]
-			fmt.Printf("  %s — %s\n", n, v.Command)
+			cliutil.Printf("  %s — %s\n", n, v.Command)
 		}
 	}
 	return cliutil.ExitOK
@@ -113,11 +112,11 @@ func newRecipeShowCmd() *cobra.Command {
 func runRecipeShow(name string) int {
 	r, err := recipe.Get(name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe show: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	if _, err := os.Stdout.Write(r.Markdown); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe show: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe show: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	return cliutil.ExitOK
@@ -166,29 +165,29 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 	)
 	switch {
 	case from != "" && len(args) > 0:
-		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: pass either <name> or --from <path>, not both")
+		cliutil.Errorln("aiwf contract recipe install: pass either <name> or --from <path>, not both")
 		return cliutil.ExitUsage
 	case from != "":
 		r, loadErr = recipe.ParseFile(from)
 	case len(args) == 1:
 		r, loadErr = recipe.Get(args[0])
 	default:
-		fmt.Fprintln(os.Stderr, "aiwf contract recipe install: usage: aiwf contract recipe install <name> | --from <path>")
+		cliutil.Errorln("aiwf contract recipe install: usage: aiwf contract recipe install <name> | --from <path>")
 		return cliutil.ExitUsage
 	}
 	if loadErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", loadErr)
+		cliutil.Errorf("aiwf contract recipe install: %v\n", loadErr)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -200,7 +199,7 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe install: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -240,12 +239,12 @@ func newRecipeRemoveCmd() *cobra.Command {
 func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -257,7 +256,7 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract recipe remove: %v\n", err)
+		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
 	}
 

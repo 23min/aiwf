@@ -8,8 +8,6 @@ package add
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -71,17 +69,17 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(args) > 1 {
-				fmt.Fprintf(os.Stderr, "aiwf add: unexpected args after kind %q: %v\n", args[0], args[1:])
+				cliutil.Errorf("aiwf add: unexpected args after kind %q: %v\n", args[0], args[1:])
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			kindArg := args[0]
 			k, ok := cliutil.ParseKind(kindArg)
 			if !ok {
-				fmt.Fprintf(os.Stderr, "aiwf add: unknown kind %q\n", kindArg)
+				cliutil.Errorf("aiwf add: unknown kind %q\n", kindArg)
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			if len(titles) > 1 {
-				fmt.Fprintf(os.Stderr, "aiwf add: --title may not be repeated for kind %q (only `aiwf add ac` accepts a repeated --title for batched creation)\n", kindArg)
+				cliutil.Errorf("aiwf add: --title may not be repeated for kind %q (only `aiwf add ac` accepts a repeated --title for batched creation)\n", kindArg)
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			title := ""
@@ -149,22 +147,22 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// checks, independent of the tree, so they run before any
 	// root-resolution or disk work.
 	if bodyFile != "" && bodyText != "" {
-		fmt.Fprintln(os.Stderr, "aiwf add: --body and --body-file are mutually exclusive; pass one or the other")
+		cliutil.Errorln("aiwf add: --body and --body-file are mutually exclusive; pass one or the other")
 		return cliutil.ExitUsage
 	}
 	if force && strings.TrimSpace(reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf add: --reason \"...\" is required when --force is set (non-empty after trim)")
+		cliutil.Errorln("aiwf add: --reason \"...\" is required when --force is set (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
+		cliutil.Errorf("aiwf add: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add: %v\n", err)
+		cliutil.Errorf("aiwf add: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -185,12 +183,12 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// the ones read into the allocator's view.
 	if fetch {
 		if ferr := gitops.FetchAll(ctx, rootDir); ferr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf add: --fetch: %v; allocating against the local view\n", ferr)
+			cliutil.Errorf("aiwf add: --fetch: %v; allocating against the local view\n", ferr)
 		}
 	}
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf add: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -228,7 +226,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 				// A milestone's area derives from its parent epic, so a path
 				// hint has nothing to set. Note it rather than silently
 				// ignoring an explicitly-passed flag (the AC-7 principle).
-				fmt.Fprintln(os.Stderr, "aiwf add: --path-hint ignored — a milestone's area derives from its parent epic, not a path hint")
+				cliutil.Errorln("aiwf add: --path-hint ignored — a milestone's area derives from its parent epic, not a path hint")
 			}
 		}
 		// E-0043: a gap with --discovered-in derives from the source entity's
@@ -248,7 +246,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	// area trips the refusal.
 	if resolvedArea == "" && entity.CarriesOwnArea(k) && cliutil.ConfiguredAreaRequired(rootDir) {
 		members := cliutil.ConfiguredAreaMembers(rootDir)
-		fmt.Fprintf(os.Stderr, "aiwf add: aiwf.yaml: areas.required is set — %s requires an --area; declared: %s\n", k, strings.Join(members, ", "))
+		cliutil.Errorf("aiwf add: aiwf.yaml: areas.required is set — %s requires an --area; declared: %s\n", k, strings.Join(members, ", "))
 		return cliutil.ExitUsage
 	}
 
@@ -272,7 +270,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	case bodyFile != "":
 		body, readErr := cliutil.ReadBodyFile(bodyFile)
 		if readErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", readErr)
+			cliutil.Errorf("aiwf add: %v\n", readErr)
 			return cliutil.ExitUsage
 		}
 		opts.BodyOverride = body
@@ -283,7 +281,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	if k == entity.KindContract && bindValidator != "" {
 		doc, contracts, loadErr := cliutil.LoadContractsDoc(rootDir)
 		if loadErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf add: %v\n", loadErr)
+			cliutil.Errorf("aiwf add: %v\n", loadErr)
 			return cliutil.ExitUsage
 		}
 		opts.AiwfDoc = doc
@@ -320,7 +318,7 @@ func validateAreaMember(rootDir, area string) int {
 	// entity.IsValidAreaValue, which accepts global regardless of the
 	// declared set.
 	if len(members) == 0 {
-		fmt.Fprintf(os.Stderr, "aiwf add: --area %q given but no `areas` block is declared in aiwf.yaml; declare areas.members or omit --area\n", area)
+		cliutil.Errorf("aiwf add: --area %q given but no `areas` block is declared in aiwf.yaml; declare areas.members or omit --area\n", area)
 		return cliutil.ExitUsage
 	}
 	// With a block declared, the reserved `global` sentinel or any declared
@@ -328,7 +326,7 @@ func validateAreaMember(rootDir, area string) int {
 	if entity.IsValidAreaValue(area, members) {
 		return cliutil.ExitOK
 	}
-	fmt.Fprintf(os.Stderr, "aiwf add: --area %q is not a declared area; declared: %s\n", area, strings.Join(members, ", "))
+	cliutil.Errorf("aiwf add: --area %q is not a declared area; declared: %s\n", area, strings.Join(members, ", "))
 	return cliutil.ExitUsage
 }
 
@@ -344,12 +342,12 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 	if len(areas) == 0 {
 		// AC-7: no oracle — no declared area carries a paths: glob. Inert, but
 		// noted so an explicitly-passed hint does not silently do nothing.
-		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q ignored — no declared area has a paths: glob to match against\n", pathHint)
+		cliutil.Errorf("aiwf add: --path-hint %q ignored — no declared area has a paths: glob to match against\n", pathHint)
 		return ""
 	}
 	matched, err := areamatch.Derive(areas, normalizeHint(rootDir, pathHint))
 	if err != nil { //coverage:ignore unreachable via the public path: area globs are validated at config load (areamatch.Validate via config.Areas.validate), so Derive never sees a malformed glob here; kept as defense-in-depth degrading to no-derivation
-		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint derivation skipped: %v\n", err)
+		cliutil.Errorf("aiwf add: --path-hint derivation skipped: %v\n", err)
 		return ""
 	}
 	switch len(matched) {
@@ -359,10 +357,10 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 		// AC-6: paths are declared, but none claim the hint. Describe the hint
 		// outcome ("no area derived"), not the entity's final state — a gap may
 		// still be tagged by the --discovered-in fallback in Run.
-		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q matches no declared area's paths; no area derived (pass --area to tag explicitly)\n", pathHint)
+		cliutil.Errorf("aiwf add: --path-hint %q matches no declared area's paths; no area derived (pass --area to tag explicitly)\n", pathHint)
 	default:
 		// AC-6: several areas claim the hint — ambiguous, so derive nothing.
-		fmt.Fprintf(os.Stderr, "aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
+		cliutil.Errorf("aiwf add: --path-hint %q is ambiguous (claimed by: %s); no area derived — pass --area to choose\n", pathHint, strings.Join(matched, ", "))
 	}
 	return ""
 }
@@ -376,7 +374,7 @@ func deriveAreaFromHint(rootDir, pathHint string) string {
 func warnAreaHintConflict(rootDir, area, pathHint string) {
 	matched, err := areamatch.Derive(configuredAreaPaths(rootDir), normalizeHint(rootDir, pathHint))
 	if err == nil && len(matched) == 1 && matched[0] != area {
-		fmt.Fprintf(os.Stderr, "aiwf add: note: --area %q overrides --path-hint %q, which points to area %q\n", area, pathHint, matched[0])
+		cliutil.Errorf("aiwf add: note: --area %q overrides --path-hint %q, which points to area %q\n", area, pathHint, matched[0])
 	}
 }
 
@@ -481,7 +479,7 @@ func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 
 func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, tests string, out cliutil.OutputFormat) int {
 	if len(titles) == 0 {
-		fmt.Fprintln(os.Stderr, "aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
+		cliutil.Errorln("aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return cliutil.ExitUsage
 	}
 	// M-067/AC-3: when --body-file is provided at all, per-flag
@@ -489,7 +487,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 	// with the Nth --title. Refuse before file reads, lock, or
 	// id allocation so the operator gets a clean usage error.
 	if len(bodyFiles) > 0 && len(bodyFiles) != len(titles) {
-		fmt.Fprintf(os.Stderr,
+		cliutil.Errorf(
 			"aiwf add ac: got %d titles, %d body files — counts must match "+
 				"(positional pairing: the Nth --body-file populates the Nth --title's body; "+
 				"equal counts required). To create ACs without bodies, omit --body-file entirely.\n",
@@ -504,7 +502,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 	if len(titles) > 1 {
 		for i, p := range bodyFiles {
 			if p == "-" {
-				fmt.Fprintf(os.Stderr,
+				cliutil.Errorf(
 					"aiwf add ac: --body-file[%d] -: stdin (--body-file -) is only valid with a single --title (got %d titles); stdin is one stream and cannot be split positionally — use files for multi-AC invocations\n",
 					i, len(titles))
 				return cliutil.ExitUsage
@@ -522,7 +520,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		for i, path := range bodyFiles {
 			b, readErr := cliutil.ReadBodyFile(path)
 			if readErr != nil {
-				fmt.Fprintf(os.Stderr, "aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
+				cliutil.Errorf("aiwf add ac: --body-file[%d] %s: %v\n", i, path, readErr)
 				return cliutil.ExitUsage
 			}
 			// M-067/AC-4: refuse body files with leading `---`
@@ -533,7 +531,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 			// wrong place and silently break document structure.
 			trimmed := bytes.TrimLeft(b, " \t\r\n")
 			if bytes.HasPrefix(trimmed, []byte("---\n")) || bytes.HasPrefix(trimmed, []byte("---\r\n")) {
-				fmt.Fprintf(os.Stderr,
+				cliutil.Errorf(
 					"aiwf add ac: --body-file[%d] %s: body content begins with a frontmatter delimiter (---); pass body content only, not a full markdown file with its own frontmatter\n",
 					i, path)
 				return cliutil.ExitUsage
@@ -544,12 +542,12 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
+		cliutil.Errorf("aiwf add ac: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add ac: %v\n", err)
+		cliutil.Errorf("aiwf add ac: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -562,7 +560,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf add ac: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf add ac: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, err := verb.AddACBatch(ctx, tr, parentID, titles, bodies, actorStr, metrics)

@@ -4,8 +4,6 @@ package update
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -103,13 +101,13 @@ func NewCmd() *cobra.Command {
 // (M-0235/AC-3).
 func Run(root string, statusline bool, scope string, wireSettings, allowUntagged, remove, force bool, enableHooks []string, hooks []skills.HookDef) int {
 	if statusline && remove {
-		fmt.Fprintln(os.Stderr, "aiwf update: --statusline and --remove are mutually exclusive")
+		cliutil.Errorln("aiwf update: --statusline and --remove are mutually exclusive")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -121,7 +119,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 
 	cfg, err := config.Load(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -130,15 +128,15 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		WireClaudeMd:       cfg.WireClaudeMd(),
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	for _, s := range steps {
 		if s.Detail != "" {
-			fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+			cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 		} else {
-			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+			cliutil.Printf("  %-9s  %s\n", s.Action, s.What)
 		}
 	}
 
@@ -148,21 +146,21 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	// the operator isn't surprised that an update from worktree A
 	// changes the hook chain used by worktree B and the main checkout.
 	if inWT, err := gitops.InWorktree(context.Background(), rootDir); err == nil && inWT {
-		fmt.Println("\nNote: running from a linked worktree. Hook writes go to the shared")
-		fmt.Println("`.git/hooks/` directory; this update affects all worktrees of the repo.")
+		cliutil.Println("\nNote: running from a linked worktree. Hook writes go to the shared")
+		cliutil.Println("`.git/hooks/` directory; this update affects all worktrees of the repo.")
 	}
 
 	if conflict {
-		fmt.Println()
-		fmt.Println("aiwf update: hook chain collision (G45).")
-		fmt.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
-		fmt.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
-		fmt.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
-		fmt.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
+		cliutil.Println()
+		cliutil.Println("aiwf update: hook chain collision (G45).")
+		cliutil.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
+		cliutil.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
+		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")
+		cliutil.Println("delete the original (non-`.local`) hook, and re-run `aiwf update`.")
 		return cliutil.ExitFindings
 	}
 
-	fmt.Println("\naiwf update: done.")
+	cliutil.Println("\naiwf update: done.")
 
 	if len(hooks) > 0 {
 		if rc := gateAndSyncHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndSyncHookDecisions's own failure paths are unit-tested directly (TestGateAndSyncHookDecisions_MissingAiwfYamlReturnsInternal, TestGateAndSyncHookDecisions_UnknownFieldInExistingHooksBlockReturnsInternal); triggering one from here would require config.Load (already run above) to succeed while aiwfyaml.Read on the same path fails, which its own contract precludes
@@ -215,7 +213,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	// (LookPath, tree load, a filesystem-case probe); acceptable at update
 	// cadence. Best-effort: a write failure only logs, never fails update.
 	if err := doctor.WriteHealth(context.Background(), rootDir, time.Now().UTC().Format(time.RFC3339), doctor.DoctorOptions{}); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
+		cliutil.Errorf("aiwf update: could not refresh health.aiwf.json: %v\n", err) //coverage:ignore best-effort refresh; post-materialization git is reachable, so WriteHealth fails only on a filesystem fault (mirrors doctor.go runWriteHealth)
 	}
 
 	return statuslineRC
@@ -230,12 +228,12 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 func refreshStatuslineInPlace(rootDir string) {
 	outcomes, err := skills.AutoRefreshStatusline(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: could not auto-refresh statusline: %v\n", err) //coverage:ignore best-effort; AutoRefreshStatusline errors only on a filesystem fault reading an existing script, unreachable from tempdir tests
+		cliutil.Errorf("aiwf update: could not auto-refresh statusline: %v\n", err) //coverage:ignore best-effort; AutoRefreshStatusline errors only on a filesystem fault reading an existing script, unreachable from tempdir tests
 		return
 	}
 	for _, o := range outcomes {
 		if line, show := o.LedgerLine(); show {
-			fmt.Println(line)
+			cliutil.Println(line)
 		}
 	}
 }

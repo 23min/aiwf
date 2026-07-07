@@ -57,13 +57,13 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf history`. Returns one of the cliutil.Exit* codes.
 func Run(id, root, format string, pretty, showAuth bool) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf history: --format must be text or json, got %q\n", format)
+		cliutil.Errorf("aiwf history: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -95,14 +95,14 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 
 	events, err := ReadHistoryChain(context.Background(), rootDir, chain)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	switch format {
 	case "text":
 		if len(events) == 0 {
-			fmt.Printf("no history for %s\n", id)
+			cliutil.Printf("no history for %s\n", id)
 			return cliutil.ExitOK
 		}
 		// Resolve authorize-SHA → scope-entity for the chip labels, but
@@ -111,21 +111,21 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		scopeEntities := ScopeMapFor(context.Background(), rootDir, events)
 		for i := range events {
 			e := &events[i]
-			fmt.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
+			cliutil.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",
 				e.Date, RenderActor(*e), e.Verb, RenderTo(e.To), e.Detail, e.Commit,
 				RenderScopeChips(*e, scopeEntities, showAuth))
 			if e.Force != "" {
-				fmt.Printf("    [forced: %s]\n", e.Force)
+				cliutil.Printf("    [forced: %s]\n", e.Force)
 			}
 			if e.AuditOnly != "" {
-				fmt.Printf("    [audit-only: %s]\n", e.AuditOnly)
+				cliutil.Printf("    [audit-only: %s]\n", e.AuditOnly)
 			}
 			if e.Reason != "" {
-				fmt.Printf("    [reason: %s]\n", e.Reason)
+				cliutil.Printf("    [reason: %s]\n", e.Reason)
 			}
 			if e.Body != "" {
 				for _, line := range strings.Split(e.Body, "\n") {
-					fmt.Printf("    %s\n", line)
+					cliutil.Printf("    %s\n", line)
 				}
 			}
 		}
@@ -141,7 +141,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 			},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf history: %v\n", err)
+			cliutil.Errorf("aiwf history: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

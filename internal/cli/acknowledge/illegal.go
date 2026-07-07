@@ -2,8 +2,6 @@ package acknowledge
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -121,18 +119,18 @@ Both --reason (non-empty after trim) and a human/... actor are required
 // so Cobra's RunE channel preserves the exit code through the run() dispatcher.
 func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) int {
 	if strings.TrimSpace(reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf acknowledge illegal: --reason \"...\" is required (non-empty after trim)")
+		cliutil.Errorln("aiwf acknowledge illegal: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd — filepath.Abs failure (explicit --root) or os.Getwd failure (empty --root); neither is deterministically reproducible.
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge illegal: %v\n", err)
+		cliutil.Errorf("aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge illegal: %v\n", err)
+		cliutil.Errorf("aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal")

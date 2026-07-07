@@ -104,7 +104,7 @@ func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool, enableHooks []string, hooks []skills.HookDef) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -122,50 +122,50 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 		SkipHook:      skipHook,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	if res.DryRun {
-		fmt.Println("aiwf init: dry-run — nothing was written.")
+		cliutil.Println("aiwf init: dry-run — nothing was written.")
 	}
 	for _, s := range res.Steps {
 		if s.Detail != "" {
-			fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+			cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 		} else {
-			fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+			cliutil.Printf("  %-9s  %s\n", s.Action, s.What)
 		}
 	}
 
 	if res.HookConflict {
-		fmt.Println()
-		fmt.Println("aiwf init: hook chain collision (G45).")
-		fmt.Println("aiwf wanted to migrate a pre-existing non-aiwf hook to its `.local`")
-		fmt.Println("sibling, but a `.local` file already exists. To preserve your work,")
-		fmt.Println("aiwf left both files untouched.")
-		fmt.Println()
-		fmt.Println("Resolve manually:")
-		fmt.Println("  1. Open the existing hook (.git/hooks/pre-push and/or pre-commit) and")
-		fmt.Println("     the `.local` sibling that's blocking the migration.")
-		fmt.Println("  2. Merge the content into one file at the `.local` path.")
-		fmt.Println("  3. Delete the original (non-`.local`) hook.")
-		fmt.Println("  4. Re-run `aiwf init`.")
-		fmt.Println()
-		fmt.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
-		fmt.Println("You can still validate manually with `aiwf check`.")
+		cliutil.Println()
+		cliutil.Println("aiwf init: hook chain collision (G45).")
+		cliutil.Println("aiwf wanted to migrate a pre-existing non-aiwf hook to its `.local`")
+		cliutil.Println("sibling, but a `.local` file already exists. To preserve your work,")
+		cliutil.Println("aiwf left both files untouched.")
+		cliutil.Println()
+		cliutil.Println("Resolve manually:")
+		cliutil.Println("  1. Open the existing hook (.git/hooks/pre-push and/or pre-commit) and")
+		cliutil.Println("     the `.local` sibling that's blocking the migration.")
+		cliutil.Println("  2. Merge the content into one file at the `.local` path.")
+		cliutil.Println("  3. Delete the original (non-`.local`) hook.")
+		cliutil.Println("  4. Re-run `aiwf init`.")
+		cliutil.Println()
+		cliutil.Println("Until then, `aiwf check` does not run automatically on `git push`/`git commit`.")
+		cliutil.Println("You can still validate manually with `aiwf check`.")
 		return cliutil.ExitFindings
 	}
 
 	switch {
 	case res.DryRun:
-		fmt.Println("\naiwf init: dry-run complete. Re-run without --dry-run to apply.")
+		cliutil.Println("\naiwf init: dry-run complete. Re-run without --dry-run to apply.")
 	case skipHook:
-		fmt.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
-		fmt.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
-		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
+		cliutil.Println("\naiwf init: done (pre-push hook skipped). Commit aiwf.yaml when you're ready.")
+		cliutil.Println("Run `aiwf init` again later to install the hook, or wire `aiwf check` into your push flow manually.")
+		cliutil.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	default:
-		fmt.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
-		fmt.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
+		cliutil.Println("\naiwf init: done. Commit aiwf.yaml when you're ready.")
+		cliutil.Println("Skills, ritual skills, agents, and templates were materialized into .claude/ (no plugin install needed; see CLAUDE.md \"Operator setup\").")
 	}
 
 	if len(hooks) > 0 {
@@ -177,7 +177,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 				return rc
 			}
 		} else {
-			fmt.Println("aiwf init --enable-hook: dry-run — hook consent gating skipped.")
+			cliutil.Println("aiwf init --enable-hook: dry-run — hook consent gating skipped.")
 		}
 	}
 
@@ -191,7 +191,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 			return rc
 		}
 	} else if statusline && dryRun {
-		fmt.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
+		cliutil.Println("aiwf init --statusline: dry-run — statusline scaffold skipped.")
 	}
 	return cliutil.ExitOK
 }
@@ -207,12 +207,12 @@ func gateAndPersistHookDecisions(rootDir string, hooks []skills.HookDef, enableH
 	configPath := filepath.Join(rootDir, config.FileName)
 	doc, _, err := aiwfyaml.Read(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	doc.SetHooks(decisions)
 	if err := doc.Write(configPath); err != nil { //coverage:ignore the preceding Read already succeeded against the same path; only external interference (disk failure, permission change between the two calls) reaches this, not any code path this binary's own control flow produces
-		fmt.Fprintf(os.Stderr, "aiwf init: %v\n", err)
+		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -221,7 +221,7 @@ func gateAndPersistHookDecisions(rootDir string, hooks []skills.HookDef, enableH
 		if decisions[h.Name] {
 			state = "enabled"
 		}
-		fmt.Printf("aiwf init: hook %q — %s\n", h.Name, state)
+		cliutil.Printf("aiwf init: hook %q — %s\n", h.Name, state)
 	}
 	return cliutil.ExitOK
 }

@@ -4,8 +4,6 @@ package retitle
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -64,12 +62,12 @@ func NewCmd() *cobra.Command {
 func Run(id, newTitle, actor, principal, root, reason string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
+		cliutil.Errorf("aiwf retitle: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
+		cliutil.Errorf("aiwf retitle: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -82,7 +80,7 @@ func Run(id, newTitle, actor, principal, root, reason string, out cliutil.Output
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf retitle: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason, cliutil.ConfiguredTitleMaxLength(rootDir))
