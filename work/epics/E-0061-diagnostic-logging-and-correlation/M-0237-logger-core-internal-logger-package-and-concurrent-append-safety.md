@@ -148,6 +148,12 @@ Env/yaml/default precedence resolved independently per setting
 (`ResolveConfig`); discard-when-off backed by `slog.DiscardHandler`
 (`New`) · commit d0fff662 · tests 7/7
 
+### AC-2 — Opted-in logs land in one daily XDG-state-home file, 30-day retention
+
+`OpenDestination` resolves stderr/explicit-path/default-XDG destinations;
+default directory created and swept of >30-day entries only on an
+opted-in call · commit efbbc061 · tests 22/22
+
 ## Decisions made during implementation
 
 - The `logging:` block's parsing/validation lives in `internal/logger`
@@ -155,6 +161,15 @@ Env/yaml/default precedence resolved independently per setting
   — that package is reserved for blocks a verb programmatically rewrites
   in place (`contracts:`, `areas:`, `hooks:`), which `logging:` never is.
   ADR-0017's Consequences section is corrected to match.
+- `OpenDestination` refuses to resolve the default destination when
+  neither `XDG_STATE_HOME` nor `HOME` is set, rather than silently
+  falling back to a bare relative path that would write into the
+  process's current working directory — caught by AC-2's vacuity
+  mutation probe, not anticipated by the original AC text.
+- AC-5's `atomic_write_chokepoint.go` allowlist entry for
+  `internal/logger`'s writer landed with AC-2 (commit efbbc061), since
+  AC-2's file-opening code needs it to pass the chokepoint policy. AC-5
+  itself is now just confirming the entry and promoting.
 
 ## Validation
 
