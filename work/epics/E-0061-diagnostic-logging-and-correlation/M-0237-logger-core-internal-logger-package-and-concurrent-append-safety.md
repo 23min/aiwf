@@ -168,6 +168,15 @@ actor before binding, mirroring `.gitleaks.toml`'s existing
 path-leak-darwin-home/path-leak-linux-home regexes · commit ef468cb9 ·
 tests 29/29
 
+### AC-5 — atomic_write_chokepoint.go allowlists internal/logger's append write
+
+Already satisfied by AC-2's commit efbbc061 (the allowlist entry landed
+there since AC-2's file-opening code needed it to pass the policy).
+`TestPolicy_AtomicWriteChokepoint` runs against the real repo tree and
+confirms zero violations — exactly one exemption
+(`internal/logger/destination.go`), nothing else inadvertently exempted
+· commit efbbc061 · tests 2/2
+
 ## Decisions made during implementation
 
 - The `logging:` block's parsing/validation lives in `internal/logger`
