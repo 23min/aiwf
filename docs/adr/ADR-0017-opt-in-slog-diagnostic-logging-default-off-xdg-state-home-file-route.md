@@ -43,7 +43,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 8. **Logs are testable.** Tests capture the slog handler and assert `"verb.commit fired once with entity=M-0090"` — the rubric's E1 "capture log events in tests so you can assert this event fired with these fields" requirement.
 
-9. **`forbidigo` chokepoint** bans bare `fmt.Println` / `fmt.Print` / `fmt.Fprintln(os.Stdout|os.Stderr, …)` outside an explicit allowlist (`cmd/aiwf/main.go`, the human-text branch in `internal/cli/output/outputformat.go`, golden-file regeneration helpers). The forbidigo rule is the load-bearing piece; without it, the discipline rots back to one-of.
+9. **`forbidigo` chokepoint** bans bare `fmt.Println` / `fmt.Print` / `fmt.Fprintln(os.Stdout|os.Stderr, …)` outside an explicit allowlist (`cmd/aiwf/main.go`, the human-text branch in `internal/cli/cliutil/outputformat.go`, golden-file regeneration helpers). The forbidigo rule is the load-bearing piece; without it, the discipline rots back to one-of.
 
 ## Consequences
 
