@@ -131,6 +131,26 @@ func good(w io.Writer) {
 			wantFire: false,
 		},
 		{
+			// The writer argument is a selector under a package OTHER
+			// than os — exercises isOSStdioWriter's pkg.Name != "os"
+			// arm specifically, distinct from the "not a selector at
+			// all" and "os.* but not Stdout/Stderr" cases above/below.
+			name:    "fmt.Fprintln to a non-os package selector does not fire",
+			relPath: "internal/cli/clean/clean.go",
+			body: `package clean
+
+import (
+	"bytes"
+	"fmt"
+)
+
+func good() {
+	fmt.Fprintln(bytes.MinRead, "hello")
+}
+`,
+			wantFire: false,
+		},
+		{
 			// The writer argument IS an os.* selector, but not Stdout or
 			// Stderr — exercises isOSStdioWriter's final name comparison,
 			// not just its earlier "is this a selector at all" guard.
