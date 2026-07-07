@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.26.2] — 2026-07-07
+
 ### Changed — G-0384: `aiwfx-release`'s push gates hand off to the orchestrating session
 
 The `deployer` agent card and the `aiwfx-release` ritual's two push gates (the
