@@ -847,5 +847,11 @@ worktree, concurrency, and verb-sequencing correctness beyond what today's
 example-based unit and integration tests cover, converting any violation it
 finds into a reproducible gap.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0240 | Harness skeleton: driver, scenario interface, streaming report | draft |
+| M-0241 | Property sequences and multi-worktree contention scenarios | draft |
+| M-0242 | Fault injection via external observation | draft |
+| M-0243 | Named scenarios from G-0212 and G-0269 | draft |
+| M-0244 | Concurrent-writer test at scale; triage process; epic close | draft |
 
