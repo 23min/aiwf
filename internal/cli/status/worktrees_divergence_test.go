@@ -294,6 +294,63 @@ func TestStatusRun_FlagsCrossWorktreeDivergence(t *testing.T) {
 	if !strings.Contains(line, entity.StatusDraft) {
 		t.Errorf("milestone row = %q, want it to still show the checkout-local %q status", line, entity.StatusDraft)
 	}
+
+	// Markdown gets the same annotation, via the same StatusMilestone
+	// field — no separate divergence computation to drift out of sync.
+	var md strings.Builder
+	if err := RenderStatusMarkdown(&md, &report); err != nil {
+		t.Fatalf("RenderStatusMarkdown: %v", err)
+	}
+	mdLine := findLine(t, md.String(), "**M-9002**")
+	if !strings.Contains(mdLine, entity.StatusDone) || !strings.Contains(mdLine, "E-9002") {
+		t.Errorf("markdown milestone row = %q, want it to flag %q as available on the E-9002 worktree", mdLine, entity.StatusDone)
+	}
+}
+
+// TestAnnotateWorktreeDivergence_SkipsEpicWithNoSiblingWorktree covers
+// the case where at least one sibling epic worktree exists (so byEpic
+// is non-empty) but a *different* in-flight epic has no worktree
+// driving it at all — that epic's milestones must be left untouched,
+// distinct from the all-worktrees-excluded early-return path the other
+// tests exercise.
+func TestAnnotateWorktreeDivergence_SkipsEpicWithNoSiblingWorktree(t *testing.T) {
+	t.Parallel()
+	report := &StatusReport{
+		InFlightEpics: []StatusEpic{
+			{
+				ID: "E-0043",
+				Milestones: []StatusMilestone{
+					{ID: "M-0171", Status: entity.StatusDraft},
+				},
+			},
+			{
+				ID: "E-0100",
+				Milestones: []StatusMilestone{
+					{ID: "M-0500", Status: entity.StatusDraft},
+				},
+			},
+		},
+	}
+	views := []WorktreeView{
+		{
+			Path:           "/repo/wt-epic",
+			Branch:         "epic/E-0043-area-tag",
+			DriverKind:     string(entity.KindEpic),
+			DriverEntityID: "E-0043",
+			EpicMilestones: []EpicChildRow{
+				{ID: "M-0171", Status: entity.StatusDone},
+			},
+		},
+	}
+
+	AnnotateWorktreeDivergence(report, views, "/repo/main")
+
+	if got := report.InFlightEpics[0].Milestones[0].WorktreeDivergence; got == nil {
+		t.Errorf("E-0043's milestone WorktreeDivergence = nil, want it flagged (has a sibling worktree)")
+	}
+	if got := report.InFlightEpics[1].Milestones[0].WorktreeDivergence; got != nil {
+		t.Errorf("E-0100's milestone WorktreeDivergence = %+v, want nil (no sibling worktree drives E-0100)", got)
+	}
 }
 
 // findLine returns the single line in out containing needle, failing
