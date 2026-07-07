@@ -42,3 +42,26 @@ func TestDeployerCard_FrontmatterDescriptionNamesReleaseTriggers(t *testing.T) {
 		}
 	}
 }
+
+// TestDeployerCard_G0384_DoesNotRunPushItself pins G-0384's fix: the
+// deployer card's Constraints section instructs handing each approved
+// push command back to the orchestrating session to execute, rather
+// than running `git push` from within the deployer subagent's own
+// sandboxed tool context — which stalled on the network-write phase
+// twice during a real release run.
+func TestDeployerCard_G0384_DoesNotRunPushItself(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), deployerCardFixturePath))
+	if err != nil {
+		t.Fatalf("reading %s: %v", deployerCardFixturePath, err)
+	}
+	body := string(data)
+
+	constraints := extractMarkdownSection(body, 2, "Constraints")
+	if constraints == "" {
+		t.Fatal("deployer card must have a `## Constraints` section")
+	}
+	if !strings.Contains(constraints, "Hand the exact approved command back to the orchestrating session") {
+		t.Error("G-0384: `## Constraints` must instruct handing each approved push command back to the orchestrating session, not running git push itself")
+	}
+}

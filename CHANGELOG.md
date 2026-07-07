@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0384: `aiwfx-release`'s push gates hand off to the orchestrating session
+
+The `deployer` agent card and the `aiwfx-release` ritual's two push gates (the
+release-prep commit, the tag) used to run `git push` from within the dispatched
+subagent's own tool context. That context's sandboxed network layer has stalled on
+the push write before (reads succeed; the write hangs). Both push gates — and the
+deployer card's constraints — now instruct handing the exact approved command back
+to the orchestrating session to execute instead.
+
 ## [0.26.1] — 2026-07-07
 
 ### Changed — G-0381: `aiwfx-start-epic` gates sovereign promotion instead of handing it off
