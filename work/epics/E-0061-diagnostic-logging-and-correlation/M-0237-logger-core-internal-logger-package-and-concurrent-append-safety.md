@@ -161,6 +161,13 @@ every line decodes as valid, uncorrupted JSON. No production code
 needed — the property already held from AC-1/AC-2's design · commit
 3c138e93 · tests 23/23
 
+### AC-4 — Bound logger fields never leak the operator's home-directory path
+
+`WithVerb` scrubs macOS/Linux home-directory fragments from verb/entity/
+actor before binding, mirroring `.gitleaks.toml`'s existing
+path-leak-darwin-home/path-leak-linux-home regexes · commit ef468cb9 ·
+tests 29/29
+
 ## Decisions made during implementation
 
 - The `logging:` block's parsing/validation lives in `internal/logger`
