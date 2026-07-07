@@ -1,7 +1,7 @@
 ---
 id: E-0059
 title: Atomic ritual materialization at worktree creation
-status: active
+status: done
 ---
 
 # E-0059 — Atomic ritual materialization at worktree creation
