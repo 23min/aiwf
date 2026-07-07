@@ -154,23 +154,19 @@ just the one rule that surfaced it.
 
 ## Milestones
 
-<!-- Candidates only; refined and allocated via aiwfx-plan-milestones. -->
-
-- **Harness skeleton** — driver loop (build-the-binary-under-test once,
-  serial-by-default scenario iteration), the scenario interface, the
+- `M-0240` — Harness skeleton: driver loop (build-the-binary-under-test
+  once, serial-by-default scenario iteration), the scenario interface, the
   streaming JSONL raw-report writer + separate compose step, cleanup
-  discipline. · depends on: E-0061's capstone milestone
-- **Tiers 1+2: property sequences and multi-worktree contention** — single-
-  process verb-sequence properties, plus multi-process/multi-worktree
+  discipline. · depends on: `M-0239` (E-0061's capstone milestone)
+- `M-0241` — Property sequences and multi-worktree contention scenarios:
+  single-process verb-sequence properties, plus multi-process/multi-worktree
   contention including the `repolock`-scoping and `git log HEAD`-reachability
-  confirmations. · depends on: Harness skeleton
-- **Tier 3: fault injection** — via external observation. · depends on:
-  Harness skeleton
-- **Tier 4: named scenarios** — G-0212's catalog plus G-0269's HEAD-drift
-  race. · depends on: Harness skeleton
-- **Tier 5 and wrap-up** — the diagnostic-log concurrent-writer test at real
-  multi-process scale; triage process documented; epic success criteria
-  verified end-to-end. · depends on: Tiers 1+2, Tier 3, Tier 4
+  confirmations. · depends on: `M-0240`
+- `M-0242` — Fault injection via external observation. · depends on:
+  `M-0240`
+- `M-0243` — Named scenarios from G-0212 and G-0269. · depends on: `M-0240`
+- `M-0244` — Concurrent-writer test at scale; triage process; epic close.
+  · depends on: `M-0241`, `M-0242`, `M-0243`
 
 ## References
 
