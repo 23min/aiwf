@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.26.1] — 2026-07-07
+
 ### Changed — G-0381: `aiwfx-start-epic` gates sovereign promotion instead of handing it off
 
 The `aiwfx-start-epic` ritual's activation step used to instruct the AI assistant to
