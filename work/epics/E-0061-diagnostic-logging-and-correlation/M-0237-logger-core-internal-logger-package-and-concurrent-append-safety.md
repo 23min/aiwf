@@ -52,8 +52,11 @@ handler — no I/O, no allocation beyond the closed-form `Info` call). Unit
 tests cover the full matrix: env only, yaml only, both set (env wins),
 neither set (confirm zero I/O via the discard handler). Parsing and
 validating the `logging:` block's three optional keys
-(`level`/`format`/`destination`) in `internal/aiwfyaml/` is part of this AC —
+(`level`/`format`/`destination`) in `internal/logger` is part of this AC —
 `aiwf doctor` surfacing that configuration is M-0238's job, not this one's.
+The block is never programmatically rewritten by a verb, so it needs no
+`internal/aiwfyaml` surgical-editor entry (that package is reserved for
+blocks a verb rewrites in place — `contracts:`, `areas:`, `hooks:`).
 
 ### AC-2 — Opted-in logs land in one daily XDG-state-home file, 30-day retention
 
@@ -115,8 +118,7 @@ inadvertently exempted by the change.
 
 ## Surfaces touched
 
-- `internal/logger/` (new package)
-- `internal/aiwfyaml/` (`logging:` block parsing/validation)
+- `internal/logger/` (new package, including `logging:` block parsing/validation)
 - `internal/policies/atomic_write_chokepoint.go` (allowlist entry)
 
 ## Out of scope
@@ -140,9 +142,19 @@ inadvertently exempted by the change.
 
 ## Work log
 
+### AC-1 — Diagnostic logging defaults off, opt-in via env then aiwf.yaml
+
+Env/yaml/default precedence resolved independently per setting
+(`ResolveConfig`); discard-when-off backed by `slog.DiscardHandler`
+(`New`) · commit d0fff662 · tests 7/7
+
 ## Decisions made during implementation
 
-- (none)
+- The `logging:` block's parsing/validation lives in `internal/logger`
+  itself, not `internal/aiwfyaml` as ADR-0017/this spec originally named
+  — that package is reserved for blocks a verb programmatically rewrites
+  in place (`contracts:`, `areas:`, `hooks:`), which `logging:` never is.
+  ADR-0017's Consequences section is corrected to match.
 
 ## Validation
 
