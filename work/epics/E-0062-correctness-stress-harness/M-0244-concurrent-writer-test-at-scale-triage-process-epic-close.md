@@ -25,11 +25,92 @@ acs:
 
 ## Goal
 
+Prove E-0061's `O_APPEND` diagnostic-log safety under real multi-process
+load (not just the package-level test built in M-0237), document the
+triage procedure this epic's findings flow through, and verify the epic's
+own success criteria end-to-end before it closes.
+
+## Context
+
+This is the epic's capstone: it depends on all three scenario-tier
+milestones (M-0241, M-0242, M-0243) being done. Everything needed to run
+this tier already exists by the time this milestone starts — the harness,
+the real binary, the logger.
+
 ## Acceptance criteria
 
 ### AC-1 — Concurrent subprocesses sharing one log file never tear or interleave a line
 
+N real `aiwf` subprocesses, each with `AIWF_LOG=debug` pointed at the same
+daily log file, run concurrently. Asserts every resulting line parses
+cleanly, every `run_id` appears exactly once, and none is interleaved or
+truncated — the harness proving out ADR-0017's Decision #5 under load the
+package-level test (M-0237) couldn't exercise on its own, since that test
+predates any real verb calling the logger.
+
 ### AC-2 — A documented triage procedure turns a found violation into a gap and test
+
+A short, concrete procedure (documented in this milestone's spec or a
+pointer from it): a violation the harness surfaces gets a new gap
+(`aiwf add gap`) referencing the raw-report event and preserved repo state,
+and a minimal regression test is promoted into the normal, every-push
+suite — not left living only inside the stress harness.
 
 ### AC-3 — Every success criterion in E-0062's epic spec has a passing demonstration
 
+Each checkbox in E-0062's *Success criteria* section is walked and
+confirmed against the finished harness — not asserted from memory.
+
+## Constraints
+
+- AC-1's test is at real subprocess scale (multiple `aiwf` binary
+  invocations), distinct from and in addition to M-0237's package-level
+  goroutine/file-handle test — it's proving the same property under a
+  higher-fidelity load, not duplicating the earlier test.
+- This milestone doesn't introduce new scenario categories — it closes the
+  loop on ones already built.
+
+## Design notes
+
+- If AC-3's walk-through finds a success criterion not actually met, that's
+  this milestone's problem to resolve (more scenario work, or a scope
+  correction to the epic spec with the user's sign-off) — not something to
+  gloss over at wrap.
+
+## Surfaces touched
+
+- `internal/stresstest/` (the concurrent-writer-at-scale scenario)
+- This epic's spec (`epic.md`) — finalized at wrap per the usual ritual
+
+## Out of scope
+
+- Any new scenario category not already scoped in M-0241–M-0243.
+- Making the harness a CI gate — still out of scope for the whole epic, per
+  its own spec.
+
+## Dependencies
+
+- M-0241, M-0242, M-0243 — all three scenario tiers must be done.
+
+## References
+
+- `docs/adr/ADR-0017-opt-in-slog-diagnostic-logging-default-off-xdg-state-home-file-route.md`
+- `docs/initiatives/robustness-correctness-stress-testing.md`
+
+---
+
+## Work log
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
