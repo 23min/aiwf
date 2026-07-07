@@ -9,7 +9,7 @@ Activates an epic. Activation is a sovereign moment — the kernel treats `aiwf 
 
 ## Principles
 
-- **Activation is sovereign.** The kernel refuses `aiwf promote E-NN active` from a non-`human/` actor unless `--force --reason "..."` is used. The skill's promotion step runs as the human; an AI assistant orchestrating the conversation hands the verb off to the operator.
+- **Activation is sovereign.** The kernel refuses `aiwf promote E-NN active` from a non-`human/` actor unless `--force --reason "..."` is used. The sovereign act is the operator's explicit approval, not who types the command: the skill presents the exact command as an approve/deny gate, and the AI assistant orchestrating the conversation runs it directly once the operator approves — no `--actor` override, so the commit resolves to the operator's own identity exactly as if they had typed it.
 - **Sovereign acts on `main`; branch cut afterwards.** State-announcement commits (the promote at step 6 and, if delegating, the authorize at step 7) land on `main` BEFORE the epic branch is cut at step 8. The chokepoint behind this sequencing is the kernel's AI-target preflight on `aiwf authorize` — without ritual branch context the preflight refuses. The from-main `--branch` carve-out makes the `--branch epic/E-NN-<slug>` future-binding from `main` accept (the named branch is cut at step 8). The `isolation-escape` kernel finding provides post-hoc detection at `aiwf check` (warning severity) for branch-binding drift that escapes both the session-layer hook and the kernel's at-dispatch refusal.
 - **Preflight uses kernel signals.** Body completeness, drafted-milestone presence, and `aiwf check` cleanliness all surface through existing kernel rules (`entity-body-empty`, `epic-active-no-drafted-milestones`, the standard refusal-severity findings). The skill reads — it does not duplicate the rule.
 - **Worktree placement defaults to in-repo.** The recommended placement is in-repo under the configured `worktree.dir` — reachable as a sandboxed devcontainer session's cwd and persistent under the mounted workspace. The default is a recommendation, not a lock: the per-invocation override (main-checkout / sibling) stays a Q&A choice, since each option still trades off parallel work, IDE state, and `aiwf check` blast radius.
@@ -58,25 +58,27 @@ Ask the operator whether the work proceeds in-loop (the operator drives every mi
 
 The delegation choice is asked BEFORE the sovereign acts because the authorize trailer (if delegating) binds the scope to a named branch, and the epic-branch name should be known when the authorize commit lands on `main`. The authorize commit's `aiwf-branch:` trailer is a forward-binding — the named branch is cut at step 8.
 
-### 6. Sovereign promotion
+### 6. 🛑 Sovereign promotion (approve/deny gate)
 
 Confirm with the operator that the epic is on `main` (or the parent branch the sovereign acts will land on). Both this step and step 7 (if delegating) run with the operator's HEAD on `main` — the epic branch is cut afterwards at step 8.
 
-Activation is the sovereign moment. The operator runs:
+Activation is the sovereign moment. Present the exact command and wait for explicit approval — never run it unprompted:
 
 ```bash
 aiwf promote E-NN active
 ```
 
-The kernel refuses this verb from a non-`human/` actor — per the kernel's sovereignty rule, an `ai/<id>` operator attempting to flip the epic gets a typed error pointing at the rule and the override path. The operator is human; an AI assistant orchestrating the conversation does not invoke the verb itself.
+> Promote `E-NN` to active? (Y/n)
 
-The override path exists for genuine sovereign-act-shaped exceptions (a ratification run by a bot account, a recovery flow after a half-applied prior promote):
+On approval, run it directly with no `--actor` override. The bare command resolves the actor from the operator's own `git config user.email`, exactly as if they had typed it themselves — the kernel's sovereignty rule (which refuses any actor not prefixed `human/`) passes transparently. Don't pass `--actor ai/<id>` for this ordinary case; that would deliberately trip the refusal for no reason. A general "go ahead" from earlier in the conversation is not this gate — ask again, right before running it.
+
+The override path exists for genuine sovereign-act-shaped exceptions (a ratification run by a bot account, a recovery flow after a half-applied prior promote) — not for the ordinary gated case above, which never needs it:
 
 ```bash
 aiwf promote E-NN active --force --reason "<one-sentence justification>"
 ```
 
-The standard provenance-coherence rule still requires the `--force` invocation itself to come from a `human/` actor, so the override remains human-sovereign by construction. Use it sparingly; the default path is the right one.
+The standard provenance-coherence rule still requires the `--force` invocation itself to come from a `human/` actor, so the override remains human-sovereign by construction. Use it sparingly; the default gated path above is the right one.
 
 This is **commit 1** — the verb writes exactly one commit on `main` with the standard `aiwf-verb: promote`, `aiwf-entity: E-NN`, `aiwf-actor: human/<id>` trailers.
 
@@ -125,7 +127,7 @@ If a delegation scope was opened in step 7, the hand-off is to the named agent (
 ## Constraints
 
 - 🛑 **Never commit or push without explicit human approval.** Step 6's promotion and step 7's authorize each require human confirmation.
-- 🛑 **Sovereign promotion requires a `human/` actor.** Per the kernel's sovereignty rule, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. An AI assistant orchestrating the conversation does not run the verb itself.
+- 🛑 **Sovereign promotion requires the operator's explicit per-invocation approval.** Per the kernel's sovereignty rule, `aiwf promote E-NN active` from a non-human actor is refused unless `--force --reason "..."` is used. Present the exact command as an approve/deny gate; run it directly on approval with no `--actor` override — never on a standing "go ahead" from earlier in the conversation.
 - 🛑 **Sovereign acts land on `main` before the branch cut.** Steps 6 and 7 run with HEAD on `main`; step 8 cuts the epic branch afterwards. The kernel's preflight enforces this for the authorize commit (the from-main `--branch` carve-out allows the `--branch <future>` form from `main`).
 - The promotion commit and any authorize commit are separate. One verb = one commit.
 - Worktree placement defaults to in-repo under the configured `worktree.dir` (the in-repo placement convention), but the default is a recommendation, not a lock — the per-invocation override (main-checkout / sibling) stays a Q&A choice. The branch shape follows the branch model — `epic/E-NN-<slug>` — and is not surfaced as a prompt.
@@ -133,7 +135,8 @@ If a delegation scope was opened in step 7, the hand-off is to the named agent (
 ## Anti-patterns
 
 - *Skipping the drafted-milestone check.* The epic activates with nothing queued; the next thing that happens is friction.
-- *Letting an AI assistant run `aiwf promote E-NN active` directly.* The kernel refuses; the override path (`--force --reason`) is for genuine sovereign-act-shaped exceptions, not for routing around the rule.
+- *Running `aiwf promote E-NN active` without the operator's explicit per-invocation approval.* The approve/deny gate is the sovereign act; treating an earlier "go ahead" as standing approval defeats the point.
+- *Passing `--actor ai/<id>` on the ordinary gated path.* That deliberately trips the kernel's sovereignty refusal for no reason; the bare command already resolves to the operator's own identity. Reserve a non-human actor for the genuine delegated/recovery exceptions the `--force --reason` override path covers.
 - *Bundling the promote and authorize commits.* One verb = one commit. A combined commit is two acts at one timestamp and breaks `aiwf history`.
 - *Hardcoding the worktree directory instead of reading `worktree.dir`.* The default is in-repo (the in-repo placement convention), but the resolved directory comes from the `worktree.dir` knob via `aiwf doctor` — baking `.claude/worktrees` into the prompt silently ignores a consumer's override.
 - *Dropping the override to force in-repo.* In-repo is the default, not a lock; the sibling and main-checkout placements stay selectable (a bare host with no sandbox confinement may legitimately prefer a sibling).
