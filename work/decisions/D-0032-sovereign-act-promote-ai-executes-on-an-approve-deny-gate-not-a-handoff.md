@@ -1,7 +1,7 @@
 ---
 id: D-0032
 title: 'Sovereign-act promote: AI executes on an approve/deny gate, not a handoff'
-status: proposed
+status: accepted
 ---
 
 # D-0032 — Sovereign-act promote: AI executes on an approve/deny gate, not a handoff
