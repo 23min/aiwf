@@ -1,7 +1,9 @@
 ---
 id: G-0381
 title: aiwfx-start-epic still hands off sovereign-act promote instead of gating
-status: open
+status: addressed
+addressed_by_commit:
+    - 71fbb0dd
 ---
 ## What's missing
 
