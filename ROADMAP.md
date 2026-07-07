@@ -823,3 +823,14 @@ list` — without waiting for a merge and without copying the entity anywhere.
 
 _No milestones yet._
 
+## E-0061 — Diagnostic logging and correlation (proposed)
+
+### Goal
+
+Give aiwf a retrace-ready diagnostic surface: opt-in structured logging plus
+a correlation id that ties one invocation's JSON envelope to its own log
+lines, so "why did this verb do that on someone else's repo?" has a real
+answer instead of whatever the operator happened to capture from stderr.
+
+_No milestones yet._
+
