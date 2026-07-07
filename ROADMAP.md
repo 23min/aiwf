@@ -795,7 +795,7 @@ weakening the correctness guarantee those rules currently provide.
 
 _No milestones yet._
 
-## E-0059 — Atomic ritual materialization at worktree creation (active)
+## E-0059 — Atomic ritual materialization at worktree creation (done)
 
 ### Goal
 
