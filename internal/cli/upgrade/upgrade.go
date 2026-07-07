@@ -148,7 +148,7 @@ func Run(root, target string, checkOnly bool) int {
 	// upgrade's "verb.completed" moment. Whether the reexec below into
 	// `aiwf update` also succeeds is a separate, subsequent concern.
 	// upgrade has no --actor flag, so actor is bound empty.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
 	logger.WithVerb(diagLog, "upgrade", target, "").Info("verb.completed")
 	_ = closeDiagLog()
 

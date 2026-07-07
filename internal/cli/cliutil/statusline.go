@@ -137,12 +137,13 @@ func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) (
 // through the WithVerb-bound logger when *code is ExitOK, deferred so
 // a many-return-point function emits exactly once regardless of which
 // branch returned. actor is always empty: none of statusline's flows
-// have an --actor flag.
+// have an --actor flag. entity doubles as rootDir for ResolveLogger's
+// aiwf.yaml lookup — both callers already pass opts.RootDir here.
 func emitVerbCompletedIfOK(code *int, verbName, entity string) {
 	if *code != ExitOK {
 		return
 	}
-	diagLog, closeDiagLog := ResolveLogger(os.Getenv)
+	diagLog, closeDiagLog := ResolveLogger(entity, os.Getenv)
 	defer func() { _ = closeDiagLog() }()
 	logger.WithVerb(diagLog, verbName, entity, "").Info("verb.completed")
 }

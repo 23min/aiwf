@@ -8,6 +8,92 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TestResolveConfigWithSources_ReportsWhichTierWon pins M-0238/AC-4:
+// aiwf doctor needs to explain, per field, whether env, yaml, or the
+// default supplied the resolved value — not just the merged result.
+func TestResolveConfigWithSources_ReportsWhichTierWon(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		getenv     map[string]string
+		yamlCfg    YAMLConfig
+		wantSource Sources
+	}{
+		{
+			name:       "env wins all three",
+			getenv:     map[string]string{"AIWF_LOG": "info", "AIWF_LOG_FORMAT": "json", "AIWF_LOG_FILE": "stderr"},
+			yamlCfg:    YAMLConfig{Level: "error", Format: "text", Destination: "/other.log"},
+			wantSource: Sources{Level: SourceEnv, Format: SourceEnv, Destination: SourceEnv},
+		},
+		{
+			name:       "yaml wins format and destination when env unset",
+			getenv:     map[string]string{"AIWF_LOG": "info"},
+			yamlCfg:    YAMLConfig{Format: "json", Destination: "/some.log"},
+			wantSource: Sources{Level: SourceEnv, Format: SourceYAML, Destination: SourceYAML},
+		},
+		{
+			name:       "level from yaml, format and destination default",
+			getenv:     map[string]string{},
+			yamlCfg:    YAMLConfig{Level: "debug"},
+			wantSource: Sources{Level: SourceYAML, Format: SourceDefault, Destination: SourceDefault},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			getenv := func(key string) string { return tc.getenv[key] }
+			_, sources, err := ResolveConfigWithSources(getenv, tc.yamlCfg)
+			if err != nil {
+				t.Fatalf("ResolveConfigWithSources: %v", err)
+			}
+			if sources != tc.wantSource {
+				t.Errorf("sources = %+v, want %+v", sources, tc.wantSource)
+			}
+		})
+	}
+}
+
+// TestResolveConfigWithSources_Disabled pins the disabled case: no
+// level from any source reports the zero Sources value, not a
+// misleading "default" label on fields that never resolved.
+func TestResolveConfigWithSources_Disabled(t *testing.T) {
+	t.Parallel()
+	getenv := func(string) string { return "" }
+	cfg, sources, err := ResolveConfigWithSources(getenv, YAMLConfig{})
+	if err != nil {
+		t.Fatalf("ResolveConfigWithSources: %v", err)
+	}
+	if cfg.Enabled {
+		t.Error("cfg.Enabled = true, want false")
+	}
+	if sources != (Sources{}) {
+		t.Errorf("sources = %+v, want the zero value", sources)
+	}
+}
+
+// TestResolveConfig_MatchesResolveConfigWithSources pins that
+// ResolveConfig (the pre-existing, still-used API) is a thin wrapper
+// over ResolveConfigWithSources, not a second, divergent
+// implementation of the same precedence rule.
+func TestResolveConfig_MatchesResolveConfigWithSources(t *testing.T) {
+	t.Parallel()
+	getenv := func(key string) string {
+		return map[string]string{"AIWF_LOG": "warn", "AIWF_LOG_FORMAT": "json"}[key]
+	}
+	yamlCfg := YAMLConfig{Destination: "/some.log"}
+	got, err := ResolveConfig(getenv, yamlCfg)
+	if err != nil {
+		t.Fatalf("ResolveConfig: %v", err)
+	}
+	want, _, err := ResolveConfigWithSources(getenv, yamlCfg)
+	if err != nil {
+		t.Fatalf("ResolveConfigWithSources: %v", err)
+	}
+	if got != want {
+		t.Errorf("ResolveConfig() = %+v, want %+v (from ResolveConfigWithSources)", got, want)
+	}
+}
+
 // TestResolveConfig_Precedence covers the full env/yaml/default matrix
 // ADR-0017 Decision #3 specifies: AIWF_LOG/AIWF_LOG_FORMAT/AIWF_LOG_FILE
 // each beat the corresponding aiwf.yaml logging: key, which beats the

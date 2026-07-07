@@ -94,7 +94,7 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 	}
 	code := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
 	if code == cliutil.ExitOK {
-		diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+		diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
 		defer func() { _ = closeDiagLog() }()
 		logger.WithVerb(diagLog, "move", id, actorStr).Info("verb.completed")
 	}

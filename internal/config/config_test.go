@@ -178,6 +178,56 @@ func TestLoad_TreeBlockRoundTrip(t *testing.T) {
 	}
 }
 
+// TestLoad_LoggingBlockRoundTrip pins M-0238/AC-4: aiwf.yaml's logging:
+// block decodes into Config.Logging via the real config.Load path
+// (not just a schema-reflection check). Mirrors TestLoad_TreeBlockRoundTrip.
+func TestLoad_LoggingBlockRoundTrip(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	contents := []byte(strings.Join([]string{
+		"aiwf_version: 0.1.0",
+		"logging:",
+		"  level: info",
+		"  format: json",
+		"  destination: /var/log/aiwf.log",
+		"",
+	}, "\n"))
+	if err := os.WriteFile(filepath.Join(root, FileName), contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Logging.Level != "info" {
+		t.Errorf("Logging.Level = %q, want %q", cfg.Logging.Level, "info")
+	}
+	if cfg.Logging.Format != "json" {
+		t.Errorf("Logging.Format = %q, want %q", cfg.Logging.Format, "json")
+	}
+	if cfg.Logging.Destination != "/var/log/aiwf.log" {
+		t.Errorf("Logging.Destination = %q, want %q", cfg.Logging.Destination, "/var/log/aiwf.log")
+	}
+}
+
+// TestLoad_LoggingBlockAbsent pins the default-off half: an absent
+// logging: block decodes to the zero value, never nil-panicking a
+// caller that reads cfg.Logging fields unconditionally.
+func TestLoad_LoggingBlockAbsent(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, FileName), []byte("hosts: [claude-code]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Logging != (Logging{}) {
+		t.Errorf("Logging = %+v, want the zero value", cfg.Logging)
+	}
+}
+
 func TestLoad_TreeBlockDefaults(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

@@ -85,6 +85,7 @@ type Config struct {
 	Guidance          Guidance         `yaml:"guidance,omitempty"`
 	Areas             Areas            `yaml:"areas,omitempty"`
 	Worktree          Worktree         `yaml:"worktree,omitempty"`
+	Logging           Logging          `yaml:"logging,omitempty"`
 	Agents            map[string]Agent `yaml:"agents,omitempty"`
 	Hooks             map[string]Hook  `yaml:"hooks,omitempty"`
 }
@@ -683,6 +684,22 @@ func (c *Config) WorktreeDir() string {
 		return DefaultWorktreeDir
 	}
 	return dir
+}
+
+// Logging carries the consumer's diagnostic-logging configuration
+// (ADR-0017). All three fields are optional and independently
+// overridable by the matching AIWF_LOG/AIWF_LOG_FORMAT/AIWF_LOG_FILE
+// env var (env beats yaml beats default, per field). This block only
+// carries the raw, already-parsed strings; internal/logger owns the
+// slog-domain validation (closed level/format sets) and the
+// precedence resolution over them — config cannot import
+// internal/logger without inverting the layering direction (config
+// sits above logger in the tier order), so the two packages share no
+// type, only field values a caller copies across.
+type Logging struct {
+	Level       string `yaml:"level,omitempty"`
+	Format      string `yaml:"format,omitempty"`
+	Destination string `yaml:"destination,omitempty"`
 }
 
 // Agent configures the model tier and reasoning effort a single shipped

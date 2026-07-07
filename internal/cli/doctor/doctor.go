@@ -234,6 +234,8 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 	}
 	lines = append(lines, fmt.Sprintf("%s%s (%s)", label("worktree-dir:"), worktreeDir, worktreeAnnot))
 
+	lines, problems = appendLoggingReport(lines, problems, cfg)
+
 	if actor, source, actorErr := cliutil.ResolveActorWithSource("", rootDir); actorErr != nil {
 		lines = append(lines, label("actor:")+actorErr.Error())
 		problems = append(problems, Problem{Severity: SeverityError, Message: actorErr.Error()})

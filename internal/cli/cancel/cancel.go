@@ -112,7 +112,7 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		code = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	}
 	if code == cliutil.ExitOK {
-		diagLog, closeDiagLog := cliutil.ResolveLogger(os.Getenv)
+		diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
 		defer func() { _ = closeDiagLog() }()
 		logger.WithVerb(diagLog, "cancel", id, actorStr).Info("verb.completed")
 	}
