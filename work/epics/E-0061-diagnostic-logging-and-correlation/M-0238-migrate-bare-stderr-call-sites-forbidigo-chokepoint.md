@@ -158,7 +158,7 @@ probes (unconditional emission, swapped verb/entity/actor argument order,
 wrong stream, closing the real `os.Stderr`) all caught by the test suite;
 one probe (the stderr-close guard) found and fixed a real test gap where
 the assertion targeted the wrong (capture-swapped) stream. · commit
-`<pending>` · full `internal/cli/...` tree green, `check-fast` clean.
+`14c81e3a` · full `internal/cli/...` tree green, `check-fast` clean.
 
 ## Decisions made during implementation
 
