@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Opted-in logs land in one daily XDG-state-home file, 30-day retention
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Concurrent writers to the shared log file never interleave or tear a line
       status: open
