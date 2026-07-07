@@ -154,6 +154,13 @@ Env/yaml/default precedence resolved independently per setting
 default directory created and swept of >30-day entries only on an
 opted-in call · commit efbbc061 · tests 22/22
 
+### AC-3 — Concurrent writers to the shared log file never interleave or tear a line
+
+40 independently-opened file handles append 1000 records concurrently;
+every line decodes as valid, uncorrupted JSON. No production code
+needed — the property already held from AC-1/AC-2's design · commit
+3c138e93 · tests 23/23
+
 ## Decisions made during implementation
 
 - The `logging:` block's parsing/validation lives in `internal/logger`
