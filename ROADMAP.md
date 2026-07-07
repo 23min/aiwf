@@ -823,7 +823,7 @@ list` — without waiting for a merge and without copying the entity anywhere.
 
 _No milestones yet._
 
-## E-0061 — Diagnostic logging and correlation (proposed)
+## E-0061 — Diagnostic logging and correlation (active)
 
 ### Goal
 
@@ -834,7 +834,7 @@ answer instead of whatever the operator happened to capture from stderr.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0237 | Logger core: internal/logger package and concurrent-append safety | draft |
+| M-0237 | Logger core: internal/logger package and concurrent-append safety | in_progress |
 | M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | draft |
 | M-0239 | Correlation id wiring; ratify ADR-0017 | draft |
 
