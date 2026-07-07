@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: aiwf.yaml's logging block is parsed, validated, and surfaced by aiwf doctor
-      status: open
+      status: met
       tdd_phase: done
 ---
 
