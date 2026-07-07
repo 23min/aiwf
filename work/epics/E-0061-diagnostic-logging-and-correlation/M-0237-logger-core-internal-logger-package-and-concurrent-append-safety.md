@@ -146,7 +146,10 @@ inadvertently exempted by the change.
 
 Env/yaml/default precedence resolved independently per setting
 (`ResolveConfig`); discard-when-off backed by `slog.DiscardHandler`
-(`New`) · commit d0fff662 · tests 7/7
+(`New`) · commit d0fff662 · tests 7/7. Independent review found the
+`YAMLConfig` struct tags had no decode-path test (every existing test
+built `YAMLConfig{...}` literals directly); pinned with a real
+`yaml.Unmarshal` round-trip · commit 9abafc61 · tests 31/31
 
 ### AC-2 — Opted-in logs land in one daily XDG-state-home file, 30-day retention
 
@@ -196,10 +199,19 @@ confirms zero violations — exactly one exemption
 
 ## Validation
 
+- `make check-fast` (build + `golangci-lint` + `go vet` + full `go test -race ./...`) — green.
+- `make coverage-gate` (diff-scoped branch-coverage gate vs. the merge-base) — clean.
+- `internal/logger`: 31 tests, 100% statement coverage, race-clean (`go test ./internal/logger/... -race -cover`).
+- `TestPolicy_AtomicWriteChokepoint`, `TestPolicy_LayeringDirection`, `TestPolicy_NoTimeNowInCore` — pass against the live repo tree.
+- Doc-lint sweep over the milestone's touched docs (ADR-0017, this spec) — one pre-existing broken code reference found and fixed (`internal/cli/output/outputformat.go` → `internal/cli/cliutil/outputformat.go`, moved before this milestone), no orphans, no TODOs.
+
 ## Deferrals
 
-- (none)
+- G-0382 — the `logging:` block's typed config should move to `internal/config` (with a schema-registry entry) when M-0238 wires the real `aiwf.yaml` file-read; `internal/logger` should consume already-parsed values rather than owning the decode.
+- G-0383 — M-0238 must deliberately decide how call sites reuse `WithVerb`'s home-path scrub for values logged under keys other than verb/entity/actor, or the scrub silently doesn't apply to them.
 
 ## Reviewer notes
 
-- (none)
+- **Independent code-quality review** (fresh-context reviewer, `wf-review-code` lens, dispatched before wrap): one blocking finding (AC-1's `YAMLConfig` yaml tags had no decode test — fixed, see Work log), then verified clean: AC-2's retention-cutoff math is calendar-date-correct (independently re-derived), AC-2's empty-`HOME` refusal is wired into the call path and tested, AC-3's concurrent test genuinely exercises independent file descriptors (not a shared in-process handler/mutex), AC-4's scrub regexes match `.gitleaks.toml` byte-for-byte, AC-5's allowlist adds exactly one entry with no collateral exemptions. The reviewer independently re-examined the `internal/aiwfyaml` → `internal/logger` architectural correction (without taking this spec's own justification at face value) and agreed with it, while noting `internal/config` — not `internal/aiwfyaml` or `internal/logger` — is the block's eventual right home once M-0238 wires the real decode (→ G-0382).
+- **Independent design-quality review** (`wf-rethink` on the `internal/logger` package, fresh context): verdict **keep**, no reshape needed. The reviewer wrote an independent from-scratch reconstruction *before* reading the actual code and converged on the same four-file decomposition (config / logger / destination / withverb). The single highest-leverage design decision — leaning on `slog`'s existing one-`Write()`-per-record behavior plus POSIX `O_APPEND` atomicity instead of inventing a mutex or a single-writer goroutine for concurrency safety — was confirmed correct. No scope bleed found from the two milestones (M-0238, M-0239) still to build on this package.
+- `scrubHomePaths` requires a trailing `/` after the username (e.g. `/Users/alice` with no following path segment is not scrubbed) — deliberate byte-for-byte parity with `.gitleaks.toml`'s existing rules, which have the same boundary; AC-4 asks for exactly that parity, not a stricter pattern.
