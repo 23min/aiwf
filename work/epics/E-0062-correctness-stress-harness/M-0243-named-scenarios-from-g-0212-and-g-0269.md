@@ -31,15 +31,115 @@ acs:
 
 ## Goal
 
+Turn G-0212's catalogued data-loss scenarios and G-0269's HEAD-drift
+incident into concrete, executable harness scenarios — the specific,
+already-named risk classes this epic exists to run against, not just the
+general contention/fault-injection mechanisms M-0241 and M-0242 built.
+
+## Context
+
+G-0212 is a reasoning-and-history-evidenced catalog (26 `reallocate` commits
+in this repo's own history motivated item 1; the G-0170 incident motivated
+item 2) that named risk classes without a harness to execute them. G-0269 is
+a live incident report. Both have sat as prose until this milestone.
+
 ## Acceptance criteria
 
 ### AC-1 — A parallel-branch reallocate race is resolved per G-0212 item 1
 
+Two simulated operators allocate the same id on parallel branches; the
+scenario drives the merge/push sequence to the point of collision and
+asserts `aiwf check` reports it and `aiwf reallocate` resolves it cleanly,
+per CLAUDE.md's own "Id-collision resolution at merge time" section.
+
 ### AC-2 — A concurrent cross-worktree edit-body race matches G-0212 item 2
+
+Two `aiwf edit-body` runs on the same entity from different worktrees,
+minutes apart in wall-clock terms but concurrent in git-history terms.
+Asserts git's normal last-writer-wins semantics hold and that the outcome
+is at least observable (not silently different from what a single operator
+would expect) — G-0212 named the *lost-edit-with-no-audit-trail* risk
+specifically; this scenario checks whether that's still true or has since
+improved.
 
 ### AC-3 — Archive-during-active-scope is exercised end-to-end per G-0212 item 3
 
+An entity is archived while a child's `authorize` scope is still active.
+Asserts what a subsequent `aiwf authorize --pause` (or any scope-resolution
+verb) against that child actually does — surfaces the real, current
+behavior as a scenario result, since G-0212 posed this as an open question
+rather than a known answer.
+
 ### AC-4 — Force-push and cherry-pick vs acknowledge-illegal are exercised per G-0212
+
+Covers G-0212 items 5 and 6: a force-push that makes an
+`acknowledge illegal`-referenced SHA unreachable, and a cherry-pick of a
+force-amend override commit onto a different branch. Asserts whether the
+exemption is silently revoked (item 5) or silently carried over without
+audit trail (item 6), surfacing the real behavior either way.
 
 ### AC-5 — G-0269's HEAD-drift race is scripted, expected-red until its guard lands
 
+Reproduces the actual incident: a parallel session's `git checkout` lands
+between a verb's preflight (which reads `HEAD`) and its commit. This
+scenario is expected to fail (i.e., confirm the wrong-branch commit still
+happens) until G-0269's own mechanical guard ships — a known-red case tied
+to that gap, not a defect in this milestone's work.
+
+## Constraints
+
+- Each scenario's assertion is about *current, real* behavior — for AC-2,
+  AC-3, and AC-4 in particular, don't assume the "bad" outcome G-0212 posed
+  as a risk; assert what the scenario actually observes, even if it turns
+  out better than G-0212 feared.
+- AC-5 is allowed to fail (expected-red) without failing this milestone —
+  the milestone's own acceptance is that the scenario exists and correctly
+  reports red, not that the underlying race is fixed.
+
+## Design notes
+
+- Each of AC-1 through AC-4 either confirms a G-0212 risk is real (→ this
+  milestone opens a new, precisely-scoped gap for it, since G-0212 itself
+  is a catalog, not a fix) or confirms it's already handled acceptably (→
+  no new gap, and G-0212's own text for that item can be marked resolved
+  when G-0212 itself is eventually closed).
+
+## Surfaces touched
+
+- `internal/stresstest/` (new scenario files)
+
+## Out of scope
+
+- Fixing anything AC-1 through AC-5 find broken — that's a new gap per
+  finding, triaged per this epic's manual-triage constraint, not silently
+  patched inside this milestone.
+- G-0211's branch-choreography surface — already covered by M-0159/E-0030,
+  confirmed stale and closed while scoping this epic.
+
+## Dependencies
+
+- M-0240 — the harness skeleton.
+
+## References
+
+- G-0212 — data-loss audit for verb composition across kernel surface
+- G-0269 — mutating verbs lack a HEAD-drift guard against shared-worktree session races
+- CLAUDE.md §"Id-collision resolution at merge time"
+
+---
+
+## Work log
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
