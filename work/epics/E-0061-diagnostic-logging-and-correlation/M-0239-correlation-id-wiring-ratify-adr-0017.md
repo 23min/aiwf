@@ -11,7 +11,7 @@ acs:
     - id: AC-1
       title: An envelope's correlation_id matches the run_id in that invocation's log lines
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Mutating verbs report per-verb-appropriate metadata in their envelope
       status: open
