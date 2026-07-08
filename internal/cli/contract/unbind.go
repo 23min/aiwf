@@ -2,8 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -41,12 +39,12 @@ func newUnbindCmd() *cobra.Command {
 func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
+		cliutil.Errorf("aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
+		cliutil.Errorf("aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -59,10 +57,11 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 	ctx := context.Background()
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract unbind: %v\n", err)
+		cliutil.Errorf("aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
+	return code
 }

@@ -2,7 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -55,23 +54,23 @@ func newVerifyCmd() *cobra.Command {
 // the verify body fails CI.
 func Run(root, format string, pretty bool) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
+		cliutil.Errorf("aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
+		cliutil.Errorf("aiwf contract verify: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract verify: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf contract verify: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	contracts, err := cliutil.LoadContractsBlock(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract verify: %v\n", err)
+		cliutil.Errorf("aiwf contract verify: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	findings := RunValidation(ctx, tr, rootDir, contracts)
@@ -81,7 +80,7 @@ func Run(root, format string, pretty bool) int {
 	switch format {
 	case "text":
 		if err := render.Text(os.Stdout, findings); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf contract verify: writing output: %v\n", err)
+			cliutil.Errorf("aiwf contract verify: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -97,7 +96,7 @@ func Run(root, format string, pretty bool) int {
 			},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf contract verify: writing output: %v\n", err)
+			cliutil.Errorf("aiwf contract verify: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

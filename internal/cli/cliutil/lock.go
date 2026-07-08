@@ -2,8 +2,6 @@ package cliutil
 
 import (
 	"errors"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/23min/aiwf/internal/repolock"
@@ -33,12 +31,12 @@ func AcquireRepoLock(rootDir, verbDisplay string) (release func(), rc int) {
 	lock, err := repolock.Acquire(rootDir, lockTimeout)
 	if err != nil {
 		if errors.Is(err, repolock.ErrBusy) {
-			fmt.Fprintf(os.Stderr,
+			Errorf(
 				"%s: another aiwf process is running on this repo; retry in a moment\n",
 				verbDisplay)
 			return nil, ExitUsage
 		}
-		fmt.Fprintf(os.Stderr, "%s: acquiring repo lock: %v\n", verbDisplay, err)
+		Errorf("%s: acquiring repo lock: %v\n", verbDisplay, err)
 		return nil, ExitInternal
 	}
 	return func() { _ = lock.Release() }, 0

@@ -2,7 +2,6 @@ package doctor
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/skills"
@@ -38,17 +37,17 @@ func checkRitualsResult(rootDir string) (ok bool, message string, err error) {
 func RunCheckRituals(root string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore ResolveRoot(--root) resolves via filepath.Abs and cannot fail here; defensive parity with Run
-		fmt.Fprintf(os.Stderr, "aiwf doctor --check-rituals: %v\n", err)
+		cliutil.Errorf("aiwf doctor --check-rituals: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	ok, message, err := checkRitualsResult(rootDir)
 	if err != nil { //coverage:ignore MaterializedRituals errors only when the compiled-in embed FS walk fails; unreachable at runtime, so tempdir tests cannot reach this arm
-		fmt.Fprintf(os.Stderr, "aiwf doctor --check-rituals: %v\n", err)
+		cliutil.Errorf("aiwf doctor --check-rituals: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	if ok {
 		return cliutil.ExitOK
 	}
-	fmt.Fprintln(os.Stderr, "aiwf doctor --check-rituals: "+message)
+	cliutil.Errorln("aiwf doctor --check-rituals: " + message)
 	return cliutil.ExitFindings
 }

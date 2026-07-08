@@ -70,18 +70,18 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf template`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf template: --format must be 'text' or 'json', got %q\n", format)
+		cliutil.Errorf("aiwf template: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
-		fmt.Fprintln(os.Stderr, "aiwf template: --pretty has no effect without --format=json")
+		cliutil.Errorln("aiwf template: --pretty has no effect without --format=json")
 	}
 
 	var templates []TemplateOut
 	if len(args) == 1 {
 		k := entity.Kind(args[0])
 		if _, ok := entity.SchemaForKind(k); !ok {
-			fmt.Fprintf(os.Stderr, "aiwf template: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
+			cliutil.Errorf("aiwf template: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
 			return cliutil.ExitUsage
 		}
 		templates = []TemplateOut{{Kind: k, Body: string(entity.BodyTemplate(k))}}
@@ -95,7 +95,7 @@ func Run(args []string, format string, pretty bool) int {
 	case "text":
 		single := len(templates) == 1
 		if err := WriteTemplateText(os.Stdout, templates, single); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
+			cliutil.Errorf("aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -106,7 +106,7 @@ func Run(args []string, format string, pretty bool) int {
 			Result:  map[string]any{"templates": templates},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf template: writing output: %v\n", err)
+			cliutil.Errorf("aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

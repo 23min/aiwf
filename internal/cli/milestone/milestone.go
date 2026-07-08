@@ -7,8 +7,6 @@ package milestone
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -77,22 +75,22 @@ func newDependsOnCmd() *cobra.Command {
 
 func runDependsOn(id, actor, principal, root, reason, on string, clearList bool, out cliutil.OutputFormat) int {
 	if on != "" && clearList {
-		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: --on and --clear are mutually exclusive")
+		cliutil.Errorln("aiwf milestone depends-on: --on and --clear are mutually exclusive")
 		return cliutil.ExitUsage
 	}
 	if on == "" && !clearList {
-		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: pass --on <id,id,...> to set the list, or --clear to empty it")
+		cliutil.Errorln("aiwf milestone depends-on: pass --on <id,id,...> to set the list, or --clear to empty it")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -105,7 +103,7 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -117,5 +115,6 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	return code
 }

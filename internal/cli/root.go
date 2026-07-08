@@ -14,7 +14,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 
@@ -80,7 +79,7 @@ func init() {
 // state.
 func Execute(args []string) int {
 	if err := cliutil.AssertSupportedOS(runtime.GOOS); err != nil {
-		fmt.Fprintln(os.Stderr, "aiwf:", err)
+		cliutil.Errorln("aiwf:", err)
 		return cliutil.ExitUsage
 	}
 	rootCmd := NewRootCmd()
@@ -98,7 +97,7 @@ func Execute(args []string) int {
 	// (unknown verb, bad flag, missing required arg). With
 	// SilenceErrors:true on the root, Cobra didn't print; we print
 	// here in the existing house style.
-	fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+	cliutil.Errorf("aiwf: %v\n", err)
 	return cliutil.ExitUsage
 }
 
@@ -122,10 +121,10 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if v, _ := c.Flags().GetBool("version"); v {
-				fmt.Println(version.Current().Version)
+				cliutil.Println(version.Current().Version)
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
+			cliutil.Errorln("aiwf: missing verb. Try 'aiwf help'.")
 			return cliutil.WrapExitCode(cliutil.ExitUsage)
 		},
 	}
@@ -225,14 +224,14 @@ func newVersionCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			fmt.Println(version.Current().Version)
+			cliutil.Println(version.Current().Version)
 			return nil
 		},
 	}
 }
 
 func printHelp() {
-	fmt.Println(`aiwf — ai-workflow framework CLI
+	cliutil.Println(`aiwf — ai-workflow framework CLI
 
 Usage: aiwf <verb> [args]
 

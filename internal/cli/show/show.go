@@ -108,31 +108,31 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf show`. Returns one of the cliutil.Exit* codes.
 func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf show: --format must be text or json, got %q\n", format)
+		cliutil.Errorf("aiwf show: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
+		cliutil.Errorf("aiwf show: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	// Advisory note when --area names an undeclared value (M-0174/AC-5).
 	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
-		fmt.Fprintln(os.Stderr, note)
+		cliutil.Errorln(note)
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf show: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf show: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	view, ok := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
 	if !ok {
-		fmt.Fprintf(os.Stderr, "aiwf show: %s not found\n", id)
+		cliutil.Errorf("aiwf show: %s not found\n", id)
 		return cliutil.ExitUsage
 	}
 
@@ -146,7 +146,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 		if actual != area {
 			switch format {
 			case "text":
-				fmt.Println(AreaMissLine(view.ID, actual, area))
+				cliutil.Println(AreaMissLine(view.ID, actual, area))
 			case "json":
 				env := render.Envelope{
 					Tool:    "aiwf",
@@ -162,7 +162,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 					},
 				}
 				if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
-					fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
+					cliutil.Errorf("aiwf show: %v\n", err)
 					return cliutil.ExitInternal
 				}
 			}
@@ -185,7 +185,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 			},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf show: %v\n", err)
+			cliutil.Errorf("aiwf show: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}
@@ -420,9 +420,9 @@ func renderShowText(v ShowView) {
 	}
 	if v.AC != nil {
 		// Composite-id view.
-		fmt.Printf("%s · %q · status: %s · phase: %s%s\n",
+		cliutil.Printf("%s · %q · status: %s · phase: %s%s\n",
 			v.ID, v.AC.Title, v.AC.Status, displayPhase(v.AC.TDDPhase), archivedMarker)
-		fmt.Printf("  parent: %s\n", v.ParentID)
+		cliutil.Printf("  parent: %s\n", v.ParentID)
 	} else {
 		// Top-level view.
 		header := fmt.Sprintf("%s · %s · status: %s", v.ID, v.Title, v.Status)
@@ -430,66 +430,66 @@ func renderShowText(v ShowView) {
 			header += " · tdd: " + v.TDD
 		}
 		header += archivedMarker
-		fmt.Println(header)
+		cliutil.Println(header)
 		if v.Parent != "" {
-			fmt.Printf("  parent: %s\n", v.Parent)
+			cliutil.Printf("  parent: %s\n", v.Parent)
 		}
 		if len(v.ACs) > 0 {
-			fmt.Println()
-			fmt.Println("  ACs:")
+			cliutil.Println()
+			cliutil.Println("  ACs:")
 			for i := range v.ACs {
 				ac := v.ACs[i]
-				fmt.Printf("    %s [%s]   · phase: %-9s · %q\n",
+				cliutil.Printf("    %s [%s]   · phase: %-9s · %q\n",
 					ac.ID, ac.Status, displayPhase(ac.TDDPhase), ac.Title)
 			}
 		}
 	}
 	if len(v.ReferencedBy) > 0 {
-		fmt.Println()
-		fmt.Printf("  Referenced by (%d):\n", len(v.ReferencedBy))
+		cliutil.Println()
+		cliutil.Printf("  Referenced by (%d):\n", len(v.ReferencedBy))
 		for _, ref := range v.ReferencedBy {
-			fmt.Printf("    %s\n", ref)
+			cliutil.Printf("    %s\n", ref)
 		}
 	}
 	if len(v.Scopes) > 0 {
-		fmt.Println()
-		fmt.Printf("  Scopes (%d):\n", len(v.Scopes))
+		cliutil.Println()
+		cliutil.Printf("  Scopes (%d):\n", len(v.Scopes))
 		for i := range v.Scopes {
 			s := v.Scopes[i]
 			ended := ""
 			if s.EndedAt != "" {
 				ended = "  ended " + s.EndedAt[:10]
 			}
-			fmt.Printf("    %s  %s → %s  state: %-7s  opened %s%s  events: %d\n",
+			cliutil.Printf("    %s  %s → %s  state: %-7s  opened %s%s  events: %d\n",
 				history.ShortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
 				dateOnly(s.Opened), ended, s.EventCount)
 		}
 	}
 	if len(v.History) > 0 {
-		fmt.Println()
-		fmt.Printf("  Recent history (%d):\n", len(v.History))
+		cliutil.Println()
+		cliutil.Printf("  Recent history (%d):\n", len(v.History))
 		for i := range v.History {
 			e := v.History[i]
 			detail := e.Detail
 			if e.Force != "" {
 				detail += " [forced]"
 			}
-			fmt.Printf("    %s  %-10s  %-12s  %s\n",
+			cliutil.Printf("    %s  %-10s  %-12s  %s\n",
 				e.Date[:10], e.Verb, history.RenderTo(e.To), detail)
 		}
 	}
-	fmt.Println()
+	cliutil.Println()
 	if len(v.Findings) == 0 {
-		fmt.Println("  Findings: (none)")
+		cliutil.Println("  Findings: (none)")
 	} else {
-		fmt.Printf("  Findings (%d):\n", len(v.Findings))
+		cliutil.Printf("  Findings (%d):\n", len(v.Findings))
 		for i := range v.Findings {
 			f := v.Findings[i]
 			subcode := ""
 			if f.Subcode != "" {
 				subcode = "/" + f.Subcode
 			}
-			fmt.Printf("    %s%s [%s]: %s\n", f.Code, subcode, f.Severity, f.Message)
+			cliutil.Printf("    %s%s [%s]: %s\n", f.Code, subcode, f.Severity, f.Message)
 		}
 	}
 }

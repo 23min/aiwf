@@ -4,7 +4,6 @@ package importcmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -67,13 +66,13 @@ func NewCmd() *cobra.Command {
 func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
+		cliutil.Errorf("aiwf import: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	m, err := manifest.ParseFile(manifestPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
+		cliutil.Errorf("aiwf import: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -86,7 +85,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 	if actorStr == "" {
 		resolved, aErr := cliutil.ResolveActor("", rootDir)
 		if aErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf import: %v\n", aErr)
+			cliutil.Errorf("aiwf import: %v\n", aErr)
 			return cliutil.ExitUsage
 		}
 		actorStr = resolved
@@ -109,7 +108,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 	// rewidth.
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf import: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf import: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -120,11 +119,11 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		fmt.Fprintf(os.Stderr, "aiwf import: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
+		cliutil.Errorf("aiwf import: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
 		return cliutil.ExitUsage
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		fmt.Fprintln(os.Stderr, "aiwf import: --principal is forbidden when --actor is human/ (humans act directly)")
+		cliutil.Errorln("aiwf import: --principal is forbidden when --actor is human/ (humans act directly)")
 		return cliutil.ExitUsage
 	}
 
@@ -133,7 +132,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf import: %v\n", err)
+		cliutil.Errorf("aiwf import: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -142,19 +141,19 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 		return cliutil.ExitFindings
 	}
 	if len(res.Plans) == 0 {
-		fmt.Println("aiwf import: manifest had no entities to import.")
+		cliutil.Println("aiwf import: manifest had no entities to import.")
 		return cliutil.ExitOK
 	}
 
 	if dryRun {
-		fmt.Printf("aiwf import: dry-run — %d plan(s) would land:\n", len(res.Plans))
+		cliutil.Printf("aiwf import: dry-run — %d plan(s) would land:\n", len(res.Plans))
 		for _, p := range res.Plans {
-			fmt.Printf("  %s\n", p.Subject)
+			cliutil.Printf("  %s\n", p.Subject)
 			for _, op := range p.Ops {
-				fmt.Printf("    write %s (%d bytes)\n", op.Path, len(op.Content))
+				cliutil.Printf("    write %s (%d bytes)\n", op.Path, len(op.Content))
 			}
 		}
-		fmt.Println("\naiwf import: dry-run complete. Re-run without --dry-run to apply.")
+		cliutil.Println("\naiwf import: dry-run complete. Re-run without --dry-run to apply.")
 		return cliutil.ExitOK
 	}
 
@@ -170,11 +169,11 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 				Value: principalStr,
 			})
 		}
-		if applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf import: applying plan %d: %v\n", i, applyErr)
+		if _, applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
+			cliutil.Errorf("aiwf import: applying plan %d: %v\n", i, applyErr)
 			return cliutil.ExitInternal
 		}
-		fmt.Println(p.Subject)
+		cliutil.Println(p.Subject)
 	}
 	return cliutil.ExitOK
 }

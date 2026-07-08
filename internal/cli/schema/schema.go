@@ -56,11 +56,11 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf schema`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, format string, pretty bool) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf schema: --format must be 'text' or 'json', got %q\n", format)
+		cliutil.Errorf("aiwf schema: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
-		fmt.Fprintln(os.Stderr, "aiwf schema: --pretty has no effect without --format=json")
+		cliutil.Errorln("aiwf schema: --pretty has no effect without --format=json")
 	}
 
 	var schemas []entity.Schema
@@ -68,7 +68,7 @@ func Run(args []string, format string, pretty bool) int {
 		k := entity.Kind(args[0])
 		s, ok := entity.SchemaForKind(k)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "aiwf schema: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
+			cliutil.Errorf("aiwf schema: unknown kind %q (known: %s)\n", args[0], cliutil.JoinKinds(entity.AllKinds()))
 			return cliutil.ExitUsage
 		}
 		schemas = []entity.Schema{s}
@@ -79,7 +79,7 @@ func Run(args []string, format string, pretty bool) int {
 	switch format {
 	case "text":
 		if err := WriteSchemaText(os.Stdout, schemas); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
+			cliutil.Errorf("aiwf schema: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -90,7 +90,7 @@ func Run(args []string, format string, pretty bool) int {
 			Result:  map[string]any{"schemas": schemas},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf schema: writing output: %v\n", err)
+			cliutil.Errorf("aiwf schema: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

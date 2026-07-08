@@ -4,8 +4,6 @@ package rename
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -49,12 +47,12 @@ func NewCmd() *cobra.Command {
 func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
+		cliutil.Errorf("aiwf rename: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf rename: %v\n", err)
+		cliutil.Errorf("aiwf rename: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -67,7 +65,7 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf rename: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf rename: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, err := verb.Rename(ctx, tr, id, newSlug, actorStr, cliutil.ConfiguredTitleMaxLength(rootDir))
@@ -77,5 +75,6 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
+	return code
 }

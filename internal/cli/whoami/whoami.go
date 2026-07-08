@@ -3,9 +3,6 @@
 package whoami
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
@@ -43,15 +40,15 @@ func NewCmd() *cobra.Command {
 func Run(root, actor string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
+		cliutil.Errorf("aiwf whoami: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	resolved, source, err := cliutil.ResolveActorWithSource(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf whoami: %v\n", err)
+		cliutil.Errorf("aiwf whoami: %v\n", err)
 		return cliutil.ExitFindings
 	}
-	fmt.Printf("%s (source: %s)\n", resolved, source)
+	cliutil.Printf("%s (source: %s)\n", resolved, source)
 	return cliutil.ExitOK
 }

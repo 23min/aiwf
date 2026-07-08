@@ -14,17 +14,21 @@ var homeLeakPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`/home/[A-Za-z][A-Za-z0-9_.-]*/`),
 }
 
-// WithVerb binds verb/entity/actor onto l (ADR-0017 Decision #7),
-// scrubbing any macOS (/Users/<name>/) or Linux (/home/<name>/)
-// home-directory fragment from each value first. The scrub operates
-// on string content, not provenance, so it catches a leak regardless
-// of source — including a value assembled from os.Args that a caller
-// passed through verb/entity/actor unfiltered.
-func WithVerb(l *slog.Logger, verb, entity, actor string) *slog.Logger {
+// WithVerb binds verb/entity/actor/run_id onto l (ADR-0017 Decision
+// #7), scrubbing any macOS (/Users/<name>/) or Linux (/home/<name>/)
+// home-directory fragment from verb/entity/actor first. The scrub
+// operates on string content, not provenance, so it catches a leak
+// regardless of source — including a value assembled from os.Args
+// that a caller passed through verb/entity/actor unfiltered. runID
+// (typically logger.NewRunID()) is bound unscrubbed: it is a random
+// hex id, never operator-supplied text, so it can never carry a
+// home-path fragment.
+func WithVerb(l *slog.Logger, verb, entity, actor, runID string) *slog.Logger {
 	return l.With(
 		"verb", scrubHomePaths(verb),
 		"entity", scrubHomePaths(entity),
 		"actor", scrubHomePaths(actor),
+		"run_id", runID,
 	)
 }
 

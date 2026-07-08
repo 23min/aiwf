@@ -168,6 +168,11 @@ func TestPolicy_AtomicWriteChokepoint(t *testing.T) {
 	runPolicy(t, PolicyAtomicWriteChokepoint)
 }
 
+func TestPolicy_LoggingChokepoint(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyLoggingChokepoint)
+}
+
 func TestPolicy_ValidateCheckIsNeverWrites(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyValidateCheckIsNeverWrites)

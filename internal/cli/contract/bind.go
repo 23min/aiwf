@@ -2,8 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -55,12 +53,12 @@ func newBindCmd() *cobra.Command {
 func runBind(id, root, actor, validator, schema, fixtures string, force bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -73,12 +71,12 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -88,5 +86,6 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 		Fixtures:  fixtures,
 		Force:     force,
 	})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	return code
 }

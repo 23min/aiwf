@@ -15,7 +15,13 @@ import (
 // from AddFormatFlags through the verb's Run into FinishVerb /
 // DecorateAndFinish (M-0143 / D-0013). The zero value (Format "", Pretty
 // false) renders as text, so any path that never set it behaves exactly
-// as before the milestone.
+// as before the milestone. This is the sanctioned path for a mutating
+// verb's terminal outcome (its JSON-vs-text-aware envelope). For
+// operator-facing text that isn't a verb's terminal outcome — a
+// pre-flight usage error, a prompt, informational output from a
+// read-only verb — use textio.go's Errorf/Errorln/Printf/Println/Print
+// instead; both are the forbidigo/logging_chokepoint-sanctioned
+// alternatives to a bare fmt.Print* call (ADR-0017 AC-3).
 type OutputFormat struct {
 	Format string
 	Pretty bool

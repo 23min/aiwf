@@ -4,8 +4,6 @@ package reallocate
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -48,12 +46,12 @@ func NewCmd() *cobra.Command {
 func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -66,7 +64,7 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, err := verb.Reallocate(ctx, tr, target, actorStr)
@@ -76,5 +74,6 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	return code
 }

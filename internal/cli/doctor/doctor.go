@@ -88,13 +88,13 @@ func Run(root string, selfCheck, checkLatest bool) int {
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
+		cliutil.Errorf("aiwf doctor: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	report, problems := DoctorReport(rootDir, DoctorOptions{CheckLatest: checkLatest})
 	for _, line := range report {
-		fmt.Println(line)
+		cliutil.Println(line)
 	}
 	// Exit findings iff at least one problem is error-severity;
 	// warnings alone keep exit 0 (doctor exits 0 on advisories, same
@@ -114,11 +114,11 @@ func Run(root string, selfCheck, checkLatest bool) int {
 func runWriteHealth(root string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore ResolveRoot(--root) resolves via filepath.Abs and cannot fail here; defensive parity with Run
-		fmt.Fprintf(os.Stderr, "aiwf doctor: %v\n", err)
+		cliutil.Errorf("aiwf doctor: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	if err := WriteHealth(context.Background(), rootDir, time.Now().UTC().Format(time.RFC3339), DoctorOptions{}); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --write-health: %v\n", err)
+		cliutil.Errorf("aiwf doctor --write-health: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	return cliutil.ExitOK
@@ -233,6 +233,8 @@ func DoctorReport(rootDir string, opts DoctorOptions) (lines []string, problems 
 		worktreeAnnot = "configured"
 	}
 	lines = append(lines, fmt.Sprintf("%s%s (%s)", label("worktree-dir:"), worktreeDir, worktreeAnnot))
+
+	lines, problems = appendLoggingReport(lines, problems, cfg)
 
 	if actor, source, actorErr := cliutil.ResolveActorWithSource("", rootDir); actorErr != nil {
 		lines = append(lines, label("actor:")+actorErr.Error())

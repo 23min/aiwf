@@ -1,11 +1,91 @@
 package upgrade
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/version"
 )
+
+// TestRun_ReexecFails_StillEmittedInstallCompleted pins M-0238/AC-1's
+// upgrade-specific classification decision (documented in Run's own
+// comment above the diagnostic emission): "install.completed" fires
+// the moment install succeeds, not on the final process exit code.
+// This is deliberate, not an oversight — a successful reexec replaces
+// the process via syscall.Exec, so there is no Go code path after a
+// successful reexec that could ever emit a diagnostic event; gating
+// on the final exit code would mean the event almost never fires in a
+// real production upgrade. Swaps the unexported reexecUpdate var
+// (package-internal access), so this test is serial: t.Parallel would
+// race any other test that also swaps it.
+func TestRun_ReexecFails_StillEmittedInstallCompleted(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell shim assumes a POSIX-y env")
+	}
+	tmp := t.TempDir()
+	gobinDir := filepath.Join(tmp, "bin")
+	if err := os.MkdirAll(gobinDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	shim := filepath.Join(tmp, "go")
+	shimBody := `#!/bin/sh
+case "$1" in
+  env)
+    case "$2" in
+      GOBIN)  printf '%s\n' "` + gobinDir + `" ;;
+      GOPATH) printf '\n' ;;
+    esac
+    ;;
+  install)
+    name=$(echo "$2" | sed 's|.*/||; s|@.*||')
+    cp "` + os.Args[0] + `" "` + gobinDir + `/$name"
+    ;;
+esac
+`
+	if err := os.WriteFile(shim, []byte(shimBody), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	origReexec := reexecUpdate
+	reexecUpdate = func(string, string) error { return errTestReexecFailure }
+	t.Cleanup(func() { reexecUpdate = origReexec })
+
+	t.Setenv("AIWF_GO_BIN", shim)
+	t.Setenv("GOPROXY", "off")
+
+	diagLogPath := filepath.Join(tmp, "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", diagLogPath)
+
+	rc := Run(tmp, "v0.1.0", false)
+	if rc != cliutil.ExitInternal {
+		t.Fatalf("Run() = %d, want ExitInternal (%d) when reexec fails", rc, cliutil.ExitInternal)
+	}
+
+	raw, err := os.ReadFile(diagLogPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		Msg  string `json:"msg"`
+		Verb string `json:"verb"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.Msg != "install.completed" || rec.Verb != "upgrade" {
+		t.Errorf("diagnostic record = %+v, want install.completed/upgrade despite the reexec failure", rec)
+	}
+}
+
+var errTestReexecFailure = errors.New("simulated reexec failure")
 
 // TestProxyStaleHint covers the helper that emits the
 // "proxy may be stale" hint when a pseudo-version's base is newer

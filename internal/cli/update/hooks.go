@@ -1,8 +1,6 @@
 package update
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -32,13 +30,13 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 	configPath := filepath.Join(rootDir, config.FileName)
 	doc, _, err := aiwfyaml.Read(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
 	existing, err := doc.Hooks()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -61,7 +59,7 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 
 	doc.SetHooks(union)
 	if err := doc.Write(configPath); err != nil { //coverage:ignore the preceding Read already succeeded against the same path; only external interference (disk failure, permission change between the two calls) reaches this, not any code path this binary's own control flow produces
-		fmt.Fprintf(os.Stderr, "aiwf update: %v\n", err)
+		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -70,7 +68,7 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 		if newDecisions[h.Name] {
 			state = "enabled"
 		}
-		fmt.Printf("aiwf update: hook %q — %s (new)\n", h.Name, state)
+		cliutil.Printf("aiwf update: hook %q — %s (new)\n", h.Name, state)
 	}
 	return cliutil.ExitOK
 }

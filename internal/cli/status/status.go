@@ -298,26 +298,26 @@ func NewCmd() *cobra.Command {
 // format ignores the flag for now).
 func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	if format != "text" && format != "json" && format != "md" {
-		fmt.Fprintf(os.Stderr, "aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
+		cliutil.Errorf("aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf status: %v\n", err)
+		cliutil.Errorf("aiwf status: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	// Advisory note when --area names an undeclared value (M-0174/AC-5);
 	// to stderr so it never pollutes the (stdout) report.
 	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
-		fmt.Fprintln(os.Stderr, note)
+		cliutil.Errorln(note)
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf status: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf status: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -339,7 +339,7 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 
 	recent, err := ReadRecentActivity(ctx, rootDir, RecentActivityLimit)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf status: reading recent activity: %v\n", err)
+		cliutil.Errorf("aiwf status: reading recent activity: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	report.RecentActivity = recent
@@ -356,7 +356,7 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 		// error branch just above: BuildActivityDigests only fails for
 		// a genuine git/environmental fault, not reachable through a
 		// clean deterministic fixture — see its own package-level notes.
-		fmt.Fprintf(os.Stderr, "aiwf status: building activity digest: %v\n", digestErr)
+		cliutil.Errorf("aiwf status: building activity digest: %v\n", digestErr)
 		return cliutil.ExitInternal
 	}
 	report.TodayDigest = today
@@ -370,7 +370,7 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	// worktree-organized layout."
 	views, vErr := BuildWorktreeViews(ctx, rootDir, tr)
 	if vErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf status: building worktree view: %v\n", vErr)
+		cliutil.Errorf("aiwf status: building worktree view: %v\n", vErr)
 		return cliutil.ExitInternal
 	}
 	report.Worktrees = views
@@ -380,7 +380,7 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	AnnotateWorktreeDivergence(&report, views, rootDir)
 	if worktrees && format == "text" {
 		if rErr := RenderWorktreeViews(os.Stdout, views, render.ColorEnabled(os.Stdout)); rErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", rErr)
+			cliutil.Errorf("aiwf status: writing output: %v\n", rErr)
 			return cliutil.ExitInternal
 		}
 		return cliutil.ExitOK
@@ -393,7 +393,7 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 			termWidth = render.TerminalWidth(os.Stdout)
 		}
 		if err := RenderStatusText(os.Stdout, &report, termWidth, render.ColorEnabled(os.Stdout)); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
+			cliutil.Errorf("aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -408,12 +408,12 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 			},
 		}
 		if err := render.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
+			cliutil.Errorf("aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "md":
 		if err := RenderStatusMarkdown(os.Stdout, &report); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf status: writing output: %v\n", err)
+			cliutil.Errorf("aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

@@ -1,7 +1,6 @@
 package cliutil
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -39,7 +38,7 @@ func ParseTestsFlag(raw, verbLabel string) (*gitops.TestMetrics, error) {
 	}
 	m, err := gitops.ParseStrictTestMetrics(raw)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", verbLabel, err)
+		Errorf("%s: %v\n", verbLabel, err)
 		return nil, err
 	}
 	if m == (gitops.TestMetrics{}) {

@@ -130,11 +130,11 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	// contract (AC-1: creation and materialization as ONE step).
 	rollback := func() {
 		if rmErr := gitops.WorktreeRemove(ctx, rootDir, targetPath); rmErr != nil { //coverage:ignore WorktreeRemove --force fails only on a filesystem fault (permission denied) removing an already-created worktree; not deterministically reproducible.
-			fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not remove worktree at %s: %v\n", targetPath, rmErr)
+			cliutil.Errorf("aiwf worktree add: rollback: could not remove worktree at %s: %v\n", targetPath, rmErr)
 		}
 		if !exists {
 			if brErr := gitops.DeleteBranch(ctx, rootDir, branch); brErr != nil { //coverage:ignore DeleteBranch -D fails only on a repo-state fault (e.g. the branch got checked out elsewhere mid-run); not deterministically reproducible.
-				fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not delete branch %s: %v\n", branch, brErr)
+				cliutil.Errorf("aiwf worktree add: rollback: could not delete branch %s: %v\n", branch, brErr)
 			}
 		}
 	}
@@ -164,14 +164,14 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		for _, s := range steps {
 			printStep(s)
 		}
-		fmt.Fprintln(os.Stderr, "aiwf worktree add: hook chain collision (G45) in the new worktree; "+
-			"resolve manually (merge the existing hook into its `.local` sibling, delete the original) "+
+		cliutil.Errorln("aiwf worktree add: hook chain collision (G45) in the new worktree; " +
+			"resolve manually (merge the existing hook into its `.local` sibling, delete the original) " +
 			"and re-run `aiwf update` there.")
 		return cliutil.ExitFindings
 	}
 
 	if printPath {
-		fmt.Println(absPath)
+		cliutil.Println(absPath)
 		return cliutil.ExitOK
 	}
 
@@ -193,7 +193,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	for _, s := range steps {
 		printStep(s)
 	}
-	fmt.Println(absPath)
+	cliutil.Println(absPath)
 	return cliutil.ExitOK
 }
 
@@ -225,9 +225,9 @@ func resolveCreatedPath(rootDir, targetPath string) (string, error) {
 // consistent for an operator running either.
 func printStep(s initrepo.StepResult) {
 	if s.Detail != "" {
-		fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+		cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 	} else {
-		fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+		cliutil.Printf("  %-9s  %s\n", s.Action, s.What)
 	}
 }
 
@@ -235,6 +235,6 @@ func printStep(s initrepo.StepResult) {
 // every error path in Run stays stdout-clean by construction — the
 // property --print-path's contract depends on.
 func fail(label string, err error, code int) int {
-	fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+	cliutil.Errorf("%s: %v\n", label, err)
 	return code
 }
