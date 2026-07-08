@@ -223,6 +223,24 @@ metadata field values specifically (`entity_id`/`from`/`to`, `old_slug`/
 — the class of gap `move` and `worktree add` both fell into above. Commit
 `29f0c8ff`.
 
+**Post-`met` correction, from the wrap-time independent review** (see
+`## Reviewer notes`): two real gaps in this AC's own scope. All five
+`--audit-only` plan producers (`internal/verb/auditonly.go`) set no
+`Metadata` at all — `aiwf promote/cancel <id> --audit-only --format=json`
+silently dropped `entity_id`/`to` that the normal path reports for the
+same verb. Composite-AC `cancel` (`finalizeACPlan`, shared by
+`promoteAC`/`PromoteACPhase`/`cancelAC`) reused the trailer-suppression
+empty `to` for `metadata.to`, reporting `""` instead of `"cancelled"` —
+inconsistent with top-level `Cancel`'s own metadata line one function
+away; `finalizeACPlan` now takes a separate `metaTo` param decoupled
+from the `aiwf-to` trailer value. Fixed test-first (RED confirmed
+against the unfixed code, GREEN after), each fix mutation-probed
+(mutant caught, files restored byte-identical). The `finalizeACPlan`
+signature edit also resurfaced a genuine, previously-unflagged coverage
+gap in its own projection-findings early return and in the wholly-
+untested `cancelACAuditOnly` composite branch — both closed with new
+tests. Commit `4abb73f4`.
+
 ### AC-3 — An operator can pass --trace to see per-phase timings via the logger
 
 `OutputFormat` gains a `Trace bool` field; `AddFormatFlags` registers `--trace`
@@ -357,6 +375,14 @@ the fixtures had the child heading nested under the wrong parent. Fixed by
 adding a dedicated test proving the parent check matters, then re-confirmed
 the mutation is caught. Commit `f2a27e0b`.
 
+**Post-`met` correction, from wrap-time doc-lint**: the rewritten paragraph
+itself claimed `forbidigo` bans bare `log.Print*` call sites, but neither
+`.golangci.yml`'s `forbid` list nor the `logging-chokepoint` AST policy
+enforce anything on `log.Print*` — only `fmt.Print*`/`Fprintln`/`Fprintf`
+are covered. Reworded to name what's actually enforced; the structural
+policy's three checks (stale-claim absence, opt-in wording, ADR-0017 link)
+still pass against the corrected text. Commit `be43dbcf`.
+
 Ratifying `aiwf promote ADR-0017 accepted` is the milestone's own final
 constraint ("the last thing that happens... it certifies a state that must
 already be true") — a separate, deliberate gate after AC-1 through AC-4 and
@@ -364,14 +390,68 @@ this paragraph rewrite all landed, not folded into this commit.
 
 ## Decisions made during implementation
 
-- (none)
+- (none) — ADR-0017's `proposed -> accepted` promotion is AC-5's own deliverable
+  (certifying a state the milestone made true), not a new decision entity.
 
 ## Validation
 
+Full gate, green, after the wrap-time corrective commits landed:
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -race ./...` — all packages pass.
+- `make lint` (`golangci-lint run`) — 0 issues.
+- `aiwf check` — 0 errors; 2 pre-existing, unrelated warnings
+  (`epic-active-no-drafted-milestones`, `provenance-untrailered-scope-undefined`).
+- `make coverage-gate` — fails, but exclusively on the ~194-branch
+  `internal/cli/*` debt already tracked as G-0386 (discovered in M-0238,
+  deliberately deferred there); confirmed by diffing against the pre-fix
+  tree that no `internal/verb/*` line was in that set until this wrap's own
+  `finalizeACPlan` edit resurfaced one — closed with a new test (see AC-2's
+  Work log) before this validation pass.
+
 ## Deferrals
 
-- (none)
+- (none) — G-0386 (the coverage-gate's `internal/cli/*` debt) is a pre-existing
+  gap from M-0238, not new work this milestone deferred.
 
 ## Reviewer notes
 
-- (none)
+**Independent two-lens review, run before wrap:**
+
+- **Code-quality (`wf-review-code`), sliced by AC** — four independent,
+  fresh-context reviewers, one per AC (AC-1 correlation-id, AC-2 metadata,
+  AC-3 `--trace`, AC-4+AC-5 policies/CLAUDE.md), each briefed adversarially
+  and instructed to verify by measuring (building, running tests, exercising
+  the real binary) rather than trusting this spec's own narrative.
+  - AC-1: **approve**. Verified end-to-end against the real binary
+    (`correlation_id` byte-identical to the log's `run_id`, distinct across
+    invocations, absent from read-only verbs). Two non-blocking notes: the
+    spec's own "(a UUID)" wording is cosmetic-inaccurate (the id is 16 hex
+    chars, not RFC-4122); no drift guard yet couples "calls
+    `AddFormatFlags`" with "sets `CorrelationID`" for a *future* new verb.
+  - AC-2: **request-changes** — two real bugs, both fixed as corrective
+    commits (see AC-2's Work log): audit-only paths reporting no metadata,
+    and composite-AC cancel reporting `to: ""` instead of `"cancelled"`.
+  - AC-3: **approve**. Verified the `forcedGetenv` scope, the clamp
+    direction, the fallback-destination preservation, and the
+    `//coverage:ignore` justification all hold under adversarial probing
+    (six env-configuration scenarios against the real binary).
+  - AC-4+AC-5: **approve**. Verified the structural policies genuinely fire
+    on the regressions they target (traced the AST-walk and the
+    parent-heading-scoping logic by hand) and confirmed ADR-0017's promote
+    was a pure status flip. Independently caught the same `log.Print*`
+    inaccuracy this wrap's own doc-lint pass found, and confirmed the fix.
+- **Design-quality (`wf-rethink`)**: not run. This milestone introduced no
+  new module/package boundary, core abstraction, or data model — every AC
+  is wiring an already-existing primitive (the logger package, `OutputFormat`,
+  `verb.Result`) through the CLI layer, or a new policy following the
+  established `internal/policies/` AST-walk pattern (~30 existing
+  precedents). Nothing here meets `wf-rethink`'s non-trivial-design trigger.
+
+**Residual self-checks**: no `TODO`/`FIXME` left in the diff; one stray
+`scratch_cov2.html` (a `go tool cover` artifact from a reviewer's coverage
+run) found in the working tree and removed before the corrective commits.
+CLAUDE.md's `### CLI conventions` section is the shipped-surface doc update
+this milestone's public behavior required (AC-5's own deliverable); no other
+README/inline-doc surface changed.
