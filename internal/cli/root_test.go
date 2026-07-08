@@ -85,7 +85,7 @@ func TestExecute_Help(t *testing.T) {
 // migration.
 func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 	t.Parallel()
-	root := NewRootCmd()
+	root := NewRootCmd("")
 	expected := []string{
 		"check", "add", "promote", "cancel", "rename", "retitle",
 		"edit-body", "move", "reallocate", "rewidth", "archive",
@@ -117,7 +117,7 @@ func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 // Closes G-0150.
 func TestNewRootCmd_AnnotationRecordsExplicitVerbs(t *testing.T) {
 	t.Parallel()
-	root := NewRootCmd()
+	root := NewRootCmd("")
 	raw, ok := root.Annotations[cliutil.AnnotationRegisteredVerbs]
 	if !ok {
 		t.Fatalf("annotation %q missing from root", cliutil.AnnotationRegisteredVerbs)

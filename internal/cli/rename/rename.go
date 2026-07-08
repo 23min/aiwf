@@ -16,7 +16,7 @@ import (
 // NewCmd builds `aiwf rename <id> <new-slug>`. The verb is slug-only:
 // the entity id is preserved across the rename. Title and frontmatter
 // are untouched.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -39,6 +39,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }

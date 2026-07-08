@@ -67,7 +67,7 @@ var helpFieldOptOuts = map[string]string{
 // CI here.
 func TestPolicy_ExamplePresent(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 
 	var failures []string
 	walkCommands(root, func(cmd *cobra.Command) {
@@ -105,7 +105,7 @@ func TestPolicy_ExamplePresent(t *testing.T) {
 // help text and would generate false positives.
 func TestPolicy_NoMigrationProse(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 
 	type hit struct {
 		path  string

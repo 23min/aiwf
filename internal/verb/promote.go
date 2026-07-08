@@ -173,12 +173,14 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	}
 
 	subject := fmt.Sprintf("aiwf promote %s %s -> %s", id, e.Status, newStatus)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
 		Trailers: transitionTrailers("promote", id, actor, reason, newStatus, force),
 		Ops:      ops,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id, "from": e.Status, "to": newStatus}
+	return result, nil
 }
 
 // Cancel promotes an entity to its kind's terminal-cancel status —
@@ -275,7 +277,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	}
 
 	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: subject,
 		Body:    reason,
 		// Cancel does not emit aiwf-to:. The cancel target is implicit
@@ -284,7 +286,9 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		// trailer to disambiguate. Only `promote` events carry aiwf-to:.
 		Trailers: transitionTrailers("cancel", id, actor, reason, "", force),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id, "from": e.Status, "to": target}
+	return result, nil
 }
 
 // transitionTrailers builds the standard trailer block for a status-

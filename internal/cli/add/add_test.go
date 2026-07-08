@@ -10,7 +10,7 @@ import (
 // NewCmd with the expected metadata, including the `ac` subcommand.
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := add.NewCmd()
+	cmd := add.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

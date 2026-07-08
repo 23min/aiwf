@@ -49,7 +49,7 @@ func TestFormatFlagUniformRollout_AC4(t *testing.T) {
 		formatExempt["aiwf completion"+sh] = "Cobra completion script generator"
 	}
 
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	var missing []string
 	walkCommands(root, func(cmd *cobra.Command) {
 		if !cmd.Runnable() {

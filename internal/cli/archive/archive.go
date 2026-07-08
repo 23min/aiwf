@@ -4,6 +4,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf archive [--apply] [--kind <kind>] [--root <path>]`.
@@ -33,7 +35,7 @@ import (
 //   - Reversal is deliberately not implemented (ADR-0004 §"Reversal").
 //     If a closed entity needs revisiting, file a new entity that
 //     references the archived one.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -41,6 +43,7 @@ func NewCmd() *cobra.Command {
 		apply     bool
 		dryRun    bool
 		kind      string
+		out       *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "archive [--apply | --dry-run] [--kind <kind>]",
@@ -88,7 +91,7 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 				cliutil.Errorln("aiwf archive: --apply and --dry-run are mutually exclusive")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
-			return cliutil.WrapExitCode(Run(actor, principal, root, kind, apply))
+			return cliutil.WrapExitCode(Run(actor, principal, root, kind, apply, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -97,6 +100,8 @@ ADR-0004 tree and the routine ongoing sweeps that follow.`,
 	cmd.Flags().BoolVar(&apply, "apply", false, "commit the sweep; without this flag the verb is dry-run")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "explicit alias for the default dry-run behavior; mutually exclusive with --apply")
 	cmd.Flags().StringVar(&kind, "kind", "", "scope the sweep to one kind (epic, contract, gap, decision, adr); milestones do not archive independently")
+	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 
 	_ = cmd.RegisterFlagCompletionFunc("kind", cobra.FixedCompletions(
 		archiveKindCompletions(),
@@ -115,16 +120,14 @@ func archiveKindCompletions() []string {
 }
 
 // Run executes `aiwf archive`. Returns one of the cliutil.Exit* codes.
-func Run(actor, principal, root, kind string, apply bool) int {
+func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf archive: %v\n", err)
-		return cliutil.ExitUsage
+		return failArchive(out, err.Error(), cliutil.ExitUsage)
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
-		cliutil.Errorf("aiwf archive: %v\n", err)
-		return cliutil.ExitUsage
+		return failArchive(out, err.Error(), cliutil.ExitUsage)
 	}
 
 	// Provenance coherence check: a non-human actor needs a principal;
@@ -133,20 +136,17 @@ func Run(actor, principal, root, kind string, apply bool) int {
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		cliutil.Errorf("aiwf archive: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
-		return cliutil.ExitUsage
+		return failArchive(out, fmt.Sprintf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), cliutil.ExitUsage)
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		cliutil.Errorln("aiwf archive: --principal is forbidden when --actor is human/ (humans act directly)")
-		return cliutil.ExitUsage
+		return failArchive(out, "--principal is forbidden when --actor is human/ (humans act directly)", cliutil.ExitUsage)
 	}
 
 	// Validate --kind early so a typo doesn't wait for the verb.
 	kindStr := strings.TrimSpace(kind)
 	if kindStr != "" {
 		if !validArchiveKind(kindStr) {
-			cliutil.Errorf("aiwf archive: --kind %q is not one of %s\n", kindStr, strings.Join(archiveKindCompletions(), ", "))
-			return cliutil.ExitUsage
+			return failArchive(out, fmt.Sprintf("--kind %q is not one of %s", kindStr, strings.Join(archiveKindCompletions(), ", ")), cliutil.ExitUsage)
 		}
 	}
 
@@ -163,24 +163,29 @@ func Run(actor, principal, root, kind string, apply bool) int {
 
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
-		cliutil.Errorf("aiwf archive: %v\n", err)
-		return cliutil.ExitInternal
+		return failArchive(out, err.Error(), cliutil.ExitInternal)
 	}
 	if result == nil { //coverage:ignore Archive always returns a non-nil Result on success
-		cliutil.Errorln("aiwf archive: no result returned")
-		return cliutil.ExitInternal
+		return failArchive(out, "no result returned", cliutil.ExitInternal)
 	}
 
 	if result.NoOp {
+		if out.JSON() {
+			emitArchiveEnvelope(out, result.NoOpMessage, nil)
+			return cliutil.ExitOK
+		}
 		cliutil.Println(result.NoOpMessage)
 		return cliutil.ExitOK
 	}
 	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today
-		cliutil.Errorln("aiwf archive: validation passed but no plan produced")
-		return cliutil.ExitInternal
+		return failArchive(out, "validation passed but no plan produced", cliutil.ExitInternal)
 	}
 
 	if !apply {
+		if out.JSON() {
+			emitArchiveEnvelope(out, result.Plan.Subject+" (dry-run; re-run with --apply to commit)", result.Metadata)
+			return cliutil.ExitOK
+		}
 		printArchiveDryRun(result.Plan)
 		return cliutil.ExitOK
 	}
@@ -194,15 +199,73 @@ func Run(actor, principal, root, kind string, apply bool) int {
 		})
 	}
 
-	if _, applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
-		cliutil.Errorf("aiwf archive: %v\n", applyErr)
-		return cliutil.ExitInternal
+	sha, applyErr := verb.Apply(ctx, rootDir, result.Plan)
+	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
+		return failArchive(out, applyErr.Error(), cliutil.ExitInternal)
 	}
-	if len(result.Findings) > 0 { //coverage:ignore Archive currently never populates Findings
+	if len(result.Findings) > 0 && !out.JSON() { //coverage:ignore Archive currently never populates Findings
 		_ = render.Text(os.Stderr, result.Findings)
+	}
+	if out.JSON() {
+		emitArchiveEnvelope(out, result.Plan.Subject, withCommitSHA(result.Metadata, sha))
+		return cliutil.ExitOK
 	}
 	cliutil.Println(result.Plan.Subject)
 	return cliutil.ExitOK
+}
+
+// failArchive reports a terminal error in the chosen output format:
+// text mode keeps the historical "label: message" line on stderr;
+// JSON mode writes a status:"error" envelope to stdout instead,
+// mirroring cliutil.OutputFormat's emitErrorEnvelope shape (D-0013) —
+// archive predates that shared helper's adoption and still builds its
+// own render.Envelope, so it can't call the unexported method
+// directly.
+func failArchive(out cliutil.OutputFormat, message string, code int) int {
+	if !out.JSON() {
+		cliutil.Errorf("aiwf archive: %s\n", message)
+		return code
+	}
+	env := render.Envelope{
+		Tool:    "aiwf",
+		Version: version.Current().Version,
+		Status:  "error",
+		Error:   &render.EnvelopeError{Message: message},
+	}
+	_ = render.JSON(os.Stdout, env, out.Pretty)
+	return code
+}
+
+// emitArchiveEnvelope writes a status:"ok" envelope carrying subject
+// and metadata (correlation_id merged in via out.Metadata). Called
+// only when out.JSON() is true.
+func emitArchiveEnvelope(out cliutil.OutputFormat, subject string, metadata map[string]any) {
+	env := render.Envelope{
+		Tool:     "aiwf",
+		Version:  version.Current().Version,
+		Status:   "ok",
+		Result:   map[string]any{"subject": subject},
+		Metadata: out.Metadata(metadata),
+	}
+	_ = render.JSON(os.Stdout, env, out.Pretty)
+}
+
+// withCommitSHA returns a copy of md with "commit_sha" set to sha,
+// without mutating md. Mirrors cliutil.withCommitSHA (unexported,
+// cross-package) — archive needs the identical merge but builds its
+// own envelope rather than routing through FinishVerb. sha is always
+// non-empty at this function's one call site; render.Envelope's
+// Metadata field carries omitempty, which treats a zero-length map
+// the same as nil, so no empty/nil special-casing is needed here.
+func withCommitSHA(md map[string]any, sha string) map[string]any {
+	out := make(map[string]any, len(md)+1)
+	for k, v := range md {
+		out[k] = v
+	}
+	if sha != "" {
+		out["commit_sha"] = sha
+	}
+	return out
 }
 
 // validArchiveKind reports whether s is one of the kinds the --kind

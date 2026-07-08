@@ -47,6 +47,12 @@ func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 			t.Errorf("aiwf-force present on audit-only commit: %q", x.Value)
 		}
 	}
+	if res.Metadata["entity_id"] != "E-0001" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "E-0001")
+	}
+	if res.Metadata["to"] != "active" {
+		t.Errorf("metadata.to = %v, want %q", res.Metadata["to"], "active")
+	}
 }
 
 // TestPromoteAuditOnly_RefusesWhenStateMismatch: --audit-only against
@@ -150,6 +156,12 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 			t.Errorf("aiwf-to present on cancel audit-only commit: %q", x.Value)
 		}
 	}
+	if res.Metadata["entity_id"] != "G-0001" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "G-0001")
+	}
+	if res.Metadata["to"] != "wontfix" {
+		t.Errorf("metadata.to = %v, want %q", res.Metadata["to"], "wontfix")
+	}
 }
 
 // TestCancelAuditOnly_RefusesWhenNotAtTerminal: the entity is still
@@ -230,6 +242,12 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	}
 	mustHaveTrailer(t, tr, "aiwf-entity", "M-0001/AC-1")
 	mustHaveTrailer(t, tr, "aiwf-audit-only", "backfill")
+	if res.Metadata["entity_id"] != "M-0001/AC-1" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "M-0001/AC-1")
+	}
+	if res.Metadata["to"] != "met" {
+		t.Errorf("metadata.to = %v, want %q", res.Metadata["to"], "met")
+	}
 }
 
 // TestPromoteACPhaseAuditOnly_HappyPath: --phase audit-only on a
@@ -253,6 +271,12 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
+	if res.Metadata["entity_id"] != "M-0001/AC-1" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "M-0001/AC-1")
+	}
+	if res.Metadata["to"] != "red" {
+		t.Errorf("metadata.to = %v, want %q", res.Metadata["to"], "red")
+	}
 }
 
 // TestPromoteACPhaseAuditOnly_RefusesUnknownPhase: a typo or invalid
@@ -267,5 +291,45 @@ func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
 	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "Refactoring", testActor, "wrong case")
 	if err == nil || !strings.Contains(err.Error(), "not a recognized tdd_phase") {
 		t.Errorf("expected unknown-phase refusal; got %v", err)
+	}
+}
+
+// TestCancelACAuditOnly_HappyPath: composite-id audit-only on AC
+// status cancel. The AC is already `cancelled`; the verb records the
+// audit. This is the composite-id branch of CancelAuditOnly (dispatch
+// via entity.IsCompositeID), previously untested by any case in this
+// file — cancelACAuditOnly itself was a wholly uncovered code path.
+func TestCancelACAuditOnly_HappyPath(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
+
+	res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", testActor, "backfill")
+	if err != nil {
+		t.Fatalf("CancelAuditOnly composite: %v", err)
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	tr, err := gitops.HeadTrailers(r.ctx, r.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustHaveTrailer(t, tr, "aiwf-verb", "cancel")
+	mustHaveTrailer(t, tr, "aiwf-entity", "M-0001/AC-1")
+	mustHaveTrailer(t, tr, "aiwf-audit-only", "backfill")
+	for _, x := range tr {
+		if x.Key == "aiwf-to" {
+			t.Errorf("aiwf-to present on cancel audit-only commit: %q", x.Value)
+		}
+	}
+	if res.Metadata["entity_id"] != "M-0001/AC-1" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "M-0001/AC-1")
+	}
+	if res.Metadata["to"] != "cancelled" {
+		t.Errorf("metadata.to = %v, want %q", res.Metadata["to"], "cancelled")
 	}
 }

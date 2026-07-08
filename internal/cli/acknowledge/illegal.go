@@ -26,7 +26,7 @@ import (
 // specific (SHA, entity) pair. The verb verifies at write time that <sha>'s
 // diff actually touches <id>'s file; if not, the ack is refused. Required when
 // acking against provenance-untrailered-entity-commit.
-func newIllegalCmd() *cobra.Command {
+func newIllegalCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		root      string
@@ -111,6 +111,7 @@ Both --reason (non-empty after trim) and a human/... actor are required
 	// that the SHA's diff touches the named entity regardless of kind).
 	_ = cmd.RegisterFlagCompletionFunc("for-entity", cliutil.CompleteEntityIDFlag(""))
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 

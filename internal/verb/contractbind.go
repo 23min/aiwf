@@ -119,7 +119,7 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract bind %s", id),
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "contract-bind"},
@@ -127,7 +127,9 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id, "validator": desired.Validator}
+	return result, nil
 }
 
 // contractCheckForBinding runs contractcheck on the projected contracts
@@ -179,7 +181,7 @@ func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Co
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract unbind %s", id),
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "contract-unbind"},
@@ -187,7 +189,9 @@ func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Co
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id}
+	return result, nil
 }
 
 // cloneContracts returns a deep-enough copy of c that callers can

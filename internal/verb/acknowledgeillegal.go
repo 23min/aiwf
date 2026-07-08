@@ -105,12 +105,14 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	if len(short) > 8 {
 		short = short[:8]
 	}
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    fmt.Sprintf("aiwf acknowledge illegal %s", short),
 		Body:       cleanedReason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"sha": sha}
+	return result, nil
 }
 
 // verifySHATouchesEntity runs `git diff-tree --no-commit-id

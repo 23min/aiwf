@@ -176,7 +176,7 @@ func TestRewidth_TrailerShape(t *testing.T) {
 // the verb's existence on the help surface is part of the AC.
 func TestRewidth_HelpAvailable(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	rewidth, _, err := root.Find([]string{"rewidth"})
 	if err != nil {
 		t.Fatalf("rewidth not registered on the root command tree: %v", err)

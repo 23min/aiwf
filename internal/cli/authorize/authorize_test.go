@@ -12,7 +12,7 @@ import (
 
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := authorize.NewCmd()
+	cmd := authorize.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

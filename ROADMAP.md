@@ -836,7 +836,7 @@ answer instead of whatever the operator happened to capture from stderr.
 |---|---|---|
 | M-0237 | Logger core: internal/logger package and concurrent-append safety | done |
 | M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | done |
-| M-0239 | Correlation id wiring; ratify ADR-0017 | draft |
+| M-0239 | Correlation id wiring; ratify ADR-0017 | in_progress |
 
 ## E-0062 — Correctness stress harness (proposed)
 

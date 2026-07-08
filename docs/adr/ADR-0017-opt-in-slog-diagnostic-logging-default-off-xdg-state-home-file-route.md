@@ -1,7 +1,7 @@
 ---
 id: ADR-0017
 title: Opt-in slog diagnostic logging, default off, XDG state-home file route
-status: proposed
+status: accepted
 ---
 ## Context
 

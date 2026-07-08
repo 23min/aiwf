@@ -20,7 +20,7 @@ import (
 // --clear` to untag): a verb that owns one entity's `area:` frontmatter,
 // setting it to an existing declared member or clearing it, in one
 // trailered commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -72,6 +72,7 @@ a retag with the prior member.`,
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&clearTag, "clear", false, "clear the entity's area tag (mutually exclusive with <member>)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	// Composed positional completion: neither CompleteEntityIDArg nor
 	// CompleteAreaValueArg composes two positions, so dispatch on len(args)
 	// — position 0 offers entity ids, position 1 offers settable area

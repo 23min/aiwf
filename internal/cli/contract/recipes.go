@@ -76,7 +76,7 @@ func runRecipes(root string) int {
 
 // newRecipeCmd builds `aiwf contract recipe`. Three children: show,
 // install, remove. The parent itself is non-Runnable.
-func newRecipeCmd() *cobra.Command {
+func newRecipeCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "recipe",
 		Short:         "Manage validators (show / install / remove a recipe)",
@@ -85,8 +85,8 @@ func newRecipeCmd() *cobra.Command {
 		SilenceUsage:  true,
 	}
 	cmd.AddCommand(newRecipeShowCmd())
-	cmd.AddCommand(newRecipeInstallCmd())
-	cmd.AddCommand(newRecipeRemoveCmd())
+	cmd.AddCommand(newRecipeInstallCmd(correlationID))
+	cmd.AddCommand(newRecipeRemoveCmd(correlationID))
 	return cmd
 }
 
@@ -126,7 +126,7 @@ func runRecipeShow(name string) int {
 // and `aiwf contract recipe install --from <path>`. The two flag
 // shapes are mutually exclusive: the positional name reads the
 // embedded recipe set; `--from` reads a custom-validator YAML file.
-func newRecipeInstallCmd() *cobra.Command {
+func newRecipeInstallCmd(correlationID string) *cobra.Command {
 	var (
 		root  string
 		actor string
@@ -154,6 +154,7 @@ func newRecipeInstallCmd() *cobra.Command {
 	cmd.Flags().StringVar(&from, "from", "", "path to a custom-validator YAML file")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing validator with a different definition")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = completeEmbeddedRecipeNamesArg
 	return cmd
 }
@@ -212,7 +213,7 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 // newRecipeRemoveCmd builds `aiwf contract recipe remove <name>`.
 // Removes a declared validator; errors when bindings still reference
 // it.
-func newRecipeRemoveCmd() *cobra.Command {
+func newRecipeRemoveCmd(correlationID string) *cobra.Command {
 	var (
 		root  string
 		actor string
@@ -233,6 +234,7 @@ func newRecipeRemoveCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = completeDeclaredValidatorsArg
 	return cmd
 }

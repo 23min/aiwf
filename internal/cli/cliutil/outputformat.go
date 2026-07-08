@@ -25,10 +25,49 @@ import (
 type OutputFormat struct {
 	Format string
 	Pretty bool
+
+	// CorrelationID is the invocation's shared id (M-0239/AC-1): the
+	// same value threaded into logger.WithVerb as run_id, so an
+	// envelope and its invocation's diagnostic log lines are cross-
+	// referenceable by a single grep. Empty when the caller never
+	// threaded one (e.g. a test constructing OutputFormat directly) —
+	// every emit method omits metadata.correlation_id entirely in
+	// that case rather than emitting an empty string.
+	CorrelationID string
+
+	// Trace is --trace (M-0239/AC-3): forces a debug-level diagnostic
+	// logger on for this invocation alone, regardless of AIWF_LOG, so
+	// FinishVerb can emit a phase.apply timing event without the
+	// operator needing separate env configuration.
+	Trace bool
 }
 
 // JSON reports whether a JSON envelope was requested (--format=json).
 func (o OutputFormat) JSON() bool { return o.Format == "json" }
+
+// Metadata builds the envelope's metadata map for this invocation:
+// extra's keys (a verb's own per-verb facts, M-0239/AC-2) plus
+// correlation_id when CorrelationID is set. Returns nil (never an
+// empty non-nil map) when there is nothing to carry, so
+// render.Envelope's Metadata field's omitempty keeps behaving exactly
+// as it did before this field existed. Exported so a verb whose
+// output doesn't route through emitSuccess/emitFindings/
+// emitErrorEnvelope (e.g. worktree add, which builds its own
+// render.Envelope directly) can still merge in the same
+// correlation_id — this is the single source of truth for that merge.
+func (o OutputFormat) Metadata(extra map[string]any) map[string]any {
+	if o.CorrelationID == "" && len(extra) == 0 {
+		return nil
+	}
+	md := make(map[string]any, len(extra)+1)
+	for k, v := range extra {
+		md[k] = v
+	}
+	if o.CorrelationID != "" {
+		md["correlation_id"] = o.CorrelationID
+	}
+	return md
+}
 
 // AddFormatFlags registers --format and --pretty on a mutating verb's
 // command and returns the bound OutputFormat. It mirrors the read-verb
@@ -40,6 +79,7 @@ func AddFormatFlags(cmd *cobra.Command) *OutputFormat {
 	out := &OutputFormat{Format: "text"}
 	cmd.Flags().StringVar(&out.Format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&out.Pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&out.Trace, "trace", false, "emit per-phase timing at debug level through the diagnostic logger, enabling it for this invocation even without AIWF_LOG set")
 	RegisterFormatCompletion(cmd)
 	return out
 }
@@ -56,10 +96,11 @@ func (o OutputFormat) emitErrorEnvelope(label, code, message string) {
 		return
 	}
 	env := render.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "error",
-		Error:   &render.EnvelopeError{Code: code, Message: message},
+		Tool:     "aiwf",
+		Version:  version.Current().Version,
+		Status:   "error",
+		Error:    &render.EnvelopeError{Code: code, Message: message},
+		Metadata: o.Metadata(nil),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -77,6 +118,7 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 		Version:  version.Current().Version,
 		Status:   render.StatusFor(findings),
 		Findings: findings,
+		Metadata: o.Metadata(nil),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -84,8 +126,10 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 // emitSuccess reports a successful verb outcome. In text mode it surfaces
 // any warning-level findings to stderr (unchanged) and prints the subject
 // to stdout. In JSON mode it writes an ok/findings envelope with
-// result:{subject} to stdout.
-func (o OutputFormat) emitSuccess(subject string, findings []check.Finding) {
+// result:{subject} to stdout. metadata carries the verb's own per-verb
+// facts (M-0239/AC-2, e.g. entity_id/from/to, commit_sha) — nil for a
+// verb that reports nothing beyond AC-1's correlation_id.
+func (o OutputFormat) emitSuccess(subject string, findings []check.Finding, metadata map[string]any) {
 	if !o.JSON() {
 		if len(findings) > 0 {
 			_ = render.Text(os.Stderr, findings)
@@ -99,6 +143,7 @@ func (o OutputFormat) emitSuccess(subject string, findings []check.Finding) {
 		Status:   render.StatusFor(findings),
 		Findings: findings,
 		Result:   map[string]any{"subject": subject},
+		Metadata: o.Metadata(metadata),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }

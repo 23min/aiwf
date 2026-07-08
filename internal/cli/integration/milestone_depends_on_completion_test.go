@@ -34,7 +34,7 @@ func findCommand(root *cobra.Command, path string) *cobra.Command {
 // completion on `aiwf add`.
 func TestMilestoneDependsOn_AddFlagCompletion(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	addCmd := findCommand(root, "aiwf add")
 	if addCmd == nil {
 		t.Fatal("aiwf add command not found")
@@ -48,7 +48,7 @@ func TestMilestoneDependsOn_AddFlagCompletion(t *testing.T) {
 // completion on `aiwf milestone depends-on`.
 func TestMilestoneDependsOn_VerbFlagCompletion(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	verbCmd := findCommand(root, "aiwf milestone depends-on")
 	if verbCmd == nil {
 		t.Fatal("aiwf milestone depends-on command not found")
@@ -62,7 +62,7 @@ func TestMilestoneDependsOn_VerbFlagCompletion(t *testing.T) {
 // milestone-id completion on `aiwf milestone depends-on`.
 func TestMilestoneDependsOn_PositionalCompletion(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	verbCmd := findCommand(root, "aiwf milestone depends-on")
 	if verbCmd == nil {
 		t.Fatal("aiwf milestone depends-on command not found")

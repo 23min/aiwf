@@ -137,7 +137,7 @@ func SetArea(
 	if clearTag {
 		subject = fmt.Sprintf("aiwf set-area %s --clear", canonID)
 	}
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: subject,
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "set-area"},
@@ -145,7 +145,9 @@ func SetArea(
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": canonID, "area": modified.Area}
+	return result, nil
 }
 
 // areaArgHint renders the placeholder for the remediation command in a

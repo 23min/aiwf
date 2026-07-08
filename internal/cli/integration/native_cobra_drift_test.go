@@ -85,7 +85,7 @@ func findPassthroughAdapters(root *cobra.Command) []passthroughViolation {
 // fails CI with the verb's command path.
 func TestPolicy_NoPassthroughAdapters(t *testing.T) {
 	t.Parallel()
-	violations := findPassthroughAdapters(cli.NewRootCmd())
+	violations := findPassthroughAdapters(cli.NewRootCmd(""))
 	if len(violations) > 0 {
 		var lines []string
 		for _, v := range violations {

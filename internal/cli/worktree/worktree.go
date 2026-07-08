@@ -23,7 +23,7 @@ import (
 
 // NewCmd builds the `aiwf worktree` parent command. Non-Runnable;
 // dispatches to `add`.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "worktree",
 		Short:         "Worktree-scoped verbs",
@@ -31,11 +31,11 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newAddCmd())
+	cmd.AddCommand(newAddCmd(correlationID))
 	return cmd
 }
 
-func newAddCmd() *cobra.Command {
+func newAddCmd(correlationID string) *cobra.Command {
 	var (
 		root      string
 		base      string
@@ -68,6 +68,7 @@ func newAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&base, "base", "", "commit-ish the new branch starts from; only valid when <branch> does not already exist locally (default: HEAD)")
 	cmd.Flags().BoolVar(&printPath, "print-path", false, "print only the resulting absolute path to stdout, for shell cd composition; nothing else on success, nothing on failure")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 
@@ -178,11 +179,17 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	if out.JSON() {
 		// D-0013: JSON output is a single clean envelope on stdout — the
 		// materialization ledger (text-mode only, below) must not precede it.
+		// out.Metadata (M-0239/AC-1+AC-2) is the shared correlation_id
+		// merge point every other verb's emitSuccess/emitFindings/
+		// emitErrorEnvelope routes through — worktree add builds its own
+		// envelope rather than calling those, so it calls the exported
+		// method directly instead of leaving CorrelationID unread.
 		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  map[string]any{"path": absPath},
+			Tool:     "aiwf",
+			Version:  version.Current().Version,
+			Status:   "ok",
+			Result:   map[string]any{"path": absPath},
+			Metadata: out.Metadata(map[string]any{"branch": branch, "path": absPath}),
 		}
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			return fail("aiwf worktree add", werr, cliutil.ExitInternal)
