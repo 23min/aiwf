@@ -210,6 +210,13 @@ was fixed as its own corrective commit first · commits e439a24b, e620ca6a · te
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go test -count=1 ./internal/stresstest/... ./cmd/stresstest/...` — 42/42 tests pass.
+- `make lint` (full `golangci-lint` set, worktree-scoped cache) — 0 issues.
+- `aiwf check` — 0 errors (1 pre-existing, unrelated warning: no upstream configured in this worktree).
+- Manual end-to-end smoke test: built the real binary, ran `stresstest run --repeat 3` and `stresstest compose` against its own output, confirmed correct pass counts and rendered events.
+- Each AC's implementation went through `wf-tdd-cycle`'s branch-coverage audit plus a `wf-vacuity` mutation probe; one real gap surfaced and was fixed (see AC-5's Work log entry and the Reviewer notes below).
+
 ## Deferrals
 
 - (none)
