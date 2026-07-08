@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: A failed instrumented verb emits a verb.failed diagnostic event
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
