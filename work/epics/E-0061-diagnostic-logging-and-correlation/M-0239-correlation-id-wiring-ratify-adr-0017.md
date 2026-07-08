@@ -223,6 +223,49 @@ metadata field values specifically (`entity_id`/`from`/`to`, `old_slug`/
 — the class of gap `move` and `worktree add` both fell into above. Commit
 `29f0c8ff`.
 
+### AC-3 — An operator can pass --trace to see per-phase timings via the logger
+
+`OutputFormat` gains a `Trace bool` field; `AddFormatFlags` registers `--trace`
+directly, so every mutating verb gets it automatically with no per-verb
+wiring (unlike `CorrelationID`, which needed a constructor param since it's
+invocation-scoped rather than flag-scoped). `FinishVerb` times its
+`verb.Apply` call — the shared chokepoint every mutating verb already funnels
+through, and the only part of a verb's execution that touches git/filesystem
+— and emits one `phase.apply` event at `debug` level with `elapsed_ms` when
+`Trace` is set. `cliutil.ResolveTraceLogger` is a `--trace`-specific variant
+of `ResolveLogger` that forces the invocation's logger on at debug level
+regardless of `AIWF_LOG`, so the flag genuinely needs no separate env
+configuration (its whole reason for existing).
+
+Two real design gaps surfaced during implementation itself, not just at the
+testing stage. First: `logger.ResolveConfig` short-circuits to a completely
+empty `Config{}` (format and destination never even resolved) whenever no
+level is supplied from any source — a first version that patched
+`Enabled`/`Level` onto whatever came back therefore silently discarded
+`AIWF_LOG_FILE`/`AIWF_LOG_FORMAT` and produced no output at all under
+`--trace` with no `AIWF_LOG` set (the exact scenario `--trace` exists for).
+Fixed with a `forcedGetenv` wrapper that supplies a synthetic `"debug"` for
+`AIWF_LOG` only when the real environment and `aiwf.yaml` both have no level
+set, so `ResolveConfig` always takes its normal fully-resolving path and
+every other key still reads the real environment/yaml unchanged. Second: the
+error-fallback for an invalid `AIWF_LOG_FORMAT` value also discarded the
+destination, meaning an unrelated env typo would silently defeat `--trace`
+too — fixed to preserve `AIWF_LOG_FILE`/`aiwf.yaml`'s destination even when
+format resolution itself fails.
+
+`wf-vacuity` mutation probes: `FinishVerb`'s `if out.Trace` guard negated
+(caught by both trace tests), the debug-level clamp in
+`ResolveTraceLogger` removed (caught by
+`TestResolveTraceLogger_ClampsAMoreRestrictiveAIWFLOG` specifically — the
+right test, not just some test). One line — the final `w.(io.Closer)`
+fallback in `ResolveTraceLogger` — is `//coverage:ignore`d with a proven
+reachability argument rather than left silently uncovered: `OpenDestination`
+only returns a nil, non-`Closer` writer when `cfg.Enabled` is false (its own
+early return), but `ResolveTraceLogger` forces `Enabled = true`
+unconditionally before that call, so the fallback that IS reachable in
+`ResolveLogger` (via its own genuinely-disabled path) provably isn't here.
+Commit `2ad6528f`.
+
 ## Decisions made during implementation
 
 - (none)
