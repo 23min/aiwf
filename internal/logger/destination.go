@@ -53,7 +53,7 @@ func OpenDestination(cfg Config, now time.Time, getenv func(string) string) (io.
 // append-only, multi-writer stream, so O_APPEND + one Write() call
 // per record is the correct pattern here, not atomic replace.
 func appendFile(path string) (io.WriteCloser, error) {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("opening log file %s: %w", path, err)
 	}
@@ -69,7 +69,7 @@ func openDefault(now time.Time, getenv func(string) string) (io.WriteCloser, err
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("creating log directory %s: %w", dir, err)
 	}
 	if err := sweepExpired(dir, now); err != nil {
@@ -121,10 +121,22 @@ func sweepExpired(dir string, now time.Time) error {
 			continue
 		}
 		if date.Before(cutoff) {
-			if err := os.Remove(filepath.Join(dir, e.Name())); err != nil {
+			if err := removeExpiredFile(filepath.Join(dir, e.Name())); err != nil {
 				return fmt.Errorf("removing expired log %s: %w", e.Name(), err)
 			}
 		}
+	}
+	return nil
+}
+
+// removeExpiredFile removes path, tolerating the case where it is
+// already gone: two aiwf processes can both list the same expired
+// file after a daily rollover and race to delete it, and the loser's
+// os.Remove must not fail the whole invocation's logger resolution
+// over a file that's already been cleaned up.
+func removeExpiredFile(path string) error {
+	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
 	}
 	return nil
 }

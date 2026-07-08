@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -115,6 +116,34 @@ func TestOpenDestination_Default_FallsBackToHomeWhenXDGUnset(t *testing.T) {
 	}
 }
 
+func TestOpenDestination_Default_FileAndDirAreOwnerOnly(t *testing.T) {
+	t.Parallel()
+	xdg := t.TempDir()
+	logsDir := filepath.Join(xdg, "aiwf", "logs")
+
+	w, err := OpenDestination(Config{Enabled: true}, fixedNow, envFrom(map[string]string{"XDG_STATE_HOME": xdg}))
+	if err != nil {
+		t.Fatalf("OpenDestination() error = %v, want nil", err)
+	}
+	defer w.Close()
+
+	dirInfo, err := os.Stat(logsDir)
+	if err != nil {
+		t.Fatalf("os.Stat(logsDir) error = %v", err)
+	}
+	if got, want := dirInfo.Mode().Perm(), fs.FileMode(0o700); got != want {
+		t.Errorf("logs dir perm = %o, want %o (per-user, never shared — ADR-0017)", got, want)
+	}
+
+	fileInfo, err := os.Stat(filepath.Join(logsDir, logFileName(fixedNow)))
+	if err != nil {
+		t.Fatalf("os.Stat(log file) error = %v", err)
+	}
+	if got, want := fileInfo.Mode().Perm(), fs.FileMode(0o600); got != want {
+		t.Errorf("log file perm = %o, want %o (per-user, never shared — ADR-0017)", got, want)
+	}
+}
+
 func TestOpenDestination_Default_BothXDGAndHomeUnsetReturnsError(t *testing.T) {
 	t.Parallel()
 	// Neither XDG_STATE_HOME nor HOME resolves: falling back to a bare
@@ -188,6 +217,37 @@ func TestSweepExpired_MissingDirIsNotAnError(t *testing.T) {
 	err := sweepExpired(filepath.Join(t.TempDir(), "absent"), fixedNow)
 	if err != nil {
 		t.Fatalf("sweepExpired() on a missing dir error = %v, want nil", err)
+	}
+}
+
+func TestRemoveExpiredFile_AlreadyRemovedIsNotAnError(t *testing.T) {
+	t.Parallel()
+	// Reproduces the race two aiwf processes hit when both list the
+	// same expired file after a daily rollover and race to delete it:
+	// the loser's os.Remove sees a path that's already gone.
+	path := filepath.Join(t.TempDir(), "aiwf-2020-01-01.log")
+	err := removeExpiredFile(path)
+	if err != nil {
+		t.Fatalf("removeExpiredFile() on an already-removed path error = %v, want nil", err)
+	}
+}
+
+func TestRemoveExpiredFile_GenericErrorPropagates(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "aiwf-2020-01-01.log")
+	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+		t.Fatalf("seeding file: %v", err)
+	}
+	// Removing write permission on the containing dir blocks os.Remove
+	// (POSIX: unlink needs write on the containing dir, not the file).
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatalf("Chmod() error = %v", err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+
+	if err := removeExpiredFile(path); err == nil {
+		t.Fatalf("removeExpiredFile() on a permission-denied path error = nil, want a non-nil error")
 	}
 }
 
