@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: A stress run builds the aiwf binary under test once, never trusting PATH
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Each raw-report event appends via a single Write call
