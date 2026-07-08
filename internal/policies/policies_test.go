@@ -262,3 +262,8 @@ func TestPolicy_M0137AC3BatchedWalker(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyM0137AC3BatchedWalker)
 }
+
+func TestPolicy_CLAUDEMDCLIConventionsLogging(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCLAUDEMDCLIConventionsLogging)
+}
