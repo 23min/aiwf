@@ -140,6 +140,13 @@ attempt is replayable by rerunning with that seed.
 returned path never fall back to a bare `aiwf` PATH lookup · commit
 d51fa34c · tests 3/3
 
+### AC-2 — Each raw-report event appends via a single Write call
+
+`internal/stresstest.ReportWriter` opens the raw-report file `O_APPEND`
+and writes each marshaled event plus its trailing newline as one `Write`
+call, reusing `internal/logger`'s concurrent-append discipline
+(ADR-0017 Decision #5) per D-0033 · commit c344c3ed · tests 9/9
+
 ## Decisions made during implementation
 
 - D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
