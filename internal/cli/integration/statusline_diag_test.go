@@ -37,8 +37,9 @@ func TestStatuslineScaffoldDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		t.Fatalf("reading diagnostic log: %v", err)
 	}
 	var rec struct {
-		Msg  string `json:"msg"`
-		Verb string `json:"verb"`
+		Msg    string `json:"msg"`
+		Verb   string `json:"verb"`
+		Entity string `json:"entity"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
@@ -48,6 +49,9 @@ func TestStatuslineScaffoldDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Verb != "statusline-scaffold" {
 		t.Errorf("verb = %q, want %q", rec.Verb, "statusline-scaffold")
+	}
+	if rec.Entity != "project" {
+		t.Errorf("entity = %q, want %q (the --scope value, not a filesystem path)", rec.Entity, "project")
 	}
 }
 
@@ -130,8 +134,9 @@ func TestStatuslineRemoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		t.Fatalf("reading diagnostic log: %v", err)
 	}
 	var rec struct {
-		Msg  string `json:"msg"`
-		Verb string `json:"verb"`
+		Msg    string `json:"msg"`
+		Verb   string `json:"verb"`
+		Entity string `json:"entity"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
@@ -141,6 +146,9 @@ func TestStatuslineRemoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Verb != "statusline-remove" {
 		t.Errorf("verb = %q, want %q", rec.Verb, "statusline-remove")
+	}
+	if rec.Entity != "project" {
+		t.Errorf("entity = %q, want %q (the --scope value, not a filesystem path)", rec.Entity, "project")
 	}
 }
 

@@ -58,7 +58,7 @@ func RunStatuslineScaffold(opts StatuslineOpts) int {
 //
 // Returns one of the Exit* codes.
 func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) (code int) {
-	defer emitVerbCompletedIfOK(&code, "statusline-scaffold", opts.RootDir)
+	defer emitVerbCompletedIfOK(&code, "statusline-scaffold", opts.RootDir, opts.Scope)
 
 	if skills.StatuslineWriteNeedsConfirmation(binary) && !opts.AllowUntagged {
 		confirmed := !opts.FormatJSON && render.IsTTY(os.Stdin) &&
@@ -137,13 +137,16 @@ func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) (
 // through the WithVerb-bound logger when *code is ExitOK, deferred so
 // a many-return-point function emits exactly once regardless of which
 // branch returned. actor is always empty: none of statusline's flows
-// have an --actor flag. entity doubles as rootDir for ResolveLogger's
-// aiwf.yaml lookup — both callers already pass opts.RootDir here.
-func emitVerbCompletedIfOK(code *int, verbName, entity string) {
+// have an --actor flag. entity is the statusline scope ("user" or
+// "project", per skills.StatuslineScope) — a small closed-set value
+// that identifies which scope's statusline changed, more useful for
+// correlation than the root directory path would be (and, unlike a
+// path, never needs WithVerb's home-directory scrub).
+func emitVerbCompletedIfOK(code *int, verbName, rootDir, entity string) {
 	if *code != ExitOK {
 		return
 	}
-	diagLog, closeDiagLog := ResolveLogger(entity, os.Getenv)
+	diagLog, closeDiagLog := ResolveLogger(rootDir, os.Getenv)
 	defer func() { _ = closeDiagLog() }()
 	logger.WithVerb(diagLog, verbName, entity, "").Info("verb.completed")
 }
@@ -170,7 +173,7 @@ type StatuslineRemoveOpts struct {
 //
 // Returns one of the Exit* codes.
 func RunStatuslineRemove(opts StatuslineRemoveOpts) (code int) {
-	defer emitVerbCompletedIfOK(&code, "statusline-remove", opts.RootDir)
+	defer emitVerbCompletedIfOK(&code, "statusline-remove", opts.RootDir, opts.Scope)
 
 	sc := skills.StatuslineScope(opts.Scope)
 
