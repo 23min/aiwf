@@ -50,6 +50,12 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// would require reading and replacing the entire file per write
 		// and is unsafe under concurrent writers.
 		"internal/logger/destination.go": "append-only diagnostic log writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
+		// The stress harness's raw-report writer (M-0240/AC-2) reuses
+		// the exact same append-only discipline as internal/logger's
+		// diagnostic log, per this epic's own constraint that it not
+		// invent a second streaming primitive — see ADR-0017 Decision #5
+		// and D-0033.
+		"internal/stresstest/report.go": "append-only raw-report writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
