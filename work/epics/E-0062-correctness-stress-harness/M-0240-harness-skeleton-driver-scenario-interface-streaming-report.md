@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: cmd/stresstest wires run and compose into an end-to-end runnable harness
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
