@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: A failed instrumented verb emits a verb.failed diagnostic event
-      status: open
+      status: met
       tdd_phase: done
 ---
 
