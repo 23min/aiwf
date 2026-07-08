@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: Diagnostic logger is minted once per invocation, bound with a run_id
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: A failed instrumented verb emits a verb.failed diagnostic event
       status: open
