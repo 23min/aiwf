@@ -849,7 +849,7 @@ finds into a reproducible gap.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0240 | Harness skeleton: driver, scenario interface, streaming report | in_progress |
+| M-0240 | Harness skeleton: driver, scenario interface, streaming report | done |
 | M-0241 | Property sequences and multi-worktree contention scenarios | draft |
 | M-0242 | Fault injection via external observation | draft |
 | M-0243 | Named scenarios from G-0212 and G-0269 | draft |
