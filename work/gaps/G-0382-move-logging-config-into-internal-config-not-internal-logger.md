@@ -1,8 +1,10 @@
 ---
 id: G-0382
 title: 'Move logging: config into internal/config, not internal/logger'
-status: open
+status: addressed
 discovered_in: M-0237
+addressed_by:
+    - M-0238
 ---
 ## What's missing
 
