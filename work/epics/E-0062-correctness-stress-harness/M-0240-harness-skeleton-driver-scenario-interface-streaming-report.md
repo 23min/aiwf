@@ -27,6 +27,10 @@ acs:
       title: A --repeat N flag reruns a scenario N times with a logged seed per attempt
       status: met
       tdd_phase: done
+    - id: AC-6
+      title: cmd/stresstest wires run and compose into an end-to-end runnable harness
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -80,6 +84,8 @@ material a human might want to open directly.
 Each attempt logs the random seed it used (actor-start jitter, any
 randomized delay) into its raw-report event, so a violation found on a given
 attempt is replayable by rerunning with that seed.
+
+### AC-6 — cmd/stresstest wires run and compose into an end-to-end runnable harness
 
 ## Constraints
 
