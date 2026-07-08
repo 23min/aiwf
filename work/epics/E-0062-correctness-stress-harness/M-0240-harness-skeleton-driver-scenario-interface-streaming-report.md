@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: A scenario's repo is cleaned up on pass and preserved on fail
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: A --repeat N flag reruns a scenario N times with a logged seed per attempt
