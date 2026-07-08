@@ -430,6 +430,65 @@ func TestFindWorktreePromptSection_BranchCoverage(t *testing.T) {
 	}
 }
 
+// TestAiwfxStartEpic_D0032_SovereignPromotionIsGatedNotHandedOff pins
+// D-0032 (G-0381): the sovereign-promotion step presents the exact
+// `aiwf promote E-NN active` command as an explicit approve/deny gate
+// and has the AI assistant run it directly on approval, rather than
+// handing the verb off to the operator to type themselves. The prior
+// wording ("an AI assistant orchestrating the conversation does not
+// invoke the verb itself" / "hands the verb off to the operator") is
+// asserted absent so a future accidental revert to the pre-D-0032
+// hand-off framing is caught.
+//
+// Heading-scoped per CLAUDE.md §"Substring assertions are not
+// structural assertions": the gate language must live inside the
+// sovereign-promotion subsection itself, not float in an unrelated
+// section.
+func TestAiwfxStartEpic_D0032_SovereignPromotionIsGatedNotHandedOff(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxStartEpicFixture(t)
+
+	section := findSovereignPromotionSection(body)
+	if section == "" {
+		t.Fatal("D-0032: `## Workflow` must contain a `### …sovereign…promot…` subsection that holds the activation verb")
+	}
+
+	wantContent := []string{
+		"approv",          // the gate is explicit approve/deny, not a standing "go ahead" (matches approve/approval)
+		"--actor",         // names the no-override default-identity mechanic
+		"run it directly", // the AI executes on approval — no hand-off
+	}
+	for _, marker := range wantContent {
+		if !strings.Contains(strings.ToLower(section), strings.ToLower(marker)) {
+			t.Errorf("D-0032: sovereign-promotion subsection must contain %q (gate-then-execute framing)", marker)
+		}
+	}
+
+	regressionMarkers := []string{
+		"does not invoke the verb itself",
+		"hands the verb off",
+	}
+	for _, marker := range regressionMarkers {
+		if strings.Contains(strings.ToLower(section), strings.ToLower(marker)) {
+			t.Errorf("D-0032: sovereign-promotion subsection must not contain %q — regression to the pre-D-0032 hand-off framing", marker)
+		}
+	}
+
+	// The Anti-patterns section's entry must reflect the new failure
+	// mode (skipping the gate), not the old one (an AI running the
+	// verb at all — now the correct, sanctioned behavior on approval).
+	antiPatterns := extractMarkdownSection(body, 2, "Anti-patterns")
+	if antiPatterns == "" {
+		t.Fatal("D-0032: body must contain an `## Anti-patterns` section")
+	}
+	if strings.Contains(antiPatterns, "Letting an AI assistant run `aiwf promote E-NN active` directly") {
+		t.Error("D-0032: `## Anti-patterns` must not list an AI running the verb directly as an anti-pattern — that is now the sanctioned post-approval behavior")
+	}
+	if !strings.Contains(strings.ToLower(antiPatterns), "without the operator's explicit") {
+		t.Error("D-0032: `## Anti-patterns` must name skipping the operator's explicit approval as the anti-pattern")
+	}
+}
+
 // TestAiwfxStartEpic_AC2_WorktreePromptOptions pins M-0096/AC-2: the
 // worktree-placement prompt is a heading-scoped Q&A with three named
 // options — *no worktree (work on main)*, `.claude/worktrees/<branch>/`,

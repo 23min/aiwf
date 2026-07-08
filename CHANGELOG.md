@@ -16,6 +16,29 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.26.2] — 2026-07-07
+
+### Changed — G-0384: `aiwfx-release`'s push gates hand off to the orchestrating session
+
+The `deployer` agent card and the `aiwfx-release` ritual's two push gates (the
+release-prep commit, the tag) used to run `git push` from within the dispatched
+subagent's own tool context. That context's sandboxed network layer has stalled on
+the push write before (reads succeed; the write hangs). Both push gates — and the
+deployer card's constraints — now instruct handing the exact approved command back
+to the orchestrating session to execute instead.
+
+## [0.26.1] — 2026-07-07
+
+### Changed — G-0381: `aiwfx-start-epic` gates sovereign promotion instead of handing it off
+
+The `aiwfx-start-epic` ritual's activation step used to instruct the AI assistant to
+refuse `aiwf promote E-NN active` and hand the command off to the operator to type
+themselves. It now presents the exact command as an explicit approve/deny gate and,
+on approval, runs it directly — no `--actor` override, so the commit still resolves
+to the operator's own identity exactly as if they had typed it. The kernel's
+sovereignty rule (human-only actor unless `--force --reason` is used) is unchanged;
+only the ritual's handling of the ordinary, non-delegated case changed.
+
 ## [0.26.0] — 2026-07-07
 
 ### Fixed — G-0277: `aiwf status` flags stale milestone status vs. an unmerged epic worktree
