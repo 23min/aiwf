@@ -164,8 +164,16 @@ event and a disabled run creates no log file at all. `wf-vacuity` mutation
 probes (unconditional emission, swapped verb/entity/actor argument order,
 wrong stream, closing the real `os.Stderr`) all caught by the test suite;
 one probe (the stderr-close guard) found and fixed a real test gap where
-the assertion targeted the wrong (capture-swapped) stream. · commit
-`14c81e3a` · full `internal/cli/...` tree green, `check-fast` clean.
+the assertion targeted the wrong (capture-swapped) stream. The
+independent wrap review (see Reviewer notes) found two further gaps,
+both closed as corrective commits: `upgrade`'s event fires before the
+reexec attempt (by design — a successful reexec replaces the process
+via `syscall.Exec`, so no code path after it could ever emit; commit
+`7b31e85e` adds the missing test proving this is intentional, not an
+oversight) and `statusline` was missing the disabled/failed-run seam
+tests the other four sites carry (commit `cbf86e0e`). · commits
+`14c81e3a`, `7b31e85e`, `cbf86e0e` · full `internal/cli/...` tree green,
+`check-fast` clean.
 
 ### AC-3 — forbidigo ban + logging_chokepoint policy backstop
 
@@ -212,12 +220,32 @@ never a problem when disabled (the documented default-off state), an
 error-severity problem when a value is genuinely invalid. `wf-vacuity`
 mutation probes (skip yaml loading, invert the enabled/disabled branch,
 disable the destination-display guard, ignore a non-nil config) all
-caught. · commit `dfcdd96b` · full `internal/config` + `internal/cli/doctor`
-+ `internal/logger` suites green, `check-fast` clean.
+caught. The independent design review (see Reviewer notes) found the
+doc comments explaining why `Config.Logging` isn't typed as
+`logger.YAMLConfig` directly stated the layering constraint backwards
+(config importing logger is legal; it's the reverse that isn't), and
+that the field-by-field copy was already duplicated in two call sites
+with no compiler check against drift — commit `f31880da` corrects the
+claim, gives the real reason (`schema.go`'s reflection walker needs a
+`config.*`-prefixed type name to detect a nested block), and extracts
+`Logging.ToYAMLConfig()` as the one conversion point both call sites
+now use. · commits `dfcdd96b`, `f31880da` · full `internal/config` +
+`internal/cli/doctor` + `internal/logger` suites green, `check-fast`
+clean.
 
 ## Decisions made during implementation
 
-- (none)
+- `upgrade`'s "verb.completed" fires the moment install succeeds, not
+  on the verb's final exit code — unlike the other four instrumented
+  sites, which gate on `code == cliutil.ExitOK`. This is a deliberate
+  per-site classification (per AC-1's own design notes: made once per
+  site, not re-litigated later), forced by `reexecUpdate`'s use of
+  `syscall.Exec`: a successful reexec replaces the process image, so
+  no Go code after a successful reexec ever runs — gating on the final
+  exit code would mean the event almost never fires in a real
+  production upgrade, only in the `AIWF_NO_REEXEC` test-only path.
+  Surfaced by the wrap review (finding B1); pinned by a test in commit
+  `7b31e85e`.
 
 ## Validation
 
@@ -236,7 +264,7 @@ that AC-3's mechanical print-call rename incidentally touched (confirmed
 via `git log -p` on a sample: only the print-call text changed, no
 logic). Filed as G-0386 rather than fixed here — genuinely a different
 concern (CLI-verb error-path coverage hygiene, unrelated to diagnostic
-logging) at a scale (194 lines, 40 unrelated verbs) disproportionate to
+logging) at a scale (194 lines, 31 unrelated files) disproportionate to
 this milestone. Two directly-in-scope gaps this same investigation
 turned up were fixed inline instead of deferred: `logging_chokepoint.go`
 had two real coverage gaps of its own (the writer-check mutation-probe
@@ -256,4 +284,52 @@ in commits `83afce24` and `cbc7f296`.
 
 ## Reviewer notes
 
-- (none)
+Independent wrap review ran five fresh-context passes: three code-quality
+slices (AC-1/AC-2, AC-3, AC-4) and two design-quality passes (the new
+`cliutil` text-output convention; the config/logger layering-boundary
+split). Verdicts and how each finding was handled:
+
+- **AC-1/AC-2 — REQUEST CHANGES, both findings fixed.** B1 (`upgrade`'s
+  event fires before the reexec, untested) and B2 (`statusline` missing
+  seam tests the Work log claimed existed) — see the Decisions entry and
+  the AC-1/AC-2 Work log update above. Two informational, non-blocking
+  observations, deliberately not acted on: (T2) `statusline`'s bound
+  `entity` field carries the project root path rather than an entity id
+  — pre-existing since the original AC-1 commit, already documented in
+  `emitVerbCompletedIfOK`'s comment, and the AC-4 reviewer independently
+  flagged the same thing as out-of-scope churn; left as-is. (H1) one
+  non-reproducing flake of `TestResolveLogger_EnvBeatsYAMLLoggingBlock`
+  under a combined `-v` run, never reproduced across ~30 follow-up runs
+  including `-race -count=20` — noted here in case it recurs, not
+  chased further without a second occurrence.
+- **AC-3 — APPROVE.** Independently re-verified (not just re-read) the
+  G-0386 deferral judgment via `git log -p` on sampled files and forbidigo's
+  actual matching semantics, and agreed it was the right call. Two stale-text
+  nits: one (the AC-3 acceptance prose) turned out to already be corrected
+  in the version the reviewer had checked out — no action needed; the other
+  ("40 unrelated verbs" vs. G-0386's "31 files") is fixed in the Validation
+  section above. Also flagged, as an accepted trade-off rather than a
+  finding: the two forbidigo-allowlisted files (`outputformat.go`,
+  `textio.go`) lose the pre-existing panic/os.Exit ban too, since
+  golangci-lint's path exclusion is whole-linter, not per-rule — matches
+  the existing `cmd/aiwf/main.go`/`verb/apply.go` precedent, surface is two
+  trivial files, currently clean.
+- **AC-4 — APPROVE**, no findings.
+- **Design (`cliutil` textio convention) — keep as-is.** One real,
+  evidence-backed finding not acted on: `cliutil.Errorf`/`Errorln` share a
+  name with `fmt.Errorf` (different semantics — one writes to stderr, the
+  other builds an `error` value), and 6 files already call both. Renaming
+  would touch 280+ call sites for a readability improvement with no
+  correctness risk (Go's package qualification prevents an actual compiler
+  mixup) — judged disproportionate for this milestone; worth reconsidering
+  if `textio.go` is touched again.
+- **Design (config/logger boundary) — keep the type split, two real bugs
+  fixed.** The inverted layering-direction doc comments and the
+  already-duplicated field copy — both closed. See the AC-4 Work log
+  update and Decisions-adjacent commit `f31880da` above.
+
+G-0386's own body was updated (a separate `aiwf edit-body G-0386` commit)
+with a caveat the AC-3 review raised: the "epic inherits the fix
+automatically" framing needs the gap's own fix to land on `main` before
+`E-0061` pushes — a real precondition to confirm at epic-wrap time, not an
+automatic guarantee.
