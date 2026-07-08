@@ -22,7 +22,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: A renamed Envelope field is caught by a structural policy test
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: ADR-0017 reads accepted with CLAUDE.md matching shipped behavior
