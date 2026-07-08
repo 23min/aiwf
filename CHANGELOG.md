@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0061: opt-in diagnostic logging with a per-invocation correlation id
+
+`aiwf` now has a retrace-ready diagnostic surface: opt-in, default-off structured
+logging (`AIWF_LOG`/`AIWF_LOG_FORMAT`/`AIWF_LOG_FILE`, or `aiwf.yaml`'s `logging:`
+block) to a daily-rotated file under `$XDG_STATE_HOME`, with every bare-stderr call
+site migrated to it or to the operator-facing text path (backed by a `forbidigo`
+lint rule and an independent policy so the discipline holds even if the linter is
+ever disabled). Every mutating verb's JSON envelope now carries a `correlation_id`
+matching that invocation's own log lines, plus verb-appropriate metadata
+(`entity_id`/`from`/`to` and similar); a new `--trace` flag surfaces per-phase
+timings without configuring logging first. ADR-0017 (opt-in slog diagnostic
+logging) reads `accepted`. Closes G-0223, G-0232, G-0382; see every milestone
+listed in `work/epics/E-0061-diagnostic-logging-and-correlation/wrap.md`.
+
 ## [0.26.2] — 2026-07-07
 
 ### Changed — G-0384: `aiwfx-release`'s push gates hand off to the orchestrating session
