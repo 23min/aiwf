@@ -133,6 +133,13 @@ attempt is replayable by rerunning with that seed.
 
 ## Work log
 
+### AC-1 — Build the aiwf binary under test once, never trusting PATH
+
+`internal/stresstest.BuildBinary` compiles `./cmd/aiwf` into an absolute
+`outDir/aiwf` path; a decoy-on-PATH test pins that callers invoking the
+returned path never fall back to a bare `aiwf` PATH lookup · commit
+d51fa34c · tests 3/3
+
 ## Decisions made during implementation
 
 - D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
