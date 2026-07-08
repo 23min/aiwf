@@ -162,6 +162,13 @@ the harness its per-scenario contract: a passing run removes its own temp
 dir, any failure (Setup/Run error or a Verify violation) preserves it on
 disk as RCA material · commit 8ab46f3c · tests 6/6
 
+### AC-5 — A --repeat N flag reruns a scenario N times with a logged seed per attempt
+
+`internal/stresstest.RunRepeated` reruns a scenario n times, threading each
+attempt's seed into scenario construction and logging it via `ReportWriter`
+before the next attempt starts; a scenario failing verification doesn't
+stop the loop, only a mechanical error does · commit cbab4d3d · tests 5/5
+
 ## Decisions made during implementation
 
 - D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
