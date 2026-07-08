@@ -142,6 +142,15 @@ func layerTier(pkg string) (tier int, known bool) {
 	switch pkg {
 	case "cmd/aiwf":
 		return 0, true
+	// internal/stresstest is the correctness stress harness's own
+	// package tree (E-0062): a standalone dev tool driving compiled
+	// aiwf binaries as subprocesses, entered via its own cmd/stresstest
+	// binary rather than cmd/aiwf. Nothing in the kernel imports it, so
+	// it shares cmd/aiwf's top tier — free to draw on any lower-tier
+	// kernel package (e.g. internal/logger's append-only writer) without
+	// ever being importable back into the kernel itself.
+	case "internal/stresstest":
+		return 0, true
 	case "internal/verb":
 		return 2, true
 	case "internal/contractcheck", "internal/contractverify":
