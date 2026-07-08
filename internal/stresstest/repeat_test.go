@@ -72,7 +72,8 @@ func TestRunRepeated_RunsNAttemptsWithDistinctSeeds(t *testing.T) {
 func TestRunRepeated_ContinuesPastAScenarioFailure(t *testing.T) {
 	t.Parallel()
 	base := t.TempDir()
-	rw := newReportWriter(&countingWriter{})
+	cw := &countingWriter{}
+	rw := newReportWriter(cw)
 
 	attempt := 0
 	newScenario := func(seed int64) Scenario {
@@ -93,6 +94,25 @@ func TestRunRepeated_ContinuesPastAScenarioFailure(t *testing.T) {
 	}
 	if !results[0].Passed || results[1].Passed || !results[2].Passed {
 		t.Fatalf("expected pass/fail/pass, got %+v", results)
+	}
+
+	// Pin that the logged event's Passed field actually reflects each
+	// attempt's outcome, not just the returned RunResult — a
+	// hardcoded Passed: true in the event construction would satisfy
+	// every assertion above while still silently misleading a report
+	// reader about which attempt failed.
+	if len(cw.calls) != 3 {
+		t.Fatalf("expected 3 logged events, got %d", len(cw.calls))
+	}
+	wantPassed := []bool{true, false, true}
+	for i, call := range cw.calls {
+		var ev RepeatEvent
+		if err := json.Unmarshal(call[:len(call)-1], &ev); err != nil {
+			t.Fatalf("event %d is not valid JSON: %v\n%s", i, err, call)
+		}
+		if ev.Passed != wantPassed[i] {
+			t.Fatalf("event %d: Passed = %v, want %v", i, ev.Passed, wantPassed[i])
+		}
 	}
 }
 
