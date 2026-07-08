@@ -70,11 +70,17 @@ own schedule), branched from `main` directly — independent of and in
 parallel with `E-0061`. Since the affected lines exist on `main` today in
 their pre-rename form, this can proceed without waiting on `E-0061`, and
 because the fix and M-0238's rename touch different lines within the same
-guards, there is no merge conflict either direction. If it lands on `main`
-before `E-0061` pushes, `E-0061` inherits the resolution automatically via
-the coverage gate's merge-base recomputation — no coordination required.
-The work itself: per flagged site, either a real test (where the failure
-condition is genuinely triggerable — a malformed entity file, a bad
-`--format` flag) or an honest `//coverage:ignore` naming why it isn't
-(mirroring the `archive.go` precedent), never a blanket suppression without
-that judgment call.
+guards, there is no merge conflict either direction. The work itself: per
+flagged site, either a real test (where the failure condition is genuinely
+triggerable — a malformed entity file, a bad `--format` flag) or an honest
+`//coverage:ignore` naming why it isn't (mirroring the `archive.go`
+precedent), never a blanket suppression without that judgment call.
+
+**Ordering matters, this isn't fully automatic.** If this gap's fix lands
+on `main` *before* `E-0061` pushes, `E-0061`'s own coverage-gate run
+inherits the resolution via the merge-base recomputation, with no direct
+coordination between the two branches. But that ordering is a real
+precondition, not a guarantee: if `E-0061` pushes first, its own push is
+blocked by all ~194 findings regardless of this gap's status. Whoever
+wraps `E-0061` should confirm this gap has landed on `main` first, rather
+than assume it resolves itself.
