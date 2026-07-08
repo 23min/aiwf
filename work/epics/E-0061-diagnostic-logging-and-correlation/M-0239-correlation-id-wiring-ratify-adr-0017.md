@@ -19,7 +19,7 @@ acs:
     - id: AC-3
       title: An operator can pass --trace to see per-phase timings via the logger
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: A renamed Envelope field is caught by a structural policy test
       status: open
