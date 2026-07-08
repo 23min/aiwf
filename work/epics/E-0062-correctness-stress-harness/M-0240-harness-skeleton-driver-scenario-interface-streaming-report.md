@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: A run killed mid-scenario still composes without failing on a truncated line
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: A scenario's repo is cleaned up on pass and preserved on fail
