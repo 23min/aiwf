@@ -82,10 +82,13 @@ Per instrumented verb, a test drives it through its real dispatcher with
 `AIWF_LOG=info` set, captures the `slog` handler, and asserts the expected
 `verb.<event>` fires with the bound fields (`verb`, `entity`, `actor`) —
 "test the seam, not just the layer" (CLAUDE.md §Go conventions), applied to
-the logging seam specifically. `run_id` is not asserted here: `WithVerb`
-doesn't bind it yet — minting the per-invocation id and wiring it through
-`WithVerb` and the JSON envelope's `metadata.correlation_id` is M-0239's
-scope.
+the logging seam specifically. `WithVerb` binds `run_id` as of AC-5 below
+(landed in the same milestone, ahead of M-0239, per the wrap-review
+decision to do the root-binding refactor now rather than defer it); each
+seam test asserts a non-empty `run_id` alongside the other bound fields.
+Wiring that same id into the JSON envelope's `metadata.correlation_id`
+remains M-0239's scope — AC-5 only threads it through the diagnostic-log
+side.
 
 ### AC-3 — A non-allowlisted bare print call fails CI via forbidigo and a policy test
 
@@ -276,8 +279,76 @@ now use. · commits `dfcdd96b`, `f31880da` · full `internal/config` +
 `internal/cli/doctor` + `internal/logger` suites green, `check-fast`
 clean.
 
+### AC-5 — Diagnostic logger is minted once per invocation, bound with a run_id
+
+Surfaced by a second reviewer's converged findings (re-verified
+independently before implementing — see the Validation section's
+epic-context note below). `logger.NewRunID()` (stdlib `crypto/rand`,
+no new dependency) mints a per-invocation id; `WithVerb` binds it as
+`run_id`. Each of the four instrumented verbs mints its logger once,
+right after the fields `WithVerb` needs are known (`rootDir`+`actorStr`
+for cancel/move; `rootDir` alone for upgrade/statusline), instead of
+resolving fresh at the tail — and gates the `WithVerb` scrub+bind
+behind the logger's own `Enabled` check, so a disabled run skips that
+work entirely. `verb.Apply` now returns the commit sha it already
+computed internally instead of discarding it on success (sha is `""`
+iff `err != nil`, even on the reconcile-failure path, whose own error
+text still carries it); `FinishVerb`/`DecorateAndFinish` thread it
+through so `cancel`/`move`'s completion event carries it, matching
+ADR-0017 Decision #6's own worked example. `upgrade`/`statusline`
+produce no entity commit, so their events carry no `sha` field.
+`wf-vacuity` mutation probes (force `EmitVerbOutcome`'s success branch
+unconditionally, invert `upgrade`'s `installSucceeded` guard, invert
+`cancel`'s `Enabled` gate) all caught. One residual, deliberately not
+solved: `ResolveLogger`'s single `aiwf.yaml` read per invocation still
+happens even when logging is fully disabled — there's no cheap signal
+for "the yaml `logging:` block is absent" short of reading the file
+once; a single small YAML read isn't what ADR-0017 Decision #2's
+"zero allocations" promise is actually worried about. · commits
+`75bc9873`, `563fbd89` · `make check-fast` clean; branch-coverage
+audited manually and cross-checked against the diff-scoped coverage
+gate (every flagged line in files this AC touches is pre-existing
+G-0386 debt, none new).
+
+### AC-6 — A failed instrumented verb emits a verb.failed diagnostic event
+
+Landed alongside AC-5 (same files, same commits) since all four sites
+converge on the identical mint-once-then-emit-outcome shape — doing
+them separately would mean touching the same lines twice. New
+`cliutil.EmitVerbOutcome(log, prefix, code, sha)` is the single
+completed/failed emission point: `"<prefix>.completed"` (with `sha`
+when non-empty) on `ExitOK`, `"<prefix>.failed"` otherwise, carrying
+`exit_code` and an `error_class` derived from this repo's own existing
+exit-code taxonomy (`usage`/`findings`/`internal`) rather than a new
+one. `upgrade` needed its own guard (`installSucceeded`) rather than
+the plain code-based check the other three sites use: `install.completed`
+fires before the reexec attempt (AC-5's Decisions entry below explains
+why), so a later reexec failure must not also emit `install.failed`
+for the same invocation — the guard is what keeps the two mutually
+exclusive per invocation. The five `*FailedRunEmitsNoEvent`/
+`*RefusalEmitsNoEvent` integration tests are rewritten to assert the
+failure event fires with the right message and error class, matching
+the exit code each failure actually produces (`ExitUsage`→`"usage"`,
+`ExitFindings`→`"findings"`, `ExitInternal`→`"internal"`). · commits
+`75bc9873`, `563fbd89` · same validation as AC-5.
+
 ## Decisions made during implementation
 
+- AC-5/AC-6 (the root-binding refactor and `verb.failed` emission) were
+  added to this milestone rather than deferred to become M-0239's
+  opening AC, after a second independent reviewer's findings were
+  re-verified directly against the code (not taken on faith). The
+  technical claim held up (the current architecture would genuinely
+  block M-0239 AC-1's correlation_id requirement), but the "cheaper
+  before than after" framing didn't survive scrutiny on its own — the
+  work is identically sized whichever milestone's history it lands
+  under. What tipped the decision: `verb.Apply` already computes the
+  sha AC-5 needed (a threading exercise, not new logic), the
+  `EmitVerbOutcome` seam AC-6 needed was the same seam AC-5 was already
+  reopening, and this milestone had already absorbed two smaller
+  wrap-review rounds this same way — a third, larger one stays
+  consistent with that precedent rather than opening a fresh milestone
+  for what is, mechanically, one more corrective pass.
 - `upgrade`'s "verb.completed" fires the moment install succeeds, not
   on the verb's final exit code — unlike the other four instrumented
   sites, which gate on `code == cliutil.ExitOK`. This is a deliberate
@@ -298,6 +369,17 @@ suite) after every commit. `internal/cli/...` (172+ tests) and
 `internal/policies.TestPolicy_LoggingChokepoint` (the self-check against
 aiwf's own repo) passes clean, confirming the AC-3 migration left zero
 non-allowlisted bare stdio prints anywhere in `internal/` or `cmd/`.
+
+AC-5/AC-6's findings arrived as a second reviewer's independently-run
+pass over the whole epic (not just this milestone's diff), converged
+across three earlier review sessions. Every finding was re-verified
+directly against the code before any of it was implemented — reading
+`WithVerb`, `verb.Apply`, `FinishVerb`/`DecorateAndFinish`, all four
+instrumented verbs, and ADR-0017 itself, rather than trusting the
+brief's claims. One framing didn't survive that scrutiny (`move.go`'s
+`entity`-vs-`TargetID` divergence is a deliberate difference in what
+question each field answers, not a bug) and is noted as such rather
+than "fixed."
 
 An epic-level `make coverage-gate` run (base `origin/main`, not required
 for this milestone's own wrap per CLAUDE.md's cadence rule — only
@@ -324,6 +406,12 @@ in commits `83afce24` and `cbc7f296`.
   fix needs no coordination with this epic and will be inherited
   automatically via the coverage gate's merge-base recomputation if it
   lands first.
+- G-0387 — add a `duration` field to the `verb.completed`/`verb.failed`
+  diagnostic event (AC-5/AC-6's second-reviewer finding C2's duration
+  half; the sha half was cheap enough to include now — see AC-5 above).
+  Needs a `verb.started`-shaped timestamp capture that doesn't exist
+  yet. Recommended for M-0239, which already touches the same
+  `EmitVerbOutcome` call sites for correlation_id wiring.
 
 ## Reviewer notes
 
@@ -386,3 +474,49 @@ with a caveat the AC-3 review raised: the "epic inherits the fix
 automatically" framing needs the gap's own fix to land on `main` before
 `E-0061` pushes — a real precondition to confirm at epic-wrap time, not an
 automatic guarantee.
+
+### Second reviewer's converged findings (AC-5, AC-6)
+
+A separate review pass ran over the whole epic (not just this
+milestone), converging three earlier sessions' findings and ranking
+them Tier A (architecture, decide before wrap) through Tier D (nits).
+Every finding was re-verified directly against the code before
+implementing any of it — see the Validation section above for what
+that re-verification covered. Disposition:
+
+- **A1 (root-bind the logger with a `run_id`) and B2 (the `entity`
+  field was overloaded across sites) and B3 (the off-path wasn't
+  free)** — confirmed, implemented as AC-5.
+- **A2 (no failure-path diagnostic event existed anywhere)** —
+  confirmed, implemented as AC-6.
+- **B1 (the sweep's `os.Remove` didn't tolerate a concurrent-removal
+  race) and D1 (log file/dir permissions were `0644`/`0755`, looser
+  than the ADR's own "per-user, never shared" framing)** — both
+  confirmed and fixed, independent of A1/B2/B3, commit `75bc9873`.
+- **B2's `move.go` sub-claim reconsidered, not simply "fixed"**: the
+  reviewer read `entity` (id) diverging from `pctx.TargetID` (epic) as
+  a single overloaded-field problem. On inspection the two answer
+  different questions — `TargetID` is which entity's authorization
+  scope governs the move, `entity` is what a human grepping the log
+  for a milestone id should find — so `entity` staying as the
+  milestone id is documented as deliberate in `move.go`, not changed.
+- **C1 (a typo'd `AIWF_LOG` value silently discards) and C2 (the event
+  carries no duration)** — left as-is / deferred as a gap respectively.
+  C2 specifically: the *sha* half of "the event is thin" was cheap
+  enough to include now (`verb.Apply` already computed it internally;
+  see AC-5 above) and is not deferred — only the duration half
+  (needing a new `verb.started`-shaped timestamp capture that doesn't
+  exist yet) remains a gap candidate.
+- **C3 (`upgrade`'s event should be named `install.completed`, not
+  `verb.completed`, so a failed run doesn't read as "completed" on
+  `grep`)** — implemented as part of AC-5/AC-6's `upgrade` rewiring.
+- **C4 (ADR-0017 claimed `WithVerb` scrubs `os.Args`; it actually
+  scrubs the three bound field values)** — ADR-0017 wording corrected
+  (still `proposed`, so mutable pre-ratification); no code change, no
+  current call site needs raw-`os.Args` scrubbing.
+- **D2 (`textio.go`'s `Printf` has a `_, _ =` its siblings lack)** —
+  confirmed as an errcheck default-exclude-list quirk (bare
+  `fmt.Println`/`fmt.Print` and `fmt.Fprint*(os.Stderr, ...)` are
+  excluded; `fmt.Fprintf(os.Stdout, ...)` is not), not an
+  inconsistency to paper over — documented in place rather than
+  "fixed" by adding noise to the other four wrappers.
