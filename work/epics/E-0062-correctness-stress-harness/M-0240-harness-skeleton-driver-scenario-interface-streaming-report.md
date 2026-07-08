@@ -117,7 +117,17 @@ library.
   "Orchestration mechanics" section is the locked design for the driver
   loop, the scenario shape, and the loose-vs-directed race distinction —
   this milestone implements the skeleton half of it (driver, interface,
-  report), not the scenario-authoring half (later milestones).
+  report), not the scenario-authoring half (later milestones). The shipped
+  `Scenario` interface (`Setup(dir) error`, `Run(dir) error`, `Verify(dir)
+  []Violation`) keeps only that 3-method skeleton, not the initiative
+  doc's own `Setup(dir) actors`/`Run(harness)` data flow verbatim — a
+  deliberate simplification for this milestone's placeholder scenario, not
+  a literal implementation of the doc's signatures. Confirmed at wrap
+  (design review) that this doesn't force a breaking interface change on
+  M-0241+: a concrete `Scenario` can hold whatever it needs (an actor list,
+  a binary path) as its own private fields via its own constructor, the
+  same pattern `RunRepeated`'s `newScenario func(seed int64) Scenario`
+  already establishes for seeds.
 - The `go test -tags=stress` vs. bespoke-driver decision is made at the
   start of this milestone, informed by whichever gives more direct control
   over process orchestration (subprocess spawning, signal delivery) without
@@ -206,4 +216,24 @@ was fixed as its own corrective commit first · commits e439a24b, e620ca6a · te
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review at wrap (fresh-context subagents, no authorship
+attachment):
+
+- **Code quality**: one blocking finding (B1 — `RepeatEvent.Passed` unpinned
+  in the AC-5 failure test; fixed as its own corrective commit, see AC-5's
+  Work log entry). Two non-blocking, track-for-later notes: (1) AC-1's
+  decoy-on-PATH test adds no regression-catching power beyond the
+  `filepath.IsAbs` check that already runs first — not wrong, just
+  redundant until a later milestone's harness code actually invokes the
+  binary by bare name somewhere; (2) `context.Context` threading is
+  inconsistent (`BuildBinary` takes one, `Scenario`/`RunRepeated` don't) —
+  defensible for this skeleton, since AC-3 deliberately relies on process
+  kill rather than graceful cancellation, but M-0241's multi-process
+  scenarios will likely want it for timeout/cancellation of an in-flight
+  repeat loop.
+- **Design quality** (`wf-rethink` over `internal/stresstest`): verdict
+  Keep — no interface break forced on M-0241–244 by the `Scenario`
+  simplification (see the Design notes section above); module boundary,
+  `RunRepeated`-over-`RunScenario` layering, and `WriteEvent(event any)`'s
+  deferred event-schema are all sound as-is. Flagged `cmd/stresstest`'s
+  absence independently of the code reviewer; resolved by adding AC-6.
