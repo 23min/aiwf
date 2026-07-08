@@ -1,7 +1,7 @@
 ---
 id: M-0238
 title: Migrate bare-stderr call sites; forbidigo chokepoint
-status: in_progress
+status: done
 parent: E-0061
 depends_on:
     - M-0237
