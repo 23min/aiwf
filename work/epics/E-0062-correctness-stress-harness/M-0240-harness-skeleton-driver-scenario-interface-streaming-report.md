@@ -135,7 +135,8 @@ attempt is replayable by rerunning with that seed.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
+  `go test -tags=stress -json`
 
 ## Validation
 
