@@ -147,6 +147,14 @@ and writes each marshaled event plus its trailing newline as one `Write`
 call, reusing `internal/logger`'s concurrent-append discipline
 (ADR-0017 Decision #5) per D-0033 · commit c344c3ed · tests 9/9
 
+### AC-3 — A run killed mid-scenario still composes without failing on a truncated line
+
+`internal/stresstest.Compose` reads a raw-report JSONL file and returns
+every well-formed event; only the file's final line is ever tolerated as
+truncated (a kill -9 mid-write), since AC-2's O_APPEND +
+one-Write()-per-record discipline guarantees no earlier line can be
+partial · commit b90f787b · tests 5/5
+
 ## Decisions made during implementation
 
 - D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
