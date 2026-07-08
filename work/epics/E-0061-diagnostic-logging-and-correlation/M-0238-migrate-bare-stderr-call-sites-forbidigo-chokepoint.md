@@ -23,6 +23,14 @@ acs:
       title: aiwf.yaml's logging block is parsed, validated, and surfaced by aiwf doctor
       status: met
       tdd_phase: done
+    - id: AC-5
+      title: Diagnostic logger is minted once per invocation, bound with a run_id
+      status: open
+      tdd_phase: red
+    - id: AC-6
+      title: A failed instrumented verb emits a verb.failed diagnostic event
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -104,6 +112,10 @@ dependency of that milestone's precedence-resolution AC); what's new here is
 `aiwf doctor` reporting the currently *active*, fully-resolved logging
 configuration (level, format, destination, and which source — env, yaml, or
 default — won) so an operator can confirm what's on without reading source.
+
+### AC-5 — Diagnostic logger is minted once per invocation, bound with a run_id
+
+### AC-6 — A failed instrumented verb emits a verb.failed diagnostic event
 
 ## Constraints
 
