@@ -28,7 +28,7 @@ import (
 // status as sub-elements of a milestone, not a kind in the schema
 // sense). For the six top-level kinds, args[0] is the kind and the
 // runtime validates kind-vs-flag relevance — same shape as pre-Cobra.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		titles        []string
 		actor         string
@@ -115,6 +115,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", `sovereign-override justification recorded in the "aiwf-force:" commit trailer; required (non-empty after trim) when --force is set`)
 	cmd.Flags().BoolVar(&fetch, "fetch", false, "before allocating the id, best-effort `git fetch --all` to refresh every remote-tracking ref, so the id is computed against the freshest published view across all branches (not just trunk); a fetch failure (offline, unreachable remote) degrades to local-only allocation with a warning and never blocks the add (M-0214)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		if len(args) > 0 {
@@ -132,7 +133,7 @@ func NewCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", cliutil.CompleteEntityIDFlag(entity.KindADR))
 
-	cmd.AddCommand(newACCmd(&titles, &actor, &principal, &root))
+	cmd.AddCommand(newACCmd(&titles, &actor, &principal, &root, correlationID))
 	return cmd
 }
 
@@ -445,7 +446,7 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 // typical pattern with cobra child cmds). --body-file is a separate
 // repeatable flag local to the ac subcommand: positional pairing with
 // --title (the Nth --body-file populates the body of the Nth AC).
-func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
+func newACCmd(titles *[]string, actor, principal, root *string, correlationID string) *cobra.Command {
 	var (
 		tests     string
 		bodyFiles []string
@@ -474,6 +475,7 @@ func newACCmd(titles *[]string, actor, principal, root *string) *cobra.Command {
 	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	cmd.Flags().StringArrayVar(&bodyFiles, "body-file", nil, `path to a file whose content becomes the AC body section under "### AC-N — <title>" (use "-" to read from stdin; only valid with single --title); positionally paired with --title — the Nth --body-file populates the Nth AC; the file must contain body content only — leading "---" is refused`)
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd
 }

@@ -19,7 +19,7 @@ import (
 
 // NewCmd builds `aiwf move <M-id> --epic <E-id>`: relocates a
 // milestone to a different epic in one commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -48,6 +48,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	_ = cmd.RegisterFlagCompletionFunc("epic", cliutil.CompleteEntityIDFlag(entity.KindEpic))
 	return cmd
@@ -79,7 +80,15 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (cod
 	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
 	defer func() { _ = closeDiagLog() }()
 	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		diagLog = logger.WithVerb(diagLog, "move", id, actorStr, logger.NewRunID())
+		// out.CorrelationID reuses the invocation-wide id NewRootCmd
+		// minted (M-0239/AC-1), matching the JSON envelope's
+		// metadata.correlation_id. Falls back to a fresh id only for a
+		// test that builds out directly, bypassing NewCmd/Execute.
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "move", id, actorStr, runID)
 	}
 	var sha string
 	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()

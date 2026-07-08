@@ -25,10 +25,31 @@ import (
 type OutputFormat struct {
 	Format string
 	Pretty bool
+
+	// CorrelationID is the invocation's shared id (M-0239/AC-1): the
+	// same value threaded into logger.WithVerb as run_id, so an
+	// envelope and its invocation's diagnostic log lines are cross-
+	// referenceable by a single grep. Empty when the caller never
+	// threaded one (e.g. a test constructing OutputFormat directly) —
+	// every emit method omits metadata.correlation_id entirely in
+	// that case rather than emitting an empty string.
+	CorrelationID string
 }
 
 // JSON reports whether a JSON envelope was requested (--format=json).
 func (o OutputFormat) JSON() bool { return o.Format == "json" }
+
+// metadata builds the envelope's metadata map for this invocation:
+// correlation_id when CorrelationID is set. Returns nil (never an
+// empty non-nil map) when there is nothing to carry, so
+// render.Envelope's Metadata field's omitempty keeps behaving exactly
+// as it did before this field existed.
+func (o OutputFormat) metadata() map[string]any {
+	if o.CorrelationID == "" {
+		return nil
+	}
+	return map[string]any{"correlation_id": o.CorrelationID}
+}
 
 // AddFormatFlags registers --format and --pretty on a mutating verb's
 // command and returns the bound OutputFormat. It mirrors the read-verb
@@ -56,10 +77,11 @@ func (o OutputFormat) emitErrorEnvelope(label, code, message string) {
 		return
 	}
 	env := render.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "error",
-		Error:   &render.EnvelopeError{Code: code, Message: message},
+		Tool:     "aiwf",
+		Version:  version.Current().Version,
+		Status:   "error",
+		Error:    &render.EnvelopeError{Code: code, Message: message},
+		Metadata: o.metadata(),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -77,6 +99,7 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 		Version:  version.Current().Version,
 		Status:   render.StatusFor(findings),
 		Findings: findings,
+		Metadata: o.metadata(),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -99,6 +122,7 @@ func (o OutputFormat) emitSuccess(subject string, findings []check.Finding) {
 		Status:   render.StatusFor(findings),
 		Findings: findings,
 		Result:   map[string]any{"subject": subject},
+		Metadata: o.metadata(),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }

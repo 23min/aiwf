@@ -23,7 +23,7 @@ import (
 // kind-aware terminal-cancel transition: an epic cancels to "cancelled",
 // a gap to "wontfix", an ADR to "rejected", etc. — the per-kind FSM
 // target lives in entity.AllowedTransitions and the verb layer.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -52,6 +52,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -95,7 +96,16 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
 	defer func() { _ = closeDiagLog() }()
 	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		diagLog = logger.WithVerb(diagLog, "cancel", id, actorStr, logger.NewRunID())
+		// out.CorrelationID is the id NewRootCmd minted for this whole
+		// invocation (M-0239/AC-1) — reused here as run_id so the log
+		// line and the JSON envelope's metadata.correlation_id share
+		// one value. Falls back to a fresh id only when out was built
+		// directly by a test bypassing NewCmd/Execute.
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "cancel", id, actorStr, runID)
 	}
 	var sha string
 	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()

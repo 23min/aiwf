@@ -342,7 +342,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 	t.Run("entity ids at position 0", func(t *testing.T) {
 		root := setAreaRepo(t)
 		t.Chdir(root)
-		cmd := setarea.NewCmd()
+		cmd := setarea.NewCmd("")
 		got, directive := cmd.ValidArgsFunction(cmd, nil, "")
 		if directive != cobraNoFileComp {
 			t.Errorf("directive = %d, want ShellCompDirectiveNoFileComp (%d)", directive, cobraNoFileComp)
@@ -363,7 +363,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 	t.Run("settable area values at position 1", func(t *testing.T) {
 		root := setAreaRepo(t)
 		t.Chdir(root)
-		cmd := setarea.NewCmd()
+		cmd := setarea.NewCmd("")
 		got, directive := cmd.ValidArgsFunction(cmd, []string{"E-0001"}, "")
 		if directive != cobraNoFileComp {
 			t.Errorf("directive = %d, want ShellCompDirectiveNoFileComp", directive)
@@ -382,7 +382,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 	t.Run("nothing offered at position 2", func(t *testing.T) {
 		root := setAreaRepo(t)
 		t.Chdir(root)
-		cmd := setarea.NewCmd()
+		cmd := setarea.NewCmd("")
 		got, _ := cmd.ValidArgsFunction(cmd, []string{"E-0001", "platform"}, "")
 		if len(got) != 0 {
 			t.Errorf("completion at position 2 = %v, want empty", got)
@@ -391,7 +391,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 
 	t.Run("command registered in the tree", func(t *testing.T) {
 		t.Parallel()
-		rootCmd := cli.NewRootCmd()
+		rootCmd := cli.NewRootCmd("")
 		var found bool
 		for _, c := range rootCmd.Commands() {
 			if c.Name() == "set-area" {
@@ -410,7 +410,7 @@ func TestSetArea_AC5_Discoverability(t *testing.T) {
 // --clear, and the milestone refusal.
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := setarea.NewCmd()
+	cmd := setarea.NewCmd("")
 	if cmd.Use != "set-area <id> <member>" {
 		t.Errorf("Use = %q, want %q", cmd.Use, "set-area <id> <member>")
 	}

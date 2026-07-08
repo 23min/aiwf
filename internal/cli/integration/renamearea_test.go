@@ -331,7 +331,7 @@ func TestRenameArea_AC5_Discoverability(t *testing.T) {
 
 	t.Run("command registered in the tree", func(t *testing.T) {
 		t.Parallel()
-		rootCmd := cli.NewRootCmd()
+		rootCmd := cli.NewRootCmd("")
 		var found bool
 		for _, c := range rootCmd.Commands() {
 			if c.Name() == "rename-area" {

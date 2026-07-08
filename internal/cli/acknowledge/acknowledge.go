@@ -26,7 +26,7 @@ import (
 
 // NewCmd builds the `aiwf acknowledge` parent command. Non-Runnable; the
 // subcommands carry the behavior.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "acknowledge",
 		Short:         "Sovereign acknowledgement of a flagged commit or entity",
@@ -34,7 +34,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newIllegalCmd())
-	cmd.AddCommand(newMistagCmd())
+	cmd.AddCommand(newIllegalCmd(correlationID))
+	cmd.AddCommand(newMistagCmd(correlationID))
 	return cmd
 }

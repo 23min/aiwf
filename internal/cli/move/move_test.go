@@ -10,7 +10,7 @@ import (
 // NewCmd with the expected metadata.
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := move.NewCmd()
+	cmd := move.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

@@ -26,7 +26,7 @@ import (
 // id (or M-NNN/AC-N), new-title. The optional `--reason` flag lands
 // in the commit body and surfaces in `aiwf history`, matching the
 // pattern from `aiwf promote`/`cancel`/`authorize`/`edit-body`.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -54,6 +54,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }

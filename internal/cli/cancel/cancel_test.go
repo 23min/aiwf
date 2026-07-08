@@ -14,7 +14,7 @@ import (
 // subpackage's pattern is mechanically pinned.
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := cancel.NewCmd()
+	cmd := cancel.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

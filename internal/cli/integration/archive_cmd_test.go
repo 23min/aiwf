@@ -179,7 +179,7 @@ func TestArchive_DryRunByDefault(t *testing.T) {
 // non-empty short text. Mirrors TestRewidth_HelpAvailable.
 func TestArchive_HelpAvailable(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	archive, _, err := root.Find([]string{"archive"})
 	if err != nil {
 		t.Fatalf("archive not registered on the root command tree: %v", err)

@@ -18,7 +18,7 @@ import (
 // NewCmd builds `aiwf rename-area <old> <new>`: renames a declared
 // area member and rewrites the `area:` frontmatter of every entity
 // that references it, in one trailered commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -60,6 +60,7 @@ rename reverses via the same verb with swapped args.`,
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteAreaArg(0)
 	return cmd
 }

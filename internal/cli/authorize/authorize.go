@@ -32,7 +32,7 @@ import (
 //   - --pause / --resume: required; the argument to the flag is itself
 //     the reason (e.g. `--pause "blocked by E-09"`). Passing both
 //     `--pause "..."` and `--reason "..."` is a usage error.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor  string
 		root   string
@@ -71,6 +71,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value. From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future branch is accepted — the step-7 pattern of aiwfx-start-epic (M-0104/AC-4) or step-4 of aiwfx-start-milestone (M-0105/AC-6). The named branch is cut by a later step of the ritual.")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	// M-0102 / AC-6: --branch completion returns local branch names
 	// matching the ADR-0010 ritual shape — epic/E-NNNN-..., milestone/

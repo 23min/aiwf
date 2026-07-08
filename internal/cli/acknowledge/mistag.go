@@ -15,7 +15,7 @@ import (
 // landing zone legitimately disagree, suppressing the area-mistag warning for
 // that entity. Like `acknowledge illegal` it is a human-sovereign empty-commit
 // act, but keyed per-entity rather than per-SHA.
-func newMistagCmd() *cobra.Command {
+func newMistagCmd(correlationID string) *cobra.Command {
 	var (
 		actor  string
 		root   string
@@ -58,6 +58,7 @@ sovereign acts trace to a named human with written rationale.`,
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why the cross-cutting work is intentional; required, non-empty after trim")
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 

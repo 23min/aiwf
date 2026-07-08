@@ -24,7 +24,7 @@ import (
 // --phase is mutex with the positional new-status: pass one or the
 // other, never both. --phase is only valid for composite ids; using
 // it on a top-level entity is a usage error.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor        string
 		principal    string
@@ -70,6 +70,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		switch len(args) {
 		case 0:

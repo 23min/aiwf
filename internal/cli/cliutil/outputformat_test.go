@@ -141,3 +141,65 @@ func TestOutputFormat_EmitHelpers(t *testing.T) {
 		}
 	})
 }
+
+// TestOutputFormat_CorrelationID pins M-0239/AC-1: when CorrelationID
+// is set, every one of the three JSON envelope shapes (error, findings,
+// success) carries it under metadata.correlation_id — so an operator
+// can correlate any outcome, not just a clean success, with the
+// invocation's diagnostic log lines. Text mode is untouched: it never
+// prints metadata at all.
+func TestOutputFormat_CorrelationID(t *testing.T) {
+	withID := OutputFormat{Format: "json", CorrelationID: "run-abc123"}
+	noID := OutputFormat{Format: "json"}
+	findings := []check.Finding{
+		{Code: check.CodeStatusValid, Severity: check.SeverityError, Message: "bad status", EntityID: "E-0001"},
+	}
+
+	decodeMetadata := func(t *testing.T, raw string) map[string]any {
+		t.Helper()
+		var env struct {
+			Metadata map[string]any `json:"metadata"`
+		}
+		if err := json.Unmarshal([]byte(raw), &env); err != nil {
+			t.Fatalf("stdout not JSON: %v\n%s", err, raw)
+		}
+		return env.Metadata
+	}
+
+	t.Run("emitErrorEnvelope carries correlation_id", func(t *testing.T) {
+		out, _ := captureStdStreams(t, func() { withID.emitErrorEnvelope("aiwf promote", "", "boom") })
+		md := decodeMetadata(t, out)
+		if md["correlation_id"] != "run-abc123" {
+			t.Errorf("metadata.correlation_id = %v, want %q", md["correlation_id"], "run-abc123")
+		}
+	})
+
+	t.Run("emitFindings carries correlation_id", func(t *testing.T) {
+		out, _ := captureStdStreams(t, func() { withID.emitFindings(findings) })
+		md := decodeMetadata(t, out)
+		if md["correlation_id"] != "run-abc123" {
+			t.Errorf("metadata.correlation_id = %v, want %q", md["correlation_id"], "run-abc123")
+		}
+	})
+
+	t.Run("emitSuccess carries correlation_id", func(t *testing.T) {
+		out, _ := captureStdStreams(t, func() { withID.emitSuccess("promoted E-0001", nil) })
+		md := decodeMetadata(t, out)
+		if md["correlation_id"] != "run-abc123" {
+			t.Errorf("metadata.correlation_id = %v, want %q", md["correlation_id"], "run-abc123")
+		}
+	})
+
+	t.Run("emitSuccess omits metadata entirely when CorrelationID is empty", func(t *testing.T) {
+		out, _ := captureStdStreams(t, func() { noID.emitSuccess("promoted E-0001", nil) })
+		var env struct {
+			Metadata map[string]any `json:"metadata"`
+		}
+		if err := json.Unmarshal([]byte(out), &env); err != nil {
+			t.Fatalf("stdout not JSON: %v\n%s", err, out)
+		}
+		if env.Metadata != nil {
+			t.Errorf("metadata = %+v, want nil (omitempty) when no CorrelationID is set", env.Metadata)
+		}
+	})
+}

@@ -142,7 +142,7 @@ func TestAddMilestone_TDDPersisted_None(t *testing.T) {
 // must return exactly the closed set.
 func TestAddMilestone_TDDFlagCompletes(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	addCmd, _, err := root.Find([]string{"add"})
 	if err != nil {
 		t.Fatalf("find add: %v", err)
