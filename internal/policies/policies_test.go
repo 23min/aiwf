@@ -78,6 +78,11 @@ func TestPolicy_EnvelopeVersionSource(t *testing.T) {
 	runPolicy(t, PolicyEnvelopeVersionSource)
 }
 
+func TestPolicy_EnvelopeStructuralAssertion(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyEnvelopeStructuralAssertion)
+}
+
 func TestPolicy_VersionSingleSource(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyVersionSingleSource)
