@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: A --repeat N flag reruns a scenario N times with a logged seed per attempt
-      status: open
+      status: met
       tdd_phase: done
 ---
 
