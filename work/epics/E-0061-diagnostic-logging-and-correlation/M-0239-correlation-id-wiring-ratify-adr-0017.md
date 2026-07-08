@@ -167,6 +167,62 @@ Fixed by adding `TestCorrelationID_MoveMatchesLogRunID`; re-ran the
 mutation, now caught. All mutations reverted via captured pre-mutation
 content, never `git stash`/`checkout`/`restore`. Commit `5eb2d1ef`.
 
+### AC-2 — Mutating verbs report per-verb-appropriate metadata in their envelope
+
+`verb.Result` gains an optional `Metadata map[string]any` field. `FinishVerb`
+merges it with AC-1's `correlation_id` and (on a successful apply)
+`commit_sha` into the envelope, via `OutputFormat.Metadata` — re-exported from
+AC-1's private `metadata()` helper once a real second caller (a verb building
+its own envelope outside `emitSuccess`) existed.
+
+Populated per-verb metadata across all 15 correlation-id-bearing verb
+constructors: `promote`/`cancel` (both plain-entity and composite-AC-id
+shapes, the latter via the shared `finalizeACPlan` chokepoint so
+`promoteAC`/`PromoteACPhase`/`cancelAC` all gained it in one edit), `rename`/
+`retitle` (plain + composite), `setarea`, `renamearea`, `reallocate`,
+`editbody` (explicit + bless paths), `authorize` (open + pause/resume),
+`acknowledge illegal`/`mistag`, `add` (kind + `add ac`), `move`, and
+`worktree add`. `archive`, `rewidth`, and `importcmd` had no `--format=json`
+support at all before this AC — added from scratch (own `render.Envelope`
+construction, since none of the three route through `FinishVerb`), each
+reporting its own shape (`swept_count`, `renamed_count`,
+`imported_count`/`entity_ids` respectively) plus `commit_sha`.
+
+The branch-coverage audit surfaced two real gaps beyond the AC's own scope:
+`move` already had AC-1's `correlation_id` wired but no per-verb metadata yet
+(a straightforward miss, fixed here); and `worktree add` builds its own
+`render.Envelope` directly rather than calling `emitSuccess`, so its
+`OutputFormat.CorrelationID` field was being set correctly (AC-1) but never
+actually read anywhere — the envelope's `metadata.correlation_id` was silently
+absent until this pass exported `Metadata` and wired it in. Separately, the
+audit surfaced that `contract bind`/`unbind`/`recipe install`/`recipe remove`
+and `milestone depends-on` were missed entirely during AC-1: their `NewCmd`
+constructors call `cliutil.AddFormatFlags` (confirmed via a full-repo grep,
+not the narrower survey the AC-1 pass used) but had no `correlationID`
+threading at all until this commit. All five now carry both `correlation_id`
+and their own metadata (`entity_id`/`validator`, `depends_on`).
+
+`wf-vacuity` mutation probes: `FinishVerb`'s success path forced to pass `nil`
+metadata (caught), `withCommitSHA` mutated to drop the sha assignment
+(caught), `promote`'s `from`/`to` values swapped (caught), `importedEntityIDs`
+mutated to always return `nil` (caught). Manual branch-coverage walk found
+`failArchive`/`failRewidth`/`failImport`'s JSON-mode error paths untested (one,
+`failImport`, was 0% covered — no existing test reached any of its error
+conditions in either format) and `failImport`'s text-mode path also untested;
+fixed by adding dedicated JSON- and text-mode error-envelope tests for all
+three. The same walk found `withCommitSHA`'s "both empty" early-return branch
+unreachable at all four call sites (sha is always non-empty by the time any
+of them run) — simplified away across all four copies rather than annotated,
+relying on `encoding/json`'s `omitempty` treating a zero-length map identically
+to nil (verified directly before relying on it).
+
+Every verb in the AC-2 rollout has a dedicated test asserting its own
+metadata field values specifically (`entity_id`/`from`/`to`, `old_slug`/
+`new_slug`, `old_title`/`new_title`, `area`, `old_area`/`new_area`, `old_id`/
+`new_id`, `agent`/`action`, `sha`, `kind`, `ac_ids`), not just `correlation_id`
+— the class of gap `move` and `worktree add` both fell into above. Commit
+`29f0c8ff`.
+
 ## Decisions made during implementation
 
 - (none)
