@@ -26,7 +26,7 @@ acs:
     - id: AC-5
       title: A --repeat N flag reruns a scenario N times with a logged seed per attempt
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
