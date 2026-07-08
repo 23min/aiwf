@@ -313,6 +313,55 @@ live, not vacuous), deleted the missing-key detection loop entirely (caught
 by the one test specifically written to exercise it, not just some other
 test coincidentally catching it). Commit `c247b625`.
 
+### AC-5 — ADR-0017 reads accepted with CLAUDE.md matching shipped behavior
+
+CLAUDE.md's "### CLI conventions" paragraph (under "## Go conventions")
+described `log/slog` going unconditionally to stderr — stale since
+M-0237/M-0238 shipped ADR-0017's opt-in, default-off, XDG-state-home-file
+behavior. Rewritten to describe the shipped behavior (opt-in/default-off,
+the three `AIWF_LOG*` env knobs, the XDG-state-home default destination,
+`forbidigo` enforcement) with a cross-link to ADR-0017; the "tool output →
+stdout" half — already correct — is unchanged, per ADR-0017's own
+Consequences section naming exactly that split.
+
+`internal/policies/claudemd_cli_conventions_logging.go` is the mechanical
+evidence: it walks CLAUDE.md's heading hierarchy (`extractMarkdownSubsection`,
+a purpose-built two-level `##`/`###` walker — `entity.ParseBodySections`,
+the kernel's own markdown-section reader, only tracks `## ` boundaries and
+folds every `###` subsection into one blob, wrong for isolating one `###`
+subsection among many under a much larger `##` parent) to isolate exactly
+the "CLI conventions" subsection's own prose, then asserts it no longer
+carries the stale claim, describes logging as opt-in/default-off, and
+cross-links ADR-0017 — a structural check, not a whole-file substring grep
+(CLAUDE.md §"Substring assertions are not structural assertions"), so a
+mention of "opt-in" or "ADR-0017" in some other section of this large file
+doesn't satisfy it. Confirmed the check genuinely detects the *live*
+staleness (not just synthetic fixtures) before rewriting the paragraph, and
+genuinely detects the fix afterward.
+
+Registered in `policies_test.go`'s shared live-repo smoke-test list from the
+start this time, learning directly from AC-4's own gap.
+
+`wf-vacuity` surfaced two real findings, not just missing tests. First: my
+own initial "fires on stale claim" fixture used prose that didn't actually
+contain either literal pattern the code checks for (no arrow character, no
+literal word "to") — it was passing, but for the wrong reason (failing the
+missing-ADR-0017-link check instead), a vacuous test that would have stayed
+green even if the actual stale-claim detection code were deleted. Rewrote
+all three "fires" tests to isolate exactly one violation condition each, so
+each genuinely proves its own check fires for its own stated reason. Second:
+a mutation dropping `extractMarkdownSubsection`'s parent-heading-scoping
+check entirely (matching "### CLI conventions" under *any* `##` parent, not
+just "Go conventions" specifically) survived every existing test — none of
+the fixtures had the child heading nested under the wrong parent. Fixed by
+adding a dedicated test proving the parent check matters, then re-confirmed
+the mutation is caught. Commit `f2a27e0b`.
+
+Ratifying `aiwf promote ADR-0017 accepted` is the milestone's own final
+constraint ("the last thing that happens... it certifies a state that must
+already be true") — a separate, deliberate gate after AC-1 through AC-4 and
+this paragraph rewrite all landed, not folded into this commit.
+
 ## Decisions made during implementation
 
 - (none)
