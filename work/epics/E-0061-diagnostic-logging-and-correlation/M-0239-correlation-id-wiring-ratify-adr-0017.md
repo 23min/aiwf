@@ -1,7 +1,7 @@
 ---
 id: M-0239
 title: Correlation id wiring; ratify ADR-0017
-status: in_progress
+status: done
 parent: E-0061
 depends_on:
     - M-0237
