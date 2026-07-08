@@ -87,6 +87,17 @@ attempt is replayable by rerunning with that seed.
 
 ### AC-6 — cmd/stresstest wires run and compose into an end-to-end runnable harness
 
+A thin `cmd/stresstest` binary exposes `run` and `compose` as independently-runnable
+steps (D-0033), wiring `BuildBinary`, `OpenReportWriter`, `RunRepeated`, and `Compose`
+around the trivial placeholder scenario this milestone's constraints call for — a
+`git init`'d empty repo, `aiwf check` run against it, always passing regardless of
+`check`'s own exit code. `run` builds the binary under test, repeats the placeholder
+scenario `--repeat` times, and logs each attempt to a raw-report JSONL file; `compose`
+renders a human-readable summary from that file. This closes the gap the milestone's
+own "Surfaces touched" section and D-0033 named but the other five ACs didn't
+individually require: the harness is runnable end-to-end, not just usable as a Go
+library.
+
 ## Constraints
 
 - Harness code lives entirely under `internal/stresstest/` (plus a thin
@@ -174,6 +185,13 @@ disk as RCA material · commit 8ab46f3c · tests 6/6
 attempt's seed into scenario construction and logging it via `ReportWriter`
 before the next attempt starts; a scenario failing verification doesn't
 stop the loop, only a mechanical error does · commit cbab4d3d · tests 5/5
+
+### AC-6 — cmd/stresstest wires run and compose into an end-to-end runnable harness
+
+A thin `cmd/stresstest` binary exposes `run` and `compose`, wiring `BuildBinary`,
+`OpenReportWriter`, `RunRepeated`, and `Compose` around the placeholder scenario;
+an independent review's B1 finding (a hardcoded `Passed` surviving every AC-5 test)
+was fixed as its own corrective commit first · commits e439a24b, e620ca6a · tests 16/16
 
 ## Decisions made during implementation
 
