@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: A stress run builds the aiwf binary under test once, never trusting PATH
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Each raw-report event appends via a single Write call
       status: open
