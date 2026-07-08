@@ -155,6 +155,13 @@ truncated (a kill -9 mid-write), since AC-2's O_APPEND +
 one-Write()-per-record discipline guarantees no earlier line can be
 partial · commit b90f787b · tests 5/5
 
+### AC-4 — A scenario's repo is cleaned up on pass and preserved on fail
+
+`internal/stresstest.Scenario` (Setup/Run/Verify) and `RunScenario` give
+the harness its per-scenario contract: a passing run removes its own temp
+dir, any failure (Setup/Run error or a Verify violation) preserves it on
+disk as RCA material · commit 8ab46f3c · tests 6/6
+
 ## Decisions made during implementation
 
 - D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
