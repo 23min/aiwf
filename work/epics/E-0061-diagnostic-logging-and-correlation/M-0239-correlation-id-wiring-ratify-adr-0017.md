@@ -15,7 +15,7 @@ acs:
     - id: AC-2
       title: Mutating verbs report per-verb-appropriate metadata in their envelope
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: An operator can pass --trace to see per-phase timings via the logger
       status: open
