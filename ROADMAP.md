@@ -823,7 +823,7 @@ list` — without waiting for a merge and without copying the entity anywhere.
 
 _No milestones yet._
 
-## E-0061 — Diagnostic logging and correlation (active)
+## E-0061 — Diagnostic logging and correlation (done)
 
 ### Goal
 
