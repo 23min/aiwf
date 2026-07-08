@@ -140,5 +140,6 @@ func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFo
 	defer release()
 	ctx := context.Background()
 	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, forEntity, actorStr, reason)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge illegal", result, vErr, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge illegal", result, vErr, out)
+	return code
 }

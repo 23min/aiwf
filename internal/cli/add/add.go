@@ -296,7 +296,8 @@ func Run(k entity.Kind, title, actor, principal, root,
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: addCreationRefs(k, opts),
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
+	return code
 }
 
 // validateAreaMember enforces the M-0173/AC-2 write-time rule: an
@@ -572,5 +573,6 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
+	return code
 }

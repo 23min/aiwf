@@ -205,7 +205,8 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 
 	ctx := context.Background()
 	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: force})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
+	return code
 }
 
 // newRecipeRemoveCmd builds `aiwf contract recipe remove <name>`.
@@ -262,5 +263,6 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 
 	ctx := context.Background()
 	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
+	return code
 }

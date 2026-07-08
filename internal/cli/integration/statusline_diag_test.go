@@ -40,6 +40,7 @@ func TestStatuslineScaffoldDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		Msg    string `json:"msg"`
 		Verb   string `json:"verb"`
 		Entity string `json:"entity"`
+		RunID  string `json:"run_id"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
@@ -52,6 +53,9 @@ func TestStatuslineScaffoldDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Entity != "project" {
 		t.Errorf("entity = %q, want %q (the --scope value, not a filesystem path)", rec.Entity, "project")
+	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
 	}
 }
 
@@ -137,6 +141,7 @@ func TestStatuslineRemoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		Msg    string `json:"msg"`
 		Verb   string `json:"verb"`
 		Entity string `json:"entity"`
+		RunID  string `json:"run_id"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
@@ -149,6 +154,9 @@ func TestStatuslineRemoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Entity != "project" {
 		t.Errorf("entity = %q, want %q (the --scope value, not a filesystem path)", rec.Entity, "project")
+	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
 	}
 }
 
@@ -175,9 +183,11 @@ func TestStatuslineRemoveDiag_DisabledByDefault_NoLogFileCreated(t *testing.T) {
 	}
 }
 
-// TestStatuslineRemoveDiag_RefusalEmitsNoEvent: a refused removal
-// (foreign, non-aiwf-authored artifact) must not emit "verb.completed".
-func TestStatuslineRemoveDiag_RefusalEmitsNoEvent(t *testing.T) {
+// TestStatuslineRemoveDiag_RefusalEmitsFailedEvent pins M-0238/AC-6: a
+// refused removal (foreign, non-aiwf-authored artifact) emits
+// "verb.failed" — never "verb.completed" — carrying the exit code's
+// error class.
+func TestStatuslineRemoveDiag_RefusalEmitsFailedEvent(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	// A foreign script with no aiwf version marker.
@@ -197,13 +207,33 @@ func TestStatuslineRemoveDiag_RefusalEmitsNoEvent(t *testing.T) {
 	rc, _, _ := testutil.CaptureRun(t, func() int {
 		return cli.Execute([]string{"update", "--root", root, "--scope", "project", "--remove"})
 	})
-	if rc == cliutil.ExitOK {
-		t.Fatalf("aiwf update --remove on a foreign script: rc=ExitOK, want a refusal code")
+	if rc != cliutil.ExitFindings {
+		t.Fatalf("aiwf update --remove on a foreign script: rc=%d, want ExitFindings (%d)", rc, cliutil.ExitFindings)
 	}
 
-	if raw, err := os.ReadFile(logPath); err == nil {
-		t.Errorf("diagnostic log %q written despite a refused removal", raw)
-	} else if !os.IsNotExist(err) {
-		t.Errorf("reading diagnostic log: %v", err)
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		Msg        string `json:"msg"`
+		Verb       string `json:"verb"`
+		ExitCode   int    `json:"exit_code"`
+		ErrorClass string `json:"error_class"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.Msg != "verb.failed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "verb.failed")
+	}
+	if rec.Verb != "statusline-remove" {
+		t.Errorf("verb = %q, want %q", rec.Verb, "statusline-remove")
+	}
+	if rec.ExitCode != cliutil.ExitFindings {
+		t.Errorf("exit_code = %d, want %d", rec.ExitCode, cliutil.ExitFindings)
+	}
+	if rec.ErrorClass != "findings" {
+		t.Errorf("error_class = %q, want %q", rec.ErrorClass, "findings")
 	}
 }

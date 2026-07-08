@@ -171,7 +171,7 @@ func TestApply_LockContentionDiagnostic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = Apply(ctx, root, plan)
+	_, err = Apply(ctx, root, plan)
 	if err == nil {
 		t.Fatal("expected index sync to fail under stale lock; got nil")
 	}
@@ -280,7 +280,7 @@ func TestApply_LockContentionWithHolder(t *testing.T) {
 			{Type: OpWrite, Path: "new.md", Content: []byte("hi")},
 		},
 	}
-	err := Apply(ctx, root, plan)
+	_, err := Apply(ctx, root, plan)
 	if err == nil {
 		t.Fatal("expected index sync to fail under held lock; got nil")
 	}

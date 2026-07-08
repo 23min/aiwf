@@ -169,7 +169,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool) 
 				Value: principalStr,
 			})
 		}
-		if applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
+		if _, applyErr := verb.Apply(ctx, rootDir, p); applyErr != nil {
 			cliutil.Errorf("aiwf import: applying plan %d: %v\n", i, applyErr)
 			return cliutil.ExitInternal
 		}

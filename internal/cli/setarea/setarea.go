@@ -142,5 +142,6 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		// a scoped ai/<id> agent whose scope reaches this entity may run it.
 		TargetID: entity.Canonicalize(id),
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
+	return code
 }

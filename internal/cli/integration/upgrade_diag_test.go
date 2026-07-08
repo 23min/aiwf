@@ -12,11 +12,12 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
-// TestUpgradeDiag_EmitsVerbCompletedEvent pins M-0238/AC-1+AC-2 for
-// `aiwf upgrade`: a successful install (stopped short of the
-// process-replacing re-exec via AIWF_NO_REEXEC) fires a
-// "verb.completed" event with the installed version bound as entity.
-// upgrade has no --actor flag, so actor is bound empty.
+// TestUpgradeDiag_EmitsVerbCompletedEvent pins M-0238/AC-1+AC-2+AC-5
+// for `aiwf upgrade`: a successful install (stopped short of the
+// process-replacing re-exec via AIWF_NO_REEXEC) fires an
+// "install.completed" event with the installed version bound as
+// entity and a run_id (never a sha — upgrade produces no entity
+// commit). upgrade has no --actor flag, so actor is bound empty.
 func TestUpgradeDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell shim assumes a POSIX-y env")
@@ -56,12 +57,14 @@ func TestUpgradeDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		Msg    string `json:"msg"`
 		Verb   string `json:"verb"`
 		Entity string `json:"entity"`
+		RunID  string `json:"run_id"`
+		SHA    string `json:"sha"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
 	}
-	if rec.Msg != "verb.completed" {
-		t.Errorf("msg = %q, want %q", rec.Msg, "verb.completed")
+	if rec.Msg != "install.completed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "install.completed")
 	}
 	if rec.Verb != "upgrade" {
 		t.Errorf("verb = %q, want %q", rec.Verb, "upgrade")
@@ -69,11 +72,19 @@ func TestUpgradeDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	if rec.Entity != "v0.1.0" {
 		t.Errorf("entity = %q, want %q", rec.Entity, "v0.1.0")
 	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
+	}
+	if rec.SHA != "" {
+		t.Errorf("sha = %q, want empty (upgrade produces no entity commit)", rec.SHA)
+	}
 }
 
-// TestUpgradeDiag_FailedInstallEmitsNoEvent: a failed `go install`
-// must not emit "verb.completed" even with AIWF_LOG=info set.
-func TestUpgradeDiag_FailedInstallEmitsNoEvent(t *testing.T) {
+// TestUpgradeDiag_FailedInstallEmitsFailedEvent pins M-0238/AC-6: a
+// failed `go install` emits "install.failed" (not "install.completed"
+// — that event never fires, since install never actually succeeded)
+// carrying the exit code's error class.
+func TestUpgradeDiag_FailedInstallEmitsFailedEvent(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("PATH", "")
 	t.Setenv("AIWF_GO_BIN", "")
@@ -86,16 +97,36 @@ func TestUpgradeDiag_FailedInstallEmitsNoEvent(t *testing.T) {
 	t.Setenv("AIWF_LOG_FILE", diagLogPath)
 
 	rc, _, _ := testutil.CaptureRun(t, func() int {
-		return cli.Execute([]string{"upgrade", "--version", "v0.1.0"})
+		return cli.Execute([]string{"upgrade", "--version", "v0.1.0", "--root", tmp})
 	})
-	if rc == cliutil.ExitOK {
-		t.Fatalf("expected non-zero exit when go binary is missing")
+	if rc != cliutil.ExitInternal {
+		t.Fatalf("rc = %d, want ExitInternal (%d) when the go binary is missing", rc, cliutil.ExitInternal)
 	}
 
-	if raw, err := os.ReadFile(diagLogPath); err == nil {
-		t.Errorf("diagnostic log %q written despite a failed install", raw)
-	} else if !os.IsNotExist(err) {
-		t.Errorf("reading diagnostic log: %v", err)
+	raw, err := os.ReadFile(diagLogPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		Msg        string `json:"msg"`
+		Verb       string `json:"verb"`
+		ExitCode   int    `json:"exit_code"`
+		ErrorClass string `json:"error_class"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.Msg != "install.failed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "install.failed")
+	}
+	if rec.Verb != "upgrade" {
+		t.Errorf("verb = %q, want %q", rec.Verb, "upgrade")
+	}
+	if rec.ExitCode != cliutil.ExitInternal {
+		t.Errorf("exit_code = %d, want %d", rec.ExitCode, cliutil.ExitInternal)
+	}
+	if rec.ErrorClass != "internal" {
+		t.Errorf("error_class = %q, want %q", rec.ErrorClass, "internal")
 	}
 }
 

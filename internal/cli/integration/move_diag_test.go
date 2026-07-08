@@ -43,6 +43,8 @@ func TestMoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 		Verb   string `json:"verb"`
 		Entity string `json:"entity"`
 		Actor  string `json:"actor"`
+		RunID  string `json:"run_id"`
+		SHA    string `json:"sha"`
 	}
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
@@ -59,12 +61,19 @@ func TestMoveDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	if rec.Actor != "human/test" {
 		t.Errorf("actor = %q, want %q", rec.Actor, "human/test")
 	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
+	}
+	if rec.SHA == "" {
+		t.Error("sha missing or empty from the diagnostic record (move produces a commit)")
+	}
 }
 
-// TestMoveDiag_FailedRunEmitsNoEvent: a move that never reaches a
-// successful outcome (missing --epic, caught before any tree work)
-// must not emit "verb.completed" even with AIWF_LOG=info set.
-func TestMoveDiag_FailedRunEmitsNoEvent(t *testing.T) {
+// TestMoveDiag_FailedRunEmitsFailedEvent pins M-0238/AC-6: a move that
+// never reaches a successful outcome (target epic doesn't exist)
+// emits "verb.failed" — never "verb.completed" — carrying the exit
+// code's error class.
+func TestMoveDiag_FailedRunEmitsFailedEvent(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Source epic", "--actor", "human/test", "--root", root)
@@ -78,14 +87,34 @@ func TestMoveDiag_FailedRunEmitsNoEvent(t *testing.T) {
 	rc, _, _ := testutil.CaptureRun(t, func() int {
 		return cli.Execute([]string{"move", "M-0001", "--epic", "E-9999", "--actor", "human/test", "--root", root})
 	})
-	if rc == cliutil.ExitOK {
-		t.Fatalf("aiwf move to a nonexistent epic: rc=ExitOK, want a failure code")
+	if rc != cliutil.ExitUsage {
+		t.Fatalf("aiwf move to a nonexistent epic: rc=%d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
 
-	if raw, err := os.ReadFile(logPath); err == nil {
-		t.Errorf("diagnostic log %q written despite a failed run", raw)
-	} else if !os.IsNotExist(err) {
-		t.Errorf("reading diagnostic log: %v", err)
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		Msg        string `json:"msg"`
+		Verb       string `json:"verb"`
+		ExitCode   int    `json:"exit_code"`
+		ErrorClass string `json:"error_class"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.Msg != "verb.failed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "verb.failed")
+	}
+	if rec.Verb != "move" {
+		t.Errorf("verb = %q, want %q", rec.Verb, "move")
+	}
+	if rec.ExitCode != cliutil.ExitUsage {
+		t.Errorf("exit_code = %d, want %d", rec.ExitCode, cliutil.ExitUsage)
+	}
+	if rec.ErrorClass != "usage" {
+		t.Errorf("error_class = %q, want %q", rec.ErrorClass, "usage")
 	}
 }
 

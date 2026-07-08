@@ -108,5 +108,6 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		TargetID:  id,
 	}
 	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
+	return code
 }

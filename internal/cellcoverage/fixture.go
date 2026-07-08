@@ -149,7 +149,7 @@ func (f *CellFixture) Must(res *verb.Result, err error) *verb.Result {
 	if res.Plan == nil {
 		f.t.Fatal("no plan produced")
 	}
-	if applyErr := verb.Apply(f.ctx, f.Root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(f.ctx, f.Root, res.Plan); applyErr != nil {
 		f.t.Fatalf("apply: %v", applyErr)
 	}
 	return res

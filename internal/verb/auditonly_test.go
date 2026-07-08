@@ -30,7 +30,7 @@ func TestPromoteAuditOnly_HappyPath(t *testing.T) {
 	if len(res.Plan.Ops) != 0 {
 		t.Errorf("Ops len = %d, want 0", len(res.Plan.Ops))
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -134,7 +134,7 @@ func TestCancelAuditOnly_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CancelAuditOnly: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -193,7 +193,7 @@ func TestCancelAuditOnly_AcceptsBothContractTerminals(t *testing.T) {
 			if err != nil {
 				t.Fatalf("CancelAuditOnly at %s: %v", tc.terminalStatus, err)
 			}
-			if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+			if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 				t.Fatalf("apply: %v", applyErr)
 			}
 			tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -221,7 +221,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PromoteAuditOnly composite: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -250,7 +250,7 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PromoteACPhaseAuditOnly: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 }

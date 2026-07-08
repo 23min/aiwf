@@ -21,7 +21,7 @@ import (
 func applyImport(t *testing.T, r *runner, plans []*verb.Plan) {
 	t.Helper()
 	for i, p := range plans {
-		if err := verb.Apply(r.ctx, r.root, p); err != nil {
+		if _, err := verb.Apply(r.ctx, r.root, p); err != nil {
 			t.Fatalf("apply plan %d: %v", i, err)
 		}
 	}

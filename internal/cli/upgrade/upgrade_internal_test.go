@@ -13,18 +13,18 @@ import (
 	"github.com/23min/aiwf/internal/version"
 )
 
-// TestRun_ReexecFails_StillEmittedVerbCompleted pins M-0238/AC-1's
+// TestRun_ReexecFails_StillEmittedInstallCompleted pins M-0238/AC-1's
 // upgrade-specific classification decision (documented in Run's own
-// comment above the diagnostic emission): "verb.completed" fires the
-// moment install succeeds, not on the final process exit code. This
-// is deliberate, not an oversight — a successful reexec replaces the
-// process via syscall.Exec, so there is no Go code path after a
+// comment above the diagnostic emission): "install.completed" fires
+// the moment install succeeds, not on the final process exit code.
+// This is deliberate, not an oversight — a successful reexec replaces
+// the process via syscall.Exec, so there is no Go code path after a
 // successful reexec that could ever emit a diagnostic event; gating
 // on the final exit code would mean the event almost never fires in a
 // real production upgrade. Swaps the unexported reexecUpdate var
 // (package-internal access), so this test is serial: t.Parallel would
 // race any other test that also swaps it.
-func TestRun_ReexecFails_StillEmittedVerbCompleted(t *testing.T) {
+func TestRun_ReexecFails_StillEmittedInstallCompleted(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell shim assumes a POSIX-y env")
 	}
@@ -80,8 +80,8 @@ esac
 	if err := json.Unmarshal(raw, &rec); err != nil {
 		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
 	}
-	if rec.Msg != "verb.completed" || rec.Verb != "upgrade" {
-		t.Errorf("diagnostic record = %+v, want verb.completed/upgrade despite the reexec failure", rec)
+	if rec.Msg != "install.completed" || rec.Verb != "upgrade" {
+		t.Errorf("diagnostic record = %+v, want install.completed/upgrade despite the reexec failure", rec)
 	}
 }
 

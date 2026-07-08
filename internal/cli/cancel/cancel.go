@@ -6,6 +6,7 @@ package cancel
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -59,7 +60,7 @@ func NewCmd() *cobra.Command {
 // the caller (RunE in NewCmd) wraps the int in cliutil.WrapExitCode
 // so Cobra's RunE channel preserves the exit code through the run()
 // dispatcher.
-func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) int {
+func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) (code int) {
 	if force && auditOnly {
 		cliutil.Errorln("aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
@@ -84,13 +85,27 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// Minted once here rather than at the tail, per M-0238/AC-5: rootDir
+	// and actorStr are both known now, so the diagnostic logger can bind
+	// once and stay in scope for the whole invocation (a prerequisite
+	// for M-0239's sub-function logging). The Enabled gate skips
+	// WithVerb's scrub work entirely on a disabled run.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		diagLog = logger.WithVerb(diagLog, "cancel", id, actorStr, logger.NewRunID())
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel")
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf cancel: loading tree: %v\n", err)
@@ -103,18 +118,12 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		TargetID:          id,
 		IsTerminalPromote: !entity.IsCompositeID(id),
 	}
-	var code int
 	if auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		code = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	} else {
 		result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-		code = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
-	}
-	if code == cliutil.ExitOK {
-		diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-		defer func() { _ = closeDiagLog() }()
-		logger.WithVerb(diagLog, "cancel", id, actorStr).Info("verb.completed")
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	}
 	return code
 }

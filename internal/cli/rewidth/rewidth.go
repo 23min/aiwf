@@ -168,7 +168,7 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 		})
 	}
 
-	if applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
+	if _, applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
 		cliutil.Errorf("aiwf rewidth: %v\n", applyErr)
 		return cliutil.ExitInternal
 	}

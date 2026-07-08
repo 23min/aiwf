@@ -50,7 +50,7 @@ func TestAuthorize_Open_HappyPath(t *testing.T) {
 		t.Errorf("Body = %q, want reason text", res.Plan.Body)
 	}
 
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -117,7 +117,7 @@ func TestAuthorize_Open_WithBranch_EmitsTrailer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -183,7 +183,7 @@ func TestAuthorize_Open_NonAITarget_BranchMissing_Accepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize refused non-AI target with missing branch (M-0103 preflight leaked outside ai/* gate): %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -226,7 +226,7 @@ func TestAuthorize_Open_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize refused under --force --reason override: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -435,7 +435,7 @@ func TestAuthorize_Open_AITarget_ImplicitFromCurrent_AcceptsAndEmitsTrailer(t *t
 	if err != nil {
 		t.Fatalf("Authorize refused implicit ritual current-branch: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -470,7 +470,7 @@ func TestAuthorize_Open_AITarget_ExplicitBranchExists_AcceptsAndEmitsTrailer(t *
 	if err != nil {
 		t.Fatalf("Authorize refused explicit existing branch: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -522,7 +522,7 @@ func TestAuthorize_Open_AITarget_MainPlusRitualFutureBranch_Accepts(t *testing.T
 	if err != nil {
 		t.Fatalf("Authorize refused main+ritual-future-branch: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -569,7 +569,7 @@ func TestAuthorize_Open_AITarget_RitualCurrentPlusRitualFutureBranch_Accepts(t *
 	if err != nil {
 		t.Fatalf("Authorize refused ritual-current+ritual-future-branch: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -889,7 +889,7 @@ func TestAuthorize_Open_ForceOverridesTerminal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -1144,7 +1144,7 @@ func TestAuthorize_Pause_HappyPath(t *testing.T) {
 	if got, want := res.Plan.Subject, "aiwf authorize E-0001 --pause"; got != want {
 		t.Errorf("Subject = %q, want %q", got, want)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -1200,7 +1200,7 @@ func TestAuthorize_Resume_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 	tr, err := gitops.HeadTrailers(r.ctx, r.root)
@@ -1299,7 +1299,7 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := verb.Apply(r.ctx, r.root, open.Plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, open.Plan); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1325,7 +1325,7 @@ func TestAuthorize_Open_PauseResumeCycleE2E(t *testing.T) {
 		if err != nil {
 			t.Fatalf("step %s: %v", step.reason, err)
 		}
-		if err := verb.Apply(r.ctx, r.root, res.Plan); err != nil {
+		if _, err := verb.Apply(r.ctx, r.root, res.Plan); err != nil {
 			t.Fatalf("step %s apply: %v", step.reason, err)
 		}
 		s.State = step.next

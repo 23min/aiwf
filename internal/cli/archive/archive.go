@@ -194,7 +194,7 @@ func Run(actor, principal, root, kind string, apply bool) int {
 		})
 	}
 
-	if applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
+	if _, applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
 		cliutil.Errorf("aiwf archive: %v\n", applyErr)
 		return cliutil.ExitInternal
 	}

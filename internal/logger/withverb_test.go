@@ -8,14 +8,19 @@ import (
 	"testing"
 )
 
-// loggedFields binds verb/entity/actor via WithVerb, emits one record,
-// and decodes the resulting JSON line so tests can assert on the
-// actual bound field values a real log line would carry.
+// loggedFields binds verb/entity/actor/run_id via WithVerb, emits one
+// record, and decodes the resulting JSON line so tests can assert on
+// the actual bound field values a real log line would carry. runID is
+// fixed ("run-test") rather than logger.NewRunID() throughout this
+// file: these tests pin WithVerb's own binding behavior, not id
+// generation (that's runid_test.go's job).
+const testRunID = "run-test"
+
 func loggedFields(t *testing.T, verb, entity, actor string) map[string]any {
 	t.Helper()
 	var buf bytes.Buffer
 	base := New(Config{Enabled: true, Level: slog.LevelInfo, Format: "json"}, &buf)
-	bound := WithVerb(base, verb, entity, actor)
+	bound := WithVerb(base, verb, entity, actor, testRunID)
 	bound.Info("event")
 
 	var decoded map[string]any
@@ -30,6 +35,14 @@ func TestWithVerb_NoLeak_PassesThroughUnchanged(t *testing.T) {
 	fields := loggedFields(t, "promote", "M-0090", "human/peter")
 	if fields["verb"] != "promote" || fields["entity"] != "M-0090" || fields["actor"] != "human/peter" {
 		t.Fatalf("fields = %+v, want verb/entity/actor to pass through unchanged", fields)
+	}
+}
+
+func TestWithVerb_BindsRunID(t *testing.T) {
+	t.Parallel()
+	fields := loggedFields(t, "promote", "M-0090", "human/peter")
+	if fields["run_id"] != testRunID {
+		t.Fatalf("fields[run_id] = %v, want %q", fields["run_id"], testRunID)
 	}
 }
 

@@ -189,7 +189,8 @@ func Run(args []string, actor, principal, root, reason,
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		return code
 	}
 	if strings.TrimSpace(tests) != "" {
 		cliutil.Errorln("aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
@@ -203,8 +204,10 @@ func Run(args []string, actor, principal, root, reason,
 	}
 	if auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		return code
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+	return code
 }

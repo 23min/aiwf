@@ -115,5 +115,6 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	return code
 }

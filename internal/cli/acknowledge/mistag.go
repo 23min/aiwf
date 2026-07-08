@@ -92,5 +92,6 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 		return cliutil.ExitInternal
 	}
 	result, vErr := verb.AcknowledgeMistag(ctx, tr, id, actorStr, reason)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
+	return code
 }

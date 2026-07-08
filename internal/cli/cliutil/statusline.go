@@ -2,7 +2,9 @@ package cliutil
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -58,7 +60,7 @@ func RunStatuslineScaffold(opts StatuslineOpts) int {
 //
 // Returns one of the Exit* codes.
 func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) (code int) {
-	defer emitVerbCompletedIfOK(&code, "statusline-scaffold", opts.RootDir, opts.Scope)
+	defer emitVerbOutcome(&code, "statusline-scaffold", opts.RootDir, opts.Scope)
 
 	if skills.StatuslineWriteNeedsConfirmation(binary) && !opts.AllowUntagged {
 		confirmed := !opts.FormatJSON && render.IsTTY(os.Stdin) &&
@@ -133,22 +135,24 @@ func RunStatuslineScaffoldForVersion(opts StatuslineOpts, binary version.Info) (
 	return ExitOK
 }
 
-// emitVerbCompletedIfOK fires a "verb.completed" diagnostic event
-// through the WithVerb-bound logger when *code is ExitOK, deferred so
-// a many-return-point function emits exactly once regardless of which
-// branch returned. actor is always empty: none of statusline's flows
-// have an --actor flag. entity is the statusline scope ("user" or
+// emitVerbOutcome fires "verb.completed" or "verb.failed" (M-0238/AC-5,
+// AC-6) through the WithVerb-bound logger once *code is final, deferred
+// so a many-return-point function emits exactly once regardless of
+// which branch returned. actor is always empty: none of statusline's
+// flows have an --actor flag. entity is the statusline scope ("user" or
 // "project", per skills.StatuslineScope) — a small closed-set value
 // that identifies which scope's statusline changed, more useful for
 // correlation than the root directory path would be (and, unlike a
-// path, never needs WithVerb's home-directory scrub).
-func emitVerbCompletedIfOK(code *int, verbName, rootDir, entity string) {
-	if *code != ExitOK {
-		return
-	}
+// path, never needs WithVerb's home-directory scrub). Neither flow
+// produces an entity commit, so sha is always "".
+func emitVerbOutcome(code *int, verbName, rootDir, entity string) {
 	diagLog, closeDiagLog := ResolveLogger(rootDir, os.Getenv)
 	defer func() { _ = closeDiagLog() }()
-	logger.WithVerb(diagLog, verbName, entity, "").Info("verb.completed")
+	ctx := context.Background()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		diagLog = logger.WithVerb(diagLog, verbName, entity, "", logger.NewRunID())
+	}
+	EmitVerbOutcome(diagLog, "verb", *code, "")
 }
 
 // StatuslineRemoveOpts carries the flags for `aiwf update --remove`.
@@ -173,7 +177,7 @@ type StatuslineRemoveOpts struct {
 //
 // Returns one of the Exit* codes.
 func RunStatuslineRemove(opts StatuslineRemoveOpts) (code int) {
-	defer emitVerbCompletedIfOK(&code, "statusline-remove", opts.RootDir, opts.Scope)
+	defer emitVerbOutcome(&code, "statusline-remove", opts.RootDir, opts.Scope)
 
 	sc := skills.StatuslineScope(opts.Scope)
 

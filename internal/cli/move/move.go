@@ -4,6 +4,7 @@ package move
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -53,7 +54,7 @@ func NewCmd() *cobra.Command {
 }
 
 // Run executes `aiwf move`. Returns one of the cliutil.Exit* codes.
-func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int {
+func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		cliutil.Errorf("aiwf move: %v\n", err)
@@ -65,13 +66,30 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// Minted once here rather than at the tail, per M-0238/AC-5 (see
+	// cancel.Run's identical comment). entity is id — the milestone
+	// being moved, not epic (the destination) — deliberately: pctx's
+	// TargetID below is epic because that's whose authorization scope
+	// governs the move, a different question ("who may do this") from
+	// what a diagnostic entity field answers ("what did this verb act
+	// on"). A human grepping this log for a milestone id should find
+	// the moves that touched it.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		diagLog = logger.WithVerb(diagLog, "move", id, actorStr, logger.NewRunID())
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move")
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf move: loading tree: %v\n", err)
@@ -92,11 +110,6 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 		TargetID:   epic,
 		MoveSource: moveSource,
 	}
-	code := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
-	if code == cliutil.ExitOK {
-		diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-		defer func() { _ = closeDiagLog() }()
-		logger.WithVerb(diagLog, "move", id, actorStr).Info("verb.completed")
-	}
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
 	return code
 }

@@ -86,5 +86,6 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 		Fixtures:  fixtures,
 		Force:     force,
 	})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	return code
 }

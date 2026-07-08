@@ -62,5 +62,6 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 	}
 
 	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
+	return code
 }

@@ -286,5 +286,6 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	}
 
 	result, vErr := verb.Authorize(ctx, tr, id, actorStr, opts)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
+	return code
 }

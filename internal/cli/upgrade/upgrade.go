@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +69,7 @@ func NewCmd() *cobra.Command {
 }
 
 // Run executes `aiwf upgrade`. Returns one of the cliutil.Exit* codes.
-func Run(root, target string, checkOnly bool) int {
+func Run(root, target string, checkOnly bool) (code int) {
 	pkg := version.PackagePath()
 	if pkg == "" {
 		cliutil.Errorln("aiwf upgrade: package path unavailable from build info — run `go install <pkg>@latest` manually")
@@ -116,6 +117,25 @@ func Run(root, target string, checkOnly bool) int {
 		return cliutil.ExitUsage
 	}
 
+	// Minted once here rather than at the tail, per M-0238/AC-5 (see
+	// cancel.Run's identical comment) — upgrade has no --actor flag, so
+	// actor is bound empty. installSucceeded guards the deferred
+	// failure emit below: once install.completed has fired, a later
+	// reexec failure must not also emit install.failed for the same
+	// invocation (see the emission below for why the two are
+	// deliberately decoupled from Run's own final exit code).
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(context.Background(), slog.LevelInfo) {
+		diagLog = logger.WithVerb(diagLog, "upgrade", target, "", logger.NewRunID())
+	}
+	var installSucceeded bool
+	defer func() {
+		if !installSucceeded && code != cliutil.ExitOK {
+			cliutil.EmitVerbOutcome(diagLog, "install", code, "")
+		}
+	}()
+
 	installArg := pkg + "@" + target
 	cliutil.Printf("\nrunning:  go install %s\n", installArg)
 
@@ -145,12 +165,12 @@ func Run(root, target string, checkOnly bool) int {
 	}
 
 	// Install genuinely succeeded (a binary exists on disk); this is
-	// upgrade's "verb.completed" moment. Whether the reexec below into
-	// `aiwf update` also succeeds is a separate, subsequent concern.
-	// upgrade has no --actor flag, so actor is bound empty.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	logger.WithVerb(diagLog, "upgrade", target, "").Info("verb.completed")
-	_ = closeDiagLog()
+	// upgrade's "install.completed" moment. Whether the reexec below
+	// into `aiwf update` also succeeds is a separate, subsequent
+	// concern — installSucceeded stops the deferred failure emit above
+	// from also firing install.failed if reexec fails later.
+	installSucceeded = true
+	cliutil.EmitVerbOutcome(diagLog, "install", cliutil.ExitOK, "")
 
 	// G-0134: ad-hoc sign on Darwin to dodge the Sonoma 14.8.x
 	// syspolicyd crash on unsigned Mach-O binaries. Warn-and-continue

@@ -75,5 +75,6 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
+	return code
 }

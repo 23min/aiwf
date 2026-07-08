@@ -74,5 +74,6 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	return code
 }

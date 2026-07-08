@@ -90,5 +90,6 @@ func Run(id, newTitle, actor, principal, root, reason string, out cliutil.Output
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx, out)
+	return code
 }

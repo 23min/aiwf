@@ -110,5 +110,6 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
+	return code
 }
