@@ -34,6 +34,12 @@ type OutputFormat struct {
 	// every emit method omits metadata.correlation_id entirely in
 	// that case rather than emitting an empty string.
 	CorrelationID string
+
+	// Trace is --trace (M-0239/AC-3): forces a debug-level diagnostic
+	// logger on for this invocation alone, regardless of AIWF_LOG, so
+	// FinishVerb can emit a phase.apply timing event without the
+	// operator needing separate env configuration.
+	Trace bool
 }
 
 // JSON reports whether a JSON envelope was requested (--format=json).
@@ -73,6 +79,7 @@ func AddFormatFlags(cmd *cobra.Command) *OutputFormat {
 	out := &OutputFormat{Format: "text"}
 	cmd.Flags().StringVar(&out.Format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&out.Pretty, "pretty", false, "indent JSON output (only with --format=json)")
+	cmd.Flags().BoolVar(&out.Trace, "trace", false, "emit per-phase timing at debug level through the diagnostic logger, enabling it for this invocation even without AIWF_LOG set")
 	RegisterFormatCompletion(cmd)
 	return out
 }

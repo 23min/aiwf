@@ -2,6 +2,8 @@ package cliutil
 
 import (
 	"context"
+	"os"
+	"time"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
@@ -52,7 +54,14 @@ func FinishVerb(ctx context.Context, root, label string, result *verb.Result, er
 		out.emitErrorEnvelope(label, "", "validation passed but no plan produced")
 		return ExitInternal, ""
 	}
+	var traceLog func()
+	if out.Trace {
+		traceLog = startTrace(root)
+	}
 	sha, applyErr := verb.Apply(ctx, root, result.Plan)
+	if traceLog != nil {
+		traceLog()
+	}
 	if applyErr != nil {
 		out.emitErrorEnvelope(label, "", applyErr.Error())
 		return ExitInternal, ""
@@ -64,6 +73,21 @@ func FinishVerb(ctx context.Context, root, label string, result *verb.Result, er
 	// caller reusing that map elsewhere never sees a surprise key.
 	out.emitSuccess(result.Plan.Subject, result.Findings, withCommitSHA(result.Metadata, sha))
 	return ExitOK, sha
+}
+
+// startTrace resolves a debug-forced logger (M-0239/AC-3's --trace)
+// and starts a timer. The returned func emits "phase.apply" at debug
+// level with the elapsed milliseconds and closes the logger; call it
+// exactly once, immediately after the timed operation returns —
+// FinishVerb calls it right after verb.Apply, so the timing covers
+// only the git-touching apply phase, not validation/planning.
+func startTrace(root string) func() {
+	log, closeLog := ResolveTraceLogger(root, os.Getenv)
+	start := time.Now()
+	return func() {
+		log.Debug("phase.apply", "elapsed_ms", time.Since(start).Milliseconds())
+		_ = closeLog()
+	}
 }
 
 // withCommitSHA returns a copy of md with "commit_sha" set to sha,
