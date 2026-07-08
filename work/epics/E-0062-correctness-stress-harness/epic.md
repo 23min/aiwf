@@ -1,7 +1,7 @@
 ---
 id: E-0062
 title: Correctness stress harness
-status: proposed
+status: active
 ---
 
 # E-0062 — Correctness stress harness
