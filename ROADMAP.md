@@ -838,7 +838,7 @@ answer instead of whatever the operator happened to capture from stderr.
 | M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | done |
 | M-0239 | Correlation id wiring; ratify ADR-0017 | done |
 
-## E-0062 — Correctness stress harness (proposed)
+## E-0062 — Correctness stress harness (active)
 
 ### Goal
 
@@ -849,7 +849,7 @@ finds into a reproducible gap.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0240 | Harness skeleton: driver, scenario interface, streaming report | draft |
+| M-0240 | Harness skeleton: driver, scenario interface, streaming report | in_progress |
 | M-0241 | Property sequences and multi-worktree contention scenarios | draft |
 | M-0242 | Fault injection via external observation | draft |
 | M-0243 | Named scenarios from G-0212 and G-0269 | draft |
