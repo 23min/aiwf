@@ -60,7 +60,13 @@ func Archive(ctx context.Context, root, actor, kindFilter string) (*Result, erro
 		{Key: gitops.TrailerVerb, Value: "archive"},
 		{Key: gitops.TrailerActor, Value: actor},
 	}
-	return &Result{Plan: plan}, nil
+	sweptCount := 0
+	for _, op := range plan.Ops {
+		if op.Type == OpMove {
+			sweptCount++
+		}
+	}
+	return &Result{Plan: plan, Metadata: map[string]any{"swept_count": sweptCount}}, nil
 }
 
 // archiveMove is one (from, to) plus the kind it belongs to. The kind

@@ -112,7 +112,13 @@ func Rewidth(ctx context.Context, root, actor string) (*Result, error) {
 		return findings(bpidFindings), nil
 	}
 
-	return &Result{Plan: plan}, nil
+	renamedCount := 0
+	for _, op := range plan.Ops {
+		if op.Type == OpMove {
+			renamedCount++
+		}
+	}
+	return &Result{Plan: plan, Metadata: map[string]any{"renamed_count": renamedCount}}, nil
 }
 
 // projectRewidthTree returns a copy of tr whose entity IDs and Paths

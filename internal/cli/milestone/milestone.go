@@ -19,7 +19,7 @@ import (
 
 // NewCmd builds the `aiwf milestone` parent command. One child today
 // (depends-on). The parent itself is non-Runnable.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "milestone",
 		Short:         "Milestone-scoped verbs",
@@ -27,7 +27,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newDependsOnCmd())
+	cmd.AddCommand(newDependsOnCmd(correlationID))
 	return cmd
 }
 
@@ -36,7 +36,7 @@ func NewCmd() *cobra.Command {
 // G-072 (the create-time half is the --depends-on flag on
 // `aiwf add milestone`). Replace-not-append semantics; --on and
 // --clear are mutually exclusive.
-func newDependsOnCmd() *cobra.Command {
+func newDependsOnCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -68,6 +68,7 @@ func newDependsOnCmd() *cobra.Command {
 	cmd.Flags().StringVar(&on, "on", "", "comma-separated milestone ids the target depends on; replace-not-append semantics")
 	cmd.Flags().BoolVar(&clearList, "clear", false, "empty the depends_on list (mutually exclusive with --on)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	_ = cmd.RegisterFlagCompletionFunc("on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd

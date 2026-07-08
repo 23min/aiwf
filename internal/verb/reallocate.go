@@ -229,6 +229,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 			},
 			Ops: ops,
 		},
+		Metadata: map[string]any{"old_id": canonOld, "new_id": canonNew},
 	}, nil
 }
 

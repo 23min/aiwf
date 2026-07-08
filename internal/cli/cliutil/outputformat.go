@@ -39,16 +39,28 @@ type OutputFormat struct {
 // JSON reports whether a JSON envelope was requested (--format=json).
 func (o OutputFormat) JSON() bool { return o.Format == "json" }
 
-// metadata builds the envelope's metadata map for this invocation:
+// Metadata builds the envelope's metadata map for this invocation:
+// extra's keys (a verb's own per-verb facts, M-0239/AC-2) plus
 // correlation_id when CorrelationID is set. Returns nil (never an
 // empty non-nil map) when there is nothing to carry, so
 // render.Envelope's Metadata field's omitempty keeps behaving exactly
-// as it did before this field existed.
-func (o OutputFormat) metadata() map[string]any {
-	if o.CorrelationID == "" {
+// as it did before this field existed. Exported so a verb whose
+// output doesn't route through emitSuccess/emitFindings/
+// emitErrorEnvelope (e.g. worktree add, which builds its own
+// render.Envelope directly) can still merge in the same
+// correlation_id — this is the single source of truth for that merge.
+func (o OutputFormat) Metadata(extra map[string]any) map[string]any {
+	if o.CorrelationID == "" && len(extra) == 0 {
 		return nil
 	}
-	return map[string]any{"correlation_id": o.CorrelationID}
+	md := make(map[string]any, len(extra)+1)
+	for k, v := range extra {
+		md[k] = v
+	}
+	if o.CorrelationID != "" {
+		md["correlation_id"] = o.CorrelationID
+	}
+	return md
 }
 
 // AddFormatFlags registers --format and --pretty on a mutating verb's
@@ -81,7 +93,7 @@ func (o OutputFormat) emitErrorEnvelope(label, code, message string) {
 		Version:  version.Current().Version,
 		Status:   "error",
 		Error:    &render.EnvelopeError{Code: code, Message: message},
-		Metadata: o.metadata(),
+		Metadata: o.Metadata(nil),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -99,7 +111,7 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 		Version:  version.Current().Version,
 		Status:   render.StatusFor(findings),
 		Findings: findings,
-		Metadata: o.metadata(),
+		Metadata: o.Metadata(nil),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
@@ -107,8 +119,10 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 // emitSuccess reports a successful verb outcome. In text mode it surfaces
 // any warning-level findings to stderr (unchanged) and prints the subject
 // to stdout. In JSON mode it writes an ok/findings envelope with
-// result:{subject} to stdout.
-func (o OutputFormat) emitSuccess(subject string, findings []check.Finding) {
+// result:{subject} to stdout. metadata carries the verb's own per-verb
+// facts (M-0239/AC-2, e.g. entity_id/from/to, commit_sha) — nil for a
+// verb that reports nothing beyond AC-1's correlation_id.
+func (o OutputFormat) emitSuccess(subject string, findings []check.Finding, metadata map[string]any) {
 	if !o.JSON() {
 		if len(findings) > 0 {
 			_ = render.Text(os.Stderr, findings)
@@ -122,7 +136,7 @@ func (o OutputFormat) emitSuccess(subject string, findings []check.Finding) {
 		Status:   render.StatusFor(findings),
 		Findings: findings,
 		Result:   map[string]any{"subject": subject},
-		Metadata: o.metadata(),
+		Metadata: o.Metadata(metadata),
 	}
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }

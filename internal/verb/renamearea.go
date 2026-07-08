@@ -124,11 +124,13 @@ func RenameArea(
 	}
 	trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerActor, Value: actor})
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf rename-area %s -> %s", oldName, newName),
 		Trailers: trailers,
 		Ops:      ops,
-	}), nil
+	})
+	result.Metadata = map[string]any{"old_area": oldName, "new_area": newName, "entities_rewritten": len(rewritten)}
+	return result, nil
 }
 
 // declaredList renders the declared member set for an operator-facing

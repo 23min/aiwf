@@ -96,6 +96,7 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 			},
 			Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},
 		},
+		Metadata: map[string]any{"entity_id": canonID, "new_slug": cleanSlug},
 	}, nil
 }
 

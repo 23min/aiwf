@@ -480,12 +480,14 @@ func authorizeOpen(e *entity.Entity, actor string, opts AuthorizeOptions) (*Resu
 	}
 
 	subject := fmt.Sprintf("aiwf authorize %s --to %s", entity.Canonicalize(e.ID), agent)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       opts.Reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": entity.Canonicalize(e.ID), "agent": agent}
+	return result, nil
 }
 
 // authorizeTransition handles --pause and --resume: both pick the
@@ -522,12 +524,14 @@ func authorizeTransition(
 	}
 
 	subject := fmt.Sprintf("aiwf authorize %s --%s", entity.Canonicalize(e.ID), modeWord)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       r,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": entity.Canonicalize(e.ID), "action": modeWord}
+	return result, nil
 }
 
 // mostRecentScopeInState returns the most-recently-opened scope whose

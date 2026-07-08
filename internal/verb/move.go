@@ -74,7 +74,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	canonPrior := entity.Canonicalize(priorParent)
 	canonNew := entity.Canonicalize(newEpicID)
 	subject := fmt.Sprintf("aiwf move %s %s -> %s", canonID, canonPrior, canonNew)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: subject,
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "move"},
@@ -86,5 +86,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 			{Type: OpMove, Path: source, NewPath: dest},
 			{Type: OpWrite, Path: dest, Content: content},
 		},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": canonID, "from": canonPrior, "to": canonNew}
+	return result, nil
 }

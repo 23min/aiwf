@@ -45,7 +45,7 @@ func FinishVerb(ctx context.Context, root, label string, result *verb.Result, er
 		return ExitFindings, ""
 	}
 	if result.NoOp {
-		out.emitSuccess(result.NoOpMessage, nil)
+		out.emitSuccess(result.NoOpMessage, nil, result.Metadata)
 		return ExitOK, ""
 	}
 	if result.Plan == nil {
@@ -59,7 +59,27 @@ func FinishVerb(ctx context.Context, root, label string, result *verb.Result, er
 	}
 	// Warning-level findings may travel with a successful plan (e.g.,
 	// reallocate body-prose mentions); emitSuccess surfaces them but the
-	// exit code stays clean.
-	out.emitSuccess(result.Plan.Subject, result.Findings)
+	// exit code stays clean. commit_sha rides alongside the verb's own
+	// metadata (M-0239/AC-2) rather than mutating result.Metadata, so a
+	// caller reusing that map elsewhere never sees a surprise key.
+	out.emitSuccess(result.Plan.Subject, result.Findings, withCommitSHA(result.Metadata, sha))
 	return ExitOK, sha
+}
+
+// withCommitSHA returns a copy of md with "commit_sha" set to sha,
+// without mutating md. sha is always non-empty at this function's one
+// call site (FinishVerb only reaches it after a successful
+// verb.Apply), so the returned map is never empty in practice; when it
+// is (a hypothetical future caller passing both empty), Envelope's
+// Metadata field carries `omitempty`, which treats a zero-length map
+// identically to nil — no special-casing needed here.
+func withCommitSHA(md map[string]any, sha string) map[string]any {
+	out := make(map[string]any, len(md)+1)
+	for k, v := range md {
+		out[k] = v
+	}
+	if sha != "" {
+		out["commit_sha"] = sha
+	}
+	return out
 }

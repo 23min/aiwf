@@ -4,6 +4,7 @@ package rewidth
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
+	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf rewidth [--apply] [--root <path>]`.
@@ -31,13 +33,14 @@ import (
 // runs it at most once after upgrading past the kernel version that
 // declares the canonical-width policy. Idempotent re-runs are
 // no-ops.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor      string
 		principal  string
 		root       string
 		apply      bool
 		skipChecks bool
+		out        *cliutil.OutputFormat
 	)
 	cmd := &cobra.Command{
 		Use:   "rewidth [--apply]",
@@ -71,7 +74,7 @@ runs.`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(actor, principal, root, apply, skipChecks))
+			return cliutil.WrapExitCode(Run(actor, principal, root, apply, skipChecks, *out))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -79,20 +82,20 @@ runs.`,
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&apply, "apply", false, "commit the canonicalization; without this flag the verb is dry-run")
 	cmd.Flags().BoolVar(&skipChecks, "skip-checks", false, "skip the preflight aiwf check + layout-shape warnings (--apply only; dry-run is unaffected)")
+	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 
 // Run executes `aiwf rewidth`. Returns one of the cliutil.Exit* codes.
-func Run(actor, principal, root string, apply, skipChecks bool) int {
+func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
-		cliutil.Errorf("aiwf rewidth: %v\n", err)
-		return cliutil.ExitUsage
+		return failRewidth(out, err.Error(), cliutil.ExitUsage)
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
-		cliutil.Errorf("aiwf rewidth: %v\n", err)
-		return cliutil.ExitUsage
+		return failRewidth(out, err.Error(), cliutil.ExitUsage)
 	}
 
 	// Provenance coherence check (mirrors `aiwf import`'s shape — bulk
@@ -101,12 +104,10 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		cliutil.Errorf("aiwf rewidth: --principal human/<id> is required when --actor is non-human (got actor=%q)\n", actorStr)
-		return cliutil.ExitUsage
+		return failRewidth(out, fmt.Sprintf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), cliutil.ExitUsage)
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		cliutil.Errorln("aiwf rewidth: --principal is forbidden when --actor is human/ (humans act directly)")
-		return cliutil.ExitUsage
+		return failRewidth(out, "--principal is forbidden when --actor is human/ (humans act directly)", cliutil.ExitUsage)
 	}
 
 	// Dry-run is read-only; lock only when we'd write.
@@ -136,25 +137,30 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 
 	result, err := verb.Rewidth(ctx, rootDir, actorStr)
 	if err != nil { //coverage:ignore verb.Rewidth only errors on filesystem failures; tempdir-based tests can't reproduce
-		cliutil.Errorf("aiwf rewidth: %v\n", err)
-		return cliutil.ExitInternal
+		return failRewidth(out, err.Error(), cliutil.ExitInternal)
 	}
 	if result == nil { //coverage:ignore Rewidth always returns a non-nil Result on success path; defensive against future API drift
-		cliutil.Errorln("aiwf rewidth: no result returned")
-		return cliutil.ExitInternal
+		return failRewidth(out, "no result returned", cliutil.ExitInternal)
 	}
 
 	if result.NoOp {
+		if out.JSON() {
+			emitRewidthEnvelope(out, result.NoOpMessage, nil)
+			return cliutil.ExitOK
+		}
 		cliutil.Println(result.NoOpMessage)
 		return cliutil.ExitOK
 	}
 	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today; defensive against future API drift
-		cliutil.Errorln("aiwf rewidth: validation passed but no plan produced")
-		return cliutil.ExitInternal
+		return failRewidth(out, "validation passed but no plan produced", cliutil.ExitInternal)
 	}
 
 	if !apply {
 		// Dry-run: print summary, no writes.
+		if out.JSON() {
+			emitRewidthEnvelope(out, result.Plan.Subject+" (dry-run; re-run with --apply to commit)", result.Metadata)
+			return cliutil.ExitOK
+		}
 		printRewidthDryRun(result.Plan)
 		return cliutil.ExitOK
 	}
@@ -168,15 +174,70 @@ func Run(actor, principal, root string, apply, skipChecks bool) int {
 		})
 	}
 
-	if _, applyErr := verb.Apply(ctx, rootDir, result.Plan); applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
-		cliutil.Errorf("aiwf rewidth: %v\n", applyErr)
-		return cliutil.ExitInternal
+	sha, applyErr := verb.Apply(ctx, rootDir, result.Plan)
+	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
+		return failRewidth(out, applyErr.Error(), cliutil.ExitInternal)
 	}
-	if len(result.Findings) > 0 { //coverage:ignore Rewidth currently never populates Findings (validation is downstream — `aiwf check` post-commit); defensive surface for future projection-finding adoption
+	if len(result.Findings) > 0 && !out.JSON() { //coverage:ignore Rewidth currently never populates Findings (validation is downstream — `aiwf check` post-commit); defensive surface for future projection-finding adoption
 		_ = render.Text(os.Stderr, result.Findings)
+	}
+	if out.JSON() {
+		emitRewidthEnvelope(out, result.Plan.Subject, withCommitSHA(result.Metadata, sha))
+		return cliutil.ExitOK
 	}
 	cliutil.Println(result.Plan.Subject)
 	return cliutil.ExitOK
+}
+
+// failRewidth reports a terminal error in the chosen output format.
+// Mirrors the archive verb's identically-shaped helper (both verbs
+// predate cliutil.OutputFormat's shared emit* methods and build their
+// own render.Envelope directly).
+func failRewidth(out cliutil.OutputFormat, message string, code int) int {
+	if !out.JSON() {
+		cliutil.Errorf("aiwf rewidth: %s\n", message)
+		return code
+	}
+	env := render.Envelope{
+		Tool:    "aiwf",
+		Version: version.Current().Version,
+		Status:  "error",
+		Error:   &render.EnvelopeError{Message: message},
+	}
+	_ = render.JSON(os.Stdout, env, out.Pretty)
+	return code
+}
+
+// emitRewidthEnvelope writes a status:"ok" envelope carrying subject
+// and metadata (correlation_id merged in via out.Metadata). Called
+// only when out.JSON() is true.
+func emitRewidthEnvelope(out cliutil.OutputFormat, subject string, metadata map[string]any) {
+	env := render.Envelope{
+		Tool:     "aiwf",
+		Version:  version.Current().Version,
+		Status:   "ok",
+		Result:   map[string]any{"subject": subject},
+		Metadata: out.Metadata(metadata),
+	}
+	_ = render.JSON(os.Stdout, env, out.Pretty)
+}
+
+// withCommitSHA returns a copy of md with "commit_sha" set to sha,
+// without mutating md. Mirrors cliutil.withCommitSHA / archive's
+// identical helper (unexported, cross-package — each verb that builds
+// its own envelope needs its own copy). sha is always non-empty at
+// this function's one call site; render.Envelope's Metadata field
+// carries omitempty, which treats a zero-length map the same as nil,
+// so no empty/nil special-casing is needed here.
+func withCommitSHA(md map[string]any, sha string) map[string]any {
+	out := make(map[string]any, len(md)+1)
+	for k, v := range md {
+		out[k] = v
+	}
+	if sha != "" {
+		out["commit_sha"] = sha
+	}
+	return out
 }
 
 // rewidthExpectedDirs is the set of kind directories a typical

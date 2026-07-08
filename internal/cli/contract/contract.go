@@ -29,7 +29,7 @@ import (
 // children (verify, bind, unbind, recipes, recipe) plus the recipe
 // sub-tree (show, install, remove). The parent itself is non-Runnable
 // — `aiwf contract` with no subcommand prints help.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "contract",
 		Short:         "Manage contract entities and their validators",
@@ -38,10 +38,10 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 	}
 	cmd.AddCommand(newVerifyCmd())
-	cmd.AddCommand(newBindCmd())
-	cmd.AddCommand(newUnbindCmd())
+	cmd.AddCommand(newBindCmd(correlationID))
+	cmd.AddCommand(newUnbindCmd(correlationID))
 	cmd.AddCommand(newRecipesCmd())
-	cmd.AddCommand(newRecipeCmd())
+	cmd.AddCommand(newRecipeCmd(correlationID))
 	return cmd
 }
 

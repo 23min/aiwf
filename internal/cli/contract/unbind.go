@@ -11,7 +11,7 @@ import (
 )
 
 // newUnbindCmd builds `aiwf contract unbind <C-id>`.
-func newUnbindCmd() *cobra.Command {
+func newUnbindCmd(correlationID string) *cobra.Command {
 	var (
 		root  string
 		actor string
@@ -32,6 +32,7 @@ func newUnbindCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	return cmd
 }

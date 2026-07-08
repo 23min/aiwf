@@ -28,7 +28,7 @@ func findChild(parent *cobra.Command, prefix string) *cobra.Command {
 // children (verify, bind, unbind, recipes, recipe). M-0117/AC-1.
 func TestNewCmd_HasParentAndChildren(t *testing.T) {
 	t.Parallel()
-	cmd := contract.NewCmd()
+	cmd := contract.NewCmd("")
 	if cmd.Use != "contract" {
 		t.Errorf("Use = %q, want %q", cmd.Use, "contract")
 	}
@@ -44,7 +44,7 @@ func TestNewCmd_HasParentAndChildren(t *testing.T) {
 // (--format) or the CI integration (--root).
 func TestVerifyCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(contract.NewCmd(), "verify")
+	cmd := findChild(contract.NewCmd(""), "verify")
 	if cmd == nil {
 		t.Fatal("verify subcommand not found")
 	}
@@ -59,7 +59,7 @@ func TestVerifyCmd_FlagShape(t *testing.T) {
 // would silently break the canonical bind invocation shape.
 func TestBindCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(contract.NewCmd(), "bind")
+	cmd := findChild(contract.NewCmd(""), "bind")
 	if cmd == nil {
 		t.Fatal("bind subcommand not found")
 	}
@@ -73,7 +73,7 @@ func TestBindCmd_FlagShape(t *testing.T) {
 // TestUnbindCmd_FlagShape pins unbind's flags. M-0117/AC-2.
 func TestUnbindCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(contract.NewCmd(), "unbind")
+	cmd := findChild(contract.NewCmd(""), "unbind")
 	if cmd == nil {
 		t.Fatal("unbind subcommand not found")
 	}
@@ -87,7 +87,7 @@ func TestUnbindCmd_FlagShape(t *testing.T) {
 // TestRecipesCmd_FlagShape pins recipes's flags. M-0117/AC-2.
 func TestRecipesCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(contract.NewCmd(), "recipes")
+	cmd := findChild(contract.NewCmd(""), "recipes")
 	if cmd == nil {
 		t.Fatal("recipes subcommand not found")
 	}
@@ -101,7 +101,7 @@ func TestRecipesCmd_FlagShape(t *testing.T) {
 // non-Runnable. M-0117/AC-2.
 func TestRecipeCmd_HasChildren(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(contract.NewCmd(), "recipe")
+	cmd := findChild(contract.NewCmd(""), "recipe")
 	if cmd == nil {
 		t.Fatal("recipe sub-parent not found")
 	}
@@ -118,7 +118,7 @@ func TestRecipeCmd_HasChildren(t *testing.T) {
 // M-0117/AC-2.
 func TestRecipeInstallCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(findChild(contract.NewCmd(), "recipe"), "install")
+	cmd := findChild(findChild(contract.NewCmd(""), "recipe"), "install")
 	if cmd == nil {
 		t.Fatal("recipe install subcommand not found")
 	}
@@ -132,7 +132,7 @@ func TestRecipeInstallCmd_FlagShape(t *testing.T) {
 // TestRecipeRemoveCmd_FlagShape pins remove's flags. M-0117/AC-2.
 func TestRecipeRemoveCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := findChild(findChild(contract.NewCmd(), "recipe"), "remove")
+	cmd := findChild(findChild(contract.NewCmd(""), "recipe"), "remove")
 	if cmd == nil {
 		t.Fatal("recipe remove subcommand not found")
 	}

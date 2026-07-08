@@ -13,7 +13,7 @@ import (
 
 // newBindCmd builds `aiwf contract bind <C-id> --validator <name>
 // --schema <path> --fixtures <path> [--force]`.
-func newBindCmd() *cobra.Command {
+func newBindCmd(correlationID string) *cobra.Command {
 	var (
 		root      string
 		actor     string
@@ -45,6 +45,7 @@ func newBindCmd() *cobra.Command {
 	cmd.Flags().StringVar(&fixtures, "fixtures", "", "repo-relative path to the fixtures-tree root")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing binding even when values differ")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	_ = cmd.RegisterFlagCompletionFunc("validator", completeDeclaredValidators)
 	return cmd

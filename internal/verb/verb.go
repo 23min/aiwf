@@ -32,6 +32,14 @@ type Result struct {
 	Plan        *Plan
 	NoOp        bool
 	NoOpMessage string
+
+	// Metadata carries per-verb-appropriate facts about the mutation
+	// (M-0239/AC-2) — e.g. entity_id/from/to for a status transition,
+	// swept_count for an archive sweep. Surfaced under the JSON
+	// envelope's metadata key, alongside AC-1's correlation_id and
+	// (on a successful apply) commit_sha. nil for verbs that report
+	// nothing beyond those two.
+	Metadata map[string]any
 }
 
 // Plan describes the work the orchestrator must do after validation
