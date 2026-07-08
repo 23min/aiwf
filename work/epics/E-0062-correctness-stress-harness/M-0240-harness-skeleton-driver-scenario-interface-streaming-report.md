@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Each raw-report event appends via a single Write call
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: A run killed mid-scenario still composes without failing on a truncated line
       status: open
