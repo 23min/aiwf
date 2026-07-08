@@ -266,6 +266,53 @@ unconditionally before that call, so the fallback that IS reachable in
 `ResolveLogger` (via its own genuinely-disabled path) provably isn't here.
 Commit `2ad6528f`.
 
+### AC-4 — A renamed Envelope field is caught by a structural policy test
+
+`internal/policies/envelope_structural_assertion.go` AST-parses
+`internal/render/render.go`'s `Envelope` struct directly and pins its json
+tag set against a checked-in required-key list (`tool`, `version`, `status`,
+`findings`, `result`, `error`, `metadata`), modeled on
+`config_fields_discoverable.go`'s reflect-over-parsed-tag idiom. This is a
+structural check, distinct from `internal/cli/integration/envelope_schema_test.go`'s
+existing runtime check (drives every `--format=json` verb and diffs the
+marshaled output): the runtime test catches a shape drift a verb introduces
+at its own call site, while this one catches the type declaration itself
+drifting from its documented contract — reachable even before any verb's
+JSON output is ever inspected.
+
+Nine tests cover every reachable branch: a renamed field, a dropped field, an
+added (unpinned) field, the current correct shape, the missing-type-entirely
+case, a non-struct `Envelope` (a type alias), a syntactically broken source
+file (parse error), an unreadable file (permission-denied, exercised with a
+real `os.Chmod`), and untagged/`json:"-"`-tagged fields (both correctly
+ignored). One branch — the `os.IsNotExist` short-circuit — is
+`//coverage:ignore`d: every fixture in this policy's own test file writes the
+pinned file before calling the policy, so no test path can reach it, and no
+synthetic fixture that omits the file exists to reach it either.
+
+A real, if minor, gap surfaced only by deliberately re-checking rather than
+trusting the initial "done" claim: every other policy in this package has an
+entry in `policies_test.go`'s shared `TestPolicy_<Name>` + `runPolicy(...)`
+live-repo smoke-test list — the canonical place a maintainer scanning this
+file finds "what does this repo enforce." The first version omitted this
+entry and carried a redundant hand-rolled live-repo check in its own test
+file instead — functionally equivalent, but invisible to that canonical
+list. Fixed by adding the missing `TestPolicy_EnvelopeStructuralAssertion`
+entry and removing the now-duplicate test. Separately, running
+`make coverage-gate` directly (rather than assuming its two component
+gates would pass, since neither had actually been invoked before that
+point) confirmed `TestPolicy_FiringFixturePresence` passes clean for this
+policy's `Violation` construction sites, and that the gate's large
+branch-coverage-audit failure list is entirely pre-existing G-0386 debt from
+earlier milestones — grepped directly to confirm zero hits against either
+new file or the `policies_test.go` edit.
+
+`wf-vacuity` mutation probes: dropped `metadata` from the pinned required-key
+list (caught — 4 tests failed, confirming the required-set comparison is
+live, not vacuous), deleted the missing-key detection loop entirely (caught
+by the one test specifically written to exercise it, not just some other
+test coincidentally catching it). Commit `c247b625`.
+
 ## Decisions made during implementation
 
 - (none)
