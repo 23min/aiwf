@@ -125,6 +125,48 @@ cross-link to ADR-0017.
 
 ## Work log
 
+### AC-1 — An envelope's correlation_id matches the run_id in that invocation's log lines
+
+`Execute` mints one id per invocation (`logger.NewRunID()`) and threads it
+through `NewRootCmd` into every mutating verb's `NewCmd(correlationID
+string)`, landing on a new `cliutil.OutputFormat.CorrelationID` field.
+`outputformat.go`'s three envelope emitters (error, findings, success) all
+inject `metadata.correlation_id` when set, via a single `metadata()` helper
+— so the id is universal across every mutating verb's JSON envelope, not
+just the ones that also log. `cancel` and `move` (the two verbs already
+calling `logger.WithVerb`) now reuse the threaded id as `run_id` instead of
+minting their own, with a same-value fallback for a direct-`Run` caller
+that bypasses `NewCmd`/`Execute` (only reachable from a test, never from the
+CLI surface, since `Execute` always mints a real id).
+
+Two nested-subcommand constructors (`add`'s `newACCmd`, `worktree`'s
+`newAddCmd`) needed the id threaded as an explicit parameter rather than
+picking it up from an enclosing closure; a first mechanical pass missed
+`worktree`'s, caught immediately by a compile error (`undefined:
+correlationID`) rather than shipping silently.
+
+Tested end-to-end (envelope `metadata.correlation_id` present, and for
+cancel/move specifically equal to the log line's `run_id`) across 8 of the
+15 correlation-id-bearing verb constructors, spanning every structurally
+distinct code shape this plumbing touches: `DecorateAndFinish`-mediated
+(`promote`, `cancel`, `move`, `rename`, `add`), `FinishVerb`-direct
+(`authorize`, `acknowledge illegal`), and nested-subcommand threading
+(`add ac`, `acknowledge illegal`). The remaining 7 (`retitle`, `setarea`,
+`renamearea`, `reallocate`, `editbody`, `acknowledge mistag`, `worktree
+add`) are structurally identical to a verified verb and were confirmed by
+direct inspection to have no `out` reassignment between the
+`CorrelationID` write and the emit call — the one failure mode compilation
+doesn't already rule out.
+
+`wf-vacuity` mutation probes: `metadata()` forced to always return `nil`
+(caught — 3 tests failed), `cancel`'s reuse dropped in favor of always
+minting fresh (caught), `move`'s reuse dropped the same way — **not
+caught** by the test suite as it existed at that point, since no test
+cross-checked `move`'s `run_id` against its envelope's `correlation_id`.
+Fixed by adding `TestCorrelationID_MoveMatchesLogRunID`; re-ran the
+mutation, now caught. All mutations reverted via captured pre-mutation
+content, never `git stash`/`checkout`/`restore`. Commit `5eb2d1ef`.
+
 ## Decisions made during implementation
 
 - (none)
