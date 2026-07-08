@@ -59,8 +59,11 @@ named call sites, every existing bare-print site is operator-facing (flag
 validation, install-progress lines, confirmation prompts, recovery hints) —
 none qualify as a diagnostic event, so none convert. What each of these five
 verbs gains instead is a genuinely new diagnostic breadcrumb: one
-`logger.Info("verb.<name>.completed", …)` call at its outcome point, bound
-via `WithVerb`, with structured fields, never string interpolation. Every
+`logger.Info("verb.completed", …)` call at its outcome point, bound via
+`WithVerb` (which field carries the verb name — never baked into the
+event string itself, matching ADR-0017's own worked example
+`logger.Info("verb.commit", "verb", "promote", …)`: a stable, generic
+event name plus structured fields, never string interpolation). Every
 existing bare-print site — in these five files and everywhere else in the
 tree — is migrated to the `cliutil` text-output wrapper set under AC-3,
 which is the actual "operator-facing path" all such calls now share.
@@ -289,16 +292,26 @@ slices (AC-1/AC-2, AC-3, AC-4) and two design-quality passes (the new
 `cliutil` text-output convention; the config/logger layering-boundary
 split). Verdicts and how each finding was handled:
 
-- **AC-1/AC-2 — REQUEST CHANGES, both findings fixed.** B1 (`upgrade`'s
-  event fires before the reexec, untested) and B2 (`statusline` missing
-  seam tests the Work log claimed existed) — see the Decisions entry and
-  the AC-1/AC-2 Work log update above. Two informational, non-blocking
-  observations, deliberately not acted on: (T2) `statusline`'s bound
-  `entity` field carries the project root path rather than an entity id
-  — pre-existing since the original AC-1 commit, already documented in
-  `emitVerbCompletedIfOK`'s comment, and the AC-4 reviewer independently
-  flagged the same thing as out-of-scope churn; left as-is. (H1) one
-  non-reproducing flake of `TestResolveLogger_EnvBeatsYAMLLoggingBlock`
+- **AC-1/AC-2 — REQUEST CHANGES, both blocking findings fixed, plus two
+  track-for-later items revisited and also fixed** (initially judged
+  non-blocking and left as-is; reconsidered before this milestone merged
+  anywhere, since both were cheap and directly relevant to what M-0239
+  builds on next). B1 (`upgrade`'s event fires before the reexec,
+  untested) and B2 (`statusline` missing seam tests the Work log claimed
+  existed) — see the Decisions entry and the AC-1/AC-2 Work log update
+  above. T2 (`statusline`'s bound `entity` field carried the project
+  root path rather than a meaningful, correlation-worthy value — flagged
+  independently by both the AC-1/AC-2 and the design reviewer) is now
+  the `--scope` value ("user"/"project") instead, matching the other
+  four sites' pattern of a real, small value — commit `b9631b76`. T3
+  (AC-1's own body text described the event as
+  `logger.Info("verb.<name>.completed", …)`, implying a per-verb event
+  *string*, while the shipped implementation uses a constant
+  `"verb.completed"` message plus a `verb` field — matching ADR-0017's
+  own worked example, not a deviation from it) is reconciled in AC-1's
+  text above. One informational observation, deliberately left as-is:
+  (H1) one non-reproducing flake of
+  `TestResolveLogger_EnvBeatsYAMLLoggingBlock`
   under a combined `-v` run, never reproduced across ~30 follow-up runs
   including `-race -count=20` — noted here in case it recurs, not
   chased further without a second occurrence.
