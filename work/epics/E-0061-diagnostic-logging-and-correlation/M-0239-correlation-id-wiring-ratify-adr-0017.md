@@ -27,7 +27,7 @@ acs:
     - id: AC-5
       title: ADR-0017 reads accepted with CLAUDE.md matching shipped behavior
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
