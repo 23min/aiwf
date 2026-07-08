@@ -106,12 +106,17 @@ linters:
       #                       in helpers); the rule targets shipped library
       #                       code, so test files are excluded like
       #                       errcheck/gosec above (G-0264).
-      #   - cmd/aiwf/main.go: the documented os.Exit chokepoint.
-      #   - verb/apply.go:    the controlled re-panic after atomic rollback.
+      #   - cmd/aiwf/main.go:      the documented os.Exit chokepoint.
+      #   - cmd/stresstest/main.go: the stress harness's own entry point
+      #     (M-0240/AC-6, dev-only, never installed alongside cmd/aiwf) —
+      #     same "only a cmd/<tool>/main.go exits" shape as cmd/aiwf's.
+      #   - verb/apply.go:         the controlled re-panic after atomic rollback.
       - linters: [forbidigo]
         path: _test\.go
       - linters: [forbidigo]
         path: cmd/aiwf/main\.go
+      - linters: [forbidigo]
+        path: cmd/stresstest/main\.go
       - linters: [forbidigo]
         path: internal/verb/apply\.go
       # ADR-0017 AC-3: the two sanctioned raw-stdio writers. outputformat.go

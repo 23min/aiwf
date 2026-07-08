@@ -1,0 +1,168 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/23min/aiwf/internal/stresstest"
+)
+
+// repoRootRelative is the module root relative to this test binary's
+// working directory. This file always lives at cmd/stresstest/, a
+// fixed two levels below the repo root — mirrors
+// internal/stresstest/binary_test.go's own repoRootRelative constant.
+const repoRootRelative = "../.."
+
+func TestResolveOutDir_EmptyCreatesFreshTempDir(t *testing.T) {
+	t.Parallel()
+	dir, err := resolveOutDir("")
+	if err != nil {
+		t.Fatalf("resolveOutDir(\"\"): %v", err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	if !filepath.IsAbs(dir) {
+		t.Fatalf("resolveOutDir(\"\") = %q, want an absolute path", dir)
+	}
+	if info, statErr := os.Stat(dir); statErr != nil || !info.IsDir() {
+		t.Fatalf("resolveOutDir did not create a directory: stat err=%v", statErr)
+	}
+}
+
+func TestResolveOutDir_NonEmptyCreatesGivenDir(t *testing.T) {
+	t.Parallel()
+	want := filepath.Join(t.TempDir(), "run-out")
+	dir, err := resolveOutDir(want)
+	if err != nil {
+		t.Fatalf("resolveOutDir(%q): %v", want, err)
+	}
+	if dir != want {
+		t.Fatalf("resolveOutDir(%q) = %q, want %q", want, dir, want)
+	}
+	if info, statErr := os.Stat(dir); statErr != nil || !info.IsDir() {
+		t.Fatalf("resolveOutDir did not create the directory: %v", statErr)
+	}
+}
+
+func TestResolveOutDir_ErrorsWhenMkdirAllFails(t *testing.T) {
+	t.Parallel()
+	blocker := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatalf("seed blocker file: %v", err)
+	}
+	// blocker exists as a regular file; asking to create a directory
+	// under it must fail — a path component can't be both a file and
+	// a directory.
+	bad := filepath.Join(blocker, "child")
+
+	if _, err := resolveOutDir(bad); err == nil {
+		t.Fatal("expected resolveOutDir to fail when a path component is a plain file")
+	}
+}
+
+// TestResolveOutDir_ErrorsWhenMkdirTempFails cannot use t.Parallel():
+// t.Setenv panics if the test (or an ancestor) is parallel, and
+// os.MkdirTemp("", ...) resolves its base directory from $TMPDIR.
+// Pointing TMPDIR at a path with no such directory forces a
+// deterministic, portable MkdirTemp failure without touching the
+// process's working directory (which would be unsafe to mutate under
+// parallel tests).
+func TestResolveOutDir_ErrorsWhenMkdirTempFails(t *testing.T) {
+	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "does-not-exist"))
+	if _, err := resolveOutDir(""); err == nil {
+		t.Fatal("expected resolveOutDir(\"\") to fail when the OS temp dir doesn't exist")
+	}
+}
+
+func TestRunRun_Succeeds(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	var out bytes.Buffer
+
+	if err := runRun(context.Background(), repoRootRelative, outDir, 2, &out); err != nil {
+		t.Fatalf("runRun: %v", err)
+	}
+
+	reportPath := filepath.Join(outDir, "report.jsonl")
+	composed, err := stresstest.Compose(reportPath)
+	if err != nil {
+		t.Fatalf("Compose(%q): %v", reportPath, err)
+	}
+	if len(composed.Events) != 2 {
+		t.Fatalf("expected 2 logged events (one per repeat attempt), got %d", len(composed.Events))
+	}
+	if !strings.Contains(out.String(), "2/2 attempts passed") {
+		t.Fatalf("unexpected summary output: %q", out.String())
+	}
+}
+
+func TestRunRun_ErrorsWhenRepeatIsNonPositive(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	if err := runRun(context.Background(), repoRootRelative, outDir, 0, io.Discard); err == nil {
+		t.Fatal("expected runRun to reject a non-positive repeat count before doing any work")
+	}
+}
+
+func TestRunRun_ErrorsWhenOutDirResolutionFails(t *testing.T) {
+	t.Parallel()
+	blocker := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatalf("seed blocker file: %v", err)
+	}
+	bad := filepath.Join(blocker, "child")
+
+	if err := runRun(context.Background(), repoRootRelative, bad, 1, io.Discard); err == nil {
+		t.Fatal("expected runRun to propagate a resolveOutDir failure")
+	}
+}
+
+// TestRunRun_ErrorsWhenReportPathIsADirectory pins that report-opening
+// happens BEFORE the (expensive) binary build, not just that runRun
+// eventually fails somehow. Using a real, buildable moduleRoot is
+// deliberate: an invalid moduleRoot would make BuildBinary itself the
+// one that fails, which would let this test pass even if the report
+// were opened last — the failure would just come from a different
+// step. A real moduleRoot plus a timing bound closes that gap: this
+// call must fail fast, well under the real build's ~1.4s, or the
+// implementation regressed to building first.
+func TestRunRun_ErrorsWhenReportPathIsADirectory(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	// Pre-create the report path as a directory so OpenReportWriter's
+	// os.OpenFile fails with EISDIR — a fast, deterministic way to
+	// exercise runRun's report-open error branch without needing
+	// BuildBinary to run at all (report opening happens first).
+	if err := os.Mkdir(filepath.Join(outDir, "report.jsonl"), 0o755); err != nil {
+		t.Fatalf("seed report.jsonl as a directory: %v", err)
+	}
+
+	start := time.Now()
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, io.Discard)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected runRun to fail opening the raw-report file")
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Fatalf("runRun took %s to fail; expected a fast failure before any build was attempted (report must open before build)", elapsed)
+	}
+}
+
+func TestRunRun_ErrorsWhenBuildFails(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	bogusRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bogusRoot, "go.mod"), []byte("module bogus\n\ngo 1.24\n"), 0o644); err != nil {
+		t.Fatalf("write go.mod: %v", err)
+	}
+
+	if err := runRun(context.Background(), bogusRoot, outDir, 1, io.Discard); err == nil {
+		t.Fatal("expected runRun to propagate a BuildBinary failure")
+	}
+}
