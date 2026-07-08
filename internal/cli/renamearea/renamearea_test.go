@@ -47,7 +47,7 @@ func TestRun_ErrorExits(t *testing.T) {
 // Long help text (AC-5).
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := renamearea.NewCmd()
+	cmd := renamearea.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

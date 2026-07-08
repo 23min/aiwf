@@ -1,7 +1,10 @@
 ---
 id: G-0223
 title: Implement ADR-0017 opt-in slog logging; migrate bare-stderr call sites
-status: open
+status: addressed
+addressed_by:
+    - M-0237
+    - M-0238
 ---
 ## What's missing
 

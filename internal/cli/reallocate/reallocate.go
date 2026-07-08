@@ -4,8 +4,6 @@ package reallocate
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -17,7 +15,7 @@ import (
 // NewCmd builds `aiwf reallocate <id-or-path>`: renumbers an entity
 // (id rewritten) and rewrites references to it across the tree.
 // Standard resolution path for an `ids-unique` finding from `aiwf check`.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -40,6 +38,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -48,12 +47,12 @@ func NewCmd() *cobra.Command {
 func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -66,7 +65,7 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf reallocate: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf reallocate: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, err := verb.Reallocate(ctx, tr, target, actorStr)
@@ -76,5 +75,6 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	return code
 }

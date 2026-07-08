@@ -63,12 +63,14 @@ func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id, newStatus, actor, r
 		return nil, err
 	}
 	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", id, newStatus)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id, "to": newStatus}
+	return result, nil
 }
 
 // PromoteACPhaseAuditOnly is the audit-only variant of
@@ -94,12 +96,14 @@ func PromoteACPhaseAuditOnly(ctx context.Context, t *tree.Tree, compositeID, new
 		return nil, err
 	}
 	subject := fmt.Sprintf("aiwf promote %s --phase %s [audit-only]", compositeID, newPhase)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "to": newPhase}
+	return result, nil
 }
 
 // CancelAuditOnly records that <id> was cancelled via a path that
@@ -148,12 +152,14 @@ func CancelAuditOnly(ctx context.Context, t *tree.Tree, id, actor, reason string
 		return nil, err
 	}
 	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", id)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": id, "to": e.Status}
+	return result, nil
 }
 
 func promoteACAuditOnly(t *tree.Tree, compositeID, newStatus, actor, reason string) (*Result, error) {
@@ -172,12 +178,14 @@ func promoteACAuditOnly(t *tree.Tree, compositeID, newStatus, actor, reason stri
 		return nil, err
 	}
 	subject := fmt.Sprintf("aiwf promote %s %s [audit-only]", compositeID, newStatus)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "to": newStatus}
+	return result, nil
 }
 
 func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result, error) {
@@ -193,12 +201,14 @@ func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result
 		return nil, err
 	}
 	subject := fmt.Sprintf("aiwf cancel %s [audit-only]", compositeID)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    subject,
 		Body:       reason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "to": entity.StatusCancelled}
+	return result, nil
 }
 
 // auditOnlyTrailers builds the trailer block for any audit-only verb.

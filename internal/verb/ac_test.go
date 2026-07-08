@@ -472,6 +472,68 @@ func TestCancel_Composite(t *testing.T) {
 	}
 }
 
+// TestCancel_CompositeReportsCancelledMetadataTo pins M-0239/AC-2 for
+// the composite-AC cancel path specifically: the top-level Cancel
+// (promote.go) reports the real terminal in metadata.to even though it
+// passes an empty `to` to the trailer builder (cancel deliberately
+// omits aiwf-to:); cancelAC/finalizeACPlan must do the same instead of
+// letting the trailer-suppression empty string leak into metadata.
+func TestCancel_CompositeReportsCancelledMetadataTo(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
+	res := r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
+
+	if res.Metadata["entity_id"] != "M-0001/AC-1" {
+		t.Errorf("metadata.entity_id = %v, want %q", res.Metadata["entity_id"], "M-0001/AC-1")
+	}
+	if res.Metadata["from"] != "open" {
+		t.Errorf("metadata.from = %v, want %q", res.Metadata["from"], "open")
+	}
+	if res.Metadata["to"] != "cancelled" {
+		t.Errorf("metadata.to = %v, want %q (must not leak the trailer-suppression empty string)", res.Metadata["to"], "cancelled")
+	}
+}
+
+// TestPromoteAC_TDDRequiredMetWithoutPhaseDoneRefusedViaFindings
+// covers finalizeACPlan's own projection-findings early return (shared
+// by promoteAC/PromoteACPhase/cancelAC): the AC status FSM alone
+// allows open->met directly, but under tdd: required, met without
+// tdd_phase: done is an error-severity acs-tdd-audit finding, so the
+// projection must refuse to commit rather than silently writing a
+// status the standing check would immediately flag.
+func TestPromoteAC_TDDRequiredMetWithoutPhaseDoneRefusedViaFindings(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	// AC is seeded at tdd_phase: red under tdd: required (never
+	// advanced to done). Status FSM alone permits open->met; the
+	// projection-findings check must be what actually refuses it.
+	res, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{})
+	if err != nil {
+		t.Fatalf("Promote: unexpected Go error: %v", err)
+	}
+	if res.Plan != nil {
+		t.Error("expected no plan (refused via findings), got a plan")
+	}
+	if !check.HasErrors(res.Findings) {
+		t.Fatalf("expected error-severity findings; got %+v", res.Findings)
+	}
+	found := false
+	for _, f := range res.Findings {
+		if f.Code == check.CodeACsTDDAudit {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected a %s finding; got %+v", check.CodeACsTDDAudit, res.Findings)
+	}
+}
+
 // TestCancel_CompositeAlreadyCancelled refuses re-cancelling — same
 // guard as for top-level entities. No diff to write.
 func TestCancel_CompositeAlreadyCancelled(t *testing.T) {

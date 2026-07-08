@@ -229,6 +229,7 @@ func Add(ctx context.Context, t *tree.Tree, kind entity.Kind, title, actor strin
 			Trailers: trailers,
 			Ops:      ops,
 		},
+		Metadata: map[string]any{"entity_id": id, "kind": string(kind)},
 	}, nil
 }
 

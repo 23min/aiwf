@@ -7,8 +7,6 @@ package renamearea
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -20,7 +18,7 @@ import (
 // NewCmd builds `aiwf rename-area <old> <new>`: renames a declared
 // area member and rewrites the `area:` frontmatter of every entity
 // that references it, in one trailered commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -62,6 +60,7 @@ rename reverses via the same verb with swapped args.`,
 	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteAreaArg(0)
 	return cmd
 }
@@ -71,12 +70,12 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)
+		cliutil.Errorf("aiwf rename-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)
+		cliutil.Errorf("aiwf rename-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -90,7 +89,7 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
-		fmt.Fprintf(os.Stderr, "aiwf rename-area: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf rename-area: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -102,7 +101,7 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 	members := cliutil.ConfiguredAreaMembersFull(rootDir)
 	doc, _, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf rename-area: %v\n", err)
+		cliutil.Errorf("aiwf rename-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -112,5 +111,6 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
+	return code
 }

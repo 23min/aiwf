@@ -277,6 +277,9 @@ func IsTerminalPromote(k entity.Kind, newStatus string) bool {
 // validate-then-write, so no disk state has been mutated yet) and
 // the dispatcher exits with the findings code so the user sees the
 // refusal as a clean error.
+//
+// The second return value mirrors FinishVerb's: the resulting commit
+// sha on a clean ExitOK apply, "" otherwise.
 func DecorateAndFinish(
 	ctx context.Context,
 	root, label string,
@@ -285,14 +288,14 @@ func DecorateAndFinish(
 	vErr error,
 	pctx ProvenanceContext,
 	out OutputFormat,
-) int {
+) (code int, sha string) {
 	if vErr != nil || result == nil || result.Plan == nil {
 		return FinishVerb(ctx, root, label, result, vErr, out)
 	}
 	if err := gateAndDecorate(ctx, root, t, result.Plan, pctx); err != nil {
-		code, _ := entity.Code(err)
-		out.emitErrorEnvelope(label, code, err.Error())
-		return ExitFindings
+		codeStr, _ := entity.Code(err)
+		out.emitErrorEnvelope(label, codeStr, err.Error())
+		return ExitFindings, ""
 	}
 	return FinishVerb(ctx, root, label, result, nil, out)
 }

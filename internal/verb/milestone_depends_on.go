@@ -94,7 +94,7 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone depends-on %s", canonID)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: subject,
 		Body:    reason,
 		Trailers: []gitops.Trailer{
@@ -104,5 +104,7 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn}
+	return result, nil
 }

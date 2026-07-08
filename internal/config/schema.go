@@ -73,6 +73,11 @@ var fieldDescriptions = map[string]string{
 	"worktree":     "Default placement for the git worktrees the start rituals create.",
 	"worktree.dir": "Repo-relative directory ritual worktrees are placed under (default .claude/worktrees).",
 
+	"logging":             "Opt-in diagnostic-logging configuration (ADR-0017); absent or empty leaves logging disabled unless AIWF_LOG is set.",
+	"logging.level":       "Diagnostic log level: debug, info, warn, or error (unset here and via AIWF_LOG: logging stays disabled).",
+	"logging.format":      "Diagnostic log record format: text or json (default text).",
+	"logging.destination": "Diagnostic log destination: stderr, an absolute file path, or unset for the default XDG-state-home daily-rotated file.",
+
 	"agents":              "Per-agent model tier and reasoning-effort overrides for shipped role agents.",
 	"agents.<key>.model":  "Model alias this agent's card is materialized with (opus, sonnet, haiku, fable, inherit).",
 	"agents.<key>.effort": "Reasoning-effort level this agent's card is materialized with (low, medium, high, xhigh, max).",

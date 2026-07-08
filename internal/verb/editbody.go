@@ -90,12 +90,14 @@ func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason
 		return findings(fs), nil
 	}
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
 		Trailers: editBodyTrailers(e.ID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": e.ID}
+	return result, nil
 }
 
 // editBodyBless covers the M-060 path: the user already edited the
@@ -160,12 +162,14 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 		return findings(fs), nil
 	}
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
 		Trailers: editBodyTrailers(e.ID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: workingBytes}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": e.ID}
+	return result, nil
 }
 
 // editBodyTrailers builds the standard trailer triple for edit-body

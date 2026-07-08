@@ -1,7 +1,9 @@
 ---
 id: G-0232
 title: 'Envelope enrichment: correlation_id wiring + mutating-verb metadata'
-status: open
+status: addressed
+addressed_by:
+    - M-0239
 ---
 ## What's missing
 

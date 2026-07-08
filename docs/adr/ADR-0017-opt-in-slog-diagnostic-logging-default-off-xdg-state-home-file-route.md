@@ -1,7 +1,7 @@
 ---
 id: ADR-0017
 title: Opt-in slog diagnostic logging, default off, XDG state-home file route
-status: proposed
+status: accepted
 ---
 ## Context
 
@@ -43,7 +43,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 8. **Logs are testable.** Tests capture the slog handler and assert `"verb.commit fired once with entity=M-0090"` — the rubric's E1 "capture log events in tests so you can assert this event fired with these fields" requirement.
 
-9. **`forbidigo` chokepoint** bans bare `fmt.Println` / `fmt.Print` / `fmt.Fprintln(os.Stdout|os.Stderr, …)` outside an explicit allowlist (`cmd/aiwf/main.go`, the human-text branch in `internal/cli/output/outputformat.go`, golden-file regeneration helpers). The forbidigo rule is the load-bearing piece; without it, the discipline rots back to one-of.
+9. **`forbidigo` chokepoint** bans bare `fmt.Println` / `fmt.Print` / `fmt.Fprintln(os.Stdout|os.Stderr, …)` outside an explicit allowlist (`cmd/aiwf/main.go`, the human-text branch in `internal/cli/cliutil/outputformat.go`, golden-file regeneration helpers). The forbidigo rule is the load-bearing piece; without it, the discipline rots back to one-of.
 
 ## Consequences
 
@@ -53,7 +53,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 - **`internal/policies/atomic_write_chokepoint.go` needs an explicit allowlist entry for `internal/logger`'s file writer.** That chokepoint bans raw `O_APPEND`/`O_WRONLY` opens in production code precisely because most persisted files need temp+rename atomicity; the diagnostic log is the one legitimate, reasoned exception (Decision #5), and the allowlist entry's rationale comment should point back to this ADR rather than reading as a bare exemption.
 
-- **`logging:` block added to `aiwf.yaml` schema.** Optional. All three keys optional. The validator under `internal/aiwfyaml/` recognizes the block; absence means default-off; positive `AIWF_LOG_*` env vars override.
+- **`logging:` block added to `aiwf.yaml` schema.** Optional. All three keys optional. The block is never programmatically rewritten by a verb (unlike `contracts:`/`areas:`/`hooks:`), so it needs no `internal/aiwfyaml` surgical-editor entry — `internal/logger` parses and validates it directly. Absence means default-off; positive `AIWF_LOG_*` env vars override.
 
 - **No log file is created when the operator hasn't opted in.** An empty `$XDG_STATE_HOME/aiwf/logs/` directory is never materialized as a side effect of running `aiwf` — only as a side effect of the operator setting `AIWF_LOG=…` (or the `aiwf.yaml` `logging:` block).
 
@@ -61,7 +61,7 @@ aiwf's diagnostic-log surface is **opt-in, default OFF**, distinct from the verb
 
 - **Performance.** When logging is off (the default), the slog handler is a no-op discard handler — zero allocations at the emit site beyond the closed-form `Info` call. The cost is paid only when an operator opts in.
 
-- **Secrets and path-leak hygiene.** Diagnostic logs respect the same path-leak discipline gitleaks polices (CLAUDE.md §What's enforced and where). The logger's `WithVerb` constructor scrubs `os.Args` of `/Users/<name>/` and `/home/<name>/` paths before binding them. Stack traces and full file paths log only at `debug` level.
+- **Secrets and path-leak hygiene.** Diagnostic logs respect the same path-leak discipline gitleaks polices (CLAUDE.md §What's enforced and where). The logger's `WithVerb` constructor scrubs `/Users/<name>/` and `/home/<name>/` fragments from the `verb`/`entity`/`actor` values it binds — the string content, not their provenance, so a leak is caught regardless of source (including a value a caller assembled from `os.Args`). No current or planned call site passes raw `os.Args` through `WithVerb` directly. Stack traces and full file paths log only at `debug` level.
 
 - **No per-invocation log files.** aiwf verbs run frequently inside TDD sessions (dozens of `aiwf check` calls per cycle); per-invocation timestamped log files would litter the directory. Daily rotation gives `grep` a natural shard and bounds the directory size.
 

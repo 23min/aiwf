@@ -78,7 +78,7 @@ func (r *runner) must(res *verb.Result, err error) *verb.Result {
 	if res.Plan == nil {
 		r.t.Fatal("no plan produced")
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		r.t.Fatalf("apply: %v", applyErr)
 	}
 	return res
@@ -445,7 +445,7 @@ func TestAdd_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
 		t.Errorf("expected slug-dropped-chars warning, got %+v", res.Findings)
 	}
 	// Apply the plan and confirm the entity actually lands.
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatal(applyErr)
 	}
 	if _, err := os.Stat(filepath.Join(r.root, "work", "epics", "E-0001-caf-au-lait", "epic.md")); err != nil {
@@ -529,7 +529,7 @@ func TestReallocate_RewritesProseReferences(t *testing.T) {
 			t.Errorf("body-reference warning should be gone now (we rewrite); got %+v", f)
 		}
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 
@@ -587,7 +587,7 @@ func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 
@@ -629,7 +629,7 @@ func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 
@@ -727,7 +727,7 @@ parent: E-01
 	if res.Plan == nil || check.HasErrors(res.Findings) {
 		t.Fatalf("unexpected: %+v", res)
 	}
-	if applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
 		t.Fatalf("apply: %v", applyErr)
 	}
 

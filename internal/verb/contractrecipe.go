@@ -63,11 +63,13 @@ func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Con
 		trailers = append(trailers, gitops.Trailer{Key: gitops.TrailerEntity, Value: id})
 	}
 
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf contract recipe install %s", name),
 		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"validator": name}
+	return result, nil
 }
 
 // RecipeRemove removes the named validator from
@@ -94,14 +96,16 @@ func RecipeRemove(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Cont
 	if err := doc.SetContracts(next); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject: fmt.Sprintf("aiwf contract recipe remove %s", name),
 		Trailers: []gitops.Trailer{
 			{Key: gitops.TrailerVerb, Value: "contract-recipe-remove"},
 			{Key: gitops.TrailerActor, Value: actor},
 		},
 		Ops: []FileOp{{Type: OpWrite, Path: config.FileName, Content: doc.Bytes()}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"validator": name}
+	return result, nil
 }
 
 // validatorEqual compares two validators field-for-field with

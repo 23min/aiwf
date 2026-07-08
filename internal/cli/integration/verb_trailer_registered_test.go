@@ -78,7 +78,7 @@ func scanStampedVerbTrailers(sources map[string]string, registered, ritual map[s
 func TestStampedVerbTrailersAreRegistered(t *testing.T) {
 	t.Parallel()
 
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 	registered := check.EnumerateRegisteredVerbs(root)
 	if len(registered) == 0 {
 		t.Fatal("EnumerateRegisteredVerbs returned an empty set; command tree wiring is broken")

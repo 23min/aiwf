@@ -51,14 +51,22 @@ import (
 // failure. Once the commit lands, it is never rolled back (it's git
 // history); a subsequent reconciliation failure is reported but does
 // not undo the commit — see reconcileFailureError.
-func Apply(ctx context.Context, root string, p *Plan) (err error) {
+//
+// sha is non-empty if and only if err is nil: even in the reconcile-
+// failure case (the commit itself landed but syncing the live index
+// afterward failed), Apply reports "", err rather than surfacing a
+// sha alongside a non-nil error — the sha is not lost, it is already
+// embedded in that error's own text (reconcileFailureError), so a
+// caller gets a simple "sha present means clean success" contract
+// instead of having to special-case a partial-success sha.
+func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	verbPaths := planPaths(p)
 	staged, stagedErr := gitops.StagedPaths(ctx, root)
 	if stagedErr != nil {
-		return fmt.Errorf("checking pre-staged changes: %w", stagedErr)
+		return "", fmt.Errorf("checking pre-staged changes: %w", stagedErr)
 	}
 	if conflictErr := checkStagedConflict(staged, verbPaths); conflictErr != nil {
-		return conflictErr
+		return "", conflictErr
 	}
 
 	tx := &applyTx{root: root, ctx: ctx}
@@ -94,10 +102,10 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		srcFull := filepath.Join(root, op.Path)
 		destFull := filepath.Join(root, op.NewPath)
 		if mkdirErr := os.MkdirAll(filepath.Dir(destFull), 0o755); mkdirErr != nil {
-			return fmt.Errorf("creating parent of %s: %w", op.NewPath, mkdirErr)
+			return "", fmt.Errorf("creating parent of %s: %w", op.NewPath, mkdirErr)
 		}
 		if mvErr := os.Rename(srcFull, destFull); mvErr != nil {
-			return fmt.Errorf("moving %s -> %s: %w", op.Path, op.NewPath, mvErr)
+			return "", fmt.Errorf("moving %s -> %s: %w", op.Path, op.NewPath, mvErr)
 		}
 		tx.journal = append(tx.journal, moveUndo{from: op.Path, to: op.NewPath})
 	}
@@ -115,21 +123,21 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 		// what was there immediately before it ran. G-0170.
 		undo, capErr := captureWrite(root, op.Path)
 		if capErr != nil {
-			return capErr
+			return "", capErr
 		}
 		full := filepath.Join(root, op.Path)
 		if mkdirErr := os.MkdirAll(filepath.Dir(full), 0o755); mkdirErr != nil {
-			return fmt.Errorf("creating %s: %w", filepath.Dir(op.Path), mkdirErr)
+			return "", fmt.Errorf("creating %s: %w", filepath.Dir(op.Path), mkdirErr)
 		}
 		if writeErr := pathutil.AtomicWriteFile(full, op.Content, 0o644); writeErr != nil {
-			return fmt.Errorf("writing %s: %w", op.Path, writeErr)
+			return "", fmt.Errorf("writing %s: %w", op.Path, writeErr)
 		}
 		tx.journal = append(tx.journal, undo)
 	}
 
 	removes, writes, gatherErr := gatherCommitOps(root, p)
 	if gatherErr != nil {
-		return gatherErr
+		return "", gatherErr
 	}
 
 	// git commit-tree (unlike git commit) has no built-in refusal for a
@@ -137,21 +145,22 @@ func Apply(ctx context.Context, root string, p *Plan) (err error) {
 	// Ops without setting AllowEmpty (a verb bug) would silently create
 	// an empty commit instead of failing loudly.
 	if !p.AllowEmpty && len(removes) == 0 && len(writes) == 0 {
-		return errors.New("nothing to commit: plan has no file operations")
+		return "", errors.New("nothing to commit: plan has no file operations")
 	}
 
-	sha, commitErr := gitops.CommitVerbChange(ctx, root, removes, writes, p.Subject, p.Body, p.Trailers)
+	var commitErr error
+	sha, commitErr = gitops.CommitVerbChange(ctx, root, removes, writes, p.Subject, p.Body, p.Trailers)
 	if sha != "" {
 		tx.committed = true
 	}
 	if commitErr != nil {
 		var reconcileErr *gitops.ReconcileError
 		if errors.As(commitErr, &reconcileErr) {
-			return reconcileFailureError(ctx, root, reconcileErr.SHA, reconcileErr.Err)
+			return "", reconcileFailureError(ctx, root, reconcileErr.SHA, reconcileErr.Err)
 		}
-		return fmt.Errorf("commit-tree: %w", commitErr)
+		return "", fmt.Errorf("commit-tree: %w", commitErr)
 	}
-	return nil
+	return sha, nil
 }
 
 // gatherCommitOps determines the full removes/writes sets CommitTree

@@ -2,8 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +13,7 @@ import (
 
 // newBindCmd builds `aiwf contract bind <C-id> --validator <name>
 // --schema <path> --fixtures <path> [--force]`.
-func newBindCmd() *cobra.Command {
+func newBindCmd(correlationID string) *cobra.Command {
 	var (
 		root      string
 		actor     string
@@ -47,6 +45,7 @@ func newBindCmd() *cobra.Command {
 	cmd.Flags().StringVar(&fixtures, "fixtures", "", "repo-relative path to the fixtures-tree root")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing binding even when values differ")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindContract, 0)
 	_ = cmd.RegisterFlagCompletionFunc("validator", completeDeclaredValidators)
 	return cmd
@@ -55,12 +54,12 @@ func newBindCmd() *cobra.Command {
 func runBind(id, root, actor, validator, schema, fixtures string, force bool, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -73,12 +72,12 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf contract bind: %v\n", err)
+		cliutil.Errorf("aiwf contract bind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -88,5 +87,6 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 		Fixtures:  fixtures,
 		Force:     force,
 	})
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract bind", result, err, out)
+	return code
 }

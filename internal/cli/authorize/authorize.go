@@ -4,8 +4,6 @@ package authorize
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -34,7 +32,7 @@ import (
 //   - --pause / --resume: required; the argument to the flag is itself
 //     the reason (e.g. `--pause "blocked by E-09"`). Passing both
 //     `--pause "..."` and `--reason "..."` is a usage error.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor  string
 		root   string
@@ -73,6 +71,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&branch, "branch", "", "ritual branch the scope is bound to (ADR-0010); when set, the authorize commit carries an aiwf-branch: trailer with this value. From `main` or a ritual-shape current branch (epic/milestone/patch), naming a ritual-shape future branch is accepted — the step-7 pattern of aiwfx-start-epic (M-0104/AC-4) or step-4 of aiwfx-start-milestone (M-0105/AC-6). The named branch is cut by a later step of the ritual.")
 	cmd.Flags().BoolVar(&force, "force", false, "open a fresh scope on a terminal scope-entity (requires --reason)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	// M-0102 / AC-6: --branch completion returns local branch names
 	// matching the ADR-0010 ritual shape — epic/E-NNNN-..., milestone/
@@ -177,18 +176,18 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		modes++
 	}
 	if modes != 1 {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: pick exactly one of --to <agent>, --pause \"<reason>\", or --resume \"<reason>\"")
+		cliutil.Errorln("aiwf authorize: pick exactly one of --to <agent>, --pause \"<reason>\", or --resume \"<reason>\"")
 		return cliutil.ExitUsage
 	}
 	// `--reason` is meaningful only with --to (and --to --force). For
 	// --pause / --resume the flag value IS the reason; a separate
 	// --reason would be ambiguous.
 	if (pause != "" || resume != "") && reason != "" {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: --reason is not used with --pause / --resume; the argument to --pause/--resume is itself the reason")
+		cliutil.Errorln("aiwf authorize: --reason is not used with --pause / --resume; the argument to --pause/--resume is itself the reason")
 		return cliutil.ExitUsage
 	}
 	if force && to == "" {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
+		cliutil.Errorln("aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
 		return cliutil.ExitUsage
 	}
 	// M-0102: --branch binds a fresh scope to a ritual branch; reusing
@@ -197,22 +196,22 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	// footgun, so refuse the combination upfront — matches the
 	// existing --reason + --pause/--resume gate above.
 	if (pause != "" || resume != "") && branch != "" {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume reuse the opening scope's branch")
+		cliutil.Errorln("aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume reuse the opening scope's branch")
 		return cliutil.ExitUsage
 	}
 	if force && strings.TrimSpace(reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf authorize: --force requires --reason \"...\" (non-empty after trim)")
+		cliutil.Errorln("aiwf authorize: --force requires --reason \"...\" (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
+		cliutil.Errorf("aiwf authorize: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", err)
+		cliutil.Errorf("aiwf authorize: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -225,7 +224,7 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf authorize: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf authorize: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -281,12 +280,13 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	if opts.Mode == verb.AuthorizePause || opts.Mode == verb.AuthorizeResume {
 		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, id)
 		if scopesErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf authorize: %v\n", scopesErr)
+			cliutil.Errorf("aiwf authorize: %v\n", scopesErr)
 			return cliutil.ExitInternal
 		}
 		opts.Scopes = scopes
 	}
 
 	result, vErr := verb.Authorize(ctx, tr, id, actorStr, opts)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
+	return code
 }

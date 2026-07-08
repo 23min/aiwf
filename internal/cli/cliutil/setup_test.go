@@ -13,6 +13,9 @@ import (
 //   - TestParseTestsFlag (verbhelpers_test.go) — its "malformed" subtest
 //     redirects the process-global os.Stderr to /dev/null; parallel would
 //     race any concurrent reader (e.g. RunStatuslineRemove's Fprintf paths).
+//   - TestTextIO_Wrappers (textio_test.go) — uses captureStdStreams.
+//   - TestResolveLogger_StderrDestination_NeverClosesRealStderr
+//     (resolvelogger_test.go) — uses captureStdStreams.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")

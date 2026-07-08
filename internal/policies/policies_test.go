@@ -78,6 +78,11 @@ func TestPolicy_EnvelopeVersionSource(t *testing.T) {
 	runPolicy(t, PolicyEnvelopeVersionSource)
 }
 
+func TestPolicy_EnvelopeStructuralAssertion(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyEnvelopeStructuralAssertion)
+}
+
 func TestPolicy_VersionSingleSource(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyVersionSingleSource)
@@ -168,6 +173,11 @@ func TestPolicy_AtomicWriteChokepoint(t *testing.T) {
 	runPolicy(t, PolicyAtomicWriteChokepoint)
 }
 
+func TestPolicy_LoggingChokepoint(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyLoggingChokepoint)
+}
+
 func TestPolicy_ValidateCheckIsNeverWrites(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyValidateCheckIsNeverWrites)
@@ -251,4 +261,9 @@ func TestPolicy_FSMInvariants(t *testing.T) {
 func TestPolicy_M0137AC3BatchedWalker(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyM0137AC3BatchedWalker)
+}
+
+func TestPolicy_CLAUDEMDCLIConventionsLogging(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCLAUDEMDCLIConventionsLogging)
 }

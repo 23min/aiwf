@@ -10,7 +10,7 @@ import (
 // shape and its single subcommand. M-0117/AC-5+AC-6.
 func TestNewCmd_HasDependsOnChild(t *testing.T) {
 	t.Parallel()
-	cmd := milestone.NewCmd()
+	cmd := milestone.NewCmd("")
 	if cmd.Use != "milestone" {
 		t.Errorf("Use = %q, want %q", cmd.Use, "milestone")
 	}
@@ -30,7 +30,7 @@ func TestNewCmd_HasDependsOnChild(t *testing.T) {
 // invocation. M-0117/AC-6.
 func TestDependsOnCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := milestone.NewCmd()
+	cmd := milestone.NewCmd("")
 	var dependsOn *struct{}
 	_ = dependsOn
 	for _, c := range cmd.Commands() {

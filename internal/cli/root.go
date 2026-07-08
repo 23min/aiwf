@@ -14,7 +14,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 
@@ -52,6 +51,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/upgrade"
 	"github.com/23min/aiwf/internal/cli/whoami"
 	"github.com/23min/aiwf/internal/cli/worktree"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -80,10 +80,16 @@ func init() {
 // state.
 func Execute(args []string) int {
 	if err := cliutil.AssertSupportedOS(runtime.GOOS); err != nil {
-		fmt.Fprintln(os.Stderr, "aiwf:", err)
+		cliutil.Errorln("aiwf:", err)
 		return cliutil.ExitUsage
 	}
-	rootCmd := NewRootCmd()
+	// One id per invocation (M-0239/AC-1): threaded into every mutating
+	// verb's envelope as metadata.correlation_id and reused as the
+	// diagnostic logger's run_id, so the two surfaces are cross-
+	// referenceable by a single grep. The doctor --self-check path
+	// re-enters Execute per call, so each self-check sub-invocation
+	// correctly mints its own id rather than sharing one across probes.
+	rootCmd := NewRootCmd(logger.NewRunID())
 	rootCmd.SetArgs(args)
 
 	err := rootCmd.Execute()
@@ -98,7 +104,7 @@ func Execute(args []string) int {
 	// (unknown verb, bad flag, missing required arg). With
 	// SilenceErrors:true on the root, Cobra didn't print; we print
 	// here in the existing house style.
-	fmt.Fprintf(os.Stderr, "aiwf: %v\n", err)
+	cliutil.Errorf("aiwf: %v\n", err)
 	return cliutil.ExitUsage
 }
 
@@ -114,7 +120,7 @@ func Execute(args []string) int {
 // keeping the entry point exported lets test callers in cmd/aiwf/ and
 // any future cross-package consumer (binary integration tests, e.g.)
 // build the tree the same way.
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "aiwf",
 		Short:         "ai-workflow framework CLI",
@@ -122,10 +128,10 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if v, _ := c.Flags().GetBool("version"); v {
-				fmt.Println(version.Current().Version)
+				cliutil.Println(version.Current().Version)
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, "aiwf: missing verb. Try 'aiwf help'.")
+			cliutil.Errorln("aiwf: missing verb. Try 'aiwf help'.")
 			return cliutil.WrapExitCode(cliutil.ExitUsage)
 		},
 	}
@@ -164,36 +170,36 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(newVersionCmd())
 
 	cmd.AddCommand(check.NewCmd())
-	cmd.AddCommand(add.NewCmd())
-	cmd.AddCommand(promote.NewCmd())
-	cmd.AddCommand(cancel.NewCmd())
-	cmd.AddCommand(rename.NewCmd())
-	cmd.AddCommand(renamearea.NewCmd())
-	cmd.AddCommand(setarea.NewCmd())
-	cmd.AddCommand(retitle.NewCmd())
-	cmd.AddCommand(editbody.NewCmd())
-	cmd.AddCommand(move.NewCmd())
-	cmd.AddCommand(reallocate.NewCmd())
-	cmd.AddCommand(rewidth.NewCmd())
-	cmd.AddCommand(archive.NewCmd())
+	cmd.AddCommand(add.NewCmd(correlationID))
+	cmd.AddCommand(promote.NewCmd(correlationID))
+	cmd.AddCommand(cancel.NewCmd(correlationID))
+	cmd.AddCommand(rename.NewCmd(correlationID))
+	cmd.AddCommand(renamearea.NewCmd(correlationID))
+	cmd.AddCommand(setarea.NewCmd(correlationID))
+	cmd.AddCommand(retitle.NewCmd(correlationID))
+	cmd.AddCommand(editbody.NewCmd(correlationID))
+	cmd.AddCommand(move.NewCmd(correlationID))
+	cmd.AddCommand(reallocate.NewCmd(correlationID))
+	cmd.AddCommand(rewidth.NewCmd(correlationID))
+	cmd.AddCommand(archive.NewCmd(correlationID))
 	cmd.AddCommand(initcmd.NewCmd())
 	cmd.AddCommand(update.NewCmd())
 	cmd.AddCommand(upgrade.NewCmd())
 	cmd.AddCommand(history.NewCmd())
 	cmd.AddCommand(doctor.NewCmd())
 	cmd.AddCommand(render.NewCmd())
-	cmd.AddCommand(importcmd.NewCmd())
+	cmd.AddCommand(importcmd.NewCmd(correlationID))
 	cmd.AddCommand(whoami.NewCmd())
 	cmd.AddCommand(status.NewCmd())
 	cmd.AddCommand(list.NewCmd())
 	cmd.AddCommand(schema.NewCmd())
 	cmd.AddCommand(show.NewCmd())
 	cmd.AddCommand(template.NewCmd())
-	cmd.AddCommand(contract.NewCmd())
-	cmd.AddCommand(milestone.NewCmd())
-	cmd.AddCommand(authorize.NewCmd())
-	cmd.AddCommand(acknowledge.NewCmd())
-	cmd.AddCommand(worktree.NewCmd())
+	cmd.AddCommand(contract.NewCmd(correlationID))
+	cmd.AddCommand(milestone.NewCmd(correlationID))
+	cmd.AddCommand(authorize.NewCmd(correlationID))
+	cmd.AddCommand(acknowledge.NewCmd(correlationID))
+	cmd.AddCommand(worktree.NewCmd(correlationID))
 
 	// G-0150: snapshot the explicit verb set into Annotations BEFORE
 	// any caller calls Execute (which is when Cobra's `help` and
@@ -225,14 +231,14 @@ func newVersionCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			fmt.Println(version.Current().Version)
+			cliutil.Println(version.Current().Version)
 			return nil
 		},
 	}
 }
 
 func printHelp() {
-	fmt.Println(`aiwf — ai-workflow framework CLI
+	cliutil.Println(`aiwf — ai-workflow framework CLI
 
 Usage: aiwf <verb> [args]
 

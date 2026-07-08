@@ -23,7 +23,7 @@ import (
 
 // NewCmd builds the `aiwf worktree` parent command. Non-Runnable;
 // dispatches to `add`.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "worktree",
 		Short:         "Worktree-scoped verbs",
@@ -31,11 +31,11 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newAddCmd())
+	cmd.AddCommand(newAddCmd(correlationID))
 	return cmd
 }
 
-func newAddCmd() *cobra.Command {
+func newAddCmd(correlationID string) *cobra.Command {
 	var (
 		root      string
 		base      string
@@ -68,6 +68,7 @@ func newAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&base, "base", "", "commit-ish the new branch starts from; only valid when <branch> does not already exist locally (default: HEAD)")
 	cmd.Flags().BoolVar(&printPath, "print-path", false, "print only the resulting absolute path to stdout, for shell cd composition; nothing else on success, nothing on failure")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 
@@ -130,11 +131,11 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	// contract (AC-1: creation and materialization as ONE step).
 	rollback := func() {
 		if rmErr := gitops.WorktreeRemove(ctx, rootDir, targetPath); rmErr != nil { //coverage:ignore WorktreeRemove --force fails only on a filesystem fault (permission denied) removing an already-created worktree; not deterministically reproducible.
-			fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not remove worktree at %s: %v\n", targetPath, rmErr)
+			cliutil.Errorf("aiwf worktree add: rollback: could not remove worktree at %s: %v\n", targetPath, rmErr)
 		}
 		if !exists {
 			if brErr := gitops.DeleteBranch(ctx, rootDir, branch); brErr != nil { //coverage:ignore DeleteBranch -D fails only on a repo-state fault (e.g. the branch got checked out elsewhere mid-run); not deterministically reproducible.
-				fmt.Fprintf(os.Stderr, "aiwf worktree add: rollback: could not delete branch %s: %v\n", branch, brErr)
+				cliutil.Errorf("aiwf worktree add: rollback: could not delete branch %s: %v\n", branch, brErr)
 			}
 		}
 	}
@@ -164,25 +165,31 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		for _, s := range steps {
 			printStep(s)
 		}
-		fmt.Fprintln(os.Stderr, "aiwf worktree add: hook chain collision (G45) in the new worktree; "+
-			"resolve manually (merge the existing hook into its `.local` sibling, delete the original) "+
+		cliutil.Errorln("aiwf worktree add: hook chain collision (G45) in the new worktree; " +
+			"resolve manually (merge the existing hook into its `.local` sibling, delete the original) " +
 			"and re-run `aiwf update` there.")
 		return cliutil.ExitFindings
 	}
 
 	if printPath {
-		fmt.Println(absPath)
+		cliutil.Println(absPath)
 		return cliutil.ExitOK
 	}
 
 	if out.JSON() {
 		// D-0013: JSON output is a single clean envelope on stdout — the
 		// materialization ledger (text-mode only, below) must not precede it.
+		// out.Metadata (M-0239/AC-1+AC-2) is the shared correlation_id
+		// merge point every other verb's emitSuccess/emitFindings/
+		// emitErrorEnvelope routes through — worktree add builds its own
+		// envelope rather than calling those, so it calls the exported
+		// method directly instead of leaving CorrelationID unread.
 		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  map[string]any{"path": absPath},
+			Tool:     "aiwf",
+			Version:  version.Current().Version,
+			Status:   "ok",
+			Result:   map[string]any{"path": absPath},
+			Metadata: out.Metadata(map[string]any{"branch": branch, "path": absPath}),
 		}
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			return fail("aiwf worktree add", werr, cliutil.ExitInternal)
@@ -193,7 +200,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 	for _, s := range steps {
 		printStep(s)
 	}
-	fmt.Println(absPath)
+	cliutil.Println(absPath)
 	return cliutil.ExitOK
 }
 
@@ -225,9 +232,9 @@ func resolveCreatedPath(rootDir, targetPath string) (string, error) {
 // consistent for an operator running either.
 func printStep(s initrepo.StepResult) {
 	if s.Detail != "" {
-		fmt.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
+		cliutil.Printf("  %-9s  %s  (%s)\n", s.Action, s.What, s.Detail)
 	} else {
-		fmt.Printf("  %-9s  %s\n", s.Action, s.What)
+		cliutil.Printf("  %-9s  %s\n", s.Action, s.What)
 	}
 }
 
@@ -235,6 +242,6 @@ func printStep(s initrepo.StepResult) {
 // every error path in Run stays stdout-clean by construction — the
 // property --print-path's contract depends on.
 func fail(label string, err error, code int) int {
-	fmt.Fprintf(os.Stderr, "%s: %v\n", label, err)
+	cliutil.Errorf("%s: %v\n", label, err)
 	return code
 }

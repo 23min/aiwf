@@ -54,7 +54,7 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if format == "" {
-				fmt.Fprintln(os.Stderr, "aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
+				cliutil.Errorln("aiwf render: missing subcommand or --format. Try 'aiwf render roadmap' or 'aiwf render --format=html'.")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			return cliutil.WrapExitCode(RunSite(root, format, out, scope, noHistory, pretty))
@@ -111,7 +111,7 @@ func NewCmd() *cobra.Command {
 // the dispatcher so adding a third later only requires one edit.
 // The master verb catalog lives in `aiwf help`.
 func printRenderHelp() {
-	fmt.Println(`aiwf render — produce derived views of the planning tree.
+	cliutil.Println(`aiwf render — produce derived views of the planning tree.
 
 Surfaces:
   aiwf render roadmap [--write]
@@ -168,14 +168,14 @@ func newRoadmapCmd() *cobra.Command {
 func RunRoadmap(root string, write bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
+		cliutil.Errorf("aiwf render roadmap: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf render roadmap: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -204,21 +204,21 @@ func RunRoadmap(root string, write bool) int {
 	dest := filepath.Join(rootDir, resolvedName)
 	existing, readErr := os.ReadFile(dest)
 	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", readErr)
+		cliutil.Errorf("aiwf render roadmap: %v\n", readErr)
 		return cliutil.ExitInternal
 	}
 	content = roadmap.AppendCandidates(content, roadmap.ExtractCandidates(existing))
 
 	if !write {
 		if _, werr := os.Stdout.Write(content); werr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", werr)
+			cliutil.Errorf("aiwf render roadmap: %v\n", werr)
 			return cliutil.ExitInternal
 		}
 		return cliutil.ExitOK
 	}
 
 	if bytes.Equal(existing, content) {
-		fmt.Printf("aiwf render roadmap: %s is already up to date.\n", resolvedName)
+		cliutil.Printf("aiwf render roadmap: %s is already up to date.\n", resolvedName)
 		return cliutil.ExitOK
 	}
 
@@ -227,10 +227,10 @@ func RunRoadmap(root string, write bool) int {
 	// they were already making. This also means the write runs
 	// regardless of what else is staged or dirty in the tree.
 	if err := pathutil.AtomicWriteFile(dest, content, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render roadmap: %v\n", err)
+		cliutil.Errorf("aiwf render roadmap: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	fmt.Printf("aiwf render roadmap: wrote %s\n", resolvedName)
+	cliutil.Printf("aiwf render roadmap: wrote %s\n", resolvedName)
 	return cliutil.ExitOK
 }
 
@@ -294,7 +294,7 @@ func resolveRoadmapName(rootDir string) string {
 // RunSite executes `aiwf render --format=html`. Returns one of the cliutil.Exit* codes.
 func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	if format != "html" {
-		fmt.Fprintf(os.Stderr, "aiwf render: --format must be 'html'; got %q\n", format)
+		cliutil.Errorf("aiwf render: --format must be 'html'; got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	_ = scope     // step-4 placeholder: reserved for §3 incremental render
@@ -302,14 +302,14 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
+		cliutil.Errorf("aiwf render: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf render: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	cfg, _ := config.Load(rootDir)
@@ -324,7 +324,7 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	// should stop the render, not emit a misleadingly-empty site.
 	head, err := check.WalkHeadCommits(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render: reading history: %v\n", err)
+		cliutil.Errorf("aiwf render: reading history: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	resolver := NewRenderResolver(ctx, rootDir, tr, cfg, findings, head)
@@ -337,7 +337,7 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 		Data:   resolver,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", err)
+		cliutil.Errorf("aiwf render: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	emitGitignoreWarning(rootDir, outDir, cfg)
@@ -354,7 +354,7 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 		Metadata: map[string]any{"root": rootDir},
 	}
 	if werr := baserender.JSON(os.Stdout, env, pretty); werr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf render: %v\n", werr)
+		cliutil.Errorf("aiwf render: %v\n", werr)
 		return cliutil.ExitInternal
 	}
 	return cliutil.ExitOK
@@ -386,7 +386,7 @@ func emitGitignoreWarning(root, outDir string, cfg *config.Config) {
 	}
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-		fmt.Fprintf(os.Stderr,
+		cliutil.Errorf(
 			"aiwf render: warning: %s is not gitignored; rendered files will appear in `git status`.\n"+
 				"             Run `aiwf update` to reconcile, or set `html.commit_output: true` to track them.\n",
 			target)

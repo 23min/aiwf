@@ -192,7 +192,7 @@ func TestNewCmd_DispatchesToRun(t *testing.T) {
 	t.Parallel()
 	root := minimalRepo(t, "")
 
-	cmd := worktree.NewCmd()
+	cmd := worktree.NewCmd("")
 	cmd.SetArgs([]string{"add", "feature/cobra-dispatch", "--root", root})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -211,7 +211,7 @@ func TestNewCmd_DispatchesToRun_WithPath(t *testing.T) {
 	root := minimalRepo(t, "")
 	explicit := filepath.Join(t.TempDir(), "cobra-explicit")
 
-	cmd := worktree.NewCmd()
+	cmd := worktree.NewCmd("")
 	cmd.SetArgs([]string{"add", "feature/cobra-path", explicit, "--root", root})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute: %v", err)

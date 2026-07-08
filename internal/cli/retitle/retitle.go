@@ -4,8 +4,6 @@ package retitle
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -28,7 +26,7 @@ import (
 // id (or M-NNN/AC-N), new-title. The optional `--reason` flag lands
 // in the commit body and surfaces in `aiwf history`, matching the
 // pattern from `aiwf promote`/`cancel`/`authorize`/`edit-body`.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -56,6 +54,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -64,12 +63,12 @@ func NewCmd() *cobra.Command {
 func Run(id, newTitle, actor, principal, root, reason string, out cliutil.OutputFormat) int {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
+		cliutil.Errorf("aiwf retitle: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: %v\n", err)
+		cliutil.Errorf("aiwf retitle: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -82,7 +81,7 @@ func Run(id, newTitle, actor, principal, root, reason string, out cliutil.Output
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf retitle: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf retitle: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, vErr := verb.Retitle(ctx, tr, id, newTitle, actorStr, reason, cliutil.ConfiguredTitleMaxLength(rootDir))
@@ -92,5 +91,6 @@ func Run(id, newTitle, actor, principal, root, reason string, out cliutil.Output
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf retitle", tr, result, vErr, pctx, out)
+	return code
 }

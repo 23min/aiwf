@@ -56,7 +56,7 @@ func TestApply_MalformedFrontmatterStillCaughtByFullCheck(t *testing.T) {
 			{Type: verb.OpWrite, Path: "work/gaps/G-0001-broken.md", Content: []byte("---\nid: G-0001\n---\nmissing its status field\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v (Apply must not itself reject malformed content — that's not its job)", err)
 	}
 
@@ -105,7 +105,7 @@ func TestApply_StrayFileStillCaughtByFullCheck(t *testing.T) {
 			{Type: verb.OpWrite, Path: "work/gaps/scratch.md", Content: []byte("not an entity\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v (Apply must not itself reject a stray path — that's not its job)", err)
 	}
 

@@ -99,7 +99,7 @@ func TestApply_HappyPath_OneCommitNoExtraIndexChurn(t *testing.T) {
 			{Type: verb.OpWrite, Path: "work/epics/E-02-bar/epic.md", Content: []byte("---\nid: E-02\n---\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 	if got := porcelain(t, r.root); got != "" {
@@ -107,6 +107,47 @@ func TestApply_HappyPath_OneCommitNoExtraIndexChurn(t *testing.T) {
 	}
 	if headSHA(t, r.root) == r.preCommit {
 		t.Error("HEAD did not advance; expected one new commit")
+	}
+}
+
+// TestApply_ReturnsCommitSHAOnSuccess pins the sha Apply returns on
+// success against the real resulting commit — M-0238/AC-5's diagnostic
+// events cite this sha, so a caller trusting the wrong value would
+// silently point a log line at the wrong commit.
+func TestApply_ReturnsCommitSHAOnSuccess(t *testing.T) {
+	t.Parallel()
+	r := newApplyTestRepo(t)
+	plan := &verb.Plan{
+		Subject: "test write",
+		Trailers: []gitops.Trailer{
+			{Key: "aiwf-verb", Value: "test"},
+		},
+		Ops: []verb.FileOp{
+			{Type: verb.OpWrite, Path: "work/epics/E-02-bar/epic.md", Content: []byte("---\nid: E-02\n---\n")},
+		},
+	}
+	sha, err := verb.Apply(r.ctx, r.root, plan)
+	if err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if want := headSHA(t, r.root); sha != want {
+		t.Errorf("Apply() sha = %q, want %q (the actual resulting commit)", sha, want)
+	}
+}
+
+// TestApply_EmptySHAOnFailure pins the other half of the same
+// contract: a failed Apply returns an empty sha alongside its error,
+// never a stale or partial value a caller could mistake for real.
+func TestApply_EmptySHAOnFailure(t *testing.T) {
+	t.Parallel()
+	r := newApplyTestRepo(t)
+	plan := &verb.Plan{Subject: "test write"} // no Ops, not AllowEmpty: nothing to commit
+	sha, err := verb.Apply(r.ctx, r.root, plan)
+	if err == nil {
+		t.Fatal("apply with no ops: err = nil, want a non-nil error")
+	}
+	if sha != "" {
+		t.Errorf("Apply() sha = %q on failure, want empty", sha)
 	}
 }
 
@@ -148,7 +189,7 @@ func TestApply_RollsBackOnWriteFailure(t *testing.T) {
 		},
 	}
 
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail on unwritable target; got nil")
 	}
@@ -200,7 +241,7 @@ func TestApply_RollsBackOnCaptureWriteFailure(t *testing.T) {
 			{Type: verb.OpWrite, Path: "work/epics/E-0002-bar/epic.md", Content: []byte("new content")},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail capturing the unreadable pre-existing file")
 	}
@@ -226,7 +267,7 @@ func TestApply_RollsBackOnMoveFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: "does/not/exist.md", NewPath: "work/x/y.md"},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail on missing move source")
 	}
@@ -265,7 +306,7 @@ func TestApply_RollsBackUntrackedNewFiles(t *testing.T) {
 			{Type: verb.OpWrite, Path: filepath.Join("blocked", "x.md"), Content: []byte("blocked")},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected failure")
 	}
@@ -298,7 +339,7 @@ func TestApply_PanicTriggersRollback(t *testing.T) {
 			t.Error("HEAD must not advance on panic")
 		}
 	}()
-	_ = verb.Apply(r.ctx, r.root, nil)
+	_, _ = verb.Apply(r.ctx, r.root, nil)
 }
 
 // TestApply_RollsBackOnCommitFailure: missing committer identity
@@ -332,7 +373,7 @@ func TestApply_RollsBackOnCommitFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: r.trackedPath, NewPath: dest},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err == nil {
 		t.Fatal("expected commit failure")
 	}
 	if got := porcelain(t, r.root); got != "" {
@@ -380,7 +421,7 @@ func TestApply_RollbackPreservesPreExistingDirtyContent(t *testing.T) {
 			{Type: verb.OpWrite, Path: r.trackedPath, Content: []byte("verb-computed content\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err == nil {
 		t.Fatal("expected commit failure")
 	}
 
@@ -441,7 +482,7 @@ func TestApply_RollbackUnaffectedByIndexLockContention(t *testing.T) {
 			{Type: verb.OpWrite, Path: r.trackedPath, Content: []byte("verb-intended content\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err == nil {
 		t.Fatal("expected commit-tree failure from empty identity")
 	}
 
@@ -507,7 +548,7 @@ func TestApply_DedupesTouchedPaths(t *testing.T) {
 			{Type: verb.OpWrite, Path: filepath.Join("noWrite", "fail.md"), Content: []byte("nope")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err == nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err == nil {
 		t.Fatal("expected failure")
 	}
 	if got := porcelain(t, r.root); got != "" {
@@ -548,7 +589,7 @@ func TestApply_PreservesUnrelatedStagedChanges(t *testing.T) {
 			{Type: verb.OpWrite, Path: "work/epics/E-02-bar/epic.md", Content: []byte("---\nid: E-02\n---\n")},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 
@@ -612,7 +653,7 @@ func TestApply_RefusesConflictingPreStagedPath(t *testing.T) {
 		},
 	}
 
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to refuse on conflicting pre-staged path; got nil")
 	}
@@ -659,7 +700,7 @@ func TestApply_AllowEmptyPreservesUnrelatedStaged(t *testing.T) {
 		Trailers:   []gitops.Trailer{{Key: "aiwf-verb", Value: "authorize"}},
 		AllowEmpty: true,
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply allow-empty: %v", err)
 	}
 
@@ -694,7 +735,7 @@ func TestApply_AllowEmptyOnCleanIndex(t *testing.T) {
 		Trailers:   []gitops.Trailer{{Key: "aiwf-verb", Value: "authorize"}},
 		AllowEmpty: true,
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply allow-empty on clean index: %v", err)
 	}
 	cmd := exec.Command("git", "show", "--name-only", "--format=", "HEAD")
@@ -753,7 +794,7 @@ func TestApply_G0275ToxicShapeNoLongerObstructs(t *testing.T) {
 		},
 	}
 
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v (toxic shape must no longer obstruct unrelated verb commits)", err)
 	}
 
@@ -801,7 +842,7 @@ func TestApply_RefusesNothingToCommit(t *testing.T) {
 		Subject:  "test nothing to commit",
 		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to refuse a plan with no Ops and AllowEmpty unset")
 	}
@@ -826,7 +867,7 @@ func TestApply_StagedPathsCheckFails(t *testing.T) {
 			{Type: verb.OpWrite, Path: "new.md", Content: []byte("hi")},
 		},
 	}
-	err := verb.Apply(context.Background(), root, plan)
+	_, err := verb.Apply(context.Background(), root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail outside a git repository")
 	}
@@ -858,7 +899,7 @@ func TestApply_RollsBackOnMoveMkdirFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: r.trackedPath, NewPath: filepath.Join("noWrite", "newsub", "dest.md")},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail creating the move destination's parent")
 	}
@@ -911,7 +952,7 @@ func TestApply_DirectoryMoveWithNestedFile_CommitTreeIsCorrect(t *testing.T) {
 			{Type: verb.OpMove, Path: "work/epics/E-9999-src", NewPath: "work/epics/E-9998-dst"},
 		},
 	}
-	if err := verb.Apply(r.ctx, r.root, plan); err != nil {
+	if _, err := verb.Apply(r.ctx, r.root, plan); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 
@@ -994,7 +1035,7 @@ func TestApply_RollsBackOnDirectoryMoveThenNestedRewrite_BothSymptoms(t *testing
 			{Type: verb.OpWrite, Path: filepath.Join("noWrite", "child", "blocked.md"), Content: []byte("nope")},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail on the unwritable third op")
 	}
@@ -1050,7 +1091,7 @@ func TestApply_RollsBackOnDirectoryMoveMkdirFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: "work/epics/E-9999-src", NewPath: filepath.Join("noWrite", "newsub", "E-9999-dst")},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail creating the directory move's destination parent")
 	}
@@ -1088,7 +1129,7 @@ func TestApply_RollsBackOnDirectoryMoveRenameFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: "work/epics/E-9999-src", NewPath: "work/epics/E-9998-dst"},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail moving onto a non-empty destination directory")
 	}
@@ -1134,7 +1175,7 @@ func TestApply_RollsBackOnGatherCommitOpsFailure(t *testing.T) {
 			{Type: verb.OpMove, Path: "work/epics/E-9999-blocked", NewPath: "work/epics/E-9998-blocked-moved"},
 		},
 	}
-	err := verb.Apply(r.ctx, r.root, plan)
+	_, err := verb.Apply(r.ctx, r.root, plan)
 	if err == nil {
 		t.Fatal("expected Apply to fail walking the moved directory")
 	}

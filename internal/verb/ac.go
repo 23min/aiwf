@@ -163,11 +163,13 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 	if tests != nil {
 		trailers = appendTestsTrailer(trailers, tests)
 	}
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  subject,
 		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": parent.ID, "ac_ids": compositeIDs}
+	return result, nil
 }
 
 // batchACSubject builds the commit subject. N=1 preserves the
@@ -221,7 +223,7 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 	if err != nil {
 		return nil, err
 	}
-	return finalizeACPlan(t, parent, modified, "promote", compositeID, newStatus, actor, reason, force, nil,
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, ac.Status, newStatus, newStatus, actor, reason, force, nil,
 		fmt.Sprintf("aiwf promote %s %s -> %s", compositeID, ac.Status, newStatus))
 }
 
@@ -252,7 +254,7 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	if err != nil {
 		return nil, err
 	}
-	return finalizeACPlan(t, parent, modified, "promote", compositeID, newPhase, actor, reason, force, tests,
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, ac.TDDPhase, newPhase, newPhase, actor, reason, force, tests,
 		fmt.Sprintf("aiwf promote %s --phase %s -> %s", compositeID, ac.TDDPhase, newPhase))
 }
 
@@ -275,8 +277,9 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 		return nil, err
 	}
 	// Cancel does not emit aiwf-to: per Step 5's design (target is
-	// implicit). Pass empty `to` to suppress the trailer.
-	return finalizeACPlan(t, parent, modified, "cancel", compositeID, "", actor, reason, force, nil,
+	// implicit). Pass empty `to` to suppress the trailer, but report the
+	// real terminal in metadata.to (mirrors Cancel in promote.go).
+	return finalizeACPlan(t, parent, modified, "cancel", compositeID, ac.Status, "", entity.StatusCancelled, actor, reason, force, nil,
 		fmt.Sprintf("aiwf cancel %s -> cancelled", compositeID))
 }
 
@@ -314,11 +317,13 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error
 		return findings(fs), nil
 	}
 	subject := fmt.Sprintf("aiwf rename %s title -> %q", compositeID, newTitle)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  subject,
 		Trailers: standardTrailers("rename", compositeID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle}
+	return result, nil
 }
 
 // lookupAC parses a composite id, finds the parent milestone, and
@@ -363,10 +368,14 @@ func withACMutation(parent *entity.Entity, acID string, mutate func(*entity.Acce
 
 // finalizeACPlan handles the post-mutation tail shared by promoteAC
 // and cancelAC: serialize, run projection findings, build the plan
-// with the right trailers. `to` is the aiwf-to value (empty for
-// cancel); `force` toggles aiwf-force emission; `tests` (non-nil and
-// non-zero) appends an aiwf-tests trailer.
-func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, compositeID, to, actor, reason string, force bool, tests *gitops.TestMetrics, subject string) (*Result, error) {
+// with the right trailers. `to` is the aiwf-to trailer value (empty
+// for cancel, which omits aiwf-to: by convention); `metaTo` is the
+// real terminal reported in metadata.to regardless of trailer
+// suppression (mirrors Cancel's own promote.go metadata line, which
+// reports the actual target even though it passes an empty `to` to
+// transitionTrailers). `force` toggles aiwf-force emission; `tests`
+// (non-nil and non-zero) appends an aiwf-tests trailer.
+func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, compositeID, from, to, metaTo, actor, reason string, force bool, tests *gitops.TestMetrics, subject string) (*Result, error) {
 	body, err := readBody(t.Root, parent.Path)
 	if err != nil {
 		return nil, err
@@ -381,12 +390,14 @@ func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, com
 	}
 	trailers := transitionTrailers(verbName, compositeID, actor, reason, to, force)
 	trailers = appendTestsTrailer(trailers, tests)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
 		Trailers: trailers,
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "from": from, "to": metaTo}
+	return result, nil
 }
 
 // appendTestsTrailer appends an aiwf-tests trailer to trailers when

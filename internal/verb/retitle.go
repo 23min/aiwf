@@ -130,6 +130,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 			Trailers: standardTrailers("retitle", id, actor),
 			Ops:      ops,
 		},
+		Metadata: map[string]any{"entity_id": e.ID, "old_title": e.Title, "new_title": newTitle},
 	}, nil
 }
 
@@ -186,10 +187,12 @@ func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Resu
 		return findings(fs), nil
 	}
 	subject := fmt.Sprintf("aiwf retitle %s -> %q", compositeID, newTitle)
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
 		Trailers: standardTrailers("retitle", compositeID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle}
+	return result, nil
 }

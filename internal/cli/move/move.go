@@ -4,7 +4,7 @@ package move
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -12,13 +12,14 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
 // NewCmd builds `aiwf move <M-id> --epic <E-id>`: relocates a
 // milestone to a different epic in one commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -36,7 +37,7 @@ func NewCmd() *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if epic == "" {
-				fmt.Fprintln(os.Stderr, "aiwf move: --epic <E-id> is required")
+				cliutil.Errorln("aiwf move: --epic <E-id> is required")
 				return cliutil.WrapExitCode(cliutil.ExitUsage)
 			}
 			return cliutil.WrapExitCode(Run(args[0], epic, actor, principal, root, *out))
@@ -47,23 +48,50 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().StringVar(&epic, "epic", "", "target epic id (e.g., E-04)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	_ = cmd.RegisterFlagCompletionFunc("epic", cliutil.CompleteEntityIDFlag(entity.KindEpic))
 	return cmd
 }
 
 // Run executes `aiwf move`. Returns one of the cliutil.Exit* codes.
-func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int {
+func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		cliutil.Errorf("aiwf move: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: %v\n", err)
+		cliutil.Errorf("aiwf move: %v\n", err)
 		return cliutil.ExitUsage
 	}
+
+	ctx := context.Background()
+
+	// Minted once here rather than at the tail, per M-0238/AC-5 (see
+	// cancel.Run's identical comment). entity is id — the milestone
+	// being moved, not epic (the destination) — deliberately: pctx's
+	// TargetID below is epic because that's whose authorization scope
+	// governs the move, a different question ("who may do this") from
+	// what a diagnostic entity field answers ("what did this verb act
+	// on"). A human grepping this log for a milestone id should find
+	// the moves that touched it.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		// out.CorrelationID reuses the invocation-wide id NewRootCmd
+		// minted (M-0239/AC-1), matching the JSON envelope's
+		// metadata.correlation_id. Falls back to a fresh id only for a
+		// test that builds out directly, bypassing NewCmd/Execute.
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "move", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move")
 	if release == nil {
@@ -71,10 +99,9 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf move: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf move: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	// Move endpoints for the allow-rule are the source epic (the
@@ -92,5 +119,6 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) int 
 		TargetID:   epic,
 		MoveSource: moveSource,
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf move", tr, result, err, pctx, out)
+	return code
 }

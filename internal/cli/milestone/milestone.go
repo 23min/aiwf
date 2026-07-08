@@ -7,8 +7,6 @@ package milestone
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,7 +19,7 @@ import (
 
 // NewCmd builds the `aiwf milestone` parent command. One child today
 // (depends-on). The parent itself is non-Runnable.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "milestone",
 		Short:         "Milestone-scoped verbs",
@@ -29,7 +27,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newDependsOnCmd())
+	cmd.AddCommand(newDependsOnCmd(correlationID))
 	return cmd
 }
 
@@ -38,7 +36,7 @@ func NewCmd() *cobra.Command {
 // G-072 (the create-time half is the --depends-on flag on
 // `aiwf add milestone`). Replace-not-append semantics; --on and
 // --clear are mutually exclusive.
-func newDependsOnCmd() *cobra.Command {
+func newDependsOnCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -70,6 +68,7 @@ func newDependsOnCmd() *cobra.Command {
 	cmd.Flags().StringVar(&on, "on", "", "comma-separated milestone ids the target depends on; replace-not-append semantics")
 	cmd.Flags().BoolVar(&clearList, "clear", false, "empty the depends_on list (mutually exclusive with --on)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	_ = cmd.RegisterFlagCompletionFunc("on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
 	return cmd
@@ -77,22 +76,22 @@ func newDependsOnCmd() *cobra.Command {
 
 func runDependsOn(id, actor, principal, root, reason, on string, clearList bool, out cliutil.OutputFormat) int {
 	if on != "" && clearList {
-		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: --on and --clear are mutually exclusive")
+		cliutil.Errorln("aiwf milestone depends-on: --on and --clear are mutually exclusive")
 		return cliutil.ExitUsage
 	}
 	if on == "" && !clearList {
-		fmt.Fprintln(os.Stderr, "aiwf milestone depends-on: pass --on <id,id,...> to set the list, or --clear to empty it")
+		cliutil.Errorln("aiwf milestone depends-on: pass --on <id,id,...> to set the list, or --clear to empty it")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -105,7 +104,7 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf milestone depends-on: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf milestone depends-on: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -117,5 +116,6 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	return code
 }

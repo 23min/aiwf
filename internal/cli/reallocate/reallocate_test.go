@@ -10,7 +10,7 @@ import (
 // exports NewCmd with the expected metadata.
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := reallocate.NewCmd()
+	cmd := reallocate.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

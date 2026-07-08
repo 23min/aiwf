@@ -7,8 +7,6 @@ package editbody
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -22,7 +20,7 @@ import (
 // closes the plain-git carve-out from G-052 / M-058. Frontmatter is
 // untouched; only the markdown body below the frontmatter delimiter
 // is replaced. One commit per invocation, standard provenance.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -52,6 +50,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", `path to a file whose content becomes the entity's new body (use "-" to read from stdin); the file must contain body content only — leading "---" is refused. Omit to use bless mode: commit whatever the user edited in the working copy of the entity file`)
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -67,7 +66,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		var readErr error
 		body, readErr = cliutil.ReadBodyFile(bodyFile)
 		if readErr != nil {
-			fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", readErr)
+			cliutil.Errorf("aiwf edit-body: %v\n", readErr)
 			return cliutil.ExitUsage
 		}
 		if body == nil {
@@ -77,12 +76,12 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
+		cliutil.Errorf("aiwf edit-body: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf edit-body: %v\n", err)
+		cliutil.Errorf("aiwf edit-body: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -99,7 +98,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 	// refuse the write (G-0241). Matches add/check/reallocate/rewidth.
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf edit-body: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf edit-body: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -110,5 +109,6 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		TargetID:  id,
 	}
 	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
+	return code
 }

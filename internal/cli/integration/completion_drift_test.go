@@ -40,7 +40,7 @@ import (
 // not check them.
 func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 
 	// optOutFlags name (cmd-path, flag-name) pairs that intentionally
 	// have no completion function registered. The cmd-path side is
@@ -138,7 +138,7 @@ func TestPolicy_FlagsHaveCompletion(t *testing.T) {
 // covered.
 func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 	t.Parallel()
-	root := cli.NewRootCmd()
+	root := cli.NewRootCmd("")
 
 	// Commands intentionally without a ValidArgsFunction. The cmd-path
 	// is the full Cobra command path (`aiwf <verb> [<sub>]`).

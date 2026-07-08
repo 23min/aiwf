@@ -7,8 +7,6 @@ package setarea
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -22,7 +20,7 @@ import (
 // --clear` to untag): a verb that owns one entity's `area:` frontmatter,
 // setting it to an existing declared member or clearing it, in one
 // trailered commit.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -74,6 +72,7 @@ a retag with the prior member.`,
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
 	cmd.Flags().BoolVar(&clearTag, "clear", false, "clear the entity's area tag (mutually exclusive with <member>)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	// Composed positional completion: neither CompleteEntityIDArg nor
 	// CompleteAreaValueArg composes two positions, so dispatch on len(args)
 	// — position 0 offers entity ids, position 1 offers settable area
@@ -99,23 +98,23 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 	// Arity-vs-clear: <member> and --clear are mutually exclusive, and
 	// exactly one of them must be supplied.
 	if member != "" && clearTag {
-		fmt.Fprintln(os.Stderr, "aiwf set-area: <member> and --clear are mutually exclusive")
+		cliutil.Errorln("aiwf set-area: <member> and --clear are mutually exclusive")
 		return cliutil.ExitUsage
 	}
 	if member == "" && !clearTag {
-		fmt.Fprintln(os.Stderr, "aiwf set-area: pass <member> to tag, or --clear to untag")
+		cliutil.Errorln("aiwf set-area: pass <member> to tag, or --clear to untag")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		fmt.Fprintf(os.Stderr, "aiwf set-area: %v\n", err)
+		cliutil.Errorf("aiwf set-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf set-area: %v\n", err)
+		cliutil.Errorf("aiwf set-area: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -129,7 +128,7 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
-		fmt.Fprintf(os.Stderr, "aiwf set-area: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf set-area: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -144,5 +143,6 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		// a scoped ai/<id> agent whose scope reaches this entity may run it.
 		TargetID: entity.Canonicalize(id),
 	}
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
+	return code
 }

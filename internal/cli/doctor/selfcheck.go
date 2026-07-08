@@ -38,14 +38,14 @@ const (
 // path the user would trip over.
 func runSelfCheck() int {
 	if Dispatcher == nil {
-		fmt.Fprintln(os.Stderr, "aiwf doctor --self-check: in-process Dispatcher unset (wiring bug in cmd/aiwf/main.go's init); cannot run")
+		cliutil.Errorln("aiwf doctor --self-check: in-process Dispatcher unset (wiring bug in cmd/aiwf/main.go's init); cannot run")
 		return cliutil.ExitInternal
 	}
 	const actor = "human/self-check"
 
 	tmp, err := os.MkdirTemp("", "aiwf-self-check-")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		cliutil.Errorf("aiwf doctor --self-check: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	keep := false
@@ -92,13 +92,13 @@ func runSelfCheck() int {
 	// leaking into the operator's real home dir.
 	fakeHome, err := os.MkdirTemp("", "aiwf-self-check-home-")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		cliutil.Errorf("aiwf doctor --self-check: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	defer func() { _ = os.RemoveAll(fakeHome) }()
 	gitconfig := []byte("[user]\n\temail = self-check@aiwf.local\n\tname = aiwf self-check\n")
 	if err := os.WriteFile(filepath.Join(fakeHome, ".gitconfig"), gitconfig, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		cliutil.Errorf("aiwf doctor --self-check: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	prevHome, hadHome := os.LookupEnv("HOME")
@@ -113,12 +113,12 @@ func runSelfCheck() int {
 
 	ctx := context.Background()
 	if err := gitops.Init(ctx, tmp); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: git init: %v\n", err)
+		cliutil.Errorf("aiwf doctor --self-check: git init: %v\n", err)
 		keep = true
 		return cliutil.ExitInternal
 	}
 	if err := setLocalGitIdentity(ctx, tmp); err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf doctor --self-check: %v\n", err)
+		cliutil.Errorf("aiwf doctor --self-check: %v\n", err)
 		keep = true
 		return cliutil.ExitInternal
 	}
@@ -283,13 +283,13 @@ func runSelfCheck() int {
 		},
 	}
 
-	fmt.Printf("self-check repo: %s\n\n", tmp)
+	cliutil.Printf("self-check repo: %s\n\n", tmp)
 
 	for i, s := range steps {
 		if s.setup != nil {
 			if err := s.setup(); err != nil {
-				fmt.Printf("  FAIL  %s (setup: %v)\n", s.label, err)
-				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				cliutil.Printf("  FAIL  %s (setup: %v)\n", s.label, err)
+				cliutil.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
 				return cliutil.ExitFindings
 			}
@@ -300,34 +300,34 @@ func runSelfCheck() int {
 		// produce findings (e.g. the audit-only fixture's check call
 		// after the G-0231 item 3 severity bump).
 		if rc != s.wantRC {
-			fmt.Printf("  FAIL  %s (rc=%d, want=%d)\n", s.label, rc, s.wantRC)
+			cliutil.Printf("  FAIL  %s (rc=%d, want=%d)\n", s.label, rc, s.wantRC)
 			if captured != "" {
-				fmt.Println(indent(captured, "        "))
+				cliutil.Println(indent(captured, "        "))
 			}
-			fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+			cliutil.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 			keep = true
 			return cliutil.ExitFindings
 		}
 		if s.verify != nil {
 			if err := s.verify(); err != nil {
-				fmt.Printf("  FAIL  %s (verify: %v)\n", s.label, err)
-				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				cliutil.Printf("  FAIL  %s (verify: %v)\n", s.label, err)
+				cliutil.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
 				return cliutil.ExitFindings
 			}
 		}
 		if s.verifyOutput != nil {
 			if err := s.verifyOutput(captured); err != nil {
-				fmt.Printf("  FAIL  %s (verifyOutput: %v)\n", s.label, err)
-				fmt.Println(indent(captured, "        "))
-				fmt.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
+				cliutil.Printf("  FAIL  %s (verifyOutput: %v)\n", s.label, err)
+				cliutil.Println(indent(captured, "        "))
+				cliutil.Printf("\nself-check failed at step %d/%d.\nRepo retained at %s for inspection.\n", i+1, len(steps), tmp)
 				keep = true
 				return cliutil.ExitFindings
 			}
 		}
-		fmt.Printf("  ok    %s\n", s.label)
+		cliutil.Printf("  ok    %s\n", s.label)
 	}
-	fmt.Printf("\nself-check passed (%d steps).\n", len(steps))
+	cliutil.Printf("\nself-check passed (%d steps).\n", len(steps))
 	return cliutil.ExitOK
 }
 

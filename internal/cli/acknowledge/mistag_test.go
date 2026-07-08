@@ -12,7 +12,7 @@ import (
 // unlike illegal's free-form <sha>). Complements the completion-drift gate.
 func TestMistagCmd_HasPositionalCompletion(t *testing.T) {
 	t.Parallel()
-	if newMistagCmd().ValidArgsFunction == nil {
+	if newMistagCmd("").ValidArgsFunction == nil {
 		t.Error("mistag command ValidArgsFunction not wired (positional entity-id completion expected)")
 	}
 }

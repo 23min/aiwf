@@ -2,7 +2,6 @@ package check
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -71,16 +70,16 @@ func NewCmd() *cobra.Command {
 // findings in the chosen format, and returns the exit code.
 func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbose bool, registeredVerbs map[string]struct{}) int {
 	if format != "text" && format != "json" {
-		fmt.Fprintf(os.Stderr, "aiwf check: --format must be 'text' or 'json', got %q\n", format)
+		cliutil.Errorf("aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	if pretty && format != "json" {
-		fmt.Fprintln(os.Stderr, "aiwf check: --pretty has no effect without --format=json")
+		cliutil.Errorln("aiwf check: --pretty has no effect without --format=json")
 	}
 
 	resolved, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", err)
+		cliutil.Errorf("aiwf check: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -94,7 +93,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 
 	tr, loadErrs, err := cliutil.LoadTreeWithTrunk(ctx, resolved)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -102,7 +101,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 
 	contracts, contractErr := cliutil.LoadContractsBlock(resolved)
 	if contractErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", contractErr)
+		cliutil.Errorf("aiwf check: %v\n", contractErr)
 		return cliutil.ExitInternal
 	}
 	contractFindings := contract.RunValidation(ctx, tr, resolved, contracts)
@@ -124,8 +123,8 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		// (TestWalkHeadCommits_FailsLoudOnUnreadableHistory); this handler
 		// mirrors the sibling contractErr/pErr/mErr propagators in this
 		// function.
-		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", headErr) //coverage:ignore git log HEAD fails only on a corrupt/partial repo, not reproducible through full Run in a unit test; the WalkHeadCommits error path is covered directly in internal/check
-		return cliutil.ExitInternal                         //coverage:ignore see above — conventional fail-loud propagation, peer of contractErr/pErr/mErr
+		cliutil.Errorf("aiwf check: %v\n", headErr) //coverage:ignore git log HEAD fails only on a corrupt/partial repo, not reproducible through full Run in a unit test; the WalkHeadCommits error path is covered directly in internal/check
+		return cliutil.ExitInternal                 //coverage:ignore see above — conventional fail-loud propagation, peer of contractErr/pErr/mErr
 	}
 
 	// M-0159/AC-3: compute the retroactive-acknowledgment SHA set
@@ -157,7 +156,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 
 	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, ackedSHAEntities, postCutoffSHAs, head)
 	if pErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", pErr)
+		cliutil.Errorf("aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
 	}
 	findings = append(findings, provenanceFindings...)
@@ -200,7 +199,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
 	if mErr != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: %v\n", mErr)
+		cliutil.Errorf("aiwf check: %v\n", mErr)
 		return cliutil.ExitInternal
 	}
 	findings = append(findings, metricsFindings...)
@@ -304,7 +303,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 			writeText = baserender.Text
 		}
 		if err := writeText(os.Stdout, findings); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -321,7 +320,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 			},
 		}
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}
@@ -357,7 +356,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 func runFast(ctx context.Context, root, format string, pretty bool) int {
 	tr, loadErrs, err := tree.Load(ctx, root)
 	if err != nil { //coverage:ignore tree.Load errors only on git/IO failure; a resolved root with a healthy worktree never hits it (mirrors runShapeOnly)
-		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	findings := check.Run(tr, loadErrs)
@@ -396,7 +395,7 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 	switch format {
 	case "text":
 		if err := baserender.TextSummary(os.Stdout, findings); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -413,7 +412,7 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 			},
 		}
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}
@@ -437,7 +436,7 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 	tr, _, err := tree.Load(ctx, root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf check: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	var allow []string
@@ -453,7 +452,7 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 	switch format {
 	case "text":
 		if err := baserender.Text(os.Stdout, findings); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	case "json":
@@ -470,7 +469,7 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 			},
 		}
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
-			fmt.Fprintf(os.Stderr, "aiwf check: writing output: %v\n", err)
+			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
 	}

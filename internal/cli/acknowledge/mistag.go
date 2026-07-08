@@ -2,8 +2,6 @@ package acknowledge
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -17,7 +15,7 @@ import (
 // landing zone legitimately disagree, suppressing the area-mistag warning for
 // that entity. Like `acknowledge illegal` it is a human-sovereign empty-commit
 // act, but keyed per-entity rather than per-SHA.
-func newMistagCmd() *cobra.Command {
+func newMistagCmd(correlationID string) *cobra.Command {
 	var (
 		actor  string
 		root   string
@@ -60,6 +58,7 @@ sovereign acts trace to a named human with written rationale.`,
 	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why the cross-cutting work is intentional; required, non-empty after trim")
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	return cmd
 }
 
@@ -67,18 +66,18 @@ sovereign acts trace to a named human with written rationale.`,
 // cliutil.Exit* codes; the caller wraps it via cliutil.WrapExitCode.
 func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 	if strings.TrimSpace(reason) == "" {
-		fmt.Fprintln(os.Stderr, "aiwf acknowledge mistag: --reason \"...\" is required (non-empty after trim)")
+		cliutil.Errorln("aiwf acknowledge mistag: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge mistag: %v\n", err)
+		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge mistag: %v\n", err)
+		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge mistag")
@@ -90,9 +89,10 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on a filesystem/git IO failure; malformed entities surface as load findings, not an error here.
-		fmt.Fprintf(os.Stderr, "aiwf acknowledge mistag: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf acknowledge mistag: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	result, vErr := verb.AcknowledgeMistag(ctx, tr, id, actorStr, reason)
-	return cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
+	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
+	return code
 }

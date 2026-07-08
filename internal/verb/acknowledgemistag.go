@@ -64,10 +64,12 @@ func AcknowledgeMistag(ctx context.Context, t *tree.Tree, id, actor, reason stri
 			return nil, fmt.Errorf("aiwf acknowledge mistag: %w", err)
 		}
 	}
-	return plan(&Plan{
+	result := plan(&Plan{
 		Subject:    fmt.Sprintf("aiwf acknowledge mistag %s", canonID),
 		Body:       cleanedReason,
 		Trailers:   trailers,
 		AllowEmpty: true,
-	}), nil
+	})
+	result.Metadata = map[string]any{"entity_id": canonID}
+	return result, nil
 }

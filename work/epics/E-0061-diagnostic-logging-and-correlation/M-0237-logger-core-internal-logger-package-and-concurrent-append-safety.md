@@ -1,30 +1,30 @@
 ---
 id: M-0237
 title: 'Logger core: internal/logger package and concurrent-append safety'
-status: draft
+status: done
 parent: E-0061
 tdd: required
 acs:
     - id: AC-1
       title: Diagnostic logging defaults off, opt-in via env then aiwf.yaml
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Opted-in logs land in one daily XDG-state-home file, 30-day retention
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Concurrent writers to the shared log file never interleave or tear a line
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Bound logger fields never leak the operator's home-directory path
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: atomic_write_chokepoint.go allowlists internal/logger's append write
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -52,8 +52,11 @@ handler — no I/O, no allocation beyond the closed-form `Info` call). Unit
 tests cover the full matrix: env only, yaml only, both set (env wins),
 neither set (confirm zero I/O via the discard handler). Parsing and
 validating the `logging:` block's three optional keys
-(`level`/`format`/`destination`) in `internal/aiwfyaml/` is part of this AC —
+(`level`/`format`/`destination`) in `internal/logger` is part of this AC —
 `aiwf doctor` surfacing that configuration is M-0238's job, not this one's.
+The block is never programmatically rewritten by a verb, so it needs no
+`internal/aiwfyaml` surgical-editor entry (that package is reserved for
+blocks a verb rewrites in place — `contracts:`, `areas:`, `hooks:`).
 
 ### AC-2 — Opted-in logs land in one daily XDG-state-home file, 30-day retention
 
@@ -115,8 +118,7 @@ inadvertently exempted by the change.
 
 ## Surfaces touched
 
-- `internal/logger/` (new package)
-- `internal/aiwfyaml/` (`logging:` block parsing/validation)
+- `internal/logger/` (new package, including `logging:` block parsing/validation)
 - `internal/policies/atomic_write_chokepoint.go` (allowlist entry)
 
 ## Out of scope
@@ -140,16 +142,76 @@ inadvertently exempted by the change.
 
 ## Work log
 
+### AC-1 — Diagnostic logging defaults off, opt-in via env then aiwf.yaml
+
+Env/yaml/default precedence resolved independently per setting
+(`ResolveConfig`); discard-when-off backed by `slog.DiscardHandler`
+(`New`) · commit d0fff662 · tests 7/7. Independent review found the
+`YAMLConfig` struct tags had no decode-path test (every existing test
+built `YAMLConfig{...}` literals directly); pinned with a real
+`yaml.Unmarshal` round-trip · commit 9abafc61 · tests 31/31
+
+### AC-2 — Opted-in logs land in one daily XDG-state-home file, 30-day retention
+
+`OpenDestination` resolves stderr/explicit-path/default-XDG destinations;
+default directory created and swept of >30-day entries only on an
+opted-in call · commit efbbc061 · tests 22/22
+
+### AC-3 — Concurrent writers to the shared log file never interleave or tear a line
+
+40 independently-opened file handles append 1000 records concurrently;
+every line decodes as valid, uncorrupted JSON. No production code
+needed — the property already held from AC-1/AC-2's design · commit
+3c138e93 · tests 23/23
+
+### AC-4 — Bound logger fields never leak the operator's home-directory path
+
+`WithVerb` scrubs macOS/Linux home-directory fragments from verb/entity/
+actor before binding, mirroring `.gitleaks.toml`'s existing
+path-leak-darwin-home/path-leak-linux-home regexes · commit ef468cb9 ·
+tests 29/29
+
+### AC-5 — atomic_write_chokepoint.go allowlists internal/logger's append write
+
+Already satisfied by AC-2's commit efbbc061 (the allowlist entry landed
+there since AC-2's file-opening code needed it to pass the policy).
+`TestPolicy_AtomicWriteChokepoint` runs against the real repo tree and
+confirms zero violations — exactly one exemption
+(`internal/logger/destination.go`), nothing else inadvertently exempted
+· commit efbbc061 · tests 2/2
+
 ## Decisions made during implementation
 
-- (none)
+- The `logging:` block's parsing/validation lives in `internal/logger`
+  itself, not `internal/aiwfyaml` as ADR-0017/this spec originally named
+  — that package is reserved for blocks a verb programmatically rewrites
+  in place (`contracts:`, `areas:`, `hooks:`), which `logging:` never is.
+  ADR-0017's Consequences section is corrected to match.
+- `OpenDestination` refuses to resolve the default destination when
+  neither `XDG_STATE_HOME` nor `HOME` is set, rather than silently
+  falling back to a bare relative path that would write into the
+  process's current working directory — caught by AC-2's vacuity
+  mutation probe, not anticipated by the original AC text.
+- AC-5's `atomic_write_chokepoint.go` allowlist entry for
+  `internal/logger`'s writer landed with AC-2 (commit efbbc061), since
+  AC-2's file-opening code needs it to pass the chokepoint policy. AC-5
+  itself is now just confirming the entry and promoting.
 
 ## Validation
 
+- `make check-fast` (build + `golangci-lint` + `go vet` + full `go test -race ./...`) — green.
+- `make coverage-gate` (diff-scoped branch-coverage gate vs. the merge-base) — clean.
+- `internal/logger`: 31 tests, 100% statement coverage, race-clean (`go test ./internal/logger/... -race -cover`).
+- `TestPolicy_AtomicWriteChokepoint`, `TestPolicy_LayeringDirection`, `TestPolicy_NoTimeNowInCore` — pass against the live repo tree.
+- Doc-lint sweep over the milestone's touched docs (ADR-0017, this spec) — one pre-existing broken code reference found and fixed (`internal/cli/output/outputformat.go` → `internal/cli/cliutil/outputformat.go`, moved before this milestone), no orphans, no TODOs.
+
 ## Deferrals
 
-- (none)
+- G-0382 — the `logging:` block's typed config should move to `internal/config` (with a schema-registry entry) when M-0238 wires the real `aiwf.yaml` file-read; `internal/logger` should consume already-parsed values rather than owning the decode.
+- G-0383 — M-0238 must deliberately decide how call sites reuse `WithVerb`'s home-path scrub for values logged under keys other than verb/entity/actor, or the scrub silently doesn't apply to them.
 
 ## Reviewer notes
 
-- (none)
+- **Independent code-quality review** (fresh-context reviewer, `wf-review-code` lens, dispatched before wrap): one blocking finding (AC-1's `YAMLConfig` yaml tags had no decode test — fixed, see Work log), then verified clean: AC-2's retention-cutoff math is calendar-date-correct (independently re-derived), AC-2's empty-`HOME` refusal is wired into the call path and tested, AC-3's concurrent test genuinely exercises independent file descriptors (not a shared in-process handler/mutex), AC-4's scrub regexes match `.gitleaks.toml` byte-for-byte, AC-5's allowlist adds exactly one entry with no collateral exemptions. The reviewer independently re-examined the `internal/aiwfyaml` → `internal/logger` architectural correction (without taking this spec's own justification at face value) and agreed with it, while noting `internal/config` — not `internal/aiwfyaml` or `internal/logger` — is the block's eventual right home once M-0238 wires the real decode (→ G-0382).
+- **Independent design-quality review** (`wf-rethink` on the `internal/logger` package, fresh context): verdict **keep**, no reshape needed. The reviewer wrote an independent from-scratch reconstruction *before* reading the actual code and converged on the same four-file decomposition (config / logger / destination / withverb). The single highest-leverage design decision — leaning on `slog`'s existing one-`Write()`-per-record behavior plus POSIX `O_APPEND` atomicity instead of inventing a mutex or a single-writer goroutine for concurrency safety — was confirmed correct. No scope bleed found from the two milestones (M-0238, M-0239) still to build on this package.
+- `scrubHomePaths` requires a trailing `/` after the username (e.g. `/Users/alice` with no following path segment is not scrubbed) — deliberate byte-for-byte parity with `.gitleaks.toml`'s existing rules, which have the same boundary; AC-4 asks for exactly that parity, not a stricter pattern.

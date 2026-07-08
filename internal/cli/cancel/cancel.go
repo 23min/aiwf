@@ -6,7 +6,7 @@ package cancel
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -14,6 +14,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -22,7 +23,7 @@ import (
 // kind-aware terminal-cancel transition: an epic cancels to "cancelled",
 // a gap to "wontfix", an ADR to "rejected", etc. — the per-kind FSM
 // target lives in entity.AllowedTransitions and the verb layer.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor     string
 		principal string
@@ -51,6 +52,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "record an audit trailer even when the verb's existing checks would normally allow it (requires --reason)")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at the kind's terminal-cancel target (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg("", 0)
 	return cmd
 }
@@ -59,9 +61,9 @@ func NewCmd() *cobra.Command {
 // the caller (RunE in NewCmd) wraps the int in cliutil.WrapExitCode
 // so Cobra's RunE channel preserves the exit code through the run()
 // dispatcher.
-func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) int {
+func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) (code int) {
 	if force && auditOnly {
-		fmt.Fprintln(os.Stderr, "aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
+		cliutil.Errorln("aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
 	}
 	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
@@ -69,20 +71,44 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		if auditOnly {
 			gateFlag = "--audit-only"
 		}
-		fmt.Fprintf(os.Stderr, "aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
+		cliutil.Errorf("aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		cliutil.Errorf("aiwf cancel: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: %v\n", err)
+		cliutil.Errorf("aiwf cancel: %v\n", err)
 		return cliutil.ExitUsage
 	}
+
+	ctx := context.Background()
+
+	// Minted once here rather than at the tail, per M-0238/AC-5: rootDir
+	// and actorStr are both known now, so the diagnostic logger can bind
+	// once and stay in scope for the whole invocation (a prerequisite
+	// for M-0239's sub-function logging). The Enabled gate skips
+	// WithVerb's scrub work entirely on a disabled run.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		// out.CorrelationID is the id NewRootCmd minted for this whole
+		// invocation (M-0239/AC-1) — reused here as run_id so the log
+		// line and the JSON envelope's metadata.correlation_id share
+		// one value. Falls back to a fresh id only when out was built
+		// directly by a test bypassing NewCmd/Execute.
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "cancel", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel")
 	if release == nil {
@@ -90,10 +116,9 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf cancel: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf cancel: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 	pctx := cliutil.ProvenanceContext{
@@ -105,8 +130,10 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	}
 	if auditOnly {
 		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+	} else {
+		result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
 	}
-	result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+	return code
 }

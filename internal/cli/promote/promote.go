@@ -4,8 +4,6 @@ package promote
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,7 +24,7 @@ import (
 // --phase is mutex with the positional new-status: pass one or the
 // other, never both. --phase is only valid for composite ids; using
 // it on a top-level entity is a usage error.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		actor        string
 		principal    string
@@ -72,6 +70,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "skip the FSM transition rule (requires --reason); coherence checks still run")
 	cmd.Flags().BoolVar(&auditOnly, "audit-only", false, "record an audit-trail commit without mutating files; entity must already be at <new-status> (requires --reason; mutex with --force; G24 recovery path)")
 	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 		switch len(args) {
 		case 0:
@@ -106,18 +105,18 @@ func Run(args []string, actor, principal, root, reason,
 	phaseMode := phase != ""
 	switch {
 	case phaseMode && len(args) == 2:
-		fmt.Fprintln(os.Stderr, "aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
+		cliutil.Errorln("aiwf promote: --phase is mutex with the positional new-status; pass one or the other")
 		return cliutil.ExitUsage
 	case phaseMode && !entity.IsCompositeID(id):
-		fmt.Fprintf(os.Stderr, "aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
+		cliutil.Errorf("aiwf promote: --phase is only valid for composite ids (M-NNN/AC-N); got %q\n", id)
 		return cliutil.ExitUsage
 	case !phaseMode && len(args) != 2:
-		fmt.Fprintln(os.Stderr, "aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")
+		cliutil.Errorln("aiwf promote: missing new-status. Usage: aiwf promote <id> <new-status>")
 		return cliutil.ExitUsage
 	}
 
 	if force && auditOnly {
-		fmt.Fprintln(os.Stderr, "aiwf promote: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
+		cliutil.Errorln("aiwf promote: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
 	}
 	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
@@ -125,7 +124,7 @@ func Run(args []string, actor, principal, root, reason,
 		if auditOnly {
 			gateFlag = "--audit-only"
 		}
-		fmt.Fprintf(os.Stderr, "aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
+		cliutil.Errorf("aiwf promote: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return cliutil.ExitUsage
 	}
 
@@ -136,22 +135,22 @@ func Run(args []string, actor, principal, root, reason,
 	}
 	resolverSet := len(resolverOpts.AddressedBy) > 0 || len(resolverOpts.AddressedByCommit) > 0 || resolverOpts.SupersededBy != ""
 	if resolverSet && auditOnly {
-		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not allowed with --audit-only (audit-only records an existing transition; resolver-flag values would imply a mutation)")
+		cliutil.Errorln("aiwf promote: --by/--by-commit/--superseded-by are not allowed with --audit-only (audit-only records an existing transition; resolver-flag values would imply a mutation)")
 		return cliutil.ExitUsage
 	}
 	if resolverSet && phase != "" {
-		fmt.Fprintln(os.Stderr, "aiwf promote: --by/--by-commit/--superseded-by are not valid in phase mode (resolver fields apply to entity status, not AC phase)")
+		cliutil.Errorln("aiwf promote: --by/--by-commit/--superseded-by are not valid in phase mode (resolver fields apply to entity status, not AC phase)")
 		return cliutil.ExitUsage
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
+		cliutil.Errorf("aiwf promote: %v\n", err)
 		return cliutil.ExitUsage
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf promote: %v\n", err)
+		cliutil.Errorf("aiwf promote: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
@@ -164,7 +163,7 @@ func Run(args []string, actor, principal, root, reason,
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aiwf promote: loading tree: %v\n", err)
+		cliutil.Errorf("aiwf promote: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
@@ -184,17 +183,18 @@ func Run(args []string, actor, principal, root, reason,
 		var vErr error
 		if auditOnly {
 			if metrics != nil {
-				fmt.Fprintln(os.Stderr, "aiwf promote: --tests is not allowed with --audit-only (audit-only records an existing transition; no test cycle ran)")
+				cliutil.Errorln("aiwf promote: --tests is not allowed with --audit-only (audit-only records an existing transition; no test cycle ran)")
 				return cliutil.ExitUsage
 			}
 			result, vErr = verb.PromoteACPhaseAuditOnly(ctx, tr, id, phase, actorStr, reason)
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		return code
 	}
 	if strings.TrimSpace(tests) != "" {
-		fmt.Fprintln(os.Stderr, "aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
+		cliutil.Errorln("aiwf promote: --tests is only valid in phase mode (composite id with --phase <p>)")
 		return cliutil.ExitUsage
 	}
 	newStatus := args[1]
@@ -205,8 +205,10 @@ func Run(args []string, actor, principal, root, reason,
 	}
 	if auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
-		return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		return code
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
-	return cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+	return code
 }
