@@ -23,7 +23,12 @@ func Errorln(args ...any) {
 	fmt.Fprintln(os.Stderr, args...)
 }
 
-// Printf writes a formatted line to stdout.
+// Printf writes a formatted line to stdout. The discarded return value
+// is required here (unlike its siblings below): golangci-lint's
+// errcheck default exclude list covers bare fmt.Println/fmt.Print and
+// fmt.Fprint*(os.Stderr, ...), but not fmt.Fprintf(os.Stdout, ...) —
+// an errcheck quirk, not an inconsistency to "fix" by adding `_, _ =`
+// to the others (they'd be silencing a check that already passes).
 func Printf(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stdout, format, args...)
 }
