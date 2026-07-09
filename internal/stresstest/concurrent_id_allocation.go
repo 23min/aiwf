@@ -85,8 +85,8 @@ func (s *ConcurrentIDAllocationScenario) Run(dir string) error {
 		if ro.execErr != nil && !errors.As(ro.execErr, &exitErr) { //coverage:ignore defensive: same launch-failure class pinned at its source by TestConcurrentIDAllocationScenario_RealBinary_ErrorsWhenBinaryMissing
 			return fmt.Errorf("actor %d: running aiwf add: %w", i, ro.execErr)
 		}
-		env, err := parseVerbEnvelope([]string{"add", string(s.kind)}, ro.out) //coverage:ignore defensive: parseVerbEnvelope's own malformed-input branch is unit-tested directly in verb_sequence_classify_test.go; a real `add` invocation's stdout is never malformed
-		if err != nil {
+		env, err := parseVerbEnvelope([]string{"add", string(s.kind)}, ro.out)
+		if err != nil { //coverage:ignore defensive: parseVerbEnvelope's own malformed-input branch is unit-tested directly in verb_sequence_classify_test.go; a real `add` invocation's stdout is never malformed
 			return fmt.Errorf("actor %d: %w", i, err)
 		}
 		outcomes[i] = actorOutcome{status: env.Status, entityID: env.Metadata.EntityID}
