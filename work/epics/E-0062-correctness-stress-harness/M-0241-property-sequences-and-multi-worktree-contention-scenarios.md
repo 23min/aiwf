@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: repolock's per-worktree lockfile scoping is confirmed intentional
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: A sibling worktree's commit is confirmed unreachable from another's check
