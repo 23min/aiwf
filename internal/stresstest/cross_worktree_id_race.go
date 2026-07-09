@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -62,23 +61,7 @@ func (s *CrossWorktreeIDRaceScenario) Collided() bool { return s.collided }
 // sibling worktrees (actor-a, actor-b) off it — dir/main, dir/wt-a,
 // dir/wt-b.
 func (s *CrossWorktreeIDRaceScenario) Setup(dir string) error {
-	mainDir := filepath.Join(dir, "main")
-	if err := os.MkdirAll(mainDir, 0o755); err != nil { //coverage:ignore defensive: mainDir is a fresh subdirectory of RunScenario's own os.MkdirTemp result, no realistic failure mode short of filesystem sabotage
-		return fmt.Errorf("creating main repo dir: %w", err)
-	}
-	if err := gitInitAndConfig(mainDir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
-		return err
-	}
-	if err := runGit(mainDir, "commit", "-q", "--allow-empty", "-m", "seed"); err != nil { //coverage:ignore defensive: an empty commit in a freshly-initialized repo has no realistic failure mode
-		return err
-	}
-	if err := runGit(mainDir, "worktree", "add", "-q", "-b", "actor-a", filepath.Join(dir, "wt-a")); err != nil { //coverage:ignore defensive: adding a worktree at a fresh, never-before-used path has no realistic failure mode
-		return err
-	}
-	if err := runGit(mainDir, "worktree", "add", "-q", "-b", "actor-b", filepath.Join(dir, "wt-b")); err != nil { //coverage:ignore defensive: see the actor-a worktree add above
-		return err
-	}
-	return nil
+	return newSiblingWorktreesFixture(dir)
 }
 
 // Run races one `aiwf add` in each sibling worktree, merges actor-b
