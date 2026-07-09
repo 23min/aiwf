@@ -20,7 +20,7 @@ acs:
     - id: AC-3
       title: Every success criterion in E-0062's epic spec has a passing demonstration
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
