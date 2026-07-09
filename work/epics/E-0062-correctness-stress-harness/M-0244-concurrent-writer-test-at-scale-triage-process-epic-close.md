@@ -101,6 +101,21 @@ confirmed against the finished harness — not asserted from memory.
 
 ## Work log
 
+### AC-1 — Concurrent subprocesses sharing one log file never tear or interleave a line
+
+Confirmed: n real `aiwf cancel` subprocesses, each pointed at one shared
+diagnostic log file via `AIWF_LOG_FILE`, never tear or interleave a line —
+the OS-level `O_APPEND` guarantee holds under genuine separate-process
+concurrency, not just the package-level goroutine simulation M-0237 already
+covers. Every line's `run_id` matches exactly one real invocation's own
+`--format=json` correlation id, extending M-0239's single-process
+correlation guarantee to concurrent, multi-process load. A vacuity-probe
+mutation initially survived (a message-swap in the foreign-run_id branch —
+the test asserted a generic phrase, not which id it was attached to);
+strengthened the classify tests to name the specific run_id in every
+expected violation, then reconfirmed the mutation is caught · commit
+7e0b4237 · tests 13/13
+
 ## Decisions made during implementation
 
 - (none)
