@@ -124,8 +124,8 @@ subprocess, confirms externally that the lock reads as held via
 `repolock.Acquire(dir, 0)` — repolock's own pre-existing zero-timeout
 probe mode — SIGKILLs the holder, and confirms an immediate re-acquire
 succeeds. 24 new tests (pure classify/decision-logic tables plus
-real-binary integration tests covering every branch, including the
-ready-timeout and cannot-acquire paths); a 6-mutation vacuity probe
+real-binary integration tests covering every reachable branch, including
+the ready-timeout and cannot-acquire paths); a 6-mutation vacuity probe
 confirmed every decision branch actually catches a regression · commits
 6a287690, 5008a006 · tests 24/24.
 
@@ -177,6 +177,37 @@ actually catches a regression · commits 7194b22a, 0599c2b8 · tests 13/13.
 - (none)
 
 ## Validation
+
+Full local gate green as of the wrap: `go build ./...`, `go vet ./...`,
+`make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all
+packages ok), `make coverage-gate` (branch-coverage-audit and
+firing-fixture-presence both pass). Every AC's timing-sensitive real-binary
+scenario re-verified non-flaky over multiple runs (5x for AC-4's
+chmod-based fixture, 11x cumulative for AC-1/AC-2's real-subprocess
+scenarios during the independent code-quality review).
+
+Independent two-lens review (code-quality + design-quality, both dispatched
+as fresh-context subagents against the full milestone diff, per this repo's
+wrap-review convention):
+
+- **Code-quality: approve, no blocking defects.** All 4 ACs confirmed to
+  exercise the real, described behavior end-to-end (not just fabricated-
+  envelope unit tests) — AC-1's fd-cleanup claim, AC-2's atomic-swap claim,
+  AC-3's exported-surface claim, AC-4's clean-refusal claim. G-0391
+  independently reproduced and confirmed accurate, not overstated.
+  `//coverage:ignore` rationales spot-checked and held. Two non-blocking
+  wording nits (the AC-1 Work Log phrasing above) — fixed in this pass.
+- **Design-quality: 2 structural findings, both applied.** `processWasSignaled`
+  (introduced for AC-1, consumed by AC-2) and `readGapFile` (introduced for
+  AC-2, consumed by AC-4) were each stranded in a file whose own header
+  comment scoped it to a single AC — the same class of staleness M-0241's
+  own wrap review caught and fixed via `verbenvelope.go`. Both relocated
+  (`processWasSignaled` into `verbenvelope.go`, `readGapFile` into
+  `gitrepo.go`) as pure structural moves, re-verified with the full gate.
+  Three other candidates (the `readyTimeout`-as-overridable-field pattern,
+  the `.aiwf-tmp-` literal duplicated across files, the `lockholder/`
+  subpackage) were considered and correctly judged not yet past this
+  repo's "abstract on the third" bar.
 
 ## Deferrals
 
