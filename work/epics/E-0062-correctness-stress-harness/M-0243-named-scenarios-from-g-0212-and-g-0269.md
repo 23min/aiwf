@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: A parallel-branch reallocate race is resolved per G-0212 item 1
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A concurrent cross-worktree edit-body race matches G-0212 item 2
       status: open
