@@ -168,6 +168,16 @@ by-design trust model, not a narrower bug a check could catch without
 breaking legitimate cherry-picks · commit e478902d, 3774e597 · tests
 17/17
 
+### AC-5 — G-0269's HEAD-drift race is scripted, expected-red until its guard lands
+
+Reproduces the actual incident deterministically — no real concurrency
+needed, since the defect is a plain time-of-check to time-of-use gap
+between two sequential steps, not a timing race to win. The real run
+confirms the incident still reproduces (1 violation), as expected per
+this AC's own Constraints; a mutation probe caught and fixed a real
+vacuity gap (a count-only assertion let a message-swapping mutant
+survive) · commit ee034a7d · tests 21/21
+
 ## Decisions made during implementation
 
 - (none)
