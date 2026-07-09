@@ -11,6 +11,10 @@ acs:
       title: cmd/stresstest run --scenario <name> runs exactly the named real scenario
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: run --scenario all runs the whole catalog, one combined report
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -44,7 +48,7 @@ A name→constructor registry covering all 12 scenarios
 placeholder as the selectable set. `--scenario <unknown-name>` refuses
 with a clear error naming the valid set.
 
-### AC-2 — `cmd/stresstest run` with no `--scenario` (or `--scenario all`) runs the whole catalog once, producing one combined raw report
+### AC-2 — run --scenario all runs the whole catalog, one combined report
 
 The "run the whole catalog on demand" story E-0062's Scope section
 describes — a human runs the harness and gets one report covering every
