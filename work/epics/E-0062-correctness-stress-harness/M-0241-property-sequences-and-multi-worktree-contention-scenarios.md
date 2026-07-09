@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Real subprocesses racing repolock never produce a duplicate id
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: A cross-worktree id race is always caught and resolved by reallocate
