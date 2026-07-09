@@ -852,6 +852,6 @@ finds into a reproducible gap.
 | M-0240 | Harness skeleton: driver, scenario interface, streaming report | done |
 | M-0241 | Property sequences and multi-worktree contention scenarios | done |
 | M-0242 | Fault injection via external observation | done |
-| M-0243 | Named scenarios from G-0212 and G-0269 | draft |
+| M-0243 | Named scenarios from G-0212 and G-0269 | in_progress |
 | M-0244 | Concurrent-writer test at scale; triage process; epic close | draft |
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // gitInitAndConfig git-inits dir and sets a deterministic commit
@@ -12,12 +13,61 @@ import (
 // against a bare git repo with no aiwf.yaml. Shared by every scenario
 // in this package whose Setup needs a fresh disposable repo.
 func gitInitAndConfig(dir string) error {
+	if err := runGit(dir, "init", "-q"); err != nil { //coverage:ignore defensive: git init on a fresh os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
+		return err
+	}
+	return configureGitIdentity(dir)
+}
+
+// configureGitIdentity sets the deterministic commit identity every
+// scenario in this package uses, without re-running `git init` — for
+// a directory that already has a .git (e.g. a fresh clone), unlike
+// gitInitAndConfig.
+func configureGitIdentity(dir string) error {
 	for _, args := range [][]string{
-		{"init", "-q"},
 		{"config", "user.email", "stresstest@example.com"},
 		{"config", "user.name", "stresstest"},
 	} {
-		if err := runGit(dir, args...); err != nil { //coverage:ignore defensive: git init/config on a fresh os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
+		if err := runGit(dir, args...); err != nil { //coverage:ignore defensive: git config in a repo this scenario itself just created or cloned has no realistic failure mode short of filesystem sabotage
+			return err
+		}
+	}
+	return nil
+}
+
+// newBareOriginWithClonesFixture creates a bare origin repo under
+// dir/origin.git, seeds it with one empty commit via a throwaway
+// clone, then clones it once per name in cloneNames — genuinely
+// independent working copies sharing only the origin remote, not each
+// other's local refs (contrast newSiblingWorktreesFixture's linked
+// worktrees, which share one .git and its full ref namespace). First
+// built for M-0243/AC-1's ParallelBranchReallocateScenario.
+func newBareOriginWithClonesFixture(dir string, cloneNames ...string) error {
+	originDir := filepath.Join(dir, "origin.git")
+	if err := runGit(dir, "init", "-q", "--bare", "--initial-branch=main", originDir); err != nil { //coverage:ignore defensive: git init --bare on a fresh path under this scenario's own os.MkdirTemp dir has no realistic failure mode
+		return fmt.Errorf("creating bare origin: %w", err)
+	}
+
+	seedDir := filepath.Join(dir, "seed")
+	if err := runGit(dir, "clone", "-q", originDir, seedDir); err != nil { //coverage:ignore defensive: cloning a freshly-created bare repo has no realistic failure mode
+		return fmt.Errorf("cloning origin to seed: %w", err)
+	}
+	if err := configureGitIdentity(seedDir); err != nil { //coverage:ignore defensive: configureGitIdentity's own internal branch already carries this rationale
+		return err
+	}
+	if err := runGit(seedDir, "commit", "-q", "--allow-empty", "-m", "seed"); err != nil { //coverage:ignore defensive: an empty commit in a freshly-cloned repo has no realistic failure mode
+		return err
+	}
+	if err := runGit(seedDir, "push", "-q", "origin", "HEAD:main"); err != nil { //coverage:ignore defensive: pushing the first commit to a freshly-created empty bare origin has no realistic failure mode
+		return err
+	}
+
+	for _, name := range cloneNames {
+		cloneDir := filepath.Join(dir, name)
+		if err := runGit(dir, "clone", "-q", originDir, cloneDir); err != nil { //coverage:ignore defensive: cloning a repo that already has one pushed commit has no realistic failure mode
+			return fmt.Errorf("cloning origin to %s: %w", name, err)
+		}
+		if err := configureGitIdentity(cloneDir); err != nil { //coverage:ignore defensive: see the seed clone above
 			return err
 		}
 	}
@@ -75,4 +125,35 @@ func newSiblingWorktreesFixture(dir string) error {
 		return err
 	}
 	return nil
+}
+
+// currentBranch returns dir's currently checked-out branch name.
+// First built for M-0243/AC-3's ArchiveDuringActiveScopeScenario, then
+// reused by AC-5's HeadDriftScenario — living in this shared
+// git-primitive file rather than staying stranded in the single-AC
+// file that first needed it, now that more than one scenario depends
+// on it.
+func currentBranch(dir string) (string, error) {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: reading HEAD's branch name right after this scenario's own git init has no realistic failure mode
+		return "", fmt.Errorf("reading current branch: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// headSHA returns dir's current HEAD commit SHA. First built for
+// M-0243/AC-4's ForceOverrideDurabilityScenario, then reused by AC-5's
+// HeadDriftScenario — living in this shared git-primitive file rather
+// than staying stranded in the single-AC file that first needed it,
+// now that more than one scenario depends on it.
+func headSHA(dir string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: reading HEAD in a repo this scenario itself just committed to has no realistic failure mode
+		return "", fmt.Errorf("reading HEAD: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }

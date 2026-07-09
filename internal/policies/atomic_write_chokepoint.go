@@ -62,6 +62,17 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// up (or preserved for RCA on failure) by RunScenario's own
 		// discipline, same shape as the self-check sandbox above.
 		"internal/stresstest/mid_write_kill.go": "writes confined to the scenario's own disposable temp dir; scratch seed data, never a persisted entity file",
+		// M-0243/AC-2's cross-worktree edit-body race scenario writes
+		// two scratch draft-body files confined to the scenario's own
+		// disposable os.MkdirTemp dir, fed to `aiwf edit-body
+		// --body-file` — never a persisted entity file themselves.
+		"internal/stresstest/cross_worktree_edit_body_race.go": "writes confined to the scenario's own disposable temp dir; scratch draft data, never a persisted entity file",
+		// M-0243/AC-4's force-override-durability scenario manually
+		// edits its own fixture epic's status field (to construct an
+		// illegal-transition commit) and writes one scratch follow-up
+		// file — both confined to the scenario's own disposable
+		// os.MkdirTemp dir, never a persisted entity file in this repo.
+		"internal/stresstest/force_override_durability.go": "writes confined to the scenario's own disposable temp dir; a fixture epic's status field and scratch follow-up data, never a persisted entity file in this repo",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
