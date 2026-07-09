@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: A disk-full or permission-denied write surfaces as a clean error
-      status: open
+      status: met
       tdd_phase: done
 ---
 
