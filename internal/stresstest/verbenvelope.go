@@ -37,9 +37,10 @@ type verbEnvelope struct {
 		} `json:"scopes"`
 	} `json:"result"`
 	Metadata struct {
-		EntityID string `json:"entity_id"`
-		Entities int    `json:"entities"` // populated by `check`
-		Events   int    `json:"events"`   // populated by `history`
+		EntityID      string `json:"entity_id"`
+		Entities      int    `json:"entities"`       // populated by `check`
+		Events        int    `json:"events"`         // populated by `history`
+		CorrelationID string `json:"correlation_id"` // populated by every instrumented verb (M-0239/AC-1)
 	} `json:"metadata"`
 }
 
