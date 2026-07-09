@@ -98,3 +98,57 @@ func TestBuildBinary_RejectsRelativeOutDir(t *testing.T) {
 // search (built for helpers called from many depths), a plain
 // relative path is enough here.
 const repoRootRelative = "../.."
+
+// TestBuildLockHolder_BuildsAnExecutableBinary mirrors
+// TestBuildBinary_UsesFreshAbsolutePathNotPATH's shape for the second
+// buildable target M-0242/AC-1 introduces.
+func TestBuildLockHolder_BuildsAnExecutableBinary(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("aiwf is unix-only")
+	}
+
+	bin, err := BuildLockHolder(context.Background(), repoRootRelative, t.TempDir())
+	if err != nil {
+		t.Fatalf("BuildLockHolder: %v", err)
+	}
+	if !filepath.IsAbs(bin) {
+		t.Fatalf("BuildLockHolder returned non-absolute path %q", bin)
+	}
+	info, err := os.Stat(bin)
+	if err != nil {
+		t.Fatalf("stat built binary: %v", err)
+	}
+	if info.Mode()&0o111 == 0 {
+		t.Fatalf("built binary %q is not executable: mode %v", bin, info.Mode())
+	}
+}
+
+// TestBuildLockHolder_ErrorsOnBuildFailure mirrors
+// TestBuildBinary_ErrorsOnBuildFailure: the bogus module has no
+// ./internal/stresstest/lockholder package to build.
+func TestBuildLockHolder_ErrorsOnBuildFailure(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("aiwf is unix-only")
+	}
+
+	bogusRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bogusRoot, "go.mod"), []byte("module bogus\n\ngo 1.24\n"), 0o644); err != nil {
+		t.Fatalf("write go.mod: %v", err)
+	}
+
+	if _, err := BuildLockHolder(context.Background(), bogusRoot, t.TempDir()); err == nil {
+		t.Fatal("expected BuildLockHolder to fail for a module with no ./internal/stresstest/lockholder package")
+	}
+}
+
+// TestBuildLockHolder_RejectsRelativeOutDir mirrors
+// TestBuildBinary_RejectsRelativeOutDir.
+func TestBuildLockHolder_RejectsRelativeOutDir(t *testing.T) {
+	t.Parallel()
+
+	if _, err := BuildLockHolder(context.Background(), repoRootRelative, "relative/out/dir"); err == nil {
+		t.Fatal("expected BuildLockHolder to reject a relative outDir")
+	}
+}

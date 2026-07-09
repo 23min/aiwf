@@ -35,6 +35,23 @@ func runGit(dir string, args ...string) error {
 	return nil
 }
 
+// readGapFile reads the one gap entity file id names under root's
+// work/gaps/ directory, tolerating any slug. First built for
+// M-0242/AC-2's MidWriteKillScenario, then reused by AC-4's
+// DiskFaultScenario — living in this shared fixture-helper file
+// rather than staying stranded in the single-AC file that first
+// needed it, now that more than one scenario depends on it.
+func readGapFile(root, id string) ([]byte, error) {
+	matches, err := filepath.Glob(filepath.Join(root, "work", "gaps", id+"-*.md"))
+	if err != nil { //coverage:ignore defensive: the only error filepath.Glob returns is ErrBadPattern, and this package's own literal pattern is well-formed by construction
+		return nil, fmt.Errorf("globbing for gap %s under %s: %w", id, root, err)
+	}
+	if len(matches) != 1 {
+		return nil, fmt.Errorf("expected exactly one gap file for %s under %s, found %d: %v", id, root, len(matches), matches)
+	}
+	return os.ReadFile(matches[0])
+}
+
 // newSiblingWorktreesFixture creates a main repo with a seed commit
 // under dir/main, then adds two sibling worktrees (actor-a, actor-b)
 // off it — dir/wt-a, dir/wt-b. Shared by every scenario whose Setup

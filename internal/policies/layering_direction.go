@@ -155,6 +155,12 @@ func layerTier(pkg string) (tier int, known bool) {
 	// (M-0240/AC-6) — the same top tier for the same reason.
 	case "cmd/stresstest":
 		return 0, true
+	// internal/stresstest/lockholder is M-0242/AC-1's lock-holder
+	// test-support helper — a nested `package main` entry point (its
+	// own killable OS process) built by internal/stresstest itself,
+	// same top tier for the same reason as cmd/stresstest.
+	case "internal/stresstest/lockholder":
+		return 0, true
 	case "internal/verb":
 		return 2, true
 	case "internal/contractcheck", "internal/contractverify":

@@ -39,6 +39,34 @@ func sharedTestBinary(t *testing.T) string {
 	return sharedBinaryPath
 }
 
+// sharedLockHolderOnce/-Path/-Err mirror sharedBinaryOnce/-Path/-Err
+// for M-0242/AC-1's lockholder helper binary — do not mutate the file
+// the returned path names.
+var (
+	sharedLockHolderOnce sync.Once
+	sharedLockHolderPath string
+	sharedLockHolderErr  error
+)
+
+// sharedLockHolderBinary returns the absolute path to the lockholder
+// helper binary (internal/stresstest/lockholder), built once per test
+// process.
+func sharedLockHolderBinary(t *testing.T) string {
+	t.Helper()
+	sharedLockHolderOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "stresstest-shared-lockholder-")
+		if err != nil {
+			sharedLockHolderErr = err
+			return
+		}
+		sharedLockHolderPath, sharedLockHolderErr = BuildLockHolder(context.Background(), repoRootRelative, dir)
+	})
+	if sharedLockHolderErr != nil {
+		t.Fatalf("building shared lockholder binary: %v", sharedLockHolderErr)
+	}
+	return sharedLockHolderPath
+}
+
 // skipIfUnsupported gates the real-subprocess scenario tests in this
 // package: they need `go build` (slow; skip under -short) and are
 // unix-only, matching aiwf itself.

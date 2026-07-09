@@ -110,6 +110,10 @@ linters:
       #   - cmd/stresstest/main.go: the stress harness's own entry point
       #     (M-0240/AC-6, dev-only, never installed alongside cmd/aiwf) —
       #     same "only a cmd/<tool>/main.go exits" shape as cmd/aiwf's.
+      #   - internal/stresstest/lockholder/main.go: M-0242/AC-1's
+      #     lock-holder test-support helper — a nested `package main`
+      #     entry point (its own killable OS process), same
+      #     "only a cmd/<tool>/main.go exits" shape as the two above.
       #   - verb/apply.go:         the controlled re-panic after atomic rollback.
       - linters: [forbidigo]
         path: _test\.go
@@ -117,6 +121,8 @@ linters:
         path: cmd/aiwf/main\.go
       - linters: [forbidigo]
         path: cmd/stresstest/main\.go
+      - linters: [forbidigo]
+        path: internal/stresstest/lockholder/main\.go
       - linters: [forbidigo]
         path: internal/verb/apply\.go
       # ADR-0017 AC-3: the two sanctioned raw-stdio writers. outputformat.go
