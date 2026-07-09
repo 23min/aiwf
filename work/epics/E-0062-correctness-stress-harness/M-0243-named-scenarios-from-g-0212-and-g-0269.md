@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A concurrent cross-worktree edit-body race matches G-0212 item 2
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Archive-during-active-scope is exercised end-to-end per G-0212 item 3
       status: open
