@@ -6,6 +6,11 @@ parent: E-0062
 depends_on:
     - M-0244
 tdd: required
+acs:
+    - id: AC-1
+      title: cmd/stresstest run --scenario <name> runs exactly the named real scenario
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -27,7 +32,7 @@ criteria surfaced it directly.
 
 ## Acceptance criteria
 
-### AC-1 — `cmd/stresstest run --scenario <name>` runs exactly the named real scenario
+### AC-1 — cmd/stresstest run --scenario <name> runs exactly the named real scenario
 
 A name→constructor registry covering all 12 scenarios
 (`ConcurrentIDAllocationScenario`, `CrossWorktreeIDRaceScenario`,
