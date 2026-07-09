@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Lock-held and temp-file states are detected with no production-code change
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: A disk-full or permission-denied write surfaces as a clean error
