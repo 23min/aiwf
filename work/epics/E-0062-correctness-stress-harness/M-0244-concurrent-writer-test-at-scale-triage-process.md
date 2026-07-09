@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Every success criterion in E-0062's epic spec has a passing demonstration
-      status: open
+      status: met
       tdd_phase: done
 ---
 
