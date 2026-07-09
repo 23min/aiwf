@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: G-0269's HEAD-drift race is scripted, expected-red until its guard lands
-      status: open
+      status: met
       tdd_phase: done
 ---
 
