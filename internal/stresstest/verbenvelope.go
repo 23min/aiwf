@@ -32,6 +32,9 @@ type verbEnvelope struct {
 	Result   struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
+		Scopes []struct {
+			State string `json:"state"` // populated by `show`
+		} `json:"scopes"`
 	} `json:"result"`
 	Metadata struct {
 		EntityID string `json:"entity_id"`
@@ -48,6 +51,7 @@ type verbEnvelopeError struct {
 type verbEnvelopeFinding struct {
 	Code     string `json:"code"`
 	Severity string `json:"severity"`
+	EntityID string `json:"entity_id"`
 }
 
 // runAiwfJSON runs bin with args plus --format=json in dir and
