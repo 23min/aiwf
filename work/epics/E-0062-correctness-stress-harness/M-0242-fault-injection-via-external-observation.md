@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: A disk-full or permission-denied write surfaces as a clean error
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
