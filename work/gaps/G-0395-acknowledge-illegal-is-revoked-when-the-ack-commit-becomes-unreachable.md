@@ -1,8 +1,10 @@
 ---
 id: G-0395
 title: acknowledge illegal is revoked when the ack commit becomes unreachable
-status: open
+status: addressed
 discovered_in: M-0243
+addressed_by_commit:
+    - d9f32dc3
 ---
 ## What's missing
 
