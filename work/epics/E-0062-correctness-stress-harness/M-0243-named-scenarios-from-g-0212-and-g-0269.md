@@ -156,6 +156,18 @@ terminal parent (promote-to-done carries no non-terminal-children
 guard, unlike `aiwf cancel`), producing a tree `aiwf check` only flags
 after the fact. Filed as G-0393 · commit 7e56e8cf · tests 12/12
 
+### AC-4 — Force-push and cherry-pick vs acknowledge-illegal are exercised per G-0212
+
+Item 5 confirmed real: a rebase dropping just the `acknowledge illegal`
+commit (keeping the originally-flagged commit reachable) silently
+revives the suppressed finding — the same reachability effect a
+force-push produces. Filed as G-0395. Item 6 confirmed: a
+force-override's trailers survive cherry-pick verbatim, so the new
+branch's commit is trusted exactly as the original was — the current,
+by-design trust model, not a narrower bug a check could catch without
+breaking legitimate cherry-picks · commit e478902d, 3774e597 · tests
+17/17
+
 ## Decisions made during implementation
 
 - (none)
@@ -165,6 +177,7 @@ after the fact. Filed as G-0393 · commit 7e56e8cf · tests 12/12
 ## Deferrals
 
 - G-0393 — aiwf archive can sweep a non-terminal milestone alongside its terminal parent (discovered in AC-3)
+- G-0395 — acknowledge illegal is revoked when the ack commit becomes unreachable (discovered in AC-4)
 
 ## Reviewer notes
 
