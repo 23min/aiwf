@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Generated verb sequences are checked for FSM legality each step
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Real subprocesses racing repolock never produce a duplicate id
       status: open
