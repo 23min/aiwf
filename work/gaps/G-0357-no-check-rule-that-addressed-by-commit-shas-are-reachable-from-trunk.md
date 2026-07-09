@@ -1,7 +1,7 @@
 ---
 id: G-0357
 title: No check rule that addressed_by_commit SHAs are reachable from trunk
-status: open
+status: wontfix
 ---
 ## Resolution
 
