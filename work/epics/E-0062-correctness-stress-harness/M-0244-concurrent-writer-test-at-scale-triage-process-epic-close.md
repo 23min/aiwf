@@ -1,7 +1,7 @@
 ---
 id: M-0244
 title: Concurrent-writer test at scale; triage process; epic close
-status: draft
+status: in_progress
 parent: E-0062
 depends_on:
     - M-0241
