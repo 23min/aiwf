@@ -34,3 +34,22 @@ func BuildBinary(ctx context.Context, moduleRoot, outDir string) (string, error)
 	}
 	return bin, nil
 }
+
+// BuildLockHolder compiles moduleRoot's
+// ./internal/stresstest/lockholder into outDir/lockholder and returns
+// its absolute path. See BuildBinary for the outDir-must-be-absolute
+// rationale, which applies identically here. M-0242/AC-1's scenario
+// uses the returned binary to hold internal/repolock's lock from a
+// real, independently killable OS process.
+func BuildLockHolder(ctx context.Context, moduleRoot, outDir string) (string, error) {
+	if !filepath.IsAbs(outDir) {
+		return "", fmt.Errorf("outDir must be an absolute path, got %q", outDir)
+	}
+	bin := filepath.Join(outDir, "lockholder")
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", bin, "./internal/stresstest/lockholder")
+	cmd.Dir = moduleRoot
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("building lockholder binary from %s: %w\n%s", moduleRoot, err, out)
+	}
+	return bin, nil
+}
