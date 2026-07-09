@@ -14,7 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/repolock"
 )
 
-func main() {
+func main() { //coverage:ignore exercised only as a compiled subprocess by lock_kill_test.go's real-binary tests; go test's -coverpkg instrumentation never crosses an exec boundary into a separately built binary, unlike run() below which is called in-process
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, os.Stdin))
 }
 
