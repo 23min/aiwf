@@ -146,6 +146,19 @@ reachable branch); a 5-mutation vacuity probe confirmed every decision
 branch actually catches a regression · commits 237475a3, e14c36d3 · tests
 14/14.
 
+### AC-3 — detection mechanisms require zero repolock/pathutil changes
+
+`TestNoNewExportsInRepolockOrPathutil` parses `internal/repolock/repolock_unix.go`
+and `internal/pathutil/{pathutil,atomic}.go` via `go/parser` and asserts their
+exported top-level surface is exactly the pre-existing set AC-1's and AC-2's
+probes depend on — `Acquire`/`ErrBusy`/`Lock`/`Lock.Release` for repolock;
+nothing at all for pathutil, since AC-2 only globs for its already-documented
+`.aiwf-tmp-*` naming convention and never imports the package. A future edit
+needing a new exported symbol to make either probe work would grow this set
+and fail here. 1 new test (a 3-case table); a 4-mutation vacuity probe
+confirmed every parsing branch actually catches a regression · commit
+dc47799b · tests 1/1.
+
 ## Decisions made during implementation
 
 - (none)
