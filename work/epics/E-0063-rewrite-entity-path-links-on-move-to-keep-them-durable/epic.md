@@ -140,7 +140,7 @@ and as a backstop for raw-`git mv` bypass.
 
 ## ADRs produced (optional)
 
-- `ADR-NNNN` — Entity path-links are first-class and rewritten on move
+- `ADR-0033` — Entity path-links are first-class and rewritten on move
 
 ## References
 
