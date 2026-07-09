@@ -115,6 +115,20 @@ clean, wrapped error — not a corrupted file, not a panic.
 
 ## Work log
 
+### AC-1 — repolock kill -9 releases via kernel fd cleanup
+
+Built a small `internal/stresstest/lockholder` helper (a nested `package
+main`, no change to `internal/repolock` itself) that acquires the repo
+lock and blocks until killed. `LockKillScenario` launches it as a real
+subprocess, confirms externally that the lock reads as held via
+`repolock.Acquire(dir, 0)` — repolock's own pre-existing zero-timeout
+probe mode — SIGKILLs the holder, and confirms an immediate re-acquire
+succeeds. 24 new tests (pure classify/decision-logic tables plus
+real-binary integration tests covering every branch, including the
+ready-timeout and cannot-acquire paths); a 6-mutation vacuity probe
+confirmed every decision branch actually catches a regression · commits
+6a287690, 5008a006 · tests 24/24.
+
 ## Decisions made during implementation
 
 - (none)
