@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: A cross-worktree id race is always caught and resolved by reallocate
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: repolock's per-worktree lockfile scoping is confirmed intentional
       status: open
