@@ -9,24 +9,24 @@ tdd: required
 acs:
     - id: AC-1
       title: Generated verb sequences are checked for FSM legality each step
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Real subprocesses racing repolock never produce a duplicate id
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: A cross-worktree id race is always caught and resolved by reallocate
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: repolock's per-worktree lockfile scoping is confirmed intentional
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: A sibling worktree's commit is confirmed unreachable from another's check
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -129,16 +129,42 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 ## Work log
 
+### AC-1 — Generated verb sequences are checked for FSM legality each step
+
+`VerbSequenceScenario` walks random legal/illegal `aiwf promote` attempts against one entity of every kind, via the real compiled binary, in one disposable repo — extending `internal/entity/transition_property_test.go`'s FSM-property pattern to the real binary. Discovered and handled a real nuance: an FSM-legal transition can still be refused by an orthogonal business rule (gap's `addressed`-needs-`--by` resolver gate) distinct from FSM illegality; the classifier treats that as a legitimate refusal, not a violation. · commit 0320f740 · tests 25/25
+
+### AC-2 — Real subprocesses racing repolock never produce a duplicate id
+
+`ConcurrentIDAllocationScenario` launches n real `aiwf add` subprocesses against one working copy, started close together via goroutine/OS process scheduling (no artificial delay), repeated via M-0240's `RunRepeated`. Confirms repolock serializes every attempt to a distinct id within its 2-second timeout. Along the way, `PolicyNoRetryLoopsOnGitErrors` flagged the fan-out loop as a false positive (its heuristic matches any `for` body containing `exec.Command`, not specifically retried git calls) — fixed by extracting the per-actor subprocess launch into its own method. · commit d8f3d6b7 (+ 4d27cc40 coverage:ignore placement fix) · tests 33/33
+
+### AC-3 — A cross-worktree id race is always caught and resolved by reallocate
+
+`CrossWorktreeIDRaceScenario` races real `aiwf add` subprocesses across two sibling worktrees (repolock has no cross-worktree serialization, per AC-4) and confirms: when the race produces a genuine duplicate id — an accepted outcome, not a prevented one — `aiwf check` always surfaces it as `ids-unique` and `aiwf reallocate` always resolves it cleanly. Repeated via `RunRepeated` so at least one attempt hits the real race window. Caught a real bug in the harness itself: `findEntityFile` returned an absolute path, but `aiwf reallocate` resolves its argument against the repo root, so every real collision was failing to resolve until fixed. `runAiwfJSON` refactored into a package-level function to drive multiple worktree directories. · commit 2b289043 · tests 46/46
+
+### AC-4 — repolock's per-worktree lockfile scoping is confirmed intentional
+
+White-box tests directly in `internal/repolock` (read-only, no production changes) confirm the mechanism behind AC-3's race: a linked worktree's `.git` is a regular file, not a directory, so `lockfilePath`'s `IsDir()` check falls through to a per-worktree `.aiwf.lock` fallback that never touches the main checkout's `.git/aiwf.lock`. Behavioral confirmation: holding the main checkout's lock does not block a concurrent `Acquire` in the linked worktree, ruling out any other unaccounted-for failure mode. Along the way, `PolicyGitTestEnvHardened` correctly required `testsupport.HardenGitTestEnv()` in `repolock`'s `TestMain` now that a test in the package shells out to real git. · commit 757af3fd · tests 3 new (+ existing repolock suite)
+
+### AC-5 — A sibling worktree's commit is confirmed unreachable from another's check
+
+`ReachabilityIsolationScenario` confirms a commit in worktree B is invisible to `aiwf check` in worktree A until merged, and — beyond the fact itself — that this invisibility has zero other observable consequence: check's findings and entity count are byte-identical before and after the sibling's invisible commit, not just silent on isolation-escape specifically. Confirms the loop closes correctly once merged. Discovered a real, separate bug: `aiwf show <missing-id> --format=json` doesn't honor `--format=json` on its not-found path (empty stdout, plain-text stderr) — filed as G-0389 rather than fixed here (architecturally distinct from this AC's reachability claim); the scenario classifies `show` by exit status instead. · commit 09a6e02e (+ b5ac4984 branch-coverage fix) · tests 41/41
+
 ## Decisions made during implementation
 
 - (none)
 
 ## Validation
 
+Full validation after every AC: `go build ./...`, `go vet ./...`, `make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all green), `aiwf check` (clean, only the pre-existing `provenance-untrailered-scope-undefined` warning), `make coverage-gate` (clean after each commit). Vacuity mutation probes run against every new pure decision function across all 5 ACs. The independent review (see Reviewer notes) found one gap the self-probe missed — `classifyReachabilityIsolation`'s entity-count comparison was untested in isolation — fixed with a dedicated table row; the reviewer's own mutation is now caught. All mutated files restored byte-identical after every probe.
+
 ## Deferrals
 
-- (none)
+- G-0389 — `aiwf show --format=json` doesn't honor the flag on its not-found path (discovered during AC-5; architecturally distinct from this milestone's reachability-isolation claim).
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review (fresh-context, no authorship attachment) run before wrap:
+
+- **Code-quality**: REQUEST-CHANGES, one blocking item — `classifyReachabilityIsolation`'s entity-count comparison (AC-5) had no table row isolating it from the findings comparison, so a mutation dropping just that half of the check survived. Fixed with a dedicated row (commit 8f3fd883); the reviewer's exact mutation is now caught. Everything else across all 5 ACs verified solid: AC-to-test traceability, `//coverage:ignore` honesty, the `runAiwfJSON` method→function refactor's call sites, and all work-log commit SHAs checked against `git log`.
+- **Design-quality**: the four-scenario Setup/Run/classify pattern itself is fine (KISS — forcing a shared template over genuinely different invariants would be premature abstraction). Two real, small issues found and fixed: `CrossWorktreeIDRaceScenario.Setup` and `ReachabilityIsolationScenario.Setup` were byte-identical (extracted `newSiblingWorktreesFixture`, commit 82713ae1); the shared JSON-envelope machinery was stranded in the AC-1-named `verb_sequence.go` despite being used by all four scenarios (relocated to `verbenvelope.go`, commit 5701b3c4). Both are pure structural moves, re-verified with the full race suite and `make coverage-gate` after landing.
+- Non-blocking tracked item: `cmd/stresstest/run.go`'s `placeholderScenario` comment still reads "no real catalog scenario ships until M-0241+" — this milestone's 5 scenarios run via the `RunScenario`/`RunRepeated` test harness (the sanctioned oracle), not wired into the CLI catalog; "Surfaces touched" deliberately excludes `cmd/stresstest`, so this is intentional, not a gap.
