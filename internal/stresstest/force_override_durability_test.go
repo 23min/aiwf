@@ -1,6 +1,7 @@
 package stresstest
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -40,6 +41,32 @@ func TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebas
 	}
 	if !strings.Contains(result.Violations[0].Message, "not durable against history rewrites") {
 		t.Fatalf("expected the violation to name the ack-durability defect, got: %+v", result.Violations[0])
+	}
+}
+
+// TestForceOverrideDurabilityScenario_RealBinary_SetupSurfacesASeedingRefusal
+// pre-seeds a colliding E-0001 entity file before Setup's own first
+// `aiwf add` call, mirroring M-0241/AC-5's same pre-seed technique,
+// pinning that Setup wraps and surfaces the refusal.
+func TestForceOverrideDurabilityScenario_RealBinary_SetupSurfacesASeedingRefusal(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := t.TempDir()
+
+	epicsDir := filepath.Join(dir, "work", "epics", "E-0001-collision")
+	if err := os.MkdirAll(epicsDir, 0o755); err != nil {
+		t.Fatalf("mkdir colliding epic dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(epicsDir, "epic.md"), []byte("not valid frontmatter\n"), 0o644); err != nil {
+		t.Fatalf("write colliding epic file: %v", err)
+	}
+
+	s := NewForceOverrideDurabilityScenario(bin)
+	if err := s.Setup(dir); err == nil {
+		t.Fatal("expected Setup to surface the seeding refusal")
+	} else if !strings.Contains(err.Error(), "did not report ok") {
+		t.Fatalf("expected the refusal to name the seeding step, got: %v", err)
 	}
 }
 

@@ -126,11 +126,11 @@ func (s *ForceOverrideDurabilityScenario) Setup(dir string) error {
 // combined outcome.
 func (s *ForceOverrideDurabilityScenario) Run(dir string) error {
 	preAckFlagged, postAckFlagged, postRebaseFlagged, err := s.runAckRevocationByRebase(dir)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: runAckRevocationByRebase's own internal error branches each carry their own reachability rationale; this is a trivial propagation wrapper with no logic of its own
 		return err
 	}
 	forceAccepted, cherryPickClean, trailersPreserved, err := s.runCherryPickCarryover(dir)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: see the runAckRevocationByRebase propagation above
 		return err
 	}
 	s.violations = classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, forceAccepted, cherryPickClean, trailersPreserved)
@@ -175,7 +175,7 @@ func (s *ForceOverrideDurabilityScenario) runAckRevocationByRebase(dir string) (
 	if ackErr != nil { //coverage:ignore defensive: see the check call above
 		return false, false, false, fmt.Errorf("acknowledging the illegal edit: %w", ackErr)
 	}
-	if ackEnv.Status != "ok" {
+	if ackEnv.Status != "ok" { //coverage:ignore defensive: the target SHA and --for-entity id are always freshly derived from this scenario's own just-created commit and epic, with no realistic refusal mode here; the general collision-refusal mechanism is exercised at its source (TestForceOverrideDurabilityScenario_RealBinary_SetupSurfacesASeedingRefusal)
 		return false, false, false, fmt.Errorf("acknowledging the illegal edit: aiwf did not report ok (status=%s, error=%+v)", ackEnv.Status, ackEnv.Error)
 	}
 	ySHA, shaErr := headSHA(dir)
@@ -226,7 +226,7 @@ func (s *ForceOverrideDurabilityScenario) runCherryPickCarryover(dir string) (fo
 		return false, false, false, fmt.Errorf("force-promoting the milestone on branch-a: %w", forceErr)
 	}
 	forceAccepted = forceEnv.Status == "ok"
-	if !forceAccepted {
+	if !forceAccepted { //coverage:ignore defensive: a fresh draft milestone's own force-promote to done, immediately after Setup created it, has no realistic refusal mode here; see the seeding-refusal test referenced above
 		return false, false, false, nil
 	}
 	fSHA, shaErr := headSHA(dir)
@@ -246,7 +246,7 @@ func (s *ForceOverrideDurabilityScenario) runCherryPickCarryover(dir string) (fo
 		return forceAccepted, false, false, fmt.Errorf("checking out branch-b: %w", checkoutErr)
 	}
 	cherryPickClean = runGit(dir, "cherry-pick", fSHA) == nil
-	if !cherryPickClean {
+	if !cherryPickClean { //coverage:ignore defensive: branch-a and branch-b fork from the identical pre-force point and diverge only by this one commit, so the cherry-pick's target file is always at the exact base state the commit expects — no realistic conflict here
 		return forceAccepted, false, false, nil
 	}
 
