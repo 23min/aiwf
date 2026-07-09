@@ -52,7 +52,7 @@ the primitive.
 
 - The link path moves to M-0245's region-splitter; the id-token prose pass stays
   for bare mentions. The two no longer overlap on link destinations.
-- Decision recorded in `ADR-NNNN`.
+- Decision recorded in `ADR-0033`.
 
 ## Surfaces touched
 
