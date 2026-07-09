@@ -155,7 +155,7 @@ White-box tests directly in `internal/repolock` (read-only, no production change
 
 ## Validation
 
-Full validation after every AC: `go build ./...`, `go vet ./...`, `make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all green), `aiwf check` (clean, only the pre-existing `provenance-untrailered-scope-undefined` warning), `make coverage-gate` (clean after each commit). Vacuity mutation probes run against every new pure decision function across all 5 ACs — every injected mutation caught, no survivors; all mutated files restored byte-identical.
+Full validation after every AC: `go build ./...`, `go vet ./...`, `make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all green), `aiwf check` (clean, only the pre-existing `provenance-untrailered-scope-undefined` warning), `make coverage-gate` (clean after each commit). Vacuity mutation probes run against every new pure decision function across all 5 ACs. The independent review (see Reviewer notes) found one gap the self-probe missed — `classifyReachabilityIsolation`'s entity-count comparison was untested in isolation — fixed with a dedicated table row; the reviewer's own mutation is now caught. All mutated files restored byte-identical after every probe.
 
 ## Deferrals
 
@@ -163,4 +163,8 @@ Full validation after every AC: `go build ./...`, `go vet ./...`, `make lint` (0
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review (fresh-context, no authorship attachment) run before wrap:
+
+- **Code-quality**: REQUEST-CHANGES, one blocking item — `classifyReachabilityIsolation`'s entity-count comparison (AC-5) had no table row isolating it from the findings comparison, so a mutation dropping just that half of the check survived. Fixed with a dedicated row (commit 8f3fd883); the reviewer's exact mutation is now caught. Everything else across all 5 ACs verified solid: AC-to-test traceability, `//coverage:ignore` honesty, the `runAiwfJSON` method→function refactor's call sites, and all work-log commit SHAs checked against `git log`.
+- **Design-quality**: the four-scenario Setup/Run/classify pattern itself is fine (KISS — forcing a shared template over genuinely different invariants would be premature abstraction). Two real, small issues found and fixed: `CrossWorktreeIDRaceScenario.Setup` and `ReachabilityIsolationScenario.Setup` were byte-identical (extracted `newSiblingWorktreesFixture`, commit 82713ae1); the shared JSON-envelope machinery was stranded in the AC-1-named `verb_sequence.go` despite being used by all four scenarios (relocated to `verbenvelope.go`, commit 5701b3c4). Both are pure structural moves, re-verified with the full race suite and `make coverage-gate` after landing.
+- Non-blocking tracked item: `cmd/stresstest/run.go`'s `placeholderScenario` comment still reads "no real catalog scenario ships until M-0241+" — this milestone's 5 scenarios run via the `RunScenario`/`RunRepeated` test harness (the sanctioned oracle), not wired into the CLI catalog; "Surfaces touched" deliberately excludes `cmd/stresstest`, so this is intentional, not a gap.
