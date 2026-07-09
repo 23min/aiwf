@@ -56,6 +56,43 @@ pointer from it): a violation the harness surfaces gets a new gap
 and a minimal regression test is promoted into the normal, every-push
 suite — not left living only inside the stress harness.
 
+**The procedure:**
+
+1. **Reproduce empirically first.** Before writing any Go code, drive the
+   real compiled binary against a disposable repo and confirm the violation
+   by hand — raw `--format=json` output, exact command sequence. A
+   hypothesis that turns out wrong under a control experiment (branch
+   reachability, git plumbing subtlety) is corrected *before* it becomes a
+   gap, not after.
+2. **File the gap.** `aiwf add gap --title "<concrete, specific defect>" --discovered-in <M-NNNN>`. The body names what's broken, why it matters, and
+   the exact reproduction steps confirmed in step 1 — enough for someone
+   with no memory of this session to reproduce it cold.
+3. **Write a minimal regression test in the normal, every-push suite** —
+   never left living only inside the stress harness. TDD red-first: the
+   test fails against the current (buggy) code, using this repo's existing
+   test conventions for whatever package owns the defect (a `repoFixture`-
+   style real-git test for `internal/check`, a `verb_test` runner for
+   `internal/verb`, a `testutil.CaptureStdout`-based integration test for a
+   CLI verb's output shape, etc.) — never a stress-harness-only scenario
+   substituting for it.
+4. **Fix the defect**, confirm the regression test goes green, run the
+   project's full branch-coverage-audit + `wf-vacuity` mutation probe on
+   the new code before considering it done — the same discipline this
+   milestone's own AC-1 used.
+5. **Close the loop**: `aiwf promote G-NNNN addressed --by-commit <sha>`
+   once the fix and its test are committed. If a finding turns out to
+   already be acceptable behavior rather than a defect (confirmed by the
+   step-1 reproduction, not assumed), no gap is filed at all — or an
+   already-filed gap closes referencing the corrected understanding instead
+   of a code fix (see G-0395 below: a `D-0034` decision plus a smaller,
+   scoped diagnostic improvement, not the larger persisted-mechanism fix
+   the gap's own text first suggested).
+
+Demonstrated four times against this epic's own backlog — every gap this
+epic's scenarios surfaced (G-0389, G-0391 from M-0241/M-0242; G-0393,
+G-0395 from M-0243), all still open at this milestone's start, closed via
+this exact procedure. See the Work Log below for each.
+
 ### AC-3 — Every success criterion in E-0062's epic spec has a passing demonstration
 
 Each checkbox in E-0062's *Success criteria* section is walked and
@@ -116,9 +153,44 @@ strengthened the classify tests to name the specific run_id in every
 expected violation, then reconfirmed the mutation is caught · commit
 7e0b4237 · tests 13/13
 
+### AC-2 — A documented triage procedure turns a found violation into a gap and test
+
+Documented the procedure above and applied it to all four gaps this
+epic's scenarios had surfaced (none fixed until now, per the epic's own
+manual-triage constraint):
+
+- **G-0389** (`aiwf show`'s not-found path ignored `--format=json`) —
+  fixed at its own source; a new integration test pins the JSON error
+  envelope · commit dc27bfa4
+- **G-0391** (mutating verbs' lock-busy refusal ignored `--format=json`)
+  — fixed at the shared chokepoint (`AcquireRepoLock`), rippling through
+  23 call sites across every mutating verb; a pre-existing M-0242 stress
+  test that had documented this exact bug as expected behavior was
+  updated to confirm the fix instead · commit 45f678b2
+- **G-0393** (`aiwf archive` could sweep a non-terminal milestone
+  alongside its terminal parent) — a new epic-promote-to-terminal guard
+  mirrors `aiwf cancel`'s existing non-terminal-children refusal; the
+  M-0243 stress scenario that had reproduced the bug now confirms the
+  guard refuses instead · commit 4271e580
+- **G-0395** (`acknowledge illegal` silently revoked when its ack commit
+  becomes unreachable) — investigated further before fixing: empirically
+  confirmed the pre-push gate already prevents the corrupted history
+  from ever being shared (illegal-transition is error-severity, and the
+  shipped hook's exit code is `aiwf check`'s own), and that the exact
+  compound failure has never once occurred in this repo's own history
+  (56/56 real acknowledgments still reachable). Recorded as D-0034
+  (accepted trade-off: DAG-scoping vs. rebase-durability) rather than
+  building a persisted-ledger mechanism this repo's own "no separate
+  event log" design commitment argues against. The one real, addressable
+  gap — a revived finding looking identical to a never-acknowledged one
+  — closes with a small, best-effort diagnostic
+  (`findDanglingAckHint`) that names the dropped acknowledgment when
+  local evidence survives, with no new persisted state · commit d9f32dc3
+
 ## Decisions made during implementation
 
-- (none)
+- D-0034 — DAG-scoped acknowledge-illegal exemption trades off against
+  rebase durability (G-0395)
 
 ## Validation
 
