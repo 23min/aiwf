@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A process killed mid-write never leaves a half-written entity file
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-3
       title: Lock-held and temp-file states are detected with no production-code change
       status: open
