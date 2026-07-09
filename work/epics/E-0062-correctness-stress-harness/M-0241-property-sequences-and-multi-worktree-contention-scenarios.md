@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: A sibling worktree's commit is confirmed unreachable from another's check
-      status: open
+      status: met
       tdd_phase: done
 ---
 
