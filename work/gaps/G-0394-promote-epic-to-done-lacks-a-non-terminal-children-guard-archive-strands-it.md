@@ -1,8 +1,10 @@
 ---
 id: G-0394
 title: promote epic to done lacks a non-terminal-children guard; archive strands it
-status: open
+status: addressed
 discovered_in: E-0063
+addressed_by_commit:
+    - dcd5b012
 ---
 ## What's missing
 
