@@ -46,6 +46,35 @@ func TestDiskFaultScenario_RealBinary_ErrorsWhenBinaryMissing(t *testing.T) {
 	}
 }
 
+// TestDiskFaultScenario_RealBinary_RunErrorsWhenGapFileMissing deletes
+// the seeded gap file after a successful Setup, pinning Run's own
+// initial readGapFile call (reading the pre-attempt bytes) rather
+// than readGapFile's already-unit-tested internals.
+func TestDiskFaultScenario_RealBinary_RunErrorsWhenGapFileMissing(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := t.TempDir()
+
+	s := NewDiskFaultScenario(bin)
+	if err := s.Setup(dir); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, "work", "gaps", "G-0001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("expected exactly one seeded gap file, got %v (err=%v)", matches, err)
+	}
+	if err := os.Remove(matches[0]); err != nil {
+		t.Fatalf("removing seeded gap file: %v", err)
+	}
+
+	if err := s.Run(dir); err == nil {
+		t.Fatal("expected Run to error when the seeded gap file is missing")
+	} else if !strings.Contains(err.Error(), "reading pre-attempt bytes") {
+		t.Fatalf("expected the error to name the pre-attempt read step, got: %v", err)
+	}
+}
+
 // TestGlobTempFiles_RealBinary pins globTempFiles' two direct
 // outcomes: no matches in a clean directory, and a match once a
 // temp-shaped file is present.

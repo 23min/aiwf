@@ -93,7 +93,7 @@ func (s *DiskFaultScenario) Run(dir string) error {
 		return fmt.Errorf("restoring write permission on %s: %w", gapsDir, chmodErr)
 	}
 	afterBytes, err := readGapFile(dir, id)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: readGapFile's own mismatch/glob branches are pinned directly at their source (TestReadGapFile_ErrorsWhenNoneOrMultipleMatch); reaching this specific call site requires the gap file to vanish or duplicate strictly between the promote attempt above and this read, a window no external black-box test can arrange without instrumenting Run itself
 		return fmt.Errorf("reading post-attempt bytes: %w", err)
 	}
 
