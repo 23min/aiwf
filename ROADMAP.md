@@ -838,7 +838,7 @@ answer instead of whatever the operator happened to capture from stderr.
 | M-0238 | Migrate bare-stderr call sites; forbidigo chokepoint | done |
 | M-0239 | Correlation id wiring; ratify ADR-0017 | done |
 
-## E-0062 — Correctness stress harness (proposed)
+## E-0062 — Correctness stress harness (active)
 
 ### Goal
 
@@ -854,4 +854,20 @@ finds into a reproducible gap.
 | M-0242 | Fault injection via external observation | draft |
 | M-0243 | Named scenarios from G-0212 and G-0269 | draft |
 | M-0244 | Concurrent-writer test at scale; triage process; epic close | draft |
+
+## E-0063 — Rewrite entity path-links on move to keep them durable (proposed)
+
+### Goal
+
+Make markdown links between entity files survive the file-moving verbs
+(`archive`, `rename`, `retitle`, `reallocate`), so an author can cite an entity
+with a clickable path-link and trust it stays correct — instead of watching it
+rot silently the next time its target moves.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0245 | Shared link-destination rewrite primitive | draft |
+| M-0246 | Wire archive to rewrite link destinations on sweep | draft |
+| M-0247 | Wire rename and retitle to rewrite link destinations | draft |
+| M-0248 | Unify reallocate onto the shared rewrite primitive | draft |
 
