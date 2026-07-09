@@ -1,7 +1,7 @@
 ---
 id: D-0034
 title: DAG-scoped acknowledge-illegal exemption trades off against rebase durability
-status: proposed
+status: accepted
 relates_to:
     - E-0062
     - M-0244
