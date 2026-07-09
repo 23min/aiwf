@@ -197,6 +197,20 @@ func epicRules() []Rule {
 			BlockingStrict:    true,
 			Sources:           RuleSource{FP: []string{"R-FP-0074"}, Decision: "D-0003"},
 		},
+		// G-0393: promote refuses reaching a terminal status the same
+		// way cancel does, when any child milestone is non-terminal.
+		// Companion to the "active → done" legal cell above (different
+		// Outcome → same key still unique).
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "active",
+			Verb:              "promote",
+			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "epic-promote-non-terminal-children",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
 		// Terminals: done and cancelled have no outgoing transitions.
 		terminalIllegal(entity.KindEpic, "done", RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}}),
 		terminalIllegal(entity.KindEpic, "cancelled", RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0006"}}),

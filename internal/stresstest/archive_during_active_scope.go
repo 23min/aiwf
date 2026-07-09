@@ -3,34 +3,30 @@ package stresstest
 import (
 	"fmt"
 
-	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/verb"
 )
 
-// archive_during_active_scope.go — M-0243/AC-3: ArchiveDuringActiveScopeScenario
-// reproduces G-0212 item 3 end-to-end: a parent epic is promoted
-// straight to `done` (`aiwf promote <epic> done` carries no
-// non-terminal-children guard, unlike `aiwf cancel`'s own
-// epic-cancel-non-terminal-children refusal — confirmed empirically)
-// while its child milestone remains non-terminal with a genuinely
-// active, never-closed authorize scope. `aiwf archive --apply` sweeps
-// the parent — and the milestone, which "rides with" its parent per
-// ADR-0004 — into archive/ regardless. This is the only way to
-// construct "a child's scope is still active" at archive time at all:
-// a terminal child would have already auto-ended its own scope (per
-// the scope FSM's documented auto-end-on-terminal-promote rule), so
-// the child MUST still be non-terminal for its scope to still be
-// active when the parent archives.
+// archive_during_active_scope.go — M-0243/AC-3, updated by M-0244/AC-2's
+// triage sweep: ArchiveDuringActiveScopeScenario originally reproduced
+// G-0212 item 3 by promoting a parent epic straight to `done` while its
+// child milestone remained non-terminal with a genuinely active,
+// never-closed authorize scope, then sweeping both into archive/ —
+// surfacing G-0393 (`aiwf archive` could sweep a non-terminal milestone
+// alongside its terminal parent) as a real, distinct gap. G-0393 is now
+// fixed: `aiwf promote <epic> done` (and `cancelled`) refuses with
+// EpicPromoteNonTerminalChildrenError whenever a child milestone is
+// still non-terminal, mirroring `aiwf cancel`'s own
+// epic-cancel-non-terminal-children guard. This scenario now proves
+// that fix holds under a real authorize scope: the promote is refused,
+// the epic never reaches done, and the child's active scope is
+// unaffected — so the invalid archived-non-terminal-child state this
+// scenario used to be able to construct is no longer reachable through
+// the normal verb surface at all.
 //
-// The scenario's oracle, empirically confirmed (not assumed): scope
-// resolution survives the sweep cleanly — `aiwf show`'s scopes array
-// and `aiwf authorize --pause` both keep working correctly on the
-// archived child. G-0212's literal fear (scope becomes unresolvable)
-// does not hold. What the investigation surfaces instead is a
-// different, real gap: `aiwf archive` allowed sweeping a non-terminal
-// child into archive/ at all, producing a tree `aiwf check` then
-// flags at error severity (archived-entity-not-terminal) — caught
-// after the fact, not prevented up front the way `cancel` prevents
-// the analogous case.
+// G-0212 item 3's own literal fear — scope resolution becomes
+// unresolvable once its holder crosses the archive boundary — was
+// already confirmed unfounded before G-0393 closed (see M-0243's
+// milestone spec); that finding stands independent of this update.
 
 // ArchiveDuringActiveScopeScenario implements Scenario.
 type ArchiveDuringActiveScopeScenario struct {
@@ -118,47 +114,36 @@ func (s *ArchiveDuringActiveScopeScenario) Setup(dir string) error {
 	return nil
 }
 
-// Run promotes the parent epic straight to done, captures the child's
-// pre-sweep scope state, archives, then captures the post-sweep scope
-// state, attempts to pause the scope, and checks whether aiwf check
-// flags the non-terminal child's presence under archive/.
+// Run captures the child's pre-attempt scope state, attempts to
+// promote the parent epic straight to done, then confirms G-0393's
+// guard refused it: the epic's own status is unaffected and the
+// child's scope is unaffected — there is no sweep to run anymore,
+// because the invalid state this scenario used to construct at this
+// exact step can no longer be reached.
 func (s *ArchiveDuringActiveScopeScenario) Run(dir string) error {
 	preEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", s.milestoneID)
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
-		return fmt.Errorf("reading the pre-sweep scope state: %w", err)
+		return fmt.Errorf("reading the pre-attempt scope state: %w", err)
 	}
 	preScopeState := scopeState(preEnv)
 
-	if promEnv, doneErr := runAiwfJSON(s.aiwfBin, dir, "promote", s.epicID, "done"); doneErr != nil { //coverage:ignore defensive: see the pre-sweep show above
-		return fmt.Errorf("promoting the parent epic to done: %w", doneErr)
-	} else if promEnv.Status != "ok" { //coverage:ignore defensive: active->done is always legal for this scenario's own epic, which carries no non-terminal-children guard (confirmed empirically — the whole point of this scenario); see the activate-epic rationale in Setup above
-		return fmt.Errorf("promoting the parent epic to done: aiwf did not report ok (status=%s, error=%+v)", promEnv.Status, promEnv.Error)
+	promEnv, err := runAiwfJSON(s.aiwfBin, dir, "promote", s.epicID, "done")
+	if err != nil { //coverage:ignore defensive: see the pre-attempt show above
+		return fmt.Errorf("promoting the parent epic to done: %w", err)
 	}
 
-	if archEnv, archiveErr := runAiwfJSON(s.aiwfBin, dir, "archive", "--apply"); archiveErr != nil { //coverage:ignore defensive: see the pre-sweep show above
-		return fmt.Errorf("archiving the parent epic: %w", archiveErr)
-	} else if archEnv.Status != "ok" { //coverage:ignore defensive: a just-done epic with nothing else pending is always sweepable; see the activate-epic rationale in Setup above
-		return fmt.Errorf("archiving the parent epic: aiwf did not report ok (status=%s, error=%+v)", archEnv.Status, archEnv.Error)
+	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", s.epicID)
+	if err != nil { //coverage:ignore defensive: see the pre-attempt show above
+		return fmt.Errorf("reading the epic's post-attempt status: %w", err)
 	}
 
 	postEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", s.milestoneID)
-	if err != nil { //coverage:ignore defensive: see the pre-sweep show above
-		return fmt.Errorf("reading the post-sweep scope state: %w", err)
+	if err != nil { //coverage:ignore defensive: see the pre-attempt show above
+		return fmt.Errorf("reading the post-attempt scope state: %w", err)
 	}
 	postScopeState := scopeState(postEnv)
 
-	pauseEnv, err := runAiwfJSON(s.aiwfBin, dir, "authorize", s.milestoneID, "--pause", "post-archive pause probe")
-	if err != nil { //coverage:ignore defensive: see the pre-sweep show above
-		return fmt.Errorf("pausing the archived child's scope: %w", err)
-	}
-
-	checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
-	if err != nil { //coverage:ignore defensive: see the pre-sweep show above
-		return fmt.Errorf("running aiwf check after the sweep: %w", err)
-	}
-	archivedNotTerminalFound := hasFindingForEntity(checkEnv.Findings, check.CodeArchivedEntityNotTerminal, s.milestoneID)
-
-	s.violations = classifyArchiveDuringActiveScope(preScopeState, postScopeState, pauseEnv.Status, archivedNotTerminalFound)
+	s.violations = classifyArchiveDuringActiveScope(preScopeState, promEnv.Status, errorCode(promEnv), epicEnv.Result.Status, postScopeState)
 	return nil
 }
 
@@ -176,36 +161,38 @@ func scopeState(env verbEnvelope) string {
 	return env.Result.Scopes[0].State
 }
 
-// hasFindingForEntity reports whether findings contains one with the
-// given code targeting the given entity id.
-func hasFindingForEntity(findings []verbEnvelopeFinding, code, entityID string) bool {
-	for _, f := range findings {
-		if f.Code == code && f.EntityID == entityID {
-			return true
-		}
+// errorCode returns env's error code, or "" if env carries no error at
+// all (env.Error is nil on a status:"ok" envelope).
+func errorCode(env verbEnvelope) string {
+	if env.Error == nil {
+		return ""
 	}
-	return false
+	return env.Error.Code
 }
 
-// classifyArchiveDuringActiveScope judges one archive-during-active-
-// scope attempt: the premise (a genuinely active scope before the
-// sweep) must hold, the scope's state must survive the sweep
-// unchanged, the pause attempt must succeed, and aiwf check must flag
-// the non-terminal child riding along into archive/ — anything else
-// is either a broken premise or a silent, unflagged corruption.
-func classifyArchiveDuringActiveScope(preScopeState, postScopeState, pauseStatus string, archivedNotTerminalFound bool) []Violation {
+// classifyArchiveDuringActiveScope judges one promote-while-child-active
+// attempt: the premise (a genuinely active scope beforehand) must
+// hold, the promote must be refused (not silently allowed through),
+// the refusal must carry G-0393's own structured code (not some other,
+// coincidental refusal), and the epic's status plus the child's scope
+// must both be left exactly as they were — anything else is either a
+// broken premise or a regression of the fix this scenario pins.
+func classifyArchiveDuringActiveScope(preScopeState, promoteStatus, promoteErrorCode, epicStatusAfter, postScopeState string) []Violation {
 	var violations []Violation
 	if preScopeState != "active" { //enums:ignore this compares a scope FSM state (internal/scope.StateActive) — a different closed set that happens to share entity.StatusActive's underlying string, not an entity status comparison
-		violations = append(violations, Violation{Message: fmt.Sprintf("the child's scope was not active before the sweep (state=%q) — the scenario's premise did not hold", preScopeState)})
+		violations = append(violations, Violation{Message: fmt.Sprintf("the child's scope was not active before the attempt (state=%q) — the scenario's premise did not hold", preScopeState)})
+	}
+	if promoteStatus == "ok" { //enums:ignore this compares a JSON envelope's status field, a different closed set from entity.Status
+		violations = append(violations, Violation{Message: "promoting the epic to done while a child milestone was non-terminal unexpectedly succeeded — G-0393's guard did not fire"})
+	}
+	if promoteErrorCode != verb.CodeEpicPromoteNonTerminalChildren.ID {
+		violations = append(violations, Violation{Message: fmt.Sprintf("the promote refusal carried error code %q, want %q — refused for the wrong reason", promoteErrorCode, verb.CodeEpicPromoteNonTerminalChildren.ID)})
+	}
+	if epicStatusAfter != "active" { //enums:ignore this compares against the epic's own entity.Status; kept string-typed to match this file's other envelope-derived comparisons
+		violations = append(violations, Violation{Message: fmt.Sprintf("the epic's status changed to %q despite the promote being refused", epicStatusAfter)})
 	}
 	if postScopeState != "active" { //enums:ignore see the preScopeState comparison above — same scope-state rationale
-		violations = append(violations, Violation{Message: fmt.Sprintf("the child's scope state changed after the sweep (state=%q, want active)", postScopeState)})
-	}
-	if pauseStatus != "ok" {
-		violations = append(violations, Violation{Message: fmt.Sprintf("aiwf authorize --pause could not act on the still-open scope after the sweep (status=%s)", pauseStatus)})
-	}
-	if !archivedNotTerminalFound {
-		violations = append(violations, Violation{Message: "aiwf check did not flag the non-terminal child that rode along into archive/ — a silent, unflagged structural anomaly"})
+		violations = append(violations, Violation{Message: fmt.Sprintf("the child's scope state changed after the refused attempt (state=%q, want active)", postScopeState)})
 	}
 	return violations
 }

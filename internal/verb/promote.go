@@ -134,6 +134,31 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		}
 	}
 
+	// Epic-terminal-promote cascade guard (G-0393), mirroring Cancel's
+	// own EpicCancelNonTerminalChildrenError (D-0003): refuse, don't
+	// auto-cascade, when an epic is about to reach a terminal status
+	// (done or cancelled — both legal Promote targets for KindEpic, not
+	// just Cancel's own path) while it still owns a non-terminal child
+	// milestone. Runs unconditionally, even under --force, matching
+	// Cancel's guard — force relaxes FSM-transition legality, not this
+	// structural children precondition. Without it, `aiwf promote
+	// <epic> done` (or `cancelled`, bypassing Cancel's own dedicated
+	// guard) can leave a non-terminal milestone under a terminal, later
+	// archived epic — a state `aiwf check`'s archived-entity-not-terminal
+	// rule only catches after the fact.
+	if e.Kind == entity.KindEpic && entity.IsTerminal(entity.KindEpic, newStatus) {
+		var nonTerminal []string
+		for _, m := range t.ByKind(entity.KindMilestone) {
+			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+				nonTerminal = append(nonTerminal, m.ID)
+			}
+		}
+		if len(nonTerminal) > 0 {
+			sort.Strings(nonTerminal)
+			return nil, &EpicPromoteNonTerminalChildrenError{Epic: e.ID, NewStatus: newStatus, Children: nonTerminal}
+		}
+	}
+
 	modified := *e
 	modified.Status = newStatus
 	applyResolverFlags(&modified, opts)
