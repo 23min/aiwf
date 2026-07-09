@@ -184,6 +184,16 @@ survive) · commit ee034a7d · tests 21/21
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go test -race -parallel 8 -count=1 ./...` (full repo) — green.
+- `make lint` (full `golangci-lint` set) — 0 issues.
+- `aiwf check` — clean (only the pre-existing, unrelated `provenance-untrailered-scope-undefined` warning about no upstream configured in this worktree).
+- `make coverage-gate` (diff-scoped branch-coverage audit) — green after each AC's commit and again after the wrap-review fix commit.
+- Independent two-lens review (fresh-context, dispatched before any AC's evidence was trusted at face value):
+  - **Code-quality**: approve, zero blocking defects. Every claim verified by measurement — git plumbing hand-traced for 3 of 5 scenarios, the `classifyHeadDrift` mutation-probe claim independently re-confirmed, envelope field shapes checked against the real `check`/`show`/`gitops` source, all gates re-run and green. One non-blocking, cosmetic observation (count-only assertions on 4 of 5 classify tests) — applied anyway for consistency (see below).
+  - **Design-quality**: one genuine, actionable finding — `currentBranch` and `headSHA`, each introduced in one AC's own scenario file, were both also called from AC-5's `head_drift.go`. This package's own precedent (`readGapFile`'s comment) sets the relocation bar at 2 consumer files, not 3; applied.
+- Both review findings landed as one corrective commit (`refactor(stresstest): apply M-0243 wrap-review findings`), re-verified green (build, full stresstest suite, lint, coverage-gate) before wrap.
+
 ## Deferrals
 
 - G-0393 — aiwf archive can sweep a non-terminal milestone alongside its terminal parent (discovered in AC-3)
@@ -191,4 +201,7 @@ survive) · commit ee034a7d · tests 21/21
 
 ## Reviewer notes
 
-- (none)
+- Every AC's finding is grounded in a real, hands-on empirical experiment against the actual compiled binary before any Go code was written — several initial hypotheses (e.g., AC-3's first read of "archive breaks scope resolution," later found to be a branch-reachability artifact of the experiment's own setup, not a real defect) were revised after a control experiment contradicted them. The milestone's own findings reflect the corrected understanding, not the first guess.
+- AC-4 deliberately treats its two sub-findings asymmetrically: item 5 (ack revocation via rebase) is reported as a violation, since it's a genuine audit-trail regression with no alternative correct behavior; item 6 (cherry-picked force-override carryover) reports only premise breaks, never the carryover itself, since the observed behavior is the current, accepted, by-design trust model (aiwf-force + human actor is trusted wherever it appears) — a narrower mechanical check couldn't catch the carryover specifically without also breaking this repo's own legitimate milestone-to-epic merge cherry-picks.
+- AC-5 is the one scenario in this milestone whose real run correctly ends "red" (1 violation) rather than "green" — per its own Constraints, that is the AC's designed acceptance criterion, not a defect in this milestone's work. It stays red until G-0269's own guard ships.
+- Two new gaps were filed as a direct result of this milestone's scenarios (G-0393, G-0395); fixing either is explicitly out of scope here, per this epic's manual-triage constraint.
