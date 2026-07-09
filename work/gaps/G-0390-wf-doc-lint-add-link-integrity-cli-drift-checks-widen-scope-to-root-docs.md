@@ -1,7 +1,9 @@
 ---
 id: G-0390
 title: 'wf-doc-lint: add link-integrity, CLI-drift checks; widen scope to root docs'
-status: open
+status: addressed
+addressed_by_commit:
+    - cba0df6c
 ---
 ## What's missing
 
