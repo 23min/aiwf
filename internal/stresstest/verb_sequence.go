@@ -116,7 +116,7 @@ func (s *VerbSequenceScenario) Run(dir string) error {
 			args = append(args, "--epic", epicID, "--tdd", "none")
 		}
 
-		addEnv, err := s.runAiwfJSON(dir, args...)
+		addEnv, err := runAiwfJSON(s.aiwfBin, dir, args...)
 		if err != nil { //coverage:ignore defensive: covered by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing at the source (runAiwfJSON's own launch-failure branch), not by re-triggering it at every call site
 			return fmt.Errorf("creating a %s entity: %w", kind, err)
 		}
@@ -129,7 +129,7 @@ func (s *VerbSequenceScenario) Run(dir string) error {
 			epicID = id
 		}
 
-		showEnv, err := s.runAiwfJSON(dir, "show", id)
+		showEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", id)
 		if err != nil { //coverage:ignore defensive: same launch-failure class as the `add` call above; `show` on a just-created valid id has no realistic failure mode of its own
 			return fmt.Errorf("reading initial status of %s: %w", id, err)
 		}
@@ -164,7 +164,7 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 		if err != nil { //coverage:ignore defensive: git rev-list on a repo this scenario itself just created and is still driving has no realistic failure mode
 			return fmt.Errorf("counting commits before %s %s -> %s: %w", id, current, target, err)
 		}
-		env, err := s.runAiwfJSON(dir, "promote", id, target)
+		env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, target)
 		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
 			return fmt.Errorf("running promote %s %s: %w", id, target, err)
 		}
@@ -177,7 +177,7 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 		s.violations = append(s.violations, violations...)
 		current = next
 
-		checkEnv, err := s.runAiwfJSON(dir, "check")
+		checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
 		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
 			return fmt.Errorf("running aiwf check after %s %s -> %s: %w", id, current, target, err)
 		}
@@ -186,13 +186,16 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 	return nil
 }
 
-// runAiwfJSON runs the scenario's aiwf binary with args plus
-// --format=json in dir and decodes the resulting envelope. A
-// non-zero exit is expected traffic (an FSM refusal, a business-rule
-// refusal) and is not itself an error — only a process that fails to
-// even run, or output that isn't valid JSON, returns an error.
-func (s *VerbSequenceScenario) runAiwfJSON(dir string, args ...string) (verbEnvelope, error) {
-	cmd := exec.Command(s.aiwfBin, append(args, "--format=json")...) //nolint:gosec // s.aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input
+// runAiwfJSON runs bin with args plus --format=json in dir and
+// decodes the resulting envelope. A non-zero exit is expected
+// traffic (an FSM refusal, a business-rule refusal) and is not
+// itself an error — only a process that fails to even run, or
+// output that isn't valid JSON, returns an error. Package-level
+// (not a method) so every scenario in this package can point it at
+// whichever directory it's driving — e.g. one of several sibling
+// worktrees, not just the scenario's own single dir.
+func runAiwfJSON(bin, dir string, args ...string) (verbEnvelope, error) {
+	cmd := exec.Command(bin, append(args, "--format=json")...) //nolint:gosec // bin is a path this package's own BuildBinary just produced, not attacker-controlled input
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {

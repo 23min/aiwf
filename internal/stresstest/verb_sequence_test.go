@@ -50,7 +50,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionSucceedsWithOneCommit(t 
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := s.runAiwfJSON(dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionSucceedsWithOneCommit(t 
 	if err != nil {
 		t.Fatalf("commit count before: %v", err)
 	}
-	env, err := s.runAiwfJSON(dir, "promote", id, "accepted")
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, "accepted")
 	if err != nil {
 		t.Fatalf("promote: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestVerbSequenceScenario_RealBinary_IllegalTransitionRefusedAsFSMIllegal(t 
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := s.runAiwfJSON(dir, "add", "adr", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
 	if err != nil {
 		t.Fatalf("add adr: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestVerbSequenceScenario_RealBinary_IllegalTransitionRefusedAsFSMIllegal(t 
 	}
 	// proposed -> superseded is not a legal ADR transition (only
 	// accepted/rejected are reachable from proposed).
-	env, err := s.runAiwfJSON(dir, "promote", id, "superseded")
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, "superseded")
 	if err != nil {
 		t.Fatalf("promote: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionRefusedByOrthogonalBusin
 	dir := newVerbSequenceTestRepo(t)
 	s := &VerbSequenceScenario{aiwfBin: bin}
 
-	addEnv, err := s.runAiwfJSON(dir, "add", "gap", "--title", "t", "--body", "b")
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "gap", "--title", "t", "--body", "b")
 	if err != nil {
 		t.Fatalf("add gap: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionRefusedByOrthogonalBusin
 	// additionally requires --by/--by-commit (the
 	// gap-addressed-has-resolver rule) — a real, orthogonal
 	// business-rule refusal distinct from FSM illegality.
-	env, err := s.runAiwfJSON(dir, "promote", id, "addressed")
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, "addressed")
 	if err != nil {
 		t.Fatalf("promote: %v", err)
 	}
