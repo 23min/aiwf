@@ -105,7 +105,7 @@ func (s *MidWriteKillScenario) Run(dir string) error {
 		return fmt.Errorf("control promote did not report ok (status=%s, error=%+v)", promoteEnv.Status, promoteEnv.Error)
 	}
 	wantNewBytes, err := readGapFile(controlDir, id)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: readGapFile's own mismatch/glob branches are pinned directly at their source (TestReadGapFile_ErrorsWhenNoneOrMultipleMatch); reaching this specific call site requires the control repo's gap file to vanish or duplicate strictly between the promote call above and this read, a window no external black-box test can arrange without instrumenting Run itself
 		return fmt.Errorf("reading control's fully-written bytes: %w", err)
 	}
 	if bytes.Equal(wantOldBytes, wantNewBytes) { //coverage:ignore defensive: this scenario's own hardcoded open->wontfix transition always changes the status field; guards against a future edit accidentally picking a no-op transition, which would silently defeat the before/after oracle
@@ -114,7 +114,7 @@ func (s *MidWriteKillScenario) Run(dir string) error {
 
 	targetCmd := exec.Command(s.aiwfBin, "promote", id, "wontfix") //nolint:gosec // aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input
 	targetCmd.Dir = targetDir
-	if startErr := targetCmd.Start(); startErr != nil {
+	if startErr := targetCmd.Start(); startErr != nil { //coverage:ignore defensive: same launch-failure class already pinned at its source (TestMidWriteKillScenario_RealBinary_ErrorsWhenBinaryMissing) — s.aiwfBin is the identical path Setup's own runAiwfJSON calls already proved fails identically when invalid
 		return fmt.Errorf("starting target promote: %w", startErr)
 	}
 
@@ -134,12 +134,12 @@ func (s *MidWriteKillScenario) Run(dir string) error {
 		return fmt.Errorf("killing target promote: %w", killErr)
 	}
 	waitErr := targetCmd.Wait()
-	if !processWasSignaled(waitErr) {
+	if !processWasSignaled(waitErr) { //coverage:ignore defensive: processWasSignaled's own branches are pinned directly at their source (TestProcessWasSignaled); forcing THIS call site's false case needs the just-observed-writing subprocess to finish and exit cleanly in the narrow instant between detecting the temp file and this immediate Kill() call, not a race any test can win or lose on demand
 		return fmt.Errorf("expected the target promote to terminate by signal (SIGKILL), got: %v", waitErr) //nolint:errorlint // waitErr may be nil (a clean exit has no cause to wrap); this is diagnostic text, not meant for errors.Is/As
 	}
 
 	gotBytes, err := readGapFile(targetDir, id)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: readGapFile's own mismatch/glob branches are pinned directly at their source (TestReadGapFile_ErrorsWhenNoneOrMultipleMatch); reaching this specific call site requires the target repo's gap file to vanish or duplicate strictly between the kill above and this read, a window no external black-box test can arrange without instrumenting Run itself
 		return fmt.Errorf("reading target's post-kill bytes: %w", err)
 	}
 	s.violations = classifyMidWriteKillOutcome(wantOldBytes, wantNewBytes, gotBytes)

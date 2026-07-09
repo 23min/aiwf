@@ -45,6 +45,35 @@ func TestMidWriteKillScenario_RealBinary_ErrorsWhenBinaryMissing(t *testing.T) {
 	}
 }
 
+// TestMidWriteKillScenario_RealBinary_RunErrorsWhenTargetGapFileMissing
+// deletes the target repo's seeded gap file after a successful Setup,
+// pinning Run's own initial readGapFile call (reading the pre-write
+// bytes) rather than readGapFile's already-unit-tested internals.
+func TestMidWriteKillScenario_RealBinary_RunErrorsWhenTargetGapFileMissing(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := t.TempDir()
+
+	s := NewMidWriteKillScenario(bin)
+	if err := s.Setup(dir); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, "target", "work", "gaps", "G-0001-*.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("expected exactly one seeded target gap file, got %v (err=%v)", matches, err)
+	}
+	if err := os.Remove(matches[0]); err != nil {
+		t.Fatalf("removing seeded target gap file: %v", err)
+	}
+
+	if err := s.Run(dir); err == nil {
+		t.Fatal("expected Run to error when the target's seeded gap file is missing")
+	} else if !strings.Contains(err.Error(), "reading target's pre-write bytes") {
+		t.Fatalf("expected the error to name the pre-write read step, got: %v", err)
+	}
+}
+
 // TestMidWriteKillScenario_RealBinary_SetupSurfacesASeedingRefusal
 // pre-seeds a colliding G-0001 entity file in the control repo (an id
 // collision the ids-unique rule refuses at error severity, mirroring
