@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: A process killed while holding repolock releases it via kernel fd cleanup
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A process killed mid-write never leaves a half-written entity file
