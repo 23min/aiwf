@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Force-push and cherry-pick vs acknowledge-illegal are exercised per G-0212
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: G-0269's HEAD-drift race is scripted, expected-red until its guard lands
