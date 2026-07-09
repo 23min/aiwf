@@ -1,7 +1,7 @@
 ---
 id: M-0242
 title: Fault injection via external observation
-status: draft
+status: in_progress
 parent: E-0062
 depends_on:
     - M-0240
