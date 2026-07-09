@@ -1,6 +1,7 @@
 package stresstest
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,6 +60,37 @@ func TestProbeShowFound_RealBinary(t *testing.T) {
 	}
 	if notFound {
 		t.Fatal("expected probeShowFound to report not-found for a nonexistent entity")
+	}
+}
+
+// TestReachabilityIsolationScenario_RealBinary_RunSurfacesACreationRefusal
+// pre-seeds a colliding G-0001 entity file in worktree B (an id
+// collision the `ids-unique` rule refuses at error severity) so
+// Run's `aiwf add` call in worktree B reports something other than
+// "ok", pinning that Run wraps and surfaces the refusal.
+func TestReachabilityIsolationScenario_RealBinary_RunSurfacesACreationRefusal(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := t.TempDir()
+
+	s := NewReachabilityIsolationScenario(bin, entity.KindGap, 1)
+	if err := s.Setup(dir); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+
+	gapsDir := filepath.Join(dir, "wt-b", "work", "gaps")
+	if err := os.MkdirAll(gapsDir, 0o755); err != nil {
+		t.Fatalf("mkdir colliding gap dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(gapsDir, "G-0001-collision.md"), []byte("not valid frontmatter\n"), 0o644); err != nil {
+		t.Fatalf("write colliding gap file: %v", err)
+	}
+
+	if err := s.Run(dir); err == nil {
+		t.Fatal("expected Run to surface the id-collision refusal from the `aiwf add` call in worktree B")
+	} else if !strings.Contains(err.Error(), "did not report ok") {
+		t.Fatalf("expected the refusal to be reported as a non-ok status, got: %v", err)
 	}
 }
 
