@@ -129,6 +129,23 @@ ready-timeout and cannot-acquire paths); a 6-mutation vacuity probe
 confirmed every decision branch actually catches a regression · commits
 6a287690, 5008a006 · tests 24/24.
 
+### AC-2 — kill mid-write never leaves half-written entity file
+
+`MidWriteKillScenario` drives a twin control/target repo pair seeded with a
+large-bodied (10MB, empirically calibrated for a comfortably-wide temp-file
+window) gap entity. The target repo's real `aiwf promote` is watched from
+outside for `pathutil.AtomicWriteFile`'s sibling `.aiwf-tmp-*` file — its
+own already-documented naming convention, no pathutil code change, per
+AC-3 — and SIGKILLed the instant it appears; the oracle asserts the entity
+file afterward is byte-identical to either the pre-write or fully-written
+state, never a third value. Discovered and filed G-0391 (a mutating verb's
+lock-busy refusal bypasses `--format=json` entirely) along the way; the
+scenario and its tests work around it rather than depending on it. 14 new
+tests (pure classify table plus real-binary integration covering every
+reachable branch); a 5-mutation vacuity probe confirmed every decision
+branch actually catches a regression · commits 237475a3, e14c36d3 · tests
+14/14.
+
 ## Decisions made during implementation
 
 - (none)
@@ -137,7 +154,9 @@ confirmed every decision branch actually catches a regression · commits
 
 ## Deferrals
 
-- (none)
+- G-0391 — mutating verbs' lock-busy refusal ignores `--format=json`
+  (discovered in M-0242/AC-2; out of this milestone's scope —
+  `internal/cli/cliutil` isn't among M-0242's surfaces touched)
 
 ## Reviewer notes
 
