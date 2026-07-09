@@ -194,7 +194,9 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 	// once by the CLI gather layer in internal/cli/check/) rather
 	// than via a rule-internal walkAcknowledgedSHAs call. The
 	// pre-lift line was: ackedSHAs := walkAcknowledgedSHAs(ctx, root)
-	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs)...)
+	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs, func(sha string) string {
+		return findDanglingAckHint(ctx, root, sha)
+	})...)
 	findings = append(findings, forcedUntraileredFindings(observations, ackedSHAs)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
 	return findings
@@ -356,7 +358,17 @@ func hasGitCommits(ctx context.Context, root string) bool {
 // for one SHA does NOT exempt findings against other illegal
 // commits. Per-SHA scoping is the closed-set guarantee — there is
 // no "exempt everything" knob.
-func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string]bool) []Finding {
+//
+// danglingHint is G-0395's best-effort diagnostic seam: when non-nil,
+// it's called with the offending commit's full SHA, and a non-empty
+// return is set as the Finding's Hint (never Message — Hint is the
+// one field applyHints leaves alone once already set). It never
+// changes whether the finding fires or its severity; nil is a valid
+// "skip the lookup" value, matching every test in this package that
+// doesn't care about the dangling-object path. Production wires
+// findDanglingAckHint bound to the real (ctx, root); see
+// fsmHistoryConsistentWithDeps.
+func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string]bool, danglingHint func(sha string) string) []Finding {
 	var out []Finding
 	for i := range observations {
 		o := &observations[i]
@@ -372,7 +384,7 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 		if ackedSHAs[o.Commit] {
 			continue
 		}
-		out = append(out, Finding{
+		f := Finding{
 			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "illegal-transition",
 			Severity: SeverityError,
@@ -383,7 +395,11 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 			Path:     o.Path,
 			EntityID: o.EntityID,
 			Field:    "status",
-		})
+		}
+		if danglingHint != nil {
+			f.Hint = danglingHint(o.Commit)
+		}
+		out = append(out, f)
 	}
 	return out
 }

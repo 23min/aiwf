@@ -23,9 +23,14 @@ import (
 // reachability effect a force-push produces, without the extra
 // plumbing of an actual remote. Empirically confirmed: the
 // illegal-transition finding reappears, exactly as if never
-// acknowledged — a real audit-trail regression, since nothing else
-// signals that an acknowledgment ever existed for it. Treated as a
-// violation.
+// acknowledged. Filed as G-0395, since resolved via D-0034 plus the
+// findDanglingAckHint diagnostic (M-0244/AC-2): the revival itself
+// stays a real, observed property (still asserted below, unchanged) —
+// this scenario now also confirms the diagnostic that closes G-0395
+// fires when local evidence of the dropped acknowledgment is still
+// recoverable, since a bare revived finding
+// with no distinguishing trace is what G-0395 originally flagged as
+// the residual problem.
 //
 // Item 6 (cherry-pick of a force-amend commit onto a different
 // branch): a force-promote's trailers (`aiwf-force:`, `aiwf-actor:
@@ -125,7 +130,7 @@ func (s *ForceOverrideDurabilityScenario) Setup(dir string) error {
 // (cherry-picked-force-carryover) against dir, and classifies the
 // combined outcome.
 func (s *ForceOverrideDurabilityScenario) Run(dir string) error {
-	preAckFlagged, postAckFlagged, postRebaseFlagged, err := s.runAckRevocationByRebase(dir)
+	preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, err := s.runAckRevocationByRebase(dir)
 	if err != nil { //coverage:ignore defensive: runAckRevocationByRebase's own internal error branches each carry their own reachability rationale; this is a trivial propagation wrapper with no logic of its own
 		return err
 	}
@@ -133,7 +138,7 @@ func (s *ForceOverrideDurabilityScenario) Run(dir string) error {
 	if err != nil { //coverage:ignore defensive: see the runAckRevocationByRebase propagation above
 		return err
 	}
-	s.violations = classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, forceAccepted, cherryPickClean, trailersPreserved)
+	s.violations = classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, forceAccepted, cherryPickClean, trailersPreserved)
 	return nil
 }
 
@@ -144,72 +149,83 @@ func (s *ForceOverrideDurabilityScenario) Run(dir string) error {
 // acknowledgment commit (keeping the originally-flagged commit and a
 // trailing innocuous commit reachable) — the same reachability effect
 // a force-push produces, without an actual remote — and confirms
-// whether the finding is revived.
-func (s *ForceOverrideDurabilityScenario) runAckRevocationByRebase(dir string) (preAckFlagged, postAckFlagged, postRebaseFlagged bool, err error) {
+// whether the finding is revived and, if so, whether G-0395's
+// dangling-ack diagnostic (findDanglingAckHint) names the dropped
+// acknowledgment.
+func (s *ForceOverrideDurabilityScenario) runAckRevocationByRebase(dir string) (preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent bool, err error) {
 	raw, readErr := os.ReadFile(s.ackEpicPath)
 	if readErr != nil { //coverage:ignore defensive: reading the epic file this scenario's own Setup just wrote has no realistic failure mode
-		return false, false, false, fmt.Errorf("reading the ack-target epic file: %w", readErr)
+		return false, false, false, false, fmt.Errorf("reading the ack-target epic file: %w", readErr)
 	}
 	edited := strings.Replace(string(raw), "status: done", "status: active", 1)
 	if edited == string(raw) { //coverage:ignore defensive: Setup always leaves the ack-target epic at status done immediately before this call
-		return false, false, false, fmt.Errorf("the ack-target epic file did not contain the expected %q line to edit", "status: done")
+		return false, false, false, false, fmt.Errorf("the ack-target epic file did not contain the expected %q line to edit", "status: done")
 	}
 	if writeErr := os.WriteFile(s.ackEpicPath, []byte(edited), 0o644); writeErr != nil { //coverage:ignore defensive: overwriting a file this scenario's own Setup just wrote has no realistic failure mode
-		return false, false, false, fmt.Errorf("writing the manual illegal edit: %w", writeErr)
+		return false, false, false, false, fmt.Errorf("writing the manual illegal edit: %w", writeErr)
 	}
 	if commitErr := runGit(dir, "commit", "-q", "-am", "manual illegal status revert"); commitErr != nil { //coverage:ignore defensive: committing a real diff to a file this scenario itself just edited has no realistic failure mode
-		return false, false, false, fmt.Errorf("committing the manual illegal edit: %w", commitErr)
+		return false, false, false, false, fmt.Errorf("committing the manual illegal edit: %w", commitErr)
 	}
 	xSHA, shaErr := headSHA(dir)
 	if shaErr != nil { //coverage:ignore defensive: see headSHA's own rationale
-		return false, false, false, fmt.Errorf("reading the illegal-edit commit SHA: %w", shaErr)
+		return false, false, false, false, fmt.Errorf("reading the illegal-edit commit SHA: %w", shaErr)
 	}
 
 	preCheckEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
 	if checkErr != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
-		return false, false, false, fmt.Errorf("running aiwf check before the acknowledgment: %w", checkErr)
+		return false, false, false, false, fmt.Errorf("running aiwf check before the acknowledgment: %w", checkErr)
 	}
 	preAckFlagged = hasFindingSubcodeForEntity(preCheckEnv.Findings, check.CodeFSMHistoryConsistent, "illegal-transition", s.ackEpicID)
 
 	ackEnv, ackErr := runAiwfJSON(s.aiwfBin, dir, "acknowledge", "illegal", xSHA, "--for-entity", s.ackEpicID, "--reason", "testing ack durability against a rebase that drops just the ack")
 	if ackErr != nil { //coverage:ignore defensive: see the check call above
-		return false, false, false, fmt.Errorf("acknowledging the illegal edit: %w", ackErr)
+		return false, false, false, false, fmt.Errorf("acknowledging the illegal edit: %w", ackErr)
 	}
 	if ackEnv.Status != "ok" { //coverage:ignore defensive: the target SHA and --for-entity id are always freshly derived from this scenario's own just-created commit and epic, with no realistic refusal mode here; the general collision-refusal mechanism is exercised at its source (TestForceOverrideDurabilityScenario_RealBinary_SetupSurfacesASeedingRefusal)
-		return false, false, false, fmt.Errorf("acknowledging the illegal edit: aiwf did not report ok (status=%s, error=%+v)", ackEnv.Status, ackEnv.Error)
+		return false, false, false, false, fmt.Errorf("acknowledging the illegal edit: aiwf did not report ok (status=%s, error=%+v)", ackEnv.Status, ackEnv.Error)
 	}
 	ySHA, shaErr := headSHA(dir)
 	if shaErr != nil { //coverage:ignore defensive: see headSHA's own rationale
-		return false, false, false, fmt.Errorf("reading the acknowledgment commit SHA: %w", shaErr)
+		return false, false, false, false, fmt.Errorf("reading the acknowledgment commit SHA: %w", shaErr)
 	}
 
 	postAckCheckEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
 	if checkErr != nil { //coverage:ignore defensive: see the check call above
-		return false, false, false, fmt.Errorf("running aiwf check after the acknowledgment: %w", checkErr)
+		return false, false, false, false, fmt.Errorf("running aiwf check after the acknowledgment: %w", checkErr)
 	}
 	postAckFlagged = hasFindingSubcodeForEntity(postAckCheckEnv.Findings, check.CodeFSMHistoryConsistent, "illegal-transition", s.ackEpicID)
 
 	scratchPath := filepath.Join(dir, "innocuous.txt")
 	if writeErr := os.WriteFile(scratchPath, []byte("innocuous\n"), 0o644); writeErr != nil { //coverage:ignore defensive: writing a fresh scratch file under this scenario's own disposable repo has no realistic failure mode
-		return false, false, false, fmt.Errorf("writing the trailing innocuous file: %w", writeErr)
+		return false, false, false, false, fmt.Errorf("writing the trailing innocuous file: %w", writeErr)
 	}
 	if addErr := runGit(dir, "add", "-A"); addErr != nil { //coverage:ignore defensive: staging a fresh scratch file has no realistic failure mode
-		return false, false, false, fmt.Errorf("staging the trailing innocuous file: %w", addErr)
+		return false, false, false, false, fmt.Errorf("staging the trailing innocuous file: %w", addErr)
 	}
 	if commitErr := runGit(dir, "commit", "-q", "-m", "innocuous follow-up commit"); commitErr != nil { //coverage:ignore defensive: committing a staged scratch file has no realistic failure mode
-		return false, false, false, fmt.Errorf("committing the trailing innocuous file: %w", commitErr)
+		return false, false, false, false, fmt.Errorf("committing the trailing innocuous file: %w", commitErr)
 	}
 
-	if rebaseErr := runGit(dir, "rebase", "-q", "--onto", xSHA, ySHA, "HEAD"); rebaseErr != nil { //coverage:ignore defensive: the range being dropped (the ack commit alone) and the range being replayed (the trailing scratch-file commit) touch disjoint paths, so this rebase is always a clean fast path with no realistic conflict
-		return false, false, false, fmt.Errorf("rebasing to drop the acknowledgment commit: %w", rebaseErr)
+	// 2-arg form (no trailing branch argument): this stays on and moves
+	// the current branch. A literal 3rd "HEAD" argument instead detaches
+	// HEAD and leaves the branch ref pointing at the pre-rebase tip,
+	// which would keep the dropped ack commit reachable via that branch
+	// ref — defeating both this reproduction's premise (the ack must
+	// become genuinely unreachable) and G-0395's own dangling-object
+	// diagnostic (confirmed empirically; see M-0244/AC-2's internal/check
+	// acks_test.go for the isolated repro of this exact git behavior).
+	if rebaseErr := runGit(dir, "rebase", "-q", "--onto", xSHA, ySHA); rebaseErr != nil { //coverage:ignore defensive: the range being dropped (the ack commit alone) and the range being replayed (the trailing scratch-file commit) touch disjoint paths, so this rebase is always a clean fast path with no realistic conflict
+		return false, false, false, false, fmt.Errorf("rebasing to drop the acknowledgment commit: %w", rebaseErr)
 	}
 
 	postRebaseCheckEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
 	if checkErr != nil { //coverage:ignore defensive: see the check call above
-		return false, false, false, fmt.Errorf("running aiwf check after the rebase: %w", checkErr)
+		return false, false, false, false, fmt.Errorf("running aiwf check after the rebase: %w", checkErr)
 	}
 	postRebaseFlagged = hasFindingSubcodeForEntity(postRebaseCheckEnv.Findings, check.CodeFSMHistoryConsistent, "illegal-transition", s.ackEpicID)
-	return preAckFlagged, postAckFlagged, postRebaseFlagged, nil
+	postRebaseHintPresent = findingHint(postRebaseCheckEnv.Findings, check.CodeFSMHistoryConsistent, "illegal-transition", s.ackEpicID) != ""
+	return preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, nil
 }
 
 // runCherryPickCarryover force-promotes the force-target milestone on
@@ -290,15 +306,35 @@ func hasFindingSubcodeForEntity(findings []verbEnvelopeFinding, code, subcode, e
 	return false
 }
 
+// findingHint returns the Hint of the first finding matching code,
+// subcode, and entity id, or "" if no such finding exists (or it
+// exists with an empty Hint).
+func findingHint(findings []verbEnvelopeFinding, code, subcode, entityID string) string {
+	for _, f := range findings {
+		if f.Code == code && f.Subcode == subcode && f.EntityID == entityID {
+			return f.Hint
+		}
+	}
+	return ""
+}
+
 // classifyForceOverrideDurability judges one force-override-durability
 // attempt. Item 5: the premise (illegal-transition flagged before the
-// ack, suppressed after it) must hold, and a revival after the rebase
-// that drops just the ack commit is itself a confirmed violation — a
-// real audit-trail regression. Item 6: only premise breaks (the force
-// wasn't accepted, the cherry-pick conflicted, or its trailers weren't
-// preserved) count; the cherry-picked commit going unflagged on its
-// new branch is the current, by-design trust model, not a violation.
-func classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, forceAccepted, cherryPickClean, trailersPreserved bool) []Violation {
+// ack, suppressed after it) must hold; a revival after the rebase
+// that drops just the ack commit is itself a confirmed, expected
+// property (D-0034: accepted trade-off between DAG-scoped exemption
+// and rebase-durability — the pre-push gate, not this finding staying
+// suppressed forever, is what actually prevents the corrupted history
+// from ever being shared), so it is asserted but not itself a
+// violation; when it happens, G-0395's dangling-ack diagnostic must
+// fire (postRebaseHintPresent) — its absence IS a violation, since
+// that diagnostic is what closes the "looks identical to never-
+// acknowledged" gap G-0395 named. Item 6: only premise breaks (the
+// force wasn't accepted, the cherry-pick conflicted, or its trailers
+// weren't preserved) count; the cherry-picked commit going unflagged
+// on its new branch is the current, by-design trust model, not a
+// violation.
+func classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, forceAccepted, cherryPickClean, trailersPreserved bool) []Violation {
 	var violations []Violation
 	if !preAckFlagged {
 		violations = append(violations, Violation{Message: "the manual illegal-transition edit was never flagged before acknowledging it — the scenario's premise did not hold"})
@@ -306,8 +342,8 @@ func classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFl
 	if postAckFlagged {
 		violations = append(violations, Violation{Message: "acknowledge illegal did not suppress the illegal-transition finding"})
 	}
-	if postRebaseFlagged {
-		violations = append(violations, Violation{Message: "confirmed: a rebase dropping just the acknowledgment commit (keeping the originally-flagged commit reachable) silently revives the illegal-transition finding — the ack's protection is not durable against history rewrites"})
+	if postRebaseFlagged && !postRebaseHintPresent {
+		violations = append(violations, Violation{Message: "a rebase dropping just the acknowledgment commit revived the illegal-transition finding, but G-0395's dangling-ack diagnostic did not name the dropped acknowledgment"})
 	}
 	if !forceAccepted {
 		violations = append(violations, Violation{Message: "the original force-promote on branch-a was not accepted"})

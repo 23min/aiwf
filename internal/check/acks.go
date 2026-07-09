@@ -175,3 +175,98 @@ func resolveFullSHA(ctx context.Context, root, sha string) string {
 	}
 	return strings.TrimSpace(string(out))
 }
+
+// findDanglingAckHint is a best-effort, local-clone-only diagnostic
+// for G-0395: WalkAcknowledgedSHAs deliberately walks only HEAD's
+// reachable history (see that function's own doc comment on why —
+// DAG-scoping prevents a cross-branch acknowledgment from leaking
+// into an unrelated branch's findings), so a history rewrite (a
+// rebase, typically) that drops just the acknowledgment commit while
+// leaving the originally-flagged commit reachable makes the
+// illegal-transition finding reappear with no trace an acknowledgment
+// ever existed.
+//
+// This never changes that behavior — the finding is correct to fire
+// again, since the *current* history genuinely has no reachable
+// acknowledgment. It only enriches the operator-facing message: git
+// does not immediately destroy a commit dropped by a rebase (it
+// becomes a "dangling" object, kept alive by the reflog until it
+// expires or `git gc --prune` runs). Searching those dangling objects
+// for a matching `aiwf-force-for: <targetSHA>` trailer recovers,
+// best-effort, evidence that the finding was once acknowledged and
+// names the commit so the operator can re-run `aiwf acknowledge
+// illegal`.
+//
+// This is advisory only and proves nothing by its absence: git gc,
+// a fresh clone, or CI's own checkout all make the dangling object
+// unavailable, and an empty return here does not mean "never
+// acknowledged" — only "no local evidence found." It intentionally
+// does not persist any state of its own (CLAUDE.md's "no separate
+// event log" commitment) — it reads only what git itself already
+// keeps, best-effort, and forgets nothing new.
+//
+// Callers gate this to the already-failing path only: it runs `git
+// fsck`, which walks the whole local object database and is not
+// something to pay on every clean check.
+func findDanglingAckHint(ctx context.Context, root, targetSHA string) string {
+	cmd := exec.CommandContext(ctx, "git", "fsck", "--unreachable", "--no-reflogs")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	for _, danglingSHA := range parseDanglingCommitSHAs(string(out)) {
+		if hint := danglingCommitAckHint(ctx, root, danglingSHA, targetSHA); hint != "" {
+			return hint
+		}
+	}
+	return ""
+}
+
+// parseDanglingCommitSHAs extracts the commit SHAs from `git fsck
+// --unreachable`'s output ("unreachable <type> <sha>" per line),
+// skipping every other object type (blob, tree, tag). Split out of
+// findDanglingAckHint so the line-filtering logic is directly
+// unit-testable against fabricated multi-type fsck output — a real
+// git fsck run can't be coerced to emit a specific mix of dangling
+// object types on demand, and downstream (`git show` on a non-commit
+// object) tends to fail or return nothing usable regardless, which
+// would make an integration-level test of this filter pass whether or
+// not the filter itself is present.
+func parseDanglingCommitSHAs(fsckOutput string) []string {
+	var shas []string
+	for _, line := range strings.Split(fsckOutput, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 3 || fields[0] != "unreachable" || fields[1] != "commit" {
+			continue
+		}
+		shas = append(shas, fields[2])
+	}
+	return shas
+}
+
+// danglingCommitAckHint reads danglingSHA's trailers and returns a
+// hint string when one carries `aiwf-force-for: <targetSHA>`, or ""
+// otherwise (including when danglingSHA's trailers can't be read at
+// all — a defensive case, not expected for an object git fsck just
+// reported).
+func danglingCommitAckHint(ctx context.Context, root, danglingSHA, targetSHA string) string {
+	cmd := exec.CommandContext(ctx, "git", "show", "-s", "--format=%(trailers:only=true,unfold=true)", danglingSHA)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: git show on an object git fsck just reported as a real dangling commit in this same repo has no realistic failure mode
+		return ""
+	}
+	for _, tr := range gitops.ParseTrailers(string(out)) {
+		if tr.Key != gitops.TrailerForceFor {
+			continue
+		}
+		if resolveFullSHA(ctx, root, strings.TrimSpace(tr.Value)) != targetSHA {
+			continue
+		}
+		return "a commit (" + shortHash(danglingSHA) + ") carrying aiwf-force-for: " + targetSHA +
+			" exists locally but is no longer reachable from HEAD — a rebase may have dropped a prior acknowledgment; " +
+			"re-run `aiwf acknowledge illegal " + targetSHA + "` if so"
+	}
+	return ""
+}

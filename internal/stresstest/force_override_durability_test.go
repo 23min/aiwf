@@ -18,10 +18,12 @@ import (
 // cherry-pick sequence.
 
 // TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebase
-// is the scenario's real-binary happy path — and, per this AC's own
-// framing, the expected pass state is that the confirmed defect (item
-// 5's ack revocation) IS the one violation reported, with item 6's
-// premise checks all clean.
+// is the scenario's real-binary happy path. Per D-0034 (M-0244/AC-2),
+// the ack revocation itself is a confirmed, expected property — no
+// longer a violation on its own — and the scenario now additionally
+// requires G-0395's dangling-ack diagnostic to fire when it happens;
+// both hold in a clean real run, so the expected pass state is 0
+// violations.
 func TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebase(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
@@ -33,14 +35,8 @@ func TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebas
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
-	if result.Passed {
-		t.Fatal("expected the scenario to report the confirmed ack-revocation-by-rebase defect as a violation, not pass cleanly")
-	}
-	if len(result.Violations) != 1 {
-		t.Fatalf("expected exactly 1 violation (the confirmed ack revocation), got %d: %+v", len(result.Violations), result.Violations)
-	}
-	if !strings.Contains(result.Violations[0].Message, "not durable against history rewrites") {
-		t.Fatalf("expected the violation to name the ack-durability defect, got: %+v", result.Violations[0])
+	if !result.Passed {
+		t.Fatalf("force-override-durability scenario found violations (dir preserved at %s):\n%+v", result.Dir, result.Violations)
 	}
 }
 

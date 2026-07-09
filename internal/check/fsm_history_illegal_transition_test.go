@@ -31,7 +31,7 @@ func TestIllegalTransitionFindings_FiresOnIllegalNoForce(t *testing.T) {
 			Trailers:   map[string]string{"aiwf-verb": "promote"},
 		},
 	}
-	got := illegalTransitionFindings(obs, nil)
+	got := illegalTransitionFindings(obs, nil, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
 	}
@@ -58,7 +58,7 @@ func TestIllegalTransitionFindings_NoFireOnLegalTransition(t *testing.T) {
 			Trailers:   nil,
 		},
 	}
-	got := illegalTransitionFindings(obs, nil)
+	got := illegalTransitionFindings(obs, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings for legal transition, got %+v", got)
 	}
@@ -95,7 +95,7 @@ func TestIllegalTransitionFindings_ForceTrailerExempts(t *testing.T) {
 					Trailers:   c.trailers,
 				},
 			}
-			got := illegalTransitionFindings(obs, nil)
+			got := illegalTransitionFindings(obs, nil, nil)
 			if len(got) != 0 {
 				t.Errorf("expected 0 findings (force-trailer exempts), got %+v", got)
 			}
@@ -126,7 +126,7 @@ func TestIllegalTransitionFindings_VerbTrailerDoesNotExempt(t *testing.T) {
 			},
 		},
 	}
-	got := illegalTransitionFindings(obs, nil)
+	got := illegalTransitionFindings(obs, nil, nil)
 	if len(got) != 1 {
 		t.Errorf("expected 1 finding (aiwf-verb does not exempt; only aiwf-force does); got %d: %+v", len(got), got)
 	}
@@ -152,7 +152,7 @@ func TestIllegalTransitionFindings_MergeSkippedPerD0010(t *testing.T) {
 			IsMergeCommit: true,
 		},
 	}
-	got := illegalTransitionFindings(obs, nil)
+	got := illegalTransitionFindings(obs, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected 0 findings on merge observation (D-0010: AC-2 skips merges); got %+v", got)
 	}
@@ -188,7 +188,7 @@ func TestIllegalTransitionFindings_MultipleObservations(t *testing.T) {
 			Next:       entity.StatusActive, // legal — no finding
 		},
 	}
-	got := illegalTransitionFindings(obs, nil)
+	got := illegalTransitionFindings(obs, nil, nil)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 findings (E-0001 and E-0002; E-0003 is legal), got %d: %+v", len(got), got)
 	}
@@ -205,11 +205,11 @@ func TestIllegalTransitionFindings_MultipleObservations(t *testing.T) {
 // produces no findings.
 func TestIllegalTransitionFindings_EmptyInput(t *testing.T) {
 	t.Parallel()
-	got := illegalTransitionFindings(nil, nil)
+	got := illegalTransitionFindings(nil, nil, nil)
 	if got != nil {
 		t.Errorf("expected nil findings on nil input, got %+v", got)
 	}
-	got = illegalTransitionFindings([]statusChange{}, nil)
+	got = illegalTransitionFindings([]statusChange{}, nil, nil)
 	if got != nil {
 		t.Errorf("expected nil findings on empty slice, got %+v", got)
 	}

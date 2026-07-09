@@ -54,6 +54,7 @@ type verbEnvelopeFinding struct {
 	Subcode  string `json:"subcode"`
 	Severity string `json:"severity"`
 	EntityID string `json:"entity_id"`
+	Hint     string `json:"hint"`
 }
 
 // runAiwfJSON runs bin with args plus --format=json in dir and
