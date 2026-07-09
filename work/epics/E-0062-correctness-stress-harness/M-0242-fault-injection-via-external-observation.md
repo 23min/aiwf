@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Lock-held and temp-file states are detected with no production-code change
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: A disk-full or permission-denied write surfaces as a clean error
       status: open
