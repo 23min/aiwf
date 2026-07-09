@@ -12,7 +12,7 @@ acs:
     - id: AC-1
       title: Concurrent subprocesses sharing one log file never tear or interleave a line
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: A documented triage procedure turns a found violation into a gap and test
       status: open
