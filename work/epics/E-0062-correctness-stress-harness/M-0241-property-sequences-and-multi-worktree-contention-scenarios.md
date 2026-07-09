@@ -137,6 +137,10 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 `ConcurrentIDAllocationScenario` launches n real `aiwf add` subprocesses against one working copy, started close together via goroutine/OS process scheduling (no artificial delay), repeated via M-0240's `RunRepeated`. Confirms repolock serializes every attempt to a distinct id within its 2-second timeout. Along the way, `PolicyNoRetryLoopsOnGitErrors` flagged the fan-out loop as a false positive (its heuristic matches any `for` body containing `exec.Command`, not specifically retried git calls) — fixed by extracting the per-actor subprocess launch into its own method. · commit d8f3d6b7 (+ 4d27cc40 coverage:ignore placement fix) · tests 33/33
 
+### AC-3 — A cross-worktree id race is always caught and resolved by reallocate
+
+`CrossWorktreeIDRaceScenario` races real `aiwf add` subprocesses across two sibling worktrees (repolock has no cross-worktree serialization, per AC-4) and confirms: when the race produces a genuine duplicate id — an accepted outcome, not a prevented one — `aiwf check` always surfaces it as `ids-unique` and `aiwf reallocate` always resolves it cleanly. Repeated via `RunRepeated` so at least one attempt hits the real race window. Caught a real bug in the harness itself: `findEntityFile` returned an absolute path, but `aiwf reallocate` resolves its argument against the repo root, so every real collision was failing to resolve until fixed. `runAiwfJSON` refactored into a package-level function to drive multiple worktree directories. · commit 2b289043 · tests 46/46
+
 ## Decisions made during implementation
 
 - (none)
