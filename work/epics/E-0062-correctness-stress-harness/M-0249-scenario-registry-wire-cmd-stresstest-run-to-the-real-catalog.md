@@ -15,6 +15,10 @@ acs:
       title: run --scenario all runs the whole catalog, one combined report
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: cmd/stresstest list enumerates every registered scenario
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -54,7 +58,7 @@ The "run the whole catalog on demand" story E-0062's Scope section
 describes — a human runs the harness and gets one report covering every
 scenario, not one at a time.
 
-### AC-3 — `cmd/stresstest list` enumerates every registered scenario's name and a one-line description
+### AC-3 — cmd/stresstest list enumerates every registered scenario
 
 An operator can discover what's runnable without reading Go source —
 closing the "on-demand" framing's own discoverability half.
