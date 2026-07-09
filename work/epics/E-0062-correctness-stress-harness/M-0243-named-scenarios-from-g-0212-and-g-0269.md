@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Archive-during-active-scope is exercised end-to-end per G-0212 item 3
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Force-push and cherry-pick vs acknowledge-illegal are exercised per G-0212
       status: open
