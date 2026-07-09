@@ -133,6 +133,10 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 `VerbSequenceScenario` walks random legal/illegal `aiwf promote` attempts against one entity of every kind, via the real compiled binary, in one disposable repo — extending `internal/entity/transition_property_test.go`'s FSM-property pattern to the real binary. Discovered and handled a real nuance: an FSM-legal transition can still be refused by an orthogonal business rule (gap's `addressed`-needs-`--by` resolver gate) distinct from FSM illegality; the classifier treats that as a legitimate refusal, not a violation. · commit 0320f740 · tests 25/25
 
+### AC-2 — Real subprocesses racing repolock never produce a duplicate id
+
+`ConcurrentIDAllocationScenario` launches n real `aiwf add` subprocesses against one working copy, started close together via goroutine/OS process scheduling (no artificial delay), repeated via M-0240's `RunRepeated`. Confirms repolock serializes every attempt to a distinct id within its 2-second timeout. Along the way, `PolicyNoRetryLoopsOnGitErrors` flagged the fan-out loop as a false positive (its heuristic matches any `for` body containing `exec.Command`, not specifically retried git calls) — fixed by extracting the per-actor subprocess launch into its own method. · commit d8f3d6b7 (+ 4d27cc40 coverage:ignore placement fix) · tests 33/33
+
 ## Decisions made during implementation
 
 - (none)
