@@ -62,6 +62,11 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// up (or preserved for RCA on failure) by RunScenario's own
 		// discipline, same shape as the self-check sandbox above.
 		"internal/stresstest/mid_write_kill.go": "writes confined to the scenario's own disposable temp dir; scratch seed data, never a persisted entity file",
+		// M-0243/AC-2's cross-worktree edit-body race scenario writes
+		// two scratch draft-body files confined to the scenario's own
+		// disposable os.MkdirTemp dir, fed to `aiwf edit-body
+		// --body-file` — never a persisted entity file themselves.
+		"internal/stresstest/cross_worktree_edit_body_race.go": "writes confined to the scenario's own disposable temp dir; scratch draft data, never a persisted entity file",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
