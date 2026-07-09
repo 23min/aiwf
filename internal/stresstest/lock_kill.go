@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"syscall"
 	"time"
 
 	"github.com/23min/aiwf/internal/repolock"
@@ -143,21 +142,6 @@ func probeLock(dir string) error {
 		return err
 	}
 	return lock.Release()
-}
-
-// processWasSignaled reports whether waitErr represents a process
-// that terminated because it received a signal (as SIGKILL does),
-// rather than a normal exit.
-func processWasSignaled(waitErr error) bool {
-	var exitErr *exec.ExitError
-	if !errors.As(waitErr, &exitErr) {
-		return false
-	}
-	status, ok := exitErr.Sys().(syscall.WaitStatus)
-	if !ok { //coverage:ignore defensive: syscall.WaitStatus is the concrete type exec.Cmd.ProcessState.Sys() returns on every unix platform this package targets
-		return false
-	}
-	return status.Signaled()
 }
 
 // lockKillOutcome is the raw evidence classifyLockKillOutcome judges.

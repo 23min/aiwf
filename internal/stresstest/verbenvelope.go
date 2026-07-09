@@ -7,14 +7,19 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
-// verbenvelope.go — the `--format=json` envelope-decoding machinery
-// every scenario in this package shares (CLAUDE.md "Output":
-// {tool,version,status,findings,result,metadata}). First built for
-// M-0241/AC-1's VerbSequenceScenario, then reused by AC-2 through
-// AC-5's scenarios — living in its own file rather than staying
-// stranded in verb_sequence.go now that every scenario depends on it.
+// verbenvelope.go — shared subprocess/verb-outcome helpers every
+// scenario in this package depends on: the `--format=json`
+// envelope-decoding machinery (CLAUDE.md "Output":
+// {tool,version,status,findings,result,metadata}), first built for
+// M-0241/AC-1's VerbSequenceScenario and reused by AC-2 through AC-5's
+// scenarios; and processWasSignaled, first built for M-0242/AC-1's
+// LockKillScenario and reused by AC-2's MidWriteKillScenario — both
+// living in their own file rather than staying stranded in the
+// single-AC file that first needed them, now that more than one
+// scenario depends on each.
 
 // verbEnvelope is the subset of the envelope this package reads.
 // Different verbs populate different subsets of Result/Metadata;
@@ -98,4 +103,19 @@ func parseCommitCount(out []byte) (int, error) {
 		return 0, fmt.Errorf("parsing commit count %q: %w", out, err)
 	}
 	return n, nil
+}
+
+// processWasSignaled reports whether waitErr represents a process
+// that terminated because it received a signal (as SIGKILL does),
+// rather than a normal exit.
+func processWasSignaled(waitErr error) bool {
+	var exitErr *exec.ExitError
+	if !errors.As(waitErr, &exitErr) {
+		return false
+	}
+	status, ok := exitErr.Sys().(syscall.WaitStatus)
+	if !ok { //coverage:ignore defensive: syscall.WaitStatus is the concrete type exec.Cmd.ProcessState.Sys() returns on every unix platform this package targets
+		return false
+	}
+	return status.Signaled()
 }
