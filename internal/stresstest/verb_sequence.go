@@ -64,6 +64,8 @@ type verbEnvelope struct {
 	} `json:"result"`
 	Metadata struct {
 		EntityID string `json:"entity_id"`
+		Entities int    `json:"entities"` // populated by `check`
+		Events   int    `json:"events"`   // populated by `history`
 	} `json:"metadata"`
 }
 
