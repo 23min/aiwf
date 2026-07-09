@@ -76,7 +76,7 @@ properties across all generated cases.
 - Reuse, don't reinvent: the extraction lifts `rewidth`'s existing region-splitter
   and predicate structure into a shared location both `rewidth` and the new
   callers use.
-- Decision recorded in the epic's ADR (`ADR-NNNN`, *Entity path-links are
+- Decision recorded in the epic's ADR (`ADR-0033`, *Entity path-links are
   first-class and rewritten on move*).
 
 ## Surfaces touched
