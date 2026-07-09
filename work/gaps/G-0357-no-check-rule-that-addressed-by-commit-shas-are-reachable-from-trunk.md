@@ -3,6 +3,18 @@ id: G-0357
 title: No check rule that addressed_by_commit SHAs are reachable from trunk
 status: open
 ---
+## Resolution
+
+Superseded by G-0396 — not built as a check. The proposed rule tests
+SHA-reachability from trunk as a proxy for "the fix is on trunk," but that proxy
+is unsound: it cannot distinguish a genuinely-lost fix (the real problem) from a
+benign SHA rewritten by a reconcile/rebase merge (a bookkeeping artifact), and
+both present identically as "recorded SHA exists but not on trunk." Audited
+against this repo, every off-trunk SHA it flagged was a false positive — the fix
+had shipped on trunk under a different hash. The verb-time HEAD guard (G-0355)
+remains the load-bearing guarantee; the data-model direction (derive closure
+from git history, additive to the stored SHA) is recorded in G-0396.
+
 ## Problem
 
 G-0355 strengthened the *verb-time* `--by-commit` check to require reachability
