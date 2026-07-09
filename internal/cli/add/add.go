@@ -167,7 +167,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add", out)
 	if release == nil {
 		return rc
 	}
@@ -554,7 +554,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac", out)
 	if release == nil {
 		return rc
 	}

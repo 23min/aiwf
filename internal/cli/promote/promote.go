@@ -154,7 +154,7 @@ func Run(args []string, actor, principal, root, reason,
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf promote")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf promote", out)
 	if release == nil {
 		return rc
 	}

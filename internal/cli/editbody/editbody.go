@@ -85,7 +85,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf edit-body")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf edit-body", out)
 	if release == nil {
 		return rc
 	}

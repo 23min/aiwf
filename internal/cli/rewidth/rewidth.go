@@ -112,7 +112,7 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 
 	// Dry-run is read-only; lock only when we'd write.
 	if apply {
-		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rewidth")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rewidth", out)
 		if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock-contention from a concurrent verb invocation; not reproducible in serial tests
 			return rc
 		}

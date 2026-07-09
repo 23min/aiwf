@@ -110,7 +110,7 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	var sha string
 	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel", out)
 	if release == nil {
 		return rc
 	}

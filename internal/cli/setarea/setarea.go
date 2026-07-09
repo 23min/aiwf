@@ -118,7 +118,7 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf set-area")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf set-area", out)
 	if release == nil {
 		return rc
 	}

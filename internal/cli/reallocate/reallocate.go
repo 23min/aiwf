@@ -56,7 +56,7 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf reallocate")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf reallocate", out)
 	if release == nil {
 		return rc
 	}

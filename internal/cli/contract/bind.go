@@ -63,7 +63,7 @@ func runBind(id, root, actor, validator, schema, fixtures string, force bool, ou
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract bind")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract bind", out)
 	if release == nil {
 		return rc
 	}

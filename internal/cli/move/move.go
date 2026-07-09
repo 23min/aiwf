@@ -93,7 +93,7 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (cod
 	var sha string
 	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move", out)
 	if release == nil {
 		return rc
 	}

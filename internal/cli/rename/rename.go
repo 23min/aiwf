@@ -57,7 +57,7 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename", out)
 	if release == nil {
 		return rc
 	}
