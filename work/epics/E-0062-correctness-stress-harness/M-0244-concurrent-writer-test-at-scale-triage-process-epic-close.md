@@ -16,7 +16,7 @@ acs:
     - id: AC-2
       title: A documented triage procedure turns a found violation into a gap and test
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-3
       title: Every success criterion in E-0062's epic spec has a passing demonstration
       status: open
