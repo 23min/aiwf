@@ -1,8 +1,10 @@
 ---
 id: G-0389
 title: aiwf show's not-found path ignores --format=json
-status: open
+status: addressed
 discovered_in: M-0241
+addressed_by_commit:
+    - dc27bfa4
 ---
 ## What's missing
 
