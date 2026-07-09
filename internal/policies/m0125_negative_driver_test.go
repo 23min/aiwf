@@ -176,6 +176,9 @@ func errorSubstringsFor(code string) []string {
 	case "milestone-cancel-non-terminal-acs":
 		// M-0139 guard: MilestoneCancelNonTerminalACsError.Error().
 		return []string{"open acceptance criterion", "milestone-cancel-non-terminal-acs"}
+	case "epic-promote-non-terminal-children":
+		// G-0394 guard: EpicPromoteNonTerminalChildrenError.Error().
+		return []string{"non-terminal child milestone", "epic-promote-non-terminal-children"}
 	}
 	return nil
 }

@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0394: epic promote-to-done and archive both refuse to strand a non-terminal milestone
+
+`aiwf promote <epic> done` now refuses when the epic still owns a non-terminal
+child milestone, mirroring the existing `aiwf cancel` guard (D-0003) onto the
+promote-to-done path — the operator must cancel or complete each listed
+milestone first. `force` bypasses this guard like it bypasses Promote's other
+preconditions. As defense-in-depth, `aiwf archive` independently declines to
+sweep an epic whose subtree still owns a non-terminal milestone (no `--force`
+of its own), so a `--force`-bypassed or hand-edited epic can no longer strand
+that milestone in `archive/`; the sweep's NoOp message now names any skipped
+epic and its offending children instead of misreporting the tree as converged.
+
 ### Fixed — stale path-links in ADR-0008, ADR-0011, ADR-0016 to since-archived/rewidth'd entities
 
 Four references across three ADRs pointed at entities that have since archived

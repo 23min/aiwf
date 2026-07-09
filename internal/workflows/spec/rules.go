@@ -165,6 +165,24 @@ func epicRules() []Rule {
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0003"}, FP: []string{"R-FP-0003"}},
 		},
+		// G-0394: promote refuses active -> done when any child
+		// milestone is non-terminal, mirroring D-0003's cancel guard
+		// onto the promote-to-done path (Q5's asymmetry closed).
+		// Sources citation: this cell postdates M-0123's one-time
+		// audit/FP reconciliation pass, so it traces to neither an
+		// R-AUDIT-NNNN nor an R-FP-NNNN entry, and Sources.Decision is a
+		// closed set scoped to that pass's six decisions (D-0002..D-0007),
+		// not a general "cite your gap here" field, so it stays empty.
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "active",
+			Verb:              "promote",
+			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "epic-promote-non-terminal-children",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
+		},
 		// active → cancelled
 		{
 			Kind:      entity.KindEpic,

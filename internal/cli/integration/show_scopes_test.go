@@ -111,6 +111,15 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); pErr != nil {
 		t.Fatalf("promote E-01 active: %v\n%s", pErr, pOut)
 	}
+	// Bring M-0001 to done first: promoting the epic to done while it
+	// still owns an in_progress milestone is refused by the epic-done
+	// non-terminal-children guard (G-0394) — this fixture is testing
+	// scope-ending on terminal-promote, not that guard.
+	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
+		"promote", "M-0001", "done",
+		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {
+		t.Fatalf("promote M-001 done: %v\n%s", pErr, pOut)
+	}
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "done"); pErr != nil {
 		t.Fatalf("promote E-01 done: %v\n%s", pErr, pOut)
 	}
