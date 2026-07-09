@@ -61,7 +61,7 @@ top-level slug-changing path and the composite-AC no-op path.
   splitting, resolution, and relative-path recompute.
 - The composite-AC path is a genuine no-op for link rewriting and needs a
   traversing test to prove it.
-- Decision recorded in `ADR-NNNN`.
+- Decision recorded in `ADR-0033`.
 
 ## Surfaces touched
 
