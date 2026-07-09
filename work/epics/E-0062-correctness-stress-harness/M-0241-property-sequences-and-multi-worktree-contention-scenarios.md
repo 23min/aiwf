@@ -141,6 +141,10 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 `CrossWorktreeIDRaceScenario` races real `aiwf add` subprocesses across two sibling worktrees (repolock has no cross-worktree serialization, per AC-4) and confirms: when the race produces a genuine duplicate id — an accepted outcome, not a prevented one — `aiwf check` always surfaces it as `ids-unique` and `aiwf reallocate` always resolves it cleanly. Repeated via `RunRepeated` so at least one attempt hits the real race window. Caught a real bug in the harness itself: `findEntityFile` returned an absolute path, but `aiwf reallocate` resolves its argument against the repo root, so every real collision was failing to resolve until fixed. `runAiwfJSON` refactored into a package-level function to drive multiple worktree directories. · commit 2b289043 · tests 46/46
 
+### AC-4 — repolock's per-worktree lockfile scoping is confirmed intentional
+
+White-box tests directly in `internal/repolock` (read-only, no production changes) confirm the mechanism behind AC-3's race: a linked worktree's `.git` is a regular file, not a directory, so `lockfilePath`'s `IsDir()` check falls through to a per-worktree `.aiwf.lock` fallback that never touches the main checkout's `.git/aiwf.lock`. Behavioral confirmation: holding the main checkout's lock does not block a concurrent `Acquire` in the linked worktree, ruling out any other unaccounted-for failure mode. Along the way, `PolicyGitTestEnvHardened` correctly required `testsupport.HardenGitTestEnv()` in `repolock`'s `TestMain` now that a test in the package shells out to real git. · commit 757af3fd · tests 3 new (+ existing repolock suite)
+
 ## Decisions made during implementation
 
 - (none)
