@@ -138,6 +138,14 @@ merge/push sequence surfaces the collision as `ids-unique`, `aiwf
 reallocate` resolves it cleanly, and the final push succeeds · commit
 d56bd28f · tests 9/9
 
+### AC-2 — A concurrent cross-worktree edit-body race matches G-0212 item 2
+
+Confirmed, empirically: merging two sibling worktrees' independent
+`edit-body` edits to the same entity always produces a real git
+conflict — never a silent last-writer-wins overwrite. Better than
+G-0212 feared: maximally observable, not silent · commit 50aac81c ·
+tests 11/11
+
 ## Decisions made during implementation
 
 - (none)
