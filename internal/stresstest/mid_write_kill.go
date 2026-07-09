@@ -151,19 +151,6 @@ func (s *MidWriteKillScenario) Verify(_ string) []Violation {
 	return s.violations
 }
 
-// readGapFile reads the one gap entity file id names under root's
-// work/gaps/ directory, tolerating any slug.
-func readGapFile(root, id string) ([]byte, error) {
-	matches, err := filepath.Glob(filepath.Join(root, "work", "gaps", id+"-*.md"))
-	if err != nil { //coverage:ignore defensive: the only error filepath.Glob returns is ErrBadPattern, and this package's own literal pattern is well-formed by construction
-		return nil, fmt.Errorf("globbing for gap %s under %s: %w", id, root, err)
-	}
-	if len(matches) != 1 {
-		return nil, fmt.Errorf("expected exactly one gap file for %s under %s, found %d: %v", id, root, len(matches), matches)
-	}
-	return os.ReadFile(matches[0])
-}
-
 // waitForTempFile busy-polls dir for a sibling temp file matching
 // pathutil.AtomicWriteFile's own ".aiwf-tmp-" naming convention
 // (already documented by that package — this reads an existing,
