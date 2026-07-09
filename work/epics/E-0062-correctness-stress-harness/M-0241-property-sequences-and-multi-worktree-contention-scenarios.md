@@ -145,15 +145,21 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 White-box tests directly in `internal/repolock` (read-only, no production changes) confirm the mechanism behind AC-3's race: a linked worktree's `.git` is a regular file, not a directory, so `lockfilePath`'s `IsDir()` check falls through to a per-worktree `.aiwf.lock` fallback that never touches the main checkout's `.git/aiwf.lock`. Behavioral confirmation: holding the main checkout's lock does not block a concurrent `Acquire` in the linked worktree, ruling out any other unaccounted-for failure mode. Along the way, `PolicyGitTestEnvHardened` correctly required `testsupport.HardenGitTestEnv()` in `repolock`'s `TestMain` now that a test in the package shells out to real git. · commit 757af3fd · tests 3 new (+ existing repolock suite)
 
+### AC-5 — A sibling worktree's commit is confirmed unreachable from another's check
+
+`ReachabilityIsolationScenario` confirms a commit in worktree B is invisible to `aiwf check` in worktree A until merged, and — beyond the fact itself — that this invisibility has zero other observable consequence: check's findings and entity count are byte-identical before and after the sibling's invisible commit, not just silent on isolation-escape specifically. Confirms the loop closes correctly once merged. Discovered a real, separate bug: `aiwf show <missing-id> --format=json` doesn't honor `--format=json` on its not-found path (empty stdout, plain-text stderr) — filed as G-0389 rather than fixed here (architecturally distinct from this AC's reachability claim); the scenario classifies `show` by exit status instead. · commit 09a6e02e (+ b5ac4984 branch-coverage fix) · tests 41/41
+
 ## Decisions made during implementation
 
 - (none)
 
 ## Validation
 
+Full validation after every AC: `go build ./...`, `go vet ./...`, `make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all green), `aiwf check` (clean, only the pre-existing `provenance-untrailered-scope-undefined` warning), `make coverage-gate` (clean after each commit). Vacuity mutation probes run against every new pure decision function across all 5 ACs — every injected mutation caught, no survivors; all mutated files restored byte-identical.
+
 ## Deferrals
 
-- (none)
+- G-0389 — `aiwf show --format=json` doesn't honor the flag on its not-found path (discovered during AC-5; architecturally distinct from this milestone's reachability-isolation claim).
 
 ## Reviewer notes
 
