@@ -159,6 +159,19 @@ and fail here. 1 new test (a 3-case table); a 4-mutation vacuity probe
 confirmed every parsing branch actually catches a regression · commit
 dc47799b · tests 1/1.
 
+### AC-4 — disk-full/permission-denied write surfaces as a clean error
+
+`DiskFaultScenario` seeds a gap entity, revokes write permission on its
+parent directory (`0500`, matching `internal/verb/apply_test.go`'s existing
+precedent), attempts a real `aiwf promote` against it, and confirms the
+refusal is clean: a proper `--format=json` envelope with no panic/stack-trace
+markers, no corrupted entity file, no stray temp file, no partial commit.
+Only permission-denied is exercised — see Reviewer notes for the
+disk-full/ENOSPC scope note. 13 new tests (pure classify table plus
+real-binary integration covering every reachable branch, verified non-flaky
+over 5 runs); a 6-mutation vacuity probe confirmed every decision branch
+actually catches a regression · commits 7194b22a, 0599c2b8 · tests 13/13.
+
 ## Decisions made during implementation
 
 - (none)
@@ -173,4 +186,10 @@ dc47799b · tests 1/1.
 
 ## Reviewer notes
 
-- (none)
+- AC-4 exercises only the permission-denied fault, not true disk-full
+  (`ENOSPC`). Simulating a real disk-full condition needs privileged
+  filesystem-quota setup (a loopback device or size-limited mount) this
+  sandboxed environment doesn't have; the AC's own text permits either
+  fault, and permission-denied exercises the identical code path in
+  `pathutil.AtomicWriteFile` (a failed `os.CreateTemp`/write inside the
+  target directory) that `ENOSPC` would also hit.
