@@ -130,6 +130,14 @@ to that gap, not a defect in this milestone's work.
 
 ## Work log
 
+### AC-1 — A parallel-branch reallocate race is resolved per G-0212 item 1
+
+Confirmed: two independent clones of one bare origin deterministically
+allocate the same id (`AllocateID` is a pure max+1 function); the
+merge/push sequence surfaces the collision as `ids-unique`, `aiwf
+reallocate` resolves it cleanly, and the final push succeeds · commit
+d56bd28f · tests 9/9
+
 ## Decisions made during implementation
 
 - (none)
