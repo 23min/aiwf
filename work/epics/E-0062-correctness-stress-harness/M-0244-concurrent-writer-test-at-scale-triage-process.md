@@ -187,6 +187,50 @@ manual-triage constraint):
   (`findDanglingAckHint`) that names the dropped acknowledgment when
   local evidence survives, with no new persisted state · commit d9f32dc3
 
+### AC-3 — Every success criterion in E-0062's epic spec has a passing demonstration
+
+Walked all four bullets in E-0062's Success criteria section against the
+finished harness, verified directly (reading source, running tests),
+not asserted from memory:
+
+- **"Every scenario... has a deterministic pass/fail oracle"** — met.
+  All 12 scenario files under `internal/stresstest/` each carry ≥1
+  `classify*` function; confirmed by direct enumeration.
+- **"A run aborted mid-way... produces a report that accurately
+  reflects everything completed"** — met. Verified directly in source:
+  `ReportWriter.WriteEvent` marshals one event then makes exactly one
+  `Write()` call; `OpenReportWriter` opens `O_APPEND|O_CREATE|O_WRONLY`
+  — matching E-0061's own discipline, so only the file's final line can
+  ever be torn. `TestCompose_DropsTruncatedTrailingLine` (M-0240/AC-3)
+  confirms `Compose` tolerates exactly that failure mode without
+  failing the whole report.
+- **"A violation... leaves enough behind... to be reproduced without
+  re-running the whole campaign"** — partially met, real gap found and
+  triaged rather than glossed over: preserved repo state (confirmed via
+  `RunScenario`'s cleanup discipline) and a raw-report event (confirmed
+  via `RunRepeated`'s per-attempt `RepeatEvent` log) both hold, but
+  `RepeatEvent` carries no `Dir` and no `correlation_id`, and most
+  scenarios' shared `runAiwfJSON` helper never enables `AIWF_LOG` for
+  the subprocesses it drives — folded into M-0249/AC-2's scope rather
+  than filing a 6th, closely-related gap.
+- **"Every violation found during this epic is triaged into a gap with
+  a minimal regression test..."** — met, and this walk itself found one
+  more: G-0388 (discovered in M-0240, still open — the pre-commit
+  hook's policy suite lacked the `-parallel 8` cap) had been missed by
+  the handoff. Fixed via the same AC-2 procedure. All five gaps this
+  epic's work has surfaced (G-0388, G-0389, G-0391, G-0393, G-0395) are
+  now `addressed`.
+
+Also found, independent of the four criteria bullets themselves:
+`cmd/stresstest run`'s scenario selection is still hardcoded to the
+M-0240 placeholder — none of the 12 real scenarios this epic built are
+reachable through the dedicated on-demand binary E-0062's own Scope
+section describes, only through `go test`. Filed as G-0397; per the
+user's direction, resolved via a new milestone (M-0249) added to the
+epic rather than fixed inline here or silently deferred — epic close
+now happens after M-0249, not this milestone. M-0244's own title was
+retitled (dropping "; epic close") to match this new reality.
+
 ## Decisions made during implementation
 
 - D-0034 — DAG-scoped acknowledge-illegal exemption trades off against
@@ -194,9 +238,26 @@ manual-triage constraint):
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -race -parallel 8 -count=1 ./...` (full repo) — green.
+- `make lint` (full `golangci-lint` set, worktree-scoped cache) — 0 issues.
+- `aiwf check` — 0 error-severity findings (7 warnings: the standing
+  no-upstream-configured notice, an archive-sweep-pending aggregate, and
+  5 per-gap terminal-entity-not-archived notices for G-0388/G-0389/G-0391/
+  G-0393/G-0395, all awaiting a future `aiwf archive --apply` sweep).
+- `make coverage-gate` (diff-scoped branch-coverage audit) — green after
+  each AC's commit.
+- Each AC's implementation went through a `wf-vacuity` mutation probe;
+  AC-1 and both of AC-2's larger fixes (G-0391's chokepoint, G-0393's
+  guard, G-0395's diagnostic) each surfaced and fixed a real surviving
+  mutant before landing — see each AC's own Work log entry above.
+
 ## Deferrals
 
-- (none)
+- G-0397 — cmd/stresstest run has no way to select any of the 12 real
+  scenarios; resolved via a new milestone, M-0249, added to E-0062
+  (epic close now happens after M-0249)
 
 ## Reviewer notes
 
