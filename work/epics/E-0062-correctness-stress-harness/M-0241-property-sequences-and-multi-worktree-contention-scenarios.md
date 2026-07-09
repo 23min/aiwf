@@ -129,6 +129,10 @@ rule implicitly assumes broader reachability, this is where that surfaces.
 
 ## Work log
 
+### AC-1 — Generated verb sequences are checked for FSM legality each step
+
+`VerbSequenceScenario` walks random legal/illegal `aiwf promote` attempts against one entity of every kind, via the real compiled binary, in one disposable repo — extending `internal/entity/transition_property_test.go`'s FSM-property pattern to the real binary. Discovered and handled a real nuance: an FSM-legal transition can still be refused by an orthogonal business rule (gap's `addressed`-needs-`--by` resolver gate) distinct from FSM illegality; the classifier treats that as a legitimate refusal, not a violation. · commit 0320f740 · tests 25/25
+
 ## Decisions made during implementation
 
 - (none)
