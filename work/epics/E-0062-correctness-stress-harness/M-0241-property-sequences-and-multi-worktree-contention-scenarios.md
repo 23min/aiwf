@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Generated verb sequences are checked for FSM legality each step
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Real subprocesses racing repolock never produce a duplicate id
