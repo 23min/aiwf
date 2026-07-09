@@ -2,10 +2,31 @@ package verb
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/codes"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
+
+// nonTerminalEpicChildren returns the sorted ids of epicID's child
+// milestones that are not yet at a terminal status. Shared by three
+// call sites that each refuse to leave a non-terminal milestone
+// stranded under a terminal (or terminal-bound) parent epic: Cancel's
+// epic-cancel guard (D-0003, below), Promote's epic-done guard
+// (G-0394, promote.go), and Archive's independent subtree-terminality
+// guard (G-0394, archive.go).
+func nonTerminalEpicChildren(t *tree.Tree, epicID string) []string {
+	var nonTerminal []string
+	for _, m := range t.ByKind(entity.KindMilestone) {
+		if m.Parent == epicID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+			nonTerminal = append(nonTerminal, m.ID)
+		}
+	}
+	sort.Strings(nonTerminal)
+	return nonTerminal
+}
 
 // CodeEpicCancelNonTerminalChildren is the typed kernel-code descriptor
 // carried by [EpicCancelNonTerminalChildrenError] when `aiwf cancel`
@@ -84,4 +105,49 @@ func (e *MilestoneCancelNonTerminalACsError) Error() string {
 // [entity.Coded].
 func (e *MilestoneCancelNonTerminalACsError) Code() string {
 	return CodeMilestoneCancelNonTerminalACs.ID
+}
+
+// CodeEpicPromoteNonTerminalChildren is the typed kernel-code
+// descriptor carried by [EpicPromoteNonTerminalChildrenError] when
+// `aiwf promote <epic> done` refuses an epic that still owns one or
+// more non-terminal child milestones (G-0394). Mirrors
+// CodeEpicCancelNonTerminalChildren's D-0003 guard onto the promote-
+// to-done path: a done epic that owns an in-progress milestone is
+// exactly as incoherent as a cancelled one. Declares
+// [codes.ClassLegality] (D-0011).
+var CodeEpicPromoteNonTerminalChildren = codes.Code{ID: "epic-promote-non-terminal-children", Class: codes.ClassLegality}
+
+// EpicPromoteNonTerminalChildrenError reports that `aiwf promote
+// <epic> done` refused because one or more child milestones are
+// still non-terminal (G-0394: refuse-with-listing, no auto-cascade,
+// mirroring D-0003's cancel guard). The operator must dispose each
+// listed milestone (cancel or done) before the epic can reach done.
+// force bypasses this guard like it bypasses the other checks in
+// Promote's force-relaxed block; Archive's independent subtree-
+// terminality guard (internal/verb/archive.go) is the unconditional
+// defense-in-depth backstop for that case. It implements
+// [entity.Coded], carrying CodeEpicPromoteNonTerminalChildren.
+type EpicPromoteNonTerminalChildrenError struct {
+	// Epic is the id of the epic whose promote-to-done was refused.
+	Epic string
+	// Children holds the sorted ids of the offending non-terminal child
+	// milestones.
+	Children []string
+}
+
+// Error implements error. It names the epic, the count of offending
+// milestones, the sorted ids, instructs the operator to dispose each
+// first, and includes CodeEpicPromoteNonTerminalChildren.ID so
+// message-matching consumers can recognize the refusal.
+func (e *EpicPromoteNonTerminalChildrenError) Error() string {
+	return fmt.Sprintf(
+		"cannot promote %s to done: %d non-terminal child milestone(s) [%s] (%s); cancel or done each before promoting the epic",
+		e.Epic, len(e.Children), strings.Join(e.Children, ", "), CodeEpicPromoteNonTerminalChildren.ID,
+	)
+}
+
+// Code returns CodeEpicPromoteNonTerminalChildren's ID, satisfying
+// [entity.Coded].
+func (e *EpicPromoteNonTerminalChildrenError) Code() string {
+	return CodeEpicPromoteNonTerminalChildren.ID
 }

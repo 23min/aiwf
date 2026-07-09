@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -132,6 +131,18 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireHumanActorForSovereignAct(e.Kind, e.Status, newStatus, actor); err != nil {
 			return nil, err
 		}
+		// Epic-done non-terminal-children guard (G-0394): mirrors
+		// Cancel's epic-cancel guard (D-0003) onto the promote-to-done
+		// path, closing the guard asymmetry where a done epic could
+		// still own an in-progress milestone. force bypasses this like
+		// the other checks in this block; Archive's independent
+		// subtree-terminality guard (internal/verb/archive.go) is the
+		// unconditional defense-in-depth backstop for that case.
+		if e.Kind == entity.KindEpic && newStatus == entity.StatusDone {
+			if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
+				return nil, &EpicPromoteNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
+			}
+		}
 	}
 
 	modified := *e
@@ -235,14 +246,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	// any projection so the refusal is a clean typed error, not a finding.
 	switch e.Kind {
 	case entity.KindEpic:
-		var nonTerminal []string
-		for _, m := range t.ByKind(entity.KindMilestone) {
-			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
-				nonTerminal = append(nonTerminal, m.ID)
-			}
-		}
-		if len(nonTerminal) > 0 {
-			sort.Strings(nonTerminal)
+		if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
 			return nil, &EpicCancelNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
 		}
 	case entity.KindMilestone:
