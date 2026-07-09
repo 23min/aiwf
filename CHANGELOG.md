@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0390: wf-doc-lint gains link-integrity, CLI-drift, and structural checks; scope widens to root narrative files
+
+`wf-doc-lint` now runs seven mechanical heuristics instead of four: the original
+code-reference drift, removed-feature docs, orphan documents, and documentation
+TODOs, plus three new ones — markdown link integrity (broken intra-repo links,
+broken anchors, broken source-file links), CLI-invocation resolution (a
+backticked `aiwf <verb>` in docs must resolve against the binary's own
+`--help`), and structural checks (table-of-contents drift, heading-hierarchy
+sanity). The default docs root also widens from `docs/`-only to `docs/` plus
+the repo's hand-authored root narrative files (`README.md`, `CONTRIBUTING.md`),
+while generated/gitignored root files (`ROADMAP.md`, `STATUS.md`,
+`WHITEBOARD.md`, `TODO.md`) and the append-only `CHANGELOG.md` stay explicitly
+out of scope.
+
 ### Added — E-0061: opt-in diagnostic logging with a per-invocation correlation id
 
 `aiwf` now has a retrace-ready diagnostic surface: opt-in, default-off structured
