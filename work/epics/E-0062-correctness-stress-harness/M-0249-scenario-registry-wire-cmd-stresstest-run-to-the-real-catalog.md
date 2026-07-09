@@ -58,6 +58,21 @@ The "run the whole catalog on demand" story E-0062's Scope section
 describes — a human runs the harness and gets one report covering every
 scenario, not one at a time.
 
+Also closes a second, closely-related finding from the same AC-3 walk:
+`RepeatEvent` (the raw-report event `RunRepeated` logs per attempt)
+currently carries only `Attempt`/`Seed`/`Passed` — no preserved-repo
+`Dir` and no `correlation_id` — and `cmd/stresstest run` never prints a
+failing attempt's `Dir` either, even though `RunResult.Dir` is already
+populated in memory. E-0062's own success criterion "a violation the
+harness finds leaves enough behind (preserved repo state, a raw-report
+event, and a `correlation_id` into E-0061's diagnostic log) to be
+reproduced without re-running the whole campaign" needs the report
+event itself to carry the failing `Dir`, and — since most scenarios'
+shared `runAiwfJSON` helper doesn't set `AIWF_LOG`/`AIWF_LOG_FILE` for
+the subprocesses it drives — a decision on whether/how the harness
+should enable diagnostic logging for the scenarios it runs, so a
+correlation_id trail actually exists to reproduce into.
+
 ### AC-3 — cmd/stresstest list enumerates every registered scenario
 
 An operator can discover what's runnable without reading Go source —
