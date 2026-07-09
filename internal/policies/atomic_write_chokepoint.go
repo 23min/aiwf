@@ -56,6 +56,12 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// invent a second streaming primitive — see ADR-0017 Decision #5
 		// and D-0033.
 		"internal/stresstest/report.go": "append-only raw-report writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
+		// M-0242/AC-2's mid-write-kill scenario writes a large scratch
+		// seed body file confined to the scenario's own disposable
+		// os.MkdirTemp dir — never a persisted entity file, and cleaned
+		// up (or preserved for RCA on failure) by RunScenario's own
+		// discipline, same shape as the self-check sandbox above.
+		"internal/stresstest/mid_write_kill.go": "writes confined to the scenario's own disposable temp dir; scratch seed data, never a persisted entity file",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
