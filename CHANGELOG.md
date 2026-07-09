@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — stale path-links in ADR-0008, ADR-0011, ADR-0016 to since-archived/rewidth'd entities
+
+Four references across three ADRs pointed at entities that have since archived
+or been rewidth'd (a gap moved and renumbered, an epic archived, another gap
+archived), so the links no longer resolved. Rewritten as bare id citations
+(`G-0093`, `E-0033`, `E-0031`, `G-0182`) instead of relative paths — archive-
+proof, since `aiwf show <id>` / `aiwf history <id>` resolve an id across active
+and archive by construction, unlike a hardcoded path.
+
 ### Added — G-0390: wf-doc-lint gains link-integrity, CLI-drift, and structural checks; scope widens to root narrative files
 
 `wf-doc-lint` now runs seven mechanical heuristics instead of four: the original

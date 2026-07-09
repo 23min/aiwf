@@ -7,7 +7,7 @@ status: accepted
 
 Kernel principle #2 says ids are stable primary keys: *"`E-NN`, `M-NNN`, `ADR-NNNN`, `G-NNN`, `D-NNN`, `C-NNN`. The id is the primary key; the slug is just display."* The widths are mixed by kind — 2-digit for epic, 3-digit for milestone/gap/decision/contract, 4-digit for ADR — encoded in `internal/verb/import.go::canonicalPadFor`. There is no declared policy; the function is the de facto authority.
 
-The companion gap [G-0093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) documents the symptoms: epics will exhaust at 99 (E-0022 is the current high-water mark from PoC self-hosting); ADR-0003 declares F-NNN but the §07 TDD architecture proposal silently drifts to F-NNNN; CLAUDE.md commitment #2 enumerates the widths as historical fact, not as a rule a future kind would consult.
+The companion gap G-0093 documents the symptoms: epics will exhaust at 99 (E-0022 is the current high-water mark from PoC self-hosting); ADR-0003 declares F-NNN but the §07 TDD architecture proposal silently drifts to F-NNNN; CLAUDE.md commitment #2 enumerates the widths as historical fact, not as a rule a future kind would consult.
 
 The kernel's own self-hosting pressure plus pre-graduation timing make this the right moment to lock the policy. Multiple downstream consumers have already adopted aiwf with narrow-width trees; each will need to migrate to canonical width when they upgrade past the kernel version that ships this change.
 
@@ -110,7 +110,7 @@ The chokepoint is `internal/check/`, not the allocator alone — defense in dept
 
 ## References
 
-- [G-0093](../../work/gaps/G-093-mixed-kernel-id-widths-can-t-survive-poc-graduation-e-nn-exhausts-at-99-and-the-07-proposal-silently-drifts-f-nnn-to-f-nnnn.md) — companion gap that surfaced this work.
+- G-0093 — companion gap that surfaced this work.
 - **CLAUDE.md** "What aiwf commits to" §2 — current id-width statement, updated by the implementing epic.
 - [ADR-0003](ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind; **amended by this ADR's implementing epic** (the docs-and-drift milestone updates the ADR's id-pattern paragraph from F-NNN to F-NNNN).
 - [ADR-0004](ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — Uniform archive convention; archive entities keep their birth-width per forget-by-default.
