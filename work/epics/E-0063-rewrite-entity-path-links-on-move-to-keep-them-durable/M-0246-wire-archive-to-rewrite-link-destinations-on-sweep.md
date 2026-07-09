@@ -64,7 +64,7 @@ B are swept in one run.
   M-0245's region-splitter and resolution for everything else.
 - Multi-move correctness: destinations resolve against the post-sweep layout, not
   incrementally per file.
-- Decision recorded in `ADR-NNNN` (*Entity path-links are first-class and
+- Decision recorded in `ADR-0033` (*Entity path-links are first-class and
   rewritten on move*).
 
 ## Surfaces touched
