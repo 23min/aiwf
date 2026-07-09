@@ -26,6 +26,12 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 	baseline := envWithFindings(verbEnvelopeFinding{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"})
 	afterUnchanged := baseline
 	afterChanged := envWithFindings(verbEnvelopeFinding{Code: "some-other-code", Severity: "warning"})
+	// Same Findings as baseline, but a different entity count — isolates
+	// the Metadata.Entities half of the outcome-changed check from the
+	// Findings half, so a mutation that drops only the entities
+	// comparison can't hide behind the findings comparison instead.
+	afterSameFindingsDifferentEntityCount := envWithFindings(verbEnvelopeFinding{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"})
+	afterSameFindingsDifferentEntityCount.Metadata.Entities = 1
 
 	historyEmpty := verbEnvelope{Status: "ok"}
 	historyEmpty.Metadata.Events = 0
@@ -37,6 +43,11 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 	postMergeMoreEntities.Metadata.Entities = 1
 	postMergeSameEntities := verbEnvelope{Status: "findings"}
 	postMergeSameEntities.Metadata.Entities = 0
+	// One entity higher than afterSameFindingsDifferentEntityCount's 1,
+	// so that row's own postMerge check (Entities > after's) stays
+	// satisfied and doesn't add a second, unrelated violation.
+	postMergeMoreEntitiesThanAlteredAfter := verbEnvelope{Status: "findings"}
+	postMergeMoreEntitiesThanAlteredAfter.Metadata.Entities = 2
 
 	tests := []struct {
 		name                 string
@@ -71,6 +82,15 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntities,
+			postMergeHist:        historyWithEvents,
+			wantViolations:       1,
+		},
+		{
+			name:                 "check's entity count changed even though findings matched baseline — a violation",
+			after:                afterSameFindingsDifferentEntityCount,
+			showFoundBeforeMerge: false,
+			history:              historyEmpty,
+			postMerge:            postMergeMoreEntitiesThanAlteredAfter,
 			postMergeHist:        historyWithEvents,
 			wantViolations:       1,
 		},
