@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // gitInitAndConfig git-inits dir and sets a deterministic commit
@@ -124,4 +125,35 @@ func newSiblingWorktreesFixture(dir string) error {
 		return err
 	}
 	return nil
+}
+
+// currentBranch returns dir's currently checked-out branch name.
+// First built for M-0243/AC-3's ArchiveDuringActiveScopeScenario, then
+// reused by AC-5's HeadDriftScenario — living in this shared
+// git-primitive file rather than staying stranded in the single-AC
+// file that first needed it, now that more than one scenario depends
+// on it.
+func currentBranch(dir string) (string, error) {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: reading HEAD's branch name right after this scenario's own git init has no realistic failure mode
+		return "", fmt.Errorf("reading current branch: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// headSHA returns dir's current HEAD commit SHA. First built for
+// M-0243/AC-4's ForceOverrideDurabilityScenario, then reused by AC-5's
+// HeadDriftScenario — living in this shared git-primitive file rather
+// than staying stranded in the single-AC file that first needed it,
+// now that more than one scenario depends on it.
+func headSHA(dir string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: reading HEAD in a repo this scenario itself just committed to has no realistic failure mode
+		return "", fmt.Errorf("reading HEAD: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }

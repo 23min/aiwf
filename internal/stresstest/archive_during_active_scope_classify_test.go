@@ -1,6 +1,9 @@
 package stresstest
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // archive_during_active_scope_classify_test.go pins
 // classifyArchiveDuringActiveScope — the pure decision logic behind
@@ -16,7 +19,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 		postScopeState           string
 		pauseStatus              string
 		archivedNotTerminalFound bool
-		wantViolations           int
+		wantSubstrings           []string // nil means no violations expected
 	}{
 		{
 			name:                     "clean: scope stays active through the sweep, pause finds it, check catches the structural anomaly",
@@ -24,7 +27,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "active",
 			pauseStatus:              "ok",
 			archivedNotTerminalFound: true,
-			wantViolations:           0,
+			wantSubstrings:           nil,
 		},
 		{
 			name:                     "the scope was never actually active before the sweep — the scenario's premise did not hold",
@@ -32,7 +35,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "active",
 			pauseStatus:              "ok",
 			archivedNotTerminalFound: true,
-			wantViolations:           1,
+			wantSubstrings:           []string{"the scenario's premise did not hold"},
 		},
 		{
 			name:                     "the scope's state changed or vanished after the sweep",
@@ -40,7 +43,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "ended",
 			pauseStatus:              "ok",
 			archivedNotTerminalFound: true,
-			wantViolations:           1,
+			wantSubstrings:           []string{"state changed after the sweep"},
 		},
 		{
 			name:                     "pause could not find the still-open scope after the sweep",
@@ -48,7 +51,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "active",
 			pauseStatus:              "error",
 			archivedNotTerminalFound: true,
-			wantViolations:           1,
+			wantSubstrings:           []string{"could not act on the still-open scope"},
 		},
 		{
 			name:                     "aiwf check silently failed to flag the non-terminal child riding along into archive/",
@@ -56,7 +59,7 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "active",
 			pauseStatus:              "ok",
 			archivedNotTerminalFound: false,
-			wantViolations:           1,
+			wantSubstrings:           []string{"did not flag the non-terminal child"},
 		},
 		{
 			name:                     "every check fails at once",
@@ -64,7 +67,12 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 			postScopeState:           "ended",
 			pauseStatus:              "error",
 			archivedNotTerminalFound: false,
-			wantViolations:           4,
+			wantSubstrings: []string{
+				"the scenario's premise did not hold",
+				"state changed after the sweep",
+				"could not act on the still-open scope",
+				"did not flag the non-terminal child",
+			},
 		},
 	}
 
@@ -73,8 +81,13 @@ func TestClassifyArchiveDuringActiveScope(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := classifyArchiveDuringActiveScope(tc.preScopeState, tc.postScopeState, tc.pauseStatus, tc.archivedNotTerminalFound)
-			if len(got) != tc.wantViolations {
-				t.Errorf("violations = %d (%+v), want %d", len(got), got, tc.wantViolations)
+			if len(got) != len(tc.wantSubstrings) {
+				t.Fatalf("violations = %+v, want %d matching %v", got, len(tc.wantSubstrings), tc.wantSubstrings)
+			}
+			for i, want := range tc.wantSubstrings {
+				if !strings.Contains(got[i].Message, want) {
+					t.Errorf("violation[%d] = %q, want it to contain %q", i, got[i].Message, want)
+				}
 			}
 		})
 	}

@@ -2,8 +2,6 @@ package stresstest
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
 
 	"github.com/23min/aiwf/internal/check"
 )
@@ -187,17 +185,6 @@ func hasFindingForEntity(findings []verbEnvelopeFinding, code, entityID string) 
 		}
 	}
 	return false
-}
-
-// currentBranch returns dir's currently checked-out branch name.
-func currentBranch(dir string) (string, error) {
-	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil { //coverage:ignore defensive: reading HEAD's branch name right after this scenario's own git init has no realistic failure mode
-		return "", fmt.Errorf("reading current branch: %w", err)
-	}
-	return strings.TrimSpace(string(out)), nil
 }
 
 // classifyArchiveDuringActiveScope judges one archive-during-active-

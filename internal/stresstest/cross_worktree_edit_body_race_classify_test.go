@@ -1,6 +1,9 @@
 package stresstest
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // cross_worktree_edit_body_race_classify_test.go pins
 // classifyCrossWorktreeEditBodyRace — the pure decision logic behind
@@ -17,49 +20,49 @@ func TestClassifyCrossWorktreeEditBodyRace(t *testing.T) {
 		name           string
 		conflicted     bool
 		mergedContent  string
-		wantViolations int
+		wantSubstrings []string // nil means no violations expected
 	}{
 		{
 			name:           "conflicted merge preserves both operators' content in the conflict markers",
 			conflicted:     true,
 			mergedContent:  "<<<<<<< HEAD\n" + draftA + "\n=======\n" + draftB + "\n>>>>>>> actor-b\n",
-			wantViolations: 0,
+			wantSubstrings: nil,
 		},
 		{
 			name:           "conflicted merge but operator A's content is missing from the result",
 			conflicted:     true,
 			mergedContent:  "<<<<<<< HEAD\nsome other text\n=======\n" + draftB + "\n>>>>>>> actor-b\n",
-			wantViolations: 1,
+			wantSubstrings: []string{"lost operator A's content"},
 		},
 		{
 			name:           "conflicted merge but operator B's content is missing from the result",
 			conflicted:     true,
 			mergedContent:  "<<<<<<< HEAD\n" + draftA + "\n=======\nsome other text\n>>>>>>> actor-b\n",
-			wantViolations: 1,
+			wantSubstrings: []string{"lost operator B's content"},
 		},
 		{
 			name:           "conflicted merge but neither operator's content survived",
 			conflicted:     true,
 			mergedContent:  "<<<<<<< HEAD\nsome other text\n=======\nsome other other text\n>>>>>>> actor-b\n",
-			wantViolations: 2,
+			wantSubstrings: []string{"lost operator A's content", "lost operator B's content"},
 		},
 		{
 			name:           "clean (non-conflicting) merge landed on operator A's content",
 			conflicted:     false,
 			mergedContent:  "---\nid: G-0001\n---\n" + draftA + "\n",
-			wantViolations: 0,
+			wantSubstrings: nil,
 		},
 		{
 			name:           "clean (non-conflicting) merge landed on operator B's content",
 			conflicted:     false,
 			mergedContent:  "---\nid: G-0001\n---\n" + draftB + "\n",
-			wantViolations: 0,
+			wantSubstrings: nil,
 		},
 		{
 			name:           "clean (non-conflicting) merge landed on neither operator's content — silent data loss",
 			conflicted:     false,
 			mergedContent:  "neither operator wrote this",
-			wantViolations: 1,
+			wantSubstrings: []string{"silent, untraceable data loss"},
 		},
 	}
 
@@ -68,8 +71,13 @@ func TestClassifyCrossWorktreeEditBodyRace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := classifyCrossWorktreeEditBodyRace(tc.conflicted, tc.mergedContent, draftA, draftB)
-			if len(got) != tc.wantViolations {
-				t.Errorf("violations = %d (%+v), want %d", len(got), got, tc.wantViolations)
+			if len(got) != len(tc.wantSubstrings) {
+				t.Fatalf("violations = %+v, want %d matching %v", got, len(tc.wantSubstrings), tc.wantSubstrings)
+			}
+			for i, want := range tc.wantSubstrings {
+				if !strings.Contains(got[i].Message, want) {
+					t.Errorf("violation[%d] = %q, want it to contain %q", i, got[i].Message, want)
+				}
 			}
 		})
 	}

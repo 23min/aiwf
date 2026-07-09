@@ -267,17 +267,6 @@ func (s *ForceOverrideDurabilityScenario) Verify(_ string) []Violation {
 	return s.violations
 }
 
-// headSHA returns dir's current HEAD commit SHA.
-func headSHA(dir string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil { //coverage:ignore defensive: reading HEAD in a repo this scenario itself just committed to has no realistic failure mode
-		return "", fmt.Errorf("reading HEAD: %w", err)
-	}
-	return strings.TrimSpace(string(out)), nil
-}
-
 // commitTrailerValue returns the value of trailer on commit ref (a SHA
 // or "HEAD"), or "" if the commit carries no such trailer.
 func commitTrailerValue(dir, ref, trailer string) (string, error) {

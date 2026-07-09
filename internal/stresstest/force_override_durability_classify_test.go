@@ -1,6 +1,9 @@
 package stresstest
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // force_override_durability_classify_test.go pins
 // classifyForceOverrideDurability — the pure decision logic behind
@@ -29,7 +32,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 		forceAccepted     bool
 		cherryPickClean   bool
 		trailersPreserved bool
-		wantViolations    int
+		wantSubstrings    []string // nil means no violations expected
 	}{
 		{
 			name:              "confirmed: ack revoked by rebase; cherry-pick carryover confirmed cleanly",
@@ -39,7 +42,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   true,
 			trailersPreserved: true,
-			wantViolations:    1,
+			wantSubstrings:    []string{"confirmed: a rebase dropping"},
 		},
 		{
 			name:              "item 5 premise broken: the manual illegal edit was never flagged",
@@ -49,7 +52,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   true,
 			trailersPreserved: true,
-			wantViolations:    2,
+			wantSubstrings:    []string{"was never flagged before acknowledging", "confirmed: a rebase dropping"},
 		},
 		{
 			name:              "item 5: acknowledge illegal did not suppress the finding",
@@ -59,7 +62,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   true,
 			trailersPreserved: true,
-			wantViolations:    2,
+			wantSubstrings:    []string{"did not suppress the illegal-transition", "confirmed: a rebase dropping"},
 		},
 		{
 			name:              "item 5: the ack unexpectedly survived the rebase (no revival) — not itself a violation",
@@ -69,7 +72,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   true,
 			trailersPreserved: true,
-			wantViolations:    0,
+			wantSubstrings:    nil,
 		},
 		{
 			name:              "item 6 premise broken: the original force-promote was not accepted",
@@ -79,7 +82,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     false,
 			cherryPickClean:   true,
 			trailersPreserved: true,
-			wantViolations:    2,
+			wantSubstrings:    []string{"confirmed: a rebase dropping", "was not accepted"},
 		},
 		{
 			name:              "item 6 premise broken: the cherry-pick produced a conflict",
@@ -89,7 +92,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   false,
 			trailersPreserved: true,
-			wantViolations:    2,
+			wantSubstrings:    []string{"confirmed: a rebase dropping", "produced an unexpected conflict"},
 		},
 		{
 			name:              "item 6 premise broken: the cherry-pick did not preserve the force/actor trailers",
@@ -99,7 +102,7 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     true,
 			cherryPickClean:   true,
 			trailersPreserved: false,
-			wantViolations:    2,
+			wantSubstrings:    []string{"confirmed: a rebase dropping", "trailer-preservation did not hold"},
 		},
 		{
 			name:              "every check fails at once",
@@ -109,7 +112,13 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 			forceAccepted:     false,
 			cherryPickClean:   false,
 			trailersPreserved: false,
-			wantViolations:    5,
+			wantSubstrings: []string{
+				"was never flagged before acknowledging",
+				"did not suppress the illegal-transition",
+				"was not accepted",
+				"produced an unexpected conflict",
+				"trailer-preservation did not hold",
+			},
 		},
 	}
 
@@ -118,8 +127,13 @@ func TestClassifyForceOverrideDurability(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := classifyForceOverrideDurability(tc.preAckFlagged, tc.postAckFlagged, tc.postRebaseFlagged, tc.forceAccepted, tc.cherryPickClean, tc.trailersPreserved)
-			if len(got) != tc.wantViolations {
-				t.Errorf("violations = %d (%+v), want %d", len(got), got, tc.wantViolations)
+			if len(got) != len(tc.wantSubstrings) {
+				t.Fatalf("violations = %+v, want %d matching %v", got, len(tc.wantSubstrings), tc.wantSubstrings)
+			}
+			for i, want := range tc.wantSubstrings {
+				if !strings.Contains(got[i].Message, want) {
+					t.Errorf("violation[%d] = %q, want it to contain %q", i, got[i].Message, want)
+				}
 			}
 		})
 	}

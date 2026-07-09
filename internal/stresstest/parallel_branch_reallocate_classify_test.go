@@ -1,6 +1,7 @@
 package stresstest
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
@@ -23,7 +24,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 		reallocateStatus  string
 		postCheckFindings []verbEnvelopeFinding
 		pushedClean       bool
-		wantViolations    int
+		wantSubstrings    []string // nil means no violations expected
 	}{
 		{
 			name:              "clean resolution: check surfaces it, reallocate ok, post-check clear, push succeeds",
@@ -31,7 +32,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "ok",
 			postCheckFindings: otherFinding,
 			pushedClean:       true,
-			wantViolations:    0,
+			wantSubstrings:    nil,
 		},
 		{
 			name:              "aiwf check never surfaced the collision",
@@ -39,7 +40,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "ok",
 			postCheckFindings: otherFinding,
 			pushedClean:       true,
-			wantViolations:    1,
+			wantSubstrings:    []string{"did not surface it as"},
 		},
 		{
 			name:              "reallocate did not report ok",
@@ -47,7 +48,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "error",
 			postCheckFindings: otherFinding,
 			pushedClean:       true,
-			wantViolations:    1,
+			wantSubstrings:    []string{"did not cleanly resolve the collision"},
 		},
 		{
 			name:              "ids-unique finding still present after reallocate",
@@ -55,7 +56,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "ok",
 			postCheckFindings: idsUnique,
 			pushedClean:       true,
-			wantViolations:    1,
+			wantSubstrings:    []string{"finding still present after"},
 		},
 		{
 			name:              "final push after reallocate did not succeed cleanly",
@@ -63,7 +64,7 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "ok",
 			postCheckFindings: otherFinding,
 			pushedClean:       false,
-			wantViolations:    1,
+			wantSubstrings:    []string{"did not succeed cleanly"},
 		},
 		{
 			name:              "every check fails at once",
@@ -71,7 +72,12 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 			reallocateStatus:  "error",
 			postCheckFindings: idsUnique,
 			pushedClean:       false,
-			wantViolations:    4,
+			wantSubstrings: []string{
+				"did not surface it as",
+				"did not cleanly resolve the collision",
+				"finding still present after",
+				"did not succeed cleanly",
+			},
 		},
 	}
 
@@ -80,8 +86,13 @@ func TestClassifyParallelBranchReallocate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := classifyParallelBranchReallocate(tc.checkFindings, tc.reallocateStatus, tc.postCheckFindings, tc.pushedClean)
-			if len(got) != tc.wantViolations {
-				t.Errorf("violations = %d (%+v), want %d", len(got), got, tc.wantViolations)
+			if len(got) != len(tc.wantSubstrings) {
+				t.Fatalf("violations = %+v, want %d matching %v", got, len(tc.wantSubstrings), tc.wantSubstrings)
+			}
+			for i, want := range tc.wantSubstrings {
+				if !strings.Contains(got[i].Message, want) {
+					t.Errorf("violation[%d] = %q, want it to contain %q", i, got[i].Message, want)
+				}
 			}
 		})
 	}
