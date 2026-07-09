@@ -128,15 +128,15 @@ and as a backstop for raw-`git mv` bypass.
 
 ## Milestones
 
-- `M-NNNN` — Shared link-destination rewrite primitive: lift `rewidth`'s
+- `M-0245` — Shared link-destination rewrite primitive: lift `rewidth`'s
   region-splitter, generalize to relative destinations, pure + idempotent, unit-
   and property-tested · depends on: —
-- `M-NNNN` — Wire `archive`: `/archive/`-insertion transform, body writes, sweep
-  and epic-subtree multi-move · depends on: the primitive milestone
-- `M-NNNN` — Wire `rename` + `retitle`: slug-swap transform, body writes,
-  composite-AC no-op path · depends on: the primitive milestone
-- `M-NNNN` — Unify `reallocate` onto the primitive for link-region precision
-  (optional; refinement, not a rot-fix) · depends on: the primitive milestone
+- `M-0246` — Wire `archive`: `/archive/`-insertion transform, body writes, sweep
+  and epic-subtree multi-move · depends on: `M-0245`
+- `M-0247` — Wire `rename` + `retitle`: slug-swap transform, body writes,
+  composite-AC no-op path · depends on: `M-0245`
+- `M-0248` — Unify `reallocate` onto the primitive for link-region precision
+  (optional; refinement, not a rot-fix) · depends on: `M-0245`
 
 ## ADRs produced (optional)
 
