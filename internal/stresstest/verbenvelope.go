@@ -50,6 +50,7 @@ type verbEnvelopeError struct {
 
 type verbEnvelopeFinding struct {
 	Code     string `json:"code"`
+	Subcode  string `json:"subcode"`
 	Severity string `json:"severity"`
 	EntityID string `json:"entity_id"`
 }
