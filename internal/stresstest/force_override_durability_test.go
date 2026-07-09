@@ -123,3 +123,25 @@ func TestHasFindingSubcodeForEntity_MatchesOnAllThreeDimensions(t *testing.T) {
 		t.Fatal("expected a match on the exact code+subcode+entity triple")
 	}
 }
+
+// TestFindingHint pins findingHint's matching and no-match branches
+// directly — the no-match ("") case is never exercised by a real
+// scenario run (the illegal-transition finding is always present
+// after the rebase in this scenario's own sequence, whether or not
+// its Hint is populated), so it needs a direct fabricated-input test.
+func TestFindingHint(t *testing.T) {
+	t.Parallel()
+	findings := []verbEnvelopeFinding{
+		{Code: check.CodeFSMHistoryConsistent, Subcode: "illegal-transition", EntityID: "E-0001", Hint: "some hint"},
+		{Code: check.CodeFSMHistoryConsistent, Subcode: "illegal-transition", EntityID: "E-0002", Hint: ""},
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0001"); got != "some hint" {
+		t.Errorf("findingHint() = %q, want %q", got, "some hint")
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0002"); got != "" {
+		t.Errorf("findingHint() = %q, want empty string (finding exists but Hint is empty)", got)
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0003"); got != "" {
+		t.Errorf("findingHint() = %q, want empty string (no matching finding at all)", got)
+	}
+}
