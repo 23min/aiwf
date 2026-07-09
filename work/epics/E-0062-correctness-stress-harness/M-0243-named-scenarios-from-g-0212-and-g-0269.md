@@ -146,6 +146,16 @@ conflict — never a silent last-writer-wins overwrite. Better than
 G-0212 feared: maximally observable, not silent · commit 50aac81c ·
 tests 11/11
 
+### AC-3 — Archive-during-active-scope is exercised end-to-end per G-0212 item 3
+
+Confirmed, empirically: G-0212's literal fear does not hold — `aiwf
+show` and `aiwf authorize --pause` both correctly resolve a scope that
+survives an archive sweep. A different, real gap surfaced instead:
+`aiwf archive` can sweep a non-terminal milestone alongside its
+terminal parent (promote-to-done carries no non-terminal-children
+guard, unlike `aiwf cancel`), producing a tree `aiwf check` only flags
+after the fact. Filed as G-0393 · commit 7e56e8cf · tests 12/12
+
 ## Decisions made during implementation
 
 - (none)
@@ -154,7 +164,7 @@ tests 11/11
 
 ## Deferrals
 
-- (none)
+- G-0393 — aiwf archive can sweep a non-terminal milestone alongside its terminal parent (discovered in AC-3)
 
 ## Reviewer notes
 
