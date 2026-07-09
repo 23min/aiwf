@@ -1,7 +1,7 @@
 ---
 id: ADR-0033
 title: Entity path-links are first-class and rewritten on move
-status: proposed
+status: accepted
 ---
 # ADR-0033 — Entity path-links are first-class and rewritten on move
 
