@@ -1,7 +1,7 @@
 ---
 id: D-0035
 title: Diagnostic-log passthrough plus a resumable cursor, not a scalar correlation id
-status: proposed
+status: accepted
 relates_to:
     - M-0249
 ---
