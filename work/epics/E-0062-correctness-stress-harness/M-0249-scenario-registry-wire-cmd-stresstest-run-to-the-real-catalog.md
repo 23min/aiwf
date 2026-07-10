@@ -1,7 +1,7 @@
 ---
 id: M-0249
 title: 'Scenario registry: wire cmd/stresstest run to the real catalog'
-status: draft
+status: in_progress
 parent: E-0062
 depends_on:
     - M-0244
