@@ -89,7 +89,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return fail("aiwf worktree add", err, cliutil.ExitUsage)
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf worktree add")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf worktree add", out)
 	if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock contention from a concurrent verb invocation; not reproducible in serial tests.
 		return rc
 	}

@@ -79,7 +79,7 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename-area")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename-area", out)
 	if release == nil {
 		return rc
 	}

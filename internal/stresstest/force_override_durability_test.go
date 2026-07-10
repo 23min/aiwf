@@ -18,10 +18,12 @@ import (
 // cherry-pick sequence.
 
 // TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebase
-// is the scenario's real-binary happy path — and, per this AC's own
-// framing, the expected pass state is that the confirmed defect (item
-// 5's ack revocation) IS the one violation reported, with item 6's
-// premise checks all clean.
+// is the scenario's real-binary happy path. Per D-0034 (M-0244/AC-2),
+// the ack revocation itself is a confirmed, expected property — no
+// longer a violation on its own — and the scenario now additionally
+// requires G-0395's dangling-ack diagnostic to fire when it happens;
+// both hold in a clean real run, so the expected pass state is 0
+// violations.
 func TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebase(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
@@ -33,14 +35,8 @@ func TestForceOverrideDurabilityScenario_RealBinary_ConfirmsAckRevocationByRebas
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
-	if result.Passed {
-		t.Fatal("expected the scenario to report the confirmed ack-revocation-by-rebase defect as a violation, not pass cleanly")
-	}
-	if len(result.Violations) != 1 {
-		t.Fatalf("expected exactly 1 violation (the confirmed ack revocation), got %d: %+v", len(result.Violations), result.Violations)
-	}
-	if !strings.Contains(result.Violations[0].Message, "not durable against history rewrites") {
-		t.Fatalf("expected the violation to name the ack-durability defect, got: %+v", result.Violations[0])
+	if !result.Passed {
+		t.Fatalf("force-override-durability scenario found violations (dir preserved at %s):\n%+v", result.Dir, result.Violations)
 	}
 }
 
@@ -125,5 +121,27 @@ func TestHasFindingSubcodeForEntity_MatchesOnAllThreeDimensions(t *testing.T) {
 	}
 	if !hasFindingSubcodeForEntity(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0001") {
 		t.Fatal("expected a match on the exact code+subcode+entity triple")
+	}
+}
+
+// TestFindingHint pins findingHint's matching and no-match branches
+// directly — the no-match ("") case is never exercised by a real
+// scenario run (the illegal-transition finding is always present
+// after the rebase in this scenario's own sequence, whether or not
+// its Hint is populated), so it needs a direct fabricated-input test.
+func TestFindingHint(t *testing.T) {
+	t.Parallel()
+	findings := []verbEnvelopeFinding{
+		{Code: check.CodeFSMHistoryConsistent, Subcode: "illegal-transition", EntityID: "E-0001", Hint: "some hint"},
+		{Code: check.CodeFSMHistoryConsistent, Subcode: "illegal-transition", EntityID: "E-0002", Hint: ""},
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0001"); got != "some hint" {
+		t.Errorf("findingHint() = %q, want %q", got, "some hint")
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0002"); got != "" {
+		t.Errorf("findingHint() = %q, want empty string (finding exists but Hint is empty)", got)
+	}
+	if got := findingHint(findings, check.CodeFSMHistoryConsistent, "illegal-transition", "E-0003"); got != "" {
+		t.Errorf("findingHint() = %q, want empty string (no matching finding at all)", got)
 	}
 }

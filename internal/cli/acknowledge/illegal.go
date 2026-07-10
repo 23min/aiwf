@@ -134,7 +134,7 @@ func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFo
 		cliutil.Errorf("aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal", out)
 	if release == nil {
 		return rc
 	}

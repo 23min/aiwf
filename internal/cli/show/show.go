@@ -132,7 +132,23 @@ func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 
 	view, ok := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
 	if !ok {
-		cliutil.Errorf("aiwf show: %s not found\n", id)
+		message := fmt.Sprintf("%s not found", id)
+		switch format {
+		case "text":
+			cliutil.Errorf("aiwf show: %s\n", message)
+		case "json":
+			env := render.Envelope{
+				Tool:     "aiwf",
+				Version:  version.Current().Version,
+				Status:   "error",
+				Error:    &render.EnvelopeError{Message: message},
+				Metadata: map[string]any{"root": rootDir, "id": id},
+			}
+			if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
+				cliutil.Errorf("aiwf show: %v\n", err)
+				return cliutil.ExitInternal
+			}
+		}
 		return cliutil.ExitUsage
 	}
 

@@ -215,7 +215,7 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf authorize")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf authorize", out)
 	if release == nil {
 		return rc
 	}

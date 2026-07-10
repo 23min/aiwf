@@ -49,12 +49,21 @@ import (
 // kindFilter scopes the sweep. "" sweeps every kind; a non-empty value
 // must be one of entity.AllKinds().
 func Archive(ctx context.Context, root, actor, kindFilter string) (*Result, error) {
-	plan, err := planArchive(ctx, root, kindFilter)
+	plan, skipped, err := planArchive(ctx, root, kindFilter)
 	if err != nil {
 		return nil, err
 	}
 	if plan == nil {
-		return &Result{NoOp: true, NoOpMessage: "aiwf archive: no terminal-status entities awaiting sweep (tree is converged)"}, nil
+		msg := "aiwf archive: no terminal-status entities awaiting sweep (tree is converged)"
+		if len(skipped) > 0 {
+			// G-0394 (Direction B): don't report "converged" when an
+			// epic is actually stranded on a non-terminal child — that
+			// would silently hide the exact problem this guard exists
+			// to surface.
+			msg = fmt.Sprintf("aiwf archive: no entities swept; %d epic(s) skipped (non-terminal children): %s",
+				len(skipped), formatArchiveSkips(skipped))
+		}
+		return &Result{NoOp: true, NoOpMessage: msg}, nil
 	}
 	plan.Trailers = []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: "archive"},
@@ -83,6 +92,30 @@ type archiveMove struct {
 	id string
 }
 
+// archiveSkip records an epic that computeArchiveMoves declined to
+// sweep because its subtree still owns one or more non-terminal
+// milestones (G-0394, Direction B) — the archive-time counterpart to
+// Promote's epic-terminal guard (internal/verb/promote.go, G-0393 /
+// G-0394). That guard runs unconditionally (no --force bypass, mirroring
+// Cancel's own D-0003 guard), so this is defense-in-depth for the one
+// path that still reaches the state: a raw frontmatter hand-edit that
+// bypasses the verb layer entirely.
+type archiveSkip struct {
+	epic     string
+	children []string
+}
+
+// formatArchiveSkips renders skipped epics and their offending
+// children for operator-facing text. Shared by the commit body and
+// the NoOp message so the phrasing has one source.
+func formatArchiveSkips(skipped []archiveSkip) string {
+	parts := make([]string, 0, len(skipped))
+	for _, s := range skipped {
+		parts = append(parts, fmt.Sprintf("%s (non-terminal: %s)", s.epic, strings.Join(s.children, ", ")))
+	}
+	return strings.Join(parts, "; ")
+}
+
 // planArchive computes the list of OpMove ops the sweep produces over
 // the active tree. Returns nil when there is nothing to sweep.
 //
@@ -91,18 +124,18 @@ type archiveMove struct {
 // kindFilter of "milestone" sweeps nothing. (We treat that as a no-op
 // rather than an error: it's an honest answer to "what would archive
 // do for milestones?".)
-func planArchive(ctx context.Context, root, kindFilter string) (*Plan, error) {
+func planArchive(ctx context.Context, root, kindFilter string) (*Plan, []archiveSkip, error) {
 	tr, _, err := tree.Load(ctx, root)
 	if err != nil {
-		return nil, fmt.Errorf("loading tree: %w", err)
+		return nil, nil, fmt.Errorf("loading tree: %w", err)
 	}
 
-	moves, err := computeArchiveMoves(tr, kindFilter)
+	moves, skipped, err := computeArchiveMoves(tr, kindFilter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(moves) == 0 {
-		return nil, nil
+		return nil, skipped, nil
 	}
 
 	// Stable order: by kind then by from-path. Determinism is load-
@@ -125,9 +158,9 @@ func planArchive(ctx context.Context, root, kindFilter string) (*Plan, error) {
 	subject := archiveCommitSubject(moves)
 	return &Plan{
 		Subject: subject,
-		Body:    archiveCommitBody(moves),
+		Body:    archiveCommitBody(moves, skipped),
 		Ops:     ops,
-	}, nil
+	}, skipped, nil
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
@@ -147,9 +180,9 @@ func planArchive(ctx context.Context, root, kindFilter string) (*Plan, error) {
 // doesn't bite at the milestone level). A milestone whose parent epic
 // is terminal moves alongside the epic via the dir-rename above; the
 // milestone's own status is incidental to that move.
-func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, error) {
+func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, []archiveSkip, error) {
 	if kindFilter != "" && !isKnownKind(kindFilter) {
-		return nil, fmt.Errorf("unknown kind %q (must be one of %s)", kindFilter, strings.Join(allKindNamesArchive(), ", "))
+		return nil, nil, fmt.Errorf("unknown kind %q (must be one of %s)", kindFilter, strings.Join(allKindNamesArchive(), ", "))
 	}
 
 	// Track epic dirs we've already emitted a move for, so a "done epic
@@ -159,6 +192,7 @@ func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, error
 	contractDirSeen := map[string]bool{}
 
 	var moves []archiveMove
+	var skipped []archiveSkip
 
 	for _, e := range tr.Entities {
 		// Skip already-archived entities — the move target is where
@@ -186,6 +220,18 @@ func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, error
 				continue
 			}
 			epicDirSeen[epicDir] = true
+			// G-0394 (Direction B): decline to strand a non-terminal
+			// child in archive/ alongside its terminal parent. The
+			// promote-time guard (Promote, promote.go) is the primary
+			// chokepoint and already runs unconditionally (no --force
+			// bypass); a raw frontmatter hand-edit is the one path that
+			// still reaches this state, so archive independently refuses
+			// to sweep it too — unconditionally, with no --force of its
+			// own.
+			if nonTerminal := nonTerminalEpicChildren(tr, e.ID); len(nonTerminal) > 0 {
+				skipped = append(skipped, archiveSkip{epic: e.ID, children: nonTerminal})
+				continue
+			}
 			toDir := archiveTargetForEpic(epicDir)
 			moves = append(moves, archiveMove{
 				kind: entity.KindEpic,
@@ -253,7 +299,7 @@ func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, error
 		}
 	}
 
-	return moves, nil
+	return moves, skipped, nil
 }
 
 // isKnownKind reports whether s names one of the six aiwf kinds.
@@ -351,8 +397,11 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 }
 
 // archiveCommitBody renders the per-kind summary + affected-id list
-// for the commit body. ADR-0004 §"`aiwf archive` verb": "the commit
-// message body lists affected ids and per-kind counts."
+// for the commit body, plus a skipped-epics section when skipped is
+// non-empty (G-0394, Direction B) so the multi-entity sweep doesn't
+// silently drop a stranded epic with no operator-visible trace.
+// ADR-0004 §"`aiwf archive` verb": "the commit message body lists
+// affected ids and per-kind counts."
 //
 // Format:
 //
@@ -367,40 +416,56 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 //	Affected ids:
 //	  E-0010, E-0017, C-0010, G-0010, G-0011, ..., D-0007, ADR-0001
 //
+//	Skipped (non-terminal children; G-0394):
+//	  E-0020: M-0030, M-0031
+//
 // Determinism: kinds iterate in entity.AllKinds() order; ids within
-// each kind iterate in lexicographic order.
-func archiveCommitBody(moves []archiveMove) string {
-	if len(moves) == 0 {
-		return "" //coverage:ignore caller returns nil Plan when len(moves)==0
+// each kind iterate in lexicographic order; skipped epics iterate in
+// the order computeArchiveMoves encountered them (tr.Entities order).
+func archiveCommitBody(moves []archiveMove, skipped []archiveSkip) string {
+	if len(moves) == 0 && len(skipped) == 0 {
+		return "" //coverage:ignore caller (planArchive) returns nil Plan whenever len(moves)==0, regardless of skipped
 	}
-	byKind := map[entity.Kind][]string{}
-	for _, m := range moves {
-		byKind[m.kind] = append(byKind[m.kind], m.id)
-	}
-	for k := range byKind {
-		sort.Strings(byKind[k])
-	}
-
 	var sb strings.Builder
-	sb.WriteString("Per ADR-0004: sweep terminal-status entities into per-kind archive/.\n\n")
-	sb.WriteString("Per-kind counts:\n")
-	for _, k := range entity.AllKinds() {
-		ids, ok := byKind[k]
-		if !ok || len(ids) == 0 {
-			continue
+	if len(moves) > 0 {
+		byKind := map[entity.Kind][]string{}
+		for _, m := range moves {
+			byKind[m.kind] = append(byKind[m.kind], m.id)
 		}
-		fmt.Fprintf(&sb, "  %-9s %d %s\n", k, len(ids), pluralize(len(ids), "entity", "entities"))
+		for k := range byKind {
+			sort.Strings(byKind[k])
+		}
+
+		sb.WriteString("Per ADR-0004: sweep terminal-status entities into per-kind archive/.\n\n")
+		sb.WriteString("Per-kind counts:\n")
+		for _, k := range entity.AllKinds() {
+			ids, ok := byKind[k]
+			if !ok || len(ids) == 0 {
+				continue
+			}
+			fmt.Fprintf(&sb, "  %-9s %d %s\n", k, len(ids), pluralize(len(ids), "entity", "entities"))
+		}
+
+		// Affected ids: aggregate across kinds in entity.AllKinds()
+		// order, then alphabetical within each kind.
+		var allIDs []string
+		for _, k := range entity.AllKinds() {
+			allIDs = append(allIDs, byKind[k]...)
+		}
+		sb.WriteString("\nAffected ids:\n  ")
+		sb.WriteString(strings.Join(allIDs, ", "))
+		sb.WriteString("\n")
 	}
 
-	// Affected ids: aggregate across kinds in entity.AllKinds() order,
-	// then alphabetical within each kind.
-	var allIDs []string
-	for _, k := range entity.AllKinds() {
-		allIDs = append(allIDs, byKind[k]...)
+	if len(skipped) > 0 {
+		if sb.Len() > 0 {
+			sb.WriteString("\n")
+		}
+		sb.WriteString("Skipped (non-terminal children; G-0394):\n")
+		for _, s := range skipped {
+			fmt.Fprintf(&sb, "  %s: %s\n", s.epic, strings.Join(s.children, ", "))
+		}
 	}
-	sb.WriteString("\nAffected ids:\n  ")
-	sb.WriteString(strings.Join(allIDs, ", "))
-	sb.WriteString("\n")
 
 	return sb.String()
 }

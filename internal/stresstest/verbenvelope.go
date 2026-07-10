@@ -30,16 +30,16 @@ type verbEnvelope struct {
 	Error    *verbEnvelopeError    `json:"error"`
 	Findings []verbEnvelopeFinding `json:"findings"`
 	Result   struct {
-		ID     string `json:"id"`
 		Status string `json:"status"`
 		Scopes []struct {
 			State string `json:"state"` // populated by `show`
 		} `json:"scopes"`
 	} `json:"result"`
 	Metadata struct {
-		EntityID string `json:"entity_id"`
-		Entities int    `json:"entities"` // populated by `check`
-		Events   int    `json:"events"`   // populated by `history`
+		EntityID      string `json:"entity_id"`
+		Entities      int    `json:"entities"`       // populated by `check`
+		Events        int    `json:"events"`         // populated by `history`
+		CorrelationID string `json:"correlation_id"` // populated by every instrumented verb (M-0239/AC-1)
 	} `json:"metadata"`
 }
 
@@ -53,6 +53,7 @@ type verbEnvelopeFinding struct {
 	Subcode  string `json:"subcode"`
 	Severity string `json:"severity"`
 	EntityID string `json:"entity_id"`
+	Hint     string `json:"hint"`
 }
 
 // runAiwfJSON runs bin with args plus --format=json in dir and

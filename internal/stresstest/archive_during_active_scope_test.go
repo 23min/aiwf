@@ -5,18 +5,18 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/23min/aiwf/internal/check"
 )
 
 // archive_during_active_scope_test.go — real-subprocess coverage for
-// ArchiveDuringActiveScopeScenario (M-0243/AC-3). The pure decision
-// logic (classifyArchiveDuringActiveScope) is pinned exhaustively in
+// ArchiveDuringActiveScopeScenario (M-0243/AC-3; updated by
+// M-0244/AC-2's G-0393 sweep). The pure decision logic
+// (classifyArchiveDuringActiveScope) is pinned exhaustively in
 // archive_during_active_scope_classify_test.go against fabricated
 // outcomes; this is the actual scenario, driving a real epic/milestone
-// pair through a real authorize-then-archive sequence.
+// pair with a real active authorize scope through a real, now-refused
+// promote attempt.
 
-func TestArchiveDuringActiveScopeScenario_RealBinary_ConfirmsScopeSurvivesTheSweep(t *testing.T) {
+func TestArchiveDuringActiveScopeScenario_RealBinary_ConfirmsPromoteRefusesWhileChildActive(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
@@ -68,36 +68,5 @@ func TestArchiveDuringActiveScopeScenario_RealBinary_SetupSurfacesASeedingRefusa
 		t.Fatal("expected Setup to surface the seeding refusal")
 	} else if !strings.Contains(err.Error(), "did not report ok") {
 		t.Fatalf("expected the refusal to name the seeding step, got: %v", err)
-	}
-}
-
-// TestScopeState_ReturnsEmptyStringWhenNoScopesPresent pins scopeState's
-// empty-scopes branch directly — a real "show" call before any
-// authorize was ever opened returns no scopes array at all.
-func TestScopeState_ReturnsEmptyStringWhenNoScopesPresent(t *testing.T) {
-	t.Parallel()
-	if got := scopeState(verbEnvelope{}); got != "" {
-		t.Fatalf("scopeState on an empty envelope = %q, want empty string", got)
-	}
-}
-
-// TestHasFindingForEntity_MatchesOnBothCodeAndEntityID pins
-// hasFindingForEntity's discriminating branches: a finding with the
-// right code but wrong entity, or the right entity but wrong code,
-// must not count as a match.
-func TestHasFindingForEntity_MatchesOnBothCodeAndEntityID(t *testing.T) {
-	t.Parallel()
-	findings := []verbEnvelopeFinding{
-		{Code: check.CodeArchivedEntityNotTerminal, EntityID: "M-0002"},
-		{Code: "some-other-code", EntityID: "M-0001"},
-	}
-	if hasFindingForEntity(findings, check.CodeArchivedEntityNotTerminal, "M-0001") {
-		t.Fatal("expected no match: code matches a different entity")
-	}
-	if hasFindingForEntity(findings, "some-other-code", "M-0002") {
-		t.Fatal("expected no match: entity matches a different code")
-	}
-	if !hasFindingForEntity(findings, check.CodeArchivedEntityNotTerminal, "M-0002") {
-		t.Fatal("expected a match on the exact code+entity pair")
 	}
 }

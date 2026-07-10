@@ -1,6 +1,6 @@
 ---
 name: wf-doc-lint
-description: Mechanical checks over the project's narrative documentation tree (`docs/`). Reports broken code references, removed-feature docs, orphan files, and documentation TODOs. Reports only — never rewrites prose. Use before proposing a change for merge that touches code with documentation impact, or as a periodic doc-hygiene pass.
+description: Mechanical checks over the project's narrative documentation tree (`docs/` plus hand-authored root files like `README.md`). Reports broken code references, removed-feature docs, orphan files, documentation TODOs, broken markdown links, stale CLI invocations, and structural drift (table of contents, heading hierarchy). Reports only — never rewrites prose. Use before proposing a change for merge that touches code with documentation impact, or as a periodic doc-hygiene pass.
 ---
 
 # wf-doc-lint
@@ -39,11 +39,32 @@ Docs with no inbound links from any other doc, README, or code file. They might 
 
 `TODO`, `FIXME`, `XXX`, or similar markers anywhere under `docs/`. List them with `path:line`. Most projects accumulate these; the lint just makes them visible so they can be triaged or grandfathered explicitly.
 
+### 5. Markdown link integrity
+
+Nothing in checks 1–4 verifies that a markdown link itself resolves — check 1 verifies referenced *code symbols*, not link targets. Walk every markdown link and bare anchor in a doc's scope and check three link shapes:
+
+```
+link text (relative/doc/path.md)        intra-repo link — does the target file exist relative to the linking doc?
+link text (other-doc.md#a-heading)      anchor into another doc, or a bare same-file anchor — does a heading slug to it (lowercase, spaces to hyphens, punctuation stripped)?
+link text (../path/to/source-file.ext)  source-file link — does the referenced path exist in the source tree (whatever the project's language)?
+```
+
+Report each broken link with the linking doc's `path:line` and the unresolved target. Two false-positive traps: a destination that resolves to a directory rather than a file is a valid link, not a broken one; and illustrative link syntax sitting inside inline code or a fenced block is prose about links, not a live link — skip both kinds of span, not just fenced blocks.
+
+### 6. CLI-invocation resolution
+
+For a project that ships a CLI, a backticked invocation of the project's own tool (e.g. `` `aiwf <verb> --flag` ``) must resolve against what the tool actually accepts today — the same principle a repo may already enforce for skill bodies, generalized to `docs/`. Verify against the tool's real command surface, not a hand-written summary: run the tool's own help (recursing into subcommand help where the CLI framework nests one) rather than trusting a top-level banner, which can omit real verbs — the check is the same regardless of what language or CLI framework the tool is built with. Flag a doc invocation naming a verb or flag the current tool no longer recognizes, with the doc's `path:line`. Heuristic, like check 2: a doc explicitly discussing a deferred, proposed, or hypothetical verb (hedged language — "would", "deferred", "not yet filed" — common in a research or design-exploration doc) is not drift. False positives are tolerable; the reviewer decides whether an unresolved invocation is stale or intentionally aspirational.
+
+### 7. Structural checks
+
+- **Table-of-contents drift** — a hand-maintained `## Contents` (or similar) list whose entries link to `#heading` anchors *within the same doc* that no longer match the headings below it: a renamed, removed, or reordered heading the list never followed. A `## Contents` that instead indexes sibling files (a directory README linking to other files in the same folder) is check 5's job, not this one — it carries no internal headings to drift against.
+- **Heading-hierarchy sanity** — a skipped heading level (`##` straight to `####`), two headings in the same doc that collide on the same anchor slug, or a heading with no content before the next heading of equal-or-shallower level.
+
 ## Related: repo-wide secret / path-leak scanning (standalone tool)
 
-Distinct from the four doc heuristics above: absolute filesystem paths and secrets in committed text leak contributor-local state — usernames, machine layouts, install locations — and none of it informs a downstream reader. This is **not** one of the four doc heuristics, for three reasons:
+Distinct from the seven doc heuristics above: absolute filesystem paths and secrets in committed text leak contributor-local state — usernames, machine layouts, install locations — and none of it informs a downstream reader. This is **not** one of the seven doc heuristics, for three reasons:
 
-- **Scope is repo-wide, not docs-scoped.** A leaked path is a defect anywhere in the tree (source, tests, config, git history), not just under `docs/`. The four heuristics above are docs-scoped; this scan is not.
+- **Scope is repo-wide, not docs-scoped.** A leaked path is a defect anywhere in the tree (source, tests, config, git history), not just under `docs/`. The seven heuristics above are docs-scoped; this scan is not.
 - **It is deterministic and mechanical** (regex → match), so it deserves a **real chokepoint**, not an LLM-judged advisory heuristic.
 - **Its patterns and allowlist are repo-specific** — each project has its own contributor identities to exclude, its own legitimate paths to allow, its own test-fixture placeholder conventions.
 
@@ -91,11 +112,14 @@ When this skill runs as an advisory ritual, point the operator at their `.gitlea
 
 ## Workflow
 
-1. Identify the docs root. Default: `docs/`. Some projects use `documentation/`, `book/`, or a flat top-level. Read `README.md` or look for the obvious folder.
+1. Identify the docs root. Default: `docs/` **plus** the repo's hand-authored top-level narrative files — `README.md`, `CONTRIBUTING.md`. Some projects use `documentation/`, `book/`, or a flat top-level instead of `docs/`; read `README.md` or look for the obvious folder.
+   - **Generated or gitignored root files stay out of scope** — a roadmap/status/whiteboard/todo file regenerated by a project tool (e.g. `ROADMAP.md`, `STATUS.md`, `WHITEBOARD.md`, `TODO.md`) is never linted: if it drifts, the fix is to regenerate the source, not to file a lint finding.
+   - **Append-only history stays out of scope** — a `CHANGELOG.md` correctly names removed features and stale flags; that is the record it keeps. Checks 5 and 6 (link integrity, CLI-invocation resolution) would false-positive on nearly every old entry, so it is excluded rather than carrying a per-check exemption.
+   - **Orphan documents (check 3) does not apply to root narrative files** — `README.md` is the root everything else links to, so "no inbound links" is expected, not drift. Checks 1, 2, 4–7 apply to root files the same as any other doc in scope.
 2. Decide on scope:
-   - **Full** — every doc under the docs root.
+   - **Full** — every doc under the docs root (as widened above).
    - **Scoped** — docs that intersect with a given change-set (a list of changed source files). Faster, useful inside a focused review.
-3. Run each of the four checks above.
+3. Run each of the seven checks above.
 4. Emit the report (see Output below).
 5. **Stop.** Don't fix anything. Don't append to a log file. Don't update an index.
 
@@ -105,7 +129,7 @@ When this skill runs as an advisory ritual, point the operator at their `.gitlea
 # Doc lint report — <YYYY-MM-DD>
 
 **Scope:** full | scoped (<N> changed files)
-**Docs root:** docs/
+**Docs root:** docs/ + README.md, CONTRIBUTING.md
 
 ## Broken code references
 - `docs/architecture/api.md:42` — references `OldHandler.serve()`; symbol not found in source.
@@ -121,6 +145,17 @@ When this skill runs as an advisory ritual, point the operator at their `.gitlea
 - `docs/getting-started.md:18` — `TODO: rewrite once auth lands`
 - `docs/api.md:104` — `FIXME: example may be stale`
 
+## Broken links
+- `docs/guides/setup.md:12` — links to `docs/guides/old-name.md`; target does not exist.
+- `README.md:30` — links to `docs/api.md#old-heading`; no heading slugs to `old-heading`.
+
+## Stale CLI invocations
+- `docs/guides/cli.md:22` — `` `aiwf frobnicate --legacy` ``; verb not found in `--help`.
+
+## Structural issues
+- `docs/architecture/api.md` — `## Contents` lists "Overview" but no such heading exists below it.
+- `docs/guides/cli.md` — heading level skips from `##` to `####` at line 40.
+
 ## Summary
 - <N> findings: <breakdown>
 - <one-line takeaway>
@@ -131,12 +166,12 @@ If nothing is found, the report has empty sections and the summary is a single l
 ## Anti-patterns
 
 - *"Auto-fix the dead links"* — never. Even mechanical-looking fixes (deleting a link, renaming a symbol reference) are prose changes that need human approval.
-- *Treating the four doc heuristics as a CI gate.* Drift in the doc heuristics is expected; surface it, don't fence on it — block-on-zero is too strict for those. (The repo-wide secret / path-leak scan is the deliberate exception: it is deterministic and *does* gate at pre-push + CI — see "Related: repo-wide secret / path-leak scanning" above. Don't conflate the two.)
+- *Treating the seven doc heuristics as a CI gate.* Drift in the doc heuristics is expected; surface it, don't fence on it — block-on-zero is too strict for those. (The repo-wide secret / path-leak scan is the deliberate exception: it is deterministic and *does* gate at pre-push + CI — see "Related: repo-wide secret / path-leak scanning" above. Don't conflate the two.)
 - *Hand-editing the report.* It's a snapshot. Re-run the lint to update.
 - *Confusing this with content review.* This skill catches symbols that no longer exist. It does not catch "this paragraph is misleading" or "this example is wrong even though the symbol is real."
 
 ## Constraints
 
-- 🛑 Never modifies any file under `docs/` — including for "obvious" mechanical fixes.
+- 🛑 Never modifies any file in scope (`docs/`, `README.md`, `CONTRIBUTING.md`) — including for "obvious" mechanical fixes.
 - Findings include `path:line` references. A finding without a location is unactionable.
 - Report is the entire output. No side-effect writes.

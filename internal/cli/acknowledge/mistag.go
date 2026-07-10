@@ -80,7 +80,7 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
 		return cliutil.ExitUsage
 	}
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge mistag")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge mistag", out)
 	if release == nil {
 		return rc
 	}

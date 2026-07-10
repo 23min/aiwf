@@ -174,15 +174,15 @@ func TestReadGapFile_ErrorsWhenNoneOrMultipleMatch(t *testing.T) {
 
 const timeoutForTest = 50 * time.Millisecond
 
-// TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLaunchRefusal
+// TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLockBusyRefusal
 // holds the control repo's repolock via the AC-1 lockholder helper
 // before calling Run: `aiwf promote`'s lock-busy refusal
-// (internal/cli/cliutil.AcquireRepoLock) prints a plain-text message
-// and exits without ever emitting a --format=json envelope (G-0391) —
-// so runAiwfJSON's own JSON-parse step fails, pinning that Run wraps
-// and surfaces that failure via the "running the control promote"
-// step, not a parsed non-ok envelope.
-func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLaunchRefusal(t *testing.T) {
+// (internal/cli/cliutil.AcquireRepoLock) emits a valid --format=json
+// envelope with status "error" (G-0391's fix), so runAiwfJSON parses
+// it cleanly and Run's own promoteEnv.Status != "ok" branch reports
+// it — the same classification path as an FSM refusal (see the
+// FSMRefusal test below), just reached via lock contention instead.
+func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLockBusyRefusal(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
@@ -217,8 +217,8 @@ func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLaunchRefusal
 	err = s.Run(dir)
 	if err == nil {
 		t.Fatal("expected Run to surface the control-promote refusal while the lock is held")
-	} else if !strings.Contains(err.Error(), "running the control promote") {
-		t.Fatalf("expected the failure to name the control-promote step, got: %v", err)
+	} else if !strings.Contains(err.Error(), "control promote did not report ok") {
+		t.Fatalf("expected the refusal to name the control-promote step, got: %v", err)
 	}
 
 	_ = stdinW.Close()

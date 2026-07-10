@@ -49,7 +49,7 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract unbind")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract unbind", out)
 	if release == nil {
 		return rc
 	}

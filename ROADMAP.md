@@ -853,5 +853,22 @@ finds into a reproducible gap.
 | M-0241 | Property sequences and multi-worktree contention scenarios | done |
 | M-0242 | Fault injection via external observation | done |
 | M-0243 | Named scenarios from G-0212 and G-0269 | done |
-| M-0244 | Concurrent-writer test at scale; triage process; epic close | draft |
+| M-0244 | Concurrent-writer test at scale; triage process | in_progress |
+| M-0249 | Scenario registry: wire cmd/stresstest run to the real catalog | draft |
+
+## E-0063 — Rewrite entity path-links on move to keep them durable (proposed)
+
+### Goal
+
+Make markdown links between entity files survive the file-moving verbs
+(`archive`, `rename`, `retitle`, `reallocate`), so an author can cite an entity
+with a clickable path-link and trust it stays correct — instead of watching it
+rot silently the next time its target moves.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0245 | Shared link-destination rewrite primitive | draft |
+| M-0246 | Wire archive to rewrite link destinations on sweep | draft |
+| M-0247 | Wire rename and retitle to rewrite link destinations | draft |
+| M-0248 | Unify reallocate onto the shared rewrite primitive | draft |
 

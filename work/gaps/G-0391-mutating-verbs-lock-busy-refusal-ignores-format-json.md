@@ -1,8 +1,10 @@
 ---
 id: G-0391
 title: Mutating verbs' lock-busy refusal ignores --format=json
-status: open
+status: addressed
 discovered_in: M-0242
+addressed_by_commit:
+    - 45f678b2
 ---
 ## What's missing
 

@@ -152,7 +152,7 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 
 	// Dry-run is read-only; lock only when we'd write.
 	if apply {
-		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf archive")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf archive", out)
 		if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock contention from a concurrent verb
 			return rc
 		}

@@ -17,7 +17,7 @@ The split-authoring model was a load-bearing assumption when marketplace distrib
 - **Three authoring surfaces.** Ritual content currently lives at:
   1. Upstream `23min/ai-workflow-rituals/plugins/<plugin>/skills/<skill>/SKILL.md` (the *de jure* canonical source).
   2. Vendored snapshot at `internal/skills/embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md` (what the binary embeds).
-  3. Per-AC content-assertion fixtures at `internal/policies/testdata/<skill>/SKILL.md` (what AC tests assert against; [G-0182](../../work/gaps/G-0182-consolidate-testdata-ritual-fixtures-onto-the-embedded-snapshot-dedupe.md) calls this out as the third drift surface).
+  3. Per-AC content-assertion fixtures at `internal/policies/testdata/<skill>/SKILL.md` (what AC tests assert against; G-0182 calls this out as the third drift surface).
 
   The drift between (1) and (2) is policed by `TestRituals_VendoredMatchesUpstream`. G-0182's resolution collapses (3) onto (2). With this ADR's resolution, (1) collapses onto (2) as well — leaving exactly one authoring surface.
 - **The kernel principle that nails it.** *"No plugin architectures for a single implementation."* The upstream authoring channel IS a plugin architecture for a single implementation.

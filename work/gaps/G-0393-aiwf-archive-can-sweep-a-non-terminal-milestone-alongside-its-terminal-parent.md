@@ -1,8 +1,10 @@
 ---
 id: G-0393
 title: aiwf archive can sweep a non-terminal milestone alongside its terminal parent
-status: open
+status: addressed
 discovered_in: M-0243
+addressed_by_commit:
+    - 4271e580
 ---
 ## What's missing
 

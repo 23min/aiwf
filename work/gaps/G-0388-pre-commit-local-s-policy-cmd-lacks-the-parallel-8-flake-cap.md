@@ -1,8 +1,10 @@
 ---
 id: G-0388
 title: pre-commit.local's policy_cmd lacks the -parallel 8 flake cap
-status: open
+status: addressed
 discovered_in: M-0240
+addressed_by_commit:
+    - 7810aa45
 ---
 ## What's missing
 

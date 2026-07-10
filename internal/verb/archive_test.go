@@ -117,7 +117,7 @@ func TestIsKnownKind(t *testing.T) {
 func TestComputeArchiveMoves_UnknownKindFilter(t *testing.T) {
 	t.Parallel()
 	tr := &tree.Tree{}
-	moves, err := computeArchiveMoves(tr, "widget")
+	moves, _, err := computeArchiveMoves(tr, "widget")
 	if err == nil {
 		t.Fatal("computeArchiveMoves with unknown kind returned no error")
 	}
@@ -150,7 +150,7 @@ func TestComputeArchiveMoves_MilestoneFilterNoOp(t *testing.T) {
 			},
 		},
 	}
-	moves, err := computeArchiveMoves(tr, "milestone")
+	moves, _, err := computeArchiveMoves(tr, "milestone")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestComputeArchiveMoves_EpicWithMultipleMilestones_OneMove(t *testing.T) {
 			},
 		},
 	}
-	moves, err := computeArchiveMoves(tr, "")
+	moves, _, err := computeArchiveMoves(tr, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestComputeArchiveMoves_DirShapeKindsDeduplicate(t *testing.T) {
 			{ID: "C-0010", Kind: entity.KindContract, Status: entity.StatusRetired, Path: "work/contracts/C-0010-bar/contract.md"},
 		},
 	}
-	moves, err := computeArchiveMoves(tr, "")
+	moves, _, err := computeArchiveMoves(tr, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestComputeArchiveMoves_AlreadyArchivedSkipped(t *testing.T) {
 			},
 		},
 	}
-	moves, err := computeArchiveMoves(tr, "")
+	moves, _, err := computeArchiveMoves(tr, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -276,12 +276,157 @@ func TestComputeArchiveMoves_NonTerminalSkipped(t *testing.T) {
 			{ID: "ADR-0010", Kind: entity.KindADR, Status: entity.StatusProposed, Path: "docs/adr/ADR-0010-x.md"},
 		},
 	}
-	moves, err := computeArchiveMoves(tr, "")
+	moves, _, err := computeArchiveMoves(tr, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(moves) != 0 {
 		t.Errorf("expected 0 moves (all active); got %d:\n  %+v", len(moves), moves)
+	}
+}
+
+// TestNonTerminalEpicChildren_FiltersByParent (G-0394) pins the parent
+// filter shared by Cancel, Promote's epic-done guard, and Archive: a
+// milestone belonging to a DIFFERENT epic must never appear in the
+// result, even when it is itself non-terminal.
+func TestNonTerminalEpicChildren_FiltersByParent(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0010"},
+			{ID: "M-0030", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0099"},
+		},
+	}
+	got := nonTerminalEpicChildren(tr, "E-0010")
+	if len(got) != 1 || got[0] != "M-0020" {
+		t.Errorf("nonTerminalEpicChildren(tr, E-0010) = %v; want [M-0020] (M-0030 belongs to E-0099)", got)
+	}
+}
+
+// TestComputeArchiveMoves_EpicWithNonTerminalChild_Skipped (G-0394,
+// Direction B): a done epic whose milestone is still non-terminal
+// must not produce a move — Archive independently declines to strand
+// the child in archive/ alongside its terminal parent, regardless of
+// how the epic reached done (the promote-time guard is the primary
+// chokepoint and already runs unconditionally; this is the defense-in-
+// depth backstop for the one path that still bypasses it — a raw
+// frontmatter hand-edit).
+func TestComputeArchiveMoves_EpicWithNonTerminalChild_Skipped(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
+			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDraft, Parent: "E-0010", Path: "work/epics/E-0010-foo/M-0020-a.md"},
+		},
+	}
+	moves, skipped, err := computeArchiveMoves(tr, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(moves) != 0 {
+		t.Errorf("expected 0 moves (epic has a non-terminal child); got %d:\n  %+v", len(moves), moves)
+	}
+	if len(skipped) != 1 || skipped[0].epic != "E-0010" {
+		t.Fatalf("skipped = %+v; want exactly one skip naming E-0010", skipped)
+	}
+	if len(skipped[0].children) != 1 || skipped[0].children[0] != "M-0020" {
+		t.Errorf("skipped[0].children = %v; want [M-0020]", skipped[0].children)
+	}
+}
+
+// TestComputeArchiveMoves_EpicWithMixedChildren_SkippedEvenIfSomeDone
+// (G-0394): one done sibling milestone must not mask a second,
+// non-terminal sibling — the epic is still skipped.
+func TestComputeArchiveMoves_EpicWithMixedChildren_SkippedEvenIfSomeDone(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
+			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDone, Parent: "E-0010", Path: "work/epics/E-0010-foo/M-0020-a.md"},
+			{ID: "M-0021", Kind: entity.KindMilestone, Status: entity.StatusInProgress, Parent: "E-0010", Path: "work/epics/E-0010-foo/M-0021-b.md"},
+		},
+	}
+	moves, skipped, err := computeArchiveMoves(tr, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(moves) != 0 {
+		t.Errorf("expected 0 moves (M-0021 is still in_progress); got %d:\n  %+v", len(moves), moves)
+	}
+	if len(skipped) != 1 || skipped[0].epic != "E-0010" {
+		t.Fatalf("skipped = %+v; want exactly one skip naming E-0010", skipped)
+	}
+	// The done sibling M-0020 must not appear among the offending
+	// children — only the still-in_progress M-0021 does.
+	if len(skipped[0].children) != 1 || skipped[0].children[0] != "M-0021" {
+		t.Errorf("skipped[0].children = %v; want [M-0021] (M-0020 is done, not offending)", skipped[0].children)
+	}
+}
+
+// TestComputeArchiveMoves_EpicAllTerminalChildren_NotSkipped (G-0394):
+// characterization against a "refuse everything" regression — a done
+// epic whose only child milestone is also done still produces its
+// move exactly as before this guard existed.
+func TestComputeArchiveMoves_EpicAllTerminalChildren_NotSkipped(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "E-0010", Kind: entity.KindEpic, Status: entity.StatusDone, Path: "work/epics/E-0010-foo/epic.md"},
+			{ID: "M-0020", Kind: entity.KindMilestone, Status: entity.StatusDone, Parent: "E-0010", Path: "work/epics/E-0010-foo/M-0020-a.md"},
+		},
+	}
+	moves, skipped, err := computeArchiveMoves(tr, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(moves) != 1 {
+		t.Errorf("expected 1 move (epic's only child is done); got %d:\n  %+v", len(moves), moves)
+	}
+	if len(skipped) != 0 {
+		t.Errorf("expected 0 skipped epics; got %+v", skipped)
+	}
+}
+
+// TestArchiveCommitBody_ListsSkippedEpics (G-0394): the commit body
+// surfaces which epics were skipped and why, since the multi-entity
+// sweep otherwise silently drops them from the moves list with no
+// operator-visible trace.
+func TestArchiveCommitBody_ListsSkippedEpics(t *testing.T) {
+	t.Parallel()
+	skipped := []archiveSkip{
+		{epic: "E-0010", children: []string{"M-0020", "M-0021"}},
+	}
+	body := archiveCommitBody(nil, skipped)
+	if !strings.Contains(body, "E-0010") {
+		t.Errorf("commit body does not name skipped epic E-0010:\n%s", body)
+	}
+	if !strings.Contains(body, "M-0020") || !strings.Contains(body, "M-0021") {
+		t.Errorf("commit body does not list offending children M-0020/M-0021:\n%s", body)
+	}
+}
+
+// TestArchiveCommitBody_ListsBothMovesAndSkipped (G-0394) pins the
+// separator branch: when both a real move and a skipped epic are
+// present in the same sweep, the skipped section follows a blank-line
+// separator after the moves section rather than colliding with it.
+func TestArchiveCommitBody_ListsBothMovesAndSkipped(t *testing.T) {
+	t.Parallel()
+	moves := []archiveMove{{kind: entity.KindGap, id: "G-0001"}}
+	skipped := []archiveSkip{{epic: "E-0010", children: []string{"M-0020"}}}
+	body := archiveCommitBody(moves, skipped)
+	if !strings.Contains(body, "G-0001") {
+		t.Errorf("commit body missing moved id G-0001:\n%s", body)
+	}
+	if !strings.Contains(body, "E-0010") || !strings.Contains(body, "M-0020") {
+		t.Errorf("commit body missing skipped epic/child:\n%s", body)
+	}
+	idxAffected := strings.Index(body, "Affected ids:")
+	idxSkipped := strings.Index(body, "Skipped")
+	if idxAffected < 0 || idxSkipped < 0 || idxAffected > idxSkipped {
+		t.Errorf("expected 'Affected ids:' section before 'Skipped' section:\n%s", body)
+	}
+	if !strings.Contains(body, "\n\nSkipped") {
+		t.Errorf("expected a blank-line separator before the 'Skipped' section, not a collision with the moves section:\n%s", body)
 	}
 }
 
@@ -308,6 +453,43 @@ func TestArchive_NoOpResultOnConvergedTree(t *testing.T) {
 	}
 }
 
+// TestArchive_NoOpMessageMentionsSkippedEpics (G-0394, Direction B):
+// when every eligible epic is skipped for a non-terminal child (so
+// moves is empty), Archive's NoOp message must not claim the tree is
+// "converged" — it must name the skipped epic and its offending
+// child, so the operator isn't misled into thinking nothing needs
+// attention.
+func TestArchive_NoOpMessageMentionsSkippedEpics(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mustWrite := func(rel, body string) {
+		t.Helper()
+		full := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0o644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+	}
+	mustWrite("work/epics/E-0010-foo/epic.md", "---\nid: E-0010\ntitle: foo\nstatus: done\n---\n")
+	mustWrite("work/epics/E-0010-foo/M-0020-a.md", "---\nid: M-0020\ntitle: a\nstatus: draft\nparent: E-0010\n---\n")
+
+	res, err := Archive(context.Background(), root, "human/test", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !res.NoOp {
+		t.Fatalf("expected NoOp=true (nothing to sweep); got Plan=%+v", res.Plan)
+	}
+	if !strings.Contains(res.NoOpMessage, "E-0010") || !strings.Contains(res.NoOpMessage, "M-0020") {
+		t.Errorf("NoOpMessage = %q; want it to name skipped epic E-0010 and offending child M-0020", res.NoOpMessage)
+	}
+	if strings.Contains(res.NoOpMessage, "converged") {
+		t.Errorf("NoOpMessage = %q; must not claim the tree is converged when an epic was skipped", res.NoOpMessage)
+	}
+}
+
 // TestPlanArchive_SortsBySameKindThenFrom exercises the sort.Slice
 // comparator's "same kind, compare by from" branch (the secondary
 // sort key). Without two moves of the same kind, the comparator's
@@ -331,7 +513,7 @@ func TestPlanArchive_SortsBySameKindThenFrom(t *testing.T) {
 	mustWrite("work/gaps/G-0010-alpha.md", "---\nid: G-0010\ntitle: a\nstatus: addressed\n---\n")
 	mustWrite("work/gaps/G-0020-mango.md", "---\nid: G-0020\ntitle: m\nstatus: addressed\n---\n")
 
-	plan, err := planArchive(context.Background(), root, "")
+	plan, _, err := planArchive(context.Background(), root, "")
 	if err != nil {
 		t.Fatalf("planArchive: %v", err)
 	}
@@ -400,7 +582,7 @@ func TestArchiveCommitBody_DeterministicAndCompliant(t *testing.T) {
 		{kind: entity.KindEpic, id: "E-0005"},
 		{kind: entity.KindEpic, id: "E-0001"},
 	}
-	body := archiveCommitBody(moves)
+	body := archiveCommitBody(moves, nil)
 	if !strings.Contains(body, "ADR-0004") {
 		t.Errorf("commit body should cite ADR-0004:\n%s", body)
 	}

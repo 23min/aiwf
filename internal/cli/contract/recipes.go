@@ -192,7 +192,7 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install", out)
 	if release == nil {
 		return rc
 	}
@@ -251,7 +251,7 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove", out)
 	if release == nil {
 		return rc
 	}

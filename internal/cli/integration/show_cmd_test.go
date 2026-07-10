@@ -499,6 +499,44 @@ func TestRun_ShowUnknownIDIsUsageError(t *testing.T) {
 	}
 }
 
+// TestRun_ShowUnknownIDJSONEnvelope pins G-0389: `aiwf show <id>
+// --format=json` on a not-found id must emit a JSON error envelope on
+// stdout (status:"error", a message naming the id) — not a plain-text
+// stderr line with empty stdout, which every other verb's not-found
+// path (e.g. `promote`, confirmed via internal/verb's Coded-error path
+// through DecorateAndFinish) already avoids.
+func TestRun_ShowUnknownIDJSONEnvelope(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+
+	var rc int
+	captured := testutil.CaptureStdout(t, func() {
+		rc = cli.Execute([]string{"show", "--root", root, "--format=json", "E-0099"})
+	})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("exit code = %d, want cliutil.ExitUsage", rc)
+	}
+
+	var env struct {
+		Tool   string `json:"tool"`
+		Status string `json:"status"`
+		Error  struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("stdout did not parse as a JSON envelope: %v\n%s", err, captured)
+	}
+	if env.Tool != "aiwf" || env.Status != "error" {
+		t.Errorf("envelope tool/status = %q/%q, want aiwf/error", env.Tool, env.Status)
+	}
+	if !strings.Contains(env.Error.Message, "E-0099") {
+		t.Errorf("error.message = %q, want it to name E-0099", env.Error.Message)
+	}
+}
+
 // TestRun_ShowReferencedByPopulated: an entity referenced by others
 // surfaces them in show.ShowView.ReferencedBy and in the text "Referenced by"
 // block. Inversion follows entity.ForwardRefs; composite-id rollup is

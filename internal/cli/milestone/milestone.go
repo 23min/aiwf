@@ -95,7 +95,7 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone depends-on")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone depends-on", out)
 	if release == nil {
 		return rc
 	}

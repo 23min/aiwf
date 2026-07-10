@@ -95,7 +95,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 
 	// dry-run is read-only; lock only when we'd write.
 	if !dryRun {
-		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf import")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf import", out)
 		if release == nil {
 			return rc
 		}
