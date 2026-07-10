@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: cmd/stresstest run --scenario <name> runs exactly the named real scenario
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-2
       title: run --scenario all runs the whole catalog, one combined report
       status: open
