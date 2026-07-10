@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: the walker's legal-transition set includes move, archive, rename, and retitle
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-3
       title: a post-step invariant cross-checks aiwf list's output against ground truth
       status: open
