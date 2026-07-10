@@ -8,10 +8,16 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/add"
+	"github.com/23min/aiwf/internal/cli/authorize"
 	"github.com/23min/aiwf/internal/cli/cancel"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
+	"github.com/23min/aiwf/internal/cli/editbody"
 	"github.com/23min/aiwf/internal/cli/move"
+	"github.com/23min/aiwf/internal/cli/promote"
+	"github.com/23min/aiwf/internal/cli/reallocate"
+	"github.com/23min/aiwf/internal/entity"
 )
 
 // TestCorrelationID_MatchesLogRunID pins M-0239/AC-1: the id NewRootCmd
@@ -332,6 +338,181 @@ func TestCorrelationID_MoveFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 	rc := move.Run("M-0001", "E-0002", "human/test", "", root, cliutil.OutputFormat{})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("move.Run: rc=%d", rc)
+	}
+
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+// TestCorrelationID_AddFallsBackWhenOutputFormatCarriesNone,
+// TestCorrelationID_PromoteFallsBackWhenOutputFormatCarriesNone,
+// TestCorrelationID_ReallocateFallsBackWhenOutputFormatCarriesNone,
+// TestCorrelationID_EditBodyFallsBackWhenOutputFormatCarriesNone, and
+// TestCorrelationID_AuthorizeFallsBackWhenOutputFormatCarriesNone
+// are TestCorrelationID_FallsBackWhenOutputFormatCarriesNone's own
+// counterpart for the five verbs M-0249's wrap review wired into the
+// diagnostic logger (see wired_verbs_diag_test.go): each gained the
+// identical `if runID == "" { runID = logger.NewRunID() }` fallback
+// cancel.Run/move.Run already had, and each needs its own direct-Run
+// caller (bypassing NewCmd/Execute, so OutputFormat.CorrelationID is
+// the empty zero value) to exercise it.
+
+func TestCorrelationID_AddFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := add.Run(entity.KindGap, "Fallback probe", "human/test", "", root,
+		"", "", "", "", "", "", "", "",
+		"", "", "", "", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "",
+		false, false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("add.Run: rc=%d", rc)
+	}
+
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+func TestCorrelationID_PromoteFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "--title", "Fallback probe", "--actor", "human/test", "--root", root)
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := promote.Run([]string{"G-0001", "wontfix"}, "human/test", "", root, "", "", "", "", "", "", false, false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("promote.Run: rc=%d", rc)
+	}
+
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+func TestCorrelationID_ReallocateFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "--title", "Fallback probe", "--actor", "human/test", "--root", root)
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := reallocate.Run("G-0001", "human/test", "", root, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("reallocate.Run: rc=%d", rc)
+	}
+
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+func TestCorrelationID_EditBodyFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "--title", "Fallback probe", "--actor", "human/test", "--root", root)
+
+	bodyFile := filepath.Join(t.TempDir(), "body.md")
+	if err := os.WriteFile(bodyFile, []byte("## What's missing\n\nUpdated.\n\n## Why it matters\n\nUpdated.\n"), 0o644); err != nil {
+		t.Fatalf("write body file: %v", err)
+	}
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := editbody.Run("G-0001", "human/test", "", root, "fallback probe", bodyFile, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("editbody.Run: rc=%d", rc)
+	}
+
+	raw, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("reading diagnostic log: %v", err)
+	}
+	var rec struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		t.Fatalf("diagnostic log %q not JSON: %v", raw, err)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+func TestCorrelationID_AuthorizeFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := authorize.Run("M-0001", "human/test", root, "ai/claude", "", "", "", "", false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("authorize.Run: rc=%d", rc)
 	}
 
 	raw, err := os.ReadFile(logPath)

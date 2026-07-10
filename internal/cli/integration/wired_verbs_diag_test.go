@@ -131,6 +131,49 @@ func TestCheckDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 }
 
+// TestCheckDiag_ActorResolutionFailureStillEmitsEvent pins check.Run's
+// own best-effort actor rationale: check has no --actor flag, so when
+// git config user.email is ALSO unset (isolated HOME, no .gitconfig —
+// mirrors cliutil.TestResolveActor_NoConfigErrors's own technique),
+// the verb must still complete and still log — a missing identity is
+// tolerated with an empty actor field, never surfaced as a failure
+// (ADR-0017: diagnostic logging must never affect a verb's own
+// behavior or exit code). Cannot use t.Parallel(): t.Setenv panics
+// under parallel.
+func TestCheckDiag_ActorResolutionFailureStillEmitsEvent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// Intentionally no .gitconfig at home — git config user.email fails.
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"check", "--root", root})
+	})
+	if rc != cliutil.ExitOK && rc != cliutil.ExitFindings {
+		t.Fatalf("aiwf check: rc=%d stderr=%s", rc, stderr)
+	}
+
+	rec := readDiagRecord(t, logPath)
+	if rec.Msg != "verb.completed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "verb.completed")
+	}
+	if rec.Actor != "" {
+		t.Errorf("actor = %q, want empty (git config user.email was deliberately unavailable)", rec.Actor)
+	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
+	}
+}
+
 func TestReallocateDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
@@ -255,6 +298,45 @@ func TestShowDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Entity != "G-0001" {
 		t.Errorf("entity = %q, want %q", rec.Entity, "G-0001")
+	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
+	}
+}
+
+// TestShowDiag_ActorResolutionFailureStillEmitsEvent is
+// TestCheckDiag_ActorResolutionFailureStillEmitsEvent's show
+// counterpart. Cannot use t.Parallel(): t.Setenv panics under
+// parallel.
+func TestShowDiag_ActorResolutionFailureStillEmitsEvent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "--title", "diag probe", "--actor", "human/test", "--root", root)
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// Intentionally no .gitconfig at home — git config user.email fails.
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"show", "G-0001", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("aiwf show: rc=%d stderr=%s", rc, stderr)
+	}
+
+	rec := readDiagRecord(t, logPath)
+	if rec.Msg != "verb.completed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "verb.completed")
+	}
+	if rec.Actor != "" {
+		t.Errorf("actor = %q, want empty (git config user.email was deliberately unavailable)", rec.Actor)
 	}
 	if rec.RunID == "" {
 		t.Error("run_id missing or empty from the diagnostic record")
