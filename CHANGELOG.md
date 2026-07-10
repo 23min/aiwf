@@ -16,17 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
-### Added — G-0394: epic promote-to-done and archive both refuse to strand a non-terminal milestone
+### Added — G-0393 / G-0394: epic promote to a terminal status, and archive, both refuse to strand a non-terminal milestone
 
-`aiwf promote <epic> done` now refuses when the epic still owns a non-terminal
-child milestone, mirroring the existing `aiwf cancel` guard (D-0003) onto the
-promote-to-done path — the operator must cancel or complete each listed
-milestone first. `force` bypasses this guard like it bypasses Promote's other
-preconditions. As defense-in-depth, `aiwf archive` independently declines to
-sweep an epic whose subtree still owns a non-terminal milestone (no `--force`
-of its own), so a `--force`-bypassed or hand-edited epic can no longer strand
-that milestone in `archive/`; the sweep's NoOp message now names any skipped
-epic and its offending children instead of misreporting the tree as converged.
+`aiwf promote <epic> done` and `aiwf promote <epic> cancelled` now refuse when
+the epic still owns a non-terminal child milestone, mirroring the existing
+`aiwf cancel` guard (D-0003) onto both of Promote's terminal targets — the
+operator must cancel or complete each listed milestone first. The guard runs
+**unconditionally**, with no `--force` bypass, matching Cancel's own guard: force
+relaxes FSM-transition legality, not this structural children precondition. As
+defense-in-depth, `aiwf archive` independently declines to sweep an epic whose
+subtree still owns a non-terminal milestone (no `--force` of its own), so a
+hand-edited epic can no longer strand that milestone in `archive/`; the sweep's
+NoOp message now names any skipped epic and its offending children instead of
+misreporting the tree as converged. A new standing `aiwf check` rule,
+`epic-terminal-non-terminal-children`, additionally catches the state
+regardless of how it was reached — including in the active tree, not just at
+archive time.
 
 ### Fixed — stale path-links in ADR-0008, ADR-0011, ADR-0016 to since-archived/rewidth'd entities
 

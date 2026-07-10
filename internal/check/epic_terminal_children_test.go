@@ -119,30 +119,60 @@ func TestEpicTerminalNonTerminalChildren_IgnoresMilestonesUnderOtherEpics(t *tes
 // pins the double-report guard: a child milestone with an empty or
 // unrecognized status is already reported by frontmatterShape /
 // statusValid, so this rule does not also treat it as "non-terminal."
+// Both the empty-string and the unknown-but-non-empty case are
+// exercised as separate subtests — the guard is `Status == "" ||
+// !IsAllowedStatus(...)`, and empty-string short-circuits the first
+// operand before the second is ever evaluated, so a single "empty"
+// case alone would leave the `!IsAllowedStatus` arm untested.
 func TestEpicTerminalNonTerminalChildren_SkipsUnknownOrEmptyChildStatus(t *testing.T) {
 	t.Parallel()
-	tr := makeTree(
-		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: entity.StatusDone},
-		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Malformed", Status: "", Parent: "E-0001"},
-	)
-	got := Run(tr, nil)
-	if hasFindingCode(got, CodeEpicTerminalNonTerminalChildren) {
-		t.Errorf("rule should not treat an empty child status as non-terminal (already reported elsewhere); codes: %v", codes(got))
+	cases := []struct {
+		name   string
+		status string
+	}{
+		{"empty", ""},
+		{"unknown", "bogus"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tr := makeTree(
+				&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: entity.StatusDone},
+				&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Malformed", Status: tc.status, Parent: "E-0001"},
+			)
+			got := Run(tr, nil)
+			if hasFindingCode(got, CodeEpicTerminalNonTerminalChildren) {
+				t.Errorf("rule should not treat child status %q as non-terminal (already reported elsewhere); codes: %v", tc.status, codes(got))
+			}
+		})
 	}
 }
 
 // TestEpicTerminalNonTerminalChildren_SkipsEpicWithEmptyOrUnknownStatus
 // mirrors the child-side guard on the epic itself: an epic with an
 // empty or unrecognized status is frontmatterShape's/statusValid's
-// concern, not this rule's.
+// concern, not this rule's. Same empty-vs-unknown split as the
+// child-side test above, for the same short-circuit reason.
 func TestEpicTerminalNonTerminalChildren_SkipsEpicWithEmptyOrUnknownStatus(t *testing.T) {
 	t.Parallel()
-	tr := makeTree(
-		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: ""},
-		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Open", Status: entity.StatusInProgress, Parent: "E-0001"},
-	)
-	got := Run(tr, nil)
-	if hasFindingCode(got, CodeEpicTerminalNonTerminalChildren) {
-		t.Errorf("rule should not fire on an epic with an empty status; codes: %v", codes(got))
+	cases := []struct {
+		name   string
+		status string
+	}{
+		{"empty", ""},
+		{"unknown", "bogus"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tr := makeTree(
+				&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Title: "Test", Status: tc.status},
+				&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Title: "Open", Status: entity.StatusInProgress, Parent: "E-0001"},
+			)
+			got := Run(tr, nil)
+			if hasFindingCode(got, CodeEpicTerminalNonTerminalChildren) {
+				t.Errorf("rule should not fire on an epic with status %q; codes: %v", tc.status, codes(got))
+			}
+		})
 	}
 }

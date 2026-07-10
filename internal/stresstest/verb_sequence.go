@@ -88,6 +88,27 @@ func (s *VerbSequenceScenario) Run(dir string) error {
 			return fmt.Errorf("creating a %s entity: %w", kind, err)
 		}
 		if addEnv.Status != "ok" {
+			// G-0398: the epic's own preceding random walk (the
+			// entity.KindEpic iteration always runs first per
+			// entity.AllKinds() order) can legitimately land it on
+			// done/cancelled before this milestone gets created. `aiwf
+			// add milestone` then refuses — accidentally, not via a
+			// dedicated guard (see G-0398) — because the epic-terminal-
+			// non-terminal-children standing check-rule trips the
+			// generic projection-findings gate every mutating verb
+			// runs. A known, accepted side effect of this scenario's
+			// own independent-per-kind design, not a violation: skip
+			// creating (and walking) the milestone for this run rather
+			// than failing the whole scenario. Any OTHER refusal shape
+			// still fails below. The kind==milestone conjunct is
+			// defensive: no other kind's `aiwf add` can trip this
+			// finding today (it reads only epic/milestone parentage),
+			// but keeping it explicit means a future finding-code reuse
+			// or a new kind gaining epic-parent semantics can't silently
+			// swallow an unrelated add refusal for a different kind.
+			if kind == entity.KindMilestone && isEpicAlreadyTerminalRefusal(addEnv.Findings) {
+				continue
+			}
 			return fmt.Errorf("creating a %s entity: aiwf did not report ok (status=%s, error=%+v, findings=%+v)",
 				kind, addEnv.Status, addEnv.Error, addEnv.Findings)
 		}
@@ -201,6 +222,20 @@ func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, 
 			"%s: refused promote %s -> %s still landed a commit (%d -> %d)", kind, current, target, before, after)})
 	}
 	return current, violations
+}
+
+// isEpicAlreadyTerminalRefusal reports whether findings is exactly
+// the epic-terminal-non-terminal-children refusal `aiwf add milestone`
+// accidentally produces when its --epic parent has already reached a
+// terminal status (G-0398) — the one specific, known-and-accepted
+// outcome of this scenario's own design that Run's milestone-creation
+// step tolerates. Any other shape (a different code, zero findings
+// with a non-ok status, or this code alongside another finding) is
+// NOT tolerated and still fails the scenario — exact-match, not a
+// prefix or membership check, so a real regression that also happens
+// to carry this code isn't silently swallowed.
+func isEpicAlreadyTerminalRefusal(findings []verbEnvelopeFinding) bool {
+	return len(findings) == 1 && findings[0].Code == check.CodeEpicTerminalNonTerminalChildren
 }
 
 // classifyCheckFindings reports a violation for every finding that

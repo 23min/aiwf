@@ -235,3 +235,58 @@ func TestClassifyCheckFindings(t *testing.T) {
 		})
 	}
 }
+
+// TestIsEpicAlreadyTerminalRefusal pins G-0398's exact-match
+// tolerance: only a findings slice consisting of precisely the
+// epic-terminal-non-terminal-children code, and nothing else,
+// qualifies as the known-and-accepted refusal Run's milestone-creation
+// step skips past. Any other shape — a different code, this code
+// alongside another finding, or no findings at all — must NOT match,
+// so a genuinely different (and genuinely unexpected) refusal reason
+// still fails the scenario instead of being silently swallowed.
+func TestIsEpicAlreadyTerminalRefusal(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		findings []verbEnvelopeFinding
+		want     bool
+	}{
+		{
+			name:     "nil findings",
+			findings: nil,
+			want:     false,
+		},
+		{
+			name: "exactly the epic-terminal-non-terminal-children finding",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+			},
+			want: true,
+		},
+		{
+			name: "a different single code does not match",
+			findings: []verbEnvelopeFinding{
+				{Code: "some-other-code", Severity: "error"}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			},
+			want: false,
+		},
+		{
+			name: "the expected code alongside a second finding does not match",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+				{Code: "some-other-code", Severity: "warning"}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isEpicAlreadyTerminalRefusal(tc.findings); got != tc.want {
+				t.Errorf("isEpicAlreadyTerminalRefusal(%+v) = %v, want %v", tc.findings, got, tc.want)
+			}
+		})
+	}
+}

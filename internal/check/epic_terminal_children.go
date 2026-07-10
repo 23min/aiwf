@@ -25,6 +25,18 @@ const CodeEpicTerminalNonTerminalChildren = "epic-terminal-non-terminal-children
 // archive/: the invalid state (terminal epic, live child) is exactly
 // as wrong whether the epic's file has already been swept or still
 // lives in the active tree, so the rule scans both.
+//
+// Second, accidental role (G-0398): every mutating verb runs a
+// before/after projection-findings gate (verb.projectionFindings) that
+// refuses any commit introducing a new error-severity finding. Since
+// this rule fires the instant a fresh non-terminal milestone lands
+// under an already-terminal epic, it is — today — also the ONLY thing
+// stopping `aiwf add milestone` / `aiwf import` from creating that
+// milestone in the first place, via that generic gate rather than a
+// guard purpose-built for the creation case. Neither verb has its own
+// epic-status precondition (G-0398 tracks adding one). Until that
+// lands, this rule's error severity is load-bearing for more than its
+// own stated job — don't demote it without checking G-0398 first.
 func epicTerminalNonTerminalChildren(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, ep := range t.ByKind(entity.KindEpic) {
