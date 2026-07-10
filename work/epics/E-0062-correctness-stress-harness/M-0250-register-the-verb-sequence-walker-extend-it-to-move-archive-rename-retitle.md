@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: a post-step invariant cross-checks aiwf list's output against ground truth
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: a dedicated concurrency scenario exercises aiwf move across two epics
       status: open
