@@ -105,6 +105,10 @@ Weighted operation table + move/rename/retitle/archive step methods; fixed a rea
 
 checkListInvariant/classifyListInvariant compare `aiwf list --archived` against tree.Load-derived ground truth after every step; vacuity probe found and closed a real wiring-coverage gap (fake-binary divergence test) · commit 7e0e3e2a · tests: internal/stresstest + cmd/stresstest packages green (race mode), manual branch-coverage + vacuity audit done.
 
+### AC-4 — a dedicated concurrency scenario exercises aiwf move across two epics
+
+ConcurrentMoveScenario races n real `aiwf move` subprocesses (goroutine fan-out, mirroring ConcurrentIDAllocationScenario) across a source/target epic pair; registered as "concurrent-move"; same wiring-vacuity gap as AC-3 found and closed via a stand-in binary · commit 4b4d14fa · tests: internal/stresstest + cmd/stresstest packages green (race mode), manual branch-coverage + vacuity audit done.
+
 ## Decisions made during implementation
 
 - (none)
