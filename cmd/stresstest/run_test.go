@@ -84,7 +84,7 @@ func TestRunRun_Succeeds(t *testing.T) {
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 2, &out); err != nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 2, "disk-fault", &out); err != nil {
 		t.Fatalf("runRun: %v", err)
 	}
 
@@ -96,7 +96,24 @@ func TestRunRun_Succeeds(t *testing.T) {
 	if len(composed.Events) != 2 {
 		t.Fatalf("expected 2 logged events (one per repeat attempt), got %d", len(composed.Events))
 	}
-	if !strings.Contains(out.String(), "2/2 attempts passed") {
+	if !strings.Contains(out.String(), "disk-fault: 2/2 attempts passed") {
+		t.Fatalf("unexpected summary output: %q", out.String())
+	}
+}
+
+// TestRunRun_LockKillScenario_BuildsLockHolderAndRuns pins runRun's
+// needsLockHolder branch: selecting "lock-kill" builds the separate
+// lockholder binary (BuildLockHolder) alongside the aiwf binary under
+// test, and the scenario runs to a real pass.
+func TestRunRun_LockKillScenario_BuildsLockHolderAndRuns(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	var out bytes.Buffer
+
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "lock-kill", &out); err != nil {
+		t.Fatalf("runRun: %v", err)
+	}
+	if !strings.Contains(out.String(), "lock-kill: 1/1 attempts passed") {
 		t.Fatalf("unexpected summary output: %q", out.String())
 	}
 }
@@ -104,8 +121,26 @@ func TestRunRun_Succeeds(t *testing.T) {
 func TestRunRun_ErrorsWhenRepeatIsNonPositive(t *testing.T) {
 	t.Parallel()
 	outDir := t.TempDir()
-	if err := runRun(context.Background(), repoRootRelative, outDir, 0, io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 0, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to reject a non-positive repeat count before doing any work")
+	}
+}
+
+// TestRunRun_ErrorsWhenScenarioIsUnknown pins that an unregistered
+// --scenario name refuses before any I/O (repeat<=0's sibling
+// fail-fast check) — no build, no report file, just the refusal.
+func TestRunRun_ErrorsWhenScenarioIsUnknown(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "does-not-exist", io.Discard)
+	if err == nil {
+		t.Fatal("expected runRun to reject an unregistered --scenario name")
+	}
+	if !strings.Contains(err.Error(), "does-not-exist") {
+		t.Fatalf("expected the error to name the bad value, got: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(outDir, "report.jsonl")); !os.IsNotExist(statErr) {
+		t.Fatalf("expected no report.jsonl to be created for a rejected scenario name, stat err: %v", statErr)
 	}
 }
 
@@ -117,7 +152,7 @@ func TestRunRun_ErrorsWhenOutDirResolutionFails(t *testing.T) {
 	}
 	bad := filepath.Join(blocker, "child")
 
-	if err := runRun(context.Background(), repoRootRelative, bad, 1, io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, bad, 1, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to propagate a resolveOutDir failure")
 	}
 }
@@ -143,7 +178,7 @@ func TestRunRun_ErrorsWhenReportPathIsADirectory(t *testing.T) {
 	}
 
 	start := time.Now()
-	err := runRun(context.Background(), repoRootRelative, outDir, 1, io.Discard)
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "disk-fault", io.Discard)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -162,7 +197,7 @@ func TestRunRun_ErrorsWhenBuildFails(t *testing.T) {
 		t.Fatalf("write go.mod: %v", err)
 	}
 
-	if err := runRun(context.Background(), bogusRoot, outDir, 1, io.Discard); err == nil {
+	if err := runRun(context.Background(), bogusRoot, outDir, 1, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to propagate a BuildBinary failure")
 	}
 }
