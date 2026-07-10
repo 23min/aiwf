@@ -31,6 +31,8 @@ type verbEnvelope struct {
 	Findings []verbEnvelopeFinding `json:"findings"`
 	Result   struct {
 		Status string `json:"status"`
+		Path   string `json:"path"`   // populated by `show` (M-0250/AC-2)
+		Parent string `json:"parent"` // populated by `show` on a milestone (M-0250/AC-2)
 		Scopes []struct {
 			State string `json:"state"` // populated by `show`
 		} `json:"scopes"`

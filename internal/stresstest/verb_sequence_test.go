@@ -172,13 +172,14 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionRefusedByOrthogonalBusin
 	}
 }
 
-// TestVerbSequenceScenario_RealBinary_RunSurfacesACreationRefusal
+// TestVerbSequenceScenario_RealBinary_RunSurfacesAScratchEpicCreationRefusal
 // pre-seeds a colliding E-0001 entity file (an id collision the
 // `ids-unique` rule refuses at error severity) so Run's very first
-// `aiwf add epic` call reports something other than "ok", pinning
-// that Run wraps and surfaces the refusal rather than pressing on
-// with an empty entity id.
-func TestVerbSequenceScenario_RealBinary_RunSurfacesACreationRefusal(t *testing.T) {
+// `aiwf add epic` call — seeding the move-target scratch epic
+// (M-0250/AC-2), the first entity Run ever creates — reports
+// something other than "ok", pinning that Run wraps and surfaces that
+// specific refusal rather than pressing on with an empty entity id.
+func TestVerbSequenceScenario_RealBinary_RunSurfacesAScratchEpicCreationRefusal(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
@@ -194,9 +195,38 @@ func TestVerbSequenceScenario_RealBinary_RunSurfacesACreationRefusal(t *testing.
 
 	s := NewVerbSequenceScenario(bin, 1, 6)
 	if err := s.Run(dir); err == nil {
-		t.Fatal("expected Run to surface the id-collision refusal on the very first `aiwf add epic` call")
-	} else if !strings.Contains(err.Error(), "did not report ok") {
-		t.Fatalf("expected the refusal to be reported as a non-ok status, got: %v", err)
+		t.Fatal("expected Run to surface the id-collision refusal on the scratch epic's own `aiwf add epic` call")
+	} else if !strings.Contains(err.Error(), "seeding the move-target scratch epic") || !strings.Contains(err.Error(), "did not report ok") {
+		t.Fatalf("expected the refusal to name the scratch epic and report a non-ok status, got: %v", err)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_RunSurfacesAnAllKindsLoopCreationRefusal
+// pre-seeds a colliding E-0002 entity file — the id the AllKinds()
+// loop's own epic add allocates, one past the scratch epic's E-0001 —
+// so the loop's own generic "did not report ok" fallback (distinct
+// from the scratch epic's own refusal path above, and from the
+// G-0398 tolerance, which only ever applies to a milestone add) is
+// exercised directly.
+func TestVerbSequenceScenario_RealBinary_RunSurfacesAnAllKindsLoopCreationRefusal(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+
+	collidingDir := filepath.Join(dir, "work", "epics", "E-0002-stress-epic")
+	if err := os.MkdirAll(collidingDir, 0o755); err != nil {
+		t.Fatalf("mkdir colliding epic dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(collidingDir, "epic.md"), []byte("not valid frontmatter\n"), 0o644); err != nil {
+		t.Fatalf("write colliding epic file: %v", err)
+	}
+
+	s := NewVerbSequenceScenario(bin, 1, 6)
+	if err := s.Run(dir); err == nil {
+		t.Fatal("expected Run to surface the id-collision refusal on the AllKinds() loop's own epic `aiwf add` call")
+	} else if !strings.Contains(err.Error(), "creating a epic entity") || !strings.Contains(err.Error(), "did not report ok") {
+		t.Fatalf("expected the refusal to name the epic kind and report a non-ok status, got: %v", err)
 	}
 }
 
@@ -218,6 +248,270 @@ func TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing(t *testing.T
 	}
 	if !strings.Contains(err.Error(), "running aiwf") {
 		t.Fatalf("expected the launch failure to surface via runAiwfJSON's wrapping, got: %v", err)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_StepRenameSucceeds pins
+// stepRename's real wiring: a fresh rename against a real entity
+// reports ok and produces no violation.
+func TestVerbSequenceScenario_RealBinary_StepRenameSucceeds(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	if err != nil {
+		t.Fatalf("add adr: %v", err)
+	}
+	id := addEnv.Metadata.EntityID
+
+	violations, err := s.stepRename(dir, id)
+	if err != nil {
+		t.Fatalf("stepRename: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+	if s.renameCounter != 1 {
+		t.Fatalf("renameCounter = %d, want 1", s.renameCounter)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_StepRetitleSucceeds mirrors
+// StepRenameSucceeds for stepRetitle.
+func TestVerbSequenceScenario_RealBinary_StepRetitleSucceeds(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	if err != nil {
+		t.Fatalf("add adr: %v", err)
+	}
+	id := addEnv.Metadata.EntityID
+
+	violations, err := s.stepRetitle(dir, id)
+	if err != nil {
+		t.Fatalf("stepRetitle: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+	if s.retitleCounter != 1 {
+		t.Fatalf("retitleCounter = %d, want 1", s.retitleCounter)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_StepArchiveNoOpWhenNothingTerminal
+// pins that archive --apply against a repo with nothing terminal is a
+// legitimate ok, not a violation.
+func TestVerbSequenceScenario_RealBinary_StepArchiveNoOpWhenNothingTerminal(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	violations, err := s.stepArchive(dir)
+	if err != nil {
+		t.Fatalf("stepArchive: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_StepArchiveSweepsATerminalEntity
+// confirms stepArchive actually sweeps a genuinely terminal entity
+// (an ADR promoted to rejected, one of ADR's two terminal statuses —
+// accepted is NOT terminal, since accepted -> superseded stays legal),
+// not just tolerates the no-op case.
+func TestVerbSequenceScenario_RealBinary_StepArchiveSweepsATerminalEntity(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	if err != nil {
+		t.Fatalf("add adr: %v", err)
+	}
+	id := addEnv.Metadata.EntityID
+	if promEnv, promErr := runAiwfJSON(s.aiwfBin, dir, "promote", id, "rejected"); promErr != nil {
+		t.Fatalf("promote: %v", promErr)
+	} else if promEnv.Status != "ok" {
+		t.Fatalf("promote refused: %+v", promEnv.Error)
+	}
+
+	violations, err := s.stepArchive(dir)
+	if err != nil {
+		t.Fatalf("stepArchive: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+
+	showEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", id)
+	if err != nil {
+		t.Fatalf("show: %v", err)
+	}
+	if !strings.Contains(showEnv.Result.Path, "/archive/") {
+		t.Fatalf("show %s path = %q, want it under an archive/ subdir after stepArchive", id, showEnv.Result.Path)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_StepMoveRelocatesAndAlternates
+// pins stepMove's real wiring: a move to mv.target() succeeds,
+// relocates the milestone, and applyMoved() swaps current/other so a
+// second stepMove call moves it back.
+func TestVerbSequenceScenario_RealBinary_StepMoveRelocatesAndAlternates(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	epicAEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	if err != nil {
+		t.Fatalf("add epic a: %v", err)
+	}
+	epicA := epicAEnv.Metadata.EntityID
+	epicBEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic b", "--body", "b")
+	if err != nil {
+		t.Fatalf("add epic b: %v", err)
+	}
+	epicB := epicBEnv.Metadata.EntityID
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", "b")
+	if err != nil {
+		t.Fatalf("add milestone: %v", err)
+	}
+	msID := msEnv.Metadata.EntityID
+
+	mv := &moveState{current: epicA, other: epicB}
+	violations, err := s.stepMove(dir, msID, mv)
+	if err != nil {
+		t.Fatalf("stepMove: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+	if mv.current != epicB || mv.other != epicA {
+		t.Fatalf("after first move: current=%q other=%q, want current=%q other=%q", mv.current, mv.other, epicB, epicA)
+	}
+	showEnv, err := runAiwfJSON(s.aiwfBin, dir, "show", msID)
+	if err != nil {
+		t.Fatalf("show: %v", err)
+	}
+	if showEnv.Result.Parent != epicB {
+		t.Fatalf("milestone parent = %q, want %q", showEnv.Result.Parent, epicB)
+	}
+
+	violations, err = s.stepMove(dir, msID, mv)
+	if err != nil {
+		t.Fatalf("second stepMove: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations on the move back: %+v", violations)
+	}
+	if mv.current != epicA || mv.other != epicB {
+		t.Fatalf("after second move: current=%q other=%q, want current=%q other=%q", mv.current, mv.other, epicA, epicB)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation
+// drives walk itself (not the individual stepX methods directly) with
+// a seed/step count empirically confirmed to draw every one of the
+// five weighted operations at least once, pinning that walk's switch
+// statement really does dispatch to every case — not just that each
+// stepX method works in isolation, and not left to the statistical
+// luck of whichever seeds TestVerbSequenceScenario_FullWalkAcrossAllKindsPasses
+// happens to use. seed=0/steps=30 was found by exhaustively searching
+// seeds 0..199 with the walker's exact weight table.
+func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+
+	epicAEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	if err != nil {
+		t.Fatalf("add epic a: %v", err)
+	}
+	epicA := epicAEnv.Metadata.EntityID
+	epicBEnv, err := runAiwfJSON(bin, dir, "add", "epic", "--title", "epic b", "--body", "b")
+	if err != nil {
+		t.Fatalf("add epic b: %v", err)
+	}
+	epicB := epicBEnv.Metadata.EntityID
+	msEnv, err := runAiwfJSON(bin, dir, "add", "milestone", "--epic", epicA, "--tdd", "none", "--title", "m", "--body", "b")
+	if err != nil {
+		t.Fatalf("add milestone: %v", err)
+	}
+	msID := msEnv.Metadata.EntityID
+	showEnv, err := runAiwfJSON(bin, dir, "show", msID)
+	if err != nil {
+		t.Fatalf("show: %v", err)
+	}
+
+	s := NewVerbSequenceScenario(bin, 0, 30)
+	mv := &moveState{current: epicA, other: epicB}
+	if err := s.walk(dir, entity.KindMilestone, msID, showEnv.Result.Status, mv); err != nil {
+		t.Fatalf("walk: %v", err)
+	}
+	if len(s.violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", s.violations)
+	}
+	if s.renameCounter == 0 {
+		t.Error("renameCounter == 0, want walk to have dispatched to the rename case at least once")
+	}
+	if s.retitleCounter == 0 {
+		t.Error("retitleCounter == 0, want walk to have dispatched to the retitle case at least once")
+	}
+	if s.archiveCounter == 0 {
+		t.Error("archiveCounter == 0, want walk to have dispatched to the archive case at least once")
+	}
+	if s.moveCounter == 0 {
+		t.Error("moveCounter == 0, want walk to have dispatched to the move case at least once")
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_RunConstructsMoveStateForTheMilestone
+// drives Run itself (not walk directly) with a seed/steps combination
+// empirically confirmed to keep the AllKinds() epic non-terminal
+// through its own short walk, so the milestone actually gets created —
+// pinning that Run's own `mv = &moveState{current: epicID, other:
+// altEpicID}` construction (only reachable when kind == milestone)
+// is exercised through the real end-to-end path, not just via the
+// direct walk() call above. steps=1 keeps the epic's own walk to a
+// single promote draw, which the FSM's proposed/active/done/cancelled
+// shape (each promote target drawn uniformly, including terminal
+// ones) makes surprisingly likely to reach terminal within even a
+// handful of steps — see G-0401 for the gap this discovery opened.
+func TestVerbSequenceScenario_RealBinary_RunConstructsMoveStateForTheMilestone(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+
+	s := NewVerbSequenceScenario(bin, 0, 1)
+	if err := s.Run(dir); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if len(s.violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", s.violations)
+	}
+
+	showEnv, err := runAiwfJSON(bin, dir, "show", "M-0001")
+	if err != nil {
+		t.Fatalf("show M-0001: %v", err)
+	}
+	if showEnv.Status != "ok" {
+		t.Fatalf("M-0001 was not created — this seed/steps combination no longer keeps the epic non-terminal; re-pick one that does (show status=%s)", showEnv.Status)
 	}
 }
 

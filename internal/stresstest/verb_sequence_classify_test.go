@@ -290,3 +290,76 @@ func TestIsEpicAlreadyTerminalRefusal(t *testing.T) {
 		})
 	}
 }
+
+// TestIsEpicAlreadyArchivedRefusal pins the archived-parent variant of
+// G-0398 that M-0250/AC-2's new "archive" walk operation newly makes
+// reachable: when the epic's own walk both terminates AND archives it
+// before the milestone is created, `aiwf add milestone --epic
+// <archived-epic>` projects the new milestone as born inside the
+// archived directory (archived-entity-not-terminal) alongside the
+// epic's own non-terminal-children finding — two codes, not
+// isEpicAlreadyTerminalRefusal's one. Exact-match on both codes
+// together, mirroring isEpicAlreadyTerminalRefusal's own discipline.
+func TestIsEpicAlreadyArchivedRefusal(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		findings []verbEnvelopeFinding
+		want     bool
+	}{
+		{
+			name:     "nil findings",
+			findings: nil,
+			want:     false,
+		},
+		{
+			name: "exactly the archived-epic two-finding combination",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeArchivedEntityNotTerminal, Severity: "error"},
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+			},
+			want: true,
+		},
+		{
+			name: "same two codes in the opposite order still matches",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+				{Code: check.CodeArchivedEntityNotTerminal, Severity: "error"},
+			},
+			want: true,
+		},
+		{
+			name: "only the terminal-in-place single code does not match (that's isEpicAlreadyTerminalRefusal's own shape)",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+			},
+			want: false,
+		},
+		{
+			name: "only the archived code alone does not match",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeArchivedEntityNotTerminal, Severity: "error"},
+			},
+			want: false,
+		},
+		{
+			name: "the two expected codes alongside a third finding does not match",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeArchivedEntityNotTerminal, Severity: "error"},
+				{Code: check.CodeEpicTerminalNonTerminalChildren, Severity: "error"},
+				{Code: "some-other-code", Severity: "warning"}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := isEpicAlreadyArchivedRefusal(tc.findings); got != tc.want {
+				t.Errorf("isEpicAlreadyArchivedRefusal(%+v) = %v, want %v", tc.findings, got, tc.want)
+			}
+		})
+	}
+}
