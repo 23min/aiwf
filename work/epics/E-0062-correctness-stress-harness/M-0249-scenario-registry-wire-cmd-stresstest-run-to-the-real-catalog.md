@@ -154,3 +154,83 @@ probes (scenario-set resolution, head-drift's label branch, the cursor's
 unconsumed-partial-line handling, and the correlation-id dedup) each
 confirmed a real bug goes red · commit 659c17c6 · tests all green, 96.3%
 cmd/stresstest / 85.2% internal/stresstest coverage
+
+### AC-3 — cmd/stresstest list enumerates every registered scenario
+
+Added a `list` subcommand (`cmd/stresstest/list.go`) printing every
+catalog name in registry order, wired into the root command tree. A
+mutation probe against the enumeration loop's own bounds confirmed the
+test catches a dropped entry · commit 24db580e · tests all green, 95.8%
+cmd/stresstest coverage
+
+## Decisions made during implementation
+
+- D-0035 — diagnostic-log env passthrough plus a resumable byte-offset
+  cursor for `RepeatEvent.CorrelationIDs`, instead of a scalar
+  `CorrelationID` field (AC-2).
+
+## Validation
+
+- `go build ./...` — clean.
+- `go test ./...` — every package green.
+- `go test -race ./...` — clean (one incidental flake in an unrelated,
+  untouched M-0244 scenario test surfaced once under full-repo `-race`
+  load; four immediate re-runs, including the full `internal/stresstest`
+  package under `-race`, all passed — not reproducible, not attributable
+  to this milestone's diff).
+- `make lint` — 0 issues.
+- `make coverage-gate` (diff-scoped branch-coverage audit + firing-fixture
+  meta-gate) — clean; every changed branch is tested or `//coverage:ignore`d
+  with a stated, verified rationale.
+- Per-AC mutation probes (registry name-match, `needsLockHolder` wiring,
+  the unknown-scenario refusal, `--scenario all`'s scenario-set resolution
+  and head-drift labeling, the diagnostic-log cursor's partial-line and
+  dedup logic, the post-review malformed-line-skip fix, `list`'s
+  enumeration bounds) — every mutation caught by an existing assertion,
+  zero survivors.
+
+## Deferrals
+
+- G-0399 — `VerbSequenceScenario` (M-0241/AC-1's property-style FSM
+  random-walk) isn't registered in the catalog `list`/`--scenario all`
+  reach; surfaced during the wrap review as a scoping question for
+  whoever next touches E-0062's on-demand catalog framing, not a defect
+  against this milestone's own AC-1 (which enumerates exactly 12 names
+  and explicitly excludes a 13th).
+
+## Reviewer notes
+
+Independent two-lens review (fresh-context, dispatched before wrap):
+
+- **Code-quality**: APPROVE. Verified by measurement — the registry's
+  type-assertion test (`fmt.Sprintf("%T", ...)`) actually catches a
+  copy-paste constructor mismatch, all 12 constructors map correctly, the
+  5 env-mutating tests that dropped `t.Parallel()` are exactly the 5 that
+  reach the mutation (no test missed), the byte-offset cursor math is
+  correct, every `//coverage:ignore` rationale is legitimate, and the "no
+  scenario logic touched" constraint holds. Two non-blocking track-for-later
+  notes: the un-registered `VerbSequenceScenario` (→ G-0399 above), and the
+  `"all"`/`"lock-kill"` string-literal duplication (fixed in the
+  corrective commit below).
+- **Design-quality** (registry.go's catalog abstraction; repeat.go's
+  `correlationIDsSince` log cursor): both units right-sized for their
+  problem — the registry-of-closures beats a switch statement here because
+  4 live consumers (`list`, `--scenario all`, the refusal message, shell
+  completion) need to *enumerate* the set, not just dispatch on a name; the
+  byte-offset cursor beats a line-count because the diagnostic log doesn't
+  rotate mid-run (confirmed against `internal/logger/destination.go`) and
+  a line-count would re-read the whole file every attempt. One real,
+  actionable finding: `correlationIDsSince` hard-aborted the entire
+  `--repeat` campaign on a malformed diagnostic-log line, including one a
+  benign concurrent-write interleave under `O_APPEND`'s `PIPE_BUF`-sized
+  write guarantee could produce — under exactly the concurrency this
+  harness exists to create — and it ran before the current attempt's own
+  replayable seed was logged. Fixed in a corrective commit
+  (`fix(stresstest): tolerate a malformed diagnostic-log line...`),
+  recorded as D-0035, confirmed via new tests plus a mutation probe, and
+  the fix's own coverage/lint/test gates re-verified clean.
+
+No `TODO`/`FIXME` left behind; no debug output or commented-out code in
+the diff. `wf-doc-lint` (scoped to this milestone's change-set): 0
+findings — no `docs/` file references any symbol this milestone touched
+or removed.
