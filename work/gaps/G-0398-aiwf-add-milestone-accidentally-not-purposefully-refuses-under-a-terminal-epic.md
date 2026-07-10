@@ -13,6 +13,16 @@ the epic FSM has no outgoing edges from). Confirmed directly:
 resolves and is the right kind, but reads nothing from the epic's own
 `status` field.
 
+`aiwf import` has the identical gap, confirmed the same way:
+`internal/verb/import.go`'s `lookupEpicDir` resolves the named parent
+and checks it is kind `epic`, but likewise never reads its `status`.
+A manifest that declares a new milestone under an existing terminal
+epic hits the same accidental refusal (below), with the same
+misleading hint. Both functions mirror each other precisely — neither
+was ever the one that was supposed to guard this; it's a gap in the
+shared "resolve and validate the parent epic" shape both verbs
+independently reimplement.
+
 Empirically, the attempt is already refused today — but only as an
 accidental side effect, not by design. The new standing
 `epic-terminal-non-terminal-children` check-rule correctly flags the
@@ -52,19 +62,27 @@ independent-per-kind design, not by testing for it directly.
 
 ## Direction
 
-Add a dedicated precondition to `aiwf add milestone`'s own verb body:
-refuse when the named epic's status is terminal, with a message naming
-the epic and its status. No `--force` override is obviously
-correct here — unlike the promote/cancel guards, there's no legitimate
-reason to *create* new work under a permanently-closed parent, so this
-may not need one at all; worth a real decision before implementing
-rather than assumed.
+Add a dedicated precondition, shared by both `aiwf add milestone` and
+`aiwf import`'s milestone-creation path: refuse when the named parent
+epic's status is terminal, with a message naming the epic and its
+status. Since `add.go` and `import.go` each reimplement the same
+"resolve and kind-check the parent epic" logic independently today,
+the fix is a natural point to share it — one epic-status check called
+from both verb bodies, rather than the same precondition written
+twice. No `--force` override is obviously correct here — unlike the
+promote/cancel guards, there's no legitimate reason to *create* new
+work under a permanently-closed parent, so this may not need one at
+all; worth a real decision before implementing rather than assumed.
 
 ## Scope
 
-The precondition in `aiwf add milestone`'s own verb body, a new typed
-error code, and tests: a fixture where `add milestone --epic
-<done-epic>` is refused with a clear, dedicated message, a fixture
-where `add milestone --epic <active-epic>` still succeeds cleanly, and
+The shared precondition (called from both `aiwf add milestone`'s and
+`aiwf import`'s verb bodies), a new typed error code, and tests for
+each verb: a fixture where creation under a `done`/`cancelled` epic is
+refused with a clear, dedicated message, a fixture where creation
+under an `active`/`proposed` epic still succeeds cleanly, and
 confirmation the refusal names both the epic id and its terminal
-status.
+status. Also worth checking whether `internal/verb/add.go`'s and
+`internal/verb/import.go`'s existing epic-resolution helpers can be
+unified into one shared function as part of this fix, rather than
+just adding a duplicate status check to each.
