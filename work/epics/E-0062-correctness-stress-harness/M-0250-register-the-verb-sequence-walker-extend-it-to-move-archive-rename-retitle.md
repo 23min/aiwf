@@ -19,6 +19,10 @@ acs:
       title: a post-step invariant cross-checks aiwf list's output against ground truth
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: a dedicated concurrency scenario exercises aiwf move across two epics
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -30,4 +34,6 @@ acs:
 ### AC-2 — the walker's legal-transition set includes move, archive, rename, and retitle
 
 ### AC-3 — a post-step invariant cross-checks aiwf list's output against ground truth
+
+### AC-4 — a dedicated concurrency scenario exercises aiwf move across two epics
 
