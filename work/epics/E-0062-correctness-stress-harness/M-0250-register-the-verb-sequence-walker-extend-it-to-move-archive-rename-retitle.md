@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: a dedicated concurrency scenario exercises aiwf move across two epics
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0250 — Register the verb-sequence walker; extend it to move/archive/rename/retitle
