@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: a dedicated concurrency scenario exercises aiwf move across two epics
-      status: open
+      status: met
       tdd_phase: done
 ---
 
