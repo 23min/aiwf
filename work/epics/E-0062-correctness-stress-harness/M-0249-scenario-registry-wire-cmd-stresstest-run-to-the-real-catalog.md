@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: cmd/stresstest list enumerates every registered scenario
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
@@ -131,3 +131,26 @@ targeted mutation probes (`lookupScenario`'s name match, `needsLockHolder`'s
 wiring into the lock-kill binary build, the unknown-scenario refusal check)
 each confirmed a real bug goes red · commit 930d391e · tests all green,
 95.7% cmd/stresstest coverage, 3 new branches confirmed via mutation probe
+
+### AC-2 — run --scenario all runs the whole catalog, one combined report
+
+`--scenario all` loops the full catalog into one shared raw-report file;
+head-drift's own known-red status (G-0269) is labeled distinctly in the
+summary rather than folded into the same pass/fail count as the other 11.
+Resolved the design decision on diagnostic logging (discussed and
+confirmed with the operator before implementation): `runRun` enables
+`AIWF_LOG=debug`/`AIWF_LOG_FORMAT=json`/`AIWF_LOG_FILE=<outDir>/aiwf-diagnostic.log`
+once, before running any scenario — every subprocess a scenario launches
+inherits it via normal process-env inheritance, no scenario code touched.
+`RepeatEvent` gained `Dir` (a failing attempt's preserved repo, already
+computed but never logged) and `CorrelationIDs` (harvested via a new
+`correlationIDsSince` resumable byte-offset cursor over the diagnostic
+log, so consecutive attempts never attribute the same lines twice — a
+single scalar id doesn't fit since one attempt can drive many aiwf
+subprocesses, each with its own id). The env mutation makes 5 tests that
+drive `runRun` end-to-end serial rather than parallel (documented in
+`cmd/stresstest/setup_test.go`'s serial skip-list). Five targeted mutation
+probes (scenario-set resolution, head-drift's label branch, the cursor's
+unconsumed-partial-line handling, and the correlation-id dedup) each
+confirmed a real bug goes red · commit 659c17c6 · tests all green, 96.3%
+cmd/stresstest / 85.2% internal/stresstest coverage
