@@ -306,23 +306,36 @@ func TestRunRepeated_ToleratesMissingDiagnosticLog(t *testing.T) {
 	}
 }
 
-// TestRunRepeated_AbortsOnMalformedDiagnosticLog pins that a
-// diagnostic log containing a complete-but-malformed JSON line (real
-// corruption, not an in-flight partial write) aborts the loop — the
-// same "harness's own machinery is broken" posture the existing
-// abort tests already pin for a Setup error or a logging failure.
-func TestRunRepeated_AbortsOnMalformedDiagnosticLog(t *testing.T) {
+// TestRunRepeated_SkipsAMalformedDiagnosticLogLineAndContinues pins
+// D-0035's own resolution: a complete-but-malformed JSON line in the
+// diagnostic log (the shape a concurrent-write interleave under
+// O_APPEND's PIPE_BUF-sized write guarantee, or genuine corruption,
+// leaves behind) does NOT abort the campaign — a single scenario
+// attempt's own replayability (its seed) must not be gated behind an
+// optional correlation-id harvest's success. The malformed line
+// simply contributes no id; a well-formed line elsewhere in the same
+// scan still does.
+func TestRunRepeated_SkipsAMalformedDiagnosticLogLineAndContinues(t *testing.T) {
 	t.Parallel()
 	base := t.TempDir()
 	logPath := filepath.Join(t.TempDir(), "diagnostic.log")
-	if err := os.WriteFile(logPath, []byte("not-json\n"), 0o600); err != nil {
+	content := "not-json\n{\"run_id\":\"good\"}\n"
+	if err := os.WriteFile(logPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("seed diagnostic log: %v", err)
 	}
-	rw := newReportWriter(&countingWriter{})
+	cw := &countingWriter{}
+	rw := newReportWriter(cw)
 	newScenario := func(seed int64) Scenario { return &fakeScenario{} }
 
-	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, logPath); err == nil {
-		t.Fatal("expected RunRepeated to abort on a malformed diagnostic-log line")
+	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, logPath); err != nil {
+		t.Fatalf("RunRepeated: %v", err)
+	}
+	ev := unmarshalEvent(t, cw.calls[0])
+	if ev.Seed != 1 {
+		t.Errorf("Seed = %d, want 1 (the attempt's own event must still be logged)", ev.Seed)
+	}
+	if diff := cmp.Diff([]string{"good"}, ev.CorrelationIDs); diff != "" {
+		t.Errorf("CorrelationIDs mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -451,5 +464,33 @@ func TestCorrelationIDsSince_SkipsLinesWithoutARunID(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"one"}, ids); diff != "" {
 		t.Errorf("ids mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestCorrelationIDsSince_SkipsAMalformedCompleteLineRatherThanErroring
+// pins D-0035's own resolution: a complete line that isn't valid JSON
+// at all (not merely missing run_id) is skipped, not an error — the
+// shape a benign concurrent-write interleave under O_APPEND's
+// PIPE_BUF-sized write guarantee can produce. The offset still
+// advances past it (it's fully consumed, not left as a retry
+// candidate — unlike the genuinely-incomplete trailing-line case),
+// and a well-formed line on either side is still picked up.
+func TestCorrelationIDsSince_SkipsAMalformedCompleteLineRatherThanErroring(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "diagnostic.log")
+	content := "{\"run_id\":\"before\"}\nnot-valid-json-at-all\n{\"run_id\":\"after\"}\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	ids, offset, err := correlationIDsSince(path, 0)
+	if err != nil {
+		t.Fatalf("correlationIDsSince: %v", err)
+	}
+	if diff := cmp.Diff([]string{"before", "after"}, ids); diff != "" {
+		t.Errorf("ids mismatch (-want +got):\n%s", diff)
+	}
+	if offset != int64(len(content)) {
+		t.Errorf("offset = %d, want %d (the malformed line is still fully consumed)", offset, len(content))
 	}
 }

@@ -52,11 +52,14 @@ type RepeatEvent struct {
 // concurrency-shaped scenario proves nothing about a rare race, so
 // --repeat's whole point is running the full count regardless,
 // buying statistical coverage across all n attempts. A mechanical
-// failure in RunScenario itself, a failure to log an event, or a
-// diagnostic-log line that's corrupted rather than merely still
-// mid-write, aborts the loop immediately: the harness's own machinery
-// is broken, so continuing would only produce more failures of the
-// same kind.
+// failure in RunScenario itself, a failure to log an event, or an
+// I/O-level failure reading the diagnostic log (correlationIDsSince
+// can't open/seek/read the file) aborts the loop immediately: each is
+// the harness's own machinery failing, so continuing would only
+// produce more failures of the same kind. A single malformed
+// diagnostic-log *line*, in contrast, never aborts — see
+// correlationIDsSince's own doc comment for why that content-level
+// case is tolerated rather than fatal.
 func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, seedFn func() int64, rw *ReportWriter, diagnosticLogPath string) ([]RunResult, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("repeat count must be positive, got %d", n)
@@ -76,7 +79,7 @@ func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, s
 		if diagnosticLogPath != "" {
 			var scanErr error
 			ids, logOffset, scanErr = correlationIDsSince(diagnosticLogPath, logOffset)
-			if scanErr != nil {
+			if scanErr != nil { //coverage:ignore not portably triggerable: correlationIDsSince only returns an error for the file-level open/seek/read failures already marked not-portably-triggerable at its own source — a malformed line (the realistically forceable case) is tolerated there, never propagated here
 				return results, fmt.Errorf("attempt %d (seed %d): %w", i, seed, scanErr)
 			}
 		}
@@ -95,11 +98,25 @@ func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, s
 // offset to resume from on the next call. A line with no trailing
 // newline yet — a subprocess still mid-write — is left unconsumed:
 // the returned offset stops before it, so a later call starting from
-// that offset picks it up once it's complete. A complete line that
-// still fails to parse is real corruption, not an in-flight write,
-// and returns an error. A path that does not exist yet (diagnostic
-// logging produced nothing so far) is not an error: returns (nil,
-// from, nil) unchanged.
+// that offset picks it up once it's complete. A path that does not
+// exist yet (diagnostic logging produced nothing so far) is not an
+// error: returns (nil, from, nil) unchanged.
+//
+// A complete line that still fails to parse (or parses but carries no
+// run_id) is skipped, not an error — this is best-effort correlation-
+// id harvesting from the SUT's own subprocess output, not the
+// harness's own machinery: path is shared, O_APPEND-written by every
+// concurrent subprocess a scenario like concurrent-writer-at-scale or
+// concurrent-id-allocation launches, and a record straddling a
+// PIPE_BUF-sized write boundary can legitimately interleave into one
+// malformed line under heavy concurrency — the exact condition this
+// harness exists to create. Aborting the whole --repeat campaign over
+// one unreadable correlation-id line, especially since this scan runs
+// before the current attempt's own RepeatEvent (carrying its replay
+// seed) is logged, would be a worse outcome than simply losing that
+// one line's contribution to CorrelationIDs. Only a failure to open,
+// seek, or read the file at all — the harness's own inability to
+// access a file it created — is an error.
 func correlationIDsSince(path string, from int64) (ids []string, offset int64, err error) {
 	f, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -137,7 +154,7 @@ func correlationIDsSince(path string, from int64) (ids []string, offset int64, e
 			RunID string `json:"run_id"`
 		}
 		if err := json.Unmarshal(line, &rec); err != nil {
-			return ids, offset, fmt.Errorf("diagnostic log %s: malformed record ending at offset %d: %w", path, offset, err)
+			continue
 		}
 		if rec.RunID != "" && !seen[rec.RunID] {
 			seen[rec.RunID] = true

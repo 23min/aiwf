@@ -48,6 +48,17 @@ const defaultScenarioKind = entity.KindGap
 // enough for interactive, on-demand use.
 const defaultScale = 8
 
+// scenarioAll is the pseudo-name selecting the whole catalog rather
+// than one entry — never itself a scenarioCatalog row. Named once so
+// resolveScenarios (run.go) and needsLockHolder below can't drift on
+// what "all" means.
+const scenarioAll = "all"
+
+// lockKillName is lock-kill's own registered name, named once so
+// needsLockHolder's string comparison can't silently drift from the
+// catalog entry it means to match.
+const lockKillName = "lock-kill"
+
 // scenarioCatalog is the ordered registry. Order is display order for
 // `list`, run order for `--scenario all`, and the order named in the
 // refusal error when --scenario names an unregistered value.
@@ -67,7 +78,7 @@ var scenarioCatalog = []scenarioEntry{
 			return stresstest.NewReachabilityIsolationScenario(rt.aiwfBin, defaultScenarioKind, seed)
 		}
 	}},
-	{"lock-kill", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+	{lockKillName, func(rt scenarioRuntime) func(int64) stresstest.Scenario {
 		return func(_ int64) stresstest.Scenario {
 			return stresstest.NewLockKillScenario(rt.lockHolderBin)
 		}
@@ -142,12 +153,8 @@ func lookupScenario(name string) (scenarioEntry, bool) {
 }
 
 // needsLockHolder reports whether name requires the separately built
-// lockholder binary — true for lock-kill itself, or for "all" (which
-// runs lock-kill as part of the catalog).
+// lockholder binary — true for lock-kill itself, or for scenarioAll
+// (which runs lock-kill as part of the catalog).
 func needsLockHolder(name string) bool {
-	if name == "all" {
-		return true
-	}
-	e, ok := lookupScenario(name)
-	return ok && e.Name == "lock-kill"
+	return name == scenarioAll || name == lockKillName
 }

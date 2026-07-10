@@ -34,7 +34,7 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().IntVar(&repeat, "repeat", 1, "number of times to repeat the scenario")
 	cmd.Flags().StringVar(&scenarioName, "scenario", "", fmt.Sprintf("scenario to run: one of %s, or \"all\" to run the whole catalog", strings.Join(scenarioNames(), ", ")))
 	_ = cmd.MarkFlagRequired("scenario")
-	_ = cmd.RegisterFlagCompletionFunc("scenario", cobra.FixedCompletions(append([]string{"all"}, scenarioNames()...), cobra.ShellCompDirectiveNoFileComp))
+	_ = cmd.RegisterFlagCompletionFunc("scenario", cobra.FixedCompletions(append([]string{scenarioAll}, scenarioNames()...), cobra.ShellCompDirectiveNoFileComp))
 	return cmd
 }
 
@@ -42,7 +42,7 @@ func newRunCmd() *cobra.Command {
 // registered catalog entry, naming the full valid set so the operator
 // doesn't have to consult source or --help to recover.
 func unknownScenarioError(name string) error {
-	valid := append([]string{"all"}, scenarioNames()...)
+	valid := append([]string{scenarioAll}, scenarioNames()...)
 	sort.Strings(valid)
 	return fmt.Errorf("unknown --scenario %q; want one of: %s", name, strings.Join(valid, ", "))
 }
@@ -52,7 +52,7 @@ func unknownScenarioError(name string) error {
 // entry otherwise. Split out of runRun so the selection logic (and
 // its refusal) is tested independently of any real build/run.
 func resolveScenarios(name string) ([]scenarioEntry, error) {
-	if name == "all" {
+	if name == scenarioAll {
 		return scenarioCatalog, nil
 	}
 	entry, ok := lookupScenario(name)
