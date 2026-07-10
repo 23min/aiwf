@@ -101,6 +101,10 @@ Registered, closing G-0399 · commit 59f00c89 · tests: cmd/stresstest package g
 
 Weighted operation table + move/rename/retitle/archive step methods; fixed a real G-0398 edge case (isEpicAlreadyArchivedRefusal); filed G-0401 · commit fcb2b45a · tests: internal/stresstest + cmd/stresstest packages green (race mode), manual branch-coverage + vacuity audit done.
 
+### AC-3 — a post-step invariant cross-checks aiwf list's output against ground truth
+
+checkListInvariant/classifyListInvariant compare `aiwf list --archived` against tree.Load-derived ground truth after every step; vacuity probe found and closed a real wiring-coverage gap (fake-binary divergence test) · commit 7e0e3e2a · tests: internal/stresstest + cmd/stresstest packages green (race mode), manual branch-coverage + vacuity audit done.
+
 ## Decisions made during implementation
 
 - (none)
