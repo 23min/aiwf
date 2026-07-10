@@ -79,12 +79,22 @@ func TestResolveOutDir_ErrorsWhenMkdirTempFails(t *testing.T) {
 	}
 }
 
+// TestRunRun_Succeeds cannot use t.Parallel(): runRun unconditionally
+// enables diagnostic logging via os.Setenv(AIWF_LOG*) before running
+// any scenario (M-0249/AC-2) — a process-wide mutation. Go's env
+// functions are memory-safe to call concurrently (internally
+// mutex-guarded since Go 1.9), but two overlapping runRun calls could
+// still logically race: a later AIWF_LOG_FILE Setenv from a different
+// test could land while this test's own RunRepeated loop is still
+// mid-flight, misdirecting a later attempt's subprocess output into
+// the wrong test's diagnostic log. Every runRun-driving test in this
+// file that reaches the env-setting code (past scenario/out-dir
+// resolution and the binary build) stays serial for the same reason.
 func TestRunRun_Succeeds(t *testing.T) {
-	t.Parallel()
 	outDir := t.TempDir()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 2, &out); err != nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 2, "disk-fault", &out); err != nil {
 		t.Fatalf("runRun: %v", err)
 	}
 
@@ -96,16 +106,108 @@ func TestRunRun_Succeeds(t *testing.T) {
 	if len(composed.Events) != 2 {
 		t.Fatalf("expected 2 logged events (one per repeat attempt), got %d", len(composed.Events))
 	}
-	if !strings.Contains(out.String(), "2/2 attempts passed") {
+	if !strings.Contains(out.String(), "disk-fault: 2/2 attempts passed") {
 		t.Fatalf("unexpected summary output: %q", out.String())
+	}
+}
+
+// TestRunRun_LockKillScenario_BuildsLockHolderAndRuns pins runRun's
+// needsLockHolder branch: selecting "lock-kill" builds the separate
+// lockholder binary (BuildLockHolder) alongside the aiwf binary under
+// test, and the scenario runs to a real pass. Serial — see
+// TestRunRun_Succeeds's doc comment.
+func TestRunRun_LockKillScenario_BuildsLockHolderAndRuns(t *testing.T) {
+	outDir := t.TempDir()
+	var out bytes.Buffer
+
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "lock-kill", &out); err != nil {
+		t.Fatalf("runRun: %v", err)
+	}
+	if !strings.Contains(out.String(), "lock-kill: 1/1 attempts passed") {
+		t.Fatalf("unexpected summary output: %q", out.String())
+	}
+}
+
+// TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport pins AC-2's own
+// acceptance text: --scenario all runs every registered scenario, all
+// logged into the same raw-report file, with head-drift's own
+// expected-red status called out distinctly rather than folded into
+// the same pass/fail signal as the other 11. Serial — see
+// TestRunRun_Succeeds's doc comment.
+func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
+	outDir := t.TempDir()
+	var out bytes.Buffer
+
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out); err != nil {
+		t.Fatalf("runRun: %v", err)
+	}
+
+	reportPath := filepath.Join(outDir, "report.jsonl")
+	composed, err := stresstest.Compose(reportPath)
+	if err != nil {
+		t.Fatalf("Compose(%q): %v", reportPath, err)
+	}
+	if len(composed.Events) != len(scenarioNames()) {
+		t.Fatalf("expected 1 logged event per catalog scenario (%d), got %d", len(scenarioNames()), len(composed.Events))
+	}
+
+	for _, name := range scenarioNames() {
+		if !strings.Contains(out.String(), name) {
+			t.Errorf("summary output does not mention scenario %q:\n%s", name, out.String())
+		}
+	}
+	if !strings.Contains(out.String(), "head-drift (expected-red until G-0269's guard ships)") {
+		t.Errorf("expected head-drift to be labeled expected-red in the summary, got:\n%s", out.String())
+	}
+	// head-drift's own known violation must not be mislabeled as a
+	// clean pass in its summary line.
+	if strings.Contains(out.String(), "head-drift (expected-red until G-0269's guard ships): 1/1 attempts passed") {
+		t.Errorf("head-drift reported as passing; expected it to still report its own violation:\n%s", out.String())
+	}
+}
+
+// TestRunRun_PrintsPreservedDirOnAFailingAttempt pins that runRun
+// surfaces a failing attempt's preserved repo dir to the operator —
+// previously RunResult.Dir was populated in memory but never printed.
+// head-drift is deterministically expected-red (G-0269), so it's a
+// reliable single-scenario way to exercise this without depending on
+// a race actually losing. Serial — see TestRunRun_Succeeds's doc
+// comment.
+func TestRunRun_PrintsPreservedDirOnAFailingAttempt(t *testing.T) {
+	outDir := t.TempDir()
+	var out bytes.Buffer
+
+	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "head-drift", &out); err != nil {
+		t.Fatalf("runRun: %v", err)
+	}
+	if !strings.Contains(out.String(), "attempt failed, repo preserved at ") {
+		t.Fatalf("expected the failing attempt's preserved dir to be printed, got:\n%s", out.String())
 	}
 }
 
 func TestRunRun_ErrorsWhenRepeatIsNonPositive(t *testing.T) {
 	t.Parallel()
 	outDir := t.TempDir()
-	if err := runRun(context.Background(), repoRootRelative, outDir, 0, io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, outDir, 0, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to reject a non-positive repeat count before doing any work")
+	}
+}
+
+// TestRunRun_ErrorsWhenScenarioIsUnknown pins that an unregistered
+// --scenario name refuses before any I/O (repeat<=0's sibling
+// fail-fast check) — no build, no report file, just the refusal.
+func TestRunRun_ErrorsWhenScenarioIsUnknown(t *testing.T) {
+	t.Parallel()
+	outDir := t.TempDir()
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "does-not-exist", io.Discard)
+	if err == nil {
+		t.Fatal("expected runRun to reject an unregistered --scenario name")
+	}
+	if !strings.Contains(err.Error(), "does-not-exist") {
+		t.Fatalf("expected the error to name the bad value, got: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(outDir, "report.jsonl")); !os.IsNotExist(statErr) {
+		t.Fatalf("expected no report.jsonl to be created for a rejected scenario name, stat err: %v", statErr)
 	}
 }
 
@@ -117,7 +219,7 @@ func TestRunRun_ErrorsWhenOutDirResolutionFails(t *testing.T) {
 	}
 	bad := filepath.Join(blocker, "child")
 
-	if err := runRun(context.Background(), repoRootRelative, bad, 1, io.Discard); err == nil {
+	if err := runRun(context.Background(), repoRootRelative, bad, 1, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to propagate a resolveOutDir failure")
 	}
 }
@@ -143,7 +245,7 @@ func TestRunRun_ErrorsWhenReportPathIsADirectory(t *testing.T) {
 	}
 
 	start := time.Now()
-	err := runRun(context.Background(), repoRootRelative, outDir, 1, io.Discard)
+	err := runRun(context.Background(), repoRootRelative, outDir, 1, "disk-fault", io.Discard)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -162,7 +264,7 @@ func TestRunRun_ErrorsWhenBuildFails(t *testing.T) {
 		t.Fatalf("write go.mod: %v", err)
 	}
 
-	if err := runRun(context.Background(), bogusRoot, outDir, 1, io.Discard); err == nil {
+	if err := runRun(context.Background(), bogusRoot, outDir, 1, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to propagate a BuildBinary failure")
 	}
 }

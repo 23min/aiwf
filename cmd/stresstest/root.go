@@ -9,5 +9,6 @@ func newRootCmd() *cobra.Command {
 	}
 	root.AddCommand(newRunCmd())
 	root.AddCommand(newComposeCmd())
+	root.AddCommand(newListCmd())
 	return root
 }

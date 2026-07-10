@@ -108,7 +108,7 @@ func TestCrossWorktreeIDRaceScenario_RealBinaryRepeatedHitsARealCollision(t *tes
 	}
 
 	rw := newReportWriter(&countingWriter{})
-	results, err := RunRepeated(newScenario, base, 5, seedSequence(1, 2, 3, 4, 5), rw)
+	results, err := RunRepeated(newScenario, base, 5, seedSequence(1, 2, 3, 4, 5), rw, "")
 	if err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}

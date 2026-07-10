@@ -15,4 +15,7 @@ func TestNewRootCmd_HasRunAndComposeSubcommands(t *testing.T) {
 	if !names["compose"] {
 		t.Fatal("expected root command to register a 'compose' subcommand")
 	}
+	if !names["list"] {
+		t.Fatal("expected root command to register a 'list' subcommand")
+	}
 }
