@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: run --scenario all runs the whole catalog, one combined report
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: cmd/stresstest list enumerates every registered scenario
       status: open
@@ -116,3 +116,18 @@ closing the "on-demand" framing's own discoverability half.
 
 - G-0397 — cmd/stresstest run has no way to select any of the 12 real scenarios
 - `docs/initiatives/robustness-correctness-stress-testing.md`
+
+## Work log
+
+### AC-1 — cmd/stresstest run --scenario <name> runs exactly the named real scenario
+
+Added `cmd/stresstest/registry.go`: a name → constructor catalog adapting
+each of the 12 real scenarios into `RunRepeated`'s `newScenario(seed)`
+shape, none of the 12 scenarios' own constructor signatures touched.
+`--scenario` is a required flag (no default); an unregistered name refuses
+before any I/O via `unknownScenarioError`, naming the full valid set.
+Removed the now-dead M-0240 `placeholderScenario` it replaces. Three
+targeted mutation probes (`lookupScenario`'s name match, `needsLockHolder`'s
+wiring into the lock-kill binary build, the unknown-scenario refusal check)
+each confirmed a real bug goes red · commit 930d391e · tests all green,
+95.7% cmd/stresstest coverage, 3 new branches confirmed via mutation probe
