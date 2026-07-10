@@ -15,6 +15,10 @@ acs:
       title: the walker's legal-transition set includes move, archive, rename, and retitle
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: a post-step invariant cross-checks aiwf list's output against ground truth
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -24,4 +28,6 @@ acs:
 ### AC-1 — cmd/stresstest registers and can run the verb-sequence walker standalone
 
 ### AC-2 — the walker's legal-transition set includes move, archive, rename, and retitle
+
+### AC-3 — a post-step invariant cross-checks aiwf list's output against ground truth
 
