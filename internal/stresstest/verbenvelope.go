@@ -90,6 +90,47 @@ func parseVerbEnvelope(args []string, out []byte) (verbEnvelope, error) {
 	return env, nil
 }
 
+// listVerbEnvelope is `aiwf list`'s own envelope shape (M-0250/AC-3):
+// unlike every other verb this package drives, list's `result` field
+// is a top-level JSON array of rows, not an object — verbEnvelope's
+// shared struct-typed Result can't decode it, hence this sibling type.
+type listVerbEnvelope struct {
+	Status   string                `json:"status"`
+	Error    *verbEnvelopeError    `json:"error"`
+	Findings []verbEnvelopeFinding `json:"findings"`
+	Result   []listRow             `json:"result"`
+}
+
+// runAiwfListJSON runs `aiwf list --archived --format=json` in dir
+// and decodes the resulting envelope. --archived widens list's
+// default non-terminal-only view to every entity regardless of
+// status, matching tree.Load's own unfiltered Entities set.
+func runAiwfListJSON(bin, dir string) (listVerbEnvelope, error) {
+	args := []string{"list", "--archived"}
+	cmd := exec.Command(bin, append(args, "--format=json")...) //nolint:gosec // bin is a path this package's own BuildBinary just produced, not attacker-controlled input
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			return listVerbEnvelope{}, fmt.Errorf("running aiwf %v: %w", args, err)
+		}
+	}
+	return parseListVerbEnvelope(args, out)
+}
+
+// parseListVerbEnvelope decodes one `aiwf list --format=json`
+// invocation's stdout. Split out of runAiwfListJSON so the
+// malformed-output path is directly unit-testable without a real
+// subprocess, mirroring parseVerbEnvelope's own split.
+func parseListVerbEnvelope(args []string, out []byte) (listVerbEnvelope, error) {
+	var env listVerbEnvelope
+	if err := json.Unmarshal(out, &env); err != nil {
+		return listVerbEnvelope{}, fmt.Errorf("parsing aiwf %v JSON output: %w\n%s", args, err, out)
+	}
+	return env, nil
+}
+
 // gitHeadCommitCount returns the number of commits reachable from
 // HEAD in dir.
 func gitHeadCommitCount(dir string) (int, error) {

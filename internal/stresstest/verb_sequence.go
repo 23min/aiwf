@@ -185,8 +185,11 @@ func (s *VerbSequenceScenario) Verify(_ string) []Violation {
 // operation via a weighted random draw over walkOperationsFor(mv !=
 // nil) (M-0250/AC-2). mv is nil for every kind but milestone — move
 // is only ever in the drawable set when mv is non-nil. After every
-// step it re-runs `aiwf check` and classifies its findings, exactly
-// as before this AC's extension.
+// step it re-runs `aiwf check` and classifies its findings, then
+// cross-checks `aiwf list --archived` against ground truth via
+// checkListInvariant (M-0250/AC-3) — a whole-tree check, not scoped
+// to id, since a corruption `list` misses could affect any entity
+// this or an earlier kind's walk created.
 func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current string, mv *moveState) error {
 	ops := walkOperationsFor(mv != nil)
 	for i := 0; i < s.steps; i++ {
@@ -216,6 +219,13 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 			return fmt.Errorf("running aiwf check after %s step %q: %w", id, opName, err)
 		}
 		s.violations = append(s.violations, classifyCheckFindings(checkEnv.Findings)...)
+
+		label := fmt.Sprintf("%s step %d (%s)", id, i+1, opName)
+		listViolations, err := checkListInvariant(s.aiwfBin, dir, label)
+		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+			return fmt.Errorf("running the list-vs-ground-truth invariant after %s: %w", label, err)
+		}
+		s.violations = append(s.violations, listViolations...)
 	}
 	return nil
 }
