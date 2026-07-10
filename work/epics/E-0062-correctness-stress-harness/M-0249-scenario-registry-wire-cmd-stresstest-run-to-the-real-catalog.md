@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: cmd/stresstest list enumerates every registered scenario
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
 ---
 ## Goal
 
