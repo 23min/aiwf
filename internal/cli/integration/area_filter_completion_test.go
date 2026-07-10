@@ -27,7 +27,7 @@ func TestAreaCompletion_WiredOnReadVerbs(t *testing.T) {
 		name string
 		cmd  *cobra.Command
 	}{
-		{"list", list.NewCmd()},
+		{"list", list.NewCmd("")},
 		{"show", show.NewCmd("")},
 		{"status", status.NewCmd()},
 	}

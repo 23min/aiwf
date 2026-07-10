@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -23,7 +25,7 @@ import (
 
 // NewCmd builds `aiwf history <id>`: filters git log for the
 // entity's structured trailers and prints one line per event.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		root     string
 		format   string
@@ -42,7 +44,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], root, format, pretty, showAuth))
+			return cliutil.WrapExitCode(Run(args[0], root, format, pretty, showAuth, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -55,7 +57,7 @@ func NewCmd() *cobra.Command {
 }
 
 // Run executes `aiwf history`. Returns one of the cliutil.Exit* codes.
-func Run(id, root, format string, pretty, showAuth bool) int {
+func Run(id, root, format string, pretty, showAuth bool, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf history: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
@@ -66,6 +68,27 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitUsage
 	}
+
+	ctx := context.Background()
+
+	// M-0249 follow-up: diagnostic-logging wiring, mirroring show.Run's
+	// own read-only rationale — history has no --actor flag, so actor
+	// resolution is best-effort only and never fails the verb
+	// (ADR-0017).
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := correlationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "history", id, actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
 
 	// Resolve the queried id through prior_ids lineage so a query for
 	// an old id returns the same chronological chain as a query for
@@ -78,7 +101,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 	// id), and post-rename commits (matching aiwf-entity: <new>) all
 	// arrive in one chronological pass.
 	chain := []string{id}
-	if tr, _, terr := tree.Load(context.Background(), rootDir); terr == nil && tr != nil {
+	if tr, _, terr := tree.Load(ctx, rootDir); terr == nil && tr != nil {
 		if e := tr.ResolveByCurrentOrPriorID(id); e != nil {
 			seen := map[string]bool{id: true}
 			for _, p := range e.PriorIDs {
@@ -93,7 +116,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		}
 	}
 
-	events, err := ReadHistoryChain(context.Background(), rootDir, chain)
+	events, err := ReadHistoryChain(ctx, rootDir, chain)
 	if err != nil {
 		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitInternal
@@ -108,7 +131,7 @@ func Run(id, root, format string, pretty, showAuth bool) int {
 		// Resolve authorize-SHA → scope-entity for the chip labels, but
 		// only when the loaded events actually reference a scope (E-0054 /
 		// M-0223 guard — see ScopeMapFor).
-		scopeEntities := ScopeMapFor(context.Background(), rootDir, events)
+		scopeEntities := ScopeMapFor(ctx, rootDir, events)
 		for i := range events {
 			e := &events[i]
 			cliutil.Printf("%s  %-16s  %-10s  %-12s  %s  %s%s\n",

@@ -2,11 +2,14 @@ package acknowledge
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -64,7 +67,7 @@ sovereign acts trace to a named human with written rationale.`,
 
 // runMistag executes `aiwf acknowledge mistag`. Returns one of the
 // cliutil.Exit* codes; the caller wraps it via cliutil.WrapExitCode.
-func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
+func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) (code int) {
 	if strings.TrimSpace(reason) == "" {
 		cliutil.Errorln("aiwf acknowledge mistag: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
@@ -80,12 +83,29 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
 		return cliutil.ExitUsage
 	}
+
+	ctx := context.Background()
+
+	// M-0249 follow-up: diagnostic-logging wiring, mirroring
+	// acknowledge illegal's own pattern. mistag always targets a
+	// specific entity id.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "acknowledge-mistag", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge mistag", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
-	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on a filesystem/git IO failure; malformed entities surface as load findings, not an error here.
@@ -93,6 +113,6 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) int {
 		return cliutil.ExitInternal
 	}
 	result, vErr := verb.AcknowledgeMistag(ctx, tr, id, actorStr, reason)
-	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
+	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge mistag", result, vErr, out)
 	return code
 }
