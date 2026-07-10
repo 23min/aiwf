@@ -116,7 +116,17 @@ confirmed against the finished harness — not asserted from memory.
 
 ## Surfaces touched
 
-- `internal/stresstest/` (the concurrent-writer-at-scale scenario)
+- `internal/stresstest/` (the concurrent-writer-at-scale scenario;
+  later, the property-test tolerance fix for G-0398)
+- `internal/cli/show/`, `internal/cli/cliutil/` (G-0389, G-0391)
+- `internal/verb/` (G-0393's guard, reconciled with the independently-
+  landed G-0394 fix from `main`; the new pinning tests for G-0398)
+- `internal/check/` (G-0395's dangling-ack diagnostic; the new
+  standing `epic-terminal-non-terminal-children` rule and its hint)
+- `internal/workflows/spec/rules.go` (the reconciled guard's spec cell)
+- `scripts/git-hooks/pre-commit` (G-0388)
+- `CHANGELOG.md`, `internal/skills/embedded/aiwf-check/SKILL.md`
+  (corrected to match the reconciled guard's actual behavior)
 - This epic's spec (`epic.md`) — finalized at wrap per the usual ritual
 
 ## Out of scope
@@ -231,6 +241,94 @@ epic rather than fixed inline here or silently deferred — epic close
 now happens after M-0249, not this milestone. M-0244's own title was
 retitled (dropping "; epic close") to match this new reality.
 
+### Wrap-review corrective work
+
+The milestone went through three independent review rounds before
+wrap, each dispatched fresh-context per the usual ritual.
+
+**Round 1 — code-quality + design-quality, on the AC-1/AC-2/AC-3 diff.**
+Found 4 corrective items: (1) duplicated non-terminal-children traversal
+between `Promote`'s new G-0393 guard and `Cancel`'s existing D-0003
+guard — extracted a shared helper; (2) no standing `aiwf check` rule
+backstopping the guard regardless of how the bad state was reached —
+added `epic-terminal-non-terminal-children`; (3) the new spec-table
+Rule cell's `Sources` field silently empty with no rationale — added
+one, citing the hardcoded M-0123 audit set that blocks a fresh
+Decision reference; (4) the G-0395 `danglingHint` diagnostic wired
+into `illegalTransitionFindings` but not the sibling
+`forcedUntraileredFindings` — extended it, with a new end-to-end test.
+
+**Mid-fix: an independently-landed duplicate.** Re-running the full
+suite after item 2 landed surfaced a failure in a *different*,
+already-merged milestone's property test
+(`TestVerbSequenceScenario_FullWalkAcrossAllKindsPasses`, M-0241).
+Investigating led to discovering that `main` had, while this branch
+was in flight, independently merged its own fix (G-0394, filed under
+E-0063) for the identical underlying gap G-0393 already closed here —
+same shape, same finding code, landed via a separate `wf-patch`
+branch neither line of work knew about. Merged `main` in and
+reconciled the two: kept main's file organization
+(`internal/verb/cancel_guards.go`) and its new archive-time
+defense-in-depth guard, restored this branch's broader scope (`done`
+*and* `cancelled`, not `done`-only) and unconditional semantics (no
+`--force` bypass, matching `Cancel`'s own D-0003 guard — main's
+version was accidentally force-bypassable). Also caught and fixed one
+duplicate test-fixture artifact the naive git auto-merge produced in
+`internal/cli/integration/show_scopes_test.go` (both branches had
+independently patched the same pre-existing test for the same reason,
+in different spots).
+
+Re-running the full suite after reconciliation surfaced the *original*
+property-test failure again, now traced to its real cause: the
+standing check-rule (item 2 above) correctly flags a terminal epic
+with a fresh non-terminal milestone, and the M-0241 property test's
+own independent-per-kind random walk occasionally constructs exactly
+that state by accident (random-walking the epic to `done`/`cancelled`
+before creating the milestone that needs it as `--epic` parent).
+Digging into *why* `aiwf add milestone` even allows that revealed a
+genuinely separate, previously-invisible gap: neither `add.go` nor
+`import.go` has ever checked the target epic's own status — the
+refusal that already happens today is an accident of the generic
+projection-findings gate, not a dedicated guard. Filed as G-0398
+(deferred, not fixed — see Deferrals) and taught the property test to
+tolerate this one specific, known refusal shape instead of treating
+it as a hard failure, with a direct unit test and a real-repo
+empirical confirmation (built the binary, confirmed the refusal lands
+no commit) before writing either.
+
+**Round 2 — code-quality + design-quality, on the reconciliation.**
+Found 5 issues, independently confirmed on the headline one by both
+reviewers (and by hand before acting): `CHANGELOG.md`'s `[Unreleased]`
+entry (carried in by the merge) still described main's
+pre-reconciliation, force-bypassable, `done`-only guard — rewritten.
+The finding's hint text falsely attributed the accidental add/import
+refusal to "a hand-edit, `--force`, or a pre-guard binary" — none of
+which apply there — reworded in both `hint.go` and the `aiwf-check`
+skill's Findings table. G-0398 was scoped to `aiwf add milestone`
+only; `aiwf import` has the identical gap (verified via direct repro
+and code tracing: `import.go`'s `lookupEpicDir` mirrors `add.go`'s
+`newEntityPath` precisely) — widened the gap's scope. The standing
+rule's own doc comment didn't acknowledge its accidental second job
+(the only thing blocking add/import today) — updated it, and added a
+dedicated pinning test (`TestAdd_MilestoneUnderTerminalEpic_RefusedViaFindings`,
+`TestImport_MilestoneUnderTerminalEpic_RefusedViaFindings`) so a
+future refactor of the generic gate can't silently drop the
+protection. One status-skip test pair didn't distinctly exercise its
+"unknown status" branch (confirmed via a mutation probe) — widened to
+a table covering both empty and unknown separately.
+
+**Round 3 — YAGNI/KISS/duplication/dead-code, on the milestone's full
+diff against `main`.** Verdict: essentially clean, right-sized. One
+finding — `verbEnvelope.Result.ID`, a struct field nothing in the
+package ever read (every scenario needing an id reads
+`Metadata.EntityID` instead) — verified via grep and removed.
+Everything else checked out with reasoning recorded in the review
+itself: the three guard error types are genuinely distinct payloads,
+not collapsible boilerplate; the G-0395 diagnostic's function split is
+test-motivated; the 21 lock-fix call sites are genuinely identical
+mechanical edits through one shared chokepoint; the two new pinning-
+test files assert different things about different verbs.
+
 ## Decisions made during implementation
 
 - D-0034 — DAG-scoped acknowledge-illegal exemption trades off against
@@ -251,14 +349,49 @@ retitled (dropping "; epic close") to match this new reality.
 - Each AC's implementation went through a `wf-vacuity` mutation probe;
   AC-1 and both of AC-2's larger fixes (G-0391's chokepoint, G-0393's
   guard, G-0395's diagnostic) each surfaced and fixed a real surviving
-  mutant before landing — see each AC's own Work log entry above.
+  mutant before landing — see each AC's own Work log entry above. The
+  wrap-review corrective work repeated the same discipline: a mutation
+  probe on the standing check-rule's status guards (Round 1) and again
+  on the widened "unknown status" tests (Round 2), each catching and
+  fixing a real surviving mutant before landing.
+- Re-validated after the merge reconciliation and again after each
+  review round: `go build`, `go vet`, `make lint`, `go test -race
+  -parallel 8 -count=1 ./...` (full repo), and `make coverage-gate` all
+  green at every checkpoint; `aiwf check` against this actual repo
+  confirmed 0 error-severity findings throughout — including a direct,
+  independent manual scan of every epic/milestone status pair on disk
+  (not just the tool's own output) before concluding the new standing
+  rule wasn't firing on anything real here.
 
 ## Deferrals
 
 - G-0397 — cmd/stresstest run has no way to select any of the 12 real
   scenarios; resolved via a new milestone, M-0249, added to E-0062
   (epic close now happens after M-0249)
+- G-0398 — `aiwf add milestone` and `aiwf import` accidentally-not-
+  purposefully refuse creating a milestone under an already-terminal
+  epic (no dedicated precondition on either verb; today's refusal is a
+  side effect of the standing check-rule tripping the generic
+  projection-findings gate every mutating verb runs)
 
 ## Reviewer notes
 
-- (none)
+- Three independent review rounds ran before wrap (code-quality +
+  design-quality on the original AC diff; code-quality + design-
+  quality again on the post-reconciliation diff; a YAGNI/KISS/
+  duplication/dead-code pass on the milestone's full contribution).
+  Every finding from all three rounds was fixed, not deferred — see
+  "Wrap-review corrective work" above for the full narrative. No
+  findings were judged out of scope or left open.
+- The G-0393/G-0394 collision (two independently-filed gaps
+  converging on the identical fix, discovered mid-review via a
+  property-test failure that traced back to a `main`-side merge) is
+  the most structurally significant thing that happened in this
+  milestone outside its own stated scope. Worth a standing lesson:
+  when a long-running branch's own fix collides with something
+  already landed on `main`, `git diff` alone can miss it — the real
+  signal here was a *test* failure in unrelated, already-merged code,
+  not a merge conflict (the naive auto-merge produced zero textual
+  conflicts; the actual collision was two files each declaring the
+  same Go symbols, invisible to git's line-based merge until `go
+  build` was run).
