@@ -28,6 +28,7 @@ var wantScenarioNames = []string{
 	"force-override-durability",
 	"head-drift",
 	"concurrent-writer-at-scale",
+	"verb-sequence",
 }
 
 func TestScenarioNames_ListsAllTwelveInCatalogOrder(t *testing.T) {
@@ -59,6 +60,7 @@ var wantScenarioType = map[string]string{
 	"force-override-durability":     "*stresstest.ForceOverrideDurabilityScenario",
 	"head-drift":                    "*stresstest.HeadDriftScenario",
 	"concurrent-writer-at-scale":    "*stresstest.ConcurrentWriterAtScaleScenario",
+	"verb-sequence":                 "*stresstest.VerbSequenceScenario",
 }
 
 func TestLookupScenario_KnownNameBuildsTheMatchingScenarioType(t *testing.T) {
