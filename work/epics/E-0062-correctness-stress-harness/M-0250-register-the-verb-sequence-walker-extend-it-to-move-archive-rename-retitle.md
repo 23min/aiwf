@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: the walker's legal-transition set includes move, archive, rename, and retitle
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: a post-step invariant cross-checks aiwf list's output against ground truth
       status: open
@@ -93,6 +93,10 @@ A new named scenario, structurally mirroring `archive-during-active-scope`'s sha
 
 ## Work log
 
+### AC-1 — cmd/stresstest registers and can run the verb-sequence walker standalone
+
+Registered, closing G-0399 · commit 59f00c89 · tests: cmd/stresstest package green (race mode).
+
 ## Decisions made during implementation
 
 - (none)
@@ -101,7 +105,14 @@ A new named scenario, structurally mirroring `archive-during-active-scope`'s sha
 
 ## Deferrals
 
-- (none)
+- G-0401 — AC-2's coverage audit found that the walker's epic-then-
+  milestone creation order means the epic very often reaches a
+  terminal status (via its own random promote draws) before the
+  milestone is created, so `move`'s practical exercise inside the
+  sequential walker is rarer in real usage than its selection weight
+  suggests. AC-2's own literal bar (`move` structurally present with
+  nonzero weight, and reachable via a dedicated unit test) is met;
+  improving the walker's actual hit rate is deferred to G-0401.
 
 ## Reviewer notes
 
