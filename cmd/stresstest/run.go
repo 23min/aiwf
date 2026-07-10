@@ -136,8 +136,14 @@ func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scen
 	_ = os.Setenv("AIWF_LOG_FORMAT", "json")
 	_ = os.Setenv("AIWF_LOG_FILE", diagnosticLogPath)
 
+	// logOffset is shared across every scenario in entries (not reset
+	// per scenario) so --scenario all's shared diagnostic-log cursor
+	// carries forward: a fresh-per-scenario offset would re-scan from
+	// byte 0 each time and re-attribute every earlier scenario's ids
+	// to the next one's first attempt.
+	var logOffset int64
 	for _, entry := range entries {
-		results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, nextSeed, rw, diagnosticLogPath)
+		results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, nextSeed, rw, diagnosticLogPath, &logOffset)
 		if err != nil { //coverage:ignore not portably triggerable: every registered scenario's Setup/Run failure mode is a genuine environmental fault (a bad binary path, a disk fault) already exercised at its own source in internal/stresstest; forcing one here, or forcing rw.WriteEvent to fail mid-write, needs either sabotaging the freshly built binary or an already-open fd to fail, neither reproducible without an unsafe/fragile test
 			return fmt.Errorf("running scenario %s: %w", entry.Name, err)
 		}

@@ -28,7 +28,7 @@ func TestAreaCompletion_WiredOnReadVerbs(t *testing.T) {
 		cmd  *cobra.Command
 	}{
 		{"list", list.NewCmd()},
-		{"show", show.NewCmd()},
+		{"show", show.NewCmd("")},
 		{"status", status.NewCmd()},
 	}
 	for _, tc := range cases {

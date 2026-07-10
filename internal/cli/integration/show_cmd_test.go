@@ -159,7 +159,7 @@ Archived gap body.
 // to do so" as separate mechanical assertions.
 func TestShowCmd_NoArchivedFlag(t *testing.T) {
 	t.Parallel()
-	cmd := show.NewCmd()
+	cmd := show.NewCmd("")
 	if cmd.Flags().Lookup("archived") != nil {
 		t.Errorf("show has --archived flag; archived ids resolve without flag opt-in per ADR-0004 §\"Display surfaces\"")
 	}

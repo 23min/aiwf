@@ -156,20 +156,23 @@ func TestCorrelationID_DiffersAcrossInvocations(t *testing.T) {
 
 // TestCorrelationID_PresentOnUnloggedMutatingVerb pins the universal
 // half of AC-1's envelope wiring: a mutating verb that never calls
-// logger.WithVerb at all (promote has no diagnostic-logging call site
-// as of this milestone) still carries metadata.correlation_id — the id
-// is threaded to every mutating verb's OutputFormat, not just the
-// handful already logger-instrumented.
+// logger.WithVerb at all (rename has no diagnostic-logging call site as
+// of M-0249 — add/promote/check/reallocate/edit-body/authorize/show all
+// gained one during that milestone's own wrap review, see
+// wired_verbs_diag_test.go) still carries metadata.correlation_id — the
+// id is threaded to every mutating verb's OutputFormat, not just the
+// verbs already logger-instrumented.
 func TestCorrelationID_PresentOnUnloggedMutatingVerb(t *testing.T) {
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-	mustRun(t, "add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Stale probe", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "epic", "--title", "Home", "--actor", "human/test", "--root", root)
+	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Original", "--actor", "human/test", "--root", root)
 
 	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
-		return cli.Execute([]string{"promote", "G-0001", "wontfix", "--actor", "human/test", "--root", root, "--format=json"})
+		return cli.Execute([]string{"rename", "M-0001", "renamed-slug", "--actor", "human/test", "--root", root, "--format=json"})
 	})
 	if rc != cliutil.ExitOK {
-		t.Fatalf("aiwf promote: rc=%d stderr=%s", rc, stderr)
+		t.Fatalf("aiwf rename: rc=%d stderr=%s", rc, stderr)
 	}
 	var env struct {
 		Metadata map[string]any `json:"metadata"`

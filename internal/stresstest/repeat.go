@@ -43,9 +43,17 @@ type RepeatEvent struct {
 // attempt's RepeatEvent.CorrelationIDs is the set of run_ids that
 // landed in the file during that attempt's own window, via a
 // resumable byte-offset cursor so consecutive attempts never
-// attribute the same log lines twice. An empty diagnosticLogPath (no
-// diagnostic logging enabled for this run) skips attribution
-// entirely — every event's CorrelationIDs stays empty.
+// attribute the same log lines twice. logOffset is the cursor's
+// current position — callers running multiple scenarios against one
+// shared diagnostic-log file (e.g. cmd/stresstest run --scenario all)
+// pass the SAME *int64 across every RunRepeated call so the cursor
+// carries forward instead of re-scanning from byte 0 (and re-
+// attributing every earlier scenario's ids) each time; a caller
+// driving one scenario alone can pass a fresh var each time, or nil
+// when diagnosticLogPath is "" (never dereferenced in that case). An
+// empty diagnosticLogPath (no diagnostic logging enabled for this
+// run) skips attribution entirely — every event's CorrelationIDs
+// stays empty.
 //
 // A scenario attempt that fails verification (RunScenario returns
 // Passed: false) does not stop the repeat loop — a single pass of a
@@ -60,13 +68,12 @@ type RepeatEvent struct {
 // diagnostic-log *line*, in contrast, never aborts — see
 // correlationIDsSince's own doc comment for why that content-level
 // case is tolerated rather than fatal.
-func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, seedFn func() int64, rw *ReportWriter, diagnosticLogPath string) ([]RunResult, error) {
+func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, seedFn func() int64, rw *ReportWriter, diagnosticLogPath string, logOffset *int64) ([]RunResult, error) {
 	if n <= 0 {
 		return nil, fmt.Errorf("repeat count must be positive, got %d", n)
 	}
 
 	results := make([]RunResult, 0, n)
-	var logOffset int64
 	for i := 0; i < n; i++ {
 		seed := seedFn()
 		result, err := RunScenario(newScenario(seed), baseDir)
@@ -78,7 +85,7 @@ func RunRepeated(newScenario func(seed int64) Scenario, baseDir string, n int, s
 		var ids []string
 		if diagnosticLogPath != "" {
 			var scanErr error
-			ids, logOffset, scanErr = correlationIDsSince(diagnosticLogPath, logOffset)
+			ids, *logOffset, scanErr = correlationIDsSince(diagnosticLogPath, *logOffset)
 			if scanErr != nil { //coverage:ignore not portably triggerable: correlationIDsSince only returns an error for the file-level open/seek/read failures already marked not-portably-triggerable at its own source — a malformed line (the realistically forceable case) is tolerated there, never propagated here
 				return results, fmt.Errorf("attempt %d (seed %d): %w", i, seed, scanErr)
 			}

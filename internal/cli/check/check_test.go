@@ -12,7 +12,7 @@ import (
 // catches the same regression at the binary level.
 func TestNewCmd_FlagShape(t *testing.T) {
 	t.Parallel()
-	cmd := NewCmd()
+	cmd := NewCmd("")
 	if cmd.Use != "check" {
 		t.Errorf("Use = %q, want check", cmd.Use)
 	}
@@ -29,7 +29,7 @@ func TestNewCmd_FlagShape(t *testing.T) {
 // without loading the tree.
 func TestRun_BadFormat(t *testing.T) {
 	t.Parallel()
-	code := Run("", "yaml", false, "", false, false, false, nil)
+	code := Run("", "yaml", false, "", false, false, false, nil, "")
 	if code != cliutil.ExitUsage {
 		t.Errorf("Run with --format=yaml: got %d, want %d", code, cliutil.ExitUsage)
 	}

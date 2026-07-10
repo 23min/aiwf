@@ -45,7 +45,7 @@ func TestConcurrentIDAllocationScenario_RealBinary_NConcurrentActorsAllGetDistin
 	}
 
 	rw := newReportWriter(&countingWriter{})
-	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "")
+	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "", nil)
 	if err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}

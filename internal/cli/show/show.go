@@ -5,6 +5,7 @@ package show
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -68,7 +70,7 @@ func ReadEntityBody(root, relPath string) []byte {
 //
 // For composite ids (M-NNN/AC-N), renders just the AC's slice of the
 // parent milestone plus its history.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		root         string
 		format       string
@@ -91,7 +93,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], root, format, area, pretty, historyLimit))
+			return cliutil.WrapExitCode(Run(args[0], root, format, area, pretty, historyLimit, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
@@ -106,7 +108,7 @@ func NewCmd() *cobra.Command {
 }
 
 // Run executes `aiwf show`. Returns one of the cliutil.Exit* codes.
-func Run(id, root, format, area string, pretty bool, historyLimit int) int {
+func Run(id, root, format, area string, pretty bool, historyLimit int, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf show: --format must be text or json, got %q\n", format)
 		return cliutil.ExitUsage
@@ -118,12 +120,37 @@ func Run(id, root, format, area string, pretty bool, historyLimit int) int {
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern — with one difference: show is a pure read
+	// with no --actor flag and no commit, so actor resolution is
+	// best-effort only. A missing git identity must never fail a read
+	// verb that never needed one before; ADR-0017's own principle
+	// ("diagnostic logging must never affect a verb's own behavior or
+	// exit code") governs here even though ResolveLogger's own
+	// fallback only covers the logger's own resolve/open failures, not
+	// this actor lookup.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := correlationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "show", id, actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+
 	// Advisory note when --area names an undeclared value (M-0174/AC-5).
 	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
 		cliutil.Errorln(note)
 	}
 
-	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf show: loading tree: %v\n", err)

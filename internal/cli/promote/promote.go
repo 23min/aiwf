@@ -4,12 +4,15 @@ package promote
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -99,7 +102,7 @@ func NewCmd(correlationID string) *cobra.Command {
 // Run executes `aiwf promote`. Returns one of the cliutil.Exit* codes.
 func Run(args []string, actor, principal, root, reason,
 	phase, tests, by, byCommit, supersededBy string, force, auditOnly bool, out cliutil.OutputFormat,
-) int {
+) (code int) {
 	id := args[0]
 
 	phaseMode := phase != ""
@@ -154,13 +157,28 @@ func Run(args []string, actor, principal, root, reason,
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "promote", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf promote", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf promote: loading tree: %v\n", err)
@@ -190,7 +208,7 @@ func Run(args []string, actor, principal, root, reason,
 		} else {
 			result, vErr = verb.PromoteACPhase(ctx, tr, id, phase, actorStr, reason, force, metrics)
 		}
-		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 		return code
 	}
 	if strings.TrimSpace(tests) != "" {
@@ -205,10 +223,10 @@ func Run(args []string, actor, principal, root, reason,
 	}
 	if auditOnly {
 		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
-		code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 		return code
 	}
 	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 	return code
 }

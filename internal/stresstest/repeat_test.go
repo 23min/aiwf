@@ -68,7 +68,7 @@ func TestRunRepeated_RunsNAttemptsWithDistinctSeeds(t *testing.T) {
 		seedsSeenByNewScenario = append(seedsSeenByNewScenario, seed)
 		return &fakeScenario{}
 	}
-	results, err := RunRepeated(newScenario, base, 3, seedSequence(10, 20, 30), rw, "")
+	results, err := RunRepeated(newScenario, base, 3, seedSequence(10, 20, 30), rw, "", nil)
 	if err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestRunRepeated_ContinuesPastAScenarioFailure(t *testing.T) {
 		return s
 	}
 
-	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "")
+	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "", nil)
 	if err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestRunRepeated_RejectsNonPositiveRepeatCount(t *testing.T) {
 	rw := newReportWriter(&countingWriter{})
 	newScenario := func(seed int64) Scenario { return &fakeScenario{} }
 
-	if _, err := RunRepeated(newScenario, base, 0, seedSequence(), rw, ""); err == nil {
+	if _, err := RunRepeated(newScenario, base, 0, seedSequence(), rw, "", nil); err == nil {
 		t.Fatal("expected RunRepeated to reject a repeat count of 0")
 	}
 }
@@ -184,7 +184,7 @@ func TestRunRepeated_AbortsOnScenarioSetupError(t *testing.T) {
 		return s
 	}
 
-	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "")
+	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "", nil)
 	if err == nil {
 		t.Fatal("expected RunRepeated to abort and return an error on a Setup failure")
 	}
@@ -199,7 +199,7 @@ func TestRunRepeated_AbortsOnLoggingError(t *testing.T) {
 	rw := newReportWriter(erroringWriter{})
 	newScenario := func(seed int64) Scenario { return &fakeScenario{} }
 
-	if _, err := RunRepeated(newScenario, base, 2, seedSequence(1, 2), rw, ""); err == nil {
+	if _, err := RunRepeated(newScenario, base, 2, seedSequence(1, 2), rw, "", nil); err == nil {
 		t.Fatal("expected RunRepeated to propagate a raw-report logging failure")
 	}
 }
@@ -224,7 +224,7 @@ func TestRunRepeated_LogsDirOnFailingAttempt(t *testing.T) {
 		return s
 	}
 
-	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "")
+	results, err := RunRepeated(newScenario, base, 3, seedSequence(1, 2, 3), rw, "", nil)
 	if err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
@@ -270,7 +270,8 @@ func TestRunRepeated_LogsCorrelationIDsFromDiagnosticLog(t *testing.T) {
 		return s
 	}
 
-	if _, err := RunRepeated(newScenario, base, 2, seedSequence(1, 2), rw, logPath); err != nil {
+	var offset int64
+	if _, err := RunRepeated(newScenario, base, 2, seedSequence(1, 2), rw, logPath, &offset); err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
 
@@ -297,7 +298,8 @@ func TestRunRepeated_ToleratesMissingDiagnosticLog(t *testing.T) {
 	rw := newReportWriter(cw)
 	newScenario := func(seed int64) Scenario { return &fakeScenario{} }
 
-	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, filepath.Join(t.TempDir(), "never-created.log")); err != nil {
+	var offset int64
+	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, filepath.Join(t.TempDir(), "never-created.log"), &offset); err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
 	ev := unmarshalEvent(t, cw.calls[0])
@@ -327,7 +329,8 @@ func TestRunRepeated_SkipsAMalformedDiagnosticLogLineAndContinues(t *testing.T) 
 	rw := newReportWriter(cw)
 	newScenario := func(seed int64) Scenario { return &fakeScenario{} }
 
-	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, logPath); err != nil {
+	var offset int64
+	if _, err := RunRepeated(newScenario, base, 1, seedSequence(1), rw, logPath, &offset); err != nil {
 		t.Fatalf("RunRepeated: %v", err)
 	}
 	ev := unmarshalEvent(t, cw.calls[0])
@@ -492,5 +495,48 @@ func TestCorrelationIDsSince_SkipsAMalformedCompleteLineRatherThanErroring(t *te
 	}
 	if offset != int64(len(content)) {
 		t.Errorf("offset = %d, want %d (the malformed line is still fully consumed)", offset, len(content))
+	}
+}
+
+// TestRunRepeated_SharedOffsetAcrossMultipleCallsDoesNotReattribute
+// pins the real bug found when M-0249's own diagnostic-logger wiring
+// was verified against a live --scenario all run: a caller driving
+// multiple scenarios against ONE shared diagnostic-log file (as
+// cmd/stresstest run --scenario all does) must pass the SAME *int64
+// across every RunRepeated call. A fresh offset per call would
+// re-scan from byte 0 each time, re-attributing every earlier
+// scenario's ids to the next scenario's own first event.
+func TestRunRepeated_SharedOffsetAcrossMultipleCallsDoesNotReattribute(t *testing.T) {
+	t.Parallel()
+	base := t.TempDir()
+	logPath := filepath.Join(t.TempDir(), "diagnostic.log")
+	cw := &countingWriter{}
+	rw := newReportWriter(cw)
+
+	firstScenario := func(seed int64) Scenario {
+		return &logWritingScenario{logPath: logPath, lines: []string{`{"run_id":"from-first-scenario"}`}}
+	}
+	secondScenario := func(seed int64) Scenario {
+		return &logWritingScenario{logPath: logPath, lines: []string{`{"run_id":"from-second-scenario"}`}}
+	}
+
+	var offset int64
+	if _, err := RunRepeated(firstScenario, base, 1, seedSequence(1), rw, logPath, &offset); err != nil {
+		t.Fatalf("RunRepeated (first scenario): %v", err)
+	}
+	if _, err := RunRepeated(secondScenario, base, 1, seedSequence(2), rw, logPath, &offset); err != nil {
+		t.Fatalf("RunRepeated (second scenario): %v", err)
+	}
+
+	if len(cw.calls) != 2 {
+		t.Fatalf("expected 2 logged events, got %d", len(cw.calls))
+	}
+	first := unmarshalEvent(t, cw.calls[0])
+	second := unmarshalEvent(t, cw.calls[1])
+	if diff := cmp.Diff([]string{"from-first-scenario"}, first.CorrelationIDs); diff != "" {
+		t.Errorf("first scenario's event CorrelationIDs mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"from-second-scenario"}, second.CorrelationIDs); diff != "" {
+		t.Errorf("second scenario's event CorrelationIDs mismatch (-want +got):\n%s — must not also contain from-first-scenario", diff)
 	}
 }

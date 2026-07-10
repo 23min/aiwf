@@ -7,11 +7,14 @@ package editbody
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -56,7 +59,7 @@ func NewCmd(correlationID string) *cobra.Command {
 }
 
 // Run executes `aiwf edit-body`. Returns one of the cliutil.Exit* codes.
-func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.OutputFormat) int {
+func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.OutputFormat) (code int) {
 	// Bless mode (M-060): when --body-file is absent, pass nil bytes
 	// so the verb reads working-copy and HEAD itself and commits the
 	// diff. Explicit mode (M-058): when --body-file is set, read the
@@ -85,13 +88,28 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "edit-body", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf edit-body", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	// LoadTreeWithTrunk (not bare tree.Load) so the verb-time
 	// body-prose-id scan sees TrunkIDs: a body referencing an entity
 	// allocated on trunk but absent from this branch's tree must not
@@ -109,6 +127,6 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 		TargetID:  id,
 	}
 	result, vErr := verb.EditBody(ctx, tr, id, body, actorStr, reason)
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf edit-body", tr, result, vErr, pctx, out)
 	return code
 }

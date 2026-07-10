@@ -169,7 +169,7 @@ func NewRootCmd(correlationID string) *cobra.Command {
 
 	cmd.AddCommand(newVersionCmd())
 
-	cmd.AddCommand(check.NewCmd())
+	cmd.AddCommand(check.NewCmd(correlationID))
 	cmd.AddCommand(add.NewCmd(correlationID))
 	cmd.AddCommand(promote.NewCmd(correlationID))
 	cmd.AddCommand(cancel.NewCmd(correlationID))
@@ -193,7 +193,7 @@ func NewRootCmd(correlationID string) *cobra.Command {
 	cmd.AddCommand(status.NewCmd())
 	cmd.AddCommand(list.NewCmd())
 	cmd.AddCommand(schema.NewCmd())
-	cmd.AddCommand(show.NewCmd())
+	cmd.AddCommand(show.NewCmd(correlationID))
 	cmd.AddCommand(template.NewCmd())
 	cmd.AddCommand(contract.NewCmd(correlationID))
 	cmd.AddCommand(milestone.NewCmd(correlationID))
