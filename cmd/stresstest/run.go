@@ -32,19 +32,34 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().StringVar(&moduleRoot, "module-root", ".", "aiwf module root to build the binary under test from")
 	cmd.Flags().StringVar(&outDir, "out", "", "directory for the build output, scenario temp dirs, and the raw-report file (defaults to a fresh temp dir, printed on completion)")
 	cmd.Flags().IntVar(&repeat, "repeat", 1, "number of times to repeat the scenario")
-	cmd.Flags().StringVar(&scenarioName, "scenario", "", fmt.Sprintf("scenario to run: one of %s", strings.Join(scenarioNames(), ", ")))
+	cmd.Flags().StringVar(&scenarioName, "scenario", "", fmt.Sprintf("scenario to run: one of %s, or \"all\" to run the whole catalog", strings.Join(scenarioNames(), ", ")))
 	_ = cmd.MarkFlagRequired("scenario")
-	_ = cmd.RegisterFlagCompletionFunc("scenario", cobra.FixedCompletions(scenarioNames(), cobra.ShellCompDirectiveNoFileComp))
+	_ = cmd.RegisterFlagCompletionFunc("scenario", cobra.FixedCompletions(append([]string{"all"}, scenarioNames()...), cobra.ShellCompDirectiveNoFileComp))
 	return cmd
 }
 
-// unknownScenarioError reports that name is not a registered catalog
-// entry, naming the full valid set so the operator doesn't have to
-// consult source or --help to recover.
+// unknownScenarioError reports that name is neither "all" nor a
+// registered catalog entry, naming the full valid set so the operator
+// doesn't have to consult source or --help to recover.
 func unknownScenarioError(name string) error {
-	valid := append([]string{}, scenarioNames()...)
+	valid := append([]string{"all"}, scenarioNames()...)
 	sort.Strings(valid)
 	return fmt.Errorf("unknown --scenario %q; want one of: %s", name, strings.Join(valid, ", "))
+}
+
+// resolveScenarios returns the catalog entries name selects: every
+// registered entry, in catalog order, for "all"; the one matching
+// entry otherwise. Split out of runRun so the selection logic (and
+// its refusal) is tested independently of any real build/run.
+func resolveScenarios(name string) ([]scenarioEntry, error) {
+	if name == "all" {
+		return scenarioCatalog, nil
+	}
+	entry, ok := lookupScenario(name)
+	if !ok {
+		return nil, unknownScenarioError(name)
+	}
+	return []scenarioEntry{entry}, nil
 }
 
 // resolveOutDir returns an absolute, existing directory for a run's
@@ -68,18 +83,27 @@ func resolveOutDir(outDir string) (string, error) {
 	return abs, nil
 }
 
-// runRun builds the aiwf binary under test, then runs the named
-// catalog scenario --repeat times against it, logging each attempt to
-// a raw-report JSONL file under outDirFlag (or a fresh temp dir if
-// empty). scenarioName is validated against the registry before any
+// runRun builds the aiwf binary under test, then runs scenarioName's
+// selection --repeat times each against it, logging every attempt
+// (across every selected scenario, when scenarioName is "all") to one
+// shared raw-report JSONL file under outDirFlag (or a fresh temp dir
+// if empty). scenarioName is resolved against the registry before any
 // I/O — a bad --scenario, like a bad --out, never wastes a compile.
+//
+// Diagnostic logging (AIWF_LOG/AIWF_LOG_FORMAT/AIWF_LOG_FILE) is
+// enabled for the whole run, pointed at one shared file under outDir:
+// every subprocess any scenario launches inherits it via normal
+// process-env inheritance (no scenario code touched), so a failing
+// attempt's preserved Dir plus that attempt's own RepeatEvent.
+// CorrelationIDs is enough to find every diagnostic-log entry
+// involved without re-running the campaign.
 func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scenarioName string, out io.Writer) error {
 	if repeat <= 0 {
 		return fmt.Errorf("repeat count must be positive, got %d", repeat)
 	}
-	entry, ok := lookupScenario(scenarioName)
-	if !ok {
-		return unknownScenarioError(scenarioName)
+	entries, err := resolveScenarios(scenarioName)
+	if err != nil {
+		return err
 	}
 
 	outDir, err := resolveOutDir(outDirFlag)
@@ -107,19 +131,42 @@ func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scen
 		rt.lockHolderBin = lockHolderBin
 	}
 
-	results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, nextSeed, rw)
-	if err != nil { //coverage:ignore not portably triggerable: every registered scenario's Setup/Run failure mode is a genuine environmental fault (a bad binary path, a disk fault) already exercised at its own source in internal/stresstest; forcing one here, or forcing rw.WriteEvent to fail mid-write, needs either sabotaging the freshly built binary or an already-open fd to fail, neither reproducible without an unsafe/fragile test
-		return fmt.Errorf("running scenario %s: %w", entry.Name, err)
-	}
+	diagnosticLogPath := filepath.Join(outDir, "aiwf-diagnostic.log")
+	_ = os.Setenv("AIWF_LOG", "debug")
+	_ = os.Setenv("AIWF_LOG_FORMAT", "json")
+	_ = os.Setenv("AIWF_LOG_FILE", diagnosticLogPath)
 
+	for _, entry := range entries {
+		results, err := stresstest.RunRepeated(entry.Build(rt), outDir, repeat, nextSeed, rw, diagnosticLogPath)
+		if err != nil { //coverage:ignore not portably triggerable: every registered scenario's Setup/Run failure mode is a genuine environmental fault (a bad binary path, a disk fault) already exercised at its own source in internal/stresstest; forcing one here, or forcing rw.WriteEvent to fail mid-write, needs either sabotaging the freshly built binary or an already-open fd to fail, neither reproducible without an unsafe/fragile test
+			return fmt.Errorf("running scenario %s: %w", entry.Name, err)
+		}
+		printScenarioSummary(out, entry.Name, results)
+	}
+	_, _ = fmt.Fprintf(out, "stresstest run: raw report at %s\n", reportPath)
+	return nil
+}
+
+// printScenarioSummary reports one scenario's own attempts: a line
+// per failing attempt naming its preserved Dir, then a pass-count
+// summary line. head-drift is labeled expected-red (G-0269) rather
+// than folded into the same pass/fail signal every other scenario
+// uses — its own violation is the scenario working as designed until
+// G-0269's guard ships (head_drift.go), not a harness regression.
+func printScenarioSummary(out io.Writer, name string, results []stresstest.RunResult) {
 	passCount := 0
 	for _, r := range results {
 		if r.Passed {
 			passCount++
+		} else if r.Dir != "" {
+			_, _ = fmt.Fprintf(out, "stresstest run: %s: attempt failed, repo preserved at %s\n", name, r.Dir)
 		}
 	}
-	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed; raw report at %s\n", entry.Name, passCount, len(results), reportPath)
-	return nil
+	label := name
+	if name == expectedRedScenario {
+		label += " (expected-red until G-0269's guard ships)"
+	}
+	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed\n", label, passCount, len(results))
 }
 
 // nextSeed returns a fresh pseudo-random seed for one repeat attempt.

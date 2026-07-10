@@ -24,9 +24,10 @@ func TestRun_UnknownCommandReturnsOne(t *testing.T) {
 // RunE closure (newRunCmd's flag-to-runRun wiring) through the same
 // entry point a real invocation uses — the seam the run_test.go
 // unit tests around runRun itself never exercise, since they call
-// runRun directly.
+// runRun directly. Cannot use t.Parallel() — reaches runRun's
+// AIWF_LOG* os.Setenv call; see run_test.go's
+// TestRunRun_Succeeds doc comment for the full rationale.
 func TestRun_RunCommand_Succeeds(t *testing.T) {
-	t.Parallel()
 	outDir := t.TempDir()
 
 	code := run([]string{

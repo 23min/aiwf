@@ -114,6 +114,13 @@ var scenarioCatalog = []scenarioEntry{
 	}},
 }
 
+// expectedRedScenario names the one catalog entry that is deliberately
+// expected to report a violation until G-0269's own guard ships
+// (head_drift.go's doc comment). `--scenario all`'s combined summary
+// reports it distinctly rather than folding it into the same pass/fail
+// signal as every other scenario.
+const expectedRedScenario = "head-drift"
+
 // scenarioNames returns every registered name in catalog order.
 func scenarioNames() []string {
 	names := make([]string, len(scenarioCatalog))
