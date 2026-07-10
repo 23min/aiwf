@@ -5,6 +5,7 @@ package importcmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/manifest"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
@@ -68,7 +70,7 @@ func NewCmd(correlationID string) *cobra.Command {
 }
 
 // Run executes `aiwf import`. Returns one of the cliutil.Exit* codes.
-func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, out cliutil.OutputFormat) int {
+func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		return failImport(out, err.Error(), cliutil.ExitUsage)
@@ -93,6 +95,24 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 		actorStr = resolved
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern. import can batch multiple entities into one
+	// invocation, so entity stays empty (like add/archive) — every
+	// created id is already in entityIDs/the JSON envelope.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "import", "", actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	// dry-run is read-only; lock only when we'd write.
 	if !dryRun {
 		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf import", out)
@@ -102,7 +122,6 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 		defer release()
 	}
 
-	ctx := context.Background()
 	// LoadTreeWithTrunk (not bare tree.Load) so the verb-time
 	// body-prose-id scan sees TrunkIDs: an imported body referencing an
 	// entity allocated on trunk but absent from this branch's tree must
@@ -195,15 +214,16 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 				Value: principalStr,
 			})
 		}
-		sha, applyErr := verb.Apply(ctx, rootDir, p)
+		planSHA, applyErr := verb.Apply(ctx, rootDir, p)
 		if applyErr != nil {
 			return failImport(out, fmt.Sprintf("applying plan %d: %v", i, applyErr), cliutil.ExitInternal)
 		}
-		lastSHA = sha
+		lastSHA = planSHA
 		if !out.JSON() {
 			cliutil.Println(p.Subject)
 		}
 	}
+	sha = lastSHA
 	if out.JSON() {
 		// One envelope for the whole batch (M-0239/AC-2): import can
 		// produce more than one commit (manifest.CommitPerEntity is a

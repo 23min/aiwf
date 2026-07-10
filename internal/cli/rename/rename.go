@@ -4,11 +4,14 @@ package rename
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -45,7 +48,7 @@ func NewCmd(correlationID string) *cobra.Command {
 }
 
 // Run executes `aiwf rename`. Returns one of the cliutil.Exit* codes.
-func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) int {
+func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		cliutil.Errorf("aiwf rename: %v\n", err)
@@ -57,13 +60,28 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "rename", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf rename: loading tree: %v\n", err)
@@ -76,6 +94,6 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) i
 		VerbKind:  verb.VerbAct,
 		TargetID:  id,
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename", tr, result, err, pctx, out)
 	return code
 }

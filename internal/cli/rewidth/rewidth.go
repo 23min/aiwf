@@ -5,6 +5,7 @@ package rewidth
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/version"
@@ -88,7 +90,7 @@ runs.`,
 }
 
 // Run executes `aiwf rewidth`. Returns one of the cliutil.Exit* codes.
-func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) int {
+func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
 		return failRewidth(out, err.Error(), cliutil.ExitUsage)
@@ -97,6 +99,23 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
 		return failRewidth(out, err.Error(), cliutil.ExitUsage)
 	}
+
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern. rewidth is a multi-entity sweep (no single
+	// TargetID), so entity stays empty, matching archive/import.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "rewidth", "", actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
 	// Provenance coherence check (mirrors `aiwf import`'s shape — bulk
 	// sweep, no per-entity scope gating). A non-human actor needs a
@@ -118,8 +137,6 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 		}
 		defer release()
 	}
-
-	ctx := context.Background()
 
 	// Preflight (--apply only, unless --skip-checks is set):
 	//   - Layout-shape warning: stat the expected kind directories;
@@ -174,7 +191,8 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 		})
 	}
 
-	sha, applyErr := verb.Apply(ctx, rootDir, result.Plan)
+	var applyErr error
+	sha, applyErr = verb.Apply(ctx, rootDir, result.Plan)
 	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
 		return failRewidth(out, applyErr.Error(), cliutil.ExitInternal)
 	}

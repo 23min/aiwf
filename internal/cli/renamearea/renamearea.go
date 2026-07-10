@@ -7,11 +7,14 @@ package renamearea
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -66,7 +69,7 @@ rename reverses via the same verb with swapped args.`,
 }
 
 // Run executes `aiwf rename-area`. Returns one of the cliutil.Exit* codes.
-func Run(oldName, newName, actor, principal, root string, out cliutil.OutputFormat) int {
+func Run(oldName, newName, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
@@ -79,13 +82,29 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern. rename-area operates on an area name, not a
+	// single entity, so entity stays empty (like add/archive/import).
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "rename-area", "", actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename-area", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
@@ -111,6 +130,6 @@ func Run(oldName, newName, actor, principal, root string, out cliutil.OutputForm
 		Principal: strings.TrimSpace(principal),
 		VerbKind:  verb.VerbAct,
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf rename-area", tr, result, err, pctx, out)
 	return code
 }

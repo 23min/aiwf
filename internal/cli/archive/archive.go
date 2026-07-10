@@ -5,6 +5,7 @@ package archive
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/version"
@@ -120,7 +122,7 @@ func archiveKindCompletions() []string {
 }
 
 // Run executes `aiwf archive`. Returns one of the cliutil.Exit* codes.
-func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) int {
+func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		return failArchive(out, err.Error(), cliutil.ExitUsage)
@@ -129,6 +131,24 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
 		return failArchive(out, err.Error(), cliutil.ExitUsage)
 	}
+
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern. archive is a multi-entity sweep (no single
+	// TargetID), so entity stays empty, matching add.Run's own
+	// rationale.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "archive", "", actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
 
 	// Provenance coherence check: a non-human actor needs a principal;
 	// a human actor must not carry one. Mirrors `aiwf rewidth` and
@@ -158,8 +178,6 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 		}
 		defer release()
 	}
-
-	ctx := context.Background()
 
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
@@ -199,7 +217,8 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 		})
 	}
 
-	sha, applyErr := verb.Apply(ctx, rootDir, result.Plan)
+	var applyErr error
+	sha, applyErr = verb.Apply(ctx, rootDir, result.Plan)
 	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
 		return failArchive(out, applyErr.Error(), cliutil.ExitInternal)
 	}
