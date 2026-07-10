@@ -136,6 +136,11 @@ var scenarioCatalog = []scenarioEntry{
 			return stresstest.NewVerbSequenceScenario(rt.aiwfBin, seed, defaultVerbSequenceSteps)
 		}
 	}},
+	{"concurrent-move", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+		return func(seed int64) stresstest.Scenario {
+			return stresstest.NewConcurrentMoveScenario(rt.aiwfBin, defaultScale, seed)
+		}
+	}},
 }
 
 // expectedRedScenario names the one catalog entry that is deliberately
