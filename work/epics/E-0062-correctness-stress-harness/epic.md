@@ -170,7 +170,11 @@ just the one rule that surfaced it.
 - `M-0249` — Scenario registry: wire `cmd/stresstest run` to the real
   catalog (G-0397: the CLI could only ever run the M-0240 placeholder
   scenario, never any of the 12 real ones the epic's own milestones
-  built). Epic close moves here. · depends on: `M-0244`
+  built). · depends on: `M-0244`
+- `M-0250` — Register the verb-sequence walker; extend it to
+  move/archive/rename/retitle (closes G-0399; scoped from G-0400's
+  scenario-coverage audit). Epic close moves here. · depends on:
+  `M-0249`
 
 ## References
 
