@@ -853,7 +853,7 @@ finds into a reproducible gap.
 | M-0241 | Property sequences and multi-worktree contention scenarios | done |
 | M-0242 | Fault injection via external observation | done |
 | M-0243 | Named scenarios from G-0212 and G-0269 | done |
-| M-0244 | Concurrent-writer test at scale; triage process | in_progress |
+| M-0244 | Concurrent-writer test at scale; triage process | done |
 | M-0249 | Scenario registry: wire cmd/stresstest run to the real catalog | draft |
 
 ## E-0063 — Rewrite entity path-links on move to keep them durable (proposed)
