@@ -11,6 +11,10 @@ acs:
       title: cmd/stresstest registers and can run the verb-sequence walker standalone
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: the walker's legal-transition set includes move, archive, rename, and retitle
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -18,4 +22,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — cmd/stresstest registers and can run the verb-sequence walker standalone
+
+### AC-2 — the walker's legal-transition set includes move, archive, rename, and retitle
 
