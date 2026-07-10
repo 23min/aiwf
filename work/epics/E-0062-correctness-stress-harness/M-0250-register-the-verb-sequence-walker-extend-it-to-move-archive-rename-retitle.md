@@ -97,6 +97,10 @@ A new named scenario, structurally mirroring `archive-during-active-scope`'s sha
 
 Registered, closing G-0399 · commit 59f00c89 · tests: cmd/stresstest package green (race mode).
 
+### AC-2 — the walker's legal-transition set includes move, archive, rename, and retitle
+
+Weighted operation table + move/rename/retitle/archive step methods; fixed a real G-0398 edge case (isEpicAlreadyArchivedRefusal); filed G-0401 · commit fcb2b45a · tests: internal/stresstest + cmd/stresstest packages green (race mode), manual branch-coverage + vacuity audit done.
+
 ## Decisions made during implementation
 
 - (none)
