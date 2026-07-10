@@ -1,7 +1,7 @@
 ---
 id: M-0244
 title: Concurrent-writer test at scale; triage process
-status: in_progress
+status: done
 parent: E-0062
 depends_on:
     - M-0241
