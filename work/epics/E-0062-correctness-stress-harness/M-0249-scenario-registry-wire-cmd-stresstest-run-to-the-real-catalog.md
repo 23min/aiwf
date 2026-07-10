@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: run --scenario all runs the whole catalog, one combined report
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: cmd/stresstest list enumerates every registered scenario
