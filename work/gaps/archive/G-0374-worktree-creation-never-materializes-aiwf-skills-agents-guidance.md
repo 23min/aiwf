@@ -1,8 +1,10 @@
 ---
 id: G-0374
 title: Worktree creation never materializes aiwf skills/agents/guidance
-status: open
+status: addressed
 discovered_in: M-0186
+addressed_by_commit:
+    - 4f577230
 ---
 ## What's missing
 

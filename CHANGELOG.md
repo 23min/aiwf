@@ -16,6 +16,41 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0394: epic promote-to-done and archive both refuse to strand a non-terminal milestone
+
+`aiwf promote <epic> done` now refuses when the epic still owns a non-terminal
+child milestone, mirroring the existing `aiwf cancel` guard (D-0003) onto the
+promote-to-done path — the operator must cancel or complete each listed
+milestone first. `force` bypasses this guard like it bypasses Promote's other
+preconditions. As defense-in-depth, `aiwf archive` independently declines to
+sweep an epic whose subtree still owns a non-terminal milestone (no `--force`
+of its own), so a `--force`-bypassed or hand-edited epic can no longer strand
+that milestone in `archive/`; the sweep's NoOp message now names any skipped
+epic and its offending children instead of misreporting the tree as converged.
+
+### Fixed — stale path-links in ADR-0008, ADR-0011, ADR-0016 to since-archived/rewidth'd entities
+
+Four references across three ADRs pointed at entities that have since archived
+or been rewidth'd (a gap moved and renumbered, an epic archived, another gap
+archived), so the links no longer resolved. Rewritten as bare id citations
+(`G-0093`, `E-0033`, `E-0031`, `G-0182`) instead of relative paths — archive-
+proof, since `aiwf show <id>` / `aiwf history <id>` resolve an id across active
+and archive by construction, unlike a hardcoded path.
+
+### Added — G-0390: wf-doc-lint gains link-integrity, CLI-drift, and structural checks; scope widens to root narrative files
+
+`wf-doc-lint` now runs seven mechanical heuristics instead of four: the original
+code-reference drift, removed-feature docs, orphan documents, and documentation
+TODOs, plus three new ones — markdown link integrity (broken intra-repo links,
+broken anchors, broken source-file links), CLI-invocation resolution (a
+backticked `aiwf <verb>` in docs must resolve against the binary's own
+`--help`), and structural checks (table-of-contents drift, heading-hierarchy
+sanity). The default docs root also widens from `docs/`-only to `docs/` plus
+the repo's hand-authored root narrative files (`README.md`, `CONTRIBUTING.md`),
+while generated/gitignored root files (`ROADMAP.md`, `STATUS.md`,
+`WHITEBOARD.md`, `TODO.md`) and the append-only `CHANGELOG.md` stay explicitly
+out of scope.
+
 ### Added — E-0061: opt-in diagnostic logging with a per-invocation correlation id
 
 `aiwf` now has a retrace-ready diagnostic surface: opt-in, default-off structured

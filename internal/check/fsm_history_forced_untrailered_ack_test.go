@@ -7,22 +7,12 @@ import (
 	"github.com/23min/aiwf/internal/gitops"
 )
 
-// fsm_history_forced_untrailered_ack_test.go — M-0159/AC-4 red
-// phase: pin that forcedUntraileredFindings accepts an
-// ackedSHAs map[string]bool 2nd parameter and silences findings
-// whose Commit SHA appears in it.
-//
-// Compile-RED today: the current signature is
-// forcedUntraileredFindings(observations) — 1 param; these tests
-// call it with 2 args. Red signal is `too many arguments in
-// call to forcedUntraileredFindings`.
-//
-// Green-phase scope: extend the predicate's signature to accept
-// ackedSHAs (mirroring AC-3's lift extension to
-// illegalTransitionFindings); add the `if ackedSHAs[o.Commit]
-// { continue }` check inside the per-observation loop. The
-// CLI gather layer already computes ackedSHAs once and the
-// surrounding FSMHistoryConsistent / fsmHistoryConsistentWithDeps
+// fsm_history_forced_untrailered_ack_test.go pins that
+// forcedUntraileredFindings's ackedSHAs map[string]bool parameter
+// silences findings whose Commit SHA appears in it. These tests pass
+// nil for the trailing danglingHint parameter — they're not exercising
+// that seam. The CLI gather layer already computes ackedSHAs once and
+// the surrounding FSMHistoryConsistent / fsmHistoryConsistentWithDeps
 // receive it; AC-4 GREEN just forwards the existing local value
 // to the forced-untrailered predicate the same way M-0136/AC-2
 // did for illegal-transition.
@@ -75,7 +65,7 @@ func TestForcedUntraileredFindings_AC4_AckedSHASilences(t *testing.T) {
 	ackedSHAs := map[string]bool{
 		"abc1234567890def": true,
 	}
-	got := forcedUntraileredFindings(obs, ackedSHAs)
+	got := forcedUntraileredFindings(obs, ackedSHAs, nil)
 	if len(got) != 0 {
 		t.Fatalf("expected 0 findings (ack silences the forced-untrailered observation per AC-4); got %d: %+v", len(got), got)
 	}
@@ -105,7 +95,7 @@ func TestForcedUntraileredFindings_AC4_AckedMapWithoutCommitSHA_StillFires(t *te
 	ackedSHAs := map[string]bool{
 		"unrelated-sha-deadbeef0000": true,
 	}
-	got := forcedUntraileredFindings(obs, ackedSHAs)
+	got := forcedUntraileredFindings(obs, ackedSHAs, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected exactly 1 finding (per-SHA scoping: ack on unrelated SHA must not exempt abc1234567890def); got %d: %+v", len(got), got)
 	}

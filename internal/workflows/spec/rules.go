@@ -201,6 +201,21 @@ func epicRules() []Rule {
 		// way cancel does, when any child milestone is non-terminal.
 		// Companion to the "active → done" legal cell above (different
 		// Outcome → same key still unique).
+		//
+		// Sources is deliberately empty rather than citing D-0003: that
+		// decision's own "Spec cell" section names Verb: "cancel"
+		// explicitly (it ratified the cancel-verb refuse pattern), and
+		// D-0003 is `status: accepted` -- durable, not something later
+		// scope additions rewrite in place (CLAUDE.md's aiwfx-record-
+		// decision constraint). A fresh decision for the promote-side
+		// generalization is not an option either: AC-2's own hardcoded
+		// M-0123 audit set (TestM0123_AC2_DecisionSourcesPopulatedFor-
+		// FPOnlyAndConflict) only accepts {D-0002..D-0007}, all already
+		// spoken for. Absent a genuinely-scoped decision to cite, an
+		// empty Sources is more honest than borrowing one that does not
+		// name this verb. (G-0394 independently proposed the same cell,
+		// scoped to `done` only; this cell supersedes it, covering both
+		// of Promote's terminal targets for KindEpic.)
 		{
 			Kind:              entity.KindEpic,
 			FromState:         "active",

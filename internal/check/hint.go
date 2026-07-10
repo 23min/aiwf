@@ -93,6 +93,11 @@ var hintTable = map[string]string{
 	// remediation.
 	"archive-sweep-pending": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings",
 
+	// G-0393: standing backstop for the epic-terminal-promote guard.
+	// The epic itself is already terminal (nothing to do there); the
+	// remediation is disposing each listed child milestone.
+	"epic-terminal-non-terminal-children": "bring each listed child milestone to a terminal status via `aiwf promote <milestone-id> done` or `aiwf cancel <milestone-id>` — the epic is already terminal, so no epic-side action is needed. `aiwf promote`/`aiwf cancel` on the epic itself already refuse this state going forward (G-0393/D-0003); this finding means it was reached some other way (a hand-edit, `--force`, or a pre-guard binary)",
+
 	"acs-shape/id":                         "fix the AC's id to match `AC-N` (position+1; cancelled entries still count) by correcting the `acs:` frontmatter, then re-run `aiwf check`",
 	"acs-shape/title":                      "set a non-empty AC title via `aiwf retitle <milestone-id>/AC-N \"...\"`",
 	"acs-shape/status":                     "correct the AC's status in the `acs:` frontmatter to a legal value by hand, then re-run `aiwf check`; `aiwf promote <milestone-id>/AC-N <status>` can't transition an AC whose current status is unrecognized",

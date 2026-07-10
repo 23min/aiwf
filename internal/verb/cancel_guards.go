@@ -2,10 +2,31 @@ package verb
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/codes"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/tree"
 )
+
+// nonTerminalEpicChildren returns the sorted ids of epicID's child
+// milestones that are not yet at a terminal status. Shared by three
+// call sites that each refuse to leave a non-terminal milestone
+// stranded under a terminal (or terminal-bound) parent epic: Cancel's
+// epic-cancel guard (D-0003, below), Promote's epic-terminal guard
+// (G-0393 / G-0394, promote.go — both `done` and `cancelled`), and
+// Archive's independent subtree-terminality guard (G-0394, archive.go).
+func nonTerminalEpicChildren(t *tree.Tree, epicID string) []string {
+	var nonTerminal []string
+	for _, m := range t.ByKind(entity.KindMilestone) {
+		if m.Parent == epicID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
+			nonTerminal = append(nonTerminal, m.ID)
+		}
+	}
+	sort.Strings(nonTerminal)
+	return nonTerminal
+}
 
 // CodeEpicCancelNonTerminalChildren is the typed kernel-code descriptor
 // carried by [EpicCancelNonTerminalChildrenError] when `aiwf cancel`
@@ -84,4 +105,59 @@ func (e *MilestoneCancelNonTerminalACsError) Error() string {
 // [entity.Coded].
 func (e *MilestoneCancelNonTerminalACsError) Code() string {
 	return CodeMilestoneCancelNonTerminalACs.ID
+}
+
+// CodeEpicPromoteNonTerminalChildren is the typed kernel-code
+// descriptor carried by [EpicPromoteNonTerminalChildrenError] when
+// `aiwf promote` refuses to move an epic straight to a terminal status
+// while it still owns one or more non-terminal child milestones
+// (G-0393 / G-0394: two independently-filed gaps converging on the
+// same guard). Mirrors CodeEpicCancelNonTerminalChildren's D-0003
+// guard onto both of Promote's terminal targets for KindEpic — `done`
+// and `cancelled` — so a done epic with an in-progress milestone is
+// exactly as incoherent as a cancelled one, and `aiwf promote <epic>
+// cancelled` can't bypass Cancel's own dedicated guard by going
+// through Promote instead. Declares [codes.ClassLegality] (D-0011).
+var CodeEpicPromoteNonTerminalChildren = codes.Code{ID: "epic-promote-non-terminal-children", Class: codes.ClassLegality}
+
+// EpicPromoteNonTerminalChildrenError reports that `aiwf promote`
+// refused to move an epic to a terminal status (NewStatus) because one
+// or more of its child milestones are still non-terminal
+// (refuse-with-listing, no auto-cascade, mirroring D-0003's cancel
+// guard). The operator must dispose each listed milestone (cancel or
+// done) before the epic can reach a terminal status by any path. Runs
+// unconditionally, even under --force — matching Cancel's own D-0003
+// guard, which has no force-bypass either: force relaxes FSM-
+// transition legality, not this structural children precondition.
+// Archive's independent subtree-terminality guard
+// (internal/verb/archive.go) is the defense-in-depth backstop for the
+// state a raw frontmatter hand-edit (bypassing the verb layer
+// entirely) can still produce. It implements [entity.Coded], carrying
+// CodeEpicPromoteNonTerminalChildren.
+type EpicPromoteNonTerminalChildrenError struct {
+	// Epic is the id of the epic whose promote was refused.
+	Epic string
+	// NewStatus is the terminal status the promote attempted to reach.
+	NewStatus string
+	// Children holds the sorted ids of the offending non-terminal child
+	// milestones.
+	Children []string
+}
+
+// Error implements error. It names the epic, the attempted terminal
+// status, the count of offending milestones, the sorted ids, instructs
+// the operator to dispose each first, and includes
+// CodeEpicPromoteNonTerminalChildren.ID so message-matching consumers
+// can recognize the refusal.
+func (e *EpicPromoteNonTerminalChildrenError) Error() string {
+	return fmt.Sprintf(
+		"cannot promote %s to %s: %d non-terminal child milestone(s) [%s] (%s); cancel or done each before promoting the epic to a terminal status",
+		e.Epic, e.NewStatus, len(e.Children), strings.Join(e.Children, ", "), CodeEpicPromoteNonTerminalChildren.ID,
+	)
+}
+
+// Code returns CodeEpicPromoteNonTerminalChildren's ID, satisfying
+// [entity.Coded].
+func (e *EpicPromoteNonTerminalChildrenError) Code() string {
+	return CodeEpicPromoteNonTerminalChildren.ID
 }

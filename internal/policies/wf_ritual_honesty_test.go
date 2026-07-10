@@ -154,11 +154,12 @@ func TestBranchCoverageAudit_FramedAgentPerformed(t *testing.T) {
 	}
 }
 
-// TestWfDocLint_FourHeuristicsPlusStandaloneScan pins AC-4 (G-0294): the
-// "What it checks" section carries exactly four numbered heuristics, and the
-// repo-wide path-leak scan is a distinct section outside it; the
+// TestWfDocLint_SevenHeuristicsPlusStandaloneScan pins the "What it checks"
+// section carrying exactly seven numbered heuristics (the original four plus
+// link integrity, CLI-invocation resolution, and structural checks), with
+// the repo-wide path-leak scan remaining a distinct section outside it; the
 // block-on-zero anti-pattern scopes itself to the doc heuristics.
-func TestWfDocLint_FourHeuristicsPlusStandaloneScan(t *testing.T) {
+func TestWfDocLint_SevenHeuristicsPlusStandaloneScan(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, wfDocLintFixturePath)
 
@@ -166,15 +167,20 @@ func TestWfDocLint_FourHeuristicsPlusStandaloneScan(t *testing.T) {
 	if checks == "" {
 		t.Fatal("wf-doc-lint has no 'What it checks' section")
 	}
-	if got := countSubHeadings(checks, 3); got != 4 {
-		t.Errorf("'What it checks' has %d ### sub-headings; the doc heuristics must be exactly four (path-leak moves to its own section) (G-0294)", got)
+	if got := countSubHeadings(checks, 3); got != 7 {
+		t.Errorf("'What it checks' has %d ### sub-headings; the doc heuristics must be exactly seven (path-leak moves to its own section)", got)
+	}
+	for _, want := range []string{"Markdown link integrity", "CLI-invocation resolution", "Structural checks"} {
+		if headingIndexContaining(checks, want) < 0 {
+			t.Errorf("'What it checks' has no %q sub-heading", want)
+		}
 	}
 
 	// The repo-wide secret/path-leak scan must exist as its own top-level
-	// section, distinct from the four docs-scoped heuristics.
+	// section, distinct from the seven docs-scoped heuristics.
 	standalone := headingIndexContaining(body, "repo-wide")
 	if standalone < 0 {
-		t.Error("wf-doc-lint has no distinct 'repo-wide' secret / path-leak scanning section; the path-leak scan must not be one of the four doc heuristics (G-0294)")
+		t.Error("wf-doc-lint has no distinct 'repo-wide' secret / path-leak scanning section; the path-leak scan must not be one of the doc heuristics (G-0294)")
 	}
 
 	// The block-on-zero anti-pattern must scope to the doc heuristics rather
@@ -185,6 +191,44 @@ func TestWfDocLint_FourHeuristicsPlusStandaloneScan(t *testing.T) {
 	}
 	if !strings.Contains(bz, "heuristic") {
 		t.Errorf("block-on-zero anti-pattern does not scope itself to the doc heuristics; as written it contradicts the standalone tool's legitimate gate (G-0294); line = %q", bz)
+	}
+}
+
+// TestWfDocLint_ScopeWidenedToRootNarrativeFiles pins G-0390: the docs-root
+// default widens to include the repo's hand-authored root narrative files
+// (README.md, CONTRIBUTING.md), while generated/gitignored root files and
+// the append-only CHANGELOG.md are explicitly carried as exclusions, and the
+// orphan-documents check is called out as inapplicable to root files.
+func TestWfDocLint_ScopeWidenedToRootNarrativeFiles(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfDocLintFixturePath)
+
+	workflow := sectionUnder(body, "Workflow")
+	if workflow == "" {
+		t.Fatal("wf-doc-lint has no 'Workflow' section")
+	}
+	// Scope to the "Default:" line specifically, not the whole Workflow
+	// section — README.md is also mentioned pre-widening ("look for the
+	// obvious folder"), so a section-wide Contains would pass unchanged.
+	defaultLine := lineContaining(workflow, "Default:")
+	if defaultLine == "" {
+		t.Fatal("Workflow section has no 'Default:' docs-root line")
+	}
+	for _, want := range []string{"README.md", "CONTRIBUTING.md"} {
+		if !strings.Contains(defaultLine, want) {
+			t.Errorf("docs-root 'Default:' line does not widen to include %q; line = %q", want, defaultLine)
+		}
+	}
+	for _, excluded := range []string{"ROADMAP.md", "STATUS.md", "WHITEBOARD.md", "TODO.md"} {
+		if !strings.Contains(workflow, excluded) {
+			t.Errorf("Workflow section does not name %q among the generated/gitignored root files excluded from scope", excluded)
+		}
+	}
+	if !strings.Contains(workflow, "CHANGELOG.md") {
+		t.Error("Workflow section does not name CHANGELOG.md as excluded append-only history")
+	}
+	if !strings.Contains(strings.ToLower(workflow), "orphan documents") {
+		t.Error("Workflow section does not call out the orphan-documents check's inapplicability to root narrative files")
 	}
 }
 

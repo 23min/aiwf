@@ -194,10 +194,11 @@ func fsmHistoryConsistentWithDeps(ctx context.Context, root string, t *tree.Tree
 	// once by the CLI gather layer in internal/cli/check/) rather
 	// than via a rule-internal walkAcknowledgedSHAs call. The
 	// pre-lift line was: ackedSHAs := walkAcknowledgedSHAs(ctx, root)
-	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs, func(sha string) string {
+	danglingHint := func(sha string) string {
 		return findDanglingAckHint(ctx, root, sha)
-	})...)
-	findings = append(findings, forcedUntraileredFindings(observations, ackedSHAs)...)
+	}
+	findings = append(findings, illegalTransitionFindings(observations, ackedSHAs, danglingHint)...)
+	findings = append(findings, forcedUntraileredFindings(observations, ackedSHAs, danglingHint)...)
 	findings = append(findings, manualEditFindings(observations, ackedObs)...)
 	return findings
 }
@@ -700,7 +701,17 @@ func revListAncestors(ctx context.Context, root, sha string) map[string]bool {
 // covered both override-needing subcodes. Per-SHA closed-set
 // scoping: an acknowledgment for one SHA does NOT exempt other
 // forced-untrailered observations.
-func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string]bool) []Finding {
+//
+// danglingHint carries the same G-0395 best-effort diagnostic seam
+// illegalTransitionFindings accepts (see that function's docstring):
+// when non-nil, called with the offending commit's full SHA, its
+// non-empty return becomes the Finding's Hint. A revived
+// forced-untrailered finding is exactly as reachable via a dropped,
+// dangling acknowledgment as a revived illegal-transition one — both
+// subcodes exempt on ackedSHAs membership, so both can silently
+// re-fire the same way once the ack commit falls off the DAG. Wiring
+// only illegalTransitionFindings would leave that asymmetry standing.
+func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string]bool, danglingHint func(sha string) string) []Finding {
 	var out []Finding
 	for i := range observations {
 		o := &observations[i]
@@ -719,7 +730,7 @@ func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string
 		if ackedSHAs[o.Commit] {
 			continue
 		}
-		out = append(out, Finding{
+		f := Finding{
 			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "forced-untrailered",
 			Severity: SeverityError,
@@ -730,7 +741,11 @@ func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string
 			Path:     o.Path,
 			EntityID: o.EntityID,
 			Field:    "status",
-		})
+		}
+		if danglingHint != nil {
+			f.Hint = danglingHint(o.Commit)
+		}
+		out = append(out, f)
 	}
 	return out
 }

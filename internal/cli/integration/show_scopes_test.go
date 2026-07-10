@@ -107,18 +107,19 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 			envM.Result.Scopes[0].AuthSHA, s.AuthSHA)
 	}
 
-	// M-001 must itself reach a terminal status before E-01 can
-	// terminal-promote (G-0393's epic-promote-non-terminal-children
-	// guard) — orthogonal to what this test actually exercises (whether
-	// terminal-promoting E-01 ends its own authorize scope), so
-	// disposing the child first doesn't change the scenario's meaning.
-	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "M-0001", "done"); pErr != nil {
-		t.Fatalf("promote M-001 done: %v\n%s", pErr, pOut)
-	}
-
 	// Terminal-promote E-01 → ends the scope. Re-check JSON show.
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); pErr != nil {
 		t.Fatalf("promote E-01 active: %v\n%s", pErr, pOut)
+	}
+	// Bring M-0001 to done first: promoting the epic to done while it
+	// still owns an in_progress milestone is refused by the epic-
+	// terminal-promote non-terminal-children guard (G-0393 / G-0394) —
+	// this fixture is testing scope-ending on terminal-promote, not
+	// that guard.
+	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
+		"promote", "M-0001", "done",
+		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {
+		t.Fatalf("promote M-001 done: %v\n%s", pErr, pOut)
 	}
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "done"); pErr != nil {
 		t.Fatalf("promote E-01 done: %v\n%s", pErr, pOut)

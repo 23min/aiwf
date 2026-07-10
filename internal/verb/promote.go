@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/check"
@@ -134,27 +133,24 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		}
 	}
 
-	// Epic-terminal-promote cascade guard (G-0393), mirroring Cancel's
-	// own EpicCancelNonTerminalChildrenError (D-0003): refuse, don't
-	// auto-cascade, when an epic is about to reach a terminal status
-	// (done or cancelled — both legal Promote targets for KindEpic, not
-	// just Cancel's own path) while it still owns a non-terminal child
-	// milestone. Runs unconditionally, even under --force, matching
-	// Cancel's guard — force relaxes FSM-transition legality, not this
-	// structural children precondition. Without it, `aiwf promote
-	// <epic> done` (or `cancelled`, bypassing Cancel's own dedicated
-	// guard) can leave a non-terminal milestone under a terminal, later
-	// archived epic — a state `aiwf check`'s archived-entity-not-terminal
-	// rule only catches after the fact.
+	// Epic-terminal-promote cascade guard (G-0393 / G-0394, two
+	// independently-filed gaps converging on the same fix), mirroring
+	// Cancel's own EpicCancelNonTerminalChildrenError (D-0003): refuse,
+	// don't auto-cascade, when an epic is about to reach a terminal
+	// status (done or cancelled — both legal Promote targets for
+	// KindEpic, not just Cancel's own path) while it still owns a
+	// non-terminal child milestone. Runs unconditionally, even under
+	// --force, matching Cancel's guard — force relaxes FSM-transition
+	// legality, not this structural children precondition. Without it,
+	// `aiwf promote <epic> done` (or `cancelled`, bypassing Cancel's own
+	// dedicated guard) can leave a non-terminal milestone under a
+	// terminal, later archived epic — a state `aiwf check`'s
+	// archived-entity-not-terminal rule only catches after the fact.
+	// Archive's own independent subtree-terminality guard
+	// (internal/verb/archive.go) is the defense-in-depth backstop for a
+	// raw frontmatter hand-edit that bypasses this verb entirely.
 	if e.Kind == entity.KindEpic && entity.IsTerminal(entity.KindEpic, newStatus) {
-		var nonTerminal []string
-		for _, m := range t.ByKind(entity.KindMilestone) {
-			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
-				nonTerminal = append(nonTerminal, m.ID)
-			}
-		}
-		if len(nonTerminal) > 0 {
-			sort.Strings(nonTerminal)
+		if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
 			return nil, &EpicPromoteNonTerminalChildrenError{Epic: e.ID, NewStatus: newStatus, Children: nonTerminal}
 		}
 	}
@@ -260,14 +256,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	// any projection so the refusal is a clean typed error, not a finding.
 	switch e.Kind {
 	case entity.KindEpic:
-		var nonTerminal []string
-		for _, m := range t.ByKind(entity.KindMilestone) {
-			if m.Parent == e.ID && !entity.IsTerminal(entity.KindMilestone, m.Status) {
-				nonTerminal = append(nonTerminal, m.ID)
-			}
-		}
-		if len(nonTerminal) > 0 {
-			sort.Strings(nonTerminal)
+		if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
 			return nil, &EpicCancelNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
 		}
 	case entity.KindMilestone:

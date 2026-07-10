@@ -177,6 +177,53 @@ func TestFSMHistoryConsistent_G0395_RevivedFindingCarriesDanglingAckHint(t *test
 	}
 }
 
+// TestFSMHistoryConsistent_G0395_ForcedUntrailered_RevivedFindingCarriesDanglingAckHint
+// mirrors the illegal-transition case above for the forced-untrailered
+// subcode: fsmHistoryConsistentWithDeps wires the same danglingHint
+// closure to both predicates (see the production call site), so a
+// revived forced-untrailered finding — a sovereign-act-shape
+// transition by a non-human actor whose acknowledgment commit has
+// gone dangling the same way — must also carry the hint. Without this
+// test, dropping the forced-untrailered wiring alone (leaving
+// illegal-transition's intact) would pass every other test in this
+// package.
+func TestFSMHistoryConsistent_G0395_ForcedUntrailered_RevivedFindingCarriesDanglingAckHint(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add E-0001")
+	forcedSHA := r.commitEntityWithTrailers("E-0001", entity.KindEpic, entity.StatusActive,
+		"activate E-0001 (sovereign-act-shape, non-human, no force)",
+		map[string]string{gitops.TrailerActor: "ai/claude"})
+	writeAcknowledgmentCommit(t, r.root, forcedSHA, "test ack")
+	ackSHA := strings.TrimSpace(r.run("git", "rev-parse", "HEAD"))
+	r.gitCommit("unrelated follow-up")
+	// 2-arg form stays on and moves the current branch — see
+	// acks_test.go's identical rationale for why the 3-arg "HEAD" form
+	// would defeat this reproduction.
+	r.run("git", "rebase", "-q", "--onto", forcedSHA, ackSHA)
+
+	ctx := context.Background()
+	ackedSHAs := WalkAcknowledgedSHAs(ctx, r.root, mustHead(t, r.root))
+	got := FSMHistoryConsistent(ctx, r.root, r.tree(), ackedSHAs, mustHead(t, r.root))
+
+	var found *Finding
+	for i := range got {
+		if got[i].Code == CodeFSMHistoryConsistent && got[i].Subcode == "forced-untrailered" && got[i].EntityID == "E-0001" {
+			found = &got[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected a revived forced-untrailered finding for E-0001; got %+v", got)
+	}
+	if found.Hint == "" {
+		t.Fatal("expected the revived finding's Hint to name the dangling acknowledgment; got empty string")
+	}
+	if !strings.Contains(found.Hint, ackSHA[:8]) {
+		t.Errorf("Hint %q does not name the dangling ack commit %s", found.Hint, ackSHA[:8])
+	}
+}
+
 // writeAcknowledgmentCommit synthesizes an acknowledge-illegal commit
 // directly via gitops.CommitAllowEmpty, sidestepping the verb package
 // to avoid the check ↔ verb import cycle. The commit shape mirrors

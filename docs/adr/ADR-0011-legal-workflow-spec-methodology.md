@@ -95,7 +95,7 @@ This is the maintainability commitment. Without it, the methodology degrades ove
 
 ## References
 
-- [E-0033 — Pin legal kernel-verb workflows mechanically](../../work/epics/E-0033-pin-legal-kernel-verb-workflows-mechanically/epic.md), the epic this ADR ratifies methodology for.
+- E-0033 — Pin legal kernel-verb workflows mechanically, the epic this ADR ratifies methodology for.
 - ADR-0010 — Branch model. Defines the branching surface that E-0030 builds on; this ADR's scope explicitly excludes layer 4 (branch choreography) for that reason.
 - [`CLAUDE.md`](../../CLAUDE.md), §"Engineering principles" — *"framework correctness must not depend on the LLM's behavior"* is the upstream principle that motivates having a mechanical spec at all.
-- The cancelled E-0031 (`work/epics/E-0031-pin-legal-workflows-composition-and-branch-choreography-mechanically/epic.md`) — its failure mode is what this methodology exists to prevent.
+- The cancelled E-0031 — its failure mode is what this methodology exists to prevent.
