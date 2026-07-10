@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: cmd/stresstest registers and can run the verb-sequence walker standalone
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: the walker's legal-transition set includes move, archive, rename, and retitle
