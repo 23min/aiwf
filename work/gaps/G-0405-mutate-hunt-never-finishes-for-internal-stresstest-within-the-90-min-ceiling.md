@@ -1,7 +1,9 @@
 ---
 id: G-0405
 title: mutate-hunt never finishes for internal/stresstest within the 90-min ceiling
-status: open
+status: addressed
+addressed_by:
+    - G-0407
 ---
 ## What's missing
 
