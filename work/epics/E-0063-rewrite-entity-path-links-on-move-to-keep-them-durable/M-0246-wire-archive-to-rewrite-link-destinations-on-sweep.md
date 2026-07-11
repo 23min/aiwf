@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Archive rewrites entity-body links to a swept entity's archive path
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A multi-entity sweep recomputes links against the final post-move layout
       status: open
