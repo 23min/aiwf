@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0329: committing verbs refuse to run during a pending merge/cherry-pick/revert/rebase
+
+Any apply-routed verb (`promote`, `add`, `archive`, `cancel`, `reallocate`,
+`edit-body`, etc.) now checks the repo's gitdir before mutating anything, and
+refuses with a clear error if a merge, cherry-pick, revert, or rebase is
+already in progress — rather than committing on top of it and leaving the
+in-progress operation's markers (`MERGE_HEAD` and friends) silently stale.
+The check resolves the worktree-specific gitdir, so it correctly scopes to
+each linked worktree independently.
+
 ### Changed — G-0402: shipped guidance and the builder agent now state that entity files are verb- and template-managed
 
 The always-on guidance fragment gains a dedicated rule that entity files are

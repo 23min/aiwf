@@ -485,3 +485,35 @@ func TestRollback_DirMoveReverseFails(t *testing.T) {
 		t.Errorf("expected error to mention 'reversing move'; got: %v", err)
 	}
 }
+
+// TestCheckNoGitOperationInProgress_GitDirResolutionFails: outside a
+// git repo, gitops.GitDir itself fails, and checkNoGitOperationInProgress
+// must surface that failure rather than silently treating "no gitdir"
+// as "no operation in progress" (G-0329's guard is meaningless if it
+// degrades to a no-op the moment its own precondition can't resolve).
+func TestCheckNoGitOperationInProgress_GitDirResolutionFails(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	err := checkNoGitOperationInProgress(context.Background(), root)
+	if err == nil {
+		t.Fatal("expected an error resolving the git dir outside a repo")
+	}
+	if !strings.Contains(err.Error(), "checking for an in-progress git operation") {
+		t.Errorf("error %q should mention checking for an in-progress git operation", err.Error())
+	}
+}
+
+// TestCheckNoGitOperationInProgress_CleanRepoPasses: a freshly
+// initialized repo with no pending operation must not be flagged —
+// the guard's true baseline, distinct from every "it fires" test.
+func TestCheckNoGitOperationInProgress_CleanRepoPasses(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx := context.Background()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkNoGitOperationInProgress(ctx, root); err != nil {
+		t.Errorf("clean repo flagged as having an operation in progress: %v", err)
+	}
+}
