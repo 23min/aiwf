@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0377: Apply's staged-conflict guard now catches edits nested inside a directory move
+
+The pre-flight guard that refuses `aiwf`'s directory-moving verbs (`reallocate`,
+`rewidth`) when the user has pre-staged content only compared staged paths
+against a moved directory's own source/destination path, missing files nested
+inside it — even though the verb's actual commit sweeps every nested file in
+via a recursive walk. A staged edit to a file nested inside a directory about
+to be moved is now flagged and refused, same as an exact-path conflict.
+
 ### Fixed — G-0408: mutate-hunt's scoped-dispatch file-group partition now covers every file
 
 `mutate-hunt.yml`'s documented four-group split for scoped `internal/stresstest`

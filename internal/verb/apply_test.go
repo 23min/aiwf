@@ -676,6 +676,79 @@ func TestApply_RefusesConflictingPreStagedPath(t *testing.T) {
 	}
 }
 
+// TestApply_RefusesConflictingPreStagedPath_NestedInDirectoryMove
+// reproduces G-0377 end-to-end: a staged edit to a file nested inside
+// a directory an OpMove is about to relocate must refuse Apply before
+// any disk mutation, exactly like an exact-path conflict does.
+// gatherCommitOps walks the moved directory's destination recursively
+// and would otherwise silently sweep the nested file's on-disk content
+// (which already carries the user's staged edit) into the verb's
+// commit, with no refusal ever firing because the pre-fix guard only
+// compared staged paths against the directory's own Path/NewPath.
+func TestApply_RefusesConflictingPreStagedPath_NestedInDirectoryMove(t *testing.T) {
+	t.Parallel()
+	r := newApplyTestRepo(t)
+
+	srcDir := filepath.Join(r.root, "work", "epics", "E-9999-src")
+	nestedRel := filepath.Join("work", "epics", "E-9999-src", "M-0001-nested.md")
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(r.root, nestedRel), []byte("original nested content\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(r.ctx, r.root, nestedRel); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(r.ctx, r.root, "seed nested file", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	preCommit := headSHA(t, r.root)
+
+	// User stages an edit to the nested file, unaware a verb is about
+	// to move its containing directory.
+	userContent := []byte("user's staged edit to the nested file\n")
+	if err := os.WriteFile(filepath.Join(r.root, nestedRel), userContent, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(r.ctx, r.root, nestedRel); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := &verb.Plan{
+		Subject:  "test directory move over a staged nested edit",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{
+			{Type: verb.OpMove, Path: "work/epics/E-9999-src", NewPath: "work/epics/E-9998-dst"},
+		},
+	}
+
+	_, err := verb.Apply(r.ctx, r.root, plan)
+	if err == nil {
+		t.Fatal("expected Apply to refuse on a staged edit nested inside the moved directory; got nil")
+	}
+	if !strings.Contains(err.Error(), nestedRel) {
+		t.Errorf("error message must name the conflicting nested path: %v", err)
+	}
+	if !strings.Contains(err.Error(), "pre-staged") {
+		t.Errorf("error message must explain the conflict: %v", err)
+	}
+
+	// HEAD must not have advanced, and the directory must not have moved.
+	if got := headSHA(t, r.root); got != preCommit {
+		t.Errorf("HEAD advanced; conflict guard must fire before any commit")
+	}
+	if _, statErr := os.Stat(srcDir); statErr != nil {
+		t.Errorf("source directory was moved despite the guard: %v", statErr)
+	}
+
+	// The user's staged content must survive untouched on disk.
+	got := readFile(t, filepath.Join(r.root, nestedRel))
+	if !bytes.Equal(got, userContent) {
+		t.Errorf("verb touched the user's staged nested file despite the guard: got %q, want %q", got, userContent)
+	}
+}
+
 // TestApply_AllowEmptyPreservesUnrelatedStaged: an authorize /
 // audit-only plan (AllowEmpty=true, no Ops) records an event with
 // no file diff. With the stash-isolation fix, pre-existing staged
