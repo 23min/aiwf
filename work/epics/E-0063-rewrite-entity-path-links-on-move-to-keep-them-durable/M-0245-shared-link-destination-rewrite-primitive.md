@@ -7,16 +7,16 @@ tdd: required
 acs:
     - id: AC-1
       title: Rewrite link destinations to a moved entity, leaving prose and code untouched
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Recompute relative link destinations against the linking file directory
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Rewrite core is idempotent; rewritten destinations resolve to new paths
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -98,3 +98,83 @@ properties across all generated cases.
 
 - `internal/verb/rewidth.go`
 - G-0392 — the gap this epic addresses
+
+---
+
+## Work log
+
+### AC-1 — Rewrite link destinations to a moved entity, leaving prose and code untouched
+
+Green · commit 829991ba · tests 9/9
+
+Extracted rewidth's fence / inline-code-span / link-region masking into
+shared `internal/verb/linkregion.go` helpers (`walkBodyLines`,
+`maskCodeSpans`, `splitLinkPathRegions`), confirmed byte-identical
+behavior against the full existing rewidth test suite, then added
+`RewriteLinkDestinations` in `internal/verb/linkrewrite.go`: a pure,
+move-set-driven rewrite of root-relative link destinations. Relative
+destination resolution (AC-2) is not yet wired in.
+
+### AC-2 — Recompute relative link destinations against the linking file directory
+
+Green · commit 2b0eba14 · tests 15/15
+
+A relative destination (`../work/…`, any `../` depth) resolves against
+`path.Dir(linkingFile)` and is recomputed in the same relative flavor
+on rewrite; a destination rooted at a known entity directory
+(`work/…`, `docs/adr/…`) keeps its root-relative form unchanged. The
+root-relative prefix set derives from rewidth's `activeKindLayouts` so
+the two rewriters share one source of truth rather than duplicating
+the directory list. Path arithmetic uses the `path` package (pure
+forward-slash string manipulation), not `path/filepath`, since these
+are markdown-embedded destinations, not filesystem paths.
+
+### AC-3 — Rewrite core is idempotent; rewritten destinations resolve to new paths
+
+Green · commit d35b5b0e · tests 2 properties × 1500 generated cases each
+
+Two `wf-property-test`-style properties in
+`internal/verb/linkrewrite_property_test.go`, sampled over generated
+linking-file paths, move sets, and bodies: idempotence
+(`RewriteLinkDestinations` applied twice equals applied once) and
+resolution correctness (every deliberately-crafted link resolves,
+under an independent oracle, to its move's new path). Confirmed both
+properties fail on a broken implementation before finalizing, per the
+ritual's vacuity check — the first version of the resolution-
+correctness oracle re-derived a destination's root-relative-vs-
+relative flavor from its string shape, and since every generated
+`EntityMove.To` happens to start with a recognized entity root, that
+version stayed green even with the relative-recompute path
+(`newDestination`) stubbed out. Fixed by carrying the crafted link's
+intended flavor explicitly from generation into the oracle instead of
+re-detecting it; re-ran the same sabotage and confirmed it now goes
+red.
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+- `go build ./...` — green.
+- `go test -race -parallel 8 ./internal/verb/...` — green (all pre-existing rewidth tests pass unmodified alongside the new AC-1/AC-2 unit tests and AC-3 property tests).
+- `golangci-lint run ./internal/verb/...` — 0 issues.
+- 100% test coverage on every new/moved function in `linkregion.go` and `linkrewrite.go`.
+- `aiwf check` — 0 error-severity findings (1 advisory `provenance-untrailered-scope-undefined`, expected on an unpushed branch with no upstream).
+- `make coverage-gate` — diff-scoped branch-coverage audit and firing-fixture policy tests both pass.
+
+## Deferrals
+
+- G-0409 — link-destination rewrite doesn't handle `#fragment`/`?query` suffixes; surfaced during independent review, not claimed by any of M-0245's ACs. For the epic to pick up before the wiring milestones ship.
+
+## Reviewer notes
+
+Independent two-lens review (fresh-context subagents, no authorship attachment): **code-quality → approve, no blocking findings; design-quality (rethink) → keep.** Both passes independently verified every load-bearing claim by measurement (ran the tests, reproduced the property test's anti-vacuity RED, confirmed 100% coverage, confirmed the rewidth extraction is byte-identical and genuinely shared by both callers) rather than by reading and trusting.
+
+Non-blocking guidance for `M-0246`'s author (archive wiring), from the design-quality pass:
+
+- **Directory-shaped vs. file-shaped links.** `archive`'s `computeArchiveMoves` currently emits one move per directory for epic/contract kinds; that matches a bare-directory link form, but a file-shaped link into a nested entity (e.g. a milestone spec inside an archived epic dir) needs its own `EntityMove` entry too. `internal/verb/reallocate.go`'s `pathInside` / `newEntityPathAfterRename` pattern (walks `tr.Entities` to compute each nested entity's post-move path) is the precedent to reuse.
+- **Compute the full move set against the final post-move layout, and pass the linking file's own post-move path when it is itself among the moved entities** (e.g. an epic's `epic.md` linking to a sibling milestone archived in the same sweep) — already named in the epic's own risk table ("Multi-move … recomputes against a stale layout"); M-0245's property test deliberately excludes this scenario (`linkingFile` never collides with a move's `From`/`To`), so it has zero coverage today. Worth a dedicated fixture in M-0246.
+- Minor, low-priority: an empty destination `()` resolves to the linking file's own directory, which could coincidentally match a dir-shaped move's `From`. Vanishingly unlikely with template-generated bodies; a one-line empty-`inner` guard would close it if M-0246 wants full conservatism.
+
+No changes to `RewriteLinkDestinations`'s signature are implied by any of the above — the friction is entirely in what the caller builds and passes, not the primitive's shape.

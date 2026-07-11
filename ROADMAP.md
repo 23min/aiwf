@@ -857,7 +857,7 @@ finds into a reproducible gap.
 | M-0249 | Scenario registry: wire cmd/stresstest run to the real catalog | done |
 | M-0250 | Register the verb-sequence walker; extend it to move/archive/rename/retitle | done |
 
-## E-0063 — Rewrite entity path-links on move to keep them durable (proposed)
+## E-0063 — Rewrite entity path-links on move to keep them durable (active)
 
 ### Goal
 
@@ -868,7 +868,7 @@ rot silently the next time its target moves.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0245 | Shared link-destination rewrite primitive | draft |
+| M-0245 | Shared link-destination rewrite primitive | in_progress |
 | M-0246 | Wire archive to rewrite link destinations on sweep | draft |
 | M-0247 | Wire rename and retitle to rewrite link destinations | draft |
 | M-0248 | Unify reallocate onto the shared rewrite primitive | draft |
