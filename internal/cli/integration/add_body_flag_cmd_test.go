@@ -16,7 +16,7 @@ func setupAddBodyFlagRepo(t *testing.T) (root, binDir string) {
 	bin := testutil.AiwfBinary(t)
 	binDir = filepath.Dir(bin)
 	root = t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

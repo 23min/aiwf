@@ -22,7 +22,7 @@ func setupTwoEpicScopeRepo(t *testing.T) (root, bin string) {
 	bin = testutil.AiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root = t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -83,6 +83,16 @@ func TestScopeReach_OutOfScopeRefusal_AC2(t *testing.T) {
 		t.Fatalf("rev-parse HEAD: %v\n%s", err, headBefore)
 	}
 
+	// M-0002's parent is E-0002, not E-0001 (whose branch is still
+	// checked out from setup). Land on E-0002's own ritual branch so
+	// the G-0269 activating-promote branch guard stays silent,
+	// isolating the scope-reach refusal below as the only rule under
+	// test — the checkout only moves the symbolic ref, not HEAD's sha,
+	// so the "HEAD unchanged" assertion below still holds.
+	if checkoutOut, checkoutErr := testutil.RunGit(root, "checkout", "-b", "epic/E-0002-billing"); checkoutErr != nil {
+		t.Fatalf("git checkout -b: %v\n%s", checkoutErr, checkoutOut)
+	}
+
 	stdout, stderr, code := runSplit(t, root, bin,
 		"promote", "M-0002", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter", "--format=json")
@@ -132,7 +142,7 @@ func TestScopeReach_DiscoveredInFriction_AC3(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := filepath.Dir(bin)
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

@@ -50,7 +50,7 @@ func TestSeam_InitThenDoctorSelfCheck(t *testing.T) {
 	bin := testutil.BuildBinary(t, tmp /* no ldflags */)
 
 	repo := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 

@@ -296,7 +296,13 @@ func SetupGitRepoWithUpstream(t *testing.T, email string) string {
 		t.Fatalf("git init bare: %v\n%s", err, out)
 	}
 	root := t.TempDir()
-	if out, err := RunGit(root, "init", "-q"); err != nil {
+	// --initial-branch=main matches aiwf's own unconfigured trunk-name
+	// default (Config.TrunkBranchShortName) and the "HEAD:main" push
+	// below — plain `git init` on some git versions/configs defaults
+	// to "master" instead, which would leave the local branch's name
+	// out of sync with origin/main and spuriously trip the G-0269
+	// activating-promote branch guard.
+	if out, err := RunGit(root, "init", "-q", "--initial-branch=main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

@@ -34,7 +34,7 @@ func TestBinary_PlainUpdate_StatuslineUpgradeOnly(t *testing.T) {
 
 	repo := t.TempDir()
 	home := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 

@@ -86,15 +86,6 @@ func TestTrailerShapePerMutatingVerb(t *testing.T) {
 		t.Fatalf("init: %d", rc)
 	}
 
-	// M-0103: the authorize-step cases below open a scope on ai/claude;
-	// the preflight refuses without a ritual branch context. Move HEAD
-	// to a ritual-shape branch so the implicit-current signal passes.
-	// The subsequent verbs do not care which branch they commit on, so
-	// every later step rides this branch transparently.
-	if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
-		t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
-	}
-
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")
 	if err := os.WriteFile(bodyFile, []byte("## Goal\n\nReplaced via trailer-shape test.\n"), 0o644); err != nil {
 		t.Fatalf("write body file: %v", err)
@@ -131,6 +122,31 @@ entities:
 		{"add decision D-001", []string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample decision", "--actor", "human/test", "--root", root}, "add", 1},
 
 		{"promote E-02 → active", []string{"promote", "E-0002", "active", "--actor", "human/test", "--root", root}, "promote", 1},
+	}
+
+	for _, s := range steps {
+		t.Run(s.name, func(t *testing.T) {
+			if rc := cli.Execute(s.args); rc != cliutil.ExitOK {
+				t.Fatalf("verb %v rc = %d (want cliutil.ExitOK)", s.args, rc)
+			}
+			assertTrailerShape(t, root, s.wantVerb, s.wantEntities)
+		})
+	}
+
+	// M-0103: the authorize-step cases below open a scope on ai/claude;
+	// the preflight refuses without a ritual branch context. Move HEAD
+	// to a ritual-shape branch so the implicit-current signal passes.
+	// This also satisfies the G-0269 activating-promote branch guard,
+	// which expects the parent epic's ritual branch checked out before
+	// the milestone in_progress promote immediately below — hence this
+	// checkout runs after E-0002's own trunk-landed activation above,
+	// not before it. The remaining verbs do not care which branch they
+	// commit on, so every later step rides this branch transparently.
+	if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
+	}
+
+	steps = []step{
 		{"promote M-001 → in_progress", []string{"promote", "M-0001", "in_progress", "--actor", "human/test", "--root", root}, "promote", 1},
 		{"promote M-001/AC-1 → met", []string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}, "promote", 1},
 

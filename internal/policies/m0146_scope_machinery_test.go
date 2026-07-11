@@ -45,13 +45,26 @@ func TestM0146_ScopeReachMachinery(t *testing.T) {
 		return []string{"promote", target, "in_progress", "--actor", "ai/claude", "--principal", human}
 	}
 
+	// The in-scope promote target (M-0001 -> in_progress) is an
+	// activating transition the G-0269 guard polices; check out its
+	// parent epic's ritual branch first, matching the real ritual
+	// (this fixture never cuts one — AuthorizeScope's own branch ref,
+	// above, is a differently-named ref for the authorize verb's own
+	// branch-trailer preflight, unrelated to where this promote runs).
+	checkoutEpicRitualBranch(t, f, "E-0001")
+
 	// Positive arm: the in-scope agent promote succeeds.
 	if out, err := testutil.RunBin(t, f.Root, "", nil, agentArgs(inScope)...); err != nil {
 		t.Fatalf("in-scope agent promote should succeed, got error %v:\n%s", err, out)
 	}
 
 	// Negative arm: the out-of-scope agent promote is refused and lands
-	// no commit.
+	// no commit. Check out M-0002's own correct ritual branch first —
+	// isolating the scope violation under test from the unrelated
+	// G-0269 branch guard, which would otherwise ALSO refuse here
+	// (HEAD is still on E-0001's branch from the positive arm above)
+	// and mask which check actually fired.
+	checkoutEpicRitualBranch(t, f, "E-0002")
 	headBefore, err := testutil.RunGit(f.Root, "rev-parse", "HEAD")
 	if err != nil {
 		t.Fatalf("rev-parse HEAD: %v", err)

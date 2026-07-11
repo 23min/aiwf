@@ -241,13 +241,16 @@ func TestCorrelationID_PresentAcrossMutatingVerbs(t *testing.T) {
 		mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 		mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
 		mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
-		mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 		// The authorize verb's AI-target preflight requires a ritual-
 		// shape branch checkout (M-0103) — mirrors
-		// TestRender_AllPagesAreWellFormed's identical setup step.
+		// TestRender_AllPagesAreWellFormed's identical setup step. It
+		// also satisfies the G-0269 activating-promote branch guard,
+		// which requires this checkout before the milestone in_progress
+		// promote below, not after.
 		if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 			t.Fatalf("git checkout -b: %v\n%s", err, out)
 		}
+		mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 		envelopeCorrelationID(t, "authorize", "--root", root, "--actor", "human/test", "M-0001", "--to", "ai/claude", "--format=json")
 	})
 
@@ -500,10 +503,13 @@ func TestCorrelationID_AuthorizeFallsBackWhenOutputFormatCarriesNone(t *testing.
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
+	// The G-0269 activating-promote branch guard requires this
+	// checkout before the milestone in_progress promote below, not
+	// after.
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 
 	logPath := filepath.Join(t.TempDir(), "diag.log")
 	t.Setenv("AIWF_LOG", "info")

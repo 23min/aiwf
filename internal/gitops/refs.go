@@ -97,6 +97,30 @@ func RemoteTrackingRefs(ctx context.Context, workdir string) ([]string, error) {
 	return refs, nil
 }
 
+// CurrentBranch returns the short name of the branch currently checked
+// out in workdir (`git symbolic-ref --short HEAD`), or ("", nil) when
+// HEAD is detached — a legitimate, expected shape (not a git failure),
+// matching HasRef's "expected non-resolution" convention. Other git
+// failures (bad workdir, git absent) propagate as wrapped errors.
+//
+// Used by the G-0269 activating-promote branch guard
+// (internal/verb/promote_branch_guard.go) to confirm HEAD is still on
+// the branch a sovereign activation expects, immediately before the
+// commit lands — detached HEAD returns "", which never equals a real
+// expected branch name, so the guard correctly refuses rather than
+// silently comparing against an empty expectation.
+func CurrentBranch(ctx context.Context, workdir string) (string, error) {
+	out, err := output(ctx, workdir, "symbolic-ref", "--short", "HEAD")
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 128 {
+			return "", nil
+		}
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // AddCommitSHA returns the SHA of the commit that introduced
 // relPath into the repo. Returns ("", nil) when the file has no add
 // commit visible from HEAD (newly staged but never committed).

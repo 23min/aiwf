@@ -1,8 +1,10 @@
 ---
 id: G-0269
 title: Mutating verbs lack a HEAD-drift guard against shared-worktree session races
-status: open
+status: addressed
 discovered_in: E-0043
+addressed_by_commit:
+    - ad5b9cd0
 ---
 ## Problem
 

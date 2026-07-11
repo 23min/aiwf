@@ -123,12 +123,25 @@ func TestM0147_AC3_GlobalRuleExercised(t *testing.T) {
 		return []string{"promote", target, "in_progress", "--actor", "ai/claude", "--principal", human}
 	}
 
+	// M-0001 -> in_progress is an activating transition the G-0269
+	// guard polices; check out its parent epic's ritual branch first,
+	// matching the real ritual (this fixture never cuts one —
+	// AuthorizeScope's own branch ref, above, is a differently-named
+	// ref for the authorize verb's own branch-trailer preflight).
+	checkoutEpicRitualBranch(t, f, "E-0001")
+
 	// Positive: in-scope agent promote succeeds.
 	if out, err := testutil.RunBin(t, f.Root, "", nil, agentArgs("M-0001")...); err != nil {
 		t.Fatalf("in-scope agent promote should succeed: %v\n%s", err, out)
 	}
 
-	// Negative: out-of-scope agent promote refused with the global rule's code.
+	// Negative: out-of-scope agent promote refused with the global
+	// rule's code. Check out M-0002's own correct ritual branch first
+	// — isolating the scope violation under test from the unrelated
+	// G-0269 branch guard, which would otherwise ALSO refuse here
+	// (HEAD is still on E-0001's branch from the positive arm above)
+	// and mask which check actually fired.
+	checkoutEpicRitualBranch(t, f, "E-0002")
 	headBefore, err := testutil.RunGit(f.Root, "rev-parse", "HEAD")
 	if err != nil {
 		t.Fatalf("rev-parse: %v", err)

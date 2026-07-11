@@ -41,7 +41,7 @@ func TestBinary_Check_TrunkSideRetitleAfterForkNotCollision(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 
@@ -133,7 +133,7 @@ func TestBinary_Check_GenuineCollisionHighSimilarityStillFires(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 

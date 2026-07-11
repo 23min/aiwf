@@ -9,13 +9,10 @@ import (
 // decision logic behind HeadDriftScenario (M-0243/AC-5) — against
 // fabricated outcomes, so every branch is exercised deterministically.
 //
-// Per this milestone's own Constraints, AC-5 is allowed to fail
-// (expected-red) without failing the milestone: the confirmed defect
-// (the commit landing on the interloper branch, not the
-// preflight-observed one) IS the expected, current outcome this
-// scenario exists to demonstrate, reported as a violation. A
-// landed-on-the-preflight-branch outcome would mean G-0269's guard
-// has since shipped — good news, not a violation.
+// A refused promote (G-0269's branch guard blocked it outright) or a
+// commit landing on the preflight-observed branch both report no
+// violation — the guard is doing its job. A commit landing on the
+// interloper branch instead is a regression, reported as a violation.
 
 func TestClassifyHeadDrift(t *testing.T) {
 	t.Parallel()
@@ -27,14 +24,14 @@ func TestClassifyHeadDrift(t *testing.T) {
 		wantSubstring            string // "" means no violation expected
 	}{
 		{
-			name:                     "confirmed: the promote committed onto the interloper branch, not the preflight-observed one",
+			name:                     "regression: the promote committed onto the interloper branch, not the preflight-observed one",
 			promStatus:               "ok",
 			landedOnPreflightBranch:  false,
 			landedOnInterloperBranch: true,
 			wantSubstring:            "G-0269",
 		},
 		{
-			name:                     "good news: the promote landed on the preflight-observed branch (guard shipped)",
+			name:                     "the promote landed on the preflight-observed branch",
 			promStatus:               "ok",
 			landedOnPreflightBranch:  true,
 			landedOnInterloperBranch: false,

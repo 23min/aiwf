@@ -20,7 +20,7 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -107,6 +107,18 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 			envM.Result.Scopes[0].AuthSHA, s.AuthSHA)
 	}
 
+	// The G-0269 activating-promote branch guard expects an epic
+	// proposed → active promote to land on trunk. Fast-forward main to
+	// the ritual branch's tip (not a plain checkout) so the authorize
+	// and in_progress commits stay part of main's history — later
+	// scope lookups walk HEAD's ancestry and would otherwise miss them.
+	if checkoutOut, checkoutErr := testutil.RunGit(root, "checkout", "main"); checkoutErr != nil {
+		t.Fatalf("git checkout main: %v\n%s", checkoutErr, checkoutOut)
+	}
+	if mergeOut, mergeErr := testutil.RunGit(root, "merge", "--ff-only", "epic/E-0001-engine"); mergeErr != nil {
+		t.Fatalf("git merge --ff-only: %v\n%s", mergeErr, mergeOut)
+	}
+
 	// Terminal-promote E-01 → ends the scope. Re-check JSON show.
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); pErr != nil {
 		t.Fatalf("promote E-01 active: %v\n%s", pErr, pOut)
@@ -153,7 +165,7 @@ func TestShow_ScopesView_NoScopes(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
