@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: A multi-entity sweep recomputes links against the final post-move layout
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
