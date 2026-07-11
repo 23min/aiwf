@@ -189,7 +189,7 @@ func TestRunCommitMsg_BodyProseIsNotTrailerBlock(t *testing.T) {
 
 func TestNewCmd_HasCommitMsgFlag(t *testing.T) {
 	t.Parallel()
-	cmd := NewCmd()
+	cmd := NewCmd("")
 	if cmd.Flags().Lookup("commit-msg") == nil {
 		t.Error("flag --commit-msg missing on aiwf check")
 	}

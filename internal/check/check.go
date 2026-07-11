@@ -139,6 +139,11 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, archivedEntityNotTerminal(t)...)
 	findings = append(findings, terminalEntityNotArchived(t)...)
 	findings = append(findings, archiveSweepPending(t)...)
+	// G-0393: standing backstop for the epic-terminal-promote guard —
+	// catches a terminal epic with a non-terminal child milestone
+	// regardless of how that state was reached (the verb-layer guard
+	// covers only aiwf promote/cancel).
+	findings = append(findings, epicTerminalNonTerminalChildren(t)...)
 	resolveLines(t.Root, findings)
 	applyHints(findings)
 	sortFindings(findings)

@@ -16,6 +16,8 @@ import (
 //   - TestTextIO_Wrappers (textio_test.go) — uses captureStdStreams.
 //   - TestResolveLogger_StderrDestination_NeverClosesRealStderr
 //     (resolvelogger_test.go) — uses captureStdStreams.
+//   - TestAcquireRepoLock_JSONEnvelopeOnBusy, TestAcquireRepoLock_TextModeUnchanged
+//     (lock_test.go) — use testutil.CaptureStdout / CaptureStderr.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")

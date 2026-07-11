@@ -93,6 +93,18 @@ var hintTable = map[string]string{
 	// remediation.
 	"archive-sweep-pending": "run `aiwf archive --dry-run` to preview the sweep, then `aiwf archive --apply` to commit; the aggregate's count comes from the per-file `terminal-entity-not-archived` findings",
 
+	// G-0393: standing backstop for the epic-terminal-promote guard.
+	// The epic itself is already terminal (nothing to do there); the
+	// remediation is disposing each listed child milestone. Two
+	// distinct root causes reach this finding (G-0398): a genuine
+	// bypass of the promote/cancel guards (hand-edit, pre-guard
+	// binary), OR `aiwf add milestone`/`aiwf import` creating a fresh
+	// milestone under an epic that was already terminal — that path
+	// has no dedicated guard yet, so this finding is standing in for
+	// one. The hint below doesn't guess which; the remediation is the
+	// same either way.
+	"epic-terminal-non-terminal-children": "bring each listed child milestone to a terminal status via `aiwf promote <milestone-id> done` or `aiwf cancel <milestone-id>` — the epic is already terminal, so no epic-side action is needed. If this fired right after `aiwf promote`/`aiwf cancel` on the epic itself, that shouldn't be possible — both already refuse to reach this state (G-0393/D-0003) — so re-check for a hand-edit or a pre-guard binary. If it fired right after `aiwf add milestone`/`aiwf import`, the epic was simply already terminal before the milestone was created; there is no dedicated guard against that yet (G-0398)",
+
 	"acs-shape/id":                         "fix the AC's id to match `AC-N` (position+1; cancelled entries still count) by correcting the `acs:` frontmatter, then re-run `aiwf check`",
 	"acs-shape/title":                      "set a non-empty AC title via `aiwf retitle <milestone-id>/AC-N \"...\"`",
 	"acs-shape/status":                     "correct the AC's status in the `acs:` frontmatter to a legal value by hand, then re-run `aiwf check`; `aiwf promote <milestone-id>/AC-N <status>` can't transition an AC whose current status is unrecognized",

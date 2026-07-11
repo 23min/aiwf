@@ -8,6 +8,8 @@ package add
 import (
 	"bytes"
 	"context"
+	"log/slog"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -18,6 +20,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -141,7 +144,7 @@ func NewCmd(correlationID string) *cobra.Command {
 func Run(k entity.Kind, title, actor, principal, root,
 	epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile, bodyText, reason string, fetch, force bool, out cliutil.OutputFormat,
-) int {
+) (code int) {
 	// G-0326: --body and --body-file are mutually exclusive ride-along
 	// body sources; --force requires a non-empty --reason (mirrors
 	// `aiwf promote --force --reason`). Both are pure usage-shape
@@ -167,13 +170,32 @@ func Run(k entity.Kind, title, actor, principal, root,
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern. entity is unknown at bind time — add
+	// allocates the id, it doesn't take one — so this binds with an
+	// empty entity field; the JSON envelope's metadata.entity_id
+	// (populated on every mutating verb) is where a human cross-
+	// references the allocated id against this run_id.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "add", "", actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	// M-0214: opt-in best-effort refresh of every remote-tracking ref
 	// (git fetch --all) before allocation, so the broadened remote-refs
 	// scan computes max against the freshest published view across all
@@ -297,7 +319,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: addCreationRefs(k, opts),
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add", tr, result, err, pctx, out)
 	return code
 }
 
@@ -554,7 +576,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac", out)
 	if release == nil {
 		return rc
 	}

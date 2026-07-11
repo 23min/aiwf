@@ -406,7 +406,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 // test pins the closed-set semantics directly.
 func TestNewListCmd_CompletionWiring(t *testing.T) {
 	t.Parallel()
-	cmd := list.NewCmd()
+	cmd := list.NewCmd("")
 
 	t.Run("--kind returns entity.AllKinds", func(t *testing.T) {
 		fn, ok := cmd.GetFlagCompletionFunc("kind")
@@ -438,7 +438,7 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 
 	t.Run("--status with --kind=milestone is kind-aware", func(t *testing.T) {
 		// Same fresh command per subtest so flag state is isolated.
-		c := list.NewCmd()
+		c := list.NewCmd("")
 		if err := c.Flags().Set("kind", "milestone"); err != nil {
 			t.Fatalf("set --kind: %v", err)
 		}

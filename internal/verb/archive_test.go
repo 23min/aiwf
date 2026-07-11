@@ -308,8 +308,9 @@ func TestNonTerminalEpicChildren_FiltersByParent(t *testing.T) {
 // must not produce a move — Archive independently declines to strand
 // the child in archive/ alongside its terminal parent, regardless of
 // how the epic reached done (the promote-time guard is the primary
-// chokepoint; this is the unconditional defense-in-depth backstop for
-// the --force / raw-edit cases that bypass it).
+// chokepoint and already runs unconditionally; this is the defense-in-
+// depth backstop for the one path that still bypasses it — a raw
+// frontmatter hand-edit).
 func TestComputeArchiveMoves_EpicWithNonTerminalChild_Skipped(t *testing.T) {
 	t.Parallel()
 	tr := &tree.Tree{

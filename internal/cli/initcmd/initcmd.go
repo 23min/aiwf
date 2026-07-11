@@ -109,7 +109,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	}
 
 	if !dryRun {
-		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf init")
+		release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf init", cliutil.OutputFormat{})
 		if release == nil {
 			return rc
 		}

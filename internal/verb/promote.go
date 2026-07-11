@@ -131,17 +131,27 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireHumanActorForSovereignAct(e.Kind, e.Status, newStatus, actor); err != nil {
 			return nil, err
 		}
-		// Epic-done non-terminal-children guard (G-0394): mirrors
-		// Cancel's epic-cancel guard (D-0003) onto the promote-to-done
-		// path, closing the guard asymmetry where a done epic could
-		// still own an in-progress milestone. force bypasses this like
-		// the other checks in this block; Archive's independent
-		// subtree-terminality guard (internal/verb/archive.go) is the
-		// unconditional defense-in-depth backstop for that case.
-		if e.Kind == entity.KindEpic && newStatus == entity.StatusDone {
-			if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
-				return nil, &EpicPromoteNonTerminalChildrenError{Epic: e.ID, Children: nonTerminal}
-			}
+	}
+
+	// Epic-terminal-promote cascade guard (G-0393 / G-0394, two
+	// independently-filed gaps converging on the same fix), mirroring
+	// Cancel's own EpicCancelNonTerminalChildrenError (D-0003): refuse,
+	// don't auto-cascade, when an epic is about to reach a terminal
+	// status (done or cancelled — both legal Promote targets for
+	// KindEpic, not just Cancel's own path) while it still owns a
+	// non-terminal child milestone. Runs unconditionally, even under
+	// --force, matching Cancel's guard — force relaxes FSM-transition
+	// legality, not this structural children precondition. Without it,
+	// `aiwf promote <epic> done` (or `cancelled`, bypassing Cancel's own
+	// dedicated guard) can leave a non-terminal milestone under a
+	// terminal, later archived epic — a state `aiwf check`'s
+	// archived-entity-not-terminal rule only catches after the fact.
+	// Archive's own independent subtree-terminality guard
+	// (internal/verb/archive.go) is the defense-in-depth backstop for a
+	// raw frontmatter hand-edit that bypasses this verb entirely.
+	if e.Kind == entity.KindEpic && entity.IsTerminal(entity.KindEpic, newStatus) {
+		if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
+			return nil, &EpicPromoteNonTerminalChildrenError{Epic: e.ID, NewStatus: newStatus, Children: nonTerminal}
 		}
 	}
 

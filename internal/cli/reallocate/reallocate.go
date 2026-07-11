@@ -4,11 +4,14 @@ package reallocate
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -44,7 +47,7 @@ func NewCmd(correlationID string) *cobra.Command {
 }
 
 // Run executes `aiwf reallocate`. Returns one of the cliutil.Exit* codes.
-func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
+func Run(target, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		cliutil.Errorf("aiwf reallocate: %v\n", err)
@@ -56,13 +59,28 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf reallocate")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "reallocate", target, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf reallocate", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf reallocate: loading tree: %v\n", err)
@@ -75,6 +93,6 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) int {
 		VerbKind:  verb.VerbAct,
 		TargetID:  target,
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf reallocate", tr, result, err, pctx, out)
 	return code
 }

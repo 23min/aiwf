@@ -22,6 +22,20 @@ var historyRewriteSubstrings = []string{
 	`"replace"`,
 }
 
+// historyRewriteAllowlist exempts files by repo-relative forward-slash
+// path whose history-rewrite invocations target a scenario's own
+// disposable, throwaway fixture repo — never this repo's own audit
+// trail — with a one-line rationale kept alongside the exemption.
+var historyRewriteAllowlist = map[string]string{
+	// M-0243/AC-4's force-override-durability scenario rebases a
+	// disposable fixture repo (dropping just an acknowledge-illegal
+	// commit while keeping the originally-flagged one reachable) to
+	// reproduce the same reachability effect a force-push produces —
+	// against a repo this scenario itself creates and discards, never
+	// this repo's own history.
+	"internal/stresstest/force_override_durability.go": "rebases a disposable fixture repo the scenario itself creates, never this repo's own audit trail",
+}
+
 // PolicyNoHistoryRewrites flags any non-test, non-policies-package
 // Go file that contains a substring matching a known
 // history-rewriting git invocation. The list is conservative — a
@@ -41,6 +55,9 @@ func PolicyNoHistoryRewrites(root string) ([]Violation, error) {
 	}
 	var out []Violation
 	for _, f := range files {
+		if _, allowed := historyRewriteAllowlist[f.Path]; allowed {
+			continue
+		}
 		for _, sub := range historyRewriteSubstrings {
 			offsets := FindAllOffsets(f.Contents, sub)
 			for _, off := range offsets {

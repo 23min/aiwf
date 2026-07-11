@@ -165,24 +165,6 @@ func epicRules() []Rule {
 			Outcome:   OutcomeLegal,
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0003"}, FP: []string{"R-FP-0003"}},
 		},
-		// G-0394: promote refuses active -> done when any child
-		// milestone is non-terminal, mirroring D-0003's cancel guard
-		// onto the promote-to-done path (Q5's asymmetry closed).
-		// Sources citation: this cell postdates M-0123's one-time
-		// audit/FP reconciliation pass, so it traces to neither an
-		// R-AUDIT-NNNN nor an R-FP-NNNN entry, and Sources.Decision is a
-		// closed set scoped to that pass's six decisions (D-0002..D-0007),
-		// not a general "cite your gap here" field, so it stays empty.
-		{
-			Kind:              entity.KindEpic,
-			FromState:         "active",
-			Verb:              "promote",
-			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "epic-promote-non-terminal-children",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-		},
 		// active → cancelled
 		{
 			Kind:      entity.KindEpic,
@@ -214,6 +196,35 @@ func epicRules() []Rule {
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{FP: []string{"R-FP-0074"}, Decision: "D-0003"},
+		},
+		// G-0393: promote refuses reaching a terminal status the same
+		// way cancel does, when any child milestone is non-terminal.
+		// Companion to the "active → done" legal cell above (different
+		// Outcome → same key still unique).
+		//
+		// Sources is deliberately empty rather than citing D-0003: that
+		// decision's own "Spec cell" section names Verb: "cancel"
+		// explicitly (it ratified the cancel-verb refuse pattern), and
+		// D-0003 is `status: accepted` -- durable, not something later
+		// scope additions rewrite in place (CLAUDE.md's aiwfx-record-
+		// decision constraint). A fresh decision for the promote-side
+		// generalization is not an option either: AC-2's own hardcoded
+		// M-0123 audit set (TestM0123_AC2_DecisionSourcesPopulatedFor-
+		// FPOnlyAndConflict) only accepts {D-0002..D-0007}, all already
+		// spoken for. Absent a genuinely-scoped decision to cite, an
+		// empty Sources is more honest than borrowing one that does not
+		// name this verb. (G-0394 independently proposed the same cell,
+		// scoped to `done` only; this cell supersedes it, covering both
+		// of Promote's terminal targets for KindEpic.)
+		{
+			Kind:              entity.KindEpic,
+			FromState:         "active",
+			Verb:              "promote",
+			Preconditions:     []Predicate{{Subject: "any-child.status", Op: "∉", Value: "milestone-terminal-set"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "epic-promote-non-terminal-children",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
 		},
 		// Terminals: done and cancelled have no outgoing transitions.
 		terminalIllegal(entity.KindEpic, "done", RuleSource{Audit: []string{"R-AUDIT-0005"}, FP: []string{"R-FP-0005"}}),

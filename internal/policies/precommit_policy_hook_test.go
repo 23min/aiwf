@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -177,6 +178,34 @@ func TestPrecommitPolicyHook_GateDecision(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPrecommitPolicyHook_DefaultCapsParallelism pins G-0388: the
+// policy_cmd default must run at this repo's own uniform -parallel 8
+// cap (Makefile, CI workflows, CLAUDE.md's Test discipline section),
+// not Go's default GOMAXPROCS-based parallelism — encountered directly
+// during M-0240's wrap as a reproducible ETXTBSY flake in
+// TestWorktreeRitualsCheckHook_NotAWorktreeExitsZeroSilently under the
+// hook's own uncapped run. Scoped to the policy_cmd default assignment
+// itself (not a blind file-wide grep), since a bare substring match
+// for "-parallel 8" could pass against an unrelated comment or a
+// different command entirely.
+func TestPrecommitPolicyHook_DefaultCapsParallelism(t *testing.T) {
+	t.Parallel()
+	path := precommitHookPath(t)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading pre-commit hook script: %v", err)
+	}
+	re := regexp.MustCompile(`policy_cmd="\$\{AIWF_PRECOMMIT_POLICY_CMD:-([^}]*)\}"`)
+	m := re.FindSubmatch(raw)
+	if m == nil {
+		t.Fatalf("could not find the policy_cmd default assignment in %s", path)
+	}
+	defaultCmd := string(m[1])
+	if !strings.Contains(defaultCmd, "-parallel 8") {
+		t.Errorf("policy_cmd default = %q, want it to include -parallel 8 (G-0388)", defaultCmd)
 	}
 }
 

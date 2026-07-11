@@ -8,7 +8,7 @@ import (
 
 func TestNewCmd_SmokeShape(t *testing.T) {
 	t.Parallel()
-	cmd := list.NewCmd()
+	cmd := list.NewCmd("")
 	if cmd == nil {
 		t.Fatal("NewCmd returned nil")
 	}

@@ -37,7 +37,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	cmd.AddCommand(newVerifyCmd())
+	cmd.AddCommand(newVerifyCmd(correlationID))
 	cmd.AddCommand(newBindCmd(correlationID))
 	cmd.AddCommand(newUnbindCmd(correlationID))
 	cmd.AddCommand(newRecipesCmd())

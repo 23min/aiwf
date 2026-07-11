@@ -165,8 +165,16 @@ just the one rule that surfaced it.
 - `M-0242` — Fault injection via external observation. · depends on:
   `M-0240`
 - `M-0243` — Named scenarios from G-0212 and G-0269. · depends on: `M-0240`
-- `M-0244` — Concurrent-writer test at scale; triage process; epic close.
-  · depends on: `M-0241`, `M-0242`, `M-0243`
+- `M-0244` — Concurrent-writer test at scale; triage process. · depends
+  on: `M-0241`, `M-0242`, `M-0243`
+- `M-0249` — Scenario registry: wire `cmd/stresstest run` to the real
+  catalog (G-0397: the CLI could only ever run the M-0240 placeholder
+  scenario, never any of the 12 real ones the epic's own milestones
+  built). · depends on: `M-0244`
+- `M-0250` — Register the verb-sequence walker; extend it to
+  move/archive/rename/retitle (closes G-0399; scoped from G-0400's
+  scenario-coverage audit). Epic close moves here. · depends on:
+  `M-0249`
 
 ## References
 

@@ -42,7 +42,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 # internal/policies/precommit_policy_hook_test.go use it to pin the
 # run/skip decision without running the real suite.
 if git diff --cached --name-only | grep -qE '\.go$|^go\.mod$|^go\.sum$|^Makefile$|^\.github/workflows/|^scripts/git-hooks/|^internal/skills/'; then
-    policy_cmd="${AIWF_PRECOMMIT_POLICY_CMD:-go test -count=1 ./internal/policies/...}"
+    policy_cmd="${AIWF_PRECOMMIT_POLICY_CMD:-go test -count=1 -parallel 8 ./internal/policies/...}"
     policy_bin="${policy_cmd%% *}"
     if command -v "$policy_bin" >/dev/null 2>&1; then
         # Word-splitting of $policy_cmd is intentional (command + args).

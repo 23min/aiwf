@@ -8,6 +8,7 @@ package worktree
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/initrepo"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/version"
 )
@@ -79,7 +81,7 @@ func newAddCmd(correlationID string) *cobra.Command {
 // failure after the git worktree itself is created rolls that
 // worktree (and a freshly-created branch) back, so a failed run
 // leaves no partially-materialized state behind.
-func Run(branch, path, base, root string, printPath bool, out cliutil.OutputFormat) int {
+func Run(branch, path, base, root string, printPath bool, out cliutil.OutputFormat) (code int) {
 	if printPath && out.JSON() {
 		return fail("aiwf worktree add", fmt.Errorf("--print-path and --format=json are mutually exclusive; --print-path always wins silently otherwise"), cliutil.ExitUsage)
 	}
@@ -89,13 +91,33 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		return fail("aiwf worktree add", err, cliutil.ExitUsage)
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf worktree add")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern — worktree add has no --actor flag (a git-
+	// plumbing operation, no aiwf entity commit), so actor resolution
+	// is best-effort only and never fails the verb, matching show.Run's
+	// identical rationale (ADR-0017).
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "worktree-add", branch, actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf worktree add", out)
 	if release == nil { //coverage:ignore cliutil.AcquireRepoLock only returns nil on lock contention from a concurrent verb invocation; not reproducible in serial tests.
 		return rc
 	}
 	defer release()
-
-	ctx := context.Background()
 
 	exists, err := gitops.BranchExists(ctx, rootDir, branch)
 	if err != nil { //coverage:ignore gitops.BranchExists only errors on a non-exit-1 git failure (missing git binary, repo corruption); not deterministically reproducible.

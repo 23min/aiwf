@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -10,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/logger"
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -19,7 +21,7 @@ import (
 // state. Read-only; produces no commit. The pre-push git hook runs
 // this verb — its findings + exit code are the framework's
 // authoritative correctness gate.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		root      string
 		format    string
@@ -49,7 +51,7 @@ func NewCmd() *cobra.Command {
 			if commitMsg != "" {
 				return cliutil.WrapExitCode(runCommitMsg(commitMsg, verbs, c.ErrOrStderr()))
 			}
-			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, fast, verbose, verbs))
+			return cliutil.WrapExitCode(Run(root, format, pretty, since, shapeOnly, fast, verbose, verbs, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -68,7 +70,7 @@ func NewCmd() *cobra.Command {
 // (pure-tree + provenance + tests-metrics + contracts + tree
 // discipline), applies aiwf.yaml-driven severity bumps, renders the
 // findings in the chosen format, and returns the exit code.
-func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbose bool, registeredVerbs map[string]struct{}) int {
+func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbose bool, registeredVerbs map[string]struct{}, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf check: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -84,6 +86,31 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	}
 
 	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern — check is a pure read with no --actor flag
+	// and no single target entity (it validates the whole tree), so
+	// actor resolution is best-effort only and entity stays empty; see
+	// show.Run's identical rationale (ADR-0017: diagnostic logging
+	// must never affect a verb's own behavior or exit code). The defer
+	// still fires correctly through the runShapeOnly/runFast delegate
+	// calls below — Go's defer runs when Run itself returns, regardless
+	// of which nested call produced the value.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(resolved, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", resolved)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := correlationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "check", "", actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+
 	if shapeOnly {
 		return runShapeOnly(ctx, resolved, format, pretty)
 	}
