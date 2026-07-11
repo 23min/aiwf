@@ -1,8 +1,10 @@
 ---
 id: G-0270
 title: Check finding for epic activation commit landing on a non-trunk branch
-status: open
+status: addressed
 discovered_in: E-0043
+addressed_by_commit:
+    - 915dd95f
 ---
 ## Problem
 
