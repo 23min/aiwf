@@ -45,8 +45,13 @@ func setupCLITestRepo(t *testing.T) string {
 	if got := cli.Execute([]string{"check", "--root=" + root}); got != cliutil.ExitOK {
 		t.Fatalf("baseline check on tmpdir = %d", got)
 	}
-	// Initialize git repo so the verb can commit.
-	if err := osExec(t, root, "git", "init", "-q"); err != nil {
+	// Initialize git repo so the verb can commit. --initial-branch=main
+	// matches aiwf's own unconfigured trunk-name default
+	// (cliutil.ConfiguredTrunkBranchShortName) — plain `git init` on
+	// some git versions/configs defaults to "master" instead, which
+	// would spuriously trip the G-0269 activating-promote branch guard
+	// for every test that promotes an epic to active.
+	if err := osExec(t, root, "git", "init", "-q", "--initial-branch=main"); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
 	return root

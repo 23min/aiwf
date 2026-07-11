@@ -66,7 +66,10 @@ func TestPromote_EpicDoneWithAllTerminalChildren_Succeeds(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Child", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))
+	// G-0269's activating-promote branch guard is out of scope for
+	// this fixture (pure FSM scaffolding, not a branch-discipline
+	// test) — force past it.
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "done", testActor, "", false, verb.PromoteOptions{}))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))

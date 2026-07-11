@@ -281,6 +281,12 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	if rc := cli.Execute([]string{"add", "milestone", "--epic", "E-0001", "--title", "Doomed", "--tdd", "none", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
 		t.Fatalf("add M-002: %d", rc)
 	}
+	// The G-0269 activating-promote branch guard requires the parent
+	// epic's ritual branch checked out before a milestone in_progress
+	// promote.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-active-epic"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
 	if rc := cli.Execute([]string{"promote", "--actor", "human/test", "--root", root, "M-0001", "in_progress"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote M-001 in_progress: %d", rc)
 	}

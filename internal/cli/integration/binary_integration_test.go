@@ -161,7 +161,7 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 
@@ -197,6 +197,10 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 	// promote: entity status, then AC status.
 	runVerb("promote E-01",
 		append([]string{"promote", "E-0001", "active"}, rootArgs...)...)
+	// The G-0269 activating-promote branch guard requires the parent
+	// epic's ritual branch checked out before a milestone in_progress
+	// promote.
+	testutil.MustExec(t, repo, "git", "checkout", "-b", "epic/E-0001-foundations")
 	runVerb("promote M-001 in_progress",
 		append([]string{"promote", "M-0001", "in_progress"}, rootArgs...)...)
 	runVerb("promote AC met",
@@ -262,7 +266,7 @@ func TestBinary_ContractFamily_Subprocess(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-test")
 
@@ -454,7 +458,7 @@ func TestBinary_RenderHTML_EndToEnd(t *testing.T) {
 	if err := exec.Command("mkdir", "-p", repo).Run(); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+	if err := exec.Command("git", "-C", repo, "init", "-q", "-b", "main").Run(); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
 	for _, kv := range []struct{ k, v string }{

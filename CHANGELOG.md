@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0269: pre-commit branch guard on epic and milestone activation promotes
+
+`aiwf promote` now refuses, before committing, an epic `proposed -> active`
+or milestone `-> in_progress` promote whose current branch doesn't match
+the ADR-0010 expected parent branch (trunk for an epic, the parent
+epic's ritual branch for a milestone) — the same shared-worktree /
+concurrent-session race that G-0270's `promote-on-wrong-branch` check
+detects post-hoc is now refused synchronously, before the commit lands.
+`--force --reason "..."` remains the sovereign (human-only) override.
+
 ### Fixed — G-0270: promote-on-wrong-branch now detects an activation commit on any wrong branch, from any checkout
 
 The `promote-on-wrong-branch` check no longer relies on enumerating and

@@ -37,7 +37,7 @@ func TestRenderSinglePass_OneHeadWalkZeroPerEntityGreps(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+	if out, err := exec.Command("git", "-C", repo, "init", "-q", "-b", "main").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, kv := range [][]string{{"user.email", "test@example.com"}, {"user.name", "test"}, {"commit.gpgsign", "false"}} {
@@ -142,7 +142,7 @@ func TestRenderSinglePass_FailsLoudOnUnreadableHistory(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	repo := t.TempDir()
-	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+	if out, err := exec.Command("git", "-C", repo, "init", "-q", "-b", "main").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, kv := range [][]string{{"user.email", "test@example.com"}, {"user.name", "test"}, {"commit.gpgsign", "false"}, {"gc.auto", "0"}} {
@@ -193,7 +193,7 @@ func TestRenderSinglePass_FailsLoudOnUnreadableHistory(t *testing.T) {
 // process stdout/stderr fds.
 func TestRenderSinglePass_FailsLoudInProcess(t *testing.T) {
 	repo := t.TempDir()
-	if err := osExec(t, repo, "git", "init", "-q"); err != nil {
+	if err := osExec(t, repo, "git", "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
 	for _, kv := range [][]string{{"user.email", "test@example.com"}, {"user.name", "test"}, {"commit.gpgsign", "false"}, {"gc.auto", "0"}} {

@@ -66,6 +66,19 @@ func TestScenario_TerminalPromoteEndsMultipleParallelScopes(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "bot/ci"); err != nil {
 		t.Fatalf("authorize 2: %v\n%s", err, out)
 	}
+	// The G-0269 activating-promote branch guard expects an epic
+	// proposed → active promote to land on trunk, so switch back
+	// before it — the ritual-branch checkout above was only needed
+	// for the authorize calls' M-0103 preflight. Fast-forward main to
+	// the ritual branch's tip (not a plain checkout) so the two
+	// authorize commits stay part of main's history — the openers
+	// scan below walks HEAD's ancestry and would otherwise miss them.
+	if out, err := testutil.RunGit(root, "checkout", "main"); err != nil {
+		t.Fatalf("git checkout main: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunGit(root, "merge", "--ff-only", "epic/E-0001-engine"); err != nil {
+		t.Fatalf("git merge --ff-only: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "promote", "E-0001", "active"); err != nil {
 		t.Fatalf("promote active: %v\n%s", err, out)
 	}
@@ -268,8 +281,8 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	for _, e := range entries {
 		name := e.Name()
 		if strings.HasSuffix(name, "-engine") && !strings.HasPrefix(name, "E-0002-") {
-			parts := strings.SplitN(name, "-", 2)
-			newEpicID = parts[0]
+			parts := strings.SplitN(name, "-", 3)
+			newEpicID = parts[0] + "-" + parts[1]
 			break
 		}
 	}
@@ -278,6 +291,13 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	}
 	if newEpicID == "E-0002" {
 		t.Fatalf("reallocate produced same id %s", newEpicID)
+	}
+	// The reallocate renamed the epic's directory (E-0002-engine →
+	// <newEpicID>-engine), so the G-0269 activating-promote branch
+	// guard now expects a branch name matching the new id — follow
+	// the rename before the milestone promote below.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/"+newEpicID+"-engine"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 
 	// Agent acts on M-001 (still its child). The chain E-02 → newEpicID

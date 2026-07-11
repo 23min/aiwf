@@ -23,7 +23,7 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -101,7 +101,7 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -140,6 +140,13 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
 	}
 
+	// Land on M-0001's own parent (E-02) ritual branch so the G-0269
+	// activating-promote branch guard stays silent, isolating the
+	// scope-reach refusal below as the only rule under test.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0002-unrelated"); err != nil {
+		t.Fatalf("git checkout -b: %v\n%s", err, out)
+	}
+
 	// Agent attempts to promote a milestone under E-02 — out of
 	// scope. Refusal expected.
 	out, err := testutil.RunBin(t, root, binDir, nil,
@@ -167,7 +174,7 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -190,8 +197,11 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "milestone", "--tdd", "none", "--title", "First", "--epic", "E-0001"); err != nil {
 		t.Fatalf("aiwf add M-001: %v\n%s", err, out)
 	}
-	// M-0103: ritual branch satisfies AI-target preflight.
-	if out, err := testutil.RunGit(root, "checkout", "-b", "milestone/M-0001-cache"); err != nil {
+	// M-0103: ritual branch satisfies AI-target preflight. Use the
+	// parent epic's own ritual branch shape (not a milestone/ branch) —
+	// the G-0269 activating-promote branch guard requires it for the
+	// eventual milestone in_progress promote below.
+	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-engine"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 	// Authorize the agent on M-001.
@@ -251,7 +261,7 @@ func TestProvenance_AgentAddMilestoneInScope(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -313,7 +323,7 @@ func TestProvenance_TerminalPromoteEmitsScopeEnds(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
