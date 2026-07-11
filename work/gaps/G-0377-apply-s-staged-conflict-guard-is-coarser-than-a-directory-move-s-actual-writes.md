@@ -1,8 +1,10 @@
 ---
 id: G-0377
 title: Apply's staged-conflict guard is coarser than a directory-move's actual writes
-status: open
+status: addressed
 discovered_in: M-0186
+addressed_by_commit:
+    - ced957e0
 ---
 ## What's missing
 
