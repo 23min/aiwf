@@ -1,8 +1,10 @@
 ---
 id: G-0329
 title: Committing verbs run during a pending merge silently reset MERGE_HEAD
-status: open
+status: addressed
 discovered_in: M-0216
+addressed_by_commit:
+    - 08b20a0acbbf4c851f2d60dc8ee839e526447ffd
 ---
 ## Context
 
