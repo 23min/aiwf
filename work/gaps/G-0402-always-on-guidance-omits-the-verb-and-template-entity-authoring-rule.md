@@ -1,7 +1,9 @@
 ---
 id: G-0402
 title: Always-on guidance omits the verb-and-template entity-authoring rule
-status: open
+status: addressed
+addressed_by_commit:
+    - e334f6ce
 ---
 ## What's missing
 
