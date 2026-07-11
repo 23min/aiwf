@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Recompute relative link destinations against the linking file directory
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Rewrite core is idempotent; rewritten destinations resolve to new paths
