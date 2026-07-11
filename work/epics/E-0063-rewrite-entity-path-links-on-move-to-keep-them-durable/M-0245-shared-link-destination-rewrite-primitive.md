@@ -115,6 +115,20 @@ behavior against the full existing rewidth test suite, then added
 move-set-driven rewrite of root-relative link destinations. Relative
 destination resolution (AC-2) is not yet wired in.
 
+### AC-2 — Recompute relative link destinations against the linking file directory
+
+Green · commit 2b0eba14 · tests 15/15
+
+A relative destination (`../work/…`, any `../` depth) resolves against
+`path.Dir(linkingFile)` and is recomputed in the same relative flavor
+on rewrite; a destination rooted at a known entity directory
+(`work/…`, `docs/adr/…`) keeps its root-relative form unchanged. The
+root-relative prefix set derives from rewidth's `activeKindLayouts` so
+the two rewriters share one source of truth rather than duplicating
+the directory list. Path arithmetic uses the `path` package (pure
+forward-slash string manipulation), not `path/filepath`, since these
+are markdown-embedded destinations, not filesystem paths.
+
 ## Decisions made during implementation
 
 - (none)
