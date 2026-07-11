@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0407: prebuilt-binary reuse for mutate-hunt
+
+`internal/stresstest`'s `sharedTestBinary`/`sharedLockHolderBinary` helpers
+now check `AIWF_STRESSTEST_PREBUILT_BINARY`/`AIWF_STRESSTEST_PREBUILT_LOCKHOLDER_BINARY`
+first, using that path directly when set to an existing file instead of
+building. `mutate-hunt.yml` builds both binaries once and exports their
+paths, so a mutation-testing run against `internal/stresstest` no longer
+rebuilds them per mutant. Unset in every other invocation (local dev, CI's
+regular test job), where the helpers build as before.
+
 ### Added — G-0407: scoped multi-dispatch input for mutate-hunt
 
 `mutate-hunt.yml`'s `workflow_dispatch` now accepts an optional
