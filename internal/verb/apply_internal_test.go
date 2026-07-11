@@ -154,20 +154,82 @@ func TestApply_WrapsErrorWhenRollbackAlsoFails(t *testing.T) {
 	}
 }
 
-// TestDedupePaths_PreservesOrderRemovesDuplicates exercises the
-// helper directly with a duplicate-laden input.
-func TestDedupePaths_PreservesOrderRemovesDuplicates(t *testing.T) {
+// TestCheckStagedConflict_DirectoryMoveNestedPaths pins G-0377: the
+// guard must catch a staged edit nested inside a directory an OpMove
+// is about to relocate — not just an exact match on the directory's
+// own Path/NewPath — since gatherCommitOps walks the destination
+// recursively and would otherwise silently absorb that staged content
+// into the verb's commit with no refusal ever firing.
+func TestCheckStagedConflict_DirectoryMoveNestedPaths(t *testing.T) {
 	t.Parallel()
-	in := []string{"a", "b", "a", "c", "b", "a"}
-	got := dedupePaths(in)
-	want := []string{"a", "b", "c"}
-	if len(got) != len(want) {
-		t.Fatalf("len = %d, want %d (got %v)", len(got), len(want), got)
+	moveOps := []FileOp{{Type: OpMove, Path: "work/epics/E-0001-src", NewPath: "work/epics/E-0002-dst"}}
+
+	tests := []struct {
+		name         string
+		staged       []string
+		ops          []FileOp
+		wantConflict bool
+	}{
+		{
+			name:         "exact match on OpMove source",
+			staged:       []string{"work/epics/E-0001-src"},
+			ops:          moveOps,
+			wantConflict: true,
+		},
+		{
+			name:         "exact match on OpMove destination",
+			staged:       []string{"work/epics/E-0002-dst"},
+			ops:          moveOps,
+			wantConflict: true,
+		},
+		{
+			name:         "nested under the moved directory's source",
+			staged:       []string{"work/epics/E-0001-src/M-0001-nested.md"},
+			ops:          moveOps,
+			wantConflict: true,
+		},
+		{
+			name:         "nested under the moved directory's destination",
+			staged:       []string{"work/epics/E-0002-dst/M-0001-nested.md"},
+			ops:          moveOps,
+			wantConflict: true,
+		},
+		{
+			name:         "unrelated staged path outside the move",
+			staged:       []string{"work/epics/E-0099-unrelated/epic.md"},
+			ops:          moveOps,
+			wantConflict: false,
+		},
+		{
+			name:         "sibling directory with the source as a string prefix, not a path prefix",
+			staged:       []string{"work/epics/E-0001-src-other/epic.md"},
+			ops:          moveOps,
+			wantConflict: false,
+		},
+		{
+			name:         "OpWrite exact match",
+			staged:       []string{"work/epics/E-0003/epic.md"},
+			ops:          []FileOp{{Type: OpWrite, Path: "work/epics/E-0003/epic.md"}},
+			wantConflict: true,
+		},
+		{
+			name:         "OpWrite does not match a nested path (no directory semantics for writes)",
+			staged:       []string{"work/epics/E-0003/epic.md/nested"},
+			ops:          []FileOp{{Type: OpWrite, Path: "work/epics/E-0003/epic.md"}},
+			wantConflict: false,
+		},
 	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("got[%d] = %q, want %q", i, got[i], want[i])
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := checkStagedConflict(tt.staged, tt.ops)
+			if tt.wantConflict && err == nil {
+				t.Errorf("checkStagedConflict(%v, ops) = nil, want a conflict error", tt.staged)
+			}
+			if !tt.wantConflict && err != nil {
+				t.Errorf("checkStagedConflict(%v, ops) = %v, want nil (unrelated path)", tt.staged, err)
+			}
+		})
 	}
 }
 

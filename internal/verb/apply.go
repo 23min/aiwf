@@ -60,7 +60,6 @@ import (
 // caller gets a simple "sha present means clean success" contract
 // instead of having to special-case a partial-success sha.
 func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
-	verbPaths := planPaths(p)
 	staged, stagedErr := gitops.StagedPaths(ctx, root)
 	if stagedErr != nil {
 		return "", fmt.Errorf("checking pre-staged changes: %w", stagedErr)
@@ -68,7 +67,7 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	if opErr := checkNoGitOperationInProgress(ctx, root); opErr != nil {
 		return "", opErr
 	}
-	if conflictErr := checkStagedConflict(staged, verbPaths); conflictErr != nil {
+	if conflictErr := checkStagedConflict(staged, p.Ops); conflictErr != nil {
 		return "", conflictErr
 	}
 
@@ -245,55 +244,36 @@ func gatherCommitOps(root string, p *Plan) (removes []string, writes []gitops.Pa
 	return removes, writes, nil
 }
 
-// planPaths returns the union of every path a Plan touches: every
-// OpMove's source and destination, plus every OpWrite's path. Used to
-// scope the pre-flight conflict guard against the verb's mutation.
-// Order matches git's typical iteration (moves first, then writes);
-// duplicates are removed.
-//
-// A plan with only AllowEmpty (authorize, audit-only) and no Ops
-// returns nil — there's no path set to guard.
-func planPaths(p *Plan) []string {
-	if p == nil || len(p.Ops) == 0 {
-		return nil
-	}
-	paths := make([]string, 0, len(p.Ops)*2)
-	for _, op := range p.Ops {
-		switch op.Type {
-		case OpMove:
-			paths = append(paths, op.Path, op.NewPath)
-		case OpWrite:
-			paths = append(paths, op.Path)
-		}
-	}
-	return dedupePaths(paths)
-}
-
 // checkStagedConflict refuses Apply when the user has already staged
-// content for a path the verb is about to write or rename. The two
-// intents (the user's staged content for that path, the verb's
-// computed content) cannot both land in the verb's commit, and letting
-// the verb proceed would have the post-commit ReconcilePaths step
-// silently overwrite the user's staged version with the verb's once
-// the commit lands. The error message names every conflicting path and
-// points the user at `git restore --staged` / `git stash` so recovery
-// is mechanical.
+// content for a path the verb is about to write, rename, or — for a
+// directory OpMove — for a path nested inside the moved directory.
+// gatherCommitOps walks a moved directory's destination recursively
+// and captures whatever is on disk for every nested file, so a staged
+// edit nested under op.Path/op.NewPath is part of the verb's real
+// write set even though it is not one of the two paths named on the
+// op itself; checking prefixes here (rather than walking the
+// filesystem before Phase 1 has even run) keeps the guard in sync with
+// that write set using only the staged-path strings already in hand.
+//
+// The two intents (the user's staged content for a path, the verb's
+// computed content for that same path) cannot both land in the verb's
+// commit, and letting the verb proceed would have the post-commit
+// ReconcilePaths step silently overwrite the user's staged version
+// with the verb's once the commit lands. The error message names every
+// conflicting path and points the user at `git restore --staged` /
+// `git stash` so recovery is mechanical.
 //
 // Pre-staged paths *outside* the verb's path set are simply left
 // alone — Apply never touches the live index for any path it did not
 // itself write, so they survive the verb's commit untouched.
-func checkStagedConflict(staged, verbPaths []string) error {
-	if len(staged) == 0 || len(verbPaths) == 0 {
+func checkStagedConflict(staged []string, ops []FileOp) error {
+	if len(staged) == 0 || len(ops) == 0 {
 		return nil
 	}
-	verbSet := make(map[string]bool, len(verbPaths))
-	for _, p := range verbPaths {
-		verbSet[p] = true
-	}
 	var conflicts []string
-	for _, p := range staged {
-		if verbSet[p] {
-			conflicts = append(conflicts, p)
+	for _, s := range staged {
+		if stagedPathConflicts(s, ops) {
+			conflicts = append(conflicts, s)
 		}
 	}
 	if len(conflicts) == 0 {
@@ -307,6 +287,29 @@ func checkStagedConflict(staged, verbPaths []string) error {
 		strings.Join(conflicts, ", "),
 		strings.Join(conflicts, " "),
 	)
+}
+
+// stagedPathConflicts reports whether a staged path overlaps with one
+// of the plan's ops: an OpWrite conflicts only on an exact match; an
+// OpMove also conflicts on any path nested under its source or
+// destination directory, matching the nested writes gatherCommitOps
+// discovers by walking a moved directory.
+func stagedPathConflicts(staged string, ops []FileOp) bool {
+	for _, op := range ops {
+		switch op.Type {
+		case OpWrite:
+			if staged == op.Path {
+				return true
+			}
+		case OpMove:
+			if staged == op.Path || staged == op.NewPath ||
+				strings.HasPrefix(staged, op.Path+"/") ||
+				strings.HasPrefix(staged, op.NewPath+"/") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // checkNoGitOperationInProgress refuses Apply when a merge,
@@ -561,18 +564,4 @@ func (t *applyTx) rollback() error {
 		}
 	}
 	return firstErr
-}
-
-// dedupePaths removes duplicates while preserving order.
-func dedupePaths(in []string) []string {
-	seen := make(map[string]bool, len(in))
-	out := make([]string, 0, len(in))
-	for _, p := range in {
-		if seen[p] {
-			continue
-		}
-		seen[p] = true
-		out = append(out, p)
-	}
-	return out
 }
