@@ -1,7 +1,10 @@
 ---
 id: G-0407
 title: 'Make mutate-hunt viable for internal/stresstest: shared binary + scoped dispatch'
-status: open
+status: addressed
+addressed_by_commit:
+    - 31203b48
+    - 7ab64a79
 ---
 ## What's missing
 
