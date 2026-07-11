@@ -38,10 +38,12 @@ Confirmed this flag exists (`-E, --exclude-files stringArray`,
 filepath-regexp). Rather than one dispatch covering the whole package,
 split into several dispatches, each excluding everything but one file
 group (e.g. `verb_sequence*.go`, `concurrent_*.go`, the fault-
-injection scenarios). No code changes needed — just multiple
-`gh workflow run` invocations with different exclude patterns, each
-comfortably finishing inside the existing timeout. Usable immediately,
-independent of part 1 landing.
+injection scenarios). `gh workflow run` can only set inputs a workflow
+already declares, so this needs one small addition: an `exclude_files`
+input on `mutate-hunt.yml`'s `workflow_dispatch` block, wired through
+to gremlins' flag, plus the file-group split documented in the
+workflow's header comment. Which groups and how many dispatches stays
+an operator choice at invocation time. Independent of part 1 landing.
 
 **Deferred, decide after 1 and 2 land:**
 
@@ -72,15 +74,24 @@ independent of part 1 landing.
 
 ## Scope
 
-This is epic-shaped, not a quick patch: a production-adjacent test-
-helper code change (`sharedbinary_test.go`, used across every real-
-subprocess scenario in the package — any regression there breaks the
-whole suite, not just mutation testing), a CI workflow change
-(`mutate-hunt.yml`), a genuinely new usage pattern (multi-dispatch
-scoping via `--exclude-files`, requiring a documented mapping of file
-groups to dispatch calls), and an empirical `--workers` tuning
-decision that depends on both landing first. Whoever picks this up
-should plan it as its own epic rather than a single milestone.
+Revised on closer inspection: neither part needs epic-level planning.
+
+**Part 1** (prebuilt-binary reuse) is patch-shaped: an env-var-gated
+branch in `sharedbinary_test.go`'s `sharedTestBinary`/
+`sharedLockHolderBinary` (unset env var ⇒ byte-identical current
+behavior) plus one new step in `mutate-hunt.yml`. Single-file per
+change, mechanical, low blast radius despite the helper backing every
+real-subprocess scenario in the package.
+
+**Part 2** (scoped multi-dispatch) is also patch-shaped: one new
+`exclude_files` input on `mutate-hunt.yml`'s `workflow_dispatch` block
+wired to gremlins' `--exclude-files`, plus the file-group split
+documented in the workflow's header comment. A CI-workflow-only
+change, no production or test-helper code touched.
+
+**Deferred `--workers` tuning** stays a small empirical follow-up once
+both patches land and get exercised against `internal/stresstest` — a
+re-run and observe, not a planning task.
 
 ## References
 
