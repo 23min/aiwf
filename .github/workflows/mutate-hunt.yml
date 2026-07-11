@@ -40,6 +40,31 @@
 #   Equivalent mutants (semantically identical to the original) and
 #   unreachable-branch mutants are common false-positive LIVED cases
 #   that no test can kill. Don't chase them.
+#
+# Scoped multi-dispatch (exclude_files input):
+#   A package too large for one dispatch to finish inside
+#   timeout-minutes can be split across several dispatches, each
+#   covering one file group via --exclude-files (excluding the other
+#   groups' files so only the target group's mutants run). Verified
+#   with `gremlins unleash --dry-run` that these four groups partition
+#   internal/stresstest's production files with no overlap:
+#     - verb-sequence:    verb_sequence.go, verb_sequence_list_invariant.go
+#       pattern: verb_sequence.*\.go
+#     - concurrent:       concurrent_*.go, cross_worktree_*.go, parallel_branch_reallocate.go
+#       pattern: (concurrent_|cross_worktree_|parallel_branch_reallocate).*\.go
+#     - fault-injection:  force_override_durability.go, archive_during_active_scope.go,
+#                         reachability_isolation.go, disk_fault.go, mid_write_kill.go,
+#                         head_drift.go, lock_kill.go
+#       pattern: (force_override_durability|archive_during_active_scope|reachability_isolation|disk_fault|mid_write_kill|head_drift|lock_kill)\.go
+#     - shared-infra:     gitrepo.go, repeat.go, compose.go, verbenvelope.go,
+#                         scenario.go, report.go, binary.go, lockholder/main.go
+#       pattern: (gitrepo|repeat|compose|verbenvelope|scenario|report|binary)\.go|lockholder/main\.go
+#   To scope a dispatch to one group, set exclude_files to the other
+#   three groups' patterns, comma-separated. Example — scope to
+#   verb-sequence only:
+#     (concurrent_|cross_worktree_|parallel_branch_reallocate).*\.go,(force_override_durability|archive_during_active_scope|reachability_isolation|disk_fault|mid_write_kill|head_drift|lock_kill)\.go,(gitrepo|repeat|compose|verbenvelope|scenario|report|binary)\.go|lockholder/main\.go
+#   Leave exclude_files empty for a single dispatch covering the whole
+#   pkg_pattern (today's default behavior).
 
 name: mutate-hunt
 
@@ -54,6 +79,10 @@ on:
         description: "Per-mutant timeout = N × baseline test runtime"
         required: true
         default: "15"
+      exclude_files:
+        description: "Comma-separated filepath-regexps to exclude from mutation (scopes a dispatch to one file group; see header comment). Empty = mutate everything in pkg_pattern."
+        required: false
+        default: ""
 
 jobs:
   mutate-hunt:
@@ -72,11 +101,21 @@ jobs:
       - name: Install gremlins
         run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
       - name: Run mutation testing
+        env:
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
         run: |
+          exclude_args=()
+          if [ -n "$EXCLUDE_FILES" ]; then
+            IFS=',' read -ra patterns <<< "$EXCLUDE_FILES"
+            for p in "${patterns[@]}"; do
+              exclude_args+=(--exclude-files "$p")
+            done
+          fi
           gremlins unleash \
             --timeout-coefficient ${{ inputs.timeout_coefficient }} \
             --workers 1 \
             --output mutate-report.json \
+            "${exclude_args[@]}" \
             ${{ inputs.pkg_pattern }}
       - name: Upload report
         if: always()
