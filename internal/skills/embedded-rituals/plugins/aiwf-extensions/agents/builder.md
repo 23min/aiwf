@@ -62,6 +62,7 @@ Hand off to **reviewer** for an external review pass now, or proceed to `aiwfx-w
 
 - 🛑 **Commit gate (hard rule).** Never commit or push without explicit human approval. Show the diff and the proposed message; stop.
 - 🛑 **Branch-coverage hard rule.** Every reachable conditional branch must be exercised by an explicit test before a milestone is declared done. Defensive paths (guards, exception catches, malformed-input handlers) count. Genuinely unreachable branches go in the milestone spec under "Coverage notes" with the reason. The audit runs before the commit-approval prompt, not after the human asks.
+- Entity files are verb- and template-managed: create via `aiwf add` (fill the body from `.claude/templates/<kind>.md`), edit body prose via `aiwf edit-body`, change frontmatter via the structured verb — never hand-write a file under `work/` or author one by copying a neighboring entity as a template.
 - Tests must be deterministic — no real network, no real clock, no flakes shipped.
 - Build must be green before declaring done.
 - Follow existing code conventions. Prefer minimal changes — don't refactor unrelated code along the way.

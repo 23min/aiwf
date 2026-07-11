@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0402: shipped guidance and the builder agent now state that entity files are verb- and template-managed
+
+The always-on guidance fragment gains a dedicated rule that entity files are
+verb- and template-managed: create via `aiwf add` and fill the body from the
+canonical `.claude/templates/<kind>.md`, edit body prose via `aiwf edit-body`,
+and change frontmatter only through the structured verbs — never hand-write a
+file under `work/`, and never author an entity by copying a neighboring one as
+a template (which drifts from the canonical shape and can drop its H1 / header).
+The `builder` role agent carries the same reminder. This closes the push-surface
+gap where an agent authoring an entity by copying a neighbor never encountered
+the discipline, which previously lived only inside the verb skills it had to
+already reach for.
+
 ### Added — E-0062: on-demand correctness stress harness
 
 A new `cmd/stresstest` binary drives the compiled `aiwf` binary as a real

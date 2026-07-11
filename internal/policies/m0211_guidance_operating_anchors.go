@@ -95,4 +95,5 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"body-prose-id", []string{"body-prose-id"}},
 	{"cross-branch-allocation", []string{"--fetch", "push promptly"}},
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
+	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
 }

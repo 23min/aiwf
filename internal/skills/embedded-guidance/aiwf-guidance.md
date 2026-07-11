@@ -26,6 +26,14 @@ lives in the `wf-codebase-health` skill.
   file edit has. Reach for `--body-file` only when the body is produced outside
   the working copy (an LLM/script pipeline), where there is no on-disk diff to
   review first.
+- **Entity files are verb- and template-managed — never author one by copying a
+  neighbor** (which drifts from the canonical shape and can drop its H1 / header).
+  Create with `aiwf add`, filling the body from `.claude/templates/<kind>.md`
+  (`aiwf update` if absent); edit body prose with `aiwf edit-body`; change
+  title, status, slug, or id with the matching structured verb (`aiwf retitle` /
+  `promote` / `rename` / `reallocate`). Never hand-write a file under `work/` or
+  hand-edit frontmatter — a plain `git commit` against an entity trips
+  `provenance-untrailered-entity-commit`, a stray tree file `unexpected-tree-file`.
 - **Never suggest the human pause.** When to stop is the human's call. Surface
   any risk and keep going, or ask what's next; don't propose pausing, banking
   progress, or resuming later.
