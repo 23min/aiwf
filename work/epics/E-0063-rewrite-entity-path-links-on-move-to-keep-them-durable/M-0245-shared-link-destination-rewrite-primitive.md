@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Rewrite core is idempotent; rewritten destinations resolve to new paths
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
