@@ -3,6 +3,8 @@ package policies
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -226,6 +228,7 @@ func runPositiveCell(t *testing.T, tc positiveCase) {
 	// default ("required") may not match the cell's precondition.
 	opts := deriveBringOpts(tc.rule)
 	id := bringEntityForCell(t, f, tc.rule, opts)
+	checkoutRitualBranchIfActivating(t, f, tc, id)
 
 	// Materialize each precondition. Three shapes:
 	//
@@ -349,6 +352,58 @@ func bringEntityForCell(t *testing.T, f *cellcoverage.CellFixture, rule spec.Rul
 	return f.BringEntityToState(t, rule.Kind, rule.FromState, opts)
 }
 
+// checkoutRitualBranchIfActivating checks out the branch the G-0269
+// pre-commit guard (internal/verb/promote_branch_guard.go) requires
+// for the cell-under-test, when that cell IS the activating
+// transition itself (milestone draft -> in_progress via a plain,
+// non-forced promote) — this driver's fixture-setup calls to the same
+// transition are already forced (fixture-setup scaffolding), so only
+// the genuine cell-under-test needs the fixture to actually be on the
+// right branch. Epic proposed -> active needs no checkout: it expects
+// trunk, which is the fixture's own default branch already.
+//
+// Mirrors expectedActivationBranch's derivation (epic ritual branch =
+// "epic/" + the epic's on-disk dirname) rather than hardcoding the
+// fixture's known slug, so this stays correct if the fixture's epic
+// title (and therefore slug) ever changes.
+func checkoutRitualBranchIfActivating(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase, id string) {
+	t.Helper()
+	if tc.rule.Kind != entity.KindMilestone || tc.target != entity.StatusInProgress {
+		return
+	}
+	m := f.Tree().ByID(id)
+	if m == nil || m.Parent == "" {
+		t.Fatalf("checkoutRitualBranchIfActivating: milestone %q has no parent epic", id)
+	}
+	checkoutEpicRitualBranch(t, f, m.Parent)
+}
+
+// checkoutEpicRitualBranch checks out (creating if needed) the branch
+// the G-0269 pre-commit guard (internal/verb/promote_branch_guard.go)
+// expects a milestone under epicID to be activated on: "epic/" + the
+// epic's own on-disk dirname, mirroring
+// internal/verb/promote_branch_guard.go's expectedActivationBranch
+// derivation rather than hardcoding a fixture's known slug, so this
+// stays correct if a fixture's epic title (and therefore slug) ever
+// changes. Shared by every driver in this package that exercises a
+// milestone -> in_progress promote via the real binary (not forced) —
+// cellcoverage's own fixtures never cut a ritual branch (they're
+// branch-agnostic FSM scaffolding), so this is the one recurring
+// gap-filler for the cell genuinely under test.
+func checkoutEpicRitualBranch(t *testing.T, f *cellcoverage.CellFixture, epicID string) {
+	t.Helper()
+	epic := f.Tree().ByID(epicID)
+	if epic == nil {
+		t.Fatalf("checkoutEpicRitualBranch: epic %q not found", epicID)
+	}
+	branch := "epic/" + filepath.Base(filepath.Dir(epic.Path))
+	cmd := exec.Command("git", "checkout", "-q", "-b", branch)
+	cmd.Dir = f.Root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout -b %s: %v\n%s", branch, err, out)
+	}
+}
+
 func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string) string {
 	t.Helper()
 	ctx := context.Background()
@@ -356,17 +411,17 @@ func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string
 		// AC under tdd:none milestone has no auto-seeded phase.
 		// The cell-under-test verb is `promote --phase red`.
 		f.Must(verb.Add(ctx, f.Tree(), entity.KindEpic, "TDD Epic", "human/test", verb.AddOptions{}))
-		f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 		f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "TDD Milestone (none)", "human/test", verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-		f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 		f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test", nil))
 		return "M-0001/AC-1"
 	}
 	// red/green/refactor: AC under tdd:required milestone, advance phases.
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindEpic, "TDD Epic", "human/test", verb.AddOptions{}))
-	f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "", false, verb.PromoteOptions{}))
+	f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "TDD Milestone", "human/test", verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
-	f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "", false, verb.PromoteOptions{}))
+	f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test", nil))
 	acID := "M-0001/AC-1"
 	// AC starts at red under tdd:required. Walk to fromPhase via
@@ -396,7 +451,7 @@ func ensureGapResolver(t *testing.T, f *cellcoverage.CellFixture) string {
 	tr := f.Tree()
 	if tr.ByID("E-0001") == nil {
 		f.Must(verb.Add(ctx, f.Tree(), entity.KindEpic, "Resolver Epic", "human/test", verb.AddOptions{}))
-		f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 	}
 	if tr.ByID("M-0001") == nil {
 		f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "Resolver Milestone", "human/test", verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

@@ -236,10 +236,13 @@ func TestAuthorizeDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
-	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
+	// The G-0269 activating-promote branch guard requires this
+	// checkout before the milestone in_progress promote below, not
+	// after.
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 
 	logPath := filepath.Join(t.TempDir(), "diag.log")
 	t.Setenv("AIWF_LOG", "info")

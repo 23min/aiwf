@@ -573,6 +573,50 @@ func ForceAmendHEAD(t *testing.T, env *ScenarioEnv, reason string) string {
 	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
 }
 
+// StripForceTrailer amends HEAD to drop its `aiwf-force:` trailer,
+// preserving aiwf-verb/aiwf-entity/aiwf-actor/aiwf-to verbatim.
+// Returns the new HEAD SHA (the amend rewrites it).
+//
+// G-0269/G-0270 fixture technique: the pre-commit branch guard
+// (internal/verb/promote_branch_guard.go) now refuses a wrong-branch
+// activating promote outright — --force is the only way to land such
+// a commit through the real verb at all, but --force also stamps
+// aiwf-force, which check.RunPromoteOnWrongBranch itself treats as a
+// per-commit override and skips. A scenario testing THAT check rule's
+// detection needs a wrong-branch commit that landed WITHOUT an
+// override on record — the actual shape a genuine race leaves behind
+// (nothing chose to bypass anything; the branch just wasn't what the
+// operator expected). Using --force then stripping the trailer here
+// reuses the real verb for correct provenance/status-change mechanics
+// and only removes the one signal that would mask the scenario.
+func StripForceTrailer(t *testing.T, env *ScenarioEnv) string {
+	t.Helper()
+
+	subject := strings.TrimSpace(env.MustRunGit("log", "-1", "--pretty=%s"))
+	verb := strings.TrimSpace(env.MustRunGit("log", "-1",
+		"--pretty=%(trailers:key=aiwf-verb,valueonly=true,unfold=true)"))
+	entityID := strings.TrimSpace(env.MustRunGit("log", "-1",
+		"--pretty=%(trailers:key=aiwf-entity,valueonly=true,unfold=true)"))
+	actor := strings.TrimSpace(env.MustRunGit("log", "-1",
+		"--pretty=%(trailers:key=aiwf-actor,valueonly=true,unfold=true)"))
+	to := strings.TrimSpace(env.MustRunGit("log", "-1",
+		"--pretty=%(trailers:key=aiwf-to,valueonly=true,unfold=true)"))
+
+	if verb == "" || entityID == "" || actor == "" {
+		t.Fatalf("StripForceTrailer: HEAD commit missing a required aiwf-* trailer (verb=%q entity=%q actor=%q)", verb, entityID, actor)
+	}
+
+	newMsg := fmt.Sprintf("%s\n\naiwf-verb: %s\naiwf-entity: %s\naiwf-actor: %s\n", subject, verb, entityID, actor)
+	if to != "" {
+		newMsg += fmt.Sprintf("aiwf-to: %s\n", to)
+	}
+
+	if out, err := testutil.RunGit(env.Root, "commit", "--amend", "-m", newMsg); err != nil {
+		t.Fatalf("git commit --amend: %v\n%s", err, out)
+	}
+	return strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+}
+
 // AC-2 helpers — stubs in red phase, implemented in green.
 
 // PauseScope runs `aiwf authorize <entityID> --pause "<reason>"`,

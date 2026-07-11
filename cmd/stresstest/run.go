@@ -155,10 +155,7 @@ func runRun(ctx context.Context, moduleRoot, outDirFlag string, repeat int, scen
 
 // printScenarioSummary reports one scenario's own attempts: a line
 // per failing attempt naming its preserved Dir, then a pass-count
-// summary line. head-drift is labeled expected-red (G-0269) rather
-// than folded into the same pass/fail signal every other scenario
-// uses — its own violation is the scenario working as designed until
-// G-0269's guard ships (head_drift.go), not a harness regression.
+// summary line.
 func printScenarioSummary(out io.Writer, name string, results []stresstest.RunResult) {
 	passCount := 0
 	for _, r := range results {
@@ -168,11 +165,7 @@ func printScenarioSummary(out io.Writer, name string, results []stresstest.RunRe
 			_, _ = fmt.Fprintf(out, "stresstest run: %s: attempt failed, repo preserved at %s\n", name, r.Dir)
 		}
 	}
-	label := name
-	if name == expectedRedScenario {
-		label += " (expected-red until G-0269's guard ships)"
-	}
-	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed\n", label, passCount, len(results))
+	_, _ = fmt.Fprintf(out, "stresstest run: %s: %d/%d attempts passed\n", name, passCount, len(results))
 }
 
 // nextSeed returns a fresh pseudo-random seed for one repeat attempt.

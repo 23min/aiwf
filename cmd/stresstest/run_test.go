@@ -131,9 +131,7 @@ func TestRunRun_LockKillScenario_BuildsLockHolderAndRuns(t *testing.T) {
 
 // TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport pins AC-2's own
 // acceptance text: --scenario all runs every registered scenario, all
-// logged into the same raw-report file, with head-drift's own
-// expected-red status called out distinctly rather than folded into
-// the same pass/fail signal as the other 11. Serial — see
+// logged into the same raw-report file. Serial — see
 // TestRunRun_Succeeds's doc comment.
 func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
 	outDir := t.TempDir()
@@ -156,14 +154,9 @@ func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
 		if !strings.Contains(out.String(), name) {
 			t.Errorf("summary output does not mention scenario %q:\n%s", name, out.String())
 		}
-	}
-	if !strings.Contains(out.String(), "head-drift (expected-red until G-0269's guard ships)") {
-		t.Errorf("expected head-drift to be labeled expected-red in the summary, got:\n%s", out.String())
-	}
-	// head-drift's own known violation must not be mislabeled as a
-	// clean pass in its summary line.
-	if strings.Contains(out.String(), "head-drift (expected-red until G-0269's guard ships): 1/1 attempts passed") {
-		t.Errorf("head-drift reported as passing; expected it to still report its own violation:\n%s", out.String())
+		if !strings.Contains(out.String(), name+": 1/1 attempts passed") {
+			t.Errorf("expected scenario %q to report a clean pass, got:\n%s", name, out.String())
+		}
 	}
 }
 
@@ -213,21 +206,22 @@ func TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios(t *testing.T
 	}
 }
 
-// TestRunRun_PrintsPreservedDirOnAFailingAttempt pins that runRun
-// surfaces a failing attempt's preserved repo dir to the operator —
-// previously RunResult.Dir was populated in memory but never printed.
-// head-drift is deterministically expected-red (G-0269), so it's a
-// reliable single-scenario way to exercise this without depending on
-// a race actually losing. Serial — see TestRunRun_Succeeds's doc
-// comment.
+// TestRunRun_PrintsPreservedDirOnAFailingAttempt pins that
+// printScenarioSummary surfaces a failing attempt's preserved repo
+// dir to the operator — previously RunResult.Dir was populated in
+// memory but never printed. Exercised directly against a fabricated
+// failing RunResult rather than a real catalog scenario: every
+// registered scenario is expected to pass cleanly (there is no longer
+// a deterministically-failing one in the catalog to piggyback on
+// since G-0269's guard shipped).
 func TestRunRun_PrintsPreservedDirOnAFailingAttempt(t *testing.T) {
-	outDir := t.TempDir()
+	t.Parallel()
 	var out bytes.Buffer
 
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "head-drift", &out); err != nil {
-		t.Fatalf("runRun: %v", err)
-	}
-	if !strings.Contains(out.String(), "attempt failed, repo preserved at ") {
+	printScenarioSummary(&out, "fabricated-scenario", []stresstest.RunResult{
+		{Passed: false, Dir: "/tmp/fabricated-preserved-dir"},
+	})
+	if !strings.Contains(out.String(), "attempt failed, repo preserved at /tmp/fabricated-preserved-dir") {
 		t.Fatalf("expected the failing attempt's preserved dir to be printed, got:\n%s", out.String())
 	}
 }

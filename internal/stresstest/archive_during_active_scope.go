@@ -86,15 +86,19 @@ func (s *ArchiveDuringActiveScopeScenario) Setup(dir string) error {
 	}
 	s.milestoneID = msEnv.Metadata.EntityID
 
+	// G-0269's activating-promote branch guard requires the epic's
+	// ritual branch checked out before the milestone in_progress
+	// promote below — cut it first, ahead of the authorize call that
+	// also needs it for the rung-pair preflight.
+	epicBranch := "epic/" + s.epicID + "-parentep"
+	if checkoutErr := runGit(dir, "checkout", "-q", "-b", epicBranch); checkoutErr != nil { //coverage:ignore defensive: creating a fresh branch off a repo this scenario itself just built has no realistic failure mode
+		return fmt.Errorf("cutting the epic branch: %w", checkoutErr)
+	}
+
 	if promEnv, startErr := runAiwfJSON(s.aiwfBin, dir, "promote", s.milestoneID, "in_progress"); startErr != nil { //coverage:ignore defensive: see the parent epic add above
 		return fmt.Errorf("starting the child milestone: %w", startErr)
 	} else if promEnv.Status != "ok" { //coverage:ignore defensive: a freshly-added milestone's draft->in_progress transition is always legal; see the activate-epic rationale above
 		return fmt.Errorf("starting the child milestone: aiwf did not report ok (status=%s, error=%+v)", promEnv.Status, promEnv.Error)
-	}
-
-	epicBranch := "epic/" + s.epicID + "-parentep"
-	if checkoutErr := runGit(dir, "checkout", "-q", "-b", epicBranch); checkoutErr != nil { //coverage:ignore defensive: creating a fresh branch off a repo this scenario itself just built has no realistic failure mode
-		return fmt.Errorf("cutting the epic branch: %w", checkoutErr)
 	}
 
 	authEnv, err := runAiwfJSON(s.aiwfBin, dir, "authorize", s.milestoneID, "--to", "ai/claude", "--branch", "milestone/"+s.milestoneID+"-childms", "--reason", "archive-during-active-scope stress scope")

@@ -131,6 +131,17 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireHumanActorForSovereignAct(e.Kind, e.Status, newStatus, actor); err != nil {
 			return nil, err
 		}
+		// G-0269: an epic proposed → active or milestone → in_progress
+		// promote is a sovereign activating act that must land on
+		// ADR-0010's expected parent branch. A concurrent session
+		// checking out a different branch in the same shared worktree
+		// between the operator's preflight and this commit would
+		// otherwise land the commit wherever HEAD now happens to point,
+		// silently. --force bypasses (sovereign override, same as the
+		// other guards in this block).
+		if err := requireExpectedBranchForActivatingTransition(ctx, t, e, newStatus); err != nil {
+			return nil, err
+		}
 	}
 
 	// Epic-terminal-promote cascade guard (G-0393 / G-0394, two

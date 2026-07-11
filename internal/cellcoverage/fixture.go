@@ -201,10 +201,10 @@ func (f *CellFixture) epicAt(t *testing.T, fromState string) string {
 	case entity.StatusProposed:
 		return "E-0001"
 	case entity.StatusActive:
-		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 		return "E-0001"
 	case entity.StatusDone:
-		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusDone, testActor, "", false, verb.PromoteOptions{}))
 		return "E-0001"
 	case entity.StatusCancelled:
@@ -222,16 +222,16 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 		parentTDD = "required"
 	}
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Cell-coverage Epic", testActor, verb.AddOptions{}))
-	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Cell-coverage Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: parentTDD}))
 	switch fromState {
 	case entity.StatusDraft:
 		return "M-0001"
 	case entity.StatusInProgress:
-		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 		return "M-0001"
 	case entity.StatusDone:
-		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 		// Optionally seed populated ACs (BringOpts.ACs > 0). Each AC
 		// goes through open -> met -> phase done to match the
 		// "all-children-acs.status != open" predicate without
@@ -291,7 +291,7 @@ func (f *CellFixture) gapAt(t *testing.T, fromState string) string {
 		// addressed requires a resolver (--by); construct a milestone
 		// to serve as the addressed-by target.
 		f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Resolver Epic", testActor, verb.AddOptions{}))
-		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 		f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Resolver Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 		f.Must(verb.Promote(f.ctx, f.Tree(), "G-0001", entity.StatusAddressed, testActor, "", false, verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
 		return "G-0001"
@@ -361,9 +361,9 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 		parentTDD = "required"
 	}
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Cell-coverage Epic", testActor, verb.AddOptions{}))
-	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Cell-coverage Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: parentTDD}))
-	f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "", false, verb.PromoteOptions{}))
+	f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", "Cell-coverage AC", testActor, nil))
 	acID := "M-0001/AC-1"
 	switch fromState {
@@ -530,7 +530,7 @@ func (f *CellFixture) satisfyGapAddressed(t *testing.T, gapID string) {
 	tr := f.Tree()
 	if tr.ByID("E-0001") == nil {
 		f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Resolver Epic", testActor, verb.AddOptions{}))
-		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	}
 	if tr.ByID("M-0001") == nil {
 		f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Resolver Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))

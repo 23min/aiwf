@@ -14,10 +14,10 @@ import (
 // `aiwf promote` subprocess against a repo whose branch was switched
 // out from under it between the preflight read and the promote call.
 //
-// Per this milestone's own Constraints, AC-5 is allowed to fail
-// (expected-red): the confirmed defect IS the expected outcome this
-// scenario exists to demonstrate.
-func TestHeadDriftScenario_RealBinary_ConfirmsTheIncidentStillReproduces(t *testing.T) {
+// G-0269's pre-commit branch guard closes this gap: the activation
+// promote refuses outright once the current branch no longer matches
+// its own preflight's expectation, so a real run reports 0 violations.
+func TestHeadDriftScenario_RealBinary_GuardPreventsTheIncident(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
@@ -28,14 +28,11 @@ func TestHeadDriftScenario_RealBinary_ConfirmsTheIncidentStillReproduces(t *test
 	if err != nil {
 		t.Fatalf("RunScenario: %v", err)
 	}
-	if result.Passed {
-		t.Fatal("expected the scenario to report the confirmed G-0269 head-drift defect as a violation, not pass cleanly")
+	if !result.Passed {
+		t.Fatalf("expected the G-0269 branch guard to refuse the drifted-branch promote and report 0 violations, got: %+v", result.Violations)
 	}
-	if len(result.Violations) != 1 {
-		t.Fatalf("expected exactly 1 violation (the confirmed head-drift landing), got %d: %+v", len(result.Violations), result.Violations)
-	}
-	if !strings.Contains(result.Violations[0].Message, "G-0269") {
-		t.Fatalf("expected the violation to name G-0269, got: %+v", result.Violations[0])
+	if len(result.Violations) != 0 {
+		t.Fatalf("expected 0 violations, got %d: %+v", len(result.Violations), result.Violations)
 	}
 }
 

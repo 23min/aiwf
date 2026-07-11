@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -74,7 +73,16 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 				env.MustRunBin("add", "epic", "--title", "Engine")
 				// Cut a ritual branch first, then promote from there — wrong order per ADR-0010.
 				env.MustRunGit("checkout", "-b", "epic/E-0001-engine", "main")
-				env.MustRunBin("promote", "E-0001", "active")
+				// G-0269: the pre-commit branch guard now refuses this
+				// wrong-branch activation outright; --force constructs
+				// the "already landed wrong" fixture this check-rule
+				// cell needs to test detection against, then
+				// StripForceTrailer removes the resulting aiwf-force
+				// trailer (which would itself suppress this check
+				// rule's finding) — the commit ends up shaped exactly
+				// like a genuine, un-overridden race.
+				env.MustRunBin("promote", "E-0001", "active", "--force", "--reason", "AC-8 fixture: construct a wrong-branch commit for the check rule to detect")
+				StripForceTrailer(t, env)
 			},
 			Expect: Expectation{
 				FindingPresent:         "promote-on-wrong-branch",
@@ -94,8 +102,10 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 				env.MustRunBin("add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Bootstrap")
 				// Land milestone in_progress on a sibling milestone
 				// branch — wrong per ADR-0010 (should be parent epic).
+				// --force + StripForceTrailer: see cell 3's comment.
 				env.MustRunGit("checkout", "-b", "milestone/M-9999-other", "main")
-				env.MustRunBin("promote", "M-0001", "in_progress")
+				env.MustRunBin("promote", "M-0001", "in_progress", "--force", "--reason", "AC-8 fixture: construct a wrong-branch commit for the check rule to detect")
+				StripForceTrailer(t, env)
 			},
 			Expect: Expectation{FindingPresent: "promote-on-wrong-branch"},
 		},
@@ -111,7 +121,9 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 				env.MustRunBin("add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Bootstrap")
 				// HEAD stays on main; promote milestone here without
 				// cutting epic branch first — wrong per ADR-0010.
-				env.MustRunBin("promote", "M-0001", "in_progress")
+				// --force + StripForceTrailer: see cell 3's comment.
+				env.MustRunBin("promote", "M-0001", "in_progress", "--force", "--reason", "AC-8 fixture: construct a wrong-branch commit for the check rule to detect")
+				StripForceTrailer(t, env)
 			},
 			Expect: Expectation{
 				FindingPresent:         "promote-on-wrong-branch",
@@ -147,8 +159,12 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 				t.Helper()
 				env.MustRunBin("add", "epic", "--title", "Engine")
 				env.MustRunGit("checkout", "-b", "epic/E-0001-engine", "main")
-				env.MustRunBin("promote", "E-0001", "active")
-				badSHA := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+				// --force + StripForceTrailer: see cell 3's comment —
+				// this cell tests the acknowledge-illegal override
+				// specifically, so the constructed commit must carry
+				// no aiwf-force trailer of its own.
+				env.MustRunBin("promote", "E-0001", "active", "--force", "--reason", "AC-8 fixture: construct a wrong-branch commit for the check rule to detect")
+				badSHA := StripForceTrailer(t, env)
 				AcknowledgeIllegal(t, env, badSHA, "AC-8 fixture: sovereign override of wrong-branch promote")
 			},
 			Expect: Expectation{NoFindingWithCode: "promote-on-wrong-branch"},

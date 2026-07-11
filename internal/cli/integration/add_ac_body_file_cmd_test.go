@@ -23,7 +23,7 @@ func TestAddAC_BodyFile_BinaryEndToEnd(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -144,7 +144,7 @@ func TestAddAC_BodyFile_MultiAC_PositionalPairing(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -298,7 +298,7 @@ func TestAddAC_BodyFile_CountMismatch_RefusesPreAllocation(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -424,7 +424,7 @@ func TestAddAC_BodyFile_LeadingFrontmatter_Refused(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -527,7 +527,7 @@ func TestAddAC_BodyFile_Stdin_SingleTitle_Succeeds(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -592,7 +592,7 @@ func TestAddAC_BodyFile_Stdin_MultiTitle_Refused(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -734,7 +734,7 @@ func TestAddAC_NoBodyFile_LeavesBodyEmpty(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			root := t.TempDir()
-			if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+			if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 				t.Fatalf("git init: %v\n%s", err, out)
 			}
 			for _, args := range [][]string{
@@ -815,7 +815,7 @@ func TestAddAC_BodyFile_MissingFile_ExitsUsage(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

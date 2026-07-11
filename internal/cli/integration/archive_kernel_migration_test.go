@@ -53,7 +53,7 @@ func TestBinary_ArchiveKernelMigration_LeavesCheckClean(t *testing.T) {
 	mustCopyDir(t, filepath.Join(kernelRoot, "docs", "adr"), filepath.Join(repo, "docs", "adr"))
 	mustCopyFile(t, filepath.Join(kernelRoot, "aiwf.yaml"), filepath.Join(repo, "aiwf.yaml"))
 
-	testutil.MustExec(t, repo, "git", "init", "-q")
+	testutil.MustExec(t, repo, "git", "init", "-q", "-b", "main")
 	testutil.MustExec(t, repo, "git", "config", "user.email", "test@example.com")
 	testutil.MustExec(t, repo, "git", "config", "user.name", "aiwf-archive-test")
 	testutil.MustExec(t, repo, "git", "add", "-A")

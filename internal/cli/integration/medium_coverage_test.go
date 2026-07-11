@@ -63,7 +63,7 @@ func TestShow_CompositeIdWithScopes(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -143,7 +143,7 @@ func TestShow_AncestorScopeNotInheritedWithoutAct(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -213,7 +213,7 @@ func TestShow_MultipleScopesSorted(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 	binDir := strings.TrimSuffix(bin, "/aiwf")
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

@@ -1120,7 +1120,7 @@ func TestBuildActivityDigests_UnresolvableEntityBestEffortTitle(t *testing.T) {
 func TestBuildActivityDigests_NoCommitsYet(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 

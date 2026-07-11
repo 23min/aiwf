@@ -23,7 +23,7 @@ func TestEditBody_BinaryEndToEnd(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -94,7 +94,7 @@ func TestEditBody_StdinEndToEnd(t *testing.T) {
 	bin := testutil.AiwfBinary(t)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -149,7 +149,7 @@ func TestEditBody_RejectsFrontmatter_BinaryEndToEnd(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -194,7 +194,7 @@ func TestEditBody_Bless_BinaryEndToEnd(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -274,7 +274,7 @@ func TestEditBody_Bless_NoChanges_BinaryRefusal(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -313,7 +313,7 @@ func TestEditBody_BareCommand_BlessModeOnNonExistentID(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

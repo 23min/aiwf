@@ -30,7 +30,7 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 
 	root := t.TempDir()
 	// `git init` the consumer.
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	// Local git identity; the binary derives actor from this.
@@ -124,7 +124,7 @@ func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

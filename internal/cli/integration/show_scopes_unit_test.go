@@ -106,7 +106,7 @@ func TestLookupCommitDateCached_ErrorFallback(t *testing.T) {
 func TestLookupCommitDateCached_HappyPath(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -188,7 +188,7 @@ func TestSplitMultiValueTrailer(t *testing.T) {
 func TestResolveUntrailedRange_NoUpstream(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	rangeArg, advisory, err := clicheck.ResolveUntrailedRange(context.Background(), root, "")
@@ -215,7 +215,7 @@ func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
 		t.Fatalf("git init bare: %v\n%s", err, out)
 	}
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -253,7 +253,7 @@ func TestResolveUntrailedRange_WithUpstream(t *testing.T) {
 func TestResolveUntrailedRange_SinceWins(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -298,7 +298,7 @@ func TestReadUntrailedCommits_EmptyRange(t *testing.T) {
 		t.Fatalf("git init bare: %v\n%s", err, out)
 	}
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -458,7 +458,7 @@ func TestParseUntrailedCommits_Malformed(t *testing.T) {
 func TestLoadEntityScopeViews_NoCommits(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	got, err := show.LoadEntityScopeViews(context.Background(), root, "E-0001")
@@ -490,7 +490,7 @@ func TestLoadEntityScopeViews_NotInGitRepo(t *testing.T) {
 func TestLoadEntityScopeViews_NoScopesTouchEntity(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

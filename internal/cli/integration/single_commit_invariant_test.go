@@ -69,18 +69,6 @@ func TestSingleCommitPerMutatingVerb_Invariant(t *testing.T) {
 		t.Fatalf("aiwf init must not produce a commit (CLAUDE.md: scaffolding writes files; user commits aiwf.yaml when ready); got %d commits at HEAD", n)
 	}
 
-	// M-0103: the authorize-step cases below open a scope on ai/claude;
-	// the preflight refuses without a ritual branch context. Move HEAD
-	// to a ritual-shape branch so the implicit-current signal passes.
-	// `git checkout -b <new>` on an unborn HEAD is a 0-commit operation,
-	// so the per-verb commit-delta invariant below is preserved.
-	if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
-		t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
-	}
-	if n := commitCountSafe(t, root); n != 0 {
-		t.Fatalf("git checkout -b on unborn HEAD must not produce a commit; got %d commits", n)
-	}
-
 	// A body-file for the edit-body step. Written once up front so the
 	// step itself just runs the verb.
 	bodyFile := filepath.Join(root, "fixtures-edit-body.md")
@@ -129,6 +117,17 @@ entities:
 
 		// promote — entity status, AC status, AC tdd_phase.
 		{"promote E-02 → active", []string{"promote", "E-0002", "active", "--actor", "human/test", "--root", root}},
+
+		// M-0103: the authorize-step cases below open a scope on
+		// ai/claude; the preflight refuses without a ritual branch
+		// context. This also satisfies the G-0269 activating-promote
+		// branch guard for the milestone in_progress promote
+		// immediately below — hence this checkout runs after E-02's
+		// own trunk-landed activation above, not before it.
+		// `git checkout -b <new>` is a 0-commit operation, so the
+		// per-verb commit-delta invariant below is preserved.
+		{"git checkout -b epic/E-0002-engine (test setup, not a verb)", nil},
+
 		{"promote M-001 → in_progress", []string{"promote", "M-0001", "in_progress", "--actor", "human/test", "--root", root}},
 		{"promote M-001/AC-1 → met", []string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}},
 		{"promote M-002/AC-1 phase → green", []string{"promote", "M-0002/AC-1", "--phase", "green", "--tests", "pass=1 fail=0 skip=0", "--actor", "human/test", "--root", root}},
@@ -189,6 +188,18 @@ entities:
 				}
 				if err := os.WriteFile(filepath.Join(fixturesDir, "sample.json"), []byte(`{}`), 0o644); err != nil {
 					t.Fatalf("write fixture: %v", err)
+				}
+				return
+			}
+
+			// Special non-verb step: land on the epic's ritual branch
+			// so the later authorize + milestone-activation steps
+			// satisfy their respective preflight/guard. Counted as
+			// zero-commit (a plain branch checkout, not a kernel
+			// mutation).
+			if s.args == nil && s.name == "git checkout -b epic/E-0002-engine (test setup, not a verb)" {
+				if out, err := exec.Command("git", "-C", root, "checkout", "-b", "epic/E-0002-engine").CombinedOutput(); err != nil {
+					t.Fatalf("git checkout -b epic/E-0002-engine: %v\n%s", err, out)
 				}
 				return
 			}

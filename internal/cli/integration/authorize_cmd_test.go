@@ -24,7 +24,7 @@ func TestRunAuthorize_OpenPauseResumeRoundTrip(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -113,7 +113,7 @@ func TestRunAuthorize_BranchCompletion_ReturnsRitualBranches(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -259,7 +259,7 @@ func TestRunAuthorize_AITarget_OnNonRitualBranch_NoBranch_Refuses(t *testing.T) 
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -315,7 +315,7 @@ func TestRunAuthorize_AITarget_BranchMissing_Refuses(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -530,7 +530,7 @@ func TestRunAuthorize_AITarget_ImplicitRitualBranch_AcceptsAndRecords(t *testing
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -582,7 +582,7 @@ func TestRunAuthorize_AITarget_ForceReasonBypassesPreflight(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -652,7 +652,7 @@ func TestRunAuthorize_AITarget_ForceWithoutReason_RefusesWithReasonError(t *test
 	bin := testutil.AiwfBinary(t)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -703,7 +703,7 @@ func TestRunAuthorize_PauseResume_NonRitualBranch_Accepts(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -763,7 +763,7 @@ func TestRunAuthorize_RefusesNonHumanActor(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -802,7 +802,7 @@ func TestRunAuthorize_PauseRefusedWhenNoActiveScope(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
@@ -838,7 +838,7 @@ func TestRunAuthorize_RejectsMixedModes(t *testing.T) {
 	binDir := filepath.Dir(bin)
 
 	root := t.TempDir()
-	if out, err := testutil.RunGit(root, "init", "-q"); err != nil {
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{
