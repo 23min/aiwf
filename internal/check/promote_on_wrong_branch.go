@@ -9,6 +9,7 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // promote_on_wrong_branch.go — M-0161/AC-8 (G-0209 partial-
@@ -70,10 +71,26 @@ var CodePromoteOnWrongBranch = codespkg.Code{ID: "promote-on-wrong-branch", Clas
 //
 // ackedSHAs honors M-0159/AC-3 acknowledgments via the shared
 // per-SHA exemption.
-func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string]string, oracle BranchOracle, ackedSHAs map[string]bool) []Finding {
+//
+// t is the current entity tree, consulted to resolve a commit's
+// aiwf-entity: trailer forward through any reallocation before
+// the expectedBranches lookup (G-0308). expectedBranches is keyed
+// by the *current* tree's ids; a commit that predates a
+// reallocate carries the freed id verbatim in its trailer, and
+// that id may since have been reclaimed by an unrelated entity.
+// Resolving the trailer id through the rename chain (in-window
+// aiwf-prior-entity: trailers) and then prior_ids frontmatter
+// (out-of-window reallocations) — the same two-step RunProvenance
+// uses for authorization-out-of-scope — finds the expectation for
+// the commit's *actual* entity instead of the id's current
+// claimant. A nil t skips only the prior_ids fallback; in-window
+// rename-chain resolution (walkRenameChain) still applies since it
+// reads solely from commits.
+func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string]string, oracle BranchOracle, ackedSHAs map[string]bool, t *tree.Tree) []Finding {
 	if oracle == nil {
 		return nil
 	}
+	renameChain := buildRenameChain(commits)
 	var findings []Finding
 	for i := range commits {
 		c := &commits[i]
@@ -94,7 +111,8 @@ func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string
 		if ackedSHAs[c.SHA] {
 			continue
 		}
-		expected, hasExpectation := expectedBranches[entityID]
+		resolvedID := resolveViaPriorIDs(walkRenameChain(entityID, renameChain), t)
+		expected, hasExpectation := expectedBranches[resolvedID]
 		if !hasExpectation || expected == "" {
 			continue // No expectation — gap entity, non-ritual kind, or parent lookup failed (fail-shut).
 		}

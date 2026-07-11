@@ -9,6 +9,15 @@ import (
 	"github.com/23min/aiwf/internal/scope"
 )
 
+// promote_on_wrong_branch_test.go § G-0308: a commit's aiwf-entity:
+// trailer must resolve forward through a reallocation before the
+// expectedBranches lookup, else a pre-reallocation promote
+// mis-attributes to whatever entity currently claims the freed id.
+// buildProvenanceTreeWithRenamedAndCollision (provenance_test.go)
+// reproduces the exact G-0308 shape: the id M-0099 was reallocated
+// to M-0001 (parent E-0001), and a later, unrelated parallel
+// allocation reclaimed M-0099 under a different epic, E-0009.
+
 // promote_on_wrong_branch_test.go — M-0161/AC-8 (G-0209
 // partial-close) unit-level coverage of RunPromoteOnWrongBranch
 // per CLAUDE.md §"Test the seam, not just the layer" + the
@@ -27,6 +36,9 @@ import (
 //   - per-commit aiwf-force override → silent
 //   - per-SHA ack via ackedSHAs → silent
 //   - unknown branch (oracle returns empty for SHA) → silent
+//   - pre-reallocation promote resolves via prior_ids → silent (G-0308)
+//   - pre-reallocation promote, genuine wrong branch → still fires (G-0308)
+//   - in-window aiwf-prior-entity trailer resolves forward → silent (G-0308)
 
 func makePromoteCommit(sha, entityID, targetStatus string, force bool) scope.Commit {
 	trailers := []gitops.Trailer{
@@ -50,7 +62,7 @@ func TestPromoteOnWrongBranch_AC8_EpicCorrectBranch_Silent(t *testing.T) {
 		makePromoteCommit("aaa1", "E-0001", "active", false),
 	}
 	oracle := fakeOracle{"aaa1": {"main"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on correct branch; got %d findings: %+v", len(got), got)
 	}
@@ -66,7 +78,7 @@ func TestPromoteOnWrongBranch_AC8_EpicWrongBranch_Fires(t *testing.T) {
 		makePromoteCommit("bbb2", "E-0001", "active", false),
 	}
 	oracle := fakeOracle{"bbb2": {"epic/E-0001-engine"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 1 {
 		t.Fatalf("expected 1 finding; got %d: %+v", len(got), got)
 	}
@@ -100,7 +112,7 @@ func TestPromoteOnWrongBranch_AC8_MilestoneCorrectParentEpic_Silent(t *testing.T
 		makePromoteCommit("ccc3", "M-0010", "in_progress", false),
 	}
 	oracle := fakeOracle{"ccc3": {"epic/E-0001-engine"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"M-0010": "epic/E-0001-engine"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"M-0010": "epic/E-0001-engine"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on parent-epic branch; got %d findings", len(got))
 	}
@@ -115,7 +127,7 @@ func TestPromoteOnWrongBranch_AC8_NonActivatingPromote_Silent(t *testing.T) {
 		makePromoteCommit("ddd4", "E-0001", "done", false),
 	}
 	oracle := fakeOracle{"ddd4": {"epic/E-0001-engine"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on non-activating promote (E-0001 → done); got %d findings: %+v", len(got), got)
 	}
@@ -130,7 +142,7 @@ func TestPromoteOnWrongBranch_AC8_ForceTrailerSuppresses(t *testing.T) {
 		makePromoteCommit("eee5", "E-0001", "active", true),
 	}
 	oracle := fakeOracle{"eee5": {"epic/E-0001-engine"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on forced commit; got %d findings", len(got))
 	}
@@ -145,7 +157,7 @@ func TestPromoteOnWrongBranch_AC8_AcknowledgedSHASilences(t *testing.T) {
 	}
 	oracle := fakeOracle{"fff6": {"epic/E-0001-engine"}}
 	acked := map[string]bool{"fff6": true}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, acked)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, acked, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on acknowledged SHA; got %d findings", len(got))
 	}
@@ -161,7 +173,7 @@ func TestPromoteOnWrongBranch_AC8_NoExpectation_Silent(t *testing.T) {
 	}
 	oracle := fakeOracle{"ggg7": {"epic/E-0001-engine"}}
 	// Empty map → no expectation → silent.
-	got := RunPromoteOnWrongBranch(commits, map[string]string{}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on no-expectation; got %d findings", len(got))
 	}
@@ -177,7 +189,7 @@ func TestPromoteOnWrongBranch_AC8_UnknownBranch_Silent(t *testing.T) {
 	}
 	// Oracle returns empty for the SHA (unknown branch).
 	oracle := fakeOracle{}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on unknown branch; got %d findings", len(got))
 	}
@@ -197,9 +209,99 @@ func TestPromoteOnWrongBranch_AC8_NonPromoteVerb_Silent(t *testing.T) {
 		},
 	}}
 	oracle := fakeOracle{"iii9": {"epic/E-0001-engine"}}
-	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil)
+	got := RunPromoteOnWrongBranch(commits, map[string]string{"E-0001": "main"}, oracle, nil, nil)
 	if len(got) != 0 {
 		t.Errorf("expected silent on non-promote verb; got %d findings", len(got))
+	}
+}
+
+// TestPromoteOnWrongBranch_AC8_ReallocatedEntity_PreReallocationPromote_Silent
+// pins the G-0308 fix: a pre-reallocation promote commit carries the
+// FREED id (M-0099) in its aiwf-entity: trailer. That id has since
+// been reclaimed by an unrelated live entity under a different
+// parent epic (E-0009). Without resolving the trailer through
+// prior_ids to the renumbered-forward entity (M-0001, parent
+// E-0001), the naive lookup finds M-0099's *current* claimant's
+// expectation (E-0009's branch) and fires a false positive against
+// a commit that correctly landed on M-0001's real parent branch.
+func TestPromoteOnWrongBranch_AC8_ReallocatedEntity_PreReallocationPromote_Silent(t *testing.T) {
+	t.Parallel()
+	tr := buildProvenanceTreeWithRenamedAndCollision(t)
+	commits := []scope.Commit{
+		// Historical commit: landed while this milestone was still
+		// M-0099, correctly on its parent epic's branch.
+		makePromoteCommit("aaa1", "M-0099", "in_progress", false),
+	}
+	oracle := fakeOracle{"aaa1": {"epic/E-0001-platform"}}
+	expectedBranches := map[string]string{
+		"M-0001": "epic/E-0001-platform",  // current M-0001 (renumbered-forward), parent E-0001
+		"M-0099": "epic/E-0009-unrelated", // unrelated live entity that reclaimed the freed id
+	}
+	got := RunPromoteOnWrongBranch(commits, expectedBranches, oracle, nil, tr)
+	if len(got) != 0 {
+		t.Fatalf("findings = %v; pre-reallocation promote on the renumbered entity's real parent branch must resolve via prior_ids and stay silent", findingCodes(got))
+	}
+}
+
+// TestPromoteOnWrongBranch_AC8_ReallocatedEntity_GenuineWrongBranch_StillFires
+// pins the negative case for the same fixture: the prior_ids
+// resolution is forward attribution, not a blanket suppression. A
+// pre-reallocation commit that actually landed on the WRONG branch
+// (neither M-0001's nor M-0099's expectation) must still fire, now
+// correctly attributed to the renumbered-forward entity's
+// expectation rather than silenced or misattributed.
+func TestPromoteOnWrongBranch_AC8_ReallocatedEntity_GenuineWrongBranch_StillFires(t *testing.T) {
+	t.Parallel()
+	tr := buildProvenanceTreeWithRenamedAndCollision(t)
+	commits := []scope.Commit{
+		makePromoteCommit("bbb2", "M-0099", "in_progress", false),
+	}
+	oracle := fakeOracle{"bbb2": {"main"}}
+	expectedBranches := map[string]string{
+		"M-0001": "epic/E-0001-platform",
+		"M-0099": "epic/E-0009-unrelated",
+	}
+	got := RunPromoteOnWrongBranch(commits, expectedBranches, oracle, nil, tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %v; genuine wrong-branch promote on a reallocated entity must still fire", findingCodes(got))
+	}
+	if !strings.Contains(got[0].Message, "epic/E-0001-platform") {
+		t.Errorf("Message %q does not name the resolved entity's expected branch", got[0].Message)
+	}
+}
+
+// TestPromoteOnWrongBranch_AC8_InWindowReallocateTrailer_ResolvesForward_Silent
+// covers the sibling resolution path: when the reallocate commit
+// itself is within the audited commit window, buildRenameChain +
+// walkRenameChain resolve the old id forward from the
+// aiwf-prior-entity: trailer alone — no tree lookup needed (t is
+// nil here to isolate the in-window path from the prior_ids
+// fallback exercised by the tests above). expectedBranches carries
+// a deliberately WRONG entry under the freed id (M-0099) so that a
+// naive unresolved lookup would misfire; only the resolved id
+// (M-0001) reaches the correct (matching) expectation.
+func TestPromoteOnWrongBranch_AC8_InWindowReallocateTrailer_ResolvesForward_Silent(t *testing.T) {
+	t.Parallel()
+	commits := []scope.Commit{
+		{
+			SHA: "realloc1",
+			Trailers: []gitops.Trailer{
+				{Key: gitops.TrailerVerb, Value: "reallocate"},
+				{Key: gitops.TrailerEntity, Value: "M-0001"},
+				{Key: gitops.TrailerPriorEntity, Value: "M-0099"},
+				{Key: gitops.TrailerActor, Value: "human/peter"},
+			},
+		},
+		makePromoteCommit("ccc3", "M-0099", "in_progress", false),
+	}
+	oracle := fakeOracle{"ccc3": {"epic/E-0001-platform"}}
+	expectedBranches := map[string]string{
+		"M-0001": "epic/E-0001-platform",  // resolved-forward entity — matches the commit's actual branch
+		"M-0099": "epic/E-0009-unrelated", // freed id's naive (wrong) expectation — must NOT be consulted
+	}
+	got := RunPromoteOnWrongBranch(commits, expectedBranches, oracle, nil, nil)
+	if len(got) != 0 {
+		t.Fatalf("findings = %v; in-window aiwf-prior-entity trailer must resolve the old id forward and stay silent", findingCodes(got))
 	}
 }
 
