@@ -1,7 +1,7 @@
 ---
 id: M-0246
 title: Wire archive to rewrite link destinations on sweep
-status: in_progress
+status: done
 parent: E-0063
 depends_on:
     - M-0245
