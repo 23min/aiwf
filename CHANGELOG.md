@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0062: on-demand correctness stress harness
+
+A new `cmd/stresstest` binary drives the compiled `aiwf` binary as a real
+subprocess against disposable git repos, on demand (never scheduled, never
+part of `cmd/aiwf`). 14 scenarios cover four correctness-risk mechanisms:
+true simultaneity (goroutine/process fan-out racing `repolock` — id
+allocation, cross-worktree races, a `move`-across-two-epics race), divergent
+worktrees reconciled later, fault injection via external observation
+(`kill -9`, disk-full, permission-denied), and a sequential FSM random walk
+driving `promote`/`rename`/`retitle`/`archive`/`move` through many legal
+transitions with a post-step invariant cross-checking `aiwf list` against
+ground truth. Every scenario has a deterministic pass/fail oracle;
+`cmd/stresstest run --scenario <name>|all --repeat N` is the entry point.
+See `wrap.md` under `work/epics/E-0062-correctness-stress-harness/` for the
+full milestone list and the follow-up gaps this harness surfaced.
+
 ### Added — G-0393 / G-0394: epic promote to a terminal status, and archive, both refuse to strand a non-terminal milestone
 
 `aiwf promote <epic> done` and `aiwf promote <epic> cancelled` now refuse when
