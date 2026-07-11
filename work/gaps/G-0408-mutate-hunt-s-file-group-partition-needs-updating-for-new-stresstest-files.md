@@ -1,7 +1,9 @@
 ---
 id: G-0408
 title: mutate-hunt's file-group partition needs updating for new stresstest files
-status: open
+status: addressed
+addressed_by_commit:
+    - 7f6dda3a
 ---
 ## What's missing
 
