@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0308: promote-on-wrong-branch no longer mis-attributes commits across a reallocation
+
+The `promote-on-wrong-branch` check now resolves a promote commit's
+`aiwf-entity:` trailer forward through any reallocation before comparing it
+against the expected parent branch. Previously, a pre-reallocation commit
+that carried a since-freed id could be mis-attributed to whatever unrelated
+entity later reclaimed that id, producing a false-positive finding against a
+commit that had correctly landed on its real parent branch at the time.
+
 ### Fixed — G-0329: committing verbs refuse to run during a pending merge/cherry-pick/revert/rebase
 
 Any apply-routed verb (`promote`, `add`, `archive`, `cancel`, `reallocate`,

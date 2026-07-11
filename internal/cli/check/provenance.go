@@ -107,7 +107,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		// missing parents stay out of the map → rule silent
 		// (fail-shut on correctness).
 		expectedBranches := expectedParentBranchesForPromote(t, cliutil.ConfiguredTrunkBranchShortName(root))
-		findings = append(findings, check.RunPromoteOnWrongBranch(commits, expectedBranches, oracle, ackedSHAs)...)
+		findings = append(findings, check.RunPromoteOnWrongBranch(commits, expectedBranches, oracle, ackedSHAs, t)...)
 		// M-0161/AC-3 + AC-4 + AC-5 / D-0019: surface oracle
 		// coverage gaps. Per-ref failures emit isolation-escape
 		// -oracle-failure (advisory; AC-3); the shallow-clone
