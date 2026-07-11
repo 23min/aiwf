@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0408: mutate-hunt's scoped-dispatch file-group partition now covers every file
+
+`mutate-hunt.yml`'s documented four-group split for scoped `internal/stresstest`
+dispatches missed `promote_on_wrong_branch_detection.go`, a file added after the
+groups were originally derived — it fell through every group's exclude pattern
+and got mutated redundantly in all four dispatches instead of exactly one. Now
+folded into the shared-infra group, with a note on where new files belong.
+
 ### Added — G-0269: pre-commit branch guard on epic and milestone activation promotes
 
 `aiwf promote` now refuses, before committing, an epic `proposed -> active`

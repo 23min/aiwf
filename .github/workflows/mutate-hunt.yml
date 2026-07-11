@@ -75,12 +75,19 @@
 #                         head_drift.go, lock_kill.go
 #       pattern: (force_override_durability|archive_during_active_scope|reachability_isolation|disk_fault|mid_write_kill|head_drift|lock_kill)\.go
 #     - shared-infra:     gitrepo.go, repeat.go, compose.go, verbenvelope.go,
-#                         scenario.go, report.go, binary.go, lockholder/main.go
-#       pattern: (gitrepo|repeat|compose|verbenvelope|scenario|report|binary)\.go|lockholder/main\.go
+#                         scenario.go, report.go, binary.go,
+#                         promote_on_wrong_branch_detection.go, lockholder/main.go
+#       pattern: (gitrepo|repeat|compose|verbenvelope|scenario|report|binary|promote_on_wrong_branch_detection)\.go|lockholder/main\.go
+#   New files added to internal/stresstest belong in one of these four
+#   groups (shared-infra is the default bucket for anything that isn't
+#   a verb-sequence/concurrent/fault-injection scenario) — add them to
+#   the matching group's pattern here so the partition stays complete;
+#   an unassigned file gets mutated redundantly in every dispatch
+#   instead of exactly one, since no group's exclude pattern covers it.
 #   To scope a dispatch to one group, set exclude_files to the other
 #   three groups' patterns, comma-separated. Example — scope to
 #   verb-sequence only:
-#     (concurrent_|cross_worktree_|parallel_branch_reallocate).*\.go,(force_override_durability|archive_during_active_scope|reachability_isolation|disk_fault|mid_write_kill|head_drift|lock_kill)\.go,(gitrepo|repeat|compose|verbenvelope|scenario|report|binary)\.go|lockholder/main\.go
+#     (concurrent_|cross_worktree_|parallel_branch_reallocate).*\.go,(force_override_durability|archive_during_active_scope|reachability_isolation|disk_fault|mid_write_kill|head_drift|lock_kill)\.go,(gitrepo|repeat|compose|verbenvelope|scenario|report|binary|promote_on_wrong_branch_detection)\.go|lockholder/main\.go
 #   Leave exclude_files empty for a single dispatch covering the whole
 #   pkg_pattern (today's default behavior).
 
