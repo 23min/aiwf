@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/23min/aiwf/internal/cli/list"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -12,23 +13,18 @@ import (
 // verb_sequence_list_invariant.go — M-0250/AC-3: after every walk
 // step, checkListInvariant cross-checks `aiwf list --archived`'s real
 // subprocess output against an independently-derived ground truth
-// (tree.Load, walked directly). This deliberately never imports
-// internal/cli/list — calling its own BuildListRows/BuildListCounts
-// to derive the expected value would validate `list` against itself,
-// making the check vacuous (per this milestone's own Constraints).
+// (tree.Load, walked directly). This deliberately never calls
+// internal/cli/list's own BuildListRows/BuildListCounts to derive the
+// expected value — that would validate `list` against itself, making
+// the check vacuous (per this milestone's own Constraints). Reusing
+// just the row *type* below carries none of that risk: it's a plain
+// data shape, not the row-building logic under test.
 
-// listRow is the subset of `aiwf list --format=json`'s per-entity
-// result fields this invariant compares. Mirrors
-// internal/cli/list.ListSummary's field set structurally (same JSON
-// shape on the wire) without importing that package.
-type listRow struct {
-	ID     string `json:"id"`
-	Kind   string `json:"kind"`
-	Status string `json:"status"`
-	Title  string `json:"title"`
-	Parent string `json:"parent"`
-	Path   string `json:"path"`
-}
+// listRow is list.ListSummary aliased, not hand-duplicated: a field
+// added to ListSummary tomorrow shows up here automatically, so this
+// invariant can't silently drift out of sync with what `aiwf list`
+// actually emits on the wire.
+type listRow = list.ListSummary
 
 // checkListInvariant runs `aiwf list --archived` against dir and
 // compares its row set to ground truth loaded directly from disk via
