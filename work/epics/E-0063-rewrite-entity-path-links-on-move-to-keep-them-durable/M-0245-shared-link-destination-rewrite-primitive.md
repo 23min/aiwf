@@ -1,7 +1,7 @@
 ---
 id: M-0245
 title: Shared link-destination rewrite primitive
-status: in_progress
+status: done
 parent: E-0063
 tdd: required
 acs:
