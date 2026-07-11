@@ -65,6 +65,9 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	if stagedErr != nil {
 		return "", fmt.Errorf("checking pre-staged changes: %w", stagedErr)
 	}
+	if opErr := checkNoGitOperationInProgress(ctx, root); opErr != nil {
+		return "", opErr
+	}
 	if conflictErr := checkStagedConflict(staged, verbPaths); conflictErr != nil {
 		return "", conflictErr
 	}
@@ -304,6 +307,39 @@ func checkStagedConflict(staged, verbPaths []string) error {
 		strings.Join(conflicts, ", "),
 		strings.Join(conflicts, " "),
 	)
+}
+
+// checkNoGitOperationInProgress refuses Apply when a merge,
+// cherry-pick, revert, or rebase is already under way in root's repo.
+// Apply's commit machinery (gitops.CommitVerbChange) moves HEAD via
+// commit-tree + update-ref independently of any pending operation's
+// state; running it mid-operation leaves that operation's on-disk
+// markers (MERGE_HEAD, etc.) pointing at a HEAD that has since moved,
+// corrupting whatever the operator does next to finish it (G-0329).
+// Resolved via gitops.GitDir, not root/".git", so a linked worktree
+// checks its own per-worktree gitdir — these markers live there, not
+// in the shared common dir.
+func checkNoGitOperationInProgress(ctx context.Context, root string) error {
+	gitDir, err := gitops.GitDir(ctx, root)
+	if err != nil {
+		return fmt.Errorf("checking for an in-progress git operation: %w", err)
+	}
+	markers := []struct{ path, label string }{
+		{filepath.Join(gitDir, "MERGE_HEAD"), "a merge"},
+		{filepath.Join(gitDir, "CHERRY_PICK_HEAD"), "a cherry-pick"},
+		{filepath.Join(gitDir, "REVERT_HEAD"), "a revert"},
+	}
+	for _, m := range markers {
+		if _, statErr := os.Stat(m.path); statErr == nil {
+			return fmt.Errorf("%s is in progress in this repo; complete or abort it before running this command", m.label)
+		}
+	}
+	for _, dir := range []string{"rebase-merge", "rebase-apply"} {
+		if info, statErr := os.Stat(filepath.Join(gitDir, dir)); statErr == nil && info.IsDir() {
+			return errors.New("a rebase is in progress in this repo; complete or abort it before running this command")
+		}
+	}
+	return nil
 }
 
 // reconcileFailureError composes the error Apply returns when the
