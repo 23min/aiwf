@@ -855,7 +855,7 @@ finds into a reproducible gap.
 | M-0243 | Named scenarios from G-0212 and G-0269 | done |
 | M-0244 | Concurrent-writer test at scale; triage process | done |
 | M-0249 | Scenario registry: wire cmd/stresstest run to the real catalog | done |
-| M-0250 | Register the verb-sequence walker; extend it to move/archive/rename/retitle | draft |
+| M-0250 | Register the verb-sequence walker; extend it to move/archive/rename/retitle | in_progress |
 
 ## E-0063 — Rewrite entity path-links on move to keep them durable (proposed)
 

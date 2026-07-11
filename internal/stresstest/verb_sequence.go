@@ -45,12 +45,17 @@ var verbSequenceExpectedWarnings = map[string]bool{
 }
 
 // VerbSequenceScenario implements Scenario. steps is the number of
-// promote attempts run per entity kind.
+// walk operations run per entity kind (M-0250/AC-2: promote is one of
+// several selectable operations now, not the only one).
 type VerbSequenceScenario struct {
-	aiwfBin    string
-	rng        *rand.Rand
-	steps      int
-	violations []Violation
+	aiwfBin        string
+	rng            *rand.Rand
+	steps          int
+	violations     []Violation
+	renameCounter  int
+	retitleCounter int
+	archiveCounter int
+	moveCounter    int
 }
 
 // NewVerbSequenceScenario builds a scenario that walks `steps`
@@ -69,9 +74,27 @@ func (s *VerbSequenceScenario) Setup(dir string) error {
 }
 
 // Run creates one entity of every kind (in entity.AllKinds() order,
-// so the milestone's --epic parent already exists) and walks each
-// through s.steps random promote attempts.
+// so the milestone's --epic parent already exists), plus one extra
+// scratch epic dedicated to being the milestone's alternate move
+// target (M-0250/AC-2), and walks each of the AllKinds() entities
+// through s.steps random operations.
 func (s *VerbSequenceScenario) Run(dir string) error {
+	// The scratch epic is created first and never walked itself
+	// (no promote/rename/retitle/archive ever runs against it), so it
+	// stays non-terminal for the whole scenario — always a valid,
+	// live `move` target regardless of what the AllKinds() epic's own
+	// walk later does to its own status.
+	altEpicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic",
+		"--title", "walker move-target scratch epic",
+		"--body", "dedicated aiwf move target for the verb-sequence stress scenario; never walked itself")
+	if err != nil { //coverage:ignore defensive: covered by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing at the source (runAiwfJSON's own launch-failure branch), not by re-triggering it at every call site
+		return fmt.Errorf("seeding the move-target scratch epic: %w", err)
+	}
+	if altEpicEnv.Status != "ok" {
+		return fmt.Errorf("seeding the move-target scratch epic: aiwf did not report ok (status=%s, error=%+v)", altEpicEnv.Status, altEpicEnv.Error)
+	}
+	altEpicID := altEpicEnv.Metadata.EntityID
+
 	var epicID string
 	for _, kind := range entity.AllKinds() {
 		args := []string{
@@ -106,7 +129,18 @@ func (s *VerbSequenceScenario) Run(dir string) error {
 			// but keeping it explicit means a future finding-code reuse
 			// or a new kind gaining epic-parent semantics can't silently
 			// swallow an unrelated add refusal for a different kind.
-			if kind == entity.KindMilestone && isEpicAlreadyTerminalRefusal(addEnv.Findings) {
+			// M-0250/AC-2: the new "archive" walk operation makes a
+			// second symptom of the identical G-0398 root cause newly
+			// reachable — the epic's own walk can now both terminate
+			// AND sweep it into archive/ before this milestone is
+			// created (previously the walker had no way to archive
+			// anything at all). `aiwf add milestone --epic
+			// <archived-epic>` then projects the new milestone as born
+			// inside the archived directory while still non-terminal,
+			// producing a two-code combination isEpicAlreadyTerminalRefusal's
+			// single-code exact-match doesn't recognize — see
+			// isEpicAlreadyArchivedRefusal's own doc comment.
+			if kind == entity.KindMilestone && (isEpicAlreadyTerminalRefusal(addEnv.Findings) || isEpicAlreadyArchivedRefusal(addEnv.Findings)) {
 				continue
 			}
 			return fmt.Errorf("creating a %s entity: aiwf did not report ok (status=%s, error=%+v, findings=%+v)",
@@ -126,7 +160,16 @@ func (s *VerbSequenceScenario) Run(dir string) error {
 			return fmt.Errorf("could not determine initial status of %s", id)
 		}
 
-		if err := s.walk(dir, kind, id, current); err != nil { //coverage:ignore defensive: walk's own internal error branches are the same launch-failure class, pinned at their source
+		// move is selectable only for the milestone kind — it's the
+		// only kind verb.Move accepts, and only the milestone entity
+		// has a live, guaranteed-non-terminal second epic (altEpicID)
+		// to alternate with (see this method's doc comment).
+		var mv *moveState
+		if kind == entity.KindMilestone {
+			mv = &moveState{current: epicID, other: altEpicID}
+		}
+
+		if err := s.walk(dir, kind, id, current, mv); err != nil { //coverage:ignore defensive: walk's own internal error branches are the same launch-failure class, pinned at their source
 			return err
 		}
 	}
@@ -138,40 +181,238 @@ func (s *VerbSequenceScenario) Verify(_ string) []Violation {
 	return s.violations
 }
 
-// walk runs s.steps promote attempts against id, picking a target
-// status uniformly at random from the kind's full closed status set
-// (so both FSM-legal and FSM-illegal targets are exercised) and
-// classifying the outcome via classifyVerbSequenceStep. After every
-// attempt it also re-runs `aiwf check` and classifies its findings.
-func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current string) error {
-	targets := entity.AllowedStatuses(kind)
+// walk runs s.steps operations against id, selecting each step's
+// operation via a weighted random draw over walkOperationsFor(mv !=
+// nil) (M-0250/AC-2). mv is nil for every kind but milestone — move
+// is only ever in the drawable set when mv is non-nil. After every
+// step it re-runs `aiwf check` and classifies its findings, then
+// cross-checks `aiwf list --archived` against ground truth via
+// checkListInvariant (M-0250/AC-3) — a whole-tree check, not scoped
+// to id, since a corruption `list` misses could affect any entity
+// this or an earlier kind's walk created.
+func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current string, mv *moveState) error {
+	ops := walkOperationsFor(mv != nil)
 	for i := 0; i < s.steps; i++ {
-		target := targets[s.rng.IntN(len(targets))]
+		opName := pickWalkOperation(s.rng, ops)
 
-		before, err := gitHeadCommitCount(dir)
-		if err != nil { //coverage:ignore defensive: git rev-list on a repo this scenario itself just created and is still driving has no realistic failure mode
-			return fmt.Errorf("counting commits before %s %s -> %s: %w", id, current, target, err)
+		var stepViolations []Violation
+		var err error
+		switch opName {
+		case "promote":
+			current, stepViolations, err = s.stepPromote(dir, kind, id, current)
+		case "rename":
+			stepViolations, err = s.stepRename(dir, id)
+		case "retitle":
+			stepViolations, err = s.stepRetitle(dir, id)
+		case "archive":
+			stepViolations, err = s.stepArchive(dir)
+		case moveOperationName:
+			stepViolations, err = s.stepMove(dir, id, mv)
 		}
-		env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, target)
-		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
-			return fmt.Errorf("running promote %s %s: %w", id, target, err)
+		if err != nil { //coverage:ignore defensive: forwards whichever stepX method's own launch-failure error fired — each is already pinned at its own source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing's launch-failure class
+			return err
 		}
-		after, err := gitHeadCommitCount(dir)
-		if err != nil { //coverage:ignore defensive: see the "before" call above
-			return fmt.Errorf("counting commits after %s %s -> %s: %w", id, current, target, err)
-		}
-
-		next, violations := classifyVerbSequenceStep(kind, current, target, before, after, env)
-		s.violations = append(s.violations, violations...)
-		current = next
+		s.violations = append(s.violations, stepViolations...)
 
 		checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
 		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
-			return fmt.Errorf("running aiwf check after %s %s -> %s: %w", id, current, target, err)
+			return fmt.Errorf("running aiwf check after %s step %q: %w", id, opName, err)
 		}
 		s.violations = append(s.violations, classifyCheckFindings(checkEnv.Findings)...)
+
+		label := fmt.Sprintf("%s step %d (%s)", id, i+1, opName)
+		listViolations, err := checkListInvariant(s.aiwfBin, dir, label)
+		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+			return fmt.Errorf("running the list-vs-ground-truth invariant after %s: %w", label, err)
+		}
+		s.violations = append(s.violations, listViolations...)
 	}
 	return nil
+}
+
+// stepPromote runs one promote attempt against id, picking a target
+// status uniformly at random from kind's full closed status set (so
+// both FSM-legal and FSM-illegal targets are exercised), and
+// classifies the outcome via classifyVerbSequenceStep.
+func (s *VerbSequenceScenario) stepPromote(dir string, kind entity.Kind, id, current string) (next string, violations []Violation, err error) {
+	targets := entity.AllowedStatuses(kind)
+	target := targets[s.rng.IntN(len(targets))]
+
+	before, err := gitHeadCommitCount(dir)
+	if err != nil { //coverage:ignore defensive: git rev-list on a repo this scenario itself just created and is still driving has no realistic failure mode
+		return current, nil, fmt.Errorf("counting commits before %s %s -> %s: %w", id, current, target, err)
+	}
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, target)
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return current, nil, fmt.Errorf("running promote %s %s: %w", id, target, err)
+	}
+	after, err := gitHeadCommitCount(dir)
+	if err != nil { //coverage:ignore defensive: see the "before" call above
+		return current, nil, fmt.Errorf("counting commits after %s %s -> %s: %w", id, current, target, err)
+	}
+
+	next, violations = classifyVerbSequenceStep(kind, current, target, before, after, env)
+	return next, violations, nil
+}
+
+// stepRename runs one `aiwf rename` against id with a fresh,
+// monotonically-unique slug (s.renameCounter), so repeated rename
+// steps against the same entity never collide with an earlier one's
+// resulting slug.
+func (s *VerbSequenceScenario) stepRename(dir, id string) ([]Violation, error) {
+	s.renameCounter++
+	slug := fmt.Sprintf("walk-rename-%d", s.renameCounter)
+	env, err := runAiwfJSON(s.aiwfBin, dir, "rename", id, slug)
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return nil, fmt.Errorf("running rename %s -> %q: %w", id, slug, err)
+	}
+	return classifySimpleStep(fmt.Sprintf("%s: rename to %q", id, slug), env), nil
+}
+
+// stepRetitle runs one `aiwf retitle` against id with a fresh,
+// monotonically-unique title (s.retitleCounter).
+func (s *VerbSequenceScenario) stepRetitle(dir, id string) ([]Violation, error) {
+	s.retitleCounter++
+	title := fmt.Sprintf("walker retitle %d", s.retitleCounter)
+	env, err := runAiwfJSON(s.aiwfBin, dir, "retitle", id, title)
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return nil, fmt.Errorf("running retitle %s -> %q: %w", id, title, err)
+	}
+	return classifySimpleStep(fmt.Sprintf("%s: retitle to %q", id, title), env), nil
+}
+
+// stepArchive runs `aiwf archive --apply`, a repo-wide sweep rather
+// than an id-targeted operation — it may be a no-op (nothing
+// currently terminal) depending on what earlier steps in this or
+// other kinds' walks have done; a no-op sweep is a legitimate `ok`,
+// not a violation. s.archiveCounter records every dispatch attempt
+// (success or not), so a test can confirm walk's switch actually
+// reached this case without depending on a sweep finding anything.
+func (s *VerbSequenceScenario) stepArchive(dir string) ([]Violation, error) {
+	s.archiveCounter++
+	env, err := runAiwfJSON(s.aiwfBin, dir, "archive", "--apply")
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return nil, fmt.Errorf("running archive --apply: %w", err)
+	}
+	return classifySimpleStep("archive --apply", env), nil
+}
+
+// stepMove runs one `aiwf move` against id, relocating it to mv's
+// current alternate target. mv.target() is always a live, non-
+// terminal epic (see Run's doc comment), so an unexpected refusal is
+// always a violation; on success mv.applyMoved() swaps current/other
+// so the next move step alternates back. s.moveCounter mirrors
+// s.archiveCounter's dispatch-attempt bookkeeping.
+func (s *VerbSequenceScenario) stepMove(dir, id string, mv *moveState) ([]Violation, error) {
+	s.moveCounter++
+	target := mv.target()
+	env, err := runAiwfJSON(s.aiwfBin, dir, "move", id, "--epic", target)
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return nil, fmt.Errorf("running move %s -> %s: %w", id, target, err)
+	}
+	violations := classifySimpleStep(fmt.Sprintf("%s: move -> %s", id, target), env)
+	if len(violations) == 0 {
+		mv.applyMoved()
+	}
+	return violations, nil
+}
+
+// moveState tracks a milestone's current parent epic across a walk's
+// move steps: current is its live parent, other is the alternate
+// target the next move step selects. Both epic ids are guaranteed
+// non-terminal for the milestone's entire walk — see Run's doc
+// comment for why.
+type moveState struct {
+	current string
+	other   string
+}
+
+// target returns the epic id a move step should relocate id to.
+func (mv *moveState) target() string { return mv.other }
+
+// applyMoved records a successful move: current and other swap, so
+// the next move step's target alternates back to where id started.
+func (mv *moveState) applyMoved() { mv.current, mv.other = mv.other, mv.current }
+
+// walkOperation is one verb-shaped action VerbSequenceScenario.walk
+// may select at a given step, alongside its selection weight.
+type walkOperation struct {
+	Name   string
+	Weight int
+}
+
+// moveOperationName is move's own entry name in the operation table,
+// named once so walk's switch and walkOperationsFor's conditional
+// append can't drift apart on what selecting "move" means.
+const moveOperationName = "move"
+
+// baseWalkOperations are the operations every kind's walk can select
+// regardless of kind. promote carries most of the weight (it is the
+// walker's original, still-primary operation per M-0241/AC-1); the
+// other three are weighted low enough to stay occasional perturbations
+// rather than dominating the walk.
+var baseWalkOperations = []walkOperation{
+	{Name: "promote", Weight: 6},
+	{Name: "rename", Weight: 1},
+	{Name: "retitle", Weight: 1},
+	{Name: "archive", Weight: 1},
+}
+
+// walkOperationsFor returns the operation set for one kind's walk:
+// baseWalkOperations, plus move when moveEnabled (kind == milestone,
+// verb.Move's only accepted kind, and a second epic exists to move
+// between — see Run's doc comment). M-0250/AC-2's own acceptance
+// criterion is pinned directly against this table's shape by
+// TestWalkOperationsFor_NamesAllFourExtensionOpsWithNonzeroWeight.
+func walkOperationsFor(moveEnabled bool) []walkOperation {
+	ops := append([]walkOperation(nil), baseWalkOperations...)
+	if moveEnabled {
+		ops = append(ops, walkOperation{Name: moveOperationName, Weight: 1})
+	}
+	return ops
+}
+
+// totalWeight sums ops' weights.
+func totalWeight(ops []walkOperation) int {
+	total := 0
+	for _, op := range ops {
+		total += op.Weight
+	}
+	return total
+}
+
+// pickWalkOperation draws a uniformly random operation name from ops,
+// weighted by each entry's Weight.
+func pickWalkOperation(rng *rand.Rand, ops []walkOperation) string {
+	return weightedPick(ops, rng.IntN(totalWeight(ops)))
+}
+
+// weightedPick returns the name of the operation whose cumulative
+// weight range contains r (0 <= r < totalWeight(ops)) — the
+// deterministic core of pickWalkOperation, factored out so the
+// cumulative-boundary logic is testable without a random source.
+func weightedPick(ops []walkOperation, r int) string {
+	for _, op := range ops {
+		if r < op.Weight {
+			return op.Name
+		}
+		r -= op.Weight
+	}
+	return ops[len(ops)-1].Name //coverage:ignore defensive: unreachable when 0 <= r < totalWeight(ops), the only way pickWalkOperation constructs r
+}
+
+// classifySimpleStep judges one non-FSM walker step (rename, retitle,
+// archive, move): none of these four carries a walker-chosen target
+// that might deliberately be illegal (unlike promote's random target
+// status), so an unexpected refusal is always a violation — there is
+// no symmetrical "refused for a legitimate reason" branch the way
+// classifyVerbSequenceStep has for promote.
+func classifySimpleStep(label string, env verbEnvelope) []Violation {
+	if env.Status == "ok" {
+		return nil
+	}
+	return []Violation{{Message: fmt.Sprintf(
+		"%s unexpectedly refused (status=%s, error=%+v)", label, env.Status, env.Error)}}
 }
 
 // classifyVerbSequenceStep judges one promote attempt's outcome
@@ -236,6 +477,28 @@ func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, 
 // to carry this code isn't silently swallowed.
 func isEpicAlreadyTerminalRefusal(findings []verbEnvelopeFinding) bool {
 	return len(findings) == 1 && findings[0].Code == check.CodeEpicTerminalNonTerminalChildren
+}
+
+// isEpicAlreadyArchivedRefusal reports whether findings is exactly
+// the two-finding combination `aiwf add milestone` produces when its
+// --epic parent was already both terminal AND swept into archive/
+// before this milestone was created — the archived-parent variant of
+// G-0398 that M-0250/AC-2's new "archive" walk operation newly makes
+// reachable (previously the walker had no way to archive anything).
+// The new milestone is projected to be born inside the archived
+// epic's directory while itself non-terminal, so the projection
+// reports CodeArchivedEntityNotTerminal for the new milestone
+// alongside CodeEpicTerminalNonTerminalChildren for the epic — order
+// unspecified, hence the set comparison rather than a positional one.
+// Exact-match on exactly these two codes together, mirroring
+// isEpicAlreadyTerminalRefusal's own discipline, so a genuinely
+// different multi-finding refusal isn't silently swallowed.
+func isEpicAlreadyArchivedRefusal(findings []verbEnvelopeFinding) bool {
+	if len(findings) != 2 {
+		return false
+	}
+	codes := map[string]bool{findings[0].Code: true, findings[1].Code: true}
+	return codes[check.CodeArchivedEntityNotTerminal] && codes[check.CodeEpicTerminalNonTerminalChildren]
 }
 
 // classifyCheckFindings reports a violation for every finding that

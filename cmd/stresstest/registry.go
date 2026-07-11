@@ -48,6 +48,14 @@ const defaultScenarioKind = entity.KindGap
 // enough for interactive, on-demand use.
 const defaultScale = 8
 
+// defaultVerbSequenceSteps is the promote-attempt count per entity
+// kind the verb-sequence walker runs (M-0250/AC-1). Six kinds *
+// this many steps must be large enough that every operation in the
+// walker's weighted transition table (M-0250/AC-2) fires at least
+// once with high probability, small enough that `--scenario all`
+// stays fast enough for interactive, on-demand use.
+const defaultVerbSequenceSteps = 12
+
 // scenarioAll is the pseudo-name selecting the whole catalog rather
 // than one entry — never itself a scenarioCatalog row. Named once so
 // resolveScenarios (run.go) and needsLockHolder below can't drift on
@@ -121,6 +129,16 @@ var scenarioCatalog = []scenarioEntry{
 	{"concurrent-writer-at-scale", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
 		return func(seed int64) stresstest.Scenario {
 			return stresstest.NewConcurrentWriterAtScaleScenario(rt.aiwfBin, defaultScale, seed)
+		}
+	}},
+	{"verb-sequence", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+		return func(seed int64) stresstest.Scenario {
+			return stresstest.NewVerbSequenceScenario(rt.aiwfBin, seed, defaultVerbSequenceSteps)
+		}
+	}},
+	{"concurrent-move", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+		return func(seed int64) stresstest.Scenario {
+			return stresstest.NewConcurrentMoveScenario(rt.aiwfBin, defaultScale, seed)
 		}
 	}},
 }
