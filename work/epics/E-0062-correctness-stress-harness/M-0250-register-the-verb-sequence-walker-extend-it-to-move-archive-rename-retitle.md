@@ -115,6 +115,12 @@ ConcurrentMoveScenario races n real `aiwf move` subprocesses (goroutine fan-out,
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go test -race -parallel 8 ./...` — full repo green (all packages, every package's own test suite).
+- `make lint` (`golangci-lint run`) — 0 issues.
+- `make coverage-gate` — clean (`BranchCoverageAudit`, `FiringFixturePresence`, `FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop` all pass against the diff since `origin/main`).
+- Manual branch-coverage audit performed per AC (every changed line traced to a test or a `//coverage:ignore` with a stated rationale); `wf-vacuity` mutation probes performed on the two new post-step invariants (`checkListInvariant`, AC-3; `ConcurrentMoveScenario.Run`, AC-4) — both initially survived a "silently drop the classify result" mutation, closed with a stand-in-binary divergence test for each.
+
 ## Deferrals
 
 - G-0401 — AC-2's coverage audit found that the walker's epic-then-
@@ -128,4 +134,9 @@ ConcurrentMoveScenario races n real `aiwf move` subprocesses (goroutine fan-out,
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review dispatched before wrap: three fresh-context agents (code-quality on the walker/list-invariant surface, code-quality on the concurrent-move scenario, design-quality on the two new abstractions) — all three verdicts **APPROVE**. Each code-quality reviewer independently re-ran the `wf-vacuity` mutation probes themselves (not just re-reading the claim) and confirmed both hold. The design-quality pass surfaced one worthwhile fix, applied as a follow-up commit: `listRow` aliased to `internal/cli/list.ListSummary` instead of hand-duplicated, closing a latent schema-drift risk with no cycle and no reintroduction of the row-building vacuity risk this milestone's own Constraints section guards against.
+
+Track-for-later (non-blocking, not acted on in this milestone):
+- `isEpicAlreadyArchivedRefusal`'s two-finding-code shape is pinned only against fabricated envelopes (`TestIsEpicAlreadyArchivedRefusal`), not a dedicated real-binary integration test — reachability was manually reproduced during review (real `add epic` → `promote cancelled` → `archive --apply` → `add milestone --epic <archived>` does emit exactly that pair) and the existing `TestVerbSequenceScenario_FullWalkAcrossAllKindsPasses/seed=42` real-binary case already exercises this path end-to-end (it's the seed that originally surfaced the bug), so real-binary coverage exists — just not as an isolated, purpose-built test.
+- `walk`'s three sequential post-step calls (the operation itself, `aiwf check`, `checkListInvariant`) could be extracted into a named `postStepInvariants` helper as more invariants accumulate; not warranted yet at the current size.
+- Only `move`'s table entry has a named constant (`moveOperationName`) guarding switch/table-name drift; the other four operations are bare string literals in both places. Asymmetric but explained by `move`'s conditional (non-adjacent) table insertion.
