@@ -23,11 +23,11 @@ func TestNewGitBranchOracle_NilDAGFallback(t *testing.T) {
 	root := setupAC3RepoAllHealthy(t)
 	epicTip := gitOutput(t, root, "rev-parse", "epic/E-0001-engine")
 
-	withDAG, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	withDAG, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "main")
 	if err != nil {
 		t.Fatalf("DAG-path oracle: %v", err)
 	}
-	noDAG, err := newGitBranchOracle(ctx, root, nil)
+	noDAG, err := newGitBranchOracle(ctx, root, nil, "main")
 	if err != nil {
 		t.Fatalf("nil-DAG (fallback) oracle: %v", err)
 	}
@@ -38,6 +38,51 @@ func TestNewGitBranchOracle_NilDAGFallback(t *testing.T) {
 	}
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("fallback FirstParentBranches(%s) = %v, want (DAG path) %v", epicTip[:7], got, want)
+	}
+}
+
+// TestNewGitBranchOracle_NonDefaultTrunkName_Recognized pins the
+// G-0270 fix for the "main"-hardcode bug: listRitualBranches (and
+// BranchOfSHA's trunk-exclusion) must recognize the CONFIGURED trunk
+// short name, not the literal string "main". A repo whose trunk
+// branch is named something else entirely (here "trunk") must still
+// have that branch enumerated by the oracle when the matching
+// trunkShort is threaded through — before this fix, a repo like this
+// one would have silently excluded its own trunk from ritual-branch
+// enumeration.
+func TestNewGitBranchOracle_NonDefaultTrunkName_Recognized(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	gitRun(t, root, "branch", "-M", "trunk")
+
+	writeFile(t, root, "seed.md", "seed\n")
+	gitRun(t, root, "add", ".")
+	gitRun(t, root, "commit", "-m", "baseline")
+	trunkTip := gitOutput(t, root, "rev-parse", "trunk")
+
+	gitRun(t, root, "checkout", "-b", "epic/E-0001-engine")
+	writeFile(t, root, "epic.md", "epic\n")
+	gitRun(t, root, "add", ".")
+	gitRun(t, root, "commit", "-m", "epic work")
+	gitRun(t, root, "checkout", "trunk")
+
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "trunk")
+	if err != nil {
+		t.Fatalf("newGitBranchOracle: %v", err)
+	}
+	branches := oracle.FirstParentBranches(trunkTip)
+	found := false
+	for _, b := range branches {
+		if b == "trunk" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("FirstParentBranches(%s) = %v; want it to include the configured trunk branch %q, not just the literal \"main\"", trunkTip[:7], branches, "trunk")
 	}
 }
 
@@ -83,7 +128,7 @@ func TestNewGitBranchOracle_AC3_AllHealthy_NoErrors(t *testing.T) {
 	ctx := context.Background()
 	root := setupAC3RepoAllHealthy(t)
 
-	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle on healthy repo: %v", err)
 	}
@@ -119,7 +164,7 @@ func TestNewGitBranchOracle_AC3_PerRefTolerance_OneCorruptedRef(t *testing.T) {
 	ctx := context.Background()
 	root, healthyHeadSHA, corruptRef := setupAC3RepoWithCorruptRef(t)
 
-	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle returned error %q; AC-3 contract: per-ref failures accumulate into OracleErrors() and construction succeeds when at least one ref enumerated cleanly", err)
 	}
@@ -288,7 +333,7 @@ func TestNewGitBranchOracle_AC4_ShallowDetection_EmptyMapPlusTypedError(t *testi
 	ctx := context.Background()
 	root := setupAC4ShallowRepo(t)
 
-	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle returned error %q; AC-4 contract: shallow detection accumulates a typed OracleErr and construction succeeds", err)
 	}
@@ -328,7 +373,7 @@ func TestNewGitBranchOracle_AC4_NonShallow_NoShallowEntry(t *testing.T) {
 	ctx := context.Background()
 	root := setupAC3RepoAllHealthy(t)
 
-	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root))
+	oracle, err := newGitBranchOracle(ctx, root, mustDAG(ctx, root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}

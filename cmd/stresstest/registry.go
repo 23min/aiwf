@@ -126,6 +126,11 @@ var scenarioCatalog = []scenarioEntry{
 			return stresstest.NewHeadDriftScenario(rt.aiwfBin)
 		}
 	}},
+	{"promote-on-wrong-branch-detection", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+		return func(_ int64) stresstest.Scenario {
+			return stresstest.NewPromoteOnWrongBranchDetectionScenario(rt.aiwfBin)
+		}
+	}},
 	{"concurrent-writer-at-scale", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
 		return func(seed int64) stresstest.Scenario {
 			return stresstest.NewConcurrentWriterAtScaleScenario(rt.aiwfBin, defaultScale, seed)

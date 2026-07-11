@@ -56,6 +56,12 @@ type gitBranchOracle struct {
 	// slice surfaces as one isolation-escape-oracle-failure
 	// advisory per entry via RunProvenanceCheck.
 	errs []check.OracleErr
+	// trunkShort is the configured trunk branch's short name
+	// (cliutil.ConfiguredTrunkBranchShortName), used by BranchOfSHA
+	// to exclude trunk from ritual-shape candidates. Threaded from
+	// construction rather than hardcoded so a non-default trunk
+	// name (e.g. "trunk", "development") is excluded correctly too.
+	trunkShort string
 }
 
 // newGitBranchOracle reads the local-branch set via
@@ -92,7 +98,7 @@ type gitBranchOracle struct {
 // FirstParentBranches always returns nil and OracleErrors is
 // empty. This matches the rule's "unknown branch, silent"
 // contract — no false positives on the startup edge.
-func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG) (*gitBranchOracle, error) {
+func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG, trunkShort string) (*gitBranchOracle, error) {
 	// M-0161/AC-4 — shallow detection first. A shallow repo
 	// short-circuits the index build because any partial index
 	// would produce silent false-negatives for commits beyond
@@ -111,6 +117,7 @@ func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG) 
 				Capability: "shallow-clone",
 				Err:        errors.New("repository is shallow per `git rev-parse --is-shallow-repository`; unshallow with `git fetch --unshallow` (or in CI: `actions/checkout@vN` with `fetch-depth: 0`) to restore isolation-escape coverage"),
 			}},
+			trunkShort: trunkShort,
 		}, nil
 	}
 
@@ -129,7 +136,7 @@ func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG) 
 		})
 	}
 
-	branches, err := listRitualBranches(ctx, root)
+	branches, err := listRitualBranches(ctx, root, trunkShort)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +186,7 @@ func newGitBranchOracle(ctx context.Context, root string, dag *check.CommitDAG) 
 	// single OracleErrors() slice (D-0019 fail-shut /
 	// fail-open contract).
 	reflogDisabledErr = append(reflogDisabledErr, perRefErrs...)
-	return &gitBranchOracle{branchesBySHA: idx, distanceFromTip: dist, errs: reflogDisabledErr}, nil
+	return &gitBranchOracle{branchesBySHA: idx, distanceFromTip: dist, errs: reflogDisabledErr, trunkShort: trunkShort}, nil
 }
 
 // isReflogDisabled returns whether `core.logAllRefUpdates` is
@@ -260,13 +267,13 @@ func (o *gitBranchOracle) BranchOfSHA(sha string) string {
 	// First pass: filter to ritual-shape candidates. The bound
 	// branch is by definition a ritual branch (per ADR-0010 +
 	// the M-0102 authorize verb's branch-shape requirement);
-	// trunk (main) is excluded so a SHA shared between trunk
-	// and a newly-cut ritual sibling resolves to the ritual
-	// owner. If NO ritual candidate exists (legacy / off-shape
-	// fixture), fall back to the full candidate set.
+	// trunk is excluded so a SHA shared between trunk and a
+	// newly-cut ritual sibling resolves to the ritual owner. If
+	// NO ritual candidate exists (legacy / off-shape fixture),
+	// fall back to the full candidate set.
 	var candidates []string
 	for _, b := range branches {
-		if b != "main" {
+		if b != o.trunkShort {
 			candidates = append(candidates, b)
 		}
 	}
@@ -307,12 +314,13 @@ type ritualBranch struct {
 	Tip  string
 }
 
-// listRitualBranches returns the local-branch set filtered to main
-// + ritual shapes (epic/E-NNNN-..., milestone/M-NNNN-..., patch/...),
-// each paired with its tip SHA. Other-shape branches (feature/foo,
-// chore/bar, the integration branches the kernel doesn't recognize) are
-// excluded — commits on them are intentionally "unknown" to the rule.
-func listRitualBranches(ctx context.Context, root string) ([]ritualBranch, error) {
+// listRitualBranches returns the local-branch set filtered to the
+// configured trunk branch (trunkShort) + ritual shapes (epic/E-NNNN-...,
+// milestone/M-NNNN-..., patch/...), each paired with its tip SHA.
+// Other-shape branches (feature/foo, chore/bar, the integration
+// branches the kernel doesn't recognize) are excluded — commits on
+// them are intentionally "unknown" to the rule.
+func listRitualBranches(ctx context.Context, root, trunkShort string) ([]ritualBranch, error) {
 	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "refs/heads/", "--format=%(refname:short)%00%(objectname)")
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -335,7 +343,7 @@ func listRitualBranches(ctx context.Context, root string) ([]ritualBranch, error
 		if name == "" {
 			continue
 		}
-		if name == "main" || branchparse.ParseEntityFromBranch(name) != "" {
+		if (trunkShort != "" && name == trunkShort) || branchparse.ParseEntityFromBranch(name) != "" {
 			ritual = append(ritual, ritualBranch{Name: name, Tip: tip})
 		}
 	}

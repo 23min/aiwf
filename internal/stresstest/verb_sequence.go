@@ -34,6 +34,16 @@ import (
 //     rejected, wontfix, ...) routinely, and this scenario never
 //     runs `aiwf archive` — both are advisory-only sweep reminders,
 //     not evidence of anything this scenario probes.
+//   - promote-on-wrong-branch (G-0270): this scenario's whole point
+//     is exercising FSM transitions generically across every entity
+//     kind in ONE disposable repo — it never cuts an epic or
+//     milestone ritual branch (that's ADR-0010's branch-choreography
+//     concern, a different scenario's domain). So every epic that
+//     reaches "active" and every milestone that reaches
+//     "in_progress" here lands on the single working branch, not the
+//     ritual branch AC-8 expects — an accepted, structural side
+//     effect of this walker's design, not evidence of a real
+//     misplaced activation.
 //
 // Any OTHER finding — any error-severity finding, or a warning with
 // a code not in this set — is a real violation this scenario reports.
@@ -42,6 +52,7 @@ var verbSequenceExpectedWarnings = map[string]bool{
 	check.CodeEpicActiveNoDraftedMilestones:     true,
 	check.CodeTerminalEntityNotArchived:         true,
 	check.CodeArchiveSweepPending:               true,
+	check.CodePromoteOnWrongBranch.ID:           true,
 }
 
 // VerbSequenceScenario implements Scenario. steps is the number of
