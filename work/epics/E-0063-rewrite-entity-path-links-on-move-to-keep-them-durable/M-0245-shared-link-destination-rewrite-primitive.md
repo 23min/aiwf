@@ -156,10 +156,25 @@ red.
 
 ## Validation
 
+- `go build ./...` — green.
+- `go test -race -parallel 8 ./internal/verb/...` — green (all pre-existing rewidth tests pass unmodified alongside the new AC-1/AC-2 unit tests and AC-3 property tests).
+- `golangci-lint run ./internal/verb/...` — 0 issues.
+- 100% test coverage on every new/moved function in `linkregion.go` and `linkrewrite.go`.
+- `aiwf check` — 0 error-severity findings (1 advisory `provenance-untrailered-scope-undefined`, expected on an unpushed branch with no upstream).
+- `make coverage-gate` — diff-scoped branch-coverage audit and firing-fixture policy tests both pass.
+
 ## Deferrals
 
-- (none)
+- G-0409 — link-destination rewrite doesn't handle `#fragment`/`?query` suffixes; surfaced during independent review, not claimed by any of M-0245's ACs. For the epic to pick up before the wiring milestones ship.
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review (fresh-context subagents, no authorship attachment): **code-quality → approve, no blocking findings; design-quality (rethink) → keep.** Both passes independently verified every load-bearing claim by measurement (ran the tests, reproduced the property test's anti-vacuity RED, confirmed 100% coverage, confirmed the rewidth extraction is byte-identical and genuinely shared by both callers) rather than by reading and trusting.
+
+Non-blocking guidance for `M-0246`'s author (archive wiring), from the design-quality pass:
+
+- **Directory-shaped vs. file-shaped links.** `archive`'s `computeArchiveMoves` currently emits one move per directory for epic/contract kinds; that matches a bare-directory link form, but a file-shaped link into a nested entity (e.g. a milestone spec inside an archived epic dir) needs its own `EntityMove` entry too. `internal/verb/reallocate.go`'s `pathInside` / `newEntityPathAfterRename` pattern (walks `tr.Entities` to compute each nested entity's post-move path) is the precedent to reuse.
+- **Compute the full move set against the final post-move layout, and pass the linking file's own post-move path when it is itself among the moved entities** (e.g. an epic's `epic.md` linking to a sibling milestone archived in the same sweep) — already named in the epic's own risk table ("Multi-move … recomputes against a stale layout"); M-0245's property test deliberately excludes this scenario (`linkingFile` never collides with a move's `From`/`To`), so it has zero coverage today. Worth a dedicated fixture in M-0246.
+- Minor, low-priority: an empty destination `()` resolves to the linking file's own directory, which could coincidentally match a dir-shaped move's `From`. Vanishingly unlikely with template-generated bodies; a one-line empty-`inner` guard would close it if M-0246 wants full conservatism.
+
+No changes to `RewriteLinkDestinations`'s signature are implied by any of the above — the friction is entirely in what the caller builds and passes, not the primitive's shape.
