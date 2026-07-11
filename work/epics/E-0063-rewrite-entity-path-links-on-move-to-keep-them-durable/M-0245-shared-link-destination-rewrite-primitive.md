@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Rewrite link destinations to a moved entity, leaving prose and code untouched
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Recompute relative link destinations against the linking file directory
