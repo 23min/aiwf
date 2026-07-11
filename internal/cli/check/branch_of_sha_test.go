@@ -34,7 +34,7 @@ import (
 func TestBranchOfSHA_AC6_UnknownSHA_ReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	root := setupAC3RepoAllHealthy(t)
-	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root))
+	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestBranchOfSHA_AC6_SingleOwner_ReturnsRitualBranch(t *testing.T) {
 	root := setupAC3RepoAllHealthy(t)
 	headSHA := gitOutput(t, root, "rev-parse", "refs/heads/epic/E-0001-engine")
 
-	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root))
+	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestBranchOfSHA_AC6_SharedSHA_PrefersRitualOverTrunk(t *testing.T) {
 	// and epic/E-0001-engine reach it via first-parent.
 	sharedSHA := gitOutput(t, root, "rev-parse", "main")
 
-	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root))
+	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestBranchOfSHA_AC6_RenameSurvives(t *testing.T) {
 	// rename preserves the tip on the renamed-to branch.
 	renamedTip := gitOutput(t, root, "rev-parse", "refs/heads/epic/E-0001-renamed")
 
-	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root))
+	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestBranchOfSHA_AC6_OnlyTrunkOwner_ReturnsTrunk(t *testing.T) {
 	gitRun(t, root, "commit", "-m", "main-only commit")
 	mainOnlySHA := strings.TrimSpace(gitOutput(t, root, "rev-parse", "main"))
 
-	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root))
+	oracle, err := newGitBranchOracle(context.Background(), root, mustDAG(context.Background(), root), "main")
 	if err != nil {
 		t.Fatalf("newGitBranchOracle: %v", err)
 	}

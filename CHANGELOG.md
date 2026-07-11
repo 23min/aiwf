@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0270: promote-on-wrong-branch now detects an activation commit on any wrong branch, from any checkout
+
+The `promote-on-wrong-branch` check no longer relies on enumerating and
+name-matching local branches to decide where an epic- or milestone-
+activation commit landed. It now asks the shared commit graph directly
+whether the commit is an ancestor of the expected parent branch's tip —
+so a misplaced activation is caught even when it lands on an
+arbitrarily-named branch (not just a recognized `epic/`/`milestone/`
+one), and even when `aiwf check` is run from a different branch or
+worktree than the one the commit actually landed on. Previously, both
+conditions caused the check to stay silent. Also fixes a related bug
+where `isolation-escape` and `promote-on-wrong-branch` treated the
+literal string `"main"` as trunk regardless of the configured trunk
+branch name, silently mis-excluding a differently-named trunk branch
+from ritual-branch enumeration.
+
 ### Added — G-0407: prebuilt-binary reuse for mutate-hunt
 
 `internal/stresstest`'s `sharedTestBinary`/`sharedLockHolderBinary` helpers

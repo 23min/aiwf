@@ -8,12 +8,23 @@ import (
 	"strings"
 )
 
-// gitInitAndConfig git-inits dir and sets a deterministic commit
-// identity. No `aiwf init` is needed — `aiwf add`/`promote` work
-// against a bare git repo with no aiwf.yaml. Shared by every scenario
-// in this package whose Setup needs a fresh disposable repo.
+// gitInitAndConfig git-inits dir (forcing the initial branch name to
+// "main" — aiwf's own default trunk-name assumption, per
+// cliutil.ConfiguredTrunkBranchShortName's unconfigured default) and
+// sets a deterministic commit identity. No `aiwf init` is needed —
+// `aiwf add`/`promote` work against a bare git repo with no
+// aiwf.yaml. Shared by every scenario in this package whose Setup
+// needs a fresh disposable repo.
+//
+// The explicit --initial-branch matters beyond cosmetics (G-0270):
+// plain `git init` defaults to "master" on some git versions/configs,
+// which silently defeated promote-on-wrong-branch's trunk-tip
+// resolution — any scenario promoting an epic/milestone without also
+// forcing this would otherwise fire spurious findings purely because
+// the fixture's default branch name doesn't match aiwf's convention,
+// not because of any real branch-choreography violation.
 func gitInitAndConfig(dir string) error {
-	if err := runGit(dir, "init", "-q"); err != nil { //coverage:ignore defensive: git init on a fresh os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
+	if err := runGit(dir, "init", "-q", "--initial-branch=main"); err != nil { //coverage:ignore defensive: git init on a fresh os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
 		return err
 	}
 	return configureGitIdentity(dir)
@@ -33,6 +44,27 @@ func configureGitIdentity(dir string) error {
 		}
 	}
 	return nil
+}
+
+// seedActivationEpic git-inits dir and seeds one proposed epic — the
+// entity a subsequent `aiwf promote <epic> active` call targets.
+// Shared by HeadDriftScenario (G-0269, the prevention half of the
+// "activation commit lands on the wrong branch" incident) and
+// PromoteOnWrongBranchDetectionScenario (G-0270, the detection half):
+// both drive the identical seeding step before diverging into their
+// own Run.
+func seedActivationEpic(aiwfBin, dir, title, body string) (string, error) {
+	if err := gitInitAndConfig(dir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
+		return "", err
+	}
+	addEnv, err := runAiwfJSON(aiwfBin, dir, "add", "epic", "--title", title, "--body", body)
+	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
+		return "", fmt.Errorf("seeding the epic: %w", err)
+	}
+	if addEnv.Status != "ok" {
+		return "", fmt.Errorf("seeding the epic: aiwf did not report ok (status=%s, error=%+v)", addEnv.Status, addEnv.Error)
+	}
+	return addEnv.Metadata.EntityID, nil
 }
 
 // newBareOriginWithClonesFixture creates a bare origin repo under

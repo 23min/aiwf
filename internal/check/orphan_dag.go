@@ -91,10 +91,17 @@ func (d *CommitDAG) FirstParentChain(tip string) []string {
 //
 // Note: the reflexive short-circuit returns true for old == newer even when
 // that SHA is unknown to the DAG, whereas `git merge-base --is-ancestor`
-// errors (→ false) on an unknown commit. The sole caller
-// (WalkOrphanedAICommits) guards `older.SHA == newer.SHA` before calling, so
-// the divergence is unreachable today; a future reuse must re-establish
-// that guard or only short-circuit for a known key.
+// errors (→ false) on an unknown commit. WalkOrphanedAICommits guards
+// `older.SHA == newer.SHA` before calling, so the divergence is unreachable
+// there. RunPromoteOnWrongBranch (internal/check/promote_on_wrong_branch.go)
+// is a second caller that does NOT establish that guard, but the divergence
+// is still unreachable for it: it only ever compares a commit SHA against a
+// branch tip SHA drawn from branchTips, and any such tip is, by
+// construction, always a key the DAG's own `--all --reflog` build already
+// saw — so "unknown to the DAG" never coincides with old == newer there
+// either. A future caller comparing against a SHA NOT sourced this way must
+// re-establish the explicit guard or only rely on the short-circuit for a
+// known key.
 func (d *CommitDAG) isAncestor(old, newer string) bool {
 	if old == newer {
 		return true

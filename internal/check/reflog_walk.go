@@ -72,11 +72,11 @@ type OrphanedAICommit struct {
 // the tip on multiple refs at different times) surfaces once
 // per (SHA, Branch) pair; the rule consumer deduplicates by
 // SHA when emitting findings.
-func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG) []OrphanedAICommit {
+func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG, trunkShort string) []OrphanedAICommit {
 	if root == "" {
 		return nil
 	}
-	refs, err := listRitualHeads(ctx, root)
+	refs, err := listRitualHeads(ctx, root, trunkShort)
 	if err != nil || len(refs) == 0 {
 		return nil
 	}
@@ -131,10 +131,10 @@ func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG) []O
 
 // listRitualHeads returns the local-branch set under
 // refs/heads/ filtered to ritual shapes (epic/M-NNNN-...,
-// milestone/M-NNNN-..., patch/...) plus main. Matches the
-// existing oracle's filter (intentionally; same set of refs
-// the rule polices).
-func listRitualHeads(ctx context.Context, root string) ([]string, error) {
+// milestone/M-NNNN-..., patch/...) plus the configured trunk
+// branch (trunkShort). Matches the existing oracle's filter
+// (intentionally; same set of refs the rule polices).
+func listRitualHeads(ctx context.Context, root, trunkShort string) ([]string, error) {
 	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "refs/heads/", "--format=%(refname:short)")
 	cmd.Dir = root
 	out, err := cmd.Output()
@@ -152,7 +152,7 @@ func listRitualHeads(ctx context.Context, root string) ([]string, error) {
 		// Duplicated here to keep this helper standalone — the
 		// canonical filter is the oracle's; if the shape
 		// changes, both update together.
-		if name == "main" || ritualShape(name) {
+		if (trunkShort != "" && name == trunkShort) || ritualShape(name) {
 			ritual = append(ritual, name)
 		}
 	}

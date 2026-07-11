@@ -33,17 +33,11 @@ func NewHeadDriftScenario(aiwfBin string) *HeadDriftScenario {
 // entity a subsequent activation promote will target, mirroring the
 // actual G-0269 incident's own `aiwf promote <epic> active` call.
 func (s *HeadDriftScenario) Setup(dir string) error {
-	if err := gitInitAndConfig(dir); err != nil { //coverage:ignore defensive: gitInitAndConfig's own internal branch already carries this rationale
+	epicID, err := seedActivationEpic(s.aiwfBin, dir, "headdrift", "epic for the head-drift scenario")
+	if err != nil {
 		return err
 	}
-	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "headdrift", "--body", "epic for the head-drift scenario")
-	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
-		return fmt.Errorf("seeding the epic: %w", err)
-	}
-	if addEnv.Status != "ok" {
-		return fmt.Errorf("seeding the epic: aiwf did not report ok (status=%s, error=%+v)", addEnv.Status, addEnv.Error)
-	}
-	s.epicID = addEnv.Metadata.EntityID
+	s.epicID = epicID
 	return nil
 }
 

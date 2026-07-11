@@ -88,7 +88,13 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 	// (replacing the per-pair `merge-base`). A nil DAG (rev-list failed)
 	// makes each consumer fall back to its per-call git path.
 	dag, _ := check.BuildCommitDAG(ctx, root)
-	if oracle, oErr := newGitBranchOracle(ctx, root, dag); oErr == nil {
+	// G-0270 Part 1: resolve the configured trunk short name once and
+	// thread it everywhere the oracle/reflog-walk family previously
+	// hardcoded the literal "main" — a repo configured with a
+	// different trunk branch name silently mis-excluded its own trunk
+	// from ritual-branch enumeration otherwise.
+	trunkShort := cliutil.ConfiguredTrunkBranchShortName(root)
+	if oracle, oErr := newGitBranchOracle(ctx, root, dag, trunkShort); oErr == nil {
 		cherryPicked := check.WalkCherryPicks(head)
 		findings = append(findings, check.RunIsolationEscape(commits, oracle, cherryPicked, ackedSHAs)...)
 		// M-0161/AC-5: force-push orphan detection. Walk each
@@ -97,17 +103,8 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		// isolation-escape-orphaned-ai-commit warnings. Composes
 		// with M-0159/AC-3 acknowledge-illegal via the shared
 		// ackedSHAs map.
-		orphans := check.WalkOrphanedAICommits(ctx, root, dag)
+		orphans := check.WalkOrphanedAICommits(ctx, root, dag, trunkShort)
 		findings = append(findings, check.RunOrphanedAICommits(orphans, ackedSHAs)...)
-		// M-0161/AC-8 (G-0209): promote-on-wrong-branch detection.
-		// Activating-promote commits (epic → active, milestone →
-		// in_progress) must land on the parent branch per ADR-0010.
-		// Build the expected-branch map from the loaded tree +
-		// the configured trunk short-name (AC-1 composition);
-		// missing parents stay out of the map → rule silent
-		// (fail-shut on correctness).
-		expectedBranches := expectedParentBranchesForPromote(t, cliutil.ConfiguredTrunkBranchShortName(root))
-		findings = append(findings, check.RunPromoteOnWrongBranch(commits, expectedBranches, oracle, ackedSHAs, t)...)
 		// M-0161/AC-3 + AC-4 + AC-5 / D-0019: surface oracle
 		// coverage gaps. Per-ref failures emit isolation-escape
 		// -oracle-failure (advisory; AC-3); the shallow-clone
@@ -150,6 +147,39 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 					),
 				})
 			}
+		}
+	}
+
+	// M-0161/AC-8 (G-0209) + G-0270: promote-on-wrong-branch
+	// detection. Activating-promote commits (epic → active,
+	// milestone → in_progress) must land on the parent branch per
+	// ADR-0010. Decoupled from the gitBranchOracle above (its
+	// candidate set is deliberately narrowed to ritual-shaped branch
+	// NAMES, which is exactly what let an activation commit on an
+	// arbitrarily-named branch escape detection in the G-0270
+	// incident) — this rule instead resolves each expected branch's
+	// tip directly and asks the shared commit DAG for ancestry,
+	// independent of any branch's name.
+	//
+	// branches is fetched once here (a second `git for-each-ref`
+	// beyond the oracle's own internal fetch above) rather than
+	// threading gitBranchOracle's internal slice out of its
+	// constructor — keeps that already-tested constructor's error
+	// contract untouched; a second cheap ref enumeration is not the
+	// per-ref/per-commit fan-out this codebase's performance work
+	// (E-0053) was about eliminating.
+	if branches, bErr := listRitualBranches(ctx, root, trunkShort); bErr == nil {
+		branchTips := branchTipsByName(branches)
+		expectedBranches := expectedParentBranchesForPromote(t, trunkShort)
+		// G-0270 Part 3: candidate commits for THIS rule alone are
+		// gathered across every LOCAL branch (--branches), not just HEAD.
+		// Every other provenance rule keeps the narrower head-scoped
+		// `commits` above — the HEAD-only walk is exactly why the
+		// G-0270 incident's misplaced activation commit was never
+		// even considered a candidate when `aiwf check` ran from a
+		// different branch/worktree than the one it landed on.
+		if localBranchCommits, gErr := gatherActivationCommitsLocalBranches(ctx, root); gErr == nil {
+			findings = append(findings, check.RunPromoteOnWrongBranch(localBranchCommits, expectedBranches, dag, branchTips, trunkShort, ackedSHAs, t)...)
 		}
 	}
 
@@ -415,6 +445,103 @@ func provenanceCommitsFromHead(head []check.HeadCommit) []scope.Commit {
 		})
 	}
 	return commits
+}
+
+// branchTipsByName reduces a ritualBranch slice (as listRitualBranches
+// returns) to a name → tip-SHA map, for check.RunPromoteOnWrongBranch's
+// ancestor-check lookup (G-0270).
+func branchTipsByName(branches []ritualBranch) map[string]string {
+	tips := make(map[string]string, len(branches))
+	for _, b := range branches {
+		tips[b.Name] = b.Tip
+	}
+	return tips
+}
+
+// activationPromoteGrepPattern selects commits whose message carries an
+// activating `aiwf-verb: promote` trailer line, matching git's own `-E`
+// (POSIX ERE) grammar for `--grep`. Server-side filtering (git evaluates
+// the pattern per-commit during the walk) keeps gatherActivationCommitsLocalBranches
+// from having to parse every commit in history just to discard
+// non-promote ones.
+const activationPromoteGrepPattern = "^aiwf-verb: promote$"
+
+// gatherActivationCommitsLocalBranches returns every commit reachable
+// from any LOCAL branch (`git log --branches`) whose message carries an
+// `aiwf-verb: promote` trailer line, oldest-first. G-0270: every other
+// provenance rule is fed provenanceCommitsFromHead's HEAD-scoped
+// commits, which is exactly why the reported incident's misplaced
+// epic-activation commit was never even considered a candidate —
+// `aiwf check` was run from a different branch than the one the commit
+// landed on, and a HEAD-only walk cannot see a commit that isn't its own
+// ancestor. This gather is scoped ONLY to
+// check.RunPromoteOnWrongBranch's candidate set; it does not widen any
+// other rule's scope.
+//
+// Scoped to local branches (`--branches`), not `--all` (which also
+// pulls in remote-tracking refs and tags): the branchTips map this
+// rule checks candidates against (provenance.go's caller, via
+// listRitualBranches) is itself local-heads-only. Widening the
+// candidate scope past that would judge a remote-only commit — or a
+// correct on-trunk activation sitting on a fetched-but-not-yet-merged
+// `origin/main` — against tips it was never resolved against, firing
+// on activations that are actually correct, just not yet
+// pulled/merged locally. The original G-0270 incident is still fully
+// covered: the misplaced commit sat on a local branch in the shared
+// checkout, which `--branches` sees regardless of which branch `aiwf
+// check` currently runs from.
+//
+// A dedicated `--grep`-filtered `git log` (rather than reusing
+// gitops.BulkRevwalk, which already runs one `--all` pass for
+// FSMHistoryConsistent) is deliberate: BulkRevwalk's `--raw --no-abbrev
+// -M` requests a full per-commit diff computation this rule has no use
+// for — reusing it would pay that cost across the whole history just
+// to read two trailers. `--grep` lets git discard non-matching commits
+// during the walk itself, so only activation-shaped commits are ever
+// parsed here.
+func gatherActivationCommitsLocalBranches(ctx context.Context, root string) ([]scope.Commit, error) {
+	const fieldSep = "\x1f"
+	const recSep = "\x1e"
+	args := []string{
+		"log", "--branches", "--reverse", "-E", "--grep", activationPromoteGrepPattern,
+		"--pretty=tformat:" + recSep + "%H" + fieldSep + "%(trailers:only=true,unfold=true)",
+	}
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil { //coverage:ignore defensive: `git log` failing on a repo aiwf check has already loaded a tree from has no realistic trigger short of a corrupted .git; this mirrors the identical, likewise-unannotated shape at ReadUntrailedCommits's own git log call in this file
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("git log --branches: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
+		}
+		return nil, fmt.Errorf("git log --branches: %w", err)
+	}
+	return parseActivationCommitsLocalBranches(string(out)), nil
+}
+
+// parseActivationCommitsLocalBranches unpacks gatherActivationCommitsLocalBranches's
+// multi-record stream — the same `<RS>{SHA}<US>{trailers}` shape
+// ParseUntrailedCommits uses, minus the parents/subject/paths fields
+// this rule doesn't need.
+func parseActivationCommitsLocalBranches(s string) []scope.Commit {
+	const fieldSep = "\x1f"
+	const recSep = "\x1e"
+	var out []scope.Commit
+	for _, rec := range strings.Split(s, recSep) {
+		rec = strings.TrimSpace(rec)
+		if rec == "" {
+			continue
+		}
+		parts := strings.SplitN(rec, fieldSep, 2)
+		if len(parts) < 2 {
+			continue
+		}
+		out = append(out, scope.Commit{
+			SHA:      strings.TrimSpace(parts[0]),
+			Trailers: gitops.ParseTrailers(parts[1]),
+		})
+	}
+	return out
 }
 
 // expectedParentBranchesForPromote builds the AC-8 map of

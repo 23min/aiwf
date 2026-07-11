@@ -27,6 +27,7 @@ var wantScenarioNames = []string{
 	"archive-during-active-scope",
 	"force-override-durability",
 	"head-drift",
+	"promote-on-wrong-branch-detection",
 	"concurrent-writer-at-scale",
 	"verb-sequence",
 	"concurrent-move",
@@ -49,20 +50,21 @@ func TestScenarioNames_ListsAllTwelveInCatalogOrder(t *testing.T) {
 // to, keyed by name — pins the registry against a copy-paste entry
 // silently pointing two names at the same constructor.
 var wantScenarioType = map[string]string{
-	"concurrent-id-allocation":      "*stresstest.ConcurrentIDAllocationScenario",
-	"cross-worktree-id-race":        "*stresstest.CrossWorktreeIDRaceScenario",
-	"reachability-isolation":        "*stresstest.ReachabilityIsolationScenario",
-	"lock-kill":                     "*stresstest.LockKillScenario",
-	"mid-write-kill":                "*stresstest.MidWriteKillScenario",
-	"disk-fault":                    "*stresstest.DiskFaultScenario",
-	"parallel-branch-reallocate":    "*stresstest.ParallelBranchReallocateScenario",
-	"cross-worktree-edit-body-race": "*stresstest.CrossWorktreeEditBodyRaceScenario",
-	"archive-during-active-scope":   "*stresstest.ArchiveDuringActiveScopeScenario",
-	"force-override-durability":     "*stresstest.ForceOverrideDurabilityScenario",
-	"head-drift":                    "*stresstest.HeadDriftScenario",
-	"concurrent-writer-at-scale":    "*stresstest.ConcurrentWriterAtScaleScenario",
-	"verb-sequence":                 "*stresstest.VerbSequenceScenario",
-	"concurrent-move":               "*stresstest.ConcurrentMoveScenario",
+	"concurrent-id-allocation":          "*stresstest.ConcurrentIDAllocationScenario",
+	"cross-worktree-id-race":            "*stresstest.CrossWorktreeIDRaceScenario",
+	"reachability-isolation":            "*stresstest.ReachabilityIsolationScenario",
+	"lock-kill":                         "*stresstest.LockKillScenario",
+	"mid-write-kill":                    "*stresstest.MidWriteKillScenario",
+	"disk-fault":                        "*stresstest.DiskFaultScenario",
+	"parallel-branch-reallocate":        "*stresstest.ParallelBranchReallocateScenario",
+	"cross-worktree-edit-body-race":     "*stresstest.CrossWorktreeEditBodyRaceScenario",
+	"archive-during-active-scope":       "*stresstest.ArchiveDuringActiveScopeScenario",
+	"force-override-durability":         "*stresstest.ForceOverrideDurabilityScenario",
+	"head-drift":                        "*stresstest.HeadDriftScenario",
+	"promote-on-wrong-branch-detection": "*stresstest.PromoteOnWrongBranchDetectionScenario",
+	"concurrent-writer-at-scale":        "*stresstest.ConcurrentWriterAtScaleScenario",
+	"verb-sequence":                     "*stresstest.VerbSequenceScenario",
+	"concurrent-move":                   "*stresstest.ConcurrentMoveScenario",
 }
 
 func TestLookupScenario_KnownNameBuildsTheMatchingScenarioType(t *testing.T) {

@@ -2,7 +2,6 @@ package check
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	codespkg "github.com/23min/aiwf/internal/codes"
@@ -65,9 +64,63 @@ var CodePromoteOnWrongBranch = codespkg.Code{ID: "promote-on-wrong-branch", Clas
 // rule for that entity (fail-shut on correctness).
 //
 // commits must be ordered oldest-first (matches the
-// RunProvenance convention). oracle supplies per-commit branch
-// info; a nil oracle silences the rule (graceful degradation
-// matching the M-0106 isolation-escape pattern).
+// RunProvenance convention). Unlike the original M-0161/AC-8
+// design, this rule no longer asks a [BranchOracle] "what
+// branches is this commit reachable from" — that question
+// requires enumerating and name-filtering local branches, which
+// is exactly what silently missed G-0270's incident (the
+// activation commit landed on a non-ritual-shaped branch, so the
+// oracle's branch enumeration never indexed it, and the rule
+// stayed silent on an "unknown branch"). Instead it asks the
+// narrower, branch-name-independent question "is this commit
+// correctly reachable from the expected branch," via dag,
+// branchTips, and trunkShort. Only a nil dag fail-shuts the whole
+// rule (no ancestry data at all to test against).
+//
+// The correctness test is NOT a single ancestor check — plain
+// full-ancestry (any path) can't distinguish two very different
+// milestone histories once the epic's ritual branch has been
+// merged and deleted (its normal end-of-life, per
+// aiwfx-wrap-epic): a milestone activation commit correctly made
+// on that branch becomes, after the merge, a full ancestor of
+// trunk's tip too — arriving via the merge commit's non-first
+// parent, never itself on trunk's own lineage. A milestone
+// activation that instead skipped the ritual branch and landed
+// directly on trunk is ALSO a full ancestor of trunk's tip, but
+// IS on trunk's own first-parent chain. The same fixture-verified
+// pattern occurs for epics too (aiwfx-wrap-epic's own "promote E-NN
+// active" step, run from the epic's own branch just before it is
+// merged and deleted — confirmed against this repo's own history).
+// One check handles both kinds uniformly:
+//
+//   - Correct if the commit is an ancestor of expected's own tip
+//     (branchTips[expected]) — for an epic this already IS trunk's
+//     tip (expected == trunkShort), so this alone covers both
+//     "made directly on trunk" and "made on a branch since merged
+//     into trunk"; for a milestone this covers the still-live,
+//     in-flight epic branch.
+//   - Otherwise, for a milestone whose epic branch has since been
+//     merged and deleted (absent from branchTips), still correct
+//     if the commit is an ancestor of trunk's tip while NOT itself
+//     on trunk's own first-parent chain — i.e. it arrived via a
+//     merge, not by landing directly on trunk (which would mean
+//     the milestone skipped its epic branch entirely).
+//
+// dag is the shared in-memory commit DAG (check.BuildCommitDAG),
+// built once per check invocation. branchTips maps a branch's
+// short name (as expectedBranches' values name them — the
+// configured trunk short name for epics, "epic/<slug>" for
+// milestones) to that branch's current LOCAL tip SHA; an absent
+// entry (the branch doesn't exist locally — never cut, or cut and
+// since deleted) is not ambiguous on its own — see the two-step
+// check above for how it resolves. Comparing against the local
+// branch (not a remote-tracking ref) is deliberate: a legitimate,
+// correct, not-yet-pushed activation commit is an ancestor of
+// local trunk immediately, but would not yet be an ancestor of a
+// remote-tracking ref. trunkShort is the configured trunk short
+// name, used to resolve trunk's own tip from branchTips
+// independently of expected (which for a milestone names the epic
+// branch, not trunk).
 //
 // ackedSHAs honors M-0159/AC-3 acknowledgments via the shared
 // per-SHA exemption.
@@ -86,9 +139,22 @@ var CodePromoteOnWrongBranch = codespkg.Code{ID: "promote-on-wrong-branch", Clas
 // claimant. A nil t skips only the prior_ids fallback; in-window
 // rename-chain resolution (walkRenameChain) still applies since it
 // reads solely from commits.
-func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string]string, oracle BranchOracle, ackedSHAs map[string]bool, t *tree.Tree) []Finding {
-	if oracle == nil {
+func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string]string, dag *CommitDAG, branchTips map[string]string, trunkShort string, ackedSHAs map[string]bool, t *tree.Tree) []Finding {
+	if dag == nil {
 		return nil
+	}
+	// Computed once, reused per commit: the set of SHAs on trunk's
+	// OWN first-parent lineage. Membership distinguishes "landed
+	// directly on trunk" from "arrived via a merged-in side branch"
+	// (see the doc comment above) — the same distinction the old
+	// BranchOracle's FirstParentBranches captured implicitly, kept
+	// here since full ancestry alone can't tell the two apart.
+	var onTrunkFirstParent map[string]bool
+	if trunkTip := branchTips[trunkShort]; trunkTip != "" {
+		onTrunkFirstParent = make(map[string]bool, len(dag.parents))
+		for _, sha := range dag.FirstParentChain(trunkTip) {
+			onTrunkFirstParent[sha] = true
+		}
 	}
 	renameChain := buildRenameChain(commits)
 	var findings []Finding
@@ -116,23 +182,34 @@ func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string
 		if !hasExpectation || expected == "" {
 			continue // No expectation — gap entity, non-ritual kind, or parent lookup failed (fail-shut).
 		}
-		actualBranches := oracle.FirstParentBranches(c.SHA)
-		if len(actualBranches) == 0 {
-			continue // Unknown branch — do not fire on a commit the oracle can't classify (matches isolation-escape's fail-shut).
+		// For an epic, expected == trunkShort, so this alone already
+		// covers "made directly on trunk" and "made on a branch
+		// since merged into trunk" — both are full ancestors of
+		// trunk's own tip.
+		if tip := branchTips[expected]; tip != "" && dag.isAncestor(c.SHA, tip) {
+			continue // On the expected branch (or trunk) — correct, silent.
 		}
-		if slices.Contains(actualBranches, expected) {
-			continue // Correct branch — silent.
+		// The expected branch is gone (never cut, or cut and since
+		// merged+deleted). For a milestone whose epic branch was
+		// properly merged, the commit is still a full ancestor of
+		// trunk's tip — just not on trunk's own first-parent chain,
+		// since it arrived via the merge's non-first parent. A
+		// milestone that instead skipped its epic branch and landed
+		// directly on trunk IS on trunk's own first-parent chain, so
+		// this does not silence that case (still fires below).
+		if trunkTip := branchTips[trunkShort]; trunkTip != "" && dag.isAncestor(c.SHA, trunkTip) && !onTrunkFirstParent[c.SHA] {
+			continue // Reachable from trunk only via a merged-in side branch — correct, silent.
 		}
 		findings = append(findings, Finding{
 			Code:     CodePromoteOnWrongBranch.ID,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf(
-				"commit %s: aiwf promote %s -> %s landed on %q, not the expected parent branch %q",
-				shortHash(c.SHA), entityID, targetStatus, strings.Join(actualBranches, ","), expected,
+				"commit %s: aiwf promote %s -> %s is not reachable from the expected parent branch %q",
+				shortHash(c.SHA), entityID, targetStatus, expected,
 			),
 			Hint: fmt.Sprintf(
-				"the ADR-0010 branch model requires sovereign activating-promote commits on the parent branch (%q) BEFORE the ritual branch is cut. If the order was deliberate (re-activating from a ritual branch, or rebuilding a historical scope), silence with `aiwf acknowledge illegal %s --reason \"...\"`; or amend the promote commit with `git commit --amend --trailer 'aiwf-force: <reason>'` as a sovereign per-commit override.",
-				expected, shortHash(c.SHA),
+				"the ADR-0010 branch model requires sovereign activating-promote commits on the parent branch (%q) BEFORE the ritual branch is cut. Find the commit's actual branch with `git branch --contains %s`. If the order was deliberate (re-activating from a ritual branch, or rebuilding a historical scope), silence with `aiwf acknowledge illegal %s --reason \"...\"`; or amend the promote commit with `git commit --amend --trailer 'aiwf-force: <reason>'` as a sovereign per-commit override.",
+				expected, shortHash(c.SHA), shortHash(c.SHA),
 			),
 			EntityID: entityID,
 		})
