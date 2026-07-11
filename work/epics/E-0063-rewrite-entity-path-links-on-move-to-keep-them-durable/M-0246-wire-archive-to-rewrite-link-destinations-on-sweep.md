@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Archive rewrites entity-body links to a swept entity's archive path
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A multi-entity sweep recomputes links against the final post-move layout
