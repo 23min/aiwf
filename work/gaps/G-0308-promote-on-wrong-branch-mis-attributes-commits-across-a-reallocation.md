@@ -1,7 +1,9 @@
 ---
 id: G-0308
 title: promote-on-wrong-branch mis-attributes commits across a reallocation
-status: open
+status: addressed
+addressed_by_commit:
+    - ae05f212
 ---
 ## What's missing
 
