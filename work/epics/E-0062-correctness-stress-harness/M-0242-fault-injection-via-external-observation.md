@@ -1,7 +1,7 @@
 ---
 id: M-0242
 title: Fault injection via external observation
-status: draft
+status: done
 parent: E-0062
 depends_on:
     - M-0240
@@ -9,20 +9,20 @@ tdd: required
 acs:
     - id: AC-1
       title: A process killed while holding repolock releases it via kernel fd cleanup
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: A process killed mid-write never leaves a half-written entity file
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Lock-held and temp-file states are detected with no production-code change
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: A disk-full or permission-denied write surfaces as a clean error
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -115,16 +115,112 @@ clean, wrapped error — not a corrupted file, not a panic.
 
 ## Work log
 
+### AC-1 — repolock kill -9 releases via kernel fd cleanup
+
+Built a small `internal/stresstest/lockholder` helper (a nested `package
+main`, no change to `internal/repolock` itself) that acquires the repo
+lock and blocks until killed. `LockKillScenario` launches it as a real
+subprocess, confirms externally that the lock reads as held via
+`repolock.Acquire(dir, 0)` — repolock's own pre-existing zero-timeout
+probe mode — SIGKILLs the holder, and confirms an immediate re-acquire
+succeeds. 24 new tests (pure classify/decision-logic tables plus
+real-binary integration tests covering every reachable branch, including
+the ready-timeout and cannot-acquire paths); a 6-mutation vacuity probe
+confirmed every decision branch actually catches a regression · commits
+6a287690, 5008a006 · tests 24/24.
+
+### AC-2 — kill mid-write never leaves half-written entity file
+
+`MidWriteKillScenario` drives a twin control/target repo pair seeded with a
+large-bodied (10MB, empirically calibrated for a comfortably-wide temp-file
+window) gap entity. The target repo's real `aiwf promote` is watched from
+outside for `pathutil.AtomicWriteFile`'s sibling `.aiwf-tmp-*` file — its
+own already-documented naming convention, no pathutil code change, per
+AC-3 — and SIGKILLed the instant it appears; the oracle asserts the entity
+file afterward is byte-identical to either the pre-write or fully-written
+state, never a third value. Discovered and filed G-0391 (a mutating verb's
+lock-busy refusal bypasses `--format=json` entirely) along the way; the
+scenario and its tests work around it rather than depending on it. 14 new
+tests (pure classify table plus real-binary integration covering every
+reachable branch); a 5-mutation vacuity probe confirmed every decision
+branch actually catches a regression · commits 237475a3, e14c36d3 · tests
+14/14.
+
+### AC-3 — detection mechanisms require zero repolock/pathutil changes
+
+`TestNoNewExportsInRepolockOrPathutil` parses `internal/repolock/repolock_unix.go`
+and `internal/pathutil/{pathutil,atomic}.go` via `go/parser` and asserts their
+exported top-level surface is exactly the pre-existing set AC-1's and AC-2's
+probes depend on — `Acquire`/`ErrBusy`/`Lock`/`Lock.Release` for repolock;
+nothing at all for pathutil, since AC-2 only globs for its already-documented
+`.aiwf-tmp-*` naming convention and never imports the package. A future edit
+needing a new exported symbol to make either probe work would grow this set
+and fail here. 1 new test (a 3-case table); a 4-mutation vacuity probe
+confirmed every parsing branch actually catches a regression · commit
+dc47799b · tests 1/1.
+
+### AC-4 — disk-full/permission-denied write surfaces as a clean error
+
+`DiskFaultScenario` seeds a gap entity, revokes write permission on its
+parent directory (`0500`, matching `internal/verb/apply_test.go`'s existing
+precedent), attempts a real `aiwf promote` against it, and confirms the
+refusal is clean: a proper `--format=json` envelope with no panic/stack-trace
+markers, no corrupted entity file, no stray temp file, no partial commit.
+Only permission-denied is exercised — see Reviewer notes for the
+disk-full/ENOSPC scope note. 13 new tests (pure classify table plus
+real-binary integration covering every reachable branch, verified non-flaky
+over 5 runs); a 6-mutation vacuity probe confirmed every decision branch
+actually catches a regression · commits 7194b22a, 0599c2b8 · tests 13/13.
+
 ## Decisions made during implementation
 
 - (none)
 
 ## Validation
 
+Full local gate green as of the wrap: `go build ./...`, `go vet ./...`,
+`make lint` (0 issues), `go test -race -parallel 8 -count=1 ./...` (all
+packages ok), `make coverage-gate` (branch-coverage-audit and
+firing-fixture-presence both pass). Every AC's timing-sensitive real-binary
+scenario re-verified non-flaky over multiple runs (5x for AC-4's
+chmod-based fixture, 11x cumulative for AC-1/AC-2's real-subprocess
+scenarios during the independent code-quality review).
+
+Independent two-lens review (code-quality + design-quality, both dispatched
+as fresh-context subagents against the full milestone diff, per this repo's
+wrap-review convention):
+
+- **Code-quality: approve, no blocking defects.** All 4 ACs confirmed to
+  exercise the real, described behavior end-to-end (not just fabricated-
+  envelope unit tests) — AC-1's fd-cleanup claim, AC-2's atomic-swap claim,
+  AC-3's exported-surface claim, AC-4's clean-refusal claim. G-0391
+  independently reproduced and confirmed accurate, not overstated.
+  `//coverage:ignore` rationales spot-checked and held. Two non-blocking
+  wording nits (the AC-1 Work Log phrasing above) — fixed in this pass.
+- **Design-quality: 2 structural findings, both applied.** `processWasSignaled`
+  (introduced for AC-1, consumed by AC-2) and `readGapFile` (introduced for
+  AC-2, consumed by AC-4) were each stranded in a file whose own header
+  comment scoped it to a single AC — the same class of staleness M-0241's
+  own wrap review caught and fixed via `verbenvelope.go`. Both relocated
+  (`processWasSignaled` into `verbenvelope.go`, `readGapFile` into
+  `gitrepo.go`) as pure structural moves, re-verified with the full gate.
+  Three other candidates (the `readyTimeout`-as-overridable-field pattern,
+  the `.aiwf-tmp-` literal duplicated across files, the `lockholder/`
+  subpackage) were considered and correctly judged not yet past this
+  repo's "abstract on the third" bar.
+
 ## Deferrals
 
-- (none)
+- G-0391 — mutating verbs' lock-busy refusal ignores `--format=json`
+  (discovered in M-0242/AC-2; out of this milestone's scope —
+  `internal/cli/cliutil` isn't among M-0242's surfaces touched)
 
 ## Reviewer notes
 
-- (none)
+- AC-4 exercises only the permission-denied fault, not true disk-full
+  (`ENOSPC`). Simulating a real disk-full condition needs privileged
+  filesystem-quota setup (a loopback device or size-limited mount) this
+  sandboxed environment doesn't have; the AC's own text permits either
+  fault, and permission-denied exercises the identical code path in
+  `pathutil.AtomicWriteFile` (a failed `os.CreateTemp`/write inside the
+  target directory) that `ENOSPC` would also hit.

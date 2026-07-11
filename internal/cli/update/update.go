@@ -111,7 +111,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf update")
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf update", cliutil.OutputFormat{})
 	if release == nil {
 		return rc
 	}

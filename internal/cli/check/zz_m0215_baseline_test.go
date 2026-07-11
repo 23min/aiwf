@@ -37,7 +37,7 @@ func BenchmarkAiwfCheckBaseline(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Run(root, "json", false, "", false, false, false, nil)
+		_ = Run(root, "json", false, "", false, false, false, nil, "")
 	}
 }
 

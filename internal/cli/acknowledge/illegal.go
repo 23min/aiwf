@@ -2,11 +2,14 @@ package acknowledge
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -118,7 +121,7 @@ Both --reason (non-empty after trim) and a human/... actor are required
 // runIllegal executes `aiwf acknowledge illegal`. Returns one of the
 // cliutil.Exit* codes; the caller (RunE) wraps the int in cliutil.WrapExitCode
 // so Cobra's RunE channel preserves the exit code through the run() dispatcher.
-func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) int {
+func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFormat) (code int) {
 	if strings.TrimSpace(reason) == "" {
 		cliutil.Errorln("aiwf acknowledge illegal: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
@@ -134,13 +137,31 @@ func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFo
 		cliutil.Errorf("aiwf acknowledge illegal: %v\n", err)
 		return cliutil.ExitUsage
 	}
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal")
+
+	ctx := context.Background()
+
+	// M-0249 follow-up: diagnostic-logging wiring, mirroring cancel.Run's
+	// own M-0238/AC-5 pattern. entity is forEntity when supplied (the
+	// verb's own per-(SHA, entity) binding), empty otherwise — the
+	// acknowledged target is fundamentally a SHA, not an entity id.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "acknowledge-illegal", forEntity, actorStr, runID)
+	}
+	var commitSHA string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, commitSHA) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
-	ctx := context.Background()
 	result, vErr := verb.AcknowledgeIllegal(ctx, rootDir, sha, forEntity, actorStr, reason)
-	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge illegal", result, vErr, out)
+	code, commitSHA = cliutil.FinishVerb(ctx, rootDir, "aiwf acknowledge illegal", result, vErr, out)
 	return code
 }

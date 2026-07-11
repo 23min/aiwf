@@ -95,8 +95,11 @@ type archiveMove struct {
 // archiveSkip records an epic that computeArchiveMoves declined to
 // sweep because its subtree still owns one or more non-terminal
 // milestones (G-0394, Direction B) — the archive-time counterpart to
-// Promote's epic-done guard (internal/verb/promote.go), catching the
-// case that guard's --force bypass (or a raw hand-edit) lets through.
+// Promote's epic-terminal guard (internal/verb/promote.go, G-0393 /
+// G-0394). That guard runs unconditionally (no --force bypass, mirroring
+// Cancel's own D-0003 guard), so this is defense-in-depth for the one
+// path that still reaches the state: a raw frontmatter hand-edit that
+// bypasses the verb layer entirely.
 type archiveSkip struct {
 	epic     string
 	children []string
@@ -220,9 +223,11 @@ func computeArchiveMoves(tr *tree.Tree, kindFilter string) ([]archiveMove, []arc
 			// G-0394 (Direction B): decline to strand a non-terminal
 			// child in archive/ alongside its terminal parent. The
 			// promote-time guard (Promote, promote.go) is the primary
-			// chokepoint; --force or a raw edit can still reach this
-			// state, so archive independently refuses to sweep it —
-			// unconditionally, with no --force of its own.
+			// chokepoint and already runs unconditionally (no --force
+			// bypass); a raw frontmatter hand-edit is the one path that
+			// still reaches this state, so archive independently refuses
+			// to sweep it too — unconditionally, with no --force of its
+			// own.
 			if nonTerminal := nonTerminalEpicChildren(tr, e.ID); len(nonTerminal) > 0 {
 				skipped = append(skipped, archiveSkip{epic: e.ID, children: nonTerminal})
 				continue

@@ -50,6 +50,29 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// would require reading and replacing the entire file per write
 		// and is unsafe under concurrent writers.
 		"internal/logger/destination.go": "append-only diagnostic log writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
+		// The stress harness's raw-report writer (M-0240/AC-2) reuses
+		// the exact same append-only discipline as internal/logger's
+		// diagnostic log, per this epic's own constraint that it not
+		// invent a second streaming primitive — see ADR-0017 Decision #5
+		// and D-0033.
+		"internal/stresstest/report.go": "append-only raw-report writer; O_APPEND, not atomic-replace — see ADR-0017 Decision #5",
+		// M-0242/AC-2's mid-write-kill scenario writes a large scratch
+		// seed body file confined to the scenario's own disposable
+		// os.MkdirTemp dir — never a persisted entity file, and cleaned
+		// up (or preserved for RCA on failure) by RunScenario's own
+		// discipline, same shape as the self-check sandbox above.
+		"internal/stresstest/mid_write_kill.go": "writes confined to the scenario's own disposable temp dir; scratch seed data, never a persisted entity file",
+		// M-0243/AC-2's cross-worktree edit-body race scenario writes
+		// two scratch draft-body files confined to the scenario's own
+		// disposable os.MkdirTemp dir, fed to `aiwf edit-body
+		// --body-file` — never a persisted entity file themselves.
+		"internal/stresstest/cross_worktree_edit_body_race.go": "writes confined to the scenario's own disposable temp dir; scratch draft data, never a persisted entity file",
+		// M-0243/AC-4's force-override-durability scenario manually
+		// edits its own fixture epic's status field (to construct an
+		// illegal-transition commit) and writes one scratch follow-up
+		// file — both confined to the scenario's own disposable
+		// os.MkdirTemp dir, never a persisted entity file in this repo.
+		"internal/stresstest/force_override_durability.go": "writes confined to the scenario's own disposable temp dir; a fixture epic's status field and scratch follow-up data, never a persisted entity file in this repo",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {

@@ -2,12 +2,14 @@ package contract
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/recipe"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -159,7 +161,7 @@ func newRecipeInstallCmd(correlationID string) *cobra.Command {
 	return cmd
 }
 
-func runRecipeInstall(args []string, root, actor, from string, force bool, out cliutil.OutputFormat) int {
+func runRecipeInstall(args []string, root, actor, from string, force bool, out cliutil.OutputFormat) (code int) {
 	var (
 		r       recipe.Recipe
 		loadErr error
@@ -192,7 +194,23 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "contract-recipe-install", r.Name, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install", out)
 	if release == nil {
 		return rc
 	}
@@ -204,9 +222,8 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 		return cliutil.ExitUsage
 	}
 
-	ctx := context.Background()
 	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: force})
-	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
+	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
 	return code
 }
 
@@ -239,7 +256,7 @@ func newRecipeRemoveCmd(correlationID string) *cobra.Command {
 	return cmd
 }
 
-func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
+func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
@@ -251,7 +268,23 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "contract-recipe-remove", name, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove", out)
 	if release == nil {
 		return rc
 	}
@@ -263,8 +296,7 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	ctx := context.Background()
 	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
-	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
+	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
 	return code
 }

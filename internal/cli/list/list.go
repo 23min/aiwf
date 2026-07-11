@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -42,7 +44,7 @@ type ListCounts map[string]int
 // planning tree. Read-only; no commit. Default semantic is "non-
 // terminal entities" (forward-compat with ADR-0004); --archived widens
 // to include terminal-status entities.
-func NewCmd() *cobra.Command {
+func NewCmd(correlationID string) *cobra.Command {
 	var (
 		root     string
 		kind     string
@@ -78,7 +80,7 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, archived, format, pretty, noTrunc))
+			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, archived, format, pretty, noTrunc, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -129,7 +131,7 @@ func UnionAllStatuses() []string {
 }
 
 // Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
-func Run(root, kind, status, parent, area string, archived bool, format string, pretty, noTrunc bool) int {
+func Run(root, kind, status, parent, area string, archived bool, format string, pretty, noTrunc bool, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -145,6 +147,28 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 		return cliutil.ExitUsage
 	}
 
+	ctx := context.Background()
+
+	// M-0249 follow-up: diagnostic-logging wiring, mirroring show.Run's
+	// own read-only rationale — list has no --actor flag, so actor
+	// resolution is best-effort only and never fails the verb
+	// (ADR-0017). No single target id (a filter/query verb), so entity
+	// stays empty, matching add/archive/rewidth's own rationale.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := correlationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "list", "", actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+
 	// Advisory note when --area names a value that isn't declared
 	// (E-0043, M-0174/AC-5). The filter below stays mechanical; the note
 	// only tells the operator the value they typed isn't one they
@@ -153,7 +177,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 		cliutil.Errorln(note)
 	}
 
-	tr, _, err := tree.Load(context.Background(), rootDir)
+	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf list: loading tree: %v\n", err)
 		return cliutil.ExitInternal

@@ -1,7 +1,7 @@
 ---
 id: M-0240
 title: 'Harness skeleton: driver, scenario interface, streaming report'
-status: draft
+status: done
 parent: E-0062
 depends_on:
     - M-0239
@@ -9,24 +9,28 @@ tdd: required
 acs:
     - id: AC-1
       title: A stress run builds the aiwf binary under test once, never trusting PATH
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Each raw-report event appends via a single Write call
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: A run killed mid-scenario still composes without failing on a truncated line
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: A scenario's repo is cleaned up on pass and preserved on fail
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: A --repeat N flag reruns a scenario N times with a logged seed per attempt
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
+    - id: AC-6
+      title: cmd/stresstest wires run and compose into an end-to-end runnable harness
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -81,6 +85,19 @@ Each attempt logs the random seed it used (actor-start jitter, any
 randomized delay) into its raw-report event, so a violation found on a given
 attempt is replayable by rerunning with that seed.
 
+### AC-6 — cmd/stresstest wires run and compose into an end-to-end runnable harness
+
+A thin `cmd/stresstest` binary exposes `run` and `compose` as independently-runnable
+steps (D-0033), wiring `BuildBinary`, `OpenReportWriter`, `RunRepeated`, and `Compose`
+around the trivial placeholder scenario this milestone's constraints call for — a
+`git init`'d empty repo, `aiwf check` run against it, always passing regardless of
+`check`'s own exit code. `run` builds the binary under test, repeats the placeholder
+scenario `--repeat` times, and logs each attempt to a raw-report JSONL file; `compose`
+renders a human-readable summary from that file. This closes the gap the milestone's
+own "Surfaces touched" section and D-0033 named but the other five ACs didn't
+individually require: the harness is runnable end-to-end, not just usable as a Go
+library.
+
 ## Constraints
 
 - Harness code lives entirely under `internal/stresstest/` (plus a thin
@@ -100,7 +117,17 @@ attempt is replayable by rerunning with that seed.
   "Orchestration mechanics" section is the locked design for the driver
   loop, the scenario shape, and the loose-vs-directed race distinction —
   this milestone implements the skeleton half of it (driver, interface,
-  report), not the scenario-authoring half (later milestones).
+  report), not the scenario-authoring half (later milestones). The shipped
+  `Scenario` interface (`Setup(dir) error`, `Run(dir) error`, `Verify(dir)
+  []Violation`) keeps only that 3-method skeleton, not the initiative
+  doc's own `Setup(dir) actors`/`Run(harness)` data flow verbatim — a
+  deliberate simplification for this milestone's placeholder scenario, not
+  a literal implementation of the doc's signatures. Confirmed at wrap
+  (design review) that this doesn't force a breaking interface change on
+  M-0241+: a concrete `Scenario` can hold whatever it needs (an actor list,
+  a binary path) as its own private fields via its own constructor, the
+  same pattern `RunRepeated`'s `newScenario func(seed int64) Scenario`
+  already establishes for seeds.
 - The `go test -tags=stress` vs. bespoke-driver decision is made at the
   start of this milestone, informed by whichever gives more direct control
   over process orchestration (subprocess spawning, signal delivery) without
@@ -133,11 +160,62 @@ attempt is replayable by rerunning with that seed.
 
 ## Work log
 
+### AC-1 — Build the aiwf binary under test once, never trusting PATH
+
+`internal/stresstest.BuildBinary` compiles `./cmd/aiwf` into an absolute
+`outDir/aiwf` path; a decoy-on-PATH test pins that callers invoking the
+returned path never fall back to a bare `aiwf` PATH lookup · commit
+d51fa34c · tests 3/3
+
+### AC-2 — Each raw-report event appends via a single Write call
+
+`internal/stresstest.ReportWriter` opens the raw-report file `O_APPEND`
+and writes each marshaled event plus its trailing newline as one `Write`
+call, reusing `internal/logger`'s concurrent-append discipline
+(ADR-0017 Decision #5) per D-0033 · commit c344c3ed · tests 9/9
+
+### AC-3 — A run killed mid-scenario still composes without failing on a truncated line
+
+`internal/stresstest.Compose` reads a raw-report JSONL file and returns
+every well-formed event; only the file's final line is ever tolerated as
+truncated (a kill -9 mid-write), since AC-2's O_APPEND +
+one-Write()-per-record discipline guarantees no earlier line can be
+partial · commit b90f787b · tests 5/5
+
+### AC-4 — A scenario's repo is cleaned up on pass and preserved on fail
+
+`internal/stresstest.Scenario` (Setup/Run/Verify) and `RunScenario` give
+the harness its per-scenario contract: a passing run removes its own temp
+dir, any failure (Setup/Run error or a Verify violation) preserves it on
+disk as RCA material · commit 8ab46f3c · tests 6/6
+
+### AC-5 — A --repeat N flag reruns a scenario N times with a logged seed per attempt
+
+`internal/stresstest.RunRepeated` reruns a scenario n times, threading each
+attempt's seed into scenario construction and logging it via `ReportWriter`
+before the next attempt starts; a scenario failing verification doesn't
+stop the loop, only a mechanical error does · commit cbab4d3d · tests 5/5
+
+### AC-6 — cmd/stresstest wires run and compose into an end-to-end runnable harness
+
+A thin `cmd/stresstest` binary exposes `run` and `compose`, wiring `BuildBinary`,
+`OpenReportWriter`, `RunRepeated`, and `Compose` around the placeholder scenario;
+an independent review's B1 finding (a hardcoded `Passed` surviving every AC-5 test)
+was fixed as its own corrective commit first · commits e439a24b, e620ca6a · tests 16/16
+
 ## Decisions made during implementation
 
-- (none)
+- D-0033 — driver mechanism is a bespoke `cmd/stresstest` binary, not
+  `go test -tags=stress -json`
 
 ## Validation
+
+- `go build ./...` — clean.
+- `go test -count=1 ./internal/stresstest/... ./cmd/stresstest/...` — 42/42 tests pass.
+- `make lint` (full `golangci-lint` set, worktree-scoped cache) — 0 issues.
+- `aiwf check` — 0 errors (1 pre-existing, unrelated warning: no upstream configured in this worktree).
+- Manual end-to-end smoke test: built the real binary, ran `stresstest run --repeat 3` and `stresstest compose` against its own output, confirmed correct pass counts and rendered events.
+- Each AC's implementation went through `wf-tdd-cycle`'s branch-coverage audit plus a `wf-vacuity` mutation probe; one real gap surfaced and was fixed (see AC-5's Work log entry and the Reviewer notes below).
 
 ## Deferrals
 
@@ -145,4 +223,24 @@ attempt is replayable by rerunning with that seed.
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review at wrap (fresh-context subagents, no authorship
+attachment):
+
+- **Code quality**: one blocking finding (B1 — `RepeatEvent.Passed` unpinned
+  in the AC-5 failure test; fixed as its own corrective commit, see AC-5's
+  Work log entry). Two non-blocking, track-for-later notes: (1) AC-1's
+  decoy-on-PATH test adds no regression-catching power beyond the
+  `filepath.IsAbs` check that already runs first — not wrong, just
+  redundant until a later milestone's harness code actually invokes the
+  binary by bare name somewhere; (2) `context.Context` threading is
+  inconsistent (`BuildBinary` takes one, `Scenario`/`RunRepeated` don't) —
+  defensible for this skeleton, since AC-3 deliberately relies on process
+  kill rather than graceful cancellation, but M-0241's multi-process
+  scenarios will likely want it for timeout/cancellation of an in-flight
+  repeat loop.
+- **Design quality** (`wf-rethink` over `internal/stresstest`): verdict
+  Keep — no interface break forced on M-0241–244 by the `Scenario`
+  simplification (see the Design notes section above); module boundary,
+  `RunRepeated`-over-`RunScenario` layering, and `WriteEvent(event any)`'s
+  deferred event-schema are all sound as-is. Flagged `cmd/stresstest`'s
+  absence independently of the code reviewer; resolved by adding AC-6.

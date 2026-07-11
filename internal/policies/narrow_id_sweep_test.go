@@ -164,6 +164,14 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// epic-id map lookup canonicalizes both sides. Same shape as the
 		// AC-2 parser-tolerance tests above.
 		"internal/cli/status/worktrees_divergence_test.go": "G-0277 narrow-vs-canonical epic-id lookup parity",
+
+		// M-0250/AC-3: classifyListInvariant canonicalizes both sides
+		// (ground truth and `aiwf list`'s output) before comparing by
+		// id, so a ground-truth entity recorded at legacy narrow width
+		// still matches list's always-canonical row. Narrow (E-01)
+		// inputs are required to exercise that canonicalization step;
+		// same shape as the AC-2 parser-tolerance tests above.
+		"internal/stresstest/verb_sequence_list_invariant_test.go": "M-0250/AC-3 narrow-vs-canonical id/parent comparison in the list-vs-ground-truth invariant",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so

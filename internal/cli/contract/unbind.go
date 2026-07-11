@@ -2,11 +2,14 @@ package contract
 
 import (
 	"context"
+	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -37,7 +40,7 @@ func newUnbindCmd(correlationID string) *cobra.Command {
 	return cmd
 }
 
-func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
+func runUnbind(id, root, actor string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil {
 		cliutil.Errorf("aiwf contract unbind: %v\n", err)
@@ -49,13 +52,28 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract unbind")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "contract-unbind", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract unbind", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf contract unbind: %v\n", err)
@@ -63,6 +81,6 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) int {
 	}
 
 	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
-	code, _ := cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
+	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
 	return code
 }

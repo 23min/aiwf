@@ -147,7 +147,7 @@ func TestRecipeRemoveCmd_FlagShape(t *testing.T) {
 // Invalid format returns ExitUsage without touching disk. M-0117/AC-2.
 func TestRun_BadFormat(t *testing.T) {
 	t.Parallel()
-	rc := contract.Run("", "yaml", false)
+	rc := contract.Run("", "yaml", false, "")
 	if rc != cliutil.ExitUsage {
 		t.Errorf("Run(format=yaml) = %d, want ExitUsage=%d", rc, cliutil.ExitUsage)
 	}

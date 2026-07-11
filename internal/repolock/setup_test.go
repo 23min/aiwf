@@ -3,6 +3,8 @@ package repolock
 import (
 	"os"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // TestMain seeds GIT identity env vars once for the test binary's
@@ -10,8 +12,12 @@ import (
 // t.Parallel; the values are immutable for the lifetime of the
 // test binary, so once-setup is correct.
 //
-// repolock itself doesn't invoke git, but the template is uniform
-// across internal/* per M-0091.
+// worktree_scoping_test.go (M-0241/AC-4) shells out to real git
+// subprocesses (`git init`/`worktree add`), so this TestMain hardens
+// the git test env per CLAUDE.md's exec-bearing-TestMain convention
+// (G-0250/G-0251) — the rest of this package's tests don't invoke
+// git themselves, but the hardening call is package-wide, not
+// per-test.
 //
 // Serial tests: none. Every Test* function uses t.TempDir for
 // filesystem isolation and only mutates files inside its own
@@ -21,5 +27,6 @@ func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
 	os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
+	testsupport.HardenGitTestEnv()
 	os.Exit(m.Run())
 }

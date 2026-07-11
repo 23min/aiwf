@@ -112,9 +112,10 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 		t.Fatalf("promote E-01 active: %v\n%s", pErr, pOut)
 	}
 	// Bring M-0001 to done first: promoting the epic to done while it
-	// still owns an in_progress milestone is refused by the epic-done
-	// non-terminal-children guard (G-0394) — this fixture is testing
-	// scope-ending on terminal-promote, not that guard.
+	// still owns an in_progress milestone is refused by the epic-
+	// terminal-promote non-terminal-children guard (G-0393 / G-0394) —
+	// this fixture is testing scope-ending on terminal-promote, not
+	// that guard.
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "done",
 		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {

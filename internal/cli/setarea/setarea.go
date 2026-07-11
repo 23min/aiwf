@@ -7,12 +7,15 @@ package setarea
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -88,7 +91,7 @@ a retag with the prior member.`,
 }
 
 // Run executes `aiwf set-area`. Returns one of the cliutil.Exit* codes.
-func Run(args []string, actor, principal, root string, clearTag bool, out cliutil.OutputFormat) int {
+func Run(args []string, actor, principal, root string, clearTag bool, out cliutil.OutputFormat) (code int) {
 	id := args[0]
 	member := ""
 	if len(args) == 2 {
@@ -118,13 +121,28 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		return cliutil.ExitUsage
 	}
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf set-area")
+	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
+	// M-0238/AC-5 pattern.
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		runID := out.CorrelationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "set-area", id, actorStr, runID)
+	}
+	var sha string
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf set-area", out)
 	if release == nil {
 		return rc
 	}
 	defer release()
 
-	ctx := context.Background()
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
 		//coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
@@ -143,6 +161,6 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		// a scoped ai/<id> agent whose scope reaches this entity may run it.
 		TargetID: entity.Canonicalize(id),
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
+	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf set-area", tr, result, vErr, pctx, out)
 	return code
 }

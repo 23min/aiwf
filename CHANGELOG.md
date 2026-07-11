@@ -29,17 +29,38 @@ gap where an agent authoring an entity by copying a neighbor never encountered
 the discipline, which previously lived only inside the verb skills it had to
 already reach for.
 
-### Added — G-0394: epic promote-to-done and archive both refuse to strand a non-terminal milestone
+### Added — E-0062: on-demand correctness stress harness
 
-`aiwf promote <epic> done` now refuses when the epic still owns a non-terminal
-child milestone, mirroring the existing `aiwf cancel` guard (D-0003) onto the
-promote-to-done path — the operator must cancel or complete each listed
-milestone first. `force` bypasses this guard like it bypasses Promote's other
-preconditions. As defense-in-depth, `aiwf archive` independently declines to
-sweep an epic whose subtree still owns a non-terminal milestone (no `--force`
-of its own), so a `--force`-bypassed or hand-edited epic can no longer strand
-that milestone in `archive/`; the sweep's NoOp message now names any skipped
-epic and its offending children instead of misreporting the tree as converged.
+A new `cmd/stresstest` binary drives the compiled `aiwf` binary as a real
+subprocess against disposable git repos, on demand (never scheduled, never
+part of `cmd/aiwf`). 14 scenarios cover four correctness-risk mechanisms:
+true simultaneity (goroutine/process fan-out racing `repolock` — id
+allocation, cross-worktree races, a `move`-across-two-epics race), divergent
+worktrees reconciled later, fault injection via external observation
+(`kill -9`, disk-full, permission-denied), and a sequential FSM random walk
+driving `promote`/`rename`/`retitle`/`archive`/`move` through many legal
+transitions with a post-step invariant cross-checking `aiwf list` against
+ground truth. Every scenario has a deterministic pass/fail oracle;
+`cmd/stresstest run --scenario <name>|all --repeat N` is the entry point.
+See `wrap.md` under `work/epics/E-0062-correctness-stress-harness/` for the
+full milestone list and the follow-up gaps this harness surfaced.
+
+### Added — G-0393 / G-0394: epic promote to a terminal status, and archive, both refuse to strand a non-terminal milestone
+
+`aiwf promote <epic> done` and `aiwf promote <epic> cancelled` now refuse when
+the epic still owns a non-terminal child milestone, mirroring the existing
+`aiwf cancel` guard (D-0003) onto both of Promote's terminal targets — the
+operator must cancel or complete each listed milestone first. The guard runs
+**unconditionally**, with no `--force` bypass, matching Cancel's own guard: force
+relaxes FSM-transition legality, not this structural children precondition. As
+defense-in-depth, `aiwf archive` independently declines to sweep an epic whose
+subtree still owns a non-terminal milestone (no `--force` of its own), so a
+hand-edited epic can no longer strand that milestone in `archive/`; the sweep's
+NoOp message now names any skipped epic and its offending children instead of
+misreporting the tree as converged. A new standing `aiwf check` rule,
+`epic-terminal-non-terminal-children`, additionally catches the state
+regardless of how it was reached — including in the active tree, not just at
+archive time.
 
 ### Fixed — stale path-links in ADR-0008, ADR-0011, ADR-0016 to since-archived/rewidth'd entities
 

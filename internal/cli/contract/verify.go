@@ -2,12 +2,14 @@ package contract
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -17,7 +19,7 @@ import (
 // evolve passes for every non-terminal contract binding declared in
 // aiwf.yaml. Output respects the standard --format=text/json envelope
 // and exit codes.
-func newVerifyCmd() *cobra.Command {
+func newVerifyCmd(correlationID string) *cobra.Command {
 	var (
 		root   string
 		format string
@@ -35,7 +37,7 @@ func newVerifyCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, pretty))
+			return cliutil.WrapExitCode(Run(root, format, pretty, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -52,7 +54,7 @@ func newVerifyCmd() *cobra.Command {
 // internal/policies/read_only.go entry pins this path so a future
 // regression that adds gitops.Commit / verb.Apply / os.WriteFile to
 // the verify body fails CI.
-func Run(root, format string, pretty bool) int {
+func Run(root, format string, pretty bool, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf contract verify: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
@@ -63,6 +65,26 @@ func Run(root, format string, pretty bool) int {
 		return cliutil.ExitUsage
 	}
 	ctx := context.Background()
+
+	// M-0249: diagnostic-logging wiring, mirroring check.Run's/show.Run's
+	// own read-only rationale — contract verify has no --actor flag, so
+	// actor resolution is best-effort only and never fails the verb
+	// (ADR-0017).
+	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
+	defer func() { _ = closeDiagLog() }()
+	if diagLog.Enabled(ctx, slog.LevelInfo) {
+		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
+		if actorErr != nil {
+			actorStr = ""
+		}
+		runID := correlationID
+		if runID == "" {
+			runID = logger.NewRunID()
+		}
+		diagLog = logger.WithVerb(diagLog, "contract-verify", "", actorStr, runID)
+	}
+	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf contract verify: loading tree: %v\n", err)
