@@ -1,8 +1,10 @@
 ---
 id: G-0399
 title: VerbSequenceScenario isn't registered in cmd/stresstest's catalog
-status: open
+status: addressed
 discovered_in: M-0249
+addressed_by_commit:
+    - 59f00c89
 ---
 ## What's missing
 
