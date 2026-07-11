@@ -98,3 +98,33 @@ properties across all generated cases.
 
 - `internal/verb/rewidth.go`
 - G-0392 — the gap this epic addresses
+
+---
+
+## Work log
+
+### AC-1 — Rewrite link destinations to a moved entity, leaving prose and code untouched
+
+Green · commit 829991ba · tests 9/9
+
+Extracted rewidth's fence / inline-code-span / link-region masking into
+shared `internal/verb/linkregion.go` helpers (`walkBodyLines`,
+`maskCodeSpans`, `splitLinkPathRegions`), confirmed byte-identical
+behavior against the full existing rewidth test suite, then added
+`RewriteLinkDestinations` in `internal/verb/linkrewrite.go`: a pure,
+move-set-driven rewrite of root-relative link destinations. Relative
+destination resolution (AC-2) is not yet wired in.
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
