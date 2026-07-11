@@ -30,17 +30,32 @@ principle that correctness must not depend on remembered behavior, the fix is
 mechanical: make any chosen layout fail-safe. Separate worktrees remain a genuine
 ergonomic convenience for parallel work, never a correctness requirement.
 
-## Direction (candidate mechanisms, to converge at the milestone)
+## Direction
 
-- Capture branch + `HEAD` SHA at verb/ritual entry and refuse the commit if
-  either drifted by commit time. An explicit `--expect-head <sha>` flag lets a
-  ritual pin the value across its multi-step window.
-- A per-worktree "last-seen HEAD" record that warns when `HEAD` moved since the
-  last `aiwf` invocation with no intervening `aiwf`-driven checkout.
-- Extend `repolock` to span the sovereign-commit window.
+Reuse G-0270's `promote-on-wrong-branch` expected-branch derivation as a
+synchronous pre-commit refusal inside `aiwf promote` itself, scoped to the two
+transitions that have a well-defined "correct branch" under ADR-0010: epic
+`proposed -> active` (expects trunk) and milestone `-> in_progress` (expects
+the parent epic's ritual branch). Before landing the commit, check whether
+`HEAD` is currently on the expected branch; refuse if not, in the same shape
+as the existing G-0329 "no git operation in progress" guard at the top of
+`verb.Apply` — the sovereign act is prevented from landing on the wrong
+branch, rather than only flagged after the fact.
 
-Whichever lands, the invariant is: **a mutating verb never commits to a branch
-other than the one the operator was working against — it refuses and re-surfaces
+A general `--expect-head <sha>` guard (capturing `HEAD` at a ritual's
+preflight and passing it forward for every mutating verb to check) and
+extending `repolock`'s acquire window were both considered and rejected:
+`repolock` only synchronizes aiwf-driven verbs against each other — a
+concurrent plain `git checkout` by a human or another terminal never touches
+it — and cannot span separate CLI invocations across a ritual's
+human-deliberation gaps regardless. A general per-verb flag would touch every
+mutating verb's CLI surface and every ritual skill's prose for a race that
+has occurred once; the two activating-promote transitions are the only ones
+with a well-defined "expected branch" today, so scoping the guard to them is
+proportionate to the actual risk.
+
+The invariant this guard upholds: **an activating-promote commit never lands
+on a branch other than the one ADR-0010 expects — it refuses and re-surfaces
 instead.**
 
 ## Provenance
