@@ -396,7 +396,7 @@ func TestArchiveCommitBody_ListsSkippedEpics(t *testing.T) {
 	skipped := []archiveSkip{
 		{epic: "E-0010", children: []string{"M-0020", "M-0021"}},
 	}
-	body := archiveCommitBody(nil, skipped)
+	body := archiveCommitBody(nil, skipped, 0)
 	if !strings.Contains(body, "E-0010") {
 		t.Errorf("commit body does not name skipped epic E-0010:\n%s", body)
 	}
@@ -413,7 +413,7 @@ func TestArchiveCommitBody_ListsBothMovesAndSkipped(t *testing.T) {
 	t.Parallel()
 	moves := []archiveMove{{kind: entity.KindGap, id: "G-0001"}}
 	skipped := []archiveSkip{{epic: "E-0010", children: []string{"M-0020"}}}
-	body := archiveCommitBody(moves, skipped)
+	body := archiveCommitBody(moves, skipped, 0)
 	if !strings.Contains(body, "G-0001") {
 		t.Errorf("commit body missing moved id G-0001:\n%s", body)
 	}
@@ -582,7 +582,7 @@ func TestArchiveCommitBody_DeterministicAndCompliant(t *testing.T) {
 		{kind: entity.KindEpic, id: "E-0005"},
 		{kind: entity.KindEpic, id: "E-0001"},
 	}
-	body := archiveCommitBody(moves, nil)
+	body := archiveCommitBody(moves, nil, 0)
 	if !strings.Contains(body, "ADR-0004") {
 		t.Errorf("commit body should cite ADR-0004:\n%s", body)
 	}
