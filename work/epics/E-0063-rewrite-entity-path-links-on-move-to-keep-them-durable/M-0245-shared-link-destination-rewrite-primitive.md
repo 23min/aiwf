@@ -129,6 +129,27 @@ the directory list. Path arithmetic uses the `path` package (pure
 forward-slash string manipulation), not `path/filepath`, since these
 are markdown-embedded destinations, not filesystem paths.
 
+### AC-3 — Rewrite core is idempotent; rewritten destinations resolve to new paths
+
+Green · commit d35b5b0e · tests 2 properties × 1500 generated cases each
+
+Two `wf-property-test`-style properties in
+`internal/verb/linkrewrite_property_test.go`, sampled over generated
+linking-file paths, move sets, and bodies: idempotence
+(`RewriteLinkDestinations` applied twice equals applied once) and
+resolution correctness (every deliberately-crafted link resolves,
+under an independent oracle, to its move's new path). Confirmed both
+properties fail on a broken implementation before finalizing, per the
+ritual's vacuity check — the first version of the resolution-
+correctness oracle re-derived a destination's root-relative-vs-
+relative flavor from its string shape, and since every generated
+`EntityMove.To` happens to start with a recognized entity root, that
+version stayed green even with the relative-recompute path
+(`newDestination`) stubbed out. Fixed by carrying the crafted link's
+intended flavor explicitly from generation into the oracle instead of
+re-detecting it; re-ran the same sabotage and confirmed it now goes
+red.
+
 ## Decisions made during implementation
 
 - (none)
