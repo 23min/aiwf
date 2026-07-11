@@ -29,6 +29,24 @@
 #   enough that genuine timeouts (infinite loops induced by a
 #   mutation) still fire within reasonable wall time.
 #
+# Why the prebuilt-binary step:
+#   internal/stresstest's real-subprocess scenarios each need a built
+#   aiwf (and, for the lock-kill scenario, a lockholder) binary. Those
+#   helpers cache the build with sync.Once, but gremlins spawns a
+#   fresh `go test` process per mutant, so sync.Once's cache never
+#   survives past one mutant — every mutant re-pays the full build
+#   cost on top of its own test run. Building both binaries once here
+#   and exporting their paths via AIWF_STRESSTEST_PREBUILT_BINARY /
+#   AIWF_STRESSTEST_PREBUILT_LOCKHOLDER_BINARY lets every mutant reuse
+#   them; this is safe regardless of which package is under mutation:
+#   the scenarios always treat these binaries as fixed, already-built
+#   tools (testing real OS-process behavior), never as the code under
+#   mutation — a mutation to cmd/aiwf or lockholder/main.go's run() is
+#   caught by that package's own tests compiling the mutated source
+#   fresh, independent of whichever binary these helpers hand back.
+#   Unset in every other invocation (local dev, CI's regular test
+#   job), where the helpers build as before.
+#
 # Reading the report:
 #   - KILLED:    test suite caught the mutation (good).
 #   - LIVED:     mutation survived all tests (signal — investigate).
@@ -100,6 +118,12 @@ jobs:
           git config --global user.email "ci@example.com"
       - name: Install gremlins
         run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+      - name: Build shared aiwf + lockholder binaries once
+        run: |
+          go build -o "${{ runner.temp }}/aiwf" ./cmd/aiwf
+          go build -o "${{ runner.temp }}/lockholder" ./internal/stresstest/lockholder
+          echo "AIWF_STRESSTEST_PREBUILT_BINARY=${{ runner.temp }}/aiwf" >> "$GITHUB_ENV"
+          echo "AIWF_STRESSTEST_PREBUILT_LOCKHOLDER_BINARY=${{ runner.temp }}/lockholder" >> "$GITHUB_ENV"
       - name: Run mutation testing
         env:
           EXCLUDE_FILES: ${{ inputs.exclude_files }}
