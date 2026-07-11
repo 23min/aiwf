@@ -86,3 +86,26 @@ B are swept in one run.
 - `internal/verb/archive.go`
 - ADR-0004 — uniform archive convention
 - G-0392
+
+---
+
+## Work log
+
+### AC-1 — Archive rewrites entity-body links to a swept entity's archive path
+
+Green · commit f7426e90 · tests 4/4
+
+### AC-2 — A multi-entity sweep recomputes links against the final post-move layout
+
+Green · commit f7426e90 · tests 4/4
+
+Both ACs landed in one implementation commit: `planArchiveRewrites` and
+`archiveEntityMoves` in `internal/verb/archive.go`, plus four real-tree
+integration tests in the new `internal/verb/archive_linkrewrite_test.go`
+(AC-1's rewrite + untouched-region case, AC-2's nested-milestone +
+same-sweep case, and a branch test pinning that an already-archived
+entity is never treated as a linking-file candidate). Directory-shaped
+moves (epic/contract) expand into one `EntityMove` per nested entity
+file via `pathInside` / `newEntityPathAfterRename` — the same pattern
+`reallocate` already uses for its own directory-rename case — closing
+the nested-milestone-link gap M-0245's reviewer flagged as uncovered.
