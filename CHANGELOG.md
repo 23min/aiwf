@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0407: scoped multi-dispatch input for mutate-hunt
+
+`mutate-hunt.yml`'s `workflow_dispatch` now accepts an optional
+`exclude_files` input, wired to gremlins' `--exclude-files`. A dispatch can
+scope to one file group of a package too large to finish inside the job
+timeout in one run — leaving the input empty keeps today's single-dispatch
+behavior unchanged.
+
 ### Fixed — G-0308: promote-on-wrong-branch no longer mis-attributes commits across a reallocation
 
 The `promote-on-wrong-branch` check now resolves a promote commit's
