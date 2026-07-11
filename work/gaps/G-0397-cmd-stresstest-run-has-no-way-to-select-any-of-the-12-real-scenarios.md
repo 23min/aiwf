@@ -1,8 +1,10 @@
 ---
 id: G-0397
 title: cmd/stresstest run has no way to select any of the 12 real scenarios
-status: open
+status: addressed
 discovered_in: M-0244
+addressed_by_commit:
+    - 930d391e
 ---
 ## What's missing
 
