@@ -137,6 +137,8 @@ and as a backstop for raw-`git mv` bypass.
   composite-AC no-op path · depends on: `M-0245`
 - `M-0248` — Unify `reallocate` onto the primitive for link-region precision
   (optional; refinement, not a rot-fix) · depends on: `M-0245`
+- `M-0251` — Handle `#fragment` / `?query` suffixes in the link-destination
+  rewrite primitive · depends on: `M-0245`
 
 ## ADRs produced (optional)
 
