@@ -874,3 +874,21 @@ rot silently the next time its target moves.
 | M-0248 | Unify reallocate onto the shared rewrite primitive | done |
 | M-0251 | Handle #fragment / ?query suffixes in link-destination rewrite | done |
 
+## E-0064 — Backfill test coverage for untested CLI verb error-handling branches (proposed)
+
+### Goal
+
+Every currently-flagged untested CLI-verb error-handling branch gets either a
+real regression test or a documented `//coverage:ignore`, so
+`make coverage-gate` reports zero findings against these sites and the
+diff-scoped coverage gate stops firing on incidental future touches to this
+code.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0252 | Shared CLI-verb failure fixtures and non-CLI infra coverage backfill | draft |
+| M-0253 | Entity-lifecycle verb coverage backfill | draft |
+| M-0254 | Contract subsystem coverage backfill | draft |
+| M-0255 | Diagnostic and introspection verb coverage backfill | draft |
+| M-0256 | Bulk-input verb coverage backfill | draft |
+
