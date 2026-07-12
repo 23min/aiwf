@@ -1,8 +1,10 @@
 ---
 id: G-0409
 title: 'link-destination rewrite doesn''t handle #fragment/?query suffixes'
-status: open
+status: addressed
 discovered_in: M-0245
+addressed_by_commit:
+    - aa57a1b6
 ---
 ## What's missing
 
