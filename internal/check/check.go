@@ -123,6 +123,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, acsTDDAudit(t)...)
 	findings = append(findings, acsTitleProse(t)...)
 	findings = append(findings, milestoneDoneIncompleteACs(t)...)
+	findings = append(findings, milestoneCancelledIncompleteACs(t)...)
 	findings = append(findings, entityBodyEmpty(t)...)
 	// G-0268: defense-in-depth backstop for the hard --tdd creation
 	// requirement — fires on non-archived milestones lacking tdd:.

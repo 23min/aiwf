@@ -179,6 +179,9 @@ func errorSubstringsFor(code string) []string {
 	case "epic-promote-non-terminal-children":
 		// G-0394 guard: EpicPromoteNonTerminalChildrenError.Error().
 		return []string{"non-terminal child milestone", "epic-promote-non-terminal-children"}
+	case "milestone-promote-non-terminal-acs":
+		// G-0335 guard: MilestonePromoteNonTerminalACsError.Error().
+		return []string{"open acceptance criterion", "milestone-promote-non-terminal-acs"}
 	}
 	return nil
 }
@@ -263,15 +266,36 @@ func buildIllegalVerbArgs(t *testing.T, tc illegalCase, id string) []string {
 	return nil
 }
 
+// promoteTargetOverride pins the illegal-promote target for cells whose
+// default pick (deriveIllegalPromoteTarget's allowed[0]) would not
+// actually reach the cell's precondition-gated refusal. Most cells
+// don't need this — e.g. epic-promote-non-terminal-children's guard
+// covers every terminal target reachable from "active", so
+// allowed[0]=="done" already trips it. Only add an entry when the
+// default pick provably misses the guard the cell exists to exercise.
+var promoteTargetOverride = map[string]string{
+	// milestone-draft-promote-anychildacstatuseqopen (G-0335): draft's
+	// allowed[0] is "in_progress", which MilestonePromoteNonTerminalACsError's
+	// guard (scoped to newStatus == cancelled) never sees — and which
+	// is itself refused first by the unrelated G-0269 activating-branch
+	// guard, masking the cell under test entirely. Force the target to
+	// "cancelled" so the driver actually exercises the AC guard.
+	"milestone-draft-promote-anychildacstatuseqopen": entity.StatusCancelled,
+}
+
 // deriveIllegalPromoteTarget picks the target for an Illegal promote
-// cell. The first FSM-allowed transition wins (covers cells where the
-// FromState is non-terminal and the cell's other precondition triggers
-// rejection — e.g. ADR.accepted with self.superseded_by=="" rejects on
-// the verb's --superseded-by-required guard before FSM check fires).
-// Otherwise: a kind-domain status (terminal-FromState cells — any
-// target trips fsm-transition-illegal).
+// cell. promoteTargetOverride wins first for cells that need a specific
+// target. Otherwise the first FSM-allowed transition wins (covers cells
+// where the FromState is non-terminal and the cell's other precondition
+// triggers rejection — e.g. ADR.accepted with self.superseded_by==""
+// rejects on the verb's --superseded-by-required guard before FSM check
+// fires). Otherwise: a kind-domain status (terminal-FromState cells —
+// any target trips fsm-transition-illegal).
 func deriveIllegalPromoteTarget(t *testing.T, rule spec.Rule) string {
 	t.Helper()
+	if target, ok := promoteTargetOverride[illegalCaseName(rule)]; ok {
+		return target
+	}
 	allowed := entity.AllowedTransitions(rule.Kind, rule.FromState)
 	if len(allowed) > 0 {
 		return allowed[0]

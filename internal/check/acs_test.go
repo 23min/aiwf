@@ -410,6 +410,60 @@ func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
 	}
 }
 
+func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "cancelled", Parent: "E-0001",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "met"},
+			{ID: "AC-2", Title: "y", Status: "open"},
+			{ID: "AC-3", Title: "z", Status: "open"},
+		},
+	})
+	got := milestoneCancelledIncompleteACs(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
+	}
+	if got[0].EntityID != "M-0007" {
+		t.Errorf("entityID = %q, want M-007", got[0].EntityID)
+	}
+	// Message should list both open AC ids.
+	if !contains(got[0].Message, "AC-2") || !contains(got[0].Message, "AC-3") {
+		t.Errorf("message should list both open AC ids: %q", got[0].Message)
+	}
+}
+
+func TestMilestoneCancelledIncompleteACs_TerminalACsAccepted(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "cancelled", Parent: "E-0001",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "met"},
+			{ID: "AC-2", Title: "y", Status: "deferred"},
+			{ID: "AC-3", Title: "z", Status: "cancelled"},
+		},
+	})
+	if got := milestoneCancelledIncompleteACs(tr); len(got) != 0 {
+		t.Errorf("met/deferred/cancelled are acceptable terminals, got: %+v", got)
+	}
+}
+
+func TestMilestoneCancelledIncompleteACs_NotCancelledSkipped(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "open"},
+		},
+	})
+	if got := milestoneCancelledIncompleteACs(tr); len(got) != 0 {
+		t.Errorf("non-cancelled milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
 func TestAcsBodyCoherence_PairsByID(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

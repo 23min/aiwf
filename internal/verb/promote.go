@@ -166,6 +166,28 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		}
 	}
 
+	// Milestone-cancel-promote cascade guard (G-0335), mirroring the
+	// epic guard above: refuse, don't auto-cascade, when a milestone is
+	// about to reach `cancelled` while it still carries an open
+	// acceptance criterion — matching Cancel's own
+	// MilestoneCancelNonTerminalACsError (D-0004). Scoped to `cancelled`
+	// only, not IsTerminal generally: the `done` target already carries
+	// this precondition via the milestone-done-incomplete-acs check-rule
+	// that projectionFindings runs below, but that rule only fires on
+	// status: done, so it would never catch a cancelled milestone with
+	// an open AC — nothing downstream would. Runs unconditionally, even
+	// under --force, matching Cancel's guard — force relaxes
+	// FSM-transition legality, not this structural AC precondition.
+	if e.Kind == entity.KindMilestone && newStatus == entity.StatusCancelled {
+		if ok, openACs := entity.MilestoneCanGoDone(e); !ok {
+			composite := make([]string, 0, len(openACs))
+			for _, ac := range openACs {
+				composite = append(composite, e.ID+"/"+ac)
+			}
+			return nil, &MilestonePromoteNonTerminalACsError{Milestone: e.ID, NewStatus: newStatus, ACs: composite}
+		}
+	}
+
 	modified := *e
 	modified.Status = newStatus
 	applyResolverFlags(&modified, opts)

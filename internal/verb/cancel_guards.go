@@ -161,3 +161,56 @@ func (e *EpicPromoteNonTerminalChildrenError) Error() string {
 func (e *EpicPromoteNonTerminalChildrenError) Code() string {
 	return CodeEpicPromoteNonTerminalChildren.ID
 }
+
+// CodeMilestonePromoteNonTerminalACs is the typed kernel-code
+// descriptor carried by [MilestonePromoteNonTerminalACsError] when
+// `aiwf promote` refuses to move a milestone straight to `cancelled`
+// while it still carries one or more `open` acceptance criteria
+// (G-0335, mirroring G-0393 / G-0394's epic-level fix). Mirrors
+// CodeMilestoneCancelNonTerminalACs's D-0004 guard onto Promote's own
+// `cancelled` target for KindMilestone, so `aiwf promote <milestone>
+// cancelled` can't bypass Cancel's own dedicated guard by going
+// through Promote instead. Declares [codes.ClassLegality] (D-0011).
+var CodeMilestonePromoteNonTerminalACs = codes.Code{ID: "milestone-promote-non-terminal-acs", Class: codes.ClassLegality}
+
+// MilestonePromoteNonTerminalACsError reports that `aiwf promote`
+// refused to move a milestone to `cancelled` (NewStatus) because one or
+// more of its acceptance criteria are still `open`
+// (refuse-with-listing, no auto-cascade, mirroring D-0004's cancel
+// guard). The operator must dispose each listed AC (met, deferred, or
+// cancelled) before the milestone can reach `cancelled` by any path.
+// The `done` target carries its own, independent precondition — the
+// milestone-done-incomplete-acs check-rule that projectionFindings runs
+// further down Promote — so it never reaches this error type; NewStatus
+// is carried for message symmetry with the sibling
+// [EpicPromoteNonTerminalChildrenError], not because this type fires
+// for more than one target today. It implements [entity.Coded],
+// carrying CodeMilestonePromoteNonTerminalACs.
+type MilestonePromoteNonTerminalACsError struct {
+	// Milestone is the id of the milestone whose promote was refused.
+	Milestone string
+	// NewStatus is the terminal status the promote attempted to reach
+	// (always "cancelled" today; see the type doc).
+	NewStatus string
+	// ACs holds the composite ids (`M-NNNN/AC-N`) of the offending open
+	// acceptance criteria.
+	ACs []string
+}
+
+// Error implements error. It names the milestone, the attempted
+// target status, the count of offending ACs, the composite ids,
+// instructs the operator to dispose each first, and includes
+// CodeMilestonePromoteNonTerminalACs.ID so message-matching consumers
+// can recognize the refusal.
+func (e *MilestonePromoteNonTerminalACsError) Error() string {
+	return fmt.Sprintf(
+		"cannot promote %s to %s: %d open acceptance criterion(s) [%s] (%s); dispose each (met, deferred, or cancelled) before promoting the milestone to %s",
+		e.Milestone, e.NewStatus, len(e.ACs), strings.Join(e.ACs, ", "), CodeMilestonePromoteNonTerminalACs.ID, e.NewStatus,
+	)
+}
+
+// Code returns CodeMilestonePromoteNonTerminalACs's ID, satisfying
+// [entity.Coded].
+func (e *MilestonePromoteNonTerminalACsError) Code() string {
+	return CodeMilestonePromoteNonTerminalACs.ID
+}
