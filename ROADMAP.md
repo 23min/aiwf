@@ -857,7 +857,7 @@ finds into a reproducible gap.
 | M-0249 | Scenario registry: wire cmd/stresstest run to the real catalog | done |
 | M-0250 | Register the verb-sequence walker; extend it to move/archive/rename/retitle | done |
 
-## E-0063 — Rewrite entity path-links on move to keep them durable (active)
+## E-0063 — Rewrite entity path-links on move to keep them durable (done)
 
 ### Goal
 
