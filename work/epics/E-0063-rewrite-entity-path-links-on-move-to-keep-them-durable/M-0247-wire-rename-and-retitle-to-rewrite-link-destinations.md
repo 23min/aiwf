@@ -102,3 +102,20 @@ rewrite ops after its own `OpMove`. Two real-tree tests: a plain
 slug-swap with an unrelated-link/bare-id-mention control, and a
 directory-shaped epic rename whose own body links to a co-moved
 nested milestone.
+
+### AC-2 — Slug-changing retitle rewrites links while a composite-AC retitle rewrites none
+
+Green · commit 916df6c5 · tests 3/3
+
+A slug-changing retitle computes the same move set via
+`renameEntityMoves` and folds `RewriteLinkDestinations` into the body
+it already rewrites for the H1 sync, before serializing — so the two
+concerns land in one write to `contentPath`, not two competing
+`OpWrite`s for the same path. `planLinkRewriteWrites` then covers
+every other entity, with the retitled entity's own (pre-move) path
+excluded since it was already handled explicitly. Three real-tree
+tests: the slug-changing path composing H1 sync with a link rewrite on
+an unrelated linking entity, a directory-shaped epic retitle whose own
+body links to a co-moved nested milestone (proving the single-write
+composition), and the composite-AC path asserting its `Plan` carries
+exactly its one pre-existing write and nothing else.
