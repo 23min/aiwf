@@ -85,6 +85,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	ops := make([]FileOp, 0, 2)
 	contentPath := e.Path
 	planned := []string{filepath.ToSlash(e.Path)}
+	var moves []EntityMove
 	if source != dest {
 		// Slug also changed. Move first, then overwrite the moved file
 		// with the title-updated content — the apply layer runs all
@@ -98,6 +99,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		if err != nil {
 			return nil, err
 		}
+		moves = renameEntityMoves(t, e, source, dest)
 	}
 
 	body, err := readBody(t.Root, e.Path)
@@ -110,11 +112,27 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	// no-op. Non-canonical H1s (operator-shaped headings) are left
 	// alone so an intentional divergence isn't silently clobbered.
 	body = rewriteEntityH1(body, id, newTitle)
+	if len(moves) > 0 {
+		// Fold the entity's own outgoing link rewrite into this same
+		// body, rather than letting planLinkRewriteWrites below emit a
+		// competing write for the same contentPath — a slug-changing
+		// retitle of a dir-shaped kind (epic/contract) can link to one
+		// of its own nested, co-moved entities.
+		body = RewriteLinkDestinations(body, contentPath, moves)
+	}
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
 	}
 	ops = append(ops, FileOp{Type: OpWrite, Path: contentPath, Content: content})
+
+	if len(moves) > 0 {
+		rewriteOps, rwErr := planLinkRewriteWrites(t, moves, map[string]bool{e.Path: true})
+		if rwErr != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
+			return nil, rwErr
+		}
+		ops = append(ops, rewriteOps...)
+	}
 
 	proj := projectReplace(t, &modified, planned...)
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
