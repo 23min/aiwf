@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Rename rewrites entity-body links encoding the old slug to the new slug
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Slug-changing retitle rewrites links while a composite-AC retitle rewrites none
