@@ -188,3 +188,48 @@ change formatting drift in `internal/cli/cliutil/testutil/proc.go`),
 `go test -race -parallel 8 ./...` — 7099 passed, 0 failed, 6 skipped,
 across every package. The AC-2-scoped `branch-coverage-audit` rerun
 (six paths) reports zero findings.
+
+Wrap readiness (independently re-verified, not re-derived from the AC-2
+run): `aiwf check` — 0 errors, 3 pre-existing warnings unrelated to
+this diff. `make coverage-gate` (standard base =
+`git merge-base origin/main HEAD`) — all four policies
+(`BranchCoverageAudit`, `FiringFixturePresence`,
+`FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop`)
+pass. Full race suite green. `make lint` — 0 issues. Doc-lint (scoped
+to this milestone's change-set): no findings — the diff touches no
+file under `docs/`, `README.md`, or `CONTRIBUTING.md`.
+
+An independent fresh-context reviewer (code-quality lens, no
+authorship attachment) verified every load-bearing claim by measurement
+rather than trusting this spec's own narrative — reran the
+branch-coverage audit, traced each `//coverage:ignore` rationale
+against the guarded code, cross-checked each `FinishVerb` test against
+`apply.go`'s actual branches, and confirmed the `runAndCaptureFatal`
+technique is race-free by tracing every method called on the throwaway
+`*testing.T`. Verdict: **approve**, no blocking findings. The
+design-quality (`wf-rethink`) lens was skipped by operator decision —
+this milestone introduces no new module/package boundary, core
+abstraction, or data model, only mechanical coverage backfill and a
+small addition to the pre-existing `testutil` package.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- AC-1 documents that `cliutil.ResolveRoot`'s error branch ships no
+  fixture, deliberately: every call site already treats it as
+  `//coverage:ignore` (essentially untriggerable in a normal test
+  harness), so there is nothing to wrap. The AC text lists
+  root-resolution failure alongside the four modes that do get
+  fixtures; the deliverable and the AC text diverge slightly on this
+  one mode. Not a defect — flagged so a future reader isn't surprised
+  a fifth fixture doesn't exist.
+- `runAndCaptureFatal` (the throwaway-`*testing.T`-in-a-goroutine
+  technique for proving a `t.Fatalf`-guarded branch fires) is
+  duplicated verbatim in `internal/cli/cliutil/testutil/fixtures_test.go`
+  and `internal/cellcoverage/fixture_test.go`. Reasonable at two call
+  sites (KISS/YAGNI). If M-0253 through M-0256 need the same technique
+  a third time, factor it into a shared internal test-support helper
+  rather than copying it again.

@@ -874,7 +874,7 @@ rot silently the next time its target moves.
 | M-0248 | Unify reallocate onto the shared rewrite primitive | done |
 | M-0251 | Handle #fragment / ?query suffixes in link-destination rewrite | done |
 
-## E-0064 — Backfill test coverage for untested CLI verb error-handling branches (proposed)
+## E-0064 — Backfill test coverage for untested CLI verb error-handling branches (active)
 
 ### Goal
 
@@ -886,7 +886,7 @@ code.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0252 | Shared CLI-verb failure fixtures and non-CLI infra coverage backfill | draft |
+| M-0252 | Shared CLI-verb failure fixtures and non-CLI infra coverage backfill | in_progress |
 | M-0253 | Entity-lifecycle verb coverage backfill | draft |
 | M-0254 | Contract subsystem coverage backfill | draft |
 | M-0255 | Diagnostic and introspection verb coverage backfill | draft |
