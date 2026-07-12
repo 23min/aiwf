@@ -41,31 +41,29 @@ smallest flagged group first.
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0252 --title "..."`.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
-
-- **AC-1 candidate** — Reusable test fixtures exist (e.g. under
-  `internal/cliutil/testutil` or a sibling package) for each shared failure
-  mode: root-resolution failure, actor-resolution failure, repo-lock
-  contention (`cliutil.AcquireRepoLock`), malformed/corrupt tree
-  (`tree.Load`), and a bad `--format` flag. Each fixture is documented with
-  the exact condition it simulates.
-- **AC-2 candidate** — Every branch `branch-coverage-audit` flags (base =
-  the commit before M-0238/AC-3's rename) within `internal/verb/*`,
-  `internal/gitops/refs.go`, `internal/stresstest/*`, `internal/check/*`,
-  `internal/cellcoverage/*`, and `internal/cli/cliutil/*` carries either a
-  passing test built on these fixtures or a `//coverage:ignore <reason>`
-  naming why the branch isn't triggerable, mirroring
-  `internal/cli/archive/archive.go:120`.
-- **AC-3 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
-  set to the pre-M-0238 commit, reports zero findings for the files listed
-  in AC-2.
-
 ### AC-1 — Reusable test fixtures exist for each shared CLI-verb failure mode
+
+Reusable test fixtures exist (e.g. under `internal/cliutil/testutil` or a
+sibling package) for each shared failure mode: root-resolution failure,
+actor-resolution failure, repo-lock contention
+(`cliutil.AcquireRepoLock`), malformed/corrupt tree (`tree.Load`), and a
+bad `--format` flag. Each fixture is documented with the exact condition
+it simulates, so M-0253 through M-0256 can reuse it without re-deriving
+the trigger.
 
 ### AC-2 — Non-CLI-infra flagged branches are tested or documented
 
+Every branch `branch-coverage-audit` flags (base = the commit before
+M-0238/AC-3's rename) within `internal/verb/*`, `internal/gitops/refs.go`,
+`internal/stresstest/*`, `internal/check/*`, `internal/cellcoverage/*`,
+and `internal/cli/cliutil/*` carries either a passing test built on the
+AC-1 fixtures or a `//coverage:ignore <reason>` naming why the branch
+isn't triggerable, mirroring `internal/cli/archive/archive.go:120`.
+
 ### AC-3 — Coverage gate is clean for the non-CLI-infra group
+
+`make coverage-gate`, run with `AIWF_COVERAGE_BASE` set to the pre-M-0238
+commit, reports zero findings for the files listed in AC-2.
 
 ## Constraints
 
