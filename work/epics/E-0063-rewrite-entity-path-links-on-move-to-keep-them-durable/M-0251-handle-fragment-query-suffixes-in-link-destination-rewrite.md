@@ -1,7 +1,7 @@
 ---
 id: M-0251
 title: 'Handle #fragment / ?query suffixes in link-destination rewrite'
-status: draft
+status: in_progress
 parent: E-0063
 depends_on:
     - M-0245
