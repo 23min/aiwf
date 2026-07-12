@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -295,6 +296,40 @@ func TestIsAncestor_BadRef(t *testing.T) {
 	_, err := IsAncestor(ctx, dir, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "HEAD")
 	if err == nil {
 		t.Error("IsAncestor on a SHA that doesn't exist should error, got nil")
+	}
+}
+
+// TestCurrentBranch_GitAbsentFromPATH pins CurrentBranch's generic
+// error branch (refs.go:119): when `git symbolic-ref --short HEAD`
+// can't even launch (git absent from PATH), the resulting error is an
+// *exec.Error wrapped by output(), not an *exec.ExitError — errors.As
+// fails, so CurrentBranch falls through past the exit-128
+// detached-HEAD special case straight to the wrapped-error return.
+// This is distinct from a real git invocation exiting 128 (a
+// non-repository directory also exits 128, landing on the
+// already-covered ("", nil) detached-HEAD path instead — verified
+// empirically, not assumed).
+//
+// The happy-path (a real branch name) and the detached-HEAD ("", nil)
+// path are already exercised indirectly via
+// internal/verb/promote_branch_guard_test.go and the stresstest
+// scenarios that drive CurrentBranch through gitops; this test adds
+// the one branch nothing else reaches.
+//
+// Serial: t.Setenv("PATH", ...) is incompatible with t.Parallel.
+func TestCurrentBranch_GitAbsentFromPATH(t *testing.T) {
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "hello")
+
+	t.Setenv("PATH", t.TempDir())
+	_, err := CurrentBranch(ctx, dir)
+	if err == nil {
+		t.Fatal("CurrentBranch with git absent from PATH = nil error, want error")
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		t.Fatalf("error wraps *exec.ExitError (%v); want a launch failure, not an exit code", exitErr)
 	}
 }
 

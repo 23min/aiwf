@@ -48,7 +48,7 @@ func BrokenGitIdentity(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", home)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	gitconfig := filepath.Join(home, ".gitconfig")
-	if err := os.WriteFile(gitconfig, []byte("[user]\n\temail = no-at-sign\n"), 0o644); err != nil {
+	if err := os.WriteFile(gitconfig, []byte("[user]\n\temail = no-at-sign\n"), 0o644); err != nil { //coverage:ignore BrokenGitIdentity's home is always a fresh t.TempDir() with no injectable path; a write there essentially never fails
 		t.Fatalf("BrokenGitIdentity: write %s: %v", gitconfig, err)
 	}
 }
