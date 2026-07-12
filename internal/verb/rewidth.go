@@ -675,96 +675,15 @@ var linkPathPattern = regexp.MustCompile(`\(work/([a-z]+)/([EMGDCF])-(\d{1,3})(-
 // excluding code fences and inline-code spans. Returns the rewritten
 // body. Pure: no I/O. Idempotent: running twice on the same input
 // produces the same output as running once.
+//
+// Fence and inline-code-span masking is shared with the move-based
+// link-destination rewriter (M-0245) via walkBodyLines / maskCodeSpans
+// in linkregion.go; only the chunk-rewrite behavior (rewriteOutsideChunk)
+// is rewidth-specific.
 func rewriteRewidthBody(body []byte) []byte {
-	src := string(body)
-	out := strings.Builder{}
-	out.Grow(len(src))
-
-	lines := strings.Split(src, "\n")
-	inFence := false
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "```") {
-			out.WriteString(line)
-			if i < len(lines)-1 {
-				out.WriteByte('\n')
-			}
-			inFence = !inFence
-			continue
-		}
-		if inFence {
-			out.WriteString(line)
-			if i < len(lines)-1 {
-				out.WriteByte('\n')
-			}
-			continue
-		}
-		out.WriteString(rewriteLineOutsideFence(line))
-		if i < len(lines)-1 {
-			out.WriteByte('\n')
-		}
-	}
-	return []byte(out.String())
-}
-
-// rewriteLineOutsideFence applies rewrites to a single line of prose,
-// honoring two exclusion regions:
-//
-//  1. Inline-code spans (` `text` `) — content between backticks is
-//     preserved verbatim. Documentation often quotes literal id
-//     strings inside backticks for emphasis; rewriting those would
-//     erase the quote semantics.
-//
-//  2. URL-shaped tokens — any contiguous non-whitespace token that
-//     contains `://` is a URL; an id in its path is part of the
-//     URL's identity, not an entity reference. Per the AC-3 spec,
-//     `E-22` inside `https://example.com/E-22-issue` must stay
-//     narrow.
-//
-// The traversal walks the line scanning for backticks (toggle
-// in-span) and whitespace boundaries (commit each non-whitespace
-// token after deciding whether it's a URL). Code-span content always
-// passes through verbatim regardless of URL shape.
-func rewriteLineOutsideFence(line string) string {
-	var out strings.Builder
-	out.Grow(len(line))
-	inSpan := false
-	var buf strings.Builder
-	flushOutside := func() {
-		if buf.Len() == 0 {
-			return
-		}
-		out.WriteString(rewriteOutsideChunk(buf.String()))
-		buf.Reset()
-	}
-	for _, r := range line {
-		if r == '`' {
-			if inSpan {
-				// Closing backtick — flush the in-span buffer verbatim.
-				out.WriteString(buf.String())
-				buf.Reset()
-				out.WriteRune(r)
-				inSpan = false
-				continue
-			}
-			// Opening backtick — flush the out-of-span buffer with
-			// rewriting applied.
-			flushOutside()
-			out.WriteRune(r)
-			inSpan = true
-			continue
-		}
-		buf.WriteRune(r)
-	}
-	if inSpan {
-		// Unterminated span on this line — treat the buffer as in-span
-		// (verbatim) per markdown convention (an unmatched backtick is
-		// not a code-span open). Conservative: don't rewrite.
-		out.WriteString(buf.String())
-	} else {
-		flushOutside()
-	}
-	return out.String()
+	return walkBodyLines(body, func(line string) string {
+		return maskCodeSpans(line, rewriteOutsideChunk)
+	})
 }
 
 // rewriteOutsideChunk applies the three rewrite patterns to a chunk
@@ -831,60 +750,6 @@ func rewriteOutsideChunk(chunk string) string {
 		}
 	}
 	return out.String()
-}
-
-// linkPathRegion is a contiguous run inside or outside a markdown
-// link-path `](...)` literal. inLinkPath=true regions include the
-// surrounding `(` and `)` so the linkPathPattern can match them
-// directly; outside regions are pure prose.
-type linkPathRegion struct {
-	text       string
-	inLinkPath bool
-}
-
-// splitLinkPathRegions walks s and splits it into alternating
-// in-link-path and outside-link-path regions. A link-path region
-// starts at `](` (immediately after the `]`) and ends at the matching
-// `)`. Nesting and escapes are not handled — markdown's link-path
-// grammar disallows unescaped `)` inside the path, and the spec's
-// inputs don't include escaped link paths.
-func splitLinkPathRegions(s string) []linkPathRegion {
-	var out []linkPathRegion
-	var buf strings.Builder
-	i := 0
-	for i < len(s) {
-		// Look for `](` starting at i.
-		idx := strings.Index(s[i:], "](")
-		if idx < 0 {
-			buf.WriteString(s[i:])
-			break
-		}
-		abs := i + idx
-		// Everything up to (but not including) `]` goes into the
-		// outside region. We also include the `]` itself in outside,
-		// since it's not part of the link-path region.
-		buf.WriteString(s[i : abs+1])
-		out = append(out, linkPathRegion{text: buf.String(), inLinkPath: false})
-		buf.Reset()
-		// Now find the matching `)`. Start at the `(` immediately
-		// after `]`.
-		closeRel := strings.Index(s[abs+2:], ")")
-		if closeRel < 0 {
-			// Unbalanced — treat the rest of the string as outside,
-			// per "conservative: don't rewrite" approach for malformed
-			// markdown.
-			out = append(out, linkPathRegion{text: s[abs+1:], inLinkPath: false})
-			break
-		}
-		closeAbs := abs + 2 + closeRel
-		// link-path region includes `(` and `)`.
-		out = append(out, linkPathRegion{text: s[abs+1 : closeAbs+1], inLinkPath: true})
-		i = closeAbs + 1
-	}
-	if buf.Len() > 0 {
-		out = append(out, linkPathRegion{text: buf.String(), inLinkPath: false})
-	}
-	return out
 }
 
 // spaceToken is one segment of a chunk: either whitespace or a

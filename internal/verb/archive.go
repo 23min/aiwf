@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -155,12 +156,97 @@ func planArchive(ctx context.Context, root, kindFilter string) (*Plan, []archive
 		ops = append(ops, FileOp{Type: OpMove, Path: m.from, NewPath: m.to})
 	}
 
+	rewriteOps, err := planArchiveRewrites(tr, moves)
+	if err != nil { //coverage:ignore filesystem/serialize errors propagate from planArchiveRewrites — covered by its own defensive ignores
+		return nil, nil, err
+	}
+	ops = append(ops, rewriteOps...)
+
 	subject := archiveCommitSubject(moves)
 	return &Plan{
 		Subject: subject,
-		Body:    archiveCommitBody(moves, skipped),
+		Body:    archiveCommitBody(moves, skipped, len(rewriteOps)),
 		Ops:     ops,
 	}, skipped, nil
+}
+
+// archiveEntityMoves expands the directory-shaped moves in moves
+// (epic, contract) into one EntityMove per entity file that lives
+// inside the moved directory — including the dir-shape entity's own
+// file (epic.md / contract.md) and any nested milestone — using the
+// same pathInside/newEntityPathAfterRename pattern `reallocate` uses
+// for its own directory-rename case. Flat-file moves (gap, decision,
+// adr) are already file-level and pass through unchanged.
+//
+// This is what lets a link into a milestone nested inside an
+// archived epic dir resolve to the milestone's post-sweep path, not
+// just the epic dir's own path.
+func archiveEntityMoves(tr *tree.Tree, moves []archiveMove) []EntityMove {
+	var out []EntityMove
+	for _, m := range moves {
+		switch m.kind {
+		case entity.KindGap, entity.KindDecision, entity.KindADR:
+			out = append(out, EntityMove{From: m.from, To: m.to})
+		case entity.KindEpic, entity.KindContract:
+			for _, e := range tr.Entities {
+				if !pathInside(e.Path, m.from) {
+					continue
+				}
+				out = append(out, EntityMove{
+					From: e.Path,
+					To:   newEntityPathAfterRename(e, m.from, m.to),
+				})
+			}
+		}
+	}
+	return out
+}
+
+// planArchiveRewrites computes the body-content rewrites every active
+// entity needs once moves lands: any entity whose body links to a
+// moved entity, including an entity that is itself moving in the same
+// sweep (its body is read at the pre-move path and, when changed,
+// written at the post-move path — Apply runs every OpMove before any
+// OpWrite, so a write targeting a post-move path lands correctly).
+//
+// Already-archived entities are skipped as linking-file candidates,
+// mirroring rewidth's "forget-by-default" exclusion of `archive/`
+// content (ADR-0004).
+func planArchiveRewrites(tr *tree.Tree, moves []archiveMove) ([]FileOp, error) {
+	entityMoves := archiveEntityMoves(tr, moves)
+	if len(entityMoves) == 0 {
+		return nil, nil //coverage:ignore unreachable: planArchive only calls this when moves is non-empty, and every archiveMove (gap/decision/adr direct, or epic/contract via its own dir-shape entity) yields at least one EntityMove
+	}
+	postMovePath := make(map[string]string, len(entityMoves))
+	for _, m := range entityMoves {
+		postMovePath[m.From] = m.To
+	}
+
+	var ops []FileOp
+	for _, e := range tr.Entities {
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		linkingPath := e.Path
+		if to, ok := postMovePath[e.Path]; ok {
+			linkingPath = to
+		}
+		body, err := readBody(tr.Root, e.Path)
+		if err != nil { //coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
+			return nil, err
+		}
+		newBody := RewriteLinkDestinations(body, linkingPath, entityMoves)
+		if bytes.Equal(newBody, body) {
+			continue
+		}
+		content, err := entity.Serialize(e, newBody)
+		if err != nil { //coverage:ignore defensive: Serialize fails only on a malformed entity; e already round-tripped through the loader
+			return nil, fmt.Errorf("serializing %s after archive link rewrite: %w", e.ID, err)
+		}
+		ops = append(ops, FileOp{Type: OpWrite, Path: linkingPath, Content: content})
+	}
+	sort.Slice(ops, func(i, j int) bool { return ops[i].Path < ops[j].Path })
+	return ops, nil
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
@@ -419,10 +505,13 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 //	Skipped (non-terminal children; G-0394):
 //	  E-0020: M-0030, M-0031
 //
+// rewriteCount is the number of entity-body link-destination rewrites
+// (M-0246) riding in the same commit; 0 renders no extra section.
+//
 // Determinism: kinds iterate in entity.AllKinds() order; ids within
 // each kind iterate in lexicographic order; skipped epics iterate in
 // the order computeArchiveMoves encountered them (tr.Entities order).
-func archiveCommitBody(moves []archiveMove, skipped []archiveSkip) string {
+func archiveCommitBody(moves []archiveMove, skipped []archiveSkip, rewriteCount int) string {
 	if len(moves) == 0 && len(skipped) == 0 {
 		return "" //coverage:ignore caller (planArchive) returns nil Plan whenever len(moves)==0, regardless of skipped
 	}
@@ -465,6 +554,13 @@ func archiveCommitBody(moves []archiveMove, skipped []archiveSkip) string {
 		for _, s := range skipped {
 			fmt.Fprintf(&sb, "  %s: %s\n", s.epic, strings.Join(s.children, ", "))
 		}
+	}
+
+	if rewriteCount > 0 {
+		if sb.Len() > 0 {
+			sb.WriteString("\n")
+		}
+		fmt.Fprintf(&sb, "Body rewrites: %d file(s)\n", rewriteCount)
 	}
 
 	return sb.String()

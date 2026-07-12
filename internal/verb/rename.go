@@ -82,6 +82,13 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 		return findings(introduced), nil
 	}
 
+	moves := renameEntityMoves(t, e, source, dest)
+	rewriteOps, err := planLinkRewriteWrites(t, moves, nil)
+	if err != nil { //coverage:ignore defensive: planLinkRewriteWrites only errors on a vanished file or an unserializable entity — neither reachable from a tree the loader just built
+		return nil, err
+	}
+	ops := append([]FileOp{{Type: OpMove, Path: source, NewPath: dest}}, rewriteOps...)
+
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf rename %s slug -> %s", canonID, cleanSlug)
 	return &Result{
@@ -94,10 +101,35 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 				{Key: gitops.TrailerEntity, Value: canonID},
 				{Key: gitops.TrailerActor, Value: actor},
 			},
-			Ops: []FileOp{{Type: OpMove, Path: source, NewPath: dest}},
+			Ops: ops,
 		},
 		Metadata: map[string]any{"entity_id": canonID, "new_slug": cleanSlug},
 	}, nil
+}
+
+// renameEntityMoves computes the per-file EntityMoves produced by
+// moving source -> dest for entity e: e's own move for a file-based
+// kind, or one move per entity nested inside source for a directory-
+// shaped kind (epic, contract) — mirrors archiveEntityMoves'
+// directory-expansion pattern (internal/verb/archive.go), since a
+// directory rename carries its nested milestones/schema along with it.
+func renameEntityMoves(tr *tree.Tree, e *entity.Entity, source, dest string) []EntityMove {
+	switch e.Kind {
+	case entity.KindEpic, entity.KindContract:
+		var out []EntityMove
+		for _, other := range tr.Entities {
+			if !pathInside(other.Path, source) {
+				continue
+			}
+			out = append(out, EntityMove{
+				From: other.Path,
+				To:   newEntityPathAfterRename(other, source, dest),
+			})
+		}
+		return out
+	default:
+		return []EntityMove{{From: e.Path, To: dest}}
+	}
 }
 
 // renamePaths returns the (source, dest) paths to pass to git mv. For
