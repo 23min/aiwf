@@ -377,6 +377,85 @@ Body text.
 	}
 }
 
+// TestArchiveScoping_MilestoneCancelledIncompleteACs — an archived
+// cancelled milestone whose ACs are not all terminal would fire on
+// active. Must skip on archive. Mirrors
+// TestArchiveScoping_MilestoneDoneIncompleteACs for the `cancelled`
+// counterpart (G-0335).
+func TestArchiveScoping_MilestoneCancelledIncompleteACs(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWrite(t, root, "work/epics/E-0001-active/epic.md", `---
+id: E-0001
+title: Active epic
+status: active
+---
+`)
+	mustWrite(t, root, "work/epics/archive/E-0099-old/epic.md", `---
+id: E-0099
+title: Old epic
+status: done
+---
+`)
+	// Active milestone status: cancelled with one AC still open.
+	mustWrite(t, root, "work/epics/E-0001-active/M-0001-active.md", `---
+id: M-0001
+title: Active cancelled milestone with open AC
+status: cancelled
+parent: E-0001
+acs:
+  - id: AC-1
+    title: Open ac
+    status: open
+---
+
+## Acceptance criteria
+
+### AC-1 — Open ac
+
+Body text.
+`)
+	// Archive: same shape, must not fire.
+	mustWrite(t, root, "work/epics/archive/E-0099-old/M-0099-old.md", `---
+id: M-0099
+title: Archived cancelled milestone with open AC
+status: cancelled
+parent: E-0099
+acs:
+  - id: AC-1
+    title: Open ac
+    status: open
+---
+
+## Acceptance criteria
+
+### AC-1 — Open ac
+
+Body text.
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	got := Run(tr, loadErrs)
+
+	activeFired := false
+	for _, f := range got {
+		if f.Code == CodeMilestoneCancelledIncompleteACs && f.EntityID == "M-0001" {
+			activeFired = true
+		}
+		if f.Code == CodeMilestoneCancelledIncompleteACs && f.EntityID == "M-0099" {
+			t.Errorf("milestone-cancelled-incomplete-acs fired on archived milestone (must skip): %+v", f)
+		}
+	}
+	if !activeFired {
+		t.Errorf("expected milestone-cancelled-incomplete-acs on active milestone (positive control); got: %+v", got)
+	}
+}
+
 // TestArchiveScoping_EntityBodyEmpty — an archived entity with empty
 // load-bearing body sections would fire on active. Must skip on
 // archive.

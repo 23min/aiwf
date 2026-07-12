@@ -16,11 +16,12 @@ import (
 // Finding codes emitted by this file. Typed per G-0129 so the
 // compiler closes on rename / retire across emit sites and tests.
 const (
-	CodeACsShape                   = "acs-shape"
-	CodeACsTitleProse              = "acs-title-prose"
-	CodeACsTDDAudit                = "acs-tdd-audit"
-	CodeMilestoneDoneIncompleteACs = "milestone-done-incomplete-acs"
-	CodeACsBodyCoherence           = "acs-body-coherence"
+	CodeACsShape                        = "acs-shape"
+	CodeACsTitleProse                   = "acs-title-prose"
+	CodeACsTDDAudit                     = "acs-tdd-audit"
+	CodeMilestoneDoneIncompleteACs      = "milestone-done-incomplete-acs"
+	CodeMilestoneCancelledIncompleteACs = "milestone-cancelled-incomplete-acs"
+	CodeACsBodyCoherence                = "acs-body-coherence"
 )
 
 // acsShape validates the structure of every milestone's acs[] list and
@@ -329,6 +330,58 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 			Code:     CodeMilestoneDoneIncompleteACs,
 			Severity: SeverityError,
 			Message: fmt.Sprintf("milestone %s is done but %d AC(s) still open: %s",
+				e.ID, len(openIDs), strings.Join(openIDs, ", ")),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "status",
+		})
+	}
+	return findings
+}
+
+// milestoneCancelledIncompleteACs fires when a milestone has status:
+// cancelled and at least one AC has status: open. Met, deferred, and
+// cancelled are acceptable terminal AC states alongside each other for
+// a cancelled milestone — only `open` blocks it, mirroring
+// milestoneDoneIncompleteACs's own precondition for `done`.
+//
+// This runs on every aiwf check pass, not just on verb projection.
+// `aiwf promote <milestone> cancelled` and `aiwf cancel <milestone>`
+// both already refuse the transition while an AC is open (G-0335:
+// MilestonePromoteNonTerminalACsError / MilestoneCancelNonTerminalACs-
+// Error), so under normal use this finding never fires — it exists as
+// the defense-in-depth backstop for state that bypassed the verb layer
+// entirely (a hand-edit, a pre-fix binary), the same backstop role
+// milestoneDoneIncompleteACs already plays for `done`.
+func milestoneCancelledIncompleteACs(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// milestone-cancelled-incomplete-acs is in the shape-and-health
+		// group; archived cancelled milestones whose ACs aren't all
+		// terminal represent historical state, not active drift.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusCancelled {
+			continue
+		}
+		var openIDs []string
+		for _, ac := range e.ACs {
+			if ac.Status == entity.StatusOpen {
+				openIDs = append(openIDs, ac.ID)
+			}
+		}
+		if len(openIDs) == 0 {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     CodeMilestoneCancelledIncompleteACs,
+			Severity: SeverityError,
+			Message: fmt.Sprintf("milestone %s is cancelled but %d AC(s) still open: %s",
 				e.ID, len(openIDs), strings.Join(openIDs, ", ")),
 			Path:     e.Path,
 			EntityID: e.ID,

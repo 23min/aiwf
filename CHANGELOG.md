@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0335: promote to cancelled now enforces a milestone's open-AC guard
+
+`aiwf promote <milestone> cancelled` used to bypass `aiwf cancel`'s guard against
+cancelling a milestone that still carries an open acceptance criterion — the two
+surfaces disagreed on the same transition, so the guard was trivially bypassable.
+`aiwf promote` now refuses the same way, mirroring the epic-level fix from
+G-0393/G-0394. `aiwf check` also gained a new standing finding,
+`milestone-cancelled-incomplete-acs`, as the defense-in-depth backstop for a
+milestone that reaches `cancelled` with an open AC by some path outside the verb
+layer (a hand-edit, a pre-fix binary) — mirroring the existing
+`milestone-done-incomplete-acs` rule for the `done` counterpart.
+
 ### Changed — E-0063: entity path-links are rewritten on move, not left to rot
 
 `archive`, `rename`, `retitle`, and `reallocate` now rewrite the markdown

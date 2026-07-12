@@ -117,6 +117,7 @@ var hintTable = map[string]string{
 	"acs-tdd-tests-missing":                "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
 	"acs-title-prose":                      "shorten the AC title via `aiwf retitle <milestone-id>/AC-N \"...\"` and move the detail prose into the body under `### AC-N` via `aiwf edit-body <milestone-id>`; titles render as one big heading",
 	"milestone-done-incomplete-acs":        "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`, or override with `aiwf promote <milestone-id> done --force --reason \"...\"` (the standing check still surfaces this)",
+	"milestone-cancelled-incomplete-acs":   "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`; `aiwf promote`/`aiwf cancel` already refuse this transition (with no --force override) through normal use, so this state means the verb layer was bypassed — a hand-edit is the usual cause",
 
 	// M-066 entity-body-empty: each kind's load-bearing body sections
 	// must contain non-empty prose. AC bodies have a verb-side shortcut

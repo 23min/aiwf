@@ -262,7 +262,18 @@ func milestoneRules() []Rule {
 			Outcome:       OutcomeLegal,
 			Sources:       RuleSource{Audit: []string{"R-AUDIT-0008", "R-AUDIT-0049", "R-AUDIT-0081"}, FP: []string{"R-FP-0011", "R-FP-0061"}},
 		},
-		// in_progress → done illegal companion: any open AC fires milestone-done-incomplete-acs.
+		// in_progress → done illegal companion: any open AC fires
+		// milestone-done-incomplete-acs. Also the abstract cell for
+		// in_progress → cancelled with an open AC (G-0335): the cell
+		// model has no ToState dimension, so both concrete refusals
+		// — this check-rule-driven one for `done`, and
+		// verb.MilestonePromoteNonTerminalACsError
+		// (milestone-promote-non-terminal-acs) for `cancelled` — key
+		// to this one (Kind, FromState, Verb, Preconditions, Outcome)
+		// tuple; only one ExpectedErrorCode fits, so it stays the
+		// longer-standing `done` code. The `draft` cell below carries
+		// milestone-promote-non-terminal-acs for the coverage drift
+		// test, since draft has no such collision.
 		{
 			Kind:              entity.KindMilestone,
 			FromState:         "in_progress",
@@ -304,6 +315,25 @@ func milestoneRules() []Rule {
 			RejectionLayer:    RejectionLayerVerbTime,
 			BlockingStrict:    true,
 			Sources:           RuleSource{FP: []string{"R-FP-0064"}, Decision: "D-0004"},
+		},
+		// G-0335: promote refuses reaching `cancelled` the same way
+		// cancel does, when any AC is open — the two surfaces used to
+		// disagree on this transition (mirrors G-0393's epic-level
+		// promote/cancel convergence, cells above). Only a `draft` cell
+		// is added here: the cell model has no ToState dimension, so
+		// `in_progress` can't carry a second cell for this — that key
+		// is already claimed by the `done`-target illegal companion
+		// two cells above (same Kind/FromState/Verb/Precondition/Outcome
+		// tuple), which its own comment now cross-references.
+		{
+			Kind:              entity.KindMilestone,
+			FromState:         "draft",
+			Verb:              "promote",
+			Preconditions:     []Predicate{{Subject: "any-child-ac.status", Op: "==", Value: "open"}},
+			Outcome:           OutcomeIllegal,
+			ExpectedErrorCode: "milestone-promote-non-terminal-acs",
+			RejectionLayer:    RejectionLayerVerbTime,
+			BlockingStrict:    true,
 		},
 		// Terminals: done and cancelled.
 		terminalIllegal(entity.KindMilestone, "done", RuleSource{Audit: []string{"R-AUDIT-0010"}, FP: []string{"R-FP-0013"}}),
