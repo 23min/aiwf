@@ -1,15 +1,17 @@
 package verb
 
 // linkrewrite_property_test.go — M-0245/AC-3 property tests for
-// RewriteLinkDestinations. Two properties, sampled over generated
-// tree layouts and move sets:
+// RewriteLinkDestinations, extended by M-0251/AC-2 to also generate
+// #fragment/?query suffixes. Two properties, sampled over generated
+// tree layouts, move sets, and suffix shapes:
 //
 //   - Idempotence: running the primitive twice on a body yields the
 //     same output as running it once.
 //   - Resolution correctness: every deliberately-rewritten
-//     destination resolves — via an independent resolver written
-//     fresh in this file, not RewriteLinkDestinations' own
-//     resolveLinkDestination — to its move's To path.
+//     destination's bare-path portion resolves — via an independent
+//     resolver written fresh in this file, not RewriteLinkDestinations'
+//     own resolveLinkDestination — to its move's To path, and its
+//     generated suffix (M-0251) rides through to the output unchanged.
 //
 // Per wf-property-test, these sample the input space; they do not
 // prove the properties for all inputs. Determinism: each property
@@ -48,11 +50,17 @@ var propKindRoots = []string{"work/epics", "work/gaps", "work/decisions", "docs/
 // root-relative (every EntityMove.To in this generator does, by
 // construction — re-deriving flavor from shape alone made the
 // property vacuous against a real regression: see the M-0245/AC-3
-// work log for the caught case).
+// work log for the caught case). suffix is the M-0251/AC-1
+// `#fragment` / `?query` (or combined) string generated onto this
+// link's destination, empty when none — carried explicitly for the
+// same reason as rootRelative, so the resolution-correctness property
+// asserts the suffix rode through unchanged rather than merely that
+// *some* trailing text survived.
 type craftedLink struct {
 	label        string
 	moveIdx      int // index into linkRewriteInput.moves this link targets
 	rootRelative bool
+	suffix       string
 }
 
 // linkRewriteInput is one generated RewriteLinkDestinations call: a
@@ -106,8 +114,9 @@ func (linkRewriteInput) Generate(r *rand.Rand, _ int) reflect.Value {
 				rootRelative = false
 			}
 		}
-		fmt.Fprintf(&sb, "[%s](%s)\n", label, dest)
-		crafted = append(crafted, craftedLink{label: label, moveIdx: i, rootRelative: rootRelative})
+		suffix := randSuffix(r)
+		fmt.Fprintf(&sb, "[%s](%s%s)\n", label, dest, suffix)
+		crafted = append(crafted, craftedLink{label: label, moveIdx: i, rootRelative: rootRelative, suffix: suffix})
 	}
 
 	nNoise := r.Intn(propMaxNoiseLinks + 1)
@@ -141,6 +150,24 @@ func randProse(r *rand.Rand) string {
 	}
 	sb.WriteByte('\n')
 	return sb.String()
+}
+
+// randSuffix returns a randomly-shaped M-0251/AC-1 destination suffix
+// — none, fragment-only, query-only, or combined query-then-fragment
+// — so the generator exercises every suffix shape AC-1's unit table
+// covers, plus the no-suffix case the pre-M-0251 property already
+// covered.
+func randSuffix(r *rand.Rand) string {
+	switch r.Intn(4) {
+	case 0:
+		return ""
+	case 1:
+		return "#" + randSlug(r)
+	case 2:
+		return "?" + randSlug(r) + "=1"
+	default:
+		return "?" + randSlug(r) + "=1#" + randSlug(r)
+	}
 }
 
 const slugAlphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -216,9 +243,15 @@ func TestRewriteLinkDestinations_Property_Idempotent(t *testing.T) {
 }
 
 // TestRewriteLinkDestinations_Property_RewrittenDestinationsResolveToNewPath
-// pins M-0245/AC-3's resolution-correctness half: every deliberately
-// crafted link (found by its unique marker label) resolves, under the
-// independent testResolvePath oracle, to its move's To path.
+// pins M-0245/AC-3's resolution-correctness half, extended by
+// M-0251/AC-2: every deliberately crafted link (found by its unique
+// marker label) has its bare-path portion resolve, under the
+// independent testResolvePath oracle, to its move's To path, AND its
+// M-0251 `#fragment`/`?query` suffix (possibly empty) ride through to
+// the rewritten output unchanged — split independently here via
+// strings.IndexAny, not by calling splitDestinationSuffix, for the
+// same "don't assert the primitive against itself" reason
+// testResolvePath exists.
 func TestRewriteLinkDestinations_Property_RewrittenDestinationsResolveToNewPath(t *testing.T) {
 	t.Parallel()
 	var note string
@@ -238,8 +271,18 @@ func TestRewriteLinkDestinations_Property_RewrittenDestinationsResolveToNewPath(
 				return false
 			}
 			gotDest := out[start : start+end]
+
+			bare, gotSuffix := gotDest, ""
+			if si := strings.IndexAny(gotDest, "#?"); si >= 0 {
+				bare, gotSuffix = gotDest[:si], gotDest[si:]
+			}
+			if gotSuffix != c.suffix {
+				note = fmt.Sprintf("marker %q: suffix %q, want %q (destination %q)", c.label, gotSuffix, c.suffix, gotDest)
+				return false
+			}
+
 			want := in.moves[c.moveIdx].To
-			if resolved := testResolvePath(gotDest, in.linkingFile, c.rootRelative); resolved != want {
+			if resolved := testResolvePath(bare, in.linkingFile, c.rootRelative); resolved != want {
 				note = fmt.Sprintf("marker %q: destination %q resolves to %q, want %q", c.label, gotDest, resolved, want)
 				return false
 			}
