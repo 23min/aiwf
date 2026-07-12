@@ -94,3 +94,84 @@ commit, reports zero findings for the files listed in AC-2.
   rationale style.
 - `internal/policies/branch_coverage_audit.go` — the diff-scoped
   coverage-gate policy that surfaces these findings.
+
+## Work log
+
+### AC-2 — Non-CLI-infra flagged branches tested or ignored
+
+Regenerating the flagged set matched the nine files anticipated at
+kickoff, plus two additional lines outside them
+(`internal/stresstest/head_drift.go:67`,
+`internal/stresstest/promote_on_wrong_branch_detection.go:100`) —
+handled with the same per-site judgment as everything else. Every
+flagged line now carries a passing test or an honest
+`//coverage:ignore`; the rerun `branch-coverage-audit` scoped to AC-2's
+six paths reports zero findings.
+
+Real tests added:
+- `internal/gitops/refs_test.go` — `CurrentBranch`'s git-launch-failure
+  branch (PATH cleared to a directory with no `git`).
+- `internal/cli/cliutil/apply_test.go` (new) — all five `FinishVerb`
+  branches plus its success/NoOp paths; the function had no test file
+  at all before this.
+- `internal/cli/cliutil/provenance_test.go` (new) —
+  `DecorateAndFinish`'s gate-denial branch.
+- `internal/verb/archive_test.go` — `planArchive`'s `tree.Load`
+  fatal-error wrap (a pre-cancelled context) and its
+  `computeArchiveMoves` error wrap (an unknown `--kind`), both driven
+  through the full `Archive` entrypoint — distinct from the existing
+  `TestComputeArchiveMoves_UnknownKindFilter`, which calls
+  `computeArchiveMoves` directly and never exercised `planArchive`'s
+  own propagation line.
+- `internal/verb/promote_branch_guard_internal_test.go` (new) —
+  `expectedActivationBranch`'s three fail-shut branches, driven
+  directly against hand-built `*tree.Tree`/`*entity.Entity` fixtures
+  (each needs a milestone shape `verb.Add`'s own validation refuses to
+  create).
+- `internal/cellcoverage/fixture_test.go` — `Must`'s `verb.Apply`
+  failure branch (a zero-`Ops` plan, the same "nothing to commit"
+  trigger `internal/verb/apply_test.go` pins directly on `verb.Apply`).
+- `internal/cli/cliutil/testutil/fixtures_test.go` —
+  `HoldRepoLock`'s and `WriteMalformedEntity`'s three
+  `t.Fatalf`-guarded branches (AC-1's own flagged lines), proven via a
+  throwaway-`*testing.T` technique (see Decisions below).
+
+Honest ignores added:
+- `internal/cli/cliutil/testutil/fixtures.go:51` —
+  `BrokenGitIdentity`'s write to a fresh `t.TempDir()`.
+- `internal/cli/cliutil/testutil/proc.go:305` —
+  `SetupGitRepoWithUpstream`'s second `git init`; a PATH-absent
+  trigger would fail the earlier bare-upstream `git init` call first,
+  never reaching this one.
+- `internal/stresstest/head_drift.go:67`,
+  `internal/stresstest/promote_on_wrong_branch_detection.go:100` —
+  both scenarios drive the same interloping-checkout shape as an
+  epic-activation promote; G-0269's branch guard (added after both
+  scenarios were written) now refuses that promote outright, so
+  neither scenario's real-subprocess run ever reaches the
+  "landed on the wrong branch" continuation these lines guard.
+
+## Decisions made during implementation
+
+- The milestone's own suggested `t.Run("inner", fn); assert the
+  returned bool` technique for proving a `t.Fatalf`-guarded fixture
+  branch fires does not work: `testing`'s `common.Fail` unconditionally
+  propagates a subtest's failure to every `t.Run`-linked ancestor
+  (confirmed against the stdlib source and empirically — the wrapping
+  test's own package permanently reports `FAIL`). Used instead: a
+  throwaway `*testing.T{}` — never obtained via `t.Run`, so it has no
+  parent to propagate to — run in its own goroutine, since
+  `t.Fatalf`'s `runtime.Goexit` unwinds only the calling goroutine.
+  Applied at `internal/cellcoverage/fixture_test.go`'s
+  `runAndCaptureFatal` and the identically-named helper in
+  `internal/cli/cliutil/testutil/fixtures_test.go`.
+
+## Validation
+
+AC-2 (this session): `go build ./...`, `go vet ./...`, `gofumpt -l` on
+every changed file (clean except one pre-existing, untouched-by-this-
+change formatting drift in `internal/cli/cliutil/testutil/proc.go`),
+`golangci-lint run` (0 issues) all clean. Full suite:
+`go test -race -parallel 8 ./...` — 7099 passed, 0 failed, 6 skipped,
+across every package. The AC-2-scoped `branch-coverage-audit` rerun
+(six paths) reports zero findings.
