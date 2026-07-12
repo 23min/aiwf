@@ -302,7 +302,7 @@ func SetupGitRepoWithUpstream(t *testing.T, email string) string {
 	// to "master" instead, which would leave the local branch's name
 	// out of sync with origin/main and spuriously trip the G-0269
 	// activating-promote branch guard.
-	if out, err := RunGit(root, "init", "-q", "--initial-branch=main"); err != nil {
+	if out, err := RunGit(root, "init", "-q", "--initial-branch=main"); err != nil { //coverage:ignore git init on a fresh t.TempDir() essentially never fails; a PATH-absent trigger (as used for gitops.CurrentBranch) would also fail the earlier bare-upstream RunGit call above, never reaching this one
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
 	for _, args := range [][]string{

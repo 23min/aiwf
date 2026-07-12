@@ -7,16 +7,16 @@ tdd: required
 acs:
     - id: AC-1
       title: Reusable test fixtures exist for each shared CLI-verb failure mode
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Non-CLI-infra flagged branches are tested or documented
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Coverage gate is clean for the non-CLI-infra group
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -94,3 +94,142 @@ commit, reports zero findings for the files listed in AC-2.
   rationale style.
 - `internal/policies/branch_coverage_audit.go` — the diff-scoped
   coverage-gate policy that surfaces these findings.
+
+## Work log
+
+### AC-3 — Coverage gate is clean for the non-CLI-infra group
+
+Two independent confirmations against the committed AC-2 state (not
+scratch/staged): (1) `TestPolicy_BranchCoverageAudit`, run directly with
+`AIWF_COVERAGE_BASE` set to the pre-M-0238 commit (`2ac84846^`),
+scoped-grepped to the six paths — zero matching lines. (2) the standard
+`make coverage-gate` (default base = `git merge-base origin/main HEAD`)
+— all four policies (`BranchCoverageAudit`, `FiringFixturePresence`,
+`FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop`)
+pass clean. No new code in this AC — it's the closing verification
+that AC-1 and AC-2's combined work actually satisfies the milestone's
+stated success criterion.
+
+### AC-2 — Non-CLI-infra flagged branches tested or ignored
+
+Regenerating the flagged set matched the nine files anticipated at
+kickoff, plus two additional lines outside them
+(`internal/stresstest/head_drift.go:67`,
+`internal/stresstest/promote_on_wrong_branch_detection.go:100`) —
+handled with the same per-site judgment as everything else. Every
+flagged line now carries a passing test or an honest
+`//coverage:ignore`; the rerun `branch-coverage-audit` scoped to AC-2's
+six paths reports zero findings.
+
+Real tests added:
+- `internal/gitops/refs_test.go` — `CurrentBranch`'s git-launch-failure
+  branch (PATH cleared to a directory with no `git`).
+- `internal/cli/cliutil/apply_test.go` (new) — all five `FinishVerb`
+  branches plus its success/NoOp paths; the function had no test file
+  at all before this.
+- `internal/cli/cliutil/provenance_test.go` (new) —
+  `DecorateAndFinish`'s gate-denial branch.
+- `internal/verb/archive_test.go` — `planArchive`'s `tree.Load`
+  fatal-error wrap (a pre-cancelled context) and its
+  `computeArchiveMoves` error wrap (an unknown `--kind`), both driven
+  through the full `Archive` entrypoint — distinct from the existing
+  `TestComputeArchiveMoves_UnknownKindFilter`, which calls
+  `computeArchiveMoves` directly and never exercised `planArchive`'s
+  own propagation line.
+- `internal/verb/promote_branch_guard_internal_test.go` (new) —
+  `expectedActivationBranch`'s three fail-shut branches, driven
+  directly against hand-built `*tree.Tree`/`*entity.Entity` fixtures
+  (each needs a milestone shape `verb.Add`'s own validation refuses to
+  create).
+- `internal/cellcoverage/fixture_test.go` — `Must`'s `verb.Apply`
+  failure branch (a zero-`Ops` plan, the same "nothing to commit"
+  trigger `internal/verb/apply_test.go` pins directly on `verb.Apply`).
+- `internal/cli/cliutil/testutil/fixtures_test.go` —
+  `HoldRepoLock`'s and `WriteMalformedEntity`'s three
+  `t.Fatalf`-guarded branches (AC-1's own flagged lines), proven via a
+  throwaway-`*testing.T` technique (see Decisions below).
+
+Honest ignores added:
+- `internal/cli/cliutil/testutil/fixtures.go:51` —
+  `BrokenGitIdentity`'s write to a fresh `t.TempDir()`.
+- `internal/cli/cliutil/testutil/proc.go:305` —
+  `SetupGitRepoWithUpstream`'s second `git init`; a PATH-absent
+  trigger would fail the earlier bare-upstream `git init` call first,
+  never reaching this one.
+- `internal/stresstest/head_drift.go:67`,
+  `internal/stresstest/promote_on_wrong_branch_detection.go:100` —
+  both scenarios drive the same interloping-checkout shape as an
+  epic-activation promote; G-0269's branch guard (added after both
+  scenarios were written) now refuses that promote outright, so
+  neither scenario's real-subprocess run ever reaches the
+  "landed on the wrong branch" continuation these lines guard.
+
+## Decisions made during implementation
+
+- The milestone's own suggested `t.Run("inner", fn); assert the
+  returned bool` technique for proving a `t.Fatalf`-guarded fixture
+  branch fires does not work: `testing`'s `common.Fail` unconditionally
+  propagates a subtest's failure to every `t.Run`-linked ancestor
+  (confirmed against the stdlib source and empirically — the wrapping
+  test's own package permanently reports `FAIL`). Used instead: a
+  throwaway `*testing.T{}` — never obtained via `t.Run`, so it has no
+  parent to propagate to — run in its own goroutine, since
+  `t.Fatalf`'s `runtime.Goexit` unwinds only the calling goroutine.
+  Applied at `internal/cellcoverage/fixture_test.go`'s
+  `runAndCaptureFatal` and the identically-named helper in
+  `internal/cli/cliutil/testutil/fixtures_test.go`.
+
+## Validation
+
+AC-2 (this session): `go build ./...`, `go vet ./...`, `gofumpt -l` on
+every changed file (clean except one pre-existing, untouched-by-this-
+change formatting drift in `internal/cli/cliutil/testutil/proc.go`),
+`golangci-lint run` (0 issues) all clean. Full suite:
+`go test -race -parallel 8 ./...` — 7099 passed, 0 failed, 6 skipped,
+across every package. The AC-2-scoped `branch-coverage-audit` rerun
+(six paths) reports zero findings.
+
+Wrap readiness (independently re-verified, not re-derived from the AC-2
+run): `aiwf check` — 0 errors, 3 pre-existing warnings unrelated to
+this diff. `make coverage-gate` (standard base =
+`git merge-base origin/main HEAD`) — all four policies
+(`BranchCoverageAudit`, `FiringFixturePresence`,
+`FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop`)
+pass. Full race suite green. `make lint` — 0 issues. Doc-lint (scoped
+to this milestone's change-set): no findings — the diff touches no
+file under `docs/`, `README.md`, or `CONTRIBUTING.md`.
+
+An independent fresh-context reviewer (code-quality lens, no
+authorship attachment) verified every load-bearing claim by measurement
+rather than trusting this spec's own narrative — reran the
+branch-coverage audit, traced each `//coverage:ignore` rationale
+against the guarded code, cross-checked each `FinishVerb` test against
+`apply.go`'s actual branches, and confirmed the `runAndCaptureFatal`
+technique is race-free by tracing every method called on the throwaway
+`*testing.T`. Verdict: **approve**, no blocking findings. The
+design-quality (`wf-rethink`) lens was skipped by operator decision —
+this milestone introduces no new module/package boundary, core
+abstraction, or data model, only mechanical coverage backfill and a
+small addition to the pre-existing `testutil` package.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- AC-1 documents that `cliutil.ResolveRoot`'s error branch ships no
+  fixture, deliberately: every call site already treats it as
+  `//coverage:ignore` (essentially untriggerable in a normal test
+  harness), so there is nothing to wrap. The AC text lists
+  root-resolution failure alongside the four modes that do get
+  fixtures; the deliverable and the AC text diverge slightly on this
+  one mode. Not a defect — flagged so a future reader isn't surprised
+  a fifth fixture doesn't exist.
+- `runAndCaptureFatal` (the throwaway-`*testing.T`-in-a-goroutine
+  technique for proving a `t.Fatalf`-guarded branch fires) is
+  duplicated verbatim in `internal/cli/cliutil/testutil/fixtures_test.go`
+  and `internal/cellcoverage/fixture_test.go`. Reasonable at two call
+  sites (KISS/YAGNI). If M-0253 through M-0256 need the same technique
+  a third time, factor it into a shared internal test-support helper
+  rather than copying it again.

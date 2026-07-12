@@ -73,6 +73,11 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// file — both confined to the scenario's own disposable
 		// os.MkdirTemp dir, never a persisted entity file in this repo.
 		"internal/stresstest/force_override_durability.go": "writes confined to the scenario's own disposable temp dir; a fixture epic's status field and scratch follow-up data, never a persisted entity file in this repo",
+		// M-0252/AC-1's shared CLI-verb failure fixtures write a fake
+		// $HOME's .gitconfig and a throwaway malformed entity file,
+		// both confined to the caller's t.TempDir()-scoped fixture
+		// dir — never a persisted repo artifact.
+		"internal/cli/cliutil/testutil/fixtures.go": "writes confined to t.TempDir()-scoped fixture dirs (a fake $HOME's .gitconfig, a throwaway malformed entity file); never a persisted repo artifact",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {

@@ -1,9 +1,14 @@
 package cellcoverage
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
@@ -177,6 +182,80 @@ func TestBringEntityToState_MilestoneDoneWithACs(t *testing.T) {
 			t.Errorf("AC %d tdd_phase = %q, want %q", i, ac.TDDPhase, entity.TDDPhaseDone)
 		}
 	}
+}
+
+// TestMust_ApplyFailureFailsTheTest covers Must's own defensive
+// verb.Apply error branch (M-0252/AC-2, fixture.go:152): a
+// syntactically-valid *verb.Result whose Plan has zero Ops (and
+// AllowEmpty unset) makes verb.Apply itself refuse with "nothing to
+// commit" — the same cheapest deterministic trigger
+// internal/verb/apply_test.go's TestApply_RefusesNothingToCommit pins
+// directly on verb.Apply.
+//
+// Must calls t.Fatalf on that failure, and a *testing.T obtained via
+// t.Run has its parent wired up — testing's common.Fail unconditionally
+// propagates a subtest's failure to every ancestor (see
+// runAndCaptureFatal's doc comment), so a t.Run("inner", ...)-plus-
+// bool-return wrapper would permanently fail this package's test
+// suite, not just the inner subtest. runAndCaptureFatal sidesteps
+// that: a throwaway *testing.T{} never passed through t.Run has no
+// parent to propagate to.
+func TestMust_ApplyFailureFailsTheTest(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "seed.txt"), []byte("seed\n"), 0o644); err != nil {
+		t.Fatalf("write seed file: %v", err)
+	}
+	if err := gitops.Add(ctx, root, "seed.txt"); err != nil {
+		t.Fatalf("git add: %v", err)
+	}
+	if err := gitops.Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+
+	failed := runAndCaptureFatal(func(t *testing.T) {
+		t.Helper()
+		// Bypasses NewCellFixture deliberately: NewCellFixture's own
+		// t.TempDir()/t.Cleanup calls would register against the
+		// throwaway T, whose cleanup never runs (it's never handed to
+		// go test's runner) — root is built above against the outer
+		// test's real t instead, which cleans up normally; only the
+		// Must call itself needs the throwaway T.
+		f := &CellFixture{t: t, Root: root, ctx: ctx}
+		res := &verb.Result{
+			Plan: &verb.Plan{Subject: "empty plan", Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}}},
+		}
+		f.Must(res, nil)
+	})
+	if !failed {
+		t.Fatal("expected Must to Fatalf when verb.Apply refuses an empty plan")
+	}
+}
+
+// runAndCaptureFatal runs fn against a throwaway *testing.T in its own
+// goroutine and reports whether that T ended up Failed(). This is the
+// portable way to prove a t.Fatalf-guarded line inside a test-only
+// helper actually fires, without permanently failing the real test:
+// t.Fatalf's FailNow calls common.Fail (marking the T, and — per
+// testing's own source — every t.Run-linked ancestor, failed) THEN
+// runtime.Goexit, which unwinds only the calling goroutine. Since the
+// throwaway T here was never obtained via t.Run, its own Fail() has no
+// parent to propagate to, and running it in a dedicated goroutine
+// means the Goexit terminates only that goroutine, not the real
+// test's.
+func runAndCaptureFatal(fn func(t *testing.T)) (failed bool) {
+	done := make(chan *testing.T, 1)
+	go func() {
+		fake := &testing.T{}
+		defer func() { done <- fake }()
+		fn(fake)
+	}()
+	fake := <-done
+	return fake.Failed()
 }
 
 // TestSatisfyPredicate exercises each non-trivial atom (the 7 atoms

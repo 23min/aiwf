@@ -537,6 +537,54 @@ func TestPlanArchive_SortsBySameKindThenFrom(t *testing.T) {
 	}
 }
 
+// TestPlanArchive_TreeLoadFatalErrorPropagates covers planArchive's
+// own error-wrapping branch around tree.Load's fatal (third-return)
+// error (archive.go:130) — distinct from tree.Load's per-file
+// LoadError case the AC-1 WriteMalformedEntity fixture targets. A
+// pre-cancelled context is the cleanest portable trigger: tree.Load
+// checks ctx.Err() before touching the filesystem at all (see
+// internal/tree/tree.go's walk-root loop), so this needs no
+// permission tricks or root-skip caveats.
+func TestPlanArchive_TreeLoadFatalErrorPropagates(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	plan, skipped, err := planArchive(ctx, root, "")
+	if err == nil {
+		t.Fatal("planArchive with a cancelled context returned no error")
+	}
+	if !strings.Contains(err.Error(), "loading tree") {
+		t.Errorf("error %q should mention the loading-tree wrap", err.Error())
+	}
+	if plan != nil || skipped != nil {
+		t.Errorf("plan=%v skipped=%v, want both nil on the fatal-load path", plan, skipped)
+	}
+}
+
+// TestArchive_UnknownKindFilterPropagatesFromPlanArchive covers
+// planArchive's own error-wrapping branch around computeArchiveMoves'
+// error (archive.go:135). TestComputeArchiveMoves_UnknownKindFilter
+// already pins computeArchiveMoves' own validation directly; this
+// test drives the same failure through the full Archive -> planArchive
+// call chain so planArchive's own `if err != nil` propagation line is
+// exercised too, not just the helper it wraps.
+func TestArchive_UnknownKindFilterPropagatesFromPlanArchive(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	res, err := Archive(context.Background(), root, "human/test", "widget")
+	if err == nil {
+		t.Fatal("Archive with an unknown --kind filter returned no error")
+	}
+	if res != nil {
+		t.Errorf("res = %+v, want nil on the unknown-kind error path", res)
+	}
+	if !strings.Contains(err.Error(), "widget") {
+		t.Errorf("error %q should name the offending kind", err.Error())
+	}
+}
+
 // TestArchiveCommitSubject_Determinism pins the per-kind iteration
 // order: the subject's per-kind summary follows entity.AllKinds()
 // order regardless of how the moves slice was built. Determinism is
