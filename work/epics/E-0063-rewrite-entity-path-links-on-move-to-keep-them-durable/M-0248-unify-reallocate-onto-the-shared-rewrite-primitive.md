@@ -72,3 +72,32 @@ the primitive.
 
 - `internal/verb/reallocate.go`
 - G-0392
+
+---
+
+## Work log
+
+### AC-1 — Reallocate rewrites path-links via the shared primitive, not prose id tokens
+
+Green · commit 64cde8a6 · tests 12/12
+
+`reallocate` now composes two non-overlapping passes per touched body:
+M-0245's `RewriteLinkDestinations` rewrites a real markdown link to
+the renumbered entity's old path first, then a new
+`rewriteBareIDMentions` (`internal/verb/reallocate.go`) rewrites every
+remaining bare id-token mention — prose, a link's own visible text, a
+code-span mention — while explicitly excluding link-path destination
+regions (reusing `splitLinkPathRegions` from M-0245's region-splitter
+so both passes agree on what counts as "inside a link destination").
+`renameEntityMoves` (M-0247) supplies the `EntityMove` set, reused
+as-is rather than duplicated a third time.
+
+The red test proves a genuine behavior change, not just an
+architecture-only refactor: the prior blind `idPattern.ReplaceAll`
+corrupted a URL-shaped link destination that merely contained the old
+id as a substring (e.g. `https://example.com/issues/G-0001`), since
+it could not distinguish a real entity-path reference from an
+unrelated id-shaped token. The region-aware primitive leaves it
+byte-identical. All 12 `TestReallocate_*` tests green, including the
+new fixture asserting the link/URL/code-span precision boundary in
+one body.
