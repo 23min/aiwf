@@ -72,17 +72,40 @@ func rewriteLinkChunk(chunk, dir string, moveIndex map[string]string) string {
 // URL-shaped destinations (containing `://`) are never rewritten — an
 // id in a URL's path is part of the URL's identity, not an entity
 // reference.
+//
+// A `#fragment` / `?query` suffix (M-0251) is split off before
+// resolution, so it never participates in the move-index lookup, and
+// reattached verbatim on a rewrite — an anchored or query-bearing
+// entity link survives a move exactly like a bare path link already
+// does. A destination whose bare-path portion doesn't match a move is
+// returned unchanged, suffix included.
 func rewriteLinkDestination(region, dir string, moveIndex map[string]string) string {
 	inner := strings.TrimSuffix(strings.TrimPrefix(region, "("), ")")
 	if strings.Contains(inner, "://") {
 		return region
 	}
-	resolved, rootRelative := resolveLinkDestination(inner, dir)
+	bare, suffix := splitDestinationSuffix(inner)
+	resolved, rootRelative := resolveLinkDestination(bare, dir)
 	to, ok := moveIndex[resolved]
 	if !ok {
 		return region
 	}
-	return "(" + newDestination(to, dir, rootRelative) + ")"
+	return "(" + newDestination(to, dir, rootRelative) + suffix + ")"
+}
+
+// splitDestinationSuffix splits inner into its bare-path portion and
+// a trailing `#fragment` / `?query` suffix, if present — query before
+// fragment, per the ordering a relative reference uses (RFC 3986
+// §4.2), so the first `#` or `?` in inner marks the suffix's start.
+// suffix carries its leading `#`/`?` and everything after it
+// verbatim, including a combined `?query#fragment`; when inner has
+// neither character, suffix is empty.
+func splitDestinationSuffix(inner string) (bare, suffix string) {
+	idx := strings.IndexAny(inner, "#?")
+	if idx < 0 {
+		return inner, ""
+	}
+	return inner[:idx], inner[idx:]
 }
 
 // resolveLinkDestination resolves a link destination to a repo-
