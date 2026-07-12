@@ -13,6 +13,10 @@ acs:
       title: Non-CLI-infra flagged branches are tested or documented
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: Coverage gate is clean for the non-CLI-infra group
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -60,6 +64,8 @@ smallest flagged group first.
 ### AC-1 — Reusable test fixtures exist for each shared CLI-verb failure mode
 
 ### AC-2 — Non-CLI-infra flagged branches are tested or documented
+
+### AC-3 — Coverage gate is clean for the non-CLI-infra group
 
 ## Constraints
 
