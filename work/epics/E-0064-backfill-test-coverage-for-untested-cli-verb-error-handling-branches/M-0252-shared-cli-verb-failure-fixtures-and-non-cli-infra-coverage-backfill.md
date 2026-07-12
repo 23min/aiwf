@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Coverage gate is clean for the non-CLI-infra group
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
