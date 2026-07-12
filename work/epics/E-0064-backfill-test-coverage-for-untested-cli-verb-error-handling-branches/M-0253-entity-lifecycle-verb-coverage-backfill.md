@@ -6,6 +6,11 @@ parent: E-0064
 depends_on:
     - M-0252
 tdd: required
+acs:
+    - id: AC-1
+      title: Entity-lifecycle flagged branches are tested or documented
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -37,6 +42,8 @@ guard shape ahead of its verb-specific logic.
 - **AC-2 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
   set to the pre-M-0238 commit, reports zero findings for the files listed
   in AC-1.
+
+### AC-1 — Entity-lifecycle flagged branches are tested or documented
 
 ## Constraints
 
