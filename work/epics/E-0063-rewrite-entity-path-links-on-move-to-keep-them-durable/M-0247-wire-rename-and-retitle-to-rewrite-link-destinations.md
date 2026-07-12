@@ -83,3 +83,22 @@ top-level slug-changing path and the composite-AC no-op path.
 - `internal/verb/rename.go`
 - `internal/verb/retitle.go`
 - G-0392
+
+---
+
+## Work log
+
+### AC-1 — Rename rewrites entity-body links encoding the old slug to the new slug
+
+Green · commit f2d3d283 · tests 2/2
+
+Added `renameEntityMoves` (`internal/verb/rename.go`) — the same
+`pathInside`/`newEntityPathAfterRename` directory-expansion pattern
+`archiveEntityMoves` uses for M-0246 — plus a new shared
+`planLinkRewriteWrites` (`internal/verb/linkrewrite_ops.go`) that
+walks every active entity and emits an `OpWrite` for any body whose
+link resolves to a moved path. `Rename` now appends the computed
+rewrite ops after its own `OpMove`. Two real-tree tests: a plain
+slug-swap with an unrelated-link/bare-id-mention control, and a
+directory-shaped epic rename whose own body links to a co-moved
+nested milestone.
