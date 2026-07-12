@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Slug-changing retitle rewrites links while a composite-AC retitle rewrites none
-      status: open
+      status: met
       tdd_phase: done
 ---
 
