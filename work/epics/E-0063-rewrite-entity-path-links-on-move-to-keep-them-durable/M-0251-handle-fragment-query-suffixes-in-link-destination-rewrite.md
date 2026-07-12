@@ -108,3 +108,32 @@ before declaring done).
 - `internal/verb/linkrewrite.go`
 - `internal/verb/linkrewrite_property_test.go`
 
+---
+
+## Work log
+
+### AC-1 — Preserve #fragment / ?query suffixes on moved-entity rewrite
+
+Green · commit 1d5b1a0d · tests 2 funcs / 11 subtests
+
+`rewriteLinkDestination` (`internal/verb/linkrewrite.go`) now splits a
+`#fragment`/`?query` suffix off the destination via a new
+`splitDestinationSuffix` — the first `#` or `?` in the string marks
+the suffix's start, matching a relative reference's query-before-
+fragment ordering (RFC 3986 §4.2), so a combined `?query#fragment` is
+carried as one verbatim block. The bare path is resolved and matched
+against the move index exactly as before; a rewrite reattaches the
+suffix verbatim, and a non-matching bare path leaves the whole
+destination, suffix included, byte-identical — same non-mutation
+guarantee as M-0245/AC-1.
+
+Two new test functions: a 7-case table covering fragment-only,
+query-only, and combined suffixes crossed with root-relative and
+relative flavors and matching vs. non-matching moves; and a 4-case
+re-run of M-0245/AC-1's untouched-region cases (URL, code span,
+fenced block, prose) with a suffix added to each, confirming suffix
+support doesn't leak past the existing masking boundaries. All
+pre-existing `linkrewrite*_test.go` tests — including both M-0245/AC-3
+property tests — pass unmodified, confirming this is additive, not a
+behavior change to the suffix-free path.
+
