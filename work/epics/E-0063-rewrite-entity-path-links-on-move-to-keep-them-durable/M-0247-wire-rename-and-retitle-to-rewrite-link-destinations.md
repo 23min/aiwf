@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Slug-changing retitle rewrites links while a composite-AC retitle rewrites none
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
