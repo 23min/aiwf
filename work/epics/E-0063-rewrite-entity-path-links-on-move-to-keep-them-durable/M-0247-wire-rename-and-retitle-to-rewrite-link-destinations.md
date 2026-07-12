@@ -90,7 +90,7 @@ top-level slug-changing path and the composite-AC no-op path.
 
 ### AC-1 — Rename rewrites entity-body links encoding the old slug to the new slug
 
-Green · commit f2d3d283 · tests 2/2
+Green · commits f2d3d283, a4e14007 · tests 3/3
 
 Added `renameEntityMoves` (`internal/verb/rename.go`) — the same
 `pathInside`/`newEntityPathAfterRename` directory-expansion pattern
@@ -98,10 +98,14 @@ Added `renameEntityMoves` (`internal/verb/rename.go`) — the same
 `planLinkRewriteWrites` (`internal/verb/linkrewrite_ops.go`) that
 walks every active entity and emits an `OpWrite` for any body whose
 link resolves to a moved path. `Rename` now appends the computed
-rewrite ops after its own `OpMove`. Two real-tree tests: a plain
-slug-swap with an unrelated-link/bare-id-mention control, and a
-directory-shaped epic rename whose own body links to a co-moved
-nested milestone.
+rewrite ops after its own `OpMove`. The diff-scoped coverage gate
+caught an unreachable empty-moves guard (both call sites already
+prevent it) and an untested sort comparator; `a4e14007` drops the
+dead code and adds the missing coverage. Three real-tree tests: a
+slug-swap producing two rewrites in one call (exercising the sort),
+a directory-shaped epic rename whose own body links to a co-moved
+nested milestone, and an already-archived-entity exclusion test
+mirroring M-0246's identical rule for archive.
 
 ### AC-2 — Slug-changing retitle rewrites links while a composite-AC retitle rewrites none
 
