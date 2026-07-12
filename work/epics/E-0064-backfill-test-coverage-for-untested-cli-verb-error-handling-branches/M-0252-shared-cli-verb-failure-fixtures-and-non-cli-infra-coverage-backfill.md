@@ -97,6 +97,19 @@ commit, reports zero findings for the files listed in AC-2.
 
 ## Work log
 
+### AC-3 — Coverage gate is clean for the non-CLI-infra group
+
+Two independent confirmations against the committed AC-2 state (not
+scratch/staged): (1) `TestPolicy_BranchCoverageAudit`, run directly with
+`AIWF_COVERAGE_BASE` set to the pre-M-0238 commit (`2ac84846^`),
+scoped-grepped to the six paths — zero matching lines. (2) the standard
+`make coverage-gate` (default base = `git merge-base origin/main HEAD`)
+— all four policies (`BranchCoverageAudit`, `FiringFixturePresence`,
+`FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop`)
+pass clean. No new code in this AC — it's the closing verification
+that AC-1 and AC-2's combined work actually satisfies the milestone's
+stated success criterion.
+
 ### AC-2 — Non-CLI-infra flagged branches tested or ignored
 
 Regenerating the flagged set matched the nine files anticipated at
