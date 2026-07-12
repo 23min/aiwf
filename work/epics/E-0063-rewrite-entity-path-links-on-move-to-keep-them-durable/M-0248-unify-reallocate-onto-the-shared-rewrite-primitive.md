@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Reallocate rewrites path-links via the shared primitive, not prose id tokens
-      status: open
+      status: met
       tdd_phase: done
 ---
 
