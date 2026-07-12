@@ -1,7 +1,7 @@
 ---
 id: E-0063
 title: Rewrite entity path-links on move to keep them durable
-status: active
+status: done
 ---
 
 # E-0063 — Rewrite entity path-links on move to keep them durable
