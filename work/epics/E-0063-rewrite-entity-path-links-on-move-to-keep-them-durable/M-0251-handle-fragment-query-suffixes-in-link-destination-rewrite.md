@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: 'Preserve #fragment / ?query suffixes on moved-entity rewrite'
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: 'Property test: fragment/query preservation holds under generation'
       status: open
