@@ -1,7 +1,9 @@
 ---
 id: G-0335
 title: promote to cancelled bypasses aiwf cancel's open-AC guard
-status: open
+status: addressed
+addressed_by_commit:
+    - 6ec1c579
 ---
 ## What's wrong
 
