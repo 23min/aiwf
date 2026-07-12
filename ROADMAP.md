@@ -871,6 +871,6 @@ rot silently the next time its target moves.
 | M-0245 | Shared link-destination rewrite primitive | done |
 | M-0246 | Wire archive to rewrite link destinations on sweep | done |
 | M-0247 | Wire rename and retitle to rewrite link destinations | done |
-| M-0248 | Unify reallocate onto the shared rewrite primitive | in_progress |
+| M-0248 | Unify reallocate onto the shared rewrite primitive | done |
 | M-0251 | Handle #fragment / ?query suffixes in link-destination rewrite | draft |
 
