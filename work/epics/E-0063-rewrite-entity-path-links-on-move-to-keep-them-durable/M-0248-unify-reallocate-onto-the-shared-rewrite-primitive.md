@@ -101,3 +101,46 @@ unrelated id-shaped token. The region-aware primitive leaves it
 byte-identical. All 12 `TestReallocate_*` tests green, including the
 new fixture asserting the link/URL/code-span precision boundary in
 one body.
+
+## Decisions made during implementation
+
+- (none) — all decisions are pre-locked in `## Design notes` above and
+  in `ADR-0033`.
+
+## Validation
+
+- `go build ./...` — green.
+- `go test -race -parallel 8 ./...` — green, full suite.
+- `golangci-lint run` — 0 issues.
+- `gofmt -l` on both touched files — clean.
+- `make coverage-gate` — diff-scoped branch-coverage audit and firing-fixture policy tests both pass; every changed line is tested.
+- `aiwf check` — 0 error-severity findings (1 advisory `provenance-untrailered-scope-undefined`, expected on an unpushed branch with no upstream).
+- Independent code-quality review (fresh-context subagent): **approve**, no blocking findings. Independently reran the full `internal/verb` race suite, the targeted `TestReallocate_*` set (12/12), `gofmt -l`, `make lint`, `make coverage-gate`, and `go build` rather than trusting this spec's claims; confirmed the new test is non-vacuous by temporarily reverting `rewriteReallocateBody` to the old blind substitution and watching the URL assertion fail, then restoring the file (worktree confirmed clean afterward); verified `renameEntityMoves`'s reuse is shape-correct for reallocate's own move computation; confirmed scope discipline (only `internal/verb/reallocate.go` + the new test file touched).
+- No design-quality (`wf-rethink`) lens run: this milestone composes existing primitives (`RewriteLinkDestinations`, `splitLinkPathRegions`, and M-0247's `renameEntityMoves`, reused rather than reimplemented) into one verb's existing write path — no new module boundary, core abstraction, or data model to rethink.
+- Doc-lint: skipped — the change-set (`internal/verb/*.go` plus the milestone's own spec) has zero intersection with `docs/`, `README.md`, or `CONTRIBUTING.md`.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+The bare-id token pass (`rewriteBareIDMentions`) splits link-path
+regions on the raw whole body, with no fenced-code-block or
+inline-code-span masking (unlike `RewriteLinkDestinations`, which
+masks both before splitting). Net effect: an id-shaped token inside a
+`](...)`-shaped example link sitting inside a fenced code block (e.g.
+illustrative markdown syntax in a body) is now touched by neither
+pass and stays stale, where the old blind substitution would have
+rewritten it. Narrow and defensible — it leaves illustrative example
+code byte-stable, consistent with the epic's shared region-splitter
+design — but it's a real precision-boundary shift from pre-M-0248
+behavior, worth knowing if a future reader wonders why the bare-id
+pass isn't fence-aware.
+
+The two passes are correctness-independent of their call order (they
+act on disjoint region classes — primitive-first vs. bare-id-first
+produces the same result), even though `rewriteReallocateBody`'s doc
+comment is phrased as an ordered composition. Not a defect; noted so
+a future edit doesn't assume a sequencing dependency that isn't
+actually there.
