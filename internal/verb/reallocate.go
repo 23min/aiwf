@@ -117,6 +117,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	}
 
 	idPattern := proseRewritePattern(oldID)
+	moves := renameEntityMoves(t, target, source, dest)
 
 	// Build the file ops:
 	//   1. move the entity's file/dir (git mv preserves rename history)
@@ -130,7 +131,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 	if err != nil {
 		return nil, err
 	}
-	movedBody = idPattern.ReplaceAll(movedBody, []byte(newID))
+	movedBody = rewriteReallocateBody(movedBody, newEntityPath, moves, idPattern, newID)
 	movedContent, err := entity.Serialize(&modified, movedBody)
 	if err != nil {
 		return nil, fmt.Errorf("serializing reallocated %s: %w", newID, err)
@@ -145,7 +146,7 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if err != nil {
 			return nil, err
 		}
-		body = idPattern.ReplaceAll(body, []byte(newID))
+		body = rewriteReallocateBody(body, rw.entity.Path, moves, idPattern, newID)
 		content, err := entity.Serialize(rw.entity, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after reference rewrite: %w", rw.entity.ID, err)
@@ -166,11 +167,11 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		if err != nil {
 			return nil, err
 		}
-		body = idPattern.ReplaceAll(body, []byte(newID))
 		writePath := e.Path
 		if pathInside(e.Path, source) {
 			writePath = newEntityPathAfterRename(e, source, dest)
 		}
+		body = rewriteReallocateBody(body, writePath, moves, idPattern, newID)
 		content, err := entity.Serialize(e, body)
 		if err != nil {
 			return nil, fmt.Errorf("serializing %s after prose rewrite: %w", e.ID, err)
@@ -231,6 +232,46 @@ func Reallocate(ctx context.Context, t *tree.Tree, idOrPath, actor string) (*Res
 		},
 		Metadata: map[string]any{"old_id": canonOld, "new_id": canonNew},
 	}, nil
+}
+
+// rewriteReallocateBody composes the two rewrite passes reallocate
+// applies to every touched body, in order: first M-0245's shared
+// primitive rewrites any real markdown link destination that
+// resolves to the reallocated entity's old path, precisely and
+// region-aware; then rewriteBareIDMentions rewrites every remaining
+// bare mention of oldID (prose, a link's own visible text, a
+// code-span mention) to newID. The two passes are non-overlapping on
+// link-path destinations: the primitive rewrites what resolves to a
+// moved entity, and the bare-id pass never touches a link-path region
+// at all — so an id-shaped substring that merely lives inside an
+// unrelated link destination (e.g. a URL) is touched by neither pass,
+// instead of being coincidentally (and sometimes incorrectly)
+// rewritten by a blind substring replace.
+func rewriteReallocateBody(body []byte, linkingPath string, moves []EntityMove, idPattern *regexp.Regexp, newID string) []byte {
+	body = RewriteLinkDestinations(body, linkingPath, moves)
+	return rewriteBareIDMentions(body, idPattern, newID)
+}
+
+// rewriteBareIDMentions applies idPattern.ReplaceAll(newID) to every
+// part of body outside a markdown link-path `](...)` destination —
+// the bare-mention counterpart to RewriteLinkDestinations. A code-
+// span or fenced-code-block mention of the old id is a bare mention
+// too (unchanged from reallocate's pre-M-0248 behavior; only link-path
+// destinations are newly out of scope for this pass). Reuses
+// splitLinkPathRegions (internal/verb/linkregion.go) — the same
+// link-path splitter the shared primitive uses — so the two passes
+// agree on exactly which text counts as "inside a link destination."
+func rewriteBareIDMentions(body []byte, idPattern *regexp.Regexp, newID string) []byte {
+	var out strings.Builder
+	out.Grow(len(body))
+	for _, reg := range splitLinkPathRegions(string(body)) {
+		if reg.inLinkPath {
+			out.WriteString(reg.text)
+			continue
+		}
+		out.WriteString(idPattern.ReplaceAllString(reg.text, newID))
+	}
+	return []byte(out.String())
 }
 
 // proseRewritePattern returns a regex that matches the literal
