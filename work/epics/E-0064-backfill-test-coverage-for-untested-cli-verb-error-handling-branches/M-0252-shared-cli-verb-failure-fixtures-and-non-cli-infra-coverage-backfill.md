@@ -9,6 +9,10 @@ acs:
       title: Reusable test fixtures exist for each shared CLI-verb failure mode
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Non-CLI-infra flagged branches are tested or documented
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -54,6 +58,8 @@ smallest flagged group first.
   in AC-2.
 
 ### AC-1 — Reusable test fixtures exist for each shared CLI-verb failure mode
+
+### AC-2 — Non-CLI-infra flagged branches are tested or documented
 
 ## Constraints
 
