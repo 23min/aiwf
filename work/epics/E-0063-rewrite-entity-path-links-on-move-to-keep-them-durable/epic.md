@@ -101,14 +101,14 @@ and as a backstop for raw-`git mv` bypass.
 
 ## Success criteria
 
-- [ ] A markdown link between two entity bodies remains correct after the target
+- [x] A markdown link between two entity bodies remains correct after the target
       is archived, renamed, or retitled — no manual fix, verified against a
       fixture reproducing the real ADR rot.
-- [ ] The reframed decision is recorded: every ADR listed in the *ADRs produced*
+- [x] The reframed decision is recorded: every ADR listed in the *ADRs produced*
       table below is merged.
-- [ ] `aiwf check` pre-push wall-clock is unchanged by this epic (the fix adds no
+- [x] `aiwf check` pre-push wall-clock is unchanged by this epic (the fix adds no
       pre-push rule and no new history walk).
-- [ ] The `wf-doc-lint` advisory remains the sole coverage for non-entity
+- [x] The `wf-doc-lint` advisory remains the sole coverage for non-entity
       narrative links, unchanged.
 
 ## Open questions
