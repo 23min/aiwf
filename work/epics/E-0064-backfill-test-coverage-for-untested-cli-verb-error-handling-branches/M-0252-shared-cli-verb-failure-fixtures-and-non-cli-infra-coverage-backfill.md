@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Reusable test fixtures exist for each shared CLI-verb failure mode
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Non-CLI-infra flagged branches are tested or documented
       status: open
