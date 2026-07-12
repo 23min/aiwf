@@ -4,6 +4,11 @@ title: Shared CLI-verb failure fixtures and non-CLI infra coverage backfill
 status: draft
 parent: E-0064
 tdd: required
+acs:
+    - id: AC-1
+      title: Reusable test fixtures exist for each shared CLI-verb failure mode
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -47,6 +52,8 @@ smallest flagged group first.
 - **AC-3 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
   set to the pre-M-0238 commit, reports zero findings for the files listed
   in AC-2.
+
+### AC-1 — Reusable test fixtures exist for each shared CLI-verb failure mode
 
 ## Constraints
 
