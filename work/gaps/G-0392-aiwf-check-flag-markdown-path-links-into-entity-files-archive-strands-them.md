@@ -1,7 +1,9 @@
 ---
 id: G-0392
 title: 'aiwf check: flag markdown path-links into entity files (archive strands them)'
-status: open
+status: addressed
+addressed_by_commit:
+    - aa57a1b6
 ---
 ## What's missing
 
