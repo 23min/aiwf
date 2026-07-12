@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: 'Property test: fragment/query preservation holds under generation'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
