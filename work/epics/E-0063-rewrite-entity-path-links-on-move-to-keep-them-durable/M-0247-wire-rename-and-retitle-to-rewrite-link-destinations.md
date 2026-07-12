@@ -1,7 +1,7 @@
 ---
 id: M-0247
 title: Wire rename and retitle to rewrite link destinations
-status: in_progress
+status: done
 parent: E-0063
 depends_on:
     - M-0245
