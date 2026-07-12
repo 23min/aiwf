@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: 'Preserve #fragment / ?query suffixes on moved-entity rewrite'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: 'Property test: fragment/query preservation holds under generation'
