@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0063: entity path-links are rewritten on move, not left to rot
+
+`archive`, `rename`, `retitle`, and `reallocate` now rewrite the markdown
+link *destinations* in every entity body affected by a move — not just the
+moved entity's own frontmatter and prose references. A link like
+`[the loader gap](../work/gaps/G-0045-slug.md)` used to bake a static
+relative filesystem path into prose that nothing revisited when its target
+moved; a bare id reference already survived a move for free, but a
+path-link rotted silently. A new shared, pure, idempotent primitive
+(`internal/verb/linkrewrite.go`, generalized from `rewidth`'s region-splitter)
+recomputes relative and root-relative destinations against each linking
+file's own directory, handles `#fragment`/`?query` suffixes, and leaves
+prose, inline code, fenced code, URLs, and non-entity links untouched.
+`reallocate`'s existing reference rewrite is unified onto the same
+primitive for link-region precision. See `wrap.md` under
+`work/epics/E-0063-rewrite-entity-path-links-on-move-to-keep-them-durable/`
+for the full milestone list. Decision recorded in `ADR-0033`.
+
 ### Fixed — G-0377: Apply's staged-conflict guard now catches edits nested inside a directory move
 
 The pre-flight guard that refuses `aiwf`'s directory-moving verbs (`reallocate`,
