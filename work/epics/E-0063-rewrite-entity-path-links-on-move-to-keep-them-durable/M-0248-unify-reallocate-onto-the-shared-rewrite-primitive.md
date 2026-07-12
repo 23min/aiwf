@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Reallocate rewrites path-links via the shared primitive, not prose id tokens
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
