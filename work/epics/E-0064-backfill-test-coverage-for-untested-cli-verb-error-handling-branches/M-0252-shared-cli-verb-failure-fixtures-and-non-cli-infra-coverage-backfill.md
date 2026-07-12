@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Non-CLI-infra flagged branches are tested or documented
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Coverage gate is clean for the non-CLI-infra group
       status: open
