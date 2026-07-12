@@ -90,24 +90,26 @@ path`), but most of the flagged files never went through that exercise.
 
 ## Open questions
 
-| Question | Blocking? | Resolution path |
-|---|---|---|
-| Should milestones split by shared guard shape (entity-lifecycle vs. contract vs. diagnostic vs. bulk-input vs. non-CLI infra) or by risk/difficulty? | no | Decide during `aiwfx-plan-milestones`; shared-guard-shape grouping lets a milestone build one fixture/helper and reuse it across its files. |
+None — resolved during `aiwfx-plan-milestones`: milestones split by shared
+guard shape, with a foundational milestone building reusable failure
+fixtures that the four verb-family milestones consume in parallel.
 
 ## Milestones
 
-Not yet allocated — candidates to sequence via `aiwfx-plan-milestones`:
-
-- Entity-lifecycle verbs — `add`, `promote`, `retitle`, `rename`,
-  `reallocate`, `cancel`, `milestone`, `update`, `rewidth`, `editbody`.
-- Contract subsystem — `contract/recipes`, `contract/verify`,
-  `contract/bind`, `contract/unbind`.
-- Diagnostic/introspection verbs — `doctor`+`selfcheck`, `status`, `show`,
-  `history`, `list`, `whoami`, `schema`, `template`.
-- Bulk-input verbs — `importcmd`, `render`, `check`+`check/provenance`.
-- Non-CLI infra — `internal/verb/*`, `internal/gitops`,
-  `internal/stresstest`, `internal/check`, `internal/cellcoverage`,
-  `cliutil/*`.
+- `M-0252` — Shared CLI-verb failure fixtures and non-CLI infra coverage
+  backfill (`internal/verb/*`, `internal/gitops`, `internal/stresstest`,
+  `internal/check`, `internal/cellcoverage`, `cliutil/*`) · depends on: —
+- `M-0253` — Entity-lifecycle verb coverage backfill (`add`, `promote`,
+  `retitle`, `rename`, `reallocate`, `cancel`, `milestone`, `update`,
+  `rewidth`, `editbody`) · depends on: `M-0252`
+- `M-0254` — Contract subsystem coverage backfill (`contract/recipes`,
+  `contract/verify`, `contract/bind`, `contract/unbind`) · depends on:
+  `M-0252`
+- `M-0255` — Diagnostic and introspection verb coverage backfill
+  (`doctor`+`selfcheck`, `status`, `show`, `history`, `list`, `whoami`,
+  `schema`, `template`) · depends on: `M-0252`
+- `M-0256` — Bulk-input verb coverage backfill (`importcmd`, `render`,
+  `check`+`check/provenance`) · depends on: `M-0252`
 
 ## References
 
