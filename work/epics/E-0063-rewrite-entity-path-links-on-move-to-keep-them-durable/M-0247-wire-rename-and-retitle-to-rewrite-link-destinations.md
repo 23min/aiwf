@@ -123,3 +123,43 @@ an unrelated linking entity, a directory-shaped epic retitle whose own
 body links to a co-moved nested milestone (proving the single-write
 composition), and the composite-AC path asserting its `Plan` carries
 exactly its one pre-existing write and nothing else.
+
+## Decisions made during implementation
+
+- (none) — all decisions are pre-locked in `## Design notes` above and
+  in `ADR-0033`.
+
+## Validation
+
+- `go build ./...` — green.
+- `go test -race -parallel 8 ./...` — green, full suite.
+- `golangci-lint run` — 0 issues.
+- `make coverage-gate` — diff-scoped branch-coverage audit and firing-fixture policy tests both pass; every changed line is tested or `//coverage:ignore`'d with a stated rationale.
+- `aiwf check` — 0 error-severity findings (1 advisory `provenance-untrailered-scope-undefined`, expected on an unpushed branch with no upstream).
+- Independent code-quality review (fresh-context subagent): **approve**, no blocking findings. Re-ran the full test suite (14/14 targeted tests), build, vet, gofmt, `make coverage-gate`, and `make lint` itself rather than trusting this spec's claims; independently traced the `exclude={e.Path: true}` single-write composition in `retitle.go` line by line to confirm no competing `OpWrite` is possible; confirmed the removed empty-moves guard was genuinely unreachable at both call sites; confirmed the already-archived exclusion test exercises the new `planLinkRewriteWrites` path (not M-0246's `planArchiveRewrites`).
+- No design-quality (`wf-rethink`) lens run: this milestone composes existing primitives (`EntityMove`, `pathInside`, `newEntityPathAfterRename`, `RewriteLinkDestinations`, and a new `planLinkRewriteWrites` following the exact shape of M-0246's `planArchiveRewrites`) into two verb call sites — no new module boundary, core abstraction, or data model to rethink.
+- Doc-lint: skipped — the change-set (`internal/verb/*.go` plus the milestone's own spec) has zero intersection with `docs/`, `README.md`, or `CONTRIBUTING.md`.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+`renameEntityMoves` (`internal/verb/rename.go`) and `archiveEntityMoves`
+(`internal/verb/archive.go`, M-0246) duplicate the same epic/contract
+directory-expansion loop (walk `tr.Entities`, keep what's `pathInside`
+the moved dir, compute each nested entity's new path). Accepted as-is
+per this milestone's explicit "out of scope: archive (sibling
+milestone)" note and the differing caller input shapes (single
+entity+source+dest vs. a batch of `archiveMove`s) — a future
+consolidation into a shared `expandDirMove` helper is a reasonable
+cleanup once all of the epic's move-rewriting milestones have landed,
+not a blocker here.
+
+The new `planLinkRewriteWrites` drops the empty-moves early-return
+that `planArchiveRewrites` still carries (behind its own
+`//coverage:ignore unreachable`) — both are defensible; the deletion
+here is arguably the cleaner choice given the coverage gate would
+otherwise flag genuinely dead code, and `archive.go` could follow
+suit in a later pass.
