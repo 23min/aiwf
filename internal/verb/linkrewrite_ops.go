@@ -19,10 +19,12 @@ import (
 // for that path. Already-archived entities are never linking-file
 // candidates, mirroring `aiwf archive`'s own forget-by-default
 // exclusion (ADR-0004).
+//
+// moves is always non-empty at both call sites — Rename always
+// produces at least its own entity's move, and Retitle only calls
+// this helper inside its own `len(moves) > 0` branch — so there is no
+// empty-moves guard here.
 func planLinkRewriteWrites(tr *tree.Tree, moves []EntityMove, exclude map[string]bool) ([]FileOp, error) {
-	if len(moves) == 0 {
-		return nil, nil
-	}
 	postMovePath := make(map[string]string, len(moves))
 	for _, m := range moves {
 		postMovePath[m.From] = m.To

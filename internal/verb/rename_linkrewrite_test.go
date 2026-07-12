@@ -7,6 +7,7 @@ package verb_test
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -47,6 +48,19 @@ func TestRename_RewritesLinkToRenamedEntity(t *testing.T) {
 	}
 	linkingPath := linking.Path
 
+	// A second, independent linking gap: with two files needing a
+	// rewrite from the same Rename call, planLinkRewriteWrites' final
+	// sort.Slice actually has to compare two paths (rather than a
+	// single-element no-op sort).
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Second linking gap", testActor, verb.AddOptions{
+		BodyOverride: []byte("## What's missing\n\nAlso see [the target](" + targetPath + ").\n\n## Why it matters\n\nFixture.\n"),
+	}))
+	linking2 := r.tree().ByID("G-0004")
+	if linking2 == nil {
+		t.Fatal("G-0004 missing")
+	}
+	linking2Path := linking2.Path
+
 	res, err := verb.Rename(r.ctx, r.tree(), "G-0001", "renamed-target", testActor, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -68,8 +82,14 @@ func TestRename_RewritesLinkToRenamedEntity(t *testing.T) {
 		t.Fatalf("moveOps = %+v, want exactly one move of %s", moveOps, targetPath)
 	}
 	renamedTargetPath := moveOps[0].NewPath
-	if len(writeOps) != 1 || writeOps[0].Path != linkingPath {
-		t.Fatalf("writeOps = %+v, want exactly one write to %s (the untouched gap must NOT be rewritten)", writeOps, linkingPath)
+	if len(writeOps) != 2 {
+		t.Fatalf("writeOps = %+v, want exactly two writes (%s and %s) — the untouched gap must NOT be rewritten", writeOps, linkingPath, linking2Path)
+	}
+	gotPaths := []string{writeOps[0].Path, writeOps[1].Path}
+	wantPaths := []string{linkingPath, linking2Path}
+	sort.Strings(wantPaths)
+	if gotPaths[0] != wantPaths[0] || gotPaths[1] != wantPaths[1] {
+		t.Fatalf("writeOps paths = %v, want %v (sorted)", gotPaths, wantPaths)
 	}
 
 	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
@@ -155,5 +175,54 @@ func TestRename_DirectoryRename_RecomputesNestedSelfLinkAgainstFinalLayout(t *te
 	wantLink := "work/epics/E-0001-renamed-platform/M-0001-cache-layer.md"
 	if !strings.Contains(string(newEpic), "("+wantLink+")") {
 		t.Errorf("epic's link to its own co-moved milestone not recomputed against the final layout:\n%s", newEpic)
+	}
+}
+
+// TestRename_SkipsAlreadyArchivedEntityAsLinkingFile pins the
+// "forget-by-default" exclusion (ADR-0004, mirroring M-0246's
+// identical exclusion for archive): an entity already under
+// `archive/` is never considered a linking-file candidate by
+// planLinkRewriteWrites, even when its on-disk body happens to
+// contain a path that would otherwise match a rename.
+func TestRename_SkipsAlreadyArchivedEntityAsLinkingFile(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Old note", testActor, verb.AddOptions{
+		BodyOverride: bornCompleteFixtureBody(entity.KindGap),
+	}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "", false))
+	r.must(verb.Archive(r.ctx, r.root, testActor, ""))
+
+	archivedPath := filepath.Join(r.root, "work", "gaps", "archive", "G-0001-old-note.md")
+	if _, err := os.Stat(archivedPath); err != nil {
+		t.Fatalf("G-0001 not archived by the sweep: %v", err)
+	}
+
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Target gap", testActor, verb.AddOptions{
+		BodyOverride: bornCompleteFixtureBody(entity.KindGap),
+	}))
+	target := r.tree().ByID("G-0002")
+	if target == nil {
+		t.Fatal("G-0002 missing")
+	}
+	targetPath := target.Path
+
+	raw, err := os.ReadFile(archivedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated := string(raw) + "\nSee [target](" + targetPath + ") too.\n"
+	if writeErr := os.WriteFile(archivedPath, []byte(updated), 0o644); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+
+	res, err := verb.Rename(r.ctx, r.tree(), "G-0002", "renamed-target", testActor, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, op := range res.Plan.Ops {
+		if op.Type == verb.OpWrite {
+			t.Errorf("unexpected OpWrite %+v — an already-archived entity must never be treated as a linking-file candidate", op)
+		}
 	}
 }
