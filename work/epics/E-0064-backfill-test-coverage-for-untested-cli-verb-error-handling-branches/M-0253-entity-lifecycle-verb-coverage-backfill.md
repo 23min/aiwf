@@ -11,6 +11,10 @@ acs:
       title: Entity-lifecycle flagged branches are tested or documented
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Coverage gate is clean for the entity-lifecycle group
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -44,6 +48,8 @@ guard shape ahead of its verb-specific logic.
   in AC-1.
 
 ### AC-1 — Entity-lifecycle flagged branches are tested or documented
+
+### AC-2 — Coverage gate is clean for the entity-lifecycle group
 
 ## Constraints
 
