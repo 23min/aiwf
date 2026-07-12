@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: 'Property test: fragment/query preservation holds under generation'
-      status: open
+      status: met
       tdd_phase: done
 ---
 
