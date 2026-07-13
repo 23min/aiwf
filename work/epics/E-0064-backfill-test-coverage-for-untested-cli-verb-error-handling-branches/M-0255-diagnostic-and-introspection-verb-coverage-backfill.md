@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Scoped coverage-gate reports zero findings
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
