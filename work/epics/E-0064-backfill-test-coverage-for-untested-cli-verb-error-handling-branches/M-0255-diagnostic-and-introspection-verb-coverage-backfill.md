@@ -11,6 +11,10 @@ acs:
       title: Every diagnostic/introspection-group branch tested or ignored
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Scoped coverage-gate reports zero findings
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -48,6 +52,8 @@ milestone for two files.
   in AC-1.
 
 ### AC-1 — Every diagnostic/introspection-group branch tested or ignored
+
+### AC-2 — Scoped coverage-gate reports zero findings
 
 ## Constraints
 
