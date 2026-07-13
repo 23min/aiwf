@@ -79,12 +79,32 @@ func TestRun_ForceAndAuditOnlyMutex(t *testing.T) {
 
 // TestRun_ForceRequiresReason covers the --force/--audit-only
 // --reason gate: either flag set with an empty (or whitespace-only)
-// --reason is a usage error.
+// --reason is a usage error. Table-driven across both flags: --force
+// alone doesn't reach the `gateFlag = "--audit-only"` reassignment
+// (G-0411, found during M-0253's wrap review — this line predates the
+// diff-scoped audit's base so branch-coverage-audit never flagged it),
+// so the --audit-only case is needed to exercise it.
 func TestRun_ForceRequiresReason(t *testing.T) {
 	t.Parallel()
-	rc := runArgs{args: []string{"E-0001", "active"}, force: true, reason: "  "}.run()
-	if rc != cliutil.ExitUsage {
-		t.Errorf("rc = %d, want ExitUsage", rc)
+	tests := []struct {
+		name      string
+		force     bool
+		auditOnly bool
+	}{
+		{name: "force", force: true},
+		{name: "audit-only", auditOnly: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rc := runArgs{
+				args: []string{"E-0001", "active"}, reason: "  ",
+				force: tc.force, auditOnly: tc.auditOnly,
+			}.run()
+			if rc != cliutil.ExitUsage {
+				t.Errorf("rc = %d, want ExitUsage", rc)
+			}
+		})
 	}
 }
 
