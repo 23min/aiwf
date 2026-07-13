@@ -87,7 +87,7 @@ func Run(root string, selfCheck, checkLatest bool) int {
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore ResolveRoot(--root) resolves via filepath.Abs and cannot fail here; defensive parity with runWriteHealth
 		cliutil.Errorf("aiwf doctor: %v\n", err)
 		return cliutil.ExitUsage
 	}

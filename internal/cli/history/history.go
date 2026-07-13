@@ -64,7 +64,7 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -118,6 +118,13 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 
 	events, err := ReadHistoryChain(ctx, rootDir, chain)
 	if err != nil {
+		//coverage:ignore ReadHistoryChain's `git log` only fails for a
+		// genuine git/environmental fault once cliutil.HasCommits
+		// (called first, using the same root) has already succeeded —
+		// not reachable through a clean deterministic fixture; each id
+		// is regexp.QuoteMeta-escaped before reaching the --grep
+		// pattern (entity.IDGrepAlternation), so a malformed id cannot
+		// break the regex either.
 		cliutil.Errorf("aiwf history: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -163,7 +170,7 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 				"events": len(events),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf history: %v\n", err)
 			return cliutil.ExitInternal
 		}

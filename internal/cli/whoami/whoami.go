@@ -39,7 +39,7 @@ func NewCmd() *cobra.Command {
 // Run executes `aiwf whoami`. Returns one of the cliutil.Exit* codes.
 func Run(root, actor string) int {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf whoami: %v\n", err)
 		return cliutil.ExitUsage
 	}

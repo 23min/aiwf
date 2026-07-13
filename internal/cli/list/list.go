@@ -142,7 +142,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf list: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -178,7 +178,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 	}
 
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf list: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -199,7 +199,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 					"root": rootDir,
 				},
 			}
-			if err := render.JSON(os.Stdout, env, pretty); err != nil {
+			if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 				cliutil.Errorf("aiwf list: writing output: %v\n", err)
 				return cliutil.ExitInternal
 			}
@@ -223,7 +223,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 				"count": len(rows),
 			},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf list: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}

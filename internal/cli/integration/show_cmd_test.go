@@ -887,3 +887,33 @@ func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
 		t.Errorf("expected exactly one history event with tests metrics; got %d (history: %+v)", withMetrics, env.Result.History)
 	}
 }
+
+// TestRun_ShowTextRendersScopes — M-0255/AC-1 backfill: an entity with
+// at least one aiwf authorize scope renders a "Scopes (N):" section in
+// the default text format. No existing show test opens a scope first,
+// so this branch (and its per-scope print line) had zero coverage.
+func TestRun_ShowTextRendersScopes(t *testing.T) {
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := cli.Execute([]string{"authorize", "E-0001", "--to", "ai/claude", "--reason", "delegate", "--branch", "epic/E-0001-foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("authorize: %d", rc)
+	}
+
+	captured := testutil.CaptureStdout(t, func() {
+		if rc := cli.Execute([]string{"show", "--root", root, "E-0001"}); rc != cliutil.ExitOK {
+			t.Fatalf("show: %d", rc)
+		}
+	})
+	out := string(captured)
+	if !strings.Contains(out, "Scopes (1):") {
+		t.Errorf("expected a \"Scopes (1):\" section; got:\n%s", out)
+	}
+	if !strings.Contains(out, "ai/claude") {
+		t.Errorf("expected the scope's agent (ai/claude) in the rendered line; got:\n%s", out)
+	}
+}
