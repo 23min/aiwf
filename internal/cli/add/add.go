@@ -160,7 +160,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf add: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -210,7 +210,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		}
 	}
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf add: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -566,7 +566,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf add ac: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -584,7 +584,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf add ac: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}

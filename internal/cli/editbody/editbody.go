@@ -78,7 +78,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf edit-body: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -115,7 +115,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 	// allocated on trunk but absent from this branch's tree must not
 	// refuse the write (G-0241). Matches add/check/reallocate/rewidth.
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf edit-body: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
