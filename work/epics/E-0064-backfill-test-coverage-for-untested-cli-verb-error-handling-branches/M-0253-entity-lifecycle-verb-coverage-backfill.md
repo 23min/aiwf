@@ -1,7 +1,7 @@
 ---
 id: M-0253
 title: Entity-lifecycle verb coverage backfill
-status: in_progress
+status: done
 parent: E-0064
 depends_on:
     - M-0252
