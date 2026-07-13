@@ -11,6 +11,10 @@ acs:
       title: Every contract-subsystem branch tested or ignored
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Scoped coverage-gate reports zero findings
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -42,6 +46,8 @@ package.
   in AC-1.
 
 ### AC-1 — Every contract-subsystem branch tested or ignored
+
+### AC-2 — Scoped coverage-gate reports zero findings
 
 ## Constraints
 
