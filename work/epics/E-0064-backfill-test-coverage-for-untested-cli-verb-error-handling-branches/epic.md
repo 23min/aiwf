@@ -107,7 +107,8 @@ fixtures that the four verb-family milestones consume in parallel.
   `M-0252`
 - `M-0255` — Diagnostic and introspection verb coverage backfill
   (`doctor`+`selfcheck`, `status`, `show`, `history`, `list`, `whoami`,
-  `schema`, `template`) · depends on: `M-0252`
+  `schema`, `template`, plus `archive` and `authorize` — folded in after
+  neither was assigned to any milestone) · depends on: `M-0252`
 - `M-0256` — Bulk-input verb coverage backfill (`importcmd`, `render`,
   `check`+`check/provenance`) · depends on: `M-0252`
 
