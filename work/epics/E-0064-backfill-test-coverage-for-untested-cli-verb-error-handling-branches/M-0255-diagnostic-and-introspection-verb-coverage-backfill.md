@@ -76,3 +76,40 @@ in AC-1.
 
 - **E-0064** — parent epic.
 - **M-0252** — shared fixtures this milestone consumes.
+
+## Work log
+
+### AC-1 — Every diagnostic/introspection-group branch tested or ignored
+
+~20 new tests plus 33 `//coverage:ignore` annotations, closing all 55
+branch-coverage-audit findings across doctor+selfcheck, status,
+authorize, archive, show, history, list, schema, template, and whoami
+· commit 0d683494 · tests 20/20
+
+`doctor --self-check` wired the real in-process Dispatcher (via
+`internal/cli`'s own `init()`) for a genuine full 29-step run rather
+than faking it. `show`/`history` each needed one new real-scenario
+test (an authorized entity's Scopes section; `[reason:]`/
+`[audit-only:]` chips) because the closest existing coverage ran
+through a subprocess-compiled binary (`testutil.RunBin`), invisible to
+`go test`'s own `-coverprofile` instrumentation. `archive.go`'s 2
+findings were real output-format tests (NoOp/dry-run JSON envelopes),
+not error guards — zero ignores needed there.
+
+### AC-2 — Scoped coverage-gate reports zero findings
+
+Validation-only, no new commit. Re-ran the scoped
+`TestPolicy_BranchCoverageAudit` policy test with
+`AIWF_COVERAGE_BASE=2ac84846^` against a full-repo coverage profile
+generated after AC-1's tests landed: zero findings across all 10 files
+in this milestone's scope.
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+## Reviewer notes
