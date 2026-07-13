@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Every contract-subsystem branch tested or ignored
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Scoped coverage-gate reports zero findings
       status: open
