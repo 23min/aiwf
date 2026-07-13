@@ -22,9 +22,9 @@ This is precisely the class of gap E-0064 exists to close — an
 untested CLI-verb error-handling branch — but it's invisible to the
 epic's own mechanical detection method (the diff-scoped audit against
 the pre-M-0238 base) because the line's last change predates that
-base. Closing E-0064's four flagged-file milestones will not
-close this one; it needs its own one-line fix (a second case in
-`TestRun_ForceRequiresReason`: `auditOnly: true, reason: ""`) filed
-separately since it falls outside every current milestone's scoped
-file list is not the blocker — `promote.go` is M-0253's own file, this
-is just outside the flagged line set M-0253's AC-1 committed to.
+base. None of E-0064's flagged-file milestones will close this one on
+their own, since it falls outside every milestone's scoped flagged-line
+set even though `promote.go` itself is M-0253's file. The fix is a
+one-line addition — a second case in `TestRun_ForceRequiresReason`:
+`auditOnly: true, reason: ""` — small enough to land as its own
+`wf-patch` rather than waiting on a future milestone.
