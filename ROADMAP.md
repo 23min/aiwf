@@ -887,7 +887,7 @@ code.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0252 | Shared CLI-verb failure fixtures and non-CLI infra coverage backfill | done |
-| M-0253 | Entity-lifecycle verb coverage backfill | draft |
+| M-0253 | Entity-lifecycle verb coverage backfill | done |
 | M-0254 | Contract subsystem coverage backfill | draft |
 | M-0255 | Diagnostic and introspection verb coverage backfill | draft |
 | M-0256 | Bulk-input verb coverage backfill | draft |
