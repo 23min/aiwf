@@ -72,3 +72,40 @@ pre-M-0238 commit, reports zero findings for the files listed in AC-1.
 
 - **E-0064** — parent epic.
 - **M-0252** — shared fixtures this milestone consumes.
+
+## Work log
+
+### AC-1 — Entity-lifecycle flagged branches tested or documented
+
+Implemented in three sequential waves (48 flagged branches across ten
+files, all resolved with per-site judgment — no blanket suppression):
+
+- **Wave 1** — `add`, `cancel`, `editbody` (22 branches). 15 real
+  tests, 7 honest `//coverage:ignore`s. `add.go`'s `runAC` subcommand
+  needed its own verb-specific triggers (title-count mismatch, stdin
+  batch mutex, frontmatter-leading body rejection) beyond the shared
+  root/actor/lock/tree guard shape. Commit `d716478c`.
+- **Wave 2** — `promote`, `reallocate`, `rename`, `retitle` (19
+  branches). 10 real tests, 9 honest ignores. `promote.go` carried the
+  largest single concentration (10 branches) — its own `--phase`/
+  positional-status mutex, `--force`/`--audit-only` gating, and
+  resolver-flag (`--by`/`--by-commit`/`--superseded-by`) mutex checks,
+  each independently cross-checked against the actual source during
+  review. Commit `7db16b47`.
+- **Wave 3** (final) — `milestone`, `update`, `rewidth` (7 branches). 4
+  real tests, 3 honest ignores. `update.go`'s two flagged lines are
+  NOT actor-shaped (the verb takes no `actor`/`principal` params) — one
+  is the standard `ResolveRoot` ignore, the other is a verb-specific
+  G45 hook-chain-collision guard needing its own fixture. `rewidth.go`'s
+  two flagged lines are `out.JSON()` output-format branches, not error
+  guards — a different shape than every other flagged line in this
+  milestone, both trivially real-tested rather than ignored. Commit
+  `a09b1edb`.
+
+Final scoped rerun (`branch-coverage-audit`, base = the pre-M-0238
+commit, all ten files): zero findings.
+
+## Decisions made during implementation
+
+- None beyond the per-wave judgment calls recorded above — no decision
+  rose to the level of a tracked `D-NNN`/`ADR-NNNN`.
