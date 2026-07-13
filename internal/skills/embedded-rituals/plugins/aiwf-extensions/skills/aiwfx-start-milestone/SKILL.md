@@ -103,8 +103,10 @@ The branch operation does not produce an aiwf commit; it is plain git plumbing. 
 If you instead isolate this milestone in its own worktree (e.g. for parallel milestone work), use `aiwf worktree add` in place of the plain `git checkout -b` above — it creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step, in-repo under the same `worktree.dir` by default:
 
 ```bash
-aiwf worktree add milestone/M-NNNN-<slug> --base epic/E-NNNN-<slug>
+aiwf worktree add milestone/M-NNNN-<slug> --base epic/E-NNNN-<slug> --print-path
 ```
+
+If you (the calling session) are going to keep working in this worktree yourself — as opposed to dispatching a subagent per CLAUDE.md's "Subagent worktree isolation" section — call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
 
 Pass an explicit path as the verb's second argument for a sibling-directory placement instead. The per-invocation override (main-checkout / sibling) stays available; in-repo is the recommendation, not a lock. See the `aiwf-worktree` skill for the full verb reference.
 

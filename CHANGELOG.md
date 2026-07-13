@@ -16,6 +16,18 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0413: ritual worktree creation now relocates the harness session
+
+`aiwf worktree add` creates a git worktree and materializes rituals into it, but
+never moved the calling Claude Code session into it — only the harness's own
+`EnterWorktree` tool does that, and no ritual skill invoked it. A worktree entered
+by a plain shell `cd` after `aiwf worktree add` was invisible to the statusline
+(which reads the harness session's own cwd), to the session-exit keep/remove
+prompt, and to cwd-dependent caches. `aiwfx-start-milestone`, `aiwfx-start-epic`,
+and `wf-patch` now capture the created path via `aiwf worktree add --print-path`
+and chain `EnterWorktree(path: ...)` as an explicit second step wherever the
+calling session itself keeps working in the new worktree.
+
 ### Fixed — G-0335: promote to cancelled now enforces a milestone's open-AC guard
 
 `aiwf promote <milestone> cancelled` used to bypass `aiwf cancel`'s guard against
