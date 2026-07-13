@@ -69,3 +69,23 @@ in AC-1.
 
 - **E-0064** — parent epic.
 - **M-0252** — shared fixtures this milestone consumes.
+
+## Work log
+
+### AC-1 — Every contract-subsystem branch tested or ignored
+
+19 real tests (reusing M-0252's BrokenGitIdentity fixture and the
+malformed-contracts-block trigger proven at internal/cli/add) plus 12
+`//coverage:ignore` annotations, closing all 31 branch-coverage-audit
+findings across bind.go, unbind.go, verify.go, and recipes.go · commit
+67600f8a · tests 19/19
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+## Reviewer notes
