@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Coverage gate is clean for the entity-lifecycle group
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
