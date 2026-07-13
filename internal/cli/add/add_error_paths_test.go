@@ -164,6 +164,27 @@ func TestRun_ContractBindValidatorLoadContractsDocFailure(t *testing.T) {
 	}
 }
 
+// TestRun_LoadTreeWithTrunkConfigParseFailure covers Run's
+// cliutil.LoadTreeWithTrunk guard: a syntactically malformed
+// aiwf.yaml makes config.Load return a parse error that
+// LoadTreeWithTrunk propagates as-is (config.go's Load only swallows
+// config.ErrNotFound — a missing file — not a parse failure). This is
+// distinct from tree.Load's per-file LoadError case (a malformed
+// *entity* file, which WriteMalformedEntity covers): a malformed
+// aiwf.yaml is a fatal load error, not a findings-shaped one.
+func TestRun_LoadTreeWithTrunkConfigParseFailure(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "aiwf.yaml"),
+		[]byte("areas:\n  members: [unclosed\n"), 0o644); err != nil {
+		t.Fatalf("write aiwf.yaml: %v", err)
+	}
+	rc := runArgs{kind: entity.KindEpic, actor: "human/test", root: root}.run()
+	if rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want ExitInternal", rc)
+	}
+}
+
 // TestNewCmd_AC_NoTitle covers runAC's --title-required guard: no
 // --title at all is a usage error, checked before any root/tree work.
 func TestNewCmd_AC_NoTitle(t *testing.T) {

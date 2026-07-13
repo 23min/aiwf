@@ -210,7 +210,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		}
 	}
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
-	if err != nil { //coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
+	if err != nil {
 		cliutil.Errorf("aiwf add: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
