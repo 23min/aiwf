@@ -94,7 +94,7 @@ func Run(args []string, format string, pretty bool) int {
 	switch format {
 	case "text":
 		single := len(templates) == 1
-		if err := WriteTemplateText(os.Stdout, templates, single); err != nil {
+		if err := WriteTemplateText(os.Stdout, templates, single); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -105,7 +105,7 @@ func Run(args []string, format string, pretty bool) int {
 			Status:  "ok",
 			Result:  map[string]any{"templates": templates},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}

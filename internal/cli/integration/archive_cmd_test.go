@@ -536,3 +536,42 @@ func TestArchive_DryRunAndApplyMutuallyExclusive(t *testing.T) {
 		t.Errorf("archive --dry-run --apply rc = %d, want cliutil.ExitUsage", rc)
 	}
 }
+
+// TestArchive_JSONFormat_NoOp — M-0255/AC-1 backfill: `aiwf archive
+// --format json` on a converged tree (nothing to sweep) exercises the
+// NoOp branch's JSON envelope path, distinct from the default-format
+// NoOp path TestArchive_EmptyTreeApply_NoOp already covers.
+func TestArchive_JSONFormat_NoOp(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	commitArchiveFixture(t, root, "init scaffolding")
+
+	if rc := cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Errorf("archive --format json on empty tree rc = %d, want cliutil.ExitOK", rc)
+	}
+}
+
+// TestArchive_JSONFormat_DryRunWithPlan — M-0255/AC-1 backfill: `aiwf
+// archive --format json` (dry-run default) against a tree with real
+// terminal-status entities exercises the non-NoOp dry-run JSON
+// envelope path — distinct from TestArchive_DryRunByDefault (default
+// text format) and TestArchive_JSONFormat_NoOp (JSON format, but the
+// NoOp branch, not this one).
+func TestArchive_JSONFormat_DryRunWithPlan(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	seedArchiveFixture(t, root)
+	commitArchiveFixture(t, root, "seed archive fixture")
+
+	before := archiveCommitCount(t, root)
+	if rc := cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+		t.Errorf("archive --format json (dry-run) rc = %d, want cliutil.ExitOK", rc)
+	}
+	after := archiveCommitCount(t, root)
+	if delta := after - before; delta != 0 {
+		t.Errorf("archive --format json dry-run produced %d commit(s), want 0", delta)
+	}
+}

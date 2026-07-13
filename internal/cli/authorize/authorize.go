@@ -208,7 +208,7 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf authorize: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -241,7 +241,7 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	defer release()
 
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf authorize: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -298,6 +298,13 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	if opts.Mode == verb.AuthorizePause || opts.Mode == verb.AuthorizeResume {
 		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, id)
 		if scopesErr != nil {
+			//coverage:ignore LoadEntityScopes' `git log` only fails for
+			// a genuine git/environmental fault once cliutil.HasCommits
+			// (called first, using the same root) has already
+			// succeeded — not reachable through a clean deterministic
+			// fixture; id is regexp.QuoteMeta-escaped before reaching
+			// the --grep pattern (entity.IDGrepAlternation), so a
+			// malformed id cannot break the regex either.
 			cliutil.Errorf("aiwf authorize: %v\n", scopesErr)
 			return cliutil.ExitInternal
 		}
