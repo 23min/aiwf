@@ -1,8 +1,10 @@
 ---
 id: G-0411
 title: promote.go audit-only --reason gate has an untested reachable branch
-status: open
+status: addressed
 discovered_in: M-0253
+addressed_by_commit:
+    - 3c20ac67
 ---
 ## What's missing
 
