@@ -75,6 +75,19 @@ pre-M-0238 commit, reports zero findings for the files listed in AC-1.
 
 ## Work log
 
+### AC-2 — Coverage gate is clean for the entity-lifecycle group
+
+Two independent confirmations against the committed AC-1 state: (1)
+`TestPolicy_BranchCoverageAudit`, run directly with `AIWF_COVERAGE_BASE`
+set to the pre-M-0238 commit (`2ac84846^`), scoped-grepped to all ten
+entity-lifecycle files — zero matching lines. (2) the standard
+`make coverage-gate` (default base = `git merge-base origin/main HEAD`)
+— all four policies (`BranchCoverageAudit`, `FiringFixturePresence`,
+`FiringFixtureNoStaleAllowlist`, `SkillEditStructuralTestBackstop`)
+pass clean. No new code in this AC — it's the closing verification
+that AC-1's three waves together satisfy the milestone's stated
+success criterion.
+
 ### AC-1 — Entity-lifecycle flagged branches tested or documented
 
 Implemented in three sequential waves (48 flagged branches across ten
