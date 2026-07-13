@@ -11,6 +11,10 @@ acs:
       title: Every bulk-input verb group branch tested or ignored
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Scoped coverage-gate reports zero findings
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -44,6 +48,8 @@ implementation rather than pre-designed here.
   in AC-1.
 
 ### AC-1 — Every bulk-input verb group branch tested or ignored
+
+### AC-2 — Scoped coverage-gate reports zero findings
 
 ## Constraints
 
