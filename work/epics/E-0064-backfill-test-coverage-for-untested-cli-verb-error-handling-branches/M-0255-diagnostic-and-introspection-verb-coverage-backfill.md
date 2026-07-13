@@ -96,6 +96,12 @@ through a subprocess-compiled binary (`testutil.RunBin`), invisible to
 findings were real output-format tests (NoOp/dry-run JSON envelopes),
 not error guards — zero ignores needed there.
 
+Corrective commit from wrap review: `test(archive): assert JSON
+envelope content in the new format tests` · commit a347252e ·
+strengthened the two archive JSON tests to parse and assert on the
+envelope's `status`/`subject` fields (D1 — pin behavior, not just exit
+code), per the independent review's finding.
+
 ### AC-2 — Scoped coverage-gate reports zero findings
 
 Validation-only, no new commit. Re-ran the scoped
@@ -110,6 +116,53 @@ in this milestone's scope.
 
 ## Validation
 
+- `go build ./...` — clean.
+- `make lint` (full CI-parity set) — 0 issues.
+- `make test-race` (full repo, `-race -parallel 8`) — all packages pass except one
+  confirmed pre-existing, unrelated flake (`internal/stresstest`'s
+  `TestMidWriteKillScenario_RealBinary_ConfirmsNoHalfWrittenFile`, a timing-sensitive
+  mid-write-kill race untouched by this milestone; passes standalone).
+- Scoped `TestPolicy_BranchCoverageAudit` with `AIWF_COVERAGE_BASE=2ac84846^` — zero
+  findings across all 10 files in this milestone's scope.
+- Independent fresh-context code-quality review, split into two parallel dimension
+  reviews (doctor+selfcheck+status; the remaining 8 files) — both **approve**. No
+  design-quality (`wf-rethink`) pass — this milestone introduces no new module
+  boundary, abstraction, or data model, only test files and comment-only production
+  edits.
+- `wf-doc-lint` (scoped to the milestone's change-set) — clean; the change-set is
+  entirely Go source/test files plus this spec, none intersecting the doc-lint scope.
+
 ## Deferrals
 
+- (none) — the reviews' one repeat-instance finding (imprecise `ResolveRoot` ignore
+  wording, propagated to 5 more sites) is already tracked by the open **G-0412**, not a
+  new deferral.
+
 ## Reviewer notes
+
+- Both reviewers independently confirmed the `ResolveRoot` ignore-comment wording
+  ("only fails on missing aiwf.yaml + non-existent --root path") is imprecise — the
+  real failure mode is `filepath.Abs`/`os.Getwd` failing; an explicit `--root` never
+  stats the path at all. This is the same issue **G-0412** already tracks repo-wide
+  (deliberately deferred as a future sweep, not a per-milestone fix) — one reviewer
+  additionally confirmed this exact wording is pervasive (~24 sites) across the
+  codebase already, predating this milestone.
+- The first reviewer's finding that the two new archive JSON tests asserted only
+  `rc`/commit-count (weaker than the sibling show/history additions) was fixed inline
+  as a corrective commit (a347252e) before wrap — both now parse and assert on the
+  JSON envelope's `status` and `subject` fields.
+- The second reviewer initially reported 3 false-positive findings against a coverage
+  profile file that was still being written by a concurrently-running background `go
+  test` job; re-running against the finalized profile cleared them (confirmed
+  non-reproducible). Recorded here so a future reader isn't confused by a stale
+  intermediate result — the authoritative re-run is what's cited under Validation.
+- `doctor --self-check`'s real in-process Dispatcher wiring (`internal/cli`'s own
+  `init()` sets `doctor.Dispatcher = Execute`) was independently verified to have no
+  import cycle: `doctor_test` (external test package) importing `internal/cli` is
+  legal even though `internal/cli` imports `doctor` (production code) — the two
+  `doctor`-named packages are distinct.
+- Three `selfcheck.go` step-loop branches (setup/verify/verifyOutput FAIL arms) stay
+  `//coverage:ignore`d — reaching them needs corrupting on-disk state a real earlier
+  step in the same 29-step sequence produced, not a direct trigger; both reviewers
+  confirmed this reachability analysis holds and no signature change (banned by this
+  milestone's scope) would avoid it cheaply.
