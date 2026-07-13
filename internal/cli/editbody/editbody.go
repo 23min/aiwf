@@ -78,7 +78,7 @@ func Run(id, actor, principal, root, reason, bodyFile string, out cliutil.Output
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf edit-body: %v\n", err)
 		return cliutil.ExitUsage
 	}

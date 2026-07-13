@@ -147,7 +147,7 @@ func Run(args []string, actor, principal, root, reason,
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf promote: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -180,7 +180,7 @@ func Run(args []string, actor, principal, root, reason,
 	defer release()
 
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf promote: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}

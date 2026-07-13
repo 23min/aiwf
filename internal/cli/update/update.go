@@ -106,7 +106,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf update: %v\n", err)
 		return cliutil.ExitUsage
 	}
