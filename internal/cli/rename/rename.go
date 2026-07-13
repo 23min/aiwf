@@ -50,7 +50,7 @@ func NewCmd(correlationID string) *cobra.Command {
 // Run executes `aiwf rename`. Returns one of the cliutil.Exit* codes.
 func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf rename: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -83,7 +83,7 @@ func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) (
 	defer release()
 
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf rename: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
