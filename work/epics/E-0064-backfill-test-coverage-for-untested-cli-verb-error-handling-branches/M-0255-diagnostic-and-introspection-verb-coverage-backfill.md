@@ -12,15 +12,21 @@ tdd: required
 
 Clear every branch `branch-coverage-audit` currently flags in the
 diagnostic/introspection verb group — `doctor`+`selfcheck`, `status`,
-`show`, `history`, `list`, `whoami`, `schema`, `template` — using the
-shared failure fixtures M-0252 builds.
+`show`, `history`, `list`, `whoami`, `schema`, `template` — plus
+`archive` and `authorize`, using the shared failure fixtures M-0252
+builds.
 
 ## Context
 
 M-0252 lands the reusable fixtures for the failure modes these guards
 share. `doctor/selfcheck.go` carries a large concentration of flagged
 sites on its own; the rest of this group is read-oriented verbs with a
-thinner failure surface each.
+thinner failure surface each. `archive` and `authorize` don't fit this
+milestone's read-oriented theme — they're mutating verbs — but neither
+was assigned to any of E-0064's other four milestones; folding their 10
+remaining flagged lines in here (rather than a sixth milestone) keeps
+the epic's "zero findings" success criterion reachable without adding a
+milestone for two files.
 
 ## Acceptance criteria
 
@@ -29,9 +35,9 @@ thinner failure surface each.
 
 - **AC-1 candidate** — Every branch `branch-coverage-audit` flags (base =
   the commit before M-0238/AC-3's rename) within `internal/cli/{doctor,
-  status,show,history,list,whoami,schema,template}` carries either a
-  passing test (reusing M-0252's fixtures where the failure mode matches)
-  or a `//coverage:ignore <reason>`.
+  status,show,history,list,whoami,schema,template,archive,authorize}`
+  carries either a passing test (reusing M-0252's fixtures where the
+  failure mode matches) or a `//coverage:ignore <reason>`.
 - **AC-2 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
   set to the pre-M-0238 commit, reports zero findings for the files listed
   in AC-1.
