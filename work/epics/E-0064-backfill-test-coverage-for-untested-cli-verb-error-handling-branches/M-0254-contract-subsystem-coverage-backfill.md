@@ -95,6 +95,47 @@ files out of this milestone's scope (M-0255/M-0256's job).
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go vet ./internal/cli/contract/...` — clean.
+- `gofumpt -l internal/cli/contract/` — clean (no output).
+- `golangci-lint run ./internal/cli/contract/...` (`make lint`'s full CI-parity set) — 0 issues.
+- `make test-race` (full repo, `-race -parallel 8`) — all packages pass, 0 failures.
+- Scoped `TestPolicy_BranchCoverageAudit` with `AIWF_COVERAGE_BASE=2ac84846^` against a
+  full-repo coverage profile — zero `internal/cli/contract/` findings (the run's remaining
+  findings are all in files out of this milestone's scope).
+- Independent fresh-context code-quality review (`wf-review-code` lens) — **approve**,
+  after re-deriving the flagged-line list independently, verifying every
+  `//coverage:ignore` rationale by reading the called function's real error paths, and
+  hand-tracing each new test's assertion to confirm it fails for the reason its name
+  claims (not a coincidental early exit). No design-quality (`wf-rethink`) pass — this
+  milestone introduces no new module boundary, abstraction, or data model, only test
+  files and one-line ignore-comment additions to existing guards.
+- `wf-doc-lint` (scoped to the milestone's change-set) — clean; the change-set is
+  entirely Go source/test files plus this spec, none intersecting the doc-lint scope.
+
 ## Deferrals
 
+- (none) — the review's one substantive finding (see Reviewer notes) is already
+  tracked by the open **G-0412**, not a new deferral.
+
 ## Reviewer notes
+
+- The independent review flagged that the `//coverage:ignore cliutil.ResolveRoot only
+  fails on missing aiwf.yaml + non-existent --root path` wording (copied verbatim from
+  established repo-wide precedent onto 6 lines in this milestone's 4 files) is
+  imprecise: with an explicit `--root`, `ResolveRoot` returns `filepath.Abs(explicit)`
+  without statting the path, so a non-existent `--root` does not error; the only real
+  failure mode is `os.Getwd()` failing. The ignore itself is still correct (the branch
+  is genuinely unit-uncoverable), only the stated rationale is off. This is the same
+  issue **G-0412** already tracks repo-wide (deliberately deferred as a future sweep
+  across every file carrying this copied wording, not a per-milestone fix) — these 6
+  lines are additional instances of that same already-open gap, not a new one.
+- The review's other observation (no serial skip-list comment documenting the package's
+  `t.Setenv`-using tests) was fixed inline: `setup_test.go` now documents all 8 serial
+  tests in the package (4 pre-existing, 4 new to this milestone).
+- The `tree.Load` `//coverage:ignore` lines (bind.go, verify.go) were specifically
+  re-verified against the M-0253 lesson (a sibling milestone found a `LoadTreeWithTrunk`
+  ignore comment was wrong because a malformed aiwf.yaml deterministically triggers it
+  via config.Load). Confirmed the distinction holds here: bind.go/verify.go call bare
+  `tree.Load`, which walks only `work/` and `docs/adr` and never touches aiwf.yaml — the
+  M-0253 trap does not apply.
