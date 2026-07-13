@@ -17,6 +17,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
+	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -541,16 +543,35 @@ func TestArchive_DryRunAndApplyMutuallyExclusive(t *testing.T) {
 // --format json` on a converged tree (nothing to sweep) exercises the
 // NoOp branch's JSON envelope path, distinct from the default-format
 // NoOp path TestArchive_EmptyTreeApply_NoOp already covers.
+// Serial: testutil.CaptureStdout swaps the process-global os.Stdout.
 func TestArchive_JSONFormat_NoOp(t *testing.T) {
-	t.Parallel()
 	root := setupCLITestRepo(t)
 	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
 		t.Fatalf("init: %d", rc)
 	}
 	commitArchiveFixture(t, root, "init scaffolding")
 
-	if rc := cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	var rc int
+	captured := testutil.CaptureStdout(t, func() {
+		rc = cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"})
+	})
+	if rc != cliutil.ExitOK {
 		t.Errorf("archive --format json on empty tree rc = %d, want cliutil.ExitOK", rc)
+	}
+	var env struct {
+		Status string `json:"status"`
+		Result struct {
+			Subject string `json:"subject"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	if env.Status != "ok" {
+		t.Errorf("status = %q, want %q", env.Status, "ok")
+	}
+	if !strings.Contains(env.Result.Subject, "no terminal-status entities") {
+		t.Errorf("subject = %q, want it to mention no terminal-status entities awaiting sweep", env.Result.Subject)
 	}
 }
 
@@ -560,15 +581,34 @@ func TestArchive_JSONFormat_NoOp(t *testing.T) {
 // envelope path — distinct from TestArchive_DryRunByDefault (default
 // text format) and TestArchive_JSONFormat_NoOp (JSON format, but the
 // NoOp branch, not this one).
+// Serial: testutil.CaptureStdout swaps the process-global os.Stdout.
 func TestArchive_JSONFormat_DryRunWithPlan(t *testing.T) {
-	t.Parallel()
 	root := setupCLITestRepo(t)
 	seedArchiveFixture(t, root)
 	commitArchiveFixture(t, root, "seed archive fixture")
 
 	before := archiveCommitCount(t, root)
-	if rc := cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
+	var rc int
+	captured := testutil.CaptureStdout(t, func() {
+		rc = cli.Execute([]string{"archive", "--format", "json", "--root", root, "--actor", "human/test"})
+	})
+	if rc != cliutil.ExitOK {
 		t.Errorf("archive --format json (dry-run) rc = %d, want cliutil.ExitOK", rc)
+	}
+	var env struct {
+		Status string `json:"status"`
+		Result struct {
+			Subject string `json:"subject"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(captured, &env); err != nil {
+		t.Fatalf("parse JSON: %v\n%s", err, captured)
+	}
+	if env.Status != "ok" {
+		t.Errorf("status = %q, want %q", env.Status, "ok")
+	}
+	if !strings.Contains(env.Result.Subject, "dry-run; re-run with --apply to commit") {
+		t.Errorf("subject = %q, want it to mention the dry-run re-run hint", env.Result.Subject)
 	}
 	after := archiveCommitCount(t, root)
 	if delta := after - before; delta != 0 {
