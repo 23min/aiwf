@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Entity-lifecycle flagged branches are tested or documented
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Coverage gate is clean for the entity-lifecycle group
