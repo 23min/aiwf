@@ -1,7 +1,9 @@
 ---
 id: G-0413
 title: aiwf worktree add never chains EnterWorktree into the new worktree
-status: open
+status: addressed
+addressed_by_commit:
+    - f89f1eed
 ---
 ## What's missing
 
