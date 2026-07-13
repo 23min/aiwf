@@ -80,6 +80,15 @@ malformed-contracts-block trigger proven at internal/cli/add) plus 12
 findings across bind.go, unbind.go, verify.go, and recipes.go · commit
 67600f8a · tests 19/19
 
+### AC-2 — Scoped coverage-gate reports zero findings
+
+Validation-only, no new commit. Re-ran the scoped
+`TestPolicy_BranchCoverageAudit` policy test with
+`AIWF_COVERAGE_BASE=2ac84846^` against a full-repo coverage profile
+generated after AC-1's tests landed: zero `internal/cli/contract/`
+findings. The remaining findings the run reports all belong to
+files out of this milestone's scope (M-0255/M-0256's job).
+
 ## Decisions made during implementation
 
 - (none)
