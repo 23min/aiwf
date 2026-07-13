@@ -6,6 +6,11 @@ parent: E-0064
 depends_on:
     - M-0252
 tdd: required
+acs:
+    - id: AC-1
+      title: Every contract-subsystem branch tested or ignored
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -35,6 +40,8 @@ package.
 - **AC-2 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
   set to the pre-M-0238 commit, reports zero findings for the files listed
   in AC-1.
+
+### AC-1 — Every contract-subsystem branch tested or ignored
 
 ## Constraints
 
