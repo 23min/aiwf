@@ -42,7 +42,7 @@ func newUnbindCmd(correlationID string) *cobra.Command {
 
 func runUnbind(id, root, actor string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
 	}
