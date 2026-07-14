@@ -162,6 +162,19 @@ runs, not copied from `verbSequenceExpectedWarnings`. · commit `65c12894` ·
 tests 10/10 new baseline-pin tests (plus every scenario's existing
 real-binary suite, unchanged assertions, still green)
 
+### AC-3 — A synthetic regression test proves the broadened oracle catches it
+
+`TestParallelBranchReallocateScenario_BroadenedOracleCatchesAnInjectedRegression`
+(`parallel_branch_reallocate_test.go`) drives the real scenario to a clean,
+check-clean completion, captures the real post-reallocate `aiwf check`
+envelope, and injects one extraneous finding code outside both the
+scenario's baseline and its existing ids-unique-only assertion. Confirms
+`classifyParallelBranchReallocate` alone (the scenario's pre-existing narrow
+assertion) does not flag it, while `classifyAgainstBaseline` (AC-1's
+broadened oracle) does — closing the exact blind spot G-0410 named, via the
+same empirical-injection methodology G-0410 itself used. · commit
+`222aacc5` · tests 4/4 (whole file, including the new test)
+
 ## Decisions made during implementation
 
 - (none yet)
