@@ -88,6 +88,47 @@ func TestClassifyCrossWorktreeRace(t *testing.T) {
 	}
 }
 
+// TestCrossWorktreeIDRaceExpectedWarnings pins M-0257/AC-1's broadened
+// check-clean baseline for this scenario: provenance-untrailered-
+// scope-undefined is expected noise (sibling worktrees share one .git
+// with no separate remote), any other code — or any error-severity
+// finding regardless of code — is a violation.
+func TestCrossWorktreeIDRaceExpectedWarnings(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		findings       []verbEnvelopeFinding
+		wantViolations int
+	}{
+		{name: "no findings", findings: nil, wantViolations: 0},
+		{
+			name:           "the baseline provenance-scope-undefined warning is accepted",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"}},
+			wantViolations: 0,
+		},
+		{
+			name:           "an unbaselined warning code is a violation",
+			findings:       []verbEnvelopeFinding{{Code: "some-unexpected-code", Severity: "warning"}}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			wantViolations: 1,
+		},
+		{
+			name:           "an error-severity finding is a violation even for a baselined code",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "error"}},
+			wantViolations: 1,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := classifyAgainstBaseline(tc.findings, crossWorktreeIDRaceExpectedWarnings)
+			if len(got) != tc.wantViolations {
+				t.Fatalf("violations = %+v, want %d", got, tc.wantViolations)
+			}
+		})
+	}
+}
+
 func TestFindEntityFile_FindsAMatchingFile(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

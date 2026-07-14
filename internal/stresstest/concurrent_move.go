@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"sync"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // concurrent_move.go — M-0250/AC-4: ConcurrentMoveScenario launches n
@@ -18,6 +20,22 @@ import (
 // ConcurrentIDAllocationScenario's fan-out mechanism (M-0241/AC-2):
 // goroutines racing real OS process scheduling, no artificial
 // synchronization delay.
+
+// concurrentMoveExpectedWarnings is the baseline of finding codes this
+// scenario's post-run check is expected to carry (M-0257/AC-1), beyond
+// the per-actor outcome/commit-count assertion classifyConcurrentMove
+// already pins directly:
+//
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation. Neither epic here is
+// ever promoted to active, so epic-active-no-drafted-milestones never
+// applies.
+var concurrentMoveExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // ConcurrentMoveScenario implements Scenario.
 type ConcurrentMoveScenario struct {
@@ -148,6 +166,17 @@ func (s *ConcurrentMoveScenario) Run(dir string) error {
 	}
 
 	s.violations = classifyConcurrentMove(outcomes, s.n, s.targetEpic, before, after)
+
+	// M-0257/AC-1: alongside the per-actor outcome assertion above,
+	// confirm the resulting tree stays check-clean beyond baseline
+	// noise — this scenario never ran `aiwf check` at all before.
+	// checkErr, not err: avoids shadowing the outer err the per-actor
+	// loop above already declared (govet's shadow check).
+	checkEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
+	if checkErr != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
+		return fmt.Errorf("running aiwf check after the concurrent move: %w", checkErr)
+	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentMoveExpectedWarnings)...)
 	return nil
 }
 

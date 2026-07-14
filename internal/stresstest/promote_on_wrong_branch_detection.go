@@ -1,6 +1,10 @@
 package stresstest
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/23min/aiwf/internal/check"
+)
 
 // promote_on_wrong_branch_detection.go — G-0270:
 // PromoteOnWrongBranchDetectionScenario confirms `aiwf check` detects
@@ -32,6 +36,21 @@ import "fmt"
 // shipped, and to fail again if that detection regresses — it drives
 // the production `aiwf check` binary end-to-end, not a unit-level
 // fixture.
+
+// promoteOnWrongBranchDetectionExpectedWarnings is the baseline of
+// finding codes this scenario's post-run check (from the preflight
+// branch) is expected to carry, beyond the promote-on-wrong-branch
+// finding classifyPromoteOnWrongBranchDetection itself pins directly
+// (M-0257/AC-1):
+//
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var promoteOnWrongBranchDetectionExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // PromoteOnWrongBranchDetectionScenario implements Scenario.
 type PromoteOnWrongBranchDetectionScenario struct {
@@ -79,15 +98,14 @@ func (s *PromoteOnWrongBranchDetectionScenario) Run(dir string) error {
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("running the activation promote: %w", err)
 	}
-	if promEnv.Status != "ok" {
-		// A guard refused the promote outright — the wrong-branch
-		// landing this scenario probes detection for never happened,
-		// so there is nothing for `aiwf check` to detect. Mirrors
-		// HeadDriftScenario's own refused-promote case: not a
-		// violation.
-		return nil
-	}
 
+	// M-0257/AC-1: checkout back and run `aiwf check` regardless of
+	// whether the guard blocked the promote or (per this scenario's own
+	// detection-side probe) allowed a real wrong-branch landing through
+	// — either way, the resulting tree should stay check-clean beyond
+	// baseline noise, so this broadened assertion no longer depends on
+	// promEnv.Status the way classifyPromoteOnWrongBranchDetection
+	// itself still does below.
 	if checkoutErr := runGit(dir, "checkout", "-q", preflightBranch); checkoutErr != nil { //coverage:ignore defensive: checking back out to a branch this scenario's own preflight read just observed has no realistic failure mode
 		return fmt.Errorf("checking back out to the preflight branch: %w", checkoutErr)
 	}
@@ -96,8 +114,18 @@ func (s *PromoteOnWrongBranchDetectionScenario) Run(dir string) error {
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("running aiwf check from the preflight branch: %w", err)
 	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, promoteOnWrongBranchDetectionExpectedWarnings)...)
 
-	s.violations = classifyPromoteOnWrongBranchDetection(s.epicID, checkEnv) //coverage:ignore reached only if G-0269's branch guard fails to block this scenario's own wrong-branch activation promote (the same interloping-checkout shape HeadDriftScenario drives); the guard now refuses it before it can land, so promEnv.Status is never "ok" here today. classifyPromoteOnWrongBranchDetection's own decision logic is exhaustively pinned against fabricated inputs in promote_on_wrong_branch_detection_classify_test.go regardless.
+	if promEnv.Status != "ok" {
+		// A guard refused the promote outright — the wrong-branch
+		// landing this scenario probes detection for never happened,
+		// so there is nothing for classifyPromoteOnWrongBranchDetection
+		// itself to detect. Mirrors HeadDriftScenario's own
+		// refused-promote case: not a violation.
+		return nil
+	}
+
+	s.violations = append(s.violations, classifyPromoteOnWrongBranchDetection(s.epicID, checkEnv)...) //coverage:ignore reached only if G-0269's branch guard fails to block this scenario's own wrong-branch activation promote (the same interloping-checkout shape HeadDriftScenario drives); the guard now refuses it before it can land, so promEnv.Status is never "ok" here today. classifyPromoteOnWrongBranchDetection's own decision logic is exhaustively pinned against fabricated inputs in promote_on_wrong_branch_detection_classify_test.go regardless.
 	return nil
 }
 

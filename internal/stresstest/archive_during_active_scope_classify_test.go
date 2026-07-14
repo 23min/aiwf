@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -142,5 +143,46 @@ func TestErrorCode_ReturnsEmptyStringWhenNoErrorPresent(t *testing.T) {
 	t.Parallel()
 	if got := errorCode(verbEnvelope{Status: "ok"}); got != "" {
 		t.Fatalf("errorCode on an error-less envelope = %q, want empty string", got)
+	}
+}
+
+// TestArchiveDuringActiveScopeExpectedWarnings pins M-0257/AC-1's
+// broadened check-clean baseline for this scenario.
+func TestArchiveDuringActiveScopeExpectedWarnings(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		findings       []verbEnvelopeFinding
+		wantViolations int
+	}{
+		{name: "no findings", findings: nil, wantViolations: 0},
+		{
+			name: "both baseline warnings accepted",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeEpicActiveNoDraftedMilestones, Severity: "warning"},
+				{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"},
+			},
+			wantViolations: 0,
+		},
+		{
+			name:           "an unbaselined warning code is a violation",
+			findings:       []verbEnvelopeFinding{{Code: "some-unexpected-code", Severity: "warning"}}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			wantViolations: 1,
+		},
+		{
+			name:           "an error-severity finding is a violation even for a baselined code",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeEpicActiveNoDraftedMilestones, Severity: "error"}},
+			wantViolations: 1,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := classifyAgainstBaseline(tc.findings, archiveDuringActiveScopeExpectedWarnings)
+			if len(got) != tc.wantViolations {
+				t.Fatalf("violations = %+v, want %d", got, tc.wantViolations)
+			}
+		})
 	}
 }

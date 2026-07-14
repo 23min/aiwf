@@ -32,6 +32,24 @@ const (
 	actorBTitle = "actorb"
 )
 
+// crossWorktreeIDRaceExpectedWarnings is the baseline of finding codes
+// this scenario's post-merge check is expected to carry (M-0257/AC-1),
+// beyond the ids-unique-specific assertion classifyCrossWorktreeRace
+// already pins directly:
+//
+//   - provenance-untrailered-scope-undefined: sibling worktrees of one
+//     repo (newSiblingWorktreesFixture) share one .git and never
+//     configure a separate upstream remote, so the provenance audit
+//     range is permanently undefined — contrast
+//     parallel-branch-reallocate's real bare-origin clones, which do
+//     define one.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var crossWorktreeIDRaceExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
+
 // CrossWorktreeIDRaceScenario implements Scenario.
 type CrossWorktreeIDRaceScenario struct {
 	aiwfBin    string
@@ -117,6 +135,14 @@ func (s *CrossWorktreeIDRaceScenario) reconcile(wtA string, envA, envB verbEnvel
 	s.collided = s.collided || collided
 	if !collided {
 		s.violations = append(s.violations, classifyCrossWorktreeRace(false, nil, false, "", nil)...)
+		// M-0257/AC-1: no collision this attempt, but the merge above
+		// still landed a real second entity — confirm the resulting
+		// tree stays check-clean beyond baseline noise regardless.
+		finalEnv, err := runAiwfJSON(s.aiwfBin, wtA, "check")
+		if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestCrossWorktreeIDRaceScenario_RealBinary_ErrorsWhenBinaryMissing
+			return fmt.Errorf("running aiwf check after a non-colliding merge: %w", err)
+		}
+		s.violations = append(s.violations, classifyAgainstBaseline(finalEnv.Findings, crossWorktreeIDRaceExpectedWarnings)...)
 		return nil
 	}
 
@@ -140,6 +166,10 @@ func (s *CrossWorktreeIDRaceScenario) reconcile(wtA string, envA, envB verbEnvel
 	}
 
 	s.violations = append(s.violations, classifyCrossWorktreeRace(true, checkEnv.Findings, true, reallocEnv.Status, postCheckEnv.Findings)...)
+	// M-0257/AC-1: alongside the ids-unique-specific assertion above,
+	// confirm the post-reallocate check carries nothing else
+	// unexpected either.
+	s.violations = append(s.violations, classifyAgainstBaseline(postCheckEnv.Findings, crossWorktreeIDRaceExpectedWarnings)...)
 	return nil
 }
 
