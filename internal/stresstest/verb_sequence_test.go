@@ -202,11 +202,10 @@ func TestVerbSequenceScenario_RealBinary_RunSurfacesAScratchEpicCreationRefusal(
 }
 
 // TestVerbSequenceScenario_RealBinary_RunSurfacesAnAllKindsLoopCreationRefusal
-// pre-seeds a colliding E-0002 entity file — the id the AllKinds()
-// loop's own epic add allocates, one past the scratch epic's E-0001 —
-// so the loop's own generic "did not report ok" fallback (distinct
-// from the scratch epic's own refusal path above, and from the
-// G-0398 tolerance, which only ever applies to a milestone add) is
+// pre-seeds a colliding E-0002 entity file — the id Run's special-cased
+// epic-creation call allocates, one past the scratch epic's E-0001 —
+// so createWalkerEntity's generic "did not report ok" fallback
+// (distinct from the scratch epic's own refusal path above) is
 // exercised directly.
 func TestVerbSequenceScenario_RealBinary_RunSurfacesAnAllKindsLoopCreationRefusal(t *testing.T) {
 	t.Parallel()
@@ -224,7 +223,7 @@ func TestVerbSequenceScenario_RealBinary_RunSurfacesAnAllKindsLoopCreationRefusa
 
 	s := NewVerbSequenceScenario(bin, 1, 6)
 	if err := s.Run(dir); err == nil {
-		t.Fatal("expected Run to surface the id-collision refusal on the AllKinds() loop's own epic `aiwf add` call")
+		t.Fatal("expected Run to surface the id-collision refusal on the special-cased epic-creation `aiwf add` call")
 	} else if !strings.Contains(err.Error(), "creating a epic entity") || !strings.Contains(err.Error(), "did not report ok") {
 		t.Fatalf("expected the refusal to name the epic kind and report a non-ok status, got: %v", err)
 	}
@@ -481,24 +480,27 @@ func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing
 }
 
 // TestVerbSequenceScenario_RealBinary_RunConstructsMoveStateForTheMilestone
-// drives Run itself (not walk directly) with a seed/steps combination
-// empirically confirmed to keep the AllKinds() epic non-terminal
-// through its own short walk, so the milestone actually gets created —
-// pinning that Run's own `mv = &moveState{current: epicID, other:
-// altEpicID}` construction (only reachable when kind == milestone)
-// is exercised through the real end-to-end path, not just via the
-// direct walk() call above. steps=1 keeps the epic's own walk to a
-// single promote draw, which the FSM's proposed/active/done/cancelled
-// shape (each promote target drawn uniformly, including terminal
-// ones) makes surprisingly likely to reach terminal within even a
-// handful of steps — see G-0401 for the gap this discovery opened.
+// drives Run itself (not walk directly), pinning that Run's own `mv :=
+// &moveState{current: epicID, other: altEpicID}` construction (only
+// reachable when kind == milestone) is exercised through the real
+// end-to-end path, not just via the direct walk() call above. Before
+// G-0401's fix this needed a hand-picked seed/steps combination that
+// happened to keep the epic non-terminal through its own walk — the
+// FSM's proposed/active/done/cancelled shape made even a single
+// promote draw a coin flip on landing terminal, and the milestone was
+// skipped whenever it did. Now that the milestone is created
+// immediately after the epic and before the epic ever takes a walk
+// step, the outcome no longer depends on the epic's walk at all — this
+// runs at 12 steps, matching cmd/stresstest/registry.go's
+// defaultVerbSequenceSteps, to confirm the fix holds at the scenario's
+// real registered parameters, not just a contrived minimal case.
 func TestVerbSequenceScenario_RealBinary_RunConstructsMoveStateForTheMilestone(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
 	dir := newVerbSequenceTestRepo(t)
 
-	s := NewVerbSequenceScenario(bin, 0, 1)
+	s := NewVerbSequenceScenario(bin, 0, 12)
 	if err := s.Run(dir); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -511,7 +513,10 @@ func TestVerbSequenceScenario_RealBinary_RunConstructsMoveStateForTheMilestone(t
 		t.Fatalf("show M-0001: %v", err)
 	}
 	if showEnv.Status != "ok" {
-		t.Fatalf("M-0001 was not created — this seed/steps combination no longer keeps the epic non-terminal; re-pick one that does (show status=%s)", showEnv.Status)
+		t.Fatalf("M-0001 was not created (show status=%s) — the milestone should now always be created regardless of the epic's own walk", showEnv.Status)
+	}
+	if s.moveCounter == 0 {
+		t.Error("moveCounter == 0, want the milestone's walk to have drawn move at least once at the registered scenario's real step count")
 	}
 }
 
