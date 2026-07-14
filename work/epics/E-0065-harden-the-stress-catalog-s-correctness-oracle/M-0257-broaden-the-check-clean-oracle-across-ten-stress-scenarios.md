@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Each named scenario asserts its own check-clean baseline
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: A shared baseline-classification helper backs all ten scenarios
       status: met
