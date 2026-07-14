@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A shared baseline-classification helper backs all ten scenarios
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-3
       title: A synthetic regression test proves the broadened oracle catches it
       status: open
