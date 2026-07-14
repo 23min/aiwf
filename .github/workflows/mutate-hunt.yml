@@ -29,6 +29,24 @@
 #   enough that genuine timeouts (infinite loops induced by a
 #   mutation) still fire within reasonable wall time.
 #
+# Why pkg_pattern strips a trailing /...:
+#   Gremlins treats any directory pattern as implicitly recursive —
+#   ./internal/stresstest and ./internal/stresstest/... reach the same
+#   files — but a pattern that already ends in /... interacts badly
+#   with gremlins's own scan-path construction: depending on the exact
+#   path shape, it either hard-errors ("matched no packages") or
+#   silently reports "No results to report" (exit 0, no report file
+#   written — indistinguishable from a fully-covered package with
+#   nothing to mutate). Confirmed directly against this repo: even the
+#   literal default ./internal/... currently hits the silent-empty
+#   case — it gathers coverage for the whole tree, then reports "No
+#   results to report" at exit 0 with no output file — while the
+#   equivalent bare ./internal succeeds and finds ~6,400 mutants
+#   (G-0403). Stripping a trailing /... before invoking
+#   gremlins sidesteps all of it; the "Verify mutation results were
+#   produced" step below is the backstop in case some other input
+#   shape produces the same silent-empty result.
+#
 # Why the prebuilt-binary step:
 #   internal/stresstest's real-subprocess scenarios each need a built
 #   aiwf (and, for the lock-kill scenario, a lockholder) binary. Those
@@ -97,7 +115,7 @@ on:
   workflow_dispatch:
     inputs:
       pkg_pattern:
-        description: "Go package pattern (e.g., ./internal/version, ./internal/...)"
+        description: "Go package pattern (e.g., ./internal/version, ./internal/...) — a trailing /... is optional and stripped automatically"
         required: true
         default: "./internal/..."
       timeout_coefficient:
@@ -134,6 +152,7 @@ jobs:
       - name: Run mutation testing
         env:
           EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          PKG_PATTERN: ${{ inputs.pkg_pattern }}
         run: |
           exclude_args=()
           if [ -n "$EXCLUDE_FILES" ]; then
@@ -142,12 +161,27 @@ jobs:
               exclude_args+=(--exclude-files "$p")
             done
           fi
+          pattern="${PKG_PATTERN%/...}"
           gremlins unleash \
             --timeout-coefficient ${{ inputs.timeout_coefficient }} \
             --workers 1 \
             --output mutate-report.json \
             "${exclude_args[@]}" \
-            ${{ inputs.pkg_pattern }}
+            "$pattern"
+      - name: Verify mutation results were produced
+        env:
+          PKG_PATTERN: ${{ inputs.pkg_pattern }}
+        run: |
+          if [ ! -s mutate-report.json ]; then
+            echo "::error::gremlins produced no mutate-report.json (or an empty one) for pattern '$PKG_PATTERN' — this looks like a clean run but means gremlins found nothing to mutate. See G-0403."
+            exit 1
+          fi
+          count=$(jq '[.files[].mutations[]] | length' mutate-report.json)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::gremlins reported zero mutants for pattern '$PKG_PATTERN' — that means the pattern matched no mutable code, not that everything is covered. See G-0403."
+            exit 1
+          fi
+          echo "Found $count mutants."
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
