@@ -1,7 +1,9 @@
 ---
 id: G-0406
 title: gremlins surfaced real vacuity gaps in internal/stresstest's own tests
-status: open
+status: addressed
+addressed_by_commit:
+    - c648ef45
 ---
 ## What's missing
 
