@@ -1,7 +1,7 @@
 ---
 id: E-0064
 title: Backfill test coverage for untested CLI verb error-handling branches
-status: active
+status: done
 ---
 
 ## Goal
