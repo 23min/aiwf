@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Each named scenario asserts its own check-clean baseline
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A shared baseline-classification helper backs all ten scenarios
@@ -139,6 +139,28 @@ specific blind spot the gap described, not just that new code runs.
 loop into one baseline-parameterized helper; `classifyCheckFindings` is now a
 thin wrapper over it, so the two can't drift apart. · commit `6bcc25c9` ·
 tests 6/6
+
+### AC-1 — Each named scenario asserts its own check-clean baseline
+
+All ten scenarios (`parallel-branch-reallocate`, `cross-worktree-id-race`,
+`force-override-durability`, `promote-on-wrong-branch-detection`,
+`reachability-isolation`, `archive-during-active-scope`,
+`cross-worktree-edit-body-race`, `concurrent-move`,
+`concurrent-writer-at-scale`, `concurrent-id-allocation`) now classify their
+post-run `aiwf check` findings against their own curated
+`classifyAgainstBaseline` map, alongside each scenario's existing
+single-finding-code assertion. Five scenarios
+(`archive-during-active-scope`, `cross-worktree-edit-body-race`,
+`concurrent-move`, `concurrent-writer-at-scale`,
+`concurrent-id-allocation`) previously never ran `aiwf check` at all — a new
+call was added to each. `promote-on-wrong-branch-detection`'s `Run` was
+restructured so the checkout-back-and-check sequence runs regardless of
+whether G-0269's branch guard blocks the promote, since the guard blocks it
+100% of the time today (the old code path never reached `aiwf check` in
+practice). Each baseline was derived empirically via repeated real-binary
+runs, not copied from `verbSequenceExpectedWarnings`. · commit `65c12894` ·
+tests 10/10 new baseline-pin tests (plus every scenario's existing
+real-binary suite, unchanged assertions, still green)
 
 ## Decisions made during implementation
 
