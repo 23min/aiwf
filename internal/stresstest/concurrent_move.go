@@ -170,8 +170,9 @@ func (s *ConcurrentMoveScenario) Run(dir string) error {
 	// M-0257/AC-1: alongside the per-actor outcome assertion above,
 	// confirm the resulting tree stays check-clean beyond baseline
 	// noise — this scenario never ran `aiwf check` at all before.
-	// checkErr, not err: avoids shadowing the outer err the per-actor
-	// loop above already declared (govet's shadow check).
+	// checkErr, not err: this repo's govet config runs with
+	// enable-all: true, and reusing err here trips its shadow check
+	// against the per-actor loop's own inner `err` declaration above.
 	checkEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
 	if checkErr != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
 		return fmt.Errorf("running aiwf check after the concurrent move: %w", checkErr)
