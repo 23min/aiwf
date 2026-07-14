@@ -31,6 +31,13 @@ const editBodyRaceEntityID = "G-0001"
 type CrossWorktreeEditBodyRaceScenario struct {
 	aiwfBin    string
 	violations []Violation
+
+	// skipOperatorBEdit, when true, has operator B never edit the
+	// shared entity, so the real merge Run drives is a genuine clean
+	// (non-conflicting) one instead of the always-conflicting default
+	// — the wiring's other real branch. Test-only: every
+	// registered/production use leaves this at its zero value.
+	skipOperatorBEdit bool
 }
 
 // NewCrossWorktreeEditBodyRaceScenario builds a scenario that races
@@ -75,32 +82,37 @@ const (
 	draftBText = "operator B's independent edit to the shared entity"
 )
 
-// Run drives both operators' edit-body calls against their own
-// worktree, then merges actor-b into actor-a's worktree and classifies
-// however that merge resolves.
+// Run drives operator A's edit-body call against their own worktree
+// (and, unless skipOperatorBEdit is set, operator B's too), then
+// merges actor-b into actor-a's worktree and classifies however that
+// merge resolves.
 func (s *CrossWorktreeEditBodyRaceScenario) Run(dir string) error {
 	wtA := filepath.Join(dir, "wt-a")
 	wtB := filepath.Join(dir, "wt-b")
 
 	draftAPath := filepath.Join(dir, "draft-a.txt")
-	draftBPath := filepath.Join(dir, "draft-b.txt")
 	if err := os.WriteFile(draftAPath, []byte(draftAText+"\n"), 0o644); err != nil { //coverage:ignore defensive: writing a fresh file under this scenario's own os.MkdirTemp dir has no realistic failure mode short of filesystem sabotage
 		return fmt.Errorf("writing operator A's draft: %w", err)
 	}
-	if err := os.WriteFile(draftBPath, []byte(draftBText+"\n"), 0o644); err != nil { //coverage:ignore defensive: see operator A's draft above
-		return fmt.Errorf("writing operator B's draft: %w", err)
-	}
-
 	envA, err := runAiwfJSON(s.aiwfBin, wtA, "edit-body", editBodyRaceEntityID, "--body-file", draftAPath)
 	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
 		return fmt.Errorf("operator A edit-body: %w", err)
 	}
-	envB, err := runAiwfJSON(s.aiwfBin, wtB, "edit-body", editBodyRaceEntityID, "--body-file", draftBPath)
-	if err != nil { //coverage:ignore defensive: see operator A above
-		return fmt.Errorf("operator B edit-body: %w", err)
+
+	envBStatus := "ok" // no B edit attempted when skipped, so nothing to fail
+	if !s.skipOperatorBEdit {
+		draftBPath := filepath.Join(dir, "draft-b.txt")
+		if writeErr := os.WriteFile(draftBPath, []byte(draftBText+"\n"), 0o644); writeErr != nil { //coverage:ignore defensive: see operator A's draft above
+			return fmt.Errorf("writing operator B's draft: %w", writeErr)
+		}
+		envB, editErr := runAiwfJSON(s.aiwfBin, wtB, "edit-body", editBodyRaceEntityID, "--body-file", draftBPath)
+		if editErr != nil { //coverage:ignore defensive: see operator A above
+			return fmt.Errorf("operator B edit-body: %w", editErr)
+		}
+		envBStatus = envB.Status
 	}
-	if envA.Status != "ok" || envB.Status != "ok" {
-		return fmt.Errorf("operator edit-body did not report ok: a=%+v b=%+v", envA, envB)
+	if envA.Status != "ok" || envBStatus != "ok" {
+		return fmt.Errorf("operator edit-body did not report ok: a=%+v b-status=%s", envA, envBStatus)
 	}
 
 	conflicted := runGit(wtA, "merge", "--no-edit", "actor-b") != nil
