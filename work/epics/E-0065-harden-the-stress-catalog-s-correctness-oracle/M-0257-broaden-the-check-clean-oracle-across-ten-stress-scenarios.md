@@ -127,3 +127,31 @@ specific blind spot the gap described, not just that new code runs.
 
 - G-0410 — stress catalog can't detect a missing domain-specific promote guard
 - E-0065 — Harden the stress catalog's correctness oracle (parent epic)
+
+---
+
+## Work log
+
+### AC-2 — Shared baseline-classification helper backs all ten scenarios
+
+`classifyAgainstBaseline` (`internal/stresstest/checkclean.go`) generalizes
+`verb_sequence.go`'s `classifyCheckFindings`/`verbSequenceExpectedWarnings`
+loop into one baseline-parameterized helper; `classifyCheckFindings` is now a
+thin wrapper over it, so the two can't drift apart. · commit `6bcc25c9` ·
+tests 6/6
+
+## Decisions made during implementation
+
+- (none yet)
+
+## Validation
+
+<!-- populated at wrap -->
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
