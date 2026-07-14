@@ -79,3 +79,34 @@ in AC-1.
 
 - **E-0064** — parent epic.
 - **M-0252** — shared fixtures this milestone consumes.
+
+## Work log
+
+### AC-1 — Every bulk-input verb group branch tested or ignored
+
+21 new tests plus 17 `//coverage:ignore` annotations, closing all 41
+branch-coverage-audit findings across check+provenance, importcmd,
+render, and initcmd · commit 639f5eca · tests 21/21
+
+check.go/provenance.go needed real triggers for the --pretty warning,
+a malformed aiwf.yaml (LoadTreeWithTrunk), a malformed `contracts:`
+block (LoadContractsBlock), and tree.Load's `ctx.Err()` fatal path —
+the last one exercised directly via the unexported runShapeOnly/
+runFast with a canceled context, which also surfaced and cleared a
+stale, factually-inaccurate ignore comment on runFast's own sibling
+branch (it claimed the branch was untestable; a canceled context
+proves otherwise). importcmd.go's `--on-collision` guard turned out
+genuinely reachable through the CLI despite Cobra's `FixedCompletions`
+only hinting the shell-completion set, not validating the flag value.
+render.go and initcmd.go each needed one read-only-directory fixture
+(AtomicWriteFile / htmlrender.Render's MkdirAll) and initcmd.go reused
+internal/initrepo's own G45 hook-migration-collision fixture shape at
+the CLI entry point.
+
+### AC-2 — Scoped coverage-gate reports zero findings
+
+Validation-only, no new commit. Re-ran the scoped
+`TestPolicy_BranchCoverageAudit` policy test with
+`AIWF_COVERAGE_BASE=2ac84846^` against a full-repo coverage profile
+generated after AC-1's tests landed: zero findings across all 5 files
+in this milestone's scope.
