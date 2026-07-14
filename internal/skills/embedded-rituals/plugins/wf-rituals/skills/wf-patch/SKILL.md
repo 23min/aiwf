@@ -42,8 +42,10 @@ If one exists, state the user-observable goal in your own words before touching 
 Per CLAUDE.md §"Default to a worktree for any branch work," create it from the project's mainline in its own worktree rather than switching the main checkout in place. `aiwf worktree add` creates the linked worktree and materializes rituals (skills, agents, templates, guidance) into it atomically, in one step (substitute your mainline branch):
 
 ```bash
-aiwf worktree add patch/G-NNNN-<short-slug> --base main
+aiwf worktree add patch/G-NNNN-<short-slug> --base main --print-path
 ```
+
+This ritual runs as the calling session's own direct work (not a dispatched subagent per CLAUDE.md's "Subagent worktree isolation" section), so call the harness `EnterWorktree(path: <printed path>)` tool right after `aiwf worktree add` succeeds: creating the worktree only puts it on disk, it does not relocate the session, and only `EnterWorktree` does that.
 
 Name the branch for the gap it closes so the statusline can surface it:
 
