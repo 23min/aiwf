@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Scoped coverage-gate reports zero findings
-      status: open
+      status: met
       tdd_phase: done
 ---
 
