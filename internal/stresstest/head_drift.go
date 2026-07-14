@@ -64,7 +64,7 @@ func (s *HeadDriftScenario) Run(dir string) error {
 		if shaErr != nil { //coverage:ignore defensive: see headSHA's own rationale
 			return fmt.Errorf("reading the promote commit SHA: %w", shaErr)
 		}
-		landedOnPreflightBranch = runGit(dir, "merge-base", "--is-ancestor", sha, preflightBranch) == nil
+		landedOnPreflightBranch = runGit(dir, "merge-base", "--is-ancestor", sha, preflightBranch) == nil //coverage:ignore reached only if G-0269's branch guard fails to block this scenario's own wrong-branch promote; TestHeadDriftScenario_RealBinary_GuardPreventsTheIncident pins that the guard refuses it every real run, so promEnv.Status is never "ok" here today
 		landedOnInterloperBranch = runGit(dir, "merge-base", "--is-ancestor", sha, "interloper-branch") == nil
 	}
 

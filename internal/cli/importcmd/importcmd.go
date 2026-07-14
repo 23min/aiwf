@@ -72,7 +72,7 @@ func NewCmd(correlationID string) *cobra.Command {
 // Run executes `aiwf import`. Returns one of the cliutil.Exit* codes.
 func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
 		return failImport(out, err.Error(), cliutil.ExitUsage)
 	}
 

@@ -115,7 +115,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 	}
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf show: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -152,7 +152,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 	}
 
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf show: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -227,7 +227,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 				"id":   id,
 			},
 		}
-		if err := render.JSON(os.Stdout, env, pretty); err != nil {
+		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
 			cliutil.Errorf("aiwf show: %v\n", err)
 			return cliutil.ExitInternal
 		}

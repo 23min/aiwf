@@ -97,7 +97,7 @@ func (s *PromoteOnWrongBranchDetectionScenario) Run(dir string) error {
 		return fmt.Errorf("running aiwf check from the preflight branch: %w", err)
 	}
 
-	s.violations = classifyPromoteOnWrongBranchDetection(s.epicID, checkEnv)
+	s.violations = classifyPromoteOnWrongBranchDetection(s.epicID, checkEnv) //coverage:ignore reached only if G-0269's branch guard fails to block this scenario's own wrong-branch activation promote (the same interloping-checkout shape HeadDriftScenario drives); the guard now refuses it before it can land, so promEnv.Status is never "ok" here today. classifyPromoteOnWrongBranchDetection's own decision logic is exhaustively pinned against fabricated inputs in promote_on_wrong_branch_detection_classify_test.go regardless.
 	return nil
 }
 

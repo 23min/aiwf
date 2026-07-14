@@ -49,7 +49,7 @@ func NewCmd(correlationID string) *cobra.Command {
 // Run executes `aiwf reallocate`. Returns one of the cliutil.Exit* codes.
 func Run(target, actor, principal, root string, out cliutil.OutputFormat) (code int) {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf reallocate: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -82,7 +82,7 @@ func Run(target, actor, principal, root string, out cliutil.OutputFormat) (code 
 	defer release()
 
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
-	if err != nil {
+	if err != nil { //coverage:ignore LoadTreeWithTrunk errors only on filesystem/git IO failure; malformed entities surface as load findings, not an error here.
 		cliutil.Errorf("aiwf reallocate: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
