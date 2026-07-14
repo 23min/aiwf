@@ -98,8 +98,8 @@ isn't a current priority.
 
 ## Milestones
 
-- `M-NNNN` — Broaden the check-clean oracle across the ~10 named scenarios · depends on: —
-- `M-NNNN` — Concurrent-mode racing of promote/cancel/AC against shared entity state · depends on: `M-NNNN`
+- `M-0257` — Broaden the check-clean oracle across ten stress scenarios · depends on: —
+- `M-0258` — Race concurrent promote/cancel/AC operations against shared entity state · depends on: `M-0257`
 
 ## References
 
