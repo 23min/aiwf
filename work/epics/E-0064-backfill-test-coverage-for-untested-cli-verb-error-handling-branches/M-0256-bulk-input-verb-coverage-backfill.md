@@ -84,9 +84,9 @@ in AC-1.
 
 ### AC-1 — Every bulk-input verb group branch tested or ignored
 
-21 new tests plus 17 `//coverage:ignore` annotations, closing all 41
+23 new tests plus 15 `//coverage:ignore` annotations, closing all 41
 branch-coverage-audit findings across check+provenance, importcmd,
-render, and initcmd · commit 639f5eca · tests 21/21
+render, and initcmd · commits 639f5eca, 96a79655 · tests 23/23
 
 check.go/provenance.go needed real triggers for the --pretty warning,
 a malformed aiwf.yaml (LoadTreeWithTrunk), a malformed `contracts:`
@@ -103,10 +103,89 @@ render.go and initcmd.go each needed one read-only-directory fixture
 internal/initrepo's own G45 hook-migration-collision fixture shape at
 the CLI entry point.
 
+Corrective commit from wrap review: `fix(cli): correct ResolveRoot
+ignore wording, test render's unreadable-root path` · commit 96a79655.
+Reworded four `cliutil.ResolveRoot` ignores that claimed a failure
+mode ("missing aiwf.yaml + non-existent --root path") ResolveRoot
+doesn't actually have, to the accurate characterization already used
+for initcmd's own resolver. Added two real tests
+(`TestRunRoadmap_TreeLoadFailure` / `TestRunSite_TreeLoadFailure`, a
+0o000 unreadable root) for two render.go `tree.Load` guards that had
+been ignored on an incomplete rationale — a canceled context isn't
+reachable through the public API, but an unreadable directory is —
+removing both ignores.
+
 ### AC-2 — Scoped coverage-gate reports zero findings
 
 Validation-only, no new commit. Re-ran the scoped
 `TestPolicy_BranchCoverageAudit` policy test with
 `AIWF_COVERAGE_BASE=2ac84846^` against a full-repo coverage profile
 generated after AC-1's tests landed: zero findings across all 5 files
-in this milestone's scope.
+in this milestone's scope. Re-confirmed after the corrective commit
+(96a79655) against a freshly regenerated profile: still zero findings.
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `make lint` (full CI-parity set) — 0 issues.
+- `make test-race` (full repo, `-race -parallel 8`) — all packages pass.
+- Scoped `TestPolicy_BranchCoverageAudit` with `AIWF_COVERAGE_BASE=2ac84846^` — zero
+  findings across all 5 files in this milestone's scope, re-confirmed after the
+  corrective commit.
+- Independent fresh-context code-quality review (`wf-review-code`) — first pass
+  **REQUEST-CHANGES** (two blocking findings, see Reviewer notes); both fixed in a
+  corrective commit; a second, narrowly-scoped independent pass **APPROVE**d the
+  fix. No design-quality (`wf-rethink`) pass — this milestone introduces no new
+  module boundary, abstraction, or data model, only test files and comment-only
+  production edits.
+- `wf-doc-lint` (scoped to the milestone's change-set) — clean; the change-set is
+  entirely Go source/test files plus this spec and the epic's Milestones-list
+  note, none intersecting the doc-lint scope.
+
+## Deferrals
+
+- (none) — the second review's one repeat-instance observation (the same
+  imprecise `ResolveRoot` ignore wording B1 corrected here still survives at
+  ~20 pre-existing sites from sibling M-0253/M-0254/M-0255 commits) is already
+  tracked by the open **G-0412**, not a new deferral.
+
+## Reviewer notes
+
+- The first independent review (`wf-review-code`) returned **REQUEST-CHANGES**
+  with two blocking findings, both genuine defects in the AC-1 commit rather than
+  reviewer false positives:
+  - **B1**: four `//coverage:ignore` comments on `cliutil.ResolveRoot` guards
+    claimed a failure mode ("missing aiwf.yaml + non-existent --root path")
+    `ResolveRoot` does not actually have — the explicit-root path never stats
+    anything, and a missing `aiwf.yaml` with no `--root` falls back to `cwd`
+    rather than erroring. Notably, this wording is the same class G-0412 already
+    tracks as pervasive-but-imprecise across ~20 pre-existing sites from earlier
+    E-0064 milestones — but these four instances were newly authored *this*
+    milestone, and the correct wording was sitting right next to them in the same
+    commit (`initcmd.go`'s `resolveInitRoot` ignore), so this was a "propagate a
+    new instance without checking" mistake, not a G-0412 repeat — it got fixed
+    inline rather than deferred.
+  - **B2**: two `render.go` `tree.Load` guards were ignored on the claim that
+    only a canceled `context.Context` could trigger them (correct, but
+    incomplete) — an unreadable root directory also hits the same fatal
+    `os.Stat`-error path and IS reachable through the public API. Fixed with two
+    new tests (a `0o000` root, empirically distinct from the neighboring `0o500`
+    write-failure fixtures, which retain enough permission for `tree.Load` to
+    succeed).
+  - Both fixes landed as commit 96a79655. A second, narrowly-scoped independent
+    review verified the corrective commit directly against `resolveroot.go` and
+    `tree.go` (not just re-reading the diff), re-ran the two new tests and
+    confirmed they hit the intended line via their actual stderr output, re-ran
+    the scoped coverage audit, and confirmed the commit's scope was tight with
+    clean build/vet — **APPROVE**.
+- The second review's repeat-instance observation (the imprecise `ResolveRoot`
+  wording B1 corrected here still exists at ~20 sites introduced by M-0253's
+  `add.go`, M-0254's `contract/bind.go`, and other sibling milestone commits) is
+  the same issue **G-0412** already tracks repo-wide (deliberately deferred as a
+  future sweep, not a per-milestone fix) — consistent with the same observation
+  M-0254's and M-0255's own reviewers made.
