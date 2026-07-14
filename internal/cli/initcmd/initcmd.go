@@ -103,7 +103,7 @@ func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 // `--dry-run` init skips gating entirely, same as the statusline scaffold.
 func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool, enableHooks []string, hooks []skills.HookDef) int {
 	rootDir, err := resolveInitRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore resolveInitRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness
 		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitUsage
 	}

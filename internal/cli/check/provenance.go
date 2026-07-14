@@ -511,10 +511,10 @@ func gatherActivationCommitsLocalBranches(ctx context.Context, root string) ([]s
 	out, err := cmd.Output()
 	if err != nil { //coverage:ignore defensive: `git log` failing on a repo aiwf check has already loaded a tree from has no realistic trigger short of a corrupted .git; this mirrors the identical, likewise-unannotated shape at ReadUntrailedCommits's own git log call in this file
 		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if errors.As(err, &exitErr) { //coverage:ignore same unreachable-without-a-corrupted-.git class as the outer guard above; both branches of this nested error-formatting split are equally untriggerable
 			return nil, fmt.Errorf("git log --branches: %w\n%s", err, strings.TrimSpace(string(exitErr.Stderr)))
 		}
-		return nil, fmt.Errorf("git log --branches: %w", err)
+		return nil, fmt.Errorf("git log --branches: %w", err) //coverage:ignore see above
 	}
 	return parseActivationCommitsLocalBranches(string(out)), nil
 }
