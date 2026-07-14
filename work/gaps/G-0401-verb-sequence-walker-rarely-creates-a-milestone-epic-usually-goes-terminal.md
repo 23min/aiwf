@@ -1,8 +1,10 @@
 ---
 id: G-0401
 title: 'verb-sequence walker rarely creates a milestone: epic usually goes terminal'
-status: open
+status: addressed
 discovered_in: M-0250
+addressed_by_commit:
+    - e2efb07c
 ---
 ## What's missing
 
