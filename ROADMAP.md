@@ -892,3 +892,15 @@ code.
 | M-0255 | Diagnostic and introspection verb coverage backfill | done |
 | M-0256 | Bulk-input verb coverage backfill | done |
 
+## E-0065 — Harden the stress catalog's correctness oracle (proposed)
+
+### Goal
+
+Close the blind spots identified in G-0410: broaden the stress catalog's
+"`aiwf check` must stay clean" oracle beyond `verb-sequence`, and add a
+concurrent-race mode that exercises promote/cancel/AC operations against
+shared entity state, so a missing domain-specific verb-time guard can't ship
+silently.
+
+_No milestones yet._
+
