@@ -472,11 +472,11 @@ func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing
 	if s.retitleCounter == 0 {
 		t.Error("retitleCounter == 0, want walk to have dispatched to the retitle case at least once")
 	}
-	if s.archiveCounter == 0 {
-		t.Error("archiveCounter == 0, want walk to have dispatched to the archive case at least once")
+	if s.archiveCounter <= 0 {
+		t.Errorf("archiveCounter = %d, want walk to have dispatched to the archive case at least once", s.archiveCounter)
 	}
-	if s.moveCounter == 0 {
-		t.Error("moveCounter == 0, want walk to have dispatched to the move case at least once")
+	if s.moveCounter <= 0 {
+		t.Errorf("moveCounter = %d, want walk to have dispatched to the move case at least once", s.moveCounter)
 	}
 }
 

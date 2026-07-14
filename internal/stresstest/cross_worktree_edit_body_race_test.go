@@ -30,6 +30,39 @@ func TestCrossWorktreeEditBodyRaceScenario_RealBinary_ConfirmsObservableOutcome(
 	}
 }
 
+// TestCrossWorktreeEditBodyRaceScenario_RealBinary_CleanMergeConfirmsWiring
+// exercises Run's real merge along its other branch — operator B never
+// edits, so the real `git merge` genuinely succeeds without a conflict
+// — independently confirming that Run's `conflicted := runGit(...) !=
+// nil` wiring reflects the real merge outcome, not just the classify
+// function's own fabricated-bool coverage
+// (cross_worktree_edit_body_race_classify_test.go). Without this, the
+// always-conflicting test above alone can pass by coincidence under a
+// flipped `conflicted` polarity: a real conflict-marker file already
+// contains both operators' draft text, so classify's "clean merge"
+// branch (checking neither draft's content is present) would also
+// report no violations if fed that same content under a wrongly
+// computed conflicted=false. Here, since operator B never writes
+// anything, a wrongly-flipped conflicted=true takes the "conflicted"
+// branch and finds operator B's content genuinely missing — a
+// real, detectable divergence, the same pattern M-0250's own
+// checkListInvariant and ConcurrentMoveScenario.Run were fixed with.
+func TestCrossWorktreeEditBodyRaceScenario_RealBinary_CleanMergeConfirmsWiring(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	base := t.TempDir()
+
+	s := &CrossWorktreeEditBodyRaceScenario{aiwfBin: bin, skipOperatorBEdit: true}
+	result, err := RunScenario(s, base)
+	if err != nil {
+		t.Fatalf("RunScenario: %v", err)
+	}
+	if !result.Passed {
+		t.Fatalf("clean-merge cross-worktree-edit-body-race variant found violations (dir preserved at %s):\n%+v", result.Dir, result.Violations)
+	}
+}
+
 func TestCrossWorktreeEditBodyRaceScenario_RealBinary_ErrorsWhenBinaryMissing(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)

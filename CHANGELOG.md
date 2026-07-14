@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0406: closed two real vacuity gaps in internal/stresstest's own tests
+
+A partial `mutate-hunt` run against `internal/stresstest` surfaced two real gaps
+in the harness's own test suite. The cross-worktree edit-body-race scenario's
+real-binary test never independently confirmed its `conflicted` git-merge
+outcome — a flipped polarity there passed by coincidence, since a genuine
+conflict-marker file already contains both operators' draft text regardless of
+which classification branch runs. A new test drives a real, non-conflicting
+merge (one operator never edits) to exercise that other branch end-to-end. Two
+verb-sequence dispatch counters were also asserted only "not zero," which
+missed a decrement mutation that leaves them negative; both now assert a
+positive count. Dev-only tooling; no production code touched.
+
 ### Fixed — G-0403: `mutate-hunt` no longer silently reports a clean run when it found nothing to mutate
 
 The `mutate-hunt.yml` workflow's `pkg_pattern` input passed a trailing `/...`
