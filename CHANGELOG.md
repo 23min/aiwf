@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0064: test coverage backfilled for every untested CLI-verb error-handling branch
+
+Closes G-0386: every branch `internal/policies/branch_coverage_audit.go`'s
+diff-scoped audit flagged against the pre-M-0238/AC-3 baseline (188 branches
+across 39 files, surfaced when a mechanical print-call migration touched
+lines nothing had ever exercised) now carries either a real regression test
+or an honest `//coverage:ignore <reason>` naming the specific untestable
+condition. Every milestone listed in `wrap.md` contributed: shared failure
+fixtures for root/actor-resolution failure, repo-lock contention, a
+malformed/corrupt tree, and a bad `--format` flag; then per-verb-group
+backfill across entity-lifecycle, contract, diagnostic/introspection, and
+bulk-input verbs. No verb's error-handling *behavior* changed — this is
+coverage debt closed, not a functional change.
+
 ### Fixed — G-0413: ritual worktree creation now relocates the harness session
 
 `aiwf worktree add` creates a git worktree and materializes rituals into it, but
