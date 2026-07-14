@@ -874,7 +874,7 @@ rot silently the next time its target moves.
 | M-0248 | Unify reallocate onto the shared rewrite primitive | done |
 | M-0251 | Handle #fragment / ?query suffixes in link-destination rewrite | done |
 
-## E-0064 — Backfill test coverage for untested CLI verb error-handling branches (active)
+## E-0064 — Backfill test coverage for untested CLI verb error-handling branches (done)
 
 ### Goal
 
