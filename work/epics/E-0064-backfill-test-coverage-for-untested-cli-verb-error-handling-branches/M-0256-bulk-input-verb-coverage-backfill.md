@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Every bulk-input verb group branch tested or ignored
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Scoped coverage-gate reports zero findings
