@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0401: verb-sequence stress walker now reliably creates its milestone
+
+The `verb-sequence` stress scenario used to create its milestone entity only
+after the epic finished its own full random walk — and since `stepPromote`
+draws its target uniformly across the epic's entire closed status set
+(including `done`/`cancelled`), the epic usually went terminal first, so the
+milestone was silently skipped for most runs. That starved the walker's
+already-rare exercise of `aiwf move` (the only kind it applies to). The
+milestone is now created immediately after the epic, while the epic is still
+freshly `proposed`, before either is walked — so milestone creation, and the
+`move` coverage that depends on it, no longer depends on the epic's own walk.
+The now-unreachable G-0398 refusal-tolerance this required is removed along
+with it. Dev-only tooling; no production code touched.
+
 ### Fixed — G-0406: closed two real vacuity gaps in internal/stresstest's own tests
 
 A partial `mutate-hunt` run against `internal/stresstest` surfaced two real gaps
