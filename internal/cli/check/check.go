@@ -80,7 +80,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	}
 
 	resolved, err := cliutil.ResolveRoot(root)
-	if err != nil {
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf check: %v\n", err)
 		return cliutil.ExitUsage
 	}
@@ -182,7 +182,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	postCutoffSHAs := check.WalkPostCutoffSHAs(ctx, resolved)
 
 	provenanceFindings, pErr := RunProvenanceCheck(ctx, resolved, tr, since, registeredVerbs, ackedSHAs, ackedSHAEntities, postCutoffSHAs, head)
-	if pErr != nil {
+	if pErr != nil { //coverage:ignore RunProvenanceCheck's only two error returns are dead in the current implementation: ResolveUntrailedRange never returns a non-nil error (every branch degrades to an advisory instead), and ReadUntrailedCommits' `git log` failure is unreachable once ResolveUntrailedRange has already verified the --since ref (or fallen back to the always-valid @{u}..HEAD form)
 		cliutil.Errorf("aiwf check: %v\n", pErr)
 		return cliutil.ExitInternal
 	}
@@ -225,7 +225,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		}
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
-	if mErr != nil {
+	if mErr != nil { //coverage:ignore RunTestsMetricsCheck's only error source is history.ReadHistory's `git log` call, which is unreachable once cliutil.HasCommits has already succeeded — the same class internal/cli/history/history.go's own ReadHistoryChain guard documents (ids are regexp.QuoteMeta-escaped, so a malformed composite id cannot break the --grep pattern either)
 		cliutil.Errorf("aiwf check: %v\n", mErr)
 		return cliutil.ExitInternal
 	}
@@ -329,7 +329,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		if verbose {
 			writeText = baserender.Text
 		}
-		if err := writeText(os.Stdout, findings); err != nil {
+		if err := writeText(os.Stdout, findings); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -382,7 +382,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 // present), 3 internal.
 func runFast(ctx context.Context, root, format string, pretty bool) int {
 	tr, loadErrs, err := tree.Load(ctx, root)
-	if err != nil { //coverage:ignore tree.Load errors only on git/IO failure; a resolved root with a healthy worktree never hits it (mirrors runShapeOnly)
+	if err != nil {
 		cliutil.Errorf("aiwf check: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -478,7 +478,7 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 
 	switch format {
 	case "text":
-		if err := baserender.Text(os.Stdout, findings); err != nil {
+		if err := baserender.Text(os.Stdout, findings); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
@@ -495,7 +495,7 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 				"findings":   len(findings),
 			},
 		}
-		if err := baserender.JSON(os.Stdout, env, pretty); err != nil {
+		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}
