@@ -110,7 +110,8 @@ fixtures that the four verb-family milestones consume in parallel.
   `schema`, `template`, plus `archive` and `authorize` — folded in after
   neither was assigned to any milestone) · depends on: `M-0252`
 - `M-0256` — Bulk-input verb coverage backfill (`importcmd`, `render`,
-  `check`+`check/provenance`) · depends on: `M-0252`
+  `check`+`check/provenance`, plus `initcmd` — folded in after it wasn't
+  assigned to any milestone) · depends on: `M-0252`
 
 ## References
 
