@@ -902,5 +902,8 @@ concurrent-race mode that exercises promote/cancel/AC operations against
 shared entity state, so a missing domain-specific verb-time guard can't ship
 silently.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0257 | Broaden the check-clean oracle across ten stress scenarios | draft |
+| M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | draft |
 
