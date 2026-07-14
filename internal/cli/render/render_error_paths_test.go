@@ -9,15 +9,19 @@ import (
 	"github.com/23min/aiwf/internal/cli/render"
 )
 
-// M-0256/AC-1 backfill: RunRoadmap's and RunSite's ResolveRoot guards,
-// plus their bare tree.Load guards (both functions always pass a
-// fresh context.Background() with no way to inject a canceled one
-// through the public API — unlike internal/cli/check's unexported
-// runShapeOnly/runFast), are `//coverage:ignore`d in render.go itself.
-// check.WalkHeadCommits' `git log HEAD` failure mirrors the same
-// unreachable-once-HasCommits-succeeded class internal/cli/check's own
-// headErr guard documents. Every other flagged branch below is
-// genuinely triggerable.
+// M-0256/AC-1 backfill: RunRoadmap's and RunSite's ResolveRoot guards
+// are `//coverage:ignore`d in render.go itself (ResolveRoot only wraps
+// filepath.Abs/os.Getwd, neither triggerable). Their bare tree.Load
+// guards are NOT ignored — unlike internal/cli/check's unexported
+// runShapeOnly/runFast (which need a canceled context, only reachable
+// via a direct in-package call), RunRoadmap/RunSite's tree.Load can
+// also fail on an unreadable directory (os.Stat returning a
+// permission error, not os.ErrNotExist), which IS reachable through
+// the public API — see TestRunRoadmap_TreeLoadFailure /
+// TestRunSite_TreeLoadFailure below. check.WalkHeadCommits' `git log
+// HEAD` failure mirrors the same unreachable-once-HasCommits-succeeded
+// class internal/cli/check's own headErr guard documents. Every other
+// flagged branch below is genuinely triggerable.
 
 // TestRunRoadmap_ExistingReadFailure covers RunRoadmap's
 // os.ReadFile(dest) guard: a directory sitting at the resolved
@@ -28,6 +32,26 @@ func TestRunRoadmap_ExistingReadFailure(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, "ROADMAP.md"), 0o755); err != nil {
 		t.Fatalf("mkdir ROADMAP.md: %v", err)
 	}
+	rc := render.RunRoadmap(root, false)
+	if rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want ExitInternal", rc)
+	}
+}
+
+// TestRunRoadmap_TreeLoadFailure covers RunRoadmap's bare tree.Load
+// guard: an unreadable root directory (no execute/search permission)
+// makes tree.Load's own os.Stat(root/work/epics) fail with a
+// permission error, not os.ErrNotExist — the fatal, non-loadErrs path.
+// 0o000 (not 0o500) is required so the search bit is also gone;
+// 0o500 (as TestRunRoadmap_WriteFailure below uses) still lets
+// tree.Load succeed reading, only failing later at the write step.
+func TestRunRoadmap_TreeLoadFailure(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.Chmod(root, 0o000); err != nil {
+		t.Fatalf("chmod root: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
 	rc := render.RunRoadmap(root, false)
 	if rc != cliutil.ExitInternal {
 		t.Errorf("rc = %d, want ExitInternal", rc)
@@ -61,6 +85,21 @@ func TestRunSite_BadFormat(t *testing.T) {
 	rc := render.RunSite("", "bogus", "", "", false, false)
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}
+
+// TestRunSite_TreeLoadFailure covers RunSite's bare tree.Load guard,
+// mirroring TestRunRoadmap_TreeLoadFailure's unreadable-root fixture.
+func TestRunSite_TreeLoadFailure(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.Chmod(root, 0o000); err != nil {
+		t.Fatalf("chmod root: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
+	rc := render.RunSite(root, "html", "", "", false, false)
+	if rc != cliutil.ExitInternal {
+		t.Errorf("rc = %d, want ExitInternal", rc)
 	}
 }
 

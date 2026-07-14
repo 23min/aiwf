@@ -80,7 +80,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	}
 
 	resolved, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
+	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
 		cliutil.Errorf("aiwf check: %v\n", err)
 		return cliutil.ExitUsage
 	}

@@ -167,14 +167,14 @@ func newRoadmapCmd() *cobra.Command {
 // RunRoadmap executes `aiwf render roadmap`. Returns one of the cliutil.Exit* codes.
 func RunRoadmap(root string, write bool) int {
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
+	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
 		cliutil.Errorf("aiwf render roadmap: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, _, err := tree.Load(ctx, rootDir)
-	if err != nil { //coverage:ignore tree.Load's fatal path needs a canceled context or an unreadable directory; RunRoadmap always passes a fresh context.Background() with no way to inject one through the public API
+	if err != nil {
 		cliutil.Errorf("aiwf render roadmap: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
@@ -301,14 +301,14 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	_ = noHistory // step-4 placeholder: reserved for the no-history flag
 
 	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
+	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
 		cliutil.Errorf("aiwf render: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
 	ctx := context.Background()
 	tr, loadErrs, err := tree.Load(ctx, rootDir)
-	if err != nil { //coverage:ignore tree.Load's fatal path needs a canceled context or an unreadable directory; RunSite always passes a fresh context.Background() with no way to inject one through the public API
+	if err != nil {
 		cliutil.Errorf("aiwf render: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
