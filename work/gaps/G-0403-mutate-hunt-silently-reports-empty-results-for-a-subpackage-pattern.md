@@ -1,7 +1,9 @@
 ---
 id: G-0403
 title: mutate-hunt silently reports empty results for a subpackage + /... pattern
-status: open
+status: addressed
+addressed_by_commit:
+    - 0bff5328
 ---
 ## What's missing
 
