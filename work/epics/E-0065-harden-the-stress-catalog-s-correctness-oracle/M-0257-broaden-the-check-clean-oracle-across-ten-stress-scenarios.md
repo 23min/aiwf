@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: A synthetic regression test proves the broadened oracle catches it
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
