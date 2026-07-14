@@ -82,6 +82,21 @@ The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance at
 
 ---
 
+## Stress-test harness
+
+`cmd/stresstest` is an on-demand correctness stress harness — dev-only tooling, never installed alongside `cmd/aiwf`, run by hand rather than scheduled or wired into `make ci`. It builds the `aiwf` binary under test and drives it as a real subprocess against disposable git repos through a catalog of concurrency, fault-injection, and FSM-random-walk scenarios, each with a deterministic pass/fail oracle.
+
+```bash
+make stress                          # run the whole catalog, 5 attempts per scenario by default (override: STRESS_REPEAT=N make stress)
+go run ./cmd/stresstest list         # enumerate every scenario name --scenario can select
+go run ./cmd/stresstest run --scenario <name>|all --repeat N [--out DIR] [--module-root DIR]
+go run ./cmd/stresstest compose <raw-report-path>   # render a human-readable summary from a run's raw-report JSONL
+```
+
+`run` flags: `--scenario` (required; a catalog name, or `all` for the whole catalog), `--repeat` (attempts per scenario, default 1 — statistical coverage for timing-shaped scenarios comes from repeating, not from one lucky run), `--out` (build output, scenario temp dirs, and the raw-report file; defaults to a fresh temp dir, printed on completion), `--module-root` (the aiwf module root to build the binary under test from; defaults to `.`). A failing attempt prints its preserved repo directory for follow-up.
+
+---
+
 ## Operator setup
 
 After cloning, run **`aiwf init`** (first time) or **`aiwf update`** (existing repo) at the repo root. That single command materializes everything aiwf ships into `.claude/`: verb skills (`aiwf-*`), ritual skills (`aiwfx-*`), engineering skills (`wf-*`), role agents (planner/builder/reviewer/deployer), and entity templates — all gitignored, marker-managed, byte-refreshed on `aiwf update`. Rituals are embedded in the binary from a pinned snapshot (ADR-0014), so there is no separate install step and the ritual version always equals the binary version.

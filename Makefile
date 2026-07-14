@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -35,6 +35,7 @@ help:
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
+	@echo "  stress    - run the on-demand correctness stress harness's whole scenario catalog (opt-in, dev-only; override STRESS_REPEAT=N)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -202,3 +203,12 @@ e2e-install:
 
 e2e:
 	cd e2e/playwright && npx playwright test
+
+# stress runs cmd/stresstest's whole scenario catalog, STRESS_REPEAT
+# attempts per scenario, against a freshly built aiwf binary (see
+# CLAUDE.md "Stress-test harness"). Opt-in and dev-only: not part of
+# `make ci`. Override the per-scenario repeat count with STRESS_REPEAT=N.
+STRESS_REPEAT ?= 5
+
+stress:
+	go run ./cmd/stresstest run --scenario all --repeat $(STRESS_REPEAT)

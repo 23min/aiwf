@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0404: `make stress` target; stress-test harness documented in CLAUDE.md
+
+`cmd/stresstest`'s own doc comment promised "built and invoked by hand (see
+`make stress`)", but no such target existed. `make stress` now runs the whole
+scenario catalog (`go run ./cmd/stresstest run --scenario all --repeat N`,
+`STRESS_REPEAT` overrides the default). CLAUDE.md gains a "Stress-test
+harness" section covering the one-line invocation, `list`/`run`/`compose`,
+and the `--scenario`/`--repeat`/`--out`/`--module-root` flags. Dev-only
+tooling; no production code touched.
+
 ### Added — E-0064: test coverage backfilled for every untested CLI-verb error-handling branch
 
 Closes G-0386: every branch `internal/policies/branch_coverage_audit.go`'s
