@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: A synthetic regression test proves the broadened oracle catches it
-      status: open
+      status: met
       tdd_phase: done
 ---
 
