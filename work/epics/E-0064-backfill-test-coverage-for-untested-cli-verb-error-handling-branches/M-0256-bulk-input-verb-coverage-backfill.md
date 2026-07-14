@@ -1,7 +1,7 @@
 ---
 id: M-0256
 title: Bulk-input verb coverage backfill
-status: draft
+status: in_progress
 parent: E-0064
 depends_on:
     - M-0252
