@@ -35,21 +35,19 @@ implementation rather than pre-designed here.
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0256 --title "..."`.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
-
-- **AC-1 candidate** — Every branch `branch-coverage-audit` flags (base =
-  the commit before M-0238/AC-3's rename) within `internal/cli/{importcmd,
-  render,check}` (including `check/provenance.go`) carries either a
-  passing test (reusing M-0252's fixtures where the failure mode matches,
-  or a new fixture where it doesn't) or a `//coverage:ignore <reason>`.
-- **AC-2 candidate** — `make coverage-gate`, run with `AIWF_COVERAGE_BASE`
-  set to the pre-M-0238 commit, reports zero findings for the files listed
-  in AC-1.
-
 ### AC-1 — Every bulk-input verb group branch tested or ignored
 
+Every branch `branch-coverage-audit` flags (base = the commit before
+M-0238/AC-3's rename, `2ac84846^`) within `internal/cli/{importcmd,
+render,check}` (including `check/provenance.go`) carries either a
+passing test (reusing M-0252's fixtures where the failure mode matches,
+or a new fixture where it doesn't) or a `//coverage:ignore <reason>`.
+
 ### AC-2 — Scoped coverage-gate reports zero findings
+
+`make coverage-gate`'s underlying policy test, run with `AIWF_COVERAGE_BASE`
+set to the pre-M-0238 commit, reports zero findings for the files listed
+in AC-1.
 
 ## Constraints
 
