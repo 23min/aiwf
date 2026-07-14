@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0403: `mutate-hunt` no longer silently reports a clean run when it found nothing to mutate
+
+The `mutate-hunt.yml` workflow's `pkg_pattern` input passed a trailing `/...`
+straight through to `gremlins`, which could produce a zero-exit-code "No
+results to report" (or a hard error, depending on the exact path shape) that
+looked identical to "package scanned, nothing to flag" — including for the
+workflow's own literal default. A trailing `/...` is now stripped before
+invoking `gremlins`, and a new verification step fails the job outright if
+the mutation report ends up empty, so a misscoped pattern can no longer pass
+as a clean run.
+
 ### Added — G-0404: `make stress` target; stress-test harness documented in CLAUDE.md
 
 `cmd/stresstest`'s own doc comment promised "built and invoked by hand (see
