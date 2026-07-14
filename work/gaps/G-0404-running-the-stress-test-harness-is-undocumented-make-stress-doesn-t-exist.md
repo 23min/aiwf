@@ -1,7 +1,9 @@
 ---
 id: G-0404
 title: Running the stress-test harness is undocumented; make stress doesn't exist
-status: open
+status: addressed
+addressed_by_commit:
+    - 03e17c887f05939113f5cc3f20a1649099a7ea8f
 ---
 ## What's missing
 
