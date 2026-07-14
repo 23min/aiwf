@@ -11,7 +11,7 @@ acs:
       tdd_phase: red
     - id: AC-2
       title: A shared baseline-classification helper backs all ten scenarios
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: A synthetic regression test proves the broadened oracle catches it
