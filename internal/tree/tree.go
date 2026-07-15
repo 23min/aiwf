@@ -141,6 +141,22 @@ type Tree struct {
 	// working-tree-vs-trunk basis (G-0316). Tests that build trees
 	// in-memory leave it nil.
 	RemoteRefIDs []string
+	// CrossBranchHits is the union of every local-branch-ref and
+	// remote-tracking-ref hit (trunk.LocalRefHits ++ trunk.RemoteRefHits,
+	// M-0259/AC-1), carrying kind/path/ref per hit rather than bare id
+	// strings. refs-resolve and body-prose-id consult it as a second-tier
+	// resolver on a local-tree miss, before firing unresolved (ADR-0030,
+	// M-0259/AC-2): a hit here classifies as the non-blocking
+	// cross-branch-pending subcode instead. Recomputed fresh on every
+	// `aiwf check` run (no cache), so a source branch's disappearance
+	// re-escalates the next reference resolution to unresolved on its own
+	// (M-0259/AC-4) — nothing here needs its own escalation-tracking
+	// mechanism.
+	//
+	// Populated alongside LocalRefIDs/RemoteRefIDs by the cmd dispatcher.
+	// Tests that build trees in-memory leave it nil, degrading resolution
+	// to today's two-tier (working tree, unresolved) behavior.
+	CrossBranchHits []trunk.RefHit
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience

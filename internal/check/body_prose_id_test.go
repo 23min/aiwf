@@ -524,6 +524,92 @@ func TestBodyProseID_TrunkTier_G0241(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_CrossBranchPendingTier_M0259AC2 mirrors the
+// TrunkTier (G-0241) test's shape but for the cross-branch view
+// (ADR-0030, M-0259/AC-2): unlike the silent Trunk tier, a
+// cross-branch hit is a VISIBLE, non-blocking finding — trunk is
+// authoritative, a sibling branch is provisional.
+func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name            string
+		body            string
+		crossBranchIDs  []string
+		wantSubcode     string
+		wantSeverity    Severity
+		wantFindingsLen int
+	}{
+		{
+			name:            "bare cross-branch-only id fires visibly, non-blocking",
+			body:            "Depends on G-0500 which was filed on a sibling branch.",
+			crossBranchIDs:  []string{"G-0500"},
+			wantSubcode:     "cross-branch-pending",
+			wantSeverity:    SeverityWarning,
+			wantFindingsLen: 1,
+		},
+		{
+			name:            "truly-unknown id still hard-fails despite a populated cross-branch set",
+			body:            "See M-9999 for the proposed rule.",
+			crossBranchIDs:  []string{"G-0500"},
+			wantSubcode:     "unresolved",
+			wantSeverity:    SeverityError,
+			wantFindingsLen: 1,
+		},
+		{
+			name:            "narrow-legacy cross-branch id resolves canonical-width token",
+			body:            "Depends on G-0500 from a pre-rewidth sibling branch.",
+			crossBranchIDs:  []string{"G-500"},
+			wantSubcode:     "cross-branch-pending",
+			wantSeverity:    SeverityWarning,
+			wantFindingsLen: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			ents := writeBodyProseFixture(t, root, tc.body)
+			tr := &tree.Tree{Root: root, Entities: ents}
+			for _, id := range tc.crossBranchIDs {
+				tr.CrossBranchHits = append(tr.CrossBranchHits, trunk.RefHit{
+					Kind: entity.KindGap, ID: id, Path: "work/gaps/" + id + "-x.md", Ref: "refs/heads/sibling",
+				})
+			}
+
+			got := bodyProseID(tr)
+			if len(got) != tc.wantFindingsLen {
+				t.Fatalf("findings = %d, want %d: %+v", len(got), tc.wantFindingsLen, got)
+			}
+			if got[0].Subcode != tc.wantSubcode {
+				t.Errorf("Subcode = %q, want %q", got[0].Subcode, tc.wantSubcode)
+			}
+			if got[0].Severity != tc.wantSeverity {
+				t.Errorf("Severity = %q, want %q", got[0].Severity, tc.wantSeverity)
+			}
+		})
+	}
+}
+
+// TestBodyProseID_LocalTreeStaysAuthoritativeOverCrossBranch pins that
+// a locally-resolvable id is never softened by a same-id cross-branch
+// hit — the working-tree index is checked first, same ordering as the
+// existing Trunk tier.
+func TestBodyProseID_LocalTreeStaysAuthoritativeOverCrossBranch(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "Per M-0001/AC-9, the gap is closed.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindMilestone, ID: "M-0001", Path: "elsewhere.md", Ref: "refs/heads/sibling"},
+	}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 || got[0].Subcode != "unresolved-ac" {
+		t.Errorf("got %+v, want the local unresolved-ac finding unaffected by the cross-branch hit", got)
+	}
+}
+
 // writeBodyProseFixture lays down a gap G-0001 with the supplied body
 // prose under `## What's missing`, plus a milestone M-0001 with AC-1
 // to back the composite-resolution positive controls. Both are loaded

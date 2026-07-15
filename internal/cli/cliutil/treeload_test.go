@@ -135,6 +135,61 @@ func TestLoadTreeWithTrunk_NoDisputeSkipsRenameDetection(t *testing.T) {
 	}
 }
 
+// TestLoadTreeWithTrunk_PopulatesCrossBranchHits — M-0259/AC-2: a
+// sibling local branch's entity, invisible to the working tree, must
+// surface in tr.CrossBranchHits (and its bare id in tr.LocalRefIDs) so
+// refs-resolve/body-prose-id can classify a reference to it as
+// cross-branch-pending rather than unresolved.
+func TestLoadTreeWithTrunk_PopulatesCrossBranchHits(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	runGit(t, root, "init", "-q")
+	runGit(t, root, "config", "user.email", "test@example.com")
+	runGit(t, root, "config", "user.name", "aiwf-test")
+
+	rel := "work/gaps/G-0001-foo.md"
+	if err := os.MkdirAll(filepath.Join(root, "work", "gaps"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, rel), []byte("---\nid: G-0001\ntitle: foo\nstatus: open\n---\nbody\n"), 0o644); err != nil {
+		t.Fatalf("write gap: %v", err)
+	}
+	runGit(t, root, "add", rel)
+	runGit(t, root, "commit", "-q", "-m", "seed")
+
+	// A sibling branch carries an id absent from the working tree
+	// (main) entirely — visible only via LocalRefHits.
+	runGit(t, root, "checkout", "-q", "-b", "sibling")
+	siblingRel := "work/gaps/G-0005-bar.md"
+	if err := os.WriteFile(filepath.Join(root, siblingRel), []byte("---\nid: G-0005\ntitle: bar\nstatus: open\n---\nbody\n"), 0o644); err != nil {
+		t.Fatalf("write sibling gap: %v", err)
+	}
+	runGit(t, root, "add", siblingRel)
+	runGit(t, root, "commit", "-q", "-m", "sibling: add G-0005")
+	runGit(t, root, "checkout", "-q", "-") // back to whatever the init default branch was
+
+	tr, _, err := LoadTreeWithTrunk(ctx, root)
+	if err != nil {
+		t.Fatalf("LoadTreeWithTrunk: %v", err)
+	}
+	var found bool
+	for _, h := range tr.CrossBranchHits {
+		if h.ID == "G-0005" {
+			found = true
+			if h.Ref != "refs/heads/sibling" {
+				t.Errorf("hit.Ref = %q, want refs/heads/sibling", h.Ref)
+			}
+			if h.Path != siblingRel {
+				t.Errorf("hit.Path = %q, want %q", h.Path, siblingRel)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("CrossBranchHits = %+v, want a hit for sibling-only id G-0005", tr.CrossBranchHits)
+	}
+}
+
 // runGit invokes git in dir with a fixed deterministic identity,
 // fatal'ing the test on failure.
 func runGit(t *testing.T, dir string, args ...string) {

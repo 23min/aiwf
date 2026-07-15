@@ -35,6 +35,11 @@ var hintTable = map[string]string{
 	"refs-resolve/wrong-kind":           "replace the reference with an id of the expected kind — list candidates via `aiwf list --kind <kind>` — then re-run `aiwf check`",
 	"refs-resolve/unresolved-milestone": "the composite id's parent milestone does not exist; verify with `aiwf show M-NNNN`, or create it via `aiwf add milestone --epic E-NNNN --tdd <policy> --title \"...\"`",
 	"refs-resolve/unresolved-ac":        "the parent milestone exists but has no AC with that id; add it via `aiwf add ac <milestone-id> --title \"...\"`, or correct the reference and re-run `aiwf check`",
+	// M-0259/AC-2: the target is real but lives only on another local
+	// branch or remote-tracking ref — non-blocking, per ADR-0030. No
+	// fix needed; it resolves on its own once the source branch merges,
+	// or escalates to unresolved if that branch is deleted/abandoned.
+	"refs-resolve/cross-branch-pending": "no action needed — the target exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
 
 	// G-0184: body-prose-id chokepoint. The check scans entity body
 	// prose (frontmatter is covered by refs-resolve) for id-shaped
@@ -48,6 +53,9 @@ var hintTable = map[string]string{
 	"body-prose-id/unresolved":           "the body prose references a well-formed id that resolves to no entity; fix it with `aiwf edit-body <id>` — check the spelling, or wrap in backticks if the prose is discussing a hypothetical id shape rather than a real reference",
 	"body-prose-id/unresolved-milestone": "the composite id's parent milestone does not exist; fix the prose with `aiwf edit-body <id>` — check the spelling or remove the reference",
 	"body-prose-id/unresolved-ac":        "the parent milestone exists but has no AC with that id; fix the prose with `aiwf edit-body <id>` — check the AC number, or add the AC entry via `aiwf add ac <milestone-id> --title \"...\"`",
+	// M-0259/AC-2: the mirror of refs-resolve/cross-branch-pending for
+	// prose tokens — non-blocking, per ADR-0030.
+	"body-prose-id/cross-branch-pending": "no action needed — the id exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
 	// G-0299 / M-0227: skill-body-id chokepoint. Shipped consumer surfaces
 	// (every *.md under embedded{,-rituals,-guidance}/ plus statusline
 	// comments) must cite no real entity id (the mirror image of

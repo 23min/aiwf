@@ -51,6 +51,7 @@ import (
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // The CodeBodyProseID constant is declared in check.go alongside the
@@ -137,9 +138,17 @@ func bodyProseID(t *tree.Tree) []Finding {
 // trunk ids as authoritative. Nil Trunk (in-memory test trees,
 // no-remote repos, dispatchers that load without a trunk read)
 // degrades to primary-tier-only behavior — the pre-G-0241 default.
+//
+// CrossBranch is the third tier (M-0259/AC-2): canonicalized id →
+// the cross-branch hits carrying it (see crossBranchIndex). Consulted
+// only after both ByID and Trunk miss. Unlike Trunk, a hit here is
+// VISIBLE — it fires the non-blocking cross-branch-pending subcode —
+// because a sibling branch is provisional (it can be rebased, renamed,
+// or abandoned before merging), unlike trunk which is authoritative.
 type BodyProseIndex struct {
-	ByID  map[string]*entity.Entity
-	Trunk map[string]bool
+	ByID        map[string]*entity.Entity
+	Trunk       map[string]bool
+	CrossBranch map[string][]trunk.RefHit
 }
 
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
@@ -173,6 +182,7 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 			idx.Trunk[entity.Canonicalize(tid.ID)] = true
 		}
 	}
+	idx.CrossBranch = crossBranchIndex(t)
 	return idx
 }
 
@@ -212,7 +222,7 @@ func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []F
 		line := 1 + bytes.Count(body[:m[0]], []byte{'\n'})
 		findings = append(findings, Finding{
 			Code:     CodeBodyProseID,
-			Severity: SeverityError,
+			Severity: bodyProseIDSeverity(subcode),
 			Subcode:  subcode,
 			Message:  fmt.Sprintf("%s body prose contains %s", entityID, msg),
 			Path:     path,
@@ -336,7 +346,27 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 		if idx.Trunk[canon] {
 			return "", ""
 		}
+		// M-0259/AC-2: a miss against both ByID and the (silent) Trunk
+		// tier consults the cross-branch view before hard-failing
+		// (ADR-0030). Unlike Trunk, a hit here is visible: it fires
+		// cross-branch-pending rather than resolving silently, since a
+		// sibling branch — unlike trunk — is provisional.
+		if hits, known := idx.CrossBranch[canon]; known {
+			return "cross-branch-pending", fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
+		}
 		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
 	}
 	return "malformed-shape", fmt.Sprintf("id-shaped token %q that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)", tok)
+}
+
+// bodyProseIDSeverity maps a classifyBodyToken subcode to its
+// finding severity. Every subcode is a hard, blocking error except
+// cross-branch-pending (M-0259/AC-2, ADR-0030), which is a visible but
+// non-blocking warning — the id is real, just not merged into this
+// branch yet.
+func bodyProseIDSeverity(subcode string) Severity {
+	if subcode == "cross-branch-pending" {
+		return SeverityWarning
+	}
+	return SeverityError
 }

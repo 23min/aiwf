@@ -152,6 +152,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// (G-0372 Fix 2's identical-derivation regression test).
 		"internal/check/area_mistag_test.go": "M-0181/AC-6 narrow-id canonicalization input space (real head walk + hand-built fixture)",
 
+		// M-0259/AC-2: crossBranchIndex groups cross-branch hits by
+		// canonicalized id — a narrow-legacy hit (`G-500`) must group
+		// under the same key as a canonical-width hit (`G-0500`) for
+		// the same entity. Same canonicalization-equivalence shape as
+		// the AC-2 parser-tolerance tests above.
+		"internal/check/cross_branch_test.go": "M-0259/AC-2 crossBranchIndex canonicalization input space: narrow-legacy hit grouped with canonical-width hit",
+
 		// G-0184 follow-through: widenEntityID's input space is bare-id
 		// shapes at every width including below-grammar narrow forms
 		// (E-1, M-77, G-9, etc.). Same shape as the entity-grammar

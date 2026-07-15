@@ -516,6 +516,48 @@ func TestRefsResolve_Unresolved(t *testing.T) {
 	}
 }
 
+// --- M-0259/AC-2: refs-resolve consults the cross-branch view on a
+// local-tree miss, before firing unresolved (ADR-0030). ---
+
+func TestRefsResolve_CrossBranchPending(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"}, // E-0099 not local
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+	}
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-pending" {
+		t.Errorf("Subcode = %q, want cross-branch-pending", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning (non-blocking, per ADR-0030)", got[0].Severity)
+	}
+}
+
+func TestRefsResolve_LocalTreeStaysAuthoritativeOverCrossBranch(t *testing.T) {
+	// A locally-resolvable reference must not be softened by a
+	// cross-branch hit for the same id — the local tree is always
+	// checked first (this test would fire wrong-kind if the
+	// cross-branch tier were consulted before the local index).
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "D-0001"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "D-0001", Path: "elsewhere.md", Ref: "refs/heads/sibling"},
+	}
+	got := refsResolve(tr)
+	if len(got) != 1 || got[0].Subcode != "wrong-kind" {
+		t.Errorf("got %+v, want the local wrong-kind finding unaffected by the cross-branch hit", got)
+	}
+}
+
 func TestRefsResolve_WrongKind(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(

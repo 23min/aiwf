@@ -166,7 +166,7 @@ type RefHit struct {
 // additive widening only, this function's shape and behavior are
 // unchanged from before AC-1.
 func LocalRefIDs(ctx context.Context, workdir string) []string {
-	return hitIDStrings(LocalRefHits(ctx, workdir))
+	return HitIDStrings(LocalRefHits(ctx, workdir))
 }
 
 // RemoteRefIDs returns the entity id strings reachable from every
@@ -185,7 +185,7 @@ func LocalRefIDs(ctx context.Context, workdir string) []string {
 // Derived from RemoteRefHits (M-0259/AC-1) by dropping path/ref —
 // additive widening only.
 func RemoteRefIDs(ctx context.Context, workdir string) []string {
-	return hitIDStrings(RemoteRefHits(ctx, workdir))
+	return HitIDStrings(RemoteRefHits(ctx, workdir))
 }
 
 // LocalRefHits is LocalRefIDs' widened form (M-0259/AC-1): every hit
@@ -234,9 +234,9 @@ func refHits(ctx context.Context, workdir string, listRefs func(context.Context,
 	return hits
 }
 
-// hitIDStrings returns just the id strings from hits, in order.
+// HitIDStrings returns just the id strings from hits, in order.
 // Convenience for LocalRefIDs/RemoteRefIDs, which only need id values.
-func hitIDStrings(hits []RefHit) []string {
+func HitIDStrings(hits []RefHit) []string {
 	if len(hits) == 0 {
 		return nil
 	}
