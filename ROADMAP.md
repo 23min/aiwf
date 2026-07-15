@@ -895,7 +895,7 @@ code.
 | M-0255 | Diagnostic and introspection verb coverage backfill | done |
 | M-0256 | Bulk-input verb coverage backfill | done |
 
-## E-0065 — Harden the stress catalog's correctness oracle (active)
+## E-0065 — Harden the stress catalog's correctness oracle (done)
 
 ### Goal
 
