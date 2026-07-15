@@ -1,7 +1,7 @@
 ---
 id: E-0065
 title: Harden the stress catalog's correctness oracle
-status: active
+status: done
 ---
 
 ## Goal
