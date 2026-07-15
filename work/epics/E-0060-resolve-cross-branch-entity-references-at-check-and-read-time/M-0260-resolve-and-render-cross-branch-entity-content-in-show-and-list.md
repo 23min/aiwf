@@ -27,6 +27,18 @@ acs:
 
 ## Goal
 
+Let `aiwf show`/`aiwf list` resolve and render an entity's content live
+from another local or remote-tracking ref when the id is cross-branch-known
+but locally absent — visibly labeled, and never guessed at when the
+cross-branch view reports divergent content.
+
+## Context
+
+Depends on `M-0259`, which widens the cross-branch view to carry per-id
+path/ref (AC-1) and classifies a hit as `cross-branch-pending` or
+`cross-branch-collision` (AC-2/AC-3). This milestone is the second of
+ADR-0030's two extension points — the read-side consumer of the same view.
+
 ## Acceptance criteria
 
 ### AC-1 — Resolve content via BlobReader using the recorded cross-branch ref
@@ -79,4 +91,52 @@ write, no index write, no ref write.
 Evidence: an integration test asserting the repository's working tree,
 index, and refs are byte-identical before and after an `aiwf show`/`aiwf
 list` invocation that resolves cross-branch content.
+
+## Constraints
+
+- No entity content is copied, cached, or materialized into the working
+  tree, the index, or a new ref — resolution is always a live read against
+  the other ref at the point of use (epic-level constraint).
+- A cross-branch-sourced result is never presented indistinguishably from a
+  locally-resolved entity (ADR-0030 Consequences).
+- The read-side lookup fires only on a local-tree miss — never adds
+  subprocess cost to the common case where the entity already resolves
+  locally (epic-level risk mitigation).
+
+## Design notes
+
+- Content resolution reuses `gitops.BlobReader` directly — the same
+  primitive `M-0259`/AC-3 uses for blob-SHA comparison, so no second
+  git-reading mechanism is introduced across the two milestones.
+- `cross-branch-collision` handling (AC-3) surfaces the candidate refs
+  rather than attempting any reconciliation or merge — reconciliation stays
+  a manual, human action (merge one branch, edit one side), unchanged by
+  this epic.
+
+## Surfaces touched
+
+- `internal/cli/show/show.go`
+- `internal/cli/list/list.go`
+- `internal/gitops/catfile.go` (`BlobReader`, consumed not modified)
+
+## Out of scope
+
+- `aiwf status`/`aiwf render --format=html` surfacing cross-branch-pending
+  references — the epic's own deferred open question; a candidate
+  follow-on gap if it turns out to matter.
+- Any mutating verb accepting a `cross-branch-pending` or
+  `cross-branch-collision` target (epic-level out of scope, unchanged).
+
+## Dependencies
+
+- `M-0259` — the widened cross-branch view and classification this
+  milestone renders.
+- `ADR-0030` (proposed).
+- `G-0415` (open) — read-side half addressed by AC-3.
+
+## References
+
+- ADR-0030 — Extend cross-branch view to reference resolution and reads
+- M-0259 — Add cross-branch-pending tier and collision detection to
+  reference checks
 
