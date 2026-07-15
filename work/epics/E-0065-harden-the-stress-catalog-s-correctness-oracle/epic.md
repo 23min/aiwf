@@ -78,14 +78,14 @@ isn't a current priority.
 
 ## Success criteria
 
-- [ ] G-0410 is closed.
-- [ ] Every scenario listed in the *In scope* broadening list above asserts
+- [x] G-0410 is closed.
+- [x] Every scenario listed in the *In scope* broadening list above asserts
       its own curated check-clean baseline instead of a single pinned
       finding code.
-- [ ] A stress scenario exists that races concurrent promote/cancel/AC
+- [x] A stress scenario exists that races concurrent promote/cancel/AC
       operations against shared entity state, with an oracle that
       distinguishes a legitimate race from a guard violation.
-- [ ] Re-running the new concurrent scenario against a synthetic
+- [x] Re-running the new concurrent scenario against a synthetic
       G-0335-shaped regression (a domain-specific guard removed with no
       check-rule backstop) fails the run, demonstrating the blind spot
       G-0410 identified is closed.

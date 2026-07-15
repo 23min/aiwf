@@ -16,6 +16,27 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0065: broadened the stress catalog's check-clean oracle and added a concurrent-race mode
+
+G-0410 found two structural gaps in the correctness stress harness's oracle
+coverage. Every scenario listed under `docs/initiatives/robustness-correctness-stress-testing.md`'s
+concurrency tier now asserts its own curated check-clean baseline instead of
+one shared pinned finding code — a domain-specific guard regression could
+previously slip past `verb-sequence`'s generic oracle even though `aiwf
+check` ran (confirmed empirically against a pre-fix G-0335 binary: 30/30
+clean runs despite a real guard bypass). A new `concurrent-milestone-race`
+scenario closes the deeper gap: N real subprocess actors race `aiwf
+promote`/`aiwf cancel` against one shared milestone+AC, judged by a
+two-signal oracle (refusal-reason matching plus real git-commit-order
+causality) that distinguishes a legitimate race from a guard violation —
+proven against a reintroduced, isolated copy of the G-0335 regression
+(consistently ~13–19/30 detections, 0 false positives on a healthy binary).
+Dev-only stress-testing tooling; no consumer-facing surface changed, except
+that three legality-refusal paths (`aiwf promote` on an AC's illegal status/
+tdd_phase transition; `aiwf cancel` on an already-terminal entity) now
+correctly exit `1` (findings) instead of `2` (usage), matching every other
+legality refusal in the CLI.
+
 ### Fixed — G-0401: verb-sequence stress walker now reliably creates its milestone
 
 The `verb-sequence` stress scenario used to create its milestone entity only
