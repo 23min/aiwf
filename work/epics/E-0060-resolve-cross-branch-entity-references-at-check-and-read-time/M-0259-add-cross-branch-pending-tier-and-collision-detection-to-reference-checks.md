@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Local-tree miss resolves as cross-branch-pending, not unresolved
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Divergent content across refs escalates to cross-branch-collision
       status: open
