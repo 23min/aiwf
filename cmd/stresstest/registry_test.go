@@ -34,7 +34,7 @@ var wantScenarioNames = []string{
 	"concurrent-milestone-race",
 }
 
-func TestScenarioNames_ListsAllTwelveInCatalogOrder(t *testing.T) {
+func TestScenarioNames_ListsEveryCatalogEntryInOrder(t *testing.T) {
 	t.Parallel()
 	got := scenarioNames()
 	if len(got) != len(wantScenarioNames) {
