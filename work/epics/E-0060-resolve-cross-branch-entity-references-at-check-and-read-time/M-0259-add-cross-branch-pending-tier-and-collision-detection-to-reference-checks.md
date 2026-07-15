@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Cross-branch view carries per-id path and ref
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Local-tree miss resolves as cross-branch-pending, not unresolved
