@@ -29,6 +29,21 @@ acs:
 
 ## Goal
 
+Classify a reference (structured field or prose token) to an id that exists
+only on another local branch or remote-tracking ref as a distinct,
+non-blocking `cross-branch-pending` finding instead of a hard `unresolved`
+— and correctly tell that case apart from a genuine cross-branch collision.
+
+## Context
+
+ADR-0030 records the decision this milestone implements. `E-0052` (done)
+already built the cross-branch view this milestone widens and consumes
+(`Tree.LocalRefIDs`/`RemoteRefIDs`, M-0212/M-0214); `G-0241` shipped the
+precedent second-tier resolver shape (the silent trunk fallback in
+`classifyBodyToken`). `G-0415`, filed while analyzing this epic, adds the
+collision-divergence requirement (AC-3) and the accepted-limitation note
+below — this milestone addresses it.
+
 ## Acceptance criteria
 
 ### AC-1 — Cross-branch view carries per-id path and ref
@@ -106,4 +121,64 @@ Evidence: existing `unresolved` fixture tests continue to pass unmodified;
 a new fixture test with a fabricated id present nowhere (not local tree,
 not trunk, not any local/remote ref) confirms the finding subcode stays
 `unresolved`.
+
+## Constraints
+
+- Reuse `Tree.LocalRefIDs`/`Tree.RemoteRefIDs`/`AllocationIDs()` as-is where
+  possible; AC-1's widening is additive and must not change the allocator's
+  existing consumption of them.
+- No entity content is copied, cached, or materialized into the working
+  tree, the index, or a new ref — AC-3's blob-SHA comparison reads live via
+  `gitops.BlobReader`, never `git checkout`/`git merge`.
+- Transient git scan failures in the underlying `LocalRefIDs`/`RemoteRefIDs`
+  collection (an individual ref that lists but fails to read mid-scan) are
+  accepted as a documented, self-healing limitation for v1: no retry, no
+  new error-signaling plumbing added to the shared allocator-facing
+  primitives. A spurious `unresolved` from a one-off race clears on the
+  next `aiwf check` run, since nothing here is cached (`G-0415`).
+
+## Design notes
+
+- The new `cross-branch-pending`/`cross-branch-collision` classifications
+  land as subcodes on the existing `refs-resolve`/`body-prose-id` finding
+  codes (ADR-0030's Decision section), not new finding codes — mirrors how
+  the existing `Trunk` tier reuses the same codes.
+- Collision detection (AC-3) is a blob-SHA comparison via the existing
+  `gitops.BlobReader`, not a content diff or merge simulation — cheap and
+  precise: identical SHA means identical content, no ambiguity possible.
+
+## Surfaces touched
+
+- `internal/trunk/trunk.go` (`LocalRefIDs`/`RemoteRefIDs`/`refIDs`)
+- `internal/check/check.go` (`refsResolve`)
+- `internal/check/body_prose_id.go` (`classifyBodyToken`, `BodyProseIDIndex`)
+- `internal/gitops/catfile.go` (`BlobReader`, consumed not modified)
+
+## Out of scope
+
+- Read-side rendering (`aiwf show`/`aiwf list`) — `M-0260`.
+- Any mutating verb accepting a `cross-branch-pending` or
+  `cross-branch-collision` target (epic-level out of scope, unchanged).
+- Changes to `ids-unique`'s trunk-anchored basis or `TrunkIDs`'s existing
+  silent resolution tier (`G-0241`) — unchanged.
+
+## Dependencies
+
+- `E-0052` / `M-0212` / `M-0214` (done) — the cross-branch view this
+  milestone widens.
+- `G-0241` (addressed) — precedent resolver shape.
+- `ADR-0030` (proposed) — implements its decision; should be accepted
+  before or alongside this milestone landing.
+- `G-0415` (open) — addressed by this milestone landing.
+
+## References
+
+- ADR-0030 — Extend cross-branch view to reference resolution and reads
+- ADR-0025 — Allocator's cross-branch view spans all refs, fed to
+  allocation only
+- E-0052 — Broaden the id allocator's cross-branch view to cut collisions
+- G-0241 — BodyProseIDIndex skips TrunkIDs; trunk-only ids appear
+  unresolved
+- G-0415 — Cross-branch reference resolution must detect same-id
+  divergence across refs
 
