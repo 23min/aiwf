@@ -134,3 +134,16 @@ real goroutine/subprocess timing.
 - G-0335 — the concrete regression (open-AC cancel guard bypass) this
   scenario reproduces under concurrency
 - E-0065 — Harden the stress catalog's correctness oracle (parent epic)
+
+## Work log
+
+### AC-1 — N concurrent actors race promote/cancel on one shared milestone+AC
+
+`ConcurrentMilestoneRaceScenario` (registered as `concurrent-milestone-race`)
+races 8 actors — split between `aiwf promote <M>/AC-1 met` and `aiwf cancel
+<M>` — against one shared, pre-seeded milestone+AC pair via goroutine +
+`sync.WaitGroup` subprocess fan-out. Scoped to AC-1's mechanical invariants
+only: every actor returns a parseable envelope, and the resulting tree stays
+check-clean beyond a curated baseline. The legitimate-race-vs-guard-violation
+oracle is AC-2's own follow-on cycle, built on top of the `raceActorOutcome`
+shape this AC already captures · commit 632debc8 · tests 8/8.
