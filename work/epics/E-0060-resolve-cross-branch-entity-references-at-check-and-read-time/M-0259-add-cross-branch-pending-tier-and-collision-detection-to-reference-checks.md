@@ -1,7 +1,7 @@
 ---
 id: M-0259
 title: Add cross-branch-pending tier and collision detection to reference checks
-status: draft
+status: in_progress
 parent: E-0060
 tdd: required
 acs:
