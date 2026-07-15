@@ -147,3 +147,18 @@ only: every actor returns a parseable envelope, and the resulting tree stays
 check-clean beyond a curated baseline. The legitimate-race-vs-guard-violation
 oracle is AC-2's own follow-on cycle, built on top of the `raceActorOutcome`
 shape this AC already captures · commit 632debc8 · tests 8/8.
+
+### AC-2 — Oracle distinguishes a legitimate race from a guard violation
+
+`classifyMilestoneRaceOutcomes` judges each race's outcomes on two
+independent signals: outcome-shape/refusal-reason (exactly one promote and
+zero-or-one cancel actor land `ok`, every other actor refused with the
+matching typed FSM/guard code), and commit-order causality (a winning
+cancel's commit, read back via `aiwf-verb`/`aiwf-entity` trailers, must land
+strictly after the AC's own `open -> met` commit — the signal that actually
+catches the G-0335 shape, since final state alone can't distinguish it from
+a legitimate race). Landed alongside a narrow `internal/verb` fix: AC
+status/tdd_phase transition refusals and `Cancel`'s already-terminal refusal
+carried bare, untyped errors, exiting `2` (usage) instead of `1` (findings)
+— the oracle depends on the typed code to tell a legitimate refusal from an
+unexpected one · commit 4215e0e0 · tests 15/15.
