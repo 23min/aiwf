@@ -237,6 +237,29 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	return result, nil
 }
 
+// fsmTransitionIllegalError wraps a legality refusal that isn't itself
+// produced by entity.ValidateTransition — an AC composite-id status or
+// tdd_phase transition (ac.go's promoteAC / PromoteACPhase, which
+// validate against entity.IsLegalACTransition /
+// IsLegalTDDPhaseTransition rather than a Kind-keyed FSM, since AC
+// status isn't one of the six entity kinds), or Cancel's own
+// already-terminal pre-check below — but is the same class of refusal
+// entity.ValidateTransition's own FSMTransitionError reports for
+// kind-level transitions. Carrying the same CodeFSMTransitionIllegal
+// lets a Coded consumer (entity.Code) recognize an FSM-illegal
+// transition refusal uniformly, regardless of which pre-flight check
+// caught it, without changing any existing message text (message-
+// matching consumers, and Cancel's own documented "already at
+// terminal X" phrasing, are unaffected).
+type fsmTransitionIllegalError struct{ msg string }
+
+// Error implements error, returning msg unchanged.
+func (e *fsmTransitionIllegalError) Error() string { return e.msg }
+
+// Code returns entity.CodeFSMTransitionIllegal's ID, satisfying
+// entity.Coded.
+func (e *fsmTransitionIllegalError) Code() string { return entity.CodeFSMTransitionIllegal.ID }
+
 // Cancel promotes an entity to its kind's terminal-cancel status —
 // `cancelled` for epic/milestone, `rejected` for adr/decision,
 // `wontfix` for gap, `retired` for contract. Errors when the entity is
@@ -272,7 +295,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	// catches the case once, at the verb boundary, with a clear
 	// "already at terminal X" error.
 	if entity.IsTerminal(e.Kind, e.Status) {
-		return nil, fmt.Errorf("%s is already at terminal status %q; nothing to cancel", id, e.Status)
+		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}
 	}
 	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {

@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/verb"
 )
 
-// concurrent_milestone_race.go — M-0258/AC-1: ConcurrentMilestoneRaceScenario
+// concurrent_milestone_race.go — M-0258/AC-1 & AC-2: ConcurrentMilestoneRaceScenario
 // launches n real `aiwf` subprocess actors concurrently against ONE
 // shared disposable repo, every actor targeting the SAME milestone's
 // promote/cancel operations — the exact shape G-0335 exercised (the
@@ -21,13 +25,17 @@ import (
 // goroutine + sync.WaitGroup subprocess fan-out pattern: real OS
 // process scheduling drives the race, no artificial delay.
 //
-// This scenario itself commits to two mechanical invariants only —
-// every actor's subprocess actually ran and returned a parseable
-// envelope (surfaced as a Run error, not a Violation), and the
-// resulting repo stays check-clean beyond a curated baseline. Judging
-// each actor's outcome as a legitimate race versus an actual guard
-// violation is AC-2's own oracle, built on top of the raceActorOutcome
-// shape Run already captures here.
+// AC-1 commits to two mechanical invariants — every actor's subprocess
+// actually ran and returned a parseable envelope (surfaced as a Run
+// error, not a Violation), and the resulting repo stays check-clean
+// beyond a curated baseline. AC-2 adds the oracle proper:
+// classifyMilestoneRaceOutcomes judges s.outcomes (already captured by
+// AC-1) against two independent signals — the outcome-shape/refusal-
+// reason each actor reported, and the real commit order
+// readRaceCommitOrder reads back via git trailers — so a legitimate
+// race (exactly one promote/cancel actor lands per mutually-exclusive
+// transition, everyone else cleanly refused) is never flagged, while a
+// guard that silently didn't hold (the G-0335 shape) is.
 
 // raceOpPromote and raceOpCancel name the two operations this
 // scenario's actors race, doubling as the `aiwf` subcommand each
@@ -172,8 +180,8 @@ func (s *ConcurrentMilestoneRaceScenario) launchActor(dir, operation string) raw
 // raceActorOutcome is one concurrent actor's reduced result: which
 // operation it ran, the verb's reported envelope status, and the
 // typed error code it carried (empty when it succeeded) — the shape
-// AC-2's future oracle will classify as a legitimate race outcome or a
-// guard violation.
+// classifyMilestoneRaceOutcomes (AC-2) classifies as a legitimate race
+// outcome or a guard violation.
 type raceActorOutcome struct {
 	operation string
 	status    string
@@ -191,6 +199,162 @@ func buildRaceOutcome(operation string, env verbEnvelope) raceActorOutcome {
 		errorCode = env.Error.Code
 	}
 	return raceActorOutcome{operation: operation, status: env.Status, errorCode: errorCode}
+}
+
+// raceCommit is one commit's aiwf-verb/aiwf-entity trailer pair, in
+// oldest-first commit order — readRaceCommitOrder's own reduction of
+// dir's git history, which classifyMilestoneRaceOutcomes' commit-order
+// causality check (AC-2) uses to tell a legitimate race (a winning
+// cancel commit landing strictly after the AC's own open->met commit)
+// from the G-0335 shape (the open-AC guard silently not holding, so a
+// cancel lands at or before it).
+type raceCommit struct {
+	verb   string
+	entity string
+}
+
+// readRaceCommitOrder returns every commit in dir's history, oldest
+// first, reduced to its aiwf-verb/aiwf-entity trailer pair. Lists the
+// commit SHAs via `git log --reverse --format=%H`, then reuses this
+// same package's commitTrailerValue (force_override_durability.go) —
+// its own `git log -1 <ref> --format=%(trailers:key=...,valueonly,
+// unfold=true)` idiom — once per SHA per trailer key, rather than
+// combining both keys into one --format string: git's %(trailers:...)
+// placeholder always appends its own trailing newline to a matched
+// value, so two of them concatenated in one format string do not land
+// on the same line — confirmed empirically against a real repo.
+func readRaceCommitOrder(dir string) ([]raceCommit, error) {
+	cmd := exec.Command("git", "log", "--reverse", "--format=%H")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("listing commit SHAs in %s: %w", dir, err)
+	}
+	shas := parseRaceCommitSHAs(out)
+	commits := make([]raceCommit, len(shas))
+	for i, sha := range shas {
+		verbVal, verbErr := commitTrailerValue(dir, sha, gitops.TrailerVerb)
+		if verbErr != nil { //coverage:ignore defensive: reading a trailer off a SHA readRaceCommitOrder itself just listed from the same repo has no realistic failure mode; commitTrailerValue's own error branch is unit-tested directly (TestCommitTrailerValue_ErrorsOnUnreadableRef)
+			return nil, fmt.Errorf("reading %s trailer on %s: %w", gitops.TrailerVerb, sha, verbErr)
+		}
+		entityVal, entityErr := commitTrailerValue(dir, sha, gitops.TrailerEntity)
+		if entityErr != nil { //coverage:ignore defensive: see the aiwf-verb read above
+			return nil, fmt.Errorf("reading %s trailer on %s: %w", gitops.TrailerEntity, sha, entityErr)
+		}
+		commits[i] = raceCommit{verb: verbVal, entity: entityVal}
+	}
+	return commits, nil
+}
+
+// parseRaceCommitSHAs parses `git log --reverse --format=%H`'s raw
+// output into an ordered list of commit SHAs, oldest first. Split out
+// of readRaceCommitOrder so the parsing itself is directly
+// unit-testable against fabricated bytes, without a real git
+// subprocess.
+func parseRaceCommitSHAs(out []byte) []string {
+	var shas []string
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if line == "" {
+			continue
+		}
+		shas = append(shas, line)
+	}
+	return shas
+}
+
+// classifyMilestoneRaceOutcomes judges one concurrent-milestone-race
+// run's outcomes against AC-2's legitimate-race-vs-violation oracle.
+// milestoneID is the shared milestone's id (order's entity fields are
+// matched against "<milestoneID>/AC-1" and milestoneID itself).
+//
+// Two independent signals feed the judgment. The outcome-shape/
+// refusal-reason signal: the promote group must land exactly one "ok"
+// (the AC's open->met transition can only land once), with every other
+// promote actor refused as CodeFSMTransitionIllegal; the cancel group
+// must land zero or one "ok" (the milestone's draft->cancelled
+// transition can only land once), with every other cancel actor
+// refused as either CodeMilestoneCancelNonTerminalACs (raced while the
+// AC was still open) or CodeFSMTransitionIllegal (raced after another
+// actor already cancelled the milestone). The commit-order causality
+// signal: when a cancel actor did land, that commit's real position in
+// dir's git history must come strictly after the promote commit's —
+// otherwise the open-AC guard did not actually hold at the moment that
+// cancel committed, the G-0335 regression shape, indistinguishable
+// from a legitimate race by final state alone.
+func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceCommit, milestoneID string) []Violation {
+	var violations []Violation
+	acEntity := milestoneID + "/AC-1"
+
+	promoteOKCount := 0
+	for _, oc := range outcomes {
+		if oc.operation != raceOpPromote {
+			continue
+		}
+		if oc.status == "ok" {
+			promoteOKCount++
+			continue
+		}
+		if oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a promote actor was refused with error code %q, want %q — the refusal reason contradicts the FSM's own verdict",
+				oc.errorCode, entity.CodeFSMTransitionIllegal.ID,
+			)})
+		}
+	}
+	if promoteOKCount != 1 {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d promote actors reported ok for %s (open -> met), want exactly 1",
+			promoteOKCount, acEntity,
+		)})
+	}
+
+	cancelOKCount := 0
+	for _, oc := range outcomes {
+		if oc.operation != raceOpCancel {
+			continue
+		}
+		if oc.status == "ok" {
+			cancelOKCount++
+			continue
+		}
+		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID && oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a cancel actor was refused with error code %q, want %q or %q — the refusal reason contradicts the open-AC guard or the FSM's own verdict",
+				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID, entity.CodeFSMTransitionIllegal.ID,
+			)})
+		}
+	}
+	if cancelOKCount > 1 {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d cancel actors reported ok for %s, want at most 1",
+			cancelOKCount, milestoneID,
+		)})
+	}
+
+	if cancelOKCount >= 1 {
+		promoteIdx, cancelIdx := -1, -1
+		for i, c := range order {
+			if promoteIdx == -1 && c.verb == raceOpPromote && c.entity == acEntity {
+				promoteIdx = i
+			}
+			if cancelIdx == -1 && c.verb == raceOpCancel && c.entity == milestoneID {
+				cancelIdx = i
+			}
+		}
+		if promoteIdx == -1 {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a cancel actor reported ok but no %s commit for %s was found in the commit order — cannot verify commit-order causality",
+				raceOpPromote, acEntity,
+			)})
+		} else if cancelIdx <= promoteIdx {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a cancel actor's commit landed at or before the AC's own open -> met commit (cancel index %d, promote index %d) — the open-AC guard did not hold under concurrent contention",
+				cancelIdx, promoteIdx,
+			)})
+		}
+	}
+
+	return violations
 }
 
 // Run launches s.n actors concurrently against s.milestoneID — the
@@ -261,14 +425,27 @@ func (s *ConcurrentMilestoneRaceScenario) Run(dir string) error {
 	if checkErr != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
 		return fmt.Errorf("running aiwf check after the concurrent race: %w", checkErr)
 	}
-	s.violations = classifyAgainstBaseline(checkEnv.Findings, concurrentMilestoneRaceExpectedWarnings)
+
+	// M-0258/AC-2: judge the race's own outcomes against the
+	// legitimate-race-vs-violation oracle, reading back the real
+	// commit order (once, on the final dir state — not re-run per
+	// actor) so the commit-order causality signal can tell a
+	// legitimate race from a guard that silently didn't hold.
+	// s.violations accumulates both signals, mirroring every other
+	// scenario's own append(s.violations, ...) idiom in this package.
+	order, orderErr := readRaceCommitOrder(dir)
+	if orderErr != nil { //coverage:ignore defensive: reading commit trailer order off a repo this scenario itself just produced commits in has no realistic failure mode; readRaceCommitOrder's own error branch is unit-tested directly against a non-git directory
+		return fmt.Errorf("reading commit trailer order after the concurrent race: %w", orderErr)
+	}
+	s.violations = classifyMilestoneRaceOutcomes(s.outcomes, order, s.milestoneID)
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentMilestoneRaceExpectedWarnings)...)
 	return nil
 }
 
-// Verify returns every violation Run collected. AC-1 commits to
-// exactly one violation source — the check-clean baseline classified
-// in Run — deliberately narrower than AC-2's future oracle, which will
-// classify s.outcomes itself.
+// Verify returns every violation Run collected: AC-2's own
+// legitimate-race-vs-violation oracle judging s.outcomes (classified
+// in Run via classifyMilestoneRaceOutcomes), alongside AC-1's
+// check-clean baseline — both signals stay live side by side.
 func (s *ConcurrentMilestoneRaceScenario) Verify(_ string) []Violation {
 	return s.violations
 }
