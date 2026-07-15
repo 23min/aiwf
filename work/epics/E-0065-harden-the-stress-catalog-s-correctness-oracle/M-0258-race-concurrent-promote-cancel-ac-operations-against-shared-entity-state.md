@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Re-running against a reintroduced G-0335-shaped regression fails the run
-      status: open
+      status: met
       tdd_phase: done
 ---
 
