@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Oracle distinguishes a legitimate race from a guard violation
       status: open
-      tdd_phase: refactor
+      tdd_phase: done
     - id: AC-3
       title: Re-running against a reintroduced G-0335-shaped regression fails the run
       status: open
