@@ -904,6 +904,6 @@ silently.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0257 | Broaden the check-clean oracle across ten stress scenarios | in_progress |
+| M-0257 | Broaden the check-clean oracle across ten stress scenarios | done |
 | M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | draft |
 
