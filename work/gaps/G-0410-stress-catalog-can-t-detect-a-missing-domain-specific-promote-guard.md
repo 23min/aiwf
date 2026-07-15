@@ -1,7 +1,9 @@
 ---
 id: G-0410
 title: stress catalog can't detect a missing domain-specific promote guard
-status: open
+status: addressed
+addressed_by_commit:
+    - 545e89fc
 ---
 ## What's missing
 
