@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Cross-branch view carries per-id path and ref
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Local-tree miss resolves as cross-branch-pending, not unresolved
       status: open
