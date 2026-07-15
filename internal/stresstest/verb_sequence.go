@@ -490,14 +490,10 @@ func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, 
 
 // classifyCheckFindings reports a violation for every finding that
 // isn't part of verbSequenceExpectedWarnings — any error-severity
-// finding always violates, regardless of code.
+// finding always violates, regardless of code. Thin wrapper over
+// classifyAgainstBaseline (M-0257/AC-2, checkclean.go), the
+// generalized form of this same loop every other scenario's own
+// check-clean baseline assertion shares.
 func classifyCheckFindings(findings []verbEnvelopeFinding) []Violation {
-	var violations []Violation
-	for _, f := range findings {
-		if f.Severity == "error" || !verbSequenceExpectedWarnings[f.Code] {
-			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"unexpected aiwf check finding: %s (%s)", f.Code, f.Severity)})
-		}
-	}
-	return violations
+	return classifyAgainstBaseline(findings, verbSequenceExpectedWarnings)
 }

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -24,6 +25,26 @@ import (
 // show`/`aiwf history` must degrade in their own already-understood
 // ways (show: not found; history: empty, never leaked) rather than
 // erroring unexpectedly or leaking data across the branch boundary.
+
+// reachabilityIsolationExpectedWarnings is the baseline of finding
+// codes this scenario's check calls are expected to carry
+// (M-0257/AC-1), beyond the byte-identical baseline/after comparison
+// classifyReachabilityIsolation already pins directly — that
+// comparison alone would miss a finding present, unchanged, in EVERY
+// check this scenario runs (a stable but genuinely unexpected
+// regression), since "identical before and after" says nothing about
+// whether either side was clean to begin with:
+//
+//   - provenance-untrailered-scope-undefined: sibling worktrees of one
+//     repo (newSiblingWorktreesFixture) share one .git and never
+//     configure a separate upstream remote, so the provenance audit
+//     range is permanently undefined.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var reachabilityIsolationExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // ReachabilityIsolationScenario implements Scenario.
 type ReachabilityIsolationScenario struct {
@@ -104,6 +125,13 @@ func (s *ReachabilityIsolationScenario) Run(dir string) error {
 	}
 
 	s.violations = append(s.violations, classifyReachabilityIsolation(baselineEnv, afterEnv, showFoundBeforeMerge, historyEnv, postMergeEnv, postMergeHistoryEnv)...)
+	// M-0257/AC-1: alongside the byte-identical baseline/after
+	// comparison above, confirm both the pre-merge and post-merge check
+	// state carry nothing unexpected beyond baseline noise — closing
+	// the blind spot a finding present identically on both sides of
+	// that comparison would otherwise slip through.
+	s.violations = append(s.violations, classifyAgainstBaseline(baselineEnv.Findings, reachabilityIsolationExpectedWarnings)...)
+	s.violations = append(s.violations, classifyAgainstBaseline(postMergeEnv.Findings, reachabilityIsolationExpectedWarnings)...)
 	return nil
 }
 

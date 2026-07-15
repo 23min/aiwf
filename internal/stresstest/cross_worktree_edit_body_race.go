@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // cross_worktree_edit_body_race.go — M-0243/AC-2:
@@ -26,6 +28,23 @@ import (
 // make, not an assumption baked into it, is what that oracle records.
 
 const editBodyRaceEntityID = "G-0001"
+
+// crossWorktreeEditBodyRaceExpectedWarnings is the baseline of finding
+// codes this scenario's post-merge check is expected to carry
+// (M-0257/AC-1), beyond the merge-outcome assertion
+// classifyCrossWorktreeEditBodyRace already pins directly:
+//
+//   - provenance-untrailered-scope-undefined: sibling worktrees of one
+//     repo never configure a separate upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation. Holds regardless of
+// whether the merge conflicted (a conflict marker sits entirely within
+// the entity's body prose, never its frontmatter, so `aiwf check`
+// still loads and validates the entity normally either way).
+var crossWorktreeEditBodyRaceExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // CrossWorktreeEditBodyRaceScenario implements Scenario.
 type CrossWorktreeEditBodyRaceScenario struct {
@@ -124,6 +143,15 @@ func (s *CrossWorktreeEditBodyRaceScenario) Run(dir string) error {
 	}
 
 	s.violations = classifyCrossWorktreeEditBodyRace(conflicted, string(mergedBytes), draftAText, draftBText)
+
+	// M-0257/AC-1: alongside the merge-outcome assertion above, confirm
+	// the merged tree stays check-clean beyond baseline noise — this
+	// scenario never ran `aiwf check` at all before.
+	checkEnv, err := runAiwfJSON(s.aiwfBin, wtA, "check")
+	if err != nil { //coverage:ignore defensive: covered by the same launch-failure class other scenarios pin at runAiwfJSON's own source
+		return fmt.Errorf("running aiwf check after the merge: %w", err)
+	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, crossWorktreeEditBodyRaceExpectedWarnings)...)
 	return nil
 }
 

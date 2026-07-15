@@ -146,6 +146,11 @@ var scenarioCatalog = []scenarioEntry{
 			return stresstest.NewConcurrentMoveScenario(rt.aiwfBin, defaultScale, seed)
 		}
 	}},
+	{"concurrent-milestone-race", func(rt scenarioRuntime) func(int64) stresstest.Scenario {
+		return func(seed int64) stresstest.Scenario {
+			return stresstest.NewConcurrentMilestoneRaceScenario(rt.aiwfBin, defaultScale, seed)
+		}
+	}},
 }
 
 // scenarioNames returns every registered name in catalog order.

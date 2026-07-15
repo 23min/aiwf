@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -73,5 +74,62 @@ func TestParallelBranchReallocateScenario_RealBinary_RunErrorsWhenOperatorAddNot
 		t.Fatal("expected Run to surface operator B's add refusal")
 	} else if !strings.Contains(err.Error(), "did not report ok") {
 		t.Fatalf("expected the refusal to name the add step, got: %v", err)
+	}
+}
+
+// TestParallelBranchReallocateScenario_BroadenedOracleCatchesAnInjectedRegression
+// is M-0257/AC-3's synthetic regression test: it drives the real
+// scenario to completion (mirroring
+// TestParallelBranchReallocateScenario_RealBinary_ConfirmsCleanResolution's
+// own clean-run premise), captures the real post-reallocate check
+// envelope, and injects one extraneous finding a genuine check-rule
+// regression might produce — a code outside both this scenario's
+// baseline and its existing ids-unique-only assertion. It then
+// confirms (a) classifyParallelBranchReallocate alone, exactly as this
+// scenario already calls it, does NOT flag the injected finding (the
+// blind spot G-0410 named), and (b) M-0257/AC-1's broadened
+// classifyAgainstBaseline call DOES — proving the fix actually closes
+// the gap, not just that new code runs.
+func TestParallelBranchReallocateScenario_BroadenedOracleCatchesAnInjectedRegression(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	base := t.TempDir()
+
+	s := NewParallelBranchReallocateScenario(bin, entity.KindGap)
+	dir, mkdirErr := os.MkdirTemp(base, "regression-")
+	if mkdirErr != nil {
+		t.Fatalf("MkdirTemp: %v", mkdirErr)
+	}
+	if err := s.Setup(dir); err != nil {
+		t.Fatalf("Setup: %v", err)
+	}
+	if err := s.Run(dir); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if violations := s.Verify(dir); len(violations) != 0 {
+		t.Fatalf("expected the real scenario run to be check-clean before injecting a regression, got: %+v", violations)
+	}
+
+	opB := filepath.Join(dir, "operator-b")
+	postCheckEnv, err := runAiwfJSON(bin, opB, "check")
+	if err != nil {
+		t.Fatalf("capturing the real post-reallocate check envelope: %v", err)
+	}
+	injected := append(append([]verbEnvelopeFinding(nil), postCheckEnv.Findings...),
+		verbEnvelopeFinding{Code: "synthetic-check-rule-regression", Severity: "warning"}) //enums:ignore deliberately fabricated non-code simulating an unrelated check-rule regression, not a real finding
+
+	// A real, well-formed pre-reallocate checkFindings argument (this
+	// scenario's own premise: the collision WAS surfaced as
+	// ids-unique) isolates the assertion to what's under test — whether
+	// classifyParallelBranchReallocate's postCheckFindings handling
+	// alone catches the injected code, not an unrelated premise break.
+	realCheckFindings := []verbEnvelopeFinding{{Code: check.CodeIDsUnique, Severity: "error"}}
+	if got := classifyParallelBranchReallocate(realCheckFindings, "ok", injected, true); len(got) != 0 {
+		t.Fatalf("expected the scenario's existing single-finding-code assertion NOT to catch the injected finding on its own, got: %+v", got)
+	}
+
+	if got := classifyAgainstBaseline(injected, parallelBranchReallocateExpectedWarnings); len(got) != 1 {
+		t.Fatalf("expected the broadened check-clean oracle to flag exactly one violation for the injected finding, got: %+v", got)
 	}
 }

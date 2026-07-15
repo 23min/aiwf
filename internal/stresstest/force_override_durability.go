@@ -45,6 +45,29 @@ import (
 // the same trailer-preservation). So this half of the scenario reports
 // only premise breaks, never the carryover fact itself.
 
+// forceOverrideDurabilityExpectedWarnings is the baseline of finding
+// codes this scenario's post-acknowledgment check (postAckCheckEnv,
+// the one genuinely quiescent checkpoint runAckRevocationByRebase
+// reaches — see that method's own broadened-oracle call site for why
+// it alone, not the pre-ack/post-rebase checkpoints, gets this
+// assertion) is expected to carry, beyond the illegal-transition-
+// specific assertions classifyForceOverrideDurability already pins:
+//
+//   - epic-active-no-drafted-milestones: the manual illegal edit this
+//     scenario deliberately makes sets the ack-target epic's own
+//     status file to "active" with no milestone children at all — a
+//     scenario-specific, expected side effect of the premise being
+//     probed, not incidental noise.
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var forceOverrideDurabilityExpectedWarnings = map[string]bool{
+	check.CodeEpicActiveNoDraftedMilestones:     true,
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
+
 // ForceOverrideDurabilityScenario implements Scenario.
 type ForceOverrideDurabilityScenario struct {
 	aiwfBin     string
@@ -138,7 +161,10 @@ func (s *ForceOverrideDurabilityScenario) Run(dir string) error {
 	if err != nil { //coverage:ignore defensive: see the runAckRevocationByRebase propagation above
 		return err
 	}
-	s.violations = classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, forceAccepted, cherryPickClean, trailersPreserved)
+	// append, not assign: runAckRevocationByRebase (M-0257/AC-1) already
+	// recorded its own broadened check-clean violations onto
+	// s.violations before returning.
+	s.violations = append(s.violations, classifyForceOverrideDurability(preAckFlagged, postAckFlagged, postRebaseFlagged, postRebaseHintPresent, forceAccepted, cherryPickClean, trailersPreserved)...)
 	return nil
 }
 
@@ -195,6 +221,19 @@ func (s *ForceOverrideDurabilityScenario) runAckRevocationByRebase(dir string) (
 		return false, false, false, false, fmt.Errorf("running aiwf check after the acknowledgment: %w", checkErr)
 	}
 	postAckFlagged = hasFindingSubcodeForEntity(postAckCheckEnv.Findings, check.CodeFSMHistoryConsistent, "illegal-transition", s.ackEpicID)
+	// M-0257/AC-1: this is the one genuinely quiescent checkpoint in
+	// this scenario's own sequence — the acknowledgment suppresses the
+	// illegal-transition finding here, and the rebase that revives it
+	// (D-0034's accepted, structural revival — postRebaseFlagged, a few
+	// lines below) hasn't happened yet. The pre-ack and post-rebase
+	// checks deliberately do NOT get this broadened assertion: both are
+	// expected, by this scenario's own probed premise, to carry an
+	// error-severity fsm-history-consistent finding — and
+	// classifyAgainstBaseline treats every error-severity finding as an
+	// unconditional violation regardless of baseline, so applying it
+	// there would flag this scenario's own documented, accepted outcome
+	// as a false regression.
+	s.violations = append(s.violations, classifyAgainstBaseline(postAckCheckEnv.Findings, forceOverrideDurabilityExpectedWarnings)...)
 
 	scratchPath := filepath.Join(dir, "innocuous.txt")
 	if writeErr := os.WriteFile(scratchPath, []byte("innocuous\n"), 0o644); writeErr != nil { //coverage:ignore defensive: writing a fresh scratch file under this scenario's own disposable repo has no realistic failure mode

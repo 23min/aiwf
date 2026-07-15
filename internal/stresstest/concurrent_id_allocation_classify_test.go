@@ -1,6 +1,10 @@
 package stresstest
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/23min/aiwf/internal/check"
+)
 
 // concurrent_id_allocation_classify_test.go pins
 // classifyConcurrentIDAllocation — the pure decision logic behind
@@ -72,6 +76,44 @@ func TestClassifyConcurrentIDAllocation(t *testing.T) {
 			violations := classifyConcurrentIDAllocation(tc.outcomes, tc.n)
 			if len(violations) != tc.wantViolations {
 				t.Errorf("violations = %d (%+v), want %d", len(violations), violations, tc.wantViolations)
+			}
+		})
+	}
+}
+
+// TestConcurrentIDAllocationExpectedWarnings pins M-0257/AC-1's
+// broadened check-clean baseline for this scenario.
+func TestConcurrentIDAllocationExpectedWarnings(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		findings       []verbEnvelopeFinding
+		wantViolations int
+	}{
+		{name: "no findings", findings: nil, wantViolations: 0},
+		{
+			name:           "the baseline provenance-scope-undefined warning is accepted",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"}},
+			wantViolations: 0,
+		},
+		{
+			name:           "an unbaselined warning code is a violation",
+			findings:       []verbEnvelopeFinding{{Code: "some-unexpected-code", Severity: "warning"}}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			wantViolations: 1,
+		},
+		{
+			name:           "an error-severity finding is a violation even for a baselined code",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "error"}},
+			wantViolations: 1,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := classifyAgainstBaseline(tc.findings, concurrentIDAllocationExpectedWarnings)
+			if len(got) != tc.wantViolations {
+				t.Fatalf("violations = %+v, want %d", got, tc.wantViolations)
 			}
 		})
 	}
