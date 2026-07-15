@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 )
 
@@ -16,6 +17,20 @@ import (
 // simulated), and confirms repolock's mutual exclusion holds: every
 // attempt serializes to a distinct id within the lock's 2-second
 // timeout, and no two attempts ever allocate the same one.
+
+// concurrentIDAllocationExpectedWarnings is the baseline of finding
+// codes this scenario's post-run check is expected to carry
+// (M-0257/AC-1), beyond the per-actor outcome/duplicate-id assertion
+// classifyConcurrentIDAllocation already pins directly:
+//
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var concurrentIDAllocationExpectedWarnings = map[string]bool{
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // ConcurrentIDAllocationScenario implements Scenario.
 type ConcurrentIDAllocationScenario struct {
@@ -93,6 +108,15 @@ func (s *ConcurrentIDAllocationScenario) Run(dir string) error {
 	}
 
 	s.violations = append(s.violations, classifyConcurrentIDAllocation(outcomes, s.n)...)
+
+	// M-0257/AC-1: alongside the per-actor outcome assertion above,
+	// confirm the resulting tree stays check-clean beyond baseline
+	// noise — this scenario never ran `aiwf check` at all before.
+	checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
+	if err != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
+		return fmt.Errorf("running aiwf check after the concurrent add: %w", err)
+	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentIDAllocationExpectedWarnings)...)
 	return nil
 }
 

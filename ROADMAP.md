@@ -892,7 +892,7 @@ code.
 | M-0255 | Diagnostic and introspection verb coverage backfill | done |
 | M-0256 | Bulk-input verb coverage backfill | done |
 
-## E-0065 — Harden the stress catalog's correctness oracle (proposed)
+## E-0065 — Harden the stress catalog's correctness oracle (active)
 
 ### Goal
 
@@ -904,6 +904,6 @@ silently.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0257 | Broaden the check-clean oracle across ten stress scenarios | draft |
+| M-0257 | Broaden the check-clean oracle across ten stress scenarios | in_progress |
 | M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | draft |
 

@@ -7,6 +7,44 @@ import (
 	"github.com/23min/aiwf/internal/check"
 )
 
+// TestParallelBranchReallocateExpectedWarnings_EmptyBaselineFlagsAnyFinding
+// pins M-0257/AC-1's broadened check-clean assertion for this
+// scenario: parallelBranchReallocateExpectedWarnings is deliberately
+// empty (this scenario's operators are real bare-origin clones with
+// no epic/milestone lifecycle noise — see the map's own doc comment),
+// so classifyAgainstBaseline must flag ANY finding, warning or error,
+// as a violation.
+func TestParallelBranchReallocateExpectedWarnings_EmptyBaselineFlagsAnyFinding(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		findings       []verbEnvelopeFinding
+		wantViolations int
+	}{
+		{name: "no findings", findings: nil, wantViolations: 0},
+		{
+			name:           "a warning finding is still a violation against an empty baseline",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"}},
+			wantViolations: 1,
+		},
+		{
+			name:           "an error finding is a violation",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeIDsUnique, Severity: "error"}},
+			wantViolations: 1,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := classifyAgainstBaseline(tc.findings, parallelBranchReallocateExpectedWarnings)
+			if len(got) != tc.wantViolations {
+				t.Fatalf("violations = %+v, want %d", got, tc.wantViolations)
+			}
+		})
+	}
+}
+
 // parallel_branch_reallocate_classify_test.go pins
 // classifyParallelBranchReallocate — the pure decision logic behind
 // ParallelBranchReallocateScenario (M-0243/AC-1) — against fabricated

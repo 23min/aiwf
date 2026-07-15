@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // TestParseDiagLog pins parseDiagLog's line-by-line decoding directly
@@ -142,6 +144,49 @@ func TestClassifyConcurrentWriterAtScale(t *testing.T) {
 				if !found {
 					t.Errorf("no violation contained %q; got %+v", want, got)
 				}
+			}
+		})
+	}
+}
+
+// TestConcurrentWriterAtScaleExpectedWarnings pins M-0257/AC-1's
+// broadened check-clean baseline for this scenario.
+func TestConcurrentWriterAtScaleExpectedWarnings(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		findings       []verbEnvelopeFinding
+		wantViolations int
+	}{
+		{name: "no findings", findings: nil, wantViolations: 0},
+		{
+			name: "every baseline warning is accepted, including a repeated terminal-entity-not-archived per gap",
+			findings: []verbEnvelopeFinding{
+				{Code: check.CodeArchiveSweepPending, Severity: "warning"},
+				{Code: check.CodeTerminalEntityNotArchived, Severity: "warning", EntityID: "G-0001"},
+				{Code: check.CodeTerminalEntityNotArchived, Severity: "warning", EntityID: "G-0002"},
+				{Code: check.CodeProvenanceUntrailedScopeUndefined, Severity: "warning"},
+			},
+			wantViolations: 0,
+		},
+		{
+			name:           "an unbaselined warning code is a violation",
+			findings:       []verbEnvelopeFinding{{Code: "some-unexpected-code", Severity: "warning"}}, //enums:ignore deliberately fabricated non-code for the test, not a real finding
+			wantViolations: 1,
+		},
+		{
+			name:           "an error-severity finding is a violation even for a baselined code",
+			findings:       []verbEnvelopeFinding{{Code: check.CodeTerminalEntityNotArchived, Severity: "error"}},
+			wantViolations: 1,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := classifyAgainstBaseline(tc.findings, concurrentWriterAtScaleExpectedWarnings)
+			if len(got) != tc.wantViolations {
+				t.Fatalf("violations = %+v, want %d", got, tc.wantViolations)
 			}
 		})
 	}

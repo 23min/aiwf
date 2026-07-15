@@ -31,6 +31,22 @@ const (
 	operatorBTitle = "operatorb"
 )
 
+// parallelBranchReallocateExpectedWarnings is the baseline of finding
+// codes this scenario's post-reallocate check is expected to carry
+// (M-0257/AC-1), beyond the ids-unique collision
+// classifyParallelBranchReallocate already pins directly — empty.
+// Unlike the cross-worktree-* scenarios (linked worktrees of ONE repo
+// sharing a single .git, no separate remote), each operator here is a
+// genuine clone of a real bare origin.git
+// (newBareOriginWithClonesFixture), so the provenance audit range is
+// always defined; and the scenario creates exactly one entity per
+// operator with no epic/milestone lifecycle at all, so none of
+// verb-sequence's own lifecycle noise (epic-active-no-drafted-
+// milestones, archive-sweep-pending, terminal-entity-not-archived)
+// ever applies either. Any finding at all in the post-reallocate check
+// is therefore real, unexpected noise.
+var parallelBranchReallocateExpectedWarnings = map[string]bool{}
+
 // ParallelBranchReallocateScenario implements Scenario.
 type ParallelBranchReallocateScenario struct {
 	aiwfBin    string
@@ -109,6 +125,10 @@ func (s *ParallelBranchReallocateScenario) Run(dir string) error {
 	pushedClean := runGit(opB, "push", "-q", "origin", "HEAD:main") == nil
 
 	s.violations = classifyParallelBranchReallocate(checkEnv.Findings, reallocEnv.Status, postCheckEnv.Findings, pushedClean)
+	// M-0257/AC-1: alongside the ids-unique-specific assertion above,
+	// confirm the post-reallocate check carries nothing else
+	// unexpected either.
+	s.violations = append(s.violations, classifyAgainstBaseline(postCheckEnv.Findings, parallelBranchReallocateExpectedWarnings)...)
 	return nil
 }
 

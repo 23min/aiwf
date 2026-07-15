@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // concurrent_writer_at_scale.go — M-0244/AC-1: ConcurrentWriterAtScaleScenario
@@ -27,6 +29,27 @@ import (
 // interleaved line" but "every line's run_id matches exactly one real
 // invocation" — extending the existing single-process correlation
 // guarantee to concurrent, multi-process load.
+
+// concurrentWriterAtScaleExpectedWarnings is the baseline of finding
+// codes this scenario's post-run check is expected to carry
+// (M-0257/AC-1), beyond the shared-log-file assertion
+// classifyConcurrentWriterAtScale already pins directly:
+//
+//   - archive-sweep-pending / terminal-entity-not-archived: every one
+//     of the n seeded gaps is cancelled (a terminal status) by this
+//     scenario's own actors, and it never runs `aiwf archive` — both
+//     are advisory-only sweep reminders, not evidence of anything
+//     this scenario probes.
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var concurrentWriterAtScaleExpectedWarnings = map[string]bool{
+	check.CodeArchiveSweepPending:               true,
+	check.CodeTerminalEntityNotArchived:         true,
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // ConcurrentWriterAtScaleScenario implements Scenario.
 type ConcurrentWriterAtScaleScenario struct {
@@ -130,6 +153,15 @@ func (s *ConcurrentWriterAtScaleScenario) Run(dir string) error {
 	}
 
 	s.violations = classifyConcurrentWriterAtScale(parseFailures, logRunIDs, wantRunIDs)
+
+	// M-0257/AC-1: alongside the shared-log-file assertion above,
+	// confirm the resulting tree stays check-clean beyond baseline
+	// noise — this scenario never ran `aiwf check` at all before.
+	checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
+	if err != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
+		return fmt.Errorf("running aiwf check after the concurrent writers: %w", err)
+	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentWriterAtScaleExpectedWarnings)...)
 	return nil
 }
 

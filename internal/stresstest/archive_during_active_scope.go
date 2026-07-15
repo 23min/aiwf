@@ -3,6 +3,7 @@ package stresstest
 import (
 	"fmt"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -27,6 +28,25 @@ import (
 // unresolvable once its holder crosses the archive boundary — was
 // already confirmed unfounded before G-0393 closed (see M-0243's
 // milestone spec); that finding stands independent of this update.
+
+// archiveDuringActiveScopeExpectedWarnings is the baseline of finding
+// codes this scenario's post-attempt check is expected to carry
+// (M-0257/AC-1), beyond the refused-promote assertion
+// classifyArchiveDuringActiveScope already pins directly:
+//
+//   - epic-active-no-drafted-milestones: the parent epic reaches
+//     "active" and stays there for the rest of the scenario, while its
+//     one child milestone is walked straight to "in_progress" and
+//     never replaced by a fresh draft one.
+//   - provenance-untrailered-scope-undefined: this scenario's
+//     disposable repo never configures an upstream remote.
+//
+// Any OTHER finding — any error-severity finding, or a warning with a
+// code not in this set — is a real violation.
+var archiveDuringActiveScopeExpectedWarnings = map[string]bool{
+	check.CodeEpicActiveNoDraftedMilestones:     true,
+	check.CodeProvenanceUntrailedScopeUndefined: true,
+}
 
 // ArchiveDuringActiveScopeScenario implements Scenario.
 type ArchiveDuringActiveScopeScenario struct {
@@ -148,6 +168,15 @@ func (s *ArchiveDuringActiveScopeScenario) Run(dir string) error {
 	postScopeState := scopeState(postEnv)
 
 	s.violations = classifyArchiveDuringActiveScope(preScopeState, promEnv.Status, errorCode(promEnv), epicEnv.Result.Status, postScopeState)
+
+	// M-0257/AC-1: alongside the refused-promote assertion above,
+	// confirm the resulting tree stays check-clean beyond baseline
+	// noise — this scenario never ran `aiwf check` at all before.
+	checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
+	if err != nil { //coverage:ignore defensive: see the pre-attempt show above
+		return fmt.Errorf("running aiwf check after the refused promote: %w", err)
+	}
+	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, archiveDuringActiveScopeExpectedWarnings)...)
 	return nil
 }
 
