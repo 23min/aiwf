@@ -188,7 +188,7 @@ registration are torn down in `t.Cleanup` · commit 640801c5 · tests 4/4.
   defeated its own purpose. Verified via a repo-wide caller audit (every
   non-test and production call site of `Cancel`/`PromoteACPhase`/`Promote`)
   that nothing depends on the old bare-error shape or exit code; message text
-  unchanged. Not filed as a separate ADR/D-NNN — a narrow, mechanically
+  unchanged. Not filed as a separate ADR or `D-NNN` decision — a narrow, mechanically
   necessary consistency fix with its rationale already captured in the
   commit message and the AC-2 entry above, not an architectural choice.
 - **Stale test name fixed in-context at wrap review.**
