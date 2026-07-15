@@ -175,3 +175,81 @@ attempts (0/30 false positives against the unpatched binary), mirroring
 G-0410's own repeat-N-times empirical methodology. Never touches this
 worktree's own tracked source — the patched copy and its worktree
 registration are torn down in `t.Cleanup` · commit 640801c5 · tests 4/4.
+
+## Decisions made during implementation
+
+- **`internal/verb` refusal-code fix landed alongside AC-2, not as a separate
+  patch.** `promoteAC`/`PromoteACPhase`'s illegal-transition refusal and
+  `Cancel`'s already-terminal refusal carried bare, untyped errors (exit `2`
+  usage) instead of the typed `CodeFSMTransitionIllegal` every other legality
+  refusal in the codebase carries (exit `1` findings) — AC-2's oracle depends
+  on the typed code to distinguish a legitimate refusal from an unexpected
+  one, so a weaker oracle tolerating untyped codes would have silently
+  defeated its own purpose. Verified via a repo-wide caller audit (every
+  non-test and production call site of `Cancel`/`PromoteACPhase`/`Promote`)
+  that nothing depends on the old bare-error shape or exit code; message text
+  unchanged. Not filed as a separate ADR/D-NNN — a narrow, mechanically
+  necessary consistency fix with its rationale already captured in the
+  commit message and the AC-2 entry above, not an architectural choice.
+- **Stale test name fixed in-context at wrap review.**
+  `cmd/stresstest/registry_test.go`'s `TestScenarioNames_ListsAllTwelveInCatalogOrder`
+  already guarded 15 entries before this milestone (its assertion was
+  length-based, not hardcoded — only the name misled); this milestone's
+  16th catalog entry widened the gap. Renamed to
+  `TestScenarioNames_ListsEveryCatalogEntryInOrder` rather than deferred,
+  since this milestone already touched the file.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go test ./... -race -parallel 8 -count=1` — 69/69 testable packages `ok`, zero failures.
+- `golangci-lint run ./...` — 0 issues.
+- `aiwf check` — 0 errors, 6 warnings, all pre-existing and unrelated to this
+  milestone (archive-sweep backlog on G-0401, `epic-active-no-drafted-milestones`
+  now that M-0257/M-0258 are both terminal, `provenance-untrailered-scope-undefined`).
+- Independent two-lens pre-wrap review: code-quality (`wf-review-code`) —
+  **approve**, no blocking findings, own mutation probes against
+  `classifyMilestoneRaceOutcomes` all caught; design-quality (`wf-rethink`,
+  blind reconstruction) — **keep**, no rewrite warranted.
+- AC-3's regression detection rate measured independently three times
+  (implementer, orchestrator, reviewer): 19/30, 19/30, 13/30 — consistently
+  well above the AC's own ≥1/30 floor.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- **Commit-order causality, not final state, is what AC-2's oracle actually
+  depends on.** A cancel actor winning the race is only classified as a
+  violation if its commit is not strictly after the AC's own `open -> met`
+  commit (read via `aiwf-verb`/`aiwf-entity` git trailers) — final state
+  alone (AC `met`, milestone `cancelled`) is identical whether the guard
+  held or not, which is exactly why AC-1's own end-state assertions
+  couldn't have caught the G-0335 shape and AC-2's oracle was necessary.
+- **AC-3's detection rate is inherently probabilistic (~13-19/30), not a
+  design gap.** The regression only surfaces when real OS scheduling lands
+  a cancel actor's commit before the promote actor's — when promote happens
+  to win the lock race first even against the regressed binary, the outcome
+  is genuinely legitimate (the AC really was `met` first), so 30/30 was
+  never the expected signal. The code-quality review's own independent run
+  (13/30) and the milestone's original measurement (19/30) bracket the same
+  underlying rate; the ≥1/30 assertion plus the reported hit rate together
+  are the honest evidence, not an inflated single number.
+- **A theoretical, practically-unreachable oracle gap, flagged by the
+  code-quality review**: the oracle treats any refusal code other than the
+  expected FSM/guard codes as a violation, which technically includes an
+  uncoded repo-lock-busy refusal. The lock's retry window (2s) comfortably
+  exceeds 8 actors' real contention window and this has never fired across
+  every run in this milestone's history (implementer's, reviewer's, and
+  this wrap's own). If it ever did, it would be a spurious flake in the
+  oracle's favor (an over-eager violation on healthy contention), never a
+  missed real one — no action taken, tracked here rather than as a gap
+  since it's a documented, shared, negligible-risk property of the harness's
+  repolock-serialization design, not deferred work.
+- **The exit-code change (usage→findings on three refusal paths) is
+  user-visible** and may warrant a `CHANGELOG.md` `[Unreleased]` line at the
+  epic's release — not done here per this repo's own release-process
+  convention (CHANGELOG updates land at tag time), but flagged for
+  `aiwfx-release`/`aiwfx-wrap-epic` to pick up.
