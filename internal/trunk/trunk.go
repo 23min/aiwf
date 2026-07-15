@@ -121,6 +121,20 @@ func idsFromPaths(paths []string) []ID {
 	return ids
 }
 
+// RefHit names one entity id visible on a specific local or
+// remote-tracking git ref (M-0259/AC-1): the same (kind, id, path)
+// triple as trunk.ID, tagged with the originating ref name. Widens
+// LocalRefIDs/RemoteRefIDs' bare-id view so a consumer beyond the
+// allocator (the check-side cross-branch-pending tier, the read-side
+// show/list resolver) can tell WHICH ref and path a hit came from,
+// not just that the id exists somewhere.
+type RefHit struct {
+	Kind entity.Kind
+	ID   string
+	Path string
+	Ref  string
+}
+
 // LocalRefIDs returns the entity id strings reachable from every
 // local branch ref (refs/heads/*) in workdir's repository. It is the
 // allocator's broadened cross-branch view (M-0212): a sibling git
@@ -147,8 +161,12 @@ func idsFromPaths(paths []string) []ID {
 // subprocesses per call. Trivial at the solo / handful-of-branches
 // scale this targets; it grows linearly, so a repo carrying hundreds
 // of stale local branches would pay for them on every allocation.
+//
+// Derived from LocalRefHits (M-0259/AC-1) by dropping path/ref —
+// additive widening only, this function's shape and behavior are
+// unchanged from before AC-1.
 func LocalRefIDs(ctx context.Context, workdir string) []string {
-	return refIDs(ctx, workdir, gitops.LocalBranchRefs)
+	return hitIDStrings(LocalRefHits(ctx, workdir))
 }
 
 // RemoteRefIDs returns the entity id strings reachable from every
@@ -163,17 +181,36 @@ func LocalRefIDs(ctx context.Context, workdir string) []string {
 // returns an error, degrades to nil on odd repo states, and feeds the
 // allocator ONLY — never the ids-unique check, which keeps its
 // working-tree-vs-trunk basis.
+//
+// Derived from RemoteRefHits (M-0259/AC-1) by dropping path/ref —
+// additive widening only.
 func RemoteRefIDs(ctx context.Context, workdir string) []string {
-	return refIDs(ctx, workdir, gitops.RemoteTrackingRefs)
+	return hitIDStrings(RemoteRefHits(ctx, workdir))
 }
 
-// refIDs scans every ref returned by listRefs — ls-treeing each and
-// collecting the entity ids — for the allocator's broadened cross-branch
-// view. Best-effort and read-only: it never errors, degrading to the ids
-// it could collect (down to none) on any odd repo state. Shared by
-// LocalRefIDs (local branches, M-0212) and RemoteRefIDs (remote-tracking
-// refs, M-0214); the two differ only in which refs they enumerate.
-func refIDs(ctx context.Context, workdir string, listRefs func(context.Context, string) ([]string, error)) []string {
+// LocalRefHits is LocalRefIDs' widened form (M-0259/AC-1): every hit
+// on every local branch ref, carrying kind/path/ref alongside the id.
+// Same best-effort, read-only, allocation-plus-check-consumer contract
+// as LocalRefIDs — never errors, degrades to nil on odd repo states.
+func LocalRefHits(ctx context.Context, workdir string) []RefHit {
+	return refHits(ctx, workdir, gitops.LocalBranchRefs)
+}
+
+// RemoteRefHits is RemoteRefIDs' widened form (M-0259/AC-1): every hit
+// on every remote-tracking ref, carrying kind/path/ref alongside the
+// id. Same best-effort, read-only contract as RemoteRefIDs.
+func RemoteRefHits(ctx context.Context, workdir string) []RefHit {
+	return refHits(ctx, workdir, gitops.RemoteTrackingRefs)
+}
+
+// refHits scans every ref returned by listRefs — ls-treeing each and
+// collecting the entity ids tagged with the ref they came from — for
+// the broadened cross-branch view. Best-effort and read-only: it
+// never errors, degrading to the hits it could collect (down to none)
+// on any odd repo state. Shared by LocalRefHits (local branches,
+// M-0212/M-0259) and RemoteRefHits (remote-tracking refs, M-0214/
+// M-0259); the two differ only in which refs they enumerate.
+func refHits(ctx context.Context, workdir string, listRefs func(context.Context, string) ([]string, error)) []RefHit {
 	if !gitops.IsRepo(ctx, workdir) {
 		return nil
 	}
@@ -181,7 +218,7 @@ func refIDs(ctx context.Context, workdir string, listRefs func(context.Context, 
 	if err != nil { //coverage:ignore not portably triggerable: once IsRepo passed, the `git for-each-ref` that backs both listers returns 0 even for a repo with broken refs (it warns and skips them); a non-zero exit needs a git-level failure (missing binary) that the unit harness cannot stage. Degrade to the rest of the allocator's view.
 		return nil
 	}
-	var ids []string
+	var hits []RefHit
 	for _, ref := range refs {
 		paths, err := gitops.LsTreePaths(ctx, workdir, ref, "work/", "docs/adr/")
 		if err != nil {
@@ -191,8 +228,21 @@ func refIDs(ctx context.Context, workdir string, listRefs func(context.Context, 
 			continue
 		}
 		for _, id := range idsFromPaths(paths) {
-			ids = append(ids, id.ID)
+			hits = append(hits, RefHit{Kind: id.Kind, ID: id.ID, Path: id.Path, Ref: ref})
 		}
+	}
+	return hits
+}
+
+// hitIDStrings returns just the id strings from hits, in order.
+// Convenience for LocalRefIDs/RemoteRefIDs, which only need id values.
+func hitIDStrings(hits []RefHit) []string {
+	if len(hits) == 0 {
+		return nil
+	}
+	ids := make([]string, len(hits))
+	for i, h := range hits {
+		ids[i] = h.ID
 	}
 	return ids
 }

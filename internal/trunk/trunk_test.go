@@ -224,6 +224,91 @@ func TestIDsFromPaths_SkipsNonEntityPaths(t *testing.T) {
 	}
 }
 
+// --- M-0259/AC-1: LocalRefHits/RemoteRefHits widen the view to carry
+// per-hit (kind, id, path, ref) instead of collapsing to bare ids ---
+
+func TestLocalRefHits_CarriesKindPathAndRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	got := LocalRefHits(ctx, dir)
+	var siblingHit *RefHit
+	for i := range got {
+		if got[i].ID == "G-0005" {
+			siblingHit = &got[i]
+		}
+	}
+	if siblingHit == nil {
+		t.Fatalf("LocalRefHits = %v, want a hit for sibling-only id G-0005", got)
+	}
+	if siblingHit.Kind != entity.KindGap {
+		t.Errorf("siblingHit.Kind = %q, want %q", siblingHit.Kind, entity.KindGap)
+	}
+	if siblingHit.Path != "work/gaps/G-0005-bar.md" {
+		t.Errorf("siblingHit.Path = %q, want work/gaps/G-0005-bar.md", siblingHit.Path)
+	}
+	if siblingHit.Ref != "refs/heads/sibling" {
+		t.Errorf("siblingHit.Ref = %q, want refs/heads/sibling", siblingHit.Ref)
+	}
+}
+
+func TestRemoteRefHits_CarriesKindPathAndRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	up := initRepo(t)
+	commitFile(t, ctx, up, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, up, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, up, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, up, "checkout", "-q", "main")
+	clone := cloneRepo(t, up)
+
+	got := RemoteRefHits(ctx, clone)
+	var featureHit *RefHit
+	for i := range got {
+		if got[i].ID == "G-0005" {
+			featureHit = &got[i]
+		}
+	}
+	if featureHit == nil {
+		t.Fatalf("RemoteRefHits = %v, want a hit for feature-branch id G-0005", got)
+	}
+	if featureHit.Ref != "refs/remotes/origin/feature" {
+		t.Errorf("featureHit.Ref = %q, want refs/remotes/origin/feature", featureHit.Ref)
+	}
+	if featureHit.Path != "work/gaps/G-0005-bar.md" {
+		t.Errorf("featureHit.Path = %q, want work/gaps/G-0005-bar.md", featureHit.Path)
+	}
+}
+
+func TestLocalRefIDs_DerivedFromHits_Unaffected(t *testing.T) {
+	// AC-1: the widening is additive — LocalRefIDs' existing []string
+	// consumption (the allocator) must not change shape. Pin that the
+	// plain id-string view stays index-aligned with the hit view.
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	ids := LocalRefIDs(ctx, dir)
+	hits := LocalRefHits(ctx, dir)
+	if len(ids) != len(hits) {
+		t.Fatalf("LocalRefIDs = %v (%d), LocalRefHits = %v (%d), want same length", ids, len(ids), hits, len(hits))
+	}
+	for i, h := range hits {
+		if ids[i] != h.ID {
+			t.Errorf("LocalRefIDs[%d] = %q, want %q (from LocalRefHits[%d])", i, ids[i], h.ID, i)
+		}
+	}
+}
+
 // --- M-0214: RemoteRefIDs (the allocator's remote-side cross-branch view) ---
 
 func TestRemoteRefIDs_UnionsRemoteBranchIDs(t *testing.T) {
