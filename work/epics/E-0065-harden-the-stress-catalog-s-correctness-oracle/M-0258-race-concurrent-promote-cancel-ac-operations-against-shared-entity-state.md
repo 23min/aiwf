@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Re-running against a reintroduced G-0335-shaped regression fails the run
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
