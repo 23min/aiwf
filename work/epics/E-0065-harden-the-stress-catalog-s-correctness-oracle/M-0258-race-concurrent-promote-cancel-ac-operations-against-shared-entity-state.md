@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: N concurrent actors race promote/cancel on one shared milestone+AC
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Oracle distinguishes a legitimate race from a guard violation
       status: open
