@@ -194,6 +194,18 @@ functions are now thin derived wrappers so the allocator's existing
 consumption is unaffected · commit 76c1a712 · tests 5/5 new (plus 8
 existing M-0212/M-0214 tests passing unmodified)
 
+### AC-2 — Local-tree miss resolves as cross-branch-pending, not unresolved
+
+Added `Tree.CrossBranchHits` (populated once per side in
+`LoadTreeWithTrunk`, no duplicate scan) and a shared
+`crossBranchIndex`/`joinRefNames` helper; `refsResolve` and
+`classifyBodyToken` now consult it on a local-tree miss before firing
+`unresolved`, emitting the non-blocking `cross-branch-pending` subcode
+instead (`SeverityWarning`). Composite-id resolution (`M-NNN/AC-N`)
+deliberately stays out of scope — validating a composite's AC position
+would require reading the target's content from another ref, which is
+read-side territory (`M-0260`) · commit 138c5e43 · tests 12/12 new
+
 ## Decisions made during implementation
 
 - (none)
