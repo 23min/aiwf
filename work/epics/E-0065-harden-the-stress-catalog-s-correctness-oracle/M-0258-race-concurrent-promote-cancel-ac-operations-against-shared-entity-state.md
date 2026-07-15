@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: N concurrent actors race promote/cancel on one shared milestone+AC
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Oracle distinguishes a legitimate race from a guard violation
