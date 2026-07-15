@@ -162,3 +162,16 @@ status/tdd_phase transition refusals and `Cancel`'s already-terminal refusal
 carried bare, untyped errors, exiting `2` (usage) instead of `1` (findings)
 — the oracle depends on the typed code to tell a legitimate refusal from an
 unexpected one · commit 4215e0e0 · tests 15/15.
+
+### AC-3 — Re-running against a reintroduced G-0335-shaped regression fails the run
+
+Builds a disposable, isolated `git worktree` copy of this module with BOTH
+the open-AC cancel guard and its `milestone-cancelled-incomplete-acs`
+check-rule backstop removed, then runs `ConcurrentMilestoneRaceScenario` 30
+times against a binary built from that copy — isolating that
+`classifyMilestoneRaceOutcomes`'s own oracle, not the pre-existing
+check-rule, provides the protection. Detects the regression in ~19/30
+attempts (0/30 false positives against the unpatched binary), mirroring
+G-0410's own repeat-N-times empirical methodology. Never touches this
+worktree's own tracked source — the patched copy and its worktree
+registration are torn down in `t.Cleanup` · commit 640801c5 · tests 4/4.
