@@ -185,7 +185,7 @@ same empirical-injection methodology G-0410 itself used. · commit
   `cross-worktree-id-race`'s `reconcile`) — each is fully reasoned inline in
   its own code comment and summarized in the Work log above and in Reviewer
   notes below. None is a project-wide or cross-milestone concern warranting
-  a separate ADR/D-NNN.
+  a separate ADR or `D-NNN` decision record.
 
 ## Validation
 
