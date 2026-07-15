@@ -118,10 +118,10 @@ copies anything, so there is nothing to reconcile.
 
 ## Open questions
 
-| Question | Blocking? | Resolution path |
+| Question | Blocking? | Resolution |
 |---|---|---|
-| Do `LocalRefIDs`/`RemoteRefIDs` need to widen to carry path + ref (mirroring `trunk.ID`), or can the read-side milestone do a fresh lookup at render time without changing the allocator-facing fields? | Yes, for the read-side milestone | Resolve during that milestone's planning, informed by `internal/trunk`'s existing per-id path tracking for `TrunkIDs` |
-| What's the exact subcode/finding-code shape for the new pending tier — a new subcode on the existing `refs-resolve`/`body-prose-id` codes, or a new finding code entirely? | Yes, for the check-side milestone | Resolve during that milestone's planning; either shape satisfies `ADR-0030`'s decision, this is an implementation-detail choice |
+| Do `LocalRefIDs`/`RemoteRefIDs` need to widen to carry path + ref (mirroring `trunk.ID`)? | Resolved | Yes — `M-0259`/AC-1, since check-side collision detection needs it too, not just the read-side milestone |
+| What's the exact subcode/finding-code shape for the new pending tier? | Resolved | A subcode on the existing `refs-resolve`/`body-prose-id` finding codes — `M-0259`/AC-2, plus a sibling `cross-branch-collision` subcode for genuine divergence (`M-0259`/AC-3, `G-0415`) |
 | Should `aiwf status`/`aiwf render --format=html` also surface cross-branch-pending references, or is `check` + `show` + `list` sufficient for v1? | No | Defer; candidate follow-on gap if it turns out to matter |
 
 ## Risks
@@ -133,15 +133,16 @@ copies anything, so there is nothing to reconcile.
 
 ## Milestones
 
-Not yet allocated — candidates to sequence via `aiwfx-plan-milestones`:
-
-- Check-side: add the cross-branch-pending tier to `refs-resolve` and
-  `body-prose-id`, sourced from `Tree.LocalRefIDs`/`Tree.RemoteRefIDs`,
-  with the escalation invariant as a named, mechanically-tested acceptance
-  criterion.
-- Read-side: extend `aiwf show`/`aiwf list` to resolve and label an
-  entity's content from another local ref when cross-branch-known but
-  locally absent; resolves the path/ref-tracking open question above.
+1. `M-0259` — Add cross-branch-pending tier and collision detection to
+   reference checks. Widens the cross-branch view to carry per-id path/ref,
+   adds the `cross-branch-pending` subcode to `refs-resolve`/
+   `body-prose-id`, detects same-id divergence across refs via blob-SHA
+   comparison (escalating to `cross-branch-collision`), and carries the
+   ADR-0030 escalation fixture test. No dependencies.
+2. `M-0260` — Resolve and render cross-branch entity content in show and
+   list. Extends `aiwf show`/`aiwf list` to read and visibly label content
+   from another ref, refusing to guess when `M-0259` classifies a
+   collision. Depends on `M-0259`.
 
 ## ADRs produced
 
@@ -157,3 +158,5 @@ Not yet allocated — candidates to sequence via `aiwfx-plan-milestones`:
 - G-0241 — BodyProseIDIndex skips TrunkIDs; trunk-only ids appear
   unresolved (precedent second-tier resolver pattern)
 - G-0272, G-0281 — sibling collision/visibility cluster
+- G-0415 — Cross-branch reference resolution must detect same-id
+  divergence across refs (addressed by `M-0259`/`M-0260`)
