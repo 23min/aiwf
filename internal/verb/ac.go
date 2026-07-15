@@ -214,7 +214,7 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 	}
 	if !force {
 		if !entity.IsLegalACTransition(ac.Status, newStatus) {
-			return nil, fmt.Errorf("AC status %q cannot transition to %q (allowed under FSM: see acTransitions)", ac.Status, newStatus)
+			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC status %q cannot transition to %q (allowed under FSM: see acTransitions)", ac.Status, newStatus)}
 		}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
@@ -245,7 +245,7 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	}
 	if !force {
 		if !entity.IsLegalTDDPhaseTransition(ac.TDDPhase, newPhase) {
-			return nil, fmt.Errorf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)
+			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)}
 		}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {

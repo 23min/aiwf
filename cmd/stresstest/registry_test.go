@@ -31,9 +31,10 @@ var wantScenarioNames = []string{
 	"concurrent-writer-at-scale",
 	"verb-sequence",
 	"concurrent-move",
+	"concurrent-milestone-race",
 }
 
-func TestScenarioNames_ListsAllTwelveInCatalogOrder(t *testing.T) {
+func TestScenarioNames_ListsEveryCatalogEntryInOrder(t *testing.T) {
 	t.Parallel()
 	got := scenarioNames()
 	if len(got) != len(wantScenarioNames) {
@@ -65,6 +66,7 @@ var wantScenarioType = map[string]string{
 	"concurrent-writer-at-scale":        "*stresstest.ConcurrentWriterAtScaleScenario",
 	"verb-sequence":                     "*stresstest.VerbSequenceScenario",
 	"concurrent-move":                   "*stresstest.ConcurrentMoveScenario",
+	"concurrent-milestone-race":         "*stresstest.ConcurrentMilestoneRaceScenario",
 }
 
 func TestLookupScenario_KnownNameBuildsTheMatchingScenarioType(t *testing.T) {

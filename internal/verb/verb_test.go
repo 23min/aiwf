@@ -1117,6 +1117,16 @@ func TestCancel_AlreadyTerminal(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "already") {
 		t.Errorf("expected 'already cancelled' error, got %v", err)
 	}
+	// M-0258/AC-2: the already-terminal refusal is the same class of
+	// FSM-illegal-transition refusal entity.ValidateTransition reports
+	// for kind-level transitions elsewhere, so it must carry the same
+	// typed CodeFSMTransitionIllegal — a Coded consumer (a stress-
+	// harness oracle checking the FSM's own verdict, or cliutil's own
+	// exit-code contract) can't otherwise distinguish it from a plain,
+	// uncoded internal error.
+	if code, ok := entity.Code(err); !ok || code != entity.CodeFSMTransitionIllegal.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, entity.CodeFSMTransitionIllegal.ID)
+	}
 }
 
 // TestCancel_OnAlreadyDoneEpic pins the M-0131 pre-flight IsTerminal

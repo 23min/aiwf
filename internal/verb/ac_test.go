@@ -633,8 +633,41 @@ func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 	}
 	// red → done is illegal (must go through green).
 	r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "red", testActor, "", false, nil))
-	if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "", false, nil); err == nil {
+	_, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", "done", testActor, "", false, nil)
+	if err == nil {
 		t.Error("expected error for red → done phase")
+	}
+	// M-0258/AC-2: same typed CodeFSMTransitionIllegal
+	// entity.ValidateTransition's own FSMTransitionError carries for
+	// kind-level transitions elsewhere — a tdd_phase FSM refusal is
+	// the same class of refusal, not a plain uncoded internal error.
+	if code, ok := entity.Code(err); !ok || code != entity.CodeFSMTransitionIllegal.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, entity.CodeFSMTransitionIllegal.ID)
+	}
+}
+
+// TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode: a second
+// promote to an AC's already-reached status is FSM-illegal (met → met
+// isn't in acTransitions's allowed set), and the refusal carries the
+// same typed CodeFSMTransitionIllegal entity.ValidateTransition's own
+// FSMTransitionError carries for kind-level transitions elsewhere —
+// the exact shape M-0258's concurrent-milestone-race stress scenario
+// depends on to tell a legitimate race (one promote actor lands,
+// every other cleanly refused as FSM-illegal) from a guard violation.
+func TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor, nil))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{})
+	if err == nil || !strings.Contains(err.Error(), "cannot transition to") {
+		t.Errorf("expected an illegal-transition refusal, got %v", err)
+	}
+	if code, ok := entity.Code(err); !ok || code != entity.CodeFSMTransitionIllegal.ID {
+		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, entity.CodeFSMTransitionIllegal.ID)
 	}
 }
 
