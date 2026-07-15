@@ -1,7 +1,7 @@
 ---
 id: M-0258
 title: Race concurrent promote/cancel/AC operations against shared entity state
-status: draft
+status: in_progress
 parent: E-0065
 depends_on:
     - M-0257
