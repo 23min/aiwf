@@ -182,3 +182,29 @@ not trunk, not any local/remote ref) confirms the finding subcode stays
 - G-0415 — Cross-branch reference resolution must detect same-id
   divergence across refs
 
+---
+
+## Work log
+
+### AC-1 — Cross-branch view carries per-id path and ref
+
+Widened `LocalRefIDs`/`RemoteRefIDs` to `LocalRefHits`/`RemoteRefHits`
+returning `[]trunk.RefHit{Kind, ID, Path, Ref}`; the two string-slice
+functions are now thin derived wrappers so the allocator's existing
+consumption is unaffected · commit 76c1a712 · tests 5/5 new (plus 8
+existing M-0212/M-0214 tests passing unmodified)
+
+## Decisions made during implementation
+
+- (none)
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
+
