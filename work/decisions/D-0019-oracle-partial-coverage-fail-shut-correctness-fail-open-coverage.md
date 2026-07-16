@@ -1,7 +1,7 @@
 ---
 id: D-0019
 title: 'Oracle partial-coverage: fail-shut correctness, fail-open coverage'
-status: proposed
+status: accepted
 relates_to:
     - M-0161
     - G-0203
