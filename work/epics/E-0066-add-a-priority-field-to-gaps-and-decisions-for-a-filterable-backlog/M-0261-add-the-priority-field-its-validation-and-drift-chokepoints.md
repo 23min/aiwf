@@ -1,7 +1,7 @@
 ---
 id: M-0261
 title: Add the priority field, its validation, and drift chokepoints
-status: in_progress
+status: done
 parent: E-0066
 tdd: required
 acs:
