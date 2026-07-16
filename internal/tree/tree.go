@@ -141,6 +141,37 @@ type Tree struct {
 	// working-tree-vs-trunk basis (G-0316). Tests that build trees
 	// in-memory leave it nil.
 	RemoteRefIDs []string
+	// CrossBranchHits is the union of every local-branch-ref and
+	// remote-tracking-ref hit (trunk.LocalRefHits ++ trunk.RemoteRefHits,
+	// M-0259/AC-1), carrying kind/path/ref per hit rather than bare id
+	// strings. refs-resolve and body-prose-id consult it as a second-tier
+	// resolver on a local-tree miss, before firing unresolved (ADR-0030,
+	// M-0259/AC-2): a hit here classifies as the non-blocking
+	// cross-branch-pending subcode instead. Recomputed fresh on every
+	// `aiwf check` run (no cache), so a source branch's disappearance
+	// re-escalates the next reference resolution to unresolved on its own
+	// (M-0259/AC-4) — nothing here needs its own escalation-tracking
+	// mechanism.
+	//
+	// Populated alongside LocalRefIDs/RemoteRefIDs by the cmd dispatcher.
+	// Tests that build trees in-memory leave it nil, degrading resolution
+	// to today's two-tier (working tree, unresolved) behavior.
+	CrossBranchHits []trunk.RefHit
+	// CrossBranchCollisions is the canonicalized-id set for which
+	// CrossBranchHits carries divergent blob content across two or more
+	// refs (trunk.DetectCollisions, M-0259/AC-3, G-0415). Divergence
+	// alone is ambiguous — it can mean a genuine duplicate-mint
+	// collision, or just an ordinary same-entity edit still unmerged on
+	// a sibling branch/worktree (D-0036) — so refs-resolve and
+	// body-prose-id escalate a hit here to the distinct, visible
+	// cross-branch-collision subcode instead of the ordinary
+	// cross-branch-pending one, but both are non-blocking warnings; a
+	// genuine duplicate mint is still caught, just later, by the
+	// blocking ids-unique/trunk-collision check once both copies land
+	// in a shared tree. Tests that build trees in-memory leave this
+	// nil, degrading every cross-branch hit to the pending tier (the
+	// pre-AC-3 default).
+	CrossBranchCollisions map[string]bool
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience

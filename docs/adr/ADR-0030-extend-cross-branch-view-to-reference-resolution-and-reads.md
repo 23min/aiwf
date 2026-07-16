@@ -1,7 +1,7 @@
 ---
 id: ADR-0030
 title: Extend cross-branch view to reference resolution and reads
-status: proposed
+status: accepted
 ---
 # ADR-0030 — Extend cross-branch view to reference resolution and reads
 

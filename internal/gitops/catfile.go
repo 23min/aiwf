@@ -102,7 +102,24 @@ func NewBlobReader(ctx context.Context, root string) (*BlobReader, error) {
 // Returns (nil, err) for real failure modes: subprocess crash,
 // protocol violation, post-Close call.
 func (br *BlobReader) Read(commit, path string) ([]byte, error) {
-	return br.request(commit + ":" + path)
+	_, content, err := br.request(commit + ":" + path)
+	return content, err
+}
+
+// Stat returns the object id (SHA) of the blob at commit:path, without
+// returning its content. The batch header already carries the blob's
+// own SHA (`<sha1> <type> <size>`) — Read discards it after reading
+// content; Stat is the same round-trip cost as Read (one query/
+// response over the same pump), just returning the other header field
+// instead. Useful when a caller only needs to know whether two refs'
+// content is identical without needing the bytes themselves (M-0259/
+// AC-3 cross-branch collision detection).
+//
+// Returns ("", ErrBlobMissing) / ("", err) mirroring Read's error
+// contract.
+func (br *BlobReader) Stat(commit, path string) (string, error) {
+	sha, _, err := br.request(commit + ":" + path)
+	return sha, err
 }
 
 // ReadObject fetches the object content named directly by its object
@@ -121,41 +138,42 @@ func (br *BlobReader) Read(commit, path string) ([]byte, error) {
 // but a passed-through all-zero id still resolves to ErrBlobMissing
 // here rather than a protocol error.
 func (br *BlobReader) ReadObject(sha string) ([]byte, error) {
-	return br.request(sha)
+	_, content, err := br.request(sha)
+	return content, err
 }
 
 // request writes one `git cat-file --batch` query line and parses the
-// single response (header + content + trailing LF). Shared by Read
-// (which queries `<commit>:<path>`) and ReadObject (which queries a
-// bare object id).
-func (br *BlobReader) request(spec string) ([]byte, error) {
+// single response (header + content + trailing LF), returning both the
+// header's own blob SHA and the content. Shared by Read/ReadObject
+// (which need content) and Stat (which needs only the SHA).
+func (br *BlobReader) request(spec string) (sha string, content []byte, requestErr error) {
 	if br.closed {
-		return nil, errBlobReaderClosed
+		return "", nil, errBlobReaderClosed
 	}
-	if _, err := io.WriteString(br.stdin, spec+"\n"); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader: write request: %w", err) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
+	if _, writeErr := io.WriteString(br.stdin, spec+"\n"); writeErr != nil {
+		return "", nil, fmt.Errorf("gitops: BlobReader: write request: %w", writeErr) //coverage:ignore stdin write fails only on a broken cat-file pipe (subprocess died); not deterministically reproducible
 	}
 	headerLine, err := br.stdout.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader: read header: %w", err) //coverage:ignore cat-file --batch protocol errors (truncated/garbled response) are not reproducible against a healthy subprocess
+		return "", nil, fmt.Errorf("gitops: BlobReader: read header: %w", err) //coverage:ignore cat-file --batch protocol errors (truncated/garbled response) are not reproducible against a healthy subprocess
 	}
 	header := strings.TrimRight(headerLine, "\n")
-	missing, size, parseErr := parseBatchHeader(header)
-	if parseErr != nil {
-		return nil, parseErr
+	missing, headerSHA, size, parseErr := parseBatchHeader(header)
+	if parseErr != nil { //coverage:ignore parseBatchHeader only errors on a malformed header line (wrong field count, non-integer/negative size); not reproducible against a healthy git cat-file --batch subprocess — same class as the sibling protocol-error branches above/below
+		return "", nil, parseErr
 	}
 	if missing {
-		return nil, ErrBlobMissing
+		return "", nil, ErrBlobMissing
 	}
-	content := make([]byte, size)
-	if _, err := io.ReadFull(br.stdout, content); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader: read content (%d bytes): %w", size, err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
+	body := make([]byte, size)
+	if _, err := io.ReadFull(br.stdout, body); err != nil {
+		return "", nil, fmt.Errorf("gitops: BlobReader: read content (%d bytes): %w", size, err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
 	}
 	// Consume the trailing LF git appends after content.
 	if _, err := br.stdout.ReadByte(); err != nil {
-		return nil, fmt.Errorf("gitops: BlobReader: read trailing LF: %w", err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
+		return "", nil, fmt.Errorf("gitops: BlobReader: read trailing LF: %w", err) //coverage:ignore cat-file --batch protocol errors are not reproducible against a healthy subprocess
 	}
-	return content, nil
+	return headerSHA, body, nil
 }
 
 // Close terminates the subprocess and reaps the exit status.
@@ -180,29 +198,29 @@ func (br *BlobReader) Close() error {
 }
 
 // parseBatchHeader parses a `git cat-file --batch` header line into
-// (missing, size, err). The two shapes:
+// (missing, sha, size, err). The two shapes:
 //
-//   - `<sha1> <type> <size>` — found; size is decimal bytes of
-//     content that follows the header line + LF.
+//   - `<sha1> <type> <size>` — found; sha is the blob's own object id;
+//     size is decimal bytes of content that follows the header line + LF.
 //   - `<input> missing` — not found; no content follows the header.
 //
 // Returns err for any other shape (defensive — git's protocol is
 // well-specified, but a future flag or a stderr leak into stdout
 // would surface here rather than corrupt subsequent reads).
-func parseBatchHeader(line string) (missing bool, size int, err error) {
+func parseBatchHeader(line string) (missing bool, sha string, size int, err error) {
 	parts := strings.Fields(line)
 	if len(parts) == 2 && parts[1] == "missing" {
-		return true, 0, nil
+		return true, "", 0, nil
 	}
 	if len(parts) != 3 {
-		return false, 0, fmt.Errorf("gitops: malformed cat-file --batch header: %q", line)
+		return false, "", 0, fmt.Errorf("gitops: malformed cat-file --batch header: %q", line)
 	}
 	n, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return false, 0, fmt.Errorf("gitops: cat-file --batch size parse %q: %w", parts[2], err)
+		return false, "", 0, fmt.Errorf("gitops: cat-file --batch size parse %q: %w", parts[2], err)
 	}
 	if n < 0 {
-		return false, 0, fmt.Errorf("gitops: cat-file --batch negative size %d in %q", n, line)
+		return false, "", 0, fmt.Errorf("gitops: cat-file --batch negative size %d in %q", n, line)
 	}
-	return false, n, nil
+	return false, parts[0], n, nil
 }

@@ -224,6 +224,227 @@ func TestIDsFromPaths_SkipsNonEntityPaths(t *testing.T) {
 	}
 }
 
+// --- M-0259/AC-1: LocalRefHits/RemoteRefHits widen the view to carry
+// per-hit (kind, id, path, ref) instead of collapsing to bare ids ---
+
+func TestLocalRefHits_CarriesKindPathAndRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	got := LocalRefHits(ctx, dir)
+	var siblingHit *RefHit
+	for i := range got {
+		if got[i].ID == "G-0005" {
+			siblingHit = &got[i]
+		}
+	}
+	if siblingHit == nil {
+		t.Fatalf("LocalRefHits = %v, want a hit for sibling-only id G-0005", got)
+	}
+	if siblingHit.Kind != entity.KindGap {
+		t.Errorf("siblingHit.Kind = %q, want %q", siblingHit.Kind, entity.KindGap)
+	}
+	if siblingHit.Path != "work/gaps/G-0005-bar.md" {
+		t.Errorf("siblingHit.Path = %q, want work/gaps/G-0005-bar.md", siblingHit.Path)
+	}
+	if siblingHit.Ref != "refs/heads/sibling" {
+		t.Errorf("siblingHit.Ref = %q, want refs/heads/sibling", siblingHit.Ref)
+	}
+}
+
+func TestRemoteRefHits_CarriesKindPathAndRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	up := initRepo(t)
+	commitFile(t, ctx, up, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, up, "checkout", "-q", "-b", "feature")
+	commitFile(t, ctx, up, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, up, "checkout", "-q", "main")
+	clone := cloneRepo(t, up)
+
+	got := RemoteRefHits(ctx, clone)
+	var featureHit *RefHit
+	for i := range got {
+		if got[i].ID == "G-0005" {
+			featureHit = &got[i]
+		}
+	}
+	if featureHit == nil {
+		t.Fatalf("RemoteRefHits = %v, want a hit for feature-branch id G-0005", got)
+	}
+	if featureHit.Ref != "refs/remotes/origin/feature" {
+		t.Errorf("featureHit.Ref = %q, want refs/remotes/origin/feature", featureHit.Ref)
+	}
+	if featureHit.Path != "work/gaps/G-0005-bar.md" {
+		t.Errorf("featureHit.Path = %q, want work/gaps/G-0005-bar.md", featureHit.Path)
+	}
+}
+
+func TestLocalRefIDs_DerivedFromHits_Unaffected(t *testing.T) {
+	// AC-1: the widening is additive — LocalRefIDs' existing []string
+	// consumption (the allocator) must not change shape. Pin that the
+	// plain id-string view stays index-aligned with the hit view.
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "# foo\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	commitFile(t, ctx, dir, "work/gaps/G-0005-bar.md", "# bar\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	ids := LocalRefIDs(ctx, dir)
+	hits := LocalRefHits(ctx, dir)
+	if len(ids) != len(hits) {
+		t.Fatalf("LocalRefIDs = %v (%d), LocalRefHits = %v (%d), want same length", ids, len(ids), hits, len(hits))
+	}
+	for i, h := range hits {
+		if ids[i] != h.ID {
+			t.Errorf("LocalRefIDs[%d] = %q, want %q (from LocalRefHits[%d])", i, ids[i], h.ID, i)
+		}
+	}
+}
+
+// --- M-0259/AC-3: DetectCollisions compares blob content across every
+// ref holding the same id, escalating genuine divergence. ---
+
+func TestDetectCollisions_IdenticalContentAcrossRefs_NoCollision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "same content\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	// Sibling touches an unrelated file so the id's own file is
+	// byte-identical on both refs (same content, genuinely not merged
+	// yet — the pending case, not a collision).
+	commitFile(t, ctx, dir, "work/gaps/G-0002-unrelated.md", "unrelated\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	hits := LocalRefHits(ctx, dir)
+	got := DetectCollisions(ctx, dir, hits)
+	if got["G-0001"] {
+		t.Errorf("DetectCollisions = %v, want no collision for G-0001 (identical content on every ref)", got)
+	}
+}
+
+func TestDetectCollisions_DivergentContentAcrossRefs_Collision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "main version\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	// Sibling independently holds the SAME id at the SAME path with
+	// DIFFERENT content — a genuine collision neither side has merged
+	// yet (G-0415's motivating class).
+	writeFile(t, dir, "work/gaps/G-0001-foo.md", "sibling version — diverged\n")
+	mustRun(t, ctx, dir, "add", "work/gaps/G-0001-foo.md")
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "sibling diverges G-0001")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	hits := LocalRefHits(ctx, dir)
+	got := DetectCollisions(ctx, dir, hits)
+	if !got["G-0001"] {
+		t.Errorf("DetectCollisions = %v, want collision=true for G-0001 (divergent content across refs)", got)
+	}
+}
+
+func TestDetectCollisions_SingleHit_NeverCollision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "only ever on main\n")
+
+	hits := LocalRefHits(ctx, dir)
+	got := DetectCollisions(ctx, dir, hits)
+	if got["G-0001"] {
+		t.Errorf("DetectCollisions = %v, want no collision for a single-ref id", got)
+	}
+}
+
+func TestDetectCollisions_NoHits_ReturnsEmpty(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	got := DetectCollisions(ctx, dir, nil)
+	if len(got) != 0 {
+		t.Errorf("DetectCollisions(nil) = %v, want empty", got)
+	}
+}
+
+func TestDetectCollisions_MultipleMultiHitIDs_ReusesSubprocess(t *testing.T) {
+	// Covers the br == nil check's reuse (false) branch: a second
+	// multi-hit id in the same call must not spawn a second
+	// BlobReader subprocess.
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "main G1\n")
+	commitFile(t, ctx, dir, "work/gaps/G-0002-bar.md", "main G2\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	writeFile(t, dir, "work/gaps/G-0001-foo.md", "sibling G1 diverged\n")
+	writeFile(t, dir, "work/gaps/G-0002-bar.md", "sibling G2 diverged\n")
+	mustRun(t, ctx, dir, "add", "work/gaps/G-0001-foo.md", "work/gaps/G-0002-bar.md")
+	mustRun(t, ctx, dir, "commit", "-q", "-m", "sibling diverges both")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	hits := LocalRefHits(ctx, dir)
+	got := DetectCollisions(ctx, dir, hits)
+	if !got["G-0001"] || !got["G-0002"] {
+		t.Errorf("DetectCollisions = %v, want collisions for both G-0001 and G-0002", got)
+	}
+}
+
+func TestDetectCollisions_UnreadableHitExcluded_NoFalseCollision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initRepo(t)
+	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "same content\n")
+	mustRun(t, ctx, dir, "checkout", "-q", "-b", "sibling")
+	mustRun(t, ctx, dir, "checkout", "-q", "main")
+
+	// main and sibling both carry G-0001 with identical content (sibling
+	// never touched it). Inject a bogus third hit for the same id at a
+	// path that does not exist on its ref — Stat fails for it, and
+	// DetectCollisions must exclude it rather than treating the read
+	// failure as a spurious divergence.
+	hits := LocalRefHits(ctx, dir)
+	hits = append(hits, RefHit{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/does-not-exist.md", Ref: "refs/heads/sibling"})
+
+	got := DetectCollisions(ctx, dir, hits)
+	if got["G-0001"] {
+		t.Errorf("DetectCollisions = %v, want no collision — the unreadable hit must be excluded, not treated as divergent", got)
+	}
+}
+
+func TestDetectCollisions_BlobReaderUnavailable_DegradesToNoCollision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	notARepo := t.TempDir()
+	hits := []RefHit{
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md", Ref: "refs/heads/main"},
+		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md", Ref: "refs/heads/sibling"},
+	}
+	got := DetectCollisions(ctx, notARepo, hits)
+	if len(got) != 0 {
+		t.Errorf("DetectCollisions = %v, want empty when BlobReader can't be constructed (not a repo)", got)
+	}
+}
+
+// writeFile overwrites path's content without committing — the
+// caller commits separately. Distinct from commitFile, which does
+// both in one step.
+func writeFile(t *testing.T, dir, path, content string) {
+	t.Helper()
+	full := filepath.Join(dir, path)
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
+	}
+}
+
 // --- M-0214: RemoteRefIDs (the allocator's remote-side cross-branch view) ---
 
 func TestRemoteRefIDs_UnionsRemoteBranchIDs(t *testing.T) {

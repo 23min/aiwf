@@ -105,15 +105,30 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	}
 	// M-0212: stamp the allocator's broadened cross-branch view — ids
 	// reachable from every local branch ref. Best-effort and read-only:
-	// LocalRefIDs never errors, degrading to nil on odd repo states, so
-	// it can never block the add. Feeds AllocationIDs (allocation only),
-	// never the ids-unique check (which reads TrunkIDs).
-	tr.LocalRefIDs = trunk.LocalRefIDs(ctx, rootDir)
+	// LocalRefHits never errors, degrading to nil on odd repo states, so
+	// it can never block the add. IDs feed AllocationIDs (allocation
+	// only), never the ids-unique check (which reads TrunkIDs).
+	//
+	// M-0259/AC-1: LocalRefHits/RemoteRefHits are called once each (not
+	// via the separate LocalRefIDs/RemoteRefIDs convenience wrappers) so
+	// the widened per-hit view (kind/path/ref) and the plain id-string
+	// view are derived from a single scan, not two.
+	localHits := trunk.LocalRefHits(ctx, rootDir)
+	tr.LocalRefIDs = trunk.HitIDStrings(localHits)
 	// M-0214: the remote-side mirror — ids reachable from every
 	// remote-tracking ref. Same best-effort, allocation-only contract as
 	// LocalRefIDs (never errors, never blocks; feeds AllocationIDs, not
 	// the ids-unique check).
-	tr.RemoteRefIDs = trunk.RemoteRefIDs(ctx, rootDir)
+	remoteHits := trunk.RemoteRefHits(ctx, rootDir)
+	tr.RemoteRefIDs = trunk.HitIDStrings(remoteHits)
+	// M-0259/AC-2: the check-side/read-side cross-branch view — refs-
+	// resolve and body-prose-id consult this on a local-tree miss before
+	// firing unresolved (ADR-0030).
+	tr.CrossBranchHits = append(append([]trunk.RefHit(nil), localHits...), remoteHits...)
+	// M-0259/AC-3: detect genuine divergence among ids that hit more
+	// than one ref (G-0415) — escalates refs-resolve/body-prose-id's
+	// classification from cross-branch-pending to cross-branch-collision.
+	tr.CrossBranchCollisions = trunk.DetectCollisions(ctx, rootDir, tr.CrossBranchHits)
 	return tr, loadErrs, nil
 }
 
