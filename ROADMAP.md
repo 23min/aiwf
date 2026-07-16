@@ -910,3 +910,11 @@ silently.
 | M-0257 | Broaden the check-clean oracle across ten stress scenarios | done |
 | M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | done |
 
+## E-0066 — Add a priority field to gaps and decisions for a filterable backlog (proposed)
+
+### Goal
+
+Give aiwf a kernel-supported `priority` field on gaps and decisions, so the backlog can be filtered and surfaced by importance instead of read end-to-end in id order. It replaces the ad-hoc inline `Severity:` prose that nothing can query with structured state that `aiwf check`, `aiwf list`, the JSON envelope, and the HTML render all understand.
+
+_No milestones yet._
+
