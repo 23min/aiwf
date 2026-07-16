@@ -519,13 +519,13 @@ func RenderListRowsText(w io.Writer, rows []ListSummary, titleBudget int, colorE
 		case rows[i].CrossBranchRef != "":
 			if g := render.StatusGlyph(rows[i].Status); g != "" {
 				statuses[i] = g + " " + rows[i].Status + " ⇄"
-			} else {
+			} else { //coverage:ignore defensive: the kernel's status vocabulary is closed and maps fully today, so a resolved cross-branch row's real status always has a glyph; not reachable via any currently-legal entity status
 				statuses[i] = rows[i].Status + " ⇄"
 			}
 		default:
 			if g := render.StatusGlyph(rows[i].Status); g != "" {
 				statuses[i] = g + " " + rows[i].Status
-			} else {
+			} else { //coverage:ignore defensive: the kernel's status vocabulary is closed and maps fully today; not reachable via any currently-legal entity status
 				statuses[i] = rows[i].Status
 			}
 		}
