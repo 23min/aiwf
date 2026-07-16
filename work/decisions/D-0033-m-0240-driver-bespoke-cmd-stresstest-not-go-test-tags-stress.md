@@ -1,7 +1,7 @@
 ---
 id: D-0033
 title: 'M-0240 driver: bespoke cmd/stresstest, not go test -tags=stress'
-status: proposed
+status: accepted
 relates_to:
     - E-0062
     - M-0240
