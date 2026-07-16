@@ -1,7 +1,7 @@
 ---
 id: D-0031
 title: CHANGELOG entries are copied from wrap.md, not independently authored
-status: proposed
+status: accepted
 relates_to:
     - G-0368
 ---
