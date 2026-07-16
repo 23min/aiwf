@@ -823,7 +823,7 @@ list` — without waiting for a merge and without copying the entity anywhere.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0259 | Add cross-branch-pending tier and collision detection to reference checks | in_progress |
+| M-0259 | Add cross-branch-pending tier and collision detection to reference checks | done |
 | M-0260 | Resolve and render cross-branch entity content in show and list | draft |
 
 ## E-0061 — Diagnostic logging and correlation (done)
