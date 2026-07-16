@@ -248,6 +248,15 @@ git-lineage-based disambiguation as scoped future work, should the
 coarse v1 severity prove insufficient in practice · commit 1bae85a2 ·
 tests 4/4 changed (all pass with corrected severity assertions)
 
+A fresh reviewer, re-dispatched to confirm the fix scoped to commit
+1bae85a2, found the severity flip correct on both classification paths
+and D-0036's central claim (the genuine case is still caught later by
+`ids-unique`) verified true by reading `idsUnique`'s implementation —
+but caught one stale doc comment the first pass missed
+(`internal/tree/tree.go`'s `CrossBranchCollisions` field doc still
+described the subcode as "blocking"/"a genuine collision"). Corrected
+· commit 318a6ff5
+
 ### AC-4 — Escalation re-fires unresolved once the source branch disappears
 
 No production code change — this falls out of AC-1/AC-2/AC-3's live,
