@@ -96,8 +96,9 @@ func TestReachabilityIsolationScenario_RealBinary_RunSurfacesACreationRefusal(t 
 
 // TestReachabilityIsolationScenario_RealBinaryConfirmsIsolationAndItsClose
 // is the AC-5 scenario itself: a real commit in worktree B, observed
-// (or rather not observed) from worktree A, then confirmed to close
-// once merged.
+// live via `aiwf show`'s cross-branch resolution (M-0260) from
+// worktree A even before the merge, while `check`'s outcome and
+// `history` stay isolated until the merge actually lands.
 func TestReachabilityIsolationScenario_RealBinaryConfirmsIsolationAndItsClose(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)

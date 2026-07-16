@@ -1,30 +1,30 @@
 ---
 id: M-0259
 title: Add cross-branch-pending tier and collision detection to reference checks
-status: draft
+status: done
 parent: E-0060
 tdd: required
 acs:
     - id: AC-1
       title: Cross-branch view carries per-id path and ref
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Local-tree miss resolves as cross-branch-pending, not unresolved
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Divergent content across refs escalates to cross-branch-collision
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Escalation re-fires unresolved once the source branch disappears
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: An id absent everywhere still hard-fails unresolved
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -84,16 +84,26 @@ each ref's recorded path via `gitops.BlobReader` (`git cat-file --batch`,
 already used by `internal/check/fsm_history_consistent.go` — no new git
 primitive). Identical SHA across every ref holding the id stays
 `cross-branch-pending` — one entity, just not merged yet, nothing
-ambiguous. Divergent SHA escalates to a distinct subcode,
+ambiguous. Divergent SHA escalates to a distinct, visible subcode,
 `cross-branch-collision`, instead of being silently classified as the soft
 tier. Resolves G-0415's multiplicity gap: today's `ids-unique` check never
 compares sibling local branches against each other, so this is the first
-surface that can detect a genuine cross-branch collision before either
-side merges.
+surface that can detect divergent content across sibling refs before
+either side merges.
+
+**Severity (D-0036):** `cross-branch-collision` is `SeverityWarning`, not
+`SeverityError` — divergence alone can't distinguish a genuine
+duplicate-mint collision from an ordinary same-entity edit still unmerged
+on a sibling branch (common given aiwf's own multi-worktree workflow,
+since linked worktrees share local branch refs); the genuine case is
+still caught, just later, by the pre-existing blocking
+`ids-unique`/`trunk-collision` check once both copies land in a shared
+tree. `G-0416` tracks git-lineage-based disambiguation as scoped future
+work.
 
 Evidence: fixture test with two local branches independently holding the
 same id with different content; the reference resolves
-`cross-branch-collision`, not `cross-branch-pending`.
+`cross-branch-collision` at `SeverityWarning`, not `cross-branch-pending`.
 
 ### AC-4 — Escalation re-fires unresolved once the source branch disappears
 
@@ -181,4 +191,156 @@ not trunk, not any local/remote ref) confirms the finding subcode stays
   unresolved
 - G-0415 — Cross-branch reference resolution must detect same-id
   divergence across refs
+
+---
+
+## Work log
+
+### AC-1 — Cross-branch view carries per-id path and ref
+
+Widened `LocalRefIDs`/`RemoteRefIDs` to `LocalRefHits`/`RemoteRefHits`
+returning `[]trunk.RefHit{Kind, ID, Path, Ref}`; the two string-slice
+functions are now thin derived wrappers so the allocator's existing
+consumption is unaffected · commit 76c1a712 · tests 5/5 new (plus 8
+existing M-0212/M-0214 tests passing unmodified)
+
+### AC-2 — Local-tree miss resolves as cross-branch-pending, not unresolved
+
+Added `Tree.CrossBranchHits` (populated once per side in
+`LoadTreeWithTrunk`, no duplicate scan) and a shared
+`crossBranchIndex`/`joinRefNames` helper; `refsResolve` and
+`classifyBodyToken` now consult it on a local-tree miss before firing
+`unresolved`, emitting the non-blocking `cross-branch-pending` subcode
+instead (`SeverityWarning`). Composite-id resolution (`M-NNN/AC-N`)
+deliberately stays out of scope — validating a composite's AC position
+would require reading the target's content from another ref, which is
+read-side territory (`M-0260`) · commit 138c5e43 · tests 12/12 new
+
+### AC-3 — Divergent content across refs escalates to cross-branch-collision
+
+Added `BlobReader.Stat` (`internal/gitops/catfile.go`) exposing
+`cat-file --batch`'s header SHA at no extra round-trip cost beyond
+`Read`; `trunk.DetectCollisions` groups cross-branch hits by canonical
+id and compares blob SHA across every ref holding a multiply-hit id,
+opening one `BlobReader` only when a comparison is actually needed.
+`Tree.CrossBranchCollisions` carries the result; `refsResolve` and
+`classifyBodyToken` escalate a divergent hit to the distinct
+`cross-branch-collision` subcode instead of the ordinary
+`cross-branch-pending` one. Best-effort throughout: an unreadable hit
+or an unconstructible `BlobReader` degrades toward "no collision
+detected," per G-0415's accepted transient-failure limitation ·
+commit 0f5faa86 · tests 17/17 new
+
+**Wrap-time correction (D-0036):** an independent code-quality review
+flagged that the initial implementation made `cross-branch-collision`
+`SeverityError` (blocking), but blob-SHA divergence alone can't
+distinguish a genuine duplicate-mint collision from an ordinary
+same-entity edit still unmerged on a sibling branch or worktree — a
+routine occurrence given aiwf's own recommended multi-worktree
+workflow (linked worktrees share local branch refs), not a rare
+adversarial case. Corrected to `SeverityWarning`: the subcode stays
+distinct and visible (satisfying ADR-0030's stated requirement), but
+no longer blocks `aiwf check`/the pre-push gate. The genuine
+duplicate-mint case is still caught, just later, by the pre-existing
+blocking `ids-unique`/`trunk-collision` check once both copies land in
+a shared tree. Recorded as `D-0036` (accepted); `G-0416` tracks
+git-lineage-based disambiguation as scoped future work, should the
+coarse v1 severity prove insufficient in practice · commit 1bae85a2 ·
+tests 4/4 changed (all pass with corrected severity assertions)
+
+A fresh reviewer, re-dispatched to confirm the fix scoped to commit
+1bae85a2, found the severity flip correct on both classification paths
+and D-0036's central claim (the genuine case is still caught later by
+`ids-unique`) verified true by reading `idsUnique`'s implementation —
+but caught one stale doc comment the first pass missed
+(`internal/tree/tree.go`'s `CrossBranchCollisions` field doc still
+described the subcode as "blocking"/"a genuine collision"). Corrected
+· commit 318a6ff5
+
+### AC-4 — Escalation re-fires unresolved once the source branch disappears
+
+No production code change — this falls out of AC-1/AC-2/AC-3's live,
+uncached recomputation of the cross-branch view on every `LoadTreeWithTrunk`
+call. Added the ADR-0030 fixture test proving the full lifecycle
+mechanically: a milestone's `parent` reference to a sibling-branch-only
+epic classifies `cross-branch-pending`; the sibling branch is deleted;
+`LoadTreeWithTrunk` + `check.Run` re-run against the mutated repo;
+the same reference now classifies `unresolved`. Vacuity-probed by
+temporarily reintroducing a caching bug into `LocalRefHits` — the
+fixture correctly went red, confirming it isn't vacuous · commit
+27b8abee · tests 1/1 new
+
+### AC-5 — An id absent everywhere still hard-fails unresolved
+
+No production code change — the guard already holds from AC-1/AC-2/
+AC-3's design. Added explicit tests for both `refsResolve` and
+`classifyBodyToken` that populate the cross-branch view (and, for
+body-prose-id, the trunk tier too) with unrelated ids before asserting
+a fabricated id still hard-fails `unresolved` — proving each tier was
+genuinely checked and came up empty, not that it was never consulted.
+Vacuity-probed by mutating each resolver to false-positive whenever its
+cross-branch view is merely non-empty: both new tests caught it, and
+neither pre-existing bare-`unresolved` test did (their cross-branch
+view is empty), confirming the new coverage is load-bearing · commit
+18e2b2f7 · tests 2/2 new
+
+## Decisions made during implementation
+
+- `D-0036` (accepted) — `cross-branch-collision` is `SeverityWarning`,
+  not `SeverityError`. Surfaced by the wrap-time independent
+  code-quality review; see AC-3's Work log entry above for the full
+  rationale.
+
+## Validation
+
+- `go build ./...`, `go vet ./...`, `golangci-lint run ./...` — clean.
+- `go test -count=1 -parallel 8 ./...` — all packages pass.
+- `make check-fast` and `make coverage-gate` — both clean (one
+  `//coverage:ignore` annotation added to `internal/gitops/catfile.go`
+  for a pre-existing untestable branch the AC-3 signature refactor
+  turned into a changed line).
+- `aiwf check` — 0 errors, 1 pre-existing warning
+  (`provenance-untrailered-scope-undefined`, no upstream configured on
+  this worktree branch — unrelated to this milestone).
+- Independent two-lens review dispatched at wrap: code-quality
+  (`wf-review-code`) verdict was request-changes on one blocking
+  finding (B1, resolved via `D-0036`) plus five non-blocking
+  track-for-later items (see Reviewer notes); design-quality
+  (`wf-rethink`) on `internal/check/cross_branch.go` and the
+  `trunk.RefHit`/`DetectCollisions` widening verdict was keep both
+  units, with the `crossBranchSubcode` simplification applied.
+
+## Deferrals
+
+- `G-0416` — git-lineage-based (`git merge-base`) disambiguation
+  between a genuine duplicate-mint collision and an ordinary
+  cross-branch edit, so `cross-branch-collision` could eventually
+  regain a stronger signal than a warning. Scoped follow-on work per
+  `D-0036`, not required for this milestone.
+
+## Reviewer notes
+
+- **B1 (resolved, `D-0036`):** the collision detector's blob-SHA
+  comparison can't tell a genuine duplicate-mint collision apart from
+  an ordinary same-entity edit unmerged on a sibling branch/worktree.
+  Fixed by making the finding non-blocking; the genuine case is still
+  caught later by `ids-unique`/`trunk-collision`. `G-0416` tracks the
+  fully-correct fix as future work.
+- **T1 (track-for-later, not fixed this milestone):** `refsResolve` has
+  no trunk tier of its own (only `body_prose_id.go`'s `classifyBodyToken`
+  does, via `BodyProseIndex.Trunk`), so a trunk-only id classifies
+  `cross-branch-pending` on the structured-field side but resolves
+  silently on the prose side. Pre-existing asymmetry this milestone
+  softens (error→warning) rather than introduces; the two surfaces
+  were never symmetric.
+- **T3 (track-for-later, not fixed this milestone):** a cross-branch
+  hit skips `AllowedKinds` validation in `refsResolve` — a genuinely
+  wrong-kind reference to a cross-branch-only id classifies
+  `cross-branch-pending` instead of `wrong-kind`. Self-corrects to
+  `wrong-kind` once the source branch merges and the target resolves
+  locally, so it's deferred rather than lost.
+- Both `crossBranchIndex` and `joinRefNames` in `cross_branch.go` were
+  confirmed load-bearing and kept as-is by the design review;
+  `crossBranchSubcode` was deleted (dead severity return, duplicated
+  `bodyProseIDSeverity`).
 

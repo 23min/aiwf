@@ -52,8 +52,9 @@ func setupAreaTree(t *testing.T) (string, *tree.Tree) {
 // the area axis.
 func listIDsByArea(tr *tree.Tree, area string) map[string]bool {
 	got := map[string]bool{}
-	for _, r := range list.BuildListRows(tr, "", "", "", area, true) {
-		got[r.ID] = true
+	rows := list.BuildListRows(context.Background(), tr, "", "", "", area, true)
+	for i := range rows {
+		got[rows[i].ID] = true
 	}
 	return got
 }

@@ -26,6 +26,7 @@ func TestStatusGlyph(t *testing.T) {
 		{"rejected", "✗"},
 		{"retired", "✗"},
 		{"superseded", "✗"},
+		{"deprecated", "✗"}, // contract-only status
 		// unknown returns ""
 		{"", ""},
 		{"deferred", ""}, // AC status, not entity status — no glyph

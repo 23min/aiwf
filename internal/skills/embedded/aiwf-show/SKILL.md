@@ -53,6 +53,12 @@ JSON envelope (`--format=json --pretty`) carries the same data plus a `body` map
 
 The JSON envelope also expands per-AC payloads: each `acs[N]` entry carries the AC's body description, status, tdd_phase, and the most-recent test metrics (`{pass, fail, skip, total}`) extracted from any `aiwf-tests:` commit trailer in its history.
 
+## Cross-branch resolution
+
+When `<id>` is absent from the local working tree but known on another local branch or remote-tracking ref (a sibling worktree's committed-but-unmerged work, typically), `show` resolves and renders that ref's content live rather than reporting "not found" — read-only, no working-tree/index/ref write at any point. The result carries a `cross_branch` field (JSON) — or a `· cross-branch (ref: <ref>)` header suffix (text) — so it never renders indistinguishably from a locally-resolved entity.
+
+If the id's content diverges across two or more refs (a genuine collision, not just an ordinary unmerged edit), `show` declines to pick a side: it renders only identity plus the candidate refs (`cross_branch.collision: true`, `cross_branch.refs: [...]`) and no title/status/body — resolve by merging or reconciling the refs, then re-run.
+
 ## Recipes
 
 ```bash

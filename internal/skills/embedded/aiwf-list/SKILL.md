@@ -40,6 +40,10 @@ When the user reaches for *filter*, *list*, *find*, *show all*, or names a struc
 
 For machine consumption: append `--format=json [--pretty]`. The envelope's `result` is an array of summary objects with `{id, kind, status, title, parent, path}`.
 
+## Cross-branch rows
+
+A filtered listing (any invocation past the no-args per-kind count) also surfaces ids known on another local branch or remote-tracking ref but absent from the local working tree — labeled distinctly (`cross_branch_ref` in JSON; a `⇄` status-column marker in text) so they never read as an ordinary local row. `--kind` applies to these rows normally; a resolved (unambiguous) row also honors `--status`/`--parent`/`--area`/`--archived` exactly like a local row. A row whose content diverges across refs (a genuine collision) surfaces only with `--kind` (or no other filter) — `cross_branch_collision: true`, `cross_branch_refs: [...]`, no title/status/parent — since it has no single answer to give a `--status`/`--parent`/`--area` filter; `--archived` never hides it (an unresolved ambiguity stays visible by default).
+
 ## Recipes
 
 - **Per-kind summary** — `aiwf list` (no args). Prints `5 epics · 47 milestones · 12 ADRs · 14 gaps · 3 decisions · 1 contract` style line. Excludes terminal-status entities; that's the active surface only.

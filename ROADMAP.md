@@ -813,7 +813,7 @@ to be isolated in a worktree.
 | M-0235 | Generalized hook registry: aiwf.yaml-declared, persisted consent | done |
 | M-0236 | Ship the worktree-materialization-check SessionStart hook | done |
 
-## E-0060 — Resolve cross-branch entity references at check and read time (proposed)
+## E-0060 — Resolve cross-branch entity references at check and read time (active)
 
 ### Goal
 
@@ -823,8 +823,8 @@ list` — without waiting for a merge and without copying the entity anywhere.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0259 | Add cross-branch-pending tier and collision detection to reference checks | draft |
-| M-0260 | Resolve and render cross-branch entity content in show and list | draft |
+| M-0259 | Add cross-branch-pending tier and collision detection to reference checks | done |
+| M-0260 | Resolve and render cross-branch entity content in show and list | done |
 
 ## E-0061 — Diagnostic logging and correlation (done)
 

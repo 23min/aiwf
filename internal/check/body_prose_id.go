@@ -44,6 +44,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -51,6 +52,7 @@ import (
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 )
 
 // The CodeBodyProseID constant is declared in check.go alongside the
@@ -137,9 +139,23 @@ func bodyProseID(t *tree.Tree) []Finding {
 // trunk ids as authoritative. Nil Trunk (in-memory test trees,
 // no-remote repos, dispatchers that load without a trunk read)
 // degrades to primary-tier-only behavior — the pre-G-0241 default.
+//
+// CrossBranch is the third tier (M-0259/AC-2): canonicalized id →
+// the cross-branch hits carrying it (see crossBranchIndex). Consulted
+// only after both ByID and Trunk miss. Unlike Trunk, a hit here is
+// VISIBLE — it fires the non-blocking cross-branch-pending subcode —
+// because a sibling branch is provisional (it can be rebased, renamed,
+// or abandoned before merging), unlike trunk which is authoritative.
 type BodyProseIndex struct {
-	ByID  map[string]*entity.Entity
-	Trunk map[string]bool
+	ByID        map[string]*entity.Entity
+	Trunk       map[string]bool
+	CrossBranch map[string][]trunk.RefHit
+	// Collisions is t.CrossBranchCollisions verbatim (M-0259/AC-3): the
+	// canonicalized-id set whose cross-branch hits diverge in content.
+	// classifyBodyToken escalates a CrossBranch hit here to the
+	// distinct cross-branch-collision subcode instead of the ordinary
+	// cross-branch-pending one — both are non-blocking warnings (D-0036).
+	Collisions map[string]bool
 }
 
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
@@ -173,6 +189,8 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 			idx.Trunk[entity.Canonicalize(tid.ID)] = true
 		}
 	}
+	idx.CrossBranch = crossBranchIndex(t)
+	idx.Collisions = t.CrossBranchCollisions
 	return idx
 }
 
@@ -212,7 +230,7 @@ func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []F
 		line := 1 + bytes.Count(body[:m[0]], []byte{'\n'})
 		findings = append(findings, Finding{
 			Code:     CodeBodyProseID,
-			Severity: SeverityError,
+			Severity: bodyProseIDSeverity(subcode),
 			Subcode:  subcode,
 			Message:  fmt.Sprintf("%s body prose contains %s", entityID, msg),
 			Path:     path,
@@ -336,7 +354,37 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 		if idx.Trunk[canon] {
 			return "", ""
 		}
+		// M-0259/AC-2: a miss against both ByID and the (silent) Trunk
+		// tier consults the cross-branch view before hard-failing
+		// (ADR-0030). Unlike Trunk, a hit here is visible: it fires
+		// cross-branch-pending rather than resolving silently, since a
+		// sibling branch — unlike trunk — is provisional.
+		if hits, known := idx.CrossBranch[canon]; known {
+			// Non-blocking (D-0036): see the identical rationale on
+			// refsResolve's collision branch in check.go.
+			if idx.Collisions[canon] {
+				return "cross-branch-collision", fmt.Sprintf("id %q has diverging content across %s (may be an in-flight edit on one of the branches, or a genuine duplicate-mint collision — compare manually)", tok, joinRefNames(hits))
+			}
+			return "cross-branch-pending", fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
+		}
 		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
 	}
 	return "malformed-shape", fmt.Sprintf("id-shaped token %q that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)", tok)
+}
+
+// bodyProseIDSeverity maps a classifyBodyToken subcode to its finding
+// severity. Every subcode is a hard, blocking error except the two
+// cross-branch-* subcodes (M-0259/AC-2/AC-3, ADR-0030, D-0036), which
+// are visible but non-blocking warnings: cross-branch-pending because
+// the id is real, just not merged into this branch yet; and
+// cross-branch-collision because divergent content is ambiguous
+// between a genuine duplicate-mint collision and an ordinary
+// same-entity edit on an unmerged sibling branch — the actual
+// duplicate-mint case is still caught, just later, by the
+// pre-existing blocking ids-unique/trunk-collision check.
+func bodyProseIDSeverity(subcode string) Severity {
+	if strings.HasPrefix(subcode, "cross-branch-") {
+		return SeverityWarning
+	}
+	return SeverityError
 }
