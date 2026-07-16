@@ -6,6 +6,10 @@ relates_to:
     - E-0060
     - M-0259
 ---
+# D-0036 — Cross-branch-collision severity is non-blocking, not error
+
+> **Date:** 2026-07-16 · **Decided by:** human/peter
+
 ## Question
 
 M-0259/AC-3 detects a cross-branch reference whose id carries divergent
