@@ -250,3 +250,16 @@ func TestBuildShowView_CrossBranchResolved_MalformedContentNotFound(t *testing.T
 		t.Error("BuildShowView(G-0100): ok = true, want not-found for malformed cross-branch content")
 	}
 }
+
+// TestBuildShowView_EmptyRoot_NeverScans — the defense-in-depth guard
+// in buildCrossBranchShowView: an empty root must degrade straight to
+// not-found rather than reach trunk.LocalRefHits (which would
+// otherwise treat an empty exec.Cmd.Dir as "inherit the caller's
+// cwd"). No real call site passes an empty root, but the guard itself
+// must be exercised.
+func TestBuildShowView_EmptyRoot_NeverScans(t *testing.T) {
+	tr := &tree.Tree{}
+	if _, ok := show.BuildShowView(context.Background(), "", tr, nil, "G-9999", 5); ok {
+		t.Error("BuildShowView(root=\"\"): ok = true, want not-found (the empty-root guard should short-circuit)")
+	}
+}
