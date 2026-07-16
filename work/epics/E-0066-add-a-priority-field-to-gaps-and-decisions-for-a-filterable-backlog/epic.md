@@ -67,14 +67,12 @@ This is the implementation epic for **G-0078**, whose five design decisions this
 
 ## Milestones
 
-Candidate breakdown — ids are allocated by `aiwfx-plan-milestones`, not here.
+- `M-0261` — Field, validation, and drift chokepoints: the `priority` field on gap/decision (shared struct + `OptionalFields` + `CarriesOwnPriority` predicate + closed-set value predicate), the `priority-not-applicable` check rule with its firing fixture, and the two literal-drift chokepoint extensions. The foundation everything else reads and writes. · `tdd: required` · depends on: —
+- `M-0262` — Write surface: `aiwf set-priority <id> <level>` (new verb: cobra wiring, completion, trailers) and `aiwf add --priority` (gap/decision gate); skills `aiwf-set-priority` (new) and `aiwf-add` (updated). · `tdd: required` · depends on: `M-0261`
+- `M-0263` — Read surface: `--priority <level>` filter on `aiwf list` and `aiwf status`, the value on the JSON envelope entity payload, and `aiwf show` surfacing it. · `tdd: required` · depends on: `M-0261`
+- `M-0264` — HTML render badge: priority badge in `aiwf render`, human-verified against the kernel's own tree. · `tdd: advisory` · depends on: `M-0261`
 
-- **Field, validation, and drift chokepoints** — the `priority` field on gap/decision (shared struct + `OptionalFields` + `CarriesOwnPriority` predicate + closed-set value predicate), the `priority-not-applicable` check rule with its firing fixture, and the two literal-drift chokepoint extensions. The foundation everything else reads and writes. · depends on: —
-- **Write surface** — `aiwf set-priority <id> <level>` (new verb: cobra wiring, completion, trailers) and `aiwf add --priority` (gap/decision gate); skills `aiwf-set-priority` (new) and `aiwf-add` (updated). · depends on: the field milestone.
-- **Read surface** — `--priority <level>` filter on `aiwf list` and `aiwf status`, the value on the JSON envelope entity payload, and `aiwf show` surfacing it. · depends on: the field milestone.
-- **HTML render badge** — priority badge in `aiwf render`, human-verified against the kernel's own tree. · depends on: the field milestone.
-
-The three surface milestones each depend only on the field milestone and are independent of one another.
+`M-0262`, `M-0263`, and `M-0264` each depend only on `M-0261` and are independent of one another — they can run in any order or in parallel once `M-0261` lands.
 
 ## ADRs produced
 
