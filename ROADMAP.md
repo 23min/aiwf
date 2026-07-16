@@ -611,7 +611,7 @@ pre-push where the check can live there, CI at the latest.
 | M-0210 | Drift chokepoint for the trailered-commit block in wrap rituals | done |
 | M-0211 | Migrate consumer operating guidance from CLAUDE.md to the shippable source | done |
 
-## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (proposed)
+## E-0049 — Ritual lifecycle model: gate discipline and commit/TDD model (cancelled)
 
 ### Goal
 
@@ -813,7 +813,7 @@ to be isolated in a worktree.
 | M-0235 | Generalized hook registry: aiwf.yaml-declared, persisted consent | done |
 | M-0236 | Ship the worktree-materialization-check SessionStart hook | done |
 
-## E-0060 — Resolve cross-branch entity references at check and read time (active)
+## E-0060 — Resolve cross-branch entity references at check and read time (done)
 
 ### Goal
 
