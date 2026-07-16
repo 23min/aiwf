@@ -1,7 +1,7 @@
 ---
 id: D-0015
 title: Ritual templates materialize to .claude/templates/ (Claude target)
-status: proposed
+status: accepted
 ---
 ## Decision
 
