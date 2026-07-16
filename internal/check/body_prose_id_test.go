@@ -593,7 +593,9 @@ func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
 
 // TestBodyProseID_CrossBranchCollision_M0259AC3 pins the escalation
 // pair: a bare id known on more than one ref with divergent content
-// fires cross-branch-collision (blocking), not cross-branch-pending.
+// fires cross-branch-collision (a distinct, visible, non-blocking
+// subcode — see the D-0036 note on the refsResolve twin test), not
+// cross-branch-pending.
 func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -612,8 +614,8 @@ func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
 	if got[0].Subcode != "cross-branch-collision" {
 		t.Errorf("Subcode = %q, want cross-branch-collision", got[0].Subcode)
 	}
-	if got[0].Severity != SeverityError {
-		t.Errorf("Severity = %q, want error (blocking)", got[0].Severity)
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning (non-blocking — see D-0036)", got[0].Severity)
 	}
 }
 

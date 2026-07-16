@@ -39,21 +39,6 @@ func crossBranchIndex(t *tree.Tree) map[string][]trunk.RefHit {
 	return idx
 }
 
-// crossBranchSubcode picks the refs-resolve/body-prose-id subcode and
-// severity for a cross-branch hit (M-0259/AC-2/AC-3): genuine content
-// divergence across refs (collision=true, from trunk.DetectCollisions)
-// escalates to the blocking cross-branch-collision subcode; otherwise
-// the hit is the ordinary non-blocking cross-branch-pending case.
-// Takes the bool directly (not the tree) so both refsResolve
-// (tree-backed lookup) and classifyBodyToken (BodyProseIndex-backed
-// lookup, no tree access) can share it.
-func crossBranchSubcode(collision bool) (subcode string, severity Severity) {
-	if collision {
-		return "cross-branch-collision", SeverityError
-	}
-	return "cross-branch-pending", SeverityWarning
-}
-
 // joinRefNames formats the distinct ref names in hits for a finding
 // message, e.g. "refs/heads/sibling", or a comma-joined list when the
 // id is visible on more than one ref.

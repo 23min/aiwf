@@ -44,6 +44,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -152,8 +153,8 @@ type BodyProseIndex struct {
 	// Collisions is t.CrossBranchCollisions verbatim (M-0259/AC-3): the
 	// canonicalized-id set whose cross-branch hits diverge in content.
 	// classifyBodyToken escalates a CrossBranch hit here to the
-	// blocking cross-branch-collision subcode instead of the ordinary
-	// non-blocking cross-branch-pending one.
+	// distinct cross-branch-collision subcode instead of the ordinary
+	// cross-branch-pending one — both are non-blocking warnings (D-0036).
 	Collisions map[string]bool
 }
 
@@ -359,24 +360,30 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 		// cross-branch-pending rather than resolving silently, since a
 		// sibling branch — unlike trunk — is provisional.
 		if hits, known := idx.CrossBranch[canon]; known {
-			subcode, _ := crossBranchSubcode(idx.Collisions[canon])
-			if subcode == "cross-branch-collision" {
-				return subcode, fmt.Sprintf("id %q has diverging content across %s (a genuine cross-branch collision, not merely unmerged)", tok, joinRefNames(hits))
+			// Non-blocking (D-0036): see the identical rationale on
+			// refsResolve's collision branch in check.go.
+			if idx.Collisions[canon] {
+				return "cross-branch-collision", fmt.Sprintf("id %q has diverging content across %s (may be an in-flight edit on one of the branches, or a genuine duplicate-mint collision — compare manually)", tok, joinRefNames(hits))
 			}
-			return subcode, fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
+			return "cross-branch-pending", fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
 		}
 		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
 	}
 	return "malformed-shape", fmt.Sprintf("id-shaped token %q that does not match the kind's strict id pattern (wrap in backticks if discussing id syntax)", tok)
 }
 
-// bodyProseIDSeverity maps a classifyBodyToken subcode to its
-// finding severity. Every subcode is a hard, blocking error except
-// cross-branch-pending (M-0259/AC-2, ADR-0030), which is a visible but
-// non-blocking warning — the id is real, just not merged into this
-// branch yet.
+// bodyProseIDSeverity maps a classifyBodyToken subcode to its finding
+// severity. Every subcode is a hard, blocking error except the two
+// cross-branch-* subcodes (M-0259/AC-2/AC-3, ADR-0030, D-0036), which
+// are visible but non-blocking warnings: cross-branch-pending because
+// the id is real, just not merged into this branch yet; and
+// cross-branch-collision because divergent content is ambiguous
+// between a genuine duplicate-mint collision and an ordinary
+// same-entity edit on an unmerged sibling branch — the actual
+// duplicate-mint case is still caught, just later, by the
+// pre-existing blocking ids-unique/trunk-collision check.
 func bodyProseIDSeverity(subcode string) Severity {
-	if subcode == "cross-branch-pending" {
+	if strings.HasPrefix(subcode, "cross-branch-") {
 		return SeverityWarning
 	}
 	return SeverityError

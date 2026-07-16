@@ -35,6 +35,14 @@
 // ids-unique check — so a sibling worktree's freshly-committed id is
 // seen at allocation time (M-0212).
 //
+// LocalRefHits/RemoteRefHits and DetectCollisions (M-0259) widen this
+// further into a second consumer beyond the allocator: the per-id
+// path/ref view they carry, plus blob-content comparison across refs,
+// feed the check layer's cross-branch-pending/cross-branch-collision
+// classification (ADR-0030) — so the package's scope is no longer
+// "for the allocator" alone, but every read-only consumer of "what ids
+// are visible where, across every locally-knowable ref."
+//
 // The package is read-only and has no per-process cache; callers
 // invoke once per verb run.
 package trunk
@@ -252,21 +260,29 @@ func HitIDStrings(hits []RefHit) []string {
 // — for any id appearing on more than one distinct ref — compares
 // blob content at each hit's path via gitops.BlobReader.Stat
 // (M-0259/AC-3, G-0415). Returns the set of canonicalized ids whose
-// content diverges across refs: a genuine cross-branch collision, not
-// merely "the same entity, not merged yet" (which stays
-// cross-branch-pending — the caller's job, not this function's).
+// content diverges across refs — the caller (refsResolve/
+// classifyBodyToken) surfaces this as the distinct, non-blocking
+// cross-branch-collision subcode rather than the ordinary
+// cross-branch-pending one (D-0036): divergence alone can't
+// distinguish a genuine duplicate-mint collision from an ordinary
+// same-entity edit still unmerged on a sibling branch, so this
+// function reports divergence and leaves severity/interpretation to
+// the caller.
 //
 // Best-effort and read-only, mirroring LocalRefHits/RemoteRefHits'
 // contract: a blob-read failure for a given hit excludes it from the
 // comparison rather than erroring the whole call (G-0415's accepted
 // transient-failure limitation) — degrading toward "no collision
-// detected" is the safe direction, since a spurious collision would
-// wrongly hard-block a reference that's actually fine.
+// detected" is the safe direction, since a spurious collision finding
+// is noise the caller has to triage for nothing.
 //
 // Opens one BlobReader subprocess only when at least one id has more
-// than one hit — the common single-hit case (nothing to compare)
-// pays no git cost beyond the ls-tree scan LocalRefHits/RemoteRefHits
-// already did.
+// than one hit. In a repo with several local branches or a configured
+// remote, multi-hit ids are the common case (every entity shared with
+// a sibling branch or the trunk ref), not the exception — so the
+// BlobReader typically does spawn on most verb runs; it just never
+// spawns for the id-free or fully-solo-branch case, where there is
+// nothing to compare.
 func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[string]bool {
 	byID := make(map[string][]RefHit, len(hits))
 	for _, h := range hits {

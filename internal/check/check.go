@@ -611,11 +611,21 @@ func refsResolve(t *tree.Tree) []Finding {
 				// distinct, non-blocking subcode instead of unresolved.
 				if hits, known := crossBranch[entity.Canonicalize(ref.Target)]; known {
 					if t.CrossBranchCollisions[entity.Canonicalize(ref.Target)] {
+						// Non-blocking (D-0036): divergent content is
+						// ambiguous between a genuine duplicate-mint
+						// collision and an ordinary same-entity edit on
+						// an unmerged sibling branch/worktree (aiwf's
+						// own recommended multi-worktree workflow shares
+						// local branch refs across worktrees, so this is
+						// routine, not adversarial). A real duplicate
+						// mint is still caught, just later — by the
+						// pre-existing blocking ids-unique/trunk-collision
+						// check once both copies land in a shared tree.
 						findings = append(findings, Finding{
 							Code:     CodeRefsResolve,
-							Severity: SeverityError,
+							Severity: SeverityWarning,
 							Subcode:  "cross-branch-collision",
-							Message: fmt.Sprintf("%s field %q references %q, which has diverging content across %s (a genuine cross-branch collision, not merely unmerged)",
+							Message: fmt.Sprintf("%s field %q references %q, which has diverging content across %s (may be an in-flight edit on one of the branches, or a genuine duplicate-mint collision — compare manually)",
 								e.Kind, ref.Field, ref.Target, joinRefNames(hits)),
 							Path:     e.Path,
 							EntityID: e.ID,

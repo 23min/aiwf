@@ -588,8 +588,17 @@ func TestRefsResolve_CrossBranchCollision(t *testing.T) {
 	if got[0].Subcode != "cross-branch-collision" {
 		t.Errorf("Subcode = %q, want cross-branch-collision", got[0].Subcode)
 	}
-	if got[0].Severity != SeverityError {
-		t.Errorf("Severity = %q, want error (blocking — genuine divergence)", got[0].Severity)
+	// D-0036 (recorded at M-0259 wrap): a distinct, visible finding
+	// stays warning-severity rather than blocking. "Divergent SHA" is
+	// ambiguous between a genuine duplicate-mint collision and an
+	// ordinary same-entity edit on an unmerged sibling branch/worktree
+	// — the common case given aiwf's own recommended multi-worktree
+	// workflow (worktrees share local branch refs) — and the actual
+	// duplicate-mint case is still caught, just later, by the
+	// pre-existing blocking ids-unique/trunk-collision check once both
+	// copies land in a shared tree.
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("Severity = %q, want warning (non-blocking — divergence is ambiguous between an edit and a genuine collision)", got[0].Severity)
 	}
 }
 
