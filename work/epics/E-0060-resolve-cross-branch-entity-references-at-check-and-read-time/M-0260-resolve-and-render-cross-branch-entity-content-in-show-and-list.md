@@ -204,10 +204,28 @@ e15debb4 · tests 1/1 new
   (updated to reflect this milestone's intentional behavior change —
   see Reviewer notes).
 - `aiwf check` — no findings on the milestone.
+- `make coverage-gate` — clean (diff-scoped branch-coverage audit +
+  firing-fixture presence).
+- Independent two-lens review (code-quality + design-quality, fresh
+  context, no shared authorship): code-quality returned
+  REQUEST-CHANGES with one blocking finding, fixed as a corrective
+  commit; design-quality returned sound-with-reservations, no blocking
+  findings. Full detail under Reviewer notes below. Re-verified
+  mechanically after the fixes (build/vet/lint/full suite green again)
+  rather than re-dispatching a second review pass, since every fix was
+  a small, well-scoped, mechanical change the first pass had already
+  independently validated as correct.
 
 ## Deferrals
 
-None — all 4 ACs landed in full within this milestone's scope.
+- `G-0418` — cross-branch hit/collision-scan composition duplicated
+  across 3 call sites (`treeload.go`, `show.go`, `list.go`); a shared
+  `trunk`-level helper would collapse it to one place. Design-review
+  track-for-later, not urgent.
+- `G-0419` — `aiwf show <cross-branch-id> --area X` always reports the
+  entity untagged, since the `--area` predicate resolves via the local
+  tree only. Narrow flag combination; design-review finding, deferred
+  as out of this milestone's scope.
 
 ## Reviewer notes
 
@@ -220,6 +238,13 @@ None — all 4 ACs landed in full within this milestone's scope.
   and both classify/real-binary test suites to expect `aiwf show` to
   find it (labeled cross-branch); `check` and `history` keep their
   original isolation contract, since this milestone touches neither.
+  The design review independently confirmed this is sound, not a
+  weakened invariant: ADR-0030 names the multi-worktree session as the
+  motivating benefit, cross-branch resolution reads only *committed*
+  refs (never an uncommitted working-tree edit), and a linked
+  worktree's shared local branches mean there is no second principal
+  whose privacy is at stake — no new disclosure beyond what
+  `git show <ref>:<path>` already exposes to the same user.
 - **`tr.Root == ""` guard.** `crossBranchListRows` guards against a
   bare in-memory `*tree.Tree{}` (common in unit tests, `Root` left
   unset): `exec.Cmd.Dir == ""` means "inherit the calling process's
@@ -235,5 +260,59 @@ None — all 4 ACs landed in full within this milestone's scope.
   to the common case" constraint. `show`/`list` instead call
   `trunk.LocalRefHits`/`RemoteRefHits`/`DetectCollisions` directly,
   lazily, only on a local-tree miss (show) or from within a filtered
-  listing (list, never the no-args counts path).
+  listing (list, never the no-args counts path). The design review
+  confirmed this trade-off is correct but flagged that the
+  *composition* of the primitives (not the primitives themselves) is
+  triplicated across 3 call sites — tracked as `G-0418`.
+
+### Independent review findings and how they were handled
+
+**Code-quality (verdict: REQUEST-CHANGES, one blocking finding):**
+
+- **Blocking — fixed.** The `//coverage:ignore` annotations on
+  `list.go`'s two status-glyph else-branches rested on a false
+  rationale ("the kernel's status vocabulary is closed and maps fully
+  today"): `render.StatusGlyph` had no case for `deprecated`, a legal
+  `contract` status, so both branches were genuinely reachable, not
+  defensive dead code. Fixed at the root cause — added
+  `entity.StatusDeprecated` to `StatusGlyph`'s `✗` ("closed off") arm
+  (`internal/render/glyph.go`) plus a table-driven test case — which
+  makes the `//coverage:ignore` rationale true and closes a
+  pre-existing cosmetic gap (a `deprecated` contract rendered
+  glyph-less everywhere, not just in this milestone's new code).
+- **Non-blocking — fixed.** `cross_branch_no_writes_test.go`'s
+  `indexHash` computed `sha256.New().Sum(indexBytes)`, which appends
+  the digest of *nothing written* to `indexBytes` rather than hashing
+  it — the field name and doc comment were both wrong, though the
+  comparison still functioned (a full raw-byte compare is stricter
+  than a hash). Fixed to `sha256.Sum256(indexBytes)`.
+- **Non-blocking — fixed.** `buildCrossBranchShowView` lacked the
+  `root == ""` defensive guard `crossBranchListRows` already has. Not
+  reachable via any current call site (every caller resolves a real
+  root first), but added for consistency and defense-in-depth against
+  a future bare-root caller.
+
+**Design-quality (verdict: sound, with reservations; no blocking findings):**
+
+- **Worth doing before wrap — done.** The `CrossBranchRef`/
+  `CrossBranchCollision`/`CrossBranchRefs` mutual-exclusion on
+  `ListSummary` was enforced only by control flow, not pinned by any
+  test — a future edit could set both without anything catching it.
+  Added `TestBuildListRows_CrossBranchDiscriminants_MutuallyExclusive`.
+- **Track-for-later.** The triplicated cross-branch composition recipe
+  (see above) — `G-0418`.
+- **Track-for-later.** `aiwf show --area` on a cross-branch id ignores
+  its real area — `G-0419`.
+- **Confirmed sound, no action needed:** the show/list high-level
+  separation (different enough control flow to justify staying
+  separate, despite a shared inner "resolve one hit" block — noted
+  under `G-0418`'s scope); the list-filtering policy (rated the
+  strongest-designed part of the milestone — "honor a filter axis iff
+  it's evaluable without trusting the disputed content" is the
+  unifying principle, not an ad hoc pile); the stress-scenario flip
+  (see above); the read-only guarantee's structural basis (the
+  cross-branch path reaches only read-only git plumbing —
+  `for-each-ref`, `ls-tree`, `cat-file --batch` — no write-capable
+  primitive is reachable from it, so AC-4 rests on which primitives the
+  path can reach, not merely on the snapshot test).
 
