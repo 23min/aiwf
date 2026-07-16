@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: An id absent everywhere still hard-fails unresolved
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
