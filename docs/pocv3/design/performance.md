@@ -187,7 +187,12 @@ authorize-opener grep (M-0223), not via a batched walker.
 
 48 local branches. The allocator (`internal/trunk`) enumerates `refs/heads/*` and
 `refs/remotes/*` and runs a `git ls-tree` **per ref** on every `aiwf add`
-(ADR-0025 — the cross-branch view feeds allocation only). `aiwf check`'s reflog /
+(ADR-0025). ADR-0030 (E-0060) widened this same per-ref scan to two more
+consumers: `aiwf check` now runs it eagerly (once per invocation, via
+`LoadTreeWithTrunk`), and `aiwf show`/`aiwf list` run it lazily — `show`
+only on a local-tree miss for the one queried id, `list` only from within
+a filtered listing, never the no-args counts path — so neither read verb's
+common case (local resolution) pays the O(refs) cost. `aiwf check`'s reflog /
 isolation oracle walks per ritual head. Many of those 48 branches are almost
 certainly merged ritual/epic branches. **Branch hygiene** (prune merged branches;
 have the oracle skip merged refs — G-0324) is a cheap partial win, and a per-ref-SHA
