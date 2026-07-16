@@ -87,6 +87,8 @@ The verb also ships a `--clear` flag, beyond AC-1's literal title — added deli
 
 Two discoverability chokepoints needed same-commit fixes to keep the build green: `nonLegalityVerbAllowlist` (M-0123/AC-5's FSM-drift policy) gained a `set-priority` entry mirroring `set-area`'s ("FSM state is preserved"); `skillCoverageAllowlist` gained a *temporary* entry noting the real `aiwf-set-priority` skill lands in AC-4 — remove the allowlist entry when that skill ships.
 
+**Readiness-check follow-up** (commit e02ab400): `make coverage-gate` — run for the first time only at the milestone's readiness check, not per-AC — caught a real gap the manual branch-coverage audit missed: the diag-logging `runID == ""` fallback-mint line is unreachable via `cli.Execute` (which always mints a real correlation id), so it only fires on a direct `Run()` call carrying a zero-value `cliutil.OutputFormat{}`. Every other wired verb has a dedicated `*Diag_FallsBackWhenOutputFormatCarriesNone` test for exactly this path (`remaining_verbs_fallback_test.go`); `set-priority` was missing its instance. Added `TestSetPriorityDiag_FallsBackWhenOutputFormatCarriesNone` mirroring `TestSetAreaDiag_FallsBackWhenOutputFormatCarriesNone`.
+
 ### AC-2 — aiwf set-priority refuses an out-of-range level and a non-gap/decision target
 
 No new code: the refusal logic was written alongside AC-1's set path in the same commit (91f42294), since both live in the same `SetPriority` function body — `TestSetPriority_ValidationRefusals/{non-gap/decision_target,out-of-range_level}` and `TestSetPriority_OutOfRangeErrorNamesAllowedSet` already covered AC-2's exact claims. Closing this AC formally rather than silently folding it into AC-1, since the milestone spec tracks it as its own unit.
