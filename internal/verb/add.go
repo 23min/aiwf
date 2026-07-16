@@ -83,6 +83,14 @@ type AddOptions struct {
 	// — and, for a gap with --discovered-in and no explicit --area,
 	// derives it from the discovered-in entity's effective area.
 	Area string
+	// Priority is the optional closed-set urgency tag (G-0078, E-0066)
+	// for the two kinds that carry one (gap, decision;
+	// entity.CarriesOwnPriority). A non-empty Priority on any other
+	// kind is rejected by validateAddOptsForKind. The value is checked
+	// against entity.IsAllowedPriorityLevel — the same SSOT predicate
+	// the `set-priority` verb and the `priority-valid` check rule
+	// read — so there is no parallel value check here.
+	Priority string
 	// Force bypasses the born-complete-kind empty-body gate (G-0326):
 	// without it, `aiwf add` refuses to create a gap/decision/adr/
 	// contract whose resolved body has an empty load-bearing section
@@ -349,6 +357,19 @@ func validateAddOptsForKind(kind entity.Kind, opts AddOptions) error {
 	} else if opts.TDD != "" {
 		return fmt.Errorf("--tdd is only valid for kind=milestone")
 	}
+	// G-0078 / E-0066 AC-3: --priority is legal only on the two kinds
+	// that carry one (gap, decision); every other kind is a flag-vs-kind
+	// error, gated the same way --area is gated on kind=milestone above.
+	// An in-range value routes through entity.IsAllowedPriorityLevel —
+	// the SSOT predicate — rather than a parallel value check here.
+	if opts.Priority != "" {
+		if !entity.CarriesOwnPriority(kind) {
+			return fmt.Errorf("--priority is only valid for gap and decision entities; kind=%s does not carry a priority", kind)
+		}
+		if !entity.IsAllowedPriorityLevel(opts.Priority) {
+			return fmt.Errorf("--priority %q is not a recognized priority level; allowed: %s", opts.Priority, strings.Join(entity.AllowedPriorityLevels(), ", "))
+		}
+	}
 	if kind != entity.KindMilestone && len(opts.DependsOn) > 0 {
 		return fmt.Errorf("--depends-on is only valid for kind=milestone")
 	}
@@ -477,6 +498,11 @@ func applyAddOpts(e *entity.Entity, opts AddOptions) {
 	// on kind=milestone, so by the time we get here opts.Area is "" for a
 	// milestone and this assignment is a no-op for it.
 	e.Area = opts.Area
+	// Priority (G-0078, E-0066): validateAddOptsForKind has already
+	// rejected a non-empty Priority on any kind that doesn't carry one,
+	// so by the time we get here opts.Priority is "" for every kind
+	// except gap/decision — this assignment is a no-op elsewhere.
+	e.Priority = opts.Priority
 	switch e.Kind {
 	case entity.KindMilestone:
 		e.Parent = opts.EpicID

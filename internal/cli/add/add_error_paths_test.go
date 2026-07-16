@@ -41,6 +41,7 @@ type runArgs struct {
 	dependsOn     string
 	discoveredIn  string
 	area          string
+	priority      string
 	pathHint      string
 	relatesTo     string
 	linkedADRs    string
@@ -57,7 +58,7 @@ type runArgs struct {
 
 func (a runArgs) run() int {
 	return add.Run(a.kind, a.title, a.actor, a.principal, a.root,
-		a.epicID, a.tddPolicy, a.dependsOn, a.discoveredIn, a.area, a.pathHint, a.relatesTo, a.linkedADRs,
+		a.epicID, a.tddPolicy, a.dependsOn, a.discoveredIn, a.area, a.priority, a.pathHint, a.relatesTo, a.linkedADRs,
 		a.bindValidator, a.bindSchema, a.bindFixtures, a.bodyFile, a.bodyText, a.reason, a.fetch, a.force, a.out)
 }
 
