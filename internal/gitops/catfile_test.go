@@ -61,6 +61,92 @@ func TestBlobReader_ReadAtHEAD(t *testing.T) {
 	}
 }
 
+// TestBlobReader_StatReturnsSameSHAForIdenticalContent — M-0259/AC-3:
+// two refs holding byte-identical content at their respective paths
+// must report the same blob SHA via Stat, without needing the caller
+// to read either blob's bytes.
+func TestBlobReader_StatReturnsSameSHAForIdenticalContent(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := initRepoWithCommits(t, []commitSpec{
+		{files: map[string]string{"alpha.md": "same content\n", "beta.md": "same content\n"}, subj: "c1"},
+	})
+	head := headSHA(t, ctx, root)
+
+	br, err := gitops.NewBlobReader(ctx, root)
+	if err != nil {
+		t.Fatalf("NewBlobReader: %v", err)
+	}
+	defer br.Close()
+
+	shaA, err := br.Stat(head, "alpha.md")
+	if err != nil {
+		t.Fatalf("Stat(alpha.md): %v", err)
+	}
+	shaB, err := br.Stat(head, "beta.md")
+	if err != nil {
+		t.Fatalf("Stat(beta.md): %v", err)
+	}
+	if shaA != shaB {
+		t.Errorf("Stat(alpha.md) = %q, Stat(beta.md) = %q, want equal for byte-identical content", shaA, shaB)
+	}
+	if shaA == "" {
+		t.Error("Stat returned an empty sha for existing content")
+	}
+}
+
+// TestBlobReader_StatReturnsDifferentSHAForDivergentContent pins the
+// negative case: different content at two paths must report different
+// blob SHAs.
+func TestBlobReader_StatReturnsDifferentSHAForDivergentContent(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := initRepoWithCommits(t, []commitSpec{
+		{files: map[string]string{"alpha.md": "content A\n", "beta.md": "content B\n"}, subj: "c1"},
+	})
+	head := headSHA(t, ctx, root)
+
+	br, err := gitops.NewBlobReader(ctx, root)
+	if err != nil {
+		t.Fatalf("NewBlobReader: %v", err)
+	}
+	defer br.Close()
+
+	shaA, err := br.Stat(head, "alpha.md")
+	if err != nil {
+		t.Fatalf("Stat(alpha.md): %v", err)
+	}
+	shaB, err := br.Stat(head, "beta.md")
+	if err != nil {
+		t.Fatalf("Stat(beta.md): %v", err)
+	}
+	if shaA == shaB {
+		t.Errorf("Stat(alpha.md) = Stat(beta.md) = %q, want different SHAs for divergent content", shaA)
+	}
+}
+
+// TestBlobReader_StatMissingPath mirrors TestBlobReader_MissingPath
+// for the Stat entry point.
+func TestBlobReader_StatMissingPath(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := initRepoWithCommits(t, []commitSpec{
+		{files: map[string]string{"alpha.md": "content\n"}, subj: "c1"},
+	})
+	head := headSHA(t, ctx, root)
+
+	br, err := gitops.NewBlobReader(ctx, root)
+	if err != nil {
+		t.Fatalf("NewBlobReader: %v", err)
+	}
+	defer br.Close()
+
+	_, err = br.Stat(head, "does-not-exist.md")
+	if !errors.Is(err, gitops.ErrBlobMissing) {
+		t.Errorf("Stat(missing path) err = %v, want ErrBlobMissing", err)
+	}
+}
+
 // TestBlobReader_ReadAtPriorCommit pins commit-pinned reads: after a
 // modify, reading the OLD SHA returns the OLD content. This is the
 // load-bearing case for fsm-history-consistent's status-at-parent

@@ -40,6 +40,10 @@ var hintTable = map[string]string{
 	// fix needed; it resolves on its own once the source branch merges,
 	// or escalates to unresolved if that branch is deleted/abandoned.
 	"refs-resolve/cross-branch-pending": "no action needed — the target exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// M-0259/AC-3: the escalated case — the id exists on more than one
+	// ref with DIFFERENT content, a genuine collision, not merely
+	// unmerged. Blocking, unlike cross-branch-pending.
+	"refs-resolve/cross-branch-collision": "the id was independently minted with diverging content on two refs; run `aiwf show <id>` against each ref (e.g. `git show <ref>:<path>`) to compare, then reconcile by hand — rename one side's entity via `aiwf reallocate`, or merge the branches and resolve the conflict",
 
 	// G-0184: body-prose-id chokepoint. The check scans entity body
 	// prose (frontmatter is covered by refs-resolve) for id-shaped
@@ -56,6 +60,9 @@ var hintTable = map[string]string{
 	// M-0259/AC-2: the mirror of refs-resolve/cross-branch-pending for
 	// prose tokens — non-blocking, per ADR-0030.
 	"body-prose-id/cross-branch-pending": "no action needed — the id exists on another local or remote-tracking branch and will resolve locally once that branch merges; run `git fetch` if the branch is a teammate's not-yet-fetched remote work",
+	// M-0259/AC-3: the mirror of refs-resolve/cross-branch-collision
+	// for prose tokens.
+	"body-prose-id/cross-branch-collision": "the id was independently minted with diverging content on two refs; run `aiwf show <id>` against each ref (e.g. `git show <ref>:<path>`) to compare, then reconcile by hand — rename one side's entity via `aiwf reallocate`, or merge the branches and resolve the conflict",
 	// G-0299 / M-0227: skill-body-id chokepoint. Shipped consumer surfaces
 	// (every *.md under embedded{,-rituals,-guidance}/ plus statusline
 	// comments) must cite no real entity id (the mirror image of

@@ -157,6 +157,17 @@ type Tree struct {
 	// Tests that build trees in-memory leave it nil, degrading resolution
 	// to today's two-tier (working tree, unresolved) behavior.
 	CrossBranchHits []trunk.RefHit
+	// CrossBranchCollisions is the canonicalized-id set for which
+	// CrossBranchHits carries divergent blob content across two or more
+	// refs (trunk.DetectCollisions, M-0259/AC-3, G-0415): the same id
+	// legitimately minted with different content on two unmerged
+	// branches — a genuine collision, not merely "not merged yet."
+	// refs-resolve and body-prose-id escalate a hit here to the
+	// blocking cross-branch-collision subcode instead of the
+	// non-blocking cross-branch-pending one. Tests that build trees
+	// in-memory leave it nil, degrading every cross-branch hit to the
+	// pending tier (the pre-AC-3 default).
+	CrossBranchCollisions map[string]bool
 }
 
 // TrunkIDStrings returns the id strings from TrunkIDs. Convenience

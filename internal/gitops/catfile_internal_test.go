@@ -14,6 +14,7 @@ func TestParseBatchHeader(t *testing.T) {
 		name        string
 		line        string
 		wantMissing bool
+		wantSHA     string
 		wantSize    int
 		wantErrSub  string
 	}{
@@ -21,12 +22,14 @@ func TestParseBatchHeader(t *testing.T) {
 			name:        "found, size 42",
 			line:        "abc123 blob 42",
 			wantMissing: false,
+			wantSHA:     "abc123",
 			wantSize:    42,
 		},
 		{
 			name:        "found, size 0",
 			line:        "abc123 blob 0",
 			wantMissing: false,
+			wantSHA:     "abc123",
 			wantSize:    0,
 		},
 		{
@@ -64,7 +67,7 @@ func TestParseBatchHeader(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			gotMissing, gotSize, err := parseBatchHeader(tc.line)
+			gotMissing, gotSHA, gotSize, err := parseBatchHeader(tc.line)
 			if tc.wantErrSub != "" {
 				if err == nil {
 					t.Fatalf("parseBatchHeader(%q) err=nil, want err containing %q", tc.line, tc.wantErrSub)
@@ -79,6 +82,9 @@ func TestParseBatchHeader(t *testing.T) {
 			}
 			if gotMissing != tc.wantMissing {
 				t.Errorf("missing = %v, want %v", gotMissing, tc.wantMissing)
+			}
+			if gotSHA != tc.wantSHA {
+				t.Errorf("sha = %q, want %q", gotSHA, tc.wantSHA)
 			}
 			if gotSize != tc.wantSize {
 				t.Errorf("size = %d, want %d", gotSize, tc.wantSize)

@@ -610,6 +610,19 @@ func refsResolve(t *tree.Tree) []Finding {
 				// branch's working tree yet — so it classifies as a
 				// distinct, non-blocking subcode instead of unresolved.
 				if hits, known := crossBranch[entity.Canonicalize(ref.Target)]; known {
+					if t.CrossBranchCollisions[entity.Canonicalize(ref.Target)] {
+						findings = append(findings, Finding{
+							Code:     CodeRefsResolve,
+							Severity: SeverityError,
+							Subcode:  "cross-branch-collision",
+							Message: fmt.Sprintf("%s field %q references %q, which has diverging content across %s (a genuine cross-branch collision, not merely unmerged)",
+								e.Kind, ref.Field, ref.Target, joinRefNames(hits)),
+							Path:     e.Path,
+							EntityID: e.ID,
+							Field:    ref.Field,
+						})
+						continue
+					}
 					findings = append(findings, Finding{
 						Code:     CodeRefsResolve,
 						Severity: SeverityWarning,

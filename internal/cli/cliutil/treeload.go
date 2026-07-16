@@ -125,6 +125,10 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	// resolve and body-prose-id consult this on a local-tree miss before
 	// firing unresolved (ADR-0030).
 	tr.CrossBranchHits = append(append([]trunk.RefHit(nil), localHits...), remoteHits...)
+	// M-0259/AC-3: detect genuine divergence among ids that hit more
+	// than one ref (G-0415) — escalates refs-resolve/body-prose-id's
+	// classification from cross-branch-pending to cross-branch-collision.
+	tr.CrossBranchCollisions = trunk.DetectCollisions(ctx, rootDir, tr.CrossBranchHits)
 	return tr, loadErrs, nil
 }
 

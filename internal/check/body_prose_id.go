@@ -149,6 +149,12 @@ type BodyProseIndex struct {
 	ByID        map[string]*entity.Entity
 	Trunk       map[string]bool
 	CrossBranch map[string][]trunk.RefHit
+	// Collisions is t.CrossBranchCollisions verbatim (M-0259/AC-3): the
+	// canonicalized-id set whose cross-branch hits diverge in content.
+	// classifyBodyToken escalates a CrossBranch hit here to the
+	// blocking cross-branch-collision subcode instead of the ordinary
+	// non-blocking cross-branch-pending one.
+	Collisions map[string]bool
 }
 
 // BodyProseIDIndex builds the id-resolution index that ScanBodyProseID
@@ -183,6 +189,7 @@ func BodyProseIDIndex(t *tree.Tree) BodyProseIndex {
 		}
 	}
 	idx.CrossBranch = crossBranchIndex(t)
+	idx.Collisions = t.CrossBranchCollisions
 	return idx
 }
 
@@ -352,7 +359,11 @@ func classifyBodyToken(tok string, idx BodyProseIndex) (subcode, msg string) {
 		// cross-branch-pending rather than resolving silently, since a
 		// sibling branch — unlike trunk — is provisional.
 		if hits, known := idx.CrossBranch[canon]; known {
-			return "cross-branch-pending", fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
+			subcode, _ := crossBranchSubcode(idx.Collisions[canon])
+			if subcode == "cross-branch-collision" {
+				return subcode, fmt.Sprintf("id %q has diverging content across %s (a genuine cross-branch collision, not merely unmerged)", tok, joinRefNames(hits))
+			}
+			return subcode, fmt.Sprintf("id %q known only on %s (not yet merged into this branch)", tok, joinRefNames(hits))
 		}
 		return "unresolved", fmt.Sprintf("unknown id %q (no entity allocated at this id)", tok)
 	}

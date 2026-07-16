@@ -591,6 +591,32 @@ func TestBodyProseID_CrossBranchPendingTier_M0259AC2(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_CrossBranchCollision_M0259AC3 pins the escalation
+// pair: a bare id known on more than one ref with divergent content
+// fires cross-branch-collision (blocking), not cross-branch-pending.
+func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "Depends on G-0500 which diverges across two sibling branches.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"G-0500": true}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Subcode != "cross-branch-collision" {
+		t.Errorf("Subcode = %q, want cross-branch-collision", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error (blocking)", got[0].Severity)
+	}
+}
+
 // TestBodyProseID_LocalTreeStaysAuthoritativeOverCrossBranch pins that
 // a locally-resolvable id is never softened by a same-id cross-branch
 // hit — the working-tree index is checked first, same ordering as the

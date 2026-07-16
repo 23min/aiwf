@@ -247,6 +247,82 @@ func HitIDStrings(hits []RefHit) []string {
 	return ids
 }
 
+// DetectCollisions groups hits (as returned by LocalRefHits/
+// RemoteRefHits, concatenated by the caller) by canonicalized id, and
+// — for any id appearing on more than one distinct ref — compares
+// blob content at each hit's path via gitops.BlobReader.Stat
+// (M-0259/AC-3, G-0415). Returns the set of canonicalized ids whose
+// content diverges across refs: a genuine cross-branch collision, not
+// merely "the same entity, not merged yet" (which stays
+// cross-branch-pending — the caller's job, not this function's).
+//
+// Best-effort and read-only, mirroring LocalRefHits/RemoteRefHits'
+// contract: a blob-read failure for a given hit excludes it from the
+// comparison rather than erroring the whole call (G-0415's accepted
+// transient-failure limitation) — degrading toward "no collision
+// detected" is the safe direction, since a spurious collision would
+// wrongly hard-block a reference that's actually fine.
+//
+// Opens one BlobReader subprocess only when at least one id has more
+// than one hit — the common single-hit case (nothing to compare)
+// pays no git cost beyond the ls-tree scan LocalRefHits/RemoteRefHits
+// already did.
+func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[string]bool {
+	byID := make(map[string][]RefHit, len(hits))
+	for _, h := range hits {
+		key := entity.Canonicalize(h.ID)
+		byID[key] = append(byID[key], h)
+	}
+
+	collisions := make(map[string]bool)
+	needsComparison := false
+	for _, group := range byID {
+		if len(group) >= 2 {
+			needsComparison = true
+			break
+		}
+	}
+	if !needsComparison {
+		return collisions
+	}
+
+	br, err := gitops.NewBlobReader(ctx, workdir)
+	if err != nil {
+		// Can't compare without the reader; degrade to "no collision
+		// detected" for every multi-hit id rather than erroring the
+		// whole call.
+		return collisions
+	}
+	defer func() { _ = br.Close() }()
+
+	for id, group := range byID {
+		if len(group) < 2 {
+			continue
+		}
+		var first string
+		diverges := false
+		for _, h := range group {
+			sha, err := br.Stat(h.Ref, h.Path)
+			if err != nil {
+				// Unreadable hit (raced away, corrupt) — excluded from
+				// the comparison, not fatal.
+				continue
+			}
+			if first == "" {
+				first = sha
+				continue
+			}
+			if sha != first {
+				diverges = true
+			}
+		}
+		if diverges {
+			collisions[id] = true
+		}
+	}
+	return collisions
+}
+
 // IDStrings returns just the id strings from r, in the order they
 // appear in r.IDs. Convenience for AllocateID, which only needs the
 // id values.

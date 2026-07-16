@@ -539,6 +539,32 @@ func TestRefsResolve_CrossBranchPending(t *testing.T) {
 	}
 }
 
+// --- M-0259/AC-3: divergent content across refs escalates to
+// cross-branch-collision instead of the soft pending tier. ---
+
+func TestRefsResolve_CrossBranchCollision(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0099"},
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0099", Path: "work/epics/E-0099-x/epic.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"E-0099": true}
+
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "cross-branch-collision" {
+		t.Errorf("Subcode = %q, want cross-branch-collision", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error (blocking — genuine divergence)", got[0].Severity)
+	}
+}
+
 func TestRefsResolve_LocalTreeStaysAuthoritativeOverCrossBranch(t *testing.T) {
 	// A locally-resolvable reference must not be softened by a
 	// cross-branch hit for the same id — the local tree is always
