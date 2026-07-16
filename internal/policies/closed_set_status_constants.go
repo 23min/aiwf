@@ -45,13 +45,19 @@ var statusLiteralValues = map[string]bool{
 	"\"ended\"":   true,
 	"\"opened\"":  true,
 	"\"resumed\"": true,
+	// Priority (G-0078, E-0066)
+	"\"urgent\"": true,
+	"\"high\"":   true,
+	"\"medium\"": true,
+	"\"low\"":    true,
 }
 
-// statusContextPattern detects places where a status literal is
-// used in a "compare-to-status" context — e.g. assigned to a
-// `status: ...` frontmatter, compared to `e.Status`, set as the
-// value of a Trailer{Key: TrailerTo, ...}, or used as a `case`
-// label in a switch over a status field.
+// statusContextPattern detects places where a status (or, per
+// G-0078/E-0066, priority) literal is used in a "compare-to-status"
+// context — e.g. assigned to a `status: ...` frontmatter, compared to
+// `e.Status` / `e.Priority`, set as the value of a
+// Trailer{Key: TrailerTo, ...}, or used as a `case` label in a switch
+// over a status field.
 //
 // Heuristic: look for tokens like `Status:`, `e.Status ==`, or
 // `Value:` near the literal. The case-clause pattern covers
@@ -66,6 +72,9 @@ var statusContextPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\.Status\s*!=\s*"([a-z_]+)"`),
 	regexp.MustCompile(`TDDPhase:\s*"([a-z_]+)"`),
 	regexp.MustCompile(`\.TDDPhase\s*==\s*"([a-z_]+)"`),
+	regexp.MustCompile(`Priority:\s*"([a-z_]+)"`),
+	regexp.MustCompile(`\.Priority\s*==\s*"([a-z_]+)"`),
+	regexp.MustCompile(`\.Priority\s*!=\s*"([a-z_]+)"`),
 	// case labels in switches; we don't know the switch tag from
 	// the regex, so we only match labels whose value is in the
 	// known closed-set values map. False-positive risk: a case

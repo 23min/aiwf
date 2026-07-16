@@ -92,12 +92,13 @@ func PolicyEnumLiteralAdoption(root string) ([]Violation, error) {
 
 // enumerateEntityStatusConstants reads internal/entity/entity.go and
 // returns a map from string-literal value to constant identifier
-// name. Only top-level constants whose name begins with "Status" are
-// considered — the seed denylist per the M-0119 spec; expansion to
-// `Kind*`, `Phase*`, etc. is a deliberate future-gap call.
+// name. Only top-level constants whose name begins with "Status" or
+// "Priority" are considered — the seed denylist per the M-0119 spec,
+// widened for Priority per G-0078/E-0066/M-0261 AC-3; expansion to
+// `Kind*`, `Phase*`, etc. remains a deliberate future-gap call.
 //
-// Done at policy-run time so adding a new status auto-extends the
-// rule with no second source of truth.
+// Done at policy-run time so adding a new status or priority level
+// auto-extends the rule with no second source of truth.
 func enumerateEntityStatusConstants(root string) (map[string]string, error) {
 	path := filepath.Join(root, "internal", "entity", "entity.go")
 	fset := token.NewFileSet()
@@ -117,7 +118,7 @@ func enumerateEntityStatusConstants(root string) (map[string]string, error) {
 				continue
 			}
 			for i, name := range vs.Names {
-				if !strings.HasPrefix(name.Name, "Status") {
+				if !strings.HasPrefix(name.Name, "Status") && !strings.HasPrefix(name.Name, "Priority") {
 					continue
 				}
 				if i >= len(vs.Values) {

@@ -31,6 +31,13 @@ func TestEnumerateEntityStatusConstants_LiveTree(t *testing.T) {
 		"met":       "StatusMet",
 		"deferred":  "StatusDeferred",
 		"addressed": "StatusAddressed",
+		// G-0078/E-0066/M-0261 AC-3: Priority* constants join the
+		// harvested set alongside Status* — Kind*/Phase* remain the
+		// deliberate future-gap.
+		"urgent": "PriorityUrgent",
+		"high":   "PriorityHigh",
+		"medium": "PriorityMedium",
+		"low":    "PriorityLow",
 	}
 	for value, wantName := range want {
 		gotName, ok := consts[value]
@@ -41,6 +48,12 @@ func TestEnumerateEntityStatusConstants_LiveTree(t *testing.T) {
 		if gotName != wantName {
 			t.Errorf("for %q got %q, want %q", value, gotName, wantName)
 		}
+	}
+	// "red" is TDDPhaseRed — neither Status* nor Priority*-prefixed —
+	// so it must stay excluded. Pins the skip side of the widened
+	// HasPrefix guard: Kind*/Phase* remain the deliberate future-gap.
+	if name, ok := consts["red"]; ok {
+		t.Errorf("expected %q (TDDPhaseRed) to stay excluded from the enumerated set; got name %q", "red", name)
 	}
 }
 
@@ -117,6 +130,7 @@ const (
 	StatusCancelled = "cancelled"
 	StatusDraft     = "draft"
 	StatusMet       = "met"
+	PriorityUrgent  = "urgent"
 )
 `
 	if err := os.WriteFile(filepath.Join(entityDir, "entity.go"), []byte(entityGo), 0o644); err != nil {
@@ -208,6 +222,33 @@ func bad(status string) string {
 		if v.File == "internal/cli/drift/drift.go" && v.Line == 5 {
 			t.Errorf("expected violation suppressed by //enums:ignore; got %+v", v)
 		}
+	}
+}
+
+// TestPolicyEnumLiteralAdoption_FiresOnPriorityLiteral pins AC-3 of
+// M-0261: a Priority*-prefixed constant is harvested just like a
+// Status* one, so a comparison against its literal value fires too.
+func TestPolicyEnumLiteralAdoption_FiresOnPriorityLiteral(t *testing.T) {
+	t.Parallel()
+	root := buildSyntheticTreeForEnumPolicy(t, "drift", `package drift
+
+func bad(priority string) bool {
+	return priority == "urgent"
+}
+`)
+	violations, err := PolicyEnumLiteralAdoption(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range violations {
+		if v.File == "internal/cli/drift/drift.go" && v.Line == 4 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected violation at drift.go:4 (== \"urgent\"); got %+v", violations)
 	}
 }
 

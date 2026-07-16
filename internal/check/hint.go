@@ -31,6 +31,8 @@ var hintTable = map[string]string{
 	"frontmatter-shape":                 "add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate <path>` so it emits at canonical width",
 	"id-path-consistent":                "renumber via `aiwf reallocate <path>` (rewrites both sides + updates references), rename the slug via `aiwf rename` if only the slug drifted, or correct the side that's wrong by hand if you're certain which",
 	"status-valid":                      "correct the `status:` field in the frontmatter to one of the kind's allowed states by hand, then re-run `aiwf check`; `aiwf promote` can't move an entity whose current status is unrecognized (it reads that status to compute the transition and refuses)",
+	"priority-valid":                    "correct the `priority:` value by hand to one of urgent, high, medium, low — or remove it — and re-run `aiwf check`",
+	"priority-not-applicable":           "remove the `priority:` field by hand (only gap and decision carry their own priority) and re-run `aiwf check`",
 	"refs-resolve/unresolved":           "confirm the target with `aiwf show <target-id>`, then correct the spelling in the referencing frontmatter (or remove the reference) and re-run `aiwf check`",
 	"refs-resolve/wrong-kind":           "replace the reference with an id of the expected kind — list candidates via `aiwf list --kind <kind>` — then re-run `aiwf check`",
 	"refs-resolve/unresolved-milestone": "the composite id's parent milestone does not exist; verify with `aiwf show M-NNNN`, or create it via `aiwf add milestone --epic E-NNNN --tdd <policy> --title \"...\"`",

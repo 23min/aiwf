@@ -178,6 +178,26 @@ linked_adrs:
 	}
 }
 
+func TestParse_GapWithPriority(t *testing.T) {
+	t.Parallel()
+	content := []byte(`---
+id: G-0001
+title: Something broken
+status: open
+priority: high
+---
+
+body
+`)
+	got, err := Parse("work/gaps/G-0001-something-broken.md", content)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if got.Priority != "high" {
+		t.Errorf("Priority = %q, want %q", got.Priority, "high")
+	}
+}
+
 func TestParse_NoFrontmatter(t *testing.T) {
 	t.Parallel()
 	content := []byte("# Just a markdown file\n\nNo frontmatter here.\n")
