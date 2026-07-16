@@ -1,7 +1,7 @@
 ---
 id: D-0018
 title: branch-not-found subsumed by rung-pair-illegal; catalog cleanup defers to AC-9
-status: proposed
+status: accepted
 ---
 ## Context
 
