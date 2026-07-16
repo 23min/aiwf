@@ -1,7 +1,7 @@
 ---
 id: D-0037
 title: Defer ADR-0001, G-0281, and EMB pending a measured id-collision trigger
-status: proposed
+status: accepted
 relates_to:
     - ADR-0001
     - G-0281
