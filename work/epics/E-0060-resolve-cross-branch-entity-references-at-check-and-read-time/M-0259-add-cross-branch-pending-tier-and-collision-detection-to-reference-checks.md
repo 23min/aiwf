@@ -234,6 +234,20 @@ temporarily reintroducing a caching bug into `LocalRefHits` — the
 fixture correctly went red, confirming it isn't vacuous · commit
 27b8abee · tests 1/1 new
 
+### AC-5 — An id absent everywhere still hard-fails unresolved
+
+No production code change — the guard already holds from AC-1/AC-2/
+AC-3's design. Added explicit tests for both `refsResolve` and
+`classifyBodyToken` that populate the cross-branch view (and, for
+body-prose-id, the trunk tier too) with unrelated ids before asserting
+a fabricated id still hard-fails `unresolved` — proving each tier was
+genuinely checked and came up empty, not that it was never consulted.
+Vacuity-probed by mutating each resolver to false-positive whenever its
+cross-branch view is merely non-empty: both new tests caught it, and
+neither pre-existing bare-`unresolved` test did (their cross-branch
+view is empty), confirming the new coverage is load-bearing · commit
+18e2b2f7 · tests 2/2 new
+
 ## Decisions made during implementation
 
 - (none)
