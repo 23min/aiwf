@@ -6,6 +6,13 @@ parent: E-0066
 depends_on:
     - M-0261
 tdd: advisory
+acs:
+    - id: AC-1
+      title: aiwf render emits a priority badge for each gap/decision with a value
+      status: open
+    - id: AC-2
+      title: the badge is asserted structurally, not by substring, and human-verified
+      status: open
 ---
 
 # M-0264 — Render a priority badge in the HTML site
@@ -21,6 +28,10 @@ The field exists (field milestone) and is set and filterable via the other surfa
 ## Acceptance criteria
 
 <!-- Seeded via `aiwf add ac`; each starts at tdd_phase: red. -->
+
+### AC-1 — aiwf render emits a priority badge for each gap/decision with a value
+
+### AC-2 — the badge is asserted structurally, not by substring, and human-verified
 
 ## Constraints
 
