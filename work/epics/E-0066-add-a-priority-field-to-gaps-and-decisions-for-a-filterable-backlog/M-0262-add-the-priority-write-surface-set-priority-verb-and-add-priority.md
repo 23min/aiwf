@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: set-priority ships completion wiring and an aiwf-set-priority skill
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0262 — Add the priority write surface: set-priority verb and add --priority
