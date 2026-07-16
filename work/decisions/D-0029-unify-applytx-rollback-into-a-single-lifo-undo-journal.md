@@ -1,7 +1,7 @@
 ---
 id: D-0029
 title: Unify applyTx rollback into a single LIFO undo journal
-status: proposed
+status: accepted
 relates_to:
     - M-0186
 ---
