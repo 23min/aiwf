@@ -55,12 +55,12 @@ func checkListInvariant(aiwfBin, dir, label string) ([]Violation, error) {
 // `aiwf list --archived`'s real output.
 func classifyListInvariant(label string, gotRows []listRow, wantEntities []*entity.Entity) []Violation {
 	got := make(map[string]listRow, len(gotRows))
-	for _, r := range gotRows {
-		got[r.ID] = r
+	for i := range gotRows {
+		got[gotRows[i].ID] = gotRows[i]
 	}
-	want := make(map[string]listRow, len(wantEntities))
+	want := make(map[string]*listRow, len(wantEntities))
 	for _, e := range wantEntities {
-		want[entity.Canonicalize(e.ID)] = listRow{
+		want[entity.Canonicalize(e.ID)] = &listRow{
 			ID:     entity.Canonicalize(e.ID),
 			Kind:   string(e.Kind),
 			Status: e.Status,
@@ -78,7 +78,7 @@ func classifyListInvariant(label string, gotRows []listRow, wantEntities []*enti
 				"%s: ground truth has %s but aiwf list --archived did not show it", label, id)})
 			continue
 		}
-		if diff := diffListRow(w, g); diff != "" {
+		if diff := diffListRow(*w, g); diff != "" {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
 				"%s: %s diverges from ground truth: %s", label, id, diff)})
 		}
