@@ -6,6 +6,19 @@ parent: E-0066
 depends_on:
     - M-0261
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf list --priority returns exactly the matching gaps and decisions
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf status --priority filters its output the same way
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: the JSON envelope carries priority and aiwf show surfaces it
+      status: open
+      tdd_phase: red
 ---
 
 # M-0263 — Add the priority read surface: list/status filter, envelope, show
@@ -21,6 +34,12 @@ Once the field exists (field milestone) and can be set (write-surface milestone)
 ## Acceptance criteria
 
 <!-- Seeded via `aiwf add ac`; each starts at tdd_phase: red. -->
+
+### AC-1 — aiwf list --priority returns exactly the matching gaps and decisions
+
+### AC-2 — aiwf status --priority filters its output the same way
+
+### AC-3 — the JSON envelope carries priority and aiwf show surfaces it
 
 ## Constraints
 
