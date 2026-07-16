@@ -87,6 +87,12 @@ The scope-violation check lands, warning severity per the Design notes' lean · 
 
 Placed the skill row under "Findings (warnings)", not "Findings (errors)" — the SKILL.md table splits by severity across two separate tables (2-column: Code, Meaning-with-fix-folded-in) rather than annotating severity inline; my first pass got this wrong and had to move the row.
 
+### AC-3 — widen the literal-drift chokepoints
+
+`enum_literal_adoption`'s harvest widened to `Priority*` alongside `Status*`; `closed_set_status_constants` gained `Priority:` / `.Priority ==` / `.Priority !=` patterns and the four priority literal values · commit 052f8fa3 · tests 5/5 new, 2/2 mutants killed. Confirmed no existing production code in the repo already matched either new pattern before adding them (would have self-fired against the live-tree check otherwise).
+
+The branch-coverage audit on the widened `HasPrefix` guard surfaced a real pre-existing gap: the live-tree test asserted presence of expected values but never absence of excluded ones (e.g. `TDDPhaseRed`), so the guard's skip-path ran during tests but was never actually pinned by an assertion. Added an explicit exclusion check rather than leaving it implicit.
+
 ## Decisions made during implementation
 
 - None — all decisions are pre-locked above.
