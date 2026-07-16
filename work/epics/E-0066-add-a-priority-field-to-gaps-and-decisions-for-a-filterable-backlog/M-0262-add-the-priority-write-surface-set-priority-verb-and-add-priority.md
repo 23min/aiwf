@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf set-priority sets a gap/decision priority in one trailered commit
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: aiwf set-priority refuses an out-of-range level and a non-gap/decision target
       status: open
