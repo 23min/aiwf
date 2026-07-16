@@ -185,3 +185,68 @@ func TestBuildShowView_UnknownEverywhere_StillNotFound(t *testing.T) {
 		t.Error("BuildShowView(G-9999) = ok, want not-found (id exists nowhere)")
 	}
 }
+
+// TestBuildShowView_CrossBranchResolved_MilestoneWithACs — a
+// cross-branch-resolved milestone carries its ACs slice and per-AC
+// body descriptions, the same as a locally-resolved milestone show.
+func TestBuildShowView_CrossBranchResolved_MilestoneWithACs(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "work/epics/E-0001-foo/epic.md",
+		"---\nid: E-0001\ntitle: Foo\nstatus: active\n---\n\n## Goal\n\ng\n", "seed: epic E-0001")
+
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	mBody := "---\nid: M-0100\ntitle: Sibling Milestone\nstatus: draft\nparent: E-0001\ntdd: none\n" +
+		"acs:\n  - id: AC-1\n    title: First AC\n    status: open\n---\n\n## Goal\n\ng\n\n" +
+		"## Acceptance criteria\n\n### AC-1 — First AC\n\nDescription of the first AC.\n"
+	writeAndCommit(t, root, "work/epics/E-0001-foo/M-0100-sibling.md", mBody, "sibling: mint M-0100 with ACs")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	view, ok := show.BuildShowView(ctx, root, tr, nil, "M-0100", 5)
+	if !ok {
+		t.Fatal("BuildShowView: not found, want cross-branch resolution")
+	}
+	if len(view.ACs) != 1 {
+		t.Fatalf("ACs = %+v, want exactly 1", view.ACs)
+	}
+	if view.ACs[0].ID != "AC-1" || view.ACs[0].Title != "First AC" {
+		t.Errorf("ACs[0] = %+v, want id AC-1 / title %q", view.ACs[0], "First AC")
+	}
+	if !strings.Contains(view.ACs[0].Description, "Description of the first AC") {
+		t.Errorf("ACs[0].Description = %q, want it to contain the AC's body prose", view.ACs[0].Description)
+	}
+}
+
+// TestBuildShowView_CrossBranchResolved_MalformedContentNotFound — a
+// cross-branch id whose content fails to parse (malformed
+// frontmatter) reads as an ordinary "not found," not a crash or a
+// hard error.
+func TestBuildShowView_CrossBranchResolved_MalformedContentNotFound(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md", "not valid frontmatter at all\n", "sibling: malformed G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	if _, ok := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5); ok {
+		t.Error("BuildShowView(G-0100): ok = true, want not-found for malformed cross-branch content")
+	}
+}

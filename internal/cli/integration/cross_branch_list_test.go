@@ -227,3 +227,192 @@ func TestBuildListRows_LocalEntityTakesPrecedenceOverCrossBranchShadow(t *testin
 		t.Errorf("row = %+v, want an ordinary local row (no cross-branch marker)", row)
 	}
 }
+
+// TestBuildListRows_CrossBranchKindMismatch_Excluded — a cross-branch
+// hit whose kind doesn't match --kind is excluded, the same as any
+// local row would be.
+func TestBuildListRows_CrossBranchKindMismatch_Excluded(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md",
+		"---\nid: G-0100\ntitle: Sibling Gap\nstatus: open\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling: mint G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "", "", false), "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want the cross-branch gap excluded from a --kind milestone query", row)
+	}
+}
+
+// TestBuildListRows_CrossBranchNoKindFilter_StillIncluded — a
+// cross-branch row participates even when --kind is unset, as long as
+// some other filter keeps the call out of the no-args counts path.
+func TestBuildListRows_CrossBranchNoKindFilter_StillIncluded(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md",
+		"---\nid: G-0100\ntitle: Sibling Gap\nstatus: open\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling: mint G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "", "", "", "", true), "G-0100"); row == nil {
+		t.Error("want the cross-branch gap included with no --kind filter (archived=true keeps this off the no-args counts path)")
+	}
+}
+
+// TestBuildListRows_CrossBranchCollision_AreaFilterExcludes mirrors
+// the status/parent cases for --area.
+func TestBuildListRows_CrossBranchCollision_AreaFilterExcludes(t *testing.T) {
+	root := setupCollidingSiblings(t)
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "platform", false)
+	if row := findRow(rows, "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want the collision row excluded once --area is set", rows)
+	}
+}
+
+// TestBuildListRows_CrossBranchResolved_DefaultArchivedExcludesTerminalStatus
+// — a resolved row's real (terminal) status excludes it by default,
+// the same as a local row, isolated from the --status filter branch
+// by leaving --status unset.
+func TestBuildListRows_CrossBranchResolved_DefaultArchivedExcludesTerminalStatus(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md",
+		"---\nid: G-0100\ntitle: Sibling Gap\nstatus: addressed\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling: mint G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", false), "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want the terminal-status resolved row excluded by default (no --status filter involved)", row)
+	}
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", true), "G-0100"); row == nil {
+		t.Error("want the terminal-status resolved row included with --archived")
+	}
+}
+
+// TestBuildListRows_CrossBranchResolved_RespectsParentFilter — a
+// resolved row's real parent is known, so --parent filters it exactly
+// like a local row.
+func TestBuildListRows_CrossBranchResolved_RespectsParentFilter(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "work/epics/E-0001-foo/epic.md",
+		"---\nid: E-0001\ntitle: Foo\nstatus: active\n---\n\n## Goal\n\ng\n", "seed: epic E-0001")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/epics/E-0001-foo/M-0100-sibling.md",
+		"---\nid: M-0100\ntitle: Sibling Milestone\nstatus: draft\nparent: E-0001\ntdd: none\n---\n\n## Goal\n\ng\n",
+		"sibling: mint M-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0099", "", false), "M-0100"); row != nil {
+		t.Errorf("rows = %+v, want M-0100 excluded — its real parent (E-0001) doesn't match --parent=E-0099", row)
+	}
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0001", "", false), "M-0100"); row == nil {
+		t.Error("want M-0100 included when --parent=E-0001 matches its real resolved parent")
+	}
+}
+
+// TestBuildListRows_CrossBranchResolved_RespectsAreaFilter — a
+// resolved row's real area is known, so --area filters it exactly
+// like a local row.
+func TestBuildListRows_CrossBranchResolved_RespectsAreaFilter(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md",
+		"---\nid: G-0100\ntitle: Sibling Gap\nstatus: open\narea: platform\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling: mint G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "billing", false), "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want G-0100 excluded — its real area (platform) doesn't match --area=billing", row)
+	}
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "platform", false), "G-0100"); row == nil {
+		t.Error("want G-0100 included when --area=platform matches its real resolved area")
+	}
+}
+
+// TestBuildListRows_CrossBranchResolved_MalformedContentDegradesGracefully
+// — a cross-branch id whose content fails to parse (malformed
+// frontmatter) is simply omitted from the row set, not a crash or a
+// hard error surfaced through aiwf list.
+func TestBuildListRows_CrossBranchResolved_MalformedContentDegradesGracefully(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md", "not valid frontmatter at all\n", "sibling: malformed G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", true)
+	if row := findRow(rows, "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want the malformed cross-branch entity omitted, not surfaced", row)
+	}
+}

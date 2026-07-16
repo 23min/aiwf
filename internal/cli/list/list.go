@@ -391,13 +391,13 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 			brAttempted = true
 			br, _ = gitops.NewBlobReader(ctx, tr.Root) // best-effort; nil on failure degrades below
 		}
-		if br == nil {
+		if br == nil { //coverage:ignore by this point LocalRefHits/RemoteRefHits already confirmed tr.Root is a real repo (gitops.IsRepo); NewBlobReader failing here needs the repo to break between that scan and this construction — not reproducible against a healthy subprocess, same class as gitops.NewBlobReader's own internal coverage:ignore branches
 			continue
 		}
 
 		hit := hits[0]
 		content, err := br.Read(hit.Ref, hit.Path)
-		if err != nil {
+		if err != nil { //coverage:ignore hit.Path was just confirmed present at hit.Ref by the LsTreePaths scan that produced this RefHit; a subsequent blob read at the same ref:path failing needs the object store to change mid-request (repack/gc race), not reproducible in a unit test
 			continue
 		}
 		e, err := entity.Parse(hit.Path, content)

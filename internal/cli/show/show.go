@@ -430,12 +430,12 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 
 	hit := hits[0]
 	br, err := gitops.NewBlobReader(ctx, root)
-	if err != nil {
+	if err != nil { //coverage:ignore by the time hits is non-empty, LocalRefHits/RemoteRefHits already confirmed root is a real repo (gitops.IsRepo); NewBlobReader failing here needs the repo to break between that scan and this construction — not reproducible against a healthy subprocess, same class as gitops.NewBlobReader's own internal coverage:ignore branches
 		return ShowView{}, false
 	}
 	defer func() { _ = br.Close() }()
 	content, err := br.Read(hit.Ref, hit.Path)
-	if err != nil {
+	if err != nil { //coverage:ignore hit.Path was just confirmed present at hit.Ref by the LsTreePaths scan that produced this RefHit; a subsequent blob read at the same ref:path failing needs the object store to change mid-request (repack/gc race), not reproducible in a unit test
 		return ShowView{}, false
 	}
 	resolved, err := entity.Parse(hit.Path, content)
