@@ -8,7 +8,7 @@ status: open
 
 Entities have no kernel-supported field expressing importance or urgency. `aiwf list --kind gap` lists open gaps in id order; there is no way to express "do this one first" in structured state, no way to filter (`aiwf list --kind gap --priority high`), and no way for the HTML renderer or `aiwf list` to surface a backlog ranked by what to work next.
 
-The friction first surfaced on the gap kind — the kernel's primary backlog — but applies to every kind that accumulates open work: gap, milestone, decision, ADR. Filing this kernel-wide; the per-kind cut belongs to the implementing milestone.
+The friction first surfaced on the gap kind — the kernel's primary backlog. `priority` applies to gap and decision: the two kinds where "which one do I work next" is an open question the kernel can't currently answer. Milestones are already ordered by dependency logic, and epics are scoped by the milestones they contain — neither needs a separate priority axis.
 
 ## Evidence
 
@@ -45,12 +45,12 @@ Implementation surface (sketch — milestone-level decisions deferred):
 - HTML renderer surfaces the value as a column / badge.
 - JSON envelope carries it on the entity payload.
 
-## Open sub-questions
+## Decisions
 
-1. **Scope** — does `priority` apply to every kind, or only to backlog-shaped kinds (gap, milestone, decision)? Epic and ADR are arguably ranked by the milestones / decisions they contain, not directly. Filing kernel-wide deliberately leaves the per-kind cut to the implementing milestone.
-2. **Enforcement** — should `aiwf check` enforce anything (e.g., "an `urgent` open gap that has no scope-entity is a finding"), or is `priority` purely advisory metadata: filterable / sortable but unenforced?
-3. **Sort order in `aiwf status`** — priority-first then status, or status-first then priority? Affects what the user sees at the top of the screen by default.
-4. **Naming** — `priority` (Linear/Asana convention) vs `importance` (more descriptive of a state-not-workflow read). Lean: `priority`, because the field's purpose is to drive ordering and that's what every other tool calls it.
+1. **Scope** — `priority` applies to gap and decision only, not epic, milestone, ADR, or contract.
+2. **Enforcement** — purely advisory. `aiwf check` validates the value against the closed set (the same baseline shape validation every frontmatter field gets); no finding rule keys off a specific priority value.
+3. **Sort order** — `aiwf status` (and `aiwf list`) group by lifecycle status first; priority breaks ties within a status group. Priority never reorders across status groups.
+4. **Naming** — `priority`, matching the Linear/Asana/GitHub/Shortcut convention.
 
 ## Considered alternatives
 
