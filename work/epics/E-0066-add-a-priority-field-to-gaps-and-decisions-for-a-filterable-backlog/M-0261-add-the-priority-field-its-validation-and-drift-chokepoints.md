@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: priority is an optional gap/decision field validated against its closed set
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: priority on other kinds raises the priority-not-applicable finding
       status: open
