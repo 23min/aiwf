@@ -37,20 +37,25 @@ Reasons:
 3. Default unset means existing gaps don't need backfill before the field can ship.
 4. Adding a second axis later (impact vs urgency, or RICE composite) is additive and non-breaking.
 
-Implementation surface (sketch — milestone-level decisions deferred):
+Implementation surface:
 
-- New optional frontmatter field `priority` validated by `aiwf check`.
-- A verb route to set it: either a dedicated `aiwf set-priority <id> <level>` or a `--priority` flag on a more general edit verb. Symmetric pattern with status / phase mutations.
-- `aiwf status` gains a `--priority <level>` filter and a sort that uses priority as a tiebreaker (or primary, see open question 3).
-- HTML renderer surfaces the value as a column / badge.
+- New optional frontmatter field `priority`, legal on gap and decision only (added to their `Schema.OptionalFields`), validated by `aiwf check` against the closed set.
+- New `priority-not-applicable` check rule: fires if `priority` is present on epic, milestone, ADR, or contract. The shared `Entity` struct backing all six kinds doesn't gate field legality per kind on its own, so this is the mechanical backstop for the Decision 1 scope restriction — without it, "gap and decision only" is prose, not an enforced fact. Mirrors the shape of the existing `area_unknown.go` / `area_required.go` check rules; needs its own firing fixture per `firing_fixture_presence.go`.
+- `aiwf add --priority <level>` (gap/decision only, gated the same way `--area` already is at `add.go`) plus a dedicated `aiwf set-priority <id> <level>` verb for changing it later — the second instance of a `set-X` family alongside `set-area`, not a one-off.
+- `aiwf list` / `aiwf status` gain a `--priority <level>` filter. Sort-as-tiebreaker is explicitly out of scope for this gap: no group-by-status-then-secondary-key sort infrastructure exists anywhere in the codebase today (both verbs sort flatly by id), and the Evidence above is entirely about filtering/discovery friction, not a felt need for a specific sort order. Revisit as a follow-up gap once priority has real data and filtering alone proves insufficient.
+- HTML renderer surfaces the value as a column / badge — bespoke template work; there's no generic per-entity metadata/column abstraction to reuse (the `area` tag itself only reaches templates via a bespoke `data-area` construct).
 - JSON envelope carries it on the entity payload.
+- Extend two literal-value drift chokepoints to cover `priority`, matching existing status/phase coverage: `internal/policies/enum_literal_adoption.go` (harvest `Priority*`-prefixed constants, currently scoped to `Status*` only) and `internal/policies/closed_set_status_constants.go` (add `Priority:` / `.Priority ==` match patterns alongside the existing `Status:` / `TDDPhase:` ones).
+- Skills: update `aiwf-add` to document `--priority`; add a new `aiwf-set-priority` skill (required by `skill_coverage.go` for any new top-level verb).
 
 ## Decisions
 
-1. **Scope** — `priority` applies to gap and decision only, not epic, milestone, ADR, or contract.
-2. **Enforcement** — purely advisory. `aiwf check` validates the value against the closed set (the same baseline shape validation every frontmatter field gets); no finding rule keys off a specific priority value.
-3. **Sort order** — `aiwf status` (and `aiwf list`) group by lifecycle status first; priority breaks ties within a status group. Priority never reorders across status groups.
+1. **Scope** — `priority` applies to gap and decision only, not epic, milestone, ADR, or contract. Enforced by the `priority-not-applicable` check rule (see Implementation surface), not left as unenforced prose.
+2. **Enforcement** — the *value* is purely advisory: `aiwf check` validates it against the closed set (the same baseline shape validation every frontmatter field gets); no finding rule keys off a specific priority value. The *scope* (which kinds may carry it at all) is mechanically enforced — see Decision 1.
+3. **Sort order** — out of scope for this gap. `aiwf list` / `aiwf status` ship a `--priority <level>` filter only; group-by-status-then-priority-tiebreak sorting is deferred to a follow-up gap, since it requires new sort infrastructure the codebase doesn't have today and no evidence yet shows the need beyond filtering.
 4. **Naming** — `priority`, matching the Linear/Asana/GitHub/Shortcut convention.
+5. **Verb** — a dedicated `aiwf set-priority <id> <level>`, not a flag on a general-purpose edit verb (no such verb exists to hang it on; see Considered alternatives). It's the second instance of a `set-X` family alongside `set-area`, deliberately, so this doesn't read as one-off verb sprawl.
+6. **Creation-time setting** — `aiwf add` also gets `--priority` (gap/decision only), mirroring how `--area` is already settable both at `add` time and later via `set-area`. `set-priority` remains the path for changing it after creation.
 
 ## Considered alternatives
 
@@ -58,6 +63,7 @@ Implementation surface (sketch — milestone-level decisions deferred):
 - **RICE / WSJF composite scores** (reach × impact × confidence / effort). Rejected for YAGNI: requires four new fields the kernel doesn't have, and the resulting score is the kind of opinionated workflow decision the kernel deliberately stays out of.
 - **Continue using inline `Severity: …` prose lines.** Rejected: invisible to filters, sorts, and the JSON envelope. Defeats the point of structured state.
 - **Use status as a proxy for priority** (e.g., `urgent` as a sub-status). Rejected: status answers "where is this in its lifecycle"; priority answers "how much does it matter." Collapsing them loses information and conflicts with the closed-set hardcoded FSM rule.
+- **A general-purpose `aiwf set <id> --field=value` verb** (e.g. retrofitting `set-area` into `--area`/`--priority` flags on one command) to avoid a new verb. Rejected: no such general verb exists today, and every scalar frontmatter field currently gets its own single-purpose verb (`retitle`, `rename`, `set-area`). Retrofitting a shipped verb's contract for one new field isn't worth the migration risk; a small, symmetric `set-X` family reads as intentional and matches house style.
 
 ## Relationship to other gaps
 
