@@ -1,7 +1,7 @@
 ---
 id: D-0017
 title: isolation-escape cherryPicked param shape
-status: proposed
+status: accepted
 ---
 The M-0106 `isolation-escape` rule needs per-commit cherry-pick
 information (the gather layer identifies cherry-picks; the rule
