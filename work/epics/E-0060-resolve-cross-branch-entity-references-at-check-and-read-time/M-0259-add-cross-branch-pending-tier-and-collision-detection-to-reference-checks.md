@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Escalation re-fires unresolved once the source branch disappears
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: An id absent everywhere still hard-fails unresolved
       status: open
