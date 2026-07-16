@@ -1,7 +1,7 @@
 ---
 id: D-0025
 title: Policy subsystem stays bespoke; one linter cleanup excepted
-status: proposed
+status: accepted
 relates_to:
     - E-0042
     - M-0166
