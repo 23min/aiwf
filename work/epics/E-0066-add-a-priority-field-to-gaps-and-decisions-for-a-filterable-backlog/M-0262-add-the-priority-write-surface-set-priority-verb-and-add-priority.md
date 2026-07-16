@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: aiwf set-priority refuses an out-of-range level and a non-gap/decision target
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: aiwf add --priority sets it at creation, gated on kind like --area
