@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0060: resolve cross-branch entity references at check and read time
+
+A branch, worktree, or session can now validly reference an entity minted on
+a different local branch or worktree — without waiting for a merge and
+without copying the entity anywhere. `aiwf check`'s `refs-resolve`/
+`body-prose-id` rules classify a reference to a locally-absent id as the
+distinct, non-blocking `cross-branch-pending` subcode when it's known on
+another local branch or remote-tracking ref, escalating to
+`cross-branch-collision` (also non-blocking — see D-0036) when the same id
+carries divergent content across refs, and re-escalating to a hard
+`unresolved` if the source branch later disappears. `aiwf show`/`aiwf list`
+are the read-side counterpart: they resolve and render such an id's content
+live via `gitops.BlobReader`, visibly labeled as cross-branch, declining to
+pick a side when content diverges — strictly read-only, no working-tree,
+index, or ref write at any point. See `ADR-0030`.
+
 ### Added — E-0065: broadened the stress catalog's check-clean oracle and added a concurrent-race mode
 
 G-0410 found two structural gaps in the correctness stress harness's oracle
