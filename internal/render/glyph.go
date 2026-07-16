@@ -11,7 +11,7 @@ import "github.com/23min/aiwf/internal/entity"
 //	→  in_progress / active                 — "the work is moving"
 //	○  open / draft / proposed              — "the work hasn't started"
 //	✗  cancelled / wontfix / rejected /
-//	   retired / superseded                 — "the work is closed off"
+//	   retired / superseded / deprecated    — "the work is closed off"
 //
 // Every glyph is 1-cell BMP so it works under text/tabwriter's
 // rune-counting (the kernel does not pull github.com/mattn/go-runewidth
@@ -35,7 +35,7 @@ func StatusGlyph(status string) string {
 	case entity.StatusOpen, entity.StatusDraft, entity.StatusProposed:
 		return "○"
 	// ✗ — closed off
-	case entity.StatusCancelled, entity.StatusWontfix, entity.StatusRejected, entity.StatusRetired, entity.StatusSuperseded:
+	case entity.StatusCancelled, entity.StatusWontfix, entity.StatusRejected, entity.StatusRetired, entity.StatusSuperseded, entity.StatusDeprecated:
 		return "✗"
 	default:
 		return ""

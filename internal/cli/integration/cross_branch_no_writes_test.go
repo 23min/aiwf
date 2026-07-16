@@ -2,6 +2,7 @@ package integration
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,7 +47,7 @@ func snapshotRepo(t *testing.T, root string) repoSnapshot {
 		head:            gitOutput(t, root, "rev-parse", "HEAD"),
 		refs:            gitOutput(t, root, "show-ref"),
 		statusPorcelain: gitOutput(t, root, "status", "--porcelain"),
-		indexHash:       string(sha256.New().Sum(indexBytes)),
+		indexHash:       fmt.Sprintf("%x", sha256.Sum256(indexBytes)),
 	}
 }
 

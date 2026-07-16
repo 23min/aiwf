@@ -416,3 +416,56 @@ func TestBuildListRows_CrossBranchResolved_MalformedContentDegradesGracefully(t 
 		t.Errorf("rows = %+v, want the malformed cross-branch entity omitted, not surfaced", row)
 	}
 }
+
+// TestBuildListRows_CrossBranchDiscriminants_MutuallyExclusive pins the
+// invariant that CrossBranchRef and CrossBranchCollision are never
+// both set on the same row: a collision row never carries a resolved
+// ref, and a resolved row never carries collision markers. The
+// control flow in crossBranchListRows already guarantees this (a row
+// is built in exactly one of the two branches), but nothing else pins
+// it against a future edit accidentally setting both.
+func TestBuildListRows_CrossBranchDiscriminants_MutuallyExclusive(t *testing.T) {
+	root := setupCollidingSiblings(t)
+	writeAndCommit(t, root, "work/gaps/G-0200-resolved.md",
+		"---\nid: G-0200\ntitle: Resolved Gap\nstatus: open\n---\n\n## Problem\n\ndescribed.\n",
+		"seed: local G-0200 (unrelated to the collision fixture)")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling-resolved"); err != nil {
+		t.Fatalf("checkout sibling-resolved: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0201-resolved.md",
+		"---\nid: G-0201\ntitle: Sibling Gap\nstatus: open\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling-resolved: mint G-0201")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", false)
+	collision := findRow(rows, "G-0100")
+	resolved := findRow(rows, "G-0201")
+	if collision == nil || resolved == nil {
+		t.Fatalf("rows = %+v, want both a collision row (G-0100) and a resolved cross-branch row (G-0201)", rows)
+	}
+
+	if collision.CrossBranchRef != "" {
+		t.Errorf("collision row = %+v, want CrossBranchRef empty on a collision row", collision)
+	}
+	if !collision.CrossBranchCollision {
+		t.Errorf("collision row = %+v, want CrossBranchCollision true", collision)
+	}
+
+	if resolved.CrossBranchRef == "" {
+		t.Errorf("resolved row = %+v, want CrossBranchRef set on a resolved cross-branch row", resolved)
+	}
+	if resolved.CrossBranchCollision {
+		t.Errorf("resolved row = %+v, want CrossBranchCollision false on a resolved row", resolved)
+	}
+	if len(resolved.CrossBranchRefs) != 0 {
+		t.Errorf("resolved row = %+v, want CrossBranchRefs empty on a resolved row (only collision rows carry it)", resolved)
+	}
+}

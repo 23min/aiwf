@@ -406,6 +406,17 @@ func nonNilStrings(s []string) []string {
 // branch's own history/tree, neither of which meaningfully covers an
 // entity that hasn't merged into this branch yet.
 func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id string) (ShowView, bool) {
+	if root == "" {
+		// Defense-in-depth, mirroring crossBranchListRows' own guard:
+		// exec.Cmd treats an empty Dir as "inherit the caller's cwd,"
+		// which would otherwise run these git subprocesses against
+		// whatever directory happens to be the caller's actual working
+		// directory. Every production call site resolves root via
+		// cliutil.ResolveRoot first, so this never fires today — kept
+		// so a future bare-root caller degrades safely instead of
+		// scanning an unintended repo.
+		return ShowView{}, false
+	}
 	canon := entity.Canonicalize(id)
 	all := append(trunk.LocalRefHits(ctx, root), trunk.RemoteRefHits(ctx, root)...)
 	var hits []trunk.RefHit
