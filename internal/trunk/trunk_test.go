@@ -309,6 +309,36 @@ func TestLocalRefIDs_DerivedFromHits_Unaffected(t *testing.T) {
 	}
 }
 
+// --- M-0260/AC-3: DistinctRefs supplies the candidate-ref list a
+// caller (aiwf show/list) surfaces when it declines to arbitrate a
+// cross-branch-collision. ---
+
+func TestDistinctRefs_DedupesPreservingFirstSeenOrder(t *testing.T) {
+	t.Parallel()
+	hits := []RefHit{
+		{ID: "G-0001", Ref: "refs/heads/b"},
+		{ID: "G-0001", Ref: "refs/heads/a"},
+		{ID: "G-0001", Ref: "refs/heads/b"},
+	}
+	got := DistinctRefs(hits)
+	want := []string{"refs/heads/b", "refs/heads/a"}
+	if len(got) != len(want) {
+		t.Fatalf("DistinctRefs = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("DistinctRefs[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestDistinctRefs_Empty(t *testing.T) {
+	t.Parallel()
+	if got := DistinctRefs(nil); got != nil {
+		t.Errorf("DistinctRefs(nil) = %v, want nil", got)
+	}
+}
+
 // --- M-0259/AC-3: DetectCollisions compares blob content across every
 // ref holding the same id, escalating genuine divergence. ---
 

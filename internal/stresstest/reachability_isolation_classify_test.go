@@ -8,11 +8,15 @@ import (
 
 // reachability_isolation_classify_test.go pins
 // classifyReachabilityIsolation — the pure decision logic behind
-// ReachabilityIsolationScenario (M-0241/AC-5) — against fabricated
-// envelopes for each of the six real `aiwf` calls the scenario makes.
-// showFoundBeforeMerge is a plain bool rather than an envelope: `aiwf
-// show`'s not-found path doesn't honor --format=json (G-0389), so
-// the scenario classifies it by exit status alone.
+// ReachabilityIsolationScenario (M-0241/AC-5, narrowed by M-0260) —
+// against fabricated envelopes for each of the six real `aiwf` calls
+// the scenario makes. showFoundBeforeMerge is a plain bool rather than
+// an envelope: `aiwf show`'s not-found path doesn't honor
+// --format=json (G-0389), so the scenario classifies it by exit
+// status alone. Since M-0260, showFoundBeforeMerge=true is the
+// expected (non-violating) outcome — a linked worktree's
+// committed-but-unmerged branch is exactly the cross-branch-known case
+// `aiwf show` now resolves live.
 
 func envWithFindings(findings ...verbEnvelopeFinding) verbEnvelope {
 	e := verbEnvelope{Status: "findings", Findings: findings}
@@ -61,7 +65,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "everything as expected: no violations",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyWithEvents,
@@ -70,16 +74,16 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "check's outcome changed from an invisible sibling commit — a violation",
 			after:                afterChanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyWithEvents,
 			wantViolations:       1,
 		},
 		{
-			name:                 "show found the sibling's entity before any merge — a violation",
+			name:                 "show did not find the sibling's entity before merge — a violation (M-0260 regression)",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: true,
+			showFoundBeforeMerge: false,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyWithEvents,
@@ -88,7 +92,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "check's entity count changed even though findings matched baseline — a violation",
 			after:                afterSameFindingsDifferentEntityCount,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntitiesThanAlteredAfter,
 			postMergeHist:        historyWithEvents,
@@ -97,7 +101,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "history errored instead of returning an empty result — a violation",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyErrored,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyWithEvents,
@@ -106,7 +110,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "history leaked events for an unreachable commit — a violation",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyWithEvents,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyWithEvents,
@@ -115,7 +119,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "merge did not actually expose the sibling's entity — a violation",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeSameEntities,
 			postMergeHist:        historyWithEvents,
@@ -124,7 +128,7 @@ func TestClassifyReachabilityIsolation(t *testing.T) {
 		{
 			name:                 "history still shows no events after merge — a violation",
 			after:                afterUnchanged,
-			showFoundBeforeMerge: false,
+			showFoundBeforeMerge: true,
 			history:              historyEmpty,
 			postMerge:            postMergeMoreEntities,
 			postMergeHist:        historyEmpty,

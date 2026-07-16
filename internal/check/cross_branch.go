@@ -41,16 +41,12 @@ func crossBranchIndex(t *tree.Tree) map[string][]trunk.RefHit {
 
 // joinRefNames formats the distinct ref names in hits for a finding
 // message, e.g. "refs/heads/sibling", or a comma-joined list when the
-// id is visible on more than one ref.
+// id is visible on more than one ref. Delegates the dedup itself to
+// trunk.DistinctRefs (M-0260) — aiwf show/list's read-side resolver
+// needs the same distinct-ref-names list (there, to name the candidate
+// refs of a cross-branch-collision it declines to arbitrate), so the
+// dedup logic lives once on the package that owns RefHit rather than
+// twice.
 func joinRefNames(hits []trunk.RefHit) string {
-	seen := make(map[string]bool, len(hits))
-	refs := make([]string, 0, len(hits))
-	for _, h := range hits {
-		if seen[h.Ref] {
-			continue
-		}
-		seen[h.Ref] = true
-		refs = append(refs, h.Ref)
-	}
-	return strings.Join(refs, ", ")
+	return strings.Join(trunk.DistinctRefs(hits), ", ")
 }

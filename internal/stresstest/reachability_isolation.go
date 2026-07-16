@@ -21,10 +21,22 @@ import (
 // any OTHER consequence: `aiwf check`'s full outcome (findings and
 // entity count) must be byte-identical before and after the sibling's
 // invisible commit — not just silent on the one rule
-// (isolation-escape) that already documents this — and `aiwf
-// show`/`aiwf history` must degrade in their own already-understood
-// ways (show: not found; history: empty, never leaked) rather than
-// erroring unexpectedly or leaking data across the branch boundary.
+// (isolation-escape) that already documents this — and `aiwf history`
+// must degrade in its own already-understood way (empty, never leaked)
+// rather than erroring unexpectedly or leaking data across the branch
+// boundary.
+//
+// `aiwf show`'s isolation was deliberately narrowed by ADR-0030/M-0260:
+// linked worktrees of one repo share `refs/heads/*`, so a sibling
+// worktree's committed-but-unmerged branch is exactly the
+// cross-branch-known case M-0260 resolves live via BlobReader — `aiwf
+// show` is now EXPECTED to find the sibling's entity before the merge
+// (labeled distinctly as cross-branch, per M-0260/AC-2), where the
+// pre-M-0260 version of this scenario expected it to stay unreachable.
+// `check` and `history` keep their original isolation contract
+// unchanged — this scenario's fixture never references the sibling's
+// entity from worktree A, so M-0259's cross-branch check tier never
+// even engages here.
 
 // reachabilityIsolationExpectedWarnings is the baseline of finding
 // codes this scenario's check calls are expected to carry
@@ -74,9 +86,11 @@ func (s *ReachabilityIsolationScenario) Setup(dir string) error {
 // Run captures a baseline `aiwf check` in worktree A, commits a new
 // entity in worktree B, re-runs check in worktree A (still unmerged)
 // and confirms it is unchanged, probes `show`/`history` for the
-// sibling's entity from worktree A, then merges and confirms the
-// same probes flip to "found" — closing the loop on "unreachable
-// today, reachable once merged," never "unreachable forever."
+// sibling's entity from worktree A — `show` is expected to already
+// find it live (M-0260), `history` is expected to still show nothing
+// (git-log-scoped, unaffected by M-0260) — then merges and confirms
+// `history` flips to "found" — closing the loop on "unreachable via
+// history today, reachable once merged," never "unreachable forever."
 func (s *ReachabilityIsolationScenario) Run(dir string) error {
 	wtA := filepath.Join(dir, "wt-a")
 	wtB := filepath.Join(dir, "wt-b")
@@ -141,7 +155,9 @@ func (s *ReachabilityIsolationScenario) Verify(_ string) []Violation {
 }
 
 // probeShowFound runs `aiwf show <id>` in dir and reports whether it
-// found the entity, classified by exit status alone (see the
+// found the entity — expected true even pre-merge, since a linked
+// worktree's committed branch resolves live via M-0260's cross-branch
+// read-side lookup. Classified by exit status alone (see the
 // not-found-path comment above Run's call site: G-0389).
 func probeShowFound(aiwfBin, dir, id string) (bool, error) {
 	cmd := exec.Command(aiwfBin, "show", id, "--format=json") //nolint:gosec // aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input
@@ -163,8 +179,10 @@ func probeShowFound(aiwfBin, dir, id string) (bool, error) {
 //   - after must be identical to baseline — the sibling's invisible
 //     commit must have ZERO observable effect on any check rule, not
 //     just silence from isolation-escape specifically.
-//   - showFoundBeforeMerge must be false — show must NOT find the
-//     sibling's entity before the merge.
+//   - showFoundBeforeMerge must be true — a linked worktree shares
+//     refs/heads/*, so the sibling's committed-but-unmerged branch is
+//     exactly the cross-branch-known case M-0260 resolves live; show
+//     failing to find it would mean the read-side resolver regressed.
 //   - history must return "ok" with zero events before the merge —
 //     an empty (unreached) result, not an error and not a leaked
 //     event from across the branch boundary.
@@ -181,8 +199,8 @@ func classifyReachabilityIsolation(baseline, after verbEnvelope, showFoundBefore
 			"aiwf check's outcome in worktree A changed after the sibling worktree's invisible commit: before=%+v after=%+v", baseline, after)})
 	}
 
-	if showFoundBeforeMerge {
-		violations = append(violations, Violation{Message: "aiwf show found the sibling worktree's entity before any merge — reachability isolation broken"})
+	if !showFoundBeforeMerge {
+		violations = append(violations, Violation{Message: "aiwf show did not find the sibling worktree's entity before merge — M-0260's cross-branch read-side resolution should have found it live via the shared local branch ref"})
 	}
 
 	if history.Status != "ok" {

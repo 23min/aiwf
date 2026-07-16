@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,9 +16,11 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -274,6 +277,30 @@ type ShowView struct {
 	// milestone's full ACs slice.
 	AC       *ShowAC `json:"ac,omitempty"`
 	ParentID string  `json:"parent_id,omitempty"`
+
+	// CrossBranch is non-nil when id missed the local working tree but
+	// resolved live from another local or remote-tracking ref (M-0260,
+	// ADR-0030's read-side extension point). Nil for a locally-resolved
+	// entity — the JSON envelope omits the field entirely so a
+	// downstream consumer can treat its absence as "this is ordinary
+	// local state."
+	CrossBranch *CrossBranchView `json:"cross_branch,omitempty"`
+}
+
+// CrossBranchView carries the read-side resolution state for an id
+// resolved from another ref (M-0260/AC-1/AC-2/AC-3). Refs always lists
+// every candidate ref the id is known on — one entry when Collision is
+// false, two or more when true.
+type CrossBranchView struct {
+	// Ref is the ref content was read from. Empty when Collision is
+	// true — no single ref was chosen.
+	Ref string `json:"ref,omitempty"`
+	// Collision is true when the candidate refs carry divergent
+	// content (M-0259/AC-3). Title/Status/Body/ACs are left empty on
+	// the ShowView in that case — aiwf show declines to pick a side
+	// (M-0260/AC-3) rather than render one ref's content as canonical.
+	Collision bool     `json:"collision"`
+	Refs      []string `json:"refs"`
 }
 
 // ShowAC is one AC's view inside a milestone show. Description carries
@@ -298,7 +325,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	}
 	e := t.ByID(id)
 	if e == nil {
-		return ShowView{}, false
+		return buildCrossBranchShowView(ctx, root, t, id)
 	}
 	body := ReadEntityBody(root, e.Path)
 	// Emit canonical ids per AC-3 in M-081 — display surfaces are
@@ -352,6 +379,98 @@ func nonNilStrings(s []string) []string {
 		return []string{}
 	}
 	return s
+}
+
+// buildCrossBranchShowView resolves id from another local or
+// remote-tracking ref when it misses the local working tree (M-0260/
+// AC-1, ADR-0030's read-side extension point). Scoped to id alone —
+// it scans refs live only on this local-tree miss, never eagerly, so
+// the common case (the entity resolves locally) pays no extra
+// subprocess cost (the milestone's own risk-mitigation constraint).
+//
+// A collision (divergent content across two or more refs, M-0259/
+// AC-3's shape) declines to pick a side: the returned view carries
+// only identity (id, kind) plus the candidate refs — no title,
+// status, or body, since those are exactly the content in dispute
+// (M-0260/AC-3). A single-answer hit reads its content live via
+// gitops.BlobReader and renders it labeled as cross-branch (AC-2).
+//
+// Returns ok=false when id is unknown everywhere (no local entity, no
+// cross-branch hit) or when the git-side resolution can't complete
+// (best-effort, mirroring trunk.LocalRefHits/DetectCollisions'
+// degrade-to-nothing contract) — both read as an ordinary "not found"
+// to the caller.
+//
+// History/Scopes/Findings are deliberately left empty on this view: a
+// cross-branch entity's git log and check findings are scoped to this
+// branch's own history/tree, neither of which meaningfully covers an
+// entity that hasn't merged into this branch yet.
+func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id string) (ShowView, bool) {
+	canon := entity.Canonicalize(id)
+	all := append(trunk.LocalRefHits(ctx, root), trunk.RemoteRefHits(ctx, root)...)
+	var hits []trunk.RefHit
+	for _, h := range all {
+		if entity.Canonicalize(h.ID) == canon {
+			hits = append(hits, h)
+		}
+	}
+	if len(hits) == 0 {
+		return ShowView{}, false
+	}
+	refs := trunk.DistinctRefs(hits)
+
+	if trunk.DetectCollisions(ctx, root, hits)[canon] {
+		return ShowView{
+			ID:           canon,
+			Kind:         string(hits[0].Kind),
+			CrossBranch:  &CrossBranchView{Collision: true, Refs: refs},
+			ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
+		}, true
+	}
+
+	hit := hits[0]
+	br, err := gitops.NewBlobReader(ctx, root)
+	if err != nil {
+		return ShowView{}, false
+	}
+	defer func() { _ = br.Close() }()
+	content, err := br.Read(hit.Ref, hit.Path)
+	if err != nil {
+		return ShowView{}, false
+	}
+	resolved, err := entity.Parse(hit.Path, content)
+	if err != nil {
+		return ShowView{}, false
+	}
+	resolved.Kind = hit.Kind
+	_, body, _ := entity.Split(content)
+
+	view := ShowView{
+		ID:           entity.Canonicalize(resolved.ID),
+		Kind:         string(resolved.Kind),
+		Title:        resolved.Title,
+		Status:       resolved.Status,
+		Path:         resolved.Path,
+		Parent:       entity.Canonicalize(resolved.Parent),
+		TDD:          resolved.TDD,
+		Body:         entity.ParseBodySections(body),
+		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
+		CrossBranch:  &CrossBranchView{Ref: hit.Ref, Refs: refs},
+	}
+	var acDesc map[string]string
+	if resolved.Kind == entity.KindMilestone && len(resolved.ACs) > 0 {
+		acDesc = entity.ParseACSections(body)
+	}
+	for _, ac := range resolved.ACs {
+		view.ACs = append(view.ACs, ShowAC{
+			ID:          ac.ID,
+			Title:       ac.Title,
+			Status:      ac.Status,
+			TDDPhase:    ac.TDDPhase,
+			Description: acDesc[ac.ID],
+		})
+	}
+	return view, true
 }
 
 // BuildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
@@ -461,18 +580,29 @@ func renderShowText(v ShowView) {
 	if v.Archived {
 		archivedMarker = " · archived"
 	}
-	if v.AC != nil {
+	switch {
+	case v.AC != nil:
 		// Composite-id view.
 		cliutil.Printf("%s · %q · status: %s · phase: %s%s\n",
 			v.ID, v.AC.Title, v.AC.Status, displayPhase(v.AC.TDDPhase), archivedMarker)
 		cliutil.Printf("  parent: %s\n", v.ParentID)
-	} else {
+	case v.CrossBranch != nil && v.CrossBranch.Collision:
+		// Cross-branch collision (M-0260/AC-3): decline to render
+		// title/status/body — that content is exactly what's in
+		// dispute — and name every candidate ref instead.
+		cliutil.Printf("%s · cross-branch collision · known on: %s\n",
+			v.ID, strings.Join(v.CrossBranch.Refs, ", "))
+		cliutil.Println("  content diverges across refs — declining to pick one; resolve by merging or reconciling")
+	default:
 		// Top-level view.
 		header := fmt.Sprintf("%s · %s · status: %s", v.ID, v.Title, v.Status)
 		if v.TDD != "" {
 			header += " · tdd: " + v.TDD
 		}
 		header += archivedMarker
+		if v.CrossBranch != nil {
+			header += fmt.Sprintf(" · cross-branch (ref: %s)", v.CrossBranch.Ref)
+		}
 		cliutil.Println(header)
 		if v.Parent != "" {
 			cliutil.Printf("  parent: %s\n", v.Parent)
