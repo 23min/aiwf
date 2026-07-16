@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Resolve content via BlobReader using the recorded cross-branch ref
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Cross-branch-sourced content is visibly labeled
