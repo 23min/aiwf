@@ -491,7 +491,7 @@ func TestPriorityValid(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
 	}
-	if got[0].EntityID != "G-0002" || got[0].Code != CodePriorityValid {
+	if got[0].EntityID != "G-0002" || got[0].Code != CodePriorityValid || got[0].Severity != SeverityError {
 		t.Errorf("got %+v", got[0])
 	}
 }

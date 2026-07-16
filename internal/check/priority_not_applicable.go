@@ -17,9 +17,14 @@ import (
 // the tree loader does not blank an out-of-scope kind's stored value
 // (see the Priority field's doc comment on entity.Entity), so the
 // value survives to load time for this check to report. Severity is
-// warning, consistent with area-unknown's advisory posture — no
-// strictness knob, since priority carries no `aiwf.yaml: required`
-// analog.
+// warning, no strictness knob, since priority carries no
+// `aiwf.yaml: required` analog.
+//
+// Unlike area-unknown, this rule is not archive-scoped — an archived
+// entity with a hand-set out-of-scope priority still fires. This
+// follows status-valid's precedent (also non-archive-scoped) rather
+// than area-unknown's, since priority-valid — the sibling check this
+// rule pairs with — is itself non-archive-scoped.
 //
 // Absence (empty `priority`) is never evaluated: absent and
 // explicit-empty both deserialize to "" and only a present value can
