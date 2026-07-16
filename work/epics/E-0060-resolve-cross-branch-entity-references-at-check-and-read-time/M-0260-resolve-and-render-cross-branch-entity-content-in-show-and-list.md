@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: No working-tree, index, or ref writes
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
