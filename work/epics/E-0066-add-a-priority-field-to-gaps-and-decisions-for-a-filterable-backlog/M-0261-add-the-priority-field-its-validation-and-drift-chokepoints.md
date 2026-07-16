@@ -70,3 +70,27 @@ E-0066 adds `priority` to the two kinds where "which one do I work next" is an o
 
 - G-0078 — the ratified design decisions this milestone executes.
 - The `area` feature — `internal/check/area_unknown.go` / `area_required.go` and the `aiwf-area` skill — the design precedent.
+
+---
+
+## Work log
+
+### AC-1 — priority field and closed-set validation
+
+Field, constants, and the `priority-valid` check rule land · commit 34b13baf · tests 6/6 new (2 entity, 1 parse, 1 check, plus 2 discoverability fixes surfaced by the pre-commit hook: a missing `hintTable` entry and a missing `aiwf-check` skill row).
+
+Deviation from the Design notes' "structure it off `area_unknown.go`" sketch: `area`'s presence-vs-scope handling works by the tree loader silently blanking an out-of-scope kind's value at load (`tree.go`, milestone/area) — but AC-2's `priority-not-applicable` finding needs the stored value intact to report it, so `priority` is deliberately *not* blanked the way `area` is. `CarriesOwnPriority` exists for the check rule to consult directly, not for a loader-side blank.
+
+## Decisions made during implementation
+
+- None — all decisions are pre-locked above.
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
