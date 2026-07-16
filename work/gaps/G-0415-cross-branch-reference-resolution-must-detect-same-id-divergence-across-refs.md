@@ -1,8 +1,10 @@
 ---
 id: G-0415
 title: Cross-branch reference resolution must detect same-id divergence across refs
-status: open
+status: addressed
 discovered_in: E-0060
+addressed_by:
+    - M-0259
 ---
 ## Problem
 
