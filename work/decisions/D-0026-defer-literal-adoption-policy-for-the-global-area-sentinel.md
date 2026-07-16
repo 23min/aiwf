@@ -1,7 +1,7 @@
 ---
 id: D-0026
 title: Defer literal-adoption policy for the global area sentinel
-status: proposed
+status: accepted
 ---
 ## Context
 
