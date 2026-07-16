@@ -206,6 +206,21 @@ deliberately stays out of scope — validating a composite's AC position
 would require reading the target's content from another ref, which is
 read-side territory (`M-0260`) · commit 138c5e43 · tests 12/12 new
 
+### AC-3 — Divergent content across refs escalates to cross-branch-collision
+
+Added `BlobReader.Stat` (`internal/gitops/catfile.go`) exposing
+`cat-file --batch`'s header SHA at no extra round-trip cost beyond
+`Read`; `trunk.DetectCollisions` groups cross-branch hits by canonical
+id and compares blob SHA across every ref holding a multiply-hit id,
+opening one `BlobReader` only when a comparison is actually needed.
+`Tree.CrossBranchCollisions` carries the result; `refsResolve` and
+`classifyBodyToken` escalate a divergent hit to the blocking
+`cross-branch-collision` subcode instead of the non-blocking
+`cross-branch-pending` one. Best-effort throughout: an unreadable hit
+or an unconstructible `BlobReader` degrades toward "no collision
+detected," per G-0415's accepted transient-failure limitation ·
+commit 0f5faa86 · tests 17/17 new
+
 ## Decisions made during implementation
 
 - (none)
