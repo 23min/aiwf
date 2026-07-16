@@ -92,3 +92,11 @@ Two discoverability chokepoints needed same-commit fixes to keep the build green
 No new code: the refusal logic was written alongside AC-1's set path in the same commit (91f42294), since both live in the same `SetPriority` function body — `TestSetPriority_ValidationRefusals/{non-gap/decision_target,out-of-range_level}` and `TestSetPriority_OutOfRangeErrorNamesAllowedSet` already covered AC-2's exact claims. Closing this AC formally rather than silently folding it into AC-1, since the milestone spec tracks it as its own unit.
 
 Added one mechanical gap this AC's own audit surfaced: the `wf-vacuity` pass for AC-1 hadn't specifically mutated the `IsAllowedPriorityLevel` guard (the core of AC-2's "refuses an out-of-range level" claim). Ran it now — inverting the guard produced 7 test failures including the direct out-of-range case — killed, no code change needed.
+
+### AC-3 — aiwf add --priority sets it at creation, gated on kind like --area
+
+`AddOptions.Priority`, the kind gate + closed-set value check in `validateAddOptsForKind`, `applyAddOpts` wiring, and the `--priority` flag on `aiwf add` (with completion) land · commit cd25bb89 · tests 5/5 new, 3/3 mutants killed.
+
+Unlike `--area`, `--priority` needs no CLI-side config lookup — the level set is Go-hardcoded (`entity.IsAllowedPriorityLevel`), so the CLI layer passes the flag straight through and `Add` owns both the kind gate and the value check itself, routing through the same SSOT predicate `set-priority` uses. This is a real (not superficial) simplification versus `--area`'s `validateAreaMember` CLI-side helper, not an oversight.
+
+Updating `AddOptions` with a new field is a signature-shape change to `verb.Add`'s existing test call sites (`internal/cli/add/add_error_paths_test.go`'s `runArgs` struct, plus two positional-arg call sites in `internal/cli/contract/diag_fallback_internal_test.go` and `internal/cli/integration/correlation_id_test.go`) — all three needed a mechanical update to insert the new parameter; `go vet ./...` (not just `go build`, which skips test files) is what actually caught them.
