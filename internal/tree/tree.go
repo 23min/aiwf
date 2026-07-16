@@ -159,14 +159,18 @@ type Tree struct {
 	CrossBranchHits []trunk.RefHit
 	// CrossBranchCollisions is the canonicalized-id set for which
 	// CrossBranchHits carries divergent blob content across two or more
-	// refs (trunk.DetectCollisions, M-0259/AC-3, G-0415): the same id
-	// legitimately minted with different content on two unmerged
-	// branches — a genuine collision, not merely "not merged yet."
-	// refs-resolve and body-prose-id escalate a hit here to the
-	// blocking cross-branch-collision subcode instead of the
-	// non-blocking cross-branch-pending one. Tests that build trees
-	// in-memory leave it nil, degrading every cross-branch hit to the
-	// pending tier (the pre-AC-3 default).
+	// refs (trunk.DetectCollisions, M-0259/AC-3, G-0415). Divergence
+	// alone is ambiguous — it can mean a genuine duplicate-mint
+	// collision, or just an ordinary same-entity edit still unmerged on
+	// a sibling branch/worktree (D-0036) — so refs-resolve and
+	// body-prose-id escalate a hit here to the distinct, visible
+	// cross-branch-collision subcode instead of the ordinary
+	// cross-branch-pending one, but both are non-blocking warnings; a
+	// genuine duplicate mint is still caught, just later, by the
+	// blocking ids-unique/trunk-collision check once both copies land
+	// in a shared tree. Tests that build trees in-memory leave this
+	// nil, degrading every cross-branch hit to the pending tier (the
+	// pre-AC-3 default).
 	CrossBranchCollisions map[string]bool
 }
 
