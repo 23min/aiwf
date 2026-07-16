@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // treeload_test.go — in-process coverage for LoadTreeWithTrunk's
@@ -188,6 +190,99 @@ func TestLoadTreeWithTrunk_PopulatesCrossBranchHits(t *testing.T) {
 	if !found {
 		t.Fatalf("CrossBranchHits = %+v, want a hit for sibling-only id G-0005", tr.CrossBranchHits)
 	}
+}
+
+// TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4 is the
+// ADR-0030 escalation fixture: proof, not prose, that a
+// cross-branch-pending classification is never a permanent softening
+// of what is actually a dangling reference. A reference validated
+// cross-branch-pending while its source branch exists must
+// re-escalate to a hard unresolved once that branch disappears — and
+// since nothing here is cached, that falls out of a plain re-run
+// against a mutated repo, with no separate escalation-tracking
+// mechanism to drift.
+func TestCrossBranchEscalation_PendingThenUnresolved_M0259AC4(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	runGit(t, root, "init", "-q")
+	runGit(t, root, "config", "user.email", "test@example.com")
+	runGit(t, root, "config", "user.name", "aiwf-test")
+
+	// main carries a milestone whose parent epic (E-0099) does not
+	// exist on this branch at all.
+	mRel := "work/epics/E-0001-foo/M-0001-bar.md"
+	if err := os.MkdirAll(filepath.Join(root, "work", "epics", "E-0001-foo"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mBody := "---\nid: M-0001\ntitle: bar\nstatus: draft\nparent: E-0099\ntdd: none\n---\n\n## Goal\n\ngoal\n"
+	if err := os.WriteFile(filepath.Join(root, mRel), []byte(mBody), 0o644); err != nil {
+		t.Fatalf("write milestone: %v", err)
+	}
+	runGit(t, root, "add", mRel)
+	runGit(t, root, "commit", "-q", "-m", "seed: milestone referencing E-0099")
+
+	// A sibling branch mints E-0099 — the reference is real, just not
+	// merged into main yet.
+	runGit(t, root, "checkout", "-q", "-b", "sibling")
+	eRel := "work/epics/E-0099-baz/epic.md"
+	if err := os.MkdirAll(filepath.Join(root, "work", "epics", "E-0099-baz"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	eBody := "---\nid: E-0099\ntitle: baz\nstatus: proposed\n---\n\n## Goal\n\ngoal\n"
+	if err := os.WriteFile(filepath.Join(root, eRel), []byte(eBody), 0o644); err != nil {
+		t.Fatalf("write epic: %v", err)
+	}
+	runGit(t, root, "add", eRel)
+	runGit(t, root, "commit", "-q", "-m", "sibling: mint E-0099")
+	runGit(t, root, "checkout", "-q", "-") // back to whatever the init default branch was
+
+	// Phase 1: sibling exists — the reference classifies
+	// cross-branch-pending, not unresolved.
+	tr, loadErrs, err := LoadTreeWithTrunk(ctx, root)
+	if err != nil {
+		t.Fatalf("LoadTreeWithTrunk (phase 1): %v", err)
+	}
+	findings := check.Run(tr, loadErrs)
+	f := findRefsResolveFinding(findings, "M-0001")
+	if f == nil {
+		t.Fatalf("phase 1: no refs-resolve finding for M-0001; findings: %+v", findings)
+	}
+	if f.Subcode != "cross-branch-pending" {
+		t.Errorf("phase 1: Subcode = %q, want cross-branch-pending (sibling branch still exists)", f.Subcode)
+	}
+
+	// Phase 2: sibling branch disappears (deleted, never merged) —
+	// re-run against the mutated repo. Nothing here is cached, so the
+	// same reference must now hard-fail unresolved.
+	runGit(t, root, "branch", "-D", "sibling")
+
+	tr2, loadErrs2, err := LoadTreeWithTrunk(ctx, root)
+	if err != nil {
+		t.Fatalf("LoadTreeWithTrunk (phase 2): %v", err)
+	}
+	findings2 := check.Run(tr2, loadErrs2)
+	f2 := findRefsResolveFinding(findings2, "M-0001")
+	if f2 == nil {
+		t.Fatalf("phase 2: no refs-resolve finding for M-0001; findings: %+v", findings2)
+	}
+	if f2.Subcode != "unresolved" {
+		t.Errorf("phase 2: Subcode = %q, want unresolved — the source branch is gone, this must re-escalate", f2.Subcode)
+	}
+	if f2.Severity != check.SeverityError {
+		t.Errorf("phase 2: Severity = %q, want error (blocking)", f2.Severity)
+	}
+}
+
+// findRefsResolveFinding returns the refs-resolve finding for
+// entityID, or nil if none exists.
+func findRefsResolveFinding(findings []check.Finding, entityID string) *check.Finding {
+	for i := range findings {
+		if findings[i].Code == check.CodeRefsResolve && findings[i].EntityID == entityID {
+			return &findings[i]
+		}
+	}
+	return nil
 }
 
 // runGit invokes git in dir with a fixed deterministic identity,
