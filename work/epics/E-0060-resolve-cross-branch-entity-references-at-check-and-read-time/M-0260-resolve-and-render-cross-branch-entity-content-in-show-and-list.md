@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Resolve content via BlobReader using the recorded cross-branch ref
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Cross-branch-sourced content is visibly labeled
       status: open
