@@ -617,6 +617,35 @@ func TestBodyProseID_CrossBranchCollision_M0259AC3(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_UnresolvedWhenAbsentFromEveryTier_M0259AC5 — M-0259/
+// AC-5: the guard against the new cross-branch tier ever softening a
+// genuinely fabricated or deleted id. All three resolution tiers
+// (ByID, Trunk, CrossBranch) are explicitly populated with OTHER
+// ids — proving the fabricated token really isn't found anywhere, not
+// that a tier was never consulted — and it still hard-fails
+// unresolved.
+func TestBodyProseID_UnresolvedWhenAbsentFromEveryTier_M0259AC5(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	ents := writeBodyProseFixture(t, root, "See M-9999 for the proposed rule.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.TrunkIDs = []trunk.ID{{Kind: entity.KindGap, ID: "G-0500", Path: "work/gaps/G-0500-x.md"}}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0600", Path: "work/gaps/G-0600-x.md", Ref: "refs/heads/sibling"},
+	}
+
+	got := bodyProseID(tr)
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if got[0].Subcode != "unresolved" {
+		t.Errorf("Subcode = %q, want unresolved — M-9999 exists nowhere, not locally, not on trunk, not cross-branch", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error (blocking)", got[0].Severity)
+	}
+}
+
 // TestBodyProseID_LocalTreeStaysAuthoritativeOverCrossBranch pins that
 // a locally-resolvable id is never softened by a same-id cross-branch
 // hit — the working-tree index is checked first, same ordering as the

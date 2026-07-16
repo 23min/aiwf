@@ -516,6 +516,34 @@ func TestRefsResolve_Unresolved(t *testing.T) {
 	}
 }
 
+// TestRefsResolve_UnresolvedWhenAbsentFromEveryTier — M-0259/AC-5: the
+// guard against the new cross-branch tier ever softening a genuinely
+// fabricated or deleted id. The cross-branch view is explicitly
+// populated with an OTHER id — proving the fabricated target really
+// isn't found there, not that the tier was never checked — and the
+// reference still hard-fails unresolved.
+func TestRefsResolve_UnresolvedWhenAbsentFromEveryTier(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-9999"}, // fabricated, absent everywhere
+	)
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0003", Path: "work/epics/E-0003-x/epic.md", Ref: "refs/heads/sibling"},
+	}
+
+	got := refsResolve(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %+v, want exactly one finding", got)
+	}
+	if got[0].Subcode != "unresolved" {
+		t.Errorf("Subcode = %q, want unresolved — E-9999 exists nowhere, not locally, not on trunk, not cross-branch", got[0].Subcode)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("Severity = %q, want error (blocking)", got[0].Severity)
+	}
+}
+
 // --- M-0259/AC-2: refs-resolve consults the cross-branch view on a
 // local-tree miss, before firing unresolved (ADR-0030). ---
 
