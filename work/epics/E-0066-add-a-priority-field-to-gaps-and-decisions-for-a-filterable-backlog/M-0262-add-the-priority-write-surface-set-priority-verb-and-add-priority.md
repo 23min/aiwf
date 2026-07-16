@@ -6,6 +6,23 @@ parent: E-0066
 depends_on:
     - M-0261
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf set-priority sets a gap/decision priority in one trailered commit
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: aiwf set-priority refuses an out-of-range level and a non-gap/decision target
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: aiwf add --priority sets it at creation, gated on kind like --area
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: set-priority ships completion wiring and an aiwf-set-priority skill
+      status: open
+      tdd_phase: red
 ---
 
 # M-0262 — Add the priority write surface: set-priority verb and add --priority
@@ -21,6 +38,14 @@ The field and its validation land in the field milestone; this milestone makes i
 ## Acceptance criteria
 
 <!-- Seeded via `aiwf add ac`; each starts at tdd_phase: red. -->
+
+### AC-1 — aiwf set-priority sets a gap/decision priority in one trailered commit
+
+### AC-2 — aiwf set-priority refuses an out-of-range level and a non-gap/decision target
+
+### AC-3 — aiwf add --priority sets it at creation, gated on kind like --area
+
+### AC-4 — set-priority ships completion wiring and an aiwf-set-priority skill
 
 ## Constraints
 
