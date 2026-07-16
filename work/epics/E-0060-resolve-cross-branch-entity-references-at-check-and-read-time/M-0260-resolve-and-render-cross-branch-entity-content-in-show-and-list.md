@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Cross-branch-sourced content is visibly labeled
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Refuses to pick a ref when content diverges
       status: open
