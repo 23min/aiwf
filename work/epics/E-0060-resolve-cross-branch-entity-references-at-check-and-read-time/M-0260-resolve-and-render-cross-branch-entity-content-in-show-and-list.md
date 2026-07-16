@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Refuses to pick a ref when content diverges
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: No working-tree, index, or ref writes
