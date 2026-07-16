@@ -17,9 +17,11 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
+	"github.com/23min/aiwf/internal/trunk"
 	"github.com/23min/aiwf/internal/version"
 )
 
@@ -33,6 +35,19 @@ type ListSummary struct {
 	Title  string `json:"title"`
 	Parent string `json:"parent,omitempty"`
 	Path   string `json:"path,omitempty"`
+
+	// CrossBranchRef is the ref a row's content was resolved from
+	// (M-0260/AC-1) when the id misses the local working tree.
+	// Non-empty only for a resolved cross-branch row; empty for an
+	// ordinary local row and for a cross-branch-collision row
+	// (CrossBranchCollision covers that case instead).
+	CrossBranchRef string `json:"cross_branch_ref,omitempty"`
+	// CrossBranchCollision is true when the id is known cross-branch
+	// but its content diverges across refs (M-0259/AC-3); Status/
+	// Title/Parent are left empty — aiwf list declines to pick a side
+	// (M-0260/AC-3). CrossBranchRefs names every candidate ref.
+	CrossBranchCollision bool     `json:"cross_branch_collision,omitempty"`
+	CrossBranchRefs      []string `json:"cross_branch_refs,omitempty"`
 }
 
 // ListCounts is the per-kind count payload for the no-args invocation.
@@ -207,7 +222,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 		return cliutil.ExitOK
 	}
 
-	rows := BuildListRows(tr, kind, status, parent, area, archived)
+	rows := BuildListRows(ctx, tr, kind, status, parent, area, archived)
 	switch format {
 	case "text":
 		w := termTitleBudget(os.Stdout, noTrunc)
@@ -255,7 +270,13 @@ func IsKnownKind(s string) bool {
 // — root kinds by their own field, milestones by parent-epic derivation)
 // equals area survive. Untagged entities (effective area "") never match
 // a specific area, so they are excluded from `--area X` (AC-6).
-func BuildListRows(tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
+//
+// M-0260/AC-1/AC-2: after the local rows above, ids known cross-branch
+// (visible on another local or remote-tracking ref) but absent from
+// the local tree also participate, labeled distinctly via
+// CrossBranchRef/CrossBranchCollision — see crossBranchListRows for
+// the filtering policy that governs them.
+func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
 	var statuses []string
 	if status != "" {
 		statuses = []string{status}
@@ -283,6 +304,128 @@ func BuildListRows(tr *tree.Tree, kind, status, parent, area string, archived bo
 			Title:  e.Title,
 			Parent: entity.Canonicalize(e.Parent),
 			Path:   e.Path,
+		})
+	}
+
+	rows = append(rows, crossBranchListRows(ctx, tr, kind, status, parent, area, archived)...)
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].ID < rows[j].ID })
+	return rows
+}
+
+// crossBranchListRows appends rows for ids known cross-branch
+// (visible on another local or remote-tracking ref) but absent from
+// the local tree (M-0260/AC-1/AC-2, ADR-0030's read-side extension
+// point). Scans live only from within a filtered listing — never from
+// the no-args counts path (BuildListCounts), so the common bare
+// `aiwf list` invocation pays no extra subprocess cost.
+//
+// Filtering policy (decided during implementation, M-0260): a
+// resolved (non-collision) hit reads its real content via
+// gitops.BlobReader, so --status/--parent/--area/--archived apply to
+// it exactly like a local row — the read is already paid to produce a
+// real Title for AC-2's labeling, so there is no reason to skip the
+// same checks. A collision hit (M-0259/AC-3's shape) has no real
+// status/parent/area to check — resolving one would be exactly the
+// arbitration AC-3 forbids — so it participates only in a kind-only
+// (or unfiltered) query; --status/--parent/--area each exclude it (a
+// filter claiming a match on data that doesn't exist yet would be a
+// false positive, worse than omitting the row). --archived never
+// excludes a collision row: that flag only controls default
+// suppression of terminal-status entities, and an unresolved ambiguity
+// should stay visible by default rather than risk being silently
+// hidden as if it were routine terminal state.
+func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
+	if tr.Root == "" {
+		// An in-memory tree built directly (bare &tree.Tree{...}, no
+		// tree.Load) never scans cross-branch: exec.Cmd treats an
+		// empty Dir as "inherit the caller's own working directory,"
+		// which would otherwise run these git subprocesses against
+		// whatever directory the test process happens to be running
+		// in — never what a bare in-memory fixture intends. This
+		// mirrors every other cross-branch-aware field's documented
+		// degrade for in-memory trees (nil CrossBranchHits, etc).
+		return nil
+	}
+	all := append(trunk.LocalRefHits(ctx, tr.Root), trunk.RemoteRefHits(ctx, tr.Root)...)
+	if len(all) == 0 {
+		return nil
+	}
+	byID := make(map[string][]trunk.RefHit, len(all))
+	for _, h := range all {
+		canon := entity.Canonicalize(h.ID)
+		byID[canon] = append(byID[canon], h)
+	}
+	collisions := trunk.DetectCollisions(ctx, tr.Root, all)
+	canonParent := entity.Canonicalize(parent)
+
+	var rows []ListSummary
+	var br *gitops.BlobReader
+	brAttempted := false
+	defer func() {
+		if br != nil {
+			_ = br.Close()
+		}
+	}()
+
+	for canon, hits := range byID {
+		if tr.ByID(canon) != nil {
+			continue // present locally — the local loop above already handled it
+		}
+		if kind != "" && string(hits[0].Kind) != kind {
+			continue
+		}
+		if collisions[canon] {
+			if status != "" || parent != "" || area != "" {
+				continue
+			}
+			rows = append(rows, ListSummary{
+				ID:                   canon,
+				Kind:                 string(hits[0].Kind),
+				CrossBranchCollision: true,
+				CrossBranchRefs:      trunk.DistinctRefs(hits),
+			})
+			continue
+		}
+
+		if !brAttempted {
+			brAttempted = true
+			br, _ = gitops.NewBlobReader(ctx, tr.Root) // best-effort; nil on failure degrades below
+		}
+		if br == nil { //coverage:ignore by this point LocalRefHits/RemoteRefHits already confirmed tr.Root is a real repo (gitops.IsRepo); NewBlobReader failing here needs the repo to break between that scan and this construction — not reproducible against a healthy subprocess, same class as gitops.NewBlobReader's own internal coverage:ignore branches
+			continue
+		}
+
+		hit := hits[0]
+		content, err := br.Read(hit.Ref, hit.Path)
+		if err != nil { //coverage:ignore hit.Path was just confirmed present at hit.Ref by the LsTreePaths scan that produced this RefHit; a subsequent blob read at the same ref:path failing needs the object store to change mid-request (repack/gc race), not reproducible in a unit test
+			continue
+		}
+		e, err := entity.Parse(hit.Path, content)
+		if err != nil {
+			continue
+		}
+		e.Kind = hit.Kind
+
+		if status != "" && e.Status != status {
+			continue
+		}
+		if !archived && entity.IsTerminal(e.Kind, e.Status) {
+			continue
+		}
+		if parent != "" && entity.Canonicalize(e.Parent) != canonParent {
+			continue
+		}
+		if area != "" && tr.ResolvedArea(e) != area {
+			continue
+		}
+		rows = append(rows, ListSummary{
+			ID:             entity.Canonicalize(e.ID),
+			Kind:           string(e.Kind),
+			Status:         e.Status,
+			Title:          e.Title,
+			Parent:         entity.Canonicalize(e.Parent),
+			Path:           e.Path,
+			CrossBranchRef: hit.Ref,
 		})
 	}
 	return rows
@@ -363,27 +506,46 @@ func RenderListRowsText(w io.Writer, rows []ListSummary, titleBudget int, colorE
 	// runes per glyphed status ("X "); empty string for rows whose
 	// status falls outside the palette (defensive — the kernel's status
 	// vocabulary is closed and maps fully today).
+	//
+	// M-0260/AC-1/AC-2: a cross-branch row's status column is marked
+	// distinctly — " ⇄" appended for a resolved row (real status still
+	// shown), "⇄ collision" in place of a status a collision row
+	// doesn't have — so it never reads as an ordinary local row.
 	statuses := make([]string, len(rows))
 	for i := range rows {
-		if g := render.StatusGlyph(rows[i].Status); g != "" {
-			statuses[i] = g + " " + rows[i].Status
-		} else {
-			statuses[i] = rows[i].Status
+		switch {
+		case rows[i].CrossBranchCollision:
+			statuses[i] = "⇄ collision"
+		case rows[i].CrossBranchRef != "":
+			if g := render.StatusGlyph(rows[i].Status); g != "" {
+				statuses[i] = g + " " + rows[i].Status + " ⇄"
+			} else { //coverage:ignore defensive: the kernel's status vocabulary is closed and maps fully today, so a resolved cross-branch row's real status always has a glyph; not reachable via any currently-legal entity status
+				statuses[i] = rows[i].Status + " ⇄"
+			}
+		default:
+			if g := render.StatusGlyph(rows[i].Status); g != "" {
+				statuses[i] = g + " " + rows[i].Status
+			} else { //coverage:ignore defensive: the kernel's status vocabulary is closed and maps fully today; not reachable via any currently-legal entity status
+				statuses[i] = rows[i].Status
+			}
 		}
 	}
 	titleMax := ComputeTitleBudget(rows, statuses, titleBudget)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, render.Bold("ID\tSTATUS\tTITLE\tPARENT", colorEnabled))
-	for i, r := range rows {
-		parent := r.Parent
+	for i := range rows {
+		parent := rows[i].Parent
 		if parent == "" {
 			parent = "-"
 		}
-		title := r.Title
+		title := rows[i].Title
 		if titleMax > 0 {
 			title = render.Truncate(title, titleMax)
 		}
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, statuses[i], title, parent)
+		if rows[i].CrossBranchCollision {
+			title = "(declines to render — refs diverge)"
+		}
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", rows[i].ID, statuses[i], title, parent)
 	}
 	_ = tw.Flush()
 }

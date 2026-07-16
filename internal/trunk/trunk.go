@@ -242,6 +242,23 @@ func refHits(ctx context.Context, workdir string, listRefs func(context.Context,
 	return hits
 }
 
+// DistinctRefs returns the distinct ref names carried by hits, in
+// first-seen order — the candidate-ref list a caller surfaces when
+// hits disagree (M-0259/AC-3's cross-branch-collision finding,
+// M-0260/AC-3's aiwf show/list refusal to arbitrate between them).
+func DistinctRefs(hits []RefHit) []string {
+	seen := make(map[string]bool, len(hits))
+	var refs []string
+	for _, h := range hits {
+		if seen[h.Ref] {
+			continue
+		}
+		seen[h.Ref] = true
+		refs = append(refs, h.Ref)
+	}
+	return refs
+}
+
 // HitIDStrings returns just the id strings from hits, in order.
 // Convenience for LocalRefIDs/RemoteRefIDs, which only need id values.
 func HitIDStrings(hits []RefHit) []string {
