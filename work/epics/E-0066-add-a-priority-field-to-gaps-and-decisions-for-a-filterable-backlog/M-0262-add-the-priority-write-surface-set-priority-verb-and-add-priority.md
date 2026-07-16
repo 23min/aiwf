@@ -86,3 +86,9 @@ The field and its validation land in the field milestone; this milestone makes i
 The verb also ships a `--clear` flag, beyond AC-1's literal title — added deliberately per CLAUDE.md's "what verb undoes this?" design rule: without it, the very first set (unset→set) would have no reversal path. Mirrors `set-area`'s established set/clear precedent rather than opening a fresh design question.
 
 Two discoverability chokepoints needed same-commit fixes to keep the build green: `nonLegalityVerbAllowlist` (M-0123/AC-5's FSM-drift policy) gained a `set-priority` entry mirroring `set-area`'s ("FSM state is preserved"); `skillCoverageAllowlist` gained a *temporary* entry noting the real `aiwf-set-priority` skill lands in AC-4 — remove the allowlist entry when that skill ships.
+
+### AC-2 — aiwf set-priority refuses an out-of-range level and a non-gap/decision target
+
+No new code: the refusal logic was written alongside AC-1's set path in the same commit (91f42294), since both live in the same `SetPriority` function body — `TestSetPriority_ValidationRefusals/{non-gap/decision_target,out-of-range_level}` and `TestSetPriority_OutOfRangeErrorNamesAllowedSet` already covered AC-2's exact claims. Closing this AC formally rather than silently folding it into AC-1, since the milestone spec tracks it as its own unit.
+
+Added one mechanical gap this AC's own audit surfaced: the `wf-vacuity` pass for AC-1 hadn't specifically mutated the `IsAllowedPriorityLevel` guard (the core of AC-2's "refuses an out-of-range level" claim). Ran it now — inverting the guard produced 7 test failures including the direct out-of-range case — killed, no code change needed.
