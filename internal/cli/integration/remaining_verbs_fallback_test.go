@@ -16,6 +16,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/retitle"
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/setarea"
+	"github.com/23min/aiwf/internal/cli/setpriority"
 	"github.com/23min/aiwf/internal/cli/worktree"
 )
 
@@ -192,6 +193,28 @@ func TestSetAreaDiag_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 	rc := setarea.Run([]string{"E-0001", "platform"}, "human/test", "", root, false, cliutil.OutputFormat{})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("setarea.Run: rc=%d", rc)
+	}
+	if got := readRunID(t, logPath); got == "" {
+		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
+	}
+}
+
+// TestSetPriorityDiag_FallsBackWhenOutputFormatCarriesNone mirrors
+// TestSetAreaDiag_FallsBackWhenOutputFormatCarriesNone for set-priority
+// (M-0262).
+func TestSetPriorityDiag_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", fixtureGapBody, "--title", "Fallback probe", "--actor", "human/test", "--root", root)
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc := setpriority.Run([]string{"G-0001", "urgent"}, "human/test", "", root, false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("setpriority.Run: rc=%d", rc)
 	}
 	if got := readRunID(t, logPath); got == "" {
 		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
