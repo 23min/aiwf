@@ -221,6 +221,19 @@ or an unconstructible `BlobReader` degrades toward "no collision
 detected," per G-0415's accepted transient-failure limitation ·
 commit 0f5faa86 · tests 17/17 new
 
+### AC-4 — Escalation re-fires unresolved once the source branch disappears
+
+No production code change — this falls out of AC-1/AC-2/AC-3's live,
+uncached recomputation of the cross-branch view on every `LoadTreeWithTrunk`
+call. Added the ADR-0030 fixture test proving the full lifecycle
+mechanically: a milestone's `parent` reference to a sibling-branch-only
+epic classifies `cross-branch-pending`; the sibling branch is deleted;
+`LoadTreeWithTrunk` + `check.Run` re-run against the mutated repo;
+the same reference now classifies `unresolved`. Vacuity-probed by
+temporarily reintroducing a caching bug into `LocalRefHits` — the
+fixture correctly went red, confirming it isn't vacuous · commit
+27b8abee · tests 1/1 new
+
 ## Decisions made during implementation
 
 - (none)
