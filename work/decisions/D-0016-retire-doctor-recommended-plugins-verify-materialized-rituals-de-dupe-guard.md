@@ -1,7 +1,7 @@
 ---
 id: D-0016
 title: Retire doctor.recommended_plugins; verify materialized rituals + de-dupe guard
-status: proposed
+status: accepted
 ---
 ## Decision
 
