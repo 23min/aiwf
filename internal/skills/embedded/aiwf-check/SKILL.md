@@ -51,6 +51,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `ids-unique/trunk-collision` | An id allocated on this branch is also allocated on the configured trunk ref (default `refs/remotes/origin/main`) at a different path — i.e. two different entities now share it across branches. The cross-tree variant of `ids-unique`. | `aiwf reallocate <path>` on whichever side hasn't reached trunk yet. The pre-push hook surfaces this before the colliding push lands. |
 | `frontmatter-shape` | Required field missing or malformed. | Add the field; check the kind's id format. |
 | `status-valid` | Status is not in the kind's allowed set. | Pick a status from the kind's set (see `aiwf-promote`). |
+| `priority-valid` | The `priority` field's value is outside the closed set (urgent, high, medium, low). | Correct the value by hand and re-run `aiwf check`. |
 | `refs-resolve/unresolved` | A reference points at an id that does not exist. | Either the target was never created, or the id is mistyped. |
 | `refs-resolve/unresolved-milestone` | The composite-id reference's milestone half (`M-NNN/AC-N`) names a milestone that does not exist. | Fix the milestone id or create the milestone. |
 | `refs-resolve/unresolved-ac` | The composite-id reference's AC half (`M-NNN/AC-N`) names an AC that does not exist on the milestone. | Fix the AC number or add the missing AC. |

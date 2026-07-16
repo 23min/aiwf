@@ -200,6 +200,53 @@ func IsAllowedTDDPolicy(p string) bool {
 	return false
 }
 
+// Priority-level constants for the `priority` frontmatter field
+// (G-0078, E-0066). Closed set, hardcoded like kinds and statuses —
+// no `aiwf.yaml` knob, because unlike `area`'s operator-declared
+// members this set is genuinely closed.
+const (
+	PriorityUrgent = "urgent"
+	PriorityHigh   = "high"
+	PriorityMedium = "medium"
+	PriorityLow    = "low"
+)
+
+// priorityLevels is the closed set for `priority`, ordered most to
+// least urgent.
+var priorityLevels = []string{PriorityUrgent, PriorityHigh, PriorityMedium, PriorityLow}
+
+// AllowedPriorityLevels returns the closed level set for the
+// `priority` field. Shares memory with the package-level constant;
+// callers must not mutate it.
+func AllowedPriorityLevels() []string {
+	return priorityLevels
+}
+
+// IsAllowedPriorityLevel reports whether p is a recognized priority
+// level. Empty string returns false; absence (no `priority` key) is
+// the legal "unset" state and is checked separately by the caller.
+func IsAllowedPriorityLevel(p string) bool {
+	for _, want := range priorityLevels {
+		if want == p {
+			return true
+		}
+	}
+	return false
+}
+
+// CarriesOwnPriority reports whether a kind may carry its own
+// `priority` frontmatter (G-0078, E-0066). Priority answers "which one
+// do I work next" — a question that only applies to the kernel's two
+// unordered backlog kinds, gap and decision. Milestones are already
+// sequenced by `depends_on`; epics are scoped by the milestones they
+// contain; ADRs and contracts aren't worked in priority order. Unlike
+// `area` (E-0043), an out-of-scope kind is not silently blanked at
+// load — see the priority-not-applicable check, which needs the
+// stored value intact to report it.
+func CarriesOwnPriority(k Kind) bool {
+	return k == KindGap || k == KindDecision
+}
+
 // IDFormat returns a human-readable description of the kind's id shape.
 // Used in error messages produced by the frontmatter-shape check.
 // Delegates to the schemas table so there is a single source of truth.
@@ -416,6 +463,13 @@ type Entity struct {
 	// what drops the cleared key from disk on the next write-verb.
 	Area string `yaml:"area,omitempty"`
 
+	// Priority (G-0078, E-0066). Optional `priority` tag, legal only on
+	// gap and decision (CarriesOwnPriority) — the kernel's two unordered
+	// backlog kinds. Unlike Area, an out-of-scope value is not blanked
+	// at load; the priority-not-applicable check reports it instead of
+	// the loader silently dropping it.
+	Priority string `yaml:"priority,omitempty"`
+
 	// Milestone references.
 	Parent    string   `yaml:"parent,omitempty"`
 	DependsOn []string `yaml:"depends_on,omitempty"`
@@ -536,7 +590,7 @@ var schemas = map[Kind]Schema{
 		IDFormat:        "G-NNN",
 		AllowedStatuses: []string{StatusOpen, StatusAddressed, StatusWontfix},
 		RequiredFields:  commonRequired,
-		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit"},
+		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit", "priority"},
 		References: []RefField{
 			{Name: "discovered_in", Cardinality: Single, AllowedKinds: []Kind{KindMilestone, KindEpic}, Optional: true},
 			// addressed_by accepts any kind — empty AllowedKinds.
@@ -551,7 +605,7 @@ var schemas = map[Kind]Schema{
 		IDFormat:        "D-NNN",
 		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
-		OptionalFields:  []string{"relates_to"},
+		OptionalFields:  []string{"relates_to", "priority"},
 		References: []RefField{
 			// relates_to accepts any kind — empty AllowedKinds.
 			{Name: "relates_to", Cardinality: Multi, Optional: true},

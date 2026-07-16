@@ -442,6 +442,44 @@ func TestIsAllowedTDDPolicy(t *testing.T) {
 	}
 }
 
+func TestIsAllowedPriorityLevel(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		level string
+		want  bool
+	}{
+		{"urgent", true},
+		{"high", true},
+		{"medium", true},
+		{"low", true},
+		{"", false},
+		{"critical", false},
+		{"Urgent", false}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.level, func(t *testing.T) {
+			t.Parallel()
+			if got := IsAllowedPriorityLevel(tt.level); got != tt.want {
+				t.Errorf("IsAllowedPriorityLevel(%q) = %v, want %v", tt.level, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCarriesOwnPriority(t *testing.T) {
+	t.Parallel()
+	for _, k := range []Kind{KindGap, KindDecision} {
+		if !CarriesOwnPriority(k) {
+			t.Errorf("CarriesOwnPriority(%v) = false, want true (priority-eligible kind)", k)
+		}
+	}
+	for _, k := range []Kind{KindEpic, KindMilestone, KindADR, KindContract} {
+		if CarriesOwnPriority(k) {
+			t.Errorf("CarriesOwnPriority(%v) = true, want false (priority not applicable)", k)
+		}
+	}
+}
+
 func TestACClosedSets_NoEmptyMember(t *testing.T) {
 	t.Parallel()
 	// Belt-and-braces: confirm none of the AC closed sets accidentally

@@ -479,6 +479,23 @@ func TestStatusValid(t *testing.T) {
 	}
 }
 
+func TestPriorityValid(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Priority: "urgent"},   // ok
+		&entity.Entity{ID: "G-0002", Kind: entity.KindGap, Priority: "critical"}, // not in closed set
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision, Priority: "low"}, // ok
+		&entity.Entity{ID: "G-0003", Kind: entity.KindGap, Priority: ""},         // empty: skipped
+	)
+	got := priorityValid(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
+	}
+	if got[0].EntityID != "G-0002" || got[0].Code != CodePriorityValid {
+		t.Errorf("got %+v", got[0])
+	}
+}
+
 func TestFrontmatterShape(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(
