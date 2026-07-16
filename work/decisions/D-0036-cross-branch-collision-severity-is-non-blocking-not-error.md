@@ -98,6 +98,5 @@ Alternatives considered:
   ambiguity — compare manually first; `aiwf reallocate` only applies
   once a genuine duplicate mint is confirmed, not for the common
   in-flight-edit case.
-- A follow-on gap tracks git-lineage-based disambiguation as future,
-  scoped work, should the coarse v1 severity prove insufficient in
-  practice.
+- `G-0416` tracks git-lineage-based disambiguation as future, scoped
+  work, should the coarse v1 severity prove insufficient in practice.
