@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: drift chokepoints cover priority literals like status literals
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0261 — Add the priority field, its validation, and drift chokepoints
