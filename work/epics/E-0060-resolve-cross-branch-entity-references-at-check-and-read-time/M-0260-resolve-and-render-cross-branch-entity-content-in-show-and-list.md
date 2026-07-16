@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: No working-tree, index, or ref writes
-      status: open
+      status: met
       tdd_phase: done
 ---
 
