@@ -69,3 +69,4 @@ Implementation surface:
 
 - **G-0061** (no `aiwf list <kind>` verb): once `aiwf list` exists, priority becomes the obvious filter / sort key it would otherwise lack.
 - **G-0053 / G-0052** (kernel demands behavior the verb routes don't deliver): same shape — a structured-state surface the kernel doesn't yet expose. Different mechanism; similar lesson.
+- **G-0420** (no sort-by-priority tiebreaker): the sort-ordering follow-up deliberately deferred out of this gap's Decision 3 — filtering ships here, group-then-tiebreak sorting is scoped there.
