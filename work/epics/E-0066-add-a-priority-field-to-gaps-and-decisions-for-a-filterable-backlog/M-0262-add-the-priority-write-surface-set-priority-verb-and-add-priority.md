@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: aiwf add --priority sets it at creation, gated on kind like --area
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: set-priority ships completion wiring and an aiwf-set-priority skill
       status: open
