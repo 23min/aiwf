@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: Refuses to pick a ref when content diverges
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: No working-tree, index, or ref writes
       status: open
