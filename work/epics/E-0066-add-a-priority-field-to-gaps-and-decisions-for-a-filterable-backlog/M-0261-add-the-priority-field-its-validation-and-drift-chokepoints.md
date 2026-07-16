@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: drift chokepoints cover priority literals like status literals
-      status: open
+      status: met
       tdd_phase: done
 ---
 
