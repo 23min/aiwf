@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: An id absent everywhere still hard-fails unresolved
-      status: open
+      status: met
       tdd_phase: done
 ---
 
