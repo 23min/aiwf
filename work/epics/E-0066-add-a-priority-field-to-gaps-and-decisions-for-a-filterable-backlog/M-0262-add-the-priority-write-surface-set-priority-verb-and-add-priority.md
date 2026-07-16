@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: set-priority ships completion wiring and an aiwf-set-priority skill
-      status: open
+      status: met
       tdd_phase: done
 ---
 
