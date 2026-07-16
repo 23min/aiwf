@@ -23,7 +23,8 @@ import (
 // convention per ADR-0004), aiwf-show (added via G-0087 patch
 // — closes the last "deferred" skill-coverage allowlist entry), and
 // aiwf-worktree (added in M-0233 of E-0059 for the atomic
-// worktree-add + ritual-materialization verb).
+// worktree-add + ritual-materialization verb), and aiwf-set-priority
+// (added in M-0262 of E-0066 for the priority write-surface verb).
 func TestList_AllShippedSkillsPresent(t *testing.T) {
 	t.Parallel()
 	skills, err := List()
@@ -34,7 +35,7 @@ func TestList_AllShippedSkillsPresent(t *testing.T) {
 	for i, s := range skills {
 		got[i] = s.Name
 	}
-	want := []string{"aiwf-acknowledge", "aiwf-add", "aiwf-archive", "aiwf-area", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-show", "aiwf-status", "aiwf-worktree"}
+	want := []string{"aiwf-acknowledge", "aiwf-add", "aiwf-archive", "aiwf-area", "aiwf-authorize", "aiwf-check", "aiwf-contract", "aiwf-edit-body", "aiwf-history", "aiwf-list", "aiwf-promote", "aiwf-reallocate", "aiwf-rename", "aiwf-render", "aiwf-retitle", "aiwf-set-priority", "aiwf-show", "aiwf-status", "aiwf-worktree"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d skills, want %d (%v vs %v)", len(got), len(want), got, want)
 	}
