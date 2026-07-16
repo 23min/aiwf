@@ -1,7 +1,7 @@
 ---
 id: D-0022
 title: M-0161/AC-9 deferred to follow-up milestone; M-0161 wraps 8/9
-status: proposed
+status: accepted
 relates_to:
     - M-0161
     - G-0210
