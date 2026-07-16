@@ -159,7 +159,7 @@ func (br *BlobReader) request(spec string) (sha string, content []byte, requestE
 	}
 	header := strings.TrimRight(headerLine, "\n")
 	missing, headerSHA, size, parseErr := parseBatchHeader(header)
-	if parseErr != nil {
+	if parseErr != nil { //coverage:ignore parseBatchHeader only errors on a malformed header line (wrong field count, non-integer/negative size); not reproducible against a healthy git cat-file --batch subprocess — same class as the sibling protocol-error branches above/below
 		return "", nil, parseErr
 	}
 	if missing {
