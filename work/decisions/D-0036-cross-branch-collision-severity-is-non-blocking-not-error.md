@@ -1,7 +1,7 @@
 ---
 id: D-0036
 title: cross-branch-collision severity is non-blocking, not error
-status: proposed
+status: accepted
 relates_to:
     - E-0060
     - M-0259
