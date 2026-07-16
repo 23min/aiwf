@@ -76,3 +76,13 @@ The field and its validation land in the field milestone; this milestone makes i
 
 - G-0078 — the ratified design decisions (verb choice, creation-time flag).
 - The `set-area` verb — `internal/cli/setarea/` — the pattern this verb copies.
+
+## Work log
+
+### AC-1 — aiwf set-priority sets a gap/decision priority in one trailered commit
+
+`SetPriority` verb (`internal/verb/setpriority.go`) and the `set-priority` CLI command (`internal/cli/setpriority/`) land, wired into `root.go` · commit 91f42294 · tests 24/24 new (7 verb, 4 CLI-unit, 13 integration incl. a diag-logging case), 6/6 mutants killed.
+
+The verb also ships a `--clear` flag, beyond AC-1's literal title — added deliberately per CLAUDE.md's "what verb undoes this?" design rule: without it, the very first set (unset→set) would have no reversal path. Mirrors `set-area`'s established set/clear precedent rather than opening a fresh design question.
+
+Two discoverability chokepoints needed same-commit fixes to keep the build green: `nonLegalityVerbAllowlist` (M-0123/AC-5's FSM-drift policy) gained a `set-priority` entry mirroring `set-area`'s ("FSM state is preserved"); `skillCoverageAllowlist` gained a *temporary* entry noting the real `aiwf-set-priority` skill lands in AC-4 — remove the allowlist entry when that skill ships.
