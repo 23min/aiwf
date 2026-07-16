@@ -4,6 +4,19 @@ title: Add the priority field, its validation, and drift chokepoints
 status: draft
 parent: E-0066
 tdd: required
+acs:
+    - id: AC-1
+      title: priority is an optional gap/decision field validated against its closed set
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: priority on other kinds raises the priority-not-applicable finding
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: drift chokepoints cover priority literals like status literals
+      status: open
+      tdd_phase: red
 ---
 
 # M-0261 — Add the priority field, its validation, and drift chokepoints
@@ -19,6 +32,12 @@ E-0066 adds `priority` to the two kinds where "which one do I work next" is an o
 ## Acceptance criteria
 
 <!-- Seeded via `aiwf add ac`; each starts at tdd_phase: red. -->
+
+### AC-1 — priority is an optional gap/decision field validated against its closed set
+
+### AC-2 — priority on other kinds raises the priority-not-applicable finding
+
+### AC-3 — drift chokepoints cover priority literals like status literals
 
 ## Constraints
 
