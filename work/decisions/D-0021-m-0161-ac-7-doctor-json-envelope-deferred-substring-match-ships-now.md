@@ -1,7 +1,7 @@
 ---
 id: D-0021
 title: M-0161/AC-7 doctor JSON envelope deferred; substring match ships now
-status: proposed
+status: accepted
 relates_to:
     - M-0161
     - G-0207
