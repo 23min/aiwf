@@ -1,7 +1,7 @@
 ---
 id: D-0027
 title: Area-mistag acknowledgement is per-entity and permanent
-status: proposed
+status: accepted
 ---
 ## Context
 
