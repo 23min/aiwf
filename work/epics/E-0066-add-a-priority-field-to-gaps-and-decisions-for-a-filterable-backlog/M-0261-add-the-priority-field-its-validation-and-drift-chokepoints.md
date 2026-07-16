@@ -81,6 +81,12 @@ Field, constants, and the `priority-valid` check rule land · commit 34b13baf ·
 
 Deviation from the Design notes' "structure it off `area_unknown.go`" sketch: `area`'s presence-vs-scope handling works by the tree loader silently blanking an out-of-scope kind's value at load (`tree.go`, milestone/area) — but AC-2's `priority-not-applicable` finding needs the stored value intact to report it, so `priority` is deliberately *not* blanked the way `area` is. `CarriesOwnPriority` exists for the check rule to consult directly, not for a loader-side blank.
 
+### AC-2 — priority-not-applicable finding
+
+The scope-violation check lands, warning severity per the Design notes' lean · commit e4f4996b · tests 1/1 new, 3/3 mutants killed (empty-guard, scope-guard, severity).
+
+Placed the skill row under "Findings (warnings)", not "Findings (errors)" — the SKILL.md table splits by severity across two separate tables (2-column: Code, Meaning-with-fix-folded-in) rather than annotating severity inline; my first pass got this wrong and had to move the row.
+
 ## Decisions made during implementation
 
 - None — all decisions are pre-locked above.
