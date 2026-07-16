@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: priority on other kinds raises the priority-not-applicable finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: drift chokepoints cover priority literals like status literals
