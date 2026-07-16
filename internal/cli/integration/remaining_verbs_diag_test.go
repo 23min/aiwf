@@ -235,6 +235,40 @@ func TestSetAreaDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 }
 
+// TestSetPriorityDiag_EmitsVerbCompletedEvent mirrors
+// TestSetAreaDiag_EmitsVerbCompletedEvent for set-priority (M-0262).
+func TestSetPriorityDiag_EmitsVerbCompletedEvent(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", fixtureGapBody, "--title", "diag probe", "--actor", "human/test", "--root", root)
+
+	logPath := filepath.Join(t.TempDir(), "diag.log")
+	t.Setenv("AIWF_LOG", "info")
+	t.Setenv("AIWF_LOG_FORMAT", "json")
+	t.Setenv("AIWF_LOG_FILE", logPath)
+
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"set-priority", "G-0001", "urgent", "--actor", "human/test", "--root", root})
+	})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("aiwf set-priority: rc=%d stderr=%s", rc, stderr)
+	}
+
+	rec := readDiagRecord(t, logPath)
+	if rec.Msg != "verb.completed" {
+		t.Errorf("msg = %q, want %q", rec.Msg, "verb.completed")
+	}
+	if rec.Verb != "set-priority" {
+		t.Errorf("verb = %q, want %q", rec.Verb, "set-priority")
+	}
+	if rec.Entity != "G-0001" {
+		t.Errorf("entity = %q, want %q", rec.Entity, "G-0001")
+	}
+	if rec.RunID == "" {
+		t.Error("run_id missing or empty from the diagnostic record")
+	}
+}
+
 // TestWorktreeAddDiag_EmitsVerbCompletedEvent drives the real binary
 // (worktree add shells out to real `git worktree add` and needs a
 // real committed base), mirroring TestWorktreeAddMetadata_ReportsBranchAndPath's
