@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Divergent content across refs escalates to cross-branch-collision
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Escalation re-fires unresolved once the source branch disappears
       status: open
