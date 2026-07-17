@@ -2,6 +2,7 @@
 id: G-0233
 title: 'Test-shape upgrades: DOM-structural htmlrender, fault harness, e2e widening'
 status: open
+priority: medium
 ---
 ## What's missing
 
