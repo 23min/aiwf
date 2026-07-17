@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: aiwf render emits a priority badge for each gap/decision with a value
-      status: open
+      status: met
     - id: AC-2
       title: the badge is asserted structurally, not by substring, and human-verified
       status: open
