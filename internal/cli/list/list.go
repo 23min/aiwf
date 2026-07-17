@@ -48,6 +48,12 @@ type ListSummary struct {
 	// (M-0260/AC-3). CrossBranchRefs names every candidate ref.
 	CrossBranchCollision bool     `json:"cross_branch_collision,omitempty"`
 	CrossBranchRefs      []string `json:"cross_branch_refs,omitempty"`
+
+	// Priority carries the entity's own `priority` frontmatter
+	// (G-0078, E-0066, M-0263) — empty for a kind that never carries
+	// one (entity.CarriesOwnPriority) or a gap/decision with no
+	// priority set.
+	Priority string `json:"priority,omitempty"`
 }
 
 // ListCounts is the per-kind count payload for the no-args invocation.
@@ -66,6 +72,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		status   string
 		parent   string
 		area     string
+		priority string
 		archived bool
 		format   string
 		pretty   bool
@@ -95,7 +102,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, archived, format, pretty, noTrunc, correlationID))
+			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, priority, archived, format, pretty, noTrunc, correlationID))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -103,6 +110,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&status, "status", "", "filter by entity status (kind-aware)")
 	cmd.Flags().StringVar(&parent, "parent", "", "filter to entities whose parent is this id (e.g., milestones under E-13)")
 	cmd.Flags().StringVar(&area, "area", "", "filter to entities whose effective area equals this workstream tag (E-0043)")
+	cmd.Flags().StringVar(&priority, "priority", "", "filter to gaps/decisions whose priority equals this closed-set level (urgent|high|medium|low) (G-0078, E-0066)")
 	cmd.Flags().BoolVar(&archived, "archived", false, "include terminal-status entities (default: hide them)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
@@ -121,6 +129,10 @@ func NewCmd(correlationID string) *cobra.Command {
 	})
 	_ = cmd.RegisterFlagCompletionFunc("parent", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
+	_ = cmd.RegisterFlagCompletionFunc("priority", cobra.FixedCompletions(
+		entity.AllowedPriorityLevels(),
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	cliutil.RegisterFormatCompletion(cmd)
 
 	return cmd
@@ -146,13 +158,22 @@ func UnionAllStatuses() []string {
 }
 
 // Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
-func Run(root, kind, status, parent, area string, archived bool, format string, pretty, noTrunc bool, correlationID string) (code int) {
+func Run(root, kind, status, parent, area, priority string, archived bool, format string, pretty, noTrunc bool, correlationID string) (code int) {
 	if format != "text" && format != "json" {
 		cliutil.Errorf("aiwf list: --format must be 'text' or 'json', got %q\n", format)
 		return cliutil.ExitUsage
 	}
 	if kind != "" && !IsKnownKind(kind) {
 		cliutil.Errorf("aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
+		return cliutil.ExitUsage
+	}
+	// Priority is a closed, Go-hardcoded set (unlike --area's operator-
+	// declared members), so an out-of-range value is a hard usage error —
+	// mirroring --kind's validation, not --area's undeclared-value note
+	// (M-0263 constraint: "a bad --priority value is a usage error, not
+	// a silent empty result").
+	if priority != "" && !entity.IsAllowedPriorityLevel(priority) {
+		cliutil.Errorf("aiwf list: --priority must be one of %v, got %q\n", entity.AllowedPriorityLevels(), priority)
 		return cliutil.ExitUsage
 	}
 
@@ -198,7 +219,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 		return cliutil.ExitInternal
 	}
 
-	noArgs := kind == "" && status == "" && parent == "" && area == "" && !archived
+	noArgs := kind == "" && status == "" && parent == "" && area == "" && priority == "" && !archived
 	if noArgs {
 		counts := BuildListCounts(tr)
 		switch format {
@@ -222,7 +243,7 @@ func Run(root, kind, status, parent, area string, archived bool, format string, 
 		return cliutil.ExitOK
 	}
 
-	rows := BuildListRows(ctx, tr, kind, status, parent, area, archived)
+	rows := BuildListRows(ctx, tr, kind, status, parent, area, priority, archived)
 	switch format {
 	case "text":
 		w := termTitleBudget(os.Stdout, noTrunc)
@@ -276,7 +297,14 @@ func IsKnownKind(s string) bool {
 // the local tree also participate, labeled distinctly via
 // CrossBranchRef/CrossBranchCollision — see crossBranchListRows for
 // the filtering policy that governs them.
-func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
+//
+// The priority axis (G-0078, E-0066, M-0263/AC-1) is an independent
+// AND-ed filter, mirroring area's shape: when non-empty, only entities
+// whose own Priority field equals priority survive. A kind that never
+// carries a priority (entity.CarriesOwnPriority) always has an empty
+// Priority, so it never matches a specific level — no separate
+// kind-gate needed here, same as an untagged gap/decision.
+func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area, priority string, archived bool) []ListSummary {
 	var statuses []string
 	if status != "" {
 		statuses = []string{status}
@@ -295,19 +323,23 @@ func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, are
 		if area != "" && tr.ResolvedArea(e) != area {
 			continue
 		}
+		if priority != "" && e.Priority != priority {
+			continue
+		}
 		// Emitted ids are canonical per AC-3 in M-081 — display
 		// surfaces are uniform-width regardless of on-disk filename.
 		rows = append(rows, ListSummary{
-			ID:     entity.Canonicalize(e.ID),
-			Kind:   string(e.Kind),
-			Status: e.Status,
-			Title:  e.Title,
-			Parent: entity.Canonicalize(e.Parent),
-			Path:   e.Path,
+			ID:       entity.Canonicalize(e.ID),
+			Kind:     string(e.Kind),
+			Status:   e.Status,
+			Title:    e.Title,
+			Parent:   entity.Canonicalize(e.Parent),
+			Path:     e.Path,
+			Priority: e.Priority,
 		})
 	}
 
-	rows = append(rows, crossBranchListRows(ctx, tr, kind, status, parent, area, archived)...)
+	rows = append(rows, crossBranchListRows(ctx, tr, kind, status, parent, area, priority, archived)...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].ID < rows[j].ID })
 	return rows
 }
@@ -333,8 +365,9 @@ func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, are
 // excludes a collision row: that flag only controls default
 // suppression of terminal-status entities, and an unresolved ambiguity
 // should stay visible by default rather than risk being silently
-// hidden as if it were routine terminal state.
-func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area string, archived bool) []ListSummary {
+// hidden as if it were routine terminal state. --priority (M-0263)
+// joins the same resolved-vs-collision split as --area.
+func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area, priority string, archived bool) []ListSummary {
 	if tr.Root == "" {
 		// An in-memory tree built directly (bare &tree.Tree{...}, no
 		// tree.Load) never scans cross-branch: exec.Cmd treats an
@@ -375,7 +408,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 			continue
 		}
 		if collisions[canon] {
-			if status != "" || parent != "" || area != "" {
+			if status != "" || parent != "" || area != "" || priority != "" {
 				continue
 			}
 			rows = append(rows, ListSummary{
@@ -418,6 +451,9 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		if area != "" && tr.ResolvedArea(e) != area {
 			continue
 		}
+		if priority != "" && e.Priority != priority {
+			continue
+		}
 		rows = append(rows, ListSummary{
 			ID:             entity.Canonicalize(e.ID),
 			Kind:           string(e.Kind),
@@ -425,6 +461,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 			Title:          e.Title,
 			Parent:         entity.Canonicalize(e.Parent),
 			Path:           e.Path,
+			Priority:       e.Priority,
 			CrossBranchRef: hit.Ref,
 		})
 	}

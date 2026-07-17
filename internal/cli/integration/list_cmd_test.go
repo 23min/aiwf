@@ -381,7 +381,7 @@ func TestSeam_ListAndStatusAgreeOnOpenGaps(t *testing.T) {
 	}}
 
 	listIDs := make([]string, 0)
-	for _, r := range list.BuildListRows(context.Background(), tr, "gap", "open", "", "", false) {
+	for _, r := range list.BuildListRows(context.Background(), tr, "gap", "open", "", "", "", false) {
 		listIDs = append(listIDs, r.ID)
 	}
 
