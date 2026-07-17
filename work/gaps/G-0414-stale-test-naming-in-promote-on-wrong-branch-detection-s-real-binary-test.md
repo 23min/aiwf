@@ -2,6 +2,7 @@
 id: G-0414
 title: Stale test naming in promote-on-wrong-branch-detection's real-binary test
 status: open
+priority: low
 discovered_in: M-0257
 ---
 ## What's missing
