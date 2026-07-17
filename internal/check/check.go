@@ -37,13 +37,22 @@ const (
 // Finding codes emitted by this file. Typed per G-0129 so the
 // compiler closes on rename / retire across emit sites and tests.
 const (
-	CodeLoadError               = "load-error"
-	CodeCasePaths               = "case-paths"
-	CodeIDsUnique               = "ids-unique"
-	CodeRoadmapCaseCollision    = "roadmap-case-collision"
-	CodeFrontmatterShape        = "frontmatter-shape"
-	CodeIDPathConsistent        = "id-path-consistent"
-	CodeStatusValid             = "status-valid"
+	CodeLoadError            = "load-error"
+	CodeCasePaths            = "case-paths"
+	CodeIDsUnique            = "ids-unique"
+	CodeRoadmapCaseCollision = "roadmap-case-collision"
+	CodeFrontmatterShape     = "frontmatter-shape"
+	CodeIDPathConsistent     = "id-path-consistent"
+	CodeStatusValid          = "status-valid"
+	// CodePriorityValid is the G-0078/E-0066 closed-set check for the
+	// `priority` field: a present value outside {urgent, high, medium,
+	// low} fires this code. See internal/check/priority_valid.go.
+	CodePriorityValid = "priority-valid"
+	// CodePriorityNotApplicable is the G-0078/E-0066 scope check for the
+	// `priority` field: a present value on a kind that does not carry
+	// its own priority (entity.CarriesOwnPriority) fires this code. See
+	// internal/check/priority_not_applicable.go.
+	CodePriorityNotApplicable   = "priority-not-applicable"
 	CodeRefsResolve             = "refs-resolve"
 	CodeNoCycles                = "no-cycles"
 	CodeTitlesNonempty          = "titles-nonempty"
@@ -106,6 +115,8 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, frontmatterShape(t)...)
 	findings = append(findings, idPathConsistent(t)...)
 	findings = append(findings, statusValid(t)...)
+	findings = append(findings, priorityValid(t)...)
+	findings = append(findings, priorityNotApplicable(t)...)
 	findings = append(findings, refsResolve(t)...)
 	findings = append(findings, noCycles(t)...)
 	findings = append(findings, titlesNonempty(t)...)

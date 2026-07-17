@@ -910,7 +910,7 @@ silently.
 | M-0257 | Broaden the check-clean oracle across ten stress scenarios | done |
 | M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | done |
 
-## E-0066 — Add a priority field to gaps and decisions for a filterable backlog (proposed)
+## E-0066 — Add a priority field to gaps and decisions for a filterable backlog (active)
 
 ### Goal
 
@@ -918,8 +918,8 @@ Give aiwf a kernel-supported `priority` field on gaps and decisions, so the back
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0261 | Add the priority field, its validation, and drift chokepoints | draft |
-| M-0262 | Add the priority write surface: set-priority verb and add --priority | draft |
-| M-0263 | Add the priority read surface: list/status filter, envelope, show | draft |
-| M-0264 | Render a priority badge in the HTML site | draft |
+| M-0261 | Add the priority field, its validation, and drift chokepoints | done |
+| M-0262 | Add the priority write surface: set-priority verb and add --priority | done |
+| M-0263 | Add the priority read surface: list/status filter, envelope, show | done |
+| M-0264 | Render a priority badge in the HTML site | done |
 

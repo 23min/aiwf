@@ -479,6 +479,52 @@ func TestStatusValid(t *testing.T) {
 	}
 }
 
+func TestPriorityValid(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Priority: "urgent"},   // ok
+		&entity.Entity{ID: "G-0002", Kind: entity.KindGap, Priority: "critical"}, // not in closed set
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision, Priority: "low"}, // ok
+		&entity.Entity{ID: "G-0003", Kind: entity.KindGap, Priority: ""},         // empty: skipped
+	)
+	got := priorityValid(tr)
+	if len(got) != 1 {
+		t.Fatalf("got %d findings, want 1: %+v", len(got), got)
+	}
+	if got[0].EntityID != "G-0002" || got[0].Code != CodePriorityValid || got[0].Severity != SeverityError {
+		t.Errorf("got %+v", got[0])
+	}
+}
+
+func TestPriorityNotApplicable(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "G-0001", Kind: entity.KindGap, Priority: "high"},       // ok: carries its own
+		&entity.Entity{ID: "D-0001", Kind: entity.KindDecision, Priority: "low"},   // ok: carries its own
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic, Priority: "urgent"},    // wrong kind
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Priority: "high"}, // wrong kind
+		&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Priority: "medium"},   // wrong kind
+		&entity.Entity{ID: "C-0001", Kind: entity.KindContract, Priority: "low"},   // wrong kind
+		&entity.Entity{ID: "E-0002", Kind: entity.KindEpic, Priority: ""},          // empty: skipped regardless of kind
+	)
+	got := priorityNotApplicable(tr)
+	if len(got) != 4 {
+		t.Fatalf("got %d findings, want 4: %+v", len(got), got)
+	}
+	wantIDs := map[string]bool{"E-0001": true, "M-0001": true, "ADR-0001": true, "C-0001": true}
+	for _, f := range got {
+		if !wantIDs[f.EntityID] {
+			t.Errorf("unexpected finding for %q", f.EntityID)
+		}
+		if f.Code != CodePriorityNotApplicable {
+			t.Errorf("Code = %q, want %q", f.Code, CodePriorityNotApplicable)
+		}
+		if f.Severity != SeverityWarning {
+			t.Errorf("Severity = %q, want %q", f.Severity, SeverityWarning)
+		}
+	}
+}
+
 func TestFrontmatterShape(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(

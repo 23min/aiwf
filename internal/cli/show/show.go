@@ -250,13 +250,17 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 // specifically; the parent milestone's referrers are not rolled in
 // (use `aiwf show M-NNN` for that).
 type ShowView struct {
-	ID           string                 `json:"id"`
-	Kind         string                 `json:"kind"`
-	Title        string                 `json:"title"`
-	Status       string                 `json:"status"`
-	Path         string                 `json:"path,omitempty"`
-	Parent       string                 `json:"parent,omitempty"`
-	TDD          string                 `json:"tdd,omitempty"`
+	ID     string `json:"id"`
+	Kind   string `json:"kind"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+	Path   string `json:"path,omitempty"`
+	Parent string `json:"parent,omitempty"`
+	TDD    string `json:"tdd,omitempty"`
+	// Priority carries the entity's own `priority` frontmatter
+	// (G-0078, E-0066, M-0263) — empty for a kind that never carries
+	// one (entity.CarriesOwnPriority) or an unprioritized gap/decision.
+	Priority     string                 `json:"priority,omitempty"`
 	ACs          []ShowAC               `json:"acs,omitempty"`
 	Body         map[string]string      `json:"body,omitempty"`
 	History      []history.HistoryEvent `json:"history,omitempty"`
@@ -338,6 +342,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		Path:         e.Path,
 		Parent:       entity.Canonicalize(e.Parent),
 		TDD:          e.TDD,
+		Priority:     e.Priority,
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 		Archived:     entity.IsArchivedPath(e.Path),
@@ -464,6 +469,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		Path:         resolved.Path,
 		Parent:       entity.Canonicalize(resolved.Parent),
 		TDD:          resolved.TDD,
+		Priority:     resolved.Priority,
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 		CrossBranch:  &CrossBranchView{Ref: hit.Ref, Refs: refs},
@@ -609,6 +615,9 @@ func renderShowText(v ShowView) {
 		header := fmt.Sprintf("%s · %s · status: %s", v.ID, v.Title, v.Status)
 		if v.TDD != "" {
 			header += " · tdd: " + v.TDD
+		}
+		if v.Priority != "" {
+			header += " · priority: " + v.Priority
 		}
 		header += archivedMarker
 		if v.CrossBranch != nil {

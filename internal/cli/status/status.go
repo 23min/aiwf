@@ -189,20 +189,25 @@ func RenderACProgress(p *StatusACProgress) string {
 }
 
 // StatusEntity is the shared shape for ADRs and decisions in the
-// "Open decisions" section.
+// "Open decisions" section. Priority is always empty for an ADR
+// (entity.CarriesOwnPriority is false for that kind); a decision
+// carries its own value (G-0078, E-0066, M-0263).
 type StatusEntity struct {
-	ID     string `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
-	Kind   string `json:"kind"`
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Status   string `json:"status"`
+	Kind     string `json:"kind"`
+	Priority string `json:"priority,omitempty"`
 }
 
 // StatusGap is one open gap with the milestone or epic it was
-// discovered in (if any).
+// discovered in (if any). Priority carries the gap's own value
+// (G-0078, E-0066, M-0263).
 type StatusGap struct {
 	ID           string `json:"id"`
 	Title        string `json:"title"`
 	DiscoveredIn string `json:"discovered_in,omitempty"`
+	Priority     string `json:"priority,omitempty"`
 }
 
 // StatusHealthCounts summarizes the tree's current validation state
@@ -253,6 +258,7 @@ func NewCmd() *cobra.Command {
 		noTrunc   bool
 		worktrees bool
 		area      string
+		priority  string
 	)
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -274,12 +280,13 @@ func NewCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, format, area, pretty, noTrunc, worktrees))
+			return cliutil.WrapExitCode(Run(root, format, area, priority, pretty, noTrunc, worktrees))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, or md")
 	cmd.Flags().StringVar(&area, "area", "", "scope the snapshot to one workstream by effective area (E-0043)")
+	cmd.Flags().StringVar(&priority, "priority", "", "scope open gaps/decisions to this closed-set priority level (urgent|high|medium|low) (G-0078, E-0066)")
 	cmd.Flags().BoolVar(&pretty, "pretty", false, "indent JSON output (only with --format=json)")
 	cmd.Flags().BoolVar(&noTrunc, "no-trunc", false, "do not truncate long titles when stdout is a terminal narrower than the row")
 	cmd.Flags().BoolVar(&worktrees, "worktrees", false, "render worktree-organized layout: per-worktree section, epic expansion, stale/trunk catch-alls (G-0122)")
@@ -288,6 +295,10 @@ func NewCmd() *cobra.Command {
 		cobra.ShellCompDirectiveNoFileComp,
 	))
 	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
+	_ = cmd.RegisterFlagCompletionFunc("priority", cobra.FixedCompletions(
+		entity.AllowedPriorityLevels(),
+		cobra.ShellCompDirectiveNoFileComp,
+	))
 	return cmd
 }
 
@@ -296,9 +307,17 @@ func NewCmd() *cobra.Command {
 // organized layout (text format only renders the worktree sections;
 // json format adds a `worktrees` key to the result envelope; md
 // format ignores the flag for now).
-func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
+func Run(root, format, area, priority string, pretty, noTrunc, worktrees bool) int {
 	if format != "text" && format != "json" && format != "md" {
 		cliutil.Errorf("aiwf status: --format must be 'text', 'json', or 'md', got %q\n", format)
+		return cliutil.ExitUsage
+	}
+	// Priority is a closed, Go-hardcoded set (unlike --area's operator-
+	// declared members), so an out-of-range value is a hard usage error
+	// — mirroring list.Run's identical --priority validation, not
+	// --area's undeclared-value note (M-0263 constraint).
+	if priority != "" && !entity.IsAllowedPriorityLevel(priority) {
+		cliutil.Errorf("aiwf status: --priority must be one of %v, got %q\n", entity.AllowedPriorityLevels(), priority)
 		return cliutil.ExitUsage
 	}
 
@@ -328,6 +347,10 @@ func Run(root, format, area string, pretty, noTrunc, worktrees bool) int {
 	// global — they are cross-cutting tree-health signals, not per-area
 	// concepts. A no-op when area is empty.
 	FilterStatusByArea(tr, &report, area)
+	// Scope open gaps/decisions to one priority level (M-0263/AC-2). A
+	// no-op when priority is empty; epics/milestones are untouched
+	// since they never carry a priority.
+	FilterStatusByPriority(tr, &report, priority)
 
 	// Area-grouping config for the text/md renderers (M-0175). Empty
 	// members => flat rendering (zero-migration). Skipped under --area:
@@ -497,14 +520,18 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 			Title:  e.Title,
 			Status: e.Status,
 			Kind:   string(entity.KindADR),
+			// Priority stays empty here — entity.CarriesOwnPriority is
+			// false for ADR, so e.Priority is always "".
+			Priority: e.Priority,
 		})
 	}
 	for _, e := range tr.FilterByKindStatuses(entity.KindDecision, entity.StatusProposed) {
 		r.OpenDecisions = append(r.OpenDecisions, StatusEntity{
-			ID:     entity.Canonicalize(e.ID),
-			Title:  e.Title,
-			Status: e.Status,
-			Kind:   string(entity.KindDecision),
+			ID:       entity.Canonicalize(e.ID),
+			Title:    e.Title,
+			Status:   e.Status,
+			Kind:     string(entity.KindDecision),
+			Priority: e.Priority,
 		})
 	}
 	sort.SliceStable(r.OpenDecisions, func(i, j int) bool { return r.OpenDecisions[i].ID < r.OpenDecisions[j].ID })
@@ -516,6 +543,7 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 			ID:           entity.Canonicalize(e.ID),
 			Title:        e.Title,
 			DiscoveredIn: entity.Canonicalize(e.DiscoveredIn),
+			Priority:     e.Priority,
 		})
 	}
 
@@ -583,6 +611,39 @@ func FilterStatusByArea(tr *tree.Tree, r *StatusReport, area string) {
 	gaps := r.OpenGaps[:0:0]
 	for _, g := range r.OpenGaps {
 		if tr.ResolvedAreaByID(g.ID) == area {
+			gaps = append(gaps, g)
+		}
+	}
+	r.OpenGaps = gaps
+}
+
+// FilterStatusByPriority scopes a status report's priority-bearing
+// sections (G-0078, E-0066, M-0263/AC-2) to one closed-set priority
+// level: open decisions and open gaps are kept only when their own
+// Priority field equals level. Unlike FilterStatusByArea, epics and
+// milestones are never touched — priority has no derivation like
+// area's milestone-to-epic rollup, so entity kinds that don't carry a
+// priority (entity.CarriesOwnPriority) simply aren't part of this
+// filter's domain. An ADR entry in OpenDecisions never carries a
+// priority either, so it is excluded from any named level the same
+// way an unprioritized gap/decision is.
+//
+// A no-op when level is empty.
+func FilterStatusByPriority(tr *tree.Tree, r *StatusReport, level string) {
+	if level == "" {
+		return
+	}
+	decisions := r.OpenDecisions[:0:0]
+	for _, d := range r.OpenDecisions {
+		if e := tr.ByID(d.ID); e != nil && e.Priority == level {
+			decisions = append(decisions, d)
+		}
+	}
+	r.OpenDecisions = decisions
+
+	gaps := r.OpenGaps[:0:0]
+	for _, g := range r.OpenGaps {
+		if e := tr.ByID(g.ID); e != nil && e.Priority == level {
 			gaps = append(gaps, g)
 		}
 	}

@@ -381,7 +381,7 @@ func TestCorrelationID_AddFallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 	t.Setenv("AIWF_LOG_FILE", logPath)
 
 	rc := add.Run(entity.KindGap, "Fallback probe", "human/test", "", root,
-		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "",
 		"", "", "", "", "## What's missing\n\nFixture.\n\n## Why it matters\n\nFixture.\n", "",
 		false, false, cliutil.OutputFormat{})
 	if rc != cliutil.ExitOK {

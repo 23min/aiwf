@@ -103,7 +103,7 @@ func TestRunBind_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rc := add.Run(entity.KindContract, "Public API", "human/test", "", root,
-		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "",
 		"", "", "",
 		"", "## Purpose\n\nFixture.\n\n## Stability\n\nFixture.\n", "",
 		false, false, cliutil.OutputFormat{}); rc != cliutil.ExitOK {
@@ -144,7 +144,7 @@ func TestRunUnbind_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rc := add.Run(entity.KindContract, "Public API", "human/test", "", root,
-		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "",
 		"fake", "schema.cue", "fixtures",
 		"", "## Purpose\n\nFixture.\n\n## Stability\n\nFixture.\n", "",
 		false, false, cliutil.OutputFormat{}); rc != cliutil.ExitOK {

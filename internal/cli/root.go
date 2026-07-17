@@ -44,6 +44,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
 	"github.com/23min/aiwf/internal/cli/setarea"
+	"github.com/23min/aiwf/internal/cli/setpriority"
 	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/cli/template"
@@ -176,6 +177,7 @@ func NewRootCmd(correlationID string) *cobra.Command {
 	cmd.AddCommand(rename.NewCmd(correlationID))
 	cmd.AddCommand(renamearea.NewCmd(correlationID))
 	cmd.AddCommand(setarea.NewCmd(correlationID))
+	cmd.AddCommand(setpriority.NewCmd(correlationID))
 	cmd.AddCommand(retitle.NewCmd(correlationID))
 	cmd.AddCommand(editbody.NewCmd(correlationID))
 	cmd.AddCommand(move.NewCmd(correlationID))
