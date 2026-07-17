@@ -2,6 +2,7 @@
 id: G-0420
 title: No sort-by-priority tiebreaker for aiwf list / aiwf status
 status: open
+priority: low
 ---
 ## Problem
 
