@@ -4,6 +4,7 @@ title: aiwf doctor surfaces a planning-tree check-health summary
 status: open
 prior_ids:
     - G-0287
+priority: medium
 ---
 ## Problem
 
