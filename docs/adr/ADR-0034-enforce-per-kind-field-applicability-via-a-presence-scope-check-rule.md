@@ -1,7 +1,7 @@
 ---
 id: ADR-0034
 title: Enforce per-kind field applicability via a presence-scope check rule
-status: proposed
+status: accepted
 ---
 # ADR-0034 — Enforce per-kind field applicability via a presence-scope check rule
 
