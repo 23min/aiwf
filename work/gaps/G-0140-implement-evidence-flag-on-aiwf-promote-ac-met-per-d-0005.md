@@ -2,6 +2,7 @@
 id: G-0140
 title: Implement --evidence flag on aiwf promote AC met per D-0005
 status: open
+priority: high
 discovered_in: M-0123
 ---
 ## What's missing
