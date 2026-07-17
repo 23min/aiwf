@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: the JSON envelope carries priority and aiwf show surfaces it
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0263 — Add the priority read surface: list/status filter, envelope, show
