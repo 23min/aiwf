@@ -2,6 +2,7 @@
 id: G-0311
 title: No cross-cutting initiative tier above epic for multi-component features
 status: open
+priority: high
 ---
 ## Problem
 
