@@ -16,6 +16,20 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0066: priority field on gaps and decisions, filterable and rendered
+
+Gaps and decisions can now carry a closed-set `priority` (`urgent`/`high`/`medium`/`low`),
+replacing the ad-hoc inline `Severity:` prose nothing could query. Set it at creation
+(`aiwf add gap|decision --priority <level>`) or change it later (`aiwf set-priority <id>
+<level>`, or `--clear` to unset). Filter by it on `aiwf list --priority <level>` and `aiwf
+status --priority <level>`; it rides the JSON envelope's entity payload and `aiwf show`'s
+text header; the HTML render (`aiwf render --format=html`) shows it as a badge on each
+gap/decision's index row and detail page. `aiwf check`'s `priority-valid` and
+`priority-not-applicable` rules are the mechanical backstop — a bad value or a `priority` on
+a kind that doesn't carry one (only gap/decision do) is a finding, not silent drift. See
+`ADR-0034` for the general "presence-scope check rule" pattern this introduced; sort-by-
+priority ordering is deliberately deferred (G-0420).
+
 ### Added — E-0060: resolve cross-branch entity references at check and read time
 
 A branch, worktree, or session can now validly reference an entity minted on
