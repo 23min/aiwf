@@ -108,3 +108,35 @@ Updating `AddOptions` with a new field is a signature-shape change to `verb.Add`
 Completion wiring for `<level>` landed with AC-1's `ValidArgsFunction`; this AC's remaining scope is the real `aiwf-set-priority` skill (mirroring `aiwf-retitle`'s shape) and an `aiwf-add` update documenting `--priority` on the gap/decision rows · commit 15fbc6b1 · the new skill's `name:` matching its directory satisfies `skill-coverage` mechanically, so the AC-1 temporary allowlist entry is removed in the same commit — no `set-priority` special-case remains in `skillCoverageAllowlist`.
 
 Pure documentation/registry change — no new branching code, so neither the branch-coverage audit nor `wf-vacuity`'s mutation probe applies (both need code with conditionals to walk/mutate). Mechanical evidence instead: `TestPolicy_SkillCoverageMatchesVerbs` and `TestM0123_AC5_ImplToSpec_VerbsCovered` both pass with the allowlist entry gone, and `TestList_AllShippedSkillsPresent`'s hardcoded skill roster (a pre-existing chokepoint unrelated to this milestone) needed a matching update — caught by the full test sweep, not anticipated in the Design notes.
+
+### Independent pre-wrap review
+
+An independent fresh-context reviewer audited the full diff against nine load-bearing claims (kind-gate correctness, `--clear`'s omitempty behavior and dual-layer mutex, single-source-of-truth level validation, AC-3's kind gate end-to-end, AC-2's "no new code" honesty, the allowlist cleanup, completion wiring reachability, absence of a divergent kind-check, and real (non-tautological) test assertions) — all nine held up under independent measurement. One non-blocking finding: `aiwf add --priority` had statement-level coverage but no CLI-seam integration test (every priority-behavior test drove `verb.Add` directly, bypassing the flag → `Run()` param → `AddOptions.Priority` wiring the CLI layer owns). Fixed in-review with `TestRunAdd_PrioritySetViaDispatcher` and `TestRunAdd_PriorityRejectedForNonCarryingKind` (commit 74700b42), mirroring `add_area_test.go`'s existing dispatcher-level pattern. Re-verified: full build, `go vet`, full test suite, `make lint`, `make coverage-gate` all green after the fix.
+
+No `wf-rethink` design-quality unit applies — the milestone introduces `internal/cli/setpriority/` as a mechanical extension of the pre-existing `set-area` verb-family pattern (per this spec's own Context section), not a new module boundary, core abstraction, or data model.
+
+## Decisions made during implementation
+
+None — all decisions are pre-locked in `## Design notes` and G-0078's ratified decisions; the `--clear` flag addition (noted under AC-1 above) is a direct application of the already-referenced `set-area` precedent, not a fresh design fork.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -race -parallel 8 ./...` (`make test-race`) — all packages pass. (Two isolated, unrelated flakes surfaced across the session's full-suite runs — `TestWorktreeRitualsCheckHook_NotAWorktreeExitsZeroSilently`, `TestCheckListInvariant_RealBinary_DetectsAGenuineDivergence`, `TestRun_FixtureRejected_OneFailingValid` — none touch priority/add/setpriority code; each passed cleanly in isolation, consistent with this repo's known full-parallel race/git-subprocess fan-out flakiness.)
+- `make lint` (full `golangci-lint` set) — 0 issues.
+- `make coverage-gate` (diff-scoped branch-coverage audit + firing-fixture meta-gate) — clean, including after the independent review's fix.
+- `aiwf check` — 0 error findings; 1 pre-existing warning (`provenance-untrailered-scope-undefined`, no upstream configured for this unpushed branch — expected).
+- Manual branch-coverage audits (per AC) and `wf-vacuity` mutation probes: AC-1 — 6/6 mutants killed (verb + CLI layers); AC-2 — 1 additional targeted mutation (`IsAllowedPriorityLevel` guard) killed; AC-3 — 3/3 mutants killed (`validateAddOptsForKind`'s three new conditionals). AC-4 introduced no branching code, so neither audit applies there.
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- **`--clear` was added beyond AC-1's literal title.** Deliberate, not scope creep: CLAUDE.md's "what verb undoes this?" rule requires a full reversal story, and without `--clear` the very first set (unset→set) would have no way back. Mirrors `set-area`'s established set/clear shape.
+- **AC-2 shares its implementation and initial test evidence with AC-1** (both refusal paths were written in the same commit as AC-1's set path, since they live in the same `SetPriority` function body). Closed as its own AC per the spec's tracking, with one additional targeted mutation-kill pass specific to AC-2's claim, rather than silently folding it into AC-1's Work log entry.
+- **`--priority` needs no CLI-side config lookup**, unlike `--area`'s `validateAreaMember` helper — the level set is Go-hardcoded, so `aiwf add`'s CLI layer passes the flag straight through and the verb layer (`Add`) owns the full kind-gate + value-check itself. A real simplification versus the `--area` precedent, not an oversight worth flagging as a follow-up.
+- **AC-1 shipped with one real coverage gap** (the diag-logging `runID == ""` fallback-mint branch, unreachable via `cli.Execute` and only reachable through a direct `Run()` call) — caught by `make coverage-gate` at the readiness check, not by the manual audit or `wf-vacuity`; fixed with a test mirroring every other wired verb's `*Diag_FallsBackWhenOutputFormatCarriesNone` pattern. Worth naming as a standing gap in the manual-audit process: the diag-logging fallback line needs its own explicit checklist item, since it's easy to treat "the block ran" as sufficient when only the *inner* fallback path is actually the untested one.
+- **One CLI-seam gap surfaced by the independent review** (`aiwf add --priority`'s dispatcher-level wiring had no integration test, only direct `verb.Add` tests) — fixed in-review; see "Independent pre-wrap review" above.
