@@ -2,6 +2,7 @@
 id: G-0212
 title: Data-loss audit for verb composition across kernel surface (future epic)
 status: open
+priority: medium
 discovered_in: M-0159
 ---
 ## What's missing
