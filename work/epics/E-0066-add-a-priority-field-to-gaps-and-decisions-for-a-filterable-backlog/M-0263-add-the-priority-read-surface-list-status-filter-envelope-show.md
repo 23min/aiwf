@@ -1,7 +1,7 @@
 ---
 id: M-0263
 title: 'Add the priority read surface: list/status filter, envelope, show'
-status: draft
+status: in_progress
 parent: E-0066
 depends_on:
     - M-0261
