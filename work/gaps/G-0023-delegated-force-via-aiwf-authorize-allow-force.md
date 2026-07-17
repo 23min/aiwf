@@ -2,6 +2,7 @@
 id: G-0023
 title: Delegated `--force` via `aiwf authorize --allow-force`
 status: open
+priority: low
 ---
 
 Per the I2.5 provenance model: `--force` is human-only. An LLM operating in a scope cannot `--force` even when the human has authorized that scope. The path is for the LLM to prompt the human, who then invokes `aiwf <verb> --force --reason "..."` directly.
