@@ -2,6 +2,7 @@
 id: G-0077
 title: Post-promotion working paper (aiwf's thesis) not yet written
 status: open
+priority: low
 ---
 The current `docs/working-paper.md` is the v2 working paper authored on `main` pre-promotion (commit `e9e403b` — *"docs(working-paper): replace with v2 — covers state-not-workflow, ratification, roles"*). It synthesizes the research arc and is recent + high-quality, but it predates the trunk consolidation.
 
