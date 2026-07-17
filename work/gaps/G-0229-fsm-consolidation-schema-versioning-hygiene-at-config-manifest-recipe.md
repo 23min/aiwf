@@ -2,6 +2,7 @@
 id: G-0229
 title: FSM consolidation + schema-versioning hygiene at config/manifest/recipe
 status: open
+priority: low
 ---
 ## What's missing
 
