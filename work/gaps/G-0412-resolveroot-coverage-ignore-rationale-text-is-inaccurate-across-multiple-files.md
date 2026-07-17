@@ -2,6 +2,7 @@
 id: G-0412
 title: ResolveRoot coverage-ignore rationale text is inaccurate across multiple files
 status: open
+priority: low
 discovered_in: M-0253
 ---
 ## What's missing
