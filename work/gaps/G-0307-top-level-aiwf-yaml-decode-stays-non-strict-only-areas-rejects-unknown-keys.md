@@ -4,6 +4,7 @@ title: top-level aiwf.yaml decode stays non-strict (only areas rejects unknown k
 status: open
 prior_ids:
     - G-0305
+priority: low
 discovered_in: M-0185
 ---
 
