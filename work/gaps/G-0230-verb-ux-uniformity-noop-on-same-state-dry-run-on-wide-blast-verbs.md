@@ -2,6 +2,7 @@
 id: G-0230
 title: 'Verb UX uniformity: NoOp on same-state + dry-run on wide-blast verbs'
 status: open
+priority: medium
 ---
 ## What's missing
 
