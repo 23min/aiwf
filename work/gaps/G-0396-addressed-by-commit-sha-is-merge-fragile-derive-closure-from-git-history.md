@@ -2,6 +2,7 @@
 id: G-0396
 title: addressed_by_commit SHA is merge-fragile; derive closure from git history
 status: open
+priority: low
 discovered_in: E-0063
 ---
 ## What's missing
