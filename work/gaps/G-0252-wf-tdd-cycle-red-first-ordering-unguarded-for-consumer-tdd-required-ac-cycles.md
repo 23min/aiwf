@@ -2,6 +2,7 @@
 id: G-0252
 title: wf-tdd-cycle red-first ordering unguarded for consumer tdd:required AC cycles
 status: open
+priority: high
 discovered_in: M-0066
 ---
 ## What's missing
