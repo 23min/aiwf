@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: the badge is asserted structurally, not by substring, and human-verified
-      status: open
+      status: met
 ---
 
 # M-0264 — Render a priority badge in the HTML site
