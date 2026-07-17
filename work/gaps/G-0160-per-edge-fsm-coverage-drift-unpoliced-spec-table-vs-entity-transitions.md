@@ -4,6 +4,7 @@ title: per-edge FSM coverage drift unpoliced (spec table vs entity.transitions)
 status: open
 prior_ids:
     - G-0155
+priority: low
 discovered_in: M-0124
 ---
 ## Problem
