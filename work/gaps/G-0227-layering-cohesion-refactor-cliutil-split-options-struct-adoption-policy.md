@@ -2,6 +2,7 @@
 id: G-0227
 title: 'Layering & cohesion refactor: cliutil split + Options-struct adoption + policy'
 status: open
+priority: medium
 ---
 ## What's missing
 
