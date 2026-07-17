@@ -5,6 +5,7 @@ status: open
 prior_ids:
     - G-0221
     - G-0223
+priority: low
 discovered_in: M-0161
 ---
 ## What's missing
