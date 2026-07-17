@@ -2,6 +2,7 @@
 id: G-0235
 title: CLAUDE.md conventions sweep + guardrail policy tests (cited-ids, no-time-now)
 status: open
+priority: medium
 ---
 ## What's missing
 
