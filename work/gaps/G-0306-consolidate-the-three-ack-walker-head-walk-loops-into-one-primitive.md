@@ -7,6 +7,7 @@ prior_ids:
     - G-0295
     - G-0302
     - G-0304
+priority: low
 discovered_in: M-0181
 ---
 ## Problem
