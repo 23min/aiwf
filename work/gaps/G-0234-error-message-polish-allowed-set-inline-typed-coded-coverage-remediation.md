@@ -2,6 +2,7 @@
 id: G-0234
 title: 'Error-message polish: allowed-set inline, typed Coded coverage, remediation'
 status: open
+priority: low
 ---
 ## What's missing
 
