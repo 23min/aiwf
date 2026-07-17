@@ -2,6 +2,7 @@
 id: G-0282
 title: 'Inverse-coverage policy: mechanical per-verb chokepoint for what-undoes-this'
 status: open
+priority: high
 discovered_in: M-0183
 ---
 ## Problem
