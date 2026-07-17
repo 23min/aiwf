@@ -2,6 +2,7 @@
 id: G-0246
 title: ADRs lack a general relates_to cross-reference field
 status: open
+priority: medium
 ---
 ## What's missing
 
