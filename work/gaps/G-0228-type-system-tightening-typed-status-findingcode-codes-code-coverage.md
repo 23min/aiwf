@@ -2,6 +2,7 @@
 id: G-0228
 title: 'Type-system tightening: typed Status, FindingCode, codes.Code coverage'
 status: open
+priority: medium
 ---
 ## What's missing
 
