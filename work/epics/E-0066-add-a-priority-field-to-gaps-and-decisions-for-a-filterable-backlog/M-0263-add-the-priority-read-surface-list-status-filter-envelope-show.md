@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: aiwf status --priority filters its output the same way
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: the JSON envelope carries priority and aiwf show surfaces it
       status: open
