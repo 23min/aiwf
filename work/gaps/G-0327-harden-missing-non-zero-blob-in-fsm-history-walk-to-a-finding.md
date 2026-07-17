@@ -2,6 +2,7 @@
 id: G-0327
 title: Harden missing non-zero blob in FSM history walk to a finding
 status: open
+priority: medium
 discovered_in: M-0216
 ---
 ## Context
