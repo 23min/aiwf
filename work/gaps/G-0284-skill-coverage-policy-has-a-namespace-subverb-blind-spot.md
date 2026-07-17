@@ -2,6 +2,7 @@
 id: G-0284
 title: skill-coverage policy has a namespace-subverb blind spot
 status: open
+priority: high
 ---
 ## What's missing
 
