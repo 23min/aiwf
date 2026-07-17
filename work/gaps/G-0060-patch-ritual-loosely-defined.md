@@ -2,6 +2,7 @@
 id: G-0060
 title: Patch ritual is loosely defined; no kernel-level rules for shape, scope, branch, or audit trail
 status: open
+priority: high
 ---
 ## What's missing
 
