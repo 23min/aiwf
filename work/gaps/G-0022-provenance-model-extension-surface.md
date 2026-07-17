@@ -2,6 +2,7 @@
 id: G-0022
 title: Provenance model extension surface
 status: open
+priority: low
 ---
 
 The I2.5 provenance model ([`design/provenance-model.md`](design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
