@@ -2,6 +2,7 @@
 id: G-0073
 title: depends_on restricted to milestone→milestone; cross-kind blocking via body prose
 status: open
+priority: high
 discovered_in: E-0021
 ---
 ## What's missing
