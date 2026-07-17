@@ -910,7 +910,7 @@ silently.
 | M-0257 | Broaden the check-clean oracle across ten stress scenarios | done |
 | M-0258 | Race concurrent promote/cancel/AC operations against shared entity state | done |
 
-## E-0066 — Add a priority field to gaps and decisions for a filterable backlog (active)
+## E-0066 — Add a priority field to gaps and decisions for a filterable backlog (done)
 
 ### Goal
 
