@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: aiwf list --priority returns exactly the matching gaps and decisions
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: aiwf status --priority filters its output the same way
       status: open
