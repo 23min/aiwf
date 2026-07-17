@@ -2,6 +2,7 @@
 id: G-0254
 title: Co-Authored-By commit-trailer convention is unstated and unenforced
 status: open
+priority: medium
 ---
 ## What's wrong
 
