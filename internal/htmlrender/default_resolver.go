@@ -250,6 +250,7 @@ func (r defaultResolver) KindIndexData(kind string, includeArchived bool) (*Kind
 			Status:   e.Status,
 			FileName: idToFileName(e.ID),
 			Archived: isArchived,
+			Priority: e.Priority,
 		})
 	}
 	return data, nil

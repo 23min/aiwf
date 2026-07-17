@@ -106,6 +106,43 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 	if !strings.Contains(header, `class="priority priority-urgent"`) {
 		t.Errorf("G-001.html header missing the urgent priority badge:\n%s", header)
 	}
+
+	// Same field, the defaultResolver's OTHER construction site:
+	// KindIndexData's per-kind row (gaps.html), scoped to G-001's own
+	// <tr> so the assertion can't pass on a page-wide match either.
+	gapsHTML := readFile(t, filepath.Join(out, "gaps.html"))
+	row := kindIndexRowSlice(t, gapsHTML, "G-001")
+	if !strings.Contains(row, `class="priority priority-urgent"`) {
+		t.Errorf("gaps.html row for G-001 missing the urgent priority badge:\n%s", row)
+	}
+}
+
+// kindIndexRowSlice returns the inner HTML of the <tr> row linking to
+// id.html on a per-kind index page — scoped the same way as the
+// internal/cli/integration package's priorityRowSlice, reimplemented
+// here since this package's own tests render via the defaultResolver
+// path, not the cmd-side one that package exercises.
+func kindIndexRowSlice(t *testing.T, html, id string) string {
+	t.Helper()
+	tableStart := strings.Index(html, `<table class="kind-index">`)
+	if tableStart < 0 {
+		t.Fatalf("no kind-index table found:\n%s", html)
+	}
+	table := html[tableStart:]
+	link := `href="` + id + `.html"`
+	i := strings.Index(table, link)
+	if i < 0 {
+		t.Fatalf("no row linking to %s.html found in the kind-index table:\n%s", id, table)
+	}
+	rowStart := strings.LastIndex(table[:i], "<tr")
+	if rowStart < 0 {
+		t.Fatalf("no <tr opening before the %s row", id)
+	}
+	rowEndRel := strings.Index(table[i:], "</tr>")
+	if rowEndRel < 0 {
+		t.Fatalf("no closing </tr> after the %s row", id)
+	}
+	return table[rowStart : i+rowEndRel]
 }
 
 // entityHeaderBlock returns an entity page's header block (status /

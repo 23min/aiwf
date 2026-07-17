@@ -179,6 +179,14 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// inputs are required to exercise that canonicalization step;
 		// same shape as the AC-2 parser-tolerance tests above.
 		"internal/stresstest/verb_sequence_list_invariant_test.go": "M-0250/AC-3 narrow-vs-canonical id/parent comparison in the list-vs-ground-truth invariant",
+
+		// M-0264: writeFixtureTree's own fixture entities are seeded at
+		// narrow width on disk (id: G-001, E-01, ...), and idToFileName
+		// renders filenames/hrefs verbatim from that on-disk id rather
+		// than canonicalizing — narrow ids are the actual input/output
+		// space for this package's own defaultResolver-path tests, not
+		// legacy-width tolerance being exercised incidentally.
+		"internal/htmlrender/htmlrender_test.go": "M-0264: defaultResolver fixture tree seeded at narrow width; idToFileName renders verbatim, not canonicalized",
 	}
 
 	// Run grep from the repo root. Pipe stderr alongside stdout so
