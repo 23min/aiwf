@@ -1,6 +1,6 @@
 ---
 name: aiwf-list
-description: Use to filter the planning tree by kind, status, parent, area, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under an epic", "filter milestones by parent epic", "everything in the platform workstream", "every gap that's still open", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
+description: Use to filter the planning tree by kind, status, parent, area, priority, or archive flag — answers prompts like "list every milestone with status X", "find all entities matching Y", "show me proposed ADRs under an epic", "filter milestones by parent epic", "everything in the platform workstream", "every gap that's still open", "every urgent gap", "show high-priority decisions", "every contract", "every AC that's met". Runs `aiwf list` and returns one row per matching entity (or a per-kind count summary when called with no flags). Read-only; no commit.
 ---
 
 # aiwf-list
@@ -19,6 +19,7 @@ V1 filter axes:
 | `--status <S>` | a status valid under `--kind` (or any kind's status set if `--kind` is omitted) |
 | `--parent <id>` | entities whose `parent:` field is this id (e.g., milestones under an epic) |
 | `--area <A>` | entities whose effective area equals `<A>` — root kinds by their own field, milestones by parent-epic derivation; declared in `aiwf.yaml: areas` |
+| `--priority <level>` | gaps/decisions whose own `priority` equals `<level>` (`urgent`\|`high`\|`medium`\|`low`) — a closed set; an out-of-range value is a usage error, not an empty result. Entities that never carry a priority (every kind but gap/decision) or have none set never match |
 | `--archived` | include terminal-status entities (the default hides them) |
 | `--format=text\|json` | output shape; `--pretty` indents JSON |
 
@@ -33,12 +34,13 @@ When the user reaches for *filter*, *list*, *find*, *show all*, or names a struc
 | "list every milestone with status `done` under E-NNNN" | `aiwf list --kind milestone --status done --parent E-NNNN` |
 | "find all proposed ADRs" | `aiwf list --kind adr --status proposed` |
 | "every open gap" | `aiwf list --kind gap --status open` |
+| "every urgent gap" | `aiwf list --kind gap --priority urgent` |
 | "every contract" | `aiwf list --kind contract` |
 | "what milestones are draft right now?" | `aiwf list --kind milestone --status draft` |
 | "any cancelled work?" | `aiwf list --status cancelled --archived` |
 | "give me the per-kind counts" | `aiwf list` (no flags) |
 
-For machine consumption: append `--format=json [--pretty]`. The envelope's `result` is an array of summary objects with `{id, kind, status, title, parent, path}`.
+For machine consumption: append `--format=json [--pretty]`. The envelope's `result` is an array of summary objects with `{id, kind, status, title, parent, path}`, plus `priority` on a gap/decision row that carries one (omitted otherwise).
 
 ## Cross-branch rows
 
@@ -51,6 +53,7 @@ A filtered listing (any invocation past the no-args per-kind count) also surface
 - **Every open gap** — `aiwf list --kind gap --status open`. Same data the *Open gaps* slice in `aiwf status` shows; both routes share one filter helper.
 - **Every contract entity** — `aiwf list --kind contract`. Pair with `aiwf show <C-id>` for the full record.
 - **One workstream** — `aiwf list --area platform`. Filters to entities whose effective area is `platform`; combine with `--kind` / `--status` to narrow further. Untagged entities are excluded; an undeclared `--area` value prints a one-line note to stderr and matches nothing (reads never reject — only the `aiwf add --area` write path does).
+- **One priority level** — `aiwf list --priority urgent`. Filters to gaps/decisions tagged `urgent`; combine with `--kind gap` to narrow to one kind. Unlike `--area`, priority is a closed, hardcoded set — an out-of-range level (e.g. `--priority critical`) is a usage error naming the allowed levels, not a silent empty result.
 - **All terminal-status entities** — `aiwf list --archived`. Walks archive directories transparently — terminal entities archived by `aiwf archive` remain visible under `--archived` without any list-side change.
 - **Pipe to tooling** — `aiwf list --kind milestone --status done --format=json --pretty | jq '.result[].id'`.
 

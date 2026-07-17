@@ -1,6 +1,6 @@
 ---
 name: aiwf-status
-description: Use for narrative-shaped state questions — "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?", "give me a summary". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNN), open gaps, the last 5 events from git history, and tree-health counts. Curated for human readers, not for programmatic filter queries — for those, use `aiwf list`. Read-only; no commit.
+description: Use for narrative-shaped state questions — "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?", "give me a summary", "what's urgent right now?", "any high-priority gaps?". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNN), open gaps, the last 5 events from git history, and tree-health counts. Curated for human readers, not for programmatic filter queries — for those, use `aiwf list`. Read-only; no commit.
 ---
 
 # aiwf-status
@@ -26,6 +26,10 @@ By design, the verb shows *only in-flight state* at the top level — closed epi
 `aiwf status --area <A>` scopes the snapshot to a single workstream: the **entity-derived** sections — in-flight epics (and their milestones), planned epics, open decisions, open gaps — keep only entities whose effective area equals `<A>` (root kinds by their own field, epics carrying their milestones along). Recent activity, warnings, and health stay **global** — they are cross-cutting tree-health signals, not per-area concepts. An undeclared `--area` value prints a one-line note to stderr and scopes everything out (reads never reject). Reach for it when the user asks *"what's in flight in the platform workstream?"*.
 
 **Filter vs. group.** `--area` *narrows* to one workstream. Separately, when `aiwf.yaml` declares an `areas` block, plain `aiwf status` (and `--format=md`) automatically *partitions* the In-flight and Roadmap epic sections into a subsection per declared area, plus an always-shown untagged complement labelled by `areas.default` (or a `Uncategorized` fallback); an unused declared area is omitted. With no `areas` block, output is exactly as before. Grouping and `--area` are alternatives — `--area` suppresses grouping (the view is already one workstream). The same partition drives `aiwf render roadmap` and `render --format=html`.
+
+## Scoping to one priority level (`--priority`)
+
+`aiwf status --priority <level>` scopes the **Open decisions** and **Open gaps** sections to gaps/decisions whose own priority equals `<level>` (`urgent`\|`high`\|`medium`\|`low`). Unlike `--area`, epics and milestones are never touched — priority is scoped to gap/decision only, and an ADR entry in Open decisions never carries one. `<level>` is a closed, hardcoded set: an out-of-range value is a usage error naming the allowed levels, not a silent empty scope. Reach for it when the user asks *"what's urgent right now?"* or *"any high-priority gaps?"*.
 
 ## When to use
 

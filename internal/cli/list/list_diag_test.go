@@ -40,7 +40,7 @@ func TestRunDiag_FallsBackWhenCorrelationIDEmpty(t *testing.T) {
 	t.Setenv("AIWF_LOG_FORMAT", "json")
 	t.Setenv("AIWF_LOG_FILE", logPath)
 
-	_ = list.Run(root, "", "", "", "", false, "text", false, false, "")
+	_ = list.Run(root, "", "", "", "", "", false, "text", false, false, "")
 
 	if got := readRunID(t, logPath); got == "" {
 		t.Error("run_id empty even though correlationID was passed as \"\"; the fallback mint did not fire")
@@ -67,7 +67,7 @@ func TestRunDiag_ActorResolutionFailureStillEmitsEvent(t *testing.T) {
 	t.Setenv("AIWF_LOG_FORMAT", "json")
 	t.Setenv("AIWF_LOG_FILE", logPath)
 
-	_ = list.Run(root, "", "", "", "", false, "text", false, false, "")
+	_ = list.Run(root, "", "", "", "", "", false, "text", false, false, "")
 
 	raw, err := os.ReadFile(logPath)
 	if err != nil {

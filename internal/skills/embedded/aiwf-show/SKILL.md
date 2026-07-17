@@ -28,11 +28,13 @@ The composite-id pattern `M-NNN/AC-N` is not obvious from `--help`. Use it whene
 
 `--area <A>` makes `show` a single-entity predicate: it renders the entity only when its effective area equals `<A>` (composite AC ids roll up to the parent epic's area); otherwise it prints a one-line `<id> is in area "X", not "<A>"` note and exits 0 (the entity is hidden, like an empty filter — not an error). It exists so a script can apply one `--area` filter uniformly across `list`, `status`, and `show`.
 
+Unlike `--area`, `show` has no `--priority` predicate flag — priority is always surfaced (never filtered) when the entity carries one. The JSON envelope's `result.priority` field carries a gap's or decision's own value (omitted for every other kind, or an unprioritized gap/decision); use `aiwf list --priority <level>` or `aiwf status --priority <level>` to filter by priority instead.
+
 ## Output shape
 
 Text default carries these blocks, in order:
 
-1. **Header**: `<id> · <title> · status: <status> · tdd: <tdd>` (for milestones with a tdd policy).
+1. **Header**: `<id> · <title> · status: <status> · tdd: <tdd>` (for milestones with a tdd policy) `· priority: <level>` (for a gap/decision that carries one).
 2. **Frontmatter**: parent, depends_on, references — whatever's structurally on the entity.
 3. **ACs** (milestones only): one line per AC — `AC-N [status] · phase: <tdd_phase> · "<title>"`. Cancelled ACs stay position-stable; their slot remains.
 4. **Recent history (N)**: one event per line in reverse chronological order. Default cap = 10; `--history=N` overrides; `--history=-1` removes the cap. Each line: `<date> <verb> <→ to> <detail>`.

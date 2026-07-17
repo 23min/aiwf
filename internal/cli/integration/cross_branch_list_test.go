@@ -41,7 +41,7 @@ func TestBuildListRows_CrossBranchResolvesAndLabels_M0260AC1AC2(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", false)
 	row := findRow(rows, "G-0100")
 	if row == nil {
 		t.Fatalf("rows = %+v, want a row for cross-branch-known G-0100", rows)
@@ -98,7 +98,7 @@ func TestBuildListRows_CrossBranchCollision_KindOnlyQuery_M0260AC3(t *testing.T)
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", false)
 	row := findRow(rows, "G-0100")
 	if row == nil {
 		t.Fatalf("rows = %+v, want a collision row for G-0100 in a kind-only query", rows)
@@ -126,7 +126,7 @@ func TestBuildListRows_CrossBranchCollision_StatusFilterExcludes_M0260AC3(t *tes
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "open", "", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "open", "", "", "", false)
 	if row := findRow(rows, "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the collision row excluded once --status is set", rows)
 	}
@@ -142,7 +142,7 @@ func TestBuildListRows_CrossBranchCollision_ParentFilterExcludes_M0260AC3(t *tes
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "E-0001", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "E-0001", "", "", false)
 	if row := findRow(rows, "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the collision row excluded once --parent is set", rows)
 	}
@@ -160,7 +160,7 @@ func TestBuildListRows_CrossBranchCollision_ArchivedNeverExcludes(t *testing.T) 
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", true)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", true)
 	if row := findRow(rows, "G-0100"); row == nil {
 		t.Errorf("rows = %+v, want the collision row still present with --archived", rows)
 	}
@@ -188,10 +188,10 @@ func TestBuildListRows_CrossBranchResolved_RespectsStatusFilter(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "open", "", "", false), "G-0100"); row != nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "open", "", "", "", false), "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want G-0100 excluded — its real status (addressed) doesn't match --status=open", row)
 	}
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "addressed", "", "", true), "G-0100"); row == nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "addressed", "", "", "", true), "G-0100"); row == nil {
 		t.Error("want G-0100 included when --status=addressed matches its real resolved status")
 	}
 }
@@ -212,7 +212,7 @@ func TestBuildListRows_LocalEntityTakesPrecedenceOverCrossBranchShadow(t *testin
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", false)
 	var count int
 	for _, r := range rows {
 		if r.ID == "G-0100" {
@@ -250,7 +250,7 @@ func TestBuildListRows_CrossBranchKindMismatch_Excluded(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "", "", false), "G-0100"); row != nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "", "", "", false), "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the cross-branch gap excluded from a --kind milestone query", row)
 	}
 }
@@ -277,7 +277,7 @@ func TestBuildListRows_CrossBranchNoKindFilter_StillIncluded(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "", "", "", "", true), "G-0100"); row == nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "", "", "", "", "", true), "G-0100"); row == nil {
 		t.Error("want the cross-branch gap included with no --kind filter (archived=true keeps this off the no-args counts path)")
 	}
 }
@@ -292,7 +292,7 @@ func TestBuildListRows_CrossBranchCollision_AreaFilterExcludes(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "platform", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "platform", "", false)
 	if row := findRow(rows, "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the collision row excluded once --area is set", rows)
 	}
@@ -321,10 +321,10 @@ func TestBuildListRows_CrossBranchResolved_DefaultArchivedExcludesTerminalStatus
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", false), "G-0100"); row != nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", "", false), "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the terminal-status resolved row excluded by default (no --status filter involved)", row)
 	}
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", true), "G-0100"); row == nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", "", true), "G-0100"); row == nil {
 		t.Error("want the terminal-status resolved row included with --archived")
 	}
 }
@@ -352,10 +352,10 @@ func TestBuildListRows_CrossBranchResolved_RespectsParentFilter(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0099", "", false), "M-0100"); row != nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0099", "", "", false), "M-0100"); row != nil {
 		t.Errorf("rows = %+v, want M-0100 excluded — its real parent (E-0001) doesn't match --parent=E-0099", row)
 	}
-	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0001", "", false), "M-0100"); row == nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "milestone", "", "E-0001", "", "", false), "M-0100"); row == nil {
 		t.Error("want M-0100 included when --parent=E-0001 matches its real resolved parent")
 	}
 }
@@ -382,11 +382,64 @@ func TestBuildListRows_CrossBranchResolved_RespectsAreaFilter(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "billing", false), "G-0100"); row != nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "billing", "", false), "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want G-0100 excluded — its real area (platform) doesn't match --area=billing", row)
 	}
-	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "platform", false), "G-0100"); row == nil {
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "platform", "", false), "G-0100"); row == nil {
 		t.Error("want G-0100 included when --area=platform matches its real resolved area")
+	}
+}
+
+// TestBuildListRows_CrossBranchCollision_PriorityFilterExcludes mirrors
+// the status/parent/area cases for --priority (M-0263): a collision row
+// has no real priority to honestly evaluate, so it is excluded rather
+// than risk a false-positive match.
+func TestBuildListRows_CrossBranchCollision_PriorityFilterExcludes(t *testing.T) {
+	root := setupCollidingSiblings(t)
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "urgent", false)
+	if row := findRow(rows, "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want the collision row excluded once --priority is set", rows)
+	}
+}
+
+// TestBuildListRows_CrossBranchResolved_RespectsPriorityFilter — a
+// resolved row's real priority is known, so --priority filters it
+// exactly like a local row, and the row's own Priority field carries
+// the resolved value (M-0263/AC-1/AC-3).
+func TestBuildListRows_CrossBranchResolved_RespectsPriorityFilter(t *testing.T) {
+	root := setupCLITestRepo(t)
+	writeAndCommit(t, root, "README.md", "# seed\n", "seed")
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-sibling.md",
+		"---\nid: G-0100\ntitle: Sibling Gap\nstatus: open\npriority: urgent\n---\n\n## Problem\n\ndescribed.\n",
+		"sibling: mint G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	if row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", "high", false), "G-0100"); row != nil {
+		t.Errorf("rows = %+v, want G-0100 excluded — its real priority (urgent) doesn't match --priority=high", row)
+	}
+	row := findRow(list.BuildListRows(ctx, tr, "gap", "", "", "", "urgent", false), "G-0100")
+	if row == nil {
+		t.Fatal("want G-0100 included when --priority=urgent matches its real resolved priority")
+	}
+	if row.Priority != "urgent" {
+		t.Errorf("row.Priority = %q, want urgent", row.Priority)
 	}
 }
 
@@ -411,7 +464,7 @@ func TestBuildListRows_CrossBranchResolved_MalformedContentDegradesGracefully(t 
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", true)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", true)
 	if row := findRow(rows, "G-0100"); row != nil {
 		t.Errorf("rows = %+v, want the malformed cross-branch entity omitted, not surfaced", row)
 	}
@@ -445,7 +498,7 @@ func TestBuildListRows_CrossBranchDiscriminants_MutuallyExclusive(t *testing.T) 
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", false)
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", false)
 	collision := findRow(rows, "G-0100")
 	resolved := findRow(rows, "G-0201")
 	if collision == nil || resolved == nil {
