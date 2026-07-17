@@ -70,3 +70,29 @@ Once the field exists (field milestone) and can be set (write-surface milestone)
 
 - G-0078 — the ratified design decisions (filter-only for v1).
 - G-0420 — the deferred sort-ordering follow-up.
+
+## Work log
+
+### AC-1 — aiwf list --priority returns exactly the matching gaps and decisions
+
+`--priority` flag on `internal/cli/list/list.go`, threaded through `BuildListRows` and `crossBranchListRows` as an independent AND-ed filter mirroring `--area`'s shape, plus a `Priority` field on `ListSummary` · commit 68377b6d · tests 23/23 new (list unit, cross-branch, dispatcher-seam), 4/4 mutants killed (local-row filter, resolved-cross-branch filter, collision OR-condition, closed-set usage-error check).
+
+Unlike `--area`, `--priority` validates as a hard usage error (mirroring `--kind`'s `IsKnownKind` pattern), not an undeclared-value advisory note — the milestone's own constraint, since priority is a Go-hardcoded closed set rather than an operator-declared one. A kind that never carries a priority (`entity.CarriesOwnPriority`) needs no separate gate in the filter itself: its `Priority` field is always empty, so it never matches a specific `--priority` level — the same mechanism that already excludes an untagged gap/decision.
+
+Adding a parameter to `BuildListRows`'s exported signature rippled to roughly 20 existing call sites across `internal/cli/integration/` (`cross_branch_list_test.go`, `area_filter_test.go`, `list_cmd_test.go`, `canonicalize_render_test.go`) and `list_diag_test.go`'s two `list.Run` calls — mechanical updates, caught by `go vet ./...` the same way M-0262's `AddOptions` ripple was.
+
+### AC-2 — aiwf status --priority filters its output the same way
+
+`--priority` flag on `internal/cli/status/status.go`, plus `FilterStatusByPriority` (scoping only `OpenDecisions`/`OpenGaps`) and a `Priority` field on `StatusEntity`/`StatusGap` · commit 68377b6d (same commit as AC-1 — both surfaces share this milestone's implementation) · tests included in the 23/23 above; 2/2 mutants killed on `FilterStatusByPriority`'s equality checks and the closed-set usage-error check.
+
+Deliberately narrower than `FilterStatusByArea`: epics and milestones are never touched, since priority has no derivation analogous to area's milestone-to-epic rollup — only gap and decision carry one at all. An ADR entry in `OpenDecisions` is excluded from any named `--priority` level the same way an unprioritized gap/decision is, with no special-case code (its `Priority` field is always empty). Confirmed the defensive `e != nil` guard (an id in the report not resolving against the passed tree) is reachable, not compiler-proven-dead — a stale-report/mismatched-tree call is a legitimate theoretical caller shape — and added `TestFilterStatusByPriority_UnknownIDExcluded` rather than annotating it unreachable.
+
+### AC-3 — the JSON envelope carries priority and aiwf show surfaces it
+
+`Priority` fields on `ListSummary`, `StatusEntity`, `StatusGap`, and `ShowView` (all `omitempty`); `aiwf show`'s text header gains a `· priority: <level>` segment · commit 68377b6d · tests included in the 23/23 above; 1/1 mutant killed on show's text-rendering guard (both directions: an unprioritized entity's segment stays absent, a prioritized one's stays present).
+
+Resolved the epic's own open question ("does a render/list contract pin the entity JSON payload shape?") by direct inspection rather than assumption: `internal/contractcheck`/`internal/contractconfig` implement aiwf's *consumer-facing* `contract` entity-kind feature (external schema bindings via `aiwf.yaml: contracts:`), entirely unrelated to this repo's own Go JSON struct shapes — confirmed by this repo carrying zero contract entities and no `contracts:` block. No coordinated version bump was needed; the fields landed as ordinary struct additions. `ShowView` is an explicit, hand-enumerated struct (not a generic frontmatter dump), so `aiwf show` needed a real one-line addition in both `BuildShowView` and `buildCrossBranchShowView` — it did not surface "for free."
+
+### Independent design-quality check
+
+No `wf-rethink` unit applies: this milestone's surface (`--priority` filter flags plus JSON-payload fields on three pre-existing per-verb structs) is a mechanical extension of already-established `--area` patterns in the same three files, not a new module boundary, core abstraction, or data model.
