@@ -1,10 +1,12 @@
 ---
 id: G-0280
 title: Pre-commit kernel-policy lint runs the full suite on every commit
-status: open
+status: addressed
 prior_ids:
     - G-0279
 discovered_in: M-0177
+addressed_by_commit:
+    - fcb716a4
 ---
 ## Problem
 
