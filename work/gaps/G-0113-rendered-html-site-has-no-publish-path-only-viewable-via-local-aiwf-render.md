@@ -2,6 +2,7 @@
 id: G-0113
 title: rendered HTML site has no publish path; only viewable via local aiwf render
 status: open
+priority: medium
 ---
 ## What's missing
 
