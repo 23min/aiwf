@@ -2,6 +2,7 @@
 id: G-0074
 title: docs/pocv3/ body prose still uses PoC framing; needs sweep
 status: open
+priority: low
 ---
 docs/pocv3/ body prose throughout (overview, design, plans, archive subdirectories) still reads as if the PoC is the current state and main is elsewhere — references like "the PoC will…", "post-PoC we will…", "the PoC commits to…" remain.
 
