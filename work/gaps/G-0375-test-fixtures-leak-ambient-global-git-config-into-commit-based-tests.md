@@ -2,6 +2,7 @@
 id: G-0375
 title: Test fixtures leak ambient global git config into commit-based tests
 status: open
+priority: high
 discovered_in: M-0186
 ---
 ## What's missing
