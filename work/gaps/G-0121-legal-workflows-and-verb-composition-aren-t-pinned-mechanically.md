@@ -2,6 +2,7 @@
 id: G-0121
 title: Legal workflows and verb composition aren't pinned mechanically
 status: open
+priority: high
 ---
 ## What's missing
 
