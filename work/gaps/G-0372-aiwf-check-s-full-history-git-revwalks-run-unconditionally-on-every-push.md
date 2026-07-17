@@ -2,6 +2,7 @@
 id: G-0372
 title: aiwf check's full-history git revwalks run unconditionally on every push
 status: open
+priority: urgent
 ---
 ## What's missing
 
