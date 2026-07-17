@@ -4,6 +4,7 @@ title: 'Opt-in gaps inbox: file gaps via plumbing onto a never-checked-out ref'
 status: open
 prior_ids:
     - G-0280
+priority: low
 ---
 ## Problem
 
