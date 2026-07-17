@@ -2,6 +2,7 @@
 id: G-0092
 title: No documented hierarchy of doc authority across docs/
 status: open
+priority: medium
 ---
 The `docs/` tree carries qualitatively different artefacts: kernel-normative design records (CLAUDE.md sister docs, `design-decisions.md`, ADRs); exploratory / proposal / synthesis documents (`docs/explorations/`, the various `*-plan.md` files); and historical-archive content (`docs/pocv3/archive/`, the migration text records). The `docs/` path alone does not signal which class a given file belongs to, and **there is no documented hierarchy of doc authority** that an LLM or a new contributor can consult before building their working model of the project.
 
