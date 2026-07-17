@@ -2,6 +2,7 @@
 id: G-0368
 title: wrap.md gains a Changelog entry section, copied verbatim at epic wrap
 status: open
+priority: medium
 ---
 ## Problem
 
