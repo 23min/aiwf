@@ -4,6 +4,7 @@ title: Root aiwf --help banner drifts from command tree with no drift guard
 status: open
 prior_ids:
     - G-0282
+priority: urgent
 ---
 ## What's missing
 
