@@ -2,6 +2,7 @@
 id: G-0400
 title: Stress scenario catalog exercises only 10 of 38 aiwf verbs
 status: open
+priority: medium
 discovered_in: M-0249
 ---
 ## What's missing
