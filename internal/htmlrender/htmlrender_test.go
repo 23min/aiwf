@@ -96,6 +96,70 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 	// Link integrity: every internal href on a rendered page must
 	// resolve to a file we wrote (or be an in-page #ac- fragment).
 	verifyLinkIntegrity(t, out)
+
+	// G-001 carries priority: urgent — the defaultResolver's EntityData
+	// wiring (M-0264/AC-1) must surface it as a badge in the page's
+	// header block, scoped structurally to that block so the assertion
+	// can't pass on a page-wide substring match.
+	gapHTML := readFile(t, filepath.Join(out, "G-001.html"))
+	header := entityHeaderBlock(t, gapHTML)
+	if !strings.Contains(header, `class="priority priority-urgent"`) {
+		t.Errorf("G-001.html header missing the urgent priority badge:\n%s", header)
+	}
+
+	// Same field, the defaultResolver's OTHER construction site:
+	// KindIndexData's per-kind row (gaps.html), scoped to G-001's own
+	// <tr> so the assertion can't pass on a page-wide match either.
+	gapsHTML := readFile(t, filepath.Join(out, "gaps.html"))
+	row := kindIndexRowSlice(t, gapsHTML, "G-001")
+	if !strings.Contains(row, `class="priority priority-urgent"`) {
+		t.Errorf("gaps.html row for G-001 missing the urgent priority badge:\n%s", row)
+	}
+}
+
+// kindIndexRowSlice returns the inner HTML of the <tr> row linking to
+// id.html on a per-kind index page — scoped the same way as the
+// internal/cli/integration package's priorityRowSlice, reimplemented
+// here since this package's own tests render via the defaultResolver
+// path, not the cmd-side one that package exercises.
+func kindIndexRowSlice(t *testing.T, html, id string) string {
+	t.Helper()
+	tableStart := strings.Index(html, `<table class="kind-index">`)
+	if tableStart < 0 {
+		t.Fatalf("no kind-index table found:\n%s", html)
+	}
+	table := html[tableStart:]
+	link := `href="` + id + `.html"`
+	i := strings.Index(table, link)
+	if i < 0 {
+		t.Fatalf("no row linking to %s.html found in the kind-index table:\n%s", id, table)
+	}
+	rowStart := strings.LastIndex(table[:i], "<tr")
+	if rowStart < 0 {
+		t.Fatalf("no <tr opening before the %s row", id)
+	}
+	rowEndRel := strings.Index(table[i:], "</tr>")
+	if rowEndRel < 0 {
+		t.Fatalf("no closing </tr> after the %s row", id)
+	}
+	return table[rowStart : i+rowEndRel]
+}
+
+// entityHeaderBlock returns an entity page's header block (status /
+// priority / archived markers) — from the closing </h1> tag up to the
+// first body <section> — so an assertion against it is scoped to the
+// header, not the whole page.
+func entityHeaderBlock(t *testing.T, html string) string {
+	t.Helper()
+	i := strings.Index(html, "</h1>")
+	if i < 0 {
+		t.Fatalf("no </h1> found:\n%s", html)
+	}
+	rest := html[i:]
+	if end := strings.Index(rest, "<section"); end >= 0 {
+		return rest[:end]
+	}
+	return rest
 }
 
 // TestRender_DeterministicAcrossInvocations renders the same
@@ -484,7 +548,7 @@ ship it
 	gapsDir := filepath.Join(root, "work", "gaps")
 	mustMkdir(t, gapsDir)
 	mustWrite(t, filepath.Join(gapsDir, "G-0001-flaky-build.md"),
-		"---\nid: G-001\ntitle: Flaky build\nstatus: open\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
+		"---\nid: G-001\ntitle: Flaky build\nstatus: open\npriority: urgent\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
 
 	adrDir := filepath.Join(root, "docs", "adr")
 	mustMkdir(t, adrDir)

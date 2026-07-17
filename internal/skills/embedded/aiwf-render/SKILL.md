@@ -23,6 +23,10 @@ Read-only — no commit. Re-running into the same out_dir overwrites the files; 
 
 When `aiwf.yaml` declares an `areas` block, both `aiwf render roadmap` and `aiwf render --format=html` group their epic sections per workstream: one section per declared `areas.members` value (in declared order; an area with no epics is omitted), then an always-shown untagged/undeclared complement labelled by `areas.default` (or a built-in `Uncategorized` fallback). In the HTML status page each area is a `<section class="area-group" data-area="…">` container; in the markdown roadmap each area is an `##` heading with its epics demoted to `###`. With no `areas` block, both surfaces render exactly as before (zero-migration). The partition is shared with `aiwf status` (one helper, three surfaces); the complementary `aiwf list --area` / `aiwf status --area` *filter* a view to one area, whereas grouping *partitions* the whole view.
 
+## Priority badge
+
+A gap or decision carrying a `priority` value (`urgent`/`high`/`medium`/`low`) renders a `<span class="priority priority-<level>">` pill badge: as its own column in the per-kind index table (`gaps.html`/`decisions.html`) and next to the status pill on its own detail page. An entity with no priority set — or a kind that never carries one (epic, milestone, ADR, contract) — renders no badge at all, not an empty one. There is no `--priority` filter on the render surface itself; filter with `aiwf list --priority <level>` or `aiwf status --priority <level>` before rendering, or just scan the badge column visually.
+
 ## When to use
 
 | User says | Run |

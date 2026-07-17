@@ -210,6 +210,7 @@ func (r defaultResolver) EntityData(id string) (*EntityData, error) {
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
 			Archived: entity.IsArchivedPath(e.Path),
+			Priority: e.Priority,
 		},
 		Sidebar: r.sidebar("", ""),
 	}, nil
@@ -249,6 +250,7 @@ func (r defaultResolver) KindIndexData(kind string, includeArchived bool) (*Kind
 			Status:   e.Status,
 			FileName: idToFileName(e.ID),
 			Archived: isArchived,
+			Priority: e.Priority,
 		})
 	}
 	return data, nil

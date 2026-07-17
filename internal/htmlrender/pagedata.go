@@ -56,13 +56,16 @@ type KindIndexData struct {
 // KindIndexEntry is one row in a per-kind index listing. Archived
 // surfaces the archive-state marker in the row (paralleling the
 // `aiwf show` indicator in AC-5) so the all-set page can visually
-// distinguish active from archived rows at a glance.
+// distinguish active from archived rows at a glance. Priority is the
+// entity's own priority level ("" for a kind that never carries one,
+// or an untagged gap/decision — M-0264/AC-1).
 type KindIndexEntry struct {
 	ID       string
 	Title    string
 	Status   string
 	FileName string
 	Archived bool
+	Priority string
 }
 
 // SidebarData is the left-nav payload every page receives. Epics is
@@ -161,7 +164,9 @@ type EpicData struct {
 // Archived is true when the entity lives under a per-kind `archive/`
 // directory per ADR-0004. The per-entity templates use it to emit a
 // visible archived-state marker (M-0087/AC-8) paralleling the `aiwf
-// show` indicator.
+// show` indicator. Priority is the entity's own priority level ("" for
+// a kind that never carries one, or an untagged gap/decision —
+// M-0264/AC-1).
 type EntityRef struct {
 	ID       string
 	Title    string
@@ -171,6 +176,7 @@ type EntityRef struct {
 	Kind     string
 	TDD      string
 	Archived bool
+	Priority string
 }
 
 // MilestoneSummary is one milestone row on an epic page.
