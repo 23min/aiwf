@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: the JSON envelope carries priority and aiwf show surfaces it
-      status: open
+      status: met
       tdd_phase: done
 ---
 
