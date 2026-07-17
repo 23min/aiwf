@@ -2,6 +2,7 @@
 id: G-0302
 title: aiwf check --fast omits in-memory contract-config validation
 status: open
+priority: low
 discovered_in: M-0193
 ---
 ## Problem
