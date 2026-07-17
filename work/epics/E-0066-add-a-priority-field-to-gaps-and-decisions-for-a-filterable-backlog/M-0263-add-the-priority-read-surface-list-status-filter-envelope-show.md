@@ -93,6 +93,35 @@ Deliberately narrower than `FilterStatusByArea`: epics and milestones are never 
 
 Resolved the epic's own open question ("does a render/list contract pin the entity JSON payload shape?") by direct inspection rather than assumption: `internal/contractcheck`/`internal/contractconfig` implement aiwf's *consumer-facing* `contract` entity-kind feature (external schema bindings via `aiwf.yaml: contracts:`), entirely unrelated to this repo's own Go JSON struct shapes — confirmed by this repo carrying zero contract entities and no `contracts:` block. No coordinated version bump was needed; the fields landed as ordinary struct additions. `ShowView` is an explicit, hand-enumerated struct (not a generic frontmatter dump), so `aiwf show` needed a real one-line addition in both `BuildShowView` and `buildCrossBranchShowView` — it did not surface "for free."
 
-### Independent design-quality check
+### Independent pre-wrap review
+
+An independent fresh-context reviewer audited the full diff against nine load-bearing claims (closed-set hard-usage-error validation on both `list` and `status`; the untagged/non-carrying-kind exclusion mechanism; the deliberate epic/milestone exclusion in `FilterStatusByPriority` — including the reviewer's own independent reasoning for why that's the right call, not just accepting the implementer's rationale; envelope-field population at every construction site incl. cross-branch; the contract-version-bump question; positional correctness of the ~20 `BuildListRows` call-site updates; non-tautological assertions; plausibility of the claimed mutation-probe predicates; soundness of the defensive `e != nil` guard) — all nine held up under independent measurement, including running `go build`/`go vet`/the affected test suite and reading a coverage profile directly rather than trusting the claim. **Verdict: APPROVE.**
+
+One non-blocking finding: `buildCrossBranchShowView`'s `Priority: resolved.Priority` line had statement coverage (via an existing milestone-shaped cross-branch fixture, where `Priority` is always empty) but no value assertion for a real gap/decision. Fixed in-review with `TestBuildShowView_CrossBranchResolved_SurfacesPriority` (commit 17f0823e), mirroring the existing `TestBuildShowView_CrossBranchResolvesAndLabelsContent_M0260AC1AC2` shape with a prioritized gap instead of a milestone.
 
 No `wf-rethink` unit applies: this milestone's surface (`--priority` filter flags plus JSON-payload fields on three pre-existing per-verb structs) is a mechanical extension of already-established `--area` patterns in the same three files, not a new module boundary, core abstraction, or data model.
+
+## Decisions made during implementation
+
+None — the design was fully pre-locked by G-0078's ratified decisions and this spec's own Design notes. The one open question the Design notes flagged (whether a render/list contract pins the entity JSON payload shape) was resolved by direct inspection during AC-3, not a fresh design fork — see AC-3's Work log entry above.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -race -parallel 8 ./...` (`make test-race`) — all packages pass, no flakes on the final sweep.
+- `make lint` (full `golangci-lint` set) — 0 issues.
+- `make coverage-gate` (diff-scoped statement-coverage audit + firing-fixture meta-gate) — clean.
+- `aiwf check` — 0 error findings; 1 pre-existing warning (`provenance-untrailered-scope-undefined`, no upstream configured for this unpushed branch — expected).
+- Manual branch-coverage audit + `wf-vacuity` mutation probe (covering all three ACs together, since they share one implementation pass across the same three files): 7/7 targeted mutations killed — the local-row and resolved-cross-branch priority filters, the collision-row OR-condition, both closed-set usage-error checks (list and status), `FilterStatusByPriority`'s equality checks, and show's text-rendering guard.
+- Independent reviewer re-verified all nine Work-log claims by measurement (build/vet/tests/coverage profile), not by trusting the narrative — APPROVE, one non-blocking finding fixed in-review (see "Independent pre-wrap review" above).
+
+## Deferrals
+
+- (none) — G-0420 (sort ordering by priority) and the HTML badge (render milestone) were already scoped out at planning time, not discovered mid-implementation; both are named in this spec's own `## Out of scope` and `## References` sections.
+
+## Reviewer notes
+
+- **`FilterStatusByPriority` deliberately does not mirror `FilterStatusByArea`'s epic-scoping.** Priority has no derivation analogous to area's milestone-to-epic rollup — only gap and decision carry one — so scoping epics/milestones by `--priority` would have no honest meaning and would gut the In-flight section for no reason. The independent reviewer reached the same conclusion via their own reasoning, not by accepting this narrative.
+- **The `BuildListRows` signature change rippled to ~20 existing call sites** across `internal/cli/integration/` — caught and fixed mechanically via `go vet ./...`, the same lesson M-0262 named for `AddOptions`. A positional-argument swap (`area` vs. the new `priority` slot) was the specific risk the independent reviewer spot-checked and confirmed absent.
+- **One CLI-seam value-assertion gap surfaced by the independent review** (`buildCrossBranchShowView`'s `Priority` field was statement-covered by an existing milestone fixture, where the value is always empty, but never value-asserted for a real gap/decision) — fixed in-review; see "Independent pre-wrap review" above.
