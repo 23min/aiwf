@@ -1,7 +1,7 @@
 ---
 id: E-0066
 title: Add a priority field to gaps and decisions for a filterable backlog
-status: active
+status: done
 ---
 
 # E-0066 — Add a priority field to gaps and decisions for a filterable backlog
