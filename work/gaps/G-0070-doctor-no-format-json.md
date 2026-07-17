@@ -2,6 +2,7 @@
 id: G-0070
 title: aiwf doctor lacks --format=json envelope
 status: open
+priority: low
 discovered_in: M-0070
 ---
 
