@@ -2,6 +2,7 @@
 id: G-0181
 title: 'aiwf upgrade: proxy latest-lookup timeout has no retry or auto-fallback'
 status: open
+priority: medium
 ---
 ## What
 
