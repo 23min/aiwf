@@ -42,6 +42,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		dependsOn     string
 		discoveredIn  string
 		area          string
+		priority      string
 		pathHint      string
 		relatesTo     string
 		linkedADRs    string
@@ -90,7 +91,7 @@ func NewCmd(correlationID string) *cobra.Command {
 				title = titles[0]
 			}
 			return cliutil.WrapExitCode(Run(k, title, actor, principal, root,
-				epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
+				epicID, tddPolicy, dependsOn, discoveredIn, area, priority, pathHint, relatesTo, linkedADRs,
 				bindValidator, bindSchema, bindFixtures, bodyFile, bodyText, reason, fetch, force, *out))
 		},
 	}
@@ -106,6 +107,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd.Flags().StringVar(&dependsOn, "depends-on", "", "comma-separated milestone ids the new milestone depends on (milestone only); each id must resolve to an existing milestone (M-076)")
 	cmd.Flags().StringVar(&discoveredIn, "discovered-in", "", "id of milestone or epic where the gap was discovered (gap only)")
 	cmd.Flags().StringVar(&area, "area", "", "workstream area tag (root kinds only); validated against aiwf.yaml: areas.members; a gap with --discovered-in derives it when omitted (E-0043)")
+	cmd.Flags().StringVar(&priority, "priority", "", "priority level (gap/decision only): urgent, high, medium, low (G-0078, E-0066)")
 	cmd.Flags().StringVar(&pathHint, "path-hint", "", "repo-relative path hint (root kinds only); when --area is omitted and the hint falls under exactly one declared area's paths, derive area from it via the areamatch SSOT (E-0044, M-0182)")
 	cmd.Flags().StringVar(&relatesTo, "relates-to", "", "comma-separated ids the decision relates to (decision only)")
 	cmd.Flags().StringVar(&linkedADRs, "linked-adr", "", "comma-separated ADR ids motivating the contract (contract only)")
@@ -133,6 +135,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("depends-on", cliutil.CompleteEntityIDFlag(entity.KindMilestone))
 	_ = cmd.RegisterFlagCompletionFunc("discovered-in", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
+	_ = cmd.RegisterFlagCompletionFunc("priority", cobra.FixedCompletions(entity.AllowedPriorityLevels(), cobra.ShellCompDirectiveNoFileComp))
 	_ = cmd.RegisterFlagCompletionFunc("relates-to", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("linked-adr", cliutil.CompleteEntityIDFlag(entity.KindADR))
 
@@ -142,7 +145,7 @@ func NewCmd(correlationID string) *cobra.Command {
 
 // Run executes `aiwf add <kind>`. Returns one of the cliutil.Exit* codes.
 func Run(k entity.Kind, title, actor, principal, root,
-	epicID, tddPolicy, dependsOn, discoveredIn, area, pathHint, relatesTo, linkedADRs,
+	epicID, tddPolicy, dependsOn, discoveredIn, area, priority, pathHint, relatesTo, linkedADRs,
 	bindValidator, bindSchema, bindFixtures, bodyFile, bodyText, reason string, fetch, force bool, out cliutil.OutputFormat,
 ) (code int) {
 	// G-0326: --body and --body-file are mutually exclusive ride-along
@@ -278,6 +281,7 @@ func Run(k entity.Kind, title, actor, principal, root,
 		TDD:            tddPolicy,
 		DiscoveredIn:   discoveredIn,
 		Area:           resolvedArea,
+		Priority:       priority,
 		BindValidator:  bindValidator,
 		BindSchema:     bindSchema,
 		BindFixtures:   bindFixtures,

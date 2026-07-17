@@ -25,8 +25,8 @@ The six kinds and their required flags:
 | epic | `--title` | Allocates `E-NN`. |
 | milestone | `--title`, `--epic <E-id>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on M-PPP[,M-QQQ]` declares prerequisite milestones at allocation time; each id must already exist as a milestone. |
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
-| gap | `--title` | Optional `--discovered-in <id>`. |
-| decision | `--title` | Optional `--relates-to <id,id,...>`. |
+| gap | `--title` | Optional `--discovered-in <id>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) sets the triage priority at creation — see the `aiwf-set-priority` skill to change or clear it later. |
+| decision | `--title` | Optional `--relates-to <id,id,...>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) — same as gap. |
 | contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 | ac | `--title`, positional milestone id | Allocates `AC-N` per-milestone (max+1 across the full `acs[]` including cancelled). Appends to the milestone's frontmatter `acs[]` and scaffolds a `### AC-N — <title>` body heading. The milestone file is rewritten in place — no separate AC file. |
 
