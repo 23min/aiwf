@@ -2,6 +2,7 @@
 id: G-0370
 title: Broaden the always-on guidance fragment with role-agent dispatch triggers
 status: open
+priority: high
 ---
 ## Problem
 
