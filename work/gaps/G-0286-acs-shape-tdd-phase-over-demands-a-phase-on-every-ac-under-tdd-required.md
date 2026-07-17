@@ -2,6 +2,7 @@
 id: G-0286
 title: acs-shape tdd-phase over-demands a phase on every AC under tdd required
 status: open
+priority: high
 ---
 ## Problem
 
