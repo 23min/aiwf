@@ -2,6 +2,7 @@
 id: G-0416
 title: Cross-branch-collision can't tell an edit from a genuine collision
 status: open
+priority: low
 discovered_in: M-0259
 ---
 ## Problem
