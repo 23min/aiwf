@@ -58,6 +58,15 @@
   --policy-strict: #c4554a;
   --policy-advisory: #bf8233;
 
+  /* One token per priority level, same closed set as
+   * internal/entity's priorityLevels — urgent/high on the warm
+   * (red/orange) end shared with tdd-required/advisory, medium on
+   * the accent, low muted. */
+  --priority-urgent: #c4554a;
+  --priority-high: #bf8233;
+  --priority-medium: #5e6ad2;
+  --priority-low: #6c707a;
+
   --scope-active: #3d8b6e;
   --scope-paused: #bf8233;
   --scope-ended: #94989f;
@@ -300,7 +309,7 @@ li { margin: 0.2rem 0; }
  * adding a new status is "add one CSS line" rather than "edit a
  * shared rule." */
 
-.status, .phase, .tdd, .scope-state, .policy {
+.status, .phase, .tdd, .scope-state, .policy, .priority {
   display: inline-block;
   padding: 0.1rem 0.55rem;
   border-radius: 999px;
@@ -337,6 +346,11 @@ li { margin: 0.2rem 0; }
 
 .policy-strict   { --pill-color: var(--policy-strict); }
 .policy-advisory { --pill-color: var(--policy-advisory); }
+
+.priority-urgent { --pill-color: var(--priority-urgent); }
+.priority-high   { --pill-color: var(--priority-high); }
+.priority-medium { --pill-color: var(--priority-medium); }
+.priority-low    { --pill-color: var(--priority-low); }
 
 .scope-state-active { --pill-color: var(--scope-active); }
 .scope-state-paused { --pill-color: var(--scope-paused); }
@@ -581,6 +595,11 @@ main:has(section[data-tab="provenance"]:target) .tabs .tab-provenance {
 
     --policy-strict: #d97268;
     --policy-advisory: #d49b54;
+
+    --priority-urgent: #d97268;
+    --priority-high: #d49b54;
+    --priority-medium: #7d8ddf;
+    --priority-low: #84878f;
 
     --scope-active: #5ea487;
     --scope-paused: #d49b54;

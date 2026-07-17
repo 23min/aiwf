@@ -210,6 +210,7 @@ func (r defaultResolver) EntityData(id string) (*EntityData, error) {
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
 			Archived: entity.IsArchivedPath(e.Path),
+			Priority: e.Priority,
 		},
 		Sidebar: r.sidebar("", ""),
 	}, nil

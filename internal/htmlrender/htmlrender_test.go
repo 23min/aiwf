@@ -96,6 +96,33 @@ func TestRender_FixtureTree_FilesAndLinks(t *testing.T) {
 	// Link integrity: every internal href on a rendered page must
 	// resolve to a file we wrote (or be an in-page #ac- fragment).
 	verifyLinkIntegrity(t, out)
+
+	// G-001 carries priority: urgent — the defaultResolver's EntityData
+	// wiring (M-0264/AC-1) must surface it as a badge in the page's
+	// header block, scoped structurally to that block so the assertion
+	// can't pass on a page-wide substring match.
+	gapHTML := readFile(t, filepath.Join(out, "G-001.html"))
+	header := entityHeaderBlock(t, gapHTML)
+	if !strings.Contains(header, `class="priority priority-urgent"`) {
+		t.Errorf("G-001.html header missing the urgent priority badge:\n%s", header)
+	}
+}
+
+// entityHeaderBlock returns an entity page's header block (status /
+// priority / archived markers) — from the closing </h1> tag up to the
+// first body <section> — so an assertion against it is scoped to the
+// header, not the whole page.
+func entityHeaderBlock(t *testing.T, html string) string {
+	t.Helper()
+	i := strings.Index(html, "</h1>")
+	if i < 0 {
+		t.Fatalf("no </h1> found:\n%s", html)
+	}
+	rest := html[i:]
+	if end := strings.Index(rest, "<section"); end >= 0 {
+		return rest[:end]
+	}
+	return rest
 }
 
 // TestRender_DeterministicAcrossInvocations renders the same
@@ -484,7 +511,7 @@ ship it
 	gapsDir := filepath.Join(root, "work", "gaps")
 	mustMkdir(t, gapsDir)
 	mustWrite(t, filepath.Join(gapsDir, "G-0001-flaky-build.md"),
-		"---\nid: G-001\ntitle: Flaky build\nstatus: open\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
+		"---\nid: G-001\ntitle: Flaky build\nstatus: open\npriority: urgent\n---\n\n## What's missing\n\nAn investigation.\n\n## Why it matters\n\nCI is unreliable.\n")
 
 	adrDir := filepath.Join(root, "docs", "adr")
 	mustMkdir(t, adrDir)

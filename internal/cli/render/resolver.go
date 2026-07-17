@@ -163,6 +163,7 @@ func (r *Resolver) KindIndexData(plural string, includeArchived bool) (*htmlrend
 			Status:   e.Status,
 			FileName: idToHTMLFile(e.ID),
 			Archived: isArchived,
+			Priority: e.Priority,
 		})
 	}
 	return data, nil
@@ -495,6 +496,7 @@ func (r *Resolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 		TDD:      e.TDD,
 		FileName: idToHTMLFile(e.ID),
 		Archived: entity.IsArchivedPath(e.Path),
+		Priority: e.Priority,
 	}
 }
 
