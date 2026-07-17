@@ -2,6 +2,7 @@
 id: G-0253
 title: branch-coverage-audit is statement-scoped, not per-arm branch coverage
 status: open
+priority: medium
 discovered_in: M-0066
 ---
 ## What's missing
