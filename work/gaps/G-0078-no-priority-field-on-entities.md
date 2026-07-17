@@ -1,7 +1,9 @@
 ---
 id: G-0078
 title: No priority field on entities; backlog isn't filterable or sortable by importance
-status: open
+status: addressed
+addressed_by_commit:
+    - eb831de3
 ---
 
 ## Problem
