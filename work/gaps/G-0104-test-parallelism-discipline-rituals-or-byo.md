@@ -2,6 +2,7 @@
 id: G-0104
 title: 'Test-parallelism discipline: ship to consumers via wf-rituals or BYO?'
 status: open
+priority: low
 discovered_in: E-0025
 ---
 # Problem
