@@ -2,6 +2,7 @@
 id: G-0333
 title: Force override boundary undocumented; audit finding-hints that cite force
 status: open
+priority: medium
 ---
 ## What's missing
 
