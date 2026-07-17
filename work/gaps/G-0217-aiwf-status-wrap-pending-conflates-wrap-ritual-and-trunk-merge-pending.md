@@ -2,6 +2,7 @@
 id: G-0217
 title: aiwf status WRAP PENDING conflates wrap-ritual and trunk-merge pending
 status: open
+priority: medium
 discovered_in: M-0160
 ---
 
