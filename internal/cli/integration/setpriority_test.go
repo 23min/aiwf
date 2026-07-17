@@ -42,6 +42,42 @@ func decisionFile(t *testing.T, root, id string) string {
 	return readOne(t, root, filepath.Join("work", "decisions", id+"-*.md"))
 }
 
+// TestRunAdd_PrioritySetViaDispatcher pins AC-3 through the real CLI
+// dispatcher (not just verb.Add directly): `aiwf add gap --priority
+// <level>` writes the priority into the created entity's frontmatter.
+// Mirrors add_area_test.go's TestRunAdd_AreaSetViaDispatcher — exercises
+// the flag -> Run() param -> AddOptions.Priority wiring seam that a
+// direct verb.Add call bypasses.
+func TestRunAdd_PrioritySetViaDispatcher(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "gap", "--body", fixtureGapBody, "--title", "Urgent leak", "--priority", "urgent", "--actor", "human/test", "--root", root)
+	fm := frontmatterOf(gapFile(t, root, "G-0001"))
+	if !strings.Contains(fm, "priority: urgent") {
+		t.Errorf("gap frontmatter missing `priority: urgent`:\n%s", fm)
+	}
+}
+
+// TestRunAdd_PriorityRejectedForNonCarryingKind pins AC-3's kind gate
+// through the real CLI dispatcher: `aiwf add epic --priority <level>`
+// is a usage error (exit 2) that creates no entity.
+func TestRunAdd_PriorityRejectedForNonCarryingKind(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	rc, _, stderr := testutil.CaptureRun(t, func() int {
+		return cli.Execute([]string{"add", "epic", "--title", "X", "--priority", "urgent", "--actor", "human/test", "--root", root})
+	})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
+	}
+	if !strings.Contains(stderr, "gap and decision") {
+		t.Errorf("stderr %q should explain that --priority is only for gap and decision", stderr)
+	}
+	if matches, _ := filepath.Glob(filepath.Join(root, "work", "epics", "E-*", "epic.md")); len(matches) != 0 {
+		t.Errorf("no entity should be created on rejection; found %v", matches)
+	}
+}
+
 // TestSetPriority_AC1_SetsAndResets pins AC-1: `set-priority` rewrites
 // the target's priority in one commit, in both the unset->set and
 // set->reset directions, leaving every other entity byte-identical.
