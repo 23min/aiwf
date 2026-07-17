@@ -2,6 +2,7 @@
 id: G-0090
 title: M-0079 AC-8 drift-check has untested branches; refactor for hermetic tests
 status: open
+priority: low
 discovered_in: M-0079
 ---
 M-0079's `TestAiwfxWhiteboard_AC8_MaterialisationDriftCheck` (in `internal/policies/aiwfx_whiteboard_test.go`) verifies that the rituals-plugin cache contains a copy of the `aiwfx-whiteboard` SKILL.md byte-for-byte matching the in-repo fixture. The success path (cache present + drift-free) and the "skill missing" path were exercised end-to-end during M-0079's deploy cycle. Three other branches in the lookup logic remain unexercised by hermetic unit tests:
