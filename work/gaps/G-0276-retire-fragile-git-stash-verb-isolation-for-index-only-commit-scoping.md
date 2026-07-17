@@ -2,6 +2,7 @@
 id: G-0276
 title: Retire fragile git-stash verb isolation for index-only commit scoping
 status: open
+priority: high
 ---
 ## Problem
 
