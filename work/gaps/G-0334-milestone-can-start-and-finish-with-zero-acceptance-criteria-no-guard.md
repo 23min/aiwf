@@ -2,6 +2,7 @@
 id: G-0334
 title: Milestone can start and finish with zero acceptance criteria (no guard)
 status: open
+priority: high
 ---
 ## What's missing
 
