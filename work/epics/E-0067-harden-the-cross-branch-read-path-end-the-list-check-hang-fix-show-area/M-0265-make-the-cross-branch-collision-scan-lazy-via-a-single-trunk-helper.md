@@ -17,6 +17,10 @@ acs:
       title: Cross-branch list rows and check findings are unchanged before and after
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: Zero DetectCollisions blob-stats when every id is present locally
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -28,4 +32,6 @@ acs:
 ### AC-2 — DetectCollisions runs only for ids absent from the local working tree
 
 ### AC-3 — Cross-branch list rows and check findings are unchanged before and after
+
+### AC-4 — Zero DetectCollisions blob-stats when every id is present locally
 
