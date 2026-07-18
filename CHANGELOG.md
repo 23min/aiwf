@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — broken links in verb-layer-cleanup.md to archived gaps G-0422/G-0423
+
+Internal only — no user-facing change. `docs/initiatives/verb-layer-cleanup.md` linked
+G-0422 and G-0423 by a relative path baked before G-0422's retitle and before both gaps
+archived; the path was stale twice over and `link-check` correctly flagged it. Both
+citations are now bare ids, which `aiwf show`/`aiwf history` resolve across active and
+archive by construction, matching this repo's own established convention for referencing
+an entity that may move.
+
 ### Added — G-0423: `dupl` clone-detection linter enabled as an ongoing tripwire
 
 No linter previously compared function bodies across files or packages, so structurally
