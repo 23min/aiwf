@@ -1,10 +1,12 @@
 ---
 id: G-0285
 title: Root aiwf --help banner drifts from command tree with no drift guard
-status: open
+status: addressed
 prior_ids:
     - G-0282
 priority: urgent
+addressed_by_commit:
+    - 19f4abdd
 ---
 ## What's missing
 
