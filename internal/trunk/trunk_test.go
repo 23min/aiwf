@@ -355,7 +355,7 @@ func TestDetectCollisions_IdenticalContentAcrossRefs_NoCollision(t *testing.T) {
 	mustRun(t, ctx, dir, "checkout", "-q", "main")
 
 	hits := LocalRefHits(ctx, dir)
-	got := DetectCollisions(ctx, dir, hits)
+	got := detectCollisions(ctx, dir, hits)
 	if got["G-0001"] {
 		t.Errorf("DetectCollisions = %v, want no collision for G-0001 (identical content on every ref)", got)
 	}
@@ -376,7 +376,7 @@ func TestDetectCollisions_DivergentContentAcrossRefs_Collision(t *testing.T) {
 	mustRun(t, ctx, dir, "checkout", "-q", "main")
 
 	hits := LocalRefHits(ctx, dir)
-	got := DetectCollisions(ctx, dir, hits)
+	got := detectCollisions(ctx, dir, hits)
 	if !got["G-0001"] {
 		t.Errorf("DetectCollisions = %v, want collision=true for G-0001 (divergent content across refs)", got)
 	}
@@ -389,7 +389,7 @@ func TestDetectCollisions_SingleHit_NeverCollision(t *testing.T) {
 	commitFile(t, ctx, dir, "work/gaps/G-0001-foo.md", "only ever on main\n")
 
 	hits := LocalRefHits(ctx, dir)
-	got := DetectCollisions(ctx, dir, hits)
+	got := detectCollisions(ctx, dir, hits)
 	if got["G-0001"] {
 		t.Errorf("DetectCollisions = %v, want no collision for a single-ref id", got)
 	}
@@ -399,7 +399,7 @@ func TestDetectCollisions_NoHits_ReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	dir := initRepo(t)
-	got := DetectCollisions(ctx, dir, nil)
+	got := detectCollisions(ctx, dir, nil)
 	if len(got) != 0 {
 		t.Errorf("DetectCollisions(nil) = %v, want empty", got)
 	}
@@ -422,7 +422,7 @@ func TestDetectCollisions_MultipleMultiHitIDs_ReusesSubprocess(t *testing.T) {
 	mustRun(t, ctx, dir, "checkout", "-q", "main")
 
 	hits := LocalRefHits(ctx, dir)
-	got := DetectCollisions(ctx, dir, hits)
+	got := detectCollisions(ctx, dir, hits)
 	if !got["G-0001"] || !got["G-0002"] {
 		t.Errorf("DetectCollisions = %v, want collisions for both G-0001 and G-0002", got)
 	}
@@ -444,7 +444,7 @@ func TestDetectCollisions_UnreadableHitExcluded_NoFalseCollision(t *testing.T) {
 	hits := LocalRefHits(ctx, dir)
 	hits = append(hits, RefHit{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/does-not-exist.md", Ref: "refs/heads/sibling"})
 
-	got := DetectCollisions(ctx, dir, hits)
+	got := detectCollisions(ctx, dir, hits)
 	if got["G-0001"] {
 		t.Errorf("DetectCollisions = %v, want no collision — the unreadable hit must be excluded, not treated as divergent", got)
 	}
@@ -458,7 +458,7 @@ func TestDetectCollisions_BlobReaderUnavailable_DegradesToNoCollision(t *testing
 		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md", Ref: "refs/heads/main"},
 		{Kind: entity.KindGap, ID: "G-0001", Path: "work/gaps/G-0001-foo.md", Ref: "refs/heads/sibling"},
 	}
-	got := DetectCollisions(ctx, notARepo, hits)
+	got := detectCollisions(ctx, notARepo, hits)
 	if len(got) != 0 {
 		t.Errorf("DetectCollisions = %v, want empty when BlobReader can't be constructed (not a repo)", got)
 	}

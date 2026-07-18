@@ -667,6 +667,35 @@ func TestRefsResolve_LocalTreeStaysAuthoritativeOverCrossBranch(t *testing.T) {
 	}
 }
 
+// TestRefsResolve_LocallyPresentIDWithCollisionResolvesLocally pins the
+// behavior-preservation basis for the lazy cross-branch scan (E-0067/
+// M-0265/AC-3): even when a collision is recorded for an id that ALSO
+// resolves in the local tree, refsResolve never reads it — the local
+// index resolves the reference first, so no cross-branch finding
+// surfaces. This is exactly why the lazy filter declining to compute a
+// locally-present id's collision changes no finding.
+func TestRefsResolve_LocallyPresentIDWithCollisionResolvesLocally(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(
+		&entity.Entity{ID: "E-0001", Kind: entity.KindEpic},
+		&entity.Entity{ID: "M-0001", Kind: entity.KindMilestone, Parent: "E-0001"}, // resolves to local E-0001
+	)
+	// A collision is (hypothetically) recorded for E-0001, which is
+	// present locally — the state the lazy filter never actually
+	// produces, set here to prove refsResolve would not read it anyway.
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindEpic, ID: "E-0001", Path: "work/epics/E-0001-a/epic.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindEpic, ID: "E-0001", Path: "work/epics/E-0001-a/epic.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"E-0001": true}
+
+	for _, f := range refsResolve(tr) {
+		if f.Subcode == "cross-branch-collision" || f.Subcode == "cross-branch-pending" {
+			t.Errorf("got %+v, want no cross-branch finding — E-0001 resolves locally, its collision must never surface", f)
+		}
+	}
+}
+
 func TestRefsResolve_WrongKind(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(

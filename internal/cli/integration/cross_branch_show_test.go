@@ -263,3 +263,71 @@ func TestBuildShowView_EmptyRoot_NeverScans(t *testing.T) {
 		t.Error("BuildShowView(root=\"\"): ok = true, want not-found (the empty-root guard should short-circuit)")
 	}
 }
+
+// TestRunShow_CrossBranchAreaPredicate_M0266AC1 — `aiwf show <id> --area
+// X` on a cross-branch-resolved id evaluates the predicate against the
+// entity's REAL area on the resolving ref, not the local-only lookup
+// (tr.ResolvedAreaByID) that always reports a cross-branch id untagged
+// (G-0419). A gap minted on a sibling branch with `area: platform`,
+// absent from the checked-out branch, must render in-area under `--area
+// platform` and miss — naming its real area, not "untagged" — under
+// `--area billing`.
+//
+// Serial: drives cli.Execute through testutil.CaptureRun, which mutates
+// the process-level os.Stdout/os.Stderr (see setup_test.go's skip-list).
+func TestRunShow_CrossBranchAreaPredicate_M0266AC1(t *testing.T) {
+	root := setupAreaRepo(t) // declares areas {platform, billing}; aiwf.yaml still uncommitted
+
+	// Commit the initial tree on main so the repo has a HEAD and the
+	// areas-bearing aiwf.yaml lives on the branch the show runs against.
+	if err := osExec(t, root, "git", "add", "-A"); err != nil {
+		t.Fatalf("git add: %v", err)
+	}
+	if err := osExec(t, root, "git", "commit", "-q", "-m", "seed: init + areas block"); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+
+	// Mint G-0100 with a real area on a sibling branch, absent from main.
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	gBody := "---\nid: G-0100\ntitle: Cross-branch Gap\nstatus: open\narea: platform\n---\n\n## Problem\n\nMinted on the sibling branch.\n"
+	writeAndCommit(t, root, "work/gaps/G-0100-cross-branch-gap.md", gBody, "sibling: mint G-0100 with area platform")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	t.Run("in-area: renders under the entity's real area", func(t *testing.T) {
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{"show", "G-0100", "--area", "platform", "--root", root})
+		})
+		if rc != cliutil.ExitOK {
+			t.Fatalf("rc=%d, want ExitOK", rc)
+		}
+		// The bug: the local-only lookup reports the cross-branch id
+		// untagged, so --area platform filters it out. The fix renders it.
+		if strings.Contains(stdout, "untagged") || strings.Contains(stdout, "not \"") {
+			t.Errorf("cross-branch id with real area 'platform' must render in-area under --area platform, got a miss:\n%s", stdout)
+		}
+		if !strings.Contains(stdout, "cross-branch") {
+			t.Errorf("expected the cross-branch view to render:\n%s", stdout)
+		}
+	})
+
+	t.Run("out-of-area: misses naming the entity's real area", func(t *testing.T) {
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{"show", "G-0100", "--area", "billing", "--root", root})
+		})
+		if rc != cliutil.ExitOK {
+			t.Errorf("predicate miss rc=%d, want ExitOK (entity hidden, like an empty list)", rc)
+		}
+		// Real area is platform; requested billing → the miss line must
+		// name the real area, not report the id untagged.
+		if strings.Contains(stdout, "untagged") {
+			t.Errorf("a real-area cross-branch id must not be reported untagged:\n%s", stdout)
+		}
+		if !strings.Contains(stdout, "platform") || !strings.Contains(stdout, "billing") {
+			t.Errorf("out-of-area miss should name the real area 'platform' and requested 'billing':\n%s", stdout)
+		}
+	})
+}

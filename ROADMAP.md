@@ -923,11 +923,11 @@ Give aiwf a kernel-supported `priority` field on gaps and decisions, so the back
 | M-0263 | Add the priority read surface: list/status filter, envelope, show | done |
 | M-0264 | Render a priority badge in the HTML site | done |
 
-## E-0067 — Harden the cross-branch read path: end the list/check hang, fix show --area (proposed)
+## E-0067 — Harden the cross-branch read path: end the list/check hang, fix show --area (active)
 
 ### Goal
 
-Filtered `aiwf list` (~24s) and `aiwf check` (~57s) are slow at this repository's
+Filtered `aiwf list` (~10s) and `aiwf check` (~15–20s) are slow at this repository's
 scale because the cross-branch scan runs collision blob-stats over every entity on
 every ref, then discards nearly all of it. Make that scan lazy — collision detection
 only for ids absent from the local working tree — so read verbs stay fast as the tree
@@ -936,6 +936,6 @@ same code.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | draft |
-| M-0266 | Honor a cross-branch id's real area in show --area | draft |
+| M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | done |
+| M-0266 | Honor a cross-branch id's real area in show --area | done |
 

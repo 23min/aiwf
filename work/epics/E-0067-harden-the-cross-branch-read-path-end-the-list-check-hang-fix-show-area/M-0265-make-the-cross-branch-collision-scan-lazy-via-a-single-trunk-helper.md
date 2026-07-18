@@ -1,26 +1,26 @@
 ---
 id: M-0265
 title: Make the cross-branch collision scan lazy via a single trunk helper
-status: draft
+status: done
 parent: E-0067
 tdd: required
 acs:
     - id: AC-1
       title: One trunk helper composes the cross-branch scan for treeload, list, and show
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: DetectCollisions runs only for ids absent from the local working tree
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Cross-branch list rows and check findings are unchanged before and after
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Zero DetectCollisions blob-stats when every id is present locally
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -122,16 +122,82 @@ property that cost tracks the locally-absent set, not entities × refs.
 
 ## Work log
 
+The per-AC phase timeline (red → green → done → met) is recorded in
+`aiwf history M-0265/AC-<N>`; the outcomes and implementing commits:
+
+### AC-1 — one trunk helper composes the cross-branch scan for treeload, list, and show
+Introduced `trunk.ScanCrossBranch` as the single composition point; rewired
+`LoadTreeWithTrunk` / `crossBranchListRows` / `buildCrossBranchShowView` to it.
+Behavior-identical consolidation. · commit `a98708a8` · `internal/trunk` +
+integration green.
+
+### AC-2 — detectCollisions runs only for ids absent from the local working tree
+Added the `presentLocally` predicate and the `absentHits` filter; only ids
+absent from the local tree reach `detectCollisions`. · commit `cd6d333b` ·
+`internal/trunk` unit (exact-hit-set + git-backed wiring) + integration green.
+
+### AC-4 — zero detectCollisions blob-stats when every id is present locally
+Extracted the `needsBlobStats` stat-gate; a many-entity / multi-ref all-present
+fixture pins that the filtered hit set requires zero blob-stats. · commit
+`bc2eedbc` · green.
+
+### AC-3 — cross-branch list rows and check findings unchanged before and after
+Behavior-preservation pins across list rows, refs-resolve, and body-prose-id for
+a locally-present id carrying a recorded collision. · commit `b4ce6f32` · green.
+
 ## Decisions made during implementation
 
-- (none yet)
+- **Lazy filter lives in the wrapper, not inside `detectCollisions`** —
+  resolving E-0067's open question toward the wrapper: `absentHits` filters the
+  hits before `detectCollisions` is called, keeping the latter a pure function
+  over the hits it is given (preserving its direct testability). This confirms
+  the epic's stated lean, so no ADR/D is owed here; the durable principle
+  (collision detection scoped to the locally-absent id set) is a candidate for
+  the epic's ADR harvest at wrap.
+- **`detectCollisions` unexported; the interim AST consolidation policy dropped**
+  (post-review · commit `4541f388`). With zero external callers, Go's export
+  rules enforce "only `ScanCrossBranch` composes the scan" natively — a compile
+  error, stronger and earlier than a CI-tier policy — removing ~185 lines. A
+  guiding comment on `detectCollisions` preserves the G-0418 intent.
 
 ## Validation
 
+- `go test ./...` green; race-clean on the changed packages (`trunk`, `check`,
+  `list`, `show`, `cliutil`, `integration`, `policies`).
+- `make lint`: 0 issues. `go build ./...`: green. Diff-coverage gate: green
+  (100% on `ScanCrossBranch` / `absentHits` / `needsBlobStats` / `detectCollisions`).
+- `aiwf check`: 0 errors (one environmental warning — the milestone worktree
+  branch has no upstream, so the provenance audit is skipped; it resolves on
+  integration).
+- **Performance — same-environment A/B (old eager vs new lazy binary, this
+  repo's 860-entity / 10-ref tree):** filtered `aiwf list --kind gap --priority
+  urgent` 10.4s → 1.0s; `aiwf check` 15.5s → 5.7s. Check findings and list rows
+  are byte-identical between the two binaries.
+
 ## Deferrals
 
-- (none)
+- (none) — check's remaining cost is its full-history revwalk, which is
+  epic-scoped and tracked by G-0372 (out of E-0067's scope), not a milestone
+  deferral.
 
 ## Reviewer notes
 
-- (none yet)
+- **Independent two-lens review before wrap — both cleared.** Code-quality
+  (fresh context): APPROVE, no blocking findings; it adversarially confirmed a
+  missed real collision is impossible — the filter's present set (`tr.ByID`,
+  Entities-only) is a subset of every consumer's local index, so a skipped id is
+  never one a consumer would read a collision for — verified `needsBlobStats` is
+  behavior-identical to the prior inline gate, and measured 100% coverage on the
+  new functions. Design-quality (`wf-rethink`): SOUND WITH SUGGESTIONS; it
+  independently reconstructed the same design and confirmed the subset invariant.
+- **AC-1 evidence shift.** AC-1's structural evidence was the AST policy
+  `PolicyCrossBranchScanConsolidation`; per the design review it was dropped in
+  favor of unexporting `detectCollisions`, so the consolidation invariant is now
+  compile-time-enforced (Go export rules) plus the integration tests that
+  exercise all three consumers' cross-branch paths. AC-1 stays `met` — the
+  property is guaranteed more strongly.
+- **Named tradeoff (accepted).** `show`'s cross-branch path reads
+  `scan.Collisions[canon]` (computed over the whole absent set) rather than
+  scanning canon-only; the result is equivalent (that path is reached only on a
+  local-tree miss) and bounded by the absent set, in exchange for the single
+  composition point.

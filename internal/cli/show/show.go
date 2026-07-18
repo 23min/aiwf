@@ -189,6 +189,15 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 	// just out of the requested workstream.
 	if area != "" {
 		actual := tr.ResolvedAreaByID(id)
+		// A cross-branch-resolved id is absent from the local tree, so
+		// tr.ResolvedAreaByID reports it untagged (G-0419). Evaluate
+		// --area against the resolving ref's real area instead, which
+		// buildCrossBranchShowView already parsed onto the view
+		// (E-0067/M-0266). Empty on a collision — content in dispute —
+		// which reads as untagged, the honest answer there.
+		if view.CrossBranch != nil {
+			actual = view.Area
+		}
 		if actual != area {
 			switch format {
 			case "text":
@@ -289,6 +298,19 @@ type ShowView struct {
 	// downstream consumer can treat its absence as "this is ordinary
 	// local state."
 	CrossBranch *CrossBranchView `json:"cross_branch,omitempty"`
+
+	// Area carries the resolving ref's real `area:` for a cross-branch
+	// hit so the `aiwf show --area` predicate can evaluate against the
+	// entity's actual area instead of the local-only tr.ResolvedAreaByID
+	// lookup, which reports any cross-branch id untagged (E-0067/M-0266,
+	// G-0419). In-memory only (json:"-") — the JSON envelope's shape is
+	// unchanged. Empty for a locally-resolved entity (the predicate uses
+	// the local lookup there); for a cross-branch collision (the content,
+	// including the area, is in dispute); and for a cross-branch
+	// milestone, whose own `area:` is never stored — a milestone's area
+	// rolls up from its parent epic, a resolution this own-field read
+	// deliberately does not follow across refs.
+	Area string `json:"-"`
 }
 
 // CrossBranchView carries the read-side resolution state for an id
@@ -402,7 +424,7 @@ func nonNilStrings(s []string) []string {
 //
 // Returns ok=false when id is unknown everywhere (no local entity, no
 // cross-branch hit) or when the git-side resolution can't complete
-// (best-effort, mirroring trunk.LocalRefHits/DetectCollisions'
+// (best-effort, mirroring trunk.LocalRefHits/ScanCrossBranch'
 // degrade-to-nothing contract) — both read as an ordinary "not found"
 // to the caller.
 //
@@ -423,9 +445,9 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		return ShowView{}, false
 	}
 	canon := entity.Canonicalize(id)
-	all := append(trunk.LocalRefHits(ctx, root), trunk.RemoteRefHits(ctx, root)...)
+	scan := trunk.ScanCrossBranch(ctx, root, func(id string) bool { return t.ByID(id) != nil })
 	var hits []trunk.RefHit
-	for _, h := range all {
+	for _, h := range scan.Hits {
 		if entity.Canonicalize(h.ID) == canon {
 			hits = append(hits, h)
 		}
@@ -435,7 +457,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 	}
 	refs := trunk.DistinctRefs(hits)
 
-	if trunk.DetectCollisions(ctx, root, hits)[canon] {
+	if scan.Collisions[canon] {
 		return ShowView{
 			ID:           canon,
 			Kind:         string(hits[0].Kind),
@@ -473,6 +495,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 		CrossBranch:  &CrossBranchView{Ref: hit.Ref, Refs: refs},
+		Area:         resolved.Area,
 	}
 	var acDesc map[string]string
 	if resolved.Kind == entity.KindMilestone && len(resolved.ACs) > 0 {

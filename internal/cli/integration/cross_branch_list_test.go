@@ -228,6 +228,58 @@ func TestBuildListRows_LocalEntityTakesPrecedenceOverCrossBranchShadow(t *testin
 	}
 }
 
+// TestBuildListRows_LocallyPresentDivergingID_RendersAsLocalRow pins the
+// behavior-preservation basis of the lazy cross-branch scan (E-0067/
+// M-0265/AC-3): an id present in the local tree that ALSO diverges on a
+// sibling ref renders as its ordinary local row — its real main content
+// — never a cross-branch-collision row. The lazy scan declines to
+// compute that id's collision precisely because no consumer would read
+// it (the local loop already handled the row); this test fails if a
+// locally-present id's collision result ever reaches a list row, or if
+// the sibling's diverging content shadows the local content.
+func TestBuildListRows_LocallyPresentDivergingID_RendersAsLocalRow(t *testing.T) {
+	root := setupCLITestRepo(t)
+	// main holds G-0100 (present in the local tree).
+	writeAndCommit(t, root, "work/gaps/G-0100-local.md",
+		"---\nid: G-0100\ntitle: Local Gap\nstatus: open\n---\n\n## Problem\n\nlocal.\n",
+		"seed: local G-0100")
+	// A sibling holds G-0100 at the same path with DIVERGENT content — a
+	// genuine collision, but for an id that is present locally.
+	if err := osExec(t, root, "git", "checkout", "-q", "-b", "sibling"); err != nil {
+		t.Fatalf("checkout sibling: %v", err)
+	}
+	writeAndCommit(t, root, "work/gaps/G-0100-local.md",
+		"---\nid: G-0100\ntitle: Sibling Divergent\nstatus: addressed\n---\n\n## Problem\n\ndiverged.\n",
+		"sibling: diverge G-0100")
+	if err := osExec(t, root, "git", "checkout", "-q", "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+
+	rows := list.BuildListRows(ctx, tr, "gap", "", "", "", "", false)
+	var count int
+	for _, r := range rows {
+		if r.ID == "G-0100" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("G-0100 appears %d times in rows = %+v, want exactly 1 (the local row)", count, rows)
+	}
+	row := findRow(rows, "G-0100")
+	if row.CrossBranchCollision || row.CrossBranchRef != "" {
+		t.Errorf("row = %+v, want an ordinary local row — a present id's collision must never surface", row)
+	}
+	if row.Title != "Local Gap" || row.Status != "open" {
+		t.Errorf("row = %+v, want the local main content (Local Gap / open), not the sibling's", row)
+	}
+}
+
 // TestBuildListRows_CrossBranchKindMismatch_Excluded — a cross-branch
 // hit whose kind doesn't match --kind is excluded, the same as any
 // local row would be.

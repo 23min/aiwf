@@ -379,7 +379,8 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		// degrade for in-memory trees (nil CrossBranchHits, etc).
 		return nil
 	}
-	all := append(trunk.LocalRefHits(ctx, tr.Root), trunk.RemoteRefHits(ctx, tr.Root)...)
+	scan := trunk.ScanCrossBranch(ctx, tr.Root, func(id string) bool { return tr.ByID(id) != nil })
+	all := scan.Hits
 	if len(all) == 0 {
 		return nil
 	}
@@ -388,7 +389,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		canon := entity.Canonicalize(h.ID)
 		byID[canon] = append(byID[canon], h)
 	}
-	collisions := trunk.DetectCollisions(ctx, tr.Root, all)
+	collisions := scan.Collisions
 	canonParent := entity.Canonicalize(parent)
 
 	var rows []ListSummary
