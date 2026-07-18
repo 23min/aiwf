@@ -2,7 +2,7 @@
 id: G-0418
 title: Cross-branch hit/collision scan is duplicated across 3 call sites
 status: open
-priority: low
+priority: urgent
 discovered_in: M-0260
 ---
 ## What's missing
