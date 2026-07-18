@@ -673,10 +673,10 @@ existing chokepoint (`projectionFindings`, `entity.AllocateID`, `gitops`,
     Estimated difficulty: low, well under a day — mechanical import-path
     changes, no algorithm changes.
 
-Two of these are filed as gaps — [G-0422](../../work/gaps/G-0422-no-presence-check-that-structural-verbs-call-projectionfindings.md)
+Two of these are filed as gaps — `G-0422`
 (revised in scope after F1's refutation — now tracks documenting/enforcing
 the actual, narrower `projectionFindings` scope rather than requiring it
-universally) and [G-0423](../../work/gaps/G-0423-no-clone-detection-linter-to-catch-duplicated-verb-layer-logic.md)
+universally) and `G-0423`
 (one example softened after verification, the rest confirmed), covering the
 two prevention mechanisms from the section below. The rest of this document
 remains the map from which to file the balance: bundle F2/F3/F5/F7/F9 as one
