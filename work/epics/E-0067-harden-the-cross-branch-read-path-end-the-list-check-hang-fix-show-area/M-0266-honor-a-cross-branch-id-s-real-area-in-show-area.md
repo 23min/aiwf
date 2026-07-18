@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: show --area on a cross-branch id evaluates against the entity's real area
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
