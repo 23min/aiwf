@@ -122,9 +122,9 @@ fast-check and fast-read-path work).
 
 ## ADRs produced
 
-- ADR candidate, to be decided at wrap per the ADR harvest: cross-branch collision
-  detection is scoped to the locally-absent id set — the durable design principle
-  mirroring the miss-guard invariant.
+- ADR-0035 — cross-branch collision detection is scoped to the locally-absent id
+  set, safe by the miss-guard subset invariant (every consumer reads a collision
+  result only after a local-tree miss).
 
 ## References
 
