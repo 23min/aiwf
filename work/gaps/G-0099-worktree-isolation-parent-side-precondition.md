@@ -1,8 +1,10 @@
 ---
 id: G-0099
 title: Worktree isolation must be a parent-side precondition, not an Agent kwarg honor
-status: open
+status: addressed
 priority: high
+addressed_by:
+    - M-0106
 ---
 ## What's missing
 
