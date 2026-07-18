@@ -38,3 +38,9 @@ Embedding the JSON (rather than fetching a sibling `data.json` at runtime) sides
 **Option C — Keep static, just cache the resolver.** Memoize git scans inside `PageDataResolver`, batch the `git log` reads, or pre-build a per-entity history index in one pass. Smallest possible change; still emits N files; doesn't address the "one-page" shape goal. Useful as a stopgap if the SPA work can't land soon — and worth doing anyway as the first measurement of where the time actually goes.
 
 The right next step is probably to profile first (confirm the resolver is the dominant cost), then commit to A in two milestones (JSON projection verb, then SPA renderer). Option C may land first as a quick measurement-then-cache pass if the profile points there.
+
+## Notes
+
+The performance half of this gap is resolved: M-0221 (E-0054) collapsed the per-entity git scans into one shared HEAD-history walk (`check.WalkHeadCommits`), and `internal/cli/render/resolver.go`'s `historyIndex` now serves every entity from that single in-memory pass — render cost no longer scales as *N entities × per-entity git scans*.
+
+The architectural half — one `index.html` SPA over embedded JSON instead of one HTML file per entity — has not landed. `internal/htmlrender/htmlrender.go` still emits one file per entity plus per-kind index pages, and no `aiwf render json` verb or SPA/JS renderer exists. This gap stays open for that remaining half.
