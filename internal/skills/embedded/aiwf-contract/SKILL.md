@@ -138,7 +138,7 @@ aiwf show C-NNNN              # one entity in detail
 aiwf history C-NNNN           # lifecycle
 ```
 
-Generic verbs cover the entity side. Do not invent `aiwf contract list` or `aiwf contract status` — they don't exist by design.
+Generic verbs cover the entity side. Do not invent verb forms like `contract list` or `contract status` — they don't exist by design.
 
 ### "Move C-NNNN through its lifecycle"
 
@@ -248,5 +248,5 @@ There is no `--fix`. Every finding is a human decision; aiwf reports, the user r
 - Don't conflate the registry record (the `contract` entity) with the validator binding (`aiwf.yaml.contracts.entries[]`). Two responsibilities, two locations, linked by `id`. Different verbs for each.
 - Don't suggest deleting fixtures to silence findings.
 - Don't run `aiwf contract verify` against an empty `entries:` block expecting work — it returns nothing, which is correct.
-- Don't invent new verb forms (`aiwf contract list`, `aiwf contract status`). The generic `aiwf show C-NNNN` and `aiwf history C-NNNN` are authoritative.
+- Don't invent new verb forms (`contract list`, `contract status`). The generic `aiwf show C-NNNN` and `aiwf history C-NNNN` are authoritative.
 - Don't claim a `skip_in_check` config option exists. Pre-push verification is unconditional for non-terminal contracts.

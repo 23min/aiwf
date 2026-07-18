@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0284: skill-coverage policy closes the namespace-subverb blind spot
+
+`internal/policies/skill_coverage.go`'s AI-discoverability check previously walked only
+top-level Cobra verbs, so a namespace subverb (`milestone depends-on`, `contract recipe
+show`, `worktree add`, `add ac`, `acknowledge illegal`/`mistag`, `render roadmap`) had no
+coverage or resolution check at all, and a skill body could reference an invalid subverb
+(`aiwf contract bogus-subverb`) without ever failing. The verb-discovery walk now recurses
+into every subcommand at every depth, and body-mention resolution validates the full `aiwf
+<verb> <subverb>...` path — descending through namespace parents while still tolerating an
+ordinary positional argument after a runnable command that also has children (`aiwf add
+milestone`, `aiwf render roadmap`). A new axis requires every runnable subverb to be
+documented, either via a resolved mention in a skill body or an allowlist entry.
+
 ### Fixed — G-0285: root `aiwf --help` banner synced with the registered command tree
 
 The banner printed by `aiwf`, `aiwf --help`, and `aiwf help` had drifted from the actual

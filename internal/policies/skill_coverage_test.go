@@ -1,6 +1,9 @@
 package policies
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -49,6 +52,15 @@ func TestParseSkillMarkdown_FrontmatterShapes(t *testing.T) {
 	})
 }
 
+// leafVerbs is a small synthetic verb set of runnable, childless
+// top-level commands — enough to exercise extraction without needing
+// the real Cobra tree.
+var leafVerbs = map[string]verbEntry{
+	"list":    {runnable: true},
+	"show":    {runnable: true},
+	"history": {runnable: true},
+}
+
 // TestBacktickedAiwfMentions_Extraction covers the load-bearing shapes:
 // inline-code `aiwf X`, multi-token `aiwf X Y`, flag-shaped `aiwf --v`,
 // and the non-aiwf prose that must not match.
@@ -56,17 +68,20 @@ func TestBacktickedAiwfMentions_Extraction(t *testing.T) {
 	t.Parallel()
 	body := "Run `aiwf list` and then `aiwf show <id>`. Also `aiwf list --kind contract`. Don't pick up `aiwf --version` (flag, no verb). Bare `aiwf` alone has no verb.\n\nFenced too:\n```\naiwf history E-01\n```\nAnd a non-aiwf mention `git status` must be skipped."
 
-	got := backtickedAiwfMentions(body)
-	gotVerbs := make([]string, len(got))
+	got := backtickedAiwfMentions(body, leafVerbs)
+	gotPaths := make([]string, len(got))
 	for i, m := range got {
-		gotVerbs[i] = m.verb
+		if !m.resolved {
+			t.Errorf("mention %d (%q) unexpectedly unresolved", i, m.path)
+		}
+		gotPaths[i] = m.path
 	}
 
 	// Order matches order in body. `aiwf --version` does not match (the
 	// regex requires the next token to start with [a-z], so `--` is
 	// rejected). Bare `aiwf` (no following word) does not match.
 	want := []string{"list", "show", "list", "history"}
-	if diff := cmp.Diff(want, gotVerbs); diff != "" {
+	if diff := cmp.Diff(want, gotPaths); diff != "" {
 		t.Errorf("backtickedAiwfMentions mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -82,10 +97,100 @@ func TestBacktickedAiwfMentions_FlagOnlyDoesNotMatch(t *testing.T) {
 		"`aiwf --help`",
 		"`aiwf -v`",
 	} {
-		got := backtickedAiwfMentions(body)
+		got := backtickedAiwfMentions(body, leafVerbs)
 		if len(got) != 0 {
 			t.Errorf("body %q should yield no mentions; got %+v", body, got)
 		}
+	}
+}
+
+// TestResolveAiwfMention_NamespaceParentRequiresRealChild is G-0284's
+// core positive case: a namespace parent (non-runnable, has children)
+// followed by a token that isn't one of its children is an invalid
+// subverb, not a positional argument — `aiwf contract bogus-subverb`
+// must fail to resolve, citing the full attempted path.
+func TestResolveAiwfMention_NamespaceParentRequiresRealChild(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"contract":        {runnable: false},
+		"contract bind":   {runnable: true},
+		"contract recipe": {runnable: false},
+	}
+	path, resolved := resolveAiwfMention([]string{"contract", "bogus-subverb"}, verbs)
+	if resolved {
+		t.Fatalf("expected unresolved, got resolved path %q", path)
+	}
+	if path != "contract bogus-subverb" {
+		t.Errorf("path = %q, want the full attempted path %q", path, "contract bogus-subverb")
+	}
+}
+
+// TestResolveAiwfMention_NamespaceParentDescendsMultipleLevels checks
+// the 3-level case (`contract recipe show`, mirroring the real
+// `aiwf contract recipe show` command): each namespace parent along
+// the way must resolve its next child.
+func TestResolveAiwfMention_NamespaceParentDescendsMultipleLevels(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"contract":              {runnable: false},
+		"contract recipe":       {runnable: false},
+		"contract recipe show":  {runnable: true},
+		"contract recipe other": {runnable: true},
+	}
+	path, resolved := resolveAiwfMention([]string{"contract", "recipe", "show"}, verbs)
+	if !resolved || path != "contract recipe show" {
+		t.Errorf("resolveAiwfMention = (%q, %v), want (\"contract recipe show\", true)", path, resolved)
+	}
+}
+
+// TestResolveAiwfMention_RunnableParentTrailingWordIsNotAViolation is
+// the false-positive guard the runnable/non-runnable distinction
+// exists for: `add` is directly Runnable (`aiwf add <kind> ...`) AND
+// carries a real child (`ac`). A mention like `aiwf add milestone`
+// (where "milestone" is the <kind> positional, not a subcommand) must
+// resolve cleanly at "add", not be reported as an invalid subverb.
+func TestResolveAiwfMention_RunnableParentTrailingWordIsNotAViolation(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"add":    {runnable: true},
+		"add ac": {runnable: true},
+	}
+	path, resolved := resolveAiwfMention([]string{"add", "milestone"}, verbs)
+	if !resolved || path != "add" {
+		t.Errorf("resolveAiwfMention = (%q, %v), want (\"add\", true) — a runnable parent's trailing word is a positional arg, not a subverb", path, resolved)
+	}
+}
+
+// TestResolveAiwfMention_RunnableParentRealChildStillResolves pairs
+// with the previous test: when the token after a runnable-with-
+// children parent DOES match a real child, the walk must still
+// descend into it (`aiwf add ac` resolves to the full 2-word path,
+// not just "add").
+func TestResolveAiwfMention_RunnableParentRealChildStillResolves(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"add":    {runnable: true},
+		"add ac": {runnable: true},
+	}
+	path, resolved := resolveAiwfMention([]string{"add", "ac"}, verbs)
+	if !resolved || path != "add ac" {
+		t.Errorf("resolveAiwfMention = (%q, %v), want (\"add ac\", true)", path, resolved)
+	}
+}
+
+// TestResolveAiwfMention_BareNamespaceParentMentionResolves: a mention
+// that stops exactly at a namespace parent with no attempted
+// continuation (`aiwf contract recipe` alone, no trailing word) is
+// legitimate prose about the grouping itself, not a mismatch.
+func TestResolveAiwfMention_BareNamespaceParentMentionResolves(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"contract":        {runnable: false},
+		"contract recipe": {runnable: false},
+	}
+	path, resolved := resolveAiwfMention([]string{"contract", "recipe"}, verbs)
+	if !resolved || path != "contract recipe" {
+		t.Errorf("resolveAiwfMention = (%q, %v), want (\"contract recipe\", true)", path, resolved)
 	}
 }
 
@@ -284,6 +389,201 @@ func TestCheckVerbCoverage_SkillCoverageRescuesVerb(t *testing.T) {
 	}
 }
 
+// TestCheckSubverbCoverage_FiresOnUndocumentedRunnableSubverb is
+// G-0284's core negative case: a runnable subverb with no resolved
+// mention and no allowlist entry fires a violation naming the full
+// path.
+func TestCheckSubverbCoverage_FiresOnUndocumentedRunnableSubverb(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"milestone":            {runnable: false},
+		"milestone depends-on": {runnable: true},
+	}
+	got := checkSubverbCoverage(verbs, map[string]bool{}, map[string]string{})
+	mustHaveViolation(t, got, `subverb "milestone depends-on"`)
+}
+
+// TestCheckSubverbCoverage_NonRunnableParentNeverRequiresItsOwnEntry:
+// a non-runnable namespace parent (e.g. "contract recipe", which only
+// groups show/install/remove) is not itself required to carry
+// coverage — only its runnable descendants are.
+func TestCheckSubverbCoverage_NonRunnableParentNeverRequiresItsOwnEntry(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{
+		"contract":             {runnable: false},
+		"contract recipe":      {runnable: false},
+		"contract recipe show": {runnable: true},
+	}
+	documented := map[string]bool{"contract recipe show": true}
+	got := checkSubverbCoverage(verbs, documented, map[string]string{})
+	if len(got) != 0 {
+		t.Errorf("non-runnable parent should not need its own coverage entry; got: %+v", got)
+	}
+}
+
+// TestCheckSubverbCoverage_AllowlistRescuesSubverb mirrors the
+// top-level allowlist-rescue precedent, keyed by the full path.
+func TestCheckSubverbCoverage_AllowlistRescuesSubverb(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{"milestone depends-on": {runnable: true}}
+	allowlist := map[string]string{"milestone depends-on": "documented in the aiwf-add skill"}
+	got := checkSubverbCoverage(verbs, map[string]bool{}, allowlist)
+	if len(got) != 0 {
+		t.Errorf("allowlisted subverb should not fire; got: %+v", got)
+	}
+}
+
+// TestCheckSubverbCoverage_ResolvedMentionRescuesSubverb: a subverb
+// with a resolved `aiwf <full path>` mention in some skill body (the
+// documented set checkSkillBodyMentionsResolve's mention extraction
+// feeds) needs no separate allowlist entry.
+func TestCheckSubverbCoverage_ResolvedMentionRescuesSubverb(t *testing.T) {
+	t.Parallel()
+	verbs := map[string]verbEntry{"milestone depends-on": {runnable: true}}
+	documented := map[string]bool{"milestone depends-on": true}
+	got := checkSubverbCoverage(verbs, documented, map[string]string{})
+	if len(got) != 0 {
+		t.Errorf("mention-documented subverb should not fire; got: %+v", got)
+	}
+}
+
+// TestFindAllVerbs_DiscoversRealNamespaceSubverbs is the integration
+// check against the live repo tree: G-0284's whole premise is that
+// `milestone depends-on` and `contract recipe show` were invisible to
+// the old top-level-only walk. This pins that the recursive walk
+// finds them, with the right runnable flag, and that the top-level-
+// only view (findTopLevelVerbs) still excludes them.
+func TestFindAllVerbs_DiscoversRealNamespaceSubverbs(t *testing.T) {
+	t.Parallel()
+	all, err := findAllVerbs(repoRootForFile(t))
+	if err != nil {
+		t.Fatalf("findAllVerbs: %v", err)
+	}
+
+	for _, want := range []struct {
+		path     string
+		runnable bool
+	}{
+		{"milestone", false},
+		{"milestone depends-on", true},
+		{"contract", false},
+		{"contract recipe", false},
+		{"contract recipe show", true},
+		{"contract recipe install", true},
+		{"contract recipe remove", true},
+		{"contract bind", true},
+		{"contract unbind", true},
+		{"contract verify", true},
+		{"contract recipes", true},
+		{"add", true},
+		{"add ac", true},
+		{"worktree", false},
+		{"worktree add", true},
+		// "version" is a root-level Ident builder (newVersionCmd)
+		// defined in internal/cli/root.go itself, not cmd/aiwf — it
+		// must resolve via rootIdentFiles, not just the cmd/aiwf glob.
+		{"version", true},
+	} {
+		e, ok := all[want.path]
+		if !ok {
+			t.Errorf("findAllVerbs missing %q", want.path)
+			continue
+		}
+		if e.runnable != want.runnable {
+			t.Errorf("findAllVerbs[%q].runnable = %v, want %v", want.path, e.runnable, want.runnable)
+		}
+	}
+
+	top, err := findTopLevelVerbs(repoRootForFile(t))
+	if err != nil {
+		t.Fatalf("findTopLevelVerbs: %v", err)
+	}
+	if _, ok := top["milestone depends-on"]; ok {
+		t.Errorf("findTopLevelVerbs must stay top-level-only; found a subverb key %q", "milestone depends-on")
+	}
+	if _, ok := top["milestone"]; !ok {
+		t.Errorf("findTopLevelVerbs missing top-level verb %q", "milestone")
+	}
+}
+
+// TestWalkVerbSubtree_NoUseFieldRecordsNothing covers the defensive
+// branch in walkVerbSubtree: a builder whose &cobra.Command{} literal
+// never sets Use (malformed by this codebase's convention, but not
+// something the AST walk can assume) is skipped rather than recorded
+// under an empty-string path.
+func TestWalkVerbSubtree_NoUseFieldRecordsNothing(t *testing.T) {
+	t.Parallel()
+	src := `package fake
+
+import "github.com/spf13/cobra"
+
+func newBrokenCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Short: "no Use field set",
+	}
+	return cmd
+}
+`
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "fake.go", src, parser.AllErrors)
+	if err != nil {
+		t.Fatalf("parse synthetic source: %v", err)
+	}
+	fn := findFuncDecl([]*ast.File{f}, "newBrokenCmd")
+	if fn == nil {
+		t.Fatal("findFuncDecl did not find newBrokenCmd in the synthetic source")
+	}
+
+	out := map[string]verbEntry{}
+	walkVerbSubtree(fn, []*ast.File{f}, "", "newBrokenCmd", out)
+	if len(out) != 0 {
+		t.Errorf("expected no entries for a builder with no Use field; got %+v", out)
+	}
+}
+
+// TestFindFuncDecl_ReturnsNilWhenNameNotFound pins the not-found path
+// every findFuncDecl caller relies on (`if child := findFuncDecl(...);
+// child != nil`) — a name absent from the given files yields nil, not
+// a panic or a zero-value FuncDecl.
+func TestFindFuncDecl_ReturnsNilWhenNameNotFound(t *testing.T) {
+	t.Parallel()
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "fake.go", "package fake\n\nfunc Present() {}\n", parser.AllErrors)
+	if err != nil {
+		t.Fatalf("parse synthetic source: %v", err)
+	}
+	if got := findFuncDecl([]*ast.File{f}, "Absent"); got != nil {
+		t.Errorf("findFuncDecl(%q) = %v, want nil", "Absent", got)
+	}
+}
+
+// TestParseGoFilesInDir_SkipsFileThatFailsToParse pins the leniency
+// parseGoFilesInDir's doc comment promises: one file failing to parse
+// doesn't fail the whole directory walk, it's just excluded from the
+// returned set.
+func TestParseGoFilesInDir_SkipsFileThatFailsToParse(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "good.go"), []byte("package fake\n\nfunc Good() {}\n"), 0o644); err != nil {
+		t.Fatalf("write good.go: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "bad.go"), []byte("package fake\n\nfunc Bad( {\n"), 0o644); err != nil {
+		t.Fatalf("write bad.go: %v", err)
+	}
+
+	fset := token.NewFileSet()
+	files, err := parseGoFilesInDir(fset, dir)
+	if err != nil {
+		t.Fatalf("parseGoFilesInDir: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected 1 successfully-parsed file (bad.go skipped), got %d", len(files))
+	}
+	if findFuncDecl(files, "Good") == nil {
+		t.Error("good.go's FuncDecl should be present in the returned set")
+	}
+}
+
 // TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb is M-074 AC-5
 // negative case: a skill body referencing a non-existent verb fires
 // a violation citing both the offending mention and the skill path.
@@ -295,23 +595,43 @@ func TestCheckSkillBodyMentionsResolve_FiresOnUnknownVerb(t *testing.T) {
 			body:    "Run `aiwf nosuchverb` to do the thing.",
 		},
 	}
-	verbs := map[string]string{"list": "newListCmd"}
+	verbs := map[string]verbEntry{"list": {runnable: true}}
 
 	got := checkSkillBodyMentionsResolve(skills, verbs)
 	mustHaveViolation(t, got, "`aiwf nosuchverb`")
 }
 
+// TestCheckSkillBodyMentionsResolve_FiresOnInvalidSubverb is G-0284's
+// negative case: a skill body attempting a subverb that isn't a real
+// child of its namespace parent fires a violation citing the full
+// attempted path, not just the (valid) first token.
+func TestCheckSkillBodyMentionsResolve_FiresOnInvalidSubverb(t *testing.T) {
+	t.Parallel()
+	skills := []embeddedSkillEntry{
+		{
+			relPath: "internal/skills/embedded/aiwf-contract/SKILL.md",
+			body:    "Don't run `aiwf contract bogus-subverb`.",
+		},
+	}
+	verbs := map[string]verbEntry{
+		"contract":      {runnable: false},
+		"contract bind": {runnable: true},
+	}
+
+	got := checkSkillBodyMentionsResolve(skills, verbs)
+	mustHaveViolation(t, got, "`aiwf contract bogus-subverb`")
+}
+
 // TestCheckSkillBodyMentionsResolve_HelpAndCompletionResolve: Cobra
 // auto-adds `help` and `completion` at the root. They aren't in
-// cmd/aiwf source, so the verb set built by findTopLevelVerbs won't
-// have them. The policy adds them at check time; this test pins
-// that.
+// cmd/aiwf source, so the verb set built by findAllVerbs won't have
+// them. The policy adds them at check time; this test pins that.
 func TestCheckSkillBodyMentionsResolve_HelpAndCompletionResolve(t *testing.T) {
 	t.Parallel()
 	skills := []embeddedSkillEntry{
 		{body: "Try `aiwf help` for the verb list, or `aiwf completion bash` for shell wiring."},
 	}
-	verbs := map[string]string{} // deliberately no help/completion in registered set
+	verbs := map[string]verbEntry{} // deliberately no help/completion in registered set
 
 	got := checkSkillBodyMentionsResolve(skills, verbs)
 	if len(got) != 0 {
@@ -331,7 +651,7 @@ func TestCheckSkillBodyMentionsResolve_FencedAndInlineBothChecked(t *testing.T) 
 			body:    "Inline: `aiwf inlinebogus`. Fenced:\n```\naiwf fencedbogus\n```\n",
 		},
 	}
-	verbs := map[string]string{"list": "newListCmd"}
+	verbs := map[string]verbEntry{"list": {runnable: true}}
 
 	got := checkSkillBodyMentionsResolve(skills, verbs)
 	if len(got) != 2 {
@@ -375,9 +695,13 @@ func TestRunSkillCoverageChecks_FullDriftFiresAllAxes(t *testing.T) {
 		},
 	}
 	// AC-4: `widget` is a registered verb without skill or allowlist.
-	verbs := map[string]string{
-		"list":   "newListCmd",
-		"widget": "newWidgetCmd",
+	// G-0284 AC: `widget install` is a runnable subverb with no
+	// resolved mention anywhere and no allowlist entry.
+	verbs := map[string]verbEntry{
+		"list":            {runnable: true},
+		"widget":          {runnable: false},
+		"widget install":  {runnable: true},
+		"widget internal": {runnable: false}, // non-runnable subverb: not required to carry its own coverage
 	}
 	allowlist := map[string]string{}
 
@@ -400,6 +724,12 @@ func TestRunSkillCoverageChecks_FullDriftFiresAllAxes(t *testing.T) {
 	mustHaveViolation(t, got, "\"widget\" has no embedded skill")     // AC-4
 	mustHaveViolation(t, got, "`aiwf phantom`")                       // AC-5 (kernel)
 	mustHaveViolation(t, got, "`aiwf pluginphantom`")                 // G-0088: plugin-skill body mention resolved
+	mustHaveViolation(t, got, "subverb \"widget install\"")           // G-0284: undocumented runnable subverb
+	for _, v := range got {
+		if strings.Contains(v.Detail, "widget internal") {
+			t.Errorf("non-runnable subverb %q should not require its own coverage entry; got violation: %+v", "widget internal", v)
+		}
+	}
 }
 
 // mustHaveViolation asserts that vs contains at least one Violation
@@ -416,11 +746,14 @@ func mustHaveViolation(t *testing.T, vs []Violation, needle string) {
 }
 
 // TestNoReintroducedDeadVerbForms_ContractsAndSkill is M-072 AC-8's
-// future-drift guard. The skill-coverage policy resolves only the
-// *first word* after `aiwf` (per its header godoc); `aiwf list
-// contracts` would no longer trip it because `list` is now a real
-// verb. But the second word `contracts` is still a dead positional —
-// the original G-061 drift shape — and the spec for M-072 AC-8 named
+// future-drift guard. `list` is a runnable, childless top-level verb,
+// so mention-resolution (checkSkillBodyMentionsResolve, extended by
+// G-0284 to walk namespace parents) stops cleanly at `list` and never
+// looks at the trailing word — `aiwf list contracts` would no longer
+// trip it, because `contracts` is treated as an ordinary positional,
+// the same tolerance that lets `aiwf add milestone` resolve. But
+// `contracts` is still a dead positional — the original G-061 drift
+// shape — and the spec for M-072 AC-8 named
 // docs/pocv3/plans/contracts-plan.md and aiwf-contract/SKILL.md
 // specifically. This test pins the fix.
 //
