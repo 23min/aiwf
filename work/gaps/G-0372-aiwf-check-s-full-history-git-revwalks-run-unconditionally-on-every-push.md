@@ -10,9 +10,10 @@ priority: medium
 `gitops.BulkRevwalk`, `check.WalkHeadCommits`, `orphan_dag`) walk the
 entire reachable commit history from scratch on every invocation, with no
 notion of "already verified as of the last check." That history-scaling
-term is what this gap tracks. It is one of three independent terms in
-`aiwf check`'s total cost, and no longer the largest (measured 2026-07-18,
-this repo: ~860 entities, ~7,650 commits):
+term is what this gap tracks. With the other two cost terms retired, it
+is now essentially the entire code-side cost of `aiwf check` — ~5s on
+this repository's bind-mounted devcontainer filesystem, ~2.8s on native
+fs (measured 2026-07-18, this repo: ~860 entities, ~7,650 commits):
 
 1. **Environment — controlled, not code.** The devcontainer bind mount
    multiplies every git object access ~7× (identical repo: ~56s on the
@@ -26,13 +27,14 @@ this repo: ~860 entities, ~7,650 commits):
    itself is a workstation/devcontainer-layout decision, out of aiwf's
    hands.
 2. **The cross-branch collision scan** — work proportional to
-   entities × refs, discarded for every locally-present id. E-0067's
-   lazy-scan epic addresses it; not this gap.
-3. **The history-scaling walk itself — this gap.** Post-maintenance on
-   native fs, the residual is ~3s: `BulkRevwalk`'s git side is ~0.26s;
-   the dominant remainder is the FSM tier's ~6,900 `git cat-file --batch`
-   blob reads (one per distinct entity-file blob observed across history)
-   issued as strictly serial request-response round-trips
+   entities × refs, discarded for every locally-present id. Resolved by
+   E-0067: collision stats now run only for locally-absent ids, and a
+   stale ref costs only the per-ref `ls-tree` floor.
+3. **The history-scaling walk itself — this gap.** On native fs the term
+   measures ~2.8s: `BulkRevwalk`'s git side is ~0.3s; the dominant
+   remainder is the FSM tier's ~7,000 `git cat-file --batch` blob reads
+   (one per distinct entity-file blob observed across history) issued as
+   strictly serial request-response round-trips
    (`internal/gitops/catfile.go`), plus the Go-side parse of every
    commit record, on a rule pipeline that runs its independent walks
    strictly serially.
@@ -49,8 +51,8 @@ Mechanisms for the structural fix, in rising order of ambition:
 - **Pipelining the `BlobReader` protocol** — batch the ~7k requests
   instead of one write/read round-trip per blob.
 - **Parallelizing the independent rule walks** (`BulkRevwalk`, the HEAD
-  walk, orphan-dag, the cross-branch scan) — they are independent until
-  findings assembly and currently run one after another.
+  walk, orphan-dag) — they are independent until findings assembly and
+  currently run one after another.
 - **Per-commit observation caching with ref watermarks** — the full
   E-0058-class design, warranted only if the smaller mechanisms prove
   insufficient. Any design that memoizes *verdicts* (rather than
@@ -68,10 +70,12 @@ Mechanisms for the structural fix, in rising order of ambition:
 This gap is the concrete blocker on the branch/id-allocation strategy
 discussion in `docs/initiatives/id-lifecycle.md` (the EMB — "ephemeral
 mutation branch" — proposal, and G-0281's gaps-inbox side channel): both
-assume pushing is cheap enough to retry on contention. The operational
-fixes above plus E-0067 close most of the distance, but the remaining
-check cost still scales with total repository history, which only grows
-(~1,400 commits landed in the first half of July alone). The structural
+assume pushing is cheap enough to retry on contention. With the
+operational fixes and E-0067 landed that assumption practically holds
+today (~5s on the mount), so this is a scaling concern rather than acute
+pain — but the remaining check cost still scales with total repository
+history, which only grows (~1,400 commits landed in the first half of
+July alone). The structural
 property this gap asks for — check cost proportional to what changed
 since the last check, not to how much history exists — remains unbuilt;
 the blob-SHA status cache above is the smallest mechanism that delivers
