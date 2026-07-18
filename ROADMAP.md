@@ -934,5 +934,8 @@ only for ids absent from the local working tree — so read verbs stay fast as t
 and branch count grow, and fix the one cross-branch correctness bug that lives in the
 same code.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | draft |
+| M-0266 | Honor a cross-branch id's real area in show --area | draft |
 
