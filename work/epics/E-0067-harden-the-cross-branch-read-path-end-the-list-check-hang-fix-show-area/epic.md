@@ -110,12 +110,11 @@ fast-check and fast-read-path work).
 
 ## Milestones
 
-- Introduce the lazy cross-branch scan helper in `internal/trunk` and rewire
-  `LoadTreeWithTrunk`, `crossBranchListRows`, and `buildCrossBranchShowView` to it;
-  collision-stats run only for locally-absent ids; behavior-preserving and scale-asserted
-  (closes G-0418) · depends on: —
-- `aiwf show --area` on a cross-branch id honors the resolved entity's real area (closes
-  G-0419) · depends on: the first milestone
+- `M-0265` — the lazy `trunk` cross-branch scan helper; rewire `LoadTreeWithTrunk`,
+  `crossBranchListRows`, and `buildCrossBranchShowView` so `DetectCollisions` runs only for
+  locally-absent ids; behavior-preserving and scale-asserted (closes G-0418) · depends on: —
+- `M-0266` — `aiwf show --area` on a cross-branch id honors the resolved entity's real area
+  (closes G-0419) · depends on: `M-0265`
 
 ## ADRs produced
 
