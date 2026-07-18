@@ -250,14 +250,22 @@ Verbs:
   promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
+  retitle <id> <new-title>       fix an entity's title (frontmatter + filename slug); re-derives the slug
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
+  milestone depends-on <M-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
+  rewidth [--apply]              canonicalize legacy narrow-width ids to canonical width, tree-wide; dry-run by default, --apply commits (one idempotent commit)
+  set-area <id> <member>         tag one entity to a declared area (aiwf.yaml areas.members); --clear removes the tag
+  set-priority <id> <level>      set a gap or decision's priority (urgent|high|medium|low); --clear removes it
   rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit
+  archive [--apply | --dry-run] [--kind <kind>]  sweep terminal-status entities into their per-kind archive/ subdir (ADR-0004); dry-run by default, --apply commits
   authorize <id> --to <agent>    open an autonomous-work scope on <id> for <agent>; --pause "<reason>" / --resume "<reason>" cycle the scope; human-only verb
+  acknowledge illegal <sha> --reason "..."  record a sovereign exemption for a historical commit's audit finding; --for-entity <id> binds the ack to one entity; human actor required
+  acknowledge mistag <id> --reason "..."    accept an area-mistag warning as legitimate cross-cutting work; human actor required
   worktree add <branch> [path]   create a git worktree and materialize aiwf's rituals into it atomically; --base <ref> for a new branch (default HEAD), --print-path to emit only the resulting path (for cd "$(...)")
   init                           one-time setup: aiwf.yaml, scaffolding, skills, pre-push hook
-  update                         re-materialize embedded skills into .claude/skills/aiwf-*/
+  update                         re-materialize everything aiwf ships into .claude/: verb skills (aiwf-*), ritual skills (aiwfx-*/wf-*), role agents, entity templates, the aiwf-guidance.md fragment, and git hooks
   upgrade [--version vX.Y.Z]     fetch a newer (or specified) aiwf binary via 'go install' and re-exec into 'aiwf update' (default: latest)
   history <id>                   show the entity's lifecycle from git log trailers
   doctor [--self-check] [--check-latest]  drift / version / id-collision health check; --self-check drives every verb against a temp repo; --check-latest hits the Go module proxy for the latest published aiwf version (advisory)
@@ -266,6 +274,7 @@ Verbs:
   import <manifest>              bulk-create entities from a YAML/JSON manifest (one commit by default)
   whoami                         print the resolved actor and the source it came from
   status                         project snapshot: in-flight work, open decisions, gaps, recent activity
+  list [flags]                   filter the planning tree by kind/status/parent/area/priority/archived (see 'Flags for list'); one row per match, or a per-kind count summary with no flags
   show <id>                      aggregate view: frontmatter + acs + recent history + active findings + referenced_by (the ids of entities that name this one as a reference target); JSON also carries body (map of section-heading slug to prose: epic goal/scope/out_of_scope; milestone goal/acceptance_criteria; adr context/decision/consequences; gap what_s_missing/why_it_matters; decision question/decision/reasoning; contract purpose/stability) and per-AC description (the AC-N body section) on milestones; history events carry tests {pass,fail,skip,total} when the commit had an aiwf-tests trailer; composite ids (M-NNN/AC-N) accepted
   schema [kind]                  print the frontmatter contract for one kind (or all six); read-only
   template [kind]                print the body-section template 'aiwf add' would scaffold for the kind; read-only
@@ -290,6 +299,9 @@ Provenance:
 
 Flags for 'add':
   --epic <id>                    parent epic id (milestone)
+  --tdd <required|advisory|none> milestone TDD policy; required at creation time for kind=milestone
+  --area <member>                workstream area tag (root kinds only); validated against aiwf.yaml: areas.members
+  --priority <level>             priority level (gap/decision only): urgent, high, medium, low
   --depends-on <id,id,...>       milestones the new milestone depends on (milestone)
   --discovered-in <id>           discovery context (gap)
   --relates-to <id,id,...>       related entities (decision)
@@ -297,7 +309,15 @@ Flags for 'add':
   --validator <name>             validator name to bind (contract; with --schema, --fixtures: atomic add+bind)
   --schema <path>                schema path (contract; pairs with --validator and --fixtures)
   --fixtures <path>              fixtures-tree root (contract; pairs with --validator and --schema)
+  --body-file <path>             path to a file whose content becomes the entity body, in the same atomic commit as the frontmatter ("-" for stdin); replaces the per-kind default template
   --tests "pass=N fail=N ..."    test metrics for the seeded red phase (ac; only when parent milestone is tdd: required); recognized keys: pass, fail, skip, total; non-negative integers
+
+Flags for 'list':
+  --kind <kind>                  filter by entity kind (epic, milestone, adr, gap, decision, contract)
+  --status <status>              filter by entity status (kind-aware)
+  --parent <id>                  filter to entities whose parent is this id (e.g., milestones under E-13)
+  --area <member>                filter to entities whose effective area equals this workstream tag
+  --priority <level>             filter to gaps/decisions whose priority equals this level (urgent|high|medium|low)
 
 Flags for 'check', 'history', and 'contract verify':
   --format <fmt>                 output format: text (default) or json
@@ -308,11 +328,15 @@ Flags for 'history':
 
 Flags for 'promote' and 'cancel':
   --audit-only --reason "..."    backfill an audit trail when state was reached via a manual commit; verb writes an empty-diff commit carrying aiwf-audit-only:; entity must already be at the target state (no FSM transition); mutually exclusive with --force; human-only
+  --by <id,id,...>                comma-separated resolver entity ids written to addressed_by (promote gap -> addressed only)
+  --by-commit <sha,sha,...>       comma-separated commit SHAs written to addressed_by_commit (promote gap -> addressed only); must be reachable from HEAD
+  --superseded-by <ADR-id>        ADR id written to supersedes/superseded_by, recorded on both entities atomically (promote adr -> superseded only)
 
 Flags for 'authorize':
   --to <agent>                   open scope (e.g. ai/claude); refused on terminal scope-entity unless --force --reason
   --pause "<reason>"             pause the most-recently-opened active scope on <id>
   --resume "<reason>"            resume the most-recently-paused scope on <id>
+  --branch <ref>                 bind the scope to a ritual branch; records an aiwf-branch: trailer
 
 Flags for 'import':
   --on-collision <mode>          fail (default) | skip | update — behavior when an explicit id already exists

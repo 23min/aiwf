@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0285: root `aiwf --help` banner synced with the registered command tree
+
+The banner printed by `aiwf`, `aiwf --help`, and `aiwf help` had drifted from the actual
+Cobra command tree: eight registered verbs (`acknowledge`, `archive`, `list`, `milestone`,
+`retitle`, `rewidth`, `set-area`, `set-priority`) were absent, several `add`/`promote`
+flags were undocumented, and the `update` verb's one-liner understated its current scope.
+The banner now lists every verb and a curated set of value-taking flags, and a new policy
+test (`TestPolicy_HelpBannerCoversVerbs` / `TestPolicy_HelpBannerCoversFlags`) walks the
+live command tree on every CI run so a verb or flag added without a banner update fails
+the build instead of silently drifting again.
+
 ### Fixed — G-0424: de-flaked the concurrent-writer-at-scale stress scenario
 
 Internal test harness only — no user-facing change. `ConcurrentWriterAtScaleScenario`
