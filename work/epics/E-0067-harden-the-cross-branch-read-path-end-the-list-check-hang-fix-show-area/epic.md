@@ -1,7 +1,7 @@
 ---
 id: E-0067
 title: 'Harden the cross-branch read path: end the list/check hang, fix show --area'
-status: active
+status: done
 ---
 
 # E-0067 — Harden the cross-branch read path: end the list/check hang, fix show --area
