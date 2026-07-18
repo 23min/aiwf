@@ -923,7 +923,7 @@ Give aiwf a kernel-supported `priority` field on gaps and decisions, so the back
 | M-0263 | Add the priority read surface: list/status filter, envelope, show | done |
 | M-0264 | Render a priority badge in the HTML site | done |
 
-## E-0067 — Harden the cross-branch read path: end the list/check hang, fix show --area (active)
+## E-0067 — Harden the cross-branch read path: end the list/check hang, fix show --area (done)
 
 ### Goal
 
