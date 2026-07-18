@@ -35,3 +35,9 @@ The four policy tests are the leftover P1–P8 set after the others fold into th
 ## Source
 
 `docs/pocv3/health-scorecard-2026-06-04.md` §B2 (move 2), §B3 (move 2), §D4 (move 1), §F3 (moves 1–2), §G2 (move 2), §C1 (moves 2–3), §F1 (move 2), §G1 (moves 1–2).
+
+## Notes
+
+Landed, each trailered to this gap: `no_time_now_in_core.go` (commit `4aec1ccd`), `validate_check_is_never_writes.go` (commit `db6722af`), the `BuildStatus` clock injection (commit `3157f6f8`), and the CLAUDE.md "derived artifacts" section plus the `OpDelete`-absence doc comment (commit `888d3817`). That last commit's own message drops the `raw*` shim convention, the "shares memory" phrase, and the altitude taxonomy on YAGNI grounds, and defers the `D-NNNN`-vs-ADR predicate to the consumer-facing surface (it lives only implicitly in the `aiwfx-record-decision` skill body) — deliberate scoping, not oversight.
+
+Still unaddressed: `cited_entity_ids_resolve.go` and `cache_invalidation_documented.go` don't exist anywhere in the tree.
