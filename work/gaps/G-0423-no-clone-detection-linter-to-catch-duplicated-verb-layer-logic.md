@@ -32,10 +32,12 @@ audit:
   are structurally identical (finding F2); `reallocate.go:460` already
   comments "same shape as substituteSlug."
 - The same `failX`/`emitXEnvelope`/`withCommitSHA` triad is independently
-  reimplemented three times: `internal/cli/archive/archive.go:220-234,
-  279-288`, `internal/cli/rewidth/rewidth.go:214,232,250`, and
-  `internal/cli/importcmd/importcmd.go:257,275,293` (finding F4) — each
-  admitted by its own comments as a mirror of the others.
+  reimplemented three times: `internal/cli/archive/archive.go` (helpers
+  spanning roughly lines 243-291), `internal/cli/rewidth/rewidth.go:214,232,250`,
+  and `internal/cli/importcmd/importcmd.go:257,275,293` (finding F4) — each
+  admitted by its own comments as a mirror of the others, and verified as a
+  real gap in `cliutil.FinishVerb`'s contract (no dry-run/multi-`Plan`
+  support), not mere copy-paste laziness.
 - `internal/check/reflog_walk.go:138` duplicates
   `internal/cli/check/isolation_escape_oracle.go:324`'s ref-listing
   instead of both calling `gitops.LocalBranchRefs` (finding F7).
