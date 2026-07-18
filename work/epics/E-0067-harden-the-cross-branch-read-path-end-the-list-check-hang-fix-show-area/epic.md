@@ -8,7 +8,7 @@ status: proposed
 
 ## Goal
 
-Filtered `aiwf list` (~24s) and `aiwf check` (~57s) are slow at this repository's
+Filtered `aiwf list` (~10s) and `aiwf check` (~15–20s) are slow at this repository's
 scale because the cross-branch scan runs collision blob-stats over every entity on
 every ref, then discards nearly all of it. Make that scan lazy — collision detection
 only for ids absent from the local working tree — so read verbs stay fast as the tree
@@ -24,11 +24,15 @@ cat-file` round-trip that resolves `<commit>:<path>` — a full tree walk.
 
 At this repository's current shape — 860 entity files on `main`, 10 refs (seven stale
 local epic branches plus three remote-tracking), ~8300 ref-hits — the scan issues on
-the order of 8300 tree-walk round-trips. Feeding exactly those queries to a single `git
-cat-file --batch-check` is ~23s, essentially the entire hang. It produces zero useful
-rows: 818 distinct ids across all refs equals 818 ids in the local tree, so nothing is
-actually absent. `DetectCollisions`' result is read only on a local-tree *miss*, so all
-the work spent on locally-present ids is discarded.
+the order of 8300 tree-walk round-trips, and produces zero useful rows: 818 distinct
+ids across all refs equals 818 ids in the local tree, so nothing is actually absent.
+The round-trips' unit cost depends on environment: with a packed object store and a
+fresh commit-graph (`maintenance.auto` now keeps both current), the scan accounts for
+~10s of the filtered-list wall clock on this repository's bind-mounted devcontainer
+filesystem, and sub-second on native fs. The epic targets the algorithmic term — work
+proportional to entities × refs that is then discarded — which grows with both factors
+regardless of environment. `DetectCollisions`' result is read only on a local-tree
+*miss*, so all the work spent on locally-present ids is discarded.
 
 The cost is not `--priority`-specific; it lands on every filtered `aiwf list` and inside
 every `cliutil.LoadTreeWithTrunk` (so `aiwf check` too). It surfaced during E-0066's
@@ -84,7 +88,7 @@ fast-check and fast-read-path work).
 ## Success criteria
 
 - [ ] On this repository, a filtered `aiwf list` (any filter) returns in the same
-  sub-second order of magnitude as no-args `aiwf list`, not the 20s-plus it costs today.
+  sub-second order of magnitude as no-args `aiwf list`, not the ~10s it costs today.
 - [ ] `aiwf check`'s cross-branch scan no longer exhibits the entities × refs blow-up; a
   scale assertion pins collision-stats to the locally-absent id set.
 - [ ] The cross-branch scan composition exists in exactly one place, consumed by all three
