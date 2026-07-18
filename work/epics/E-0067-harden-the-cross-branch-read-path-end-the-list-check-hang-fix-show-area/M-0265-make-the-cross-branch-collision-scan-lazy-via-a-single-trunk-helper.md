@@ -1,7 +1,7 @@
 ---
 id: M-0265
 title: Make the cross-branch collision scan lazy via a single trunk helper
-status: in_progress
+status: done
 parent: E-0067
 tdd: required
 acs:
