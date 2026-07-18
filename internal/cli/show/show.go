@@ -402,7 +402,7 @@ func nonNilStrings(s []string) []string {
 //
 // Returns ok=false when id is unknown everywhere (no local entity, no
 // cross-branch hit) or when the git-side resolution can't complete
-// (best-effort, mirroring trunk.LocalRefHits/DetectCollisions'
+// (best-effort, mirroring trunk.LocalRefHits/ScanCrossBranch'
 // degrade-to-nothing contract) — both read as an ordinary "not found"
 // to the caller.
 //

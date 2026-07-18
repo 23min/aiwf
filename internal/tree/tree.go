@@ -159,7 +159,8 @@ type Tree struct {
 	CrossBranchHits []trunk.RefHit
 	// CrossBranchCollisions is the canonicalized-id set for which
 	// CrossBranchHits carries divergent blob content across two or more
-	// refs (trunk.DetectCollisions, M-0259/AC-3, G-0415). Divergence
+	// refs (computed by trunk.ScanCrossBranch, M-0259/AC-3, G-0415).
+	// Divergence
 	// alone is ambiguous — it can mean a genuine duplicate-mint
 	// collision, or just an ordinary same-entity edit still unmerged on
 	// a sibling branch/worktree (D-0036) — so refs-resolve and
