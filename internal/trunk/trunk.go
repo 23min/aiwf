@@ -35,7 +35,7 @@
 // ids-unique check — so a sibling worktree's freshly-committed id is
 // seen at allocation time (M-0212).
 //
-// LocalRefHits/RemoteRefHits and DetectCollisions (M-0259) widen this
+// LocalRefHits/RemoteRefHits and detectCollisions (M-0259) widen this
 // further into a second consumer beyond the allocator: the per-id
 // path/ref view they carry, plus blob-content comparison across refs,
 // feed the check layer's cross-branch-pending/cross-branch-collision
@@ -272,7 +272,26 @@ func HitIDStrings(hits []RefHit) []string {
 	return ids
 }
 
-// DetectCollisions groups hits (as returned by LocalRefHits/
+// needsBlobStats reports whether detectCollisions must open a BlobReader
+// and issue blob-stat round-trips for hits: true iff some canonicalized
+// id carries two or more hits (a single-hit id has nothing to compare
+// against). It is the stat-gate detectCollisions consults before any git
+// work, and the scale property E-0067/M-0265/AC-4 pins — zero blob-stats
+// when it returns false, which is exactly the all-ids-present-locally
+// state ScanCrossBranch's lazy filter produces.
+func needsBlobStats(hits []RefHit) bool {
+	seen := make(map[string]bool, len(hits))
+	for _, h := range hits {
+		id := entity.Canonicalize(h.ID)
+		if seen[id] {
+			return true
+		}
+		seen[id] = true
+	}
+	return false
+}
+
+// detectCollisions groups hits (as returned by LocalRefHits/
 // RemoteRefHits, concatenated by the caller) by canonicalized id, and
 // — for any id appearing on more than one distinct ref — compares
 // blob content at each hit's path via gitops.BlobReader.Stat
@@ -300,23 +319,26 @@ func HitIDStrings(hits []RefHit) []string {
 // BlobReader typically does spawn on most verb runs; it just never
 // spawns for the id-free or fully-solo-branch case, where there is
 // nothing to compare.
-func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[string]bool {
+//
+// Composed only by ScanCrossBranch, which applies the lazy locally-absent
+// filter before calling this — so the union+collision composition lives in
+// exactly one place (G-0418). Kept unexported deliberately: calling it from
+// another package (or re-exporting it) reopens the O(entities×refs)
+// duplication this consolidation removed. Route cross-branch collision
+// detection through ScanCrossBranch instead.
+func detectCollisions(ctx context.Context, workdir string, hits []RefHit) map[string]bool {
+	collisions := make(map[string]bool)
+	// Gate on the stat-work check before any grouping or git work: with
+	// no multi-hit id there is nothing to compare, so return without
+	// opening a BlobReader (zero blob-stats).
+	if !needsBlobStats(hits) {
+		return collisions
+	}
+
 	byID := make(map[string][]RefHit, len(hits))
 	for _, h := range hits {
 		key := entity.Canonicalize(h.ID)
 		byID[key] = append(byID[key], h)
-	}
-
-	collisions := make(map[string]bool)
-	needsComparison := false
-	for _, group := range byID {
-		if len(group) >= 2 {
-			needsComparison = true
-			break
-		}
-	}
-	if !needsComparison {
-		return collisions
 	}
 
 	br, err := gitops.NewBlobReader(ctx, workdir)
@@ -354,6 +376,106 @@ func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[st
 		}
 	}
 	return collisions
+}
+
+// CrossBranchScan is the outcome of one cross-branch ref scan: the
+// per-ref-class hit slices the allocator's id view needs (LocalHits /
+// RemoteHits), their union (Hits — the cross-branch read-side index),
+// and the divergent-content id set among them (Collisions). Composed
+// once by ScanCrossBranch so no consumer re-derives the union or
+// re-runs detectCollisions (E-0067, G-0418).
+type CrossBranchScan struct {
+	// LocalHits is every entity-id hit on a local branch ref
+	// (refs/heads/*) — the allocator's LocalRefIDs view (M-0212).
+	LocalHits []RefHit
+	// RemoteHits is every hit on a remote-tracking ref (refs/remotes/*)
+	// — the allocator's RemoteRefIDs view (M-0214).
+	RemoteHits []RefHit
+	// Hits is LocalHits followed by RemoteHits: the cross-branch union
+	// the read-side resolver (crossBranchIndex / show / list) groups by
+	// id on a local-tree miss (ADR-0030).
+	Hits []RefHit
+	// Collisions is the canonicalized-id set whose hits carry divergent
+	// blob content across refs (detectCollisions, G-0415), consulted on
+	// a local-tree miss to escalate cross-branch-pending to
+	// cross-branch-collision (D-0036). Domain bound: only ids ABSENT from
+	// the local tree (per ScanCrossBranch's presentLocally) can appear
+	// here — a locally-present diverging id is deliberately omitted by the
+	// lazy filter, so a bare Collisions[id] lookup returns false even for
+	// a genuinely diverging present id. Read it only after a local-tree
+	// miss (as every consumer does).
+	Collisions map[string]bool
+}
+
+// ScanCrossBranch composes the local + remote ref-hit union once and
+// detects content collisions among them, returning both the union (for
+// the cross-branch read-side index) and its per-ref-class halves (for
+// the allocator's id view). It is the single composition point for the
+// cross-branch scan E-0060 shipped copied across three call sites
+// (cliutil.LoadTreeWithTrunk, list.crossBranchListRows,
+// show.buildCrossBranchShowView); consolidating it here keeps the
+// "hits scanned equal the hits handed to detectCollisions" coupling in
+// one place (G-0418).
+//
+// Collision detection is lazy: only hits whose id is absent from the
+// local tree (presentLocally reports false) are handed to
+// detectCollisions, so the O(entities×refs) blob-stat pass shrinks to
+// the locally-absent id set — nothing in the common all-merged state,
+// where every id resolves locally. This is behavior-preserving because
+// every consumer reads a collision result only after a local-tree miss
+// (ADR-0030): a locally-present id's collision entry is never observed,
+// so declining to compute it changes no output. A nil presentLocally
+// disables the filter (every id treated as absent, collisions computed
+// over the full union) — nil-safety for absentHits, not a mode any
+// production caller uses; all three callers pass a real predicate.
+//
+// Best-effort and read-only, inheriting LocalRefHits/RemoteRefHits/
+// detectCollisions' contract: it never errors, degrading to empty
+// slices and an empty collision map on odd repo state.
+func ScanCrossBranch(ctx context.Context, workdir string, presentLocally func(canonicalID string) bool) CrossBranchScan {
+	local := LocalRefHits(ctx, workdir)
+	remote := RemoteRefHits(ctx, workdir)
+	hits := append(append([]RefHit(nil), local...), remote...)
+	return CrossBranchScan{
+		LocalHits:  local,
+		RemoteHits: remote,
+		Hits:       hits,
+		Collisions: detectCollisions(ctx, workdir, absentHits(hits, presentLocally)),
+	}
+}
+
+// absentHits returns the subset of hits whose canonical id is absent
+// from the local tree per presentLocally — the exact hit set
+// ScanCrossBranch hands to detectCollisions (E-0067/M-0265/AC-2).
+// presentLocally is consulted once per distinct id (not once per hit),
+// so the filter's own cost stays O(distinct ids), matching the
+// read-side loop's existing per-id tr.ByID cost rather than multiplying
+// it by the ref count. A nil predicate returns hits unchanged (no local
+// tree to filter against).
+func absentHits(hits []RefHit, presentLocally func(canonicalID string) bool) []RefHit {
+	if presentLocally == nil {
+		return hits
+	}
+	// Group by canonical id so presentLocally is consulted once per
+	// distinct id, preserving first-seen id order for a deterministic
+	// result.
+	byID := make(map[string][]RefHit, len(hits))
+	order := make([]string, 0, len(hits))
+	for _, h := range hits {
+		id := entity.Canonicalize(h.ID)
+		if _, seen := byID[id]; !seen {
+			order = append(order, id)
+		}
+		byID[id] = append(byID[id], h)
+	}
+	var out []RefHit
+	for _, id := range order {
+		if presentLocally(id) {
+			continue
+		}
+		out = append(out, byID[id]...)
+	}
+	return out
 }
 
 // IDStrings returns just the id strings from r, in the order they
