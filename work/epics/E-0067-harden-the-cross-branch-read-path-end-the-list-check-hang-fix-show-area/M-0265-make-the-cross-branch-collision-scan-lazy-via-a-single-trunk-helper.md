@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: One trunk helper composes the cross-branch scan for treeload, list, and show
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: DetectCollisions runs only for ids absent from the local working tree
       status: open
