@@ -8,9 +8,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/repolock"
 )
 
 // concurrent_writer_at_scale.go — M-0244/AC-1: ConcurrentWriterAtScaleScenario
@@ -57,7 +59,22 @@ type ConcurrentWriterAtScaleScenario struct {
 	n          int
 	gapIDs     []string
 	violations []Violation
+	// wantRunIDs is every diagnostic correlation id this run's actors
+	// produced — one per real `aiwf cancel` invocation, lock-busy retries
+	// (G-0424) included, since each still logs exactly one line. It is the
+	// classifier's expected-id set and the exact-line-count oracle both
+	// LogFileHasExactlyNLines and the retry integration test assert against.
+	wantRunIDs []string
 }
+
+// busyRetryBudget bounds how many times an actor re-attempts its cancel
+// after losing the repo-lock race (repolock.ErrBusy → ExitUsage). Each
+// losing attempt already blocks up to the binary's own ~2s lock timeout
+// (internal/cli/cliutil.lockTimeout), so this budget spans far longer than
+// any realistic contention window among a handful of concurrent writers; it
+// exists only so a genuine deadlock fails the scenario instead of looping
+// forever (G-0424).
+const busyRetryBudget = 32
 
 // NewConcurrentWriterAtScaleScenario builds a scenario driving n
 // concurrent `aiwf cancel` subprocesses, each writing its diagnostic
@@ -96,54 +113,126 @@ type diagLogLine struct {
 	RunID string `json:"run_id"`
 }
 
-// launchCancelActor runs one `aiwf cancel <id>` invocation with
-// diagnostic logging enabled and pointed at logPath, shared across
-// every concurrent actor, and returns its envelope so Run can read
-// back the run_id (metadata.correlation_id) this invocation should
-// have logged.
-func (s *ConcurrentWriterAtScaleScenario) launchCancelActor(dir, logPath, id string) (verbEnvelope, error) {
+// launchCancelActor runs one actor's `aiwf cancel <id>` to completion,
+// retrying past the expected-under-contention lock-busy outcome (G-0424:
+// repolock.ErrBusy → ExitUsage). It returns every attempt's diagnostic
+// correlation id in order — the lock-busy losses included, because each one
+// still emits exactly one diagnostic line to the shared log (EmitVerbOutcome's
+// defer is registered before lock acquisition), so the run's oracle must
+// expect all of them, not just the final success.
+func (s *ConcurrentWriterAtScaleScenario) launchCancelActor(dir, logPath, id string) ([]string, error) {
+	return retryWhileBusy(func() (string, bool, error) {
+		return s.runCancelOnce(dir, logPath, id)
+	}, busyRetryBudget)
+}
+
+// runCancelOnce runs a single `aiwf cancel` subprocess with diagnostic
+// logging pointed at logPath. It reports the invocation's correlation id
+// (== the run_id it logged) and whether it lost the repo-lock race, via
+// classifyCancelOutcome; the exec and the outcome decision are split so the
+// lock-busy branch is unit-testable without inducing real contention.
+func (s *ConcurrentWriterAtScaleScenario) runCancelOnce(dir, logPath, id string) (correlationID string, busy bool, err error) {
 	cmd := exec.Command(s.aiwfBin, "cancel", id, "--reason", "concurrent-writer-at-scale probe", "--format=json") //nolint:gosec // s.aiwfBin is a path this package's own BuildBinary just produced, not attacker-controlled input
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "AIWF_LOG=debug", "AIWF_LOG_FORMAT=json", "AIWF_LOG_FILE="+logPath)
-	out, err := cmd.Output()
-	if err != nil {
-		return verbEnvelope{}, fmt.Errorf("running aiwf cancel %s: %w", id, err)
+	out, runErr := cmd.Output()
+	return classifyCancelOutcome(id, out, runErr)
+}
+
+// classifyCancelOutcome turns one cancel subprocess's stdout and run error
+// into (correlationID, busy, err). A non-zero exit whose stdout is the
+// repo-lock-busy envelope is not an error — busy is reported so the caller
+// retries — while any other non-zero exit or launch failure is a real actor
+// error. A clean exit yields the parsed envelope's correlation id.
+func classifyCancelOutcome(id string, out []byte, runErr error) (correlationID string, busy bool, err error) {
+	if runErr != nil {
+		if env, ok := parseBusyEnvelope(out); ok {
+			return env.Metadata.CorrelationID, true, nil
+		}
+		return "", false, fmt.Errorf("running aiwf cancel %s: %w", id, runErr)
 	}
-	return parseVerbEnvelope([]string{"cancel", id}, out)
+	env, err := parseVerbEnvelope([]string{"cancel", id}, out)
+	if err != nil {
+		return "", false, err
+	}
+	return env.Metadata.CorrelationID, false, nil
+}
+
+// parseBusyEnvelope reports whether out is the --format=json error envelope
+// a repo-lock-busy cancel emits — the expected-under-contention outcome
+// (repolock.ErrBusy → ExitUsage) an actor retries past. It keys on
+// repolock.ErrBusy's own sentinel text rather than the scenario re-hard-coding
+// the message; the CLI wraps that sentinel with "; retry in a moment"
+// (internal/cli/cliutil/lock.go), so the end-to-end coupling — that a real busy
+// exit is actually recognized here — is pinned by the RunRetriesPastLockBusy
+// integration test, not by this substring match alone.
+func parseBusyEnvelope(out []byte) (verbEnvelope, bool) {
+	env, err := parseVerbEnvelope([]string{"cancel"}, out)
+	if err != nil {
+		return verbEnvelope{}, false
+	}
+	if env.Status != "error" || env.Error == nil || !strings.Contains(env.Error.Message, repolock.ErrBusy.Error()) {
+		return verbEnvelope{}, false
+	}
+	return env, true
+}
+
+// retryWhileBusy calls attempt until it reports a non-busy outcome or the
+// budget is exhausted. It accumulates every attempt's correlation id in
+// order — a lock-busy attempt still logged its own line, so it counts — and
+// returns them on success; a non-nil attempt error aborts immediately, and
+// exhausting the budget is a real failure (a genuine deadlock, not transient
+// contention).
+func retryWhileBusy(attempt func() (correlationID string, busy bool, err error), budget int) ([]string, error) {
+	var ids []string
+	for i := 0; i < budget; i++ {
+		id, busy, err := attempt()
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+		if !busy {
+			return ids, nil
+		}
+	}
+	return nil, fmt.Errorf("aiwf cancel still lost the repo-lock race after %d attempts; the lock is likely deadlocked, not merely contended", budget)
 }
 
 // Run launches one `aiwf cancel` subprocess per pre-seeded gap,
 // concurrently, all pointed at one shared diagnostic log file, then
-// classifies the resulting file against every actor's own reported
-// run_id. A verb outcome's status (ok or otherwise) is irrelevant to
-// this scenario's own claim — EmitVerbOutcome's deferred call fires
-// regardless of exit code, so even a non-ok invocation still logs a
-// real run_id this scenario expects to find exactly once.
+// classifies the resulting file against every invocation's own reported
+// run_id. An actor whose cancel loses the repo-lock race under contention
+// (repolock.ErrBusy → ExitUsage) is retried until it completes (G-0424);
+// every attempt — the lock-busy losses included — emits exactly one
+// diagnostic line (EmitVerbOutcome's defer is registered before lock
+// acquisition), so the run expects one clean line per attempt, whether the
+// invocation ultimately succeeded or lost the lock and retried.
 func (s *ConcurrentWriterAtScaleScenario) Run(dir string) error {
 	logPath := filepath.Join(dir, "diag.log")
 
-	envs := make([]verbEnvelope, s.n)
+	idsPerActor := make([][]string, s.n)
 	errs := make([]error, s.n)
 	var wg sync.WaitGroup
 	for i, id := range s.gapIDs {
 		wg.Add(1)
 		go func(i int, id string) {
 			defer wg.Done()
-			envs[i], errs[i] = s.launchCancelActor(dir, logPath, id)
+			idsPerActor[i], errs[i] = s.launchCancelActor(dir, logPath, id)
 		}(i, id)
 	}
 	wg.Wait()
 
-	wantRunIDs := make([]string, s.n)
+	var wantRunIDs []string
 	for i, err := range errs {
 		if err != nil {
 			return fmt.Errorf("actor %d: %w", i, err)
 		}
-		wantRunIDs[i] = envs[i].Metadata.CorrelationID
+		wantRunIDs = append(wantRunIDs, idsPerActor[i]...)
 	}
+	s.wantRunIDs = wantRunIDs
 
 	raw, err := os.ReadFile(logPath)
-	if err != nil { //coverage:ignore defensive: every one of the n actors above returned a parsed envelope, and EmitVerbOutcome always writes its outcome line via a defer registered before repolock acquisition even runs — the shared log file this scenario itself pointed AIWF_LOG_FILE at always exists by this point
+	if err != nil { //coverage:ignore defensive: every actor above completed successfully (each attempt's envelope parsed), and EmitVerbOutcome always writes its outcome line via a defer registered before repolock acquisition even runs — the shared log file this scenario itself pointed AIWF_LOG_FILE at always exists by this point
 		return fmt.Errorf("reading shared diagnostic log %s: %w", logPath, err)
 	}
 

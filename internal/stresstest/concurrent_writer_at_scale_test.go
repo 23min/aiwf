@@ -102,7 +102,15 @@ func TestConcurrentWriterAtScaleScenario_RealBinary_LogFileHasExactlyNLines(t *t
 		t.Fatalf("reading shared diagnostic log: %v", err)
 	}
 	lines := strings.Split(strings.TrimRight(string(raw), "\n"), "\n")
-	if len(lines) != n {
-		t.Fatalf("got %d log lines, want %d", len(lines), n)
+	// One clean line per real invocation. With no lock contention that is
+	// exactly n (one cancel per actor); under contention an actor's lock-busy
+	// retries add invocations, each logging its own line, all tracked in
+	// wantRunIDs (G-0424) — so the log line count matches the invocation
+	// count, never a bare n that a retry would falsify.
+	if len(s.wantRunIDs) < n {
+		t.Fatalf("got %d invocations, want at least %d (one per actor)", len(s.wantRunIDs), n)
+	}
+	if len(lines) != len(s.wantRunIDs) {
+		t.Fatalf("got %d log lines, want %d (one per real cancel invocation, busy retries included)", len(lines), len(s.wantRunIDs))
 	}
 }
