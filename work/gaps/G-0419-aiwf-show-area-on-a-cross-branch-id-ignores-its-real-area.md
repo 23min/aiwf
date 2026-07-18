@@ -27,3 +27,5 @@ entity.Parse) to be threaded into the --area predicate instead of
 tr.ResolvedAreaByID's local-only lookup. Discovered during M-0260's
 independent design review; deferred as out of that milestone's stated
 scope.
+
+Scheduled under E-0067's second milestone.
