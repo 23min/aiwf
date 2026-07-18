@@ -89,6 +89,7 @@ func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 	expected := []string{
 		"check", "add", "promote", "cancel", "rename", "retitle",
 		"edit-body", "move", "reallocate", "rewidth", "archive",
+		"rename-area", "set-area", "set-priority", "acknowledge",
 		"init", "update", "upgrade", "history", "doctor", "render",
 		"import", "whoami", "status", "list", "schema", "show",
 		"template", "contract", "milestone", "authorize", "version",
