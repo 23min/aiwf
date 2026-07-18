@@ -1,7 +1,7 @@
 ---
 id: M-0266
 title: Honor a cross-branch id's real area in show --area
-status: in_progress
+status: done
 parent: E-0067
 depends_on:
     - M-0265
