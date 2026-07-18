@@ -21,3 +21,9 @@ The envelope surface is uniform for the common mutating verbs but not yet comple
 ## Proposed fix shape
 
 For `import`/`rewidth`: either refactor their output onto a shared envelope emitter (the `cliutil.OutputFormat` helpers added in M-0143 are reusable) or give each a bespoke `--format=json` envelope. For the read/generate commands: mirror the read-verb pattern (`--format`/`--pretty` + `render.Envelope`). Remove each command's `formatExempt` entry as it gains the flag — the AC-4 test then enforces it.
+
+## Notes
+
+The mutating-command half is resolved: `aiwf import` and `aiwf rewidth` both gained a proper `--format=json` envelope (commit `29f0c8ff`), as did `contract recipe install`/`remove` in the same pass. Their `formatExempt` entries in `format_coverage_test.go` were never cleaned up, which is stale but harmless (the test only checks commands *not* in the map).
+
+The read/generate half is still open: `aiwf contract recipes`, `aiwf contract recipe show`, and `aiwf render roadmap` remain genuinely unwired — none registers `cliutil.AddFormatFlags`, and `--help` on each confirms no `--format` flag exists.
