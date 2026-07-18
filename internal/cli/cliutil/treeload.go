@@ -116,7 +116,7 @@ func LoadTreeWithTrunk(ctx context.Context, rootDir string) (*tree.Tree, []tree.
 	// degrading to empty on odd repo state, so it can never block the
 	// load. E-0067 (G-0418): the union+collision composition lives once
 	// in trunk.ScanCrossBranch, not copied at each call site.
-	scan := trunk.ScanCrossBranch(ctx, rootDir)
+	scan := trunk.ScanCrossBranch(ctx, rootDir, func(id string) bool { return tr.ByID(id) != nil })
 	tr.LocalRefIDs = trunk.HitIDStrings(scan.LocalHits)
 	tr.RemoteRefIDs = trunk.HitIDStrings(scan.RemoteHits)
 	tr.CrossBranchHits = scan.Hits

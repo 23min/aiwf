@@ -379,7 +379,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		// degrade for in-memory trees (nil CrossBranchHits, etc).
 		return nil
 	}
-	scan := trunk.ScanCrossBranch(ctx, tr.Root)
+	scan := trunk.ScanCrossBranch(ctx, tr.Root, func(id string) bool { return tr.ByID(id) != nil })
 	all := scan.Hits
 	if len(all) == 0 {
 		return nil

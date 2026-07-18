@@ -423,7 +423,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		return ShowView{}, false
 	}
 	canon := entity.Canonicalize(id)
-	scan := trunk.ScanCrossBranch(ctx, root)
+	scan := trunk.ScanCrossBranch(ctx, root, func(id string) bool { return t.ByID(id) != nil })
 	var hits []trunk.RefHit
 	for _, h := range scan.Hits {
 		if entity.Canonicalize(h.ID) == canon {

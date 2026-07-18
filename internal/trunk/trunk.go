@@ -390,10 +390,21 @@ type CrossBranchScan struct {
 // "hits scanned equal the hits handed to DetectCollisions" coupling in
 // one place (G-0418).
 //
+// Collision detection is lazy: only hits whose id is absent from the
+// local tree (presentLocally reports false) are handed to
+// DetectCollisions, so the O(entities×refs) blob-stat pass shrinks to
+// the locally-absent id set — nothing in the common all-merged state,
+// where every id resolves locally. This is behavior-preserving because
+// every consumer reads a collision result only after a local-tree miss
+// (ADR-0030): a locally-present id's collision entry is never observed,
+// so declining to compute it changes no output. A nil presentLocally
+// disables the filter (every id treated as absent) — the eager fallback
+// for a caller with no local tree to consult.
+//
 // Best-effort and read-only, inheriting LocalRefHits/RemoteRefHits/
 // DetectCollisions' contract: it never errors, degrading to empty
 // slices and an empty collision map on odd repo state.
-func ScanCrossBranch(ctx context.Context, workdir string) CrossBranchScan {
+func ScanCrossBranch(ctx context.Context, workdir string, presentLocally func(canonicalID string) bool) CrossBranchScan {
 	local := LocalRefHits(ctx, workdir)
 	remote := RemoteRefHits(ctx, workdir)
 	hits := append(append([]RefHit(nil), local...), remote...)
@@ -401,8 +412,42 @@ func ScanCrossBranch(ctx context.Context, workdir string) CrossBranchScan {
 		LocalHits:  local,
 		RemoteHits: remote,
 		Hits:       hits,
-		Collisions: DetectCollisions(ctx, workdir, hits),
+		Collisions: DetectCollisions(ctx, workdir, absentHits(hits, presentLocally)),
 	}
+}
+
+// absentHits returns the subset of hits whose canonical id is absent
+// from the local tree per presentLocally — the exact hit set
+// ScanCrossBranch hands to DetectCollisions (E-0067/M-0265/AC-2).
+// presentLocally is consulted once per distinct id (not once per hit),
+// so the filter's own cost stays O(distinct ids), matching the
+// read-side loop's existing per-id tr.ByID cost rather than multiplying
+// it by the ref count. A nil predicate returns hits unchanged (no local
+// tree to filter against).
+func absentHits(hits []RefHit, presentLocally func(canonicalID string) bool) []RefHit {
+	if presentLocally == nil {
+		return hits
+	}
+	// Group by canonical id so presentLocally is consulted once per
+	// distinct id, preserving first-seen id order for a deterministic
+	// result.
+	byID := make(map[string][]RefHit, len(hits))
+	order := make([]string, 0, len(hits))
+	for _, h := range hits {
+		id := entity.Canonicalize(h.ID)
+		if _, seen := byID[id]; !seen {
+			order = append(order, id)
+		}
+		byID[id] = append(byID[id], h)
+	}
+	var out []RefHit
+	for _, id := range order {
+		if presentLocally(id) {
+			continue
+		}
+		out = append(out, byID[id]...)
+	}
+	return out
 }
 
 // IDStrings returns just the id strings from r, in the order they
