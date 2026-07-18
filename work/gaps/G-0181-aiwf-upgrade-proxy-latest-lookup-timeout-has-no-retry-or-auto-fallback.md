@@ -56,3 +56,7 @@ resilient.
 
 - `internal/cli/upgrade/upgrade.go` (`Run`, `ResolveTarget`, `proxyLookupFailedHint`); `internal/version/version.go` (`Latest`, `highestTaggedFromList`).
 - CLAUDE.md § "Contract tests for upstream-cached systems", § "Spec-sourced inputs".
+
+## Notes
+
+The quick patch (`proxyLookupFailedHint`) shipped as commit `acaaea5b`, whose own message defers the fuller fix to this gap. Confirmed still unimplemented: `version.Latest`/`highestTaggedFromList` still make exactly one HTTP attempt with no retry/backoff, and `proxyBase` still only selects the first proxy entry rather than walking the full GOPROXY chain on failure. All three items under "Desired resolution" remain open.
