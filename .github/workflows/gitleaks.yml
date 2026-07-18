@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0 # full history so `gitleaks git` scans every commit
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.11"
+          go-version: "1.25.12"
           cache: true
       # Pinned; version must match .devcontainer/init.sh (cross-file
       # consistency asserted by the gitleaks-enforcement policy test).
