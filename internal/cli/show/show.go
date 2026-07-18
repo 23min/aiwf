@@ -189,6 +189,15 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 	// just out of the requested workstream.
 	if area != "" {
 		actual := tr.ResolvedAreaByID(id)
+		// A cross-branch-resolved id is absent from the local tree, so
+		// tr.ResolvedAreaByID reports it untagged (G-0419). Evaluate
+		// --area against the resolving ref's real area instead, which
+		// buildCrossBranchShowView already parsed onto the view
+		// (E-0067/M-0266). Empty on a collision — content in dispute —
+		// which reads as untagged, the honest answer there.
+		if view.CrossBranch != nil {
+			actual = view.Area
+		}
 		if actual != area {
 			switch format {
 			case "text":
@@ -289,6 +298,16 @@ type ShowView struct {
 	// downstream consumer can treat its absence as "this is ordinary
 	// local state."
 	CrossBranch *CrossBranchView `json:"cross_branch,omitempty"`
+
+	// Area carries the resolving ref's real `area:` for a cross-branch
+	// hit so the `aiwf show --area` predicate can evaluate against the
+	// entity's actual area instead of the local-only tr.ResolvedAreaByID
+	// lookup, which reports any cross-branch id untagged (E-0067/M-0266,
+	// G-0419). In-memory only (json:"-") — the JSON envelope's shape is
+	// unchanged. Empty for a locally-resolved entity (the predicate uses
+	// the local lookup there) and for a cross-branch collision (the
+	// content, including the area, is exactly what's in dispute).
+	Area string `json:"-"`
 }
 
 // CrossBranchView carries the read-side resolution state for an id
@@ -473,6 +492,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		Body:         entity.ParseBodySections(body),
 		ReferencedBy: nonNilStrings(t.ReferencedBy(id)),
 		CrossBranch:  &CrossBranchView{Ref: hit.Ref, Refs: refs},
+		Area:         resolved.Area,
 	}
 	var acDesc map[string]string
 	if resolved.Kind == entity.KindMilestone && len(resolved.ACs) > 0 {
