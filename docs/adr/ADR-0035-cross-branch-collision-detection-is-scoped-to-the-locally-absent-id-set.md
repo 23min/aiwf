@@ -1,7 +1,7 @@
 ---
 id: ADR-0035
 title: Cross-branch collision detection is scoped to the locally-absent id set
-status: proposed
+status: accepted
 ---
 # ADR-0035 — Cross-branch collision detection is scoped to the locally-absent id set
 
