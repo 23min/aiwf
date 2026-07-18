@@ -19,7 +19,7 @@ acs:
       tdd_phase: red
     - id: AC-4
       title: Zero DetectCollisions blob-stats when every id is present locally
-      status: open
+      status: met
       tdd_phase: done
 ---
 
