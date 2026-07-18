@@ -1,8 +1,10 @@
 ---
 id: G-0423
 title: No clone-detection linter to catch duplicated verb-layer logic
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 29d4815
 ---
 ## What's missing
 
