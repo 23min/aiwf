@@ -1,9 +1,11 @@
 ---
 id: G-0386
 title: Backfill test coverage for ~194 untested CLI verb error-handling branches
-status: open
+status: addressed
 priority: high
 discovered_in: M-0238
+addressed_by_commit:
+    - 168924dc
 ---
 ## What's missing
 
