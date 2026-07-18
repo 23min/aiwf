@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: DetectCollisions runs only for ids absent from the local working tree
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Cross-branch list rows and check findings are unchanged before and after
       status: open
