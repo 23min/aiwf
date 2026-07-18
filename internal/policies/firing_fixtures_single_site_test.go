@@ -184,6 +184,15 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			files:  map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() { os.WriteFile() }\n"},
 		},
 		{
+			id:     "projection-findings-presence",
+			policy: PolicyVerbsProjectionFindingsPresence,
+			// Foo has the verb entry-point signature, never calls
+			// projectionFindings directly or via a same-package helper,
+			// and carries no allowlist entry — exercises the "missing
+			// presence, not exempt" violation branch.
+			files: map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() (*Result, error) { return nil, nil }\n"},
+		},
+		{
 			id:     "commit-construction-single-seam",
 			policy: PolicyCommitConstructionSingleSeam,
 			files: map[string]string{
