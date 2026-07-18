@@ -936,6 +936,6 @@ same code.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | in_progress |
+| M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | done |
 | M-0266 | Honor a cross-branch id's real area in show --area | draft |
 
