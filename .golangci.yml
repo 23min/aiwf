@@ -5,6 +5,7 @@ linters:
   default: none
   enable:
     - bodyclose
+    - dupl
     - errcheck
     - errorlint
     - forbidigo
@@ -19,6 +20,8 @@ linters:
     - unconvert
     - unused
   settings:
+    dupl:
+      threshold: 100
     gocritic:
       disabled-checks:
         - hugeParam
@@ -80,6 +83,54 @@ linters:
           - errcheck
           - gosec
         path: _test\.go
+      # dupl on _test.go: table-driven tests are idiomatic per CLAUDE.md §
+      # Testing and routinely produce near-identical subtest bodies by
+      # design (varying only the fixture data) — that's expected structure,
+      # not the duplicated-logic class G-0423 targets. testutil/ and
+      # cellcoverage/ are test-support packages in all but filename (their
+      # own package docs describe them as fixture/harness code); excluded
+      # for the same reason.
+      - linters: [dupl]
+        path: _test\.go
+      - linters: [dupl]
+        path: internal/cli/cliutil/testutil/
+      - linters: [dupl]
+        path: internal/cellcoverage/
+      # dupl: production clones already on the tree before this linter was
+      # enabled (G-0423) — each is real duplication, but this patch's job
+      # is turning the tripwire on, not clearing existing debt. Excluded at
+      # file scope (matching this file's existing gosec/forbidigo exclusion
+      # style) so a future clone elsewhere in the same file would also go
+      # unflagged until revisited; acceptable for a short, named list.
+      #
+      # F2 (docs/initiatives/verb-layer-cleanup.md, tracked for cleanup
+      # separately): rename.go's renamePaths/substituteSlug and
+      # reallocate.go's reallocatePaths/substituteID share the same
+      # path-substitution shape; reallocate.go's own comment already notes
+      # the mirroring.
+      - linters: [dupl]
+        path: internal/verb/rename\.go
+      - linters: [dupl]
+        path: internal/verb/reallocate\.go
+      # Newly surfaced by enabling dupl (not part of the original
+      # verb-layer-cleanup audit) — not investigated further here; tracked
+      # for follow-up triage rather than fixed as part of this patch.
+      - linters: [dupl]
+        path: internal/aiwfyaml/aiwfyaml\.go
+      - linters: [dupl]
+        path: internal/aiwfyaml/hooks\.go
+      - linters: [dupl]
+        path: internal/check/acs\.go
+      - linters: [dupl]
+        path: internal/cli/check/check\.go
+      - linters: [dupl]
+        path: internal/cli/contract/recipes\.go
+      - linters: [dupl]
+        path: internal/cli/contract/unbind\.go
+      - linters: [dupl]
+        path: internal/config/config\.go
+      - linters: [dupl]
+        path: internal/initrepo/initrepo\.go
       # gosec noise that doesn't apply to a developer-CLI threat model:
       # - G204/G702: subprocess via variable / command injection via taint
       #         (gitops and the branch-coverage-audit policy shell out to
