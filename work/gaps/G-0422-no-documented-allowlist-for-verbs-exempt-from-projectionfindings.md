@@ -1,6 +1,6 @@
 ---
 id: G-0422
-title: No presence check that structural verbs call projectionFindings
+title: No documented allowlist for verbs exempt from projectionFindings
 status: open
 priority: high
 ---
