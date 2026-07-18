@@ -1,13 +1,33 @@
 // Package verb implements aiwf's mutating verbs: add, promote, cancel,
-// rename, reallocate.
+// rename, reallocate, and friends.
 //
-// Every verb is *validate-then-write* per docs/pocv3/design/design-decisions.md:
-// the verb computes the projected new tree in memory, runs the
-// check.Run validators against the projection, and returns either
-// findings (no disk writes occurred) or a Plan (file ops + commit
-// metadata). The orchestrator in cmd/aiwf applies the plan only when
-// findings are clean. There is no rollback path because nothing is
-// written until the projection is known good.
+// Most verbs are *validate-then-write* per
+// docs/pocv3/design/design-decisions.md: the verb computes the
+// projected new tree in memory, runs projectionFindings (which wraps
+// check.Run) against the projection, and returns either findings (no
+// disk writes occurred) or a Plan (file ops + commit metadata). The
+// orchestrator in cmd/aiwf applies the plan only when findings are
+// clean. There is no rollback path because nothing is written until
+// the projection is known good.
+//
+// A documented minority of verbs never call projectionFindings, for
+// one of four concrete reasons: the field they mutate is validated
+// only by a CLI-composed, git-history-dependent rule (area
+// membership) that needs data — a touchedByEntity map built by
+// scanning commit history — no in-memory projection has, so the rule
+// can never fire there regardless of which verb calls it; the commit
+// they produce has an empty diff (a sovereign or audit-only act) with
+// no entity-content mutation to project; the operation is a purely
+// structural multi-entity sweep (archive, rewidth) where mid-sweep
+// check noise would be spurious and validation is deferred entirely
+// to the pre-push hook's full aiwf check; or the verb belongs to the
+// contract subsystem, which writes aiwf.yaml rather than an entity
+// file and runs its own narrower validation gate by design. The
+// reviewed, exhaustive allowlist — one entry per exempt verb with its
+// specific reason — lives in
+// internal/policies/projection_findings_presence.go, mechanically
+// enforced: any verb newly falling outside both the presence check
+// and the allowlist fails CI.
 package verb
 
 import (

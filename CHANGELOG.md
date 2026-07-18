@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0422: documented and enforced the actual `projectionFindings` scope
+
+`internal/verb/verb.go`'s package doc previously claimed, unconditionally, that every verb
+runs `projectionFindings` before writing — false for 15 verb entry points across 9 files, by
+design (git-history-dependent area rules unreachable from an in-memory projection, empty-diff
+sovereign/audit-only acts with no content to project, purely structural multi-entity sweeps,
+and the contract subsystem's narrower validation gate). The doc now states the actual scope
+and its four reason categories, and a new `internal/policies/projection_findings_presence.go`
+mechanically enforces it: every exported `internal/verb/*.go` entry point must call
+`projectionFindings` (directly or via a same-package helper) unless it appears on a reviewed,
+reasoned allowlist, so a future accidental omission fails CI instead of requiring another full
+audit to rediscover.
+
 ### Fixed — G-0284: skill-coverage policy closes the namespace-subverb blind spot
 
 `internal/policies/skill_coverage.go`'s AI-discoverability check previously walked only

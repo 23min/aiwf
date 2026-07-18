@@ -163,6 +163,11 @@ func TestPolicy_VerbsValidateThenWrite(t *testing.T) {
 	runPolicy(t, PolicyVerbsValidateThenWrite)
 }
 
+func TestPolicy_VerbsProjectionFindingsPresence(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyVerbsProjectionFindingsPresence)
+}
+
 func TestPolicy_CommitConstructionSingleSeam(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyCommitConstructionSingleSeam)
