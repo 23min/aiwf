@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0067: cross-branch read path no longer scans collisions it discards
+
+Filtered `aiwf list` and `aiwf check` no longer pay the O(entities × refs) cross-branch
+collision scan that E-0060's read path introduced. A single `internal/trunk.ScanCrossBranch`
+helper now composes the ref-hit union once and runs collision detection only for ids absent
+from the local working tree — the only ids any consumer ever reads a collision for — so in
+the common all-merged state the scan does zero blob-stat work. Cross-branch rows and check
+findings are byte-identical to before. Relatedly, `aiwf show <cross-branch-id> --area X` now
+evaluates the `--area` predicate against the resolving ref's real `area:` (for the kinds that
+carry their own area) instead of always reporting the id untagged. `ADR-0035` records the
+"collision detection scoped to the locally-absent id set" invariant this rests on; the
+cross-branch **milestone** `--area` roll-up is deferred (G-0421).
+
 ### Added — E-0066: priority field on gaps and decisions, filterable and rendered
 
 Gaps and decisions can now carry a closed-set `priority` (`urgent`/`high`/`medium`/`low`),
