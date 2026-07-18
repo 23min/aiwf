@@ -1,9 +1,11 @@
 ---
 id: G-0419
 title: aiwf show --area on a cross-branch id ignores its real area
-status: open
+status: addressed
 priority: low
 discovered_in: M-0260
+addressed_by:
+    - M-0266
 ---
 ## What's missing
 
