@@ -39,3 +39,9 @@ fault injection. Deciding which of those 15 (and which of the 13
 untouched verbs, if any) warrant a dedicated scenario — versus which
 are read-only or low-risk enough to skip — is a scoping decision for
 whoever next extends E-0062's scenario catalog.
+
+## Notes
+
+M-0250 (E-0062) closed part of this: the registered verb-sequence walker (commit `59f00c89`) and a concurrent-move scenario (commit `4b4d14fa`) added real coverage for `move`, `archive`, `rename`, and `retitle`. The registry now carries 16 scenarios (up from 12).
+
+`import`, the `contract-*` sub-verbs, and `worktree add` as a driven verb (as opposed to raw fixture setup) remain unexercised — M-0250's own spec explicitly scopes these out as "open questions for a future milestone," and E-0065's wrap re-confirmed them as still deliberately deferred.
