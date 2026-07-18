@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-07-18
+
 ### Fixed — broken links in verb-layer-cleanup.md to archived gaps G-0422/G-0423
 
 Internal only — no user-facing change. `docs/initiatives/verb-layer-cleanup.md` linked
