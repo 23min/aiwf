@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: One trunk helper composes the cross-branch scan for treeload, list, and show
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: DetectCollisions runs only for ids absent from the local working tree
