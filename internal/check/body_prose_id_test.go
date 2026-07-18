@@ -667,6 +667,33 @@ func TestBodyProseID_LocalTreeStaysAuthoritativeOverCrossBranch(t *testing.T) {
 	}
 }
 
+// TestBodyProseID_LocallyPresentIDWithCollisionResolvesLocally pins the
+// behavior-preservation basis for the lazy cross-branch scan (E-0067/
+// M-0265/AC-3): even with a collision recorded for an id present in the
+// local tree, bodyProseID resolves the prose token against the local
+// index first and never reads the collision — so no cross-branch
+// finding surfaces. This is why the lazy filter declining to compute a
+// locally-present id's collision changes no finding.
+func TestBodyProseID_LocallyPresentIDWithCollisionResolvesLocally(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	// The prose references G-0002, the fixture's own local gap (present
+	// in the ByID index).
+	ents := writeBodyProseFixture(t, root, "See G-0002 for the fixture gap.")
+	tr := &tree.Tree{Root: root, Entities: ents}
+	tr.CrossBranchHits = []trunk.RefHit{
+		{Kind: entity.KindGap, ID: "G-0002", Path: "work/gaps/G-0002-fixture.md", Ref: "refs/heads/sibling"},
+		{Kind: entity.KindGap, ID: "G-0002", Path: "work/gaps/G-0002-fixture.md", Ref: "refs/heads/other"},
+	}
+	tr.CrossBranchCollisions = map[string]bool{"G-0002": true}
+
+	for _, f := range bodyProseID(tr) {
+		if f.Subcode == "cross-branch-collision" || f.Subcode == "cross-branch-pending" {
+			t.Errorf("got %+v, want no cross-branch finding — G-0002 resolves locally, its collision must never surface", f)
+		}
+	}
+}
+
 // writeBodyProseFixture lays down a gap G-0001 with the supplied body
 // prose under `## What's missing`, plus a milestone M-0001 with AC-1
 // to back the composite-resolution positive controls. Both are loaded
