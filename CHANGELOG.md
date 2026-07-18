@@ -16,6 +16,23 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0423: `dupl` clone-detection linter enabled as an ongoing tripwire
+
+No linter previously compared function bodies across files or packages, so structurally
+duplicated logic (the same helper independently reimplemented two or three times) could be
+independently correct, independently well-tested, and still pass every existing guardrail.
+`.golangci.yml` now enables golangci-lint's built-in `dupl` linter (threshold 100 tokens,
+scoped to production code — `_test.go` and test-support packages are excluded, since
+table-driven tests are expected to look similar by design) as a going-forward check against
+new duplication. Clones already on the tree when the linter was enabled — including the
+verb-layer-cleanup audit's F2 finding (`rename.go`/`reallocate.go`'s path-substitution
+helpers) — are excluded so this patch doesn't fail CI on debt it isn't scoped to fix. F2's
+exclusion names the exact helpers to collapse; seven more pairs turned up purely from
+enabling the linter (outside the original audit) and are flagged file-by-file for follow-up
+triage rather than investigated here. `dupl` cannot catch every duplication shape — findings
+F4, F7, and F9 from the same audit never fire under a token-sequence clone detector regardless
+of threshold, confirmed empirically, not just asserted.
+
 ### Fixed — G-0422: documented and enforced the actual `projectionFindings` scope
 
 `internal/verb/verb.go`'s package doc previously claimed, unconditionally, that every verb
