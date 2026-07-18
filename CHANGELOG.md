@@ -16,6 +16,14 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0424: de-flaked the concurrent-writer-at-scale stress scenario
+
+Internal test harness only — no user-facing change. `ConcurrentWriterAtScaleScenario`
+(`internal/stresstest`) now retries a concurrent `aiwf cancel` that loses the repo-lock
+race (exit 2 / `ErrBusy`) until it completes, instead of aborting the whole run on the
+first busy loss, so the `go` workflow's `test` job no longer flakes under `-race -parallel
+8` on a loaded runner.
+
 ### Changed — E-0067: cross-branch read path no longer scans collisions it discards
 
 Filtered `aiwf list` and `aiwf check` no longer pay the O(entities × refs) cross-branch
