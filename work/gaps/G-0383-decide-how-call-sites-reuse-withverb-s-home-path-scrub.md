@@ -2,7 +2,7 @@
 id: G-0383
 title: Decide how call sites reuse WithVerb's home-path scrub
 status: open
-priority: high
+priority: low
 discovered_in: M-0237
 ---
 ## What's missing
