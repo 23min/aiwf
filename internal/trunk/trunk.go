@@ -272,6 +272,25 @@ func HitIDStrings(hits []RefHit) []string {
 	return ids
 }
 
+// needsBlobStats reports whether DetectCollisions must open a BlobReader
+// and issue blob-stat round-trips for hits: true iff some canonicalized
+// id appears on two or more refs (a single-ref id has nothing to compare
+// against). It is the stat-gate DetectCollisions consults before any git
+// work, and the scale property E-0067/M-0265/AC-4 pins — zero blob-stats
+// when it returns false, which is exactly the all-ids-present-locally
+// state ScanCrossBranch's lazy filter produces.
+func needsBlobStats(hits []RefHit) bool {
+	seen := make(map[string]bool, len(hits))
+	for _, h := range hits {
+		id := entity.Canonicalize(h.ID)
+		if seen[id] {
+			return true
+		}
+		seen[id] = true
+	}
+	return false
+}
+
 // DetectCollisions groups hits (as returned by LocalRefHits/
 // RemoteRefHits, concatenated by the caller) by canonicalized id, and
 // — for any id appearing on more than one distinct ref — compares
@@ -301,22 +320,18 @@ func HitIDStrings(hits []RefHit) []string {
 // spawns for the id-free or fully-solo-branch case, where there is
 // nothing to compare.
 func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[string]bool {
+	collisions := make(map[string]bool)
+	// Gate on the stat-work check before any grouping or git work: with
+	// no multi-hit id there is nothing to compare, so return without
+	// opening a BlobReader (zero blob-stats).
+	if !needsBlobStats(hits) {
+		return collisions
+	}
+
 	byID := make(map[string][]RefHit, len(hits))
 	for _, h := range hits {
 		key := entity.Canonicalize(h.ID)
 		byID[key] = append(byID[key], h)
-	}
-
-	collisions := make(map[string]bool)
-	needsComparison := false
-	for _, group := range byID {
-		if len(group) >= 2 {
-			needsComparison = true
-			break
-		}
-	}
-	if !needsComparison {
-		return collisions
 	}
 
 	br, err := gitops.NewBlobReader(ctx, workdir)
