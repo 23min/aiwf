@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Cross-branch list rows and check findings are unchanged before and after
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Zero DetectCollisions blob-stats when every id is present locally
       status: met
