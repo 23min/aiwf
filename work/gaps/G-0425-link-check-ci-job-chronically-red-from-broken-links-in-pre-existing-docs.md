@@ -1,9 +1,11 @@
 ---
 id: G-0425
 title: link-check CI job chronically red from broken links in pre-existing docs
-status: open
+status: addressed
 priority: medium
 discovered_in: E-0067
+addressed_by_commit:
+    - f836134b
 ---
 ## What's missing
 
