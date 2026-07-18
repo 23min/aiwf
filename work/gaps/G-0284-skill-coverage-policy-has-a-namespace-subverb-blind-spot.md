@@ -1,8 +1,10 @@
 ---
 id: G-0284
 title: skill-coverage policy has a namespace-subverb blind spot
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 0f368e91
 ---
 ## What's missing
 
