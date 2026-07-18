@@ -2,7 +2,7 @@
 id: G-0422
 title: No documented allowlist for verbs exempt from projectionFindings
 status: open
-priority: high
+priority: medium
 ---
 ## What's missing
 
