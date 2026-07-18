@@ -173,6 +173,11 @@ func TestPolicy_AtomicWriteChokepoint(t *testing.T) {
 	runPolicy(t, PolicyAtomicWriteChokepoint)
 }
 
+func TestPolicy_CrossBranchScanConsolidation(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCrossBranchScanConsolidation)
+}
+
 func TestPolicy_LoggingChokepoint(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyLoggingChokepoint)

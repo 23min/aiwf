@@ -356,6 +356,55 @@ func DetectCollisions(ctx context.Context, workdir string, hits []RefHit) map[st
 	return collisions
 }
 
+// CrossBranchScan is the outcome of one cross-branch ref scan: the
+// per-ref-class hit slices the allocator's id view needs (LocalHits /
+// RemoteHits), their union (Hits — the cross-branch read-side index),
+// and the divergent-content id set among them (Collisions). Composed
+// once by ScanCrossBranch so no consumer re-derives the union or
+// re-runs DetectCollisions (E-0067, G-0418).
+type CrossBranchScan struct {
+	// LocalHits is every entity-id hit on a local branch ref
+	// (refs/heads/*) — the allocator's LocalRefIDs view (M-0212).
+	LocalHits []RefHit
+	// RemoteHits is every hit on a remote-tracking ref (refs/remotes/*)
+	// — the allocator's RemoteRefIDs view (M-0214).
+	RemoteHits []RefHit
+	// Hits is LocalHits followed by RemoteHits: the cross-branch union
+	// the read-side resolver (crossBranchIndex / show / list) groups by
+	// id on a local-tree miss (ADR-0030).
+	Hits []RefHit
+	// Collisions is the canonicalized-id set whose hits carry divergent
+	// blob content across refs (DetectCollisions, G-0415), consulted on
+	// a local-tree miss to escalate cross-branch-pending to
+	// cross-branch-collision (D-0036).
+	Collisions map[string]bool
+}
+
+// ScanCrossBranch composes the local + remote ref-hit union once and
+// detects content collisions among them, returning both the union (for
+// the cross-branch read-side index) and its per-ref-class halves (for
+// the allocator's id view). It is the single composition point for the
+// cross-branch scan E-0060 shipped copied across three call sites
+// (cliutil.LoadTreeWithTrunk, list.crossBranchListRows,
+// show.buildCrossBranchShowView); consolidating it here keeps the
+// "hits scanned equal the hits handed to DetectCollisions" coupling in
+// one place (G-0418).
+//
+// Best-effort and read-only, inheriting LocalRefHits/RemoteRefHits/
+// DetectCollisions' contract: it never errors, degrading to empty
+// slices and an empty collision map on odd repo state.
+func ScanCrossBranch(ctx context.Context, workdir string) CrossBranchScan {
+	local := LocalRefHits(ctx, workdir)
+	remote := RemoteRefHits(ctx, workdir)
+	hits := append(append([]RefHit(nil), local...), remote...)
+	return CrossBranchScan{
+		LocalHits:  local,
+		RemoteHits: remote,
+		Hits:       hits,
+		Collisions: DetectCollisions(ctx, workdir, hits),
+	}
+}
+
 // IDStrings returns just the id strings from r, in the order they
 // appear in r.IDs. Convenience for AllocateID, which only needs the
 // id values.

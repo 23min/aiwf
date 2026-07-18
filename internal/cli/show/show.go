@@ -423,9 +423,9 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		return ShowView{}, false
 	}
 	canon := entity.Canonicalize(id)
-	all := append(trunk.LocalRefHits(ctx, root), trunk.RemoteRefHits(ctx, root)...)
+	scan := trunk.ScanCrossBranch(ctx, root)
 	var hits []trunk.RefHit
-	for _, h := range all {
+	for _, h := range scan.Hits {
 		if entity.Canonicalize(h.ID) == canon {
 			hits = append(hits, h)
 		}
@@ -435,7 +435,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 	}
 	refs := trunk.DistinctRefs(hits)
 
-	if trunk.DetectCollisions(ctx, root, hits)[canon] {
+	if scan.Collisions[canon] {
 		return ShowView{
 			ID:           canon,
 			Kind:         string(hits[0].Kind),
