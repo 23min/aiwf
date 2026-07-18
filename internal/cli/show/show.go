@@ -305,8 +305,11 @@ type ShowView struct {
 	// lookup, which reports any cross-branch id untagged (E-0067/M-0266,
 	// G-0419). In-memory only (json:"-") — the JSON envelope's shape is
 	// unchanged. Empty for a locally-resolved entity (the predicate uses
-	// the local lookup there) and for a cross-branch collision (the
-	// content, including the area, is exactly what's in dispute).
+	// the local lookup there); for a cross-branch collision (the content,
+	// including the area, is in dispute); and for a cross-branch
+	// milestone, whose own `area:` is never stored — a milestone's area
+	// rolls up from its parent epic, a resolution this own-field read
+	// deliberately does not follow across refs.
 	Area string `json:"-"`
 }
 
