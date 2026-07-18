@@ -1,7 +1,7 @@
 ---
 id: G-0306
 title: Consolidate the three ack-walker HEAD-walk loops into one primitive
-status: open
+status: addressed
 prior_ids:
     - G-0294
     - G-0295
@@ -9,6 +9,9 @@ prior_ids:
     - G-0304
 priority: low
 discovered_in: M-0181
+addressed_by_commit:
+    - 6c21e249
+    - 0daea843
 ---
 ## Problem
 
