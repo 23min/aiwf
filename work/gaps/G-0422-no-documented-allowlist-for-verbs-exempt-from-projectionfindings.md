@@ -1,8 +1,10 @@
 ---
 id: G-0422
 title: No documented allowlist for verbs exempt from projectionFindings
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 796c0d0
 ---
 ## What's missing
 
