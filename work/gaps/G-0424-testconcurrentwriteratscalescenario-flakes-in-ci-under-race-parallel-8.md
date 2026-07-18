@@ -1,9 +1,11 @@
 ---
 id: G-0424
 title: TestConcurrentWriterAtScaleScenario flakes in CI under -race -parallel 8
-status: open
+status: addressed
 priority: medium
 discovered_in: E-0067
+addressed_by_commit:
+    - 2f2eeab5
 ---
 ## What's missing
 
