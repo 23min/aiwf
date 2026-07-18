@@ -35,23 +35,33 @@ A call-graph trace across **every** verb package in the kernel (2026-07-18,
 covering the full set: all entity-mutating verbs, the contract subsystem,
 the read-only verbs, the setup/maintenance cluster, and the smaller
 miscellaneous verbs) found the spine intact but surfaced a set of local
-defects that never individually justified their own investigation: **three**
-verbs silently skip the validate-then-write gate the rest of the layer
-treats as universal, one verb bypasses the shared id-allocation path
-entirely and hand-rolls its own (reopening exactly the cross-branch
-collision exposure that path was built to close), several verb pairs
-hand-duplicate structurally identical logic instead of sharing a helper the
-codebase otherwise knows how to share, a "fail/envelope" triad is
-independently reimplemented in three separate CLI packages, the contract
-subsystem runs three different ad hoc validation-gate styles across its
-three mutating verbs, doctor hardcodes marker strings that `initrepo`
-already exports specifically so doctor doesn't have to, and the read-only
-verbs (`show`, `status`, `render`, `check`) form an unenforced verb-to-verb
-dependency chain rather than depending on a neutral shared library. None of
-these break the DAG property, but each is a small crack in it, and they
-compound: a change to `check`'s rule set, `FinishVerb`'s envelope, or a hook
-marker string has to be manually mirrored into every verb that quietly
-diverged, with nothing to catch a miss.
+defects that never individually justified their own investigation: one verb
+bypasses the shared id-allocation path entirely and hand-rolls its own
+(reopening part of the cross-branch collision exposure that path was built
+to close), a second silently swallows a class of git-read errors that its
+own sibling verbs treat as fail-loud, several verb pairs hand-duplicate
+structurally identical logic instead of sharing a helper the codebase
+otherwise knows how to share, a "fail/envelope" triad is independently
+reimplemented in three separate CLI packages, the contract subsystem runs
+three different ad hoc validation-gate styles across its three mutating
+verbs, doctor hardcodes marker strings that `initrepo` already exports
+specifically so doctor doesn't have to, and the read-only verbs (`show`,
+`status`, `render`, `check`) form an unenforced verb-to-verb dependency
+chain rather than depending on a neutral shared library. None of these break
+the DAG property, but each is a small crack in it, and they compound: a
+change to `check`'s rule set, `FinishVerb`'s envelope, or a hook marker
+string has to be manually mirrored into every verb that quietly diverged,
+with nothing to catch a miss.
+
+A follow-up adversarial-verification pass (one independent skeptic per
+finding, instructed to refute rather than confirm) re-examined every finding
+against fresh source reads. Most held; one — the original F1 — did not, and
+its refutation is itself informative: the original claim assumed `check`'s
+area rules were reachable from `projectionFindings`, but they require
+git-history data (`touchedByEntity`) that no in-memory verb-time projection
+has, so they can never fire there regardless of which verbs call it. See
+"Verification pass" below for the full per-finding verdict and what changed
+as a result.
 
 ## The call graph
 
@@ -174,21 +184,41 @@ cli/doctor  -> read-only by default (AST-pinned); --write-health and
 
 ## Findings
 
-### F1 — `SetArea`/`SetPriority`/`RenameArea` skip the universal validate-then-write gate
+### F1 — `verb.go`'s package doc overclaims "every verb"; the actual scope is narrower and undocumented
 
-`internal/verb/verb.go`'s package doc states unconditionally that every verb
-runs the projection check before writing. Confirmed by grepping every
-`internal/verb/*.go` file for `projectionFindings(`: it's called from
-`ac.go`, `add.go`, `editbody.go`, `import.go`, `milestone_depends_on.go`,
-`move.go`, `promote.go`, `reallocate.go`, `rename.go`, and `retitle.go` — but
-**not** from `setarea.go`, `setpriority.go`, or `renamearea.go`. All three
-validate their new field value inline and go straight to `plan(&Plan{...})`.
-`check` has dedicated `area-mistag`/`area-unknown`/`area-overlap` rules that
-operate on exactly the fields these three verbs mutate (area membership and,
-for rename-area, every entity's `area:` tag tree-wide), so this is a
-violation of a documented invariant across three call sites, not a style
-inconsistency. This is one of the two findings in this document that should
-be treated as a bug rather than a cleanup preference (the other is F10).
+**Revised after adversarial verification** — the original framing of this
+finding ("`SetArea`/`SetPriority`/`RenameArea` skip the universal
+validate-then-write gate," treated as a bug) does not survive scrutiny and
+has been replaced below. Two things the original claim got wrong:
+
+1. **The omission isn't unique to these three.** `archive.go`, `rewidth.go`,
+   `authorize.go`, `acknowledgeillegal.go`, `acknowledgemistag.go`,
+   `linkrewrite.go`, and `contractrecipe.go` also never call
+   `projectionFindings` — so "unlike every other structural mutator" was
+   false on its face.
+2. **The specific rules cited couldn't have fired anyway.** `check.Run`
+   (`internal/check/check.go:109-158`, what `projectionFindings` wraps)
+   does not include `area-mistag`/`area-unknown`/`area-overlap` at all —
+   those are composed only at the CLI layer
+   (`internal/cli/check/check.go:245,266,295`), fed a `touchedByEntity` map
+   derived from scanning git commit history, data no verb has inside an
+   in-memory pre-write projection. Calling `projectionFindings` from
+   `SetArea`/`SetPriority`/`RenameArea` would not have made these rules fire;
+   the check that actually gates them is the pre-push hook's full
+   `aiwf check` run, by design — `rewidth.go` states the identical rationale
+   explicitly for its own case, and `area-mistag` is documented as
+   warning-only, never escalating.
+
+`internal/verb/verb.go`'s package doc does say, unconditionally, that every
+verb runs the projection check before writing — but a cited design doc
+(`docs/pocv3/design/design-decisions.md:251`) already scopes the guarantee
+to a named "current set" that excludes exactly the verbs above. The doc
+comment's absolute wording is the real, narrower defect: it overclaims a
+scope wider than the codebase's actual, consistent, deliberate design, and
+that overclaim is precisely what led this audit to misdiagnose a correct
+omission as an invariant violation on its first pass. The corrected finding
+is a documentation-accuracy gap, not a correctness bug — see G-0422's
+revised scope in "Scoped cleanup targets."
 
 ### F2 — duplicated path-substitution logic: rename vs. reallocate
 
@@ -202,9 +232,18 @@ substituteSlug." The same file correctly shares `plannedDestinations`/
 so the project already knows how to fold this kind of helper together; these
 two functions are the ones that were never collapsed.
 
+**Verified nuance:** the two functions diverge in the "no second hyphen"
+branch, and it's a real semantic difference, not just cosmetic —
+`substituteSlug` **appends** the new slug, preserving the old id prefix
+(`renamePaths`'s job is "keep the id, change the slug"), while `substituteID`
+**discards** the name entirely and returns just the new id (`reallocatePaths`'s
+job is "keep the slug, change the id"). A shared helper needs that branch
+parameterized, not merged naively — the fix in "Scoped cleanup targets" is
+adjusted to reflect this.
+
 ### F3 — `acknowledge illegal` hand-rolls git plumbing instead of calling `gitops`
 
-`internal/verb/acknowledgeillegal.go:191-213` (`shaAckable`) shells out
+`internal/verb/acknowledgeillegal.go:188-213` (`shaAckable`) shells out
 directly (`exec.Command("git", "merge-base", "--is-ancestor", ...)` and
 `git rev-parse --verify <sha>^{commit}`) instead of calling the already
 public `gitops.IsAncestor` (`internal/gitops/refs.go:164`) and
@@ -217,23 +256,27 @@ the seam the rest of the kernel treats as sole owner of git access.
 
 ### F4 — the fail/envelope/`withCommitSHA` triad is independently reimplemented three times
 
-`internal/cli/archive/archive.go:220-234,279-288` calls `verb.Apply` directly
-and hand-builds its own success/error envelope (`emitArchiveEnvelope`,
-`failArchive`, `withCommitSHA`) instead of `cliutil.DecorateAndFinish`/
-`FinishVerb`. `withCommitSHA` is a verbatim duplicate of
-`internal/cli/cliutil/apply.go:100-109` — the doc comment at
-`archive.go:239-242` already admits archive predates that shared helper's
-adoption. This turns out not to be unique to archive: the *same* three-function
-triad (`failX`/`emitXEnvelope`/`withCommitSHA`) is independently reimplemented
+`internal/cli/archive/archive.go` calls `verb.Apply` directly and
+hand-builds its own success/error envelope (`emitArchiveEnvelope`,
+`failArchive`, `withCommitSHA`, the helpers spanning roughly lines 243-291)
+instead of `cliutil.DecorateAndFinish`/`FinishVerb`. `withCommitSHA` is a
+verbatim duplicate of `internal/cli/cliutil/apply.go:100-109` — archive's
+own doc comment already admits it predates that shared helper's adoption.
+This turns out not to be unique to archive: the *same* three-function triad
+(`failX`/`emitXEnvelope`/`withCommitSHA`) is independently reimplemented
 again in `internal/cli/rewidth/rewidth.go:214,232,250` and
 `internal/cli/importcmd/importcmd.go:257,275,293` — each ~15 lines, each
 admitted by its own comments as a mirror of the others (e.g.
-`rewidth.go:244`: "Mirrors `cliutil.withCommitSHA` / archive's..."). All
-three exist because `cliutil.FinishVerb` doesn't support dry-run or
-multi-`Plan` output, which archive, rewidth, and import each need. A future
-change to the shared outcome contract (a new exit code, a new envelope
-field) now has to be manually mirrored into three places instead of one, or
-it silently drifts in whichever copies get missed.
+`rewidth.go:244-245`: "Mirrors `cliutil.withCommitSHA` / archive's identical
+helper"). **Verified:** this is a real gap in `FinishVerb`'s contract, not
+mere copy-paste laziness — `cliutil.FinishVerb` (`apply.go:32-76`)
+unconditionally calls `verb.Apply` with no dry-run branch and assumes a
+single `*verb.Plan`; import genuinely needs multi-`Plan` handling (its loop
+applies `res.Plans` and tracks `lastSHA`), and archive/rewidth both need a
+pre-apply dry-run branch. A future change to the shared outcome contract (a
+new exit code, a new envelope field) now has to be manually mirrored into
+three places instead of one, or it silently drifts in whichever copies get
+missed.
 
 ### F5 — `Cancel`'s parallel legality codepath and duplicated cascade guard
 
@@ -261,6 +304,43 @@ look for "the shared read-side helpers" when adding a new read verb, and
 `show`'s view-building logic can't be unit-tested or reused without pulling
 in its Cobra-wiring-adjacent package.
 
+**Deep dive (this is the one area the first pass only traced at the
+"which functions get called" level; a follow-up read every line of the
+actual call chain).** Three corrections to the original framing:
+
+- **`render`'s live dependency on `show` is narrower than it looked.**
+  Grepping `internal/cli/render/*.go` production code for `show\.` turns up
+  exactly `show.ScopeView` (type), `show.AssembleScopeViews`
+  (`singlepass.go:164`), and `show.ReadEntityBody` (`resolver.go:643`).
+  `show.LoadEntityScopeViews` is referenced only in comments and the test
+  oracle — render rebuilds its gating logic locally instead of calling it
+  (see the duplication note below).
+- **`status` is a third consumer of `history`'s model half**, not just
+  `render` and `check` — `internal/cli/status/status.go:21,47,713-768`
+  reuses `history.HistoryEvent`/`ShortHash`/`StripTrailers` inside its own
+  `git log` parser. That's a stronger signal for extraction than the
+  two-consumer picture the first pass had.
+- **Not everything in `show`/`history` is extraction-worthy, and forcing all
+  of it out would be over-reach.** `scopes.go` (205 lines: `ScopeView`,
+  `LoadEntityScopeViews`, `AssembleScopeViews`, `LookupCommitDateCached`,
+  `LastEventSHA`) and `history`'s `EventFromCommit` (85 lines) are already
+  fully Cobra-free and pure — an accident of the M-0116 per-verb-package
+  migration, not a deliberate design choice (confirmed via `git log`: the
+  file moved verbatim from `cmd/aiwf/show_scopes.go`). `ReadEntityBody`
+  (~28 lines) and roughly half of `history.go` (the `HistoryEvent`
+  struct/`ReadHistory`/`ReadHistoryChain`/`ShortHash`/trailer-parsing slice,
+  ~285 lines) are separable with the same low effort. The bulk of both
+  files — `NewCmd`/`Run`/JSON-envelope shaping/`--area` filtering/text
+  rendering — is genuinely Cobra-specific and should stay put. Realistic
+  library surface: ~638 lines / ~16 exported symbols out of ~2071 combined,
+  about 30%. Estimated difficulty: low, well under a day — mechanical
+  import-path swaps, no algorithm changes, confirmed by tracing every
+  production and test call site.
+
+**Two real, previously-undiscovered bugs surfaced by reading this code
+end-to-end** are now their own findings, F13 and F14, below — the deep dive
+paid for itself independent of the architecture question.
+
 ### F7 — minor duplications and near-dead API surface
 
 - `for-each-ref refs/heads/` is independently re-issued in
@@ -269,18 +349,26 @@ in its Cobra-wiring-adjacent package.
   consuming `gitops.LocalBranchRefs` (`internal/gitops/refs.go:57`) — the
   isolation-escape-oracle variant has a legitimate perf reason to diverge
   (batches in `%(objectname)`), but `reflog_walk.go`'s is a plain duplicate.
-- Two independently-maintained "closed set of archivable kinds" lists:
-  `internal/verb/archive.go:392,403` (`isKnownKind`/`allKindNamesArchive`)
-  and `internal/cli/archive/archive.go:120,293`
-  (`archiveKindCompletions`/`validArchiveKind`) must be hand-kept in sync.
+- **Corrected after verification:** `internal/verb/archive.go:392,403`
+  (`isKnownKind`/`allKindNamesArchive`) and
+  `internal/cli/archive/archive.go:120,293`
+  (`archiveKindCompletions`/`validArchiveKind`) are *not* the "must be
+  hand-kept in sync" risk originally claimed — they're deliberately
+  different sets. `isKnownKind`/`allKindNamesArchive` iterate all six kinds
+  from `entity.AllKinds()`; `archiveKindCompletions` is a five-kind literal
+  that excludes milestone on purpose, per ADR-0004. The one-element
+  divergence is intentional design, not accidental drift — no action
+  needed here.
 - `gitops.Commit`, `gitops.CommitAllowEmpty`, `gitops.Mv`, `gitops.Add`
-  (`internal/gitops/gitops.go:69,74,86,97`) and `gitops.Init`
-  (`internal/gitops/gitops.go:63`) have no production callers — only tests
-  and the write-isolation policy's own ban-list reference the first four.
-  Intentional (they're the named "forbidden APIs" the policy checks
-  against), but as production API surface they read as dead ends; a comment
-  at each definition marking them test/porcelain-only would remove the
-  ambiguity for a future reader.
+  (`internal/gitops/gitops.go:69,74,86,97`) have no production callers —
+  only tests and the write-isolation policy's own ban-list reference them.
+  **Corrected:** `gitops.Init` (`internal/gitops/gitops.go:63`) does *not*
+  belong on this list — it has a genuine, if narrow, production caller via
+  `internal/cli/doctor/selfcheck.go:115`, reached from the real, wired
+  `aiwf doctor --self-check` flag. The other four remain intentional
+  test/porcelain-only APIs (the named "forbidden APIs" the write-isolation
+  policy checks against); a comment at each definition marking them as such
+  would remove the ambiguity for a future reader.
 
 ### F8 — `import` bypasses the shared id-allocation path entirely
 
@@ -289,15 +377,32 @@ in its Cobra-wiring-adjacent package.
 `entity.AllocateID` (`internal/entity/allocate.go:59`, the path `add.go:137`
 uses correctly) and duplicates `entity.IDPrefix`
 (`internal/entity/allocate.go:36`), which is explicitly documented as the
-single source of truth for id-prefix formatting. Because import's
-auto-id path never consults `tree.Tree.AllocationIDs()` (zero references in
-`import.go`), it reintroduces exactly the cross-branch id-collision exposure
-`entity.AllocateID` was built to close — an imported entity can silently
-collide with an id allocated on another unpushed branch, the same failure
-mode the id-lifecycle work already fixed for `add`. This is the second
-finding in this document that should be treated as a bug: it's not just
-duplicated code, it's a correctness regression relative to `add`'s
-guarantees for anyone who imports rather than adds.
+single source of truth for id-prefix formatting. Both files' own comments
+admit the mirroring (import.go:265-266: "parseIDInt is the package-local
+mirror of entity.parseIDNumber... unexported so we recreate it here";
+import.go:301-303: "Mirrors entity.AllocateID's formatting"). Because
+import's auto-id path never consults `tree.Tree.AllocationIDs()` (zero
+references in `import.go`), and `importcmd.go` has no `--fetch` flag the
+way `add.go:208-212` does, `id: auto` (the documented first-class idiom for
+greenfield entities, not a rare fallback) never sees ids from sibling local
+branches or a teammate's pushed-but-unmerged remote branch.
+
+**Verified nuance — the exposure is real but narrower than "silently
+collide" suggests.** A collision against **trunk** ids is actually caught:
+`Import` does call `projectionFindings` (`import.go:211`), which runs
+`idsUnique` against the projected tree, and `idsUnique` does read
+`t.TrunkIDs`. The genuinely unmitigated vector is collision against
+`LocalRefIDs`/`RemoteRefIDs` (other local branches, other pushed branches),
+which `idsUnique` deliberately excludes by design (a separate, accepted
+scope boundary, E-0052) — that collision surfaces only later, at merge
+time, via `aiwf reallocate`. This is exactly the pre-`AllocateID` exposure
+the id-lifecycle work fixed for `add`, now reintroduced for `import`; one
+migration doc (`docs/pocv3/migration/import-format.md:133`) even overclaims
+"`auto` allocation never collides with existing ids by construction,"
+reinforcing that this is a genuine, unaddressed gap rather than a
+documented, accepted limitation. This remains the clearest bug-tier finding
+in this document (F1's original bug framing did not survive verification;
+see above).
 
 ### F9 — setup-verb cluster: exported marker helpers doctor doesn't call
 
@@ -336,8 +441,8 @@ diff. `RecipeInstall` runs no config-correspondence gate at all
 (`internal/verb/contractrecipe.go:29-73`), only idempotency/`--force`
 checks. `RecipeRemove` runs a third, different shape: a manual referential-
 integrity scan (`bindingsReferencing`, `contractrecipe.go:90-92`). None of
-these skip validation outright the way F1's three verbs do — each runs
-*something* — but there's no shared abstraction across the three, so each
+these skip validation outright — each runs *something* — but there's no
+shared abstraction across the three, so each
 was designed independently rather than converging on one gate-with-scope
 concept the way entity-tree verbs converge on `projectionFindings`.
 
@@ -370,8 +475,81 @@ would have to manually `go install <pkg>@<older-tag>`. This is a reasonable
 minimalist design (not reinventing a binary installer) rather than an
 oversight, but it's worth naming explicitly as a property `aiwf upgrade`
 does **not** provide, since "cut a release" / "aiwf upgrade" conversations
-might otherwise assume it does. Lower severity than F1/F8 — an observation
+might otherwise assume it does. Lower severity than F8/F13 — an observation
 for the release-safety story, not a code defect to fix.
+
+### F13 — `show` silently swallows history/scope-read errors that its own siblings treat as fail-loud
+
+Surfaced by the F6 deep dive, not the original pass. `BuildShowView`
+(`internal/cli/show/show.go:386-392`) and `BuildCompositeShowView`
+(`show.go:557-563`) both do the equivalent of:
+
+```go
+events, err := history.ReadHistory(ctx, root, id)
+if err == nil { view.History = limitEvents(events, historyLimit) }
+if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil { view.Scopes = scopes }
+```
+
+On a `git log` failure (corrupt repo, environment fault), both fields
+silently stay `nil`, `Run` still returns `cliutil.ExitOK`, and the JSON
+envelope's `omitempty` tags make "couldn't read history" indistinguishable
+from "this entity legitimately has no history." This is inconsistent with
+how the rest of the kernel treats the identical failure class: `render`
+(`render.go:318-329`) fails loud on the equivalent walk error with an
+explicit comment reasoning that degrading silently would blank a whole
+report section, which is "strictly worse than the old per-entity
+best-effort... a corrupt/partial repo should stop the render, not emit a
+misleadingly-empty site" — and the sibling `aiwf history` verb
+(`internal/cli/history/history.go:119-130`) reaches the same conclusion for
+the same error. `show` never got this fix; no test in
+`internal/cli/show/*_test.go` exercises either error branch, confirming
+it's an overlooked gap, not a documented, accepted risk (unlike the
+`//coverage:ignore` annotations elsewhere in `scopes.go` that document *why*
+a branch is hard to hit while still handling the error). This is a real
+correctness bug, not an architectural preference.
+
+### F14 — cross-timezone scope events can sort out of true chronological order
+
+Also surfaced by the F6 deep dive. `AssembleScopeViews`
+(`internal/cli/show/scopes.go:169-171`) sorts `ScopeView`s by lexical string
+comparison of each event's `Opened` timestamp, sourced from git's `%aI`
+format (author-local ISO-8601 with that author's UTC offset preserved,
+`LookupCommitDateCached`, `scopes.go:183`, and the equivalent in `render`'s
+own index). Because `%aI` preserves each commit's author-local offset
+rather than normalizing to UTC, two commits from authors in different
+timezones can sort lexically out of true chronological order — e.g. an
+event timestamped `...T23:00:00-07:00` sorts before one timestamped
+`...T05:00:00+00:00` even though the former happened later in real time.
+Cosmetic in impact (it only affects row ordering in a scope table), but
+it's a genuine correctness bug relative to the "chronological" framing the
+feature promises, and both `show` and `render` inherit it identically since
+they share the one sort call — fixing it once fixes both.
+
+## Verification pass
+
+Every finding from the original two audit passes was re-examined by an
+independent skeptic agent instructed to refute it, not confirm it. Verdicts:
+
+| Finding | Verdict | What changed |
+|---|---|---|
+| F1 | **Refuted** (as originally framed) | Rewritten from "3 verbs violate an invariant" to "the package doc overclaims scope"; see F1 and G-0422 |
+| F2 | Confirmed, with revision | The "no second hyphen" branch is a real semantic fork, not identical — fix must be parameterized |
+| F3 | Confirmed | Minor line-range correction only (188-213) |
+| F4 | Confirmed, with revision | Archive.go line citation corrected; the "why" (FinishVerb's dry-run/multi-Plan gap) verified as real, not just historical accident |
+| F5 | Confirmed | No changes |
+| F6 | Confirmed, deepened | Extraction scope narrowed and quantified via a full read of the actual internals; surfaced F13 and F14 as a byproduct |
+| F7 (ref-listing) | Confirmed | No changes |
+| F7 (archivable-kind lists) | **Refuted** | The two lists intentionally differ by one kind (ADR-0004) — not a sync-drift risk |
+| F7 (dead `gitops` fns) | Confirmed, with revision | `gitops.Init` has a real production caller via `doctor --self-check`; dropped from the dead-ends list |
+| F8 | Confirmed, with revision | Trunk-collision is actually caught by `idsUnique`; the real gap is narrower (local/remote-ref collisions only) but still real |
+| F9 | Confirmed | All four sub-claims verified verbatim, no changes |
+| F10 | Confirmed | No changes |
+| F11 | Confirmed | `tree.Load`'s inclusion of archived entities independently verified via the loader's own path-classification code |
+| F12 | Confirmed | No changes |
+| F13, F14 | New | Surfaced by the F6 deep dive, not the original pass |
+
+The one substantive reversal (F1) is discussed in its own section above and
+in "Why the existing guardrails missed these findings."
 
 ## Common sink nodes (for reference)
 
@@ -382,7 +560,13 @@ for the release-safety story, not a code defect to fix.
   fed by `tree.Tree.AllocationIDs()` (`internal/tree/tree.go:205`) — the
   intended single allocation path for `Add`; `Import` bypasses it (F8).
 - **Validation gate:** `projectionFindings` (`internal/verb/common.go:123`)
-  → `check.Run`, diffed against the pre-mutation tree.
+  → `check.Run`, diffed against the pre-mutation tree. **Scope, verified:**
+  `check.Run` itself only covers rules computable from in-memory tree state
+  — it does not include the CLI-composed, git-history-dependent rules
+  (e.g. `area-mistag`/`area-unknown`/`area-overlap`, which need a
+  `touchedByEntity` map built by scanning commit history). Those rules are
+  only ever reachable via the pre-push hook's full `aiwf check`, by design —
+  not a gap in `projectionFindings` (see F1).
 - **FSM legality:** `entity.ValidateTransition`
   (`internal/entity/transition.go:79`) — sole production caller is `Promote`.
 - **Authorization/reachability:** `verb.Allow` (`internal/verb/allow.go:138`),
@@ -405,106 +589,142 @@ for the release-safety story, not a code defect to fix.
 ## Scoped cleanup targets
 
 Each finding above is independently fixable and independently testable — no
-sequencing dependency between them beyond F1 and F8 being the
-highest-priority fixes (they're correctness/invariant violations, not
-preferences). None require a design decision; each is ordinary kernel work
-behind an existing chokepoint (`projectionFindings`, `entity.AllocateID`,
-`gitops`, `cliutil.FinishVerb`, `entity.ValidateTransition`).
+sequencing dependency between them beyond F8 and F13 being the
+highest-priority fixes (they're correctness regressions, not preferences).
+None require a design decision; each is ordinary kernel work behind an
+existing chokepoint (`projectionFindings`, `entity.AllocateID`, `gitops`,
+`cliutil.FinishVerb`, `entity.ValidateTransition`).
 
 **Bugs — fix first, independent of everything else:**
 
-1. **F1** — route `SetArea`, `SetPriority`, and `RenameArea` through
-   `projectionFindings` like every other structural verb.
-2. **F8** — replace `import.go`'s hand-rolled `idPrefix`/`formatID`/
-   `parseIDInt`/`computeHighestPerKind` with `entity.AllocateID`, restoring
-   cross-branch collision protection for imported entities.
+1. **F8** — replace `import.go`'s hand-rolled `idPrefix`/`formatID`/
+   `parseIDInt`/`computeHighestPerKind` with `entity.AllocateID`, closing the
+   local-ref/remote-ref collision gap for imported entities (the trunk-side
+   collision case is already caught by `idsUnique`).
+2. **F13** — make `show`'s history/scope-read failures fail loud
+   (`cliutil.ExitInternal`), matching `render`'s and `aiwf history`'s
+   existing precedent for the identical error class; add the missing error-
+   branch test.
+
+**Small, low-risk fix — worth doing alongside the bugs above:**
+
+3. **F14** — normalize scope-event timestamps before sorting in
+   `AssembleScopeViews` (parse and compare as `time.Time`, or normalize to
+   UTC before the lexical sort) so cross-timezone events sort in true
+   chronological order.
 
 **Local cleanups — mechanical, low-risk, no design decision needed:**
 
-3. **F2** — extract one shared path-rewrite helper
-   (`computeEntityPathRewrite(e, replace func(name string) (string, error))`)
-   and have both `rename.go` and `reallocate.go` call it.
-4. **F3** — replace `acknowledgeillegal.go`'s hand-rolled `exec.Command` calls
+4. **F2** — extract one shared path-rewrite helper, parameterized on the
+   "no second hyphen" behavior (append-slug for rename, discard-and-replace
+   for reallocate — the two are not identical, see the verified nuance
+   above), and have both `rename.go` and `reallocate.go` call it.
+5. **F3** — replace `acknowledgeillegal.go`'s hand-rolled `exec.Command` calls
    with `gitops.IsAncestor`/`gitops.CommitExists`.
-5. **F4** — migrate `archive`, `rewidth`, and `import`'s CLI dispatchers onto
+6. **F4** — migrate `archive`, `rewidth`, and `import`'s CLI dispatchers onto
    a `cliutil.FinishVerb` extended to support dry-run/multi-`Plan` output,
    deleting all three duplicated `withCommitSHA`/envelope triads.
-6. **F5** — collapse the cascade "no terminal move while a child is
+7. **F5** — collapse the cascade "no terminal move while a child is
    non-terminal" guard into one shared precondition function parameterized
    by target status, called from both `Cancel` and `Promote`; consider
    moving `Cancel` into its own `internal/verb/cancel.go`.
-7. **F7** — fold `reflog_walk.go`'s ref listing onto `gitops.LocalBranchRefs`;
-   unify the two archivable-kind lists behind one source; annotate the
-   unreferenced `gitops` functions as test/porcelain-only.
-8. **F9** — wire `doctor.go`'s hook-marker and guidance-marker detection onto
+8. **F7** — fold `reflog_walk.go`'s ref listing onto `gitops.LocalBranchRefs`;
+   annotate the four genuinely-unreferenced `gitops` functions
+   (`Commit`/`CommitAllowEmpty`/`Mv`/`Add` — not `Init`, which has a real
+   caller) as test/porcelain-only. The archivable-kind-list item from the
+   original pass is dropped — verified as intentional divergence, not drift.
+9. **F9** — wire `doctor.go`'s hook-marker and guidance-marker detection onto
    `initrepo`'s already-exported marker functions instead of hardcoded
    string literals; collapse `completeHookNames`'s duplicate between
    `initcmd.go` and `update/hooks.go`.
 
+**Documentation-accuracy fix — not a code change:**
+
+10. **F1** — correct `internal/verb/verb.go`'s package doc to state the
+    actual, narrower scope (which verbs run `projectionFindings` and why the
+    others legitimately don't), matching the design doc's already-scoped
+    "current set." Optionally, encode that set as an explicit, reviewed
+    allowlist a policy can check against — see G-0422's revised scope below.
+
 **Judgment calls — need a decision, not just a patch:**
 
-9. **F10** — decide whether the contract subsystem's three per-verb
-   validation-gate styles should converge on one shared "scoped projection
-   check" concept, or whether their divergence is justified by each verb's
-   narrower blast radius (bind touches one binding; recipe install/remove
-   touch config wiring, not entity content).
-10. **F11** — decide whether `rewidth` should match `reallocate`'s broader
+11. **F10** — decide whether the contract subsystem's three per-verb
+    validation-gate styles should converge on one shared "scoped projection
+    check" concept, or whether their divergence is justified by each verb's
+    narrower blast radius (bind touches one binding; recipe install/remove
+    touch config wiring, not entity content).
+12. **F11** — decide whether `rewidth` should match `reallocate`'s broader
     sweep into archived entities, or whether the current active-tree-only
     scope is the right call (archived entities are terminal, so a stale
     reference there may not matter in practice).
-11. **F12** — no code change implied; worth naming in the release-process
+13. **F12** — no code change implied; worth naming in the release-process
     docs that `aiwf upgrade` provides no automated rollback, so a bad tag
     requires a manual `go install` to recover.
 
 **Largest item — its own milestone, not a patch:**
 
-12. **F6** — extract `history`'s and `show`'s reusable, non-Cobra logic into
-    neutral packages (e.g. `internal/history`, `internal/entityview`) that
+14. **F6** — extract the already-pure pieces only (`scopes.go` and
+    `history`'s `EventFromCommit` wholesale; `ReadEntityBody` and roughly
+    half of `history.go` need splitting out of their Cobra-bound siblings)
+    into a neutral package (e.g. `internal/entityview`) that
     `render`/`check`/`status` depend on instead of on sibling `internal/cli`
-    packages.
+    packages. Verified scope: ~638 lines / ~16 exported symbols out of
+    ~2071 combined (~30%); the rest is genuinely Cobra-specific and stays.
+    Estimated difficulty: low, well under a day — mechanical import-path
+    changes, no algorithm changes.
 
 Two of these are filed as gaps — [G-0422](../../work/gaps/G-0422-no-presence-check-that-structural-verbs-call-projectionfindings.md)
-and [G-0423](../../work/gaps/G-0423-no-clone-detection-linter-to-catch-duplicated-verb-layer-logic.md),
-covering the two prevention mechanisms from the section below. The rest of
-this document remains the map from which to file the balance: bundle
-F2/F3/F5/F7/F9 as one small "verb-layer housekeeping" epic (F4's direct fix
-is covered by G-0423's cleanup list); treat F10/F11/F12/F6 as separate
-decisions/milestones each, since each carries its own judgment call or
-blast radius.
+(revised in scope after F1's refutation — now tracks documenting/enforcing
+the actual, narrower `projectionFindings` scope rather than requiring it
+universally) and [G-0423](../../work/gaps/G-0423-no-clone-detection-linter-to-catch-duplicated-verb-layer-logic.md)
+(one example softened after verification, the rest confirmed), covering the
+two prevention mechanisms from the section below. The rest of this document
+remains the map from which to file the balance: bundle F2/F3/F5/F7/F9 as one
+small "verb-layer housekeeping" epic (F4's direct fix is covered by
+G-0423's cleanup list); file F8/F13/F14 as bug gaps; treat F10/F11/F12/F6 as
+separate decisions/milestones each, since each carries its own judgment call
+or blast radius.
 
 ## Why the existing guardrails missed these findings
 
 The natural follow-up question: this repo has mutation testing
 (`mutate-hunt`), a diff-scoped branch-coverage gate, and a substantial
 `internal/policies/` AST-check suite — shouldn't one of those have caught
-F1 or F8 before this audit found them? Mostly no, and the reason splits the
-findings above into three genuinely different categories with three
+F8 or F13 before this audit found them? Mostly no, and the reason splits the
+findings above into four genuinely different categories with four
 different remedies.
 
-**Sins of omission (F1, F8) are invisible to every test-execution-based
-method, not just this repo's.** Mutation testing perturbs an existing
-conditional, negates an existing comparison, or drops an existing
-statement, then checks whether a test goes red — it has no operation for
-"insert a call that was never written." The branch-coverage gate has the
-same shape: it demands every *existing* line be exercised, which says
-nothing about a line that doesn't exist. `SetArea`/`SetPriority`/
-`RenameArea`'s inline validation is internally consistent and can be 100%
-covered and 100% mutation-killed while still never calling
-`projectionFindings` — the bug is an absence, not a mistake in present
-logic, and no amount of exercising present logic can find an absence.
+**Sins of omission (F8) are invisible to every test-execution-based method,
+not just this repo's.** Mutation testing perturbs an existing conditional,
+negates an existing comparison, or drops an existing statement, then checks
+whether a test goes red — it has no operation for "insert a call that was
+never written." The branch-coverage gate has the same shape: it demands
+every *existing* line be exercised, which says nothing about a line that
+doesn't exist. `import.go`'s hand-rolled id math is internally consistent
+and can be well-tested while still never calling `entity.AllocateID` — the
+bug is an absence, not a mistake in present logic, and no amount of
+exercising present logic can find an absence. The AST policy that would
+help here doesn't exist yet: `PolicyVerbsValidateThenWrite` is a **ban-list**
+(walks every exported verb function and asserts a set of forbidden write
+calls is *absent*); F8 needs the mirror-image **presence** check (assert a
+required call *is* present) — a shape the repo has already built
+elsewhere (`test_setup_presence.go`, `skill_coverage.go`,
+`firing_fixture_presence.go`), just not for id allocation.
 
-The AST policy that feels closest, `PolicyVerbsValidateThenWrite`, doesn't
-help either: it's a **ban-list** (walks every exported verb function and
-asserts a set of forbidden write calls is *absent*), which is the mirror
-image of what F1 needs — a **presence** check asserting a required call
-*is* present. Both shapes are equally buildable with the same AST-walking
-technique; the repo has simply only built the ban-list version for this
-particular gate. It has already built the presence-list version
-elsewhere — `test_setup_presence.go` (every test package needs a
-`TestMain`), `skill_coverage.go` (every verb needs a skill or an allowlist
-entry), `firing_fixture_presence.go` (every policy needs a firing
-fixture) — so this is an uncovered instance of an existing pattern, not a
-new category of tooling. G-0422 tracks building it for `projectionFindings`.
+**Sins of stale coverage (F13) are a related but distinct mechanism worth
+naming separately.** `show`'s silently-swallowed error branch (`if err ==
+nil { ... }`, with no `else`) is *not* invisible to branch coverage in
+principle — an uncovered branch is exactly the shape the coverage gate is
+built to catch. It slipped through because the gate is **diff-scoped**: it
+only forces coverage on lines changed since the base ref. This code
+predates the gate (or was last touched before the rule existed), so it was
+never required to prove its error branch was exercised, and nothing
+retroactively re-checks it. A diff-scoped gate is the right tradeoff for an
+actively-changing codebase — running full non-diff coverage on every commit
+would be prohibitively noisy — but it means pre-existing, never-touched-since
+code can carry an untested branch indefinitely, found only by someone
+reading it end-to-end, which is exactly how F13 surfaced (the deep-dive
+verification pass on F6, not a coverage report).
 
 **Sins of duplication (F2, F4, F7, F9) are invisible to correctness tooling
 by design.** Each duplicated copy can be independently correct and
@@ -525,6 +745,20 @@ real "maybe not" on each side. The only mechanism that surfaces this class
 is a periodic cross-cutting trace like the one that produced this document,
 not a permanent gate.
 
+**A fifth category this section didn't originally have: sins of the audit
+itself.** The original F1 claimed a mechanical-tooling gap (no presence
+check for `projectionFindings`) that turned out not to exist, because its
+factual premise (that `check.Run`'s area rules were reachable from
+`projectionFindings`) was wrong. No tool caught that error either — it took
+a dedicated adversarial-verification pass, reading `check.Run`'s actual rule
+composition rather than trusting the first pass's characterization of it.
+The lesson generalizes: an audit's own findings need the same skepticism
+applied to the code it audits, and a single trace (however careful) is not
+self-verifying. That's the concrete case for treating "verify the findings"
+as its own pass, not an optional afterthought — see G-0422's revised scope,
+which now documents the corrected understanding rather than the original
+(wrong) diagnosis.
+
 ## Risks and boundaries
 
 **Risk: F6 scope creep.** Extracting `history`/`show`'s shared logic into
@@ -533,13 +767,16 @@ neutral packages touches import graphs across `render`, `check`, and
 blast radius — sequence it after the small, local fixes land and their
 tests are green, not bundled with them.
 
-**Risk: mechanical backstops don't cover most of these.** Only F1 and F8 sit
-behind (or restore) a testable invariant — `check`'s `area-*` rules already
-exist for F1; `entity.AllocateID`'s collision-avoidance behavior already has
-test coverage for F8. Every other finding (F2-F7, F9-F12) is a readability/
-maintainability/judgment-call item with no chokepoint that would fail CI if
-it regressed or recurred — they rely on code review catching reintroduction,
-the same as any other refactor.
+**Risk: mechanical backstops don't cover most of these.** Only F8 sits
+behind a testable invariant — `entity.AllocateID`'s collision-avoidance
+behavior already has test coverage, so fixing F8 to call it inherits that
+coverage directly. F13 and F14 will each need a new, purpose-written test
+for the error branch and the timezone-sort case respectively — neither
+currently has one, which is precisely why they went unnoticed. Every other
+finding (F1-F7, F9-F12) is a readability/maintainability/judgment-call/
+documentation item with no chokepoint that would fail CI if it regressed or
+recurred — they rely on code review catching reintroduction, the same as
+any other refactor.
 
 **Risk: F11's scope-decision has a correctness edge either way.** Widening
 rewidth to match reallocate's archive-inclusive sweep is a bigger behavior
@@ -547,18 +784,62 @@ change than it looks (it changes what `aiwf rewidth --apply` touches on a
 tree with archived entities) — don't fold it into the F2-F9 housekeeping
 pass; decide and scope it on its own.
 
+## Future option — a full multi-agent workflow sweep
+
+This document's two verification rounds (an initial call-graph trace, then
+one adversarial skeptic per finding plus a deep dive on F6) were each run as
+a bounded set of `Explore` subagents — proportionate to the task, not the
+largest tool available. A structured multi-agent `Workflow` run (this
+environment's tool for deterministic multi-stage agent orchestration) could
+go further in two specific ways this pass deliberately didn't:
+
+1. **Multi-voter adversarial confirmation.** Every finding here was checked
+   by exactly one skeptic. A workflow can run each finding past 3-5
+   independent skeptics in parallel and require a majority "not refuted"
+   verdict before a finding survives — this round's F1 reversal shows a
+   single skeptic can still be wrong in either direction (it correctly
+   refuted the original F1, but a single check is still a single point of
+   failure); a quorum is more robust than one pass, at the cost of several
+   times the agent calls per finding.
+2. **A systematic sweep of the sink packages themselves.** This whole
+   document audits how verbs *call into* `internal/entity`, `internal/tree`,
+   `internal/gitops`, and `internal/check` — it does not audit those four
+   packages' own internals for undiscovered issues the same way the F6 deep
+   dive did for `show`/`render`. A workflow could run the same
+   "trace shallow, then deep-dive the parts that look load-bearing" pattern
+   used here for the verb layer, applied instead to the sink packages —
+   `internal/entity`'s FSM tables, `internal/tree`'s loader, `internal/gitops`'s
+   ref/commit primitives, `internal/check`'s rule composition (the exact
+   layer whose actual behavior refuted F1) — with a completeness-critic
+   final stage asking "what part of these four packages did no finder even
+   look at."
+
+Neither is needed to act on the findings already in this document — they're
+independently fixable regardless. The reason to reach for the larger sweep
+later is scale (auditing four foundational packages instead of ~35 verb
+files) and confidence (quorum voting instead of single-skeptic verification),
+not a gap in what's already here. Worth doing when there's a specific reason
+to trust the sink packages less than this pass currently does — e.g. before
+a release that leans hard on one of them, or if a future finding traces back
+to a sink-package bug rather than a verb-layer one.
+
 ## Desired future property
 
-Every structural verb — not just most of them — runs through the same
-validate-then-write gate, and every id-allocating path shares one
-collision-avoidance implementation. A change to a shared contract (the
-projection check, the commit-outcome envelope, a git-plumbing helper, a hook
-marker string) only has to be made once to reach every verb that depends on
-it, because no verb hand-rolls its own copy. The contract subsystem's
-mutating verbs share one validation-gate concept instead of three
-independent styles. The read-only verbs depend on neutral shared libraries
-the same way the mutating verbs depend on `entity`/`gitops`/`check`, rather
-than on each other's CLI packages.
+The scope of which verbs run `projectionFindings` — and, more importantly,
+*why* the others legitimately don't — is written down and enforceable, not
+implicit in an overclaiming package doc that an audit can misread the way
+this one initially did. Every id-allocating path shares one
+collision-avoidance implementation, with no hand-rolled second copy. A
+change to a shared contract (the commit-outcome envelope, a git-plumbing
+helper, a hook marker string) only has to be made once to reach every verb
+that depends on it, because no verb hand-rolls its own copy. `show` and its
+siblings treat a git-read failure the same way everywhere — fail loud,
+never silently blank a section — instead of one verb quietly diverging from
+the others' precedent. The contract subsystem's mutating verbs share one
+validation-gate concept instead of three independent styles. The read-only
+verbs depend on neutral shared libraries the same way the mutating verbs
+depend on `entity`/`gitops`/`check`, rather than on each other's CLI
+packages.
 
 ## Provenance
 
@@ -576,4 +857,11 @@ surface. Every finding cited above was independently spot-checked against
 the actual source (grep/read confirmation of the specific file:line claims)
 before being written up here. A third pass asked why none of the findings
 were caught by existing tests or policies, producing the "Why the existing
-guardrails missed these findings" section and gaps G-0422/G-0423.
+guardrails missed these findings" section and gaps G-0422/G-0423. A fourth
+pass, requested explicitly for higher confidence and more depth, ran one
+independent adversarial skeptic per finding (instructed to refute, not
+confirm) plus a dedicated deep dive into `show`/`render`'s internals (the
+one area the earlier passes had only traced, not fully read) — producing
+the "Verification pass" table, the F1 reversal, findings F13/F14, and the
+"Future option" section scoping what a larger multi-agent workflow sweep
+would additionally give.
