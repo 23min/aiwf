@@ -7,65 +7,73 @@ priority: urgent
 ## What's missing
 
 `aiwf check`'s git-history-dependent rules (`fsm-history-consistent` via
-`gitops.BulkRevwalk`, `check.WalkHeadCommits`,
-`area_mistag.WalkAcknowledgedMistags`, `orphan_dag`) each walk the entire
-reachable commit history from scratch on every invocation, with no notion
-of "already verified as of the last check." Measured on this repo (719
-entities, 6,213 commits, 43 refs): `aiwf check` costs ~22s unconditionally
-on every push, dominated by `BulkRevwalk` (12.2s, of which 3.8s is a `-m`
-per-parent merge-diff fan-out that all three known consumers discard
-unconditionally via `if o.IsMergeCommit { continue }` at
-`internal/check/fsm_history_consistent.go:361,476,689`) and a fully
-redundant independent HEAD walk in `WalkAcknowledgedMistags` (1.7s,
-`internal/check/area_mistag.go:159`) that duplicates data
-`check.WalkHeadCommits` already computed moments earlier in the same
-invocation.
+`gitops.BulkRevwalk`, `check.WalkHeadCommits`, `orphan_dag`) walk the
+entire reachable commit history from scratch on every invocation, with no
+notion of "already verified as of the last check." That history-scaling
+term is what this gap tracks. It is one of three independent terms in
+`aiwf check`'s total cost, and no longer the largest (measured 2026-07-18,
+this repo: ~860 entities, ~7,650 commits):
 
-A throwaway, read-only prototype (bash, run against this repo's own
-history, deleted after use) validated a fix: because git commits are
-immutable and content-addressed, a commit's derived observations are
-cacheable forever once computed — an exact memoization, not a heuristic.
-Measured: a full walk costs 9.46s (6,197 commits); an incremental walk
-from a 25-commits-back watermark costs 0.28s (107 commits) — a 33x
-speedup — with the union of a cached baseline and the incremental walk
-formally verified byte-identical to a fresh full walk (no commit missed,
-none double-counted). Full design recorded in
-`docs/initiatives/check-performance-incremental-revwalk-cache.md`.
+1. **Environment — controlled, not code.** The devcontainer bind mount
+   multiplies every git object access ~7× (identical repo: ~56s on the
+   mount vs ~7.7s on native fs, before maintenance). Object-store health
+   compounds it: with `maintenance.auto` off, ~38k loose objects had
+   accumulated; `git repack -ad` plus a fresh commit-graph with
+   changed-path Bloom filters cut the check from ~7.7s to ~3.6s native
+   and ~56s to ~15–20s on the mount, findings byte-identical.
+   `maintenance.auto=true` is now set, so aiwf's one-commit-per-mutation
+   churn can no longer silently re-bloat the store. The mount multiplier
+   itself is a workstation/devcontainer-layout decision, out of aiwf's
+   hands.
+2. **The cross-branch collision scan** — work proportional to
+   entities × refs, discarded for every locally-present id. E-0067's
+   lazy-scan epic addresses it; not this gap.
+3. **The history-scaling walk itself — this gap.** Post-maintenance on
+   native fs, the residual is ~3s: `BulkRevwalk`'s git side is ~0.26s;
+   the dominant remainder is the FSM tier's ~6,900 `git cat-file --batch`
+   blob reads (one per distinct entity-file blob observed across history)
+   issued as strictly serial request-response round-trips
+   (`internal/gitops/catfile.go`), plus the Go-side parse of every
+   commit record, on a rule pipeline that runs its independent walks
+   strictly serially.
 
-The two independently-fixable findings above have since shipped as a
-`wf-patch` (dropping the dead `-m` fan-out; threading the already-computed
-`head` slice through `WalkAcknowledgedMistags` instead of re-walking),
-cutting real measured wall-clock on this repo from ~25.5s to ~19.1s
-(~25% faster, byte-identical findings before/after). This gap stays open
-because the structural cause remains: every history-walking rule still
-walks the entire reachable history from scratch, on every invocation.
+Mechanisms for the structural fix, in rising order of ambition:
 
-The structural fix was scoped as epic E-0058 and subjected to a four-way
-adversarial review, which found it too complex and risky to build as
-specified; E-0058 was cancelled. A simpler ref-tip-watermark alternative
-(no per-commit cache) was then designed and independently reviewed three
-ways; it too was found to have a disqualifying correctness defect —
-`fsm-history-consistent`'s verdict depends on the HEAD-relative
-acknowledgment set, not just commit content, which any future incremental
-design must account for — and was set aside as specified. Both attempts,
-the concrete counterexample, and the correctness constraint they surfaced
-are recorded in the initiative doc for whoever revisits this next.
+- **A persistent blob-SHA → parsed-frontmatter-status cache.** The FSM
+  walker's per-blob status reads are a pure function of content-addressed,
+  immutable blob content. Caching below the observation layer sidesteps
+  the acknowledgment constraint entirely — verdicts are still recomputed
+  fresh each run from observations plus the HEAD-reachable acknowledgment
+  set — so a stale entry is dead weight, never a wrong finding. No
+  watermarks, no merge-base reconciliation, no reachability filtering.
+- **Pipelining the `BlobReader` protocol** — batch the ~7k requests
+  instead of one write/read round-trip per blob.
+- **Parallelizing the independent rule walks** (`BulkRevwalk`, the HEAD
+  walk, orphan-dag, the cross-branch scan) — they are independent until
+  findings assembly and currently run one after another.
+- **Per-commit observation caching with ref watermarks** — the full
+  E-0058-class design, warranted only if the smaller mechanisms prove
+  insufficient. Any design that memoizes *verdicts* (rather than
+  content-pure observations) must satisfy the correctness constraint
+  recorded in
+  `docs/initiatives/check-performance-incremental-revwalk-cache.md`:
+  `fsm-history-consistent`'s verdict depends on the HEAD-relative
+  acknowledgment set, not just commit content. Two prior designs (E-0058
+  and a ref-tip-watermark alternative) were set aside on exactly that
+  ground and on complexity; the initiative doc preserves both
+  post-mortems and the concrete counterexample.
 
 ## Why it matters
 
-This is the concrete blocker on the branch/id-allocation strategy
+This gap is the concrete blocker on the branch/id-allocation strategy
 discussion in `docs/initiatives/id-lifecycle.md` (the EMB — "ephemeral
 mutation branch" — proposal, and G-0281's gaps-inbox side channel): both
-assume pushing is cheap enough to retry on contention, which isn't fully
-true here yet — every check still pays a cost that scales with total
-history, just a smaller one than before the shipped fixes.
-
-The two independently-fixable findings shipped with no design change,
-cutting the real cost by about a quarter. The structural fix underneath —
-making `aiwf check`'s cost scale with what changed since the last check,
-not with total repository history, which only grows over time — remains
-unsolved: two attempted designs were set aside (see
-`docs/initiatives/check-performance-incremental-revwalk-cache.md`), and
-reopening this needs either a design that satisfies the acknowledgment-
-interaction constraint that defeated both, or a different approach
-entirely.
+assume pushing is cheap enough to retry on contention. The operational
+fixes above plus E-0067 close most of the distance, but the remaining
+check cost still scales with total repository history, which only grows
+(~1,400 commits landed in the first half of July alone). The structural
+property this gap asks for — check cost proportional to what changed
+since the last check, not to how much history exists — remains unbuilt;
+the blob-SHA status cache above is the smallest mechanism that delivers
+a large share of it while respecting the acknowledgment constraint that
+defeated the two prior designs.
