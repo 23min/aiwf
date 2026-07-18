@@ -23,3 +23,7 @@ The A1 / A2 / A3 verdicts were all Strong but the adversarial passes named the c
 ## Source
 
 `docs/pocv3/health-scorecard-2026-06-04.md` §A1 (recommended moves 1–3), §A2 (move 2: codify layering doctrine), §A3 (moves 1–2).
+
+## Notes
+
+Only item 5 has landed: `internal/policies/layering_direction.go` (commit `2be5729b`), whose own commit message states "does not close the gap." Items 1–4 are unaddressed — `internal/cli/cliutil/` is still one ~30-file package with no `cliidentity`/`clioutput`/`cligitstate`/`cliflagsupport` split; `LoadEntityScopes` still lives in `cliutil/scopes.go`, not `internal/scope/`; `list`/`cancel`/`authorize`/`milestone`'s `Run(...)` adapters still take 8–11 positional parameters with no `Options` struct; and `internal/cli/render/resolver.go` is still one 800+ line file.
