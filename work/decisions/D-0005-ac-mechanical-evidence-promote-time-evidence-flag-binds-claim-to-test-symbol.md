@@ -1,7 +1,7 @@
 ---
 id: D-0005
 title: 'AC mechanical-evidence: promote-time --evidence flag binds claim to test symbol'
-status: accepted
+status: superseded
 relates_to:
     - E-0033
 ---
