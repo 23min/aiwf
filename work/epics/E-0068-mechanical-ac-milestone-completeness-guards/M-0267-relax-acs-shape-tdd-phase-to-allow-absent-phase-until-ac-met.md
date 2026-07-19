@@ -61,3 +61,27 @@ Two existing behaviors must survive the relaxation untouched: (1) a *present* `t
 
 - [G-0286](../../gaps/G-0286-acs-shape-tdd-phase-over-demands-a-phase-on-every-ac-under-tdd-required.md) — source gap, fully specifies the fix and the design fork's resolution.
 - CLAUDE.md §"What aiwf commits to", item 8 — the committed reading this milestone brings the check in line with.
+
+---
+
+## Work log
+
+### AC-1 — Absent tdd_phase is legal on a non-met AC
+
+Dropped `acsShape`'s presence requirement, keeping only the closed-set validity check · commit 88a32e3c · tests 4/4 new (plus 1 regression on `acsTDDAudit`'s previously-untested absent-phase branch).
+
+Branch-coverage audit: the single compound condition's three reachable combinations (absent → no finding, present+valid → no finding, present+invalid → finding) are each hit by an existing or new test. Vacuity audit (`wf-vacuity`): 3 mutations attempted (flip `!=`/`==`, drop the closed-set conjunct, invert it), all killed; no weak or tautological assertions found.
+
+## Decisions made during implementation
+
+- None — all decisions are pre-locked above (G-0286's own body already settles the design fork).
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
