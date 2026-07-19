@@ -576,6 +576,10 @@ func TestAuthorizeMetadata_PauseReportsEntityAndAction(t *testing.T) {
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// pause/resume metadata path, not the AC-completeness guard.
+	mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--actor", "human/test", "--root", root)
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-0001", "--to", "ai/claude")
 

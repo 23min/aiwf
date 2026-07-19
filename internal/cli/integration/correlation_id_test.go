@@ -250,6 +250,10 @@ func TestCorrelationID_PresentAcrossMutatingVerbs(t *testing.T) {
 		if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 			t.Fatalf("git checkout -b: %v\n%s", err, out)
 		}
+		// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+		// milestone; seed one so the promote below exercises the
+		// correlation-id wiring, not the AC-completeness guard.
+		mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--actor", "human/test", "--root", root)
 		mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 		envelopeCorrelationID(t, "authorize", "--root", root, "--actor", "human/test", "M-0001", "--to", "ai/claude", "--format=json")
 	})
@@ -509,6 +513,10 @@ func TestCorrelationID_AuthorizeFallsBackWhenOutputFormatCarriesNone(t *testing.
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// fallback correlation-id mint, not the AC-completeness guard.
+	mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--actor", "human/test", "--root", root)
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 
 	logPath := filepath.Join(t.TempDir(), "diag.log")

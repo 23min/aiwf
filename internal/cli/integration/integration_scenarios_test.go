@@ -168,6 +168,12 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 		t.Fatalf("authorize E-01: %v\n%s", err, out)
 	}
 	e01AuthSHA := mustHeadSHA(t, root)
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the pivot
+	// scenario's scope-SHA tracking, not the AC-completeness guard.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC"); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
+	}
 	// Agent acts under E-01 scope.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "in_progress",
@@ -189,6 +195,11 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 		t.Fatalf("authorize E-02: %v\n%s", err, out)
 	}
 	e02AuthSHA := mustHeadSHA(t, root)
+	// M-0268/AC-1: seed an AC on M-002 too — same zero-AC guard as
+	// M-001 above.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0002", "--title", "Sink flush AC"); err != nil {
+		t.Fatalf("aiwf add ac M-002: %v\n%s", err, out)
+	}
 	// Agent acts under E-02 scope; the commit must reference E-02's SHA.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0002", "in_progress",
@@ -204,6 +215,14 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	}
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--resume", "continuing E-01 work"); err != nil {
 		t.Fatalf("resume E-01: %v\n%s", err, out)
+	}
+	// The milestone-cancel-non-terminal-acs guard requires AC-1
+	// (seeded above for M-0268/AC-1) disposed before the milestone
+	// itself can be cancelled.
+	if out, err := testutil.RunBin(t, root, binDir, nil,
+		"promote", "M-0001/AC-1", "cancelled",
+		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
+		t.Fatalf("cancel M-001/AC-1: %v\n%s", err, out)
 	}
 	// Cancel M-001 under the resumed E-01 scope; commit must reference E-01's SHA again.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
@@ -300,6 +319,13 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// reallocate-preserves-authorization chain, not the
+	// AC-completeness guard.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC"); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
+	}
 	// Agent acts on M-001 (still its child). The chain E-02 → newEpicID
 	// must resolve so the act is allowed.
 	if out, err := testutil.RunBin(t, root, binDir, nil,

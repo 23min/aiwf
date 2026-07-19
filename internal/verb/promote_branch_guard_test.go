@@ -116,6 +116,10 @@ func TestPromote_MilestoneInProgress_SucceedsOnParentEpicBranch(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bootstrap", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so this test exercises the branch guard, not
+	// the AC-completeness guard.
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Boots up", testActor, nil))
 	gitCheckoutNewBranch(t, r.root, "epic/E-0001-foundations")
 
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))

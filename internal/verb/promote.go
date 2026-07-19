@@ -142,6 +142,13 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireExpectedBranchForActivatingTransition(ctx, t, e, newStatus); err != nil {
 			return nil, err
 		}
+		// M-0268/AC-1 (D-0039 point 1): a milestone starting with zero
+		// acceptance criteria has no contract yet for what "done"
+		// means. --force bypasses (sovereign override), same stance as
+		// the resolver-requirement checks above.
+		if err := requireNonEmptyACsAtMilestoneStart(e, newStatus); err != nil {
+			return nil, err
+		}
 	}
 
 	// Epic-terminal-promote cascade guard (G-0393 / G-0394, two
@@ -468,6 +475,32 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 		if opts.SupersededBy == "" {
 			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
 		}
+	}
+	return nil
+}
+
+// requireNonEmptyACsAtMilestoneStart returns an error when a
+// milestone's draft -> in_progress promote would start a milestone
+// with no acceptance criteria at all (D-0039 point 1 / M-0268/AC-1).
+// Zero ACs means there is no contract yet for what "done" means; the
+// operator either writes at least one AC first or overrides with
+// --force. Scoped narrowly to the draft -> in_progress transition —
+// no other legal milestone transition carries this precondition.
+//
+// This is a soft precondition, not a structural invariant like
+// MilestonePromoteNonTerminalACsError / EpicPromoteNonTerminalChildren-
+// Error (which run unconditionally, even under --force): D-0039 point
+// 2 explicitly permits a milestone to reach done with zero ACs (only a
+// warning fires), so "permanently AC-less" is a legitimate end state,
+// not an inconsistency force would be papering over. The caller checks
+// force before invoking this, matching requireResolverForResolutionClass's
+// own --force stance.
+func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus string) error {
+	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
+		return nil
+	}
+	if len(e.ACs) == 0 {
+		return fmt.Errorf("cannot promote %s to %q: milestone has no acceptance criteria; add one with `aiwf add ac %s --title \"...\"` first, or pass --force to override", e.ID, newStatus, e.ID)
 	}
 	return nil
 }

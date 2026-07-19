@@ -78,6 +78,11 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// both confined to the caller's t.TempDir()-scoped fixture
 		// dir — never a persisted repo artifact.
 		"internal/cli/cliutil/testutil/fixtures.go": "writes confined to t.TempDir()-scoped fixture dirs (a fake $HOME's .gitconfig, a throwaway malformed entity file); never a persisted repo artifact",
+		// M-0268/AC-1's zero-AC-guard fixture writes one scratch AC
+		// body file confined to the scenario's own disposable
+		// os.MkdirTemp dir, fed to `aiwf add ac --body-file` — never a
+		// persisted entity file itself.
+		"internal/stresstest/archive_during_active_scope.go": "writes confined to the scenario's own disposable temp dir; scratch AC-body fixture data, never a persisted entity file",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
