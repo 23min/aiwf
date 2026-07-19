@@ -55,9 +55,10 @@ M-0116 per-verb-package migration.
 - Extracting the verified Cobra-free read-side helpers out of
   `show`/`history` into a neutral package consumed by `render`, `check`, and
   `status`.
-- Recording the two judgment calls as decision entities during planning:
-  contract-subsystem validation-gate convergence, and `rewidth`'s
-  archive-sweep scope.
+- Converging the four contract-mutating verbs (`bind`, `unbind`,
+  `recipe install`, `recipe remove`) on one shared diff-based validation gate
+  per D-0041: introduced findings computed as a before/after diff on the
+  projected config.
 
 ### Out of scope
 
@@ -66,8 +67,9 @@ M-0116 per-verb-package migration.
   different concern, sequenced after.
 - G-0276 (retiring git-stash verb isolation for index-only scoping) — same
   layer, its own risk profile.
-- Build work for the contract-gate convergence and rewidth-sweep questions:
-  this epic records the decisions; any resulting build is a follow-up.
+- Widening `rewidth`'s reference sweep into `archive/` subtrees — decided
+  against in D-0042 (identity-vs-formatting asymmetry; parser width-tolerance
+  keeps archived references resolving).
 - The audit's "future option" multi-agent sweep of the sink packages
   (`entity`, `tree`, `gitops`, `check`) — separate initiative, separate
   trigger.
@@ -104,17 +106,21 @@ M-0116 per-verb-package migration.
   marker literals remain in `doctor`.
 - [ ] `render`, `check`, and `status` consume read-side helpers from a neutral
   package, not from sibling `internal/cli` verb packages.
-- [ ] Both judgment calls named in *In scope* are recorded as decision
-  entities.
+- [ ] The contract-mutating verbs share one diff-based validation gate;
+  pre-existing findings on untouched entries never block a mutation.
+- [ ] Both audit judgment calls are recorded as accepted decision entities
+  (D-0041, D-0042).
 - [ ] Every gap listed in *References* as addressed is closed.
 
 ## Open questions
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Contract-subsystem gates: converge on one scoped-projection-check concept, or accept the three styles as justified by blast radius? | no | Decision entity during milestone planning |
-| `rewidth` archive-sweep scope: match `reallocate`'s archive-inclusive sweep, or keep active-tree-only? | no | Decision entity during milestone planning; a widening would be its own follow-up, not this epic |
 | Name of the neutral read-side package | no | Decided at the extraction milestone; lean `internal/entityview` |
+
+The contract-gate and rewidth-sweep questions are resolved: D-0041 (converge on
+the shared diff-based gate, built in `M-0273`) and D-0042 (rewidth stays
+active-tree-only).
 
 ## Risks
 
@@ -136,6 +142,8 @@ M-0116 per-verb-package migration.
   on: —
 - `M-0272` — read-side extraction into the neutral package · depends on:
   `M-0269`, `M-0270`, `M-0271`
+- `M-0273` — converge the contract-mutating verbs on the shared diff-based
+  validation gate (`tdd: required`, per D-0041) · depends on: —
 
 ## ADRs produced
 
@@ -149,6 +157,7 @@ M-0116 per-verb-package migration.
   (findings F2–F14, verification pass, scoped cleanup targets).
 - Gaps addressed: G-0426, G-0427, G-0428.
 - Related, deferred: G-0168, G-0073, G-0282, G-0276.
+- Decisions: D-0041 (contract-gate convergence), D-0042 (rewidth sweep scope).
 - Prior prevention work: G-0422 (projectionFindings scope documented/enforced),
   G-0423 (dupl tripwire).
 - Key source: `internal/verb/`, `internal/cli/cliutil/apply.go`,
