@@ -524,9 +524,19 @@ func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus string) erro
 // missing-heading check rule already covers — so it is skipped here,
 // not double-flagged as "empty."
 //
-// Soft precondition, not a structural invariant: --force bypasses,
-// matching requireNonEmptyACsAtMilestoneStart's own stance. The
-// caller checks force before invoking this.
+// Structurally a soft precondition (the caller checks force before
+// invoking this, matching requireNonEmptyACsAtMilestoneStart's own
+// stance) but --force is practically inert here: the resulting state
+// (the target AC still empty at in_progress) is exactly what
+// acsEmptyBodyOnStart (M-0268/AC-4, error severity) flags, and
+// Promote's projectionFindings check runs unconditionally — force
+// relaxes FSM-transition legality and this specific verb-time guard,
+// never check-time coherence (see TestPromote_ForceStillFailsCoherence
+// for the established precedent). So --force changes the failure
+// shape (a findings-based refusal instead of this Go error) but never
+// lets the commit land; the message below does not claim otherwise.
+// The only way through is the honest one: write real prose via
+// `aiwf edit-body`.
 func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, newStatus string) error {
 	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
 		return nil
@@ -543,7 +553,7 @@ func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, new
 			continue
 		}
 		if entity.ACSectionIsEmpty(content) {
-			return fmt.Errorf("cannot promote %s to %q: %s/%s has no body content; write prose under its `### %s` heading first, or pass --force to override", e.ID, newStatus, e.ID, ac.ID, ac.ID)
+			return fmt.Errorf("cannot promote %s to %q: %s/%s has no body content; write prose under its `### %s` heading first", e.ID, newStatus, e.ID, ac.ID, ac.ID)
 		}
 	}
 	return nil

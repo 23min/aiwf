@@ -135,6 +135,7 @@ var hintTable = map[string]string{
 	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body via `aiwf edit-body <milestone-id>`, or drop the AC from the `acs:` frontmatter",
 	"acs-body-coherence/orphan-heading":    "register the AC in the milestone's `acs:` frontmatter via `aiwf add ac <milestone-id> --title \"...\"`, or remove the stray body heading via `aiwf edit-body <milestone-id>`",
 	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading via `aiwf edit-body <milestone-id>`; keep exactly one per AC",
+	"acs-empty-body":                       "write prose under the named AC's `### AC-N` heading via `aiwf edit-body <milestone-id>`; a title-only stub is not a real contract for that criterion once the milestone is in_progress or done",
 	"acs-tdd-audit":                        "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting",
 	"acs-tdd-tests-missing":                "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
 	"acs-title-prose":                      "shorten the AC title via `aiwf retitle <milestone-id>/AC-N \"...\"` and move the detail prose into the body under `### AC-N` via `aiwf edit-body <milestone-id>`; titles render as one big heading",
