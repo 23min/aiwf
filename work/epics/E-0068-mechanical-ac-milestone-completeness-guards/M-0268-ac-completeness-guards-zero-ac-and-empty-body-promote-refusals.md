@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Zero-AC milestone refused at draft to in_progress promote
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Empty AC body refused at draft to in_progress promote
       status: open
