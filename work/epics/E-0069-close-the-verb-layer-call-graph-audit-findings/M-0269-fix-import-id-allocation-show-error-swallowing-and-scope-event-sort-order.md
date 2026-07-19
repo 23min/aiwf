@@ -13,6 +13,10 @@ acs:
       title: show fails loud when history or scope reads error
       status: open
       tdd_phase: red
+    - id: AC-3
+      title: scope events sort chronologically across timezones in show and render
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -34,6 +38,8 @@ order. No design decisions needed — each fix converges on the existing seam.
 ### AC-1 — import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
 
 ### AC-2 — show fails loud when history or scope reads error
+
+### AC-3 — scope events sort chronologically across timezones in show and render
 
 ## Constraints
 
