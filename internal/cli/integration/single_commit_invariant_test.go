@@ -108,7 +108,11 @@ entities:
 		{"add epic E-01 (decoy)", []string{"add", "epic", "--title", "Decoy", "--actor", "human/test", "--root", root}},
 		{"add epic E-02 (engine)", []string{"add", "epic", "--title", "Engine", "--actor", "human/test", "--root", root}},
 		{"add milestone M-001 (tdd none)", []string{"add", "milestone", "--tdd", "none", "--epic", "E-0002", "--title", "Cache", "--actor", "human/test", "--root", root}},
-		{"add ac M-001/AC-1", []string{"add", "ac", "M-0001", "--title", "AC: warm-up works", "--actor", "human/test", "--root", root}},
+		// M-0268/AC-2: draft -> in_progress now refuses an empty AC
+		// body; give this AC real prose so the later "promote M-001 ->
+		// in_progress" step below exercises the single-commit
+		// invariant, not the AC-completeness guard.
+		{"add ac M-001/AC-1", []string{"add", "ac", "M-0001", "--title", "AC: warm-up works", "--body-file", acBodyFixturePath(t, root), "--actor", "human/test", "--root", root}},
 		{"add gap G-001", []string{"add", "gap", "--body", "## What's missing\n\nFixture prose for test setup; not the subject under test.\n\n## Why it matters\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample gap", "--actor", "human/test", "--root", root}},
 		{"add adr ADR-0001", []string{"add", "adr", "--body", "## Context\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Consequences\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample ADR", "--actor", "human/test", "--root", root}},
 		{"add decision D-001", []string{"add", "decision", "--body", "## Question\n\nFixture prose for test setup; not the subject under test.\n\n## Decision\n\nFixture prose for test setup; not the subject under test.\n\n## Reasoning\n\nFixture prose for test setup; not the subject under test.\n", "--title", "Sample decision", "--actor", "human/test", "--root", root}},

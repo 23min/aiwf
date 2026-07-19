@@ -130,7 +130,10 @@ func TestPromote_MilestoneToInProgressWithOpenAC_Succeeds(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	// M-0268/AC-4: an empty AC body now surfaces a check-time error on
+	// an in_progress milestone; give this AC real prose so the test
+	// exercises the open-AC-doesn't-block transition, not that finding.
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"First criterion"}, [][]byte{[]byte("Real prose.")}, testActor, nil))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
 
 	// G-0269's activating-promote branch guard is out of scope for this

@@ -68,6 +68,18 @@ func TestScopeReach_OutOfScopeRefusal_AC2(t *testing.T) {
 	testutil.SkipIfShortOrUnsupported(t)
 	root, bin := setupTwoEpicScopeRepo(t)
 
+	// M-0268/AC-1+AC-2: draft -> in_progress now refuses a zero-AC
+	// milestone, or one with an empty AC body; seed a real one on each
+	// milestone so both arms below exercise the scope-reach refusal,
+	// not the AC-completeness guards.
+	acBodyPath := acBodyFixturePath(t, root)
+	if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "ac", "M-0001", "--title", "In-scope AC", "--body-file", acBodyPath); err != nil {
+		t.Fatalf("aiwf add ac M-0001: %v\n%s", err, out)
+	}
+	if out, err := testutil.RunBin(t, root, filepath.Dir(bin), nil, "add", "ac", "M-0002", "--title", "Out-of-scope AC", "--body-file", acBodyPath); err != nil {
+		t.Fatalf("aiwf add ac M-0002: %v\n%s", err, out)
+	}
+
 	// Positive arm: agent promotes M-0001 (in E-0001's scope tree). Legal
 	// FSM transition + reachable -> succeeds.
 	if stdout, stderr, code := runSplit(t, root, bin,

@@ -482,6 +482,289 @@ func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
 	}
 }
 
+// TestMilestoneDoneZeroACs_FiresWarning pins M-0268/AC-3 (D-0039
+// point 2): a non-archived milestone reaching `done` with an empty
+// acs[] surfaces a warning-severity finding, extending the
+// milestone-done-incomplete-acs pattern rather than replacing it —
+// this is check-time only, never a verb-time refusal (D-0039
+// explicitly rejects a second hard block at `done`).
+func TestMilestoneDoneZeroACs_FiresWarning(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+	})
+	got := milestoneDoneZeroACs(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("severity = %q, want warning", got[0].Severity)
+	}
+	if got[0].EntityID != "M-0007" {
+		t.Errorf("entityID = %q, want M-0007", got[0].EntityID)
+	}
+	if got[0].Code != CodeMilestoneDoneZeroACs {
+		t.Errorf("code = %q, want %q", got[0].Code, CodeMilestoneDoneZeroACs)
+	}
+}
+
+// TestMilestoneDoneZeroACs_PopulatedACsSilent: a done milestone that
+// carries at least one AC (regardless of that AC's own status —
+// that's milestoneDoneIncompleteACs's concern) never fires this rule.
+func TestMilestoneDoneZeroACs_PopulatedACsSilent(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "x", Status: "met"}},
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("populated acs[] should not fire, got: %+v", got)
+	}
+}
+
+// TestMilestoneDoneZeroACs_NotDoneSkipped: only status: done is in
+// scope — a zero-AC milestone at draft/in_progress/cancelled is a
+// different rule's concern (or none at all, at draft/in_progress).
+func TestMilestoneDoneZeroACs_NotDoneSkipped(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("non-done milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
+// TestMilestoneDoneZeroACs_ArchivedSilent mirrors the archive-scoping
+// convention shared by every rule in this file (ADR-0004 §"Check shape
+// rules"): a zero-AC done milestone that has been archived is
+// historical state, not active drift.
+func TestMilestoneDoneZeroACs_ArchivedSilent(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		Path: "work/epics/archive/E-0001-foo/M-0007-foo.md",
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("archived milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
+// writeMilestoneFile writes a milestone markdown file at root/relPath
+// with the given content, creating parent directories as needed.
+// Shared setup for acsEmptyBodyOnStart tests, which — unlike most
+// rules in this file — must read the body from disk (the AC body
+// prose isn't part of the in-memory *entity.Entity frontmatter).
+func writeMilestoneFile(t *testing.T, root, relPath, content string) {
+	t.Helper()
+	abs := filepath.Join(root, filepath.FromSlash(relPath))
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(abs, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_FiresOnInProgress pins M-0268/AC-4 (G-0216):
+// a non-archived, in_progress milestone with an AC whose body is a
+// title-only stub fires an error-severity finding.
+func TestAcsEmptyBodyOnStart_FiresOnInProgress(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	got := acsEmptyBodyOnStart(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
+	}
+	if got[0].Severity != SeverityError {
+		t.Errorf("severity = %q, want error", got[0].Severity)
+	}
+	if got[0].EntityID != "M-0007/AC-1" {
+		t.Errorf("entityID = %q, want M-0007/AC-1", got[0].EntityID)
+	}
+	if got[0].Code != CodeACsEmptyBodyOnStart {
+		t.Errorf("code = %q, want %q", got[0].Code, CodeACsEmptyBodyOnStart)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_FiresOnDone: the finding is not silenced
+// once the milestone reaches done — unlike the pre-existing
+// entity-body-empty/ac warning, which the terminal-status lifecycle
+// gate silences at done. AC-4 deliberately does NOT use that gate.
+func TestAcsEmptyBodyOnStart_FiresOnDone(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: done\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: met\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "met"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 1 {
+		t.Errorf("expected 1 finding on a done milestone, got %d: %+v", len(got), got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_DraftSkipped: a draft milestone is out of
+// scope — an empty AC body pre-start is expected (aiwfx-plan-
+// milestones ships shape first), the same lifecycle stance
+// entity-body-empty/ac already takes.
+func TestAcsEmptyBodyOnStart_DraftSkipped(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "draft", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("draft milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_ArchivedSilent: archived, forward-only per
+// D-0039 point 3 — no separate grandfather/timestamp mechanism.
+func TestAcsEmptyBodyOnStart_ArchivedSilent(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/archive/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: done\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: met\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "met"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("archived milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_PopulatedBodySilent: an AC with real prose
+// under its heading never fires.
+func TestAcsEmptyBodyOnStart_PopulatedBodySilent(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n\nReal prose.\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("populated AC body should not fire, got: %+v", got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_CancelledACSkipped: a cancelled AC's body
+// isn't a live contract anymore — matches entity-body-empty/ac's own
+// exclusion.
+func TestAcsEmptyBodyOnStart_CancelledACSkipped(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: cancelled\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "cancelled"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("cancelled AC should not fire, got: %+v", got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_MissingHeadingSkipped: no `### AC-N` heading
+// at all is acs-body-coherence/missing-heading's concern, not this
+// one — matches AC-2's own verb-time carve-out.
+func TestAcsEmptyBodyOnStart_MissingHeadingSkipped(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("missing heading should not fire this rule, got: %+v", got)
+	}
+}
+
+// TestAcsEmptyBodyOnStart_EmptyACIDSkipped pins the defensive half of
+// the loop's compound skip condition: a frontmatter entry with no id
+// at all (a shape defect acs-shape/id already flags separately) must
+// not panic or misbehave here — it is simply skipped.
+func TestAcsEmptyBodyOnStart_EmptyACIDSkipped(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foo/M-0007-foo.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: in_progress\nparent: E-0001\n"+
+		"acs:\n  - id: ''\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n")
+
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	if got := acsEmptyBodyOnStart(tr); len(got) != 0 {
+		t.Errorf("empty AC id should not fire this rule, got: %+v", got)
+	}
+}
+
 func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{

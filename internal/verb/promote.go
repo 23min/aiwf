@@ -142,6 +142,20 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 		if err := requireExpectedBranchForActivatingTransition(ctx, t, e, newStatus); err != nil {
 			return nil, err
 		}
+		// M-0268/AC-1 (D-0039 point 1): a milestone starting with zero
+		// acceptance criteria has no contract yet for what "done"
+		// means. --force bypasses (sovereign override), same stance as
+		// the resolver-requirement checks above.
+		if err := requireNonEmptyACsAtMilestoneStart(e, newStatus); err != nil {
+			return nil, err
+		}
+		// M-0268/AC-2 (G-0216): a milestone starting with an AC whose
+		// body is a title-only stub has no real contract for that
+		// criterion yet. --force bypasses, same stance as AC-1's guard
+		// above.
+		if err := requireNonEmptyACBodiesAtMilestoneStart(t, e, newStatus); err != nil {
+			return nil, err
+		}
 	}
 
 	// Epic-terminal-promote cascade guard (G-0393 / G-0394, two
@@ -467,6 +481,79 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 	case k == entity.KindADR && newStatus == entity.StatusSuperseded:
 		if opts.SupersededBy == "" {
 			return fmt.Errorf("promoting an ADR to %q requires --superseded-by <ADR-id> so the adr-supersession-mutual rule is satisfied; pass --force to override", entity.StatusSuperseded)
+		}
+	}
+	return nil
+}
+
+// requireNonEmptyACsAtMilestoneStart returns an error when a
+// milestone's draft -> in_progress promote would start a milestone
+// with no acceptance criteria at all (D-0039 point 1 / M-0268/AC-1).
+// Zero ACs means there is no contract yet for what "done" means; the
+// operator either writes at least one AC first or overrides with
+// --force. Scoped narrowly to the draft -> in_progress transition —
+// no other legal milestone transition carries this precondition.
+//
+// This is a soft precondition, not a structural invariant like
+// MilestonePromoteNonTerminalACsError / EpicPromoteNonTerminalChildren-
+// Error (which run unconditionally, even under --force): D-0039 point
+// 2 explicitly permits a milestone to reach done with zero ACs (only a
+// warning fires), so "permanently AC-less" is a legitimate end state,
+// not an inconsistency force would be papering over. The caller checks
+// force before invoking this, matching requireResolverForResolutionClass's
+// own --force stance.
+func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus string) error {
+	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
+		return nil
+	}
+	if len(e.ACs) == 0 {
+		return fmt.Errorf("cannot promote %s to %q: milestone has no acceptance criteria; add one with `aiwf add ac %s --title \"...\"` first, or pass --force to override", e.ID, newStatus, e.ID)
+	}
+	return nil
+}
+
+// requireNonEmptyACBodiesAtMilestoneStart returns an error when a
+// milestone's draft -> in_progress promote would start a milestone
+// while at least one AC's body subsection carries no non-heading
+// prose (G-0216 / M-0268/AC-2). A title-only AC stub is no real
+// contract for that criterion yet. Scoped narrowly to draft ->
+// in_progress, same as requireNonEmptyACsAtMilestoneStart.
+//
+// An AC with NO `### AC-N` heading in the body at all is a different
+// problem — a frontmatter/body desync the acs-body-coherence/
+// missing-heading check rule already covers — so it is skipped here,
+// not double-flagged as "empty."
+//
+// Structurally a soft precondition (the caller checks force before
+// invoking this, matching requireNonEmptyACsAtMilestoneStart's own
+// stance) but --force is practically inert here: the resulting state
+// (the target AC still empty at in_progress) is exactly what
+// acsEmptyBodyOnStart (M-0268/AC-4, error severity) flags, and
+// Promote's projectionFindings check runs unconditionally — force
+// relaxes FSM-transition legality and this specific verb-time guard,
+// never check-time coherence (see TestPromote_ForceStillFailsCoherence
+// for the established precedent). So --force changes the failure
+// shape (a findings-based refusal instead of this Go error) but never
+// lets the commit land; the message below does not claim otherwise.
+// The only way through is the honest one: write real prose via
+// `aiwf edit-body`.
+func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, newStatus string) error {
+	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
+		return nil
+	}
+	body, err := readBody(t.Root, e.Path)
+	if err != nil {
+		//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
+		return fmt.Errorf("reading body of %s: %w", e.ID, err)
+	}
+	sections := entity.ParseACSections(body)
+	for _, ac := range e.ACs {
+		content, found := sections[ac.ID]
+		if !found {
+			continue
+		}
+		if entity.ACSectionIsEmpty(content) {
+			return fmt.Errorf("cannot promote %s to %q: %s/%s has no body content; write prose under its `### %s` heading first", e.ID, newStatus, e.ID, ac.ID, ac.ID)
 		}
 	}
 	return nil

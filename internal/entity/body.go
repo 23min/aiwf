@@ -249,3 +249,23 @@ func ParseACSections(body []byte) map[string]string {
 	}
 	return out
 }
+
+// ACSectionIsEmpty reports whether an AC body section's content (a
+// value from ParseACSections) counts as empty: no non-heading,
+// non-whitespace prose. AC bodies are leaf prose containers, so a
+// sub-heading with nothing under it (e.g. a stray "#### Notes") still
+// counts as empty — matching the pre-existing entity-body-empty/ac
+// check rule's own leaf-level definition (internal/check/entity_body.go's
+// isAllWhitespaceOrHeadings with leafLevel=true), which this function
+// gives a shared, exported home so a verb-time gate and a check-time
+// rule can consult the same definition of "empty" without drifting.
+func ACSectionIsEmpty(content string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		return false
+	}
+	return true
+}

@@ -68,6 +68,15 @@ func TestProvenance_AuthorizedAgentPromote(t *testing.T) {
 	}
 	authSHA := scopes[0].AuthSHA
 
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the agent's promote below exercises the
+	// provenance-trailer wiring, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if acOut, acErr := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC", "--body-file", acBodyFixturePath(t, root)); acErr != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", acErr, acOut)
+	}
+
 	// Agent runs the verb.
 	out, runErr := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "in_progress",
@@ -147,6 +156,16 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
 
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// out-of-scope refusal, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose so the empty-body guard doesn't mask
+	// the out-of-scope refusal under test.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Out-of-scope AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
+	}
+
 	// Agent attempts to promote a milestone under E-02 — out of
 	// scope. Refusal expected.
 	out, err := testutil.RunBin(t, root, binDir, nil,
@@ -208,6 +227,14 @@ func TestProvenance_ScopeEntityFollowsPriorEntityChain(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"authorize", "M-0001", "--to", "ai/claude", "--reason", "scoped to M-001"); err != nil {
 		t.Fatalf("aiwf authorize: %v\n%s", err, out)
+	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// prior-entity-chain resolution, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "First AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
 	}
 	// Reallocate M-001 → M-002 (or whatever the renumber target is).
 	if out, err := testutil.RunBin(t, root, binDir, nil, "reallocate", "M-0001"); err != nil {

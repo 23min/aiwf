@@ -137,6 +137,14 @@ func TestRenderHistory_AuthorizationFlow(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the agent's promote below exercises the
+	// history-rendering chips, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
+	}
 	// Agent promotes M-001 inside the scope.
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "in_progress",
