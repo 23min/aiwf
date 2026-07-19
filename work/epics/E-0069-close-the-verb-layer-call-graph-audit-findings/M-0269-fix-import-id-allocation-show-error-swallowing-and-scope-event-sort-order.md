@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: show fails loud when history or scope reads error
