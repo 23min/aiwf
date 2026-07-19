@@ -4,6 +4,11 @@ title: Extend FinishVerb with dry-run and multi-Plan; migrate its three bypasser
 status: draft
 parent: E-0069
 tdd: required
+acs:
+    - id: AC-1
+      title: FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -20,6 +25,8 @@ contract gap, not copy-paste laziness. A change to the outcome contract today
 must be mirrored into three places or it silently drifts.
 
 ## Acceptance criteria
+
+### AC-1 — FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
 
 ## Constraints
 
