@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Empty AC body surfaces an error finding, archive-scoped
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0268 — AC-completeness guards: zero-AC and empty-body promote refusals
