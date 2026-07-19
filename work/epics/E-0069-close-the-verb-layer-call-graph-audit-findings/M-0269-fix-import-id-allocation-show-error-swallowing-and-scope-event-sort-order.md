@@ -41,11 +41,38 @@ order. No design decisions needed — each fix converges on the existing seam.
 
 ### AC-1 — import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
 
+`aiwf import`'s auto-id allocation routes through `entity.AllocateID` — the
+same allocator `aiwf add` uses — so it considers the tree's cross-branch view
+(trunk ids plus local-ref and remote-ref ids) in addition to the working tree
+and the manifest's own explicit reservations. Importing an `id: auto` entry
+on a branch that has not yet merged a sibling branch's freshly-allocated id
+of the same kind allocates the next free id instead of re-minting the
+sibling's. Trunk-side collisions continue to be caught separately by the
+existing `idsUnique`/`import-collision` check; this closes the narrower
+local/remote-ref exposure (G-0426).
+
 ### AC-2 — show fails loud when history or scope reads error
+
+`aiwf show` propagates an error when reading git history or scope events
+fails, exiting with a fail-loud finding rather than silently degrading —
+matching the precedent `render` and `aiwf history` already set for the
+identical git-read error class (G-0427). The happy-path envelope is
+unchanged; only the error paths gain behavior.
 
 ### AC-3 — scope events sort chronologically across timezones in show and render
 
+Scope events render in true chronological order regardless of the timezone
+offset recorded in each event's timestamp, in both `aiwf show` and
+`aiwf render`. The shared sort call normalizes to `time.Time` comparison
+instead of comparing timestamp strings, so events recorded across different
+timezones interleave correctly (G-0428).
+
 ### AC-4 — a policy fails any verb minting entity ids outside entity.AllocateID
+
+An `internal/policies` check statically fails CI if any verb package mints
+an entity id through a path other than `entity.AllocateID`, preventing a
+regression of the class of bug AC-1 closes — a verb hand-rolling its own
+id-numbering logic instead of routing through the shared allocator.
 
 ## Constraints
 
