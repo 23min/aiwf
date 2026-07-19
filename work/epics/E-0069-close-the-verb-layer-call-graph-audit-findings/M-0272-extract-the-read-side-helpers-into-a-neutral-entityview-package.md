@@ -12,6 +12,9 @@ acs:
     - id: AC-1
       title: read-side helpers live in a neutral package free of CLI dependencies
       status: open
+    - id: AC-2
+      title: render, check, status import the neutral package, not sibling CLI packages
+      status: open
 ---
 ## Goal
 
@@ -33,6 +36,8 @@ nobody has yet added the closing edge.
 ## Acceptance criteria
 
 ### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
+
+### AC-2 — render, check, status import the neutral package, not sibling CLI packages
 
 ## Constraints
 
