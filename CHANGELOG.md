@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0068: mechanical AC/milestone-completeness guards
+
+Closed three places where AC/milestone completeness discipline depended on operator
+vigilance instead of a mechanical chokepoint. `aiwf promote M-NNNN in_progress` now
+refuses a milestone with zero acceptance criteria, and separately refuses one where any
+AC's body is a title-only stub with no real prose — both name the offending AC and, for
+the zero-AC case, accept `--force --reason "..."` to override (the empty-body refusal does
+not: `aiwf check`'s new `acs-empty-body` error fires on exactly that state regardless of
+`--force`, so the only path through is writing real content). `aiwf check` gained two new
+findings: `milestone-done-zero-acs` (warning) for a milestone reaching `done` with no ACs
+at all, and `acs-empty-body` (error, archive-scoped) for an empty AC body persisting at
+`in_progress` or `done`. Separately, `acs-shape/tdd-phase` no longer requires every AC
+under a `tdd: required` milestone to carry a `tdd_phase` from creation — absence is legal
+until the AC reaches `met`, matching what the design actually commits to; strengthening a
+milestone `advisory → required` no longer reddens the tree for every pre-existing AC.
+
 ## [0.27.0] — 2026-07-18
 
 ### Fixed — broken links in verb-layer-cleanup.md to archived gaps G-0422/G-0423
