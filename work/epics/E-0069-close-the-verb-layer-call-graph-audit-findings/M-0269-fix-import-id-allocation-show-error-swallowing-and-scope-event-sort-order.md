@@ -17,6 +17,10 @@ acs:
       title: scope events sort chronologically across timezones in show and render
       status: open
       tdd_phase: red
+    - id: AC-4
+      title: a policy fails any verb minting entity ids outside entity.AllocateID
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -40,6 +44,8 @@ order. No design decisions needed — each fix converges on the existing seam.
 ### AC-2 — show fails loud when history or scope reads error
 
 ### AC-3 — scope events sort chronologically across timezones in show and render
+
+### AC-4 — a policy fails any verb minting entity ids outside entity.AllocateID
 
 ## Constraints
 
