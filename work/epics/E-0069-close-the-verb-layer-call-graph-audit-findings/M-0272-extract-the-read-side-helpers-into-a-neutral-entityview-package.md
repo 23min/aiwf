@@ -8,6 +8,10 @@ depends_on:
     - M-0270
     - M-0271
 tdd: none
+acs:
+    - id: AC-1
+      title: read-side helpers live in a neutral package free of CLI dependencies
+      status: open
 ---
 ## Goal
 
@@ -27,6 +31,8 @@ sibling CLI packages for this logic; the acyclic property survives only because
 nobody has yet added the closing edge.
 
 ## Acceptance criteria
+
+### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
 
 ## Constraints
 
