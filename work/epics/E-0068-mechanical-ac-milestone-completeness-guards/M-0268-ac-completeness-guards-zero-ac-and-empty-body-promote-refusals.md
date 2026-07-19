@@ -1,7 +1,7 @@
 ---
 id: M-0268
 title: 'AC-completeness guards: zero-AC and empty-body promote refusals'
-status: in_progress
+status: done
 parent: E-0068
 tdd: required
 acs:
