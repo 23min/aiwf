@@ -106,6 +106,13 @@ id-numbering logic instead of routing through the shared allocator.
 
 ## Work log
 
+### AC-1 — import id auto allocates via entity.AllocateID
+
+Swapped `import.go`'s hand-rolled `computeHighestPerKind`/`parseIDInt`/
+`idPrefix`/`formatID` for `entity.AllocateID(k, allocated, t.AllocationIDs())`,
+threading in-manifest explicit reservations as synthetic entities so the
+allocator still sees them · commit `35b0d3ec` · tests 1/1.
+
 ## Decisions made during implementation
 
 - (none)
