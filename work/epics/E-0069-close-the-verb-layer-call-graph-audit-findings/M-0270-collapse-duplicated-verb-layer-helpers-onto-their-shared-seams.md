@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
       status: open
+    - id: AC-5
+      title: doctor reads hook and guidance markers via initrepo; completeHookNames deduped
+      status: open
 ---
 ## Goal
 
@@ -40,6 +43,8 @@ they should share.
 ### AC-3 — Cancel and Promote share one cascade guard; Cancel moves to cancel.go
 
 ### AC-4 — reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
+
+### AC-5 — doctor reads hook and guidance markers via initrepo; completeHookNames deduped
 
 ## Constraints
 
