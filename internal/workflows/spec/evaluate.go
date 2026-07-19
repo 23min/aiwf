@@ -13,9 +13,6 @@ import (
 //	TargetState — the second positional arg of `aiwf promote <id>
 //	              <new-status>` (or AC's `--phase` value). Used by the
 //	              "self.target-state" predicate.
-//	Evidence    — the `--evidence` flag value on
-//	              `aiwf promote M-NNN/AC-N met --evidence "..."`. Used
-//	              by the "self.evidence" predicate.
 //	AC          — populated when the rule's Kind is KindAC and the
 //	              predicate references "self.tdd_phase" (which is a
 //	              field on AcceptanceCriterion, not on Entity). ACs
@@ -28,7 +25,6 @@ import (
 // vocabulary commitment.
 type EvalContext struct {
 	TargetState string
-	Evidence    string
 	AC          *entity.AcceptanceCriterion
 
 	// Target and ScopeEntity carry verb-invocation context for the
@@ -48,8 +44,6 @@ type EvalContext struct {
 // boundary:
 //
 //	self.target-state == <state>
-//	self.evidence non-empty
-//	self.evidence == ""
 //	self.addressed_by non-empty
 //	self.addressed_by == ""
 //	self.superseded_by non-empty
@@ -75,8 +69,6 @@ func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalCont
 	switch p.Subject {
 	case "self.target-state":
 		return cmpString(p.Op, ctx.TargetState, p.Value)
-	case "self.evidence":
-		return cmpString(p.Op, ctx.Evidence, p.Value)
 	case "self.addressed_by":
 		return cmpStringSlice(p.Op, e.AddressedBy, p.Value)
 	case "self.superseded_by":

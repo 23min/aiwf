@@ -258,10 +258,10 @@ func runAndCaptureFatal(fn func(t *testing.T)) (failed bool) {
 	return fake.Failed()
 }
 
-// TestSatisfyPredicate exercises each non-trivial atom (the 7 atoms
-// that need fixture mutation; verb-arg atoms — self.target-state,
-// self.evidence — are no-ops since the driver supplies them at
-// verb-time). After mutation, the helper self-verifies via
+// TestSatisfyPredicate exercises each non-trivial atom (the atoms
+// that need fixture mutation; verb-arg atoms — self.target-state —
+// are no-ops since the driver supplies them at verb-time). After
+// mutation, the helper self-verifies via
 // spec.EvaluatePredicate; the test re-confirms by an independent
 // EvaluatePredicate call.
 func TestSatisfyPredicate(t *testing.T) {

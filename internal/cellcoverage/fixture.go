@@ -240,12 +240,10 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 			f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", fmt.Sprintf("AC %d", i+1), testActor, nil))
 			acID := fmt.Sprintf("M-0001/AC-%d", i+1)
 			// Walk the TDD phase first (red -> green -> done) so
-			// the subsequent status open -> met clears
-			// acs-tdd-audit. Then advance status; --evidence
-			// satisfies D-0005's required-evidence precondition.
+			// the subsequent status open -> met clears acs-tdd-audit.
 			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseGreen, testActor, "", false, nil))
 			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseDone, testActor, "", false, nil))
-			f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "evidence: covered by Test"+fmt.Sprint(i+1), false, verb.PromoteOptions{}))
+			f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "covered by Test"+fmt.Sprint(i+1), false, verb.PromoteOptions{}))
 		}
 		f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusDone, testActor, "", false, verb.PromoteOptions{}))
 		return "M-0001"
@@ -377,7 +375,7 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 		// open -> met.
 		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseGreen, testActor, "", false, nil))
 		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseDone, testActor, "", false, nil))
-		f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "evidence: covered by TestCellCoverage", false, verb.PromoteOptions{}))
+		f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "covered by TestCellCoverage", false, verb.PromoteOptions{}))
 		return acID
 	case entity.StatusDeferred:
 		f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusDeferred, testActor, "deferred for test setup", false, verb.PromoteOptions{}))
@@ -395,7 +393,7 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 // has a hand-rolled mutation; after applying, the helper re-loads
 // the tree and calls spec.EvaluatePredicate to self-verify — the
 // silent-drift guard. evalCtx is updated in place when the predicate
-// is verb-arg-shaped (self.target-state, self.evidence).
+// is verb-arg-shaped (self.target-state).
 func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID string, evalCtx *spec.EvalContext) {
 	t.Helper()
 	// Each Subject case lists the Ops it knows how to materialize.
@@ -413,16 +411,6 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 		default:
 			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
 		}
-	case "self.evidence":
-		switch p.Op {
-		case "non-empty":
-			evalCtx.Evidence = "fixture-provided evidence"
-		case "==":
-			evalCtx.Evidence = p.Value
-		default:
-			t.Fatalf("SatisfyPredicate: Subject=%q Op=%q not implemented", p.Subject, p.Op)
-		}
-		return
 	case "self.addressed_by":
 		switch p.Op {
 		case "non-empty":

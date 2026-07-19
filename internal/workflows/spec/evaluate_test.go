@@ -9,12 +9,10 @@ import (
 )
 
 // TestEvaluatePredicate covers the closed (Subject, Op, Value)
-// vocabulary that actually appears in Rules(). The 10 unique atoms
+// vocabulary that actually appears in Rules(). The unique atoms
 // harvested from rules.go at M-0124 design time:
 //
 //	self.target-state == <state>
-//	self.evidence non-empty
-//	self.evidence == ""
 //	self.addressed_by non-empty
 //	self.addressed_by == ""
 //	self.tdd_phase != <phase>
@@ -80,12 +78,6 @@ func TestEvaluatePredicate(t *testing.T) {
 		// self.target-state == <state>
 		{"target-state-eq-positive", Predicate{Subject: "self.target-state", Op: "==", Value: "deferred"}, milestoneDraft, EvalContext{TargetState: "deferred"}, true, ""},
 		{"target-state-eq-negative", Predicate{Subject: "self.target-state", Op: "==", Value: "deferred"}, milestoneDraft, EvalContext{TargetState: "met"}, false, ""},
-
-		// self.evidence non-empty / == ""
-		{"evidence-non-empty-positive", Predicate{Subject: "self.evidence", Op: "non-empty"}, milestoneDraft, EvalContext{Evidence: "covered by TestFoo"}, true, ""},
-		{"evidence-non-empty-negative", Predicate{Subject: "self.evidence", Op: "non-empty"}, milestoneDraft, EvalContext{Evidence: ""}, false, ""},
-		{"evidence-empty-positive", Predicate{Subject: "self.evidence", Op: "==", Value: ""}, milestoneDraft, EvalContext{Evidence: ""}, true, ""},
-		{"evidence-empty-negative", Predicate{Subject: "self.evidence", Op: "==", Value: ""}, milestoneDraft, EvalContext{Evidence: "x"}, false, ""},
 
 		// self.addressed_by non-empty / == ""
 		{"addressed_by-non-empty-positive", Predicate{Subject: "self.addressed_by", Op: "non-empty"}, gapWithResolver, EvalContext{}, true, ""},

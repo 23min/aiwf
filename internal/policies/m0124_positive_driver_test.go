@@ -29,7 +29,7 @@ import (
 //
 //   - `self.target-state == X` precondition pins target = X.
 //   - Verb == "cancel" → target = entity.CancelTarget(kind, from).
-//   - Promote on AC.open with `self.evidence non-empty` → target = met.
+//   - Promote on AC.open with a `parent.tdd` precondition → target = met.
 //   - Promote on Gap.open with `self.addressed_by non-empty` → target =
 //     addressed (verb takes --by to populate the field atomically with
 //     the transition).
@@ -109,7 +109,7 @@ func caseName(rule spec.Rule, target string) string {
 
 // preconditionSignature builds a short identifier from preconditions
 // that aren't already captured by the (Kind, FromState, Verb, target)
-// quadruple — i.e., anything beyond `self.target-state`, `self.evidence`,
+// quadruple — i.e., anything beyond `self.target-state`,
 // `self.addressed_by`, and `self.superseded_by` (the verb-arg-shaped
 // preconditions whose values either set the target or supply a flag).
 // Returns "" when no disambiguating preconditions exist.
@@ -117,7 +117,7 @@ func preconditionSignature(rule spec.Rule) string {
 	var parts []string
 	for _, p := range rule.Preconditions {
 		switch p.Subject {
-		case "self.target-state", "self.evidence", "self.addressed_by", "self.superseded_by":
+		case "self.target-state", "self.addressed_by", "self.superseded_by":
 			continue
 		}
 		parts = append(parts, shortAtom(p))
@@ -190,7 +190,7 @@ func derivePromoteTargets(t *testing.T, rule spec.Rule) []string {
 		}
 	case spec.KindAC:
 		for _, p := range rule.Preconditions {
-			if p.Subject == "self.evidence" && p.Op == "non-empty" {
+			if p.Subject == "parent.tdd" {
 				return []string{entity.StatusMet}
 			}
 		}
@@ -232,10 +232,9 @@ func runPositiveCell(t *testing.T, tc positiveCase) {
 
 	// Materialize each precondition. Three shapes:
 	//
-	//  - Verb-arg-only (target-state, evidence): the cell-under-test
-	//    supplies the value via positional arg / flag at run-time; no
-	//    fixture mutation needed. Recorded in evalCtx for the post-
-	//    state assertion.
+	//  - Verb-arg-only (target-state): the cell-under-test supplies the
+	//    value via positional arg at run-time; no fixture mutation
+	//    needed. Recorded in evalCtx for the post-state assertion.
 	//  - Verb-arg-shaped field (addressed_by, superseded_by): the
 	//    field is populated atomically with the transition via a
 	//    flag (--by, --superseded-by). The fixture only needs to
@@ -251,7 +250,7 @@ func runPositiveCell(t *testing.T, tc positiveCase) {
 	extras := extraArgs{}
 	for _, p := range tc.rule.Preconditions {
 		switch p.Subject {
-		case "self.target-state", "self.evidence":
+		case "self.target-state":
 			// Verb-arg only; no fixture mutation required.
 		case "self.addressed_by":
 			if p.Op == "non-empty" {

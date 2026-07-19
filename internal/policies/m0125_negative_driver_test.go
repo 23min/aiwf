@@ -1,14 +1,12 @@
 package policies
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cellcoverage"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/verb"
 	"github.com/23min/aiwf/internal/workflows/spec"
 )
 
@@ -117,11 +115,10 @@ var ac2KnownImplGaps = map[string]string{
 	// FSM-illegal "rejected", and verb.Cancel surfaces "no cancel target"
 	// — which errorSubstringsFor("fsm-transition-illegal") matches.
 	//
-	// ac-evidence-missing is unsupported by the verb — no --evidence
-	// flag, no PromoteOptions.Evidence, no validation. Tracked by G-0140
-	// (filed at M-0123 wrap referencing D-0005; G-0164 was a duplicate
-	// filed at M-0125 and cancelled wontfix on consolidation).
-	"ac-open-promote": "G-0140",
+	// ac-evidence-missing (formerly tracked here as "ac-open-promote" via
+	// G-0140) was removed rather than closed: D-0038 rejected the
+	// --evidence flag mechanism, so the spec cell is gone and there is no
+	// entry to carry.
 }
 
 func enumerateVerbTimeIllegalCases(t *testing.T) []illegalCase {
@@ -150,8 +147,8 @@ func enumerateVerbTimeIllegalCases(t *testing.T) []illegalCase {
 //
 // Only codes whose cells run today appear here. Codes whose cells are
 // currently skipped under ac2KnownImplGaps (epic/milestone cancel-non-
-// terminal-children/acs, ac-evidence-missing) intentionally have no
-// entry — there's no live test to anchor the substring choice. When a
+// terminal-children/acs) intentionally have no entry — there's no live
+// test to anchor the substring choice. When a
 // gap closes and the cell un-skips, the case is added in the same
 // commit (the unmapped-code branch falls through to "non-zero exit +
 // rollback only," which would let the test pass on wrong-reason
@@ -389,30 +386,11 @@ func runImplGapStalenessVerbTime(t *testing.T, tc illegalCase, gap string) {
 // reaches the verb cleanly); they have no entry here and the
 // staleness assertion runs unmodified.
 //
-// History: introduced during the AC-4 retrofit (replacing t.Skipf
-// with staleness teeth surfaced that ac-open-promote was incidentally
-// rejected via projectionFindings's acs-tdd-audit error, even though
-// G-0140's missing chokepoint — `--evidence` flag at verb time — is
-// still genuinely absent. Without this customization the naive
-// staleness check would fire false-positive for ac-open-promote, when
-// in fact the gap is still open).
-var ac2ImplGapFixtureSetup = map[string]func(t *testing.T, f *cellcoverage.CellFixture, id string){
-	// ac-open-promote (G-0140): cell is "AC.open.promote with
-	// self.evidence empty" — verb-time chokepoint at the evidence
-	// flag is missing. But the default fixture (acAt(open)) seeds AC
-	// at phase=red under parent.tdd=required, and finalizeACPlan's
-	// projection catches acs-tdd-audit as an error, returning
-	// non-zero before the (missing) evidence chokepoint would fire.
-	// Advance phase to done so the projection finding doesn't fire
-	// and the staleness check correctly asserts "verb still succeeds
-	// = G-0140 still open." When G-0140 closes (verb gains an
-	// --evidence chokepoint), the verb will reject for the cell's
-	// actual reason and the staleness check will fire red as
-	// designed.
-	"ac-open-promote": func(t *testing.T, f *cellcoverage.CellFixture, id string) {
-		t.Helper()
-		ctx := context.Background()
-		f.Must(verb.PromoteACPhase(ctx, f.Tree(), id, entity.TDDPhaseGreen, "human/test", "AC-2 staleness fixture: bypass incidental acs-tdd-audit projection", false, nil))
-		f.Must(verb.PromoteACPhase(ctx, f.Tree(), id, entity.TDDPhaseDone, "human/test", "AC-2 staleness fixture: bypass incidental acs-tdd-audit projection", false, nil))
-	},
-}
+// History: introduced during the AC-4 retrofit (replacing t.Skipf with
+// staleness teeth surfaced a case — ac-open-promote, tracking the
+// since-abandoned G-0140 — where the default fixture triggered an
+// incidental acs-tdd-audit projection rejection that masked the
+// gap-tracked chokepoint's actual status. That entry is gone along with
+// G-0140; the map stays as the general mechanism for the next case that
+// needs it.
+var ac2ImplGapFixtureSetup = map[string]func(t *testing.T, f *cellcoverage.CellFixture, id string){}

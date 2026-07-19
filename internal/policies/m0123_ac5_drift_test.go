@@ -266,7 +266,12 @@ var deferredImplErrorCodes = map[string]string{
 	// codes.ClassLegality descriptors in M-0139 (internal/verb/
 	// cancel_guards.go); they now resolve via the impl-side scan, so
 	// their deferred entries are gone.
-	"ac-evidence-missing": "D-0005 AC mechanical-evidence mechanism is a follow-up gap (filed at M-0123 wrap)",
+	//
+	// ac-evidence-missing (D-0005) was removed rather than implemented —
+	// see D-0038: the mechanism's write-time guarantee is thinner than
+	// its cost, and AC mechanical-evidence enforcement stays at review
+	// time via wf-vacuity/wf-review-code. The spec cell and this entry
+	// were both dropped together.
 }
 
 // TestM0123_AC5_SpecToImpl_ErrorCodesResolve asserts every illegal Rule's

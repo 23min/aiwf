@@ -530,13 +530,11 @@ func contractRules() []Rule {
 
 // AC sub-FSM cells: open → {met, deferred, cancelled}; met → {deferred, cancelled}.
 // Q1 (deferred is terminal) is captured by absence of outgoing cells.
-// Q7 / D-0005 (AC met requires --evidence) is the preconditioned met cell.
 // Q2 (self-promote illegal globally) is captured by no FromState-to-same-state cells.
 func acRules() []Rule {
 	return []Rule{
-		// open → met (preconditioned on self.evidence non-empty per
-		// D-0005). The Legal cell is split on parent.tdd: when the
-		// parent milestone is tdd != required, evidence alone suffices;
+		// open → met. The Legal cell is split on parent.tdd: when the
+		// parent milestone is tdd != required, promotion is unconditioned;
 		// when parent.tdd == required, the kernel's acs-tdd-audit
 		// (Illegal companion below) demands tdd_phase == done. Splitting
 		// here keeps every Legal cell's preconditions enumerable as flat
@@ -547,35 +545,21 @@ func acRules() []Rule {
 			FromState: "open",
 			Verb:      "promote",
 			Preconditions: []Predicate{
-				{Subject: "self.evidence", Op: "non-empty"},
 				{Subject: "parent.tdd", Op: "!=", Value: "required"},
 			},
 			Outcome: OutcomeLegal,
-			Sources: RuleSource{Audit: []string{"R-AUDIT-0034", "R-AUDIT-0195"}, FP: []string{"R-FP-0046", "R-FP-0066"}, Decision: "D-0005"},
+			Sources: RuleSource{Audit: []string{"R-AUDIT-0034"}, FP: []string{"R-FP-0046"}},
 		},
 		{
 			Kind:      KindAC,
 			FromState: "open",
 			Verb:      "promote",
 			Preconditions: []Predicate{
-				{Subject: "self.evidence", Op: "non-empty"},
 				{Subject: "parent.tdd", Op: "==", Value: "required"},
 				{Subject: "self.tdd_phase", Op: "==", Value: "done"},
 			},
 			Outcome: OutcomeLegal,
-			Sources: RuleSource{Audit: []string{"R-AUDIT-0034", "R-AUDIT-0195"}, FP: []string{"R-FP-0046", "R-FP-0066"}, Decision: "D-0005"},
-		},
-		// Q7 / D-0005 illegal companion: missing --evidence triggers verb-time refusal.
-		{
-			Kind:              KindAC,
-			FromState:         "open",
-			Verb:              "promote",
-			Preconditions:     []Predicate{{Subject: "self.evidence", Op: "==", Value: ""}},
-			Outcome:           OutcomeIllegal,
-			ExpectedErrorCode: "ac-evidence-missing",
-			RejectionLayer:    RejectionLayerVerbTime,
-			BlockingStrict:    true,
-			Sources:           RuleSource{Audit: []string{"R-AUDIT-0195"}, FP: []string{"R-FP-0066"}, Decision: "D-0005"},
+			Sources: RuleSource{Audit: []string{"R-AUDIT-0034"}, FP: []string{"R-FP-0046"}},
 		},
 		// open → deferred
 		{
