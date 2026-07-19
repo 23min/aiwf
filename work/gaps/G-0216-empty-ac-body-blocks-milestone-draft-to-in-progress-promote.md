@@ -26,11 +26,11 @@ The acute symptom: M-0160 (and earlier M-0159) shipped AC bodies populated at wr
 
 ## Proposed fix shape
 
-A new kernel rule (or extension of an existing one) that refuses the `draft → in_progress` promote on a milestone when any AC's body subsection is empty. Sketch:
+A new kernel rule (or extension of an existing one) that refuses the `draft → in_progress` promote on a milestone when any AC's body subsection is empty. The forward-only mechanism for the check-time half is settled in [D-0039](../decisions/D-0039-ac-completeness-guards-block-empty-start-warn-at-done-archive-scoped-check.md). Sketch:
 
 - **Verb-time gate.** `aiwf promote M-NNN in_progress` reads each AC's frontmatter entry, derives the corresponding body-subsection bounds (between `### AC-<N>` and the next heading or EOF), and refuses if any subsection contains no non-heading prose. Same `--force --reason "..."` override path the existing FSM uses.
 - **Check-time finding.** A complementary finding (e.g. `milestone-in-progress-empty-ac-bodies` or extending `entity-body-empty/ac` with a milestone-status subcode) fires at error severity when a milestone is `in_progress` (or `done`) with any empty AC body subsection. Surfaces the inconsistency on every `aiwf check` until resolved.
-- **Forward-only.** Existing `in_progress` milestones at the time of fix are grandfathered (the rule fires from the moment the rule lands; pre-rule milestones with empty AC bodies surface the finding for explicit `--audit-only` backfill or hand-fix). No history rewrite, no retroactive promote-refusal.
+- **Forward-only via the existing archive-scoping guard, not a new mechanism.** Settled in [D-0039](../decisions/D-0039-ac-completeness-guards-block-empty-start-warn-at-done-archive-scoped-check.md): the check-time finding reuses the `entity.IsArchivedPath(e.Path)` guard already applied by every sibling rule in `internal/check/acs.go` (`acsShape`, `acsTDDAudit`, `acsBodyCoherence`, `milestoneDoneIncompleteACs`, `milestoneCancelledIncompleteACs`) — no new timestamp- or marker-based grandfather. A milestone leaves scope for this finding the moment it's archived, same as every other AC-shape rule; the current tree has zero non-archived `in_progress`/`done` milestones, so this produces zero blast radius on landing. The verb-time refusal is forward-only in the ordinary sense — it only applies to new `draft → in_progress` transitions going forward, never retroactively re-evaluated against an already-completed promote.
 - **The contract is what `### AC-N` heading must non-empty body protects.** The Work Log / Validation / Reviewer notes sections (the wrap-time post-hoc sections) are NOT covered by this rule — they're operator narrative, kernel-blind by design.
 
 ## Test surface
