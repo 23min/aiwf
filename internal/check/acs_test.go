@@ -351,6 +351,29 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 	}
 }
 
+// TestAcsTDDAudit_AdvisoryMetWithAbsentPhaseFiresAsWarning locks
+// G-0286/M-0267 AC-2's explicit claim for the advisory side: same as
+// TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError but under tdd:
+// advisory, so the finding is a warning, not an error. Completes the
+// severity x absent-vs-wrong-value coverage matrix for acsTDDAudit.
+func TestAcsTDDAudit_AdvisoryMetWithAbsentPhaseFiresAsWarning(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "advisory",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "met"},
+		},
+	})
+	got := acsTDDAudit(tr)
+	if len(got) != 1 || got[0].Code != CodeACsTDDAudit || got[0].Severity != SeverityWarning {
+		t.Fatalf("expected one warning acs-tdd-audit finding, got: %+v", got)
+	}
+	if !strings.Contains(got[0].Message, "(absent)") {
+		t.Errorf("message should surface the absent phase, got: %q", got[0].Message)
+	}
+}
+
 func TestAcsTDDAudit_NoneSkipped(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{
