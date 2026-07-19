@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: acknowledge illegal uses gitops ancestry and existence helpers, not exec
       status: open
+    - id: AC-3
+      title: Cancel and Promote share one cascade guard; Cancel moves to cancel.go
+      status: open
 ---
 ## Goal
 
@@ -30,6 +33,8 @@ they should share.
 ### AC-1 — rename and reallocate share one path-rewrite helper with both tail behaviors
 
 ### AC-2 — acknowledge illegal uses gitops ancestry and existence helpers, not exec
+
+### AC-3 — Cancel and Promote share one cascade guard; Cancel moves to cancel.go
 
 ## Constraints
 
