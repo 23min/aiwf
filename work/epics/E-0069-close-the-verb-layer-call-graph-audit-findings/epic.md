@@ -1,7 +1,7 @@
 ---
 id: E-0069
 title: Close the verb-layer call-graph audit findings
-status: proposed
+status: active
 ---
 
 # E-0069 — Close the verb-layer call-graph audit findings
