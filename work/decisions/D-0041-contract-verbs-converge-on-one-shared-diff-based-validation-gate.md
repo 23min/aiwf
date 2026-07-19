@@ -1,7 +1,7 @@
 ---
 id: D-0041
 title: Contract verbs converge on one shared diff-based validation gate
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-07-19 · **Decided by:** human/peter
 
