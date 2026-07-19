@@ -4,6 +4,11 @@ title: Fix import id allocation, show error swallowing, and scope-event sort ord
 status: draft
 parent: E-0069
 tdd: required
+acs:
+    - id: AC-1
+      title: import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -21,6 +26,8 @@ the identical git-read error class; the scope tables promise chronological
 order. No design decisions needed — each fix converges on the existing seam.
 
 ## Acceptance criteria
+
+### AC-1 — import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
 
 ## Constraints
 
