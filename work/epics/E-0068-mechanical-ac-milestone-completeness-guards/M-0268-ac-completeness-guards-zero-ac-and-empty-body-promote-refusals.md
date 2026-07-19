@@ -104,6 +104,12 @@ An AC with no `### AC-N` heading in the body at all (a frontmatter/body desync) 
 
 Branch-coverage audit: the guard's own early-return clause reuses AC-1's already-covered combinations; the per-AC loop's three reachable outcomes (heading absent → skip, heading present with empty/heading-only content → refuse, heading present with real prose → continue) are each hit by a dedicated test. `entity.ACSectionIsEmpty`'s three line-classification branches (blank, heading-prefixed, real content) are each hit too. Vacuity audit (`wf-vacuity`): 2 mutations attempted (drop the heading-skip disjunct in `ACSectionIsEmpty`, so a sub-heading counts as content; drop the `found` check in the guard's loop, so a missing heading defaults to empty content), both killed; no weak or tautological assertions found.
 
+### AC-3 — Zero-AC done milestone surfaces a warning finding
+
+Added `milestoneDoneZeroACs` alongside `milestoneDoneIncompleteACs` in `internal/check/acs.go`, wired into `check.go`'s rule list, with the required discoverability trio (a `hint.go` entry, a Findings-table row in the `aiwf-check` skill, the finding code itself) so the finding-codes-are-discoverable / finding-codes-have-hints / finding-codes-documented-in-skill CI chokepoints stay green · commit 6f227dc5 · tests 4/4 new, no fixture regressions elsewhere (check-time only, no verb-time refusal to collide with).
+
+Branch-coverage audit: all four reachable combinations (non-milestone kind is covered incidentally by every other check-rule test sharing this package's mixed-kind trees; archived, non-done, and populated-ACs each skip; the genuine done+zero-ACs case fires) are each hit by a dedicated test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) > 0` to `>= 0`, so it always skips; flip `e.Status != entity.StatusDone` to `==`, inverting the done-check), both killed; no weak or tautological assertions found.
+
 ## Decisions made during implementation
 
 - None — all decisions are pre-locked above (D-0039 already settles the design).
