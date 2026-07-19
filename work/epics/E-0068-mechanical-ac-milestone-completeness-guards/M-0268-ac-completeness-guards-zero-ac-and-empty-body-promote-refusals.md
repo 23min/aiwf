@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: Zero-AC done milestone surfaces a warning finding
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: Empty AC body surfaces an error finding, archive-scoped
       status: open
