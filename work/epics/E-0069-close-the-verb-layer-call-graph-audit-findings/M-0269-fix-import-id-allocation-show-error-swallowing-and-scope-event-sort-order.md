@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: show fails loud when history or scope reads error
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: scope events sort chronologically across timezones in show and render
       status: open
