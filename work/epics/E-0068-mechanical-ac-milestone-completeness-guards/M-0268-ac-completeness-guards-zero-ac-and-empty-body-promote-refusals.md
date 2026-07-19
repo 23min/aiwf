@@ -71,7 +71,9 @@ This milestone's two new guards are a different kind of precondition and must **
 ## Surfaces touched
 
 - `internal/verb/promote.go` — the two new verb-time refusals (AC-1, AC-2), following the `if !force { ... }` resolver-requirement pattern, not the unconditional structural-guard pattern.
+- `internal/entity/body.go` — `ACSectionIsEmpty`, a shared "no non-heading prose" predicate consumed by both AC-2's verb-time gate and AC-4's check-time rule.
 - `internal/check/acs.go` — the two new check-time findings (AC-3 extends `milestoneDoneIncompleteACs`; AC-4 is new, mirroring the file's existing rule shape).
+- `internal/check/hint.go`, `internal/skills/embedded/aiwf-check/SKILL.md` — the discoverability trio (hint + Findings-table row) both new finding codes require.
 
 ## Out of scope
 
@@ -112,11 +114,19 @@ Added `milestoneDoneZeroACs` alongside `milestoneDoneIncompleteACs` in `internal
 
 Branch-coverage audit: all four reachable combinations (non-milestone kind is covered incidentally by every other check-rule test sharing this package's mixed-kind trees; archived, non-done, and populated-ACs each skip; the genuine done+zero-ACs case fires) are each hit by a dedicated test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) > 0` to `>= 0`, so it always skips; flip `e.Status != entity.StatusDone` to `==`, inverting the done-check), both killed; no weak or tautological assertions found.
 
+### AC-4 — Empty AC body surfaces an error finding, archive-scoped
+
+Added `acsEmptyBodyOnStart` alongside the file's other rules, wired into `check.go`, with the discoverability trio · commit c0622ea1 · tests 8/8 new. Discovered and resolved a real interaction with AC-2's own `--force` override — see [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) — which also corrected AC-2's error message and body text (same commit); no other fixture regressions, since this is the first `--force`-bypassable verb-time guard in the codebase whose check-time counterpart is error severity.
+
+Branch-coverage audit: every reachable combination (non-milestone kind, archived, neither in_progress nor done, the file-read/frontmatter-split defensive paths marked `//coverage:ignore`, empty AC id, cancelled AC, missing heading, populated body, and the two firing cases at in_progress and done) is hit by a dedicated test or an annotated defensive skip. Vacuity audit (`wf-vacuity`): 3 mutations attempted (drop the `done` disjunct from the status guard; invert `ACSectionIsEmpty`'s result; drop the cancelled-AC skip), all killed; no weak or tautological assertions found.
+
 ## Decisions made during implementation
 
-- None — all decisions are pre-locked above (D-0039 already settles the design).
+- [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) (accepted) — AC-2's `--force --reason` override does not actually let the promote land once AC-4 exists, and is accepted as the correct outcome rather than fixed via a severity downgrade or a new bypass mechanism. Full reasoning in the decision body and in this spec's own Design notes above.
 
 ## Validation
+
+`go build ./...` — clean. `go vet ./...` — clean. `go test ./...` (full tree) — all packages pass, no failures. `make check-fast` (`go vet` + `golangci-lint run` + `go test ./...`) — 0 lint issues, all green. `aiwf check` — 0 errors (pre-existing warnings unrelated to this milestone: archive-sweep-pending/terminal-entity-not-archived on D-0005, epic-active-no-drafted-milestones on E-0068 since M-0268 is its only milestone and it's in_progress, provenance-scope-undefined from the worktree having no upstream configured).
 
 ## Deferrals
 
