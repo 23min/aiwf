@@ -1,7 +1,7 @@
 ---
 id: D-0038
 title: 'AC mechanical-evidence: reviewer-discipline stands, no --evidence flag'
-status: proposed
+status: accepted
 relates_to:
     - E-0033
     - D-0005
