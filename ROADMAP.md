@@ -945,5 +945,8 @@ same code.
 
 Close three places where the kernel currently depends on operator vigilance instead of a mechanical chokepoint for AC/milestone completeness discipline — a milestone starting with an empty AC body, a milestone starting or finishing with zero ACs at all, and an over-strict `tdd_phase` requirement — so the AC-evidence discipline holds without relying on a human or an LLM remembering the rules.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | draft |
+| M-0268 | AC-completeness guards: zero-AC and empty-body promote refusals | draft |
 
