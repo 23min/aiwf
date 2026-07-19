@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: 'Regression: tdd-phase closed-set and met-requires-done checks unchanged'
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0267 — Relax acs-shape/tdd-phase to allow absent phase until AC met
