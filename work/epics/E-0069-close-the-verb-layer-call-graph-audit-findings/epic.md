@@ -126,17 +126,16 @@ M-0116 per-verb-package migration.
 
 ## Milestones
 
-Candidates in execution order; ids are assigned when `aiwfx-plan-milestones`
-runs, and this list is updated then.
-
-- Bug fixes (`tdd: required`): import id allocation, show fail-loud, timezone
-  sort — closes the three gaps above · depends on: —
-- Mechanical housekeeping: the shared-seam collapses listed in *In scope* ·
-  depends on: —
-- `FinishVerb` contract: dry-run + multi-`Plan`; migrate the three bypassers;
-  delete the triads · depends on: —
-- Read-side extraction into the neutral package · depends on: the three
-  milestones above being done
+- `M-0269` — bug fixes (`tdd: required`): import id allocation, show
+  fail-loud, timezone sort, plus the id-allocation presence policy — closes
+  the three gaps above · depends on: —
+- `M-0270` — mechanical housekeeping: the shared-seam collapses listed in
+  *In scope* · depends on: —
+- `M-0271` — `FinishVerb` contract (`tdd: required`): dry-run +
+  multi-`Plan`; migrate the three bypassers; delete the triads · depends
+  on: —
+- `M-0272` — read-side extraction into the neutral package · depends on:
+  `M-0269`, `M-0270`, `M-0271`
 
 ## ADRs produced
 
