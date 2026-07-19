@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Empty AC body refused at draft to in_progress promote
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Zero-AC done milestone surfaces a warning finding
