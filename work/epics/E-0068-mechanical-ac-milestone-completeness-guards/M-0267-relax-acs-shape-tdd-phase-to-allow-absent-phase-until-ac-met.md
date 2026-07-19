@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: 'Absent tdd_phase is legal on a non-met AC under tdd: required'
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: 'Regression: tdd-phase closed-set and met-requires-done checks unchanged'
       status: open
