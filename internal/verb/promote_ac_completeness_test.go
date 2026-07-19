@@ -104,7 +104,10 @@ func TestPromote_NonZeroACMilestoneUnaffectedByZeroACGuard(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Has one AC", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor, nil))
+	// M-0268/AC-2: draft -> in_progress now also refuses an empty AC
+	// body; give this AC real prose so it exercises AC-1's own
+	// regression, not AC-2's guard.
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Does the thing"}, [][]byte{[]byte("Real prose.")}, testActor, nil))
 	gitCheckoutNewBranch(t, r.root, "epic/E-0001-platform")
 
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))

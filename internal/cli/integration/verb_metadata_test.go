@@ -579,7 +579,9 @@ func TestAuthorizeMetadata_PauseReportsEntityAndAction(t *testing.T) {
 	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
 	// milestone; seed one so the promote below exercises the
 	// pause/resume metadata path, not the AC-completeness guard.
-	mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--actor", "human/test", "--root", root)
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--body-file", acBodyFixturePath(t, root), "--actor", "human/test", "--root", root)
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 	mustRun(t, "authorize", "--root", root, "--actor", "human/test", "M-0001", "--to", "ai/claude")
 

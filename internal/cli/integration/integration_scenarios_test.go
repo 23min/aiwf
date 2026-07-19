@@ -171,7 +171,9 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
 	// milestone; seed one so the promote below exercises the pivot
 	// scenario's scope-SHA tracking, not the AC-completeness guard.
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC"); err != nil {
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
 		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
 	}
 	// Agent acts under E-01 scope.
@@ -196,8 +198,8 @@ func TestScenario_PivotMidFlight(t *testing.T) {
 	}
 	e02AuthSHA := mustHeadSHA(t, root)
 	// M-0268/AC-1: seed an AC on M-002 too — same zero-AC guard as
-	// M-001 above.
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0002", "--title", "Sink flush AC"); err != nil {
+	// M-001 above. M-0268/AC-2: give it real body prose too.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0002", "--title", "Sink flush AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
 		t.Fatalf("aiwf add ac M-002: %v\n%s", err, out)
 	}
 	// Agent acts under E-02 scope; the commit must reference E-02's SHA.
@@ -323,7 +325,9 @@ func TestScenario_ReallocatePreservesAuthorization(t *testing.T) {
 	// milestone; seed one so the promote below exercises the
 	// reallocate-preserves-authorization chain, not the
 	// AC-completeness guard.
-	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC"); err != nil {
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
 		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
 	}
 	// Agent acts on M-001 (still its child). The chain E-02 → newEpicID

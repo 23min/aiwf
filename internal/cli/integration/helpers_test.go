@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/23min/aiwf/internal/cli"
@@ -81,4 +82,19 @@ func mustRun(t *testing.T, args ...string) {
 	if rc := cli.Execute(args); rc != cliutil.ExitOK {
 		t.Fatalf("aiwf %v: rc=%d", args, rc)
 	}
+}
+
+// acBodyFixturePath writes a scratch AC-body file into root (confined
+// to the test's own tempdir-backed repo) and returns its path, for
+// `aiwf add ac --body-file`. M-0268/AC-2: draft -> in_progress now
+// refuses an AC with an empty body, so fixtures that later promote a
+// milestone to in_progress need their seeded ACs to carry real prose,
+// not just a title.
+func acBodyFixturePath(t *testing.T, root string) string {
+	t.Helper()
+	path := filepath.Join(root, ".test-ac-body.md")
+	if err := os.WriteFile(path, []byte("Fixture prose for test setup; not the subject under test.\n"), 0o644); err != nil {
+		t.Fatalf("writing AC body fixture: %v", err)
+	}
+	return path
 }

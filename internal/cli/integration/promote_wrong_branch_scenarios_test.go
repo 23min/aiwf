@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -55,10 +57,15 @@ func TestPromoteOnWrongBranch_AC8_Matrix(t *testing.T) {
 				env.MustRunBin("add", "epic", "--title", "Engine")
 				env.MustRunBin("promote", "E-0001", "active")
 				env.MustRunBin("add", "milestone", "--epic", "E-0001", "--tdd", "none", "--title", "Bootstrap")
-				// M-0268/AC-1: draft -> in_progress now refuses a
-				// zero-AC milestone; seed one so this cell exercises
-				// the branch guard, not the AC-completeness guard.
-				env.MustRunBin("add", "ac", "M-0001", "--title", "Boots up")
+				// M-0268/AC-1+AC-2: draft -> in_progress now refuses a
+				// zero-AC milestone, or one with an empty AC body; seed
+				// a real one so this cell exercises the branch guard,
+				// not the AC-completeness guards.
+				acBodyPath := filepath.Join(env.Root, ".scenario-ac-body.md")
+				if err := os.WriteFile(acBodyPath, []byte("Real prose.\n"), 0o644); err != nil {
+					t.Fatalf("writing AC body fixture: %v", err)
+				}
+				env.MustRunBin("add", "ac", "M-0001", "--title", "Boots up", "--body-file", acBodyPath)
 				// Cut the epic branch and switch to it before promoting milestone.
 				env.MustRunGit("checkout", "-b", "epic/E-0001-engine", "main")
 				env.MustRunBin("promote", "M-0001", "in_progress")

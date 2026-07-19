@@ -115,8 +115,8 @@ func (s *ArchiveDuringActiveScopeScenario) Setup(dir string) error {
 	// content (not the subject under test) keeps the pre-existing
 	// entity-body-empty/ac warning quiet too.
 	acBodyPath := filepath.Join(dir, ".stress-ac-body.md")
-	if err := os.WriteFile(acBodyPath, []byte("Fixture prose for test setup; not the subject under test.\n"), 0o644); err != nil { //coverage:ignore defensive: writing a scratch file into a tempdir this scenario itself just created has no realistic failure mode
-		return fmt.Errorf("writing the child milestone AC's body fixture: %w", err)
+	if writeErr := os.WriteFile(acBodyPath, []byte("Fixture prose for test setup; not the subject under test.\n"), 0o644); writeErr != nil { //coverage:ignore defensive: writing a scratch file into a tempdir this scenario itself just created has no realistic failure mode
+		return fmt.Errorf("writing the child milestone AC's body fixture: %w", writeErr)
 	}
 	acEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "ac", s.milestoneID, "--title", "childac", "--body-file", acBodyPath)
 	if err != nil { //coverage:ignore defensive: see the parent epic add above
