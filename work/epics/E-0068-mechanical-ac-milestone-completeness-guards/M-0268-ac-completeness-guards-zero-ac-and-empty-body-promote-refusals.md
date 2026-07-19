@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: Empty AC body surfaces an error finding, archive-scoped
-      status: open
+      status: met
       tdd_phase: done
 ---
 
