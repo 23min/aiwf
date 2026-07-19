@@ -9,6 +9,10 @@ acs:
       title: 'Absent tdd_phase is legal on a non-met AC under tdd: required'
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: 'Regression: tdd-phase closed-set and met-requires-done checks unchanged'
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -16,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — Absent tdd_phase is legal on a non-met AC under tdd: required
+
+### AC-2 — Regression: tdd-phase closed-set and met-requires-done checks unchanged
 
