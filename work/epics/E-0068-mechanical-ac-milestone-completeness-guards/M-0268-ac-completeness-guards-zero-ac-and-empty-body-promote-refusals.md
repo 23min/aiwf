@@ -85,3 +85,27 @@ This milestone's two new guards are a different kind of precondition and must **
 
 - [D-0039](../../decisions/D-0039-ac-completeness-guards-block-empty-start-warn-at-done-archive-scoped-check.md)
 - [G-0216](../../gaps/G-0216-empty-ac-body-blocks-milestone-draft-to-in-progress-promote.md), [G-0334](../../gaps/G-0334-milestone-can-start-and-finish-with-zero-acceptance-criteria-no-guard.md)
+
+---
+
+## Work log
+
+### AC-1 — Zero-AC milestone refused at draft to in_progress promote
+
+Added `requireNonEmptyACsAtMilestoneStart`, wired into `Promote`'s existing `if !force {...}` resolver-requirement block (not the unconditional structural-guard block) · commit c6752d7f · tests 4/4 new, plus fixture fixes across `internal/verb`, `internal/policies`, `internal/stresstest`, and `internal/cli/integration` for pre-existing fixtures that promoted a zero-AC milestone to `in_progress` as incidental scaffolding.
+
+Branch-coverage audit: the three-clause early-return guard's reachable combinations (non-milestone kind, milestone-but-not-draft, milestone-draft-but-not-targeting-in_progress, and the genuine draft→in_progress case split zero/non-zero ACs) are each hit by an existing or new test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) == 0` to `!= 0`; drop the `newStatus != in_progress` conjunct), both killed; no weak or tautological assertions found. One equivalent-mutant observation: dropping the `e.Kind != entity.KindMilestone` conjunct is currently unobservable by any test, because `status: draft` is a value only the milestone FSM ever produces (no other kind's status set includes it) — the conjunct is defensive self-documentation, not dead code a test needs to pin.
+
+## Decisions made during implementation
+
+- None — all decisions are pre-locked above (D-0039 already settles the design).
+
+## Validation
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+- (none)
