@@ -1,7 +1,7 @@
 ---
 id: M-0267
 title: Relax acs-shape/tdd-phase to allow absent phase until AC met
-status: draft
+status: in_progress
 parent: E-0068
 tdd: required
 acs:
