@@ -35,15 +35,23 @@ milestone sibling. The `aiwfx-start-milestone` ritual guards AC presence advisor
 — which, per "framework correctness must not depend on the LLM's behavior," is not
 a guarantee.
 
-## Direction (decision needed)
+## Direction
 
-- Add a `milestone-in-progress-no-acs` check — lean: warning severity, mirroring
-  `epic-active-no-drafted-milestones` — so starting a milestone with no ACs is
-  surfaced.
-- Decide whether `milestone-done-incomplete-acs` should also fire on a `done`
-  milestone with an *empty* AC set (the vacuous-evidence case), and at what
-  severity. Some milestones may legitimately start AC-less (pure coordination /
-  exploratory), so severity is a genuine judgment call.
+Settled in [D-0039](../decisions/D-0039-ac-completeness-guards-block-empty-start-warn-at-done-archive-scoped-check.md):
+
+- **`draft → in_progress` on a zero-AC milestone is refused** by the promote
+  verb (a hard block, not a warning), with the standard `--force --reason
+  "..."` override for genuinely AC-less milestones (pure coordination /
+  exploratory work). A warning-only finding was considered and rejected — it
+  would leave the discipline exactly as vacuous as it is today, and would be
+  inconsistent with G-0216's own hard block for the sibling "AC exists but its
+  body is empty" case.
+- **`done` on a zero-AC milestone is not refused.** Instead, a new
+  warning-severity check-time finding extends the existing
+  `milestone-done-incomplete-acs` pattern to also fire on an *empty* AC set
+  (not just open ACs), so the vacuous-evidence case stays visible without a
+  second hard stop — the meaningful decision point is already the start-time
+  gate above.
 
 ## Provenance
 
