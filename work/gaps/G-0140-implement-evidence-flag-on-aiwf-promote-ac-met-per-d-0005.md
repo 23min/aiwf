@@ -1,7 +1,7 @@
 ---
 id: G-0140
 title: Implement --evidence flag on aiwf promote AC met per D-0005
-status: open
+status: wontfix
 priority: high
 discovered_in: M-0123
 ---
