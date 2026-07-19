@@ -136,7 +136,7 @@ When a ritual (`wf-patch`, milestone, epic) or an ad-hoc fix creates a branch, d
 
 ## Subagent worktree isolation
 
-When dispatching a subagent that must work in an isolated worktree, **the parent bootstraps the worktree before invoking `Agent`** — never rely on the `isolation: "worktree"` kwarg (it has been observed to silently drop, leaving work in the live tree undetected; [G-0099](work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)):
+When dispatching a subagent that must work in an isolated worktree, **the parent bootstraps the worktree before invoking `Agent`** — never rely on the `isolation: "worktree"` kwarg (it has been observed to silently drop, leaving work in the live tree undetected; G-0099):
 
 1. Parent runs `aiwf worktree add <branch> [<path>] --base <base>` (an explicit `<path>` for a sibling placement; `.claude/worktrees/<name>` — the default — for transient agent worktrees) — creates the worktree and materializes rituals into it atomically, in one step.
 2. Parent verifies with `aiwf doctor --root <path>`, which reports rituals as materialized with no separate `aiwf init`/`aiwf update` step needed.
