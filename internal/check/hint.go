@@ -130,15 +130,17 @@ var hintTable = map[string]string{
 	"acs-shape/id":                         "fix the AC's id to match `AC-N` (position+1; cancelled entries still count) by correcting the `acs:` frontmatter, then re-run `aiwf check`",
 	"acs-shape/title":                      "set a non-empty AC title via `aiwf retitle <milestone-id>/AC-N \"...\"`",
 	"acs-shape/status":                     "correct the AC's status in the `acs:` frontmatter to a legal value by hand, then re-run `aiwf check`; `aiwf promote <milestone-id>/AC-N <status>` can't transition an AC whose current status is unrecognized",
-	"acs-shape/tdd-phase":                  "advance the AC's tdd_phase via `aiwf promote <milestone-id>/AC-N --phase <red|green|refactor|done>` (required when the milestone is `tdd: required`)",
+	"acs-shape/tdd-phase":                  "the AC's tdd_phase value isn't in the allowed set; advance it via `aiwf promote <milestone-id>/AC-N --phase <red|green|refactor|done>`, or clear it by hand — absence is always legal, only an invalid value fires this",
 	"acs-shape/tdd-policy":                 "declare the milestone's TDD policy at creation via `aiwf add milestone --tdd <required|advisory|none>`; for an existing milestone, set `tdd:` in the frontmatter by hand and re-run `aiwf check` (there is no post-create --tdd verb)",
 	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body via `aiwf edit-body <milestone-id>`, or drop the AC from the `acs:` frontmatter",
 	"acs-body-coherence/orphan-heading":    "register the AC in the milestone's `acs:` frontmatter via `aiwf add ac <milestone-id> --title \"...\"`, or remove the stray body heading via `aiwf edit-body <milestone-id>`",
 	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading via `aiwf edit-body <milestone-id>`; keep exactly one per AC",
+	"acs-empty-body":                       "write prose under the named AC's `### AC-N` heading via `aiwf edit-body <milestone-id>`; a title-only stub is not a real contract for that criterion once the milestone is in_progress or done",
 	"acs-tdd-audit":                        "advance the AC's tdd_phase to `done` via `aiwf promote <id>/AC-N --phase done`, or relax the milestone's tdd: setting",
 	"acs-tdd-tests-missing":                "re-run the TDD cycle through `aiwf promote <id>/AC-N --phase ... --tests \"pass=N fail=N skip=N\"`, or set `tdd.require_test_metrics: false` in aiwf.yaml to silence the warning",
 	"acs-title-prose":                      "shorten the AC title via `aiwf retitle <milestone-id>/AC-N \"...\"` and move the detail prose into the body under `### AC-N` via `aiwf edit-body <milestone-id>`; titles render as one big heading",
 	"milestone-done-incomplete-acs":        "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`, or override with `aiwf promote <milestone-id> done --force --reason \"...\"` (the standing check still surfaces this)",
+	"milestone-done-zero-acs":              "advisory only — a done milestone with no acceptance criteria is a legitimate end state; add one via `aiwf add ac <milestone-id> --title \"...\"` first if this was unintentional",
 	"milestone-cancelled-incomplete-acs":   "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`; `aiwf promote`/`aiwf cancel` already refuse this transition (with no --force override) through normal use, so this state means the verb layer was bypassed — a hand-edit is the usual cause",
 
 	// M-066 entity-body-empty: each kind's load-bearing body sections

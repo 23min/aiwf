@@ -47,6 +47,14 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	if out, err := testutil.RunBin(t, root, binDir, nil, "authorize", "E-0001", "--to", "ai/claude"); err != nil {
 		t.Fatalf("authorize: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the scopes
+	// view, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if out, err := testutil.RunBin(t, root, binDir, nil, "add", "ac", "M-0001", "--title", "Cache warmup AC", "--body-file", acBodyFixturePath(t, root)); err != nil {
+		t.Fatalf("aiwf add ac M-001: %v\n%s", err, out)
+	}
 	if out, err := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "in_progress",
 		"--actor", "ai/claude", "--principal", "human/peter"); err != nil {
@@ -127,7 +135,13 @@ func TestShow_ScopesView_AuthorizationFlow(t *testing.T) {
 	// still owns an in_progress milestone is refused by the epic-
 	// terminal-promote non-terminal-children guard (G-0393 / G-0394) —
 	// this fixture is testing scope-ending on terminal-promote, not
-	// that guard.
+	// that guard. The milestone-done-incomplete-acs guard requires the
+	// seeded AC-1 to be disposed first.
+	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
+		"promote", "M-0001/AC-1", "met",
+		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {
+		t.Fatalf("promote M-001/AC-1 met: %v\n%s", pErr, pOut)
+	}
 	if pOut, pErr := testutil.RunBin(t, root, binDir, nil,
 		"promote", "M-0001", "done",
 		"--actor", "ai/claude", "--principal", "human/peter"); pErr != nil {

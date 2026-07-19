@@ -229,6 +229,7 @@ func runPositiveCell(t *testing.T, tc positiveCase) {
 	opts := deriveBringOpts(tc.rule)
 	id := bringEntityForCell(t, f, tc.rule, opts)
 	checkoutRitualBranchIfActivating(t, f, tc, id)
+	seedACIfMilestoneActivating(t, f, tc, id)
 
 	// Materialize each precondition. Three shapes:
 	//
@@ -401,6 +402,25 @@ func checkoutEpicRitualBranch(t *testing.T, f *cellcoverage.CellFixture, epicID 
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git checkout -b %s: %v\n%s", branch, err, out)
 	}
+}
+
+// seedACIfMilestoneActivating seeds one AC (with real body prose) onto
+// the fixture milestone when the cell-under-test IS the draft ->
+// in_progress promote itself (M-0268/AC-1+AC-2: this transition now
+// refuses a zero-AC milestone, or one with an empty AC body, without
+// --force). bringEntityForCell's own "draft" fixture path deliberately
+// leaves acs[] empty — the Milestone.done vacuous-satisfaction fixture
+// (milestoneAt's StatusDone case) shares that same zero-AC-by-default
+// convention, and this cell is the one place among the Legal-cell
+// matrix where an empty acs[] (or an AC with no body) would now
+// collide with a real (non-forced) verb-time refusal instead of
+// exercising the FSM transition under test.
+func seedACIfMilestoneActivating(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase, id string) {
+	t.Helper()
+	if tc.rule.Kind != entity.KindMilestone || tc.target != entity.StatusInProgress {
+		return
+	}
+	f.Must(verb.AddACBatch(context.Background(), f.Tree(), id, []string{"Cell-coverage AC"}, [][]byte{[]byte("Real prose.")}, "human/test", nil))
 }
 
 func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string) string {

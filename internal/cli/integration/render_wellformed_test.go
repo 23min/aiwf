@@ -30,8 +30,12 @@ func TestRender_AllPagesAreWellFormed(t *testing.T) {
 	mustRun(t, "add", "epic", "--title", "Adoption", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Schema parser", "--actor", "human/test", "--root", root)
 	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Tree loader", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Parses YAML")
-	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Reports errors")
+	// M-0268/AC-2: draft -> in_progress now refuses an AC with an
+	// empty body; give both seeded ACs real prose so the
+	// in_progress promote below exercises the render fixture, not
+	// the AC-completeness guard.
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Parses YAML", "--body-file", acBodyFixturePath(t, root))
+	mustRun(t, "add", "ac", "--root", root, "--actor", "human/test", "M-0001", "--title", "Reports errors", "--body-file", acBodyFixturePath(t, root))
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-1", "met")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "red")
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001/AC-2", "--phase", "green",

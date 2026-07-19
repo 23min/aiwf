@@ -187,8 +187,12 @@ func TestBinary_MutatingVerbs_Subprocess(t *testing.T) {
 		append([]string{"add", "epic", "--title", "Foundations"}, rootArgs...)...)
 	runVerb("add milestone",
 		append([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "First milestone"}, rootArgs...)...)
+	// M-0268/AC-2: draft -> in_progress now refuses an AC with an
+	// empty body; give the seeded AC real prose so the in_progress
+	// promote below exercises the subprocess sequence, not the
+	// AC-completeness guard.
 	runVerb("add ac",
-		append([]string{"add", "ac", "M-0001", "--title", "AC-1: trees stay green"}, rootArgs...)...)
+		append([]string{"add", "ac", "M-0001", "--title", "AC-1: trees stay green", "--body-file", acBodyFixturePath(t, repo)}, rootArgs...)...)
 
 	// rename preserves the id; verb's slug-only mutation surface.
 	runVerb("rename",

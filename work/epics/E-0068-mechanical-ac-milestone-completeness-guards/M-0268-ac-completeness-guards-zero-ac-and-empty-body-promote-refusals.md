@@ -1,26 +1,26 @@
 ---
 id: M-0268
 title: 'AC-completeness guards: zero-AC and empty-body promote refusals'
-status: draft
+status: done
 parent: E-0068
 tdd: required
 acs:
     - id: AC-1
       title: Zero-AC milestone refused at draft to in_progress promote
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Empty AC body refused at draft to in_progress promote
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: Zero-AC done milestone surfaces a warning finding
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Empty AC body surfaces an error finding, archive-scoped
-      status: open
-      tdd_phase: red
+      status: met
+      tdd_phase: done
 ---
 
 # M-0268 — AC-completeness guards: zero-AC and empty-body promote refusals
@@ -45,7 +45,7 @@ This milestone's two new guards are a different kind of precondition and must **
 
 ### AC-2 — Empty AC body refused at draft to in_progress promote
 
-`aiwf promote M-NNN in_progress` on a milestone where at least one AC's body subsection (the prose between its `### AC-<N>` heading and the next heading or EOF) contains no non-heading prose exits non-zero, naming the specific AC. Same `--force --reason` override. Per G-0216.
+`aiwf promote M-NNN in_progress` on a milestone where at least one AC's body subsection (the prose between its `### AC-<N>` heading and the next heading or EOF) contains no non-heading prose exits non-zero, naming the specific AC. Unlike AC-1, `--force` does not let this promote land — see Design notes: AC-4's error-severity finding fires on exactly the resulting state, and the kernel's projection check is unconditional. The error message does not claim otherwise; the only path through is writing real prose via `aiwf edit-body`. Per G-0216.
 
 ### AC-3 — Zero-AC done milestone surfaces a warning finding
 
@@ -60,16 +60,20 @@ This milestone's two new guards are a different kind of precondition and must **
 - AC-1 and AC-2's refusals apply only to the `draft → in_progress` transition — they must not affect any other legal milestone transition.
 - AC-3's finding is warning severity and check-time only; it must never become a verb-time refusal at `done` (D-0039 explicitly rejects a second hard block there).
 - AC-4's finding is error severity and archive-scoped; it fires for `in_progress` and `done` alike, but never for an archived milestone.
+- AC-2's `--force` does not let the promote land, even though its code path is structurally force-gated the same way AC-1's is (see Design notes) — this is a real, intentional asymmetry between the two guards, not an oversight.
 
 ## Design notes
 
-- **`--force` bypasses AC-1 and AC-2, deliberately diverging from the adjacent unconditional-guard pattern.** `MilestonePromoteNonTerminalACsError` and `EpicPromoteNonTerminalChildrenError` (both in the same `Promote` function, just above where these two guards land) run even under `--force`, because they protect a genuine consistency invariant: a *terminal* status must never be reached while a child/AC is still non-terminal. AC-1 and AC-2 guard something different — whether real work has a contract *before it starts* — and D-0039 point 2 explicitly permits a zero-AC milestone to reach `done` (with only a warning), so "permanently AC-less" is itself a legitimate end state, not an inconsistency force would be papering over. The correct precedent to follow is the `if !force { ... }` pattern used by the resolver-requirement checks earlier in `Promote` (e.g. the `gap-addressed-has-resolver` / `adr-supersession-mutual` overrides at promote.go:465/469) — a sovereign, human-only, reason-carrying override of a soft precondition — not the unconditional structural guards. Get this pattern right at implementation time; copying the nearby non-terminal-ACs guard by proximity would silently make the milestone un-force-able, contradicting D-0039.
+- **`--force` bypasses AC-1 and AC-2's own verb-time Go-error refusal, deliberately diverging from the adjacent unconditional-guard pattern.** `MilestonePromoteNonTerminalACsError` and `EpicPromoteNonTerminalChildrenError` (both in the same `Promote` function, just above where these two guards land) run even under `--force`, because they protect a genuine consistency invariant: a *terminal* status must never be reached while a child/AC is still non-terminal. AC-1 and AC-2 guard something different — whether real work has a contract *before it starts* — so both are wired into the `if !force { ... }` block alongside the resolver-requirement checks earlier in `Promote` (e.g. the `gap-addressed-has-resolver` / `adr-supersession-mutual` overrides at promote.go:465/469), not the unconditional structural guards.
+- **AC-2's `--force` is nonetheless practically inert, and this is by design, not a bug.** The kernel's `projectionFindings` mechanism (pre-existing, used by every `Promote` call) runs *unconditionally* — it diffs `check.Run` findings before and after the mutation and refuses to produce a commit plan when the projected tree carries a new error-severity finding, regardless of `--force` (the same mechanism `TestPromote_ForceStillFailsCoherence` already pins for a status-valid violation). AC-4 is error severity and fires on exactly the state AC-2's `--force` override would produce — every AC-2 refusal condition is also an AC-4 refusal condition, so there is no combination where forcing past AC-2 actually lands the commit. `--force` still changes *which* refusal fires (a findings-based `Result{Plan: nil}` instead of a Go error), but never the outcome. AC-1 has no equivalent collision because its check-time counterpart (AC-3) is warning severity by design (D-0039 point 2: a permanently zero-AC milestone is a legitimate end state) — AC-2 and AC-4 target a different kind of gap (an AC that exists but was never given real content), which D-0039 treats as a genuine defect worth blocking unconditionally, not a legitimate minimalist choice. AC-2's error message does not mention `--force`, since it would not be true.
 - AC-3 and AC-4 both key their archive scoping off `entity.IsArchivedPath(e.Path)`, identical to the five existing rules in the same file — no new helper.
 
 ## Surfaces touched
 
 - `internal/verb/promote.go` — the two new verb-time refusals (AC-1, AC-2), following the `if !force { ... }` resolver-requirement pattern, not the unconditional structural-guard pattern.
+- `internal/entity/body.go` — `ACSectionIsEmpty`, a shared "no non-heading prose" predicate consumed by both AC-2's verb-time gate and AC-4's check-time rule.
 - `internal/check/acs.go` — the two new check-time findings (AC-3 extends `milestoneDoneIncompleteACs`; AC-4 is new, mirroring the file's existing rule shape).
+- `internal/check/hint.go`, `internal/skills/embedded/aiwf-check/SKILL.md` — the discoverability trio (hint + Findings-table row) both new finding codes require.
 
 ## Out of scope
 
@@ -85,3 +89,56 @@ This milestone's two new guards are a different kind of precondition and must **
 
 - [D-0039](../../decisions/D-0039-ac-completeness-guards-block-empty-start-warn-at-done-archive-scoped-check.md)
 - [G-0216](../../gaps/G-0216-empty-ac-body-blocks-milestone-draft-to-in-progress-promote.md), [G-0334](../../gaps/G-0334-milestone-can-start-and-finish-with-zero-acceptance-criteria-no-guard.md)
+
+---
+
+## Work log
+
+### AC-1 — Zero-AC milestone refused at draft to in_progress promote
+
+Added `requireNonEmptyACsAtMilestoneStart`, wired into `Promote`'s existing `if !force {...}` resolver-requirement block (not the unconditional structural-guard block) · commit c6752d7f · tests 4/4 new, plus fixture fixes across `internal/verb`, `internal/policies`, `internal/stresstest`, and `internal/cli/integration` for pre-existing fixtures that promoted a zero-AC milestone to `in_progress` as incidental scaffolding.
+
+Branch-coverage audit: the three-clause early-return guard's reachable combinations (non-milestone kind, milestone-but-not-draft, milestone-draft-but-not-targeting-in_progress, and the genuine draft→in_progress case split zero/non-zero ACs) are each hit by an existing or new test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) == 0` to `!= 0`; drop the `newStatus != in_progress` conjunct), both killed; no weak or tautological assertions found. One equivalent-mutant observation: dropping the `e.Kind != entity.KindMilestone` conjunct is currently unobservable by any test, because `status: draft` is a value only the milestone FSM ever produces (no other kind's status set includes it) — the conjunct is defensive self-documentation, not dead code a test needs to pin.
+
+### AC-2 — Empty AC body refused at draft to in_progress promote
+
+Added `requireNonEmptyACBodiesAtMilestoneStart` (same `if !force {...}` wiring point as AC-1), plus a new shared `entity.ACSectionIsEmpty` helper giving the "no non-heading prose" definition an exported home so this verb-time gate and any future check-time rule (AC-4) read the same definition the pre-existing `entity-body-empty/ac` check rule already implements privately · commit adf494fd · tests 5/5 new, plus a second wave of fixture fixes across `internal/verb`, `internal/policies`, `internal/stresstest`, and `internal/cli/integration` — every AC seeded during AC-1's own fixture repair carried a title but no body prose, which now trips this AC-2 guard at the same call sites.
+
+An AC with no `### AC-N` heading in the body at all (a frontmatter/body desync) is deliberately NOT treated as empty by this guard — that's `acs-body-coherence/missing-heading`'s concern, not this one; double-flagging the same drift under two different codes would be noise.
+
+Branch-coverage audit: the guard's own early-return clause reuses AC-1's already-covered combinations; the per-AC loop's three reachable outcomes (heading absent → skip, heading present with empty/heading-only content → refuse, heading present with real prose → continue) are each hit by a dedicated test. `entity.ACSectionIsEmpty`'s three line-classification branches (blank, heading-prefixed, real content) are each hit too. Vacuity audit (`wf-vacuity`): 2 mutations attempted (drop the heading-skip disjunct in `ACSectionIsEmpty`, so a sub-heading counts as content; drop the `found` check in the guard's loop, so a missing heading defaults to empty content), both killed; no weak or tautological assertions found.
+
+### AC-3 — Zero-AC done milestone surfaces a warning finding
+
+Added `milestoneDoneZeroACs` alongside `milestoneDoneIncompleteACs` in `internal/check/acs.go`, wired into `check.go`'s rule list, with the required discoverability trio (a `hint.go` entry, a Findings-table row in the `aiwf-check` skill, the finding code itself) so the finding-codes-are-discoverable / finding-codes-have-hints / finding-codes-documented-in-skill CI chokepoints stay green · commit 6f227dc5 · tests 4/4 new, no fixture regressions elsewhere (check-time only, no verb-time refusal to collide with).
+
+Branch-coverage audit: all four reachable combinations (non-milestone kind is covered incidentally by every other check-rule test sharing this package's mixed-kind trees; archived, non-done, and populated-ACs each skip; the genuine done+zero-ACs case fires) are each hit by a dedicated test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) > 0` to `>= 0`, so it always skips; flip `e.Status != entity.StatusDone` to `==`, inverting the done-check), both killed; no weak or tautological assertions found.
+
+### AC-4 — Empty AC body surfaces an error finding, archive-scoped
+
+Added `acsEmptyBodyOnStart` alongside the file's other rules, wired into `check.go`, with the discoverability trio · commit c0622ea1 · tests 8/8 new. Discovered and resolved a real interaction with AC-2's own `--force` override — see [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) — which also corrected AC-2's error message and body text (same commit); no other fixture regressions, since this is the first `--force`-bypassable verb-time guard in the codebase whose check-time counterpart is error severity.
+
+Branch-coverage audit: every reachable combination (non-milestone kind, archived, neither in_progress nor done, the file-read/frontmatter-split defensive paths marked `//coverage:ignore`, empty AC id, cancelled AC, missing heading, populated body, and the two firing cases at in_progress and done) is hit by a dedicated test or an annotated defensive skip. Vacuity audit (`wf-vacuity`): 3 mutations attempted (drop the `done` disjunct from the status guard; invert `ACSectionIsEmpty`'s result; drop the cancelled-AC skip), all killed; no weak or tautological assertions found.
+
+## Decisions made during implementation
+
+- [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) (accepted) — AC-2's `--force --reason` override does not actually let the promote land once AC-4 exists, and is accepted as the correct outcome rather than fixed via a severity downgrade or a new bypass mechanism. Full reasoning in the decision body and in this spec's own Design notes above.
+
+## Validation
+
+`go build ./...` — clean. `go vet ./...` — clean. `go test ./...` (full tree) — all packages pass, no failures. `make check-fast` (`go vet` + `golangci-lint run` + `go test ./...`) — 0 lint issues, all green. `aiwf check` — 0 errors (pre-existing warnings unrelated to this milestone: archive-sweep-pending/terminal-entity-not-archived on D-0005, epic-active-no-drafted-milestones on E-0068 since M-0268 is its only milestone and it's in_progress, provenance-scope-undefined from the worktree having no upstream configured).
+
+## Deferrals
+
+- (none)
+
+## Reviewer notes
+
+Independent review (dispatched fresh-context, no authorship attachment):
+
+- **Code-quality** (`wf-review-code`): **APPROVE**. Verified by measurement, not by trusting this spec — reran build/vet/full test suite/lint/gofmt/coverage-gate independently, confirmed the discoverability trio for both new finding codes, traced `ParseACSections`/`ACSectionIsEmpty`'s handling of the heading-only-subheading case directly, and confirmed AC-2's error message genuinely omits `--force` while AC-1's genuinely includes it (both directions test-asserted). One non-blocking track-for-later: the "AC body has no non-heading prose" predicate now exists in three semantically-identical places (`entity.ACSectionIsEmpty`, shared by AC-2 and AC-4; `check/entity_body.go`'s private `isAllWhitespaceOrHeadings` for the pre-existing `entity-body-empty/ac` warning) — confirmed identical behavior today, not worth unifying now (the two live at different layers with different signatures), but worth revisiting if a third divergence pressure appears.
+- **Design-quality** (`wf-rethink`): no rethink exercise run, by design — this milestone introduces no new package boundary, core abstraction, or data model. Every addition (two verb-time guards, two check-rules, one shared entity-layer predicate) follows an existing sibling's shape exactly.
+
+`wf-doc-lint` (scoped to this milestone's changeset): clean — no broken markdown links in the new D-0040/M-0268 files, no stale references to the changed finding codes or behavior found across `docs/pocv3/**`.
+
+A real mid-implementation design collision surfaced and was resolved with the human's input rather than silently patched: AC-4's error severity means `Promote`'s existing unconditional `projectionFindings` check also makes AC-2's own `--force --reason` override practically inert (every AC-2 refusal condition is also an AC-4 refusal condition). Recorded as [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) (accepted) — accept the asymmetry as correct rather than downgrade AC-4's severity or add a bypass mechanism, per KISS/YAGNI (the honest fix — writing real AC-body prose — is cheaper than constructing a `--force` invocation in the first place) and the one existing precedent for this class of interaction (`TestPromote_ForceStillFailsCoherence`).

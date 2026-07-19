@@ -31,9 +31,18 @@ func TestM0146_ScopeReachMachinery(t *testing.T) {
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindEpic, "In-scope Epic", human, verb.AddOptions{}))
 	f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, human, "", false, verb.PromoteOptions{}))
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "In-scope Milestone", human, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	// M-0268/AC-1+AC-2: draft -> in_progress now refuses a zero-AC
+	// milestone, or one with an empty AC body; seed a real one so the
+	// positive arm below exercises the scope machinery, not the
+	// AC-completeness guards.
+	f.Must(verb.AddACBatch(ctx, f.Tree(), "M-0001", []string{"Does the thing"}, [][]byte{[]byte("Real prose.")}, human, nil))
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindEpic, "Out-of-scope Epic", human, verb.AddOptions{}))
 	f.Must(verb.Promote(ctx, f.Tree(), "E-0002", entity.StatusActive, human, "", false, verb.PromoteOptions{}))
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "Out-of-scope Milestone", human, verb.AddOptions{EpicID: "E-0002", TDD: "none"}))
+	// Same seeding on the negative-arm target: the out-of-scope
+	// refusal under test must fire before the AC-completeness guards
+	// would, not be masked by them.
+	f.Must(verb.AddACBatch(ctx, f.Tree(), "M-0002", []string{"Does the other thing"}, [][]byte{[]byte("Real prose.")}, human, nil))
 
 	// Authorize the agent on E-0001 only.
 	f.AuthorizeScope(t, "E-0001", "ai/claude")

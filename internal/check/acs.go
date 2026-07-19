@@ -22,6 +22,8 @@ const (
 	CodeMilestoneDoneIncompleteACs      = "milestone-done-incomplete-acs"
 	CodeMilestoneCancelledIncompleteACs = "milestone-cancelled-incomplete-acs"
 	CodeACsBodyCoherence                = "acs-body-coherence"
+	CodeMilestoneDoneZeroACs            = "milestone-done-zero-acs"
+	CodeACsEmptyBodyOnStart             = "acs-empty-body"
 )
 
 // acsShape validates the structure of every milestone's acs[] list and
@@ -34,8 +36,9 @@ const (
 //     deletion). The allocator picks max+1 over the full list.
 //   - title (subcode: title)  — title missing on an AC.
 //   - status (subcode: status)
-//   - tdd_phase (subcode: tdd-phase) — phase value not in the closed
-//     set, or absent when the parent milestone is tdd: required.
+//   - tdd_phase (subcode: tdd-phase) — a present phase value not in
+//     the closed set. Absence is always legal (G-0286) — "met requires
+//     tdd_phase: done" is a separate concern enforced by acsTDDAudit.
 //   - tdd policy (subcode: tdd-policy) — milestone's own tdd: value not
 //     in {required, advisory, none}.
 //
@@ -71,7 +74,6 @@ func acsShape(t *tree.Tree) []Finding {
 			})
 		}
 
-		tddRequired := e.TDD == "required"
 		for i, ac := range e.ACs {
 			compositeID := e.ID + "/" + ac.ID
 			expectedID := fmt.Sprintf("AC-%d", i+1)
@@ -149,21 +151,13 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			}
 
-			// tdd_phase: required when milestone is tdd: required;
-			// when present, must be in the closed phase set.
-			switch {
-			case ac.TDDPhase == "" && tddRequired:
-				findings = append(findings, Finding{
-					Code:     CodeACsShape,
-					Severity: SeverityError,
-					Subcode:  "tdd-phase",
-					Message: fmt.Sprintf("%s missing required field: tdd_phase (milestone is tdd: required)",
-						composeForMessage(e.ID, ac.ID, i)),
-					Path:     e.Path,
-					EntityID: composeIfValid(e.ID, ac.ID),
-					Field:    "acs",
-				})
-			case ac.TDDPhase != "" && !entity.IsAllowedTDDPhase(ac.TDDPhase):
+			// tdd_phase: absent is always legal (an AC not yet
+			// started, or one whose milestone never opted into TDD
+			// tracking, has no honest phase to carry); when present,
+			// it must be in the closed phase set. "met requires
+			// tdd_phase: done" is a distinct concern enforced by
+			// acsTDDAudit below, not here (G-0286).
+			if ac.TDDPhase != "" && !entity.IsAllowedTDDPhase(ac.TDDPhase) {
 				findings = append(findings, Finding{
 					Code:     CodeACsShape,
 					Severity: SeverityError,
@@ -339,6 +333,45 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 	return findings
 }
 
+// milestoneDoneZeroACs fires (warning) when a non-archived milestone
+// has status: done and an empty acs[] (M-0268/AC-3, D-0039 point 2).
+// Check-time only — there is no verb-time refusal at this transition;
+// a milestone is allowed to reach `done` permanently AC-less, but the
+// warning keeps the state visible rather than silent. Extends
+// milestoneDoneIncompleteACs's own `status: done` scope with the
+// complementary "zero ACs at all" case that rule's open-AC loop can
+// never reach (a nil acs[] has no open entries to report).
+func milestoneDoneZeroACs(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// milestone-done-zero-acs is in the shape-and-health group;
+		// archived done milestones with zero ACs represent historical
+		// state, not active drift.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusDone {
+			continue
+		}
+		if len(e.ACs) > 0 {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     CodeMilestoneDoneZeroACs,
+			Severity: SeverityWarning,
+			Message:  fmt.Sprintf("milestone %s is done with zero acceptance criteria", e.ID),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "acs",
+		})
+	}
+	return findings
+}
+
 // milestoneCancelledIncompleteACs fires when a milestone has status:
 // cancelled and at least one AC has status: open. Met, deferred, and
 // cancelled are acceptable terminal AC states alongside each other for
@@ -387,6 +420,74 @@ func milestoneCancelledIncompleteACs(t *tree.Tree) []Finding {
 			EntityID: e.ID,
 			Field:    "status",
 		})
+	}
+	return findings
+}
+
+// acsEmptyBodyOnStart fires (error) when a non-archived milestone is
+// in_progress or done and any non-cancelled AC's body subsection
+// carries no non-heading prose (M-0268/AC-4, G-0216). Archive-scoped,
+// forward-only per D-0039 point 3 — an archived milestone never fires
+// this finding regardless of body state, matching every sibling rule
+// in this file; there is no separate grandfather or timestamp
+// mechanism.
+//
+// Deliberately does NOT use entityBodyEmpty's terminal-status
+// lifecycle gate: that gate silences the AC subcode of
+// entity-body-empty once a milestone reaches a terminal status, but
+// this rule's own scope is exactly in_progress and done — the two
+// statuses where a milestone AC is supposed to have a real contract.
+//
+// An AC with no `### AC-N` heading in the body at all is a different
+// problem (a frontmatter/body desync) — acs-body-coherence/missing-
+// heading's concern, not this one, matching the verb-time guard's own
+// carve-out (M-0268/AC-2).
+func acsEmptyBodyOnStart(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusInProgress && e.Status != entity.StatusDone {
+			continue
+		}
+		fullPath := filepath.Join(t.Root, e.Path)
+		raw, err := os.ReadFile(fullPath)
+		if err != nil {
+			//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; the loader's own load-error finding already covers a vanished file
+			continue
+		}
+		_, body, ok := entity.Split(raw)
+		if !ok {
+			//coverage:ignore defensive: a file that round-tripped through the loader already has valid frontmatter delimiters
+			continue
+		}
+		sections := entity.ParseACSections(body)
+		for _, ac := range e.ACs {
+			if ac.ID == "" || ac.Status == entity.StatusCancelled {
+				continue
+			}
+			content, found := sections[ac.ID]
+			if !found {
+				continue
+			}
+			if !entity.ACSectionIsEmpty(content) {
+				continue
+			}
+			compositeID := e.ID + "/" + ac.ID
+			findings = append(findings, Finding{
+				Code:     CodeACsEmptyBodyOnStart,
+				Severity: SeverityError,
+				Message:  fmt.Sprintf("%s has no body content under its `### %s` heading", compositeID, ac.ID),
+				Path:     e.Path,
+				EntityID: compositeID,
+				Field:    "acs",
+			})
+		}
 	}
 	return findings
 }

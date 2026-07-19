@@ -288,6 +288,14 @@ func TestRun_List_ArchivedFlag(t *testing.T) {
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-active-epic"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// --archived list filter, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	if rc := cli.Execute([]string{"add", "ac", "M-0001", "--title", "Live check", "--body-file", acBodyFixturePath(t, root), "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add ac M-001: %d", rc)
+	}
 	if rc := cli.Execute([]string{"promote", "--actor", "human/test", "--root", root, "M-0001", "in_progress"}); rc != cliutil.ExitOK {
 		t.Fatalf("promote M-001 in_progress: %d", rc)
 	}

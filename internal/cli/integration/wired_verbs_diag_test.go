@@ -242,6 +242,12 @@ func TestAuthorizeDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	if out, err := testutil.RunGit(root, "checkout", "-b", "epic/E-0001-adoption"); err != nil {
 		t.Fatalf("git checkout -b: %v\n%s", err, out)
 	}
+	// M-0268/AC-1: draft -> in_progress now refuses a zero-AC
+	// milestone; seed one so the promote below exercises the
+	// diagnostic-log wiring, not the AC-completeness guard.
+	// M-0268/AC-2: draft -> in_progress also refuses an empty AC
+	// body; give it real prose.
+	mustRun(t, "add", "ac", "M-0001", "--title", "Parses schema", "--body-file", acBodyFixturePath(t, root), "--actor", "human/test", "--root", root)
 	mustRun(t, "promote", "--root", root, "--actor", "human/test", "M-0001", "in_progress")
 
 	logPath := filepath.Join(t.TempDir(), "diag.log")
