@@ -939,7 +939,7 @@ same code.
 | M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | done |
 | M-0266 | Honor a cross-branch id's real area in show --area | done |
 
-## E-0068 — Mechanical AC/milestone-completeness guards (proposed)
+## E-0068 — Mechanical AC/milestone-completeness guards (active)
 
 ### Goal
 
@@ -947,6 +947,6 @@ Close three places where the kernel currently depends on operator vigilance inst
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | draft |
+| M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | in_progress |
 | M-0268 | AC-completeness guards: zero-AC and empty-body promote refusals | draft |
 

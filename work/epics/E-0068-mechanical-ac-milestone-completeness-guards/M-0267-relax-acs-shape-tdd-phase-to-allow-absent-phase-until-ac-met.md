@@ -47,6 +47,7 @@ Two existing behaviors must survive the relaxation untouched: (1) a *present* `t
 ## Surfaces touched
 
 - `internal/check/acs.go` — `acsShape` (the `tdd-phase` subcode's conditional).
+- `internal/check/hint.go` — the `acs-shape/tdd-phase` operator hint, coupled to the finding whose semantics changed.
 
 ## Out of scope
 
@@ -84,10 +85,19 @@ Vacuity audit (`wf-vacuity`): mutated `acsTDDAudit`'s severity switch (advisory 
 
 ## Validation
 
+`go build ./...` — clean. `go vet ./...` — clean. `go test ./...` (full tree) — all packages pass, no failures. `make lint` (`golangci-lint run`) — 0 issues. `aiwf check` — 0 errors (5 pre-existing warnings unrelated to this milestone: archive-sweep-pending and terminal-entity-not-archived on D-0005, plus a provenance-scope-undefined note from the worktree having no upstream configured).
+
 ## Deferrals
 
 - (none)
 
 ## Reviewer notes
+
+Independent two-lens review (dispatched fresh-context, no authorship attachment):
+
+- **Code-quality** (`wf-review-code`): **APPROVE**. Verified by measurement, not by trusting this spec — reran build/vet/test/lint independently, confirmed via the diff itself (not the spec's prose) that `acsTDDAudit` is untouched, confirmed all three branches of the relaxed conditional are covered by name-checked passing tests. One non-blocking nit: this spec's `## Surfaces touched` originally omitted `internal/check/hint.go` — fixed in place.
+- **Design-quality** (`wf-rethink`): no rethink exercise run, by design — independently confirmed the change introduces no new package boundary, abstraction, or data model (it removes one arm of an existing conditional; the "met requires done" invariant was already owned by a separate, untouched function). Applying the trigger correctly means recognizing when nothing needs rethinking, not manufacturing an exercise.
+
+`wf-doc-lint` (scoped to this milestone's changeset): 2 non-blocking findings, neither introduced by this milestone's own file changes — both are pre-existing docs describing the old behavior this milestone changed. `docs/pocv3/plans/acs-and-tdd-plan.md:206` now states a stale requirement ("tdd_phase is required when milestone tdd: required"); `docs/initiatives/tdd-cycle-subagent-boundaries.md:112` describes G-0286 in present tense, which will read as historical once G-0286 is `addressed`. Left as follow-up, not fixed here — out of this milestone's scope (design docs, not the shipped kernel behavior or its operator-facing hints).
 
 - (none)
