@@ -947,6 +947,6 @@ Close three places where the kernel currently depends on operator vigilance inst
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | in_progress |
+| M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | done |
 | M-0268 | AC-completeness guards: zero-AC and empty-body promote refusals | draft |
 
