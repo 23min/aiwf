@@ -72,6 +72,12 @@ Dropped `acsShape`'s presence requirement, keeping only the closed-set validity 
 
 Branch-coverage audit: the single compound condition's three reachable combinations (absent → no finding, present+valid → no finding, present+invalid → finding) are each hit by an existing or new test. Vacuity audit (`wf-vacuity`): 3 mutations attempted (flip `!=`/`==`, drop the closed-set conjunct, invert it), all killed; no weak or tautological assertions found.
 
+### AC-2 — Regression: tdd-phase closed-set and met-requires-done checks unchanged
+
+Both claims were already correctly implemented; AC-1's own cycle had already locked the "present-but-invalid still errors" and "required+met+absent still errors" halves. The one untested cell was tdd: advisory + met + absent phase (only advisory+wrong-value was covered) · commit e95e5b94 · tests 1/1 new, test-only diff, no production change.
+
+Vacuity audit (`wf-vacuity`): mutated `acsTDDAudit`'s severity switch (advisory → error instead of warning); both advisory tests went red as expected. No weak or tautological assertions found.
+
 ## Decisions made during implementation
 
 - None — all decisions are pre-locked above (G-0286's own body already settles the design fork).
