@@ -96,6 +96,14 @@ Added `requireNonEmptyACsAtMilestoneStart`, wired into `Promote`'s existing `if 
 
 Branch-coverage audit: the three-clause early-return guard's reachable combinations (non-milestone kind, milestone-but-not-draft, milestone-draft-but-not-targeting-in_progress, and the genuine draft→in_progress case split zero/non-zero ACs) are each hit by an existing or new test. Vacuity audit (`wf-vacuity`): 2 mutations attempted (flip `len(e.ACs) == 0` to `!= 0`; drop the `newStatus != in_progress` conjunct), both killed; no weak or tautological assertions found. One equivalent-mutant observation: dropping the `e.Kind != entity.KindMilestone` conjunct is currently unobservable by any test, because `status: draft` is a value only the milestone FSM ever produces (no other kind's status set includes it) — the conjunct is defensive self-documentation, not dead code a test needs to pin.
 
+### AC-2 — Empty AC body refused at draft to in_progress promote
+
+Added `requireNonEmptyACBodiesAtMilestoneStart` (same `if !force {...}` wiring point as AC-1), plus a new shared `entity.ACSectionIsEmpty` helper giving the "no non-heading prose" definition an exported home so this verb-time gate and any future check-time rule (AC-4) read the same definition the pre-existing `entity-body-empty/ac` check rule already implements privately · commit adf494fd · tests 5/5 new, plus a second wave of fixture fixes across `internal/verb`, `internal/policies`, `internal/stresstest`, and `internal/cli/integration` — every AC seeded during AC-1's own fixture repair carried a title but no body prose, which now trips this AC-2 guard at the same call sites.
+
+An AC with no `### AC-N` heading in the body at all (a frontmatter/body desync) is deliberately NOT treated as empty by this guard — that's `acs-body-coherence/missing-heading`'s concern, not this one; double-flagging the same drift under two different codes would be noise.
+
+Branch-coverage audit: the guard's own early-return clause reuses AC-1's already-covered combinations; the per-AC loop's three reachable outcomes (heading absent → skip, heading present with empty/heading-only content → refuse, heading present with real prose → continue) are each hit by a dedicated test. `entity.ACSectionIsEmpty`'s three line-classification branches (blank, heading-prefixed, real content) are each hit too. Vacuity audit (`wf-vacuity`): 2 mutations attempted (drop the heading-skip disjunct in `ACSectionIsEmpty`, so a sub-heading counts as content; drop the `found` check in the guard's loop, so a missing heading defaults to empty content), both killed; no weak or tautological assertions found.
+
 ## Decisions made during implementation
 
 - None — all decisions are pre-locked above (D-0039 already settles the design).
