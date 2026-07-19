@@ -4,6 +4,11 @@ title: Converge contract-mutating verbs on one shared diff-based validation gate
 status: draft
 parent: E-0069
 tdd: required
+acs:
+    - id: AC-1
+      title: a shared gate reports only findings introduced by the projected mutation
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -21,6 +26,8 @@ validators map. Bind's current filter is not a true before/after diff; this
 milestone makes the diff the shared semantics.
 
 ## Acceptance criteria
+
+### AC-1 — a shared gate reports only findings introduced by the projected mutation
 
 ## Constraints
 
