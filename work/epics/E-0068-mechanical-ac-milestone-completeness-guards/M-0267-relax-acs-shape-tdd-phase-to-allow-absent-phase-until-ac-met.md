@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: 'Regression: tdd-phase closed-set and met-requires-done checks unchanged'
-      status: open
+      status: met
       tdd_phase: done
 ---
 
