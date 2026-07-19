@@ -1,7 +1,7 @@
 ---
 id: D-0042
 title: rewidth reference sweep stays active-tree-only by design
-status: proposed
+status: accepted
 ---
 > **Date:** 2026-07-19 · **Decided by:** human/peter
 
