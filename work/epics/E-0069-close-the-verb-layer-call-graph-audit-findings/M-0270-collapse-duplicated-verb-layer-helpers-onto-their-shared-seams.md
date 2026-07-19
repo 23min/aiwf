@@ -20,6 +20,9 @@ acs:
     - id: AC-5
       title: doctor reads hook and guidance markers via initrepo; completeHookNames deduped
       status: open
+    - id: AC-6
+      title: release docs state aiwf upgrade has no automated rollback
+      status: open
 ---
 ## Goal
 
@@ -45,6 +48,8 @@ they should share.
 ### AC-4 — reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
 
 ### AC-5 — doctor reads hook and guidance markers via initrepo; completeHookNames deduped
+
+### AC-6 — release docs state aiwf upgrade has no automated rollback
 
 ## Constraints
 
