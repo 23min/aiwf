@@ -1,7 +1,7 @@
 ---
 id: D-0039
 title: 'AC-completeness guards: block empty start, warn at done, archive-scoped check'
-status: proposed
+status: accepted
 priority: high
 relates_to:
     - G-0216
