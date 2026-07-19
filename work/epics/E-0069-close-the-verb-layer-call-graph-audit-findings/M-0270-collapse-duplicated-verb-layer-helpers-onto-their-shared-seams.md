@@ -4,6 +4,10 @@ title: Collapse duplicated verb-layer helpers onto their shared seams
 status: draft
 parent: E-0069
 tdd: none
+acs:
+    - id: AC-1
+      title: rename and reallocate share one path-rewrite helper with both tail behaviors
+      status: open
 ---
 ## Goal
 
@@ -19,6 +23,8 @@ existing exported helper (`gitops.IsAncestor`, `gitops.LocalBranchRefs`,
 they should share.
 
 ## Acceptance criteria
+
+### AC-1 — rename and reallocate share one path-rewrite helper with both tail behaviors
 
 ## Constraints
 
