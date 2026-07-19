@@ -1,9 +1,11 @@
 ---
 id: G-0216
 title: Empty AC body blocks milestone draft to in_progress promote
-status: open
+status: addressed
 priority: high
 discovered_in: M-0160
+addressed_by:
+    - M-0268
 ---
 
 ## What's missing
