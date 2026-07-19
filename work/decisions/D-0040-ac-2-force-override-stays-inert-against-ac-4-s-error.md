@@ -1,7 +1,7 @@
 ---
 id: D-0040
 title: AC-2 force override stays inert against AC-4's error
-status: proposed
+status: accepted
 priority: medium
 relates_to:
     - M-0268
