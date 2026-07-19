@@ -950,3 +950,16 @@ Close three places where the kernel currently depends on operator vigilance inst
 | M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | done |
 | M-0268 | AC-completeness guards: zero-AC and empty-body promote refusals | done |
 
+## E-0069 — Close the verb-layer call-graph audit findings (proposed)
+
+### Goal
+
+Close the verified findings from the verb-layer call-graph audit: fix the three
+correctness bugs, collapse the hand-duplicated helpers onto the shared seams the
+codebase already owns, extend `cliutil.FinishVerb`'s contract to cover its three
+bypassers, and give the read-only verbs a neutral shared library — so a change to
+a shared contract (commit-outcome envelope, git-plumbing helper, hook marker)
+reaches every verb from one place instead of drifting per hand-rolled copy.
+
+_No milestones yet._
+
