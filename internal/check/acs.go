@@ -34,8 +34,9 @@ const (
 //     deletion). The allocator picks max+1 over the full list.
 //   - title (subcode: title)  — title missing on an AC.
 //   - status (subcode: status)
-//   - tdd_phase (subcode: tdd-phase) — phase value not in the closed
-//     set, or absent when the parent milestone is tdd: required.
+//   - tdd_phase (subcode: tdd-phase) — a present phase value not in
+//     the closed set. Absence is always legal (G-0286) — "met requires
+//     tdd_phase: done" is a separate concern enforced by acsTDDAudit.
 //   - tdd policy (subcode: tdd-policy) — milestone's own tdd: value not
 //     in {required, advisory, none}.
 //
@@ -71,7 +72,6 @@ func acsShape(t *tree.Tree) []Finding {
 			})
 		}
 
-		tddRequired := e.TDD == "required"
 		for i, ac := range e.ACs {
 			compositeID := e.ID + "/" + ac.ID
 			expectedID := fmt.Sprintf("AC-%d", i+1)
@@ -149,21 +149,13 @@ func acsShape(t *tree.Tree) []Finding {
 				})
 			}
 
-			// tdd_phase: required when milestone is tdd: required;
-			// when present, must be in the closed phase set.
-			switch {
-			case ac.TDDPhase == "" && tddRequired:
-				findings = append(findings, Finding{
-					Code:     CodeACsShape,
-					Severity: SeverityError,
-					Subcode:  "tdd-phase",
-					Message: fmt.Sprintf("%s missing required field: tdd_phase (milestone is tdd: required)",
-						composeForMessage(e.ID, ac.ID, i)),
-					Path:     e.Path,
-					EntityID: composeIfValid(e.ID, ac.ID),
-					Field:    "acs",
-				})
-			case ac.TDDPhase != "" && !entity.IsAllowedTDDPhase(ac.TDDPhase):
+			// tdd_phase: absent is always legal (an AC not yet
+			// started, or one whose milestone never opted into TDD
+			// tracking, has no honest phase to carry); when present,
+			// it must be in the closed phase set. "met requires
+			// tdd_phase: done" is a distinct concern enforced by
+			// acsTDDAudit below, not here (G-0286).
+			if ac.TDDPhase != "" && !entity.IsAllowedTDDPhase(ac.TDDPhase) {
 				findings = append(findings, Finding{
 					Code:     CodeACsShape,
 					Severity: SeverityError,

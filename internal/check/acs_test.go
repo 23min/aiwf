@@ -3,6 +3,7 @@ package check
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -136,13 +137,6 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 			wantCode: CodeACsShape,
 			wantSub:  "tdd-phase",
 		},
-		{
-			name:     "tdd_phase required but absent",
-			ac:       entity.AcceptanceCriterion{ID: "AC-1", Title: "x", Status: "open"},
-			tdd:      "required",
-			wantCode: CodeACsShape,
-			wantSub:  "tdd-phase",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -155,6 +149,34 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 			got := acsShape(tr)
 			if findingByCode(got, tt.wantCode, tt.wantSub) == nil {
 				t.Errorf("expected %s/%s; got: %+v", tt.wantCode, tt.wantSub, got)
+			}
+		})
+	}
+}
+
+// TestAcsShape_AbsentTDDPhaseNeverFires locks G-0286/M-0267 AC-1: under
+// tdd: required, an AC with an absent tdd_phase never produces
+// acs-shape/tdd-phase, regardless of the AC's own status. Presence is
+// no longer required at all — only a *present-but-invalid* value is a
+// shape error (see the sibling "tdd_phase invalid" case above). The
+// "met requires tdd_phase: done" property is a distinct concern
+// enforced by acsTDDAudit, not this rule (see
+// TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError below).
+func TestAcsShape_AbsentTDDPhaseNeverFires(t *testing.T) {
+	t.Parallel()
+	for _, status := range []string{"open", "met", "deferred", "cancelled"} {
+		t.Run(status, func(t *testing.T) {
+			t.Parallel()
+			tr := makeTree(&entity.Entity{
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "in_progress", Parent: "E-0001", TDD: "required",
+				ACs: []entity.AcceptanceCriterion{
+					{ID: "AC-1", Title: "x", Status: status},
+				},
+			})
+			got := acsShape(tr)
+			if f := findingByCode(got, CodeACsShape, "tdd-phase"); f != nil {
+				t.Errorf("absent tdd_phase (status %q) should not fire acs-shape/tdd-phase, got: %+v", status, f)
 			}
 		})
 	}
@@ -287,6 +309,33 @@ func TestAcsTDDAudit_RequiredFiresAsError(t *testing.T) {
 	}
 }
 
+// TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError locks G-0286/M-0267
+// AC-2: now that acsShape no longer requires tdd_phase to be present
+// (TestAcsShape_AbsentTDDPhaseNeverFires), a status: met AC with a
+// wholly absent phase under tdd: required is reachable without ever
+// tripping acs-shape — acsTDDAudit must be the rule that still catches
+// it. Prior to the relaxation this combination was effectively
+// screened out earlier by acs-shape's now-removed presence check, so
+// acsTDDAudit's own coverage of "absent" (as opposed to
+// "present-but-wrong") was untested.
+func TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "required",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "met"},
+		},
+	})
+	got := acsTDDAudit(tr)
+	if len(got) != 1 || got[0].Code != CodeACsTDDAudit || got[0].Severity != SeverityError {
+		t.Fatalf("expected one error acs-tdd-audit finding, got: %+v", got)
+	}
+	if !strings.Contains(got[0].Message, "(absent)") {
+		t.Errorf("message should surface the absent phase, got: %q", got[0].Message)
+	}
+}
+
 func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{
@@ -299,6 +348,29 @@ func TestAcsTDDAudit_AdvisoryFiresAsWarning(t *testing.T) {
 	got := acsTDDAudit(tr)
 	if len(got) != 1 || got[0].Severity != SeverityWarning || got[0].Code != CodeACsTDDAudit {
 		t.Errorf("expected one warning finding with code \"acs-tdd-audit\", got: %+v", got)
+	}
+}
+
+// TestAcsTDDAudit_AdvisoryMetWithAbsentPhaseFiresAsWarning locks
+// G-0286/M-0267 AC-2's explicit claim for the advisory side: same as
+// TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError but under tdd:
+// advisory, so the finding is a warning, not an error. Completes the
+// severity x absent-vs-wrong-value coverage matrix for acsTDDAudit.
+func TestAcsTDDAudit_AdvisoryMetWithAbsentPhaseFiresAsWarning(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001", TDD: "advisory",
+		ACs: []entity.AcceptanceCriterion{
+			{ID: "AC-1", Title: "x", Status: "met"},
+		},
+	})
+	got := acsTDDAudit(tr)
+	if len(got) != 1 || got[0].Code != CodeACsTDDAudit || got[0].Severity != SeverityWarning {
+		t.Fatalf("expected one warning acs-tdd-audit finding, got: %+v", got)
+	}
+	if !strings.Contains(got[0].Message, "(absent)") {
+		t.Errorf("message should surface the absent phase, got: %q", got[0].Message)
 	}
 }
 
