@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: Empty AC body surfaces an error finding, archive-scoped
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0268 — AC-completeness guards: zero-AC and empty-body promote refusals
@@ -45,7 +45,7 @@ This milestone's two new guards are a different kind of precondition and must **
 
 ### AC-2 — Empty AC body refused at draft to in_progress promote
 
-`aiwf promote M-NNN in_progress` on a milestone where at least one AC's body subsection (the prose between its `### AC-<N>` heading and the next heading or EOF) contains no non-heading prose exits non-zero, naming the specific AC. Same `--force --reason` override. Per G-0216.
+`aiwf promote M-NNN in_progress` on a milestone where at least one AC's body subsection (the prose between its `### AC-<N>` heading and the next heading or EOF) contains no non-heading prose exits non-zero, naming the specific AC. Unlike AC-1, `--force` does not let this promote land — see Design notes: AC-4's error-severity finding fires on exactly the resulting state, and the kernel's projection check is unconditional. The error message does not claim otherwise; the only path through is writing real prose via `aiwf edit-body`. Per G-0216.
 
 ### AC-3 — Zero-AC done milestone surfaces a warning finding
 
@@ -60,10 +60,12 @@ This milestone's two new guards are a different kind of precondition and must **
 - AC-1 and AC-2's refusals apply only to the `draft → in_progress` transition — they must not affect any other legal milestone transition.
 - AC-3's finding is warning severity and check-time only; it must never become a verb-time refusal at `done` (D-0039 explicitly rejects a second hard block there).
 - AC-4's finding is error severity and archive-scoped; it fires for `in_progress` and `done` alike, but never for an archived milestone.
+- AC-2's `--force` does not let the promote land, even though its code path is structurally force-gated the same way AC-1's is (see Design notes) — this is a real, intentional asymmetry between the two guards, not an oversight.
 
 ## Design notes
 
-- **`--force` bypasses AC-1 and AC-2, deliberately diverging from the adjacent unconditional-guard pattern.** `MilestonePromoteNonTerminalACsError` and `EpicPromoteNonTerminalChildrenError` (both in the same `Promote` function, just above where these two guards land) run even under `--force`, because they protect a genuine consistency invariant: a *terminal* status must never be reached while a child/AC is still non-terminal. AC-1 and AC-2 guard something different — whether real work has a contract *before it starts* — and D-0039 point 2 explicitly permits a zero-AC milestone to reach `done` (with only a warning), so "permanently AC-less" is itself a legitimate end state, not an inconsistency force would be papering over. The correct precedent to follow is the `if !force { ... }` pattern used by the resolver-requirement checks earlier in `Promote` (e.g. the `gap-addressed-has-resolver` / `adr-supersession-mutual` overrides at promote.go:465/469) — a sovereign, human-only, reason-carrying override of a soft precondition — not the unconditional structural guards. Get this pattern right at implementation time; copying the nearby non-terminal-ACs guard by proximity would silently make the milestone un-force-able, contradicting D-0039.
+- **`--force` bypasses AC-1 and AC-2's own verb-time Go-error refusal, deliberately diverging from the adjacent unconditional-guard pattern.** `MilestonePromoteNonTerminalACsError` and `EpicPromoteNonTerminalChildrenError` (both in the same `Promote` function, just above where these two guards land) run even under `--force`, because they protect a genuine consistency invariant: a *terminal* status must never be reached while a child/AC is still non-terminal. AC-1 and AC-2 guard something different — whether real work has a contract *before it starts* — so both are wired into the `if !force { ... }` block alongside the resolver-requirement checks earlier in `Promote` (e.g. the `gap-addressed-has-resolver` / `adr-supersession-mutual` overrides at promote.go:465/469), not the unconditional structural guards.
+- **AC-2's `--force` is nonetheless practically inert, and this is by design, not a bug.** The kernel's `projectionFindings` mechanism (pre-existing, used by every `Promote` call) runs *unconditionally* — it diffs `check.Run` findings before and after the mutation and refuses to produce a commit plan when the projected tree carries a new error-severity finding, regardless of `--force` (the same mechanism `TestPromote_ForceStillFailsCoherence` already pins for a status-valid violation). AC-4 is error severity and fires on exactly the state AC-2's `--force` override would produce — every AC-2 refusal condition is also an AC-4 refusal condition, so there is no combination where forcing past AC-2 actually lands the commit. `--force` still changes *which* refusal fires (a findings-based `Result{Plan: nil}` instead of a Go error), but never the outcome. AC-1 has no equivalent collision because its check-time counterpart (AC-3) is warning severity by design (D-0039 point 2: a permanently zero-AC milestone is a legitimate end state) — AC-2 and AC-4 target a different kind of gap (an AC that exists but was never given real content), which D-0039 treats as a genuine defect worth blocking unconditionally, not a legitimate minimalist choice. AC-2's error message does not mention `--force`, since it would not be true.
 - AC-3 and AC-4 both key their archive scoping off `entity.IsArchivedPath(e.Path)`, identical to the five existing rules in the same file — no new helper.
 
 ## Surfaces touched
