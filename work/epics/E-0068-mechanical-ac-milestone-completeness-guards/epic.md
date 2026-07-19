@@ -1,7 +1,7 @@
 ---
 id: E-0068
 title: Mechanical AC/milestone-completeness guards
-status: active
+status: done
 ---
 
 # E-0068 — Mechanical AC/milestone-completeness guards
