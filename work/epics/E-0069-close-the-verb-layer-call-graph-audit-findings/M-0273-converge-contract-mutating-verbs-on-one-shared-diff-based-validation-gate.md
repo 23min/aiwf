@@ -9,6 +9,10 @@ acs:
       title: a shared gate reports only findings introduced by the projected mutation
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: bind, unbind, recipe install, and recipe remove route through the shared gate
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -28,6 +32,8 @@ milestone makes the diff the shared semantics.
 ## Acceptance criteria
 
 ### AC-1 — a shared gate reports only findings introduced by the projected mutation
+
+### AC-2 — bind, unbind, recipe install, and recipe remove route through the shared gate
 
 ## Constraints
 
