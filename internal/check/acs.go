@@ -22,6 +22,7 @@ const (
 	CodeMilestoneDoneIncompleteACs      = "milestone-done-incomplete-acs"
 	CodeMilestoneCancelledIncompleteACs = "milestone-cancelled-incomplete-acs"
 	CodeACsBodyCoherence                = "acs-body-coherence"
+	CodeMilestoneDoneZeroACs            = "milestone-done-zero-acs"
 )
 
 // acsShape validates the structure of every milestone's acs[] list and
@@ -326,6 +327,45 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 			Path:     e.Path,
 			EntityID: e.ID,
 			Field:    "status",
+		})
+	}
+	return findings
+}
+
+// milestoneDoneZeroACs fires (warning) when a non-archived milestone
+// has status: done and an empty acs[] (M-0268/AC-3, D-0039 point 2).
+// Check-time only — there is no verb-time refusal at this transition;
+// a milestone is allowed to reach `done` permanently AC-less, but the
+// warning keeps the state visible rather than silent. Extends
+// milestoneDoneIncompleteACs's own `status: done` scope with the
+// complementary "zero ACs at all" case that rule's open-AC loop can
+// never reach (a nil acs[] has no open entries to report).
+func milestoneDoneZeroACs(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
+		// milestone-done-zero-acs is in the shape-and-health group;
+		// archived done milestones with zero ACs represent historical
+		// state, not active drift.
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusDone {
+			continue
+		}
+		if len(e.ACs) > 0 {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     CodeMilestoneDoneZeroACs,
+			Severity: SeverityWarning,
+			Message:  fmt.Sprintf("milestone %s is done with zero acceptance criteria", e.ID),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "acs",
 		})
 	}
 	return findings

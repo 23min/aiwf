@@ -482,6 +482,78 @@ func TestMilestoneDoneIncompleteACs_NotDoneSkipped(t *testing.T) {
 	}
 }
 
+// TestMilestoneDoneZeroACs_FiresWarning pins M-0268/AC-3 (D-0039
+// point 2): a non-archived milestone reaching `done` with an empty
+// acs[] surfaces a warning-severity finding, extending the
+// milestone-done-incomplete-acs pattern rather than replacing it —
+// this is check-time only, never a verb-time refusal (D-0039
+// explicitly rejects a second hard block at `done`).
+func TestMilestoneDoneZeroACs_FiresWarning(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+	})
+	got := milestoneDoneZeroACs(tr)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 finding, got %d: %+v", len(got), got)
+	}
+	if got[0].Severity != SeverityWarning {
+		t.Errorf("severity = %q, want warning", got[0].Severity)
+	}
+	if got[0].EntityID != "M-0007" {
+		t.Errorf("entityID = %q, want M-0007", got[0].EntityID)
+	}
+	if got[0].Code != CodeMilestoneDoneZeroACs {
+		t.Errorf("code = %q, want %q", got[0].Code, CodeMilestoneDoneZeroACs)
+	}
+}
+
+// TestMilestoneDoneZeroACs_PopulatedACsSilent: a done milestone that
+// carries at least one AC (regardless of that AC's own status —
+// that's milestoneDoneIncompleteACs's concern) never fires this rule.
+func TestMilestoneDoneZeroACs_PopulatedACsSilent(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "x", Status: "met"}},
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("populated acs[] should not fire, got: %+v", got)
+	}
+}
+
+// TestMilestoneDoneZeroACs_NotDoneSkipped: only status: done is in
+// scope — a zero-AC milestone at draft/in_progress/cancelled is a
+// different rule's concern (or none at all, at draft/in_progress).
+func TestMilestoneDoneZeroACs_NotDoneSkipped(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "in_progress", Parent: "E-0001",
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("non-done milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
+// TestMilestoneDoneZeroACs_ArchivedSilent mirrors the archive-scoping
+// convention shared by every rule in this file (ADR-0004 §"Check shape
+// rules"): a zero-AC done milestone that has been archived is
+// historical state, not active drift.
+func TestMilestoneDoneZeroACs_ArchivedSilent(t *testing.T) {
+	t.Parallel()
+	tr := makeTree(&entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "done", Parent: "E-0001",
+		Path: "work/epics/archive/E-0001-foo/M-0007-foo.md",
+	})
+	if got := milestoneDoneZeroACs(tr); len(got) != 0 {
+		t.Errorf("archived milestones don't trigger the rule, got: %+v", got)
+	}
+}
+
 func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{
