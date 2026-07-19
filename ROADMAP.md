@@ -939,7 +939,7 @@ same code.
 | M-0265 | Make the cross-branch collision scan lazy via a single trunk helper | done |
 | M-0266 | Honor a cross-branch id's real area in show --area | done |
 
-## E-0068 — Mechanical AC/milestone-completeness guards (active)
+## E-0068 — Mechanical AC/milestone-completeness guards (done)
 
 ### Goal
 
