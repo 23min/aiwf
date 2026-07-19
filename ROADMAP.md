@@ -961,5 +961,10 @@ bypassers, and give the read-only verbs a neutral shared library — so a change
 a shared contract (commit-outcome envelope, git-plumbing helper, hook marker)
 reaches every verb from one place instead of drifting per hand-rolled copy.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0269 | Fix import id allocation, show error swallowing, and scope-event sort order | draft |
+| M-0270 | Collapse duplicated verb-layer helpers onto their shared seams | draft |
+| M-0271 | Extend FinishVerb with dry-run and multi-Plan; migrate its three bypassers | draft |
+| M-0272 | Extract the read-side helpers into a neutral entityview package | draft |
 
