@@ -9,6 +9,10 @@ acs:
       title: Zero-AC milestone refused at draft to in_progress promote
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: Empty AC body refused at draft to in_progress promote
+      status: open
+      tdd_phase: red
 ---
 
 ## Goal
@@ -16,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — Zero-AC milestone refused at draft to in_progress promote
+
+### AC-2 — Empty AC body refused at draft to in_progress promote
 
