@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: rename and reallocate share one path-rewrite helper with both tail behaviors
       status: open
+    - id: AC-2
+      title: acknowledge illegal uses gitops ancestry and existence helpers, not exec
+      status: open
 ---
 ## Goal
 
@@ -25,6 +28,8 @@ they should share.
 ## Acceptance criteria
 
 ### AC-1 — rename and reallocate share one path-rewrite helper with both tail behaviors
+
+### AC-2 — acknowledge illegal uses gitops ancestry and existence helpers, not exec
 
 ## Constraints
 
