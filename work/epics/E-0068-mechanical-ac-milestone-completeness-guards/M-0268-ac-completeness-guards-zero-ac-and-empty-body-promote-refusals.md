@@ -134,4 +134,11 @@ Branch-coverage audit: every reachable combination (non-milestone kind, archived
 
 ## Reviewer notes
 
-- (none)
+Independent review (dispatched fresh-context, no authorship attachment):
+
+- **Code-quality** (`wf-review-code`): **APPROVE**. Verified by measurement, not by trusting this spec — reran build/vet/full test suite/lint/gofmt/coverage-gate independently, confirmed the discoverability trio for both new finding codes, traced `ParseACSections`/`ACSectionIsEmpty`'s handling of the heading-only-subheading case directly, and confirmed AC-2's error message genuinely omits `--force` while AC-1's genuinely includes it (both directions test-asserted). One non-blocking track-for-later: the "AC body has no non-heading prose" predicate now exists in three semantically-identical places (`entity.ACSectionIsEmpty`, shared by AC-2 and AC-4; `check/entity_body.go`'s private `isAllWhitespaceOrHeadings` for the pre-existing `entity-body-empty/ac` warning) — confirmed identical behavior today, not worth unifying now (the two live at different layers with different signatures), but worth revisiting if a third divergence pressure appears.
+- **Design-quality** (`wf-rethink`): no rethink exercise run, by design — this milestone introduces no new package boundary, core abstraction, or data model. Every addition (two verb-time guards, two check-rules, one shared entity-layer predicate) follows an existing sibling's shape exactly.
+
+`wf-doc-lint` (scoped to this milestone's changeset): clean — no broken markdown links in the new D-0040/M-0268 files, no stale references to the changed finding codes or behavior found across `docs/pocv3/**`.
+
+A real mid-implementation design collision surfaced and was resolved with the human's input rather than silently patched: AC-4's error severity means `Promote`'s existing unconditional `projectionFindings` check also makes AC-2's own `--force --reason` override practically inert (every AC-2 refusal condition is also an AC-4 refusal condition). Recorded as [D-0040](../../decisions/D-0040-ac-2-force-override-stays-inert-against-ac-4-s-error.md) (accepted) — accept the asymmetry as correct rather than downgrade AC-4's severity or add a bypass mechanism, per KISS/YAGNI (the honest fix — writing real AC-body prose — is cheaper than constructing a `--force` invocation in the first place) and the one existing precedent for this class of interaction (`TestPromote_ForceStillFailsCoherence`).
