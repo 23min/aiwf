@@ -9,6 +9,10 @@ acs:
       title: import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: show fails loud when history or scope reads error
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -28,6 +32,8 @@ order. No design decisions needed — each fix converges on the existing seam.
 ## Acceptance criteria
 
 ### AC-1 — import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
+
+### AC-2 — show fails loud when history or scope reads error
 
 ## Constraints
 
