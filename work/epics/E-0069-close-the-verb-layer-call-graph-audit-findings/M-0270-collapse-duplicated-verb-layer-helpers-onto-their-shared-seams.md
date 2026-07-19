@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: Cancel and Promote share one cascade guard; Cancel moves to cancel.go
       status: open
+    - id: AC-4
+      title: reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
+      status: open
 ---
 ## Goal
 
@@ -35,6 +38,8 @@ they should share.
 ### AC-2 — acknowledge illegal uses gitops ancestry and existence helpers, not exec
 
 ### AC-3 — Cancel and Promote share one cascade guard; Cancel moves to cancel.go
+
+### AC-4 — reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
 
 ## Constraints
 
