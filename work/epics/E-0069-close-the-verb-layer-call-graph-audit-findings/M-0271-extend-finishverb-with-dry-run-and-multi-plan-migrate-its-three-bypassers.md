@@ -9,6 +9,10 @@ acs:
       title: FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
       status: open
       tdd_phase: red
+    - id: AC-2
+      title: archive, rewidth, import dispatch via FinishVerb; triads deleted
+      status: open
+      tdd_phase: red
 ---
 ## Goal
 
@@ -27,6 +31,8 @@ must be mirrored into three places or it silently drifts.
 ## Acceptance criteria
 
 ### AC-1 — FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
+
+### AC-2 — archive, rewidth, import dispatch via FinishVerb; triads deleted
 
 ## Constraints
 
