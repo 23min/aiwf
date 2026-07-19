@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: import id auto allocates via entity.AllocateID, avoiding sibling-branch ids
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: show fails loud when history or scope reads error
       status: open
