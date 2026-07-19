@@ -51,12 +51,12 @@ The design forks in G-0216 and G-0334 were reviewed together (they share the sam
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Exact finding codes/subcodes for the two new check-time findings (e.g. `milestone-in-progress-no-acs`, and whether G-0216's finding extends `entity-body-empty` or is a new code) | no | Decided during milestone implementation; naming doesn't affect the guard behavior D-0039 already settled. |
+| Exact finding codes/subcodes for the two new check-time findings (the zero-AC-at-`done` warning extending `milestone-done-incomplete-acs`, and whether the empty-AC-body finding extends `entity-body-empty` or is a new code) | no | Decided during milestone implementation; naming doesn't affect the guard behavior D-0039 already settled. |
 
 ## Milestones
 
-- `M-NNNN` — Relax `acs-shape/tdd-phase` so an absent phase is legal until `met` (G-0286) · depends on: —
-- `M-NNNN` — AC-completeness guards: zero-AC and empty-AC-body refusals plus their check-time findings (G-0216 + G-0334, per D-0039) · depends on: —
+- [M-0267](M-0267-relax-acs-shape-tdd-phase-to-allow-absent-phase-until-ac-met.md) — Relax `acs-shape/tdd-phase` so an absent phase is legal until `met` (G-0286) · depends on: —
+- [M-0268](M-0268-ac-completeness-guards-zero-ac-and-empty-body-promote-refusals.md) — AC-completeness guards: zero-AC and empty-AC-body refusals plus their check-time findings (G-0216 + G-0334, per D-0039) · depends on: —
 
 ## References
 
