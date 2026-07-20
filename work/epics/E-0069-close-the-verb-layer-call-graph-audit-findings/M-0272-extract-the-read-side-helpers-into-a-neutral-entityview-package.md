@@ -37,7 +37,66 @@ nobody has yet added the closing edge.
 
 ### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
 
+`internal/entityview` holds the full F6-scoped surface: `HistoryEvent`,
+`ReadHistory`/`ReadHistoryChain` (plus their `ShortHash`/`StripTrailers`/
+`SplitMultiValueTrailer`/bare-milestone-id trailer-parsing helpers),
+`EventFromCommit`, the scope predicates `HasOwnScope`/`HasAuthorizedBy`/
+`HasScopeData`, `ScopeView`/`AssembleScopeViews`/`LookupCommitDateCached`/
+`LastEventSHA`, and `ReadEntityBody`. `go list -deps` on the package confirms
+its only `23min/aiwf` dependencies are `internal/entity`, `internal/gitops`,
+`internal/scope`, and `internal/codes` — no `internal/cli/*`, no Cobra.
+
+The line drawn: a helper moves only if it needs no `internal/cli/cliutil`
+(or other CLI-package) call. Two git-shelling orchestrators stay behind in
+their original CLI packages because they compose the moved primitives with
+`cliutil`'s scope-FSM replay (`cliutil.LoadEntityScopes`,
+`cliutil.AuthorizeOpeners`) — `show.LoadEntityScopeViews` (now a thin
+wrapper calling `entityview.ReadHistory`/`HasOwnScope`/`HasAuthorizedBy`/
+`AssembleScopeViews`/`LookupCommitDateCached`) and `history.ScopeMapFor`
+(calls `entityview.HasScopeData`). `history`'s own text-rendering
+(`RenderTo`, `RenderActor`, `RenderScopeChips`) also stays — Cobra-free
+itself, but not part of F6's reuse surface (no render/check/status call
+site ever needed it) and genuinely specific to `aiwf history`'s text
+output. `entityview.ReadHistoryChain` needed the same empty-repo guard
+`cliutil.HasCommits` provides; rather than import `cliutil` (which would
+have dragged Cobra back in transitively via its own `completion.go`), a
+private `hasCommits` duplicate lives in `entityview` — see D-0045.
+
+Evidence: `go build ./internal/entityview/...` plus `go list -deps` (no
+`internal/cli` in the closure); the full pre-existing history/show/render/
+check/status test suite, migrated onto the new package boundary and passing
+unchanged (`go test -race ./...`); `internal/policies`'
+`TestPolicy_LayeringDirection`, extended to assign `internal/entityview`
+tier 4 (the check/render/htmlrender band — a domain package consumed by the
+CLI layer, itself consuming only entity/gitops/scope), which fails CI on
+any future upward or untiered import.
+
 ### AC-2 — render, check, status import the neutral package, not sibling CLI packages
+
+`internal/cli/render` (`singlepass.go`, `resolver.go`), `internal/cli/check`
+(`tests_metrics.go`), and `internal/cli/status` (`status.go`) no longer
+import `internal/cli/history` or `internal/cli/show` for the F6 surface —
+every call site (`HistoryEvent`, `ReadHistory`, `EventFromCommit`,
+`HasOwnScope`, `HasAuthorizedBy`, `ScopeView`, `AssembleScopeViews`,
+`ReadEntityBody`, `ShortHash`, `StripTrailers`) now resolves against
+`internal/entityview`. `render`'s `singlepass.go` keeps its existing
+`cliutil` dependency (for `CommitTrailers`/`ReplayScopes`/`OpenersFrom`,
+unrelated to F6); `history` stays imported only where a genuinely
+CLI-specific symbol is still needed (`history.RenderTo` in `show.go` and
+`resolver.go`'s call sites, `history.ScopeMapFor` nowhere in these three).
+The closing edge F6 warned about (`render`/`check`/`status` → `show`/
+`history`, the only thing keeping the dependency graph acyclic by omission)
+is gone: those three packages' sole path to the read-side projection logic
+is now the neutral leaf.
+
+Evidence: same as AC-1 — `go build ./...` and `go vet ./...` clean repo-wide;
+the full test suite (including `internal/cli/render`, `internal/cli/check`,
+`internal/cli/status`, and `internal/cli/integration`) green under
+`-race -parallel 8`; `TestPolicy_LayeringDirection` passing confirms no
+package in the `internal/cli/*` tier reaches into `entityview` upward of its
+assigned tier, and no residual edge into `internal/cli/history` /
+`internal/cli/show` survives in `render`/`check`/`status`'s import graphs
+(spot-checked via `go list -deps` before landing).
 
 ## Constraints
 
@@ -69,7 +128,9 @@ nobody has yet added the closing edge.
 
 ## Decisions made during implementation
 
-- (none)
+- D-0045 — `entityview` carries its own private `hasCommits` guard rather
+  than importing `cliutil.HasCommits`, to keep the package genuinely free
+  of `internal/cli/*`.
 
 ## Validation
 
