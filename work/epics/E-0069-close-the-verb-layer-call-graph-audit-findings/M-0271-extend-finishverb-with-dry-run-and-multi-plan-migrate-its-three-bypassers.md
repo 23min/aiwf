@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: archive, rewidth, import dispatch via FinishVerb; triads deleted
       status: open
