@@ -1,7 +1,7 @@
 ---
 id: M-0269
 title: Fix import id allocation, show error swallowing, and scope-event sort order
-status: in_progress
+status: done
 parent: E-0069
 tdd: required
 acs:
