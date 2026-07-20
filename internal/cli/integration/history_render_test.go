@@ -6,6 +6,7 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 // TestRenderActor: the actor column shows `principal via agent`
@@ -16,12 +17,12 @@ func TestRenderActor(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		e    history.HistoryEvent
+		e    entityview.HistoryEvent
 		want string
 	}{
-		{"direct human", history.HistoryEvent{Actor: "human/peter"}, "human/peter"},
-		{"agent for principal", history.HistoryEvent{Actor: "ai/claude", Principal: "human/peter"}, "human/peter via ai/claude"},
-		{"principal == actor (defensive)", history.HistoryEvent{Actor: "human/peter", Principal: "human/peter"}, "human/peter"},
+		{"direct human", entityview.HistoryEvent{Actor: "human/peter"}, "human/peter"},
+		{"agent for principal", entityview.HistoryEvent{Actor: "ai/claude", Principal: "human/peter"}, "human/peter via ai/claude"},
+		{"principal == actor (defensive)", entityview.HistoryEvent{Actor: "human/peter", Principal: "human/peter"}, "human/peter"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,49 +45,49 @@ func TestRenderScopeChips(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		e        history.HistoryEvent
+		e        entityview.HistoryEvent
 		showAuth bool
 		want     string
 	}{
 		{
 			name: "no chips",
-			e:    history.HistoryEvent{Verb: "promote"},
+			e:    entityview.HistoryEvent{Verb: "promote"},
 			want: "",
 		},
 		{
 			name: "authorize opened",
-			e:    history.HistoryEvent{Verb: "authorize", Scope: "opened"},
+			e:    entityview.HistoryEvent{Verb: "authorize", Scope: "opened"},
 			want: "  [scope: opened]",
 		},
 		{
 			name: "authorize paused",
-			e:    history.HistoryEvent{Verb: "authorize", Scope: "paused"},
+			e:    entityview.HistoryEvent{Verb: "authorize", Scope: "paused"},
 			want: "  [scope: paused]",
 		},
 		{
 			name: "scope-authorized agent verb",
-			e:    history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
+			e:    entityview.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
 			want: "  [E-0003 4b13a0f]",
 		},
 		{
 			name:     "scope-authorized with --show-authorization",
-			e:        history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
+			e:        entityview.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef"},
 			showAuth: true,
 			want:     "  [E-0003 4b13a0fdeadbeef]",
 		},
 		{
 			name: "terminal-promote ends one scope",
-			e:    history.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef", ScopeEnds: []string{"4b13a0fdeadbeef"}},
+			e:    entityview.HistoryEvent{Verb: "promote", AuthorizedBy: "4b13a0fdeadbeef", ScopeEnds: []string{"4b13a0fdeadbeef"}},
 			want: "  [E-0003 4b13a0f] [E-0003 ended]",
 		},
 		{
 			name: "terminal-promote ends two scopes",
-			e:    history.HistoryEvent{Verb: "promote", ScopeEnds: []string{"4b13a0fdeadbeef", "abc1234deadbeef"}},
+			e:    entityview.HistoryEvent{Verb: "promote", ScopeEnds: []string{"4b13a0fdeadbeef", "abc1234deadbeef"}},
 			want: "  [E-0003 ended] [E-0009 ended]",
 		},
 		{
 			name: "unknown auth-sha falls back to ?",
-			e:    history.HistoryEvent{AuthorizedBy: "ffffffffeeeeeee"},
+			e:    entityview.HistoryEvent{AuthorizedBy: "ffffffffeeeeeee"},
 			want: "  [? fffffff]",
 		},
 	}

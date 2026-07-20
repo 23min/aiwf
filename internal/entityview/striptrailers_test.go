@@ -1,9 +1,9 @@
-package integration
+package entityview_test
 
 import (
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 func TestStripTrailers(t *testing.T) {
@@ -64,9 +64,9 @@ func TestStripTrailers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := history.StripTrailers(tt.in)
+			got := entityview.StripTrailers(tt.in)
 			if got != tt.want {
-				t.Errorf("history.StripTrailers(%q) = %q, want %q", tt.in, got, tt.want)
+				t.Errorf("entityview.StripTrailers(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
 	}

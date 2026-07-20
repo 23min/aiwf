@@ -10,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/show"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 // TestRenderHistory_PreI2_5BackwardsCompat: a history.HistoryEvent with no
@@ -19,7 +20,7 @@ import (
 // commits must keep their original rendering.
 func TestRenderHistory_PreI2_5BackwardsCompat(t *testing.T) {
 	t.Parallel()
-	e := history.HistoryEvent{
+	e := entityview.HistoryEvent{
 		Date:   "2026-04-30T12:00:00+00:00",
 		Actor:  "human/peter",
 		Verb:   "promote",

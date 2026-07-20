@@ -10,7 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/status"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 
 	"github.com/23min/aiwf/internal/render"
 )
@@ -74,7 +74,7 @@ func canonicalStatusReport() status.StatusReport {
 				Message:  "gap is marked addressed but addressed_by is empty",
 			},
 		},
-		RecentActivity: []history.HistoryEvent{
+		RecentActivity: []entityview.HistoryEvent{
 			{
 				Date:   "2026-05-09",
 				Verb:   "promote",

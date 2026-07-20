@@ -5,9 +5,8 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/cli/history"
-	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
 )
@@ -37,13 +36,13 @@ import (
 //     to fetch.
 //
 // The shared cliutil.ReplayScopes / cliutil.OpenersFrom and
-// history.EventFromCommit are the single source of truth for the replay
+// entityview.EventFromCommit are the single source of truth for the replay
 // and event construction — render reuses them rather than adding a copy.
 type historyIndex struct {
-	events         map[string][]history.HistoryEvent // canon(id) → ReadHistoryChain([id]) reproduction
-	scopesByEntity map[string][]*scope.Scope         // canon(id) → LoadEntityScopes(id) reproduction
-	openers        map[string]string                 // auth-SHA → canonical scope-entity
-	dateBySHA      map[string]string                 // full SHA → %aI author date
+	events         map[string][]entityview.HistoryEvent // canon(id) → ReadHistoryChain([id]) reproduction
+	scopesByEntity map[string][]*scope.Scope            // canon(id) → LoadEntityScopes(id) reproduction
+	openers        map[string]string                    // auth-SHA → canonical scope-entity
+	dateBySHA      map[string]string                    // full SHA → %aI author date
 }
 
 // buildHistoryIndex buckets one HEAD walk into the per-entity views the
@@ -51,7 +50,7 @@ type historyIndex struct {
 // happened (the fail-loud error path lives at its call site in RunSite).
 func buildHistoryIndex(head []check.HeadCommit) *historyIndex {
 	idx := &historyIndex{
-		events:         map[string][]history.HistoryEvent{},
+		events:         map[string][]entityview.HistoryEvent{},
 		scopesByEntity: map[string][]*scope.Scope{},
 		openers:        map[string]string{},
 		dateBySHA:      make(map[string]string, len(head)),
@@ -68,7 +67,7 @@ func buildHistoryIndex(head []check.HeadCommit) *historyIndex {
 		// historyBucketKeys already returns de-duplicated keys, and each
 		// commit is visited once (WalkHeadCommits is --reverse, oldest-first),
 		// so no bucket receives this event twice.
-		if ev, ok := history.EventFromCommit(c.SHA, c.AuthorDate, c.Subject, c.Body, c.Trailers); ok {
+		if ev, ok := entityview.EventFromCommit(c.SHA, c.AuthorDate, c.Subject, c.Body, c.Trailers); ok {
 			for _, key := range historyBucketKeys(c.Trailers) {
 				idx.events[key] = append(idx.events[key], ev)
 			}
@@ -148,20 +147,20 @@ func trailerValues(trailers []gitops.Trailer, key string) []string {
 // byte-identical to the grep-based path for every id width, not just
 // canonical ones — the gates are pure filters over already-loaded data,
 // and AssembleScopeViews is the shared assembly both paths run through.
-func (r *Resolver) scopeViewsFor(id string) []show.ScopeView {
+func (r *Resolver) scopeViewsFor(id string) []entityview.ScopeView {
 	canon := entity.Canonicalize(id)
 	events := r.index.events[canon]
 
 	var ownScopes []*scope.Scope
-	if history.HasOwnScope(events) {
+	if entityview.HasOwnScope(events) {
 		ownScopes = r.index.scopesByEntity[canon]
 	}
 	var openers map[string]string
-	if history.HasAuthorizedBy(events) {
+	if entityview.HasAuthorizedBy(events) {
 		openers = r.index.openers
 	}
 
-	views, _ := show.AssembleScopeViews(id, events, ownScopes, openers,
+	views, _ := entityview.AssembleScopeViews(id, events, ownScopes, openers,
 		func(ent string) ([]*scope.Scope, error) {
 			return r.index.scopesByEntity[entity.Canonicalize(ent)], nil
 		},

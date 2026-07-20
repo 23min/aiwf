@@ -14,6 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/show"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -129,11 +130,11 @@ func TestScopeGuard_ShowDerivationForActiveOpener(t *testing.T) {
 	repo := buildScopeGuardRepo(t)
 	ctx := context.Background()
 
-	events, err := history.ReadHistory(ctx, repo.root, "E-0002")
+	events, err := entityview.ReadHistory(ctx, repo.root, "E-0002")
 	if err != nil {
 		t.Fatalf("ReadHistory(E-0002): %v", err)
 	}
-	if history.HasAuthorizedBy(events) {
+	if entityview.HasAuthorizedBy(events) {
 		t.Errorf("HasAuthorizedBy(E-0002 events) = true, want false — an active opener has no aiwf-authorized-by, so show must not run the global grep")
 	}
 
@@ -163,14 +164,14 @@ func TestScopeGuard_ShowSkipsGrepForScopeEndedEntity(t *testing.T) {
 	repo := buildScopeGuardRepo(t)
 	ctx := context.Background()
 
-	events, err := history.ReadHistory(ctx, repo.root, "E-0004")
+	events, err := entityview.ReadHistory(ctx, repo.root, "E-0004")
 	if err != nil {
 		t.Fatalf("ReadHistory(E-0004): %v", err)
 	}
-	if history.HasAuthorizedBy(events) {
+	if entityview.HasAuthorizedBy(events) {
 		t.Errorf("HasAuthorizedBy(E-0004 events) = true, want false — scope-ends alone must not trigger show's global grep")
 	}
-	if !history.HasScopeData(events) {
+	if !entityview.HasScopeData(events) {
 		t.Errorf("HasScopeData(E-0004 events) = false, want true — history resolves the [ended] chip via the grep")
 	}
 
@@ -192,12 +193,12 @@ func TestScopeGuard_ShowSkipsGrepForScopeEndedEntity(t *testing.T) {
 // proves this copy is faithful (production == oracle); run after, it proves
 // the guarded rewrite preserved behavior (new == oracle) for canonical ids.
 // It is test-only — the shipped path is the guarded one.
-func unguardedScopeViews(t *testing.T, ctx context.Context, root, id string) []show.ScopeView {
+func unguardedScopeViews(t *testing.T, ctx context.Context, root, id string) []entityview.ScopeView {
 	t.Helper()
 	if !cliutil.HasCommits(ctx, root) {
 		return nil
 	}
-	events, err := history.ReadHistory(ctx, root, id)
+	events, err := entityview.ReadHistory(ctx, root, id)
 	if err != nil {
 		t.Fatalf("ReadHistory(%s): %v", id, err)
 	}
@@ -234,19 +235,19 @@ func unguardedScopeViews(t *testing.T, ctx context.Context, root, id string) []s
 		allScopes = append(allScopes, scopes...)
 	}
 	dateCache := map[string]string{}
-	var views []show.ScopeView
+	var views []entityview.ScopeView
 	for _, s := range allScopes {
 		if _, ok := interested[s.AuthSHA]; !ok {
 			continue
 		}
-		opened := show.LookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
+		opened := entityview.LookupCommitDateCached(ctx, root, s.AuthSHA, dateCache)
 		var ended string
 		if s.State == scope.StateEnded {
-			if last := show.LastEventSHA(s, scope.StateEnded); last != "" {
-				ended = show.LookupCommitDateCached(ctx, root, last, dateCache)
+			if last := entityview.LastEventSHA(s, scope.StateEnded); last != "" {
+				ended = entityview.LookupCommitDateCached(ctx, root, last, dateCache)
 			}
 		}
-		views = append(views, show.ScopeView{
+		views = append(views, entityview.ScopeView{
 			AuthSHA:    s.AuthSHA,
 			Entity:     s.Entity,
 			Agent:      s.Agent,
@@ -373,7 +374,7 @@ func TestScopeMapFor_GuardsTheGrep(t *testing.T) {
 	ctx := context.Background()
 
 	// Scoped events → the grep runs and the map is built.
-	scoped := []history.HistoryEvent{{Verb: "promote", AuthorizedBy: repo.openerE0002}}
+	scoped := []entityview.HistoryEvent{{Verb: "promote", AuthorizedBy: repo.openerE0002}}
 	m := history.ScopeMapFor(ctx, repo.root, scoped)
 	if m == nil {
 		t.Fatal("ScopeMapFor returned nil for events with scope data; want the built map")
@@ -383,7 +384,7 @@ func TestScopeMapFor_GuardsTheGrep(t *testing.T) {
 	}
 
 	// Scopeless events → nil, the grep is skipped.
-	if got := history.ScopeMapFor(ctx, repo.root, []history.HistoryEvent{{Verb: "add"}}); got != nil {
+	if got := history.ScopeMapFor(ctx, repo.root, []entityview.HistoryEvent{{Verb: "add"}}); got != nil {
 		t.Errorf("ScopeMapFor returned %v for scopeless events; want nil (grep skipped)", got)
 	}
 }
@@ -435,14 +436,14 @@ func TestScopeGuard_HistoryChipsEquivalence(t *testing.T) {
 	for _, id := range []string{"E-0001", "E-0002", "E-0003", "E-0004"} {
 		t.Run(id, func(t *testing.T) {
 			t.Parallel()
-			events, err := history.ReadHistory(ctx, repo.root, id)
+			events, err := entityview.ReadHistory(ctx, repo.root, id)
 			if err != nil {
 				t.Fatalf("ReadHistory(%s): %v", id, err)
 			}
 			// The guarded map is exactly what history.Run builds: the grep
 			// runs only when the loaded events carry scope data.
 			var guarded map[string]string
-			if history.HasScopeData(events) {
+			if entityview.HasScopeData(events) {
 				guarded = full
 			}
 			for i := range events {

@@ -1,9 +1,9 @@
-package show_test
+package entityview_test
 
 import (
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/show"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/scope"
 )
 
@@ -35,7 +35,7 @@ func TestAssembleScopeViews_SortsChronologicallyAcrossTimezones(t *testing.T) {
 		return nil, nil
 	}
 
-	views, err := show.AssembleScopeViews("E-0001", nil, ownScopes, nil, foreignScopes, dateOf)
+	views, err := entityview.AssembleScopeViews("E-0001", nil, ownScopes, nil, foreignScopes, dateOf)
 	if err != nil {
 		t.Fatalf("AssembleScopeViews: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestAssembleScopeViews_EmptyOpenedSortsFirst(t *testing.T) {
 		return nil, nil
 	}
 
-	views, err := show.AssembleScopeViews("E-0001", nil, ownScopes, nil, foreignScopes, dateOf)
+	views, err := entityview.AssembleScopeViews("E-0001", nil, ownScopes, nil, foreignScopes, dateOf)
 	if err != nil {
 		t.Fatalf("AssembleScopeViews: %v", err)
 	}

@@ -1,4 +1,4 @@
-package history
+package entityview
 
 import (
 	"testing"

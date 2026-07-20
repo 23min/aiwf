@@ -18,9 +18,9 @@ import (
 	"github.com/23min/aiwf/internal/areagroup"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/list"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -38,15 +38,15 @@ const RecentActivityLimit = 5
 // internal/ because it is purely a presentational read view — adding a
 // package boundary would be over-engineering for one verb.
 type StatusReport struct {
-	Date           string                 `json:"date"`
-	InFlightEpics  []StatusEpic           `json:"in_flight_epics"`
-	PlannedEpics   []StatusEpic           `json:"planned_epics"`
-	OpenDecisions  []StatusEntity         `json:"open_decisions"`
-	OpenGaps       []StatusGap            `json:"open_gaps"`
-	Warnings       []StatusFinding        `json:"warnings"`
-	RecentActivity []history.HistoryEvent `json:"recent_activity"`
-	SweepPending   *StatusSweepPending    `json:"sweep_pending,omitempty"`
-	Health         StatusHealthCounts     `json:"health"`
+	Date           string                    `json:"date"`
+	InFlightEpics  []StatusEpic              `json:"in_flight_epics"`
+	PlannedEpics   []StatusEpic              `json:"planned_epics"`
+	OpenDecisions  []StatusEntity            `json:"open_decisions"`
+	OpenGaps       []StatusGap               `json:"open_gaps"`
+	Warnings       []StatusFinding           `json:"warnings"`
+	RecentActivity []entityview.HistoryEvent `json:"recent_activity"`
+	SweepPending   *StatusSweepPending       `json:"sweep_pending,omitempty"`
+	Health         StatusHealthCounts        `json:"health"`
 	// TodayDigest / ReleaseDigest carry the G-0380 activity digests
 	// rendered by the markdown renderer's "Today's work" / "Since
 	// last release" sections. Always populated by BuildActivityDigests
@@ -710,7 +710,7 @@ func plural(n int, singular, plural string) string {
 // Verb column — those records are skipped (G30). The grep over a
 // long history is also asked for more rows than `limit` so the
 // post-filter doesn't silently shrink the result; we then truncate.
-func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.HistoryEvent, error) {
+func ReadRecentActivity(ctx context.Context, root string, limit int) ([]entityview.HistoryEvent, error) {
 	if !cliutil.HasCommits(ctx, root) {
 		return nil, nil
 	}
@@ -742,7 +742,7 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 		return nil, fmt.Errorf("git log: %w", err)
 	}
 
-	var events []history.HistoryEvent
+	var events []entityview.HistoryEvent
 	for _, rec := range strings.Split(string(out), recSep) {
 		rec = strings.TrimSpace(rec)
 		if rec == "" {
@@ -759,13 +759,13 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 			// parser found no real trailer. Skip.
 			continue
 		}
-		events = append(events, history.HistoryEvent{
-			Commit: history.ShortHash(parts[0]),
+		events = append(events, entityview.HistoryEvent{
+			Commit: entityview.ShortHash(parts[0]),
 			Date:   parts[1],
 			Detail: strings.TrimSpace(parts[2]),
 			Verb:   verb,
 			Actor:  strings.TrimSpace(parts[4]),
-			Body:   history.StripTrailers(strings.TrimSpace(parts[5])),
+			Body:   entityview.StripTrailers(strings.TrimSpace(parts[5])),
 		})
 		if len(events) >= limit {
 			break
@@ -777,7 +777,7 @@ func ReadRecentActivity(ctx context.Context, root string, limit int) ([]history.
 // digestCommit is one parsed commit record feeding the G-0380 activity
 // digests: the trailer set BuildActivityDigests needs (verb, entity,
 // promote target) plus the author date used for day-bucketing. A
-// sibling of history.HistoryEvent rather than a shared type — the two
+// sibling of entityview.HistoryEvent rather than a shared type — the two
 // digest sections need aiwf-entity/aiwf-to, which ReadRecentActivity's
 // consumers (the "Recent activity" table) have no use for.
 type digestCommit struct {
