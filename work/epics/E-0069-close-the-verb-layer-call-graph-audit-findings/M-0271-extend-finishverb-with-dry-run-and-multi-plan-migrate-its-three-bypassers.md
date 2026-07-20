@@ -82,6 +82,10 @@ removed from all three packages.
 
 ## Work log
 
+### AC-1 — FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
+
+Added `Outcome`/`FinishVerbOutcome` to `internal/cli/cliutil/apply.go`; `FinishVerb` is now a thin single-Plan adapter over it · commit 9b4b9b07631f50e3498b8fa90494cd4e803f6bf5 · tests 14/14 new, full `internal/cli/...` suite green under `-race`.
+
 ## Decisions made during implementation
 
 - (none)
