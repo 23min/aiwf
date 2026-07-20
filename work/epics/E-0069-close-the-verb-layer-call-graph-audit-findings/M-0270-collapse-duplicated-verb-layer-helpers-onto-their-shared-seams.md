@@ -182,6 +182,17 @@ retitled the AC accordingly); AC-4's out-of-history test updated to
 match · commit 2d59566a · full acknowledgeillegal suite green (11
 tests)
 
+### AC-3 — shared cascade guard, Cancel moved to cancel.go
+
+epicChildrenCascadeGuard/milestoneACsCascadeGuard added to
+cancel_guards.go; Promote's two inline cascade checks and Cancel's
+switch-based one now call them; Cancel moved out of promote.go into
+new cancel.go · commit 74656ea5 · full existing Cancel/Promote test
+suite green (100 tests), wf-vacuity mutation probe 3/4 caught (1
+benign survivor: the epic kind-check is redundant with
+nonTerminalEpicChildren's data shape but kept for readability/
+future-proofing, unlike AC-2's ancestry check it costs nothing)
+
 ## Decisions made during implementation
 
 - (none)
