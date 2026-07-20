@@ -162,6 +162,15 @@ rewriteEntityName (internal/verb/pathrewrite.go); dupl baseline
 exclusion removed · commit 0437f95 · tests 11/11 new (7 table cases +
 4 subtests), full suite green
 
+### AC-2 — acknowledge illegal uses gitops's existence helper
+
+shaAckable routes through gitops.CommitExists alone (initial
+gitops.IsAncestor + gitops.CommitExists version simplified after a
+wf-vacuity mutation probe showed the ancestry check redundant and
+retitled the AC accordingly); AC-4's out-of-history test updated to
+match · commit 2d59566a · full acknowledgeillegal suite green (11
+tests)
+
 ## Decisions made during implementation
 
 - (none)
