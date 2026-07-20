@@ -272,3 +272,8 @@ func TestPolicy_CLAUDEMDCLIConventionsLogging(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyCLAUDEMDCLIConventionsLogging)
 }
+
+func TestPolicy_MintIDsViaAllocate(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyMintIDsViaAllocate)
+}
