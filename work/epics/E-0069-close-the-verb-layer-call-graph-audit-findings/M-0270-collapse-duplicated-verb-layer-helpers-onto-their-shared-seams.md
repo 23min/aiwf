@@ -33,7 +33,7 @@ already owns, so each duplicated helper exists exactly once.
 
 Findings F2/F3/F5/F7/F9/F12 of `docs/initiatives/verb-layer-cleanup.md` — all
 verified, none requiring a design decision. Each item is a local fold onto an
-existing exported helper (`gitops.IsAncestor`, `gitops.LocalBranchRefs`,
+existing exported helper (`gitops.CommitExists`, `gitops.LocalBranchRefs`,
 `initrepo`'s marker functions) or an extraction both call sites already comment
 they should share.
 
@@ -57,12 +57,21 @@ are now thin callers passing their own substitution closure.
 `internal/verb/acknowledgeillegal.go`'s `shaAckable` shells out directly
 (`exec.Command("git", "merge-base", "--is-ancestor", ...)` and
 `git rev-parse --verify <sha>^{commit}`) instead of calling the already
-public `gitops.IsAncestor`/`gitops.CommitExists` — exactly the two functions
-`Promote`'s own `--by-commit` path uses correctly for the same check.
-`shaAckable` routes through those two `gitops` helpers instead of its own
-`exec.Command` calls, so `acknowledgeillegal.go` no longer talks to git
-directly outside the seam the rest of the kernel treats as sole owner of
-git access.
+public `gitops.CommitExists` — the same function `Promote`'s own
+`--by-commit` path uses for its existence check. `shaAckable` routes
+through `gitops.CommitExists` alone instead of its own `exec.Command`
+calls.
+
+Existence, not HEAD-reachability, is the actual acceptance criterion:
+reachability implies existence for any SHA git can compute ancestry
+against, so a reachable-from-HEAD check can never accept a SHA
+`gitops.CommitExists` would refuse, nor refuse one it would accept — it can
+only add a second git subprocess call and its own exit-code edge case
+(`git merge-base --is-ancestor` exits 128, not 1, for a SHA resolving to
+no object at all) with no behavioral payoff. The G-0236 orphan-fallback
+case is exactly why existence is the right criterion: its offending SHAs
+are by construction unreachable from HEAD, so a reachability gate would
+wrongly refuse the very SHAs that case needs acked.
 
 ### AC-3 — Cancel and Promote share one cascade guard; Cancel moves to cancel.go
 
