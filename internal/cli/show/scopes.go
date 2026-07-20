@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
@@ -167,9 +168,26 @@ func AssembleScopeViews(
 		})
 	}
 	sort.Slice(views, func(i, j int) bool {
-		return views[i].Opened < views[j].Opened
+		return parseOpened(views[i].Opened).Before(parseOpened(views[j].Opened))
 	})
 	return views, nil
+}
+
+// parseOpened parses a ScopeView.Opened/EndedAt timestamp (git's %aI
+// format — RFC3339 with the commit author's local UTC offset
+// preserved, not normalized to UTC) into a comparable time.Time so
+// the sort above compares true chronological instants rather than
+// lexical strings (G-0428): two commits from authors in different
+// timezones can carry a lexically-earlier string for a
+// chronologically-later instant. Empty or malformed input parses to
+// the zero time, sorting first — matching the previous lexical
+// comparison's empty-string-sorts-first behavior.
+func parseOpened(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // LookupCommitDateCached returns the ISO-8601 author date of the
