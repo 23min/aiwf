@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: scope events sort chronologically across timezones in show and render
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: a policy fails any verb minting entity ids outside entity.AllocateID
       status: open
