@@ -160,7 +160,11 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 		return cliutil.ExitInternal
 	}
 
-	view, ok := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
+	view, ok, err := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
+	if err != nil {
+		cliutil.Errorf("aiwf show: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	if !ok {
 		message := fmt.Sprintf("%s not found", id)
 		switch format {
@@ -344,14 +348,17 @@ type ShowAC struct {
 
 // BuildShowView assembles the view for id; ok=false when no entity
 // (or AC) matches. Composite ids resolve via the parent milestone's
-// ACs slice.
-func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+// ACs slice. err is non-nil only on a history/scope read failure
+// (G-0427) — a genuine git/environmental fault, distinct from
+// ok=false's "id not found," which is never an error.
+func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool, error) {
 	if entity.IsCompositeID(id) {
 		return BuildCompositeShowView(ctx, root, t, loadErrs, id, historyLimit)
 	}
 	e := t.ByID(id)
 	if e == nil {
-		return buildCrossBranchShowView(ctx, root, t, id)
+		v, ok := buildCrossBranchShowView(ctx, root, t, id)
+		return v, ok, nil
 	}
 	body := ReadEntityBody(root, e.Path)
 	// Emit canonical ids per AC-3 in M-081 — display surfaces are
@@ -384,17 +391,20 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	}
 
 	events, err := history.ReadHistory(ctx, root, id)
-	if err == nil {
-		view.History = limitEvents(events, historyLimit)
+	if err != nil {
+		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
 	}
-	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
-		view.Scopes = scopes
+	view.History = limitEvents(events, historyLimit)
+	scopes, err := LoadEntityScopeViews(ctx, root, id)
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (history.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
+	view.Scopes = scopes
 
 	allFindings := check.Run(t, loadErrs)
 	view.Findings = filterFindingsByID(allFindings, id, e)
 
-	return view, true
+	return view, true, nil
 }
 
 // nonNilStrings returns the slice unchanged when non-nil, or an empty
@@ -514,12 +524,13 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 }
 
 // BuildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
-// ok=false when the parent or AC doesn't exist.
-func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+// ok=false when the parent or AC doesn't exist. err is non-nil only
+// on a history/scope read failure (G-0427), mirroring BuildShowView.
+func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool, error) {
 	parentID, subID, _ := entity.ParseCompositeID(id)
 	parent := t.ByID(parentID)
 	if parent == nil {
-		return ShowView{}, false
+		return ShowView{}, false, nil
 	}
 	var found *entity.AcceptanceCriterion
 	for i := range parent.ACs {
@@ -529,7 +540,7 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		}
 	}
 	if found == nil {
-		return ShowView{}, false
+		return ShowView{}, false, nil
 	}
 	desc := entity.ParseACSections(ReadEntityBody(root, parent.Path))[found.ID]
 	// Emit canonical ids per AC-3 in M-081.
@@ -555,17 +566,20 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	}
 
 	events, err := history.ReadHistory(ctx, root, id)
-	if err == nil {
-		view.History = limitEvents(events, historyLimit)
+	if err != nil {
+		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
 	}
-	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
-		view.Scopes = scopes
+	view.History = limitEvents(events, historyLimit)
+	scopes, err := LoadEntityScopeViews(ctx, root, id)
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (history.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
+	view.Scopes = scopes
 
 	allFindings := check.Run(t, loadErrs)
 	view.Findings = filterFindingsByID(allFindings, id, parent)
 
-	return view, true
+	return view, true, nil
 }
 
 // limitEvents trims the history slice. negative limit returns all;

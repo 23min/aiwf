@@ -666,7 +666,10 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	view, ok := show.BuildShowView(context.Background(), root, tr, nil, "M-0001", 5)
+	view, ok, err := show.BuildShowView(context.Background(), root, tr, nil, "M-0001", 5)
+	if err != nil {
+		t.Fatalf("show.BuildShowView: %v", err)
+	}
 	if !ok {
 		t.Fatal("show view missing")
 	}
