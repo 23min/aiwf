@@ -75,14 +75,25 @@ wrongly refuse the very SHAs that case needs acked.
 
 ### AC-3 — Cancel and Promote share one cascade guard; Cancel moves to cancel.go
 
-`Cancel` (currently defined inside `internal/verb/promote.go`, gating
-terminal transitions via `entity.CancelTarget`/`entity.IsTerminal` plus its
-own cascade-guard error types) and `Promote`'s epic/milestone
-terminal-promote guards independently implement the same "no terminal move
-while a child is non-terminal" precondition, each side's comments already
-acknowledging the mirroring. The two collapse onto one shared guard function
-parameterized by target status, called from both `Cancel` and `Promote`;
-`Cancel` moves into its own `internal/verb/cancel.go`.
+`Cancel` (previously defined inside `internal/verb/promote.go`, gating
+terminal transitions via `entity.CancelTarget`/`entity.IsTerminal`) and
+`Promote`'s epic/milestone terminal-promote guards independently implemented
+the same "no terminal move while a child is non-terminal" precondition, each
+side's comments already acknowledging the mirroring. `Cancel` now lives in
+its own `internal/verb/cancel.go`; both it and `Promote` call two shared
+guards in `internal/verb/cancel_guards.go` —
+`epicChildrenCascadeGuard(t, e, newStatus, buildErr)` and
+`milestoneACsCascadeGuard(e, newStatus, buildErr)` — parameterized by the
+target status (`Cancel` passes its always-terminal `entity.CancelTarget`
+result; `Promote` passes its own requested `newStatus`) and by a
+caller-supplied `buildErr` closure. The closure is what lets one guard body
+serve both callers without collapsing their four distinct, tested error
+types (`Epic{Cancel,Promote}NonTerminalChildrenError`,
+`Milestone{Cancel,Promote}NonTerminalACsError`) — those carry D-0011's
+closed legality-code set and message text; unifying them was a real option
+but out of this AC's mechanical scope (no behavior/contract change), so the
+closure is the seam that collapses the check without touching the
+error surface.
 
 ### AC-4 — reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
 
