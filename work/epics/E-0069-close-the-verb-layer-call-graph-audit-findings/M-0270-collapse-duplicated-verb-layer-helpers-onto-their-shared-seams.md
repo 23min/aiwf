@@ -1,7 +1,7 @@
 ---
 id: M-0270
 title: Collapse duplicated verb-layer helpers onto their shared seams
-status: draft
+status: in_progress
 parent: E-0069
 tdd: none
 acs:
