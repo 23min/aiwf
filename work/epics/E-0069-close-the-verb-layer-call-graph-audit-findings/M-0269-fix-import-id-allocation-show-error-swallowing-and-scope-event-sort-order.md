@@ -113,6 +113,17 @@ Swapped `import.go`'s hand-rolled `computeHighestPerKind`/`parseIDInt`/
 threading in-manifest explicit reservations as synthetic entities so the
 allocator still sees them · commit `35b0d3ec` · tests 1/1.
 
+### AC-2 — show fails loud when history or scope reads error
+
+Widened `BuildShowView`/`BuildCompositeShowView` to return
+`(ShowView, bool, error)` and propagate a history/scope read failure to
+`Run`, which now exits `ExitInternal` with a "reading history"/"reading
+scopes" message instead of silently leaving the fields empty. The
+scopes-read branch is `//coverage:ignore`d in both functions: it can
+never fire in practice because the direct history read immediately
+above it uses the identical `git log`-from-HEAD primitive and always
+fails first · commit `f3e7a0ee` · tests 2/2.
+
 ## Decisions made during implementation
 
 - (none)
