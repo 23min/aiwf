@@ -256,6 +256,14 @@ confirmed the test catches drift
 
 ## Validation
 
+`go build ./...` clean · `go vet ./...` clean · `golangci-lint run` 0 issues
+(including `--enable-only dupl`, the milestone's own no-new-baseline-entries
+constraint) · `go test -race -parallel 8 ./...` all 70 packages green ·
+`make coverage-gate` clean (diff-scoped branch-coverage hard rule, including
+a genuine gap the AC-3 file-move surfaced and fixed — see AC-3's Work log
+entry) · `aiwf check` 0 errors (1 pre-existing, unrelated
+`provenance-untrailered-scope-undefined` warning).
+
 ## Deferrals
 
 - `G-0430` — whether `aiwf upgrade` should eventually build automated
@@ -264,4 +272,33 @@ confirmed the test catches drift
 
 ## Reviewer notes
 
-- (none)
+Independent two-lens review, three fresh-context dispatches: code-quality
+over AC-1/2/3, code-quality over AC-4/5/6, design-quality over the two
+genuinely new abstractions this milestone introduced
+(`internal/verb/pathrewrite.go`; `cancel_guards.go`'s
+`epicChildrenCascadeGuard`/`milestoneACsCascadeGuard`). All three approved
+with no blocking findings; every load-bearing claim the reviewers were
+asked to independently verify (AC-1's semantic-fork preservation, AC-2's
+`reachable ⟹ exists` foundation, AC-3's untouched error-type/Code-ID
+surface, AC-4's `%(refname:short)` equivalence, AC-6's mutation-robust
+mechanical evidence) held up under direct source/test inspection rather
+than trust in this milestone's own framing.
+
+Four non-blocking nits from the AC-4/5/6 review were fixed in place before
+wrap: `doctor.go`'s four operator-facing marker messages still hardcoded
+the literal alongside the shared detection call (single-source-of-truth
+residue); `CompleteHookNames`'s doc comment still described the
+pre-M-0236 empty-registry state; `G-0430`/`D-0043` were missing trailing
+newlines. The completion-wiring seam (`RegisterFlagCompletionFunc`
+itself, not the completion function's own logic) has no end-to-end test
+in either `aiwf init` or `aiwf update` — a genuinely pre-existing gap the
+milestone's own mutation probe surfaced but did not introduce; left as-is,
+out of this milestone's scope.
+
+The design-quality pass confirmed both new abstractions are proportionate
+to their actual duplication and already generalize correctly to a real
+third call site each (`rewriteEntityName` via `retitle.go`;
+`nonTerminalEpicChildren` via `archive.go`, which correctly declines to
+route through the higher-level cascade guard since its own control-flow
+shape — accumulate into a skip-list, not refuse — genuinely differs).
+Neither needs rework.
