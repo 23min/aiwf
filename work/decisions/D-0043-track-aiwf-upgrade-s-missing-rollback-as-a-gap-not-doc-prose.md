@@ -1,7 +1,7 @@
 ---
 id: D-0043
 title: Track aiwf upgrade's missing rollback as a gap, not doc prose
-status: proposed
+status: accepted
 relates_to:
     - M-0270
 ---
