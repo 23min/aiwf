@@ -66,11 +66,22 @@ func Init(ctx context.Context, workdir string) error {
 
 // Mv runs `git mv` to relocate a tracked file or directory. from and to
 // are paths relative to workdir.
+//
+// Test/porcelain-only (F7, docs/initiatives/verb-layer-cleanup.md): no
+// `aiwf` verb calls this at runtime — verb.Apply/gitops.CommitVerbChange
+// writes through CommitTree's plumbing path (commit-tree + update-ref),
+// not `git mv`. Mv is one of the "forbidden APIs"
+// internal/policies/verbs_validate_then_write.go's AST scan bans any
+// exported internal/verb function from calling directly; it stays for
+// tests that want a real `git mv` fixture.
 func Mv(ctx context.Context, workdir, from, to string) error {
 	return run(ctx, workdir, "mv", from, to)
 }
 
 // Add stages paths in workdir.
+//
+// Test/porcelain-only (F7): no `aiwf` verb calls this at runtime, for
+// the same reason as Mv — see its doc comment.
 func Add(ctx context.Context, workdir string, paths ...string) error {
 	if len(paths) == 0 {
 		return nil
@@ -82,18 +93,26 @@ func Add(ctx context.Context, workdir string, paths ...string) error {
 // Commit creates a commit with the given subject line, optional body,
 // and trailers. The commit's index is whatever has been staged with
 // Add prior to this call; this is intentionally low-level — verbs
-// control staging. An empty body produces no body section.
+// control staging.
+//
+// Test/porcelain-only (F7): no `aiwf` verb calls this at runtime, for
+// the same reason as Mv — see its doc comment.
 func Commit(ctx context.Context, workdir, subject, body string, trailers []Trailer) error {
 	msg := CommitMessage(subject, body, trailers)
 	return run(ctx, workdir, "commit", "-m", msg)
 }
 
 // CommitAllowEmpty creates a commit even when the index has no staged
-// changes. Used by verbs that record an event without touching files —
-// `aiwf authorize` opens / pauses / resumes a scope by writing only
-// trailers, and `aiwf <verb> --audit-only` (G24, plan step 5b) backfills
-// an audit trail for state that was reached via a manual commit. Both
-// are byte-identical to a normal commit except for the empty diff.
+// changes.
+//
+// Test/porcelain-only (F7): no `aiwf` verb calls this at runtime today.
+// `aiwf authorize`'s scope-only commits and `aiwf <verb> --audit-only`'s
+// backfilled audit trail both route through
+// gitops.CommitVerbChange/CommitTree — the plumbing path (commit-tree +
+// update-ref), which fires no hooks and needs no staged changes to
+// produce an empty-diff commit — not this porcelain `git commit
+// --allow-empty` wrapper. It stays for tests that want a real
+// allow-empty commit fixture.
 func CommitAllowEmpty(ctx context.Context, workdir, subject, body string, trailers []Trailer) error {
 	msg := CommitMessage(subject, body, trailers)
 	return run(ctx, workdir, "commit", "--allow-empty", "-m", msg)

@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
@@ -135,50 +134,13 @@ func renameEntityMoves(tr *tree.Tree, e *entity.Entity, source, dest string) []E
 // renamePaths returns the (source, dest) paths to pass to git mv. For
 // directory-based kinds (epic, contract), the source is the entity's
 // containing directory and the dest is the dir's new name. For
-// file-based kinds, the source is the entity file itself.
+// file-based kinds, the source is the entity file itself. The id
+// prefix is kept; the slug is replaced (a slug-less id gains one by
+// appending — see substituteNamePart's substituteSlugMode).
 func renamePaths(e *entity.Entity, newSlug string) (source, dest string, err error) {
-	switch e.Kind {
-	case entity.KindEpic, entity.KindContract:
-		// Containing directory moves; the file inside keeps its name.
-		dir := filepath.Dir(e.Path)
-		parent, oldName := filepath.Split(dir)
-		newName, err := substituteSlug(oldName, newSlug)
-		if err != nil {
-			return "", "", err
-		}
-		// strip trailing separator from parent
-		parent = strings.TrimRight(parent, "/")
-		return dir, filepath.Join(parent, newName), nil
-	default:
-		// File renames: the .md basename gets a new slug.
-		dir, oldName := filepath.Split(e.Path)
-		newName, err := substituteSlug(strings.TrimSuffix(oldName, ".md"), newSlug)
-		if err != nil {
-			return "", "", err
-		}
-		dir = strings.TrimRight(dir, "/")
-		return e.Path, filepath.Join(dir, newName+".md"), nil
-	}
-}
-
-// substituteSlug replaces the slug portion of a name like "E-19-old-slug"
-// with newSlug, yielding "E-19-new-slug". Returns an error when the
-// name does not contain a recognizable id-prefix.
-func substituteSlug(name, newSlug string) (string, error) {
-	// Find the first hyphen after the digits run that follows the
-	// kind prefix. We don't need to know the kind here: the convention
-	// is "<letters>-<digits>-<rest>", so split after the second hyphen.
-	first := strings.IndexByte(name, '-')
-	if first < 0 {
-		return "", fmt.Errorf("name %q has no id prefix to keep", name)
-	}
-	second := strings.IndexByte(name[first+1:], '-')
-	if second < 0 {
-		// "E-01" with no slug — append the new slug.
-		return name + "-" + newSlug, nil
-	}
-	idPart := name[:first+1+second]
-	return idPart + "-" + newSlug, nil
+	return rewriteEntityName(e, func(name string) (string, error) {
+		return substituteNamePart(name, newSlug, substituteSlugMode)
+	})
 }
 
 // newEntityPathAfterRename derives the new entity file path given the

@@ -135,18 +135,14 @@ func WalkOrphanedAICommits(ctx context.Context, root string, dag *CommitDAG, tru
 // branch (trunkShort). Matches the existing oracle's filter
 // (intentionally; same set of refs the rule polices).
 func listRitualHeads(ctx context.Context, root, trunkShort string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "git", "for-each-ref", "refs/heads/", "--format=%(refname:short)")
-	cmd.Dir = root
-	out, err := cmd.Output()
+	refs, err := gitops.LocalBranchRefs(ctx, root)
 	if err != nil {
+		//coverage:ignore defensive: LocalBranchRefs errors only on a broken git environment (missing binary, corrupt repo), not reachable deterministically in-process
 		return nil, err
 	}
 	var ritual []string
-	for _, line := range strings.Split(string(out), "\n") {
-		name := strings.TrimSpace(line)
-		if name == "" {
-			continue
-		}
+	for _, ref := range refs {
+		name := strings.TrimPrefix(ref, "refs/heads/")
 		// Same filter the oracle uses (internal/cli/check/
 		// isolation_escape_oracle.go::listRitualBranches).
 		// Duplicated here to keep this helper standalone — the

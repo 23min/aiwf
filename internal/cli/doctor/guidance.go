@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
 )
 
@@ -31,23 +32,11 @@ func appendGuidanceImportReport(in []string, problemsIn []Problem, rootDir strin
 		return in, problems // fragment absent → nothing to wire
 	}
 	importLine := "@" + skills.GuidanceFile
-	if claudeMd, err := os.ReadFile(filepath.Join(rootDir, "CLAUDE.md")); err == nil && guidanceImportLinePresent(string(claudeMd), importLine) {
+	if claudeMd, err := os.ReadFile(filepath.Join(rootDir, "CLAUDE.md")); err == nil &&
+		initrepo.GuidanceMarkerLineIdx(strings.Split(string(claudeMd), "\n"), importLine) != -1 {
 		return append(in, label("guidance:")+"ok (CLAUDE.md imports the aiwf guidance fragment)"), problems
 	}
 	val := "claudemd-guidance-unwired: advisory — " + skills.GuidanceFile + " exists but CLAUDE.md does not import it; run `aiwf update` to wire it"
 	problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 	return append(in, label("guidance:")+val), problems
-}
-
-// guidanceImportLinePresent reports whether any line of CLAUDE.md, once
-// trimmed, equals importLine — line-anchored so a prose mention of the
-// path is not counted as wired (consistent with ensureGuidanceImport's
-// detection).
-func guidanceImportLinePresent(claudeMd, importLine string) bool {
-	for _, ln := range strings.Split(claudeMd, "\n") {
-		if strings.TrimSpace(ln) == importLine {
-			return true
-		}
-	}
-	return false
 }

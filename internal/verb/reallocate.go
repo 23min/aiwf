@@ -431,43 +431,12 @@ func ambiguousIDErr(id string, matches []*entity.Entity, diagnostic string) erro
 // reallocatePaths returns (source, dest) for the move that renames an
 // entity to its new id. Slug is preserved; only the id portion of the
 // path changes. For dir-based kinds the dir moves; for file-based kinds
-// the file moves.
+// the file moves. A slug-less name has nothing to preserve, so the new
+// id is returned bare (see substituteNamePart's substituteIDMode).
 func reallocatePaths(e *entity.Entity, newID string) (source, dest string, err error) {
-	switch e.Kind {
-	case entity.KindEpic, entity.KindContract:
-		dir := filepath.Dir(e.Path)
-		parent, oldName := filepath.Split(dir)
-		newName, err := substituteID(oldName, newID)
-		if err != nil {
-			return "", "", err
-		}
-		parent = strings.TrimRight(parent, "/")
-		return dir, filepath.Join(parent, newName), nil
-	default:
-		dir, oldName := filepath.Split(e.Path)
-		newName, err := substituteID(strings.TrimSuffix(oldName, ".md"), newID)
-		if err != nil {
-			return "", "", err
-		}
-		dir = strings.TrimRight(dir, "/")
-		return e.Path, filepath.Join(dir, newName+".md"), nil
-	}
-}
-
-// substituteID replaces the "<prefix>-<digits>" portion of name with
-// newID, preserving any trailing "-<slug>".
-func substituteID(name, newID string) (string, error) {
-	// Find the second hyphen — same shape as substituteSlug.
-	first := strings.IndexByte(name, '-')
-	if first < 0 {
-		return "", fmt.Errorf("name %q has no id prefix", name)
-	}
-	second := strings.IndexByte(name[first+1:], '-')
-	if second < 0 {
-		return newID, nil
-	}
-	slug := name[first+1+second+1:]
-	return newID + "-" + slug, nil
+	return rewriteEntityName(e, func(name string) (string, error) {
+		return substituteNamePart(name, newID, substituteIDMode)
+	})
 }
 
 // rewriteRecord pairs the original entity with its updated copy so the

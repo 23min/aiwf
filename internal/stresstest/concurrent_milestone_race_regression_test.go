@@ -14,39 +14,37 @@ import (
 // AC-2's oracle (classifyMilestoneRaceOutcomes) actually catches a
 // reintroduced G-0335-shaped regression, not merely that it stays
 // quiet on a healthy binary. Builds a disposable, patched copy of this
-// module's source in an isolated `git worktree`, with BOTH
-// internal/verb/promote.go's milestone-cancel open-AC guard AND
-// internal/check/acs.go's milestone-cancelled-incomplete-acs check-
-// rule backstop removed — so a violation this test observes can only
-// come from ConcurrentMilestoneRaceScenario's own commit-order oracle,
-// isolating that the new AC-2 oracle provides real protection
-// independent of the pre-existing check-rule doing the work. Never
-// touches this worktree's own tracked source; the patched copy lives
-// entirely under a temp-dir worktree torn down in t.Cleanup.
+// module's source in an isolated `git worktree`, with BOTH the
+// milestone-cancel open-AC guard AND internal/check/acs.go's
+// milestone-cancelled-incomplete-acs check-rule backstop removed — so
+// a violation this test observes can only come from
+// ConcurrentMilestoneRaceScenario's own commit-order oracle, isolating
+// that the new AC-2 oracle provides real protection independent of
+// the pre-existing check-rule doing the work. Never touches this
+// worktree's own tracked source; the patched copy lives entirely
+// under a temp-dir worktree torn down in t.Cleanup.
 
-// milestoneCancelGuardAnchor is internal/verb/promote.go's Cancel
-// case entity.KindMilestone branch — the exact G-0335 guard (D-0004)
-// this test removes from the isolated copy. Built via "\t"/"\n"
+// milestoneCancelGuardAnchor is internal/verb/cancel_guards.go's
+// milestoneACsCascadeGuard — the exact G-0335 guard (D-0004) this test
+// removes from the isolated copy. M-0270/AC-3 unified Cancel's and
+// Promote's previously-separate milestone-open-AC checks onto this one
+// shared function; anchoring on the function signature (rather than
+// its interior body, the pre-M-0270 shape) survives a future refactor
+// of the guard's own internals the same way checkRuleAnchor below
+// already does for its sibling check-rule anchor. Built via "\t"/"\n"
 // escapes rather than a raw string literal so the anchor's tab-vs-
 // space bytes don't depend on how this source file itself happens to
 // be indented; strings.Count(content, this) must equal 1 in
-// promote.go, or patchFileExactlyOnce refuses to patch (see its own
-// doc comment).
-const milestoneCancelGuardAnchor = "\tcase entity.KindMilestone:\n" +
-	"\t\tif ok, openACs := entity.MilestoneCanGoDone(e); !ok {\n" +
-	"\t\t\tcomposite := make([]string, 0, len(openACs))\n" +
-	"\t\t\tfor _, ac := range openACs {\n" +
-	"\t\t\t\tcomposite = append(composite, e.ID+\"/\"+ac)\n" +
-	"\t\t\t}\n" +
-	"\t\t\treturn nil, &MilestoneCancelNonTerminalACsError{Milestone: e.ID, ACs: composite}\n" +
-	"\t\t}\n"
+// cancel_guards.go, or patchFileExactlyOnce refuses to patch (see its
+// own doc comment).
+const milestoneCancelGuardAnchor = "func milestoneACsCascadeGuard(e *entity.Entity, newStatus string, buildErr func(openACs []string) error) error {\n"
 
-// milestoneCancelGuardReplacement replaces milestoneCancelGuardAnchor
-// with a no-op case arm (mirroring the switch's own `default:` arm
-// just below it) — Cancel's milestone-kind branch stops refusing an
-// open-AC cancel entirely.
-const milestoneCancelGuardReplacement = "\tcase entity.KindMilestone:\n" +
-	"\t\t// AC-3 regression probe (M-0258): open-AC cancel guard deliberately removed.\n"
+// milestoneCancelGuardReplacement stubs milestoneACsCascadeGuard to
+// always return nil — both Cancel and Promote's milestone-open-AC
+// refusal (they share this one guard as of M-0270/AC-3) stop firing
+// entirely.
+const milestoneCancelGuardReplacement = milestoneCancelGuardAnchor +
+	"\treturn nil // AC-3 regression probe (M-0258): open-AC cascade guard deliberately stubbed out\n"
 
 // checkRuleAnchor is internal/check/acs.go's
 // milestoneCancelledIncompleteACs function signature line — the
@@ -108,11 +106,11 @@ func patchFileExactlyOnce(t *testing.T, path, old, newText string) {
 }
 
 // removeMilestoneCancelOpenACGuard patches moduleRoot's copy of
-// internal/verb/promote.go so Cancel no longer refuses a milestone
-// carrying an open AC — the G-0335 shape.
+// internal/verb/cancel_guards.go so neither Cancel nor Promote refuses
+// a milestone carrying an open AC — the G-0335 shape.
 func removeMilestoneCancelOpenACGuard(t *testing.T, moduleRoot string) {
 	t.Helper()
-	patchFileExactlyOnce(t, filepath.Join(moduleRoot, "internal", "verb", "promote.go"), milestoneCancelGuardAnchor, milestoneCancelGuardReplacement)
+	patchFileExactlyOnce(t, filepath.Join(moduleRoot, "internal", "verb", "cancel_guards.go"), milestoneCancelGuardAnchor, milestoneCancelGuardReplacement)
 }
 
 // stubMilestoneCancelledIncompleteACsCheckRule patches moduleRoot's
