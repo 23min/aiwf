@@ -24,7 +24,7 @@ import (
 //
 // Trailers is keyed by the bare trailer name (no "aiwf-" prefix
 // stripping). Multi-value trailers collapse to the last value, matching
-// internal/cli/history's existing single-value-per-key shape; consumers
+// internal/entityview's existing single-value-per-key shape; consumers
 // needing multi-value semantics use the [Trailer] slice form via
 // [HeadTrailers] / [ParseTrailers] instead.
 type CommitRecord struct {
@@ -88,7 +88,7 @@ func BlobAllZero(id string) bool {
 // commit-body content is negligible: aiwf-produced bodies never
 // contain `===AIWF-REC===` / `===AIWF-PATHS===` and any consumer
 // commit that did contain them would be misparsed in the same way
-// `internal/cli/history`'s `\x1e` would be — accepted theoretical risk.
+// `internal/entityview`'s `\x1e` would be — accepted theoretical risk.
 const (
 	bulkRecordMarker = "===AIWF-REC==="
 	bulkPathsMarker  = "===AIWF-PATHS==="
@@ -134,7 +134,7 @@ var bulkTrailerKeys = []string{
 //
 // Returns nil (no error, no callbacks) when root is empty, is not a
 // git repo, or is a repo with no commits — the same "nothing to walk"
-// semantic as [internal/cli/history.readHistory] uses.
+// semantic as [internal/entityview.ReadHistoryChain] uses.
 //
 // The walk includes all reachable refs (--all) so feature-branch
 // history is observed; -M enables rename detection (PathTouch.Status
@@ -226,7 +226,7 @@ func buildBulkPretty() string {
 // line equal-to-marker counts as a boundary, so embedded matches in a
 // quoted code block (e.g. a body that quotes BulkRevwalk's own output)
 // don't split the stream. The trade-off is identical to
-// internal/cli/history's `\x1e` record-sep approach.
+// internal/entityview's `\x1e` record-sep approach.
 func splitOnMarker(raw, marker string) []string {
 	var chunks []string
 	var current strings.Builder

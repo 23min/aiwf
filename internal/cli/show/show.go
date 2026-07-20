@@ -371,7 +371,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	}
 	view.History = limitEvents(events, historyLimit)
 	scopes, err := LoadEntityScopeViews(ctx, root, id)
-	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (history.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (entityview.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
 		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
 	view.Scopes = scopes
@@ -546,7 +546,7 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 	}
 	view.History = limitEvents(events, historyLimit)
 	scopes, err := LoadEntityScopeViews(ctx, root, id)
-	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (history.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (entityview.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
 		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
 	view.Scopes = scopes

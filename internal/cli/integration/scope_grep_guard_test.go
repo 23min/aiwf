@@ -259,7 +259,7 @@ func unguardedScopeViews(t *testing.T, ctx context.Context, root, id string) []e
 		})
 	}
 	// Lexical, not chronological (M-0269/AC-3 fixed the production sort
-	// to compare parsed time.Time instants — see show.AssembleScopeViews).
+	// to compare parsed time.Time instants — see entityview.AssembleScopeViews).
 	// Deliberately NOT updated here: this oracle is a faithful copy of
 	// the pre-M-0223 algorithm, and the divergence is safe today only
 	// because every fixture entity in buildScopeGuardRepo yields at
@@ -267,7 +267,7 @@ func unguardedScopeViews(t *testing.T, ctx context.Context, root, id string) []e
 	// share one author's real-time offset (never disagree even if it
 	// did). A future fixture with 2+ views on one entity across
 	// differing offsets would need this comparator aligned to
-	// show.AssembleScopeViews' or it would fail on sort order alone —
+	// entityview.AssembleScopeViews' or it would fail on sort order alone —
 	// a red herring unrelated to the M-0223 guard this test pins.
 	sort.Slice(views, func(i, j int) bool { return views[i].Opened < views[j].Opened })
 	return views

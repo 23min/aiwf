@@ -527,7 +527,7 @@ func (r *Resolver) history(id string) []entityview.HistoryEvent {
 }
 
 // historyRows materializes the renderer-facing rows from cached
-// history.HistoryEvents. limit clips to the most recent N.
+// entityview.HistoryEvents. limit clips to the most recent N.
 func (r *Resolver) historyRows(id string, limit int) []htmlrender.HistoryRow {
 	events := r.history(id)
 	if len(events) == 0 {
@@ -642,7 +642,7 @@ func (r *Resolver) bodyForEntity(relPath string) []byte {
 	return entityview.ReadEntityBody(r.root, abs)
 }
 
-// historyEventToRow maps a cmd-side history.HistoryEvent to the renderer's
+// historyEventToRow maps a cmd-side entityview.HistoryEvent to the renderer's
 // HistoryRow. Pulled out so the epic and milestone pages share one
 // transformation; if the cmd-side struct gains a field, only this
 // function changes. Takes a pointer so range loops over []entityview.HistoryEvent

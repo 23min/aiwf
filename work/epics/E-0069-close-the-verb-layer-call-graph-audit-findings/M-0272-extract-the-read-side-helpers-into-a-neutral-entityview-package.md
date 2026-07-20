@@ -81,13 +81,15 @@ every call site (`HistoryEvent`, `ReadHistory`, `EventFromCommit`,
 `ReadEntityBody`, `ShortHash`, `StripTrailers`) now resolves against
 `internal/entityview`. `render`'s `singlepass.go` keeps its existing
 `cliutil` dependency (for `CommitTrailers`/`ReplayScopes`/`OpenersFrom`,
-unrelated to F6); `history` stays imported only where a genuinely
-CLI-specific symbol is still needed (`history.RenderTo` in `show.go` and
-`resolver.go`'s call sites, `history.ScopeMapFor` nowhere in these three).
-The closing edge F6 warned about (`render`/`check`/`status` → `show`/
-`history`, the only thing keeping the dependency graph acyclic by omission)
-is gone: those three packages' sole path to the read-side projection logic
-is now the neutral leaf.
+unrelated to F6); `render`, `check`, and `status` drop `internal/cli/history`
+and `internal/cli/show` entirely — `history.RenderTo` (the one remaining
+genuinely CLI-specific symbol from that surface) is used only in `show.go`,
+not by any of these three. The closing edge F6 warned about
+(`render`/`check`/`status` → `show`/`history`, the only thing keeping the
+dependency graph acyclic by omission) is gone: `go list -deps` on all three
+packages carries no transitive dependency on `internal/cli/history` or
+`internal/cli/show` — those three packages' sole path to the read-side
+projection logic is now the neutral leaf.
 
 Evidence: same as AC-1 — `go build ./...` and `go vet ./...` clean repo-wide;
 the full test suite (including `internal/cli/render`, `internal/cli/check`,
@@ -171,6 +173,29 @@ same run, plus `TestPolicy_LayeringDirection` green.
 
 ## Reviewer notes
 
+- Independent two-lens review (fresh-context subagents, code-quality and
+  design-quality) both returned **approve, no blocking findings**. Findings
+  from both converged on the same non-blocking issue — stale comments in
+  files this milestone touched or adjoined still naming `history.*`/
+  `show.*` for symbols now in `entityview`, plus one factual overclaim in
+  this spec's own AC-2 prose (a stale claim that `resolver.go` still called
+  `history.RenderTo`, when its `internal/cli/history` import was fully
+  dropped). All were fixed in-context as a corrective pass before wrap:
+  `internal/cli/render/resolver.go`, `internal/cli/show/show.go`,
+  `internal/cli/cliutil/scopes.go`, `internal/check/head_history.go`,
+  `internal/gitops/revwalk.go` (including a doc-link that already pointed
+  at a non-existent lowercase `readHistory` symbol before this milestone),
+  several `internal/cli/integration/*_test.go` comments, and this spec's
+  AC-2 paragraph. The `entityview` package doc comment was also broadened
+  to name `ReadEntityBody` as a third responsibility alongside history
+  parsing and scope-view assembly. The design-quality lens additionally
+  flagged two follow-ups explicitly out of this milestone's mechanical-only
+  scope, left as commentary rather than gaps (neither is a defect in what
+  shipped, both would touch unrelated call sites or algorithms): relocating
+  `hasCommits`'s canonical home to `internal/gitops` (D-0045 already
+  reasoned through and rejected this for now), and consolidating
+  `ReadHistoryChain`'s inline parse loop with `EventFromCommit` (a
+  pre-existing E-0054 duplication this move only made more visible).
 - Both ACs landed in a single commit (5d331e61) rather than two: the
   extraction and the caller rewiring are not independently buildable under
   this repo's no-compatibility-shim convention — once `entityview` exists

@@ -13,7 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/entityview"
 )
 
-// TestRenderHistory_PreI2_5BackwardsCompat: a history.HistoryEvent with no
+// TestRenderHistory_PreI2_5BackwardsCompat: an entityview.HistoryEvent with no
 // I2.5 trailers (the pre-aiwf-I2.5 shape) renders without any chips
 // or principal-via-agent rewrite. Guards the load-bearing
 // backwards-compat promise from the plan: existing trailered

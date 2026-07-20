@@ -151,7 +151,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 }
 
 // TestRun_HistoryReadsAiwfToAndForce confirms readHistory pulls the
-// I2 trailers (`aiwf-to:` and `aiwf-force:`) into history.HistoryEvent.To and
+// I2 trailers (`aiwf-to:` and `aiwf-force:`) into entityview.HistoryEvent.To and
 // .Force, and renders dashes / blanks for events that don't carry
 // them. The mix of add (no aiwf-to), promote (with aiwf-to), and
 // promote --force (with aiwf-to AND aiwf-force) covers the load-

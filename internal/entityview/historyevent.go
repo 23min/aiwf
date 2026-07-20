@@ -1,10 +1,10 @@
 // Package entityview holds the read-side projection helpers shared by
 // aiwf's read verbs (show, history, render, check, status): parsing an
-// entity's lifecycle out of git log trailers, and assembling the scope
-// table that describes which authorization grants touched it. The
-// package is free of internal/cli dependencies (no Cobra, no cliutil)
-// so it can be unit-tested and reused without pulling in a verb's
-// command-wiring package.
+// entity's lifecycle out of git log trailers, assembling the scope table
+// that describes which authorization grants touched it, and reading an
+// entity file's body prose. The package is free of internal/cli
+// dependencies (no Cobra, no cliutil) so it can be unit-tested and reused
+// without pulling in a verb's command-wiring package.
 package entityview
 
 import (

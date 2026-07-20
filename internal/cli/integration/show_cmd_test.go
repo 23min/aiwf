@@ -883,7 +883,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 
 // TestRun_ShowHistoryParsesAiwfTestsTrailer: a commit carrying an
 // aiwf-tests trailer must surface the parsed metrics on the
-// history.HistoryEvent. The trailer is written by hand here (kernel write
+// entityview.HistoryEvent. The trailer is written by hand here (kernel write
 // path lands in I3 step 2); read-side parsing must already work in
 // step 1 so step-5 templates have data to render.
 func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {
