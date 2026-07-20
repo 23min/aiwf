@@ -14,7 +14,7 @@ acs:
       status: met
     - id: AC-2
       title: render, check, status import the neutral package, not sibling CLI packages
-      status: open
+      status: met
 ---
 ## Goal
 
