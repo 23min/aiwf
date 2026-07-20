@@ -79,7 +79,7 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&remove, "remove", false, "remove the --scope statusline's script + statusLine settings key (mutually exclusive with --statusline)")
 	cmd.Flags().BoolVar(&force, "force", false, "with --remove, delete the script/settings key even if it does not look aiwf-authored")
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
-	_ = cmd.RegisterFlagCompletionFunc("enable-hook", completeHookNames)
+	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	return cmd
 }
 

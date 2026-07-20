@@ -74,16 +74,8 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 	cmd.Flags().BoolVar(&wireSettings, "wire-settings", false, "write statusLine to the settings file without interactive confirmation (non-TTY consent per ADR-0015)")
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
-	_ = cmd.RegisterFlagCompletionFunc("enable-hook", completeHookNames)
+	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
 	return cmd
-}
-
-// completeHookNames offers the shipped hook registry's names for
-// `--enable-hook <TAB>`. Empty (no completions) until a milestone registers
-// the first concrete hook (M-0236) — mirrors completeDeclaredValidators'
-// shape for a runtime-derived, possibly-empty set.
-func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return skills.HookNamesFrom(skills.ShippedHooks), cobra.ShellCompDirectiveNoFileComp
 }
 
 // Run executes `aiwf init`. Returns one of the cliutil.Exit* codes.
