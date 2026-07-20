@@ -270,7 +270,10 @@ func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	}
 
 	// Narrow input — AC-2 parser-tolerance test by design.
-	view, ok := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007", 0)
+	view, ok, err := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007", 0)
+	if err != nil {
+		t.Fatalf("show.BuildShowView(M-007): %v", err)
+	}
 	if !ok {
 		t.Fatalf("show.BuildShowView(M-007) returned ok=false on narrow tree")
 	}
@@ -282,7 +285,10 @@ func TestShow_JSON_CanonicalIDsFromNarrowTree(t *testing.T) {
 	}
 
 	// Composite id — narrow input, canonical output.
-	acView, ok := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007/AC-1", 0)
+	acView, ok, err := show.BuildShowView(context.Background(), root, tr, loadErrs, "M-007/AC-1", 0)
+	if err != nil {
+		t.Fatalf("show.BuildShowView(M-007/AC-1): %v", err)
+	}
 	if !ok {
 		t.Fatalf("show.BuildShowView(M-007/AC-1) returned ok=false")
 	}
