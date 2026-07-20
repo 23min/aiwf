@@ -226,6 +226,15 @@ test/porcelain-only, CommitAllowEmpty's stale comment corrected ·
 commit 7e5a6e6e · full reflog/orphan/gitops suite green, wf-vacuity
 mutation probe 3/3 real mutations caught
 
+### AC-5 — doctor on initrepo markers; completeHookNames deduped
+
+doctor.go's four hook-marker checks and guidance-import check now
+call initrepo's exported functions; completeHookNames consolidated
+into cliutil, duplicate tests merged · commit 8746744b · full
+doctor/initrepo/cliutil/initcmd/update suite green, wf-vacuity
+mutation probe 3/4 caught (1 revealed a pre-existing untested-wiring
+gap in initcmd/update, not introduced by this AC)
+
 ## Decisions made during implementation
 
 - (none)
