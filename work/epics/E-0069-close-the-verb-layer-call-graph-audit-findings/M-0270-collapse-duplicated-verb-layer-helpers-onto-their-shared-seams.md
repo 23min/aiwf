@@ -97,15 +97,27 @@ error surface.
 
 ### AC-4 — reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
 
-`internal/check/reflog_walk.go` independently re-issues
+`internal/check/reflog_walk.go` independently re-issued
 `for-each-ref refs/heads/` instead of consuming `gitops.LocalBranchRefs`
 (the isolation-escape-oracle's own divergence is a legitimate perf
-optimization and stays as-is; `reflog_walk.go`'s is a plain duplicate).
+optimization and stays as-is; `reflog_walk.go`'s was a plain duplicate).
+`listRitualHeads` now calls `gitops.LocalBranchRefs` (which returns full
+refnames, e.g. `refs/heads/epic/E-0069-...`) and strips the `refs/heads/`
+prefix itself to reconstruct the short-name shape the ritual-branch filter
+needs — behavior-identical to the old `%(refname:short)` format verb for
+every ref under `refs/heads/`, since git's own `:short` semantics for a
+plain branch ref is exactly "strip the `refs/heads/` prefix," with no
+further compression the way `refs/remotes/<remote>/*` gets.
+
 `gitops.Commit`, `gitops.CommitAllowEmpty`, `gitops.Mv`, and `gitops.Add`
 have no production callers — a comment at each definition marks them as
 intentional test/porcelain-only APIs (the named "forbidden APIs" the
 write-isolation policy checks against), removing the ambiguity for a future
-reader.
+reader. `CommitAllowEmpty`'s doc comment previously claimed it was the path
+`aiwf authorize` and `--audit-only` commits ride; that was stale — both
+actually route through `gitops.CommitVerbChange`/`CommitTree`'s plumbing
+path, which produces an empty-diff commit without needing this porcelain
+wrapper. Corrected in place.
 
 ### AC-5 — doctor reads hook and guidance markers via initrepo; completeHookNames deduped
 
