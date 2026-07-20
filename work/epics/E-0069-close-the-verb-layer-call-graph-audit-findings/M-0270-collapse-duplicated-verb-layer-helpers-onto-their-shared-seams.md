@@ -146,6 +146,13 @@ rollback exists.
 
 ## Work log
 
+### AC-1 — shared path-rewrite helper
+
+renamePaths/reallocatePaths now both call substituteNamePart +
+rewriteEntityName (internal/verb/pathrewrite.go); dupl baseline
+exclusion removed · commit 0437f95 · tests 11/11 new (7 table cases +
+4 subtests), full suite green
+
 ## Decisions made during implementation
 
 - (none)
