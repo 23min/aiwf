@@ -225,7 +225,7 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 		}
 	}
 	metricsFindings, mErr := RunTestsMetricsCheck(ctx, resolved, tr, requireMetrics)
-	if mErr != nil { //coverage:ignore RunTestsMetricsCheck's only error source is history.ReadHistory's `git log` call, which is unreachable once cliutil.HasCommits has already succeeded — the same class internal/cli/history/history.go's own ReadHistoryChain guard documents (ids are regexp.QuoteMeta-escaped, so a malformed composite id cannot break the --grep pattern either)
+	if mErr != nil { //coverage:ignore RunTestsMetricsCheck's only error source is entityview.ReadHistory's `git log` call, which is unreachable once cliutil.HasCommits has already succeeded — the same class internal/entityview's own ReadHistoryChain guard documents (ids are regexp.QuoteMeta-escaped, so a malformed composite id cannot break the --grep pattern either)
 		cliutil.Errorf("aiwf check: %v\n", mErr)
 		return cliutil.ExitInternal
 	}

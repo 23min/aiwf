@@ -10,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 // TestRun_HistoryShowsAddPromoteCancel exercises the full chain: init,
@@ -31,7 +32,7 @@ func TestRun_HistoryShowsAddPromoteCancel(t *testing.T) {
 		t.Fatalf("cancel: %d", rc)
 	}
 
-	events, err := history.ReadHistory(context.Background(), root, "E-0001")
+	events, err := entityview.ReadHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("readHistory: %v", err)
 	}
@@ -75,8 +76,8 @@ func TestRun_HistoryJSON(t *testing.T) {
 		Status  string `json:"status"`
 		Version string `json:"version"`
 		Result  struct {
-			ID     string                 `json:"id"`
-			Events []history.HistoryEvent `json:"events"`
+			ID     string                    `json:"id"`
+			Events []entityview.HistoryEvent `json:"events"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(captured, &env); err != nil {
@@ -129,7 +130,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	}
 
 	// Bare milestone query matches both milestone and AC events.
-	events, err := history.ReadHistory(context.Background(), root, "M-0001")
+	events, err := entityview.ReadHistory(context.Background(), root, "M-0001")
 	if err != nil {
 		t.Fatalf("readHistory M-001: %v", err)
 	}
@@ -140,7 +141,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 	}
 
 	// Composite query matches only the AC events.
-	events, err = history.ReadHistory(context.Background(), root, "M-0001/AC-1")
+	events, err = entityview.ReadHistory(context.Background(), root, "M-0001/AC-1")
 	if err != nil {
 		t.Fatalf("readHistory M-001/AC-1: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestRun_HistoryMilestonePrefixMatchesACs(t *testing.T) {
 }
 
 // TestRun_HistoryReadsAiwfToAndForce confirms readHistory pulls the
-// I2 trailers (`aiwf-to:` and `aiwf-force:`) into history.HistoryEvent.To and
+// I2 trailers (`aiwf-to:` and `aiwf-force:`) into entityview.HistoryEvent.To and
 // .Force, and renders dashes / blanks for events that don't carry
 // them. The mix of add (no aiwf-to), promote (with aiwf-to), and
 // promote --force (with aiwf-to AND aiwf-force) covers the load-
@@ -179,7 +180,7 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	}
 
 	// E-01: add (no to/force), promote → active (to=active, no force).
-	events, err := history.ReadHistory(context.Background(), root, "E-0001")
+	events, err := entityview.ReadHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatalf("readHistory E-01: %v", err)
 	}
@@ -197,7 +198,7 @@ func TestRun_HistoryReadsAiwfToAndForce(t *testing.T) {
 	}
 
 	// E-02: add (no to/force), forced promote → done (to=done, force=reason).
-	events, err = history.ReadHistory(context.Background(), root, "E-0002")
+	events, err = entityview.ReadHistory(context.Background(), root, "E-0002")
 	if err != nil {
 		t.Fatalf("readHistory E-02: %v", err)
 	}
@@ -299,7 +300,7 @@ func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	}
 
 	// Old id sees the reallocate via aiwf-prior-entity.
-	old, err := history.ReadHistory(context.Background(), root, "E-0001")
+	old, err := entityview.ReadHistory(context.Background(), root, "E-0001")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,7 +312,7 @@ func TestRun_HistoryReallocateBridgesBothIDs(t *testing.T) {
 	}
 
 	// New id sees the reallocate via aiwf-entity.
-	newH, err := history.ReadHistory(context.Background(), root, "E-0002")
+	newH, err := entityview.ReadHistory(context.Background(), root, "E-0002")
 	if err != nil {
 		t.Fatal(err)
 	}

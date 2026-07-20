@@ -8,12 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/show"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/tree"
@@ -321,7 +323,7 @@ Body.
 	})
 	var env struct {
 		Result struct {
-			Events []history.HistoryEvent `json:"events"`
+			Events []entityview.HistoryEvent `json:"events"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(out, &env); err != nil {
@@ -687,6 +689,59 @@ func TestRun_ShowFindingsScopedToEntity(t *testing.T) {
 	}
 }
 
+// TestRun_ShowHistoryLimitTruncatesToMostRecent drives limitEvents'
+// truncation branch (0 < historyLimit < len(events)): a milestone with
+// four events under its bare id (add milestone, add AC-1, add AC-2,
+// promote AC-1 met — the AC events fold in via the bare-milestone
+// path-prefix match) and --history 2 carries only the two most recent
+// events, in order — the tail of the oldest-first slice, not an
+// arbitrary two.
+func TestRun_ShowHistoryLimitTruncatesToMostRecent(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test", "--skip-hook"}); rc != cliutil.ExitOK {
+		t.Fatalf("init: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Bar", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC one", "--body-file", acBodyFixturePath(t, root)}); rc != cliutil.ExitOK {
+		t.Fatalf("add ac 1: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "AC two", "--body-file", acBodyFixturePath(t, root)}); rc != cliutil.ExitOK {
+		t.Fatalf("add ac 2: %d", rc)
+	}
+	if rc := cli.Execute([]string{"promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "met"}); rc != cliutil.ExitOK {
+		t.Fatalf("promote AC-1 met: %d", rc)
+	}
+
+	tr, _, err := tree.Load(context.Background(), root)
+	if err != nil {
+		t.Fatalf("tree.Load: %v", err)
+	}
+	full, ok, err := show.BuildShowView(context.Background(), root, tr, nil, "M-0001", -1)
+	if err != nil || !ok {
+		t.Fatalf("full BuildShowView: ok=%v err=%v", ok, err)
+	}
+	if len(full.History) != 4 {
+		t.Fatalf("full history len = %d, want 4 (add milestone, add AC-1, add AC-2, promote AC-1 met): %+v", len(full.History), full.History)
+	}
+
+	limited, ok, err := show.BuildShowView(context.Background(), root, tr, nil, "M-0001", 2)
+	if err != nil || !ok {
+		t.Fatalf("limited BuildShowView: ok=%v err=%v", ok, err)
+	}
+	if len(limited.History) != 2 {
+		t.Fatalf("limited history len = %d, want 2", len(limited.History))
+	}
+	if diff := cmp.Diff(full.History[2:], limited.History); diff != "" {
+		t.Errorf("limited history != last two of full history (-want +got):\n%s", diff)
+	}
+}
+
 // TestRun_ShowEpicBodySectionsParsed: hand-editing the epic file with
 // populated body sections must surface them on show.ShowView.Body keyed by
 // the slugified `## ` heading. Load-bearing for the HTML render in I3
@@ -828,7 +883,7 @@ func TestRun_ShowMilestoneACDescriptionsParsed(t *testing.T) {
 
 // TestRun_ShowHistoryParsesAiwfTestsTrailer: a commit carrying an
 // aiwf-tests trailer must surface the parsed metrics on the
-// history.HistoryEvent. The trailer is written by hand here (kernel write
+// entityview.HistoryEvent. The trailer is written by hand here (kernel write
 // path lands in I3 step 2); read-side parsing must already work in
 // step 1 so step-5 templates have data to render.
 func TestRun_ShowHistoryParsesAiwfTestsTrailer(t *testing.T) {

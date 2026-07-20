@@ -13,7 +13,7 @@ import (
 // TestWalkHeadCommits_CapturesAuthorDateAndSubject pins M-0221's
 // additive extension: the shared HEAD walk now also captures the author
 // date (%aI) and subject (%s). render's single pass reproduces
-// history.HistoryEvent's Date + Detail and derives scope open/end dates
+// entityview.HistoryEvent's Date + Detail and derives scope open/end dates
 // from these fields — eliminating the per-SHA `git show` the scope views
 // used. The existing check consumers read neither field, so this is
 // purely additive; TestParseHeadCommits pins the widened record layout.

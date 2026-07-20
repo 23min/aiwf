@@ -280,8 +280,8 @@ func readPriorEntityNewID(ctx context.Context, root, priorID string) (string, er
 // copies (show.readAllAuthorizeOpeners and history.BuildScopeEntityMap) that
 // predated it, and available for E-0054's render single-pass (M-0221) to
 // reuse rather than add a third copy. Both read verbs now guard the call
-// behind the loaded-event predicates (history.HasScopeData /
-// history.HasAuthorizedBy), so the walk runs only when an entity's events
+// behind the loaded-event predicates (entityview.HasScopeData /
+// entityview.HasAuthorizedBy), so the walk runs only when an entity's events
 // actually reference a scope.
 //
 // An empty / pre-aiwf repo returns (empty, nil). A genuine `git log` failure

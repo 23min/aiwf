@@ -10,11 +10,10 @@ import (
 
 	"github.com/23min/aiwf/internal/areagroup"
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/cli/history"
-	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/cli/status"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/htmlrender"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -523,12 +522,12 @@ func (r *Resolver) milestonesUnder(epicID string) []*entity.Entity {
 // per-entity walk returned an empty slice. The fail-loud handling of a
 // history-walk failure now lives once at the walk's call site (RunSite),
 // so this read cannot error.
-func (r *Resolver) history(id string) []history.HistoryEvent {
+func (r *Resolver) history(id string) []entityview.HistoryEvent {
 	return r.index.events[entity.Canonicalize(id)]
 }
 
 // historyRows materializes the renderer-facing rows from cached
-// history.HistoryEvents. limit clips to the most recent N.
+// entityview.HistoryEvents. limit clips to the most recent N.
 func (r *Resolver) historyRows(id string, limit int) []htmlrender.HistoryRow {
 	events := r.history(id)
 	if len(events) == 0 {
@@ -640,16 +639,16 @@ func (r *Resolver) bodyForEntity(relPath string) []byte {
 	if !filepath.IsAbs(abs) {
 		abs = filepath.Join(r.root, relPath)
 	}
-	return show.ReadEntityBody(r.root, abs)
+	return entityview.ReadEntityBody(r.root, abs)
 }
 
-// historyEventToRow maps a cmd-side history.HistoryEvent to the renderer's
+// historyEventToRow maps a cmd-side entityview.HistoryEvent to the renderer's
 // HistoryRow. Pulled out so the epic and milestone pages share one
 // transformation; if the cmd-side struct gains a field, only this
-// function changes. Takes a pointer so range loops over []history.HistoryEvent
+// function changes. Takes a pointer so range loops over []entityview.HistoryEvent
 // can avoid the per-iteration value copy (the struct is large
 // enough that gocritic flags it).
-func historyEventToRow(e *history.HistoryEvent) htmlrender.HistoryRow {
+func historyEventToRow(e *entityview.HistoryEvent) htmlrender.HistoryRow {
 	row := htmlrender.HistoryRow{
 		Date:         dateOnlyOrEmpty(e.Date),
 		Commit:       e.Commit,
@@ -687,7 +686,7 @@ func historyEventToRow(e *history.HistoryEvent) htmlrender.HistoryRow {
 // refactor / done) — anything else (open, met, deferred,
 // cancelled) is a status event and goes to the Commits tab, not
 // the Build tab.
-func phaseEventsFromHistory(events []history.HistoryEvent) []htmlrender.PhaseEvent {
+func phaseEventsFromHistory(events []entityview.HistoryEvent) []htmlrender.PhaseEvent {
 	var out []htmlrender.PhaseEvent
 	for i := range events {
 		e := &events[i]
@@ -720,7 +719,7 @@ func phaseEventsFromHistory(events []history.HistoryEvent) []htmlrender.PhaseEve
 // `aiwf history` order that carries a Tests pointer. Per the I3
 // plan §4 aggregation rule: rebase- and amend-stable, since it
 // derives from the iterator order rather than wall-clock time.
-func firstTestsTrailer(events []history.HistoryEvent) *htmlrender.TestMetricsView {
+func firstTestsTrailer(events []entityview.HistoryEvent) *htmlrender.TestMetricsView {
 	for i := range events {
 		e := &events[i]
 		if e.Tests != nil {
