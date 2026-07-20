@@ -126,6 +126,19 @@ assigned tier, and no residual edge into `internal/cli/history` /
 
 ## Work log
 
+### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
+
+`internal/entityview` created; both ACs landed in one commit (they aren't
+independently buildable — see Reviewer notes) · commit 5d331e61 · tests
+`go test -race ./...` green, `internal/entityview` package coverage 94.4%
+of statements per the diff-scoped gate.
+
+### AC-2 — render, check, status import the neutral package, not sibling CLI packages
+
+`render`/`check`/`status` rewired onto `entityview`; `internal/policies`'
+layering-direction map extended · commit 5d331e61 (same as AC-1) · tests
+same run, plus `TestPolicy_LayeringDirection` green.
+
 ## Decisions made during implementation
 
 - D-0045 — `entityview` carries its own private `hasCommits` guard rather
@@ -134,10 +147,45 @@ assigned tier, and no residual edge into `internal/cli/history` /
 
 ## Validation
 
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `gofmt -l .` — clean.
+- `go test -race -parallel 8 ./...` — all packages green.
+- `make lint` (golangci-lint, worktree-scoped cache) — 0 issues.
+- `make coverage-gate` — clean after closing one real gap the diff-scoping
+  surfaced: `show.go`'s `limitEvents` truncation branch (`0 < historyLimit
+  < len(events)`) had no test anywhere in the pre-existing suite; added
+  `TestRun_ShowHistoryLimitTruncatesToMostRecent`.
+- `go list -deps ./internal/entityview/...` — confirms the package's only
+  `23min/aiwf` dependencies are `internal/entity`, `internal/gitops`,
+  `internal/scope`, `internal/codes`; no `internal/cli/*`, no Cobra.
+- Manual mutation probe (`wf-vacuity`) on the two genuinely new code paths:
+  negating `hasCommits`'s condition broke 40+ tests across
+  `internal/cli/integration` and `internal/cli/render`; slicing
+  `limitEvents`'s truncation branch from the wrong end broke the new
+  truncation test. Both mutations reverted byte-identical afterward.
+
 ## Deferrals
 
 - (none)
 
 ## Reviewer notes
 
-- (none)
+- Both ACs landed in a single commit (5d331e61) rather than two: the
+  extraction and the caller rewiring are not independently buildable under
+  this repo's no-compatibility-shim convention — once `entityview` exists
+  and `show`/`history` stop re-exporting the moved symbols, every consumer
+  must move in the same commit or the tree doesn't compile. A staged
+  two-commit split would have required a temporary re-export shim in
+  `show`/`history` purely to make the split look independent, which
+  contradicts CLAUDE.md's "no compatibility shims without a named removal
+  trigger."
+- The diff-scoped coverage gate compares against the epic's fork point
+  (98 commits back, since `origin/main` predates E-0069 entirely), not
+  against M-0272's own diff — so `make coverage-gate` technically re-checks
+  the whole epic's surface, not just this milestone's. In practice only one
+  finding fired outside already-migrated, byte-identical code (`git diff`'s
+  own similarity detection appears to attribute unchanged moved chunks back
+  to their pre-existing coverage), and it was a genuine pre-existing gap
+  this migration's line-shuffling surfaced, not a regression the move
+  introduced.
