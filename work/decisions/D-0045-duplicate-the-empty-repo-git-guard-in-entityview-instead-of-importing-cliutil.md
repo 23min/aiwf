@@ -1,7 +1,7 @@
 ---
 id: D-0045
 title: Duplicate the empty-repo git guard in entityview instead of importing cliutil
-status: proposed
+status: accepted
 relates_to:
     - M-0272
 ---
