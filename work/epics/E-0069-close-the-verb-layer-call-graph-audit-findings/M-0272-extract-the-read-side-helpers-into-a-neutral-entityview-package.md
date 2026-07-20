@@ -1,7 +1,7 @@
 ---
 id: M-0272
 title: Extract the read-side helpers into a neutral entityview package
-status: in_progress
+status: done
 parent: E-0069
 depends_on:
     - M-0269
