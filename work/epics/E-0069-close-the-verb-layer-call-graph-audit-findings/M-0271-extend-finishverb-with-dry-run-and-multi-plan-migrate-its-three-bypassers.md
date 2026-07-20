@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: archive, rewidth, import dispatch via FinishVerb; triads deleted
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
