@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: archive, rewidth, import dispatch via FinishVerb; triads deleted
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
