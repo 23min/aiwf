@@ -205,6 +205,14 @@ benign survivor: the epic kind-check is redundant with
 nonTerminalEpicChildren's data shape but kept for readability/
 future-proofing, unlike AC-2's ancestry check it costs nothing)
 
+### AC-4 — reflog walk on gitops.LocalBranchRefs; porcelain-only fns annotated
+
+listRitualHeads routes through gitops.LocalBranchRefs +
+strings.TrimPrefix; Commit/CommitAllowEmpty/Mv/Add annotated
+test/porcelain-only, CommitAllowEmpty's stale comment corrected ·
+commit 7e5a6e6e · full reflog/orphan/gitops suite green, wf-vacuity
+mutation probe 3/3 real mutations caught
+
 ## Decisions made during implementation
 
 - (none)
