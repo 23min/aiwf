@@ -9,7 +9,7 @@ acs:
       title: rename and reallocate share one path-rewrite helper with both tail behaviors
       status: met
     - id: AC-2
-      title: acknowledge illegal uses gitops ancestry and existence helpers, not exec
+      title: acknowledge illegal uses gitops's existence helper, not exec
       status: open
     - id: AC-3
       title: Cancel and Promote share one cascade guard; Cancel moves to cancel.go
@@ -52,7 +52,7 @@ around the substitution — genuinely identical between the two callers — is
 itself shared via `rewriteEntityName`, so `renamePaths`/`reallocatePaths`
 are now thin callers passing their own substitution closure.
 
-### AC-2 — acknowledge illegal uses gitops ancestry and existence helpers, not exec
+### AC-2 — acknowledge illegal uses gitops's existence helper, not exec
 
 `internal/verb/acknowledgeillegal.go`'s `shaAckable` shells out directly
 (`exec.Command("git", "merge-base", "--is-ancestor", ...)` and
