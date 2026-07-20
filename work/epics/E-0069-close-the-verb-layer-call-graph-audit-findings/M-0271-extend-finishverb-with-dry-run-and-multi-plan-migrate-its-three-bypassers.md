@@ -1,7 +1,7 @@
 ---
 id: M-0271
 title: Extend FinishVerb with dry-run and multi-Plan; migrate its three bypassers
-status: in_progress
+status: done
 parent: E-0069
 tdd: required
 acs:
