@@ -21,7 +21,7 @@ acs:
       title: doctor reads hook and guidance markers via initrepo; completeHookNames deduped
       status: met
     - id: AC-6
-      title: release docs state aiwf upgrade has no automated rollback
+      title: a gap tracks that aiwf upgrade has no automated rollback
       status: open
 ---
 ## Goal
@@ -148,7 +148,7 @@ fifth hook marker added to `initrepo` without a corresponding `doctor`
 detection site wired up — the same "sin of omission" class F8 needed a
 presence-check policy for; out of this AC's mechanical scope.
 
-### AC-6 — release docs state aiwf upgrade has no automated rollback
+### AC-6 — a gap tracks that aiwf upgrade has no automated rollback
 
 `aiwf upgrade` delegates the entire fetch/verify/place sequence to a single
 `exec.Command("go", "install", ...)` call — a reasonable minimalist design,
