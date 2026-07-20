@@ -86,11 +86,21 @@ removed from all three packages.
 
 Added `Outcome`/`FinishVerbOutcome` to `internal/cli/cliutil/apply.go`; `FinishVerb` is now a thin single-Plan adapter over it · commit 9b4b9b07631f50e3498b8fa90494cd4e803f6bf5 · tests 14/14 new, full `internal/cli/...` suite green under `-race`.
 
+### AC-2 — archive, rewidth, import dispatch via FinishVerb; triads deleted
+
+Migrated `archive`, `rewidth`, and `import` onto `FinishVerbOutcome`; deleted `failX`/`emitXEnvelope`/`withCommitSHA` from all three packages (9 functions total) · commit b4b1045069b638e33a4bc5a6379a5c3986cd5165 · tests: 11 new byte-for-byte envelope-pinning tests plus the full pre-existing `internal/cli/{archive,rewidth,importcmd,integration}` suites, all green under `-race`.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0044 (accepted) — add `cliutil.ErrInternal` to `FinishVerbOutcome`'s err contract so an early domain-call failure can report `ExitInternal` (as `import`'s tested `LoadTreeWithTrunk` failure requires) without reintroducing a per-verb envelope helper.
 
 ## Validation
+
+- `go build ./...` — clean.
+- `go test -race -parallel 8 ./...` — full suite green.
+- `make lint` (worktree-scoped `golangci-lint`, includes `dupl`) — 0 issues.
+- `make coverage-gate` — diff-scoped branch-coverage audit and firing-fixture presence gate both green.
+- Manual mutation probes (`wf-vacuity`-style) against `FinishVerbOutcome` and each migrated verb's dispatch wiring — every probed mutation caught by the pinning-test suite; all reverted byte-identical.
 
 ## Deferrals
 
@@ -98,4 +108,4 @@ Added `Outcome`/`FinishVerbOutcome` to `internal/cli/cliutil/apply.go`; `FinishV
 
 ## Reviewer notes
 
-- (none)
+- Migrating onto `FinishVerbOutcome` widens two narrow, previously-inconsistent behaviors for `archive`/`rewidth`/`import`: `--trace` (already accepted on all three verbs' CLI surface, previously a silent no-op) now actually emits a `phase.apply` diagnostic event on apply, matching every other `FinishVerb` consumer; and JSON-mode early usage errors on these three verbs now carry `metadata.correlation_id` when one is set, where the old hand-rolled envelopes silently dropped it. Neither changes stdout/stderr envelope bytes on the success/error paths the milestone's byte-identical constraint covers — both are pure additions to a previously-inert or absent side channel. Flagging for awareness, not as a defect.
