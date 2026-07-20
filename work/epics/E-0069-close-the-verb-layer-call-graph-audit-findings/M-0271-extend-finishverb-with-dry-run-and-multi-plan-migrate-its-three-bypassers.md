@@ -32,7 +32,22 @@ must be mirrored into three places or it silently drifts.
 
 ### AC-1 — FinishVerb gains dry-run and multi-Plan; existing envelopes byte-identical
 
+`cliutil.FinishVerb` gains a dry-run branch (prints/serializes the
+planned outcome without calling `verb.Apply`) and accepts more than
+one `*verb.Plan` per invocation (applying each in order, tracking the
+last commit sha). Every existing `FinishVerb` consumer's JSON and text
+envelope output is pinned byte-for-byte by test before and after the
+extension — the contract grows two capabilities without moving any
+existing caller's bytes.
+
 ### AC-2 — archive, rewidth, import dispatch via FinishVerb; triads deleted
+
+`archive`, `rewidth`, and `import` route their outcome handling
+through the extended `FinishVerb` instead of their own hand-rolled
+`failX`/`emitXEnvelope`/`withCommitSHA` triads. Each of the three
+verbs' envelope output (dry-run and applied, text and JSON) is pinned
+by test before its triad is deleted, and the triad functions are
+removed from all three packages.
 
 ## Constraints
 
