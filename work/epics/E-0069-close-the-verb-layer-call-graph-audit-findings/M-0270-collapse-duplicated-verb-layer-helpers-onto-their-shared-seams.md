@@ -22,7 +22,7 @@ acs:
       status: met
     - id: AC-6
       title: a gap tracks that aiwf upgrade has no automated rollback
-      status: open
+      status: met
 ---
 ## Goal
 
