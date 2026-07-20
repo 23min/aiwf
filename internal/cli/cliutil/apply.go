@@ -2,6 +2,7 @@ package cliutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -12,6 +13,23 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
+// internalError marks a message that FinishVerb/FinishVerbOutcome's
+// err branch maps to ExitInternal instead of the default ExitUsage —
+// the caller's own infrastructure breaking (a config/tree load
+// failure, a domain verb call erroring outright) rather than a usage
+// mistake. Wrap with ErrInternal; unexported so callers can't
+// construct one bypassing that constructor.
+type internalError struct{ msg string }
+
+func (e *internalError) Error() string { return e.msg }
+
+// ErrInternal wraps msg as an error that FinishVerb/FinishVerbOutcome
+// report as ExitInternal (3) rather than the default ExitUsage (2) for
+// a non-Coded error — e.g. archive/rewidth/import's early
+// LoadTreeWithTrunk / verb-call failures (M-0271/AC-2), which predate
+// FinishVerb and were always ExitInternal.
+func ErrInternal(msg string) error { return &internalError{msg: msg} }
+
 // FinishVerb is the post-verb handler shared by every mutating
 // subcommand: it surfaces the verb's outcome in the chosen output format
 // (text by default, a JSON envelope under --format=json per D-0013),
@@ -21,6 +39,8 @@ import (
 //   - a Coded error (entity.Code resolves) → ExitFindings (1): a
 //     legality refusal, unified with the check-time exit for the same
 //     violation class (D-0013, decision C2);
+//   - an ErrInternal-wrapped error → ExitInternal (3): the caller's
+//     own infrastructure broke, not a usage mistake;
 //   - any other verb error → ExitUsage (2);
 //   - nil result / no plan / apply failure → ExitInternal (3);
 //   - error-severity findings → ExitFindings (1);
@@ -102,10 +122,15 @@ func FinishVerbOutcome(ctx context.Context, root, label string, outcome *Outcome
 	if err != nil {
 		codeStr, isCoded := entity.Code(err)
 		out.emitErrorEnvelope(label, codeStr, err.Error())
-		if isCoded {
+		var internalErr *internalError
+		switch {
+		case isCoded:
 			return ExitFindings, ""
+		case errors.As(err, &internalErr):
+			return ExitInternal, ""
+		default:
+			return ExitUsage, ""
 		}
-		return ExitUsage, ""
 	}
 	if outcome == nil {
 		out.emitErrorEnvelope(label, "", "no result returned")

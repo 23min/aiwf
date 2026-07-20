@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -58,6 +59,22 @@ func TestFinishVerbOutcome_ErrBranches(t *testing.T) {
 		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, errors.New("boom"), out)
 		if code != ExitUsage || sha != "" {
 			t.Errorf("code=%d sha=%q, want ExitUsage/empty", code, sha)
+		}
+	})
+
+	t.Run("ErrInternal-wrapped error -> ExitInternal", func(t *testing.T) {
+		t.Parallel()
+		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, ErrInternal("loading tree: boom"), out)
+		if code != ExitInternal || sha != "" {
+			t.Errorf("code=%d sha=%q, want ExitInternal/empty", code, sha)
+		}
+	})
+
+	t.Run("wrapped ErrInternal (fmt.Errorf %w) still -> ExitInternal", func(t *testing.T) {
+		t.Parallel()
+		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, fmt.Errorf("context: %w", ErrInternal("boom")), out)
+		if code != ExitInternal || sha != "" {
+			t.Errorf("code=%d sha=%q, want ExitInternal/empty", code, sha)
 		}
 	})
 }
@@ -334,6 +351,20 @@ func TestFinishVerbOutcome_ApplyError_MessageFormat(t *testing.T) {
 		}
 		if got := errOut[len(wantPrefix):]; got != "" && got[:len("applying plan")] == "applying plan" {
 			t.Errorf("stderr = %q, single-Plan apply errors must not carry the \"applying plan N:\" prefix", errOut)
+		}
+	})
+
+	t.Run("--trace still reports the failure (traceLog fires on the error path too)", func(t *testing.T) {
+		root := seedRepo(t)
+		outcome := &Outcome{Plans: []*verb.Plan{emptyPlan("empty plan")}}
+		_, errOut := captureStdStreams(t, func() {
+			code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", outcome, nil, OutputFormat{Format: "text", Trace: true})
+			if code != ExitInternal || sha != "" {
+				t.Errorf("code=%d sha=%q, want ExitInternal/empty", code, sha)
+			}
+		})
+		if errOut == "" {
+			t.Error("stderr is empty, want the apply-failure message even with --trace set")
 		}
 	})
 

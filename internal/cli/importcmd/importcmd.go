@@ -11,14 +11,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/manifest"
-	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf import <manifest>`. Reads the manifest,
@@ -71,14 +68,18 @@ func NewCmd(correlationID string) *cobra.Command {
 
 // Run executes `aiwf import`. Returns one of the cliutil.Exit* codes.
 func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, out cliutil.OutputFormat) (code int) {
+	ctx := context.Background()
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
-		return failImport(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf import", nil, err, out)
+		return code
 	}
 
 	m, err := manifest.ParseFile(manifestPath)
 	if err != nil {
-		return failImport(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, err, out)
+		return code
 	}
 
 	// Actor resolution: --actor wins, then manifest.actor, then
@@ -90,12 +91,11 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 	if actorStr == "" {
 		resolved, aErr := cliutil.ResolveActor("", rootDir)
 		if aErr != nil {
-			return failImport(out, aErr.Error(), cliutil.ExitUsage)
+			code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, aErr, out)
+			return code
 		}
 		actorStr = resolved
 	}
-
-	ctx := context.Background()
 
 	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
 	// M-0238/AC-5 pattern. import can batch multiple entities into one
@@ -129,7 +129,8 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 	// rewidth.
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		return failImport(out, fmt.Sprintf("loading tree: %v", err), cliutil.ExitInternal)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, cliutil.ErrInternal(fmt.Sprintf("loading tree: %v", err)), out)
+		return code
 	}
 
 	// Provenance coherence: when the operator is non-human, a principal
@@ -139,10 +140,12 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		return failImport(out, fmt.Sprintf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, fmt.Errorf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), out)
+		return code
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		return failImport(out, "--principal is forbidden when --actor is human/ (humans act directly)", cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, fmt.Errorf("--principal is forbidden when --actor is human/ (humans act directly)"), out)
+		return code
 	}
 
 	res, err := verb.Import(ctx, tr, m, actorStr, verb.ImportOptions{
@@ -150,31 +153,18 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 		TitleMaxLength: cliutil.ConfiguredTitleMaxLength(rootDir),
 	})
 	if err != nil {
-		return failImport(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, err, out)
+		return code
 	}
 
-	if check.HasErrors(res.Findings) {
-		if out.JSON() {
-			env := render.Envelope{
-				Tool:     "aiwf",
-				Version:  version.Current().Version,
-				Status:   render.StatusFor(res.Findings),
-				Findings: res.Findings,
-				Metadata: out.Metadata(nil),
-			}
-			_ = render.JSON(os.Stdout, env, out.Pretty)
-			return cliutil.ExitFindings
-		}
-		_ = render.Text(os.Stderr, res.Findings)
-		return cliutil.ExitFindings
-	}
 	if len(res.Plans) == 0 {
-		if out.JSON() {
-			emitImportEnvelope(out, "aiwf import: manifest had no entities to import.", nil)
-			return cliutil.ExitOK
+		outcome := &cliutil.Outcome{
+			Findings:    res.Findings,
+			NoOp:        true,
+			NoOpMessage: "aiwf import: manifest had no entities to import.",
 		}
-		cliutil.Println("aiwf import: manifest had no entities to import.")
-		return cliutil.ExitOK
+		code, sha = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", outcome, nil, out)
+		return code
 	}
 
 	// entityIDs comes from each plan's aiwf-entity trailers, not
@@ -184,56 +174,54 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 	// way, the trailers are the single source of truth for "how many
 	// entities" independent of how they're grouped into commits.
 	entityIDs := importedEntityIDs(res.Plans)
+	batchMetadata := map[string]any{"imported_count": len(entityIDs), "entity_ids": entityIDs}
 
-	if dryRun {
-		if out.JSON() {
-			emitImportEnvelope(out, fmt.Sprintf("aiwf import: dry-run — %d entities would land", len(entityIDs)), map[string]any{"imported_count": len(entityIDs), "entity_ids": entityIDs})
-			return cliutil.ExitOK
-		}
-		cliutil.Printf("aiwf import: dry-run — %d plan(s) would land:\n", len(res.Plans))
-		for _, p := range res.Plans {
-			cliutil.Printf("  %s\n", p.Subject)
-			for _, op := range p.Ops {
-				cliutil.Printf("    write %s (%d bytes)\n", op.Path, len(op.Content))
+	if !dryRun {
+		// Stamp the principal trailer on every per-entity plan so the
+		// resulting commits satisfy CheckTrailerCoherence (non-human
+		// actor requires a principal). Per-entity scope authorization
+		// (aiwf-on-behalf-of / aiwf-authorized-by) is G22.
+		if actorIsNonHuman {
+			for _, p := range res.Plans {
+				p.Trailers = append(p.Trailers, gitops.Trailer{
+					Key:   gitops.TrailerPrincipal,
+					Value: principalStr,
+				})
 			}
 		}
-		cliutil.Println("\naiwf import: dry-run complete. Re-run without --dry-run to apply.")
-		return cliutil.ExitOK
 	}
 
-	var lastSHA string
-	for i, p := range res.Plans {
-		if actorIsNonHuman {
-			// Stamp the principal trailer on every per-entity plan
-			// so the resulting commits satisfy CheckTrailerCoherence
-			// (non-human actor requires a principal). Per-entity
-			// scope authorization (aiwf-on-behalf-of /
-			// aiwf-authorized-by) is G22.
-			p.Trailers = append(p.Trailers, gitops.Trailer{
-				Key:   gitops.TrailerPrincipal,
-				Value: principalStr,
-			})
-		}
-		planSHA, applyErr := verb.Apply(ctx, rootDir, p)
-		if applyErr != nil {
-			return failImport(out, fmt.Sprintf("applying plan %d: %v", i, applyErr), cliutil.ExitInternal)
-		}
-		lastSHA = planSHA
-		if !out.JSON() {
-			cliutil.Println(p.Subject)
-		}
+	outcome := &cliutil.Outcome{
+		Findings: res.Findings,
+		Plans:    res.Plans,
+		Metadata: batchMetadata,
 	}
-	sha = lastSHA
-	if out.JSON() {
+	if dryRun {
+		outcome.DryRun = true
+		outcome.Subject = fmt.Sprintf("aiwf import: dry-run — %d entities would land", len(entityIDs))
+		outcome.TextDetail = func() {
+			cliutil.Printf("aiwf import: dry-run — %d plan(s) would land:\n", len(res.Plans))
+			for _, p := range res.Plans {
+				cliutil.Printf("  %s\n", p.Subject)
+				for _, op := range p.Ops {
+					cliutil.Printf("    write %s (%d bytes)\n", op.Path, len(op.Content))
+				}
+			}
+			cliutil.Println("\naiwf import: dry-run complete. Re-run without --dry-run to apply.")
+		}
+	} else {
 		// One envelope for the whole batch (M-0239/AC-2): import can
 		// produce more than one commit (manifest.CommitPerEntity is a
 		// deliberate exception to the one-verb-one-commit norm), so
-		// commit_sha here is the batch's LAST commit, not "the"
-		// commit — entity_ids carries every imported id so a caller
-		// can still resolve each one's own commit via `aiwf history`.
-		emitImportEnvelope(out, fmt.Sprintf("aiwf import: %d entities created", len(entityIDs)), withCommitSHA(map[string]any{"imported_count": len(entityIDs), "entity_ids": entityIDs}, lastSHA))
+		// commit_sha ends up carrying the batch's LAST commit, not
+		// "the" commit — entity_ids carries every imported id so a
+		// caller can still resolve each one's own commit via
+		// `aiwf history`.
+		outcome.Subject = fmt.Sprintf("aiwf import: %d entities created", len(entityIDs))
 	}
-	return cliutil.ExitOK
+
+	code, sha = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", outcome, nil, out)
+	return code
 }
 
 // importedEntityIDs collects every aiwf-entity trailer value across
@@ -250,53 +238,4 @@ func importedEntityIDs(plans []*verb.Plan) []string {
 		}
 	}
 	return ids
-}
-
-// failImport reports a terminal error in the chosen output format.
-// Mirrors archive/rewidth's identically-shaped helper.
-func failImport(out cliutil.OutputFormat, message string, code int) int {
-	if !out.JSON() {
-		cliutil.Errorf("aiwf import: %s\n", message)
-		return code
-	}
-	env := render.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "error",
-		Error:   &render.EnvelopeError{Message: message},
-	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
-	return code
-}
-
-// emitImportEnvelope writes a status:"ok" envelope carrying subject
-// and metadata (correlation_id merged in via out.Metadata). Called
-// only when out.JSON() is true.
-func emitImportEnvelope(out cliutil.OutputFormat, subject string, metadata map[string]any) {
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   "ok",
-		Result:   map[string]any{"subject": subject},
-		Metadata: out.Metadata(metadata),
-	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
-}
-
-// withCommitSHA returns a copy of md with "commit_sha" set to sha,
-// without mutating md. Mirrors archive/rewidth's identical helper
-// (unexported, cross-package — each verb that builds its own envelope
-// needs its own copy). sha is always non-empty at this function's one
-// call site; render.Envelope's Metadata field carries omitempty,
-// which treats a zero-length map the same as nil, so no empty/nil
-// special-casing is needed here.
-func withCommitSHA(md map[string]any, sha string) map[string]any {
-	out := make(map[string]any, len(md)+1)
-	for k, v := range md {
-		out[k] = v
-	}
-	if sha != "" {
-		out["commit_sha"] = sha
-	}
-	return out
 }
