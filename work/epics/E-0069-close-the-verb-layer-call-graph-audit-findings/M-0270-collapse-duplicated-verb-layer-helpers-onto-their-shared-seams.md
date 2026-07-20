@@ -154,10 +154,17 @@ presence-check policy for; out of this AC's mechanical scope.
 `exec.Command("go", "install", ...)` call — a reasonable minimalist design,
 not an oversight, but one that ships no aiwf-level backup-old-binary step,
 so a broken newly-installed binary has no automated rollback path (the
-operator would have to manually `go install <pkg>@<older-tag>`). The
-release-process documentation states this property explicitly, so a
-"cut a release" / "aiwf upgrade" conversation doesn't wrongly assume
-rollback exists.
+operator would have to manually `go install <pkg>@<older-tag>`).
+
+The absence itself, not a description of it, is the fact worth tracking:
+`G-0430` records it as a first-class, queryable gap rather than static prose.
+CLAUDE.md is repo-development-only and never ships to consumers, so prose
+there would never reach an operator who needs this; `--help` would
+prematurely document a `--rollback` flag that doesn't exist. A gap gives
+the open question ("is minimalism the right call here, or should `aiwf
+upgrade --rollback` eventually be built?") a permanent home that a future
+milestone building rollback naturally closes — updating `--help` at that
+point, when there's an actual flag to describe.
 
 ## Constraints
 
