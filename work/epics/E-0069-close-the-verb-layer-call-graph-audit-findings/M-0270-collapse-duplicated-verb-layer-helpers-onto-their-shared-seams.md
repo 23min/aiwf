@@ -242,15 +242,25 @@ doctor/initrepo/cliutil/initcmd/update suite green, wf-vacuity
 mutation probe 3/4 caught (1 revealed a pre-existing untested-wiring
 gap in initcmd/update, not introduced by this AC)
 
+### AC-6 — a gap tracks the missing rollback capability
+
+The absence is tracked as a first-class gap entity, `G-0430`, pinned
+by a mechanical-evidence test resolving it through the loader ·
+commit 86709d10 · full policies suite green, gap-status mutation
+confirmed the test catches drift
+
 ## Decisions made during implementation
 
-- (none)
+- `D-0043` — track `aiwf upgrade`'s missing rollback as a gap (`G-0430`),
+  not doc prose in CLAUDE.md or `--help` (AC-6).
 
 ## Validation
 
 ## Deferrals
 
-- (none)
+- `G-0430` — whether `aiwf upgrade` should eventually build automated
+  rollback for a bad binary swap is an open question this milestone
+  doesn't answer (F12; AC-6 tracks the absence, not a fix).
 
 ## Reviewer notes
 
