@@ -1,7 +1,7 @@
 ---
 id: D-0044
 title: Add ErrInternal marker to FinishVerbOutcome's err contract
-status: proposed
+status: accepted
 relates_to:
     - M-0271
 ---
