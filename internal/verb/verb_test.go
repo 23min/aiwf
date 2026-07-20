@@ -1105,6 +1105,27 @@ func TestReallocate_NonExistentTarget(t *testing.T) {
 	}
 }
 
+// TestCancel_ADRAcceptedHasNoCancelTarget pins the "no cancel target"
+// refusal (entity.CancelTarget returns "" for a non-proposed ADR):
+// an `accepted` ADR is not terminal (IsTerminal is false — it still
+// has an outgoing FSM edge to `superseded`), so Cancel's pre-flight
+// terminal check at the top of the function does not catch it, and
+// CancelTarget(KindADR, "accepted") returns "" since only `proposed`
+// ADRs map to `rejected`. This is the one entity-state shape where
+// Cancel legitimately reaches its "has no cancel target" branch
+// rather than the earlier "already at terminal" one.
+func TestCancel_ADRAcceptedHasNoCancelTarget(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Adopt something", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", entity.StatusAccepted, testActor, "", false, verb.PromoteOptions{}))
+
+	_, err := verb.Cancel(r.ctx, r.tree(), "ADR-0001", testActor, "", false)
+	if err == nil || !strings.Contains(err.Error(), "has no cancel target") {
+		t.Errorf("expected 'has no cancel target' error, got %v", err)
+	}
+}
+
 // TestCancel_AlreadyTerminal returns an error rather than producing a
 // no-op commit.
 func TestCancel_AlreadyTerminal(t *testing.T) {

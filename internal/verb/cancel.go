@@ -52,6 +52,7 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		return nil, fmt.Errorf("%s (kind %q, status %q) has no cancel target", id, e.Kind, e.Status)
 	}
 	if e.Status == target {
+		//coverage:ignore defensive: mathematically unreachable given the IsTerminal check above — CancelTarget only ever returns "" or one of the kind's own terminal statuses, so e.Status == target implies IsTerminal(e.Kind, e.Status) is already true, which the earlier guard already refused
 		return nil, fmt.Errorf("%s is already %s", id, target)
 	}
 
@@ -81,15 +82,18 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
+		//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
 		return nil, err
 	}
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
+		//coverage:ignore defensive: Serialize fails only on a malformed entity; e already round-tripped through the loader
 		return nil, fmt.Errorf("serializing %s: %w", id, err)
 	}
 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
 	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
+		//coverage:ignore defensive: Cancel only ever writes a status flip to one of the kind's own terminal-cancel values, and the two known cascade-shaped findings this could otherwise introduce (epic-cancel-non-terminal-children, milestone-cancelled-incomplete-acs) are already refused above by epicChildrenCascadeGuard/milestoneACsCascadeGuard before reaching this projection — this check-rule pass is defense-in-depth for a finding class not yet identified, not a reachable path through the verb's own current call graph
 		return findings(fs), nil
 	}
 
