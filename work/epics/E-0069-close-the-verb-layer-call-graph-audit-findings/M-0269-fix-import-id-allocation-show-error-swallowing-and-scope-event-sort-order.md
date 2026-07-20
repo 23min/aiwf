@@ -124,6 +124,16 @@ never fire in practice because the direct history read immediately
 above it uses the identical `git log`-from-HEAD primitive and always
 fails first · commit `f3e7a0ee` · tests 2/2.
 
+### AC-3 — scope events sort chronologically across timezones
+
+`AssembleScopeViews`' sort compared `%aI` timestamp strings lexically,
+which preserve each commit author's local UTC offset instead of
+normalizing to UTC — two events could sort out of true chronological
+order across timezones. Added `parseOpened` (parses to `time.Time`,
+falling back to the zero time on empty/malformed input) and compare
+via `.Before()`. `show` and `render` share the one sort call, so both
+are fixed together · commit `5382c117` · tests 2/2.
+
 ## Decisions made during implementation
 
 - (none)
