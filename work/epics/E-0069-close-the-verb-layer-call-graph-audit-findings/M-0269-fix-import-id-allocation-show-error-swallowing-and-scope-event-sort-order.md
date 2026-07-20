@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: a policy fails any verb minting entity ids outside entity.AllocateID
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
