@@ -134,6 +134,20 @@ falling back to the zero time on empty/malformed input) and compare
 via `.Before()`. `show` and `render` share the one sort call, so both
 are fixed together · commit `5382c117` · tests 2/2.
 
+### AC-4 — a policy fails any verb minting entity ids outside entity.AllocateID
+
+Added `PolicyMintIDsViaAllocate`: an AST scan over `internal/verb/*.go`
+that fails on any `fmt.Sprintf` call using a zero-pad numeric format
+verb (`%0*d`/`%0Nd`) — the shape `entity.AllocateID`'s own formatting
+uses and the shape G-0426's deleted helpers duplicated.
+`internal/verb/rewidth.go` is allowlisted (`padToCanonical` re-pads an
+id already present in on-disk text, not a highest+1 mint). Registered
+as `TestPolicy_MintIDsViaAllocate`, clean against the live tree · a
+follow-up commit closed a `make coverage-gate` finding on two
+pre-existing, previously-untested `BuildCompositeShowView` not-found
+branches AC-2 had mechanically touched · commits `281c471f`,
+`82ca7683` · tests 9/9 (policy) + 2/2 (coverage-gap fix).
+
 ## Decisions made during implementation
 
 - (none)
