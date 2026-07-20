@@ -965,7 +965,7 @@ reaches every verb from one place instead of drifting per hand-rolled copy.
 |---|---|---|
 | M-0269 | Fix import id allocation, show error swallowing, and scope-event sort order | done |
 | M-0270 | Collapse duplicated verb-layer helpers onto their shared seams | done |
-| M-0271 | Extend FinishVerb with dry-run and multi-Plan; migrate its three bypassers | draft |
+| M-0271 | Extend FinishVerb with dry-run and multi-Plan; migrate its three bypassers | in_progress |
 | M-0272 | Extract the read-side helpers into a neutral entityview package | draft |
 | M-0273 | Converge contract-mutating verbs on one shared diff-based validation gate | draft |
 
