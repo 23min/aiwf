@@ -154,10 +154,18 @@ branches AC-2 had mechanically touched · commits `281c471f`,
 
 ## Validation
 
+- `make check-fast` (build + `go vet` + full test suite) green at final state.
+- `make lint` (full `golangci-lint` set, worktree-scoped cache): 0 issues.
+- `make coverage-gate` (diff-scoped branch-coverage audit, firing-fixture-presence, firing-fixture-no-stale-allowlist, skill-edit-structural-test-backstop): all green.
+- `aiwf check`: 0 error-severity findings (1 pre-existing advisory warning: no upstream configured in this worktree).
+- Independent two-lens review: three fresh-context `wf-review-code` passes (AC-1/import, AC-2+AC-3/show, AC-4/policies), each verifying load-bearing claims by measurement (running tests, reverting fixes to confirm regression coverage, reading downstream call chains) rather than trusting the description. Unanimous **approve**, zero blocking findings. `wf-rethink`: not applicable — no AC introduced a new module/package boundary, core abstraction, or data model.
+- `wf-doc-lint` (scoped to the change-set): clean for wrap purposes — the only hits are pre-existing stale line-number citations in `docs/initiatives/verb-layer-cleanup.md` (the audit source doc) and `docs/pocv3/health-scorecard-2026-06-04.md`, both historical-record docs whose citations are expected to age past a fix landing (analogous to CHANGELOG.md's append-only-history exemption).
+
 ## Deferrals
 
-- (none)
+- G-0429 — collapse `BuildShowView`/`BuildCompositeShowView`'s duplicated history+scope read tail (including a duplicated `//coverage:ignore` rationale) into a shared helper. The duplication predates this milestone; AC-2's fail-loud fix faithfully mirrored the existing shape into both call sites rather than introducing new duplication, but it's now a clear candidate for the shared-seam collapse class E-0069's M-0270 milestone targets.
 
 ## Reviewer notes
 
-- (none)
+- AC-4's `PolicyMintIDsViaAllocate` detects id-minting via its `fmt.Sprintf` zero-pad-verb shape specifically — the exact shape the deleted G-0426 helpers used. A hand-rolled minter that instead built digits via `strconv`/manual byte-loop concatenation (avoiding `Sprintf` entirely) would evade it. Deliberate, proportionate scope per the milestone's own AC-4 note (mirrors the shape `entity.AllocateID`'s own formatting uses); a full data-flow "computes highest+1 then formats an id" detector was judged disproportionate (YAGNI) by both the implementation and the independent review.
+- `docs/initiatives/verb-layer-cleanup.md`'s F8/F13/F14 findings cite pre-fix file:line positions for code this milestone deleted or moved (e.g. `import.go:244-306`). Left as-is per the doc's role as an audit-history record (not updated by this milestone); refreshing or closing out those findings' line references is an epic-wrap-level concern, not this milestone's.
