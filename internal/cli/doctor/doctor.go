@@ -487,7 +487,7 @@ func appendHookReport(in []string, problemsIn []Problem, rootDir string) (lines 
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), initrepo.HookMarker()) {
-		val := "present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push"
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); aiwf check is not running pre-push", initrepo.HookMarker())
 		lines = append(lines, label("hook:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -604,7 +604,7 @@ func appendPreCommitHookReport(in []string, problemsIn []Problem, rootDir string
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), initrepo.PreCommitHookMarker()) {
-		val := "present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced"
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); tree-discipline gate is not enforced", initrepo.PreCommitHookMarker())
 		lines = append(lines, label("pre-commit:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -689,7 +689,7 @@ func appendCommitMsgHookReport(in []string, problemsIn []Problem, rootDir string
 		return lines, problems
 	}
 	if !strings.Contains(string(raw), initrepo.CommitMsgHookMarker()) {
-		val := "present but not aiwf-managed (no `# aiwf:commit-msg` marker); G-0218 fabricated-trailer chokepoint is not enforced"
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); G-0218 fabricated-trailer chokepoint is not enforced", initrepo.CommitMsgHookMarker())
 		lines = append(lines, label("commit-msg:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -741,7 +741,7 @@ func appendPostCommitHookReport(in []string, problemsIn []Problem, rootDir strin
 	}
 	hasOurMarker := strings.Contains(string(raw), initrepo.PostCommitHookMarker())
 	if !hasOurMarker {
-		val := "present but not aiwf-managed (no `# aiwf:post-commit` marker); STATUS.md regen will not run"
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); STATUS.md regen will not run", initrepo.PostCommitHookMarker())
 		lines = append(lines, label("post-commit:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems

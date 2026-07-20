@@ -22,11 +22,11 @@ func RegisterFormatCompletion(cmd *cobra.Command) {
 }
 
 // CompleteHookNames offers the shipped hook registry's names for
-// `--enable-hook <TAB>`. Empty (no completions) until a milestone
-// registers the first concrete hook (M-0236) — mirrors
-// completeDeclaredValidators' shape for a runtime-derived,
-// possibly-empty set. Shared by `aiwf init` and `aiwf update` (F9) —
-// both previously carried byte-identical unexported copies.
+// `--enable-hook <TAB>`, derived from skills.ShippedHooks — mirrors
+// completeDeclaredValidators' shape for a runtime-derived set (empty
+// if the registry ever shrinks back to zero hooks, rather than
+// hardcoding today's names). Shared by `aiwf init` and `aiwf update`
+// (F9) — both previously carried byte-identical unexported copies.
 func CompleteHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return skills.HookNamesFrom(skills.ShippedHooks), cobra.ShellCompDirectiveNoFileComp
 }
