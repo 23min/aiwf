@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Cancel and Promote share one cascade guard; Cancel moves to cancel.go
-      status: open
+      status: met
     - id: AC-4
       title: reflog walk uses gitops.LocalBranchRefs; porcelain-only fns annotated
       status: open
