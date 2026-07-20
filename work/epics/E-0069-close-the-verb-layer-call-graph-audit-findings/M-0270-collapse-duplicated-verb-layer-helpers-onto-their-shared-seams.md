@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: doctor reads hook and guidance markers via initrepo; completeHookNames deduped
-      status: open
+      status: met
     - id: AC-6
       title: release docs state aiwf upgrade has no automated rollback
       status: open
