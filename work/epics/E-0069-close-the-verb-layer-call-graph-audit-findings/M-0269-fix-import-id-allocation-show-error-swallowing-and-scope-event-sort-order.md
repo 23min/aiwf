@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: a policy fails any verb minting entity ids outside entity.AllocateID
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
