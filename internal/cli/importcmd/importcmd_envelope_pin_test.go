@@ -1,6 +1,7 @@
 package importcmd_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/importcmd"
+	"github.com/23min/aiwf/internal/gitops"
 )
 
 // seedGitRoot git-inits t.TempDir() so a real `--apply` invocation
@@ -130,6 +132,36 @@ func TestImport_JSONApply_AggregateSubjectAndLastPlanSHA(t *testing.T) {
 	ids, _ := env.Metadata["entity_ids"].([]any)
 	if len(ids) != 2 {
 		t.Errorf("metadata.entity_ids = %v, want 2 entries", env.Metadata["entity_ids"])
+	}
+}
+
+// TestImport_NonHumanActorWithPrincipal_StampsTrailer — when a
+// non-human actor supplies a valid --principal, the apply path runs
+// and stamps aiwf-principal on every resulting commit. Mirrors
+// archive/rewidth's same-shape test
+// (TestArchive_NonHumanActorWithPrincipal_StampsTrailer). Uses the
+// per-entity manifest so both of the batch's two commits are checked,
+// not just the last one.
+func TestImport_NonHumanActorWithPrincipal_StampsTrailer(t *testing.T) {
+	root := seedGitRoot(t)
+	manifest := writeManifest(t, root, twoEntityPerEntityManifest)
+	rc := importcmd.Run(manifest, root, "ai/claude", "human/test", "", false, cliutil.OutputFormat{})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("import (non-human + principal) rc = %d, want cliutil.ExitOK", rc)
+	}
+
+	tr, err := gitops.HeadTrailers(context.Background(), root)
+	if err != nil {
+		t.Fatalf("HeadTrailers: %v", err)
+	}
+	hasPrincipal := false
+	for _, e := range tr {
+		if e.Key == gitops.TrailerPrincipal && e.Value == "human/test" {
+			hasPrincipal = true
+		}
+	}
+	if !hasPrincipal {
+		t.Errorf("aiwf-principal trailer missing on non-human-actor commit (provenance model violation):\n  trailers: %+v", tr)
 	}
 }
 

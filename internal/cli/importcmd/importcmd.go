@@ -129,7 +129,7 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 	// rewidth.
 	tr, _, err := cliutil.LoadTreeWithTrunk(ctx, rootDir)
 	if err != nil {
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, cliutil.ErrInternal(fmt.Sprintf("loading tree: %v", err)), out)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf import", nil, cliutil.ErrInternal(fmt.Errorf("loading tree: %w", err)), out)
 		return code
 	}
 

@@ -157,7 +157,7 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 
 	result, err := verb.Rewidth(ctx, rootDir, actorStr)
 	if err != nil { //coverage:ignore verb.Rewidth only errors on filesystem failures; tempdir-based tests can't reproduce
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, cliutil.ErrInternal(err.Error()), out)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, cliutil.ErrInternal(err), out)
 		return code
 	}
 
@@ -182,7 +182,7 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 			if !apply {
 				outcome.DryRun = true
 				outcome.Subject = result.Plan.Subject + " (dry-run; re-run with --apply to commit)"
-				outcome.TextDetail = func() { printRewidthDryRun(result.Plan) }
+				outcome.TextDetail = func() { printRewidthDryRun(outcome.Subject, result.Plan) }
 			}
 		}
 	} else {
@@ -265,9 +265,11 @@ func rewidthPreflight(ctx context.Context, rootDir string) int {
 
 // printRewidthDryRun prints a human-readable summary of the planned
 // renames + body rewrites. Stdout, not stderr — the user reads this
-// to decide whether to re-run with --apply.
-func printRewidthDryRun(p *verb.Plan) {
-	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+// to decide whether to re-run with --apply. subject is the caller's
+// already-computed dry-run subject (the same string riding in
+// Outcome.Subject) so the two never drift independently.
+func printRewidthDryRun(subject string, p *verb.Plan) {
+	cliutil.Println(subject)
 	if p.Body != "" {
 		cliutil.Println()
 		cliutil.Print(p.Body)

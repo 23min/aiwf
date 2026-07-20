@@ -64,7 +64,7 @@ func TestFinishVerbOutcome_ErrBranches(t *testing.T) {
 
 	t.Run("ErrInternal-wrapped error -> ExitInternal", func(t *testing.T) {
 		t.Parallel()
-		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, ErrInternal("loading tree: boom"), out)
+		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, ErrInternal(errors.New("loading tree: boom")), out)
 		if code != ExitInternal || sha != "" {
 			t.Errorf("code=%d sha=%q, want ExitInternal/empty", code, sha)
 		}
@@ -72,9 +72,18 @@ func TestFinishVerbOutcome_ErrBranches(t *testing.T) {
 
 	t.Run("wrapped ErrInternal (fmt.Errorf %w) still -> ExitInternal", func(t *testing.T) {
 		t.Parallel()
-		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, fmt.Errorf("context: %w", ErrInternal("boom")), out)
+		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf test", nil, fmt.Errorf("context: %w", ErrInternal(errors.New("boom"))), out)
 		if code != ExitInternal || sha != "" {
 			t.Errorf("code=%d sha=%q, want ExitInternal/empty", code, sha)
+		}
+	})
+
+	t.Run("ErrInternal unwraps to the original cause (errors.Is)", func(t *testing.T) {
+		t.Parallel()
+		sentinel := errors.New("disk full")
+		err := ErrInternal(sentinel)
+		if !errors.Is(err, sentinel) {
+			t.Error("errors.Is(ErrInternal(sentinel), sentinel) = false, want true — ErrInternal must not discard the error chain")
 		}
 	})
 }

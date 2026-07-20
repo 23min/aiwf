@@ -13,22 +13,24 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// internalError marks a message that FinishVerb/FinishVerbOutcome's
-// err branch maps to ExitInternal instead of the default ExitUsage —
-// the caller's own infrastructure breaking (a config/tree load
-// failure, a domain verb call erroring outright) rather than a usage
-// mistake. Wrap with ErrInternal; unexported so callers can't
-// construct one bypassing that constructor.
-type internalError struct{ msg string }
+// internalError marks an error that FinishVerb/FinishVerbOutcome's err
+// branch maps to ExitInternal instead of the default ExitUsage — the
+// caller's own infrastructure breaking (a config/tree load failure, a
+// domain verb call erroring outright) rather than a usage mistake.
+// Wrap with ErrInternal; unexported so callers can't construct one
+// bypassing that constructor.
+type internalError struct{ err error }
 
-func (e *internalError) Error() string { return e.msg }
+func (e *internalError) Error() string { return e.err.Error() }
+func (e *internalError) Unwrap() error { return e.err }
 
-// ErrInternal wraps msg as an error that FinishVerb/FinishVerbOutcome
+// ErrInternal wraps err as an error that FinishVerb/FinishVerbOutcome
 // report as ExitInternal (3) rather than the default ExitUsage (2) for
 // a non-Coded error — e.g. archive/rewidth/import's early
 // LoadTreeWithTrunk / verb-call failures (M-0271/AC-2), which predate
-// FinishVerb and were always ExitInternal.
-func ErrInternal(msg string) error { return &internalError{msg: msg} }
+// FinishVerb and were always ExitInternal. Unwraps to err, so a caller
+// further up the stack can still errors.Is/As into the original cause.
+func ErrInternal(err error) error { return &internalError{err: err} }
 
 // FinishVerb is the post-verb handler shared by every mutating
 // subcommand: it surfaces the verb's outcome in the chosen output format

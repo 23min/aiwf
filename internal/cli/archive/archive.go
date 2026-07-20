@@ -184,7 +184,7 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, cliutil.ErrInternal(err.Error()), out)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, cliutil.ErrInternal(err), out)
 		return code
 	}
 
@@ -209,7 +209,7 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 			if !apply {
 				outcome.DryRun = true
 				outcome.Subject = result.Plan.Subject + " (dry-run; re-run with --apply to commit)"
-				outcome.TextDetail = func() { printArchiveDryRun(result.Plan) }
+				outcome.TextDetail = func() { printArchiveDryRun(outcome.Subject, result.Plan) }
 			}
 		}
 	} else {
@@ -234,9 +234,11 @@ func validArchiveKind(s string) bool {
 
 // printArchiveDryRun prints a human-readable summary of the planned
 // moves. Stdout, not stderr — the user reads this to decide whether
-// to re-run with --apply.
-func printArchiveDryRun(p *verb.Plan) {
-	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+// to re-run with --apply. subject is the caller's already-computed
+// dry-run subject (the same string riding in Outcome.Subject) so the
+// two never drift independently.
+func printArchiveDryRun(subject string, p *verb.Plan) {
+	cliutil.Println(subject)
 	if p.Body != "" {
 		cliutil.Println()
 		cliutil.Print(p.Body)
