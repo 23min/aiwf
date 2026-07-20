@@ -56,7 +56,7 @@ func PolicyMintIDsViaAllocate(root string) ([]Violation, error) {
 		"internal/verb/rewidth.go": "padToCanonical re-pads an id already present in on-disk text; not a highest+1 mint",
 	}
 	files, err := WalkGoFiles(root, true)
-	if err != nil { //coverage:ignore WalkGoFiles only errors on a filesystem-level fault (unreadable dir, mid-walk file removal) — not portably triggerable in a unit test; mirrors the identical unexercised guard on every sibling AST policy (e.g. atomic_write_chokepoint.go)
+	if err != nil { //coverage:ignore WalkGoFiles only errors on a filesystem-level fault (unreadable dir, mid-walk file removal) — not portably triggerable in a unit test; mirrors the identical unexercised guard on every sibling AST policy (e.g. logging_chokepoint.go, no_time_now_in_core.go)
 		return nil, err
 	}
 	var out []Violation

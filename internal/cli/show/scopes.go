@@ -173,10 +173,10 @@ func AssembleScopeViews(
 	return views, nil
 }
 
-// parseOpened parses a ScopeView.Opened/EndedAt timestamp (git's %aI
-// format — RFC3339 with the commit author's local UTC offset
-// preserved, not normalized to UTC) into a comparable time.Time so
-// the sort above compares true chronological instants rather than
+// parseOpened parses a ScopeView.Opened timestamp (git's %aI format —
+// RFC3339 with the commit author's local UTC offset preserved, not
+// normalized to UTC) into a comparable time.Time so the sort above
+// compares true chronological instants rather than
 // lexical strings (G-0428): two commits from authors in different
 // timezones can carry a lexically-earlier string for a
 // chronologically-later instant. Empty or malformed input parses to
