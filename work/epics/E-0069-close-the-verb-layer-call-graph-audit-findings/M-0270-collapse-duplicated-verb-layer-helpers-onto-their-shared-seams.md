@@ -121,19 +121,32 @@ wrapper. Corrected in place.
 
 ### AC-5 — doctor reads hook and guidance markers via initrepo; completeHookNames deduped
 
-`internal/cli/doctor/doctor.go` independently hardcodes the literal marker
+`internal/cli/doctor/doctor.go` independently hardcoded the literal marker
 strings (`"# aiwf:pre-push"`, `"# aiwf:pre-commit"`, `"# aiwf:commit-msg"`,
 `"# aiwf:post-commit"`) instead of calling `initrepo`'s already-exported
 `HookMarker()`/`PreCommitHookMarker()`/`CommitMsgHookMarker()`/
 `PostCommitHookMarker()`, whose doc comments state they exist for exactly
-this purpose. The same pattern repeats for the CLAUDE.md-import-marker
+this purpose. The same pattern repeated for the CLAUDE.md-import-marker
 check (`initrepo.go`'s `guidanceMarkerLineIdx` vs `doctor/guidance.go`'s
 `guidanceImportLinePresent`) and for `completeHookNames`, duplicated
 verbatim between `internal/cli/initcmd/initcmd.go` and
-`internal/cli/update/hooks.go`. `doctor.go` reads all four hook markers and
-the guidance marker via `initrepo`'s exported functions instead of its own
-copies, and `completeHookNames`'s duplicate collapses onto one shared
-definition both `initcmd.go` and `update/hooks.go` call.
+`internal/cli/update/hooks.go`. `doctor.go` now reads all four hook markers
+via `initrepo`'s exported functions; `guidanceMarkerLineIdx` is exported as
+`GuidanceMarkerLineIdx` and `doctor/guidance.go`'s copy deleted;
+`completeHookNames`'s duplicate collapses onto
+`cliutil.CompleteHookNames`, called by both `initcmd.go` and
+`update/hooks.go` (their byte-identical duplicate tests consolidated into
+one, in `cliutil`).
+
+A mutation probe on the marker-drift risk (change a marker constant,
+check whether detection and hook-writing silently drift together) found
+a stronger safety net than expected: `internal/initrepo`'s byte-golden
+hook-script fixture test independently pins the correct marker text, so
+a constant typo is caught even though detection and writing now share
+the same source. No mechanical backstop, however, would catch a future
+fifth hook marker added to `initrepo` without a corresponding `doctor`
+detection site wired up — the same "sin of omission" class F8 needed a
+presence-check policy for; out of this AC's mechanical scope.
 
 ### AC-6 — release docs state aiwf upgrade has no automated rollback
 
