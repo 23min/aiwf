@@ -4,7 +4,7 @@ title: Declare doc-authority hierarchy in CLAUDE.md
 status: draft
 parent: E-0034
 depends_on:
-    - M-0131
+    - M-0127
 tdd: none
 ---
 
