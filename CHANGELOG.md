@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0435: declared-sequence gate wording clarified as illustrative, not exhaustive
+
+The gate-discipline rule in `CLAUDE.md` and the shipped `aiwf-guidance.md`
+fragment now state the declared-sequence gate as a general test — any set
+of local, reversible mutations discovered together in one unit of work,
+verb types mixed freely — rather than an enumerated closed list of
+batchable shapes, so a genuinely local/reversible batch no longer defaults
+to per-action gating just because it mixes verb types the prior wording
+didn't name.
+
 ### Changed — G-0429: internal-only refactor, no user-visible behavior change
 
 `aiwf show`'s `BuildShowView` and `BuildCompositeShowView` no longer each carry
