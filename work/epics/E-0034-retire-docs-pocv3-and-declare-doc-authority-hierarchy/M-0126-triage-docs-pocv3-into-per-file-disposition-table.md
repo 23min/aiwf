@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: Supersede/delete rows carry entity id or justification
-      status: open
+      status: met
 ---
 
 ## Goal
