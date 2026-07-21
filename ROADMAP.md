@@ -950,7 +950,7 @@ Close three places where the kernel currently depends on operator vigilance inst
 | M-0267 | Relax acs-shape/tdd-phase to allow absent phase until AC met | done |
 | M-0268 | AC-completeness guards: zero-AC and empty-body promote refusals | done |
 
-## E-0069 — Close the verb-layer call-graph audit findings (active)
+## E-0069 — Close the verb-layer call-graph audit findings (done)
 
 ### Goal
 
