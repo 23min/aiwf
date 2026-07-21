@@ -121,9 +121,24 @@ the pure `diffIntroducedFindings` helper (split out during a `wf-
 vacuity` audit) · commit 94b5515f · tests
 `internal/verb/contractgate_test.go`, all green.
 
+### AC-2 — bind, unbind, recipe install, and recipe remove route through the shared gate
+
+`ContractBind`, `ContractUnbind`, `RecipeInstall`, `RecipeRemove`, and
+the atomic add+bind path (`internal/verb/add.go`) wired onto the
+shared gate; the three CLI dispatchers lacking a tree load
+(`internal/cli/contract/unbind.go`, `recipes.go`) now have one. Landed
+alongside a correctness fix to AC-1's gate itself (D-0046) and a set
+of `wf-vacuity`-driven tests closing gaps the wiring's own review
+surfaced · commit da14e458 · tests `internal/verb/contractbind_test.go`,
+`contractrecipe_test.go`, `contractgate_test.go`, all green; full
+`internal/cli/integration` contract-verb suite unmodified and green.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0046 — the shared gate diffs findings by identity
+  (Code/Severity/EntityID/Subcode/Path), not full-struct equality,
+  because `contractcheck.Run`'s `Message` embeds a positional index
+  that shifts on entry insert/remove.
 
 ## Validation
 
