@@ -33,7 +33,53 @@ milestone makes the diff the shared semantics.
 
 ### AC-1 — a shared gate reports only findings introduced by the projected mutation
 
+A new `internal/verb/contractgate.go` holds `contractMutationGate(t
+*tree.Tree, current, next *aiwfyaml.Contracts, repoRoot string)
+[]check.Finding`: it runs `contractcheck.Run` once against `current`
+and once against `next`, then returns the findings present in the
+`next` run that are not already present in the `current` run — a true
+multiset before/after diff, not an id-filtered subset. A finding
+present in both runs (a pre-existing issue on an entry the mutation
+didn't touch) is excluded; a finding introduced by the mutation, on
+any entry, is returned; a finding the mutation *resolves* (present
+before, absent after) is not reported — the gate only reports
+additions.
+
+Evidence: `internal/verb/contractgate_test.go` exercises the diff
+directly — a mutation that changes nothing produces zero introduced
+findings even when `current` already carries pre-existing findings; a
+mutation that adds an entry with a missing schema/fixtures path
+surfaces exactly those two findings; a pre-existing finding on an
+untouched entry is excluded from the introduced set even when the
+mutation is otherwise "dirty" elsewhere.
+
 ### AC-2 — bind, unbind, recipe install, and recipe remove route through the shared gate
+
+`ContractBind`, `ContractUnbind`, `RecipeInstall`, and `RecipeRemove`
+(`internal/verb/contractbind.go`, `contractrecipe.go`) all call
+`contractMutationGate` before writing, in place of bind's existing
+id-filtered `contractCheckForBinding` (removed) and unbind/recipe-
+install/recipe-remove's previous lack of any contract-check gate.
+Each verb function gains the `t *tree.Tree` and `repoRoot string`
+parameters needed to run the check; the CLI dispatchers that didn't
+already load a tree (`internal/cli/contract/unbind.go`, `recipes.go`'s
+install and remove paths) now do, mirroring `bind.go`'s existing
+`tree.Load` call. Recipe remove keeps its `bindingsReferencing`
+referential-integrity error ahead of the gate call, per the
+milestone's constraint — the gate is an additional safety net there,
+not a replacement for that specific error message.
+
+Evidence: the migrated `internal/verb/contractbind_test.go` /
+`contractrecipe_test.go` suites (updated call sites, still green) plus
+new coverage proving the previously-ungated verbs' safety net is live
+— a case constructed so unbind's or recipe-remove's projected mutation
+would introduce a contract-config finding, confirming the gate
+actually fires rather than just being wired in dead. `go vet`/`go
+build` clean repo-wide; the CLI-level `internal/cli/integration`
+contract-verb tests (`single_commit_invariant_test.go`,
+`trailer_shape_test.go`, `remaining_verbs_diag_test.go`,
+`verb_metadata_test.go`) pass unmodified, confirming existing verb
+envelopes and exit codes are unchanged for normal operation.
 
 ## Constraints
 
