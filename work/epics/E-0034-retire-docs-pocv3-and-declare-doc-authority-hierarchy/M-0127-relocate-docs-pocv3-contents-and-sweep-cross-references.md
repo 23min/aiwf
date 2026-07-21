@@ -6,6 +6,10 @@ parent: E-0034
 depends_on:
     - M-0126
 tdd: none
+acs:
+    - id: AC-1
+      title: docs/pocv3/ files relocated/archived per TRIAGE.md
+      status: open
 ---
 
 ## Goal
@@ -33,3 +37,6 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 
 - **E-0034** — parent epic.
 - **G-0132** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
+
+### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
+
