@@ -44,7 +44,7 @@ A small illustrative skill: capture the current project status as a permanent re
 
 ### The skill (SKILL.md)
 
-```markdown
+````markdown
 ---
 name: aiwfx-snapshot-status
 description: Use when the user asks for a snapshot, checkpoint, or "where are we now" record. Captures the current aiwf project state and creates a permanent decision entity referencing the current moment, so the snapshot is recoverable later via `aiwf history`.
@@ -127,7 +127,7 @@ pre-existing issue (which the user may want to fix or defer).
   The verb produced a coherent entity; touching it again is a smell.
 - Does **not** commit anything itself. Every commit comes from `aiwf
   add`, which writes the right trailers.
-```
+````
 
 ### What the example demonstrates
 
@@ -161,7 +161,7 @@ The skill is ~30 lines and trivially auditable.
 
 Copy and adapt. Fill the bracketed sections; delete the rest.
 
-```markdown
+````markdown
 ---
 name: aiwfx-<verb>-<noun>
 description: Use when <user-intent-trigger>. <One-sentence summary of what the skill does and why it exists>.
@@ -222,7 +222,7 @@ or surfaced an existing issue.>
   invent fields outside the schema>.
 - Does not <whatever class of action is tempting but wrong for this
   skill's domain>.
-```
+````
 
 ---
 
@@ -230,10 +230,10 @@ or surfaced an existing issue.>
 
 These are real classes of bugs that have shipped in real skills, each closed in either aiwf core or the embedded rituals snapshot. The list is short on purpose — most other mistakes are caught by `aiwf check`.
 
-- **Adding an unknown frontmatter field** (e.g. `completed: 2026-04-30` on an epic, or `decided_by: <person>` on a decision). aiwf's schema is strict; the field is rejected and the file fails to parse. Fixed in aiwf via [G14](archive/gaps-pre-migration.md) (parse failures no longer cascade) and [G15](archive/gaps-pre-migration.md) (`aiwf schema` published). Avoid by following Rule 2.
+- **Adding an unknown frontmatter field** (e.g. `completed: 2026-04-30` on an epic, or `decided_by: <person>` on a decision). aiwf's schema is strict; the field is rejected and the file fails to parse. Fixed in aiwf via [G14](archive/pocv3/gaps-pre-migration.md) (parse failures no longer cascade) and [G15](archive/pocv3/gaps-pre-migration.md) (`aiwf schema` published). Avoid by following Rule 2.
 - **Writing a commit by hand without trailers.** `aiwf history` then comes up empty for that entity; the moment becomes invisible. Avoid by following Rule 4 — call a verb.
 - **Renaming a file by `mv` instead of `aiwf rename`.** References to the entity break silently because nothing rewrote them. Use `aiwf rename` for slug changes; `aiwf reallocate` for id changes.
-- **Putting state in frontmatter that should be in body prose.** Dates, narrative explanations, decided-by labels, completion notes — these are body content. Frontmatter is for fields aiwf reads. Verified by [G16](archive/gaps-pre-migration.md) (path/id-consistency) and the schema verb.
+- **Putting state in frontmatter that should be in body prose.** Dates, narrative explanations, decided-by labels, completion notes — these are body content. Frontmatter is for fields aiwf reads. Verified by [G16](archive/pocv3/gaps-pre-migration.md) (path/id-consistency) and the schema verb.
 
 ---
 

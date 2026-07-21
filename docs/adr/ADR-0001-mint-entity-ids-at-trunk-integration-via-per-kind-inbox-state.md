@@ -23,7 +23,7 @@ Cause: id allocation is *distributed* (every contributor's checkout decides the 
 
 ### Property shift
 
-The "stable ids" principle in `docs/pocv3/design/design-decisions.md` is reworded:
+The "stable ids" principle in `docs/design/design-decisions.md` is reworded:
 
 > Stable ids that survive rename, cancel, and collision. **An entity's id is stable from the moment it lands in trunk, not from the moment it's first written.** Pre-mint state on a branch uses `id: <slug>` plus the slug as a temporary handle; the canonical id is minted at trunk integration. The id is the primary key; the slug is just display. Reallocate remains the fix-up tool for rare trunk-mint races.
 

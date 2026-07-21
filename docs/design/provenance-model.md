@@ -272,7 +272,7 @@ Pre-I2.5 commits do not carry the new trailers. The standing rules treat absence
 
 ## Render-side (governance HTML)
 
-The HTML render's Provenance tab consumes the model directly (per [`governance-html-plan.md`](../plans/governance-html-plan.md) §3.3, decision Q3.3):
+The HTML render's Provenance tab consumes the model directly (per [`governance-html-plan.md`](../archive/pocv3/governance-html-plan.md) §3.3, decision Q3.3):
 
 - **Top section: scopes that touched this entity.** A table listing each authorization that ever applied to this entity: scope id (auth SHA short form), authorization actor (the human), opened date, current state (`active` / `paused` / `ended`), end date if ended, event count.
 - **Below: chronological event timeline.** Each row carries a scope-id chip when authorized (`[E-03]`, `[E-09]`, etc.), no chip when direct. Pause / resume / end events appear on the timeline as scope-state changes with their own chips (`[E-03 paused]`, `[E-03 resumed]`, `[E-03 ended]`).

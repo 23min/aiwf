@@ -181,7 +181,7 @@ func TestProvenance_AgentRefusedOutOfScope(t *testing.T) {
 }
 
 // TestProvenance_ScopeEntityFollowsPriorEntityChain: scenario #8
-// from docs/pocv3/plans/provenance-model-plan.md §"Test scenarios".
+// from docs/archive/pocv3/provenance-model-plan.md §"Test scenarios".
 // Open a scope on a milestone; reallocate that milestone (renumber
 // it). The historical authorize commit's aiwf-entity still points
 // at the old id, but the scope-entity resolver walks forward through

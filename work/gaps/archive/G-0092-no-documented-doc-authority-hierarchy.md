@@ -1,8 +1,10 @@
 ---
 id: G-0092
 title: No documented hierarchy of doc authority across docs/
-status: open
+status: addressed
 priority: medium
+addressed_by:
+    - E-0034
 ---
 The `docs/` tree carries qualitatively different artefacts: kernel-normative design records (CLAUDE.md sister docs, `design-decisions.md`, ADRs); exploratory / proposal / synthesis documents (`docs/explorations/`, the various `*-plan.md` files); and historical-archive content (`docs/pocv3/archive/`, the migration text records). The `docs/` path alone does not signal which class a given file belongs to, and **there is no documented hierarchy of doc authority** that an LLM or a new contributor can consult before building their working model of the project.
 
@@ -50,7 +52,7 @@ Three layers, candidate combinations:
 
 - **Renaming `docs/pocv3/`.** Tracked separately by G-0075.
 - **Sweeping pocv3 prose framing.** Tracked by G-0074.
-- **Drift-checking of currently-stale `docs/pocv3/contracts.md`.** Tracked by G-0086.
+- **Drift-checking of currently-stale `docs/archive/pocv3/contracts.md`.** Tracked by G-0086.
 - **Per-doc deprecation markers** ("this plan has shipped — see kernel for current truth"). Useful but a different concern; could fold into (2) above or get its own gap if pursued separately.
 
 ## References
@@ -59,5 +61,5 @@ Three layers, candidate combinations:
 - **CLAUDE.md** "What aiwf commits to" §6 (layered location-of-truth) — describes the engine/policy/state separation but not the documentation-tier separation.
 - **G-0074** — `docs/pocv3/` body prose still uses PoC framing; needs sweep.
 - **G-0075** — `docs/pocv3/` directory naming is now historical; rename or accept.
-- **G-0086** — `docs/pocv3/contracts.md` still references non-existent `aiwf list contracts`.
+- **G-0086** — `docs/archive/pocv3/contracts.md` still references non-existent `aiwf list contracts`.
 - `docs/explorations/06-tdd-diagnostic.md`, `docs/explorations/07-tdd-architecture-proposal.md` — recently-added exploratory docs whose non-normative status is signaled only by their own preambles.

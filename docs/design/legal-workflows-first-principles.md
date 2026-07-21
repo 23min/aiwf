@@ -1,12 +1,12 @@
 # Legal workflows — first-principles catalog (Pass B)
 
 > **Status.** This is M-0122's deliverable for E-0033. It is Pass B of the
-> three-pass methodology pinned by [ADR-0011](../../adr/ADR-0011-legal-workflow-spec-methodology.md).
+> three-pass methodology pinned by [ADR-0011](../adr/ADR-0011-legal-workflow-spec-methodology.md).
 > The rules below are derived **from first principles** — the entity model in
 > [`design-decisions.md`](design-decisions.md), the archive convention in
-> [ADR-0004](../../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md),
-> the id convention in [ADR-0008](../../adr/ADR-0008-canonicalize-kernel-ids-to-4-digits.md),
-> the branch model in [ADR-0010](../../adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md),
+> [ADR-0004](../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md),
+> the id convention in [ADR-0008](../adr/ADR-0008-canonicalize-kernel-ids-to-4-digits.md),
+> the branch model in [ADR-0010](../adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md),
 > and the provenance model in [`provenance-model.md`](provenance-model.md) —
 > **independently of Pass A** (M-0121's `legal-workflows-audit.md`).
 >

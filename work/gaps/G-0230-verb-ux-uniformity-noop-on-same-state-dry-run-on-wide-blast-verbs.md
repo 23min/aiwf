@@ -24,4 +24,4 @@ C2's verdict was Strong but flagged "no-change-returns-error" as a real UX smell
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §C2 (all three recommended moves; refuting evidence list).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §C2 (all three recommended moves; refuting evidence list).

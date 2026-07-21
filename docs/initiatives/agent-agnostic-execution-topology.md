@@ -376,9 +376,9 @@ Relevant external examples:
   boundary.
 - `docs/explorations/08-codex-compatibility-audit.md` identifies the Codex
   adapter surfaces and the need to avoid divergent instruction corpora.
-- `docs/pocv3/design/provenance-model.md` provides the principal x agent x
+- `docs/design/provenance-model.md` provides the principal x agent x
   scope model that execution topology must preserve.
-- `docs/pocv3/workflows.md` currently frames AI prompts around Claude Code "or
+- `docs/workflows.md` currently frames AI prompts around Claude Code "or
   any AI host"; this initiative gives that phrase a stronger technical basis.
 
 ### Open gaps

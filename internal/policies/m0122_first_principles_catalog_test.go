@@ -10,12 +10,12 @@ import (
 
 // firstPrinciplesCatalogPath returns the absolute path to M-0122's
 // deliverable (the Pass B first-principles catalog under
-// docs/pocv3/design/). Not an aiwf entity, so resolution is via the
-// repo root from `sharedRepoTree`, not the loader.
+// docs/design/). Not an aiwf entity, so resolution is via the repo
+// root from `sharedRepoTree`, not the loader.
 func firstPrinciplesCatalogPath(t *testing.T) string {
 	t.Helper()
 	root, _ := sharedRepoTree(t)
-	return filepath.Join(root, "docs", "pocv3", "design", "legal-workflows-first-principles.md")
+	return filepath.Join(root, "docs", "design", "legal-workflows-first-principles.md")
 }
 
 // loadFirstPrinciplesCatalog reads the catalog as a single string.

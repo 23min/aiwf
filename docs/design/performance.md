@@ -3,12 +3,12 @@
 **Status:** living document. This is the *ground doc* for performance in aiwf —
 where the cost model, the measured baselines, the levers, and the one load-bearing
 caching invariant live. Prior perf knowledge was scattered across an archived
-epic's wrap (E-0053), a research paper ([`docs/research/00-fighting-git.md`](../../research/00-fighting-git.md)),
+epic's wrap (E-0053), a research paper ([`docs/research/00-fighting-git.md`](../research/00-fighting-git.md)),
 and a lone perf test; this doc consolidates it. Update it when you measure, ship a
 lever, or change the cost model.
 
 Companion reading: [`design-decisions.md`](design-decisions.md) (why history *is*
-git log), [`00-fighting-git.md`](../../research/00-fighting-git.md) (the branch/merge
+git log), [`00-fighting-git.md`](../research/00-fighting-git.md) (the branch/merge
 theory that makes the caching invariant below the safe one).
 
 ---

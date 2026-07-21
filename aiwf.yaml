@@ -10,8 +10,13 @@ tree:
   # closed epic produces an `unexpected-tree-file` warning. The exemption
   # is narrow: only `wrap.md` directly under an epic directory; the
   # ritual writes it nowhere else. First exemption added at E-17 wrap.
+  #
+  # M-0126 (E-0034) adds `TRIAGE.md` under the same shape: a per-file
+  # disposition table for docs/pocv3/, co-located with the milestone
+  # spec that produced it, not itself an entity.
   allow_paths:
     - work/epics/*/wrap.md
+    - work/epics/*/TRIAGE.md
 
 # Per-agent compute policy (G-0353): model + effort injected into the
 # materialized `.claude/agents/*.md` cards on `aiwf update`. Advisory —

@@ -7,7 +7,7 @@ status: rejected
 
 ## Context
 
-The orchestration of LLM subagents over aiwf entities (parallel TDD cycles, builder/reviewer pipelines, code-review and security-audit roles, doc-gardening passes, etc.) needs a clear split between the *substrate* aiwf provides and the *driver* an external orchestrator runs against. The exploratory design in [`docs/pocv3/design/agent-orchestration.md`](../../pocv3/design/agent-orchestration.md) names three load-bearing choices about how that split is drawn. Each has been informally settled inside the design doc but never ratified; each is cited by subsequent work ([`parallel-tdd-subagents.md`](../../pocv3/design/parallel-tdd-subagents.md), the E-0019 scope) as if it were ratified; and one of them (isolation handling) has now surfaced a concrete failure mode in a real session — [G-0099](../../../work/gaps/G-0099-worktree-isolation-parent-side-precondition.md).
+The orchestration of LLM subagents over aiwf entities (parallel TDD cycles, builder/reviewer pipelines, code-review and security-audit roles, doc-gardening passes, etc.) needs a clear split between the *substrate* aiwf provides and the *driver* an external orchestrator runs against. The exploratory design in [`docs/archive/pocv3/agent-orchestration.md`](../../archive/pocv3/agent-orchestration.md) names three load-bearing choices about how that split is drawn. Each has been informally settled inside the design doc but never ratified; each is cited by subsequent work ([`parallel-tdd-subagents.md`](../../archive/pocv3/parallel-tdd-subagents.md), the E-0019 scope) as if it were ratified; and one of them (isolation handling) has now surfaced a concrete failure mode in a real session — [G-0099](../../../work/gaps/archive/G-0099-worktree-isolation-parent-side-precondition.md).
 
 This ADR records the three choices so they have a named home, are cross-linked from the design doc, and have a single page reviewers can read to see what aiwf's orchestration model commits to. The implementation epic (E-0019) consumes these decisions; the design doc continues to carry the long-form rationale and worked examples.
 
@@ -38,7 +38,7 @@ The split keeps the kernel small, kernel-checkable, and free of host coupling. A
 
 ### 2. Trailer-only cycle event recording
 
-Cycle events (begin, end, finding allocation, AC promotion within a cycle) are recorded as **structured trailers on existing verbs' commits**. There are no `aiwf cycle-begin` / `aiwf cycle-end` verbs. The kernel pins a set of cycle-related trailer keys (full surface specified in [`agent-orchestration.md`](../../pocv3/design/agent-orchestration.md) §9):
+Cycle events (begin, end, finding allocation, AC promotion within a cycle) are recorded as **structured trailers on existing verbs' commits**. There are no `aiwf cycle-begin` / `aiwf cycle-end` verbs. The kernel pins a set of cycle-related trailer keys (full surface specified in [`agent-orchestration.md`](../../archive/pocv3/agent-orchestration.md) §9):
 
 - `aiwf-cycle-id` — composite id like `M-NNNN/AC-N#cycle-N`.
 - `aiwf-cycle-status` — `ended-success | ended-failure | ended-discarded`.
@@ -98,12 +98,12 @@ Human operators retain the sovereign override surface that already exists — `a
 
 - **E-0019** (Parallel TDD subagents with finding-gated AC closure) is the implementing epic; its milestones decompose the three decisions into kernel and driver-side work. Kernel-side work includes the `isolation-escape` `aiwf check` rule (Decision 3), the `aiwf-cycle-worktree-branch` trailer addition (Decision 2), and the existing-rule wiring for `scope-expanded` and `cycle-trailer-incomplete`. Driver-side work includes the precondition dispatch sequence (steps 1-3) and the trailer-recording at cycle-begin/end.
 - **G-0099** closes when the `isolation-escape` kernel rule lands plus the precondition-pattern lands in the driver-side dispatch skill.
-- **Design doc** [`agent-orchestration.md`](../../pocv3/design/agent-orchestration.md) carries the long-form rationale, sequence diagrams, and worked examples; this ADR carries the load-bearing claims. The two are intended to be read together — design doc for "why and how," ADR for "what we committed to."
+- **Design doc** [`agent-orchestration.md`](../../archive/pocv3/agent-orchestration.md) carries the long-form rationale, sequence diagrams, and worked examples; this ADR carries the load-bearing claims. The two are intended to be read together — design doc for "why and how," ADR for "what we committed to."
 
 ## References
 
-- [`docs/pocv3/design/agent-orchestration.md`](../../pocv3/design/agent-orchestration.md) — long-form orchestration design; sections §6.1, §6.2, §6.3, §7, §8, §9 are the source material for this ADR's three decisions.
-- [`docs/pocv3/design/parallel-tdd-subagents.md`](../../pocv3/design/parallel-tdd-subagents.md) — TDD-specific application of the substrate; consumer of these decisions.
+- [`docs/archive/pocv3/agent-orchestration.md`](../../archive/pocv3/agent-orchestration.md) — long-form orchestration design; sections §6.1, §6.2, §6.3, §7, §8, §9 are the source material for this ADR's three decisions.
+- [`docs/archive/pocv3/parallel-tdd-subagents.md`](../../archive/pocv3/parallel-tdd-subagents.md) — TDD-specific application of the substrate; consumer of these decisions.
 - [ADR-0001](../ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — eliminates the post-merge `ids-unique` collision class for parallel cycles; complementary to Decision 1's parallel-cycle safety story.
 - [ADR-0003](../ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN findings are the AC-closure gate this ADR's reconciliation rules feed into.
 - G-0099 — orchestration design's worktree isolation is LLM-honor-system; Decision 3 is its resolution shape.

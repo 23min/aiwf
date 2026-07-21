@@ -59,21 +59,24 @@ func canonicalizePathIDs(p string) string {
 	return strings.Join(parts, "/")
 }
 
-// PolicyDesignDocAnchors scans the docs/pocv3/ tree for relative
+// PolicyDesignDocAnchors scans the docs/design/ tree for relative
 // markdown links and asserts every linked file path exists. When
 // the link carries a #fragment, we also verify a heading or
 // explicit anchor in the target file matches.
 //
-// Scope: only docs/pocv3/. Other directories may have their own
-// link conventions; this policy is specifically about keeping the
-// design / plan corpus internally consistent.
+// Scope: only docs/design/ (formerly docs/pocv3/design/, relocated
+// at M-0127). Other directories may have their own link conventions
+// or pre-existing drift this narrow policy was never scoped to
+// catch; this policy is specifically about keeping the design corpus
+// internally consistent. A repo-wide pass is `wf-doc-lint`'s job
+// (advisory, not this CI-enforced chokepoint).
 //
 // Mailto, http://, https:// links are skipped (only relative
 // references are validated). Code-fenced blocks aren't filtered
 // out — a `[foo](path)` inside ```` ```go ```` would be checked,
 // which is rare and acceptable.
 func PolicyDesignDocAnchors(root string) ([]Violation, error) {
-	docsRoot := filepath.Join(root, "docs", "pocv3")
+	docsRoot := filepath.Join(root, "docs", "design")
 	mdFiles, err := walkMarkdown(docsRoot)
 	if err != nil {
 		return nil, err

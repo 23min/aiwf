@@ -18,7 +18,7 @@ import (
 // in error messages.
 type Kind string
 
-// The six aiwf entity kinds. Hardcoded; see docs/pocv3/design/design-decisions.md.
+// The six aiwf entity kinds. Hardcoded; see docs/design/design-decisions.md.
 const (
 	KindEpic      Kind = "epic"
 	KindMilestone Kind = "milestone"
@@ -67,7 +67,7 @@ func IsBornComplete(k Kind) bool {
 }
 
 // Status constants for the closed sets. Hardcoded; see
-// docs/pocv3/design/design-decisions.md and the schemas table for
+// docs/design/design-decisions.md and the schemas table for
 // per-kind allowance. Use these constants instead of bare string
 // literals so a future renumber / spelling shift lands in one
 // place.
@@ -362,7 +362,7 @@ func SubKindFromID(id string) (string, bool) {
 // AcceptanceCriterion is a milestone sub-element addressed by composite id
 // `M-NNN/AC-N`. ACs are namespaced inside their parent milestone — they
 // have no global allocator and cannot move between milestones (see
-// docs/pocv3/design/design-decisions.md §"Acceptance criteria and TDD").
+// docs/design/design-decisions.md §"Acceptance criteria and TDD").
 //
 // Every field is a plain string with `omitempty`; empty == absent.
 // Closed-set membership (IsAllowedACStatus, IsAllowedTDDPhase) rules out

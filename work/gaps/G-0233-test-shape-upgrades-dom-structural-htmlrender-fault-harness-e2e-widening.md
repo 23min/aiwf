@@ -19,4 +19,4 @@ D1's verdict was Strong but flagged the substring-assertion pattern as a "known 
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §D1 (all three moves), §D4 (move 2: widen Playwright), §E2 (move 1: synthetic-fault harness).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §D1 (all three moves), §D4 (move 2: widen Playwright), §E2 (move 1: synthetic-fault harness).

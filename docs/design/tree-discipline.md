@@ -9,13 +9,13 @@ This doc records the rule and the mechanical guarantee that backs it. See also [
 Two operations, two answers:
 
 1. **Tree-shape changes** — creating an entity, renaming, status transitions, id reallocation, adding ACs — go through `aiwf <verb>`. The verb owns id allocation, frontmatter shape, FSM correctness, atomicity, locking, trailers. Never write a *new* file under `work/` by hand; use `aiwf add <kind>`.
-2. **Body-prose edits to existing entity files** — the markdown under the frontmatter — are allowed mechanically. There is no `aiwf edit` verb (deliberate; YAGNI). The commit will be untrailered, which is the [G24](../archive/gaps-pre-migration.md#g24) audit surface; reconcile with `aiwf adopt` or commit through a verb that touches the entity for an unrelated reason. Frontmatter must not change as part of a body-prose edit.
+2. **Body-prose edits to existing entity files** — the markdown under the frontmatter — go through `aiwf edit-body <id>` (bless mode: edit the working copy, then commit via the verb, which trailers the commit and leaves frontmatter untouched).
 
 Anything else under `work/` that is not a recognized entity file is a stray and surfaces as an `unexpected-tree-file` finding from `aiwf check`.
 
 ## Recognized paths
 
-The loader recognizes exactly these shapes (per [`entity.PathKind`](../../../internal/entity/entity.go)):
+The loader recognizes exactly these shapes (per [`entity.PathKind`](../../internal/entity/entity.go)):
 
 | Kind     | Path                                              |
 |----------|---------------------------------------------------|
@@ -81,14 +81,14 @@ The PoC uses `filepath.Match` semantics (single-level `*`, single-char `?`, char
 
 The kernel principle "framework correctness must not depend on the LLM's behavior" rules out a pure-skill approach. A skill that says "don't write to `work/` directly" is the convenient version of the rule, materialized into the consumer repo via `aiwf init` for AI-discoverability. The check is the *guarantee*: if the LLM forgets the skill, the next push fails. If the LLM never reads the skill, the next push fails. The skill is for ergonomics; the check is for invariants.
 
-## Why no `aiwf edit` verb
+## Why `edit-body` is body-only
 
-Body-prose edits are the one legitimate reason to touch an entity file directly. Adding an `aiwf edit <id>` verb that wraps the edit + trailer would close the last hole, but at the cost of either (a) routing every body-prose change through a verb that the LLM has to learn and the user has to invoke, or (b) building an in-process editor harness. The PoC's answer is to leave body edits as a bare `git` operation reconciled by `aiwf adopt` after the fact. Revisit if the audit warning becomes the dominant noise source.
+`aiwf edit-body <id>` is scoped to the markdown body under the frontmatter; frontmatter (status, title, id, `acs[]`, `depends_on`) never changes through it. Those changes go through their own structured verbs (`aiwf promote`, `retitle`, `rename`, `add ac`, `milestone depends-on`), which own FSM correctness and position-stability guarantees a general-purpose editor verb couldn't provide for free. Splitting the verb this way keeps the trailer accurate — `aiwf-verb: edit-body` means exactly "body prose changed, nothing else" — without building a second FSM-aware editor for structured fields.
 
 ## Where this lives
 
 - **Doctrine** — this file. Canonical.
-- **AI-discoverable** — folded into the [`aiwf-add`](../../../internal/skills/embedded/aiwf-add/SKILL.md) and [`aiwf-check`](../../../internal/skills/embedded/aiwf-check/SKILL.md) skills. No new skill — see "guard against skill sprawl" in the same conversation that produced this doc.
-- **Mechanical** — `internal/check/tree_discipline.go`, called from `runCheck` at [`cmd/aiwf/main.go`](../../../cmd/aiwf/main.go).
-- **Configuration** — `tree.allow_paths` and `tree.strict` in `aiwf.yaml`, parsed by [`internal/config/config.go`](../../../internal/config/config.go).
+- **AI-discoverable** — folded into the [`aiwf-add`](../../internal/skills/embedded/aiwf-add/SKILL.md) and [`aiwf-check`](../../internal/skills/embedded/aiwf-check/SKILL.md) skills. No new skill — see "guard against skill sprawl" in the same conversation that produced this doc.
+- **Mechanical** — `internal/check/tree_discipline.go`, called from `runCheck` at [`cmd/aiwf/main.go`](../../cmd/aiwf/main.go).
+- **Configuration** — `tree.allow_paths` and `tree.strict` in `aiwf.yaml`, parsed by [`internal/config/config.go`](../../internal/config/config.go).
 - **Consumer's `CLAUDE.md`** — *not* aiwf's responsibility. The kernel ships the embedded skills (gitignored, refreshed on `aiwf update`) and the check; the consumer's hand-written `CLAUDE.md` is theirs alone.

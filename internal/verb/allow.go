@@ -2,7 +2,7 @@
 //
 // Allow gates an agent's verb invocation against the union of
 // currently-active scopes attached to the agent. Per
-// docs/pocv3/design/provenance-model.md §"Composition with entity
+// docs/design/provenance-model.md §"Composition with entity
 // FSMs":
 //
 //	allow(verb v on entity e by actor a) =
@@ -178,7 +178,7 @@ func denied(err error) AllowResult {
 }
 
 // scopeAllowsAct mirrors the scopeAllows function in
-// docs/pocv3/design/provenance-model.md §"Scope check". The scope
+// docs/design/provenance-model.md §"Scope check". The scope
 // must be active (already filtered by the caller); the verb's
 // reachability rule depends on Kind:
 //

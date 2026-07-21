@@ -9,13 +9,13 @@ import (
 )
 
 // auditCatalogPath returns the absolute path to M-0121's deliverable
-// (the Pass A audit catalog under docs/pocv3/design/). Not an aiwf
-// entity, so resolution is via the repo root from `sharedRepoTree`,
-// not the loader.
+// (the Pass A audit catalog under docs/design/). Not an aiwf entity,
+// so resolution is via the repo root from `sharedRepoTree`, not the
+// loader.
 func auditCatalogPath(t *testing.T) string {
 	t.Helper()
 	root, _ := sharedRepoTree(t)
-	return filepath.Join(root, "docs", "pocv3", "design", "legal-workflows-audit.md")
+	return filepath.Join(root, "docs", "design", "legal-workflows-audit.md")
 }
 
 // loadAuditCatalog reads the audit catalog as a single string.

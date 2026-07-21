@@ -14,7 +14,7 @@ status: accepted
 
 The existing model: terminal-status entities stay in place in the same directory as active entities. The id is stable; status is the truth; tooling filters. That works fine when reading via `aiwf list` or `aiwf status`, but the human-facing tree view (a plain `ls`, `find`, or GitHub's directory page) doesn't reflect "what's currently active." The mental cost of *every* directory listing is "scan past 80% archived noise."
 
-A precedent already exists. CLAUDE.md cites `docs/pocv3/archive/gaps-pre-migration.md` — the pre-migration text record was archived under an explicit `archive/` folder rather than left in place. Generalizing this precedent into a kernel convention is the natural move.
+A precedent already exists. CLAUDE.md cites `docs/archive/pocv3/gaps-pre-migration.md` — the pre-migration text record was archived under an explicit `archive/` folder rather than left in place. Generalizing this precedent into a kernel convention is the natural move.
 
 ## Decision
 
@@ -39,7 +39,7 @@ The convention is "one level deep `archive/` subdirectory, alongside active enti
 
 **Why milestones don't archive independently.** Milestones live as flat files inside their parent epic's directory, not as a top-level kind. A `done` milestone under an `active` epic stays in the epic dir until the epic itself archives. The noise problem doesn't bite at the milestone level the way it does for gaps or findings — an active epic typically carries a handful of milestones, not 80+. When the parent epic archives, its whole subtree (including any nested milestone files) moves under `work/epics/archive/<epic>/` in a single rename.
 
-**Doc-archive scope.** Only `docs/adr/` participates in this archive convention as a `docs/` tree. `docs/pocv3/archive/` is a different sense — historical text-record archive, not entity archive — and is out of scope for the rules below. The broader question of which `docs/` trees are normative vs. exploratory vs. archival deserves its own treatment in a separate gap.
+**Doc-archive scope.** Only `docs/adr/` participates in this archive convention as a `docs/` tree. `docs/archive/pocv3/` is a different sense — historical text-record archive, not entity archive — and is out of scope for the rules below. The broader question of which `docs/` trees are normative vs. exploratory vs. archival deserves its own treatment in a separate gap.
 
 ### `aiwf archive` verb
 
@@ -164,4 +164,4 @@ No path overlaps. Both verbs can coexist in the same commit if needed (rare but 
 - Related **G-0071** — `entity-body-empty` lifecycle-blindness; **closed by M-0075** via status-gating (rule skips terminal-status entities and draft-milestone ACs). This ADR's location-gating (shape rules skip `archive/`) is an orthogonal defense-in-depth layer; once M-0075 ships, terminal entities are skipped on status grounds before they're ever swept into archive.
 - Related **G-0091** — body-prose path-form refs to entity files have no preventive check (filed as the natural follow-up to this ADR).
 - Related **G-0092** — no documented hierarchy of doc authority across `docs/` (filed as the natural follow-up to this ADR's doc-archive-scope clarification).
-- Precedent: `docs/pocv3/archive/gaps-pre-migration.md` — existing pre-migration text record archived under an explicit `archive/` folder.
+- Precedent: `docs/archive/pocv3/gaps-pre-migration.md` — existing pre-migration text record archived under an explicit `archive/` folder.

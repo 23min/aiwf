@@ -8,7 +8,7 @@ status: accepted
 aiwf distributes two layers of advisory artifact, and they reach a consumer repo by two very different mechanisms (G-0177):
 
 - **Verb skills** (`aiwf-*`, one per kernel verb) are **embedded in the engine binary** and materialized into `.claude/skills/aiwf-*` by `aiwf init` / `aiwf update` — gitignored, marker-managed, auto-refreshed on upgrade. Friction is essentially zero.
-- **Rituals** (`aiwfx-*` planning/lifecycle skills, `wf-*` engineering skills, the `planner`/`builder`/`reviewer`/`deployer` agents, and templates) are distributed as an **external Claude marketplace plugin** (`23min/ai-workflow-rituals`), installed manually via the interactive `/plugin` menu at project scope, with no auto-update. ADR-0007 and `docs/pocv3/plans/rituals-plugin-plan.md` chose this split for independent versioning and `wf-*` standalone reuse.
+- **Rituals** (`aiwfx-*` planning/lifecycle skills, `wf-*` engineering skills, the `planner`/`builder`/`reviewer`/`deployer` agents, and templates) are distributed as an **external Claude marketplace plugin** (`23min/ai-workflow-rituals`), installed manually via the interactive `/plugin` menu at project scope, with no auto-update. ADR-0007 and `docs/archive/pocv3/rituals-plugin-plan.md` chose this split for independent versioning and `wf-*` standalone reuse.
 
 Two forces make the marketplace channel the wrong long-term mechanism:
 
@@ -87,7 +87,7 @@ What undoes this? Re-publishing the rituals as a marketplace plugin and removing
 - **G-0177** — the gap recording the friction and the agent-agnostic blocker this ADR decides.
 - **ADR-0007** — *Planning-conversation skills: rituals-plugin placement, pure-skill default* — placement/authoring layering preserved; delivery-channel assumption revised here.
 - **ADR-0006** — *Skills policy* — the complementary granularity axis; unaffected.
-- **`docs/pocv3/plans/rituals-plugin-plan.md`** — the marketplace distribution design this supersedes.
+- **`docs/archive/pocv3/rituals-plugin-plan.md`** — the marketplace distribution design this supersedes.
 - **CLAUDE.md** commitments #5 (marker-managed artifacts regenerated on `init`/`update`) and #6 (layered location-of-truth) — extended by this decision; § "What is *not* in scope" (no third-party skill registry / module system) — rules out runtime fetch; § "Cross-repo plugin testing" — the vendoring + drift-test pattern reused; § "Operator setup" — rewritten by the implementing epic.
 - **Agent Skills standard** (agentskills.io) and **OpenAI Codex** (`.agents/skills/`) — evidence that SKILL.md is a cross-vendor open format, so portability is an output-location concern.
 - **Go module proxy** — does not fetch git submodule contents, hence the vendored snapshot must be committed files.

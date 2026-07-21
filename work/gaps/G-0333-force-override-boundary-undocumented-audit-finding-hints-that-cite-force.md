@@ -24,7 +24,7 @@ discoverable only by reading verb source:
 
 The boundary — "`--force` overrides local FSM / preconditions, not tree-invariant
 error findings" — is stated in no AI-discoverable channel (CLAUDE.md,
-`docs/pocv3/design/provenance-model.md`, or `--force --help`), yet it determines
+`docs/design/provenance-model.md`, or `--force --help`), yet it determines
 what a sovereign override can and cannot do. This violates the kernel's "kernel
 functionality must be AI-discoverable" principle.
 
@@ -43,7 +43,7 @@ projection path, so from the code `--force` should not land it either.
 ## Direction
 
 - Document the Tier-1 / Tier-2 `--force` boundary in CLAUDE.md (the provenance /
-  force section) and `docs/pocv3/design/provenance-model.md`; consider a one-line
+  force section) and `docs/design/provenance-model.md`; consider a one-line
   `--force --help` note per the AI-discoverability rule.
 - Audit every finding-hint that mentions `--force` for accuracy against real verb
   behavior, and reconcile the `milestone-done-incomplete-acs` hint — verify
