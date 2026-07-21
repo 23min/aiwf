@@ -23,6 +23,7 @@ If the milestone isn't actually done — failing tests, unmet ACs, broken build 
 - Run the full test suite. **All pass.**
 - Run the project's build. **Green.**
 - Run the project's full lint gate — the same linter set CI runs on push (e.g. a `make ci` target), not a subset like `go vet` alone. **Clean.** Unpushed branches accumulate lint debt invisibly; the wrap is the cheap moment to catch it.
+- Identify every gap this milestone's own body (Goal/Context prose, AC descriptions, `## References`) explicitly names as something this work *fixes* or *closes* — distinct from a gap merely referenced for background, or one the spec *discovered* here and is deliberately leaving open (that one belongs in `## Deferrals`, step 4, not here — promoting it would be wrong). For each fixed gap, confirm the implementing AC and its commit SHA from the `## Work log`. These become the `aiwf promote G-NNNN addressed --by-commit <sha>` calls in step 13.
 
 If anything is red, stop and report. Wrap does not paper over failure.
 
@@ -134,7 +135,7 @@ This is the milestone's terminal sequence of *local, reversible* mutations. Per 
 The enumerated local sequence is **merge → promote-done → roadmap regen → local cleanup**:
 
 1. **Merge** the milestone branch into the epic branch, with a trailered merge commit (step 12).
-2. **Promote** the milestone to `done` (step 13).
+2. **Promote** the milestone to `done` — closing any gaps step 1 identified this milestone fixes first (step 13).
 3. **Roadmap regen** — regenerate `ROADMAP.md` now that the milestone shows `done` (step 14).
 4. **Local cleanup** — delete the local milestone branch and its worktree, if one was used (step 15).
 
@@ -182,11 +183,21 @@ Record the resulting merge commit SHA wherever the project tracks merge history 
 
 ### 13. Promote the milestone to `done`
 
+If step 1 identified any gap this milestone's own body explicitly claims to fix, close each one first — before the milestone's own promote-to-`done` step below, which ends a delegated milestone's authorize scope. A verb-driven commit produced after that point risks an ended-scope `aiwf-authorized-by:` trailer on push (the same hazard `aiwfx-wrap-epic`'s promote-last ordering exists to avoid, applied here to the reverse ordering problem: gap closure must come *before* the scope-ending act, not after it):
+
+```bash
+aiwf promote G-NNNN addressed --by-commit <sha>
+```
+
+Cite the AC's own implementation commit, not the merge commit — `--by-commit` is mechanically guarded (`aiwf` refuses a SHA unreachable from `HEAD`), so this only works after the merge (step 12) has landed. Skip entirely if the milestone claims no gap.
+
+Then promote the milestone itself:
+
 ```bash
 aiwf promote M-NNNN done
 ```
 
-aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge so a delegated milestone's authorize scope is still live for the merge commit.
+aiwf validates `in_progress → done`, rewrites frontmatter, and commits with `aiwf-verb: promote` trailers. This is the moment of closure — the last status-flip commit in the sequence, landing after the merge (and after any gap closures) so a delegated milestone's authorize scope is still live for both.
 
 ### 14. Regenerate the roadmap
 
@@ -227,10 +238,11 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 ## Constraints
 
 - 🛑 **Never commit or push without explicit human approval** — the commit gate (step 7) and the push gate (step 9) are separate human gates.
-- 🛑 **The terminal local sequence — local merge, promote-done, roadmap regen, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
+- 🛑 **The terminal local sequence — local merge, promote-done (including any gap tracker closure it triggers), roadmap regen, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
 - Deferrals must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at.
+- A gap this milestone's own body claims to fix must be closed at wrap (step 13) — `aiwf promote G-NNNN addressed --by-commit <sha>`, before the milestone's own promote-done. Don't leave the tracker silently overstating what's still open.
 
 ## Anti-patterns
 
@@ -239,6 +251,8 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - *Silent deferrals.* Every "we'll do that later" gets a gap entity.
 - *Skipping doc-lint.* Doc drift compounds; the milestone wrap is the cheap moment to catch it.
 - *Slipping unrelated code into the wrap commit.* If the change isn't part of this milestone, it's a separate `wf-patch`.
+- *Wrapping without checking whether the milestone's own prose claims to fix a gap.* A milestone whose own body names a gap as what it fixes, wrapped without closing that gap, leaves the tracker silently overstating what's still open.
+- *Promoting a claimed-fixed gap after the milestone's own promote-done.* Ordering matters (step 13) — closing gaps after `aiwf promote M-NNNN done` risks an ended-scope `aiwf-authorized-by:` trailer on the gap-promote commit.
 
 ## Next step
 

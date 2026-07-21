@@ -295,3 +295,72 @@ func TestAiwfxWrapMilestone_RoadmapRegenWriteOnlyAfterPromote(t *testing.T) {
 		}
 	}
 }
+
+// TestAiwfxWrapMilestone_VerifyCompletionIdentifiesFixedGaps pins the
+// G-0431 fix: "1. Verify completion" must instruct identifying every
+// gap the milestone's own body claims to fix, distinguishing that
+// from a gap merely referenced or one deliberately deferred (which
+// stays open). Without this, a milestone whose title and body name
+// exactly the gaps it fixes can wrap with those gaps still `open` —
+// the tracker silently overstates what's left, indistinguishable
+// from genuinely unaddressed work.
+func TestAiwfxWrapMilestone_VerifyCompletionIdentifiesFixedGaps(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapMilestoneFixture(t)
+
+	verify := extractMarkdownSection(body, 3, "1. Verify completion")
+	if verify == "" {
+		t.Fatal("`## Workflow` must contain a `### 1. Verify completion` section")
+	}
+
+	if !strings.Contains(verify, "aiwf promote G-NNNN addressed --by-commit") {
+		t.Error("`1. Verify completion` must name the `aiwf promote G-NNNN addressed --by-commit <sha>` closure the identified gaps feed")
+	}
+	if !strings.Contains(strings.ToLower(verify), "deferrals") {
+		t.Error("`1. Verify completion` must distinguish a gap this milestone *fixes* (close it) from one it *discovered* here and is deferring (stays open, goes to `## Deferrals` instead) — without this distinction the step reads as a blind grep-and-promote, which would wrongly close a deliberately-deferred gap")
+	}
+}
+
+// TestAiwfxWrapMilestone_GapClosureBeforePromoteDone pins the other
+// half of the G-0431 fix: step 13 must close any gap the milestone
+// claims to fix *before* promoting the milestone itself to `done`.
+// Ordering matters mechanically, not just stylistically — `aiwf
+// promote M-NNNN done` ends a delegated milestone's authorize scope,
+// and a verb-driven commit landing after that point risks an
+// ended-scope `aiwf-authorized-by:` trailer on push. A reshuffle that
+// moved the gap-promote after the milestone-promote would pass a flat
+// grep but reintroduce that hazard — assert by index, mirroring
+// TestAiwfxWrapMilestone_StructuralMergeStepDriftCheck's ordering
+// check on the merge step.
+func TestAiwfxWrapMilestone_GapClosureBeforePromoteDone(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapMilestoneFixture(t)
+
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("SKILL.md must have a `## Workflow` section")
+	}
+
+	step := extractMarkdownSection(body, 3, "13. Promote the milestone to")
+	if step == "" {
+		t.Fatal("`## Workflow` must contain a `### 13. Promote the milestone to \\`done\\`` step")
+	}
+
+	gapIdx := strings.Index(step, "aiwf promote G-NNNN addressed --by-commit")
+	milestoneIdx := strings.Index(step, "aiwf promote M-NNNN done")
+	if gapIdx < 0 {
+		t.Error("step 13 must contain `aiwf promote G-NNNN addressed --by-commit <sha>`")
+	}
+	if milestoneIdx < 0 {
+		t.Error("step 13 must contain `aiwf promote M-NNNN done`")
+	}
+	if gapIdx >= 0 && milestoneIdx >= 0 && gapIdx > milestoneIdx {
+		t.Error("the gap-tracker-closure promote must appear BEFORE the milestone's own promote-done — closing gaps after promote-done risks an ended-scope aiwf-authorized-by: trailer on the gap-promote commit")
+	}
+
+	// "reachable from `HEAD`" is a substring of "unreachable from
+	// `HEAD`", so a single Contains covers both phrasings.
+	if !strings.Contains(step, "reachable from `HEAD`") {
+		t.Error("step 13 must document that `--by-commit` is mechanically guarded against a SHA unreachable from HEAD, so the gap closure can only run after the merge has landed")
+	}
+}

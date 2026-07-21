@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0431: milestone/epic wrap now closes gaps their own prose claims to fix
+
+`aiwfx-wrap-milestone` now identifies any gap a milestone's own spec explicitly
+names as something it fixes and closes it (`aiwf promote G-NNNN addressed
+--by-commit <sha>`) as part of the milestone's wrap, before the milestone's
+own promote-to-`done`. `aiwfx-wrap-epic` carries a matching precondition
+backstop for a milestone wrapped under an older ritual version. Previously,
+a milestone whose title and body explicitly named the gaps it fixed could
+reach `done` with those gaps still `open` — the tracker silently overstated
+what was actually left.
+
 ### Changed — E-0069: closed the verb-layer call-graph audit findings
 
 Every milestone listed in `work/epics/E-0069-close-the-verb-layer-call-graph-audit-findings/wrap.md`
