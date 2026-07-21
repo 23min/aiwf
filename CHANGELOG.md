@@ -16,6 +16,25 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0069: closed the verb-layer call-graph audit findings
+
+Every milestone listed in `work/epics/E-0069-close-the-verb-layer-call-graph-audit-findings/wrap.md`
+is now `done`. Three correctness bugs fixed: `aiwf import`'s auto-id allocation
+now routes through the shared cross-branch allocator instead of a hand-rolled
+scan (closing a sibling-branch collision exposure); `aiwf show`'s scope-view
+assembly no longer silently swallows a git-read error its sibling paths treat
+as fail-loud; a scope-event timestamp sort that broke across timezones is
+fixed. The hand-duplicated verb-layer helpers (`archive`, `rewidth`, `import`)
+now route through `cliutil.FinishVerb`'s shared envelope instead of
+reimplementing it per package. The read-only verbs (`render`, `check`,
+`status`) now consume a neutral `internal/entityview` library instead of
+reaching into sibling CLI packages. The four contract-mutating verbs
+(`aiwf contract bind`/`unbind`/`recipe install`/`recipe remove`) now share one
+diff-based validation gate — findings a mutation introduces are computed as a
+before/after diff of the projected config, replacing three previously
+divergent per-verb gate styles (an id-filtered check, no gate at all, and a
+manual referential-integrity scan).
+
 ### Added — E-0068: mechanical AC/milestone-completeness guards
 
 Closed three places where AC/milestone completeness discipline depended on operator
