@@ -1,8 +1,10 @@
 ---
 id: G-0429
 title: Collapse duplicated history/scope read tail in show.go's view builders
-status: open
+status: addressed
 discovered_in: M-0269
+addressed_by_commit:
+    - ff7d9dbd
 ---
 ## What's missing
 
