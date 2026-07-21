@@ -24,7 +24,7 @@ acs:
 
 ## Goal
 
-Produce a per-file disposition table for every file under `docs/pocv3/`. Each row records one of {`relocate`, `archive`, `supersede-with-entity`, `delete`} plus a target path (for `relocate`/`archive`) or entity id (for `supersede-with-entity`) and a one-line rationale. The table is the contract that M-0131 (Relocate) executes against verbatim.
+Produce a per-file disposition table for every file under `docs/pocv3/`. Each row records one of {`relocate`, `archive`, `supersede-with-entity`, `delete`} plus a target path (for `relocate`/`archive`) or entity id (for `supersede-with-entity`) and a one-line rationale. The table is the contract that M-0127 (Relocate) executes against verbatim.
 
 ## Context
 
@@ -53,6 +53,15 @@ Open Question #1 from E-0034 (whether `docs/archive/` absorbs `docs/pocv3/archiv
 ### AC-5 — Supersede/delete rows carry entity id or justification
 
 Each file marked `supersede-with-entity` is paired with an existing or newly-filed entity id. Files marked `delete` carry an explicit one-line justification (default is `archive`).
+
+## Triage rationale
+
+- **`docs/archive/` absorption (Open Question #1).** Resolved as separate: `docs/pocv3/`-origin archival content lives under a new `docs/archive/pocv3/` sibling namespace. `docs/archive/README.md`'s existing two-category charter (pre-PoC design documents, one-time procedural artifacts) stays untouched.
+- **`loom-by-example.md` / `loom-light-plan.md`.** Relocate — not archive — to a new `docs/explorations/loom/` topic subfolder, matching the `policy-model.md` / `explorations/surveys/` precedent for live-but-not-yet-committed research. No entity filed: the design still carries multiple genuinely-unresolved forks (standalone vs. bundled engine, which verifier, `.lm` syntax now-or-later); filing an epic now would be a placeholder with an unpinned shape.
+- **`contracts-plan.md`'s I2 residual** (import-manifest `contracts:` block). Considered, declined — no adopter currently migrates via `aiwf import` with pre-existing contracts. The file archives as a unit with no entity pairing.
+- **`observability-surfaces-plan.md`'s Phase 1.** Split. The `depends_on`-surfacing and readiness-marker items are tracked as **G-0433**. The local-vs-origin delta item — explicitly the larger of the three, described in the plan as its own "small epic" — is deferred, not filed. The source file archives regardless of the entity pairing, per the default-archive rule for retired `plans/` content.
+- **`policy-model.md`.** Relocates to `docs/explorations/05-policy-model-design.md`, overwriting the file already there rather than sitting alongside it — diffed the two and the pocv3 copy is a later, more refined draft of the same design.
+- **`docs/pocv3/gap-triage-2026-06-16.md`'s "Candidate B."** Verified real by that doc's own audit and explicitly recommended for filing; filed as **G-0432**. Candidates A and C were recommended by the same doc to fold into the existing G-0235 rather than get their own filing — no action needed here.
 
 ## Constraints
 
