@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: Triage table lists every docs/pocv3/ file
       status: open
+    - id: AC-2
+      title: Every row has disposition, target, rationale
+      status: open
 ---
 
 ## Goal
@@ -32,6 +35,8 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 - **AC-5 candidate** — Each file marked `supersede-with-entity` is paired with an existing or newly-filed entity id. Files marked `delete` carry an explicit one-line justification (default is `archive`).
 
 ### AC-1 — Triage table lists every docs/pocv3/ file
+
+### AC-2 — Every row has disposition, target, rationale
 
 ## Constraints
 
