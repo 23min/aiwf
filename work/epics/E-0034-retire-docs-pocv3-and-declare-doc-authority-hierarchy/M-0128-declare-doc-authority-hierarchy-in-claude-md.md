@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Documentation hierarchy section tags every active docs/ subtree
-      status: open
+      status: met
 ---
 
 ## Goal
