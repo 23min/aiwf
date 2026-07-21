@@ -7,23 +7,23 @@ discovered_in: M-0126
 ---
 ## Problem
 
-Today, `aiwf authorize <entity> --to ai/<id>` only changes two things: the commit's actor trailer and the branch binding recorded in the `aiwf-branch:` trailer. It says nothing about check-in cadence. The standing collaboration guidance ("Every mutating action is its own approval gate... ask before each") is written unconditionally — it does not carve out a different gate cadence for work happening inside an open delegation scope. So opening a scope changes provenance bookkeeping but does not change how often a human is asked to approve an individual mutation.
+CLAUDE.md's "Gate discipline survives compaction" section states the declared-sequence gate as a general capability — *"a single gate MAY cover a sequence of local, reversible mutations at one moment provided the gate enumerates every action verbatim"* — but immediately follows that sentence with a `Batchable:` list of specific named shapes: promotes, an `aiwf archive` sweep, a local merge to mainline, a tracker-closure promote, local branch/worktree deletion, and the wrap rituals' named terminal sequence. The shipped `internal/skills/embedded-guidance/aiwf-guidance.md` fragment repeats the same shape.
 
-This was tested directly in E-0034/M-0126: the epic was authorized to `ai/claude`, but every commit in that milestone's implementation and wrap still ran as `human/peter`, gated individually — dozens of approve/deny round-trips, no different in cadence from an in-loop (non-delegated) milestone. The delegation bought accountability tracking, not any reduction in interactive overhead, defeating the natural expectation that "delegating work" should mean less babysitting.
+In practice the list reads as the operative policy, not as illustrative examples of the general test that precedes it. When a set of mutations mixes verb types that individually resemble list entries but weren't grouped together before — an `aiwf add gap`, a plain-file git commit, and an `aiwf edit-body`, discovered together while filing one gap — the combination doesn't obviously match any named shape. The conservative reading wins: gate each mutation separately, defeating the batching the general clause is supposed to allow.
 
-There is already a precedent for a different cadence living next to this: `tdd: required` milestones stream their AC phase-promotes live and ungated ("phase promotes (red/green/done/met) streamline by default — live, ungated, test-evidenced — wrap review and push stay the control points"). That is the same shape of trade-off — fewer live gates, review concentrated at a checkpoint — already accepted for one narrow case. This gap proposes generalizing that shape to delegated-scope work.
+This is not a new problem. G-0295 already generalized the declared-sequence gate from a wf-patch-only mechanic into a stated general capability for "any sequence of local, reversible mutations." G-0341 separately pushed the shipped guidance's framing toward neutral, operator-owned wording. Both landed, and the friction still recurs — the general clause and the illustrative list send conflicting signals, and nothing in the current wording forces the general reading to win over the narrower, safer one.
+
+Surfaced most recently while working under an open `aiwf authorize` scope (E-0034/M-0126), but the mechanism has nothing to do with authorize or delegation — the same conservative-reading trap recurs in any session, delegated or not, where local/reversible mutations of different verb types are discovered together.
 
 ## Direction
 
-While an `aiwf authorize` scope is `active` for an entity, local/reversible mutations performed within that scope (commits, `aiwf add ac`/`add gap`, non-sovereign promotes) stream without individual per-mutation gates. Review and approval concentrate at named checkpoints — an AC boundary, a milestone wrap, or an equivalent unit the operating guidance defines. Two classes of action are excluded from this relaxation and stay gated exactly as today, regardless of scope:
+Reframe the rule's list from an enumerated closed set to explicit examples of a general test: any set of local, reversible mutations discovered together within one coherent unit of work (one AC, one bug investigation, one gap-filing pass, one milestone wrap) may be presented as a single declared-sequence gate — regardless of verb-type mixing — provided:
 
-- **Sovereign acts** — `aiwf promote <epic> active`, `aiwf authorize` itself, any `--force` invocation. Human-only by the kernel's own sovereignty rule; delegation cannot touch them.
-- **Outward/irreversible actions** — push, `gh pr create`, tag-push, remote-branch delete. These leave the machine or affect shared state; they stay individually gated regardless of scope.
+- the gate enumerates every action verbatim,
+- the human can approve a subset,
+- any deviation (conflict, finding, unexpected dirty state, an action outside the enumerated list) aborts and re-gates, and
+- neither sovereign acts nor outward/irreversible actions are ever included, no matter how the unit of work is scoped.
 
-This is a change to the standing collaboration guidance (`CLAUDE.md`'s "Gate discipline survives compaction" section and the shipped `internal/skills/embedded-guidance/aiwf-guidance.md` fragment), not a kernel/verb change — `aiwf authorize` itself doesn't need new code; what needs to change is the session-behavior rule that currently ties every mutation to a gate unconditionally. The rule needs a scope-aware carve-out: if an authorize scope is active for the entity being worked on, and review is concentrated at the next checkpoint, individual local/reversible mutations may proceed without a per-action gate.
+Apply the reworded rule in both CLAUDE.md's "Gate discipline survives compaction" section and the shipped `internal/skills/embedded-guidance/aiwf-guidance.md` fragment, preserving the "ships vs. stays" split (this rule already ships). `PolicyM0211GuidanceOperatingAnchors`'s `gate-per-mutation` anchor pins only the fragments `"each mutating action"` and `"approval gate"` — it does not pin the `Batchable:` list wording, so the reword is free to land without touching that policy.
 
-Open design questions for whoever picks this up:
-
-- What is the right checkpoint granularity — per-AC (smaller diffs to audit, more checkpoints) or per-milestone (maximizes friction reduction, larger diff to review at once)?
-- Should the human get a live progress narration (a running log) even without being asked to approve each step, so they are not flying blind between checkpoints?
-- Should this be opt-in per authorize invocation (a flag) or the unconditional default once a scope is active?
+Open question for whoever picks this up: does "one coherent unit of work" need a crisper boundary (tied to an AC, a single investigation, or a wall-clock/turn window), or is the enumerate-and-approve mechanic itself sufficient protection regardless of how loosely the unit is scoped?
