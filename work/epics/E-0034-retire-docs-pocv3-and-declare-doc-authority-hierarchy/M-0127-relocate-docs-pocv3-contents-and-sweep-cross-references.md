@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Zero dangling docs/pocv3 references
-      status: open
+      status: met
     - id: AC-4
       title: aiwf check and link integrity clean
       status: open
