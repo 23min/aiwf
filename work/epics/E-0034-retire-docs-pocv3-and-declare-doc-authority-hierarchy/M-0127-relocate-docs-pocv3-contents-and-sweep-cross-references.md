@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Fixture path constants updated for legal-workflows files
       status: open
+    - id: AC-3
+      title: Zero dangling docs/pocv3 references
+      status: open
 ---
 
 ## Goal
@@ -44,4 +47,6 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 ### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
 
 ### AC-2 — Fixture path constants updated for legal-workflows files
+
+### AC-3 — Zero dangling docs/pocv3 references
 
