@@ -18,7 +18,7 @@ acs:
       status: met
     - id: AC-4
       title: aiwf check and link integrity clean
-      status: open
+      status: met
 ---
 
 ## Goal
