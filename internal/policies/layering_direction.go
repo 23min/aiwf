@@ -166,7 +166,8 @@ func layerTier(pkg string) (tier int, known bool) {
 	case "internal/contractcheck", "internal/contractverify":
 		return 3, true
 	case "internal/check", "internal/render", "internal/htmlrender",
-		"internal/initrepo", "internal/roadmap", "internal/contractconfig":
+		"internal/initrepo", "internal/roadmap", "internal/contractconfig",
+		"internal/entityview":
 		return 4, true
 	case "internal/tree", "internal/scope", "internal/trunk",
 		"internal/manifest", "internal/recipe", "internal/skills":

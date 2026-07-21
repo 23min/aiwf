@@ -43,7 +43,7 @@ const headRecMarker = "===AIWF-HEADREC==="
 // AuthorDate (%aI) and Subject (%s) are additive (M-0221): no check
 // consumer reads them, so extending the record leaves every check
 // gather byte-identical. render's single pass uses them to reproduce
-// history.HistoryEvent (Date + Detail) and to date scope open/end
+// entityview.HistoryEvent (Date + Detail) and to date scope open/end
 // events without the per-SHA `git show` the scope views used. Body
 // stays %B (the full raw message) so the two check body-greps are
 // unchanged; the render bucketer derives the prose body from it.

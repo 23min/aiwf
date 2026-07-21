@@ -1,7 +1,7 @@
 ---
 id: M-0272
 title: Extract the read-side helpers into a neutral entityview package
-status: draft
+status: done
 parent: E-0069
 depends_on:
     - M-0269
@@ -11,10 +11,10 @@ tdd: none
 acs:
     - id: AC-1
       title: read-side helpers live in a neutral package free of CLI dependencies
-      status: open
+      status: met
     - id: AC-2
       title: render, check, status import the neutral package, not sibling CLI packages
-      status: open
+      status: met
 ---
 ## Goal
 
@@ -37,7 +37,68 @@ nobody has yet added the closing edge.
 
 ### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
 
+`internal/entityview` holds the full F6-scoped surface: `HistoryEvent`,
+`ReadHistory`/`ReadHistoryChain` (plus their `ShortHash`/`StripTrailers`/
+`SplitMultiValueTrailer`/bare-milestone-id trailer-parsing helpers),
+`EventFromCommit`, the scope predicates `HasOwnScope`/`HasAuthorizedBy`/
+`HasScopeData`, `ScopeView`/`AssembleScopeViews`/`LookupCommitDateCached`/
+`LastEventSHA`, and `ReadEntityBody`. `go list -deps` on the package confirms
+its only `23min/aiwf` dependencies are `internal/entity`, `internal/gitops`,
+`internal/scope`, and `internal/codes` — no `internal/cli/*`, no Cobra.
+
+The line drawn: a helper moves only if it needs no `internal/cli/cliutil`
+(or other CLI-package) call. Two git-shelling orchestrators stay behind in
+their original CLI packages because they compose the moved primitives with
+`cliutil`'s scope-FSM replay (`cliutil.LoadEntityScopes`,
+`cliutil.AuthorizeOpeners`) — `show.LoadEntityScopeViews` (now a thin
+wrapper calling `entityview.ReadHistory`/`HasOwnScope`/`HasAuthorizedBy`/
+`AssembleScopeViews`/`LookupCommitDateCached`) and `history.ScopeMapFor`
+(calls `entityview.HasScopeData`). `history`'s own text-rendering
+(`RenderTo`, `RenderActor`, `RenderScopeChips`) also stays — Cobra-free
+itself, but not part of F6's reuse surface (no render/check/status call
+site ever needed it) and genuinely specific to `aiwf history`'s text
+output. `entityview.ReadHistoryChain` needed the same empty-repo guard
+`cliutil.HasCommits` provides; rather than import `cliutil` (which would
+have dragged Cobra back in transitively via its own `completion.go`), a
+private `hasCommits` duplicate lives in `entityview` — see D-0045.
+
+Evidence: `go build ./internal/entityview/...` plus `go list -deps` (no
+`internal/cli` in the closure); the full pre-existing history/show/render/
+check/status test suite, migrated onto the new package boundary and passing
+unchanged (`go test -race ./...`); `internal/policies`'
+`TestPolicy_LayeringDirection`, extended to assign `internal/entityview`
+tier 4 (the check/render/htmlrender band — a domain package consumed by the
+CLI layer, itself consuming only entity/gitops/scope), which fails CI on
+any future upward or untiered import.
+
 ### AC-2 — render, check, status import the neutral package, not sibling CLI packages
+
+`internal/cli/render` (`singlepass.go`, `resolver.go`), `internal/cli/check`
+(`tests_metrics.go`), and `internal/cli/status` (`status.go`) no longer
+import `internal/cli/history` or `internal/cli/show` for the F6 surface —
+every call site (`HistoryEvent`, `ReadHistory`, `EventFromCommit`,
+`HasOwnScope`, `HasAuthorizedBy`, `ScopeView`, `AssembleScopeViews`,
+`ReadEntityBody`, `ShortHash`, `StripTrailers`) now resolves against
+`internal/entityview`. `render`'s `singlepass.go` keeps its existing
+`cliutil` dependency (for `CommitTrailers`/`ReplayScopes`/`OpenersFrom`,
+unrelated to F6); `render`, `check`, and `status` drop `internal/cli/history`
+and `internal/cli/show` entirely — `history.RenderTo` (the one remaining
+genuinely CLI-specific symbol from that surface) is used only in `show.go`,
+not by any of these three. The closing edge F6 warned about
+(`render`/`check`/`status` → `show`/`history`, the only thing keeping the
+dependency graph acyclic by omission) is gone: `go list -deps` on all three
+packages carries no transitive dependency on `internal/cli/history` or
+`internal/cli/show` — those three packages' sole path to the read-side
+projection logic is now the neutral leaf.
+
+Evidence: same as AC-1 — `go build ./...` and `go vet ./...` clean repo-wide;
+the full test suite (including `internal/cli/render`, `internal/cli/check`,
+`internal/cli/status`, and `internal/cli/integration`) green under
+`-race -parallel 8`; `TestPolicy_LayeringDirection` passing confirms no
+package in the `internal/cli/*` tier reaches into `entityview` upward of its
+assigned tier, and no residual edge into `internal/cli/history` /
+`internal/cli/show` survives in `render`/`check`/`status`'s import graphs
+(spot-checked via `go list -deps` before landing).
 
 ## Constraints
 
@@ -67,11 +128,44 @@ nobody has yet added the closing edge.
 
 ## Work log
 
+### AC-1 — read-side helpers live in a neutral package free of CLI dependencies
+
+`internal/entityview` created; both ACs landed in one commit (they aren't
+independently buildable — see Reviewer notes) · commit 5d331e61 · tests
+`go test -race ./...` green, `internal/entityview` package coverage 94.4%
+of statements per the diff-scoped gate.
+
+### AC-2 — render, check, status import the neutral package, not sibling CLI packages
+
+`render`/`check`/`status` rewired onto `entityview`; `internal/policies`'
+layering-direction map extended · commit 5d331e61 (same as AC-1) · tests
+same run, plus `TestPolicy_LayeringDirection` green.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0045 — `entityview` carries its own private `hasCommits` guard rather
+  than importing `cliutil.HasCommits`, to keep the package genuinely free
+  of `internal/cli/*`.
 
 ## Validation
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `gofmt -l .` — clean.
+- `go test -race -parallel 8 ./...` — all packages green.
+- `make lint` (golangci-lint, worktree-scoped cache) — 0 issues.
+- `make coverage-gate` — clean after closing one real gap the diff-scoping
+  surfaced: `show.go`'s `limitEvents` truncation branch (`0 < historyLimit
+  < len(events)`) had no test anywhere in the pre-existing suite; added
+  `TestRun_ShowHistoryLimitTruncatesToMostRecent`.
+- `go list -deps ./internal/entityview/...` — confirms the package's only
+  `23min/aiwf` dependencies are `internal/entity`, `internal/gitops`,
+  `internal/scope`, `internal/codes`; no `internal/cli/*`, no Cobra.
+- Manual mutation probe (`wf-vacuity`) on the two genuinely new code paths:
+  negating `hasCommits`'s condition broke 40+ tests across
+  `internal/cli/integration` and `internal/cli/render`; slicing
+  `limitEvents`'s truncation branch from the wrong end broke the new
+  truncation test. Both mutations reverted byte-identical afterward.
 
 ## Deferrals
 
@@ -79,4 +173,44 @@ nobody has yet added the closing edge.
 
 ## Reviewer notes
 
-- (none)
+- Independent two-lens review (fresh-context subagents, code-quality and
+  design-quality) both returned **approve, no blocking findings**. Findings
+  from both converged on the same non-blocking issue — stale comments in
+  files this milestone touched or adjoined still naming `history.*`/
+  `show.*` for symbols now in `entityview`, plus one factual overclaim in
+  this spec's own AC-2 prose (a stale claim that `resolver.go` still called
+  `history.RenderTo`, when its `internal/cli/history` import was fully
+  dropped). All were fixed in-context as a corrective pass before wrap:
+  `internal/cli/render/resolver.go`, `internal/cli/show/show.go`,
+  `internal/cli/cliutil/scopes.go`, `internal/check/head_history.go`,
+  `internal/gitops/revwalk.go` (including a doc-link that already pointed
+  at a non-existent lowercase `readHistory` symbol before this milestone),
+  several `internal/cli/integration/*_test.go` comments, and this spec's
+  AC-2 paragraph. The `entityview` package doc comment was also broadened
+  to name `ReadEntityBody` as a third responsibility alongside history
+  parsing and scope-view assembly. The design-quality lens additionally
+  flagged two follow-ups explicitly out of this milestone's mechanical-only
+  scope, left as commentary rather than gaps (neither is a defect in what
+  shipped, both would touch unrelated call sites or algorithms): relocating
+  `hasCommits`'s canonical home to `internal/gitops` (D-0045 already
+  reasoned through and rejected this for now), and consolidating
+  `ReadHistoryChain`'s inline parse loop with `EventFromCommit` (a
+  pre-existing E-0054 duplication this move only made more visible).
+- Both ACs landed in a single commit (5d331e61) rather than two: the
+  extraction and the caller rewiring are not independently buildable under
+  this repo's no-compatibility-shim convention — once `entityview` exists
+  and `show`/`history` stop re-exporting the moved symbols, every consumer
+  must move in the same commit or the tree doesn't compile. A staged
+  two-commit split would have required a temporary re-export shim in
+  `show`/`history` purely to make the split look independent, which
+  contradicts CLAUDE.md's "no compatibility shims without a named removal
+  trigger."
+- The diff-scoped coverage gate compares against the epic's fork point
+  (98 commits back, since `origin/main` predates E-0069 entirely), not
+  against M-0272's own diff — so `make coverage-gate` technically re-checks
+  the whole epic's surface, not just this milestone's. In practice only one
+  finding fired outside already-migrated, byte-identical code (`git diff`'s
+  own similarity detection appears to attribute unchanged moved chunks back
+  to their pre-existing coverage), and it was a genuine pre-existing gap
+  this migration's line-shuffling surfaced, not a regression the move
+  introduced.

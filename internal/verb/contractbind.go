@@ -7,7 +7,6 @@ import (
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/config"
-	"github.com/23min/aiwf/internal/contractcheck"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -108,10 +107,10 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 		next.Entries = append(next.Entries, desired)
 	}
 
-	// G18: validate the projected config before mutating the doc.
-	// Filter to findings about *this* binding's id; pre-existing
-	// findings on other entries are not introduced by this verb.
-	if introduced := contractCheckForBinding(t, next, repoRoot, id); check.HasErrors(introduced) {
+	// G18: validate the projected config before mutating the doc, via
+	// the shared diff-based gate (D-0041) — only findings this
+	// mutation introduces block the write.
+	if introduced := contractMutationGate(t, current, next, repoRoot); check.HasErrors(introduced) {
 		return findings(introduced), nil
 	}
 
@@ -132,27 +131,17 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	return result, nil
 }
 
-// contractCheckForBinding runs contractcheck on the projected contracts
-// config and returns only the findings whose EntityID matches id —
-// i.e. the ones the bind/add verb just introduced. Pre-existing
-// findings on other bindings are not the verb's responsibility and
-// shouldn't block it.
-func contractCheckForBinding(t *tree.Tree, next *aiwfyaml.Contracts, repoRoot, id string) []check.Finding {
-	all := contractcheck.Run(t, next, repoRoot)
-	var introduced []check.Finding
-	for i := range all {
-		if all[i].EntityID == id {
-			introduced = append(introduced, all[i])
-		}
-	}
-	return introduced
-}
-
 // ContractUnbind removes the binding for a contract from
 // aiwf.yaml.contracts.entries[]. The contract entity is left
 // untouched; its status governs whether pre-push verification still
 // runs (it doesn't, once unbound). Errors when no binding exists.
-func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor string) (*Result, error) {
+//
+// t and repoRoot feed the shared diff-based gate (D-0041): unbinding
+// can never resolve a missing-schema/-fixtures finding since it only
+// removes an entry, but it can introduce a fresh no-binding warning
+// on the now-unbound contract entity — the gate is a safety net that
+// makes that visible rather than one more unchecked mutation path.
+func ContractUnbind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor, repoRoot string) (*Result, error) {
 	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
@@ -176,6 +165,10 @@ func ContractUnbind(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Co
 		return nil, fmt.Errorf("no binding for %s in aiwf.yaml.contracts.entries", id)
 	}
 	next.Entries = out
+
+	if introduced := contractMutationGate(t, current, next, repoRoot); check.HasErrors(introduced) {
+		return findings(introduced), nil //coverage:ignore unbinding can only ever introduce a no-binding warning via contractcheck.Run's current rules, never an error — this branch is a safety net for a scenario no real input can construct today; see the doc comment above.
+	}
 
 	if err := doc.SetContracts(next); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)

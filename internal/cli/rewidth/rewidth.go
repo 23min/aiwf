@@ -18,7 +18,6 @@ import (
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf rewidth [--apply] [--root <path>]`.
@@ -91,16 +90,18 @@ runs.`,
 
 // Run executes `aiwf rewidth`. Returns one of the cliutil.Exit* codes.
 func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) (code int) {
+	ctx := context.Background()
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
-		return failRewidth(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf rewidth", nil, err, out)
+		return code
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
-		return failRewidth(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, err, out)
+		return code
 	}
-
-	ctx := context.Background()
 
 	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
 	// M-0238/AC-5 pattern. rewidth is a multi-entity sweep (no single
@@ -123,10 +124,12 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		return failRewidth(out, fmt.Sprintf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, fmt.Errorf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), out)
+		return code
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		return failRewidth(out, "--principal is forbidden when --actor is human/ (humans act directly)", cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, fmt.Errorf("--principal is forbidden when --actor is human/ (humans act directly)"), out)
+		return code
 	}
 
 	// Dry-run is read-only; lock only when we'd write.
@@ -154,108 +157,40 @@ func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.Outp
 
 	result, err := verb.Rewidth(ctx, rootDir, actorStr)
 	if err != nil { //coverage:ignore verb.Rewidth only errors on filesystem failures; tempdir-based tests can't reproduce
-		return failRewidth(out, err.Error(), cliutil.ExitInternal)
-	}
-	if result == nil { //coverage:ignore Rewidth always returns a non-nil Result on success path; defensive against future API drift
-		return failRewidth(out, "no result returned", cliutil.ExitInternal)
-	}
-
-	if result.NoOp {
-		if out.JSON() {
-			emitRewidthEnvelope(out, result.NoOpMessage, nil)
-			return cliutil.ExitOK
-		}
-		cliutil.Println(result.NoOpMessage)
-		return cliutil.ExitOK
-	}
-	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today; defensive against future API drift
-		return failRewidth(out, "validation passed but no plan produced", cliutil.ExitInternal)
-	}
-
-	if !apply {
-		// Dry-run: print summary, no writes.
-		if out.JSON() {
-			emitRewidthEnvelope(out, result.Plan.Subject+" (dry-run; re-run with --apply to commit)", result.Metadata)
-			return cliutil.ExitOK
-		}
-		printRewidthDryRun(result.Plan)
-		return cliutil.ExitOK
-	}
-
-	// Stamp principal trailer when the operator is non-human, mirroring
-	// import's bulk-sweep shape.
-	if actorIsNonHuman {
-		result.Plan.Trailers = append(result.Plan.Trailers, gitops.Trailer{
-			Key:   gitops.TrailerPrincipal,
-			Value: principalStr,
-		})
-	}
-
-	var applyErr error
-	sha, applyErr = verb.Apply(ctx, rootDir, result.Plan)
-	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures; tests don't reproduce a corrupted repo state
-		return failRewidth(out, applyErr.Error(), cliutil.ExitInternal)
-	}
-	if len(result.Findings) > 0 && !out.JSON() { //coverage:ignore Rewidth currently never populates Findings (validation is downstream — `aiwf check` post-commit); defensive surface for future projection-finding adoption
-		_ = render.Text(os.Stderr, result.Findings)
-	}
-	if out.JSON() {
-		emitRewidthEnvelope(out, result.Plan.Subject, withCommitSHA(result.Metadata, sha))
-		return cliutil.ExitOK
-	}
-	cliutil.Println(result.Plan.Subject)
-	return cliutil.ExitOK
-}
-
-// failRewidth reports a terminal error in the chosen output format.
-// Mirrors the archive verb's identically-shaped helper (both verbs
-// predate cliutil.OutputFormat's shared emit* methods and build their
-// own render.Envelope directly).
-func failRewidth(out cliutil.OutputFormat, message string, code int) int {
-	if !out.JSON() {
-		cliutil.Errorf("aiwf rewidth: %s\n", message)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, cliutil.ErrInternal(err), out)
 		return code
 	}
-	env := render.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "error",
-		Error:   &render.EnvelopeError{Message: message},
+
+	outcome := &cliutil.Outcome{}
+	if result != nil {
+		outcome.NoOp = result.NoOp
+		outcome.NoOpMessage = result.NoOpMessage
+		if result.Plan != nil {
+			// Stamp principal trailer when the operator is non-human,
+			// mirroring import's bulk-sweep shape. Harmless on the
+			// dry-run branch below — FinishVerbOutcome never applies a
+			// Plan whose DryRun is set.
+			if apply && actorIsNonHuman {
+				result.Plan.Trailers = append(result.Plan.Trailers, gitops.Trailer{
+					Key:   gitops.TrailerPrincipal,
+					Value: principalStr,
+				})
+			}
+			outcome.Plans = []*verb.Plan{result.Plan}
+			outcome.Findings = result.Findings
+			outcome.Metadata = result.Metadata
+			if !apply {
+				outcome.DryRun = true
+				outcome.Subject = result.Plan.Subject + " (dry-run; re-run with --apply to commit)"
+				outcome.TextDetail = func() { printRewidthDryRun(outcome.Subject, result.Plan) }
+			}
+		}
+	} else {
+		outcome = nil //coverage:ignore Rewidth always returns a non-nil Result on success path; defensive against future API drift
 	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
+
+	code, sha = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", outcome, nil, out)
 	return code
-}
-
-// emitRewidthEnvelope writes a status:"ok" envelope carrying subject
-// and metadata (correlation_id merged in via out.Metadata). Called
-// only when out.JSON() is true.
-func emitRewidthEnvelope(out cliutil.OutputFormat, subject string, metadata map[string]any) {
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   "ok",
-		Result:   map[string]any{"subject": subject},
-		Metadata: out.Metadata(metadata),
-	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
-}
-
-// withCommitSHA returns a copy of md with "commit_sha" set to sha,
-// without mutating md. Mirrors cliutil.withCommitSHA / archive's
-// identical helper (unexported, cross-package — each verb that builds
-// its own envelope needs its own copy). sha is always non-empty at
-// this function's one call site; render.Envelope's Metadata field
-// carries omitempty, which treats a zero-length map the same as nil,
-// so no empty/nil special-casing is needed here.
-func withCommitSHA(md map[string]any, sha string) map[string]any {
-	out := make(map[string]any, len(md)+1)
-	for k, v := range md {
-		out[k] = v
-	}
-	if sha != "" {
-		out["commit_sha"] = sha
-	}
-	return out
 }
 
 // rewidthExpectedDirs is the set of kind directories a typical
@@ -330,9 +265,11 @@ func rewidthPreflight(ctx context.Context, rootDir string) int {
 
 // printRewidthDryRun prints a human-readable summary of the planned
 // renames + body rewrites. Stdout, not stderr — the user reads this
-// to decide whether to re-run with --apply.
-func printRewidthDryRun(p *verb.Plan) {
-	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+// to decide whether to re-run with --apply. subject is the caller's
+// already-computed dry-run subject (the same string riding in
+// Outcome.Subject) so the two never drift independently.
+func printRewidthDryRun(subject string, p *verb.Plan) {
+	cliutil.Println(subject)
 	if p.Body != "" {
 		cliutil.Println()
 		cliutil.Print(p.Body)

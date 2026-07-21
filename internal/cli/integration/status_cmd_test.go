@@ -13,7 +13,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/cli/status"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
@@ -804,7 +804,7 @@ func TestReadHistory_SkipsProseMentions(t *testing.T) {
 		t.Fatalf("git commit (prose): %v\n%s", err, out)
 	}
 
-	events, err := history.ReadHistory(context.Background(), root, "G-0001")
+	events, err := entityview.ReadHistory(context.Background(), root, "G-0001")
 	if err != nil {
 		t.Fatalf("readHistory: %v", err)
 	}

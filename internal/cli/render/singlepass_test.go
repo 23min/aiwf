@@ -10,9 +10,9 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
-	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/cli/show"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -206,7 +206,7 @@ func TestSinglePass_EventsMatchReadHistory(t *testing.T) {
 	for _, id := range repo.queryIDs {
 		t.Run(id, func(t *testing.T) {
 			t.Parallel()
-			want, err := history.ReadHistory(ctx, repo.root, id)
+			want, err := entityview.ReadHistory(ctx, repo.root, id)
 			if err != nil {
 				t.Fatalf("ReadHistory(%s): %v", id, err)
 			}

@@ -214,3 +214,54 @@ func (e *MilestonePromoteNonTerminalACsError) Error() string {
 func (e *MilestonePromoteNonTerminalACsError) Code() string {
 	return CodeMilestonePromoteNonTerminalACs.ID
 }
+
+// epicChildrenCascadeGuard refuses moving epic e to newStatus while it
+// still owns a non-terminal child milestone (D-0003 / G-0393 / G-0394).
+// Runs only when newStatus is itself a terminal status for KindEpic —
+// Cancel's target is always terminal by construction (its callers pass
+// entity.CancelTarget's result), so the condition is trivially true
+// there; Promote's newStatus can be non-terminal (e.g. draft ->
+// active), where this guard must not fire. buildErr constructs the
+// caller-specific error from the offending children — Cancel and
+// Promote each carry a distinct error type and Code ID
+// (EpicCancelNonTerminalChildrenError / EpicPromoteNonTerminalChildrenError,
+// D-0011's closed legality set), an established, tested surface this
+// shared guard preserves rather than collapses. Shared by Cancel
+// (cancel.go) and Promote (promote.go) — the two verbs' preconditions
+// differ only in which error type reports the refusal, not in the
+// check itself.
+func epicChildrenCascadeGuard(t *tree.Tree, e *entity.Entity, newStatus string, buildErr func(children []string) error) error {
+	if e.Kind != entity.KindEpic || !entity.IsTerminal(entity.KindEpic, newStatus) {
+		return nil
+	}
+	if nonTerminal := nonTerminalEpicChildren(t, e.ID); len(nonTerminal) > 0 {
+		return buildErr(nonTerminal)
+	}
+	return nil
+}
+
+// milestoneACsCascadeGuard refuses moving milestone e to newStatus
+// while it still carries an open acceptance criterion (D-0004 /
+// G-0335). Runs only when newStatus is `cancelled` — the `done`
+// target carries its own, independent precondition (the
+// milestone-done-incomplete-acs check-rule projectionFindings runs
+// elsewhere), so gating this guard on cancelled-only avoids
+// double-firing on done. Cancel's target for a milestone is always
+// `cancelled` by construction, so the condition is trivially true
+// there; Promote's newStatus varies. buildErr constructs the
+// caller-specific error, kept distinct for the same reason as
+// epicChildrenCascadeGuard's. Shared by Cancel (cancel.go) and
+// Promote (promote.go).
+func milestoneACsCascadeGuard(e *entity.Entity, newStatus string, buildErr func(openACs []string) error) error {
+	if e.Kind != entity.KindMilestone || newStatus != entity.StatusCancelled {
+		return nil
+	}
+	if ok, openACs := entity.MilestoneCanGoDone(e); !ok {
+		composite := make([]string, 0, len(openACs))
+		for _, ac := range openACs {
+			composite = append(composite, e.ID+"/"+ac)
+		}
+		return buildErr(composite)
+	}
+	return nil
+}

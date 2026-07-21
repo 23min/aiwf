@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -157,20 +156,31 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 		return &ImportResult{Findings: collisionFindings}, nil
 	}
 
-	// Step 3: allocate auto ids. Per kind, max ID is taken over
-	// (existing entities of that kind ∪ already-reserved explicit
-	// ids in the manifest). New auto-allocated ids are also added to
-	// reserved as we go so two `auto` entries for the same kind get
-	// distinct ids.
-	highest := computeHighestPerKind(t.Entities, reserved)
+	// Step 3: allocate auto ids through entity.AllocateID — the same
+	// allocator `add` uses (G-0426) — so import sees not just the
+	// working tree and the manifest's own explicit reservations, but
+	// also the cross-branch view (t.AllocationIDs(): trunk + local-ref
+	// + remote-ref ids). Explicit reservations are folded in as
+	// synthetic entities since some may be brand-new ids not yet
+	// present in t.Entities. Each freshly-minted auto id is appended
+	// to the working set before the next AllocateID call so two
+	// `auto` entries for the same kind get distinct ids.
+	allocated := make([]*entity.Entity, len(t.Entities), len(t.Entities)+len(m.Entities))
+	copy(allocated, t.Entities)
+	for k, ids := range reserved {
+		for id := range ids {
+			allocated = append(allocated, &entity.Entity{Kind: k, ID: id})
+		}
+	}
+	trunkIDs := t.AllocationIDs()
 	for i := range m.Entities {
 		e := &m.Entities[i]
 		if !e.IsAuto() {
 			continue
 		}
 		k := entity.Kind(e.Kind)
-		highest[k]++
-		id := formatID(k, highest[k])
+		id := entity.AllocateID(k, allocated, trunkIDs)
+		allocated = append(allocated, &entity.Entity{Kind: k, ID: id})
 		plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: id})
 	}
 
@@ -236,73 +246,6 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 	// Step 7: assemble plans.
 	plans := buildImportPlans(m, plannedEntries, entities, ops, actor)
 	return &ImportResult{Plans: plans}, nil
-}
-
-// computeHighestPerKind returns the largest existing id number per
-// kind, including ids reserved by explicit-id manifest entries. Used
-// as the starting point for auto-allocation.
-func computeHighestPerKind(es []*entity.Entity, reserved map[entity.Kind]map[string]bool) map[entity.Kind]int {
-	out := make(map[entity.Kind]int, len(entity.AllKinds()))
-	for _, k := range entity.AllKinds() {
-		out[k] = 0
-	}
-	for _, e := range es {
-		if n := parseIDInt(e.Kind, e.ID); n > out[e.Kind] {
-			out[e.Kind] = n
-		}
-	}
-	for k, ids := range reserved {
-		for id := range ids {
-			if n := parseIDInt(k, id); n > out[k] {
-				out[k] = n
-			}
-		}
-	}
-	return out
-}
-
-// parseIDInt is the package-local mirror of entity.parseIDNumber. The
-// allocator helper there is unexported so we recreate it here.
-func parseIDInt(k entity.Kind, id string) int {
-	prefix := idPrefix(k)
-	if !strings.HasPrefix(id, prefix) {
-		return 0
-	}
-	rest := id[len(prefix):]
-	n := 0
-	for _, c := range rest {
-		if c < '0' || c > '9' {
-			return 0
-		}
-		n = n*10 + int(c-'0')
-	}
-	return n
-}
-
-func idPrefix(k entity.Kind) string {
-	switch k {
-	case entity.KindEpic:
-		return "E-"
-	case entity.KindMilestone:
-		return "M-"
-	case entity.KindADR:
-		return "ADR-"
-	case entity.KindGap:
-		return "G-"
-	case entity.KindDecision:
-		return "D-"
-	case entity.KindContract:
-		return "C-"
-	}
-	return ""
-}
-
-// formatID builds an id string for kind k with the canonical pad
-// width applied to n. Mirrors entity.AllocateID's formatting; both
-// share entity.CanonicalPad as the single source of truth per
-// ADR-0008.
-func formatID(k entity.Kind, n int) string {
-	return fmt.Sprintf("%s%0*d", idPrefix(k), entity.CanonicalPad, n)
 }
 
 // buildEntityFromEntry materializes a manifest entry into an

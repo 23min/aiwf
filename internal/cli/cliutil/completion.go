@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -18,6 +19,16 @@ func RegisterFormatCompletion(cmd *cobra.Command) {
 		[]string{"text", "json"},
 		cobra.ShellCompDirectiveNoFileComp,
 	))
+}
+
+// CompleteHookNames offers the shipped hook registry's names for
+// `--enable-hook <TAB>`, derived from skills.ShippedHooks — mirrors
+// completeDeclaredValidators' shape for a runtime-derived set (empty
+// if the registry ever shrinks back to zero hooks, rather than
+// hardcoding today's names). Shared by `aiwf init` and `aiwf update`
+// (F9) — both previously carried byte-identical unexported copies.
+func CompleteHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return skills.HookNamesFrom(skills.ShippedHooks), cobra.ShellCompDirectiveNoFileComp
 }
 
 // AllKindNames returns the entity-kind names as strings, in the

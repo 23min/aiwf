@@ -103,15 +103,6 @@ linters:
       # style) so a future clone elsewhere in the same file would also go
       # unflagged until revisited; acceptable for a short, named list.
       #
-      # F2 (docs/initiatives/verb-layer-cleanup.md, tracked for cleanup
-      # separately): rename.go's renamePaths/substituteSlug and
-      # reallocate.go's reallocatePaths/substituteID share the same
-      # path-substitution shape; reallocate.go's own comment already notes
-      # the mirroring.
-      - linters: [dupl]
-        path: internal/verb/rename\.go
-      - linters: [dupl]
-        path: internal/verb/reallocate\.go
       # Newly surfaced by enabling dupl (not part of the original
       # verb-layer-cleanup audit) — not investigated further here; tracked
       # for follow-up triage rather than fixed as part of this patch.

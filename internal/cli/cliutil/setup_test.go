@@ -18,6 +18,10 @@ import (
 //     (resolvelogger_test.go) — uses captureStdStreams.
 //   - TestAcquireRepoLock_JSONEnvelopeOnBusy, TestAcquireRepoLock_TextModeUnchanged
 //     (lock_test.go) — use testutil.CaptureStdout / CaptureStderr.
+//   - TestFinishVerbOutcome_DryRun_JSON, TestFinishVerbOutcome_DryRun_Text,
+//     TestFinishVerbOutcome_MultiPlan_Apply, TestFinishVerbOutcome_ApplyError_MessageFormat,
+//     TestFinishVerbOutcome_ApplySuccess_FindingsRenderInTextMode
+//     (apply_outcome_test.go) — use captureStdStreams.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")

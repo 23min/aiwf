@@ -125,7 +125,10 @@ func TestBuildShowView_CrossBranchResolved_SurfacesPriority(t *testing.T) {
 		t.Fatal("G-0100 must be absent from the local (main) tree for this fixture")
 	}
 
-	view, ok := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5)
+	view, ok, err := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5)
+	if err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	}
 	if !ok {
 		t.Fatal("BuildShowView: not found, want cross-branch resolution")
 	}

@@ -842,12 +842,17 @@ func guidanceImportBlock() string {
 	return guidanceImportStartMarker + "\n@" + skills.GuidanceFile + "\n" + guidanceImportEndMarker + "\n"
 }
 
-// guidanceMarkerLineIdx returns the index of the first line that, once
+// GuidanceMarkerLineIdx returns the index of the first line that, once
 // trimmed, equals marker — or -1. Line-anchored: a marker string that
 // appears inside a prose line is NOT matched, so user text mentioning the
 // markers is never treated as a block boundary (review-hardening for the
 // "clobbers nothing" guarantee in ADR-0018).
-func guidanceMarkerLineIdx(lines []string, marker string) int {
+//
+// Exported (F9) so `aiwf doctor`'s guidance-import detection shares this
+// exact line-anchored check — passing the bare "@"+skills.GuidanceFile
+// import line as marker — instead of an independent re-implementation,
+// the same pattern as the hook markers (HookMarker et al.).
+func GuidanceMarkerLineIdx(lines []string, marker string) int {
 	for i, ln := range lines {
 		if strings.TrimSpace(ln) == marker {
 			return i
@@ -892,8 +897,8 @@ func ensureGuidanceImport(root string, opts RefreshOptions) (StepResult, error) 
 	content := string(existing)
 	lines := strings.Split(content, "\n")
 
-	startIdx := guidanceMarkerLineIdx(lines, guidanceImportStartMarker)
-	endIdx := guidanceMarkerLineIdx(lines, guidanceImportEndMarker)
+	startIdx := GuidanceMarkerLineIdx(lines, guidanceImportStartMarker)
+	endIdx := GuidanceMarkerLineIdx(lines, guidanceImportEndMarker)
 	hasStart := startIdx != -1
 	hasEnd := endIdx != -1
 
@@ -916,7 +921,7 @@ func ensureGuidanceImport(root string, opts RefreshOptions) (StepResult, error) 
 
 	// No marker block → self-heal (re-)add. A pre-existing bare import line
 	// (no markers) is wrapped in place rather than duplicated.
-	if bareIdx := guidanceMarkerLineIdx(lines, "@"+skills.GuidanceFile); bareIdx != -1 {
+	if bareIdx := GuidanceMarkerLineIdx(lines, "@"+skills.GuidanceFile); bareIdx != -1 {
 		rebuilt := spliceGuidanceLines(lines, bareIdx, bareIdx, blockLines)
 		return writeGuidanceImport(path, rebuilt, opts.DryRun, what, ActionUpdated, "wrapped existing guidance import in markers")
 	}

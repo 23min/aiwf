@@ -61,7 +61,10 @@ func TestBuildShowView_CrossBranchResolvesAndLabelsContent_M0260AC1AC2(t *testin
 		t.Fatal("M-0100 must be absent from the local (main) tree for this fixture")
 	}
 
-	view, ok := show.BuildShowView(ctx, root, tr, nil, "M-0100", 5)
+	view, ok, err := show.BuildShowView(ctx, root, tr, nil, "M-0100", 5)
+	if err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	}
 	if !ok {
 		t.Fatal("BuildShowView: not found, want cross-branch resolution")
 	}
@@ -129,7 +132,10 @@ func TestBuildShowView_CrossBranchCollision_DeclinesToRender_M0260AC3(t *testing
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	view, ok := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5)
+	view, ok, err := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5)
+	if err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	}
 	if !ok {
 		t.Fatal("BuildShowView: not found, want a collision view")
 	}
@@ -181,7 +187,9 @@ func TestBuildShowView_UnknownEverywhere_StillNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	if _, ok := show.BuildShowView(ctx, root, tr, nil, "G-9999", 5); ok {
+	if _, ok, err := show.BuildShowView(ctx, root, tr, nil, "G-9999", 5); err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	} else if ok {
 		t.Error("BuildShowView(G-9999) = ok, want not-found (id exists nowhere)")
 	}
 }
@@ -211,7 +219,10 @@ func TestBuildShowView_CrossBranchResolved_MilestoneWithACs(t *testing.T) {
 		t.Fatalf("tree.Load: %v", err)
 	}
 
-	view, ok := show.BuildShowView(ctx, root, tr, nil, "M-0100", 5)
+	view, ok, err := show.BuildShowView(ctx, root, tr, nil, "M-0100", 5)
+	if err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	}
 	if !ok {
 		t.Fatal("BuildShowView: not found, want cross-branch resolution")
 	}
@@ -246,7 +257,9 @@ func TestBuildShowView_CrossBranchResolved_MalformedContentNotFound(t *testing.T
 	if err != nil {
 		t.Fatalf("tree.Load: %v", err)
 	}
-	if _, ok := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5); ok {
+	if _, ok, err := show.BuildShowView(ctx, root, tr, nil, "G-0100", 5); err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	} else if ok {
 		t.Error("BuildShowView(G-0100): ok = true, want not-found for malformed cross-branch content")
 	}
 }
@@ -259,7 +272,9 @@ func TestBuildShowView_CrossBranchResolved_MalformedContentNotFound(t *testing.T
 // must be exercised.
 func TestBuildShowView_EmptyRoot_NeverScans(t *testing.T) {
 	tr := &tree.Tree{}
-	if _, ok := show.BuildShowView(context.Background(), "", tr, nil, "G-9999", 5); ok {
+	if _, ok, err := show.BuildShowView(context.Background(), "", tr, nil, "G-9999", 5); err != nil {
+		t.Fatalf("BuildShowView: %v", err)
+	} else if ok {
 		t.Error("BuildShowView(root=\"\"): ok = true, want not-found (the empty-root guard should short-circuit)")
 	}
 }

@@ -1,5 +1,9 @@
-// Package show implements the `aiwf show` verb (per-verb subpackage of M-0116;
-// includes the show-scopes helpers moved from show_scopes.go).
+// Package show implements the `aiwf show` verb (per-verb subpackage of
+// M-0116). The neutral, Cobra-free view-building helpers (HistoryEvent,
+// ScopeView, AssembleScopeViews, ReadEntityBody, ...) live in
+// internal/entityview; this package holds the Cobra wiring plus the
+// git-orchestrating LoadEntityScopeViews (scopes.go), which composes
+// them with cliutil's scope-FSM reads.
 package show
 
 import (
@@ -7,7 +11,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -16,6 +19,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/history"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
@@ -35,35 +39,6 @@ func AreaMissLine(id, actual, requested string) string {
 		return fmt.Sprintf("%s is untagged; not in area %q", id, requested)
 	}
 	return fmt.Sprintf("%s is in area %q, not %q", id, actual, requested)
-}
-
-// ReadEntityBody reads the entity file at root/relPath and returns the
-// body bytes (the prose after the closing `---`). Errors are
-// swallowed — `aiwf show` already emits findings for unreadable /
-// malformed entities via the load-error finding; surfacing the same
-// problem on the body field would double-count. Empty body or missing
-// file produces nil.
-//
-// Entity.Path is repo-relative (the loader normalizes it that way) so
-// callers must join with root before hitting the filesystem; doing
-// the join in this helper keeps each caller from re-deriving it.
-func ReadEntityBody(root, relPath string) []byte {
-	if relPath == "" {
-		return nil
-	}
-	abs := relPath
-	if !filepath.IsAbs(abs) {
-		abs = filepath.Join(root, relPath)
-	}
-	content, err := os.ReadFile(abs)
-	if err != nil {
-		return nil
-	}
-	_, body, ok := entity.Split(content)
-	if !ok {
-		return nil
-	}
-	return body
 }
 
 // NewCmd builds `aiwf show <id>`. Aggregates per-entity state from
@@ -160,7 +135,11 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 		return cliutil.ExitInternal
 	}
 
-	view, ok := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
+	view, ok, err := BuildShowView(ctx, rootDir, tr, loadErrs, id, historyLimit)
+	if err != nil {
+		cliutil.Errorf("aiwf show: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	if !ok {
 		message := fmt.Sprintf("%s not found", id)
 		switch format {
@@ -269,13 +248,13 @@ type ShowView struct {
 	// Priority carries the entity's own `priority` frontmatter
 	// (G-0078, E-0066, M-0263) — empty for a kind that never carries
 	// one (entity.CarriesOwnPriority) or an unprioritized gap/decision.
-	Priority     string                 `json:"priority,omitempty"`
-	ACs          []ShowAC               `json:"acs,omitempty"`
-	Body         map[string]string      `json:"body,omitempty"`
-	History      []history.HistoryEvent `json:"history,omitempty"`
-	Findings     []check.Finding        `json:"findings,omitempty"`
-	ReferencedBy []string               `json:"referenced_by"`
-	Scopes       []ScopeView            `json:"scopes,omitempty"`
+	Priority     string                    `json:"priority,omitempty"`
+	ACs          []ShowAC                  `json:"acs,omitempty"`
+	Body         map[string]string         `json:"body,omitempty"`
+	History      []entityview.HistoryEvent `json:"history,omitempty"`
+	Findings     []check.Finding           `json:"findings,omitempty"`
+	ReferencedBy []string                  `json:"referenced_by"`
+	Scopes       []entityview.ScopeView    `json:"scopes,omitempty"`
 
 	// Archived is true when the resolved entity's path lives under a
 	// per-kind `archive/` subdirectory per ADR-0004. JSON shape uses
@@ -344,16 +323,19 @@ type ShowAC struct {
 
 // BuildShowView assembles the view for id; ok=false when no entity
 // (or AC) matches. Composite ids resolve via the parent milestone's
-// ACs slice.
-func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+// ACs slice. err is non-nil only on a history/scope read failure
+// (G-0427) — a genuine git/environmental fault, distinct from
+// ok=false's "id not found," which is never an error.
+func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool, error) {
 	if entity.IsCompositeID(id) {
 		return BuildCompositeShowView(ctx, root, t, loadErrs, id, historyLimit)
 	}
 	e := t.ByID(id)
 	if e == nil {
-		return buildCrossBranchShowView(ctx, root, t, id)
+		v, ok := buildCrossBranchShowView(ctx, root, t, id)
+		return v, ok, nil
 	}
-	body := ReadEntityBody(root, e.Path)
+	body := entityview.ReadEntityBody(root, e.Path)
 	// Emit canonical ids per AC-3 in M-081 — display surfaces are
 	// uniform-width regardless of on-disk filename.
 	view := ShowView{
@@ -383,18 +365,21 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		})
 	}
 
-	events, err := history.ReadHistory(ctx, root, id)
-	if err == nil {
-		view.History = limitEvents(events, historyLimit)
+	events, err := entityview.ReadHistory(ctx, root, id)
+	if err != nil {
+		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
 	}
-	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
-		view.Scopes = scopes
+	view.History = limitEvents(events, historyLimit)
+	scopes, err := LoadEntityScopeViews(ctx, root, id)
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (entityview.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
+	view.Scopes = scopes
 
 	allFindings := check.Run(t, loadErrs)
 	view.Findings = filterFindingsByID(allFindings, id, e)
 
-	return view, true
+	return view, true, nil
 }
 
 // nonNilStrings returns the slice unchanged when non-nil, or an empty
@@ -514,12 +499,13 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 }
 
 // BuildCompositeShowView handles `aiwf show M-NNN/AC-N`. Returns
-// ok=false when the parent or AC doesn't exist.
-func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool) {
+// ok=false when the parent or AC doesn't exist. err is non-nil only
+// on a history/scope read failure (G-0427), mirroring BuildShowView.
+func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int) (ShowView, bool, error) {
 	parentID, subID, _ := entity.ParseCompositeID(id)
 	parent := t.ByID(parentID)
 	if parent == nil {
-		return ShowView{}, false
+		return ShowView{}, false, nil
 	}
 	var found *entity.AcceptanceCriterion
 	for i := range parent.ACs {
@@ -529,9 +515,9 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		}
 	}
 	if found == nil {
-		return ShowView{}, false
+		return ShowView{}, false, nil
 	}
-	desc := entity.ParseACSections(ReadEntityBody(root, parent.Path))[found.ID]
+	desc := entity.ParseACSections(entityview.ReadEntityBody(root, parent.Path))[found.ID]
 	// Emit canonical ids per AC-3 in M-081.
 	view := ShowView{
 		ID:       entity.Canonicalize(id),
@@ -554,24 +540,27 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		Archived: entity.IsArchivedPath(parent.Path),
 	}
 
-	events, err := history.ReadHistory(ctx, root, id)
-	if err == nil {
-		view.History = limitEvents(events, historyLimit)
+	events, err := entityview.ReadHistory(ctx, root, id)
+	if err != nil {
+		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
 	}
-	if scopes, err := LoadEntityScopeViews(ctx, root, id); err == nil {
-		view.Scopes = scopes
+	view.History = limitEvents(events, historyLimit)
+	scopes, err := LoadEntityScopeViews(ctx, root, id)
+	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (entityview.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
+		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
 	}
+	view.Scopes = scopes
 
 	allFindings := check.Run(t, loadErrs)
 	view.Findings = filterFindingsByID(allFindings, id, parent)
 
-	return view, true
+	return view, true, nil
 }
 
 // limitEvents trims the history slice. negative limit returns all;
 // zero returns nil; positive returns the most recent N (events come
 // oldest-first from readHistory, so we slice from the tail).
-func limitEvents(events []history.HistoryEvent, limit int) []history.HistoryEvent {
+func limitEvents(events []entityview.HistoryEvent, limit int) []entityview.HistoryEvent {
 	switch {
 	case limit < 0:
 		return events
@@ -677,7 +666,7 @@ func renderShowText(v ShowView) {
 				ended = "  ended " + s.EndedAt[:10]
 			}
 			cliutil.Printf("    %s  %s → %s  state: %-7s  opened %s%s  events: %d\n",
-				history.ShortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
+				entityview.ShortHash(s.AuthSHA), s.Principal, s.Agent, s.State,
 				dateOnly(s.Opened), ended, s.EventCount)
 		}
 	}

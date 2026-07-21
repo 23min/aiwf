@@ -26,6 +26,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/skills"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/version"
@@ -485,8 +486,8 @@ func appendHookReport(in []string, problemsIn []Problem, rootDir string) (lines 
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
-	if !strings.Contains(string(raw), "# aiwf:pre-push") {
-		val := "present but not aiwf-managed (no `# aiwf:pre-push` marker); aiwf check is not running pre-push"
+	if !strings.Contains(string(raw), initrepo.HookMarker()) {
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); aiwf check is not running pre-push", initrepo.HookMarker())
 		lines = append(lines, label("hook:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -602,8 +603,8 @@ func appendPreCommitHookReport(in []string, problemsIn []Problem, rootDir string
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
-	if !strings.Contains(string(raw), "# aiwf:pre-commit") {
-		val := "present but not aiwf-managed (no `# aiwf:pre-commit` marker); tree-discipline gate is not enforced"
+	if !strings.Contains(string(raw), initrepo.PreCommitHookMarker()) {
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); tree-discipline gate is not enforced", initrepo.PreCommitHookMarker())
 		lines = append(lines, label("pre-commit:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -687,8 +688,8 @@ func appendCommitMsgHookReport(in []string, problemsIn []Problem, rootDir string
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
-	if !strings.Contains(string(raw), "# aiwf:commit-msg") {
-		val := "present but not aiwf-managed (no `# aiwf:commit-msg` marker); G-0218 fabricated-trailer chokepoint is not enforced"
+	if !strings.Contains(string(raw), initrepo.CommitMsgHookMarker()) {
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); G-0218 fabricated-trailer chokepoint is not enforced", initrepo.CommitMsgHookMarker())
 		lines = append(lines, label("commit-msg:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems
@@ -738,9 +739,9 @@ func appendPostCommitHookReport(in []string, problemsIn []Problem, rootDir strin
 		problems = append(problems, Problem{Severity: SeverityError, Message: err.Error()})
 		return lines, problems
 	}
-	hasOurMarker := strings.Contains(string(raw), "# aiwf:post-commit")
+	hasOurMarker := strings.Contains(string(raw), initrepo.PostCommitHookMarker())
 	if !hasOurMarker {
-		val := "present but not aiwf-managed (no `# aiwf:post-commit` marker); STATUS.md regen will not run"
+		val := fmt.Sprintf("present but not aiwf-managed (no `%s` marker); STATUS.md regen will not run", initrepo.PostCommitHookMarker())
 		lines = append(lines, label("post-commit:")+val)
 		problems = append(problems, Problem{Severity: SeverityWarn, Message: val})
 		return lines, problems

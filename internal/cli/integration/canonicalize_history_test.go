@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -93,9 +93,9 @@ func TestHistory_NarrowTrailerMatchesCanonicalQuery(t *testing.T) {
 			root := initTrailerRepo(t)
 			commitWithTrailer(t, root, tt.stored, "promote")
 			for _, q := range tt.queries {
-				events, err := history.ReadHistoryChain(context.Background(), root, []string{q})
+				events, err := entityview.ReadHistoryChain(context.Background(), root, []string{q})
 				if err != nil {
-					t.Fatalf("history.ReadHistoryChain(%q): %v", q, err)
+					t.Fatalf("entityview.ReadHistoryChain(%q): %v", q, err)
 				}
 				if len(events) == 0 {
 					t.Errorf("query %q against trailer %q returned no events", q, tt.stored)

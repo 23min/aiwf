@@ -1,9 +1,9 @@
-package history_test
+package entityview_test
 
 import (
 	"testing"
 
-	"github.com/23min/aiwf/internal/cli/history"
+	"github.com/23min/aiwf/internal/entityview"
 )
 
 // TestHasScopeData covers the history-side guard: the grep is needed iff
@@ -16,14 +16,14 @@ func TestHasScopeData(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		events []history.HistoryEvent
+		events []entityview.HistoryEvent
 		want   bool
 	}{
 		{"nil slice", nil, false},
-		{"empty slice", []history.HistoryEvent{}, false},
+		{"empty slice", []entityview.HistoryEvent{}, false},
 		{
 			"plain events, no scope data",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "add", Actor: "human/peter"},
 				{Verb: "promote", To: "active"},
 			},
@@ -31,14 +31,14 @@ func TestHasScopeData(t *testing.T) {
 		},
 		{
 			"active opener only — Scope set, no AuthorizedBy/ScopeEnds",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "authorize", Scope: "opened"},
 			},
 			false,
 		},
 		{
 			"authorized-by present",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "add"},
 				{Verb: "promote", AuthorizedBy: "deadbeef"},
 			},
@@ -46,14 +46,14 @@ func TestHasScopeData(t *testing.T) {
 		},
 		{
 			"scope-ends present",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "promote", ScopeEnds: []string{"deadbeef"}},
 			},
 			true,
 		},
 		{
 			"scope-ends present alongside plain events",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "add"},
 				{Verb: "authorize", Scope: "opened"},
 				{Verb: "promote", To: "done", ScopeEnds: []string{"abc1234"}},
@@ -64,7 +64,7 @@ func TestHasScopeData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := history.HasScopeData(tt.events); got != tt.want {
+			if got := entityview.HasScopeData(tt.events); got != tt.want {
 				t.Errorf("HasScopeData(%+v) = %v, want %v", tt.events, got, tt.want)
 			}
 		})
@@ -80,34 +80,34 @@ func TestHasOwnScope(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		events []history.HistoryEvent
+		events []entityview.HistoryEvent
 		want   bool
 	}{
 		{"nil slice", nil, false},
-		{"empty slice", []history.HistoryEvent{}, false},
+		{"empty slice", []entityview.HistoryEvent{}, false},
 		{
 			"plain events, no authorize",
-			[]history.HistoryEvent{{Verb: "add"}, {Verb: "promote", To: "active"}},
+			[]entityview.HistoryEvent{{Verb: "add"}, {Verb: "promote", To: "active"}},
 			false,
 		},
 		{
 			"worked under a foreign scope — AuthorizedBy but no own authorize",
-			[]history.HistoryEvent{{Verb: "promote", AuthorizedBy: "deadbeef", OnBehalfOf: "human/peter"}},
+			[]entityview.HistoryEvent{{Verb: "promote", AuthorizedBy: "deadbeef", OnBehalfOf: "human/peter"}},
 			false,
 		},
 		{
 			"authorize event but not opened (paused)",
-			[]history.HistoryEvent{{Verb: "authorize", Scope: "paused"}},
+			[]entityview.HistoryEvent{{Verb: "authorize", Scope: "paused"}},
 			false,
 		},
 		{
 			"own authorize-opener present",
-			[]history.HistoryEvent{{Verb: "add"}, {Verb: "authorize", Scope: "opened"}},
+			[]entityview.HistoryEvent{{Verb: "add"}, {Verb: "authorize", Scope: "opened"}},
 			true,
 		},
 		{
 			"scope-ended entity still has its opener",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "authorize", Scope: "opened"},
 				{Verb: "promote", To: "done", ScopeEnds: []string{"abc1234"}},
 			},
@@ -117,7 +117,7 @@ func TestHasOwnScope(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := history.HasOwnScope(tt.events); got != tt.want {
+			if got := entityview.HasOwnScope(tt.events); got != tt.want {
 				t.Errorf("HasOwnScope(%+v) = %v, want %v", tt.events, got, tt.want)
 			}
 		})
@@ -135,14 +135,14 @@ func TestHasAuthorizedBy(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		events []history.HistoryEvent
+		events []entityview.HistoryEvent
 		want   bool
 	}{
 		{"nil slice", nil, false},
-		{"empty slice", []history.HistoryEvent{}, false},
+		{"empty slice", []entityview.HistoryEvent{}, false},
 		{
 			"plain events, no scope data",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "add"},
 				{Verb: "promote", To: "active"},
 			},
@@ -150,21 +150,21 @@ func TestHasAuthorizedBy(t *testing.T) {
 		},
 		{
 			"active opener only — no AuthorizedBy",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "authorize", Scope: "opened"},
 			},
 			false,
 		},
 		{
 			"scope-ends present but no AuthorizedBy — show does not need the grep",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "promote", To: "done", ScopeEnds: []string{"abc1234"}},
 			},
 			false,
 		},
 		{
 			"authorized-by present",
-			[]history.HistoryEvent{
+			[]entityview.HistoryEvent{
 				{Verb: "add"},
 				{Verb: "promote", AuthorizedBy: "deadbeef"},
 			},
@@ -174,7 +174,7 @@ func TestHasAuthorizedBy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := history.HasAuthorizedBy(tt.events); got != tt.want {
+			if got := entityview.HasAuthorizedBy(tt.events); got != tt.want {
 				t.Errorf("HasAuthorizedBy(%+v) = %v, want %v", tt.events, got, tt.want)
 			}
 		})

@@ -14,9 +14,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/logger"
-	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf archive [--apply] [--kind <kind>] [--root <path>]`.
@@ -123,16 +121,18 @@ func archiveKindCompletions() []string {
 
 // Run executes `aiwf archive`. Returns one of the cliutil.Exit* codes.
 func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) (code int) {
+	ctx := context.Background()
+
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		return failArchive(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf archive", nil, err, out)
+		return code
 	}
 	actorStr, err := cliutil.ResolveActor(actor, rootDir)
 	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
-		return failArchive(out, err.Error(), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, err, out)
+		return code
 	}
-
-	ctx := context.Background()
 
 	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
 	// M-0238/AC-5 pattern. archive is a multi-entity sweep (no single
@@ -156,17 +156,20 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 	principalStr := strings.TrimSpace(principal)
 	actorIsNonHuman := actorStr != "" && !strings.HasPrefix(actorStr, "human/")
 	if actorIsNonHuman && principalStr == "" {
-		return failArchive(out, fmt.Sprintf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, fmt.Errorf("--principal human/<id> is required when --actor is non-human (got actor=%q)", actorStr), out)
+		return code
 	}
 	if !actorIsNonHuman && principalStr != "" {
-		return failArchive(out, "--principal is forbidden when --actor is human/ (humans act directly)", cliutil.ExitUsage)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, fmt.Errorf("--principal is forbidden when --actor is human/ (humans act directly)"), out)
+		return code
 	}
 
 	// Validate --kind early so a typo doesn't wait for the verb.
 	kindStr := strings.TrimSpace(kind)
 	if kindStr != "" {
 		if !validArchiveKind(kindStr) {
-			return failArchive(out, fmt.Sprintf("--kind %q is not one of %s", kindStr, strings.Join(archiveKindCompletions(), ", ")), cliutil.ExitUsage)
+			code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, fmt.Errorf("--kind %q is not one of %s", kindStr, strings.Join(archiveKindCompletions(), ", ")), out)
+			return code
 		}
 	}
 
@@ -181,110 +184,40 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 
 	result, err := verb.Archive(ctx, rootDir, actorStr, kindStr)
 	if err != nil { //coverage:ignore verb.Archive only errors on filesystem failures
-		return failArchive(out, err.Error(), cliutil.ExitInternal)
-	}
-	if result == nil { //coverage:ignore Archive always returns a non-nil Result on success
-		return failArchive(out, "no result returned", cliutil.ExitInternal)
-	}
-
-	if result.NoOp {
-		if out.JSON() {
-			emitArchiveEnvelope(out, result.NoOpMessage, nil)
-			return cliutil.ExitOK
-		}
-		cliutil.Println(result.NoOpMessage)
-		return cliutil.ExitOK
-	}
-	if result.Plan == nil { //coverage:ignore non-NoOp result without a Plan is unreachable today
-		return failArchive(out, "validation passed but no plan produced", cliutil.ExitInternal)
-	}
-
-	if !apply {
-		if out.JSON() {
-			emitArchiveEnvelope(out, result.Plan.Subject+" (dry-run; re-run with --apply to commit)", result.Metadata)
-			return cliutil.ExitOK
-		}
-		printArchiveDryRun(result.Plan)
-		return cliutil.ExitOK
-	}
-
-	// Stamp principal trailer when the operator is non-human, mirroring
-	// rewidth's bulk-sweep shape.
-	if actorIsNonHuman {
-		result.Plan.Trailers = append(result.Plan.Trailers, gitops.Trailer{
-			Key:   gitops.TrailerPrincipal,
-			Value: principalStr,
-		})
-	}
-
-	var applyErr error
-	sha, applyErr = verb.Apply(ctx, rootDir, result.Plan)
-	if applyErr != nil { //coverage:ignore Apply only errors on git mv/commit failures
-		return failArchive(out, applyErr.Error(), cliutil.ExitInternal)
-	}
-	if len(result.Findings) > 0 && !out.JSON() { //coverage:ignore Archive currently never populates Findings
-		_ = render.Text(os.Stderr, result.Findings)
-	}
-	if out.JSON() {
-		emitArchiveEnvelope(out, result.Plan.Subject, withCommitSHA(result.Metadata, sha))
-		return cliutil.ExitOK
-	}
-	cliutil.Println(result.Plan.Subject)
-	return cliutil.ExitOK
-}
-
-// failArchive reports a terminal error in the chosen output format:
-// text mode keeps the historical "label: message" line on stderr;
-// JSON mode writes a status:"error" envelope to stdout instead,
-// mirroring cliutil.OutputFormat's emitErrorEnvelope shape (D-0013) —
-// archive predates that shared helper's adoption and still builds its
-// own render.Envelope, so it can't call the unexported method
-// directly.
-func failArchive(out cliutil.OutputFormat, message string, code int) int {
-	if !out.JSON() {
-		cliutil.Errorf("aiwf archive: %s\n", message)
+		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, cliutil.ErrInternal(err), out)
 		return code
 	}
-	env := render.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "error",
-		Error:   &render.EnvelopeError{Message: message},
+
+	outcome := &cliutil.Outcome{}
+	if result != nil {
+		outcome.NoOp = result.NoOp
+		outcome.NoOpMessage = result.NoOpMessage
+		if result.Plan != nil {
+			// Stamp principal trailer when the operator is non-human,
+			// mirroring rewidth's bulk-sweep shape. Harmless on the
+			// dry-run branch below — FinishVerbOutcome never applies a
+			// Plan whose DryRun is set.
+			if apply && actorIsNonHuman {
+				result.Plan.Trailers = append(result.Plan.Trailers, gitops.Trailer{
+					Key:   gitops.TrailerPrincipal,
+					Value: principalStr,
+				})
+			}
+			outcome.Plans = []*verb.Plan{result.Plan}
+			outcome.Findings = result.Findings
+			outcome.Metadata = result.Metadata
+			if !apply {
+				outcome.DryRun = true
+				outcome.Subject = result.Plan.Subject + " (dry-run; re-run with --apply to commit)"
+				outcome.TextDetail = func() { printArchiveDryRun(outcome.Subject, result.Plan) }
+			}
+		}
+	} else {
+		outcome = nil //coverage:ignore Archive always returns a non-nil Result on success
 	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
+
+	code, sha = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", outcome, nil, out)
 	return code
-}
-
-// emitArchiveEnvelope writes a status:"ok" envelope carrying subject
-// and metadata (correlation_id merged in via out.Metadata). Called
-// only when out.JSON() is true.
-func emitArchiveEnvelope(out cliutil.OutputFormat, subject string, metadata map[string]any) {
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   "ok",
-		Result:   map[string]any{"subject": subject},
-		Metadata: out.Metadata(metadata),
-	}
-	_ = render.JSON(os.Stdout, env, out.Pretty)
-}
-
-// withCommitSHA returns a copy of md with "commit_sha" set to sha,
-// without mutating md. Mirrors cliutil.withCommitSHA (unexported,
-// cross-package) — archive needs the identical merge but builds its
-// own envelope rather than routing through FinishVerb. sha is always
-// non-empty at this function's one call site; render.Envelope's
-// Metadata field carries omitempty, which treats a zero-length map
-// the same as nil, so no empty/nil special-casing is needed here.
-func withCommitSHA(md map[string]any, sha string) map[string]any {
-	out := make(map[string]any, len(md)+1)
-	for k, v := range md {
-		out[k] = v
-	}
-	if sha != "" {
-		out["commit_sha"] = sha
-	}
-	return out
 }
 
 // validArchiveKind reports whether s is one of the kinds the --kind
@@ -301,9 +234,11 @@ func validArchiveKind(s string) bool {
 
 // printArchiveDryRun prints a human-readable summary of the planned
 // moves. Stdout, not stderr — the user reads this to decide whether
-// to re-run with --apply.
-func printArchiveDryRun(p *verb.Plan) {
-	cliutil.Println(p.Subject + " (dry-run; re-run with --apply to commit)")
+// to re-run with --apply. subject is the caller's already-computed
+// dry-run subject (the same string riding in Outcome.Subject) so the
+// two never drift independently.
+func printArchiveDryRun(subject string, p *verb.Plan) {
+	cliutil.Println(subject)
 	if p.Body != "" {
 		cliutil.Println()
 		cliutil.Print(p.Body)

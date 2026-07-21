@@ -3,20 +3,11 @@ package update
 import (
 	"path/filepath"
 
-	"github.com/spf13/cobra"
-
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/skills"
 )
-
-// completeHookNames offers the shipped hook registry's names for
-// `--enable-hook <TAB>`. Empty (no completions) until a milestone registers
-// the first concrete hook (M-0236) — mirrors initcmd's identical helper.
-func completeHookNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	return skills.HookNamesFrom(skills.ShippedHooks), cobra.ShellCompDirectiveNoFileComp
-}
 
 // gateAndSyncHookDecisions runs the consent gate (ADR-0032) over only the
 // registry hooks ABSENT from the existing aiwf.yaml's hooks: map — an

@@ -394,3 +394,21 @@ func chdir(t *testing.T, root string) {
 	}
 	t.Cleanup(func() { _ = os.Chdir(prev) })
 }
+
+// TestCompleteHookNames_ListsRegisteredHooks pins today's real state
+// (M-0236/AC-2): `--enable-hook <TAB>` offers the names in
+// skills.ShippedHooks, derived via HookNamesFrom rather than
+// hardcoded. Shared by `aiwf init` and `aiwf update` (M-0270/AC-5,
+// F9) — both previously carried their own byte-identical copy of
+// this function and this test.
+func TestCompleteHookNames_ListsRegisteredHooks(t *testing.T) {
+	t.Parallel()
+	got, directive := cliutil.CompleteHookNames(nil, nil, "")
+	want := []string{"worktree-rituals-check.sh"}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Errorf("CompleteHookNames() = %v, want %v", got, want)
+	}
+	if directive != cobra.ShellCompDirectiveNoFileComp {
+		t.Errorf("directive = %v, want ShellCompDirectiveNoFileComp", directive)
+	}
+}

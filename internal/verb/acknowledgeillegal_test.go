@@ -165,27 +165,21 @@ func mustHaveTrailerInPlanList(t *testing.T, trailers []gitops.Trailer, key, val
 func TestAcknowledgeIllegal_AC4_RejectsOutOfHistorySHA(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	// Need at least one commit so HEAD exists for the reachability
-	// check (otherwise "no commits" is the failure mode, not
-	// "not reachable").
+	// Need at least one commit so HEAD exists.
 	commitOne(t, r.root, "alpha.md", "alpha v1\n", "real commit")
 
-	// 40-hex SHA with the right shape but not in HEAD's history.
+	// 40-hex SHA with the right shape but resolving to no object.
 	const bogusSHA = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
 	_, err := verb.AcknowledgeIllegal(r.ctx, r.root, bogusSHA, "", testActor, "typo in the SHA")
 	if err == nil {
 		t.Fatal("expected error for out-of-history SHA; got nil")
 	}
-	// G-0236: the error now mentions both checks (not reachable AND
-	// not in object database) since the fallback path is documented
-	// alongside the primary refusal. Preserves the "reachable"
-	// substring expectation from the M-0136/AC-4 era.
-	if !strings.Contains(err.Error(), "reachable") {
-		t.Errorf("expected error mentioning reachability for SHA %s; got %v", bogusSHA, err)
-	}
+	// M-0270/AC-2 (F3): shaAckable's sole acceptance criterion is
+	// object-DB existence (see its doc comment for why reachability
+	// adds nothing existence doesn't already decide).
 	if !strings.Contains(err.Error(), "object database") {
-		t.Errorf("G-0236: error should reference the object-database fallback so the operator sees both refused paths; got %v", err)
+		t.Errorf("expected error mentioning the object database for SHA %s; got %v", bogusSHA, err)
 	}
 }
 

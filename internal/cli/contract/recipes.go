@@ -11,6 +11,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/recipe"
+	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -216,13 +217,18 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 	}
 	defer release()
 
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
+		cliutil.Errorf("aiwf contract recipe install: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
-	result, err := verb.RecipeInstall(ctx, doc, contracts, r.Name, r.Validator, actorStr, verb.RecipeInstallOptions{Force: force})
+	result, err := verb.RecipeInstall(ctx, tr, doc, contracts, r.Name, r.Validator, actorStr, rootDir, verb.RecipeInstallOptions{Force: force})
 	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe install", result, err, out)
 	return code
 }
@@ -290,13 +296,18 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) (code i
 	}
 	defer release()
 
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
+		cliutil.Errorf("aiwf contract recipe remove: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
-	result, err := verb.RecipeRemove(ctx, doc, contracts, name, actorStr)
+	result, err := verb.RecipeRemove(ctx, tr, doc, contracts, name, actorStr, rootDir)
 	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract recipe remove", result, err, out)
 	return code
 }
