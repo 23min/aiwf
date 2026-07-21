@@ -71,7 +71,7 @@ Each file marked `supersede-with-entity` is paired with an existing or newly-fil
 
 ## Out of scope
 
-- Executing any file moves (M-0131's job).
+- Executing any file moves (M-0127's job).
 - Writing the CLAUDE.md hierarchy section (M-0128's job).
 - Renaming top-level `docs/` subdirs not under `docs/pocv3/`. The current top-level `docs/archive/` may receive content from `docs/pocv3/archive/` but is not itself renamed in this milestone.
 
