@@ -42,6 +42,12 @@ A structural test under `internal/policies/` parses CLAUDE.md's heading hierarch
 - Drift-checking that hierarchy labels match `docs/`'s actual layout at runtime (deferred to G-0092's full kernel-rule follow-on, listed as out of scope in the epic spec).
 - Per-tree `_AUTHORITY.md` marker files (option 2 from G-0092's gap body; not the chosen layer per the planning conversation).
 
+## Work log
+
+### AC-1 — Documentation hierarchy section tags every active docs/ subtree
+
+CLAUDE.md's `## Documentation hierarchy` section added before `## What aiwf commits to`, naming all 7 active `docs/` subtrees under the four closed-set tiers; `PolicyM0128DocumentationHierarchy` parses the section structurally and asserts subtree coverage + closed-set tier vocabulary, with firing-fixture rows covering all five violation classes · commit 3241453e · tests 1/1
+
 ## Dependencies
 
 - M-0127 (Relocate) — done. The hierarchy section labels must match the post-Relocate layout.
