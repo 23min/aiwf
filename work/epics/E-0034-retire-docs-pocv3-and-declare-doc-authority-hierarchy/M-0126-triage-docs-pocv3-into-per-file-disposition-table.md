@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: 'Open Question #1 resolved and recorded'
       status: open
+    - id: AC-5
+      title: Supersede/delete rows carry entity id or justification
+      status: open
 ---
 
 ## Goal
@@ -47,6 +50,8 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 ### AC-3 — Structural test asserts table matches docs/pocv3/ file set
 
 ### AC-4 — Open Question #1 resolved and recorded
+
+### AC-5 — Supersede/delete rows carry entity id or justification
 
 ## Constraints
 
