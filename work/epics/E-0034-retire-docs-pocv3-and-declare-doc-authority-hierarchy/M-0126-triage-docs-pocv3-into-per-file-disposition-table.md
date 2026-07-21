@@ -85,3 +85,35 @@ Each file marked `supersede-with-entity` is paired with an existing or newly-fil
 - **E-0034** — parent epic.
 - **ADR-0004** — Uniform archive convention for terminal-status entities. The forget-by-default principle and the per-kind archive shape applied to `docs/`.
 - **G-0074 / G-0075 / G-0092** — superseded by E-0034; this milestone's table is what makes the supersedes claim concrete.
+
+## Work log
+
+### AC-1 — Triage table lists every docs/pocv3/ file
+
+Produced `TRIAGE.md` with 42 rows, one per file under `docs/pocv3/` · commit 3dd5a770 · tests 1/1
+
+Two supporting gaps (G-0432, G-0433) were filed during triage per the Triage rationale above, and a third (G-0434) documents an unrelated kernel bug discovered while running `aiwf check` on this milestone's own promote commit — `resolveViaPriorIDs` mis-resolving a reused id — tracked separately, out of scope here. `aiwf.yaml`'s `tree.allow_paths` also needed a small addition (commit dedf8f77) to exempt `TRIAGE.md`'s location, following the existing `wrap.md` precedent.
+
+### AC-2 — Every row has disposition, target, rationale
+
+Every row carries a non-empty disposition (from the closed set), target, and rationale — 17 relocate / 24 archive / 1 supersede-with-entity / 0 delete · commit 3dd5a770 · tests 1/1
+
+### AC-3 — Structural test asserts table matches docs/pocv3/ file set
+
+Same mechanical check as AC-1 (`TestM0126_AC1_AC3_TriageTableMatchesDocsPocv3FileSet`): set-equality between the table's file column and a `filepath.WalkDir` over `docs/pocv3/` · commit 3dd5a770 · tests 1/1
+
+### AC-4 — Open Question #1 resolved and recorded
+
+Resolved as a separate `docs/archive/pocv3/` namespace; recorded in the "Triage rationale" section above · commit 3dd5a770 · tests 1/1
+
+### AC-5 — Supersede/delete rows carry entity id or justification
+
+One `supersede-with-entity` row (`observability-surfaces-plan.md` → G-0433, verified to resolve in the live tree); zero `delete` rows, so that half of the check is vacuously satisfied · commit 3dd5a770 · tests 1/1
+
+## Decisions made during implementation
+
+None — the triage calls made mid-work are recorded directly in the "Triage rationale" section above, none rising to an ADR/`D-NNN`-worthy architectural decision.
+
+## Validation
+
+`make check-fast` (vet + lint + full test suite, incl. `-race`) green after each commit. All 4 new test functions vacuity-checked by hand: deliberately broke each AC's claim (removed a table row, set an invalid disposition, pointed a supersede-with-entity row at a nonexistent id, deleted the Triage rationale section) and confirmed the corresponding test failed before reverting.
