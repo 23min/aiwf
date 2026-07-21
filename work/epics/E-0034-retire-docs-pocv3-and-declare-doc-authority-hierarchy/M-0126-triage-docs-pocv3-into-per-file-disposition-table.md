@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: Every row has disposition, target, rationale
-      status: open
+      status: met
     - id: AC-3
       title: Structural test asserts table matches docs/pocv3/ file set
       status: open
