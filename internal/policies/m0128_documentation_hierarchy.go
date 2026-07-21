@@ -41,12 +41,26 @@ var documentationHierarchySubtrees = []string{
 	"docs/archive/",
 }
 
+// documentationHierarchyNarrativeFiles is the fixed set of top-level
+// docs/ narrative files AC-1's text names alongside the subtrees
+// ("every currently-active docs/ subtree and top-level narrative
+// file group"). Same fixed-snapshot rationale as
+// documentationHierarchySubtrees.
+var documentationHierarchyNarrativeFiles = []string{
+	"architecture.md",
+	"overview.md",
+	"workflows.md",
+	"skill-author-guide.md",
+	"working-paper.md",
+}
+
 // PolicyM0128DocumentationHierarchy asserts CLAUDE.md carries a
 // `## Documentation hierarchy` section (per CLAUDE.md "Substring
 // assertions are not structural assertions", scoped to that named
 // section, not the file at large) that:
 //
 //   - names every active docs/ subtree in documentationHierarchySubtrees;
+//   - names every top-level narrative file in documentationHierarchyNarrativeFiles;
 //   - tags each tier bullet with a name from the closed
 //     documentationHierarchyClosedTiers set;
 //   - covers all four tiers at least once.
@@ -82,6 +96,12 @@ func PolicyM0128DocumentationHierarchy(root string) ([]Violation, error) {
 	for _, subtree := range documentationHierarchySubtrees {
 		if !strings.Contains(body, subtree) {
 			report(fmt.Sprintf("section body does not mention active subtree %q", subtree))
+		}
+	}
+
+	for _, file := range documentationHierarchyNarrativeFiles {
+		if !strings.Contains(body, file) {
+			report(fmt.Sprintf("section body does not mention top-level narrative file %q", file))
 		}
 	}
 

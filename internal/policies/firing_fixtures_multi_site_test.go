@@ -66,8 +66,9 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 
 		// m0128-documentation-hierarchy: missing file (read-error site) +
 		// present-but-no-section (missing-section report branch) +
-		// section-present-but-incomplete (subtree-missing + bad-tier-name +
-		// tier-missing report branches, all three lit by one fixture body).
+		// section-present-but-incomplete (subtree-missing + narrative-file-
+		// missing + bad-tier-name + tier-missing report branches, all four
+		// lit by one fixture body).
 		{name: "m0128-doc-hierarchy/missing", policy: PolicyM0128DocumentationHierarchy, files: map[string]string{}},
 		{
 			name:   "m0128-doc-hierarchy/no-section",
@@ -78,7 +79,7 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			name:   "m0128-doc-hierarchy/incomplete-and-bad-tier",
 			policy: PolicyM0128DocumentationHierarchy,
 			files: map[string]string{"CLAUDE.md": "# X\n\n## Documentation hierarchy\n\n" +
-				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, docs/migration/\n" +
+				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, docs/migration/, architecture.md\n" +
 				"- **Whimsical** — some things\n"},
 		},
 
