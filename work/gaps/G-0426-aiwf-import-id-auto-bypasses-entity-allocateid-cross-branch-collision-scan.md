@@ -1,8 +1,10 @@
 ---
 id: G-0426
 title: aiwf import id auto bypasses entity.AllocateID cross-branch collision scan
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 35b0d3ec
 ---
 ## What's missing
 
