@@ -1,7 +1,7 @@
 ---
 id: D-0046
 title: Diff the shared contract gate by finding identity, not the full struct
-status: proposed
+status: accepted
 relates_to:
     - M-0273
 ---
