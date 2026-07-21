@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: a shared gate reports only findings introduced by the projected mutation
       status: open
-      tdd_phase: green
+      tdd_phase: refactor
     - id: AC-2
       title: bind, unbind, recipe install, and recipe remove route through the shared gate
       status: open
