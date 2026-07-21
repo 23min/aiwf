@@ -397,7 +397,7 @@ CLAUDE.md is the project-instructions doc that codifies engineering principles, 
 | R-AUDIT-0190 | CLAUDE.md | §Engineering principles | All work | KISS / YAGNI / no half-finished implementations — features land tested or not at all; no stubs / TODOs in shipped code | unenforced (review-driven) |
 | R-AUDIT-0191 | CLAUDE.md | §Engineering principles | All verbs | Errors are findings, not parse failures — `aiwf check` loads inconsistent state and reports it; it does not refuse to start | hard-reject (loader contract) |
 | R-AUDIT-0192 | CLAUDE.md | §Engineering principles | All kernel surfaces | CLI surfaces must be auto-completion-friendly — every verb, sub-verb, flag, and closed-set value is reachable via tab-completion. Drift-prevention test in `internal/policies/` fails CI on un-wired surfaces | policy-block (`policies/skill_coverage.go` + completion-drift test in `cmd/aiwf/completion_drift_test.go`) |
-| R-AUDIT-0193 | CLAUDE.md | §Authoring an ADR | ADR | An ADR captures the choice; planning sequences the action. ADR bodies must not contain gate language (*"ratify after X happens"*, *"status remains proposed through Y wraps"*) — those are planning concerns. FSM (`proposed → accepted | rejected`; `accepted → superseded`) plus `aiwf promote` are the only mechanical surfaces that constrain ADR status transitions | unenforced (convention; FSM still applies) |
+| R-AUDIT-0193 | CLAUDE.md | §Authoring an ADR | ADR | An ADR captures the choice; planning sequences the action. ADR bodies must not contain gate language (*"ratify after X happens"*, *"status remains proposed through Y wraps"*) — those are planning concerns. FSM (`proposed → accepted \| rejected`; `accepted → superseded`) plus `aiwf promote` are the only mechanical surfaces that constrain ADR status transitions | unenforced (convention; FSM still applies) |
 | R-AUDIT-0194 | CLAUDE.md | §Authoring an ADR | ADR | No bespoke per-ADR test pins on status transitions. Sovereign override (`--force --reason`) remains available when an exceptional ratification path is needed | unenforced (convention) |
 | R-AUDIT-0195 | CLAUDE.md | §AC promotion requires mechanical evidence | All AC promotions | Before `aiwf promote M-NNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read the file and it looks right"* is not evidence; it makes the AC's correctness depend on reviewer recall | unenforced (convention; chokepoint is the AC-promote command but mechanical evidence is human-checked) |
 | R-AUDIT-0196 | CLAUDE.md | §AC promotion requires mechanical evidence | ACs under `tdd: none` / `tdd: advisory` | The test-discipline obligation applies even under `tdd: none` — the `tdd:` policy controls whether the kernel's `acs-tdd-audit` finding fires; it does not waive the obligation to have a mechanical test | unenforced (convention) |
@@ -794,9 +794,3 @@ Most of the compression came from FSM transitions (49 facet rows → 21 consolid
 - **AC-2** (all nine audit sources covered) — §§1–9 each have rule rows or explicit no-rules acknowledgment.
 - **AC-3** (six-column schema with non-empty fields) — §§1–9 use the 6-column schema; §10 uses an extended 8-column schema (adds Chokepoints + Facets).
 - **AC-4** (catalog schema internally consistent) — R-AUDIT-NNNN ids 0001..0226 (with one ack at 0150); R-RULE-NNN ids 001..148 sequential; per-section totals add up.
-
----
-
-## Grand total
-
-**TBD — extraction in progress.**

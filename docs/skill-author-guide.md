@@ -44,7 +44,7 @@ A small illustrative skill: capture the current project status as a permanent re
 
 ### The skill (SKILL.md)
 
-```markdown
+````markdown
 ---
 name: aiwfx-snapshot-status
 description: Use when the user asks for a snapshot, checkpoint, or "where are we now" record. Captures the current aiwf project state and creates a permanent decision entity referencing the current moment, so the snapshot is recoverable later via `aiwf history`.
@@ -127,7 +127,7 @@ pre-existing issue (which the user may want to fix or defer).
   The verb produced a coherent entity; touching it again is a smell.
 - Does **not** commit anything itself. Every commit comes from `aiwf
   add`, which writes the right trailers.
-```
+````
 
 ### What the example demonstrates
 
@@ -161,7 +161,7 @@ The skill is ~30 lines and trivially auditable.
 
 Copy and adapt. Fill the bracketed sections; delete the rest.
 
-```markdown
+````markdown
 ---
 name: aiwfx-<verb>-<noun>
 description: Use when <user-intent-trigger>. <One-sentence summary of what the skill does and why it exists>.
@@ -222,7 +222,7 @@ or surfaced an existing issue.>
   invent fields outside the schema>.
 - Does not <whatever class of action is tempting but wrong for this
   skill's domain>.
-```
+````
 
 ---
 

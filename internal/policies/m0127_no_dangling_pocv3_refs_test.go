@@ -10,14 +10,16 @@ import (
 
 // m0127Pocv3ScanRoots are the surfaces M-0127's AC-3 commits to keeping
 // free of the literal "docs/pocv3" substring: Go source, embedded skill
-// markdown, and top-level docs (docs/design.md scope). docs/archive/**
-// is excluded — that subtree is the frozen, forget-by-default snapshot
-// of the retired docs/pocv3/ tree itself (per ADR-0004), and its
-// internal cross-references are historical record, not live pointers.
+// markdown, docs/, and the planning tree. Any directory named "archive"
+// is skipped during the walk (work/*/archive/, docs/archive/pocv3/) —
+// those subtrees are the frozen, forget-by-default historical record
+// (per ADR-0004), and their content is historical prose, not live
+// pointers.
 var m0127Pocv3ScanRoots = []string{
 	"cmd",
 	"internal",
 	"docs",
+	"work",
 }
 
 // m0127Pocv3TopLevelFiles are scanned in addition to the roots above.
@@ -25,6 +27,7 @@ var m0127Pocv3TopLevelFiles = []string{
 	"README.md",
 	"CONTRIBUTING.md",
 	"CLAUDE.md",
+	"CHANGELOG.md",
 	"aiwf.yaml",
 }
 
@@ -80,14 +83,26 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// This test file itself necessarily names the literal substring
 	// in its own allowlist keys, docstrings, and error message.
 	"internal/policies/m0127_no_dangling_pocv3_refs_test.go": "the check itself; the string appears in its allowlist keys and docs",
+
+	// M-0126's still-live AC-2/4/5 tests parse TRIAGE.md's own row
+	// format, whose File column literally starts with "docs/pocv3/"
+	// for every row (the historical record of the executed contract)
+	// — both in the parser's string-prefix match and its doc comment.
+	"internal/policies/m0126_triage_table_test.go": "parses TRIAGE.md's row format, which cites the historical docs/pocv3/ paths verbatim",
+
+	// CHANGELOG.md is append-only release history describing state as
+	// of each release — the same historical carve-out this repo's own
+	// doc-lint convention and m083_doc_sweep_test.go's allowlist give
+	// it elsewhere.
+	"CHANGELOG.md": "append-only release notes describing historical state at release time",
 }
 
 // TestM0127_AC3_NoDanglingDocsPocv3References is the mechanical
 // evidence for M-0127's AC-3: after the relocate sweep, the literal
-// substring "docs/pocv3" appears nowhere under cmd/, internal/, or
-// docs/ (excluding docs/archive/**, the frozen historical snapshot of
-// the retired tree) or in the top-level narrative files, except at
-// the explicitly allowlisted paths above.
+// substring "docs/pocv3" appears nowhere under cmd/, internal/, docs/,
+// or work/ (excluding any "archive" subtree, the frozen historical
+// snapshot per ADR-0004) or in the top-level narrative files, except
+// at the explicitly allowlisted paths above.
 func TestM0127_AC3_NoDanglingDocsPocv3References(t *testing.T) {
 	t.Parallel()
 	root := repoRoot(t)
