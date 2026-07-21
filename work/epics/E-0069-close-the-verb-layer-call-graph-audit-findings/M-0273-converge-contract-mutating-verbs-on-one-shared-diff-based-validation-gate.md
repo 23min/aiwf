@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: bind, unbind, recipe install, and recipe remove route through the shared gate
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
