@@ -1,8 +1,10 @@
 ---
 id: G-0075
 title: docs/pocv3/ directory naming is now historical; rename or accept
-status: open
+status: addressed
 priority: low
+addressed_by:
+    - E-0034
 ---
 The `docs/pocv3/` directory name is now historical — it was the working name during the PoC era. After the trunk promotion (PROMOTION-PLAN.md, Step 5, commit `e0a7fe5`), the framework lives on `main` and the contents of `pocv3/` are the active design docs for the trunk.
 
