@@ -43,9 +43,9 @@ This repo carries `aiwf` — a small framework that helps humans and AI assistan
 
 Every active `docs/` subtree carries one of four authority tiers, so a reader — human or LLM — can weight a file's content correctly from its path alone, without reading every file to infer intent.
 
-- **Normative** — current-truth, kept in lockstep with the code: `docs/adr/`, `docs/design/`, `docs/architecture.md`, `docs/overview.md`, `docs/workflows.md`, `docs/skill-author-guide.md`, `docs/migration/`.
+- **Normative** — current-truth, kept in lockstep with the code: `docs/adr/` (terminal-status ADRs move to `docs/adr/archive/` under the same forget-by-default convention as the Archival tier below), `docs/design/`, `docs/architecture.md`, `docs/overview.md`, `docs/workflows.md`, `docs/skill-author-guide.md`, `docs/migration/` (entry point: [`from-prior-systems.md`](docs/migration/from-prior-systems.md)).
 - **Forward-looking** — captured ideas awaiting promotion to a real epic/gap entity: `docs/initiatives/`.
-- **Exploratory** — synthesis/thesis/proposal genre, not kernel-binding regardless of internal rigor: `docs/explorations/` (including `explorations/loom/`, `explorations/surveys/`), `docs/research/`, `docs/working-paper.md`.
+- **Exploratory** — synthesis/thesis/proposal genre, not kernel-binding regardless of internal rigor: `docs/explorations/` (including [`explorations/loom/loom-by-example.md`](docs/explorations/loom/loom-by-example.md), [`loom-light-plan.md`](docs/explorations/loom/loom-light-plan.md), `explorations/surveys/`), `docs/research/`, `docs/working-paper.md`.
 - **Archival** — frozen historical snapshot per ADR-0004; cross-references inside it are not fixed when their targets move (same forget-by-default convention as `CHANGELOG.md`'s append-only exemption): `docs/archive/` (including `docs/archive/pocv3/`).
 
 This tiering is a fixed snapshot of the layout as of M-0128 — it does not drift-check against `docs/`'s actual contents at runtime (tracked as a kernel-rule follow-on in G-0092).
