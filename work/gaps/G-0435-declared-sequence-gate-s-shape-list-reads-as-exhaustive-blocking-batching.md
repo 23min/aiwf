@@ -1,6 +1,6 @@
 ---
 id: G-0435
-title: Open authorize scope should shift gate cadence to checkpoints
+title: Declared-sequence gate's shape list reads as exhaustive, blocking batching
 status: open
 priority: medium
 discovered_in: M-0126
