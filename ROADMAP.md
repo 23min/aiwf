@@ -391,7 +391,7 @@ This epic replaces the cancelled E-0031, whose first attempt produced a prose ca
 | M-0136 | aiwf acknowledge-illegal: retroactive force trailer for historical violations | done |
 | M-0137 | fsm-history-consistent: batched git ops + silent-swallow fix | done |
 
-## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (proposed)
+## E-0034 — Retire docs/pocv3/ and declare doc-authority hierarchy (active)
 
 ### Goal
 
@@ -399,7 +399,7 @@ Refactor `docs/` so a reader (human or LLM) can identify each file's authority t
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0126 | Triage docs/pocv3/ into per-file disposition table | draft |
+| M-0126 | Triage docs/pocv3/ into per-file disposition table | in_progress |
 | M-0127 | Relocate docs/pocv3/ contents and sweep cross-references | draft |
 | M-0128 | Declare doc-authority hierarchy in CLAUDE.md | draft |
 | M-0129 | Drift chokepoint: forbid docs/pocv3/ literals in Go code | draft |
