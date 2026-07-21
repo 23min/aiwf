@@ -1,8 +1,10 @@
 ---
 id: G-0428
 title: Scope events sort lexically by author-local timestamp, not chronologically
-status: open
+status: addressed
 priority: low
+addressed_by_commit:
+    - 5382c117
 ---
 ## What's missing
 
