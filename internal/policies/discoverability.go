@@ -18,7 +18,7 @@ import (
 // appears verbatim in at least one channel an AI assistant routinely
 // consults: any embedded skill SKILL.md, the binary's printHelp
 // output (cmd/aiwf/main.go), CLAUDE.md, or any
-// markdown file under docs/pocv3/. The CLAUDE.md "kernel
+// markdown file under docs/. The CLAUDE.md "kernel
 // functionality must be AI-discoverable" principle: a code that
 // only exists in source is, by definition, undocumented.
 //
@@ -45,7 +45,7 @@ func PolicyFindingCodesAreDiscoverable(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "finding-codes-are-discoverable",
 			File:   "internal/skills/embedded/aiwf-check/SKILL.md",
-			Detail: code + " is a finding code in the kernel but is not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/pocv3/**/*.md)",
+			Detail: code + " is a finding code in the kernel but is not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/**/*.md)",
 		})
 	}
 	return out, nil
@@ -159,7 +159,7 @@ func readDiscoverabilityChannels(root string) ([]byte, error) {
 	}
 	for _, dir := range []string{
 		filepath.Join(root, "internal", "skills", "embedded"),
-		filepath.Join(root, "docs", "pocv3"),
+		filepath.Join(root, "docs"),
 	} {
 		walkErr := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
 			if err != nil {

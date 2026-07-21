@@ -196,7 +196,7 @@ What this document argues *against* in every case is baking the code-graph into 
 
 ## 11. Implications for the contracts work and the pocv3 plan
 
-The contracts post-PoC plan ([`docs/pocv3/contracts.md`](../pocv3/contracts.md)) currently lists symbol-level `live_source` as increment I4, depending on "the read-side reference-resolution lens." That dependency phrasing is consistent with this document's position: I4 is a small consistency-check extension, not a code-graph. The plan does not need reframing; the language can be tightened — *"reference resolution"* rather than *"code graph"*, and the I4 scope explicitly bounded to symbol-existence checking, not traversal.
+The contracts post-PoC plan ([`docs/archive/pocv3/contracts.md`](../archive/pocv3/contracts.md)) currently lists symbol-level `live_source` as increment I4, depending on "the read-side reference-resolution lens." That dependency phrasing is consistent with this document's position: I4 is a small consistency-check extension, not a code-graph. The plan does not need reframing; the language can be tightened — *"reference resolution"* rather than *"code graph"*, and the I4 scope explicitly bounded to symbol-existence checking, not traversal.
 
 Anything beyond I4 in the code-aware direction (impact, detect-changes, multimodal extraction) is **out of scope for the framework**. If a consumer wants those, the recommended path is graphify or GitNexus alongside aiwf, with the framework's skills knowing how to compose with them. A future opt-in module, justified by real consumer need, may add the join as a render.
 
@@ -229,7 +229,7 @@ The position does not settle several things, named so future research can addres
 - [`04-governance-provenance-and-the-pre-pr-tier`](04-governance-provenance-and-the-pre-pr-tier.md) §4 — modular opt-in. The future render module described in §6 lives at this layer if it ever ships.
 - [`05-where-state-lives`](05-where-state-lives.md) — the layer model. The framework's posture toward adjacent state stores (git, ADR docs, build pipelines, code-graphs) is consistent across layers.
 - [`07-state-not-workflow`](07-state-not-workflow.md) §4.1 — state-vs-render boundary. The cleanest principled lens on why a code-graph isn't aiwf's state.
-- The pocv3 contracts plan ([`docs/pocv3/contracts.md`](../pocv3/contracts.md)) — the practical surface this document constrains. I4's symbol-level live_source is the only concrete code-aware extension authorized.
+- The pocv3 contracts plan ([`docs/archive/pocv3/contracts.md`](../archive/pocv3/contracts.md)) — the practical surface this document constrains. I4's symbol-level live_source is the only concrete code-aware extension authorized.
 
 ---
 

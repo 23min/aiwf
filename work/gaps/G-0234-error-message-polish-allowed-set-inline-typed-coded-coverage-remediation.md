@@ -19,4 +19,4 @@ E4's Strong verdict noted that aiwf's error discipline is "unusually disciplined
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §E4 (all three moves), §E2 (move 2: ENOSPC naming).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §E4 (all three moves), §E2 (move 2: ENOSPC naming).

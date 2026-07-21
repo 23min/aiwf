@@ -1,11 +1,9 @@
 package policies
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -48,7 +46,10 @@ type triageRow struct {
 // parseTriageRows extracts every data row from the table's "## Table"
 // section. A data row is any line whose first cell, once trimmed and
 // unbackticked, starts with "docs/pocv3/" — this excludes the header
-// and separator rows without depending on their exact text.
+// and separator rows without depending on their exact text. The
+// table's own rows are a historical record (the executed contract);
+// they always cite the old docs/pocv3/ paths as the source column,
+// regardless of where docs/pocv3/ content lives today (see M-0127).
 func parseTriageRows(t *testing.T, body string) []triageRow {
 	t.Helper()
 	section := extractMarkdownSection(body, 2, "Table")
@@ -85,76 +86,6 @@ func unbacktick(s string) string {
 	s = strings.TrimPrefix(s, "`")
 	s = strings.TrimSuffix(s, "`")
 	return s
-}
-
-// walkDocsPocv3 returns every regular file currently under docs/pocv3/,
-// as repo-relative forward-slash paths — the Go-native equivalent of
-// `find docs/pocv3 -type f`.
-func walkDocsPocv3(t *testing.T, root string) []string {
-	t.Helper()
-	base := filepath.Join(root, "docs", "pocv3")
-	var files []string
-	err := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		rel, relErr := filepath.Rel(root, path)
-		if relErr != nil {
-			return relErr
-		}
-		files = append(files, filepath.ToSlash(rel))
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("walking docs/pocv3: %v", err)
-	}
-	sort.Strings(files)
-	return files
-}
-
-// TestM0126_AC1_AC3_TriageTableMatchesDocsPocv3FileSet asserts M-0126's
-// AC-1 (the table lists every docs/pocv3/ file, one row per file) and
-// is itself the AC-3 structural test ("a structural test under
-// internal/policies/ parses the table and asserts the file set equals
-// find docs/pocv3 -type f"). The two ACs share one mechanical check:
-// AC-1's claim about the table's completeness IS what this test
-// verifies; AC-3 just names the requirement that such a test exist.
-func TestM0126_AC1_AC3_TriageTableMatchesDocsPocv3FileSet(t *testing.T) {
-	t.Parallel()
-	root, _ := sharedRepoTree(t)
-	body := loadTriageTable(t)
-	rows := parseTriageRows(t, body)
-	if len(rows) == 0 {
-		t.Fatal("AC-1/AC-3: no data rows parsed from the triage table")
-	}
-
-	tableFiles := make(map[string]bool, len(rows))
-	for _, r := range rows {
-		if tableFiles[r.file] {
-			t.Errorf("AC-1: %s appears more than once in the table", r.file)
-		}
-		tableFiles[r.file] = true
-	}
-
-	actualFiles := walkDocsPocv3(t, root)
-	actualSet := make(map[string]bool, len(actualFiles))
-	for _, f := range actualFiles {
-		actualSet[f] = true
-	}
-
-	for f := range tableFiles {
-		if !actualSet[f] {
-			t.Errorf("AC-3: table lists %s, which does not exist under docs/pocv3/", f)
-		}
-	}
-	for f := range actualSet {
-		if !tableFiles[f] {
-			t.Errorf("AC-1: %s exists under docs/pocv3/ but has no row in the triage table", f)
-		}
-	}
 }
 
 // closedSetDispositions is the four-value disposition vocabulary

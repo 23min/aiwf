@@ -18,8 +18,8 @@
 // (that's --force's job; the two are mutually exclusive per
 // coherence.go).
 //
-// Reference: docs/pocv3/plans/provenance-model-plan.md §"Step 5b" and
-// docs/pocv3/gaps.md G24.
+// Reference: docs/archive/pocv3/provenance-model-plan.md §"Step 5b" and
+// docs/archive/pocv3/gaps-pre-migration.md G24.
 package verb
 
 import (

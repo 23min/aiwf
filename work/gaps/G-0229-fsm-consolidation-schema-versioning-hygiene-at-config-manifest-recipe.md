@@ -19,4 +19,4 @@ C4's verdict was Strong precisely because aiwf has explicit migration paths *whe
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §C1 (move 1: FSM consolidation), §C4 (moves 1–3, refuting evidence on manifest KnownFields).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §C1 (move 1: FSM consolidation), §C4 (moves 1–3, refuting evidence on manifest KnownFields).

@@ -2,7 +2,7 @@
 // rename, reallocate, and friends.
 //
 // Most verbs are *validate-then-write* per
-// docs/pocv3/design/design-decisions.md: the verb computes the
+// docs/design/design-decisions.md: the verb computes the
 // projected new tree in memory, runs projectionFindings (which wraps
 // check.Run) against the projection, and returns either findings (no
 // disk writes occurred) or a Plan (file ops + commit metadata). The

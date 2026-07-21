@@ -248,7 +248,7 @@ var hintTable = map[string]string{
 	// I2.5 provenance standing rules. These fire on commit history,
 	// not on tree state — hints point to the verb / repair path that
 	// would have produced a coherent commit.
-	"provenance-trailer-incoherent":                     "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/pocv3/design/provenance-model.md`",
+	"provenance-trailer-incoherent":                     "amend the offending commit via `git commit --amend` so its trailer set obeys the required-together / mutually-exclusive rules in `docs/design/provenance-model.md`",
 	"provenance-force-non-human":                        "`--force` requires `aiwf-actor: human/...`; have a human re-run the mutation as `aiwf <verb> <id> --force --reason \"...\"`, or drop the force and re-route through the normal verb",
 	"provenance-actor-malformed":                        "set `git config user.email` to a valid address and re-run via `aiwf doctor`; the actor trailer is derived from `<localpart>` of the email",
 	"provenance-principal-non-human":                    "`aiwf-principal:` must be `human/<id>` (agents and bots cannot be principals); re-run the verb with `--principal human/<id>`, or amend the trailer via `git commit --amend`",

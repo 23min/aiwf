@@ -24,7 +24,7 @@ design conversation (2026-07-04) about G-0281's gaps-inbox that kept growing
 until it was clearly bigger than one gap.
 
 This is not an exploration: this repo already has three artifacts on this
-exact axis (`docs/pocv3/design/id-allocation.md`, ADR-0001, G-0281 /
+exact axis (`docs/design/id-allocation.md`, ADR-0001, G-0281 /
 ADR-0022 / M-0186 / M-0187) — the concern is not new, it is scattered.
 
 This is not a plan: it intentionally avoids committing to epics, milestones,
@@ -37,7 +37,7 @@ aiwf has, across separate sessions and separate artifacts, designed **four
 different answers** to "how does an entity get a stable id when more than one
 branch or machine might be allocating at once":
 
-1. **Incremental allocator widening** (`docs/pocv3/design/id-allocation.md`,
+1. **Incremental allocator widening** (`docs/design/id-allocation.md`,
    shipped via E-0052) — read a wider cross-branch view before allocating, so
    most collisions never happen; `aiwf reallocate` remains the backstop for
    the residual race.
@@ -84,7 +84,7 @@ one candidate tool (`loom`, github.com/23min/loom) for it.
 
 aiwf's mission is mechanically-validated planning state with stable
 identity across rename, cancel, and collision (CLAUDE.md commitment #2;
-`docs/pocv3/design/design-decisions.md` §"Stable ids and rename ergonomics").
+`docs/design/design-decisions.md` §"Stable ids and rename ergonomics").
 Id allocation under concurrency is not adjacent to that mission — it *is*
 that mission, at its least forgiving point: the id is the primary key every
 other guarantee (history, provenance, cross-reference integrity, the
@@ -96,7 +96,7 @@ wrong doesn't just create friction, it silently corrupts the one property
 
 ### 1. Incremental allocator widening — shipped, `E-0052` (`status: done`)
 
-`docs/pocv3/design/id-allocation.md` describes the current mechanism: `aiwf
+`docs/design/id-allocation.md` describes the current mechanism: `aiwf
 add` allocates `max(ids) + 1` over a view that (per the E-0052 update) unions
 the working tree, every local `refs/heads/*`, every remote-tracking
 `refs/remotes/*`, and the configured trunk ref; `--fetch` opt-in-refreshes
@@ -627,7 +627,7 @@ of*.
   left deliberately nondeterministic** (either side may be renamed) — a
   first safety pass should hold regardless of which side a tiebreaker picks.
   The real system's actual rule (ancestor-of-trunk wins; "both or neither in
-  trunk" stops and prompts a human — `docs/pocv3/design/id-allocation.md`
+  trunk" stops and prompts a human — `docs/design/id-allocation.md`
   §"Reallocate when both branches did real work") is a refinement to layer
   on afterward, and its "stops and prompts a human" outcome is a genuine
   third terminal state this model's liveness properties need to account for
@@ -838,7 +838,7 @@ manual tool invocations.
 
 ### ADRs and docs
 
-- `docs/pocv3/design/id-allocation.md` — the shipped incremental-widening
+- `docs/design/id-allocation.md` — the shipped incremental-widening
   design; explicitly rejects "a coordination ref or push-CAS allocator" as
   more code than the general problem needs. This initiative's central
   tension is that G-0281 proposes exactly that, narrowly.
@@ -849,9 +849,9 @@ manual tool invocations.
 - `docs/adr/ADR-0022-verb-commits-built-via-a-temp-index-commit-tree-primitive.md`
   (`status: accepted`) — orthogonal commit-construction primitive, useful
   regardless of how the minting-strategy question resolves.
-- `docs/pocv3/design/design-decisions.md` §"Stable ids and rename
+- `docs/design/design-decisions.md` §"Stable ids and rename
   ergonomics" — the kernel commitment this whole initiative serves.
-- `docs/pocv3/design/provenance-model.md` — principal × agent × scope
+- `docs/design/provenance-model.md` — principal × agent × scope
   provenance that any new commit-construction path (mint hooks, `--to-trunk`,
   the gaps-inbox, EMB) must continue to stamp correctly.
 - `docs/adr/ADR-0010-branch-model-ritualized-work-on-branches-author-iteration-on-main.md`

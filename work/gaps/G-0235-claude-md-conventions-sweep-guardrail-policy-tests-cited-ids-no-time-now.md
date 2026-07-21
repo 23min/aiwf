@@ -34,7 +34,7 @@ The four policy tests are the leftover P1–P8 set after the others fold into th
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §B2 (move 2), §B3 (move 2), §D4 (move 1), §F3 (moves 1–2), §G2 (move 2), §C1 (moves 2–3), §F1 (move 2), §G1 (moves 1–2).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §B2 (move 2), §B3 (move 2), §D4 (move 1), §F3 (moves 1–2), §G2 (move 2), §C1 (moves 2–3), §F1 (move 2), §G1 (moves 1–2).
 
 ## Notes
 

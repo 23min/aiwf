@@ -229,7 +229,7 @@ and the operator has to repair the gap separately later — exactly
 the failure class the verb-time projection check exists to prevent.
 ```
 
-Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (see `docs/pocv3/plans/acs-and-tdd-plan.md` and `docs/pocv3/design/design-decisions.md`) treats body content as the spec; the title is a label, not a substitute.
+Skip the prose and `aiwf check` reports the omission. Don't ship a half-written entity hoping the body "follows later" — the design's "prose is not parsed" principle (see `docs/archive/pocv3/acs-and-tdd-plan.md` and `docs/design/design-decisions.md`) treats body content as the spec; the title is a label, not a substitute.
 
 ## Provenance flags
 
@@ -262,7 +262,7 @@ Plain `git commit` against an entity file triggers `provenance-untrailered-entit
 
 What `aiwf check` reports as `unexpected-tree-file`:
 
-- Any file under `work/*` whose path is not one of the six recognized shapes (epic, milestone, gap, decision, contract, ADR — see `docs/pocv3/design/tree-discipline.md`). Severity: warning by default; **error** when `aiwf.yaml: tree.strict: true`.
+- Any file under `work/*` whose path is not one of the six recognized shapes (epic, milestone, gap, decision, contract, ADR — see `docs/design/tree-discipline.md`). Severity: warning by default; **error** when `aiwf.yaml: tree.strict: true`.
 - Files inside a contract's directory (`work/contracts/C-NNN-*/`) are auto-exempt — schemas and fixtures live there legitimately.
 - Globs in `aiwf.yaml: tree.allow_paths` are exempt for project-specific carve-outs.
 

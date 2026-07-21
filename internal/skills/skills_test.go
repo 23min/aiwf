@@ -346,9 +346,9 @@ func TestSkill_AddNamesFillInBodyAsRequiredNextStep(t *testing.T) {
 // citation must be co-located with the prescription so the operator
 // sees them together):
 //
-//   - docs/pocv3/plans/acs-and-tdd-plan.md — the "prose is not
+//   - docs/archive/pocv3/acs-and-tdd-plan.md — the "prose is not
 //     parsed" line and the AC body-shape recommendation.
-//   - docs/pocv3/design/design-decisions.md — the broader
+//   - docs/design/design-decisions.md — the broader
 //     "tree carries semantic detail in prose, not in structure"
 //     stance.
 //
@@ -388,8 +388,8 @@ func TestSkill_AddCitesDesignIntent(t *testing.T) {
 	// per M-0198 / G-0301 — pinned line numbers rot as the docs change;
 	// the doc-path reference preserves traceability without the fragility.
 	citations := []string{
-		"docs/pocv3/plans/acs-and-tdd-plan.md",
-		"docs/pocv3/design/design-decisions.md",
+		"docs/archive/pocv3/acs-and-tdd-plan.md",
+		"docs/design/design-decisions.md",
 	}
 	for _, c := range citations {
 		if !strings.Contains(tail, c) {

@@ -19,7 +19,7 @@ Concretely for M-0066: the rule emits seven distinct subcodes — `entity-body-e
 
 ## Why it matters
 
-The whole point of `PolicyFindingCodesAreDiscoverable` is the kernel principle "kernel functionality must be AI-discoverable" — a code that an AI assistant cannot reach via `--help`, embedded skills, `CLAUDE.md`, or `docs/pocv3/**` is, by definition, undocumented. The policy was added (G-0021) to make that property mechanical rather than reviewer-dependent. A blind spot for dynamically-derived subcodes means a class of new emissions can ship past the chokepoint silently — exactly the failure mode the policy exists to catch.
+The whole point of `PolicyFindingCodesAreDiscoverable` is the kernel principle "kernel functionality must be AI-discoverable" — a code that an AI assistant cannot reach via `--help`, embedded skills, `CLAUDE.md`, or `docs/**` is, by definition, undocumented. The policy was added (G-0021) to make that property mechanical rather than reviewer-dependent. A blind spot for dynamically-derived subcodes means a class of new emissions can ship past the chokepoint silently — exactly the failure mode the policy exists to catch.
 
 Two complementary fixes worth considering:
 

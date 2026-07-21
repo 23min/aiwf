@@ -199,7 +199,7 @@ func TestAuthorize_Open_NonAITarget_BranchMissing_Accepted(t *testing.T) {
 // preflight on a non-terminal scope-entity with no ritual branch
 // context. The authorize commit lands and carries aiwf-force: with the
 // reason text — the sovereign-override paper trail per ADR-0010 and
-// docs/pocv3/design/provenance-model.md. Distinct from the existing
+// docs/design/provenance-model.md. Distinct from the existing
 // TestAuthorize_Open_ForceOverridesTerminal: that test exercises Force
 // against a terminal scope-entity (the terminal-status refusal); this
 // one exercises Force against an active entity that would refuse on

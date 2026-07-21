@@ -34,8 +34,8 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			name:   "design-doc-anchors/broken-link-and-anchor",
 			policy: PolicyDesignDocAnchors,
 			files: map[string]string{
-				"docs/pocv3/a.md":    "# A\n\n[x](./missing.md)\n\n[y](./real.md#nope)\n",
-				"docs/pocv3/real.md": "# Real\n\nbody\n",
+				"docs/design/a.md":    "# A\n\n[x](./missing.md)\n\n[y](./real.md#nope)\n",
+				"docs/design/real.md": "# Real\n\nbody\n",
 			},
 		},
 

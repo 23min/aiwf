@@ -394,7 +394,7 @@ func installedBinaryPath(ctx context.Context, pkg string) (string, error) {
 // `go env GOBIN GOPATH`. The combined form returns one line per name
 // with empty values rendered as a blank line, and the leading blank
 // for an unset GOBIN was being silently consumed by strings.TrimSpace
-// — see G39 in docs/pocv3/gaps.md for the upgrade-flow regression.
+// — see G39 in docs/archive/pocv3/gaps-pre-migration.md for the upgrade-flow regression.
 func GoBinDir(ctx context.Context) (string, error) {
 	goBin, err := goBinaryPath()
 	if err != nil {

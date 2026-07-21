@@ -11,7 +11,7 @@ import (
 // rather than literal strings so a future rename or audit lands in
 // one place. Pre-I2.5 keys (Verb…Tests) preserve their existing
 // semantics; I2.5 keys (Principal…Reason) are added by the
-// provenance model — see docs/pocv3/design/provenance-model.md.
+// provenance model — see docs/design/provenance-model.md.
 const (
 	TrailerVerb        = "aiwf-verb"
 	TrailerEntity      = "aiwf-entity"

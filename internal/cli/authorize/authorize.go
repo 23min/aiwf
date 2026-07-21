@@ -29,7 +29,7 @@ import (
 // existing scopes for the entity from git log (so --pause / --resume
 // can find their target), and hands off to verb.Authorize.
 //
-// Per docs/pocv3/design/provenance-model.md §"The aiwf authorize verb"
+// Per docs/design/provenance-model.md §"The aiwf authorize verb"
 // the `--reason` argument has a different role per mode:
 //   - --to: optional; the rationale the human writes when opening a scope.
 //   - --pause / --resume: required; the argument to the flag is itself

@@ -74,7 +74,7 @@ AI-actor multi-commit work **requires** a ritual branch context. The kernel will
 
 ### Human override
 
-Humans are sovereign. The author can always commit on `main` regardless of model, including substantive multi-commit work. The model is the *default discipline*; the author's discretion is the *escape valve*. The kernel does not police human-actor commits against this convention — consistent with `--force` being human-only and the principal × agent × scope model documented in `docs/pocv3/design/provenance-model.md`.
+Humans are sovereign. The author can always commit on `main` regardless of model, including substantive multi-commit work. The model is the *default discipline*; the author's discretion is the *escape valve*. The kernel does not police human-actor commits against this convention — consistent with `--force` being human-only and the principal × agent × scope model documented in `docs/design/provenance-model.md`.
 
 ## Consequences
 
@@ -114,4 +114,4 @@ Periodic touchpoint: at the next epic wrap (E-0029 or beyond), audit whether the
 - Related ADRs: ADR-0009 (Orchestration substrate; Decision 3 — isolation as parent-side precondition — is the neighbouring kernel-shape decision).
 - aiwf gaps: G-0059 (question recorded here, answered by this ADR), G-0099 (worktree isolation; tier-3 partial-closed by `.claude/hooks/validate-agent-isolation.sh`; full closure waits on the kernel-side `isolation-escape` finding under E-0019), G-0116 (sequencing fix, unblocked by this ADR).
 - Related epics: E-0019 (Parallel TDD subagents with finding-gated AC closure — the natural home for the chokepoint implementation).
-- Provenance model: `docs/pocv3/design/provenance-model.md` (principal × agent × scope; sovereign override).
+- Provenance model: `docs/design/provenance-model.md` (principal × agent × scope; sovereign override).

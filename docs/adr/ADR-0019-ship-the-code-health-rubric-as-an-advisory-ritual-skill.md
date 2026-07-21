@@ -7,7 +7,7 @@ status: accepted
 
 aiwf scores its own codebase against a stack-agnostic field guide,
 "Principles for a healthy codebase" — the rubric behind the periodic health
-scorecards under `docs/pocv3/`. The rubric is reusable by any project, but it
+scorecards under `docs/archive/pocv3/`. The rubric is reusable by any project, but it
 has no distribution vehicle: a downstream consumer who runs `aiwf init` /
 `aiwf update` receives the kernel's mechanical guarantees and the ritual
 skills, but not the rubric.

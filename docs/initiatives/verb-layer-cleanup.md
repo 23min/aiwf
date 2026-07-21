@@ -211,7 +211,7 @@ has been replaced below. Two things the original claim got wrong:
 
 `internal/verb/verb.go`'s package doc does say, unconditionally, that every
 verb runs the projection check before writing — but a cited design doc
-(`docs/pocv3/design/design-decisions.md:251`) already scopes the guarantee
+(`docs/design/design-decisions.md:251`) already scopes the guarantee
 to a named "current set" that excludes exactly the verbs above. The doc
 comment's absolute wording is the real, narrower defect: it overclaims a
 scope wider than the codebase's actual, consistent, deliberate design, and
@@ -397,7 +397,7 @@ which `idsUnique` deliberately excludes by design (a separate, accepted
 scope boundary, E-0052) — that collision surfaces only later, at merge
 time, via `aiwf reallocate`. This is exactly the pre-`AllocateID` exposure
 the id-lifecycle work fixed for `add`, now reintroduced for `import`; one
-migration doc (`docs/pocv3/migration/import-format.md:133`) even overclaims
+migration doc (`docs/migration/import-format.md:133`) even overclaims
 "`auto` allocation never collides with existing ids by construction,"
 reinforcing that this is a genuine, unaddressed gap rather than a
 documented, accepted limitation. This remains the clearest bug-tier finding

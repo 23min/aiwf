@@ -26,7 +26,7 @@ var forbiddenAiwfYAMLFieldNames = map[string]bool{
 // PolicyNoActorFieldsInAiwfYAML asserts that no struct in
 // internal/aiwfyaml/ declares a field named after an
 // identity-shape concept. Identity is runtime-derived per
-// docs/pocv3/design/provenance-model.md; storing it in the YAML
+// docs/design/provenance-model.md; storing it in the YAML
 // would re-introduce the bug step 1 of I2.5 fixed.
 //
 // The package's existing LegacyActor field (a deprecation hatch

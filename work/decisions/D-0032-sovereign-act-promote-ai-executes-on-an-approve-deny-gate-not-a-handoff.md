@@ -33,6 +33,6 @@ Alternative considered and rejected: extend `aiwf authorize --allow-force` (G-00
 ## Consequences
 
 - `aiwfx-start-epic/SKILL.md`'s promotion step (and its "Anti-patterns" and "Constraints" sections) needs rewriting: replace "hand off to the human to type it" with "present the exact command as an approve/deny gate; execute directly on approval." Per this repo's ritual-authoring convention, this edit needs a companion structural test under `internal/policies/` (the `skill-edit-structural-test-backstop` backstop).
-- `CLAUDE.md`'s provenance bullet and `docs/pocv3/design/provenance-model.md` should be checked for language that states or implies "the AI never invokes a sovereign-act verb itself" and updated to reflect "invokes it directly under an explicit per-invocation human approval gate" instead.
+- `CLAUDE.md`'s provenance bullet and `docs/design/provenance-model.md` should be checked for language that states or implies "the AI never invokes a sovereign-act verb itself" and updated to reflect "invokes it directly under an explicit per-invocation human approval gate" instead.
 - Scope: this decision covers the *conversational, no-delegation-scope* case only. It does not change `--force`'s existing human-only enforcement, `aiwf authorize`'s delegation-scope semantics, or G-0023's separate (and still open) question of delegated `--force` within an authorized autonomous scope.
 - Tracked for implementation as a gap (filed alongside this decision) so the ritual-text fix lands via a `wf-patch`.

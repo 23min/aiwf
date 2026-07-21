@@ -25,7 +25,7 @@ import (
 var squashMergeSubjectRE = regexp.MustCompile(`\s\(#\d+\)$`)
 
 // Provenance finding codes — the I2.5 standing rules from
-// docs/pocv3/design/provenance-model.md §"`aiwf check` rules". Each
+// docs/design/provenance-model.md §"`aiwf check` rules". Each
 // fires on commit-history audit, not on tree state.
 const (
 	CodeProvenanceTrailerIncoherent     = "provenance-trailer-incoherent"

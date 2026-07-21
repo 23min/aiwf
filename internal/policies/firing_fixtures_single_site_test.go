@@ -18,14 +18,14 @@ func hasPolicyViolation(vs []Violation, id string) bool {
 // discoverabilityScaffold returns the minimal tree the discoverability
 // policies need to run without erroring: readDiscoverabilityChannels reads
 // cmd/aiwf/main.go + CLAUDE.md and walks internal/skills/embedded +
-// docs/pocv3, so all four must exist. None of them mention the crafted
+// docs, so all four must exist. None of them mention the crafted
 // tag/code, so it stays out of the haystack and the policy fires.
 func discoverabilityScaffold() map[string]string {
 	return map[string]string{
 		"cmd/aiwf/main.go":              "package main\n\nfunc main() {}\n",
 		"CLAUDE.md":                     "# fixture\n\nnothing relevant here\n",
 		"internal/skills/embedded/x.md": "nothing relevant\n",
-		"docs/pocv3/x.md":               "nothing relevant\n",
+		"docs/x.md":                     "nothing relevant\n",
 	}
 }
 

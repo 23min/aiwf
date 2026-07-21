@@ -30,7 +30,7 @@ Every rule is a row in a per-source markdown table with six columns:
 3. **Check rules** — `internal/check/*.go`
 4. **Cobra verb definitions** — `cmd/aiwf/`, `internal/cli/<verb>/`
 5. **ADRs** — `docs/adr/`
-6. **Kernel commitments** — `docs/pocv3/design/design-decisions.md`
+6. **Kernel commitments** — `docs/design/design-decisions.md`
 7. **Repo principles** — `CLAUDE.md`
 8. **Skills** — `.claude/skills/`, rituals plugin
 9. **Verb help text** — `aiwf <verb> --help`
@@ -165,9 +165,9 @@ Each in-scope policy fires as a test failure that blocks CI. Severity throughout
 Listed here so the audit shows we *considered* and explicitly excluded them, not silently missed them. Per ADR-0011 §Scope, this catalog covers kernel-verb workflow legality only; CI / source-style invariants are out of scope.
 
 - `claude_md_test_discipline.go` — CLAUDE.md must have `### Test discipline` section under `## Go conventions`. (Doc structure, not workflow.)
-- `config_fields_discoverable.go` — every yaml-tagged field on aiwf.yaml structs must appear in skill, help, CLAUDE.md, or docs/pocv3. (Discoverability, not workflow.)
+- `config_fields_discoverable.go` — every yaml-tagged field on aiwf.yaml structs must appear in skill, help, CLAUDE.md, or docs/. (Discoverability, not workflow.)
 - `design_doc_anchors.go` — markdown link anchors in design docs must resolve. (Doc hygiene.)
-- `discoverability.go` — every finding code must appear in skill/help/CLAUDE.md/docs/pocv3. (Discoverability.)
+- `discoverability.go` — every finding code must appear in skill/help/CLAUDE.md/docs/. (Discoverability.)
 - `filepath_join_segments.go` — `filepath.Join` args after the first must not embed `/` separators. (Source-style.)
 - `no_retry_loops_on_git.go` — production code must not retry-loop around git. (Source-style.)
 - `race_parallel_cap.go` — race-mode `go test` invocations carry `-parallel 8`. (CI infra.)
@@ -338,7 +338,7 @@ Eight ratified or proposed ADRs (excluding ADR-0011 — the methodology ADR for 
 
 ---
 
-### 6. Kernel commitments — `docs/pocv3/design/design-decisions.md`
+### 6. Kernel commitments — `docs/design/design-decisions.md`
 
 This doc is the canonical *decision source* for most of what §1–§4 mechanizes. Many rules in those earlier sections trace back to a paragraph here. For Pass A, I capture (a) cross-cutting principles not yet rule-shaped elsewhere and (b) frontmatter / body / provenance commitments that are the originating decisions.
 
@@ -397,7 +397,7 @@ CLAUDE.md is the project-instructions doc that codifies engineering principles, 
 | R-AUDIT-0190 | CLAUDE.md | §Engineering principles | All work | KISS / YAGNI / no half-finished implementations — features land tested or not at all; no stubs / TODOs in shipped code | unenforced (review-driven) |
 | R-AUDIT-0191 | CLAUDE.md | §Engineering principles | All verbs | Errors are findings, not parse failures — `aiwf check` loads inconsistent state and reports it; it does not refuse to start | hard-reject (loader contract) |
 | R-AUDIT-0192 | CLAUDE.md | §Engineering principles | All kernel surfaces | CLI surfaces must be auto-completion-friendly — every verb, sub-verb, flag, and closed-set value is reachable via tab-completion. Drift-prevention test in `internal/policies/` fails CI on un-wired surfaces | policy-block (`policies/skill_coverage.go` + completion-drift test in `cmd/aiwf/completion_drift_test.go`) |
-| R-AUDIT-0193 | CLAUDE.md | §Authoring an ADR | ADR | An ADR captures the choice; planning sequences the action. ADR bodies must not contain gate language (*"ratify after X happens"*, *"status remains proposed through Y wraps"*) — those are planning concerns. FSM (`proposed → accepted | rejected`; `accepted → superseded`) plus `aiwf promote` are the only mechanical surfaces that constrain ADR status transitions | unenforced (convention; FSM still applies) |
+| R-AUDIT-0193 | CLAUDE.md | §Authoring an ADR | ADR | An ADR captures the choice; planning sequences the action. ADR bodies must not contain gate language (*"ratify after X happens"*, *"status remains proposed through Y wraps"*) — those are planning concerns. FSM (`proposed → accepted \| rejected`; `accepted → superseded`) plus `aiwf promote` are the only mechanical surfaces that constrain ADR status transitions | unenforced (convention; FSM still applies) |
 | R-AUDIT-0194 | CLAUDE.md | §Authoring an ADR | ADR | No bespoke per-ADR test pins on status transitions. Sovereign override (`--force --reason`) remains available when an exceptional ratification path is needed | unenforced (convention) |
 | R-AUDIT-0195 | CLAUDE.md | §AC promotion requires mechanical evidence | All AC promotions | Before `aiwf promote M-NNN/AC-<N> met`, there must be a mechanical assertion that fails if the AC's claim breaks — a Go test under `internal/policies/`, a kernel finding-rule, or a fixture-validation script. *"I read the file and it looks right"* is not evidence; it makes the AC's correctness depend on reviewer recall | unenforced (convention; chokepoint is the AC-promote command but mechanical evidence is human-checked) |
 | R-AUDIT-0196 | CLAUDE.md | §AC promotion requires mechanical evidence | ACs under `tdd: none` / `tdd: advisory` | The test-discipline obligation applies even under `tdd: none` — the `tdd:` policy controls whether the kernel's `acs-tdd-audit` finding fires; it does not waive the obligation to have a mechanical test | unenforced (convention) |
@@ -694,10 +694,10 @@ Both paths together satisfy the kernel's "correctness must not depend on the LLM
 | R-RULE-117 | Discoverability | All top-level verbs | Every top-level Cobra verb is reachable through an AI-discoverable channel (per-verb skill / topical skill / `--help`-only / discoverability-priority split) per ADR-0006 | policies/skill_coverage.go | policy-block | R-AUDIT-0140 | — |
 | R-RULE-118 | Discoverability | Skill placement | Planning-conversation skills live in the rituals plugin; kernel-embedded skills are verb-wrapper shape (ADR-0007) | policies/skill_coverage.go | policy-block | R-AUDIT-0141, 0142 | — |
 | R-RULE-119 | Discoverability | All Cobra flags / closed-set values | Tab-completion via Cobra's `ValidArgs` / `RegisterFlagCompletionFunc` / `completeEntityIDFlag` (CLAUDE.md §Engineering principles) | `cmd/aiwf/completion_drift_test.go` | policy-block | R-AUDIT-0192 | — |
-| R-RULE-120 | Discoverability | All finding codes | Every finding code emitted by the kernel must appear in skill / `--help` / CLAUDE.md / `docs/pocv3/` (one channel an AI assistant routinely consults) | (out-of-scope per ADR-0011 §Scope; listed for cross-reference) | policy-block | (out-of-scope discoverability.go) | — |
+| R-RULE-120 | Discoverability | All finding codes | Every finding code emitted by the kernel must appear in skill / `--help` / CLAUDE.md / `docs/` (one channel an AI assistant routinely consults) | (out-of-scope per ADR-0011 §Scope; listed for cross-reference) | policy-block | (out-of-scope discoverability.go) | — |
 | R-RULE-121 | Discoverability | All finding codes | Every finding code has a matching entry in `internal/check/hint.go` `hintTable` (for "what now?" rendering) | policies/finding_hints.go | policy-block | R-AUDIT-0055 | — |
 | R-RULE-122 | Discoverability | All finding codes | Every finding code is referenced from at least one `*_test.go` file (proves emission is exercised) | policies/findings_have_tests.go | policy-block | R-AUDIT-0056 | — |
-| R-RULE-123 | Discoverability | aiwf.yaml | Every yaml-tagged field on `internal/aiwfyaml/` structs must appear in skill / `--help` / CLAUDE.md / `docs/pocv3/` | (out-of-scope per ADR-0011; listed for cross-reference) | policy-block | (out-of-scope config_fields_discoverable.go) | — |
+| R-RULE-123 | Discoverability | aiwf.yaml | Every yaml-tagged field on `internal/aiwfyaml/` structs must appear in skill / `--help` / CLAUDE.md / `docs/` | (out-of-scope per ADR-0011; listed for cross-reference) | policy-block | (out-of-scope config_fields_discoverable.go) | — |
 | R-RULE-124 | Discoverability | All Cobra verbs | Cross-reference symmetry: every `aiwf <verb>` mention in a skill body resolves to a registered top-level verb | policies/skill_coverage.go | policy-block | (subsumed by R-RULE-117) | — |
 
 ### 10.9 Architectural commitments
@@ -794,9 +794,3 @@ Most of the compression came from FSM transitions (49 facet rows → 21 consolid
 - **AC-2** (all nine audit sources covered) — §§1–9 each have rule rows or explicit no-rules acknowledgment.
 - **AC-3** (six-column schema with non-empty fields) — §§1–9 use the 6-column schema; §10 uses an extended 8-column schema (adds Chokepoints + Facets).
 - **AC-4** (catalog schema internally consistent) — R-AUDIT-NNNN ids 0001..0226 (with one ack at 0150); R-RULE-NNN ids 001..148 sequential; per-section totals add up.
-
----
-
-## Grand total
-
-**TBD — extraction in progress.**

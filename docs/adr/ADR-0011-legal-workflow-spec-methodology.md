@@ -16,7 +16,7 @@ aiwf is a kernel that pins planning-tree invariants through a small set of mutat
 - `internal/policies/` carries mechanical invariants enforced as Go tests.
 - `internal/check/` carries the runtime check rules that surface as findings.
 
-Plus prose-only sources: ADRs, `docs/pocv3/design/design-decisions.md`, `CLAUDE.md`, skills in `.claude/skills/` (both kernel-embedded and ritual), and `aiwf <verb> --help` output. No source today expresses the **closed-set frontier between legal and illegal verb sequences** as a single machine-readable table. The verbs work, the FSM is right *as far as we know*, but there is no chokepoint that catches the failure mode "the implementation silently permits a workflow it shouldn't" or "the implementation silently rejects one it should permit."
+Plus prose-only sources: ADRs, `docs/design/design-decisions.md`, `CLAUDE.md`, skills in `.claude/skills/` (both kernel-embedded and ritual), and `aiwf <verb> --help` output. No source today expresses the **closed-set frontier between legal and illegal verb sequences** as a single machine-readable table. The verbs work, the FSM is right *as far as we know*, but there is no chokepoint that catches the failure mode "the implementation silently permits a workflow it shouldn't" or "the implementation silently rejects one it should permit."
 
 E-0033 commits to closing that gap with a canonical spec and per-cell tests. Before any catalog or test-writing work begins, this ADR pins the **methodology** for how the spec is built and maintained — independently of what the spec ends up saying.
 
@@ -51,7 +51,7 @@ Per-PR maintenance after E-0033 wraps follows a lighter version of the same shap
 
 ### Canonical form
 
-The spec lives as **Go data structures** under `internal/workflows/spec/` (exact package name and schema are settled in M-0123, when the catalogs are in front of us). The catalogs from Pass A and Pass B are **working artifacts** — markdown documents under `docs/pocv3/design/` — but they are not the spec. Once Pass C produces the Go table, the markdown catalogs become evidence of how the spec was constructed, not the source of truth for what it says.
+The spec lives as **Go data structures** under `internal/workflows/spec/` (exact package name and schema are settled in M-0123, when the catalogs are in front of us). The catalogs from Pass A and Pass B are **working artifacts** — markdown documents under `docs/design/` — but they are not the spec. Once Pass C produces the Go table, the markdown catalogs become evidence of how the spec was constructed, not the source of truth for what it says.
 
 Go was chosen over markdown / YAML / DSL for three reasons. First, the test harness consumes Go: every cell-coverage test reads `Rules()` and exercises the binary against an entry, so the spec must already be in the same language as the tests. Second, AI-discoverability prefers typed Go data over markdown for closed-set tables: tab-completion, godoc, refactor tooling, and the existing `internal/policies/` test pattern all expect Go. Third, a single source of truth simplifies the drift policy below.
 

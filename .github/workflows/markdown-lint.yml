@@ -26,7 +26,6 @@ jobs:
             !docs/explorations/**
             !docs/research/**
             !docs/archive/**
-            !docs/pocv3/**
             !work/**
             !internal/check/testdata/**
             !internal/skills/embedded/**

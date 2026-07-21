@@ -62,23 +62,36 @@ A **bundle** is a named collection of policies grouped together for findability 
 
 The model is deliberately minimal:
 
-- **Primary bundle = parent directory name.** A policy at `work/policies/dotnet-stack/P-001-naming.private-fields.md` is in the `dotnet-stack` bundle. The path is the truth for the canonical home; no manifest, no separate registry.
+- **Bundle = parent directory name.** A policy at `work/policies/aiwf-rituals/P-014-closing.commit.md` is in the `aiwf-rituals` bundle. The path is the truth for the canonical home; no manifest, no separate registry.
+- **Every policy lives in some bundle directory.** Policies that don't fit a named bundle live under `work/policies/local/`; `local` is the conventional name for the consumer's unsorted/project-specific policies but it is just a directory like any other (no implicit-vs-explicit handling, no special cases). A loose policy file directly under `work/policies/` (no bundle parent) is a tree-discipline error.
 - **Multi-bundle membership via `labels:`.** A policy may carry an optional `labels:` array in frontmatter listing every bundle it belongs to. When present, the first entry MUST equal the parent directory name (the canonical bundle is always written first); subsequent entries declare additional bundles. A policy in `dotnet-stack/` with `labels: [dotnet-stack, security-baseline]` is queryable from either bundle. Single-bundle policies omit `labels:` entirely.
-- **Implicit `local` for unsorted policies.** A policy at `work/policies/P-NNN-<slug>.md` (no subdirectory) belongs to the implicit `local` bundle.
 - **No version pinning.** Re-syncing a bundle is `aiwf policy sweep --source bundle:<name>`; the LLM dedups against the local set, triage decides what lands. Upstream changes never auto-apply.
 
 ### Layers (documentation convention)
 
 Bundles fall into four conceptual layers:
 
-| Layer | Audience | Examples |
+| Layer | Audience | Source |
 |---|---|---|
-| `kernel` | Framework-shipped, broadly applicable | `meta-policies`, `aiwf-rituals`, `aiwf-provenance` |
-| `workflow` | Framework-shipped, opt-in | (workflow-specific bundles) |
-| `stack` | Framework-shipped, picked at install for the consumer's stack | `dotnet-stack`, `typescript-svelte-stack`, `rust-stack` |
-| `domain` | Consumer-private, project-specific | `engine-correctness`, `numeric-safety` |
+| `kernel` | Framework-shipped, broadly applicable | aiwf engine bundles (`meta-policies`, `aiwf-rituals`, `aiwf-provenance`) |
+| `workflow` | Framework-shipped, opt-in workflow patterns | aiwf engine bundles |
+| `stack` | Toolchain-specific (`.NET`, Rust, TypeScript-with-Svelte, …) | consumer-authored or community-pulled — **the framework does not ship stack bundles** |
+| `domain` | Project-specific, applies only in this repo | consumer-authored (`engine-correctness`, `numeric-safety`, …) |
 
 The layer is documentation, not data. There is no `--layer` filter in v0; bundles are listed by name and counted by member.
+
+**The framework does not ship stack bundles.** Policies that target a specific toolchain are stack-flavored: the consumer authors them under `work/policies/<name>/` or pulls them from a community source via `aiwf policy sweep`. The framework's role for stack-shaped concerns is *discovery*, not authoring — see §Stack discovery.
+
+### Stack discovery
+
+`aiwf init` scans the repo root for known manifest files (`*.csproj`/`*.sln` → `dotnet`, `Cargo.toml` → `rust`, `go.mod` → `go`, `package.json` → `node` or `typescript` if `tsconfig.json` is also present, `pyproject.toml`/`requirements.txt` → `python`, `Gemfile` → `ruby`, …) and writes the detected set to `aiwf.yaml`:
+
+```yaml
+# aiwf.yaml
+stack: [dotnet, typescript]   # auto-populated by aiwf init; consumer-editable
+```
+
+The field is multi-valued because polyglot repos are common. Re-running `aiwf init` re-detects and rewrites the array; consumer hand-edits between runs are overwritten (the field is data, not config — if a consumer needs to assert a stack the detector misses, they can also hand-edit and skip future re-detection by removing the auto-populated marker). v0 commits to detection and recording only; **no v0 verb consumes the field**. The data is collected so future use as a mining hint (suggest stack-flavored community bundles), an applicability axis ("applies in repos with `stack: [dotnet]`"), or an LLM context signal can be designed from observation rather than speculation. See §What v0 does not commit to → Stack-discovery consumption.
 
 ### Per-repo divergence is expected
 
@@ -107,13 +120,15 @@ Two consumer repos that both pull `dotnet-stack` will diverge. Triage decides wh
     ├── epics/
     ├── milestones/
     └── policies/                # only present when policy module is enabled
-        ├── dotnet-stack/        # bundle directory (see §Bundles)
-        │   └── P-001-naming.private-fields.md
-        ├── aiwf-rituals/
+        ├── aiwf-rituals/        # bundle directory (see §Bundles)
         │   └── P-014-closing.commit.md
-        ├── P-200-local-rule.md  # files at root belong to the implicit `local` bundle
+        ├── meta-policies/
+        │   └── P-027-trailers.required.md
+        ├── local/               # unbundled policies live here (just a directory like any other)
+        │   └── P-200-engine-correctness.md
         └── draft/
-            └── dotnet-stack/    # mining drafts staged by bundle; triage promotes
+            ├── aiwf-rituals/    # mining drafts staged by bundle; triage promotes
+            └── local/           # unbundled mining drafts
 ```
 
 Three audiences cleanly isolated: human-authored config (`aiwf.yaml`), framework-owned generated artifacts (`.aiwf/`), human-authored entities (`work/`). The `.aiwf/` directory is framework-owned regardless of which modules are enabled (it's the engine's working space); enabled modules contribute artifacts to it.
@@ -124,7 +139,7 @@ Three audiences cleanly isolated: human-authored config (`aiwf.yaml`), framework
 
 Six commitments. Every other behavior is consequence or convention.
 
-1. **Policy is an entity kind with frontmatter shape locked at write time.** Six required fields, two optional (`labels`, `enforcement`), one reserved (`human_only`). The shape is forward-compatible with the deferred features in §What v0 does not commit to.
+1. **Policy is an entity kind with frontmatter shape locked at write time.** Six required fields, two optional (`labels`, `enforcement`). The shape is forward-compatible with the deferred features in §What v0 does not commit to (additive fields land when they earn their weight).
 2. **The status set is `proposed | in-effect | retired`.** Three states, one terminal. Lifecycle expansion (`waived`, `superseded`) is reserved namespace.
 3. **An index manifest (`.aiwf/policy-index.json`) is regenerated by every policy-mutating verb in the same commit.** Retrieval queries read the index, never the policy tree. The index is the property that makes feedforward retrieval cheap at thousand-policy scale.
 4. **Every policy declares a `surface` (`digest | on-demand`), independent of any enforcement choice.** The digest carries policies with `surface: digest`. Surface and enforcement are orthogonal axes; digest size is bounded by editorial choice.
@@ -140,17 +155,17 @@ Together these solve scale (1, 3, 4), feedforward retrieval (1, 3, 4 with skill-
 ### Recognized path
 
 ```
-work/policies/<bundle>/P-NNN-<slug>.md       ← bundled policy
-work/policies/P-NNN-<slug>.md                ← `local` bundle (implicit)
-work/policies/draft/<bundle>/P-NNN-<slug>.md ← mining output, awaiting triage
-work/policies/draft/P-NNN-<slug>.md          ← `local` mining output
+work/policies/<bundle>/P-NNN-<slug>.md            ← bundled policy
+work/policies/local/P-NNN-<slug>.md               ← unbundled policy (local/ is just a directory)
+work/policies/draft/<bundle>/P-NNN-<slug>.md      ← mining output, awaiting triage
+work/policies/draft/local/P-NNN-<slug>.md         ← unbundled mining output
 ```
 
-The bundle is the parent directory name (or implicit `local` when the file lives at `work/policies/` root). See §Bundles.
+The bundle is the parent directory name. Files directly under `work/policies/` (no bundle parent) are tree-discipline errors. See §Bundles.
 
 `<slug>` matches `^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$` — a dotted-name with at least two segments, lower-case, alphanumeric. Examples: `ac.required`, `closing.commit`, `trailers.required`, `nolint.rationale`. The slug is the policy's stable human-readable handle: it appears in finding codes, in citations (`per ac.required`), and in the digest's second column. Slugs are corpus-unique (two policies in different bundles cannot share a slug). The slug is author-chosen at `aiwf policy add` time and validated against the format; once written, it is immutable in v0 (rename = retire-and-create; a `aiwf policy rename-slug` verb is reserved namespace).
 
-The `draft/` subdirectory is the staging area for mined candidates; the loader recognizes these as `policy-draft` and treats them as a separate kind for tree-discipline purposes. Drafts mirror the bundle layout — `draft/<bundle>/` for bundle-tagged drafts, `draft/` root for `local` drafts.
+The `draft/` subdirectory is the staging area for mined candidates; the loader recognizes these as `policy-draft` and treats them as a separate kind for tree-discipline purposes. Drafts mirror the bundle layout — every draft lives under `draft/<bundle>/`, with `draft/local/` for drafts that don't target a named bundle.
 
 ### Frontmatter
 
@@ -167,10 +182,7 @@ applicability:
   on_verbs: [promote]
   path: null                # optional glob; null = applies regardless of path
 enforcement:
-  kind: command             # command (only v0 kind; advisory = omit the enforcement block entirely)
-  ref: "cue vet ./policies/ac.cue -"
-# reserved (frontmatter forward-compatible; not consumed by v0)
-human_only: false
+  ref: "cue vet ./policies/ac.cue -"   # advisory-only policies omit the enforcement block entirely
 ---
 ```
 
@@ -203,18 +215,17 @@ Six fields are required on every policy:
 
 The `kinds` enum is dynamic and **soft-validated**. A consumer who has not enabled the `contract` module sees a warning at `aiwf policy add` time when authoring a policy with `applicability.kinds: [contract]`, but the policy is accepted and persists. At evaluation time, references to disabled kinds are inert (no matches) and emit an `inactive-kind-reference` finding so the consumer can decide whether to re-enable the module, retire the policy, or rewrite its applicability. Disabling a module never strands authored entities.
 
-**`enforcement` (optional).** Absent block = advisory-only; the policy is read by humans and LLMs but not mechanically evaluated. To make a policy mechanically evaluable, declare an enforcement block:
+**`enforcement` (optional).** Absent block = advisory-only; the policy is read by humans and LLMs but not mechanically evaluated. To make a policy mechanically evaluable, declare an enforcement block with a single field:
 
 | Sub-field | Type | Rule |
 |---|---|---|
-| `kind` | enum | `command`. The v0 runner kind (§7). Future kinds (`wasm`, in-process plugins) are reserved namespace. |
 | `ref` | string | Shell command. Receives the relevant entity state on stdin as JSON; emits findings on stdout as JSON Lines (one per violation, conforming to the framework's finding schema); exits 0 for pass / non-zero for "see stdout." Tools referenced in the command must be declared in `aiwf.yaml`'s `runners:` section (§9). |
 
-Runner placement across the three scopes (verb-time, pre-commit, CI) is **measured automatically** rather than declared per-policy; see §The engine, Performance.
+v0 has only one shape of runner — a shell command — so there is no `kind:` field. If a future runner shape (in-process Go plugin, wasm module, …) earns its weight, a `kind:` discriminator can be added additively (§What v0 does not commit to). Runner placement across the three scopes (verb-time, pre-commit, CI) is **measured automatically** rather than declared per-policy; see §The engine, Performance.
 
 **Reserved fields (forward-compatible).**
 
-- `human_only` — anticipated for sovereignty rules; v0 ignores the value.
+v0 has no reserved frontmatter fields beyond the optional set above. Policy-level sovereignty protection is handled by the governance gate at the verb layer (see §Provenance integration), not by a per-policy frontmatter flag. A stricter per-policy gate (`human_only: true`, rejecting even conversational/tool-mode LLM acts) is reserved namespace; if a real case earns it, the field can be added additively.
 
 The body of the policy file is free prose: rationale, examples, history, edge cases. Loaded by `aiwf policy show <id-or-slug>`; not pre-loaded into LLM context. Bodies may use RFC 2119 keywords or EARS-style structured-English requirements when the rule benefits from that fidelity; mechanical evaluation never reads the body — that is the runner's job, via `enforcement.ref`.
 
@@ -231,7 +242,7 @@ Three transitions:
 | Transition | Verb | Notes |
 |---|---|---|
 | `(create)` → `proposed` | `aiwf policy add` | Default for hand-authored policies and triage targets. |
-| `proposed` → `in-effect` | `aiwf policy triage` (accept) or `aiwf policy promote P-NNN` | Activation. Validates frontmatter completeness; if `enforcement.kind: command`, validates the command resolves and tools are declared in `runners:`. |
+| `proposed` → `in-effect` | `aiwf policy triage` (accept) or `aiwf policy promote P-NNN` | Activation. Validates frontmatter completeness; if an `enforcement` block is present, validates the command resolves and the tools it uses are declared in `runners:`. |
 | `proposed \| in-effect` → `retired` | `aiwf policy retire P-NNN --reason "..."` | Terminal. `--reason` required; recorded as `aiwf-reason:` trailer. |
 
 Reverse transitions are disallowed; a retired policy stays retired (immutability of done). To resurrect a retired policy, write a new one with the same body and a new id; cite the old one in the body as historical context.
@@ -240,7 +251,7 @@ Reverse transitions are disallowed; a retired policy stays retired (immutability
 
 ## The engine
 
-The engine is what makes "policy" structurally distinct from "ADR" or "decision." A single binary, `aiwf verify --kind policy` (with `aiwf policy verify` shipped from day one as an alias), evaluates every in-effect policy with an enforcement block against project state and emits findings in the framework's existing finding format. The top-level `aiwf verify` is the canonical entry point, so the future migration to a unified contract+policy verifier (open question §Open questions) is a no-op.
+The engine is what makes "policy" structurally distinct from "ADR" or "decision." A single binary, invoked via the canonical `aiwf verify` (which defaults to every enabled validator kind; in v0 only the policy kind exists), evaluates every in-effect policy with an enforcement block against project state and emits findings in the framework's existing finding format. `aiwf verify --kind policy` is the explicit-kind form; `aiwf policy verify` is the day-one alias. When contracts grow their own validator wiring, the top-level `aiwf verify` runs both kinds without a verb-rename — that is the property §Verb surface forward-pins.
 
 ### One mechanism, three scopes
 
@@ -260,7 +271,7 @@ Runner placement across scopes is determined by measurement, not declaration; se
 
 ### Runner contract
 
-In v0, one runner kind: `command`. The contract is:
+A runner is a shell command. The contract is:
 
 - **Input.** The relevant entity state, JSON-encoded, on stdin. The framework derives the state from the policy's `applicability.kinds` (or, for path-only policies, from the file content at the matched paths).
 - **Output.** Findings on stdout as JSON Lines, one finding per line, matching the framework's finding schema (code, severity, message, location). Counterexample-style messages encouraged but not enforced.
@@ -269,9 +280,7 @@ In v0, one runner kind: `command`. The contract is:
 
 A runner can be written in any language: a Go binary, a Rust binary, a .NET binary, a Python script, a shell pipeline. The framework doesn't care about the runner's implementation; only the input-output contract matters. This is what makes the engine language-agnostic: "Go shop," "Rust shop," ".NET shop" each ships its own runners; the engine's surface is the same.
 
-Common cases like `cue vet schema.cue -` or `gofumpt --check ./...` are written as inline `command` invocations; the tools they reference are declared once in `runners:`. There is no first-class `kind: cue` or `kind: gofumpt` — those would privilege specific tools without buying real ergonomics.
-
-Future runner kinds (`wasm`, in-process Go plugins, others) are reserved namespace; until v0 hits the limits of `command`, no new kind earns its weight.
+Common cases like `cue vet schema.cue -` or `gofumpt --check ./...` are written as inline shell commands; the tools they reference are declared once in `runners:`. There is no first-class `kind: cue` or `kind: gofumpt` — those would privilege specific tools without buying real ergonomics.
 
 ### Findings
 
@@ -281,11 +290,17 @@ The engine emits findings in the framework's existing format: a finding code (`p
 
 The pre-commit budget is the binding constraint. Three properties protect it:
 
-- **Index-driven filtering.** The applicability filter narrows the policy set before any runner is invoked. For a typical commit touching 5–15 files, the active policy count is usually < 20.
+- **Index-driven filtering.** The applicability filter narrows the policy set before any runner is invoked. The reduction factor depends on corpus shape (how many policies, how narrowly each is scoped) and commit shape (how many kinds and paths the diff touches); v0 makes no quantitative claim about the typical match count and instead measures it. The runner-timing data and fire counter (§Fire counter) provide the observability needed to know whether the index is doing real work.
 - **Parallel dispatch.** Independent runners run in parallel up to a worker-count cap (default: number of CPUs; configurable).
 - **Auto-measured runner placement.** Every runner invocation is timed; an exponentially-weighted moving average is cached in `.aiwf/runner-timing.json` keyed by policy id. A runner whose measured time fits the verb-time budget runs at every scope; one that fits only the pre-commit budget runs at pre-commit and CI; one that exceeds both runs only at CI. The classification updates as observations accumulate.
 
 A new (un-cached) runner runs at every scope on first invocation; the first measurement seeds the cache. Demotion across scopes is silent in the steady state; `aiwf policy verify --time-report` surfaces the per-runner classification and the budgets it's measured against, so editorial decisions can react to observed behavior. There is no declared `speed` field — the runner's measured behavior is the truth.
+
+### Fire counter (observability for editorial pressure)
+
+A per-policy fire counter is maintained in `.aiwf/policy-fire-counts.json`: each time a runner emits one or more findings for a policy, the count for that policy id increments. The counter is the observability primitive for editorial pressure on `surface: digest` allocation — concretely, the data that lets a human notice "this `on-demand` policy has fired blocking findings forty times; the agent should know about it in advance."
+
+v0 ships **collection only**: the counter is written by the engine; no verb reads it automatically; no finding is emitted on threshold-cross; triage does not surface hot policies. `aiwf policy hot --threshold N` is the manual audit verb — reads the counter and lists policies with `surface: on-demand` whose fire count exceeds `N`. Whether to add automated surfacing (a finding from `verify`, a category in `triage`) is deferred (§What v0 does not commit to → Automated surfacing of the fire counter); the counter exists so that decision can be made from data, not hypothesis.
 
 ---
 
@@ -302,14 +317,17 @@ aiwf policy triage
 aiwf policy promote <id-or-slug>
 aiwf policy retire <id-or-slug> --reason "..."
 aiwf policy verify [--scope verb|pre-commit|ci] [--time-report]
+aiwf policy hot [--threshold N]
 aiwf policy doctor
 ```
+
+The top-level `aiwf verify` (no `--kind`) is the canonical evaluator entry: it runs every enabled validator kind in parallel and tags findings by kind. In v0 there is only one kind to run (policy), so `aiwf verify` and `aiwf verify --kind policy` produce the same output; `aiwf policy verify` is the day-one alias. The shape is deliberately forward-pinned: when contracts grow validator wiring, `aiwf verify --kind contract` joins the dispatch loop without a verb-rename. `aiwf doctor` (kernel-level self-check) and `aiwf policy doctor` (toolchain manifest) remain separate verbs in v0; their unification is reserved namespace until a second module-level doctor concern earns the umbrella.
 
 Module activation/deactivation is not a verb — it's a `aiwf.yaml` edit followed by `aiwf init` (§3). No `aiwf policy enable`.
 
 ### `aiwf policy add`
 
-Allocates the next `P-NNN`, scaffolds the file under `work/policies/<bundle>/P-NNN-<slug>.md` (or `work/policies/P-NNN-<slug>.md` when `--bundle` is omitted, defaulting to `local`), populates frontmatter from flags. Validates the slug against the dotted-name format. Soft-validates `applicability.kinds` against currently-enabled entity kinds (warning, not rejection — see §Applicability). When `--label` is passed (repeatable), populates `labels:` with the parent directory name first followed by the additional labels. Status `proposed` unless `--accept` is given (which goes straight to `in-effect`; allowed only for human actors, recorded with `aiwf-on-behalf-of:` if the runner is an LLM under authorize-scope).
+Allocates the next `P-NNN`, scaffolds the file under `work/policies/<bundle>/P-NNN-<slug>.md`, populates frontmatter from flags. When `--bundle` is omitted, the bundle defaults to `local` and the file lands at `work/policies/local/P-NNN-<slug>.md`. The bundle directory is created if it doesn't yet exist. Validates the slug against the dotted-name format. Soft-validates `applicability.kinds` against currently-enabled entity kinds (warning, not rejection — see §Applicability). When `--label` is passed (repeatable), populates `labels:` with the parent directory name first followed by the additional labels. Status `proposed` unless `--accept` is given (which goes straight to `in-effect`; allowed only for human actors, recorded with `aiwf-on-behalf-of:` if the runner is an LLM under authorize-scope).
 
 ### `aiwf policy show`
 
@@ -321,7 +339,7 @@ Filtered listing. Default emits id, slug, bundle (every label, primary first), s
 
 ### `aiwf policy bundles list`
 
-Lists every bundle directory under `work/policies/` with a count of member policies (in-effect, proposed, retired). Includes the implicit `local` bundle for files at root.
+Lists every bundle directory under `work/policies/` with a count of member policies (in-effect, proposed, retired). The `local/` directory, if present, is one bundle in the listing like any other.
 
 ### `aiwf policy applicable`
 
@@ -341,7 +359,7 @@ The LLM-side discipline that consumes this verb is encoded in the `aiwf-policy` 
 
 ### `aiwf policy sweep`
 
-The mining verb. Walks the sources, produces draft policies under `work/policies/draft/<bundle>/` (or `draft/` for `local`). Sources:
+The mining verb. Walks the sources, produces draft policies under `work/policies/draft/<bundle>/` (with `draft/local/` for drafts that don't target a named bundle). Sources:
 
 - `--source <path>` — a file or directory in the consumer repo. Common targets: `CLAUDE.md`, `docs/`, an inherited rituals directory. Drafts default to the `local` bundle.
 - `--source skill:<name>` — a named skill from the framework's skill registry, including the framework's own materialized skills. Drafts default to the `local` bundle.
@@ -368,6 +386,10 @@ Triage runs as one commit per session, with the count of decisions in the commit
 ### `aiwf policy verify`
 
 The engine. Filters the index to in-effect policies with non-null `enforcement`, dispatches runners, collects findings. `--scope` defaults to `ci` (the full surface); `--scope verb` and `--scope pre-commit` apply the auto-measured budget filter. `--time-report` emits per-runner timing and the resulting scope classification.
+
+### `aiwf policy hot`
+
+Reads `.aiwf/policy-fire-counts.json` and lists policies with `surface: on-demand` whose accumulated fire count exceeds `--threshold` (default: 5). Output includes id, slug, fire count, and current surface — designed to be skimmed during a manual editorial review for "should this be promoted to `surface: digest`?" The verb does not mutate the counter or the policies; it is a read-only audit surface. v0 ships no automated equivalent (no finding from `verify`, no triage prompt) — see §What v0 does not commit to → Automated surfacing of the fire counter.
 
 ### `aiwf policy doctor`
 
@@ -411,7 +433,6 @@ A policy's `enforcement.ref` references these tools by name as part of its shell
 
 ```yaml
 enforcement:
-  kind: command
   ref: "cue vet ./policies/ac.cue -"
 ```
 
@@ -504,9 +525,9 @@ The kernel rule: **the digest format is a kernel commitment, not a consumer choi
 | `surface` | `enforcement` | Example |
 |---|---|---|
 | `digest` | absent | LLM-discipline rule, no checker (`"cite policies in your reasoning as (per <slug>)"`) |
-| `digest` | `kind: command` | **The dominant case.** Agent should know in advance AND engine blocks (`"every entity-touching commit MUST carry trailers"`) |
+| `digest` | runner present | **The dominant case.** Agent should know in advance AND engine blocks (`"every entity-touching commit MUST carry trailers"`) |
 | `on-demand` | absent | Engineering convention the agent looks up when relevant |
-| `on-demand` | `kind: command` | Style rule — agent fetches if asked; engine catches what slips through |
+| `on-demand` | runner present | Style rule — agent fetches if asked; engine catches what slips through |
 
 Judgment-shaped guidance — escalation playbook, precedence rules between conflicting principles, "when in doubt, ask the user" — lives in `CLAUDE.md` prose, not in the policy store. Judgment that *does* warrant an entity is a policy with `surface: on-demand` and no enforcement block.
 
@@ -523,6 +544,7 @@ The skill instructs the LLM:
 3. **For any returned policy whose summary signals load-bearing relevance to the action, call `aiwf policy show <slug>` to fetch the full body.**
 4. **Cite policies in commit messages and reasoning as `(per <slug>)`.** Citations are textual; v0 does not verify them.
 5. **When the user describes a rule that has no matching policy, propose `aiwf policy add` (or `aiwf policy sweep --source conversation` for batches).** Don't smuggle a new rule into prose; route it through the entity surface.
+6. **When a governance verb returns `policy-governance-requires-human`, surface to the user with the exact command they should run.** This happens when the LLM is operating under autonomous authorize-scope (no per-action human consent) and tries to mutate an active policy. Working verbs — `sweep`, `verify`, `show`, listings — are unaffected; governance verbs (`add`, `triage`, `promote`, `retire`) need the human to either run the verb directly or restate the intent in conversation so the act qualifies as conversational/tool-mode. Treat the refusal as routine, not as an error to debug.
 
 The framework does not police the skill's adherence. A non-compliant agent produces a worse experience but not an incorrect one — the engine's verb-time refusal still blocks `error`-severity violations. The skill saves the user from rework; the engine guarantees correctness.
 
@@ -559,7 +581,7 @@ The principal × agent × scope provenance model already accommodates mining: th
 
 ### Triage flow
 
-Mined drafts land at `work/policies/draft/P-NNN-<slug>.md` with status `proposed`. They do not appear in `aiwf policy applicable` queries. Triage produces one commit per session containing every accept/reject/edit/retire decision. Bulk operations on a `--source`-tagged batch are first-class.
+Mined drafts land at `work/policies/draft/<bundle>/P-NNN-<slug>.md` with status `proposed`. They do not appear in `aiwf policy applicable` queries. Triage produces one commit per session containing every accept/reject/edit/retire decision. Bulk operations on a `--source`-tagged batch are first-class.
 
 ### Updates
 
@@ -577,14 +599,15 @@ The kernel rule: **mining is sourcing; ratification is local; updates require co
 
 | Path | Recognized as | Tree-discipline behavior |
 |---|---|---|
-| `work/policies/<bundle>/P-NNN-<slug>.md` | `policy` (bundle = parent directory) | normal entity; verb-mediated |
-| `work/policies/P-NNN-<slug>.md` | `policy` (bundle = `local`, implicit) | normal entity; verb-mediated |
+| `work/policies/<bundle>/P-NNN-<slug>.md` | `policy` (bundle = parent directory; `local/` is a bundle like any other) | normal entity; verb-mediated |
 | `work/policies/draft/<bundle>/P-NNN-<slug>.md` | `policy-draft` | mining-output; verb-mediated; promoted to `policy` via triage |
-| `work/policies/draft/P-NNN-<slug>.md` | `policy-draft` (bundle = `local`) | same |
+| `work/policies/P-NNN-<slug>.md` (loose, no bundle parent) | stray | `unexpected-tree-file` finding |
 | empty bundle directory under `work/policies/` | bundle scaffold | allowed; no findings |
 | anything else under `work/policies/` (loose non-policy files) | stray | `unexpected-tree-file` finding |
 | `.aiwf/policy-index.json` | framework-owned projection | regenerated by every policy-mutating verb; hand-edits → `policy-index-drift` finding |
 | `.aiwf/policy-digest.md` | framework-owned projection | same |
+| `.aiwf/policy-fire-counts.json` | framework-owned counter | incremented by `aiwf verify` when a runner emits findings; read by `aiwf policy hot`; hand-edits silently overwritten on next verify run, no drift finding (the file is data, not a projection) |
+| `.aiwf/runner-timing.json` | framework-owned cache | written by `aiwf verify`; same data-not-projection treatment |
 | `.aiwf/` (anything else) | framework-owned scratch | engine writes; consumer reads if at all; no manual editing |
 
 Body-prose edits in `work/policies/*.md` are allowed without the verb (consistent with the existing tree-discipline carve-out); frontmatter edits are not. The verb authoritatively owns frontmatter; hand-edits to status, surface, severity, summary, labels, applicability, or enforcement bypass the index regen and the digest update, and surface as `policy-frontmatter-drift` findings on the next `aiwf check`.
@@ -607,6 +630,25 @@ Reserved by mining. The source family records origin (path or skill) plus revisi
 
 A human authorizing an LLM to "draft policies for the security area" is expressible in the existing authorize-scope model: the scope entity is an area (e.g., a milestone or epic), the LLM commits with `aiwf-on-behalf-of:` and `aiwf-authorized-by:` for each draft. No new authorize-scope semantics are required.
 
+### Governance gate
+
+Policy verbs split into two classes by what they produce:
+
+- **Working verbs** — `sweep` (creates inert drafts in `work/policies/draft/`), `verify`, `show`, `list`, `bundles list`, `applicable`, `hot`, `doctor`. No actor-posture gate. An LLM under autonomous authorize-scope runs these freely.
+- **Governance verbs** — `add`, `triage`, `promote`, `retire`. Mutate active policies or create new ones outside the inert draft area. Require a human in the loop *per action*.
+
+The gate is on actor posture, not on the policy:
+
+| Posture | Trailers | Governance verbs allowed? |
+|---|---|---|
+| Sovereign | `aiwf-actor: human/<name>` | yes |
+| Conversational / tool | `aiwf-actor: ai/<name>`, `aiwf-on-behalf-of: human/<name>` | yes — human is the principal-in-the-loop per action |
+| Autonomous authorize-scope | `aiwf-actor: ai/<name>`, `aiwf-authorized-by: human/<name>`, active scope | **no** — rejected with `policy-governance-requires-human` |
+
+Default-deny for autonomous-scope is the correct safety default for the most sensitive resource: an LLM under a wide authorize-scope cannot disable, retire, or weaken a policy that constrains the work it is doing. The split by verb class — working vs governance — lets autonomous LLMs do *work* on policies (mining, drafting, verifying) while the human retains sole authority over what becomes a binding rule.
+
+When an autonomous LLM hits the gate, the skill (§The skill) directs it to surface the action to the user with the exact command to run. There is no `--force` override on governance verbs in v0; sovereign acts already pass the gate.
+
 ---
 
 ## Relationship to contracts
@@ -626,7 +668,7 @@ Cramming a contract into the policy kind would force a unilateral lifecycle onto
 
 ### Shared mechanism
 
-The framework's evaluator surface runs validators from both kinds with one finding format, one set of trigger points (verb-time, pre-commit, CI), and one auto-measured budget convention (verb-time-eligible, pre-commit-eligible, CI-only). v0 ships `aiwf verify --kind policy` as the canonical entry point with `aiwf policy verify` as a day-one alias; when contracts grow their own validator wiring, `aiwf verify --kind contract` and an unscoped `aiwf verify` (running both) drop in additively. The shape of that unification is reserved namespace, not a v0 commitment.
+The framework's evaluator surface runs validators from both kinds with one finding format, one set of trigger points (verb-time, pre-commit, CI), and one auto-measured budget convention (verb-time-eligible, pre-commit-eligible, CI-only). v0 ships the top-level `aiwf verify` as the canonical entry point, defaulting to every enabled validator kind; in v0 that is just policy, so `aiwf verify`, `aiwf verify --kind policy`, and `aiwf policy verify` (alias) produce the same output. When contracts grow their own validator wiring, `aiwf verify --kind contract` joins the dispatch loop and an unscoped `aiwf verify` runs both kinds without a verb-rename. The verb shape is forward-pinned in v0; only the contents of "enabled validator kinds" grows over time.
 
 ### Independent opt-in
 
@@ -703,13 +745,61 @@ Several items are deliberately deferred. Each names what would have to land for 
 
 **Earn it with.** The skill being followed in practice; a consumer asking the engine to police hallucinated citations.
 
-### Additional runner kinds (`wasm`, in-process plugins)
+### Additional runner shapes (`wasm`, in-process plugins)
 
-**Why deferred.** `command` is language-agnostic and covers every shape of runner a consumer might build. New runner kinds have to clear a real bar — something `command` cannot express, worth the engine surface area.
+**Why deferred.** A shell command is language-agnostic and covers every shape of runner a consumer might build. New runner shapes have to clear a real bar — something a shell command cannot express, worth the engine surface area.
 
-**What's reserved.** The `enforcement.kind` enum is open-set in the engine code; new kinds add cleanly.
+**What's reserved.** The `enforcement` block has no `kind:` discriminator in v0 (only `ref:`); when a second runner shape earns its weight, `kind:` is added additively, defaulting to `command` for existing policies.
 
-**Earn it with.** A concrete case where `command` produces an unacceptable evaluator.
+**Earn it with.** A concrete case where a shell-command runner produces an unacceptable evaluator (e.g., per-policy invocation overhead dominates real-world runs).
+
+### Automated surfacing of the fire counter
+
+**Why deferred.** v0 ships the counter (`.aiwf/policy-fire-counts.json`) and a manual audit verb (`aiwf policy hot`) so the data is collected from day one. Whether to also surface that data automatically — a finding from `aiwf verify` when an `on-demand` policy crosses a threshold, a category in `aiwf policy triage`, a separate periodic prompt — depends on observed editorial behavior. Shipping automation before observation risks either nagging or missing the right signal.
+
+**What's reserved.** No frontmatter or trailer changes; the surfacing is purely an engine-side feature, additive at any time.
+
+**Earn it with.** Counter data from real corpora showing repeated `on-demand` policy fires that the consumer would have wanted flagged proactively.
+
+### Conditional applicability
+
+**Why deferred.** "Applies only when the entity has more than five children" / "applies only when status is `done`" is not expressible in v0's three applicability axes (kinds, on_verbs, path). The escape valves are `path` glob splitting and runner-side filtering: the runner sees full entity state and can return zero findings when its conditions don't match. v0's claim is that these escape valves are sufficient until friction shows otherwise.
+
+**What's reserved.** No frontmatter slot; if a richer applicability surface lands, an `applicability.when:` field can be added additively. Prior-art pointer: BDD's Given/When/Then has decades of solved problems for conditional preconditions, including the gotchas (over-loose `When` clauses, scenario explosion); start there rather than designing from scratch.
+
+**Earn it with.** A friction-journal entry where the path-glob and runner-side workarounds produce duplication or unreadable rules.
+
+### Doctor unification
+
+**Why deferred.** v0 keeps `aiwf doctor` (kernel self-check) and `aiwf policy doctor` (toolchain manifest validation) as separate verbs. Designing the umbrella before there's a second module-level doctor concern (e.g., when contracts grow their own setup-validation needs) means designing from one example.
+
+**What's reserved.** The verb shape `aiwf doctor --kind <module>` is the obvious extension; verb-name compatibility is preserved by the existing `aiwf doctor` continuing to mean "kernel self-check."
+
+**Earn it with.** A second module-level doctor concern that makes the unified surface concrete.
+
+### Toolchain manager integration (`mise` / `asdf` / `nix`)
+
+**Why deferred.** v0 keeps `runners:` self-contained: the consumer declares tools and version constraints; `aiwf policy doctor` validates the local environment matches; the consumer installs the tools via whatever mechanism they prefer. Each toolchain manager has its own version-pinning convention, activation model, and error semantics; aiwf would be reinventing what these tools already do well.
+
+**What's reserved.** A future `manager:` field on `runners:` entries can be added additively if integration earns its weight.
+
+**Earn it with.** A consumer with enough runners across enough ecosystems that setup churn is a measurable, reproducible problem — and a clear case that aiwf shelling out to `mise install` (or equivalent) is meaningfully better than a clear `aiwf policy doctor` error message pointing the consumer to their own install command.
+
+### Stack-discovery consumption
+
+**Why deferred.** v0 ships stack *detection*: `aiwf init` writes `stack: [...]` to `aiwf.yaml` (§Stack discovery). What v0 does not ship is any verb that *consumes* the field — no mining hint that suggests stack-relevant community bundles, no applicability axis that filters policies by detected stack, no LLM-context injection. Each candidate consumer needs its own design pass; shipping all three speculatively is the wrong shape.
+
+**What's reserved.** Three concrete consumer shapes are anticipated and additive when they earn their weight: (1) `aiwf policy sweep --by-stack` selecting community-bundle subsets that match the consumer's stacks; (2) an `applicability.stacks: [...]` axis on policies; (3) the `aiwf-policy` skill loading the `stack:` field as session-start context.
+
+**Earn it with.** A concrete first consumer — typically a community bundle large enough that stack-filtered selection is real ergonomics, or a policy whose applicability genuinely depends on the toolchain.
+
+### Stricter per-policy human-only gate (`human_only: true`)
+
+**Why deferred.** v0's verb-layer governance gate (§Provenance integration) already blocks autonomous-scope LLMs from mutating active policies. Conversational/tool-mode LLM acts pass — the human is the principal-in-the-loop per action. The stricter gate ("even conversational LLM cannot mutate this policy; only sovereign human action qualifies") is a meaningful additional restriction, but v0 has not yet identified a concrete policy that needs it.
+
+**What's reserved.** The `human_only: true` frontmatter field; the rejection finding code (`policy-requires-sovereign-actor` or similar). No frontmatter slot in v0; the field can be added additively when it earns its weight.
+
+**Earn it with.** A specific v0 policy where conversational/tool-mode LLM mutation is genuinely too loose — typically a sovereignty rule whose retirement should require deliberate human action, not a chat turn.
 
 ### Slug rename (`aiwf policy rename-slug`)
 
@@ -729,19 +819,6 @@ Several items are deliberately deferred. Each names what would have to land for 
 
 ---
 
-## Open questions for the next pass
-
-These are not v0 work, but they are the questions the next design session should pin:
-
-1. **Surface-promotion hint.** The "policy P-12 is `surface: on-demand` but has fired blocking findings six times" hint is straightforward to compute; whether to surface it as a finding, a triage prompt, or a manual command (`aiwf policy hot --threshold 5`) is for the next pass.
-2. **Conditional applicability.** "Applies only when the entity has more than five children" is not expressible in v0. The escape valve is `path` glob plus structural conventions. Whether a richer applicability surface earns its weight depends on the friction journal.
-3. **Human-only policies.** Some policies (capability gates, sovereignty rules) are themselves human-only-modifiable. The provenance model's existing human-only rules cover the verbs; there is no v0 mechanism for marking a *policy* as falling under that rule. The reserved `human_only: true` field anticipates this.
-4. **Unified `aiwf verify` / `aiwf doctor` surface.** When contracts grow a unified evaluator entry, a top-level `aiwf verify` that runs both contract checks and policy checks becomes natural; similarly `aiwf doctor` extending beyond the policy module to cover all verb dependencies. The shape of that unification — flag-driven scoping, kind-tagged findings, parallel dispatch across kinds — is reserved namespace until the contracts side is ready.
-5. **Toolchain manager integration.** Whether `runners:` should grow `mise` / `asdf` / `nix` compatibility (so a consumer running the relevant install command from the repo gets the right toolchain) is a future question. v0 keeps `runners:` self-contained with `aiwf policy doctor` validation.
-6. **Stack detection at `aiwf init`.** Auto-suggesting bundles based on repo content (e.g., `*.csproj` → suggest `dotnet-stack`) is a UX win that requires a manifest or a hardcoded mapping. Reserved namespace until v0 has bundles for stack detection to recognize.
-
----
-
 ## Pointers
 
 - `design-decisions.md` — the kernel commitments. The seven-kind set is itself a kernel commitment; the policy module's opt-in nature means the seventh kind is reserved-but-inactive in any consumer that has not added `policy` to `aiwf.yaml`'s `modules:` list.
@@ -756,16 +833,16 @@ These are not v0 work, but they are the questions the next design session should
 
 Sequenced for the build that implements this proposal:
 
-1. **`aiwf.yaml` `modules:` machinery.** Reading the list at startup, gating verb visibility, gating hooks. Generalizes to contract too. Default: empty list (baseline modules only).
+1. **`aiwf.yaml` `modules:` machinery.** Reading the list at startup, gating verb visibility, gating hooks. Generalizes to contract too. Default: empty list (baseline modules only). `aiwf init` also runs the stack detector and writes the auto-populated `stack: [...]` field (manifest-file presence: `*.csproj`, `Cargo.toml`, `go.mod`, `package.json`/`tsconfig.json`, `pyproject.toml`, `Gemfile`, …); no v0 verb consumes the field — it's an observability primitive for future use (§Stack discovery).
 2. **`.aiwf/` directory.** Framework-owned scratch and projection space; the layout, the .gitignore, the drift-finding integration. Establishes the home for any future generated artifact.
 3. **Schema and entity registration.** Adds `policy` to the entity registry, the path table, the schema/template surfaces. Slug format validator. Soft-validated dynamic `applicability.kinds` enum (warning, not rejection) plus `inactive-kind-reference` finding at evaluation time. Bundle directory recognition. `labels:` field with first-entry-equals-parent-directory validator.
-4. **The verb surface (authoring + retrieval).** `add` (with `--bundle`, repeatable `--label`), `show`, `list`, `bundles list`, `applicable`, `triage`, `promote`, `retire`. The index regenerator (recording every bundle from path AND `labels:`), the digest renderer (grouping by bundle, primary first).
+4. **The verb surface (authoring + retrieval).** `add` (with `--bundle`, repeatable `--label`), `show`, `list`, `bundles list`, `applicable`, `triage`, `promote`, `retire`, `hot`. The index regenerator (recording every bundle from path AND `labels:`), the digest renderer (grouping by bundle, primary first). The governance gate (default-deny for autonomous-scope LLMs on `add`/`triage`/`promote`/`retire`, sovereign and conversational/tool-mode pass) is wired here, reusing the existing actor-classification helpers.
 5. **The toolchain section.** `aiwf.yaml` `runners:` parser, `aiwf policy doctor` validator.
-6. **The engine.** `aiwf verify --kind policy` (and `aiwf policy verify` as a day-one alias) with the `command` runner. Verb-time hook integration in baseline-module verbs. Pre-commit hook script. CI wiring. Auto-measured runner placement stored in `.aiwf/runner-timing.json`; `--time-report` surfaces the per-runner classification. Same engine, three scopes.
-7. **The skill.** `aiwf-policy` SKILL.md; the retrieval discipline, the citation convention, the triage prompt.
+6. **The engine.** Top-level `aiwf verify` (defaults to all enabled validator kinds); v0 ships only the policy kind, so `aiwf verify`, `aiwf verify --kind policy`, and `aiwf policy verify` (alias) produce the same output. The `command` runner. Verb-time hook integration in baseline-module verbs. Pre-commit hook script. CI wiring. Auto-measured runner placement stored in `.aiwf/runner-timing.json`; per-policy fire counter stored in `.aiwf/policy-fire-counts.json` (incremented when a runner emits findings); `--time-report` surfaces the per-runner classification. Same engine, three scopes.
+7. **The skill.** `aiwf-policy` SKILL.md; the retrieval discipline, the citation convention, the triage prompt, and the governance-refusal handling (when the LLM hits `policy-governance-requires-human` from autonomous scope, surface the verb to the user with the exact command to run).
 8. **Mining.** `aiwf policy sweep` with the path, skill, and bundle source kinds; the LLM-side extraction prompt for path/skill; the verbatim-copy + dedup path for bundle.
-9. **Bundles shipped.** Framework-shipped bundles materialize as directories of pre-structured policy files alongside the policy module. The first set ships kernel and workflow layers; stack bundles follow as evidence accumulates from real consumers.
-10. **Tree-discipline integration.** Recognize `work/policies/<bundle>/`, `work/policies/draft/<bundle>/`, root `local` files, and the framework-owned `.aiwf/` artifacts. Wire the drift findings.
+9. **Bundles shipped.** Framework-shipped bundles materialize as directories of pre-structured policy files alongside the policy module — kernel and workflow layers only. Stack-flavored bundles are explicitly out of scope: consumers author their own under `work/policies/<name>/` (or pull from community sources via `aiwf policy sweep`).
+10. **Tree-discipline integration.** Recognize `work/policies/<bundle>/` and `work/policies/draft/<bundle>/` (including `local/` as a normal bundle directory), reject loose policy files at `work/policies/` root, and recognize the framework-owned `.aiwf/` artifacts. Wire the drift findings.
 11. **Documentation.** Update `overview.md` (seven kinds, opt-in modules, `.aiwf/`, bundles), `architecture.md` (path table, verb table, skill list, engine), `skill-author-guide.md`, root `README.md`.
 
 A separate build plan under `plans/policy-model-plan.md` will detail the build sequence with iteration boundaries and acceptance criteria.

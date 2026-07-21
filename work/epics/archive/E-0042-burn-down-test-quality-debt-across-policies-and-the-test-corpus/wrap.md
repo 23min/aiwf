@@ -44,7 +44,7 @@ watching the test go red.
 
 - Deferred kernel mutate-hunt survivors — `internal/verb` (89 lived, efficacy
   86.2%), `internal/check` (45, 88.5%), and 5 in `internal/gitops` — recorded by
-  class with counts in `docs/pocv3/m0168-mutate-hunt-survivor-disposition.md`.
+  class with counts in `docs/archive/pocv3/m0168-mutate-hunt-survivor-disposition.md`.
   Killing them needs full apply/projection/check fixtures, not the cheap
   pure-function tests this epic targeted; left as a documented value-tiered
   deferral (no gap filed). The efficacy baseline is the objective floor a future
