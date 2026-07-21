@@ -1,7 +1,7 @@
 ---
 id: M-0273
 title: Converge contract-mutating verbs on one shared diff-based validation gate
-status: in_progress
+status: done
 parent: E-0069
 tdd: required
 acs:
