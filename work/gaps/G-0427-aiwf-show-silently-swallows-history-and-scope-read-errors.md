@@ -1,8 +1,10 @@
 ---
 id: G-0427
 title: aiwf show silently swallows history and scope read errors
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - f3e7a0ee
 ---
 ## What's missing
 
