@@ -95,6 +95,12 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// doc-lint convention and m083_doc_sweep_test.go's allowlist give
 	// it elsewhere.
 	"CHANGELOG.md": "append-only release notes describing historical state at release time",
+
+	// A follow-up gap filed during E-0034's own wrap doc-lint sweep;
+	// its Why-it-matters section narrates docs/design/id-allocation.md's
+	// relocation from docs/pocv3/design/ to explain why one of its two
+	// stale cmd/aiwf/ citations pre-dates that move.
+	"work/gaps/G-0436-claude-md-and-id-allocation-md-cite-stale-cmd-aiwf-paths-for-relocated-verbs.md": "narrates a relocated file's docs/pocv3/design/ origin to explain a pre-existing citation's staleness",
 }
 
 // TestM0127_AC3_NoDanglingDocsPocv3References is the mechanical
