@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: docs/pocv3/ files relocated/archived per TRIAGE.md
       status: open
+    - id: AC-2
+      title: Fixture path constants updated for legal-workflows files
+      status: open
 ---
 
 ## Goal
@@ -39,4 +42,6 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 - **G-0132** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
 
 ### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
+
+### AC-2 — Fixture path constants updated for legal-workflows files
 
