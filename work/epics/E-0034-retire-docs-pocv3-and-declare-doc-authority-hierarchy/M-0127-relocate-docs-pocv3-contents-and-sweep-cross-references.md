@@ -65,3 +65,21 @@ A repo-wide structural test asserts no live Go source (`internal/`, `cmd/`), emb
 - **E-0034** — parent epic.
 - **G-0132** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
 
+## Work log
+
+### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
+
+All 42 rows executed (`git mv`, plain filesystem operations, not aiwf verbs — `docs/pocv3/` holds no entities); mechanically verified every target exists and every source is gone; `docs/pocv3/` removed entirely · commit 3f6e14a6 · tests 1/1
+
+### AC-2 — Fixture path constants updated for legal-workflows files
+
+`internal/policies/m0121_audit_catalog_test.go` and `m0122_first_principles_catalog_test.go` repointed to `docs/design/`; both files' full test suites pass · commit 3f6e14a6 · tests 2/2
+
+### AC-3 — Zero dangling docs/pocv3 references
+
+Swept ~121 files (Go source, embedded skills, docs/, ADRs, CI config, live planning-tree bodies); added `TestM0127_AC3_NoDanglingDocsPocv3References` under `internal/policies/`, vacuity-checked (injected a stray reference, confirmed the test caught it, reverted) · commit 3f6e14a6 · tests 1/1
+
+### AC-4 — aiwf check and link integrity clean
+
+`aiwf check` reports only the pre-existing G-0434 false positives (now also firing on M-0127, same reused-id pattern as M-0126) and the expected no-upstream advisory — zero findings attributable to the sweep. A repo-wide markdown-link-integrity pass (matching `wf-doc-lint` check 5: fenced/inline-code spans excluded, directory targets treated as valid) reports zero broken links outside `docs/archive/**`, the frozen historical snapshot of the retired tree · commit 3f6e14a6 · tests clean
+
