@@ -1,6 +1,6 @@
 # Contributing to aiwf
 
-`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md). Read those before sending substantive changes.
+`aiwf` is an experimental framework for keeping humans and AI assistants in sync about what's planned, decided, and done. Forward design and rationale live at [`docs/design/design-decisions.md`](docs/design/design-decisions.md); engineering rules live in [`CLAUDE.md`](CLAUDE.md). Read those before sending substantive changes.
 
 ---
 
@@ -85,7 +85,7 @@ The Apache-2.0 inbound license terms apply to all contributions; by sending a pa
 - Changes to the six entity kinds, their status sets, or the FSM.
 - Changes to the commit-trailer keys, JSON envelope, or check-rule codes.
 - New verbs (read [`CLAUDE.md` § Designing a new verb](CLAUDE.md#designing-a-new-verb) first).
-- Anything that touches the *what aiwf commits to* list in [`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md).
+- Anything that touches the *what aiwf commits to* list in [`docs/design/design-decisions.md`](docs/design/design-decisions.md).
 
 Open a Discussion before opening a PR; the conversation will save everyone time.
 

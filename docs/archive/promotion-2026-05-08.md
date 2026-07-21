@@ -177,7 +177,7 @@ Open whatever tracking surface fits — kernel epic, gap, or note. Candidates:
 
 - [x] Step 1 — merge `docs/continued-research` → `main` *(fast-forward to `67c8079`, local only)*
 - [x] Step 2 — graduate surveys to `docs/explorations/surveys/` *(commit `b692251`, flowtime + liminara, governance-html-concept left in PoC `.scratch/` per user)*
-- [x] Step 3 — prep PoC *(commit `987273d` on `prep/promote-poc`; CLAUDE.md / README.md / CHANGELOG.md re-framed for trunk; cross-anchor fix in `docs/pocv3/overview.md`. Side-quest: `c9b1ced` on `main` committed the untracked `docs/explorations/05-policy-model-design.md`.)*
+- [x] Step 3 — prep PoC *(commit `987273d` on `prep/promote-poc`; CLAUDE.md / README.md / CHANGELOG.md re-framed for trunk; cross-anchor fix in `docs/overview.md`. Side-quest: `c9b1ced` on `main` committed the untracked `docs/explorations/05-policy-model-design.md`.)*
 - [x] Step 4 — prep main *(commit `d20ded2`; architecture.md + build-plan.md → docs/archive/, tools/ stubs removed, working-paper.md kept in place per user)*
 - [x] Step 5 — the merge *(commit `e0a7fe5` — `chore: merge poc/aiwf-v3 into main (PoC graduates to trunk)`. Tests + lint clean pre-commit. Pre-merge main tip recoverable as `HEAD^1` = `c9b1ced` for Step 6.C.)*
 - [~] Step 6 — post-merge housekeeping

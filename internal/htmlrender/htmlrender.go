@@ -17,7 +17,7 @@
 //     entity's commit metadata, captured by the caller);
 //   - sorted directory enumeration where applicable.
 //
-// See docs/pocv3/plans/governance-html-plan.md §8 "Determinism" for
+// See docs/archive/pocv3/governance-html-plan.md §8 "Determinism" for
 // the load-bearing rules.
 package htmlrender
 

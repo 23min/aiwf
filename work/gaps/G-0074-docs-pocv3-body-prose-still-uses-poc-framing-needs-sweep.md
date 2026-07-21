@@ -6,7 +6,7 @@ priority: low
 ---
 docs/pocv3/ body prose throughout (overview, design, plans, archive subdirectories) still reads as if the PoC is the current state and main is elsewhere — references like "the PoC will…", "post-PoC we will…", "the PoC commits to…" remain.
 
-Step 3 of PROMOTION-PLAN.md (commit `987273d`) deliberately scoped the framing-edit pass to the root docs (CLAUDE.md, README.md, CHANGELOG.md) plus a single cross-anchor fix in `docs/pocv3/overview.md`. The pocv3 body prose was deferred per Decision 1 of the promotion ("docs/pocv3/ keeps its name for now; may refactor docs later").
+Step 3 of PROMOTION-PLAN.md (commit `987273d`) deliberately scoped the framing-edit pass to the root docs (CLAUDE.md, README.md, CHANGELOG.md) plus a single cross-anchor fix in `docs/overview.md`. The pocv3 body prose was deferred per Decision 1 of the promotion ("docs/pocv3/ keeps its name for now; may refactor docs later").
 
 Two resolution paths:
 

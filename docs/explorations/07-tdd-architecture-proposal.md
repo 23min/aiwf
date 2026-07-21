@@ -4,7 +4,7 @@
 
 **Companion documents.**
 - [`06-tdd-diagnostic.md`](06-tdd-diagnostic.md) — fact-grounded analysis of the current architecture's structural tensions. Motivates this synthesis. Independently readable; unchanged across revisions.
-- [`docs/pocv3/design/agent-orchestration.md`](../pocv3/design/agent-orchestration.md) — substrate design for subagent execution, capability registry, pipeline schema, cycle envelope. Subsumed by Slices 6–7 of this synthesis.
+- [`docs/archive/pocv3/agent-orchestration.md`](../archive/pocv3/agent-orchestration.md) — substrate design for subagent execution, capability registry, pipeline schema, cycle envelope. Subsumed by Slices 6–7 of this synthesis.
 - [`docs/adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md`](../adr/ADR-0003-add-finding-f-nnn-as-a-seventh-entity-kind.md) — F-NNN as 7th entity kind. Implemented in Slice 2.
 - [`docs/adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md`](../adr/ADR-0004-uniform-archive-convention-for-terminal-status-entities.md) — uniform archive convention. Lands with Slice 2.
 
@@ -531,7 +531,7 @@ No kernel changes. Depends on Slice 4 (findings exist as the substrate Phase B o
 
 ### Slice 6 — Agent-orchestration substrate
 
-Per `docs/pocv3/design/agent-orchestration.md` §13 (its own sequencing):
+Per `docs/archive/pocv3/agent-orchestration.md` §13 (its own sequencing):
 - Capability registry (`aiwf.yaml.subagents.agents[]`)
 - Sub-scope FSM extension + role-tagged actor + cycle trailer keys
 - Pipeline schema parser + reconciliation check + `pipeline-*` finding codes

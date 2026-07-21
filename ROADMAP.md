@@ -400,7 +400,7 @@ Refactor `docs/` so a reader (human or LLM) can identify each file's authority t
 | Milestone | Title | Status |
 |---|---|---|
 | M-0126 | Triage docs/pocv3/ into per-file disposition table | done |
-| M-0127 | Relocate docs/pocv3/ contents and sweep cross-references | draft |
+| M-0127 | Relocate docs/pocv3/ contents and sweep cross-references | in_progress |
 | M-0128 | Declare doc-authority hierarchy in CLAUDE.md | draft |
 | M-0129 | Drift chokepoint: forbid docs/pocv3/ literals in Go code | draft |
 

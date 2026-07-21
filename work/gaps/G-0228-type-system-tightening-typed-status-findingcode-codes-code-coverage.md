@@ -31,4 +31,4 @@ The retypings cascade through callers; doing them in one milestone with one CI c
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §B1 (all three recommended moves; `smells_found` list).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §B1 (all three recommended moves; `smells_found` list).

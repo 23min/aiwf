@@ -12,7 +12,7 @@ import (
 // field on a struct in internal/config/config.go appears in at
 // least one channel an AI assistant routinely consults: an embedded
 // skill, the binary's printHelp output (cmd/aiwf/main.go), CLAUDE.md,
-// or any markdown under docs/pocv3/.
+// or any markdown under docs/.
 //
 // Mirrors PolicyFindingCodesAreDiscoverable for a parallel kernel
 // surface: aiwf.yaml is the consumer-facing knob set, and a knob the
@@ -64,7 +64,7 @@ func PolicyConfigFieldsAreDiscoverable(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "config-fields-discoverable",
 			File:   "internal/config/config.go",
-			Detail: "yaml field " + tag + " is declared on a Config struct but not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/pocv3/**/*.md)",
+			Detail: "yaml field " + tag + " is declared on a Config struct but not mentioned in any AI-discoverable channel (embedded skills, aiwf <verb> --help, CLAUDE.md, or docs/**/*.md)",
 		})
 	}
 	return out, nil

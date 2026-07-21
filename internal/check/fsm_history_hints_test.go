@@ -49,7 +49,7 @@ func TestFSMHistoryHints_AllSubcodesPresent(t *testing.T) {
 // internal/skills/embedded/aiwf-check/SKILL.md, satisfying
 // PolicyFindingCodesAreDiscoverable when AC-2/3/4 emit. The
 // discoverability policy reads the full set of channels (skills,
-// printHelp, CLAUDE.md, docs/pocv3/**); checking just the aiwf-check
+// printHelp, CLAUDE.md, docs/**); checking just the aiwf-check
 // SKILL.md is the strictest pin (it's where finding-code
 // documentation conventionally lives).
 func TestFSMHistorySubcodes_InAiwfCheckSkillMD(t *testing.T) {

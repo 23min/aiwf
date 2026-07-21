@@ -1,7 +1,7 @@
 // Package config loads and writes the consumer repo's `aiwf.yaml`.
 //
 // The file is small and deliberately so — see
-// docs/pocv3/design/design-decisions.md §"aiwf.yaml config". The fields are:
+// docs/design/design-decisions.md §"aiwf.yaml config". The fields are:
 //
 //	hosts: [claude-code]      # optional; PoC default and only supported value
 //	status_md:                # optional; opt-out for the STATUS.md auto-update
@@ -56,7 +56,7 @@ const ExampleFileName = "aiwf.example.yaml"
 var ErrNotFound = errors.New("aiwf.yaml not found")
 
 // ActorPattern enforces the actor format documented in
-// docs/pocv3/design/design-decisions.md: `<role>/<identifier>`, exactly one '/',
+// docs/design/design-decisions.md: `<role>/<identifier>`, exactly one '/',
 // no whitespace, neither side empty.
 var ActorPattern = regexp.MustCompile(`^[^\s/]+/[^\s/]+$`)
 
@@ -396,7 +396,7 @@ func (a Areas) validate() error {
 //
 // Default behavior (empty Tree block): contract artifact dirs are
 // auto-exempt; everything else under work/ is reported as a warning.
-// See docs/pocv3/design/tree-discipline.md.
+// See docs/design/tree-discipline.md.
 type Tree struct {
 	AllowPaths []string `yaml:"allow_paths,omitempty"`
 	Strict     bool     `yaml:"strict,omitempty"`
@@ -407,7 +407,7 @@ type Tree struct {
 // existing ids; an empty value means "use the default trunk ref" and
 // AllocateTrunkRef returns DefaultAllocateTrunk in that case.
 //
-// See docs/pocv3/design/id-allocation.md for the full model.
+// See docs/design/id-allocation.md for the full model.
 type Allocate struct {
 	Trunk string `yaml:"trunk,omitempty"`
 }

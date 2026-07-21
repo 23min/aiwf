@@ -22,7 +22,7 @@ The A1 / A2 / A3 verdicts were all Strong but the adversarial passes named the c
 
 ## Source
 
-`docs/pocv3/health-scorecard-2026-06-04.md` §A1 (recommended moves 1–3), §A2 (move 2: codify layering doctrine), §A3 (moves 1–2).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §A1 (recommended moves 1–3), §A2 (move 2: codify layering doctrine), §A3 (moves 1–2).
 
 ## Notes
 

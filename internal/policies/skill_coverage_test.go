@@ -754,10 +754,10 @@ func mustHaveViolation(t *testing.T, vs []Violation, needle string) {
 // the same tolerance that lets `aiwf add milestone` resolve. But
 // `contracts` is still a dead positional — the original G-061 drift
 // shape — and the spec for M-072 AC-8 named
-// docs/pocv3/plans/contracts-plan.md and aiwf-contract/SKILL.md
+// docs/archive/pocv3/contracts-plan.md and aiwf-contract/SKILL.md
 // specifically. This test pins the fix.
 //
-// G-086 extended the watched set to docs/pocv3/contracts.md (a third
+// G-086 extended the watched set to docs/archive/pocv3/contracts.md (a third
 // drift-class file M-072 AC-8 didn't reach). The flag-form mentions
 // (`aiwf list contracts --drifted` etc.) were deleted outright in the
 // same sweep — they were speculative future axes, not today's V1
@@ -779,9 +779,9 @@ func TestNoReintroducedDeadVerbForms_ContractsAndSkill(t *testing.T) {
 	}
 
 	sites := []string{
-		"docs/pocv3/plans/contracts-plan.md",
+		"docs/archive/pocv3/contracts-plan.md",
 		"internal/skills/embedded/aiwf-contract/SKILL.md",
-		"docs/pocv3/contracts.md",
+		"docs/archive/pocv3/contracts.md",
 	}
 
 	for _, site := range sites {

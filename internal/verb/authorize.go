@@ -268,7 +268,7 @@ type AuthorizeOptions struct {
 }
 
 // Authorize runs the `aiwf authorize` verb. Refusal rules per
-// docs/pocv3/design/provenance-model.md §"The aiwf authorize verb":
+// docs/design/provenance-model.md §"The aiwf authorize verb":
 //
 //   - Actor must be human/...; only humans authorize.
 //   - For AuthorizeOpen, the scope-entity must not be in a terminal

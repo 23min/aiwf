@@ -7,7 +7,7 @@ status: proposed
 
 This epic is **deferred** pending completion of the upstream substrate. Specifically:
 
-1. The **agent-orchestration design substrate** in [`docs/pocv3/design/agent-orchestration.md`](../../../docs/pocv3/design/agent-orchestration.md) (landed 2026-05-08) needs to be considered fully finished — the substrate broadened the scope beyond this epic's original TDD-only framing into a general agent-orchestration model (agent registry, role-based concurrency, sub-scope provenance, per-epic pipelines, forensic bundles). When E-0019 unfreezes, its scope likely needs **rewriting** against the agent-orchestration model rather than the original four-fork framing captured in *Context* below.
+1. The **agent-orchestration design substrate** in [`docs/archive/pocv3/agent-orchestration.md`](../../../docs/archive/pocv3/agent-orchestration.md) (landed 2026-05-08) needs to be considered fully finished — the substrate broadened the scope beyond this epic's original TDD-only framing into a general agent-orchestration model (agent registry, role-based concurrency, sub-scope provenance, per-epic pipelines, forensic bundles). When E-0019 unfreezes, its scope likely needs **rewriting** against the agent-orchestration model rather than the original four-fork framing captured in *Context* below.
 2. The substrate's design must then be **implemented** — likely via one or more dedicated epics decomposed from the agent-orchestration doc once it stabilizes.
 3. The dependencies listed under *Dependencies* below (ADR-0003, ADR-0004, plus their implementation epics; optional ADR-0001) all remain blockers in addition to (1) and (2).
 
@@ -28,7 +28,7 @@ The kernel already has the right primitives:
 - `aiwf check` is the unified channel for "things the tree wants you to know" — and per the F-NNN ADR (filed alongside this epic), `finding` becomes the unified entity kind for those things needing human attention.
 - The existing `aiwf promote` + `--force --reason` pattern (from M-0017) is the kernel's universal sovereign-act surface.
 
-The design conversation that produced this epic resolved four forks (full synthesis at [`docs/pocv3/design/parallel-tdd-subagents.md`](../../../docs/pocv3/design/parallel-tdd-subagents.md)):
+The design conversation that produced this epic resolved four forks (full synthesis at [`docs/archive/pocv3/parallel-tdd-subagents.md`](../../../docs/archive/pocv3/parallel-tdd-subagents.md)):
 
 1. **Findings storage** → F-NNN as 7th entity kind + uniform archive convention.
 2. **Subagent's edit surface** → hybrid: subagent moves AC state in worktree; parent allocates F-NNN post-merge.

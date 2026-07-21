@@ -40,7 +40,7 @@ For comparison, fields that **do** have post-creation mutation verbs
 
 ## Why it matters
 
-The kernel's design ([`docs/pocv3/design/design-decisions.md`](docs/pocv3/design/design-decisions.md) §"Every mutating
+The kernel's design ([`docs/design/design-decisions.md`](docs/design/design-decisions.md) §"Every mutating
 verb produces exactly one git commit"; CLAUDE.md "Kernel functionality
 must be AI-discoverable") commits to:
 

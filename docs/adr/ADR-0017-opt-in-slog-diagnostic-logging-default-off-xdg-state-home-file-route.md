@@ -7,7 +7,7 @@ status: accepted
 
 CLAUDE.md's Go conventions §CLI conventions currently states: *"Logging: `log/slog` to stderr (default level `INFO`). Tool output goes to stdout."* The codebase doesn't reflect that prescription. `internal/cli/output` carries the structured JSON envelope for operator-facing tool output; warnings and errors go to stderr via bare `fmt.Fprintln(os.Stderr, …)` interpolation across `statusline.go`, `root.go`, `move.go`, `cancel.go`, `upgrade.go`, and elsewhere. There is no `log/slog` import, no structured-field discipline, no log-event capture in tests, and no opt-in surface for diagnostic logs.
 
-The 2026-06-04 codebase health scorecard (E1 verdict: Weak; `docs/pocv3/health-scorecard-2026-06-04.md`) named the mismatch directly: design intent and implementation disagree on the diagnostic-log surface, and the disagreement has persisted through every kernel milestone that touched stderr. Either path closes the gap; neither has been chosen.
+The 2026-06-04 codebase health scorecard (E1 verdict: Weak; `docs/archive/pocv3/health-scorecard-2026-06-04.md`) named the mismatch directly: design intent and implementation disagree on the diagnostic-log surface, and the disagreement has persisted through every kernel milestone that touched stderr. Either path closes the gap; neither has been chosen.
 
 Two related-but-distinct things are bundled together in the current prose:
 

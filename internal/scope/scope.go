@@ -20,7 +20,7 @@
 // terminal: un-canceling the scope-entity does not resurrect a
 // previously-ended scope; the human must issue a new authorization.
 //
-// Reference: docs/pocv3/design/provenance-model.md §"Scope as a
+// Reference: docs/design/provenance-model.md §"Scope as a
 // first-class FSM".
 package scope
 

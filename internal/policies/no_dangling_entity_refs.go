@@ -36,9 +36,10 @@ var entityFilenameRegex = regexp.MustCompile(`^(ADR|E|M|G|D|C)-\d{1,4}-[^/]*\.md
 //
 // Scope is narrow by design: only entity-file shapes
 // (`(ADR|E|M|G|D|C)-\d+-*.md`). General markdown-link integrity
-// (including refs to `docs/pocv3/...` and deleted `critical-path.md`)
-// is the lychee workflow's concern. G-0091 covers the slug-rename /
-// id-width / archive-sweep drift class specifically.
+// (including refs to design-doc paths under `docs/` and deleted
+// `critical-path.md`) is the lychee workflow's concern. G-0091
+// covers the slug-rename / id-width / archive-sweep drift class
+// specifically.
 func auditDanglingEntityRefs(fsys fs.FS, paths []string) []string {
 	var findings []string
 	for _, docPath := range paths {

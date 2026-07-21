@@ -295,7 +295,7 @@ Common flags:
   --principal human/<id>         the human accountable for the act; required when --actor is non-human (ai/..., bot/...), forbidden when --actor is human/...
 
 Provenance:
-  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill or docs/pocv3/design/provenance-model.md.
+  When the operator is non-human, --principal must be supplied; the kernel stamps aiwf-principal: on the commit. To delegate autonomous work, run 'aiwf authorize <id> --to <agent>' first; subsequent agent verbs match the active scope and the kernel adds aiwf-on-behalf-of: + aiwf-authorized-by: trailers automatically. See the aiwf-authorize skill or docs/design/provenance-model.md.
 
 Flags for 'add':
   --epic <id>                    parent epic id (milestone)
@@ -349,5 +349,5 @@ Flags for 'upgrade':
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 
-Docs: docs/pocv3/archive/poc-plan-pre-migration.md and docs/pocv3/design/design-decisions.md.`)
+Docs: docs/archive/pocv3/poc-plan-pre-migration.md and docs/design/design-decisions.md.`)
 }

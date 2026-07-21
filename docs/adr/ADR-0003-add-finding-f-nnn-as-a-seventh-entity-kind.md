@@ -114,7 +114,7 @@ The closure-by-vocabulary remains intact; the set grows by one with explicit `AD
 
 - Companion ADR: uniform archive convention for terminal-status entities (filed alongside this one).
 - [ADR-0001](ADR-0001-mint-entity-ids-at-trunk-integration-via-per-kind-inbox-state.md) — proposed inbox/mint model for id allocation; F-NNN inherits.
-- Design synthesis: `docs/pocv3/design/parallel-tdd-subagents.md` (companion design doc; full four-fork resolution and end-to-end flow).
+- Design synthesis: `docs/archive/pocv3/parallel-tdd-subagents.md` (companion design doc; full four-fork resolution and end-to-end flow).
 - CLAUDE.md "What the PoC commits to" §1 (six entity kinds — amended by this ADR).
 - Framework_entity_vocabulary memory: deliberate omission of `story`/`task`; finding is governance, not execution.
 - M-0066/AC-1 wrap context — the proximate trigger for the cycle-time-findings need.

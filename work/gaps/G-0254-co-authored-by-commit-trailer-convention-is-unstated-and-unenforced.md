@@ -44,7 +44,7 @@ tool) extend to the git `Co-Authored-By` trailer?**
   model — then add it *consistently*, and CLAUDE.md should say so.
 
 Resolve as a `D-NNN` (it may touch
-[`docs/pocv3/design/provenance-model.md`](../../docs/pocv3/design/provenance-model.md)),
+[`docs/design/provenance-model.md`](../../docs/design/provenance-model.md)),
 document the outcome in CLAUDE.md §"Commit conventions", then back it with a
 chokepoint so it stops depending on LLM recall.
 

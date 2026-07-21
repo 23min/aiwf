@@ -31,8 +31,8 @@ import (
 //   - **Illustrative-only docs** — mining/policy-design exploratory
 //     docs whose narrow-id mentions are illustrative shorthand
 //     (`M-9`, `M-12`) rather than references to real entities.
-//   - **Historical archive** — docs/pocv3/archive/ (excluded by
-//     directory walk; not in the allowlist surface).
+//   - **Historical archive** — docs/archive/ (excluded by directory
+//     walk; not in the allowlist surface).
 //   - **CHANGELOG.md** — release notes describing the historical
 //     state at the time of release; entities born narrow stay
 //     narrow in the changelog (per the spec's "v0.1.0 introduced
@@ -83,11 +83,15 @@ func TestPolicy_DocTreeNarrowIDsCanonicalized(t *testing.T) {
 	}
 
 	// Roots to scan. The walk excludes any directory named "archive"
-	// (per ADR-0004 forget-by-default and the AC-3 spec).
+	// (per ADR-0004 forget-by-default and the AC-3 spec). docs/pocv3/
+	// retired at M-0127: docs/pocv3/design/ relocated to docs/design/;
+	// docs/pocv3/plans/'s two live survivors (the loom docs) relocated
+	// under docs/explorations/loom/, already covered by the
+	// docs/explorations root below — everything else from plans/
+	// archived and is excluded by the archive-dir skip.
 	scanRoots := []string{
 		"docs/explorations",
-		"docs/pocv3/design",
-		"docs/pocv3/plans",
+		"docs/design",
 	}
 	// Top-level files.
 	scanFiles := []string{
