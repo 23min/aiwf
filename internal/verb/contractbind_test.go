@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -223,7 +224,7 @@ func TestContractUnbind_Removes(t *testing.T) {
       fixtures: f`, 1)
 	d, c := mustReadDoc(t, src)
 
-	res, err := ContractUnbind(context.Background(), d, c, "C-0001", "human/test")
+	res, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, "C-0001", "human/test", t.TempDir())
 	if err != nil {
 		t.Fatalf("ContractUnbind: %v", err)
 	}
@@ -238,10 +239,84 @@ func TestContractUnbind_Removes(t *testing.T) {
 	mustHaveTrailerInPlan(t, res.Plan, "aiwf-entity", "C-0001")
 }
 
+// TestContractUnbind_IntroducesNoBindingWarningButDoesNotBlock: proves
+// the shared gate wired into ContractUnbind (D-0041's safety net) is
+// live, not dead plumbing. Unbinding a contract entity that still
+// exists in the tree genuinely changes contractcheck.Run's output —
+// the entity gains a fresh "no-binding" warning it didn't carry while
+// bound. Confirmed two ways: the gate itself (called directly, with
+// the same inputs ContractUnbind uses) reports exactly that warning
+// as introduced; and ContractUnbind still succeeds (warnings don't
+// block — only check.HasErrors gates the write, and unbind can never
+// structurally introduce an error-severity finding).
+func TestContractUnbind_IntroducesNoBindingWarningButDoesNotBlock(t *testing.T) {
+	t.Parallel()
+	tr := contractTree("C-0001", "proposed")
+	root := bindRepo(t)
+	src := `aiwf_version: 0.1.0
+actor: human/test
+contracts:
+  validators:
+    cue:
+      command: cue
+      args: [vet]
+  entries:
+    - id: C-0001
+      validator: cue
+      schema: schema.cue
+      fixtures: fixtures
+`
+	d, c := mustReadDoc(t, src)
+
+	next := cloneContracts(c)
+	next.Entries = nil
+	gated := contractMutationGate(tr, c, next, root)
+	if len(gated) != 1 || gated[0].Subcode != "no-binding" || gated[0].EntityID != "C-0001" {
+		t.Fatalf("expected exactly one introduced no-binding warning for C-0001; got %+v", gated)
+	}
+	if gated[0].Severity != check.SeverityWarning {
+		t.Errorf("expected the no-binding finding to be a warning, not an error; got %+v", gated[0])
+	}
+
+	res, err := ContractUnbind(context.Background(), tr, d, c, "C-0001", "human/test", root)
+	if err != nil {
+		t.Fatalf("ContractUnbind: %v", err)
+	}
+	if res.Plan == nil {
+		t.Fatalf("expected Plan — a warning-only introduced finding must not block unbind; got Findings: %+v", res.Findings)
+	}
+}
+
+// TestContractUnbind_ConsultsTheTreeViaTheSharedGate: unbind can never
+// structurally trigger check.HasErrors (only ever a warning, per the
+// test above), so no behavioral assertion on ContractUnbind's return
+// value can distinguish "the gate call runs" from "it was silently
+// deleted" — both leave res.Plan non-nil. Passing a nil tree makes the
+// distinction observable instead: contractMutationGate always reaches
+// contractcheck.Run, which calls t.ByKind on the tree — a nil
+// *tree.Tree panics there. If ContractUnbind stops calling the gate,
+// t is never dereferenced and nothing panics.
+func TestContractUnbind_ConsultsTheTreeViaTheSharedGate(t *testing.T) {
+	t.Parallel()
+	src := strings.Replace(baseAiwfYAML, "  entries: []", `  entries:
+    - id: C-001
+      validator: cue
+      schema: s.cue
+      fixtures: f`, 1)
+	d, c := mustReadDoc(t, src)
+
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected ContractUnbind to consult the tree via the shared gate (contractMutationGate) and panic on a nil tree; it didn't — the gate call may have been removed")
+		}
+	}()
+	_, _ = ContractUnbind(context.Background(), nil, d, c, "C-0001", "human/test", t.TempDir())
+}
+
 func TestContractUnbind_RejectsMissingEntry(t *testing.T) {
 	t.Parallel()
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	_, err := ContractUnbind(context.Background(), d, c, "C-0001", "human/test")
+	_, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, "C-0001", "human/test", t.TempDir())
 	if err == nil {
 		t.Fatal("expected error for missing entry")
 	}
@@ -253,7 +328,7 @@ func TestContractUnbind_RejectsNoContractsBlock(t *testing.T) {
 actor: human/test
 `
 	d, c := mustReadDoc(t, src)
-	_, err := ContractUnbind(context.Background(), d, c, "C-0001", "human/test")
+	_, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, "C-0001", "human/test", t.TempDir())
 	if err == nil {
 		t.Fatal("expected error when no contracts: block exists")
 	}
@@ -477,7 +552,7 @@ contracts:
       fixtures: fc
 `
 	d, c := mustReadDoc(t, src)
-	res, err := ContractUnbind(context.Background(), d, c, "C-0002", "human/test")
+	res, err := ContractUnbind(context.Background(), &tree.Tree{}, d, c, "C-0002", "human/test", t.TempDir())
 	if err != nil {
 		t.Fatalf("ContractUnbind: %v", err)
 	}

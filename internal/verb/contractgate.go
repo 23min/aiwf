@@ -24,30 +24,54 @@ import (
 //
 // The diff is multiset-based (a duplicate finding surviving unchanged
 // from current to next is matched and excluded once per occurrence),
-// since check.Finding carries no identity beyond its own fields.
+// keyed on identity fields (Code/Severity/Subcode/EntityID/Path)
+// rather than the full struct: contractcheck.Run's Message embeds the
+// finding's positional index within contracts.Entries, so removing or
+// inserting an earlier entry shifts every later entry's index and
+// changes its Message text even though nothing about that entry
+// changed. Diffing on the full struct would then treat a merely
+// reindexed finding as newly introduced.
 func contractMutationGate(t *tree.Tree, current, next *aiwfyaml.Contracts, repoRoot string) []check.Finding {
 	before := contractcheck.Run(t, current, repoRoot)
 	after := contractcheck.Run(t, next, repoRoot)
 	return diffIntroducedFindings(before, after)
 }
 
+// findingIdentity is the subset of check.Finding's fields that
+// identify *what* a finding is about, excluding the derived/
+// positional fields (Message, Line, Hint, Field) that can vary
+// between two runs without the underlying issue actually changing.
+type findingIdentity struct {
+	Code     string
+	Severity check.Severity
+	EntityID string
+	Subcode  string
+	Path     string
+}
+
+func identityOf(f check.Finding) findingIdentity {
+	return findingIdentity{Code: f.Code, Severity: f.Severity, EntityID: f.EntityID, Subcode: f.Subcode, Path: f.Path}
+}
+
 // diffIntroducedFindings returns the findings in after that are not
 // already accounted for by a matching occurrence in before — a
-// multiset difference, kept as its own pure function so the diff
-// algorithm is testable independent of contractcheck.Run.
+// multiset difference over finding identity, kept as its own pure
+// function so the diff algorithm is testable independent of
+// contractcheck.Run.
 func diffIntroducedFindings(before, after []check.Finding) []check.Finding {
-	seen := make(map[check.Finding]int, len(before))
-	for _, f := range before {
-		seen[f]++
+	seen := make(map[findingIdentity]int, len(before))
+	for i := range before {
+		seen[identityOf(before[i])]++
 	}
 
 	var introduced []check.Finding
-	for _, f := range after {
-		if seen[f] > 0 {
-			seen[f]--
+	for i := range after {
+		id := identityOf(after[i])
+		if seen[id] > 0 {
+			seen[id]--
 			continue
 		}
-		introduced = append(introduced, f)
+		introduced = append(introduced, after[i])
 	}
 	return introduced
 }

@@ -6,9 +6,11 @@ import (
 	"sort"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/config"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // RecipeInstallOptions carries the recipe-install arguments shared
@@ -26,7 +28,13 @@ type RecipeInstallOptions struct {
 // The returned Plan trailers carry one `aiwf-entity:` per binding
 // currently referencing `name` in aiwf.yaml.contracts.entries[] so
 // `aiwf history` for those contracts surfaces the recipe change.
-func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, validator aiwfyaml.Validator, actor string, opts RecipeInstallOptions) (*Result, error) {
+//
+// t and repoRoot feed the shared diff-based gate (D-0041): installing
+// a validator only touches contracts.validators, never entries[], so
+// in practice the gate can never find an introduced finding here —
+// it is wired in as a safety net, not because this mutation is
+// expected to trip it.
+func RecipeInstall(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, validator aiwfyaml.Validator, actor, repoRoot string, opts RecipeInstallOptions) (*Result, error) {
 	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
@@ -51,6 +59,11 @@ func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Con
 		Command: validator.Command,
 		Args:    append([]string(nil), validator.Args...),
 	}
+
+	if introduced := contractMutationGate(t, current, next, repoRoot); check.HasErrors(introduced) {
+		return findings(introduced), nil //coverage:ignore installing a validator never touches contracts.Entries, so contractMutationGate's diff is always empty here; this branch is a safety net for a scenario no real input can construct today, per the doc comment above.
+	}
+
 	if err := doc.SetContracts(next); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}
@@ -75,8 +88,11 @@ func RecipeInstall(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Con
 // RecipeRemove removes the named validator from
 // aiwf.yaml.contracts.validators. Errors when one or more bindings
 // in entries[] still reference the validator — the user must
-// `unbind` or rebind those contracts first.
-func RecipeRemove(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name, actor string) (*Result, error) {
+// `unbind` or rebind those contracts first. That referential-
+// integrity check runs before the shared gate and keeps its own
+// precise error message (the milestone's constraint): the gate is an
+// additional safety net on top, not a replacement for it.
+func RecipeRemove(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name, actor, repoRoot string) (*Result, error) {
 	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
@@ -93,6 +109,11 @@ func RecipeRemove(ctx context.Context, doc *aiwfyaml.Doc, current *aiwfyaml.Cont
 
 	next := cloneContracts(current)
 	delete(next.Validators, name)
+
+	if introduced := contractMutationGate(t, current, next, repoRoot); check.HasErrors(introduced) {
+		return findings(introduced), nil //coverage:ignore removing a validator never touches contracts.Entries (and the referential-integrity check above already refuses when any entry still references it), so contractMutationGate's diff is always empty here; this branch is a safety net for a scenario no real input can construct today, per the doc comment above.
+	}
+
 	if err := doc.SetContracts(next); err != nil {
 		return nil, fmt.Errorf("updating aiwf.yaml: %w", err)
 	}

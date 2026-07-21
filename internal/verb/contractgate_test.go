@@ -103,6 +103,49 @@ func TestContractMutationGate_ExcludesPreexistingFindingsOnUntouchedEntries(t *t
 	}
 }
 
+// TestContractMutationGate_IdentityDiscriminatesByEntityIDNotJustCount:
+// a naive count-only assertion can pass even if the diff collapsed two
+// entities' identically-shaped findings (same Code/Severity/Subcode/
+// Path, different EntityID) into one key — the count would still come
+// out right by coincidence while the *wrong* entity's finding gets
+// reported. This pins the actual identity: C-0002 is already bound
+// (pre-existing, unrelated to this mutation) with the same schema/
+// fixtures values the newly-inserted C-0001 uses, and C-0001 is
+// inserted *ahead* of C-0002 in contracts.Entries — an ordering that
+// would make an EntityID-blind diff exclude the true new finding
+// (C-0001, matched first against the pre-existing count) and instead
+// report the untouched one (C-0002) as introduced.
+func TestContractMutationGate_IdentityDiscriminatesByEntityIDNotJustCount(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "C-0001", Kind: entity.KindContract, Title: "new", Status: "proposed", Path: "work/contracts/C-001-new/contract.md"},
+			{ID: "C-0002", Kind: entity.KindContract, Title: "existing", Status: "proposed", Path: "work/contracts/C-002-existing/contract.md"},
+		},
+	}
+	current := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{
+			{ID: "C-0002", Validator: "cue", Schema: "shared-missing.cue", Fixtures: "shared-missing-dir"},
+		},
+	}
+	next := cloneContracts(current)
+	next.Entries = append([]aiwfyaml.Entry{
+		{ID: "C-0001", Validator: "cue", Schema: "shared-missing.cue", Fixtures: "shared-missing-dir"},
+	}, next.Entries...)
+
+	got := contractMutationGate(tr, current, next, t.TempDir())
+
+	if len(got) != 2 {
+		t.Fatalf("expected exactly 2 introduced findings; got %d: %+v", len(got), got)
+	}
+	for _, f := range got {
+		if f.EntityID != "C-0001" {
+			t.Errorf("expected the introduced findings to belong to the newly-inserted C-0001, not the pre-existing C-0002; got %+v", f)
+		}
+	}
+}
+
 // TestContractMutationGate_ResolvedFindingNotReported: a mutation
 // that fixes a pre-existing issue (points the schema/fixtures at real
 // paths) must not report the now-gone finding — the gate reports only
@@ -124,6 +167,44 @@ func TestContractMutationGate_ResolvedFindingNotReported(t *testing.T) {
 	got := contractMutationGate(tr, current, next, root)
 	if len(got) != 0 {
 		t.Errorf("expected no introduced findings when the mutation resolves a pre-existing issue; got %+v", got)
+	}
+}
+
+// TestContractMutationGate_InsertingAnEarlierEntryDoesNotReindexLaterFindings:
+// contractcheck.Run's finding Message embeds the entry's positional
+// index within contracts.Entries, so inserting a new entry ahead of
+// an existing one shifts the existing entry's index and its Message
+// text — even though nothing about that existing entry changed. The
+// gate must not treat that reindexed-but-otherwise-identical finding
+// as introduced.
+func TestContractMutationGate_InsertingAnEarlierEntryDoesNotReindexLaterFindings(t *testing.T) {
+	t.Parallel()
+	tr := &tree.Tree{
+		Entities: []*entity.Entity{
+			{ID: "C-0001", Kind: entity.KindContract, Title: "new", Status: "proposed", Path: "work/contracts/C-001-new/contract.md"},
+			{ID: "C-0002", Kind: entity.KindContract, Title: "stale", Status: "proposed", Path: "work/contracts/C-002-stale/contract.md"},
+		},
+	}
+	root := bindRepo(t)
+	current := &aiwfyaml.Contracts{
+		Validators: map[string]aiwfyaml.Validator{"cue": {Command: "cue"}},
+		Entries: []aiwfyaml.Entry{
+			{ID: "C-0002", Validator: "cue", Schema: "gone.cue", Fixtures: "gone"},
+		},
+	}
+	next := cloneContracts(current)
+	// Prepend a new, cleanly-bound entry (real schema/fixtures paths
+	// via bindRepo) ahead of C-0002 — contracts.entries[0] — shifting
+	// C-0002's entry from index 0 to index 1. C-0002's schema/fixtures
+	// findings are unchanged in substance, only their embedded index
+	// differs.
+	next.Entries = append([]aiwfyaml.Entry{
+		{ID: "C-0001", Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures"},
+	}, next.Entries...)
+
+	got := contractMutationGate(tr, current, next, root)
+	if len(got) != 0 {
+		t.Errorf("expected no introduced findings for a merely reindexed (unchanged) entry; got %+v", got)
 	}
 }
 
