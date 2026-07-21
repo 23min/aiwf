@@ -16,6 +16,12 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0429: internal-only refactor, no user-visible behavior change
+
+`aiwf show`'s `BuildShowView` and `BuildCompositeShowView` no longer each carry
+their own copy of the history-read / scope-read / findings-filter tail; both
+now call one shared `finishShowView` helper.
+
 ### Fixed — G-0431: milestone/epic wrap now closes gaps their own prose claims to fix
 
 `aiwfx-wrap-milestone` now identifies any gap a milestone's own spec explicitly

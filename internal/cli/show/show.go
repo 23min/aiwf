@@ -365,6 +365,17 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		})
 	}
 
+	return finishShowView(ctx, root, t, loadErrs, id, historyLimit, view, e)
+}
+
+// finishShowView completes a ShowView with the read tail shared by
+// BuildShowView and BuildCompositeShowView (G-0429): read history,
+// read scopes, filter findings. err is non-nil only on a history/scope
+// read failure (G-0427) — a genuine git/environmental fault. scopeBy
+// is the entity findings are filtered against — the entity itself for
+// BuildShowView, the parent milestone for BuildCompositeShowView —
+// matching filterFindingsByID's contract.
+func finishShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tree.LoadError, id string, historyLimit int, view ShowView, scopeBy *entity.Entity) (ShowView, bool, error) {
 	events, err := entityview.ReadHistory(ctx, root, id)
 	if err != nil {
 		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
@@ -377,7 +388,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 	view.Scopes = scopes
 
 	allFindings := check.Run(t, loadErrs)
-	view.Findings = filterFindingsByID(allFindings, id, e)
+	view.Findings = filterFindingsByID(allFindings, id, scopeBy)
 
 	return view, true, nil
 }
@@ -540,21 +551,7 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		Archived: entity.IsArchivedPath(parent.Path),
 	}
 
-	events, err := entityview.ReadHistory(ctx, root, id)
-	if err != nil {
-		return ShowView{}, false, fmt.Errorf("reading history: %w", err)
-	}
-	view.History = limitEvents(events, historyLimit)
-	scopes, err := LoadEntityScopeViews(ctx, root, id)
-	if err != nil { //coverage:ignore LoadEntityScopeViews' downstream reads (entityview.ReadHistory, cliutil.LoadEntityScopes, cliutil.AuthorizeOpeners) all walk `git log` from HEAD, the identical primitive as the ReadHistory call directly above — any fault breaking one breaks both, and the direct call above already returns first
-		return ShowView{}, false, fmt.Errorf("reading scopes: %w", err)
-	}
-	view.Scopes = scopes
-
-	allFindings := check.Run(t, loadErrs)
-	view.Findings = filterFindingsByID(allFindings, id, parent)
-
-	return view, true, nil
+	return finishShowView(ctx, root, t, loadErrs, id, historyLimit, view, parent)
 }
 
 // limitEvents trims the history slice. negative limit returns all;
