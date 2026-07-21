@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Structural test asserts table matches docs/pocv3/ file set
-      status: open
+      status: met
     - id: AC-4
       title: 'Open Question #1 resolved and recorded'
       status: open
