@@ -1,8 +1,10 @@
 ---
 id: G-0431
 title: Milestone/epic wrap never closes gaps their own prose claims to fix
-status: open
+status: addressed
 discovered_in: E-0069
+addressed_by_commit:
+    - 9cad2af3
 ---
 ## What's missing
 
