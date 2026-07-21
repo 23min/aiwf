@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Zero dangling docs/pocv3 references
       status: open
+    - id: AC-4
+      title: aiwf check and link integrity clean
+      status: open
 ---
 
 ## Goal
@@ -49,4 +52,6 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 ### AC-2 — Fixture path constants updated for legal-workflows files
 
 ### AC-3 — Zero dangling docs/pocv3 references
+
+### AC-4 — aiwf check and link integrity clean
 
