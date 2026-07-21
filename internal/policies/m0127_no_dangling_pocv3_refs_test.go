@@ -44,6 +44,7 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	"work/epics/E-0034-retire-docs-pocv3-and-declare-doc-authority-hierarchy/M-0126-triage-docs-pocv3-into-per-file-disposition-table.md":       "the Triage milestone's own spec, about docs/pocv3/ by definition",
 	"work/epics/E-0034-retire-docs-pocv3-and-declare-doc-authority-hierarchy/M-0127-relocate-docs-pocv3-contents-and-sweep-cross-references.md": "this milestone's own spec, about docs/pocv3/ by definition",
 	"work/epics/E-0034-retire-docs-pocv3-and-declare-doc-authority-hierarchy/M-0129-drift-chokepoint-forbid-docs-pocv3-literals-in-go-code.md":  "the drift-chokepoint milestone's own spec, about docs/pocv3/ literals by definition",
+	"work/epics/E-0034-retire-docs-pocv3-and-declare-doc-authority-hierarchy/wrap.md":                                                           "the epic's own wrap artefact, narrating the docs/pocv3/ retirement it closes out",
 
 	// Design-corpus policy comments explaining the migration itself
 	// (why the scan root changed) — historical rationale, not a

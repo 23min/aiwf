@@ -16,6 +16,22 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0034: docs/pocv3/ retired, doc-authority hierarchy declared in CLAUDE.md
+
+The historical `docs/pocv3/` directory (pre-dating aiwf's own trunk promotion)
+no longer exists. Every file it held was triaged one-by-one (recorded in a
+committed disposition table) and moved to its new home: normative design
+records now live under `docs/design/`, forward-looking material under
+`docs/explorations/` and `docs/migration/`, and pre-dogfooding artifacts
+under `docs/archive/pocv3/`. `CLAUDE.md` gains a new "Documentation
+hierarchy" section naming every active `docs/` subtree by authority tier
+(normative / forward-looking / exploratory / archival), mechanically
+enforced by a new structural test. A repo-wide cross-reference sweep and a
+permanent regression test guard against the old path reappearing. Three
+long-open gaps about `docs/pocv3/`'s framing and the missing doc-authority
+hierarchy (G-0074, G-0075, G-0092) are resolved and archived as part of this
+work.
+
 ### Changed — G-0435: declared-sequence gate wording clarified as illustrative, not exhaustive
 
 The gate-discipline rule in `CLAUDE.md` and the shipped `aiwf-guidance.md`
