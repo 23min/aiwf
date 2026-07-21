@@ -1,7 +1,7 @@
 ---
 id: M-0128
 title: Declare doc-authority hierarchy in CLAUDE.md
-status: draft
+status: in_progress
 parent: E-0034
 depends_on:
     - M-0127
