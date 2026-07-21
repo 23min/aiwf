@@ -64,6 +64,25 @@ func TestFiringFixtures_MultiSite(t *testing.T) {
 			files:  map[string]string{"CLAUDE.md": "# X\n\n## Operator setup\n\nbody without the devcontainer subsection\n"},
 		},
 
+		// m0128-documentation-hierarchy: missing file (read-error site) +
+		// present-but-no-section (missing-section report branch) +
+		// section-present-but-incomplete (subtree-missing + narrative-file-
+		// missing + bad-tier-name + tier-missing report branches, all four
+		// lit by one fixture body).
+		{name: "m0128-doc-hierarchy/missing", policy: PolicyM0128DocumentationHierarchy, files: map[string]string{}},
+		{
+			name:   "m0128-doc-hierarchy/no-section",
+			policy: PolicyM0128DocumentationHierarchy,
+			files:  map[string]string{"CLAUDE.md": "# X\n\n## Operator setup\n\nbody without the documentation-hierarchy section\n"},
+		},
+		{
+			name:   "m0128-doc-hierarchy/incomplete-and-bad-tier",
+			policy: PolicyM0128DocumentationHierarchy,
+			files: map[string]string{"CLAUDE.md": "# X\n\n## Documentation hierarchy\n\n" +
+				"- **Normative** — docs/adr/, docs/design/, docs/explorations/, docs/research/, docs/initiatives/, docs/migration/, architecture.md\n" +
+				"- **Whimsical** — some things\n"},
+		},
+
 		// m0228-skills-policy-broadened-principle: missing file (read-error
 		// site) + present-but-no-section (missing-section report branch) +
 		// section-present-but-no-markers (marker report branch). The three
