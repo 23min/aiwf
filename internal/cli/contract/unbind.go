@@ -10,6 +10,7 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/logger"
+	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -74,13 +75,18 @@ func runUnbind(id, root, actor string, out cliutil.OutputFormat) (code int) {
 	}
 	defer release()
 
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
+		cliutil.Errorf("aiwf contract unbind: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
 	doc, contracts, err := cliutil.LoadContractsDoc(rootDir)
 	if err != nil {
 		cliutil.Errorf("aiwf contract unbind: %v\n", err)
 		return cliutil.ExitUsage
 	}
 
-	result, err := verb.ContractUnbind(ctx, doc, contracts, id, actorStr)
+	result, err := verb.ContractUnbind(ctx, tr, doc, contracts, id, actorStr, rootDir)
 	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf contract unbind", result, err, out)
 	return code
 }

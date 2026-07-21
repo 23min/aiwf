@@ -450,8 +450,9 @@ func atomicContractBind(projectedTree *tree.Tree, id string, opts AddOptions) ([
 		Fixtures:  opts.BindFixtures,
 	})
 
-	// G18: validate the projected config before mutating the doc.
-	if introduced := contractCheckForBinding(projectedTree, next, opts.RepoRoot, id); check.HasErrors(introduced) {
+	// G18: validate the projected config before mutating the doc, via
+	// the shared diff-based gate (D-0041).
+	if introduced := contractMutationGate(projectedTree, opts.AiwfContracts, next, opts.RepoRoot); check.HasErrors(introduced) {
 		return nil, introduced, nil
 	}
 
