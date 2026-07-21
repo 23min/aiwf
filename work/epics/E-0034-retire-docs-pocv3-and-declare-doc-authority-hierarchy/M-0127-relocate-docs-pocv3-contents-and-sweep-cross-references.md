@@ -9,7 +9,7 @@ tdd: none
 acs:
     - id: AC-1
       title: docs/pocv3/ files relocated/archived per TRIAGE.md
-      status: open
+      status: met
     - id: AC-2
       title: Fixture path constants updated for legal-workflows files
       status: open
