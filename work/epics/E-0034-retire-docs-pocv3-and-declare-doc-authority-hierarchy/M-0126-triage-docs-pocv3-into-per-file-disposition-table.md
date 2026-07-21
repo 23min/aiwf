@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: Every row has disposition, target, rationale
       status: open
+    - id: AC-3
+      title: Structural test asserts table matches docs/pocv3/ file set
+      status: open
 ---
 
 ## Goal
@@ -37,6 +40,8 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 ### AC-1 — Triage table lists every docs/pocv3/ file
 
 ### AC-2 — Every row has disposition, target, rationale
+
+### AC-3 — Structural test asserts table matches docs/pocv3/ file set
 
 ## Constraints
 
