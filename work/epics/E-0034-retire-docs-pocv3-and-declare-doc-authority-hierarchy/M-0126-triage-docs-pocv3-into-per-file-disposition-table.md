@@ -116,4 +116,14 @@ None — the triage calls made mid-work are recorded directly in the "Triage rat
 
 ## Validation
 
-`make check-fast` (vet + lint + full test suite, incl. `-race`) green after each commit. All 4 new test functions vacuity-checked by hand: deliberately broke each AC's claim (removed a table row, set an invalid disposition, pointed a supersede-with-entity row at a nonexistent id, deleted the Triage rationale section) and confirmed the corresponding test failed before reverting.
+`make check-fast` (vet + lint + full test suite, incl. `-race`) green after each commit. `make coverage-gate` green (diff-scoped branch coverage, firing-fixture presence). All 4 new test functions vacuity-checked by hand: deliberately broke each AC's claim (removed a table row, set an invalid disposition, pointed a supersede-with-entity row at a nonexistent id, deleted the Triage rationale section) and confirmed the corresponding test failed before reverting. `wf-doc-lint`, scoped to this milestone's changed markdown, reported clean across all seven checks (no TODOs, no broken code references, no orphan files, no stale `aiwf` invocations, no heading-hierarchy drift).
+
+## Deferrals
+
+- (none) — every AC's scope landed; no residual M-0126 work was punted. The content-level judgment calls made during triage (which candidate items got a gap filed vs. left deliberately unfiled) are recorded in the "Triage rationale" section above — those are this milestone's actual deliverable, not deferrals of it.
+
+## Reviewer notes
+
+- **Independent code-quality review** (dispatched at wrap, fresh context, no authorship attachment): verdict **approve**, zero blocking findings. All ten load-bearing claims verified by measurement — re-ran the file-set diff against `find docs/pocv3 -type f`, re-tallied the disposition counts, confirmed G-0433 resolves and its scope matches the TRIAGE row, read the test file in full for vacuity, confirmed no `docs/pocv3/` file was touched, confirmed the loader-based path resolution survives an archive sweep, and independently read both `resolveViaPriorIDs` and `ResolveByCurrentOrPriorID` to confirm G-0434's diagnosis.
+- **Design-quality review (`wf-rethink`) was not run** — this milestone introduced no new module/package boundary, core abstraction, or data model; a markdown deliverable plus one test file that reuses existing shared helpers doesn't meet the trigger.
+- One non-blocking follow-up from the review: G-0434's originally-filed "Direction" proposed a naive ByID-first fix that could regress a documented, deliberate G-0118 parallel-allocation-collision case in the same function. Added a caveat to G-0434 (commit `6080686`) before wrap so a future implementer reconciles both cases instead of rediscovering the tension.
