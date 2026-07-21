@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Fixture path constants updated for legal-workflows files
-      status: open
+      status: met
     - id: AC-3
       title: Zero dangling docs/pocv3 references
       status: open
