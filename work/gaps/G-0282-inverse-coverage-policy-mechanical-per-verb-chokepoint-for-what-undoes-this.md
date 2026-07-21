@@ -83,3 +83,27 @@ and `authorize`), but the first that is *gated-asymmetric* rather than simply
 existence classification.
 
 Source: design session, 2026-06-26 (sibling to the G-0168 `tdd:` fold on main).
+
+## Status (2026-07-21): base registry is ready to schedule; the gated extension is blocked
+
+Neither of the original audit's two findings is a live urgent case this chokepoint needs to
+unblock. `set-area --clear` shipped in M-0183 (done, archived) — that finding is resolved.
+The `authorize` scope-revoke gap is folded into G-0022, whose priority has since dropped to
+low, YAGNI-deferred. The chokepoint this gap proposes is a preventive mechanism for the next
+verb design that skips the inverse question, not a fix for something currently broken.
+
+The base registry — A/B/C/D classification, the class-A reversing-flag-exists wall, the
+class-C irreversibility-note-in-`--help` wall — is buildable on its own and has a concrete
+seed fixture already on hand: `rewidth` is one-way but its `--help`/Long text does not say
+so (unlike `archive`, which cites ADR-0004), a real present-day violation the base registry
+would catch immediately.
+
+The `gated`-annotation extension proposed above is not independently buildable yet. It is
+motivated by the `tdd: required → advisory` toggle, and that toggle verb does not exist:
+`tdd:` is currently set-once at `aiwf add --tdd` (`internal/cli/add/add.go`) with no
+post-create mutation verb — the gap G-0168 tracks that (open, high priority). Building the
+`gated` axis now would mean speculating about a verb's shape sight-unseen. Sequence the base
+registry as its own milestone, independent of G-0168; treat the `gated` extension as a
+follow-up once G-0168 ships a concrete verb to pin a fixture against.
+
+Source: discussion, 2026-07-21.
