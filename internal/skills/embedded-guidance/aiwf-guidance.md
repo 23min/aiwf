@@ -9,14 +9,13 @@ lives in the `wf-codebase-health` skill.
 - **Each mutating action is its own approval gate.** Every aiwf mutation
   (promote, archive, cancel, reallocate), every commit, push, and merge is a
   separate gate — ask before each, and after a context summary re-ask rather
-  than reading a past approval as a standing preference for batches. One aiwf
-  mechanic batches on purpose: the **declared-sequence gate** the `aiwfx-wrap-*`
-  rituals use to cover a terminal sequence of *local, reversible* mutations
-  (promote-done, local merge, cleanup) under a single approval — one that
-  enumerates every action and lets you approve a subset. Outward or irreversible
-  actions (push, `gh pr create`, tag-push, `--force`) never batch. `tdd:
-  required` phase promotes (red/green/done/met) streamline by default — live,
-  ungated, test-evidenced — wrap review and push stay the control points.
+  than reading a past approval as a standing preference for batches. The **declared-sequence gate** is
+  the one bounded exception: one approval covers *local, reversible* mutations found together in one
+  unit of work (an AC, a bug fix, a wrap sequence), verb types mixed freely, provided it enumerates
+  every action verbatim and lets you approve a subset. The `aiwfx-wrap-*` rituals use it for their
+  terminal sequence (promote-done, local merge, cleanup). Outward or irreversible actions (push, `gh
+  pr create`, tag-push, `--force`) never batch. `tdd: required` phase promotes (red/green/done/met)
+  streamline by default — live, ungated, test-evidenced — wrap review and push stay the control points.
 - **Body edits keep a review-before-commit window — prefer bless mode.** A
   structured-state verb (`aiwf promote` / `cancel` / `reallocate`) mutates and
   commits in one step, so its gate sits on your *stated intent*. A body edit
