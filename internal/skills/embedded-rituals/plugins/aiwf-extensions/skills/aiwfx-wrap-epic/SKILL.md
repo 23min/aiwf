@@ -21,8 +21,9 @@ Closes an epic. The epic itself is a coordination unit — closing it means: eve
 3. Working tree clean.
 4. Integration target identified (usually `main`).
 5. The project's full local CI gate is green on the epic branch **after integrating current mainline** — the same checks CI runs on push (e.g. a `make ci` target), not a subset. A gate run that predates mainline's latest commits is green on a tree that omits them; it doesn't cover the branch that's about to merge. See "Reconcile the epic branch with mainline" below for the integrate-then-gate mechanics. Long-lived epic branches accumulate lint debt invisibly across milestone wraps; the merge to mainline is the last local moment to catch it. (If the last green run of that gate predates only frontmatter commits — e.g. milestone `promote`s, which touch no Go/build inputs — it is still valid; re-run it only when Go/build inputs changed since. Don't re-run a still-green gate.)
+6. No milestone wrapped under this epic left a gap open that its own spec explicitly claims to fix. `aiwfx-wrap-milestone`'s own wrap step should already have closed these; this is the backstop for a milestone wrapped under an older ritual version, or one closed outside the ritual.
 
-If any precondition fails, stop and report. Do not improvise around an unfinished epic.
+If precondition 1–5 fails, stop and report. Do not improvise around an unfinished epic. Precondition 6 is not a stop condition — the epic itself is otherwise ready — but a closure to complete first: if a claimed-fixed gap surfaces still open, close it (`aiwf promote G-NNNN addressed --by-commit <sha>`, citing the implementing commit) before continuing. Don't let it silently become a `## Follow-ups carried forward` entry in the wrap artefact instead.
 
 ## One-time setup (per consumer repo)
 

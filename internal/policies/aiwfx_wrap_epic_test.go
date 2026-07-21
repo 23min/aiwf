@@ -533,3 +533,28 @@ func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
 		t.Errorf("reconcile step must order integrate mainline -> re-run gate -> only then proceed to merge (got indices %d, %d, %d)", integrateIdx, gateIdx, proceedIdx)
 	}
 }
+
+// TestAiwfxWrapEpic_PreconditionBackstopsClaimedFixedGaps pins the
+// epic-level half of the G-0431 fix: the `## Precondition` section
+// must include a backstop check for a milestone that left a
+// self-claimed-fixed gap open. `aiwfx-wrap-milestone`'s own wrap step
+// should already close these; this precondition catches a milestone
+// wrapped under an older ritual version, or one closed by hand
+// outside the ritual, before it silently becomes a "Follow-up carried
+// forward" entry in the wrap artefact instead of a real closure.
+func TestAiwfxWrapEpic_PreconditionBackstopsClaimedFixedGaps(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWrapEpicFixture(t)
+
+	precondition := extractMarkdownSection(body, 2, "Precondition")
+	if precondition == "" {
+		t.Fatal("SKILL.md must have a `## Precondition` section")
+	}
+
+	if !strings.Contains(precondition, "aiwf promote G-NNNN addressed --by-commit") {
+		t.Error("Precondition section must name the `aiwf promote G-NNNN addressed --by-commit <sha>` closure for a milestone that left a self-claimed-fixed gap open")
+	}
+	if !strings.Contains(strings.ToLower(precondition), "follow-up") {
+		t.Error("Precondition section must warn against letting a claimed-fixed gap silently become a Follow-up entry instead of a real closure")
+	}
+}
