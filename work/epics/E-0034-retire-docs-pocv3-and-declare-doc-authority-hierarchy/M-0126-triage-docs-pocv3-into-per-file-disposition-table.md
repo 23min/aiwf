@@ -34,24 +34,25 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 
 ## Acceptance criteria
 
-<!-- ACs allocated at aiwfx-start-milestone via `aiwf add ac M-0130 --title "..."`.
-     Candidate AC titles, drafted here as prose hints (not yet kernel state): -->
-
-- **AC-1 candidate** — A triage table file (e.g. `TRIAGE.md` under this milestone's directory) exists and lists every regular file currently under `docs/pocv3/`, one row per file.
-- **AC-2 candidate** — Every row carries a non-empty `disposition`, `target`, and `rationale` column; `disposition` is one of the four closed-set values.
-- **AC-3 candidate** — A structural test under `internal/policies/` parses the table and asserts the file set equals `find docs/pocv3 -type f` at the moment the test runs. Coverage of the table is mechanical, not by reviewer recall.
-- **AC-4 candidate** — Open Question #1 from E-0034 (whether `docs/archive/` absorbs `docs/pocv3/archive/` content or stays separate) is resolved and recorded in the table or in a "Triage rationale" section of this milestone spec.
-- **AC-5 candidate** — Each file marked `supersede-with-entity` is paired with an existing or newly-filed entity id. Files marked `delete` carry an explicit one-line justification (default is `archive`).
-
 ### AC-1 — Triage table lists every docs/pocv3/ file
+
+A triage table file (e.g. `TRIAGE.md` under this milestone's directory) exists and lists every regular file currently under `docs/pocv3/`, one row per file.
 
 ### AC-2 — Every row has disposition, target, rationale
 
+Every row carries a non-empty `disposition`, `target`, and `rationale` column; `disposition` is one of the four closed-set values (`relocate`, `archive`, `supersede-with-entity`, `delete`).
+
 ### AC-3 — Structural test asserts table matches docs/pocv3/ file set
+
+A structural test under `internal/policies/` parses the table and asserts the file set equals `find docs/pocv3 -type f` at the moment the test runs. Coverage of the table is mechanical, not by reviewer recall.
 
 ### AC-4 — Open Question #1 resolved and recorded
 
+Open Question #1 from E-0034 (whether `docs/archive/` absorbs `docs/pocv3/archive/` content or stays separate) is resolved and recorded in the table or in a "Triage rationale" section of this milestone spec.
+
 ### AC-5 — Supersede/delete rows carry entity id or justification
+
+Each file marked `supersede-with-entity` is paired with an existing or newly-filed entity id. Files marked `delete` carry an explicit one-line justification (default is `archive`).
 
 ## Constraints
 
