@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: Triage table lists every docs/pocv3/ file
-      status: open
+      status: met
     - id: AC-2
       title: Every row has disposition, target, rationale
       status: open
