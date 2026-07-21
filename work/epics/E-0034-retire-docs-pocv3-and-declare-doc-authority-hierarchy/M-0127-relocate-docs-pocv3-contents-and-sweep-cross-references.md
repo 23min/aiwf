@@ -1,7 +1,7 @@
 ---
 id: M-0127
 title: Relocate docs/pocv3/ contents and sweep cross-references
-status: in_progress
+status: done
 parent: E-0034
 depends_on:
     - M-0126
