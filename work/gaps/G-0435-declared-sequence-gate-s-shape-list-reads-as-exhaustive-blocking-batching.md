@@ -1,9 +1,11 @@
 ---
 id: G-0435
 title: Declared-sequence gate's shape list reads as exhaustive, blocking batching
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0126
+addressed_by_commit:
+    - 090241a
 ---
 ## Problem
 
