@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: Structural test asserts table matches docs/pocv3/ file set
       status: open
+    - id: AC-4
+      title: 'Open Question #1 resolved and recorded'
+      status: open
 ---
 
 ## Goal
@@ -42,6 +45,8 @@ Triage is markdown-only — no Go source touched. It can run in parallel with E-
 ### AC-2 — Every row has disposition, target, rationale
 
 ### AC-3 — Structural test asserts table matches docs/pocv3/ file set
+
+### AC-4 — Open Question #1 resolved and recorded
 
 ## Constraints
 
