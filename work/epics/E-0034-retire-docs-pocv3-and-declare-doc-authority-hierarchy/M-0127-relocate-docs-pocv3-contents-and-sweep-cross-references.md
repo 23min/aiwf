@@ -31,6 +31,24 @@ Execute the moves recorded in M-0126's `TRIAGE.md` table. Update every cross-ref
 
 Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start-milestone` time. The shape will refine post-Triage when the actual file set + target paths are known.
 
+## Acceptance criteria
+
+### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
+
+Every one of `TRIAGE.md`'s 42 rows is executed: `relocate` rows land at their recorded target path, `archive` rows land under `docs/archive/pocv3/`, and the one `supersede-with-entity` row (`observability-surfaces-plan.md` → G-0433) has its source archived alongside the rest. `docs/pocv3/` contains zero files afterward.
+
+### AC-2 — Fixture path constants updated for legal-workflows files
+
+`internal/policies/m0121_audit_catalog_test.go` and `internal/policies/m0122_first_principles_catalog_test.go` resolve `docs/design/legal-workflows-audit.md` and `docs/design/legal-workflows-first-principles.md` respectively (the `TRIAGE.md`-recorded relocate targets), and both test files pass unmodified in their assertions otherwise.
+
+### AC-3 — Zero dangling docs/pocv3 references
+
+A repo-wide structural test asserts no live Go source (`internal/`, `cmd/`), embedded skill markdown, or top-level doc (`docs/`, `README.md`, `CONTRIBUTING.md`) contains the literal substring `docs/pocv3`, with a narrow, explicit allowlist for deliberately historical mentions (`CHANGELOG.md`; this epic's own `work/` planning-tree prose narrating the migration).
+
+### AC-4 — aiwf check and link integrity clean
+
+`aiwf check` reports no new findings attributable to the sweep, and a repo-wide markdown-link-integrity pass (the `wf-doc-lint` check 5 heuristic, run mechanically) reports zero broken links caused by the move.
+
 ## Out of scope
 
 - Re-classifying any file beyond what M-0126's `TRIAGE.md` records. If triage was wrong, file a gap; do not silently revise during the sweep.
@@ -46,12 +64,4 @@ Full AC body, design notes, and surfaces-touched section drafted at `aiwfx-start
 
 - **E-0034** — parent epic.
 - **G-0132** — `aiwf render roadmap --write` blocked by dangling refs in source epic bodies. Worth resolving alongside the sweep if the renderer-canonicalization fix is in scope, since this milestone is sweeping cross-references anyway.
-
-### AC-1 — docs/pocv3/ files relocated/archived per TRIAGE.md
-
-### AC-2 — Fixture path constants updated for legal-workflows files
-
-### AC-3 — Zero dangling docs/pocv3 references
-
-### AC-4 — aiwf check and link integrity clean
 
