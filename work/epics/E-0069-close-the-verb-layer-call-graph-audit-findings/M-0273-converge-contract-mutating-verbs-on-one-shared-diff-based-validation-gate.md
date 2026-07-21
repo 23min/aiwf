@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: bind, unbind, recipe install, and recipe remove route through the shared gate
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 ## Goal
 
@@ -113,6 +113,13 @@ envelopes and exit codes are unchanged for normal operation.
 ---
 
 ## Work log
+
+### AC-1 — a shared gate reports only findings introduced by the projected mutation
+
+`internal/verb/contractgate.go` created: `contractMutationGate` plus
+the pure `diffIntroducedFindings` helper (split out during a `wf-
+vacuity` audit) · commit 94b5515f · tests
+`internal/verb/contractgate_test.go`, all green.
 
 ## Decisions made during implementation
 
