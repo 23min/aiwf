@@ -6,6 +6,10 @@ parent: E-0034
 depends_on:
     - M-0127
 tdd: none
+acs:
+    - id: AC-1
+      title: Documentation hierarchy section tags every active docs/ subtree
+      status: open
 ---
 
 ## Goal
@@ -31,3 +35,6 @@ The mechanical evidence shape — a structural assertion under `internal/policie
 
 - **E-0034** — parent epic.
 - **G-0092** — superseded by E-0034; this milestone is the concrete realization.
+
+### AC-1 — Documentation hierarchy section tags every active docs/ subtree
+
