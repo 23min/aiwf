@@ -200,3 +200,55 @@ RED-redundant half is retired (renamed `TestWfTddCycle_ForceSovereign`,
 keeping its orthogonal RECORD `--force` half), with the honesty guard
 against mislabeling the re-run "idempotent" carried into the new
 pin. · commit 8ed32559
+
+## Decisions made during implementation
+
+- AC-5 (`--tests` reconciliation) shares AC-1's commit rather than standing as
+  its own unit: removing born-red seeding is precisely what orphans the
+  add-time `--tests` flag, so the two are one coherent change. No new decision
+  record — governed by D-0047.
+- `--tests` was removed from `aiwf add ac` outright (not relocated), because
+  red-phase metrics already have a home on the live promote
+  (`aiwf promote --phase red --tests`); keeping a second entry point would
+  duplicate the surface. Pinned by `TestNewCmd_AC_NoTestsFlag`.
+
+## Validation
+
+- `go build ./...` — clean.
+- `make check-fast` (vet + lint + full test suite) — green.
+- `make lint` — 0 issues.
+- `make coverage-gate` (diff-scoped branch coverage + firing-fixture meta-gate
+  + skill-edit structural-test backstop) — green after each AC commit.
+- `aiwf check` — 0 errors (1 benign `provenance-untrailered-scope-undefined`
+  warning: no upstream configured in the worktree).
+- Race/coverage matrix runs on push via CI.
+
+## Deferrals
+
+- None. All five ACs reached `met`; nothing was punted. M-0275 (plan-time AC
+  content) and M-0276 (the ordering gate) are planned sibling milestones under
+  E-0070, not deferrals of this milestone.
+
+## Reviewer notes
+
+- Independent two-lens review before wrap: **code-quality (`wf-review-code`) —
+  APPROVE.** The reviewer independently re-ran the AC mutations (re-injecting
+  born-red fails AC-1's pin; dropping the empty-phase guard fails AC-3's),
+  confirming non-vacuity; verified the born-red and `--tests` removals are
+  complete, the ~14-file test sweep is purely mechanical, and shipped surfaces
+  carry no real ids. **Design-quality (`wf-rethink`) — not run:** the milestone
+  introduced no new module boundary, abstraction, or data model (it removes
+  code and adds tests/docs), so there is no design unit to rethink.
+- M-0274's own five ACs were themselves born at `red` — they predate this fix
+  and are grandfathered under the milestone's own no-backfill constraint. Each
+  cycle skipped the (already-spent) `"" → red` promote. Expected, not a defect.
+- Two incidental, pre-existing issues surfaced during review, both orthogonal
+  to the born-red work:
+  - `docs/explorations/06-tdd-diagnostic.md` names the old born-red template
+    seeding as evidence in a design-tension diagnostic. Left as-is — Exploratory
+    tier (not lockstep with code); editing it would rewrite the historical
+    analysis that motivated this work.
+  - `legal-workflows-audit.md`'s Source column (and two other normative docs)
+    carry stale `cmd/aiwf/*` paths left by the M-0116 CLI restructure — pre-
+    existing and unrelated. Tracked as a high-priority gap and fixed as a
+    standalone `wf-patch` off main, not folded into this milestone.

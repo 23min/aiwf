@@ -969,7 +969,7 @@ reaches every verb from one place instead of drifting per hand-rolled copy.
 | M-0272 | Extract the read-side helpers into a neutral entityview package | done |
 | M-0273 | Converge contract-mutating verbs on one shared diff-based validation gate | done |
 
-## E-0070 — AC contract-first discipline: plan-time content, red-first ordering (proposed)
+## E-0070 — AC contract-first discipline: plan-time content, red-first ordering (active)
 
 ### Goal
 
@@ -982,7 +982,7 @@ event rather than trusted from a self-reported phase timeline.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0274 | Seed tdd:required ACs pre-cycle so red is a live event | draft |
+| M-0274 | Seed tdd:required ACs pre-cycle so red is a live event | in_progress |
 | M-0275 | Create AC content at plan time; warn on incomplete draft milestones | draft |
 | M-0276 | Gate red-first ordering via a working-tree diff-shape check | draft |
 
