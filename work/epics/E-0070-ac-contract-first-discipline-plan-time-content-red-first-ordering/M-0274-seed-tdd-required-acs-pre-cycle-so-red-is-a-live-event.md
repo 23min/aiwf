@@ -143,3 +143,23 @@ metrics accepted at the `--phase red` promote, or the flag's removal refused at
 - G-0441 — the seeding-correctness gap this milestone closes.
 - D-0047 — Contract-first AC timing and red-first ordering enforcement.
 - G-0286 — the accepted decision that `red` means "a failing test exists."
+
+## Work log
+
+### AC-1 — Seed ACs at the pre-cycle empty phase, not red
+
+Removed the born-red seeding in `internal/verb/ac.go` so `aiwf add ac` leaves
+`tdd_phase` absent under any tdd policy; the live `"" → red` promote now records
+the failing test. Downstream fixtures (cellcoverage, the M-0124/M-0125 cell
+drivers, tests-metrics and single-commit-invariant setups) walk the live
+`"" → red → green → done` flow. Pinned by
+`TestAddAC_SeedsEmptyPhaseUnderTDDRequired`. · commit 46061419
+
+### AC-5 — Reconcile the --tests-at-add flag with pre-cycle seeding
+
+Removed `--tests` from `aiwf add ac` entirely (flag, the `tests` param on
+`AddAC`/`AddACBatch`, the seeding validation and trailer emission); red-phase
+test metrics are recorded only at the live red promote
+(`aiwf promote --phase red --tests`, already supported). Pinned by
+`TestNewCmd_AC_NoTestsFlag`. Shares AC-1's commit — removing born-red is what
+orphans the flag, so the two are one coherent change. · commit 46061419
