@@ -1,7 +1,9 @@
 ---
 id: G-0437
 title: aiwf check doesn't flag depends_on edges pointing at cancelled milestones
-status: open
+status: addressed
+addressed_by_commit:
+    - d315c492906ed6e1d6998281f47410ef31e139af
 ---
 ## What's missing
 
