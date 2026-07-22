@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: The --tests flag at add time is reconciled with pre-cycle seeding
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0274 — Seed tdd:required ACs pre-cycle so red is a live event
