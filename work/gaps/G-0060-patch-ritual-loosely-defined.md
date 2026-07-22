@@ -41,3 +41,32 @@ This gap captures the question, not the answer. Plausible resolutions span a wid
 The choice should land as a decision (`D-NNN`) or an ADR before any milestone work begins, because each option implies a different milestone shape downstream.
 
 This gap is *not* `discovered_in` M-0069. It surfaced during a conversation that broadened from the M-0069 branch-model finding (G-0059) to an architectural omission this repo has been carrying for longer. Treat it as the older, deeper question of which G-0059 is one corner.
+
+## Investigation (2026-07-22): option 2 sharpened — a decision-weight patch kind
+
+A closer look at option 2 ("patch becomes the seventh kind"), grounded against the actual `decision`/`gap` schemas and the `wf-patch` skill, narrows it from "a new kind, shape TBD" to a specific, minimal proposal — and surfaces one already-filed gap that competes with part of it.
+
+**The many-to-many concern is smaller than it first looks.** A patch closing more than one gap is *not* structurally blocked today: `aiwf promote G-NNNN addressed --by-commit <sha>` (`internal/verb/promote.go:374`) can run once per gap against the same merge SHA, and each gap records its own `addressed_by_commit` independently. Only the branch name and the statusline HUD (`patch/G-NNNN-<slug>`, one gap id) are 1:1 — cosmetic, not a data-model gap.
+
+**What's actually missing is a queryable record, and `wf-patch` already half-answers it in prose.** Step 4 of the skill requires a `CHANGELOG.md` entry specifically because "a patch has no parent to roll up into: its own wrap is the only chance the change is ever recorded." That's the same problem this investigation is about, already patched with unindexed prose instead of a structured entity — no `aiwf list --kind patch`, `aiwf show P-NNN`, or `aiwf history P-NNN`.
+
+**A minimal schema, modeled on `decision`'s actual weight** (`internal/entity/entity.go:603-613`), not `epic`'s:
+
+```go
+KindPatch: {
+    Kind:            KindPatch,
+    IDFormat:        "P-NNN",
+    AllowedStatuses: []string{"open", "done", "abandoned"},
+    RequiredFields:  commonRequired,
+}
+```
+
+FSM `open → done | abandoned` (mirrors gap's `open → addressed | wontfix` shape — a patch is a unit of work in flight, not a proposal awaiting ratification the way `decision`/`ADR` are).
+
+**No new reference field is needed on either side.** `gap.addressed_by` is already kind-unrestricted (`internal/entity/entity.go:597`, "accepts any kind — empty `AllowedKinds`"), and `promote.go` layers no separate kind restriction on `--by`. `aiwf promote G-0113 addressed --by P-0042` would work with zero schema changes to `gap`, retiring the raw-SHA `addressed_by_commit` escape hatch in favor of a real reference. `aiwf show` already computes "Referenced by (N)" backlinks generically for every kind, so `aiwf show P-0042` would list every gap it closed for free — no `closes:` field on patch required.
+
+**Cost is closer to `gap`'s implementation weight than `epic`'s.** Against this repo's own "What's enforced and where" list: allocator + id-format regex, the per-kind schema/FSM tables above, skill-coverage policy, the completion-drift test, and the `internal/policies/` pinning suite are real new surface; archive-sweep (ADR-0004) and `aiwf history` (generic per-kind dispatch) are likely free by construction.
+
+**The unresolved cost is at the ritual level, not the schema level.** `wf-patch`'s own text says "Does not touch planning state, milestones, or roadmaps. Patches are off-roadmap by design" — a real `patch` kind contradicts that sentence and needs two new insertion points (`aiwf add patch` at branch creation, `aiwf promote P-NNN done --by-commit <sha>` folded into tracker closure). It also forces a filing-cardinality question this kernel's other six kinds don't have: does *every* patch get a `P-NNN` (reintroducing the ceremony `wf-patch` exists to skip for the "just a typo" case), or only patches worth a structured record (a new "sometimes-filed" shape, unlike every existing kind)?
+
+**Related, and cheaper: G-0366** (ROADMAP.md renderer is epic-only; patch-closed gaps are invisible) independently surfaces the same visibility problem for `ROADMAP.md` specifically, and proposes a generated "recent patches" section sourced from `addressed_by`/`addressed_by_commit` — no new kind. Worth doing regardless of how this gap resolves; it may also reduce how much a `patch` kind is still worth its cost once shipped.
