@@ -194,7 +194,7 @@ func TestEditBody_Bless_ACSubSectionEdit(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"first criterion", "second criterion"}, nil, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"first criterion", "second criterion"}, nil, testActor))
 
 	mPath := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0001-mile.md")
 	raw, err := os.ReadFile(mPath)
@@ -245,7 +245,7 @@ func TestEditBody_Bless_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor))
 
 	_, err := verb.EditBody(r.ctx, r.tree(), "M-0001/AC-1", nil, testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "composite ids") {
@@ -274,7 +274,7 @@ func TestEditBody_Bless_AcceptsBodyShapeWarnings_PrePushIsChokepoint(t *testing.
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "stays", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "stays", testActor))
 
 	mPath := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0001-mile.md")
 	raw, err := os.ReadFile(mPath)

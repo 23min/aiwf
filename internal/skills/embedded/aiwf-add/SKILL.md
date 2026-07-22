@@ -41,7 +41,7 @@ aiwf add ac M-001 \
   --title "third criterion"
 ```
 
-Atomic-on-failure: if any title is empty, prosey, or otherwise rejected, the entire batch aborts before disk work — no partial-batch commit. `--tests` is rejected when N>1 (a single test-metrics value can't apply unambiguously to multiple ACs); seed test metrics one AC at a time when needed.
+Atomic-on-failure: if any title is empty, prosey, or otherwise rejected, the entire batch aborts before disk work — no partial-batch commit. A new AC is seeded at the pre-cycle empty phase, not `red` — record red-phase test metrics at the live red promote (`aiwf promote <milestone-id>/AC-N --phase red --tests "pass=N fail=N skip=N"`), not at add time.
 
 Single `--title` still works exactly as before — same subject shape, same single `aiwf-entity:` trailer.
 
@@ -92,7 +92,7 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 
 1. Allocates the next free id by scanning the working tree and the configured trunk ref (default `refs/remotes/origin/main`; override via `aiwf.yaml: allocate.trunk`). For ACs the scan is the milestone's `acs[]`. The trunk read is silently skipped when the repo has no remotes configured; an explicitly-configured trunk ref that doesn't resolve is a hard error so the operator notices.
 2. Writes the new entity file with proper frontmatter (`id`, `title`, `status` set to the kind's initial status). For ACs, appends to the parent milestone's `acs[]` and scaffolds the body heading.
-3. When the parent milestone is `tdd: required`, an AC is seeded with `tdd_phase: red` — the only legal entry phase under the FSM. Otherwise `tdd_phase` is left absent.
+3. A new AC is seeded at the pre-cycle empty phase (`tdd_phase` absent) regardless of the parent's tdd policy — `red` means "a failing test exists," which a just-created AC has not written. The live red promote (`aiwf promote <milestone-id>/AC-N --phase red`) records the failing test.
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
 5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
 6. **Refuses an empty body for born-complete kinds; scaffolds a placeholder for the rest.** `gap`, `decision`, `adr`, and `contract` have no draft phase — they're live and referenceable the instant this commit lands — so `aiwf add` refuses to create one whose load-bearing `## <Section>` content is empty, unless `--force --reason "<text>"` overrides it (see *"Empty-body gate for born-complete kinds"* below). Epic, milestone, and AC bodies keep the placeholder-then-fill workflow: `aiwf check` reports `entity-body-empty` for any of those sections that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.

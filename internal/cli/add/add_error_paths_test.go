@@ -195,6 +195,23 @@ func TestNewCmd_AC_NoTitle(t *testing.T) {
 	}
 }
 
+// TestNewCmd_AC_NoTestsFlag pins M-0274/AC-5: `aiwf add ac` no longer
+// carries a --tests flag. Since an AC is no longer born red at add,
+// there is no red phase to attach test metrics to; red-phase metrics
+// are recorded at the live red promote instead
+// (`aiwf promote <M>/AC-N --phase red --tests ...`).
+func TestNewCmd_AC_NoTestsFlag(t *testing.T) {
+	t.Parallel()
+	root := add.NewCmd("")
+	acCmd, _, err := root.Find([]string{"ac"})
+	if err != nil {
+		t.Fatalf("finding ac subcommand: %v", err)
+	}
+	if f := acCmd.Flags().Lookup("tests"); f != nil {
+		t.Errorf("`add ac` should not carry a --tests flag; found %q", f.Name)
+	}
+}
+
 // TestNewCmd_AC_BodyFileCountMismatch covers runAC's M-067/AC-3 guard:
 // when any --body-file is given, its count must match --title's count
 // (positional pairing).

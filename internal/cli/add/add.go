@@ -474,7 +474,6 @@ func addCreationRefs(k entity.Kind, opts verb.AddOptions) []string {
 // --title (the Nth --body-file populates the body of the Nth AC).
 func newACCmd(titles *[]string, actor, principal, root *string, correlationID string) *cobra.Command {
 	var (
-		tests     string
 		bodyFiles []string
 		out       *cliutil.OutputFormat
 	)
@@ -495,10 +494,9 @@ func newACCmd(titles *[]string, actor, principal, root *string, correlationID st
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(runAC(args[0], *titles, bodyFiles, *actor, *principal, *root, tests, *out))
+			return cliutil.WrapExitCode(runAC(args[0], *titles, bodyFiles, *actor, *principal, *root, *out))
 		},
 	}
-	cmd.Flags().StringVar(&tests, "tests", "", `optional test metrics for the seeded red phase (only valid when parent milestone is tdd: required and a single AC is being added); format: "pass=N fail=N skip=N total=N" — keys must be one of pass/fail/skip/total, integers non-negative`)
 	cmd.Flags().StringArrayVar(&bodyFiles, "body-file", nil, `path to a file whose content becomes the AC body section under "### AC-N — <title>" (use "-" to read from stdin; only valid with single --title); positionally paired with --title — the Nth --body-file populates the Nth AC; the file must contain body content only — leading "---" is refused`)
 	out = cliutil.AddFormatFlags(cmd)
 	out.CorrelationID = correlationID
@@ -506,7 +504,7 @@ func newACCmd(titles *[]string, actor, principal, root *string, correlationID st
 	return cmd
 }
 
-func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, tests string, out cliutil.OutputFormat) int {
+func runAC(parentID string, titles, bodyFiles []string, actor, principal, root string, out cliutil.OutputFormat) int {
 	if len(titles) == 0 {
 		cliutil.Errorln("aiwf add ac: --title \"...\" is required (pass --title once per AC; repeat for batch)")
 		return cliutil.ExitUsage
@@ -538,11 +536,6 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 			}
 		}
 	}
-	metrics, err := cliutil.ParseTestsFlag(tests, "aiwf add ac")
-	if err != nil {
-		return cliutil.ExitUsage
-	}
-
 	var bodies [][]byte
 	if len(bodyFiles) > 0 {
 		bodies = make([][]byte, len(bodyFiles))
@@ -592,7 +585,7 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root, 
 		cliutil.Errorf("aiwf add ac: loading tree: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	result, err := verb.AddACBatch(ctx, tr, parentID, titles, bodies, actorStr, metrics)
+	result, err := verb.AddACBatch(ctx, tr, parentID, titles, bodies, actorStr)
 	// An AC is a sub-element of its parent milestone — its sole
 	// "outbound reference" for scope reachability is the parent id.
 	pctx := cliutil.ProvenanceContext{

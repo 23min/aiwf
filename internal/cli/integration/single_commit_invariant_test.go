@@ -134,6 +134,9 @@ entities:
 
 		{"promote M-001 → in_progress", []string{"promote", "M-0001", "in_progress", "--actor", "human/test", "--root", root}},
 		{"promote M-001/AC-1 → met", []string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}},
+		// AC seeded at the pre-cycle empty phase; the live "" → red
+		// promote precedes green (each is its own single-commit verb).
+		{"promote M-002/AC-1 phase → red", []string{"promote", "M-0002/AC-1", "--phase", "red", "--actor", "human/test", "--root", root}},
 		{"promote M-002/AC-1 phase → green", []string{"promote", "M-0002/AC-1", "--phase", "green", "--tests", "pass=1 fail=0 skip=0", "--actor", "human/test", "--root", root}},
 
 		// rename — slug-only mutation; id preserved.
