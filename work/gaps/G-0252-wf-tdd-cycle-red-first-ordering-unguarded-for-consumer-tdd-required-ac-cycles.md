@@ -20,20 +20,31 @@ gate for aiwf's own Go code — landed. Sub-goal (a) made branch coverage
 mechanical for the kernel itself; this gap is the remaining, orthogonal
 concern: ordering enforcement for consumer AC cycles.
 
-Candidate mechanisms (carried over from G-0067's original list):
+**Mechanism, per [D-0047](../decisions/D-0047-contract-first-ac-timing-and-red-first-ordering-enforcement.md):**
+`aiwf promote M-NNN/AC-N --phase red` refuses if the working tree's diff
+against HEAD touches any non-test path (test-path classification via a glob,
+the same "paths:" oracle pattern `aiwf-area` uses for area classification).
+`--phase green` refuses unless the diff has grown to include a non-test path
+since red. No new commit and no new trailer — the check inspects existing
+working-tree state at each phase-promote call, so an honest cycle satisfies
+it for free.
 
-- `aiwf promote --phase green` runs the test suite and refuses any new test
-  that does not fail-then-pass: the kernel checks that some commit between the
-  AC's add and the green-promote contains a test that, run against the parent
-  of the impl commit, would fail. Real chokepoint, but expensive (runs tests
-  at promote time) and language-specific.
-- An `aiwf-red-commit` trailer on the AC: `aiwf promote --phase red --commit
-  <SHA>` records the failing-test commit; promote-to-green refuses unless that
-  SHA is reachable from the parent of the green commit. Pins ordering as a
-  deliberate act without inspecting test content.
-- AC-scope cap as planning discipline: when an AC's expected diff exceeds ~50
-  lines of impl, split it — large ACs drift off red-first regardless of how
-  strict the skill is.
+Earlier candidates, considered and rejected (see D-0047's Reasoning):
+
+- Running the test suite at `--phase green` to confirm fail-then-pass: the
+  strongest signal, but expensive and language-specific — the same objection
+  D-0038 raised against `--evidence`'s `go test -list` toolchain coupling.
+- An `aiwf-red-commit` SHA trailer: proves a commit exists and is reachable
+  before green, not that *that commit's diff* contains the test — the same
+  "existence not relevance" gap D-0038 named, one layer down.
+- AC-scope cap as planning discipline: not mechanical by itself; still a
+  reasonable complementary practice, but doesn't guard anything on its own.
+
+What the diff-shape check does not close: whether the red-phase test
+actually fails for the right reason. That judgment stays with
+`wf-tdd-cycle`'s own instruction, `wf-vacuity`, and `wf-review-code` — the
+same boundary D-0038 drew between mechanizable structural claims and
+semantic judgment.
 
 ## Why it matters
 
