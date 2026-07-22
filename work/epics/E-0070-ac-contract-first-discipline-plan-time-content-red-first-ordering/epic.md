@@ -145,7 +145,16 @@ Full mechanism and rationale in D-0047.
 
 ## Milestones
 
-<!-- filled at aiwfx-plan-milestones time -->
+Execution order: M-0274 → M-0275 → M-0276. Only M-0276's edge is a hard
+dependency; M-0275 is independent and sequenced second by soft preference
+(risk ladder: safe foundation first, riskiest gate last).
+
+- `M-0274` — Seed `tdd: required` ACs pre-cycle so `red` is a live event
+  (closes G-0441) · depends on: —
+- `M-0275` — Create AC content at plan time; warn on incomplete `draft`
+  milestones (closes G-0440) · depends on: —
+- `M-0276` — Gate red-first ordering via a working-tree diff-shape check
+  (closes G-0252) · depends on: `M-0274`
 
 ## References
 
