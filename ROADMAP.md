@@ -996,5 +996,7 @@ requires a hand-edit that bypasses the kernel's one-verb-per-mutation
 convention (a fictional `aiwf-verb:` trailer, a path `--help` never reveals);
 this epic makes it a first-class, trailered, discoverable act.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0277 | Add the aiwf milestone tdd policy-mutation verb | draft |
 
