@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-07-22
+
 ### Added — G-0437: `aiwf check` flags depends_on edges pointing at cancelled milestones
 
 A non-terminal milestone whose `depends_on` names a milestone that has since
@@ -24,6 +26,22 @@ finding — the dependency can never be satisfied, so the rot is caught
 instead of sitting silent. Fix by retargeting the dependency
 (`aiwf milestone depends-on <id> --on <remaining-ids>`) or cancelling the
 dependent milestone too.
+
+### Added — E-0068: mechanical AC/milestone-completeness guards
+
+Closed three places where AC/milestone completeness discipline depended on operator
+vigilance instead of a mechanical chokepoint. `aiwf promote M-NNNN in_progress` now
+refuses a milestone with zero acceptance criteria, and separately refuses one where any
+AC's body is a title-only stub with no real prose — both name the offending AC and, for
+the zero-AC case, accept `--force --reason "..."` to override (the empty-body refusal does
+not: `aiwf check`'s new `acs-empty-body` error fires on exactly that state regardless of
+`--force`, so the only path through is writing real content). `aiwf check` gained two new
+findings: `milestone-done-zero-acs` (warning) for a milestone reaching `done` with no ACs
+at all, and `acs-empty-body` (error, archive-scoped) for an empty AC body persisting at
+`in_progress` or `done`. Separately, `acs-shape/tdd-phase` no longer requires every AC
+under a `tdd: required` milestone to carry a `tdd_phase` from creation — absence is legal
+until the AC reaches `met`, matching what the design actually commits to; strengthening a
+milestone `advisory → required` no longer reddens the tree for every pre-existing AC.
 
 ### Changed — E-0034: docs/pocv3/ retired, doc-authority hierarchy declared in CLAUDE.md
 
@@ -57,17 +75,6 @@ didn't name.
 their own copy of the history-read / scope-read / findings-filter tail; both
 now call one shared `finishShowView` helper.
 
-### Fixed — G-0431: milestone/epic wrap now closes gaps their own prose claims to fix
-
-`aiwfx-wrap-milestone` now identifies any gap a milestone's own spec explicitly
-names as something it fixes and closes it (`aiwf promote G-NNNN addressed
---by-commit <sha>`) as part of the milestone's wrap, before the milestone's
-own promote-to-`done`. `aiwfx-wrap-epic` carries a matching precondition
-backstop for a milestone wrapped under an older ritual version. Previously,
-a milestone whose title and body explicitly named the gaps it fixed could
-reach `done` with those gaps still `open` — the tracker silently overstated
-what was actually left.
-
 ### Changed — E-0069: closed the verb-layer call-graph audit findings
 
 Every milestone listed in `work/epics/E-0069-close-the-verb-layer-call-graph-audit-findings/wrap.md`
@@ -87,21 +94,16 @@ before/after diff of the projected config, replacing three previously
 divergent per-verb gate styles (an id-filtered check, no gate at all, and a
 manual referential-integrity scan).
 
-### Added — E-0068: mechanical AC/milestone-completeness guards
+### Fixed — G-0431: milestone/epic wrap now closes gaps their own prose claims to fix
 
-Closed three places where AC/milestone completeness discipline depended on operator
-vigilance instead of a mechanical chokepoint. `aiwf promote M-NNNN in_progress` now
-refuses a milestone with zero acceptance criteria, and separately refuses one where any
-AC's body is a title-only stub with no real prose — both name the offending AC and, for
-the zero-AC case, accept `--force --reason "..."` to override (the empty-body refusal does
-not: `aiwf check`'s new `acs-empty-body` error fires on exactly that state regardless of
-`--force`, so the only path through is writing real content). `aiwf check` gained two new
-findings: `milestone-done-zero-acs` (warning) for a milestone reaching `done` with no ACs
-at all, and `acs-empty-body` (error, archive-scoped) for an empty AC body persisting at
-`in_progress` or `done`. Separately, `acs-shape/tdd-phase` no longer requires every AC
-under a `tdd: required` milestone to carry a `tdd_phase` from creation — absence is legal
-until the AC reaches `met`, matching what the design actually commits to; strengthening a
-milestone `advisory → required` no longer reddens the tree for every pre-existing AC.
+`aiwfx-wrap-milestone` now identifies any gap a milestone's own spec explicitly
+names as something it fixes and closes it (`aiwf promote G-NNNN addressed
+--by-commit <sha>`) as part of the milestone's wrap, before the milestone's
+own promote-to-`done`. `aiwfx-wrap-epic` carries a matching precondition
+backstop for a milestone wrapped under an older ritual version. Previously,
+a milestone whose title and body explicitly named the gaps it fixed could
+reach `done` with those gaps still `open` — the tracker silently overstated
+what was actually left.
 
 ## [0.27.0] — 2026-07-18
 
@@ -1561,4 +1563,4 @@ Initial PoC release. Six entity kinds; stable ids that survive rename, cancel, a
 ### Added
 - **`aiwf upgrade` verb** — one-command flow with skew detection, install via `go install`, and re-exec into `aiwf update`. Includes `--check`, `--version=`, and friendly messages on missing `go` or proxy-disabled. Wired into `aiwf doctor --self-check`. (`3e2d7ff`, `d1c4b1c`, `6136754`, `efa59c2`)
 - **`version` package** — `Current()`, `Compare()`, `Latest()` against the Go module proxy. (`62928e5`, `05dd773`)
-- **G1 – G26** resolved across iterations I0–I2. See [`docs/pocv3/archive/gaps-pre-migration.md`](docs/pocv3/archive/gaps-pre-migration.md) for the full matrix.
+- **G1 – G26** resolved across iterations I0–I2. See [`docs/archive/pocv3/gaps-pre-migration.md`](docs/archive/pocv3/gaps-pre-migration.md) for the full matrix.
