@@ -16,6 +16,15 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0437: `aiwf check` flags depends_on edges pointing at cancelled milestones
+
+A non-terminal milestone whose `depends_on` names a milestone that has since
+been cancelled now surfaces a new `depends-on-cancelled` error-severity
+finding — the dependency can never be satisfied, so the rot is caught
+instead of sitting silent. Fix by retargeting the dependency
+(`aiwf milestone depends-on <id> --on <remaining-ids>`) or cancelling the
+dependent milestone too.
+
 ### Changed — E-0034: docs/pocv3/ retired, doc-authority hierarchy declared in CLAUDE.md
 
 The historical `docs/pocv3/` directory (pre-dating aiwf's own trunk promotion)

@@ -62,6 +62,7 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `body-prose-id/unresolved-ac` | A composite id in body prose names an AC that does not exist on the parent milestone. | Fix the AC number or add the AC. |
 | `no-cycles` | A cycle in the milestone `depends_on` DAG or the ADR `supersedes` chain. | Remove a back-edge. |
 | `no-cycles/depends_on` | The cycle is in milestone `depends_on` edges. | Break a back-edge in the milestone DAG. |
+| `depends-on-cancelled` | A non-terminal milestone's `depends_on` names a milestone that has since reached the negative-terminal status `cancelled` — the dependency can never be satisfied. | Retarget the dependency via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it), or cancel the dependent milestone too. |
 | `no-cycles/supersedes` | The cycle is in ADR `supersedes` edges. | Break the chain — an ADR cannot transitively supersede itself. |
 | `case-paths` | Two entity paths differ only in case. Linux commits both; macOS / Windows case-insensitive filesystems collapse them to one entity. | `git mv` one of the directories so the names differ in more than case. |
 | `load-error` | A file under `work/` failed to parse — malformed YAML frontmatter, unreadable file, or a structural issue the loader couldn't recover from. | Open the named file and fix the parse issue; subsequent checks run once load succeeds. |
