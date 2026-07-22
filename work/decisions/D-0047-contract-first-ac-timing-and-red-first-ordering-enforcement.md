@@ -26,18 +26,29 @@ by LLM vigilance. Does each get a mechanism, and what should each be?
 
 ## Decision
 
-1. **Red-first ordering** (G-0252) is enforced at `aiwf promote M-NNN/AC-N
-   --phase red|green` via a working-tree diff-shape check, not test
-   execution or a self-reported SHA trailer. `--phase red` refuses if the
-   working tree's diff against HEAD touches any non-test path (test-path
-   classification via a glob, reusing the "paths:" oracle pattern
-   `aiwf-area` already uses for area classification). `--phase green`
-   refuses unless the diff has grown to include a non-test path since red.
-   The check proves file-touch ordering; it does not prove the test failed
-   at red-time — that judgment stays with `wf-tdd-cycle`'s own "confirm they
-   fail for the right reason" step, `wf-vacuity`, and `wf-review-code`,
-   matching the boundary D-0038 already drew between mechanizable structural
-   claims and semantic judgment.
+1. **Red-first ordering** (G-0252) is enforced by a working-tree diff-shape
+   check on the AC's TDD-phase promotes, not test execution or a
+   self-reported SHA trailer. The gate attaches to the **live `"" -> red`
+   promote** — the event that means "a failing test has been written and
+   shown to fail." `aiwf promote M-NNN/AC-N --phase red` refuses if the
+   working tree's diff against HEAD touches any non-test path; `--phase
+   green` refuses unless a non-test path is dirty now (a stateless check on
+   the current diff — the verb keeps no red-time snapshot, and none is
+   needed: ordering is enforced by the *pair* of gates, test-only-dirty at
+   red and impl-dirty at green, not by a "grown since red" comparison the
+   verb cannot compute). Test-path classification is a glob predicate: the
+   `areamatch` doublestar matcher is reusable, but the test-path glob set
+   itself is a **new config surface** — the areas `paths:` config maps
+   source to workstreams, not test-vs-source, so it is not the classifier.
+   This gate requires a real `"" -> red` event to exist, which today it does
+   not: `aiwf add ac` seeds `tdd: required` ACs directly at `red`
+   (born-at-red), spending the transition before any test is written.
+   Correcting that seeding so ACs are born at the pre-cycle `""` state is a
+   **prerequisite**, tracked in G-0441. The check proves file-touch
+   ordering; it does not prove the test failed at red-time — that judgment
+   stays with `wf-tdd-cycle`'s own "confirm they fail for the right reason"
+   step, `wf-vacuity`, and `wf-review-code`, matching the boundary D-0038
+   already drew between mechanizable structural claims and semantic judgment.
 2. **AC-entity creation and content-filling move from
    `aiwfx-start-milestone`'s preflight into `aiwfx-plan-milestones`**
    (G-0440), before its merge-to-main step: `aiwf add ac` and each `### AC-N`
@@ -85,6 +96,20 @@ agent-agnostic: it inspects working-tree state, not authorship, so it
 applies unchanged whether a human, the main assistant, or a future per-AC
 subagent (the deferred E-0019 model) wrote the commits.
 
+**Why the gate attaches to the `"" -> red` promote, and why born-at-red must
+be fixed first.** The gate is only coherent when `red` is an honest achieved
+state — "a failing test exists." G-0286 (addressed) already ratified that
+meaning, and that an untouched AC's honest phase is *absent* (`""`), not
+`red`; the check layer enforces it (`internal/check/acs.go` treats an absent
+phase as legal until `met`). But `aiwf add ac` still seeds `tdd: required`
+ACs at `red`, so the `"" -> red` transition — the natural "I wrote the
+failing test" event — never fires on the honest path: the FSM refuses `red ->
+red`, and `wf-tdd-cycle` tells the operator to skip the red promote. A gate
+on a promote that never runs fires zero times. Fixing the seeding (G-0441)
+restores the event and gives the gate a real, semantically-honest home — it
+is a correctness fix the kernel already committed to via G-0286, not a
+concession invented for this gate.
+
 **Why AC-entity timing moves to planning, not just a start-milestone
 reminder.** G-0216/D-0039 already established that "fill the contract before
 coding" must be mechanical, not vigilance — a milestone's AC bodies being
@@ -113,9 +138,16 @@ planning session to finish in one sitting.
   `aiwfx-plan-milestones` plus the new check-time warning) — filed
   separately since it is architecturally distinct from G-0252 (ritual +
   check-time finding, vs. a verb-time mechanism).
-- Implementing point 1 touches `internal/verb/ac.go` (`PromoteACPhase`) and
-  needs a test-path classification convention — reusing or extending the
-  areas `paths:` oracle is the natural fit, not a new concept.
+- Point 1 has a hard prerequisite: the born-at-red seeding fix (G-0441) must
+  land first, so the `"" -> red` promote is a live event the gate can attach
+  to. G-0441 also carries two born-at-red consequences to sweep — reversing
+  `wf-tdd-cycle`'s "skip the red promote" guidance, and reconciling the
+  `--tests`-at-`add` flag.
+- Implementing point 1 touches `internal/verb/ac.go` (both `PromoteACPhase`
+  and the `AddAC` seeding path) and adds a new test-path glob config surface
+  (schema key, `aiwf.yaml` parsing, validation, completion) — the areas
+  `paths:` config is not reusable as the classifier; only the `areamatch`
+  glob predicate is.
 - Implementing point 2 touches the `aiwfx-plan-milestones` ritual text and
   `internal/check/acs.go`.
 - Neither mechanism is scheduled yet — this decision settles *what* to
