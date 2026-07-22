@@ -173,6 +173,12 @@ once at the FSM step, no amend afterward). Both want an editor; the
 FSM-coupled pair needs one that does **not** let the relation field be
 written independently of its transition.
 
+The set-at-transition pair is now tracked as its own gap, G-0442 —
+G-0168's scope is bounded to the four set-at-create fields. Whatever verb
+lands for the set-at-create relation fields excludes `addressed_by` /
+`superseded_by`; their editor is a distinct problem, constrained to
+amend/clear on an already-transitioned entity (never an independent set).
+
 ### Design fork: generic `aiwf relate` vs per-kind subverbs
 
 The report proposed a single generic verb —
@@ -205,48 +211,57 @@ above: *strengthening* a milestone from `tdd: advisory` to `tdd: required` after
 establishing its ACs were genuinely testable. Same missing verb, but the upgrade
 direction surfaced two things the original downgrade case did not.
 
-### The two directions are not symmetric — `tdd:` has directional integrity semantics
+### tdd: is a uniform ordinary mutator — direction carries no gating
 
-- **Upgrade** (`advisory → required`, `none → advisory`) *strengthens* the
-  "met requires `tdd_phase: done`" gate. A normal, desirable mid-flight decision;
-  it should be frictionless.
-- **Downgrade** (`required → advisory|none`) *weakens* that gate — the class of
-  act aiwf elsewhere routes through a sovereign `--reason` (and human actor) path
-  (`acknowledge-illegal`, `--force`).
+The two directions differ in *meaning* — **strengthening** (`none → advisory →
+required`) tightens the "met requires `tdd_phase: done`" gate; **weakening**
+(`required → advisory|none`) loosens it — but that semantic difference does
+**not** warrant a mechanical gating difference. `aiwf milestone tdd` is a plain
+frontmatter mutator, treated exactly like `milestone depends-on`,
+`set-priority`, and `set-area`: any actor (human, or an authorized `ai/` with a
+principal), an optional `--reason`, standard trailers, and no directional or
+sovereign carve-out either way. Three forces put it there:
 
-This sharpens the verb shape proposed above: the `--reason` should not be uniform
-"trail clarity" (as the table suggests for all four fields) but **directional** —
-required on the weakening direction, optional on the strengthening one. It also
-sharpens the inverse-coverage-policy gap filed on the `epic/E-0044` worktree (its
-id is unsettled cross-branch until that epic merges): that registry classifies an
-inverse by *existence* (A/B/C/D), but `tdd:` shows a verb can need a fifth
-property — *the inverse exists but is governance-weighted*. The undo of
-"set tdd required" is "set tdd advisory", and that undo is the gated one.
+- **Symmetry / no exceptions.** A rule whose ceremony flips on direction is an
+  exception by construction; a uniform mutator has none. It also keeps a second
+  rule exception-free: the sovereign-act tier (`internal/entity/sovereign.go`)
+  is keyed on FSM *status* edges, its closed set pinned by
+  `TestSovereignActShapes_AllFSMLegal`. Gating a *data field* as sovereign would
+  make `tdd:` the first non-status entry, forcing a carve-out into that invariant.
+- **Governance lives at the check layer, not the verb.** aiwf's guarantees are
+  enforced by `aiwf check` + the pre-push hook + CI, not by verb-refusals
+  ("errors are findings, not parse failures"); a mutation verb records the change
+  with provenance, it is not a policy chokepoint. If scrutiny of a weaken-after-met
+  is ever wanted it arrives as a *symmetric advisory finding* (the shape of
+  `archive-sweep-pending`), never a directional verb gate — and YAGNI says don't
+  build even that until real friction demands it.
+- **The act stays traceable regardless.** Every `tdd:` commit carries
+  `aiwf-verb` / `aiwf-entity` / `aiwf-actor` (plus `aiwf-principal` and the scope
+  trailers for a non-human actor), so a weakening is auditable in `aiwf history`
+  whether or not the verb gates it. The open question was only whether to add
+  ceremony; for a data field the answer is no — trace it, don't gate it.
 
-### The friction has a deeper root than the missing verb — an over-strict check rule
+The undo of "set tdd required" is simply "set tdd advisory" — a plain self-inverse,
+not a governance-weighted one.
 
-Even with a perfect verb, the upgrade breaks the tree today. ACs added under an
-`advisory` milestone carry no `tdd_phase`; the moment the milestone becomes
-`required`, `internal/check/acs.go` (~line 153, `ac.TDDPhase == "" && tddRequired`)
-errors `acs-shape/tdd-phase` on **every** phaseless AC, regardless of status. The
-phase enum is `red|green|refactor|done`, with no "not started" member — so the
-only way to clear the tree is to seed untouched ACs to `red`, which *lies*
-(`red` means "failing test written").
+### The check-rule half has landed; a residual remains for the verb
 
-But the design commits (CLAUDE.md #8) only to **"AC `met` requires
-`tdd_phase: done`"** — not to "every AC has a phase." So `acs.go:153` is
-**stricter than the commitment**; it over-demands. The cleaner fix is therefore
-two-part, and the check half may matter more than the verb:
+Part of this gap's friction was rooted below the missing verb, in an over-strict
+check rule: `internal/check/acs.go` used to error `acs-shape/tdd-phase` on **every**
+phaseless AC once a milestone was `required`, regardless of status — stricter than
+the design commitment (CLAUDE.md #8 promises only "AC `met` requires
+`tdd_phase: done`", not "every AC has a phase"). **G-0286 relaxed it**: an absent
+phase is now legal until an AC is `met`, so `advisory → required` no longer reddens
+not-yet-started ACs and the real gate (met → done) is untouched.
 
-- **Relax `acs-shape/tdd-phase`** so an absent phase is legal until an AC is `met`
-  (absent = "not started"). Then `advisory → required` is non-disruptive, the
-  verb's "auto-seed to `red` vs refuse" question *evaporates*, and the real gate
-  (met → done) is untouched — bringing the check back in line with #8.
-- **Add the verb** for the trailered policy flip.
-
-If the strict reading is instead kept deliberately (`required` means "every AC is
-phase-tracked from creation"), the verb must **refuse with an actionable hint**
-naming the ACs to seed — never auto-seed to `red`, which manufactures false state.
+One residual survives, and it shapes the verb. An AC already at `met` with no phase
+is a *warning* under `advisory` but a hard *error* under `required` — so flipping a
+milestone that has an already-met, phaseless AC still escalates to an error. The
+phase enum (`red|green|refactor|done`) has no "not started" member, so the honest
+fix is not to auto-seed (seeding `red` or `done` on an untouched-or-already-passed
+AC manufactures false state). The `tdd:` verb must instead **refuse with an
+actionable hint** naming the offending met-phaseless ACs, leaving the operator to
+resolve each deliberately.
 
 ### Prerequisites for closing (the rest of today's verb-surface cluster)
 
