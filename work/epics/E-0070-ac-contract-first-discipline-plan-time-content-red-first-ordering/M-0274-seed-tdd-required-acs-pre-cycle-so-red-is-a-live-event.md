@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: wf-tdd-cycle makes the empty-to-red promote a live mandatory step
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: The --tests flag at add time is reconciled with pre-cycle seeding
       status: met
