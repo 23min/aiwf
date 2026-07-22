@@ -23,13 +23,13 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - Use the project's test framework. Don't introduce a new one mid-cycle.
 - Mock or stub external dependencies (network, clock, filesystem if the test isn't about the filesystem). Tests must be deterministic.
 - Run the tests. Confirm they **fail for the right reason** — the test reaches the assertion and the assertion is the thing that fails. A test that errors on import or fails on a typo isn't red yet.
-- If the project uses aiwf and the milestone is `tdd: required`, advance the AC's TDD phase to `red`:
+- If the project uses aiwf and the milestone is `tdd: required`, advance the AC's TDD phase to `red` — a live, mandatory step, run the moment the failing test is written and shown to fail:
 
   ```bash
   aiwf promote M-NNN/AC-<N> --phase red
   ```
 
-  When `aiwf add ac` was called against a `tdd: required` milestone, the AC was already seeded at `red`; **skip this step** in that case — re-running it is redundant. The FSM *refuses* `red → red`, and a refusal is an error you would have to work around, not a silent no-op, so don't re-run it expecting nothing to happen.
+  This `"" → red` promote is the event that records "a failing test now exists," so it must fire live, as it happens — the `aiwf history` timeline is what shows the test came before the code. A freshly-added AC rests at the pre-cycle empty phase, so the transition is always available; never skip it, defer it, or back-stamp it later.
 
 ### GREEN — Make it pass with the minimum code
 

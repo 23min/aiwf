@@ -75,24 +75,19 @@ func TestWfTddCycle_RecordFollowsEvidence(t *testing.T) {
 	}
 }
 
-// TestWfTddCycle_RedRedundantAndForceSovereign pins AC-2 (G-0297): the RED
-// phase-seed names re-running "redundant" not "idempotent", and the RECORD
-// --force note is framed as a human-only sovereign act that bypasses the
-// TDD audit.
-func TestWfTddCycle_RedRedundantAndForceSovereign(t *testing.T) {
+// TestWfTddCycle_ForceSovereign pins the RECORD --force note (G-0297): it is
+// framed as a human-only sovereign act, and states that --force gives no
+// `--force met` shortcut past the acs-tdd-audit — force relaxes only the FSM
+// transition check, not the projection audit.
+//
+// The RED phase-seed half of the original G-0297 assertion (re-running the
+// seed is "redundant", not "idempotent") is retired: M-0274/AC-4 makes the
+// "" → red promote a live, mandatory step rather than a skippable redundant
+// re-run, so TestM0274_TddCycleRedPromoteIsLiveMandatory now pins the RED
+// step instead.
+func TestWfTddCycle_ForceSovereign(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, wfTddCycleFixturePath)
-
-	red := sectionUnder(body, "RED — Write")
-	if red == "" {
-		t.Fatal("wf-tdd-cycle has no 'RED — Write ...' section")
-	}
-	if strings.Contains(red, "idempotent") {
-		t.Error("RED section still calls the phase-seed re-run \"idempotent\"; a step the FSM refuses errors on re-run — it is redundant, not idempotent (G-0297)")
-	}
-	if !strings.Contains(red, "redundant") {
-		t.Error("RED section should describe the redundant phase-seed re-run (the FSM refuses red -> red, so skip it) (G-0297)")
-	}
 
 	record := sectionUnder(body, "RECORD")
 	if record == "" {
