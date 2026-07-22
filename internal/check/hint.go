@@ -77,6 +77,7 @@ var hintTable = map[string]string{
 	// doc-link, not a real id.
 	"skill-body-id":              "a shipped surface cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description (or cite a design/ADR doc as a markdown link, so the id rides in the destination while the visible text stays descriptive), then re-run `aiwf check`",
 	"no-cycles/depends_on":       "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it)",
+	"depends-on-cancelled":       "retarget the dependency via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it), or cancel the dependent milestone too if it's no longer needed",
 	"no-cycles/supersedes":       "break the loop in the supersedes/superseded_by chain — inspect it with `aiwf history ADR-NNNN`, correct the errant `supersedes:`/`superseded_by:` frontmatter entry by hand, then re-run `aiwf check`",
 	"titles-nonempty":            "set a non-empty title via `aiwf retitle <id> \"...\"`",
 	"adr-supersession-mutual":    "record the supersession through the verb so both sides stay in sync: `aiwf promote ADR-NNNN superseded --superseded-by ADR-MMMM` writes the reciprocal `supersedes:` automatically",

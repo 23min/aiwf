@@ -119,6 +119,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, priorityNotApplicable(t)...)
 	findings = append(findings, refsResolve(t)...)
 	findings = append(findings, noCycles(t)...)
+	findings = append(findings, dependsOnCancelled(t)...)
 	findings = append(findings, titlesNonempty(t)...)
 	findings = append(findings, adrSupersessionMutual(t)...)
 	findings = append(findings, gapAddressedHasResolver(t)...)
