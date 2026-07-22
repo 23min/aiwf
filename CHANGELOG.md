@@ -16,6 +16,13 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — m0127 docs/pocv3 policy allowlist
+
+Internal test-only change: `G-0439`, whose root-cause narrative legitimately
+names the historical `docs/pocv3/` path it documents as dangling, is now on the
+`TestM0127_AC3` allowlist so the dangling-reference scan passes. No user-facing
+behavior changed.
+
 ## [0.28.0] — 2026-07-22
 
 ### Added — G-0437: `aiwf check` flags depends_on edges pointing at cancelled milestones

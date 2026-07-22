@@ -102,6 +102,13 @@ var m0127Pocv3AllowlistPaths = map[string]string{
 	// relocation from docs/pocv3/design/ to explain why one of its two
 	// stale cmd/aiwf/ citations pre-dates that move.
 	"work/gaps/G-0436-claude-md-and-id-allocation-md-cite-stale-cmd-aiwf-paths-for-relocated-verbs.md": "narrates a relocated file's docs/pocv3/design/ origin to explain a pre-existing citation's staleness",
+
+	// A gap documenting a dangling docs/pocv3/ reference E-0034's
+	// relocation left in CHANGELOG.md; its root-cause narrative names
+	// the old path verbatim to contrast it with the correct
+	// post-relocation path — descriptive prose about the bug, not a
+	// live pointer.
+	"work/gaps/G-0439-doc-relocation-sweeps-e-g-e-0034-skip-changelog-md-cross-references.md": "root-cause narrative names the historical docs/pocv3/ path it documents as dangling, not a live reference",
 }
 
 // TestM0127_AC3_NoDanglingDocsPocv3References is the mechanical
