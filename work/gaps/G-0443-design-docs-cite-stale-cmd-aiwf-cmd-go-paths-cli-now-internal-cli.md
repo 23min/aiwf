@@ -1,9 +1,11 @@
 ---
 id: G-0443
 title: Design docs cite stale cmd/aiwf/*_cmd.go paths (CLI now internal/cli)
-status: open
+status: addressed
 priority: high
 discovered_in: M-0274
+addressed_by_commit:
+    - 03127efe
 ---
 ## What's missing
 
