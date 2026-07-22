@@ -30,24 +30,6 @@ guard must attach to. Full rationale in D-0047.
 
 ## Acceptance criteria
 
-<!-- Prose shape; formalized via `aiwf add ac` at aiwfx-start-milestone.
-     Each is observable behavior with a mechanical assertion. -->
-
-1. `aiwf add ac` against a `tdd: required` milestone leaves the new AC's
-   `tdd_phase` empty (`""`), not `red` — verb-level test over the resulting
-   frontmatter `acs[]`.
-2. From that seeded state, `aiwf promote <M>/AC-<N> --phase red` succeeds as a
-   live `"" -> red` transition — verb/integration test.
-3. A `tdd: required` milestone whose ACs rest at `""` through `draft` and
-   `in_progress` raises no `acs-shape`/`acs-tdd-audit` finding — check-level
-   test.
-4. `wf-tdd-cycle` no longer instructs skipping the red promote; the `"" -> red`
-   promote is a live, mandatory RED step — structural policy test under
-   `internal/policies/` (skill-edit backstop).
-5. The `--tests`-at-`add` flag (`internal/verb/ac.go:106-108`, "only valid
-   when seeding red") is reconciled with pre-cycle seeding — moved to the red
-   promote or removed — with the chosen behavior pinned by a verb-level test.
-
 ## Constraints
 
 - `red` must mean "a failing test exists" — no state may be auto-assigned that
