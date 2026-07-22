@@ -163,3 +163,14 @@ test metrics are recorded only at the live red promote
 (`aiwf promote --phase red --tests`, already supported). Pinned by
 `TestNewCmd_AC_NoTestsFlag`. Shares AC-1's commit — removing born-red is what
 orphans the flag, so the two are one coherent change. · commit 46061419
+
+### AC-2 — A live empty-to-red phase promote succeeds from the seeded state
+
+Pinned at the CLI seam by `TestPromoteACPhaseRed_LiveEmptyToRedUnderTDDRequired`
+(`internal/cli/integration/`): the real `aiwf add ac` seeds a `tdd: required`
+AC at the empty phase, then `aiwf promote --phase red` fires the live
+`"" → red` transition — exit 0, AC rests at red — the event the M-0276 ordering
+gate attaches to. No production change: AC-1's seeding fix plus the existing
+phase FSM already make it work, so this is a regression pin, its three
+assertions (seeded empty, promote exits 0, rests at red) each confirmed
+non-vacuous by targeted mutation. · commit cc38dcc5
