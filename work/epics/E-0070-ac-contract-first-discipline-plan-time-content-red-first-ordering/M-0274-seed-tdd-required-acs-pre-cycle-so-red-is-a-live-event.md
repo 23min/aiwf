@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: wf-tdd-cycle makes the empty-to-red promote a live mandatory step
