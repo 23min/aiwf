@@ -4,6 +4,27 @@ title: Seed tdd:required ACs pre-cycle so red is a live event
 status: draft
 parent: E-0070
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf add ac seeds ACs at the pre-cycle empty phase, not red
+      status: open
+      tdd_phase: red
+    - id: AC-2
+      title: A live empty-to-red phase promote succeeds from the seeded state
+      status: open
+      tdd_phase: red
+    - id: AC-3
+      title: Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+      status: open
+      tdd_phase: red
+    - id: AC-4
+      title: wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+      status: open
+      tdd_phase: red
+    - id: AC-5
+      title: The --tests flag at add time is reconciled with pre-cycle seeding
+      status: open
+      tdd_phase: red
 ---
 
 # M-0274 — Seed tdd:required ACs pre-cycle so red is a live event
@@ -29,6 +50,65 @@ event marks "the test now fails," which is the event any red-first ordering
 guard must attach to. Full rationale in D-0047.
 
 ## Acceptance criteria
+
+### AC-1 — aiwf add ac seeds ACs at the pre-cycle empty phase, not red
+
+`aiwf add ac <M>` against a `tdd: required` milestone seeds the new AC at the
+pre-cycle empty phase (`tdd_phase: ""`), not `red`. `red` means "a failing test
+exists"; a freshly-added AC has written no test yet, so its honest resting phase
+is absent. The failing test is recorded later, by a live
+`aiwf promote <M>/AC-<N> --phase red`.
+
+Mechanical evidence: a verb-level test adds an AC under a `tdd: required`
+milestone and asserts the resulting frontmatter `acs[]` entry carries an empty
+`tdd_phase`.
+
+### AC-2 — A live empty-to-red phase promote succeeds from the seeded state
+
+From an AC seeded at the empty phase, `aiwf promote <M>/AC-<N> --phase red`
+succeeds as a live `"" -> red` transition — the event that means "a failing test
+has been written and shown to fail." Before this milestone the AC was born at
+`red`, so this transition could never fire: the phase FSM refuses `red -> red`.
+
+Mechanical evidence: a verb/integration test seeds an AC at the empty phase, runs
+the `--phase red` promote, and asserts the transition succeeds with the AC then
+resting at `red`.
+
+### AC-3 — Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+
+A `tdd: required` milestone whose ACs rest at the empty phase through both
+`draft` and `in_progress` raises no `acs-shape` or `acs-tdd-audit` finding — an
+absent phase is legal until the AC is promoted to `met`. This is the check-layer
+behavior G-0286 already ratified; this milestone makes the seeder agree with it
+rather than contradict it.
+
+Mechanical evidence: a check-level test builds a `tdd: required` milestone with
+empty-phase ACs, once in `draft` and once in `in_progress`, runs `aiwf check`,
+and asserts neither `acs-shape` nor `acs-tdd-audit` fires.
+
+### AC-4 — wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+
+The `wf-tdd-cycle` ritual no longer instructs the operator to skip the red
+promote for `tdd: required` ACs. It names the `"" -> red` promote as a live,
+mandatory RED step, run the moment the failing test is written and shown to
+fail.
+
+Mechanical evidence: a structural policy test under `internal/policies/` asserts
+the embedded `wf-tdd-cycle` `SKILL.md` drives a live `--phase red` promote and
+no longer carries "skip the red promote" guidance — the skill-edit
+structural-test backstop.
+
+### AC-5 — The --tests flag at add time is reconciled with pre-cycle seeding
+
+The `--tests` flag on `aiwf add ac` (previously "only valid when seeding red")
+is reconciled with pre-cycle seeding: because ACs are no longer born at `red`,
+the flag's home moves to the `--phase red` promote or the flag is removed
+outright. The chosen resolution is pinned by a verb-level test so it cannot
+silently regress.
+
+Mechanical evidence: a verb-level test exercises the reconciled behavior (test
+metrics accepted at the `--phase red` promote, or the flag's removal refused at
+`add`) and asserts the outcome.
 
 ## Constraints
 
