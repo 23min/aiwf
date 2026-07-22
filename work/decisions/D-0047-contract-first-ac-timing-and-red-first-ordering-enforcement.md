@@ -6,6 +6,10 @@ relates_to:
     - G-0252
     - G-0440
 ---
+# D-0047 — Contract-first AC timing and red-first ordering enforcement
+
+> **Date:** 2026-07-22 · **Decided by:** human/peter
+
 ## Question
 
 G-0252 sketched three red-first-ordering mechanisms — running the test suite
