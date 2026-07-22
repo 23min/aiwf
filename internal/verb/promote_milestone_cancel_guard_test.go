@@ -19,7 +19,7 @@ func TestPromote_MilestoneCancelledWithOpenAC_Refuses(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 
 	res, err := verb.Promote(r.ctx, r.tree(), "M-0001", "cancelled", testActor, "", false, verb.PromoteOptions{})
 	if err == nil {
@@ -44,9 +44,9 @@ func TestPromote_MilestoneCancelledWithMultipleOpenACs_ListsAll(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Second criterion", testActor, nil))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Third criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Second criterion", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Third criterion", testActor))
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-2", "cancelled", testActor, "", false, verb.PromoteOptions{}))
 
 	res, err := verb.Promote(r.ctx, r.tree(), "M-0001", "cancelled", testActor, "", false, verb.PromoteOptions{})
@@ -88,7 +88,7 @@ func TestPromote_MilestoneCancelledWithNoOpenACs_Succeeds(t *testing.T) {
 		r := newRunner(t)
 		r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 		r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-		r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+		r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 		r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "cancelled", testActor, "", false, verb.PromoteOptions{}))
 
 		r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "cancelled", testActor, "", false, verb.PromoteOptions{}))
@@ -109,7 +109,7 @@ func TestPromote_MilestoneCancelledForce_DoesNotBypassOpenACGuard(t *testing.T) 
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 
 	res, err := verb.Promote(r.ctx, r.tree(), "M-0001", "cancelled", testActor, "forcing through for the test", true, verb.PromoteOptions{})
 	if err == nil {
@@ -133,7 +133,7 @@ func TestPromote_MilestoneToInProgressWithOpenAC_Succeeds(t *testing.T) {
 	// M-0268/AC-4: an empty AC body now surfaces a check-time error on
 	// an in_progress milestone; give this AC real prose so the test
 	// exercises the open-AC-doesn't-block transition, not that finding.
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"First criterion"}, [][]byte{[]byte("Real prose.")}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"First criterion"}, [][]byte{[]byte("Real prose.")}, testActor))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
 
 	// G-0269's activating-promote branch guard is out of scope for this

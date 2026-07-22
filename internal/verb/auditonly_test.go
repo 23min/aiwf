@@ -226,7 +226,7 @@ func TestPromoteACAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "actually done", false, verb.PromoteOptions{}))
 
 	res, err := verb.PromoteAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "backfill")
@@ -258,7 +258,7 @@ func TestPromoteACPhaseAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 	// AC starts with tdd_phase="" (the milestone is not tdd: required).
 	// Phase audit-only against "" isn't allowed (entry state); flip
 	// to red via normal promote first, then audit-only against red.
@@ -286,7 +286,7 @@ func TestPromoteACPhaseAuditOnly_RefusesUnknownPhase(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 
 	_, err := verb.PromoteACPhaseAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", "Refactoring", testActor, "wrong case")
 	if err == nil || !strings.Contains(err.Error(), "not a recognized tdd_phase") {
@@ -304,7 +304,7 @@ func TestCancelACAuditOnly_HappyPath(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Engine", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache warmup", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
 
 	res, err := verb.CancelAuditOnly(r.ctx, r.tree(), "M-0001/AC-1", testActor, "backfill")

@@ -420,7 +420,7 @@ func seedACIfMilestoneActivating(t *testing.T, f *cellcoverage.CellFixture, tc p
 	if tc.rule.Kind != entity.KindMilestone || tc.target != entity.StatusInProgress {
 		return
 	}
-	f.Must(verb.AddACBatch(context.Background(), f.Tree(), id, []string{"Cell-coverage AC"}, [][]byte{[]byte("Real prose.")}, "human/test", nil))
+	f.Must(verb.AddACBatch(context.Background(), f.Tree(), id, []string{"Cell-coverage AC"}, [][]byte{[]byte("Real prose.")}, "human/test"))
 }
 
 func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string) string {
@@ -433,7 +433,7 @@ func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string
 		f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 		f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "TDD Milestone (none)", "human/test", verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 		f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
-		f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test", nil))
+		f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test"))
 		return "M-0001/AC-1"
 	}
 	// red/green/refactor: AC under tdd:required milestone, advance phases.
@@ -441,20 +441,20 @@ func bringTDDPhaseAC(t *testing.T, f *cellcoverage.CellFixture, fromPhase string
 	f.Must(verb.Promote(ctx, f.Tree(), "E-0001", entity.StatusActive, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(ctx, f.Tree(), entity.KindMilestone, "TDD Milestone", "human/test", verb.AddOptions{EpicID: "E-0001", TDD: "required"}))
 	f.Must(verb.Promote(ctx, f.Tree(), "M-0001", entity.StatusInProgress, "human/test", "fixture-setup", true, verb.PromoteOptions{}))
-	f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test", nil))
+	f.Must(verb.AddAC(ctx, f.Tree(), "M-0001", "TDD-phase AC", "human/test"))
 	acID := "M-0001/AC-1"
-	// AC starts at red under tdd:required. Walk to fromPhase via
-	// PromoteACPhase.
-	advanceTo := []string{}
+	// AC starts at the pre-cycle empty phase, even under tdd:required.
+	// Walk "" -> red -> ... to fromPhase via PromoteACPhase.
+	var advanceTo []string
 	switch fromPhase {
 	case entity.TDDPhaseRed:
-		// already there
+		advanceTo = []string{entity.TDDPhaseRed}
 	case entity.TDDPhaseGreen:
-		advanceTo = []string{entity.TDDPhaseGreen}
+		advanceTo = []string{entity.TDDPhaseRed, entity.TDDPhaseGreen}
 	case entity.TDDPhaseRefactor:
-		advanceTo = []string{entity.TDDPhaseGreen, entity.TDDPhaseRefactor}
+		advanceTo = []string{entity.TDDPhaseRed, entity.TDDPhaseGreen, entity.TDDPhaseRefactor}
 	case entity.TDDPhaseDone:
-		advanceTo = []string{entity.TDDPhaseGreen, entity.TDDPhaseDone}
+		advanceTo = []string{entity.TDDPhaseRed, entity.TDDPhaseGreen, entity.TDDPhaseDone}
 	default:
 		t.Fatalf("bringTDDPhaseAC: unsupported fromPhase %q", fromPhase)
 	}

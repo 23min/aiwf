@@ -428,6 +428,46 @@ func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
 	}
 }
 
+// TestCheckRun_EmptyPhaseACsRaiseNoShapeOrTDDAudit pins M-0274/AC-3: a
+// tdd: required milestone whose ACs rest at the pre-cycle empty phase
+// raises neither acs-shape nor acs-tdd-audit, in both draft and
+// in_progress. An absent phase is legal until an AC is promoted to met
+// (G-0286) — the check-layer tolerance the M-0274 seeding fix depends on.
+// Asserted at the aggregate seam (Run) rather than on the two rule
+// functions in isolation, and across the milestone's whole pre-met
+// lifecycle, so a future rule that grew a status branch could not silently
+// start flagging the honest empty phase.
+func TestCheckRun_EmptyPhaseACsRaiseNoShapeOrTDDAudit(t *testing.T) {
+	t.Parallel()
+	for _, status := range []string{"draft", "in_progress"} {
+		t.Run(status, func(t *testing.T) {
+			t.Parallel()
+			tr := makeTree(
+				&entity.Entity{
+					ID: "E-0001", Kind: entity.KindEpic, Title: "Foundations",
+					Status: "active", Path: "work/epics/E-0001-foundations/epic.md",
+				},
+				&entity.Entity{
+					ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+					Status: status, Parent: "E-0001", TDD: "required",
+					Path: "work/epics/E-0001-foundations/M-0007-foo.md",
+					ACs: []entity.AcceptanceCriterion{
+						{ID: "AC-1", Title: "First", Status: "open"},  // pre-cycle empty phase
+						{ID: "AC-2", Title: "Second", Status: "open"}, // pre-cycle empty phase
+					},
+				},
+			)
+			got := Run(tr, nil)
+			if f := findingByCode(got, CodeACsShape, ""); f != nil {
+				t.Errorf("empty-phase ACs under %s must not fire acs-shape, got: %+v", status, f)
+			}
+			if f := findingByCode(got, CodeACsTDDAudit, ""); f != nil {
+				t.Errorf("empty-phase ACs under %s must not fire acs-tdd-audit, got: %+v", status, f)
+			}
+		})
+	}
+}
+
 func TestMilestoneDoneIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{

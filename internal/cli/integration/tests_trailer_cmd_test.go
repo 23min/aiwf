@@ -80,44 +80,6 @@ func TestRun_PromotePhase_TestsRejectsBadInput(t *testing.T) {
 	}
 }
 
-// TestRun_AddACWithTestsFlag: --tests on add ac under tdd: required
-// lands the trailer; on a non-tdd-required parent the dispatcher
-// surfaces the verb's refusal as a non-zero exit.
-func TestRun_AddACWithTestsFlag(t *testing.T) {
-	t.Parallel()
-	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-	mustRun(t, "add", "epic", "--title", "F", "--actor", "human/test", "--root", root)
-	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-0001", "--title", "Required", "--actor", "human/test", "--root", root)
-
-	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine",
-		"--tests", "pass=0 fail=1 skip=0")
-
-	trailers, err := gitops.HeadTrailers(context.Background(), root)
-	if err != nil {
-		t.Fatalf("HeadTrailers: %v", err)
-	}
-	var sawTests bool
-	for _, tr := range trailers {
-		if tr.Key == "aiwf-tests" && tr.Value == "pass=0 fail=1 skip=0" {
-			sawTests = true
-		}
-	}
-	if !sawTests {
-		t.Errorf("expected aiwf-tests trailer on add-ac under tdd: required; got %+v", trailers)
-	}
-
-	// Non-tdd milestone: --tests must fail.
-	mustRun(t, "add", "milestone", "--tdd", "none", "--epic", "E-0001", "--title", "Optional", "--actor", "human/test", "--root", root)
-	rc := cli.Execute([]string{
-		"add", "ac", "--actor", "human/test", "--root", root,
-		"M-0002", "--title", "Pointless", "--tests", "pass=1",
-	})
-	if rc == cliutil.ExitOK {
-		t.Error("--tests on non-tdd milestone should fail; got cliutil.ExitOK")
-	}
-}
-
 // TestRun_PromoteStatusModeRejectsTests: --tests is only meaningful
 // in phase mode; passing it with a positional new-status (status
 // mode) is a usage error.

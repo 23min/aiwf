@@ -96,7 +96,7 @@ func TestRetitle_CompositeAC_RewritesNoLinkDestinations(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache layer", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 
 	milestone := r.tree().ByID("M-0001")
 	if milestone == nil {
