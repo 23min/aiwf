@@ -66,7 +66,7 @@ The simplest mental check: if you removed the identity from the query and only k
 
 **Sweep findings.**
 
-The sweep walked CLI help and error messages, the eight embedded skills under `internal/skills/embedded/`, commit-message generators (`internal/verb/*.go`, `cmd/aiwf/render_cmd.go`), trailer keys, and `docs/`. Two findings:
+The sweep walked CLI help and error messages, the eight embedded skills under `internal/skills/embedded/`, commit-message generators (`internal/verb/*.go`, `internal/cli/render/render.go`), trailer keys, and `docs/`. Two findings:
 
 1. **Top-level "verb" vs "subcommand" inconsistency** — `cmd/aiwf/main.go`'s help text uses "verb" (entrenched via the `aiwf-verb:` trailer key, `CLAUDE.md`, and `design-decisions.md`); the dispatcher's "missing"/"unknown" error messages had drifted to substrate "subcommand." Fixed: error messages aligned to "verb" at the top level. Second-level error messages under multi-word verbs (`aiwf render`, `aiwf contract`) keep "subcommand" — accurate within a composite verb.
 
