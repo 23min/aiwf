@@ -186,3 +186,17 @@ rather than the two rule functions in isolation. Both assertions were
 confirmed non-vacuous by targeted mutation (drop the empty-phase guard in
 `acsShape`; drop the met-status guard in `acsTDDAudit`), each in both
 statuses. · commit 954e7945
+
+### AC-4 — wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+
+Rewrote the `wf-tdd-cycle` RED step in the embedded ritual source
+(`internal/skills/embedded-rituals/.../wf-tdd-cycle/SKILL.md`): dropped the
+born-red "skip this step / redundant re-run" guidance and named the
+`"" → red` promote a live, mandatory step run the moment the failing test
+is written and shown to fail. A genuine red→green cycle — the new
+structural pin `TestM0274_TddCycleRedPromoteIsLiveMandatory` fails on the
+stale skill and passes on the rewrite. The G-0297 test's now-obsolete
+RED-redundant half is retired (renamed `TestWfTddCycle_ForceSovereign`,
+keeping its orthogonal RECORD `--force` half), with the honesty guard
+against mislabeling the re-run "idempotent" carried into the new
+pin. · commit 8ed32559
