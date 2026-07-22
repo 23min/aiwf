@@ -23,7 +23,7 @@ acs:
       tdd_phase: red
     - id: AC-5
       title: The --tests flag at add time is reconciled with pre-cycle seeding
-      status: open
+      status: met
       tdd_phase: done
 ---
 
