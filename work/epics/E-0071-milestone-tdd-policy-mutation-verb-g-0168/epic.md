@@ -90,7 +90,7 @@ legal until an AC is `met`).
 
 ## Milestones
 
-- `M-NNNN` — the `aiwf milestone tdd` verb: mutation + policy validation +
+- `M-0277` — the `aiwf milestone tdd` verb: mutation + policy validation +
   uniform-ordinary gating + refuse-with-hint + discoverability. · depends on: —
 
 ## References
