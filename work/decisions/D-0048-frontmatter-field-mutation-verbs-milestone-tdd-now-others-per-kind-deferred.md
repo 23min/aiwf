@@ -1,7 +1,7 @@
 ---
 id: D-0048
 title: 'Frontmatter-field mutation verbs: milestone tdd now, others per-kind, deferred'
-status: proposed
+status: accepted
 relates_to:
     - G-0168
     - G-0442
