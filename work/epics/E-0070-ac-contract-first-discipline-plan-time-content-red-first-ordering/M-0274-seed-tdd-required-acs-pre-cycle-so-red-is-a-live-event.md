@@ -174,3 +174,15 @@ gate attaches to. No production change: AC-1's seeding fix plus the existing
 phase FSM already make it work, so this is a regression pin, its three
 assertions (seeded empty, promote exits 0, rests at red) each confirmed
 non-vacuous by targeted mutation. · commit cc38dcc5
+
+### AC-3 — Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+
+Pinned by `TestCheckRun_EmptyPhaseACsRaiseNoShapeOrTDDAudit`
+(`internal/check/`): a `tdd: required` milestone whose open ACs rest at the
+empty phase stays clean of both `acs-shape` and `acs-tdd-audit` through the
+full `check.Run` aggregate, across `draft` and `in_progress`. No production
+change — this is G-0286's check-layer tolerance, asserted at the aggregate
+rather than the two rule functions in isolation. Both assertions were
+confirmed non-vacuous by targeted mutation (drop the empty-phase guard in
+`acsShape`; drop the met-status guard in `acsTDDAudit`), each in both
+statuses. · commit 954e7945
