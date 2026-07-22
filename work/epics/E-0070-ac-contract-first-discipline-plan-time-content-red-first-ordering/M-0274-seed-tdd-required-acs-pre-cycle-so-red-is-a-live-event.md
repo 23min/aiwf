@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A live empty-to-red phase promote succeeds from the seeded state
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
       status: open
