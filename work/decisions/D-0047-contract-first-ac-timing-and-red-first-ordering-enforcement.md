@@ -1,7 +1,7 @@
 ---
 id: D-0047
 title: Contract-first AC timing and red-first ordering enforcement
-status: proposed
+status: accepted
 relates_to:
     - G-0252
     - G-0440
