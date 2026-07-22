@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: aiwf add ac seeds ACs at the pre-cycle empty phase, not red
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: A live empty-to-red phase promote succeeds from the seeded state
