@@ -266,3 +266,11 @@ each land under `--force`. Test-only — the force-bypass already existed, so th
 RED was mutation-confirmed (flipping `!force`→`true` fails both arms); the
 human-only property is the existing `CoherenceRuleForceNonHuman`. · commit
 99bd380e · tests: `TestPromoteACPhase_ForceBypassesDiffShapeGate` (red / green).
+
+### AC-6 — planning-file exclusion
+
+Added `isPlanningPath` and a `continue` in the classify loop so `work/**` and
+`docs/**` paths (planning/entity + docs, including the verb's own frontmatter
+write) are excluded from the dirty universe — a legitimate red promote beside
+dirty planning prose no longer self-refuses. · commit 77b1a604 · tests:
+`TestPromoteACPhase_RedGate_ExcludesPlanningPaths` (docs-path / work-path).
