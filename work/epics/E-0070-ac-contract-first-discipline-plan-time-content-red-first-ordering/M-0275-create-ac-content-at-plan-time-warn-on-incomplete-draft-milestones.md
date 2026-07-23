@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
