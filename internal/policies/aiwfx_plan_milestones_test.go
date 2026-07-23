@@ -348,3 +348,41 @@ func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
 		t.Error("G-0079: skill must explicitly warn against hand-editing `depends_on:` so the verb-based path stays the default")
 	}
 }
+
+// TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275 pins M-0275/AC-4: the
+// plan-milestones workflow creates each milestone's acceptance criteria as AC
+// entities (`aiwf add ac`) and fills their bodies (`aiwf edit-body`) at plan
+// time, and does so before the merge-to-main step — so a milestone never lands
+// on main with zero ACs or empty AC bodies (the gap the
+// `milestone-draft-incomplete-acs` check surfaces on a draft milestone, closing
+// G-0440). Ordering is asserted content-driven (marker offsets within the
+// `## Workflow` section), so a reshuffle that keeps both actions still passes.
+func TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxPlanMilestonesFixture(t)
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("AC-4: skill must have a `## Workflow` section")
+	}
+
+	addACIdx := strings.Index(workflow, "aiwf add ac")
+	if addACIdx == -1 {
+		t.Fatal("AC-4: the workflow must create ACs at plan time via `aiwf add ac`")
+	}
+
+	// Body-fill co-located with AC creation: an `aiwf edit-body` call after the
+	// `aiwf add ac` instruction. The earlier edit-body (step 5) fills the
+	// milestone body; this later one fills the scaffolded `### AC-N` bodies.
+	if !strings.Contains(workflow[addACIdx:], "aiwf edit-body") {
+		t.Fatal("AC-4: the AC-creation step must fill each AC body via `aiwf edit-body`")
+	}
+
+	mergeIdx := strings.Index(workflow, "**Merge planning to main")
+	if mergeIdx == -1 {
+		t.Fatal("AC-4: the workflow must retain a merge-to-main step")
+	}
+
+	if addACIdx >= mergeIdx {
+		t.Errorf("AC-4: `aiwf add ac` (offset %d) must precede the merge-to-main step (offset %d) so ACs exist before the milestone lands on main", addACIdx, mergeIdx)
+	}
+}
