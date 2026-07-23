@@ -34,7 +34,7 @@ acs:
     - id: AC-7
       title: wf-tdd-cycle documents the red/green diff-shape gate semantics
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0276 — Gate red-first ordering via a working-tree diff-shape check
