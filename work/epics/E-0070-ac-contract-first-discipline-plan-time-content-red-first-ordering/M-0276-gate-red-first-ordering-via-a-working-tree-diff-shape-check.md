@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Test-path glob config surface with validation and schema registration
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: gitops helper lists working-tree paths dirty against HEAD
       status: open
