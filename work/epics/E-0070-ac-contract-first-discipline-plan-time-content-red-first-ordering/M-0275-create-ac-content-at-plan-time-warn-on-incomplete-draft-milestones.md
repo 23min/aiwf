@@ -133,3 +133,25 @@ the fallback wording.
 - G-0440 — the gap this milestone closes.
 - D-0047 — Contract-first AC timing and red-first ordering enforcement.
 - G-0216 / D-0039 — the AC-completeness guard precedent this extends.
+
+## Work log
+
+### AC-1 — Draft milestone with zero ACs raises a warning-severity finding
+
+Added `milestoneDraftIncompleteACs` (finding `milestone-draft-incomplete-acs`,
+subcode `zero-acs`, warning severity) in `internal/check/acs.go`, wired into
+`check.Run` after `milestoneDoneIncompleteACs`. It fires for a non-archived
+`draft` milestone whose `acs[]` is empty and stays silent once the milestone has
+ACs; archive-scoped via `entity.IsArchivedPath`. The code carries a hint
+(`internal/check/hint.go`) and an `aiwf-check` SKILL.md doc row, satisfying the
+finding-code discoverability policies. Pinned by
+`TestCheckRun_DraftMilestoneZeroACsWarns` (`internal/check/`), whose three
+assertions — fires on a zero-AC draft, silent on a draft-with-ACs, silent on an
+archived zero-AC draft — walk the `check.Run` aggregate. A follow-on commit
+reconciled the finding's blast radius: the clean and verb-projection fixtures
+gained a genuine AC, the cmd/aiwf goldens
+(`internal/cli/integration/testdata/m0089/`) and the check-summary
+code-set/order/footer record the new output, and three stress scenarios
+(force-override-durability, concurrent-move, verb-sequence) added it to their
+expected-warnings baselines as a documented setup side effect. · commit 2dc06b98
+(blast-radius reconcile d8de2c99)
