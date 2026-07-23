@@ -209,3 +209,15 @@ asserting the gate semantics appear in the named section of the embedded
 - D-0047 — Contract-first AC timing and red-first ordering enforcement.
 - D-0038 — the boundary between mechanizable structural claims and review-time
   judgment this gate respects.
+
+## Work log
+
+### AC-1 — Test-path glob config surface
+
+Added `tdd.test_paths` ([]string) with Tier-1 glob validation routed through the
+`areamatch` SSOT (empty, whitespace-dirty, and malformed globs are hard load
+errors naming the entry) and a schema field-description registry entry; the key
+is documented in the `design-decisions.md` config table for
+discoverability. · commit 9de44c4f · tests:
+`TestConfig_TDDTestPaths_ParsesAndValidates` (5 cases) +
+`TestSchema_IncludesTDDTestPaths`.
