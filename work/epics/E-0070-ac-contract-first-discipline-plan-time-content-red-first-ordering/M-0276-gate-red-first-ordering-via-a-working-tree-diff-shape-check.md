@@ -78,9 +78,8 @@ test is any good stays a review-time judgment (`wf-vacuity`, `wf-review-code`).
 
 A config surface in `aiwf.yaml` names the glob set that classifies a path as a
 *test* path for the red/green diff-shape gate. It is a first-class key with a
-typed config field (parsed and defaulted), Tier-1 load-time validation that
-rejects a malformed glob with an operator-facing error, and tab-completion
-wiring.
+typed config field (parsed and defaulted) and Tier-1 load-time validation that
+rejects a malformed glob with an operator-facing error.
 
 The `areamatch` matcher is reused to evaluate the globs; only the glob set is
 new. The areas `paths:` config is deliberately *not* the classifier — a
@@ -88,7 +87,8 @@ separate key keeps test-classification independent of area assignment.
 
 **Mechanical assertion:** config parse/validation tests over a fixture
 `aiwf.yaml` (a valid set parses and round-trips; a malformed glob is rejected at
-Tier-1), plus the completion-drift test exercising the new key.
+Tier-1), plus the schema anti-drift test (`TestSchema_EveryFieldHasDescription`)
+forcing a registry description for the new `tdd.test_paths` key.
 
 ### AC-2 — gitops helper lists working-tree paths dirty against HEAD
 
