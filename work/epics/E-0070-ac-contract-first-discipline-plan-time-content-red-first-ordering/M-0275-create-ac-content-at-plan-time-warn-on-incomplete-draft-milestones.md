@@ -210,3 +210,17 @@ add ac` plus a co-located `aiwf edit-body` appear in `## Workflow` and precede
 the merge-to-main step; the file's existing path constant satisfies the
 skill-edit structural-test backstop. RED was genuine — the assertion failed
 against the unedited skill (no `aiwf add ac` in the workflow). · commit 2c946eb0
+
+### AC-5 — aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
+
+Reframed the embedded `aiwfx-start-milestone` preflight's AC bullet: instead of
+"confirm the spec has its ACs landed … if hand-written, add them now," it now
+states ACs are expected to already exist — created and body-filled at plan time
+by `aiwfx-plan-milestones` (AC-4) — demoting on-the-spot `aiwf add ac` to an
+explicit recovery fallback for a hand-written spec, and tying the empty-spec case
+to the `milestone-draft-incomplete-acs` warning. Pinned by
+`TestAiwfxStartMilestone_PreflightExpectsACsPreExist_M0275`
+(`internal/policies/`), heading-scoped to the preflight subsection: it asserts
+the plan-time reframe, the fallback framing, and the retained `aiwf add ac`
+recovery command. RED was genuine — the preflight carried neither "plan time"
+nor "fallback" framing before the edit. · commit 1ef79d50
