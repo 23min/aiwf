@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Draft milestone with zero ACs raises a warning-severity finding
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Draft milestone with an empty AC body raises the finding
       status: open
