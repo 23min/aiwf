@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Draft milestone with zero ACs raises a warning-severity finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Draft milestone with an empty AC body raises the finding
