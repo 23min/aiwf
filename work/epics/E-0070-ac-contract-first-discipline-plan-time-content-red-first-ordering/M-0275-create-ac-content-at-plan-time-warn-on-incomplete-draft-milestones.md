@@ -156,3 +156,22 @@ code-set/order/footer record the new output, and three stress scenarios
 (force-override-durability, concurrent-move, verb-sequence) added it to their
 expected-warnings baselines as a documented setup side effect. · commit 2dc06b98
 (blast-radius reconcile d8de2c99)
+
+### AC-2 — Draft milestone with an empty AC body raises the finding
+
+Extended `milestoneDraftIncompleteACs` so a draft milestone that has ACs no
+longer returns early: it reads the file, parses the AC body sections
+(`entity.ParseACSections`), and fires subcode `empty-body` (warning, keyed to
+the composite AC id) for any non-cancelled AC whose `### AC-N` body carries no
+non-heading prose — the draft-rung, warning-severity mirror of
+`acsEmptyBodyOnStart`'s in_progress/done error, sharing that rule's
+missing-heading / cancelled-AC / empty-id carve-outs. A subcode-specific hint
+points at `aiwf edit-body` (the AC exists; only its body is missing), and the
+`aiwf-check` SKILL.md row now documents both subcodes. Pinned by
+`TestCheckRun_DraftMilestoneEmptyACBodyWarns` (fires + warning severity +
+composite id) and `TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts` (the three
+skip branches); the fires path was confirmed non-vacuous by the live red→green
+transition and a targeted severity mutation. No blast radius outside
+`internal/check` — no fixture, golden, or stress baseline changed, since
+empty-body fires only on a draft milestone whose ACs have empty bodies, a shape
+none of them carry. · commit 1b28bb10
