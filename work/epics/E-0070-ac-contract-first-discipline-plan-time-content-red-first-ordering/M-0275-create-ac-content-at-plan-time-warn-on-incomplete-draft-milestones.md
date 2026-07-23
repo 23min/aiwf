@@ -1,7 +1,7 @@
 ---
 id: M-0275
 title: Create AC content at plan time; warn on incomplete draft milestones
-status: draft
+status: in_progress
 parent: E-0070
 tdd: required
 acs:
