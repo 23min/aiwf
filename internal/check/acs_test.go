@@ -973,6 +973,72 @@ func TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts(t *testing.T) {
 	}
 }
 
+// TestCheckRun_DraftMilestoneIncompleteACs_ArchiveScoped pins M-0275/AC-3: both
+// subcodes of milestone-draft-incomplete-acs are archive-scoped via the shared
+// entity.IsArchivedPath guard — an archived draft milestone stays silent whether
+// it has zero ACs (zero-acs) or an AC with an empty body (empty-body), matching
+// every sibling shape/health rule in this package. Each case first asserts the
+// active-tree twin fires, so an archive guard that over-reached (or a deleted
+// finding) could not make the archived-silent assertion pass vacuously.
+func TestCheckRun_DraftMilestoneIncompleteACs_ArchiveScoped(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		acsYAML string
+		acs     []entity.AcceptanceCriterion
+		body    string
+		subcode string
+	}{
+		{
+			name:    "zero-acs",
+			acsYAML: "",
+			acs:     nil,
+			body:    "## Acceptance criteria\n",
+			subcode: "zero-acs",
+		},
+		{
+			name:    "empty-body",
+			acsYAML: "acs:\n  - id: AC-1\n    title: First\n    status: open\n",
+			acs:     []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+			body:    "## Acceptance criteria\n\n### AC-1 — First\n",
+			subcode: "empty-body",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Active tree — the finding fires (non-vacuity guard).
+			activeRoot := t.TempDir()
+			activePath := "work/epics/E-0001-foundations/M-0007-foo.md"
+			writeMilestoneFile(t, activeRoot, activePath, "---\n"+
+				"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+				tc.acsYAML+"---\n\n"+tc.body)
+			active := &tree.Tree{Root: activeRoot, Entities: []*entity.Entity{{
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "draft", Parent: "E-0001", ACs: tc.acs, Path: activePath,
+			}}}
+			if f := findingByCode(Run(active, nil), CodeMilestoneDraftIncompleteACs, tc.subcode); f == nil {
+				t.Fatalf("AC-3: active-tree %s must fire so archive-scoping isn't asserted vacuously", tc.subcode)
+			}
+
+			// Archived tree — identical shape, silent (archive/ at the epics level).
+			archRoot := t.TempDir()
+			archPath := "work/epics/archive/E-0001-foundations/M-0009-foo.md"
+			writeMilestoneFile(t, archRoot, archPath, "---\n"+
+				"id: M-0009\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+				tc.acsYAML+"---\n\n"+tc.body)
+			archived := &tree.Tree{Root: archRoot, Entities: []*entity.Entity{{
+				ID: "M-0009", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "draft", Parent: "E-0001", ACs: tc.acs, Path: archPath,
+			}}}
+			if f := findingByCode(Run(archived, nil), CodeMilestoneDraftIncompleteACs, tc.subcode); f != nil {
+				t.Errorf("AC-3: archived %s must stay silent; got %+v", tc.subcode, f)
+			}
+		})
+	}
+}
+
 func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{
