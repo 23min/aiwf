@@ -20,6 +20,7 @@ const (
 	CodeACsTitleProse                   = "acs-title-prose"
 	CodeACsTDDAudit                     = "acs-tdd-audit"
 	CodeMilestoneDoneIncompleteACs      = "milestone-done-incomplete-acs"
+	CodeMilestoneDraftIncompleteACs     = "milestone-draft-incomplete-acs"
 	CodeMilestoneCancelledIncompleteACs = "milestone-cancelled-incomplete-acs"
 	CodeACsBodyCoherence                = "acs-body-coherence"
 	CodeMilestoneDoneZeroACs            = "milestone-done-zero-acs"
@@ -329,6 +330,87 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 			EntityID: e.ID,
 			Field:    "status",
 		})
+	}
+	return findings
+}
+
+// milestoneDraftIncompleteACs fires (warning) when a non-archived draft
+// milestone carries an incomplete AC contract, in two shapes: subcode zero-acs
+// when acs[] is empty (M-0275/AC-1), and subcode empty-body when acs[] is
+// populated but any AC's `### AC-N` body subsection carries no non-heading prose
+// (M-0275/AC-2). draft is a legitimate mid-planning state, so both surface the
+// missing-contract gap without blocking — the complement, at the draft rung, to
+// the draft->in_progress contract guard (acsEmptyBodyOnStart / M-0268) that
+// blocks one FSM stage later. Warning, never error, per D-0047 point 2 /
+// G-0440. Archive-scoped per ADR-0004 §"Check shape rules": an archived draft
+// milestone represents historical state, not active drift.
+func milestoneDraftIncompleteACs(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusDraft {
+			continue
+		}
+		if len(e.ACs) == 0 {
+			findings = append(findings, Finding{
+				Code:     CodeMilestoneDraftIncompleteACs,
+				Severity: SeverityWarning,
+				Subcode:  "zero-acs",
+				Message: fmt.Sprintf("draft milestone %s has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+					e.ID),
+				Path:     e.Path,
+				EntityID: e.ID,
+				Field:    "acs",
+			})
+			continue
+		}
+		// The milestone has ACs, but any AC whose `### AC-N` body subsection
+		// carries no non-heading prose is an incomplete contract too. Surface
+		// it one FSM stage earlier than acsEmptyBodyOnStart (which fires error
+		// at in_progress/done), as a warning, so plan-time review catches the
+		// empty body before the milestone lands on main. Same body-emptiness
+		// mechanism and the same missing-heading / cancelled-AC carve-outs as
+		// that rule (M-0275/AC-2).
+		fullPath := filepath.Join(t.Root, e.Path)
+		raw, err := os.ReadFile(fullPath)
+		if err != nil {
+			//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; the loader's own load-error finding already covers a vanished file
+			continue
+		}
+		_, body, ok := entity.Split(raw)
+		if !ok {
+			//coverage:ignore defensive: a file that round-tripped through the loader already has valid frontmatter delimiters
+			continue
+		}
+		sections := entity.ParseACSections(body)
+		for _, ac := range e.ACs {
+			if ac.ID == "" || ac.Status == entity.StatusCancelled {
+				continue
+			}
+			content, found := sections[ac.ID]
+			if !found {
+				continue
+			}
+			if !entity.ACSectionIsEmpty(content) {
+				continue
+			}
+			compositeID := e.ID + "/" + ac.ID
+			findings = append(findings, Finding{
+				Code:     CodeMilestoneDraftIncompleteACs,
+				Severity: SeverityWarning,
+				Subcode:  "empty-body",
+				Message: fmt.Sprintf("draft milestone %s has no body content under its `### %s` heading; fill the acceptance criterion at plan time (aiwf edit-body) so the contract is visible before the milestone lands on main",
+					compositeID, ac.ID),
+				Path:     e.Path,
+				EntityID: compositeID,
+				Field:    "acs",
+			})
+		}
 	}
 	return findings
 }

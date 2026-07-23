@@ -7,19 +7,24 @@ tdd: required
 acs:
     - id: AC-1
       title: Draft milestone with zero ACs raises a warning-severity finding
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: Draft milestone with an empty AC body raises the finding
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: The draft-AC finding is archive-scoped (silent on archived milestones)
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
-      status: open
+      status: met
+      tdd_phase: done
 ---
 
 # M-0275 — Create AC content at plan time; warn on incomplete draft milestones
@@ -132,3 +137,143 @@ the fallback wording.
 - G-0440 — the gap this milestone closes.
 - D-0047 — Contract-first AC timing and red-first ordering enforcement.
 - G-0216 / D-0039 — the AC-completeness guard precedent this extends.
+
+## Work log
+
+### AC-1 — Draft milestone with zero ACs raises a warning-severity finding
+
+Added `milestoneDraftIncompleteACs` (finding `milestone-draft-incomplete-acs`,
+subcode `zero-acs`, warning severity) in `internal/check/acs.go`, wired into
+`check.Run` after `milestoneDoneIncompleteACs`. It fires for a non-archived
+`draft` milestone whose `acs[]` is empty and stays silent once the milestone has
+ACs; archive-scoped via `entity.IsArchivedPath`. The code carries a hint
+(`internal/check/hint.go`) and an `aiwf-check` SKILL.md doc row, satisfying the
+finding-code discoverability policies. Pinned by
+`TestCheckRun_DraftMilestoneZeroACsWarns` (`internal/check/`), whose three
+assertions — fires on a zero-AC draft, silent on a draft-with-ACs, silent on an
+archived zero-AC draft — walk the `check.Run` aggregate. A follow-on commit
+reconciled the finding's blast radius: the clean and verb-projection fixtures
+gained a genuine AC, the cmd/aiwf goldens
+(`internal/cli/integration/testdata/m0089/`) and the check-summary
+code-set/order/footer record the new output, and three stress scenarios
+(force-override-durability, concurrent-move, verb-sequence) added it to their
+expected-warnings baselines as a documented setup side effect. · commit 2dc06b98
+(blast-radius reconcile d8de2c99)
+
+### AC-2 — Draft milestone with an empty AC body raises the finding
+
+Extended `milestoneDraftIncompleteACs` so a draft milestone that has ACs no
+longer returns early: it reads the file, parses the AC body sections
+(`entity.ParseACSections`), and fires subcode `empty-body` (warning, keyed to
+the composite AC id) for any non-cancelled AC whose `### AC-N` body carries no
+non-heading prose — the draft-rung, warning-severity mirror of
+`acsEmptyBodyOnStart`'s in_progress/done error, sharing that rule's
+missing-heading / cancelled-AC / empty-id carve-outs. A subcode-specific hint
+points at `aiwf edit-body` (the AC exists; only its body is missing), and the
+`aiwf-check` SKILL.md row now documents both subcodes. Pinned by
+`TestCheckRun_DraftMilestoneEmptyACBodyWarns` (fires + warning severity +
+composite id) and `TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts` (the three
+skip branches); the fires path was confirmed non-vacuous by the live red→green
+transition and a targeted severity mutation. The only cross-package ripple is
+one stress scenario — `concurrent-milestone-race` adds an AC via `aiwf add ac`
+with no body-fill on a milestone that can settle at `draft`, so its
+expected-warnings baseline gained the finding (commit 982155be); the
+check-package fixtures, the cmd/aiwf goldens, and the other stress scenarios were
+unaffected, since empty-body needs a draft milestone whose AC body is empty. ·
+commit 1b28bb10
+
+### AC-3 — The draft-AC finding is archive-scoped (silent on archived milestones)
+
+Pinned by `TestCheckRun_DraftMilestoneIncompleteACs_ArchiveScoped`
+(`internal/check/`): a table over both subcodes asserts each fires on an
+active-tree draft milestone (the non-vacuity guard) yet stays silent on the same
+shape under an archive path, exercising the shared `entity.IsArchivedPath` guard
+for `zero-acs` and `empty-body` together. No production change — the guard
+predates this AC (it has capped the rule since AC-1); AC-3 promotes
+archive-scoping from an incidental sub-assertion inside the AC-1/AC-2 tests to a
+first-class named property. RED was genuine: with the guard temporarily removed,
+both archived subcodes fired and both silent-assertions failed; restoring it (a
+byte-exact revert, empty acs.go diff) returned the test to green. · commit
+191e1120
+
+### AC-4 — aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
+
+Folded AC-entity creation into the embedded `aiwfx-plan-milestones` step 5
+(authoring the milestone spec): the "Acceptance criteria" template bullet now
+redirects to a dedicated block that runs `aiwf add ac` per criterion and fills
+each scaffolded `### AC-N` body via `aiwf edit-body`, carrying the rationale that
+doing this before the merge-to-main step is what keeps a milestone off main with
+zero ACs or empty AC bodies (the `milestone-draft-incomplete-acs` gap AC-1/AC-2
+surface), and that `aiwfx-start-milestone`'s preflight then expects the ACs to
+pre-exist. Folded into step 5 rather than a new numbered step to avoid
+renumbering the two "step N" cross-references. Pinned by
+`TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275` (`internal/policies/`),
+which reads the embedded skill bytes and asserts — content-driven — that `aiwf
+add ac` plus a co-located `aiwf edit-body` appear in `## Workflow` and precede
+the merge-to-main step; the file's existing path constant satisfies the
+skill-edit structural-test backstop. RED was genuine — the assertion failed
+against the unedited skill (no `aiwf add ac` in the workflow). · commit 2c946eb0
+
+### AC-5 — aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
+
+Reframed the embedded `aiwfx-start-milestone` preflight's AC bullet: instead of
+"confirm the spec has its ACs landed … if hand-written, add them now," it now
+states ACs are expected to already exist — created and body-filled at plan time
+by `aiwfx-plan-milestones` (AC-4) — demoting on-the-spot `aiwf add ac` to an
+explicit recovery fallback for a hand-written spec, and tying the empty-spec case
+to the `milestone-draft-incomplete-acs` warning. Pinned by
+`TestAiwfxStartMilestone_PreflightExpectsACsPreExist_M0275`
+(`internal/policies/`), heading-scoped to the preflight subsection: it asserts
+the plan-time reframe, the fallback framing, and the retained `aiwf add ac`
+recovery command. RED was genuine — the preflight carried neither "plan time"
+nor "fallback" framing before the edit. · commit 1ef79d50
+
+## Decisions made during implementation
+
+Two local implementation choices, both within D-0047's scope — neither rose to a
+separate decision entity:
+
+- **empty-body as a subcode of `milestone-draft-incomplete-acs`, not a new
+  finding code** (AC-2). It shares the rule's archive-scoping and draft-status
+  gate, so a paired subcode keeps the whole "incomplete draft contract" concept
+  under one code.
+- **AC-creation folded into `aiwfx-plan-milestones` step 5, not a new numbered
+  step** (AC-4). Folding avoided renumbering the workflow's two "step N"
+  cross-references; the behaviour (add ac + body-fill before merge) is identical.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go test ./...` — 71 packages ok, 0 failures.
+- `make lint` (full golangci-lint set) — 0 issues.
+- `make coverage-gate` — green after every AC (diff-scoped coverage + firing-fixture meta-gate).
+- Race detector on `internal/{check,policies,verb}` — clean.
+- Stress: `concurrent-milestone-race` reproduced 0/15 failures after the baseline fix (~2/12 before).
+
+## Deferrals
+
+None. All five ACs reached `met`; no work was punted.
+
+## Reviewer notes
+
+The wrap's independent, fresh-context code-quality review surfaced two issues,
+both fixed before this wrap:
+
+- **Blocking** — the `empty-body` finding rippled to the `concurrent-milestone-race`
+  stress scenario, whose Setup adds an AC with no body-fill on a milestone that can
+  settle at `draft`. The AC-2 blast-radius analysis missed it, so the scenario's
+  expected-warnings baseline was not updated, producing an intermittent (~15–30%)
+  CI failure. Fixed by baselining the finding (commit 982155be); reproduced 2/12 →
+  0/15.
+- **Non-blocking** — `TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275` was
+  partially vacuous: a bare `aiwf add ac` prose mention plus step 5's
+  milestone-body `edit-body` satisfied it, so a dangling redirect with no live
+  command block would have passed. Tightened to pin the actual `aiwf add ac M-NNNN`
+  command block with a co-located AC-body `edit-body` in the same fence (commit
+  69739789); confirmed non-vacuous (block removal → red).
+
+The design-quality lens (`wf-rethink`) was not run: M-0275 introduced no new
+module, abstraction, or data model — it extended an existing check rule with a
+subcode and edited two ritual skills. No qualifying design unit to rethink.
+
+No `TODO`/`FIXME`/debug code was left behind.

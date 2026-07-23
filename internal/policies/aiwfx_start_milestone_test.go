@@ -215,6 +215,36 @@ func TestAiwfxStartMilestone_M0105_AC2_PreflightAssertsParentEpicBranchPrecondit
 	}
 }
 
+// TestAiwfxStartMilestone_PreflightExpectsACsPreExist_M0275 pins M-0275/AC-5:
+// the preflight reframes ACs as expected to already exist — created at plan time
+// by aiwfx-plan-milestones (M-0275/AC-4) — and retains on-the-spot `aiwf add ac`
+// creation only as a recovery fallback for a hand-written spec, no longer the
+// default path. Heading-scoped to the preflight subsection so the reframe lives
+// where a reader starting the milestone actually looks.
+func TestAiwfxStartMilestone_PreflightExpectsACsPreExist_M0275(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxStartMilestoneFixture(t)
+
+	preflight := findStartMilestonePreflightSection(body)
+	if preflight == "" {
+		t.Fatal("AC-5: `## Workflow` must contain a `### …preflight…` subsection (step 1)")
+	}
+	lower := strings.ToLower(preflight)
+
+	// Reframe: ACs are expected to pre-exist because they were created at plan time.
+	if !strings.Contains(lower, "plan time") {
+		t.Error("AC-5: preflight must frame ACs as created at plan time (expected to pre-exist), not something to add here by default")
+	}
+	// The on-the-spot creation is explicitly a recovery fallback, not the default.
+	if !strings.Contains(lower, "fallback") {
+		t.Error("AC-5: preflight must frame on-the-spot `aiwf add ac` as a recovery fallback")
+	}
+	// The recovery command itself survives for the hand-written-spec case.
+	if !strings.Contains(preflight, "aiwf add ac") {
+		t.Error("AC-5: preflight must retain the `aiwf add ac` recovery command for a hand-written spec")
+	}
+}
+
 // TestAiwfxStartMilestone_M0105_AC3_NoSilentFallthroughToParentCheckout
 // pins M-0105/AC-3: the silent
 // `git checkout -b epic/E-NNNN-<slug> origin/main # if missing`

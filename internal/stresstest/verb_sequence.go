@@ -53,6 +53,10 @@ var verbSequenceExpectedWarnings = map[string]bool{
 	check.CodeTerminalEntityNotArchived:         true,
 	check.CodeArchiveSweepPending:               true,
 	check.CodePromoteOnWrongBranch.ID:           true,
+	// the sequence walks through freshly-added draft milestones; the
+	// M-0275 draft-incomplete-acs advisory on those bare drafts is an
+	// expected side effect of the walk, not incidental noise.
+	check.CodeMilestoneDraftIncompleteACs: true,
 }
 
 // VerbSequenceScenario implements Scenario. steps is the number of

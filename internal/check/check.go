@@ -135,6 +135,7 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	findings = append(findings, acsTDDAudit(t)...)
 	findings = append(findings, acsTitleProse(t)...)
 	findings = append(findings, milestoneDoneIncompleteACs(t)...)
+	findings = append(findings, milestoneDraftIncompleteACs(t)...)
 	findings = append(findings, milestoneDoneZeroACs(t)...)
 	findings = append(findings, milestoneCancelledIncompleteACs(t)...)
 	findings = append(findings, acsEmptyBodyOnStart(t)...)
