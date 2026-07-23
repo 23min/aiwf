@@ -222,3 +222,12 @@ is documented in the `design-decisions.md` config table for
 discoverability. · commit 9de44c4f · tests:
 `TestConfig_TDDTestPaths_ParsesAndValidates` (5 cases) +
 `TestSchema_IncludesTDDTestPaths`.
+
+### AC-2 — gitops dirty-path helper
+
+Added `DirtyPaths(ctx, workdir)` in `internal/gitops`: the union of tracked
+changes vs HEAD (staged + unstaged) and untracked non-ignored files, sorted and
+deduplicated. Untracked files are deliberately included so a newly-written,
+not-yet-added test file registers as dirty. · commit daebc9f0 · tests:
+`TestDirtyPaths` (clean / unstaged-modify / staged-new / untracked-new /
+ignored-excluded) + `TestDirtyPaths_NonRepoErrors`.
