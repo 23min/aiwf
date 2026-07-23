@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: --phase green refuses until a non-test path is dirty
       status: open
+      tdd_phase: red
     - id: AC-5
       title: Diff-shape refusals overridable via --force --reason (human-only)
       status: open
