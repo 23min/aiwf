@@ -275,3 +275,13 @@ Added `isPlanningPath` and a `continue` in the classify loop so `work/**` and
 write) are excluded from the dirty universe — a legitimate red promote beside
 dirty planning prose no longer self-refuses. · commit 77b1a604 · tests:
 `TestPromoteACPhase_RedGate_ExcludesPlanningPaths` (docs-path / work-path).
+
+### AC-7 — wf-tdd-cycle documents the gate
+
+Added a named "The red/green diff-shape gate" section to the embedded
+`wf-tdd-cycle` skill (`--phase red` wants test-only dirtiness, `--phase green`
+wants an implementation path, both `--force`-overridable, opt-in) with
+references from the RED and GREEN steps. Shipped surface — canonical
+placeholders, no real ids. · commit 411664ac · tests:
+`TestM0276_TddCycleDocumentsDiffShapeGate` (structural, section-scoped;
+skill-edit backstop).
