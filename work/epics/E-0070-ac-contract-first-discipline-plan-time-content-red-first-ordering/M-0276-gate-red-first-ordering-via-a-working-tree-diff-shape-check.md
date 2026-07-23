@@ -137,9 +137,12 @@ Both diff-shape refusals (red and green) are overridable with `--force
 existing provenance rule — a non-human actor is refused — so the escape hatch
 cannot be exercised by an automated actor.
 
-**Mechanical assertion:** a verb-level test asserting a would-be-refused promote
-succeeds under `--force --reason`, and that `--force` from a non-human actor is
-refused.
+**Mechanical assertion:** a verb-level test that a would-be-refused `--phase red`
+promote and a would-be-refused `--phase green` promote each succeed under
+`force=true` (the gate runs only under `if !force`). The human-only property is
+enforced at the provenance-decoration layer by the existing coherence rule
+(`CoherenceRuleForceNonHuman`) and independently pinned by the coherence tests;
+the escape hatch inherits it rather than re-checking it in the verb.
 
 ### AC-6 — Path universe excludes planning files and the verb's own entity write
 
