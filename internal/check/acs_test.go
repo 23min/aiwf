@@ -852,6 +852,127 @@ func TestCheckRun_DraftMilestoneZeroACsWarns(t *testing.T) {
 	}
 }
 
+// TestCheckRun_DraftMilestoneEmptyACBodyWarns pins M-0275/AC-2: a non-archived
+// draft milestone whose AC carries a `### AC-N` heading but no body prose raises
+// a warning-severity milestone-draft-incomplete-acs/empty-body finding through
+// the check aggregate — the draft-rung, warning-severity mirror of
+// acsEmptyBodyOnStart's in_progress/done error. A populated AC body stays
+// silent, and an archived milestone with the same empty body stays silent.
+func TestCheckRun_DraftMilestoneEmptyACBodyWarns(t *testing.T) {
+	t.Parallel()
+
+	// Draft milestone, AC-1 heading present but body empty → warning fires,
+	// keyed to the composite AC id.
+	root := t.TempDir()
+	mPath := "work/epics/E-0001-foundations/M-0007-empty.md"
+	writeMilestoneFile(t, root, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+	tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "draft", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	f := findingByCode(Run(tr, nil), CodeMilestoneDraftIncompleteACs, "empty-body")
+	if f == nil {
+		t.Fatal("AC-2: expected milestone-draft-incomplete-acs/empty-body finding for a draft milestone with an empty AC body")
+	}
+	if f.Severity != SeverityWarning {
+		t.Errorf("AC-2: severity = %q, want warning", f.Severity)
+	}
+	if f.EntityID != "M-0007/AC-1" {
+		t.Errorf("AC-2: entityID = %q, want M-0007/AC-1", f.EntityID)
+	}
+
+	// Populated AC body → no empty-body finding.
+	root2 := t.TempDir()
+	writeMilestoneFile(t, root2, mPath, "---\n"+
+		"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n\nReal prose.\n")
+	tr2 := &tree.Tree{Root: root2, Entities: []*entity.Entity{{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "draft", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: mPath,
+	}}}
+	if f := findingByCode(Run(tr2, nil), CodeMilestoneDraftIncompleteACs, "empty-body"); f != nil {
+		t.Errorf("AC-2: a populated AC body must not fire empty-body; got %+v", f)
+	}
+
+	// Archived draft milestone with the same empty body → silent (archive-scoped).
+	root3 := t.TempDir()
+	aPath := "work/epics/archive/E-0001-foundations/M-0009-archived.md"
+	writeMilestoneFile(t, root3, aPath, "---\n"+
+		"id: M-0009\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+		"acs:\n  - id: AC-1\n    title: First\n    status: open\n---\n\n"+
+		"## Acceptance criteria\n\n### AC-1 — First\n")
+	tr3 := &tree.Tree{Root: root3, Entities: []*entity.Entity{{
+		ID: "M-0009", Kind: entity.KindMilestone, Title: "Foo",
+		Status: "draft", Parent: "E-0001",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+		Path: aPath,
+	}}}
+	if f := findingByCode(Run(tr3, nil), CodeMilestoneDraftIncompleteACs, "empty-body"); f != nil {
+		t.Errorf("AC-2: an archived draft milestone with an empty AC body must stay silent; got %+v", f)
+	}
+}
+
+// TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts pins M-0275/AC-2's skip
+// branches, mirroring acsEmptyBodyOnStart's own carve-outs one FSM stage
+// earlier: a cancelled AC, an AC with no frontmatter id, and an AC with no
+// `### AC-N` body heading at all each leave empty-body silent (the last is
+// acs-body-coherence/missing-heading's concern, not this rule's).
+func TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		acsYAML string
+		acs     []entity.AcceptanceCriterion
+		body    string
+	}{
+		{
+			name:    "cancelled AC skipped",
+			acsYAML: "acs:\n  - id: AC-1\n    title: First\n    status: cancelled\n",
+			acs:     []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "cancelled"}},
+			body:    "## Acceptance criteria\n\n### AC-1 — First\n",
+		},
+		{
+			name:    "empty AC id skipped",
+			acsYAML: "acs:\n  - id: ''\n    title: First\n    status: open\n",
+			acs:     []entity.AcceptanceCriterion{{ID: "", Title: "First", Status: "open"}},
+			body:    "## Acceptance criteria\n",
+		},
+		{
+			name:    "missing heading skipped",
+			acsYAML: "acs:\n  - id: AC-1\n    title: First\n    status: open\n",
+			acs:     []entity.AcceptanceCriterion{{ID: "AC-1", Title: "First", Status: "open"}},
+			body:    "## Acceptance criteria\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			mPath := "work/epics/E-0001-foundations/M-0007-foo.md"
+			writeMilestoneFile(t, root, mPath, "---\n"+
+				"id: M-0007\ntitle: Foo\nstatus: draft\nparent: E-0001\n"+
+				tc.acsYAML+"---\n\n"+tc.body)
+			tr := &tree.Tree{Root: root, Entities: []*entity.Entity{{
+				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
+				Status: "draft", Parent: "E-0001",
+				ACs:  tc.acs,
+				Path: mPath,
+			}}}
+			if f := findingByCode(Run(tr, nil), CodeMilestoneDraftIncompleteACs, "empty-body"); f != nil {
+				t.Errorf("empty-body must stay silent for %s; got %+v", tc.name, f)
+			}
+		})
+	}
+}
+
 func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{

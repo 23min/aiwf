@@ -145,6 +145,11 @@ var hintTable = map[string]string{
 	"milestone-cancelled-incomplete-acs":   "promote each open AC via `aiwf promote <milestone-id>/AC-N <met|deferred|cancelled>`; `aiwf promote`/`aiwf cancel` already refuse this transition (with no --force override) through normal use, so this state means the verb layer was bypassed — a hand-edit is the usual cause",
 	"milestone-draft-incomplete-acs":       "add the milestone's acceptance criteria at plan time via `aiwf add ac <milestone-id> --title \"...\"` (and fill each AC body); a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it",
 
+	// empty-body subcode: the AC already exists but its body is blank, so
+	// the fix is edit-body (fill the contract), not add ac. Its own line
+	// keeps the aligned block above from re-flowing on this longer key.
+	"milestone-draft-incomplete-acs/empty-body": "fill the AC's body under its `### AC-N` heading at plan time via `aiwf edit-body <milestone-id>`; a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it",
+
 	// M-066 entity-body-empty: each kind's load-bearing body sections
 	// must contain non-empty prose. AC bodies have a verb-side shortcut
 	// (`aiwf add ac --body-file` from M-067); other kinds rely on
