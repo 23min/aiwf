@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0443: stale cmd/aiwf/*_cmd.go source paths in design docs
+
+Internal docs/test-only change: the audit catalog (`legal-workflows-audit.md`)
+Source column, plus `id-allocation.md` and `design-lessons.md`, cited
+pre-restructure `cmd/aiwf/<verb>_cmd.go` paths for CLI verbs that moved to
+`internal/cli/<verb>/` in M-0116; the ~37 references now point at their real
+files. A catalog structural test (`TestG0443_AuditSourceColumnGoPathsResolve`)
+now guards that the Source column's repo-root Go paths resolve on disk. No
+user-facing behavior changed.
+
 ### Fixed — m0127 docs/pocv3 policy allowlist
 
 Internal test-only change: `G-0439`, whose root-cause narrative legitimately

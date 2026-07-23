@@ -161,7 +161,7 @@ Each one was considered, and each one is more code than the problem requires. If
 - `internal/entity/entity.go` — `PriorIDs []string` field with `yaml:"prior_ids,omitempty"`.
 - `internal/verb/reallocate.go` — append to `prior_ids` on rename; resolve ambiguous ids via the trunk-ancestry tiebreaker (`merge-base --is-ancestor` against the trunk ref) and refuse with a clear diagnostic when ancestry can't decide.
 - `internal/tree/tree.go` — `ByPriorID` reverse lookup; `ResolveByCurrentOrPriorID` combined resolver. (No standing index; the linear scan is fine for PoC-scale trees.)
-- `cmd/aiwf/admin_cmd.go` — `runHistory` expands the queried id through the entity's `PriorIDs` chain; `readHistoryChain` greps the union in one pass.
+- `internal/cli/history/history.go` — `runHistory` expands the queried id through the entity's `PriorIDs` chain; `readHistoryChain` greps the union in one pass.
 - A migration verb that backfills `prior_ids` from `aiwf-prior-entity:` trailers in pre-G37 reallocate history is unbuilt-by-design — no consumer currently has reallocate history that would benefit from it.
 
 One YAML field. One frontmatter field. No new trailers, no new flags, no new check rules.

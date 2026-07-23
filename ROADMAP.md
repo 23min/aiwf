@@ -986,3 +986,17 @@ event rather than trusted from a self-reported phase timeline.
 | M-0275 | Create AC content at plan time; warn on incomplete draft milestones | draft |
 | M-0276 | Gate red-first ordering via a working-tree diff-shape check | draft |
 
+## E-0071 — Milestone tdd-policy mutation verb (G-0168) (proposed)
+
+### Goal
+
+Give a milestone's `tdd:` policy a proper post-creation mutation verb, closing
+the `tdd:` portion of G-0168's verb-chokepoint hole. Changing the policy today
+requires a hand-edit that bypasses the kernel's one-verb-per-mutation
+convention (a fictional `aiwf-verb:` trailer, a path `--help` never reveals);
+this epic makes it a first-class, trailered, discoverable act.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0277 | Add the aiwf milestone tdd policy-mutation verb | draft |
+
