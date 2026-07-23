@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Diff-shape refusals overridable via --force --reason (human-only)
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: Path universe excludes planning files and the verb's own entity write
