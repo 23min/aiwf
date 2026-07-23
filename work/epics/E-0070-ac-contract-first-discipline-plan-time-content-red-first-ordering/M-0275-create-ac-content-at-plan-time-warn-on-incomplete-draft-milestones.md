@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: The draft-AC finding is archive-scoped (silent on archived milestones)
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
       status: open
