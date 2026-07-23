@@ -232,3 +232,14 @@ deduplicated. Untracked files are deliberately included so a newly-written,
 not-yet-added test file registers as dirty. · commit daebc9f0 · tests:
 `TestDirtyPaths` (clean / unstaged-modify / staged-new / untracked-new /
 ignored-excluded) + `TestDirtyPaths_NonRepoErrors`.
+
+### AC-3 — --phase red diff-shape guard
+
+Wired an opt-in red-first gate into `PromoteACPhase`
+(`requireDiffShapeForPhasePromote` in `internal/verb/promote_phase_gate.go`):
+when `tdd.test_paths` is configured, an unforced `--phase red` classifies the
+working-tree dirty paths and refuses on any non-test dirtiness (naming the
+paths) or on a wholly-clean tree; inactive when unconfigured, so existing
+callers and stress scenarios are untouched. · commit 99c694c4 · tests:
+`TestPromoteACPhase_RedGate_DiffShape` (test-only pass / non-test refuse+name /
+nothing-dirty refuse / unconfigured-inactive).
