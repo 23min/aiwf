@@ -33,7 +33,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: wf-tdd-cycle documents the red/green diff-shape gate semantics
-      status: open
+      status: met
       tdd_phase: done
 ---
 
