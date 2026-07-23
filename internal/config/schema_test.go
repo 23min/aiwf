@@ -27,6 +27,7 @@ func TestSchema_EnumeratesEveryYAMLField(t *testing.T) {
 		{Path: "tdd", Type: "config.TDD"},
 		{Path: "tdd.require_test_metrics", Type: "bool"},
 		{Path: "tdd.strict", Type: "bool"},
+		{Path: "tdd.test_paths", Type: "[]string"},
 		{Path: "html", Type: "config.HTML"},
 		{Path: "html.out_dir", Type: "string"},
 		{Path: "html.commit_output", Type: "bool"},
@@ -97,6 +98,30 @@ func TestSchema_EveryFieldHasDescription(t *testing.T) {
 		if f.Description == "" {
 			t.Errorf("Schema() field %q has no description in fieldDescriptions", f.Path)
 		}
+	}
+}
+
+// TestSchema_IncludesTDDTestPaths pins AC-1 of M-0276: the tdd.test_paths glob
+// surface is reflected into the schema with a registry description, so the
+// config field can't be dropped or left undocumented without failing here.
+func TestSchema_IncludesTDDTestPaths(t *testing.T) {
+	t.Parallel()
+	var found bool
+	var field SchemaField
+	for _, f := range Schema() {
+		if f.Path == "tdd.test_paths" {
+			found, field = true, f
+			break
+		}
+	}
+	if !found {
+		t.Fatal("Schema() has no tdd.test_paths field")
+	}
+	if field.Type != "[]string" {
+		t.Errorf("tdd.test_paths Type = %q, want %q", field.Type, "[]string")
+	}
+	if field.Description == "" {
+		t.Error("tdd.test_paths has no description in fieldDescriptions")
 	}
 }
 
