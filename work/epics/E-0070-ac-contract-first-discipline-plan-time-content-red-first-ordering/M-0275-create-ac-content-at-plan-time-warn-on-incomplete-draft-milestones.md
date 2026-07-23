@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 # M-0275 — Create AC content at plan time; warn on incomplete draft milestones
