@@ -20,13 +20,13 @@ If the spec doesn't exist or isn't ready, use `aiwfx-plan-milestones` first. If 
 - Read the milestone spec. Confirm every AC is concrete and testable. If any AC is vague, stop and ask the user to refine before starting work.
 - Read the parent epic's spec for context.
 - Read prior milestone specs in the same epic if this milestone builds on them.
-- Confirm the spec has its ACs landed via `aiwf add ac` (frontmatter `acs[]` populated, body `### AC-N — <title>` headings present). If the spec was hand-written and `acs[]` is empty, ask the user whether to add them now via:
+- **ACs are expected to already exist.** `aiwfx-plan-milestones` creates and body-fills each AC at plan time, so a milestone normally reaches this preflight with `acs[]` populated and its `### AC-N — <title>` bodies filled — confirm they are present and filled (the first bullet already covers whether each is concrete). **Recovery fallback only** — a hand-written spec whose `acs[]` is empty: add them now and fill each body before proceeding, rather than deferring the contract into implementation:
 
   ```bash
   aiwf add ac M-NNNN --title "<observable behavior>"
   ```
 
-  Each invocation appends one AC and scaffolds the body heading; `aiwf check` will surface drift between frontmatter and body if the two disagree.
+  Each invocation appends one AC and scaffolds the body heading; `aiwf check` surfaces drift between frontmatter and body, and the `milestone-draft-incomplete-acs` warning already flagged the empty contract at plan time. This on-the-spot creation is the exception — the default is that plan time already produced the ACs.
 
 - Confirm the milestone's `tdd:` policy is intentional. `tdd: required` makes the audit `met requires phase: done` an error (blocks pre-push); `tdd: advisory` makes it a warning; `tdd: none` or absent skips it. If the user wants TDD discipline tracked mechanically, set `tdd: required` in the spec's frontmatter before starting.
 - **Parent epic branch must exist locally and be the operator's current checkout.** The state-announcement commits at steps 3 and 4 land on the parent epic branch BEFORE the milestone branch is cut at step 5. If the parent epic branch does not exist locally, the parent epic has not been activated yet — stop and run `aiwfx-start-epic E-NNNN` first; do NOT improvise by creating the branch here. If the parent epic branch exists but is not currently checked out, switch to it before continuing (`git checkout epic/E-NNNN-<slug>`).
