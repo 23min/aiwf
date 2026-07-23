@@ -19,7 +19,10 @@ import (
 // test) or nothing is dirty at all (a red phase with no failing test written),
 // and a `--phase green` when no non-test (implementation) path is dirty (no
 // implementation to have turned the test green). The check is stateless — it
-// inspects the current diff only, with no red-time snapshot.
+// inspects the current diff only, with no red-time snapshot. Planning/entity and
+// documentation files (work/**, docs/**) are excluded from the dirty universe,
+// so the verb's own frontmatter write and unrelated planning edits never
+// self-refuse a legitimate promote.
 //
 // Opt-in: a no-op unless tdd.test_paths is configured, and silent for any phase
 // other than red or green. The caller has already verified !force; --force is
@@ -45,6 +48,9 @@ func requireDiffShapeForPhasePromote(ctx context.Context, t *tree.Tree, newPhase
 	var testDirty int
 	var nonTestDirty []string
 	for _, p := range dirty {
+		if isPlanningPath(p) {
+			continue // planning/entity + doc files (and the verb's own write) are not implementation
+		}
 		if pathMatchesAnyGlob(globs, p) {
 			testDirty++
 		} else {
@@ -65,6 +71,20 @@ func requireDiffShapeForPhasePromote(ctx context.Context, t *tree.Tree, newPhase
 		}
 	}
 	return nil
+}
+
+// isPlanningPath reports whether the repo-relative path is a planning/entity or
+// documentation file — under work/ or docs/ — which the diff-shape gate excludes
+// from its dirty universe (M-0276/AC-6). The verb's own frontmatter write to the
+// milestone spec lives under work/, so this also keeps a legitimate red promote
+// (which may sit alongside unrelated dirty planning prose) from self-refusing.
+func isPlanningPath(p string) bool {
+	for _, prefix := range []string{"work/", "docs/"} {
+		if strings.HasPrefix(p, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // pathMatchesAnyGlob reports whether the repo-relative path matches any of the

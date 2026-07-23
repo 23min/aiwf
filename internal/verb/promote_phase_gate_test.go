@@ -192,3 +192,43 @@ func TestPromoteACPhase_ForceBypassesDiffShapeGate(t *testing.T) {
 		}
 	})
 }
+
+// TestPromoteACPhase_RedGate_ExcludesPlanningPaths pins AC-6 of M-0276: the
+// gate's path universe excludes planning/entity files (work/** and docs/**), so
+// a legitimate red promote — a written test alongside a dirty planning file —
+// does not self-refuse by counting the planning file as implementation.
+func TestPromoteACPhase_RedGate_ExcludesPlanningPaths(t *testing.T) {
+	t.Parallel()
+	globs := []string{"*_test.go", "**/*_test.go"}
+	cases := []struct {
+		name        string
+		planningRel string
+	}{
+		{name: "docs path excluded", planningRel: "docs/note.md"},
+		{name: "work path excluded", planningRel: "work/scratch.tmp"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newPhaseGateFixture(t, globs)
+			// Load the tree while it is clean, before the scratch planning file
+			// exists, so tree.Load never sees a non-entity path under work/.
+			tr := r.tree()
+			// A legitimate red: the test is written (test path dirty) alongside a
+			// dirty planning file that must not count as implementation.
+			if err := os.WriteFile(filepath.Join(r.root, "foo_test.go"), []byte("package foo\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			abs := filepath.Join(r.root, filepath.FromSlash(tc.planningRel))
+			if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(abs, []byte("scratch\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := verb.PromoteACPhase(r.ctx, tr, "M-0001/AC-1", entity.TDDPhaseRed, testActor, "", false, nil); err != nil {
+				t.Fatalf("red with a dirty %s planning path + test: want success, got refusal: %v", tc.planningRel, err)
+			}
+		})
+	}
+}
