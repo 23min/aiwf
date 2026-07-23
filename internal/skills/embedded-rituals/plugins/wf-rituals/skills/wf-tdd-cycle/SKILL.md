@@ -30,6 +30,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
   ```
 
   This `"" → red` promote is the event that records "a failing test now exists," so it must fire live, as it happens — the `aiwf history` timeline is what shows the test came before the code. A freshly-added AC rests at the pre-cycle empty phase, so the transition is always available; never skip it, defer it, or back-stamp it later.
+- When the project declares test-path globs, this promote is **gated** by the red/green diff-shape gate (below): it refuses unless *only* test-path files are dirty. Write the failing test before touching the implementation.
 
 ### GREEN — Make it pass with the minimum code
 
@@ -41,6 +42,8 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
   ```bash
   aiwf promote M-NNN/AC-<N> --phase green
   ```
+
+- When the project declares test-path globs, this promote is **gated** by the red/green diff-shape gate (below): it refuses unless an implementation (non-test) file is dirty. Write the implementation before promoting to green.
 
 ### REFACTOR — Clean up
 
@@ -56,6 +59,15 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
   ```
 
   This step is optional — `green → done` is legal under the FSM. Use it when the refactor pass meaningfully reshaped the code.
+
+### The red/green diff-shape gate
+
+When a project declares test-path globs (the `tdd.test_paths` config), the `--phase red` and `--phase green` promotes enforce red-first ordering mechanically by inspecting the working tree — no extra command, trailer, or flag to remember:
+
+- **`--phase red`** wants *only* test-path files dirty. It refuses when any non-test (implementation) path is already dirty — code before test, naming the offending paths — and refuses when nothing is dirty at all (a red phase with no failing test). Write the failing test first.
+- **`--phase green`** wants an implementation (non-test) path dirty — the code that turns the test green. It refuses when no such path is dirty.
+
+The gate reads the current working-tree diff only; it keeps no red-time snapshot, and it excludes planning and documentation files from the inspected set. Both refusals are overridable with `--force --reason "<why>"`, a human-only act. A project that declares no test-path globs is unaffected — the gate is opt-in.
 
 ## Branch-coverage audit (HARD RULE — runs before declaring done)
 
