@@ -805,6 +805,53 @@ func TestAcsEmptyBodyOnStart_EmptyACIDSkipped(t *testing.T) {
 	}
 }
 
+// TestCheckRun_DraftMilestoneZeroACsWarns pins M-0275/AC-1: a non-archived
+// draft milestone with zero AC entities raises a warning-severity
+// milestone-draft-incomplete-acs finding through the check aggregate, and a
+// draft milestone that already has ACs does not. Warning, not error — draft
+// is a legitimate mid-planning state (D-0047/G-0440), so this surfaces the
+// missing-contract gap without blocking the milestone from resting in draft.
+func TestCheckRun_DraftMilestoneZeroACsWarns(t *testing.T) {
+	t.Parallel()
+	epic := &entity.Entity{
+		ID: "E-0001", Kind: entity.KindEpic, Title: "Foundations",
+		Status: "active", Path: "work/epics/E-0001-foundations/epic.md",
+	}
+
+	// Non-archived draft milestone with zero ACs → warning fires.
+	bare := makeTree(epic, &entity.Entity{
+		ID: "M-0007", Kind: entity.KindMilestone, Title: "Bare", Status: "draft", Parent: "E-0001",
+		Path: "work/epics/E-0001-foundations/M-0007-bare.md",
+	})
+	f := findingByCode(Run(bare, nil), CodeMilestoneDraftIncompleteACs, "")
+	if f == nil {
+		t.Fatal("AC-1: expected milestone-draft-incomplete-acs finding for a zero-AC draft milestone")
+	}
+	if f.Severity != SeverityWarning {
+		t.Errorf("AC-1: severity = %q, want warning", f.Severity)
+	}
+
+	// Draft milestone that already has ACs → no finding.
+	populated := makeTree(epic, &entity.Entity{
+		ID: "M-0008", Kind: entity.KindMilestone, Title: "Populated", Status: "draft", Parent: "E-0001",
+		Path: "work/epics/E-0001-foundations/M-0008-populated.md",
+		ACs:  []entity.AcceptanceCriterion{{ID: "AC-1", Title: "Something observable", Status: "open"}},
+	})
+	if f := findingByCode(Run(populated, nil), CodeMilestoneDraftIncompleteACs, ""); f != nil {
+		t.Errorf("AC-1: a draft milestone with ACs must not fire the finding; got %+v", f)
+	}
+
+	// Archive-scoped: an archived zero-AC draft milestone stays silent
+	// (covers the IsArchivedPath skip; AC-3 pins archive-scoping in full).
+	archived := makeTree(epic, &entity.Entity{
+		ID: "M-0009", Kind: entity.KindMilestone, Title: "Archived", Status: "draft", Parent: "E-0001",
+		Path: "work/epics/archive/E-0001-foundations/M-0009-archived.md",
+	})
+	if f := findingByCode(Run(archived, nil), CodeMilestoneDraftIncompleteACs, ""); f != nil {
+		t.Errorf("AC-1: an archived zero-AC draft milestone must not fire the finding; got %+v", f)
+	}
+}
+
 func TestMilestoneCancelledIncompleteACs_FiresOnOpen(t *testing.T) {
 	t.Parallel()
 	tr := makeTree(&entity.Entity{

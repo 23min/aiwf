@@ -20,6 +20,7 @@ const (
 	CodeACsTitleProse                   = "acs-title-prose"
 	CodeACsTDDAudit                     = "acs-tdd-audit"
 	CodeMilestoneDoneIncompleteACs      = "milestone-done-incomplete-acs"
+	CodeMilestoneDraftIncompleteACs     = "milestone-draft-incomplete-acs"
 	CodeMilestoneCancelledIncompleteACs = "milestone-cancelled-incomplete-acs"
 	CodeACsBodyCoherence                = "acs-body-coherence"
 	CodeMilestoneDoneZeroACs            = "milestone-done-zero-acs"
@@ -328,6 +329,42 @@ func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
 			Path:     e.Path,
 			EntityID: e.ID,
 			Field:    "status",
+		})
+	}
+	return findings
+}
+
+// milestoneDraftIncompleteACs fires (warning) when a non-archived draft
+// milestone has zero AC entities. draft is a legitimate mid-planning state, so
+// this surfaces the missing-contract gap without blocking — the complement, at
+// the draft rung, to the draft->in_progress contract guard (acsEmptyBodyOnStart
+// / M-0268) that blocks one FSM stage later. Warning, never error, per D-0047
+// point 2 / G-0440. Archive-scoped per ADR-0004 §"Check shape rules": an
+// archived draft milestone represents historical state, not active drift.
+func milestoneDraftIncompleteACs(t *tree.Tree) []Finding {
+	var findings []Finding
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		if e.Status != entity.StatusDraft {
+			continue
+		}
+		if len(e.ACs) > 0 {
+			continue
+		}
+		findings = append(findings, Finding{
+			Code:     CodeMilestoneDraftIncompleteACs,
+			Severity: SeverityWarning,
+			Subcode:  "zero-acs",
+			Message: fmt.Sprintf("draft milestone %s has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+				e.ID),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "acs",
 		})
 	}
 	return findings
