@@ -4,6 +4,22 @@ title: Create AC content at plan time; warn on incomplete draft milestones
 status: draft
 parent: E-0070
 tdd: required
+acs:
+    - id: AC-1
+      title: Draft milestone with zero ACs raises a warning-severity finding
+      status: open
+    - id: AC-2
+      title: Draft milestone with an empty AC body raises the finding
+      status: open
+    - id: AC-3
+      title: The draft-AC finding is archive-scoped (silent on archived milestones)
+      status: open
+    - id: AC-4
+      title: aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
+      status: open
+    - id: AC-5
+      title: aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
+      status: open
 ---
 
 # M-0275 — Create AC content at plan time; warn on incomplete draft milestones
@@ -43,6 +59,16 @@ extends that family one stage earlier, as a warning (not a block), because
 5. `aiwfx-start-milestone`'s preflight reframes ACs as expected-to-pre-exist,
    retaining the "add them now" fallback as a recovery path for hand-written
    specs — structural policy test.
+
+### AC-1 — Draft milestone with zero ACs raises a warning-severity finding
+
+### AC-2 — Draft milestone with an empty AC body raises the finding
+
+### AC-3 — The draft-AC finding is archive-scoped (silent on archived milestones)
+
+### AC-4 — aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
+
+### AC-5 — aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
 
 ## Constraints
 
