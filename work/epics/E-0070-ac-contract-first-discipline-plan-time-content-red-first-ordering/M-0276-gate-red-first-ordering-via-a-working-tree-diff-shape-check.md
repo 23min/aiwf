@@ -256,3 +256,12 @@ green refuses when no non-test (implementation) path is dirty and succeeds once
 one is. Stateless — the current diff only, no red-time snapshot. · commit
 978cb02f · tests: `TestPromoteACPhase_GreenGate_DiffShape` (no-impl refuse /
 impl-present succeed).
+
+### AC-5 — --force bypasses the gate
+
+Pinned that `force=true` skips the diff-shape gate (it runs only under
+`if !force`): a red with a dirty non-test path and a green with no non-test path
+each land under `--force`. Test-only — the force-bypass already existed, so the
+RED was mutation-confirmed (flipping `!force`→`true` fails both arms); the
+human-only property is the existing `CoherenceRuleForceNonHuman`. · commit
+99bd380e · tests: `TestPromoteACPhase_ForceBypassesDiffShapeGate` (red / green).
