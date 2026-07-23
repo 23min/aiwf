@@ -60,12 +60,17 @@ import (
 //     probed, not incidental noise.
 //   - provenance-untrailered-scope-undefined: this scenario's
 //     disposable repo never configures an upstream remote.
+//   - milestone-draft-incomplete-acs: the force-target milestone is
+//     created bare (no ACs) on purpose so it can be force-promoted; the
+//     draft-incomplete-acs advisory (M-0275) on it is an expected side
+//     effect of the probed premise, not incidental noise.
 //
 // Any OTHER finding — any error-severity finding, or a warning with a
 // code not in this set — is a real violation.
 var forceOverrideDurabilityExpectedWarnings = map[string]bool{
 	check.CodeEpicActiveNoDraftedMilestones:     true,
 	check.CodeProvenanceUntrailedScopeUndefined: true,
+	check.CodeMilestoneDraftIncompleteACs:       true,
 }
 
 // ForceOverrideDurabilityScenario implements Scenario.

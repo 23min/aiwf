@@ -34,7 +34,9 @@ func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
 			// drafted milestone so the M-0094 rule
 			// (epic-active-no-drafted-milestones) does not fire and
 			// muddy this test's premise. tdd: none keeps the G-0268
-			// milestone-tdd-undeclared rule silent for the same reason.
+			// milestone-tdd-undeclared rule silent for the same reason;
+			// the milestone carries an AC so the M-0275
+			// milestone-draft-incomplete-acs rule stays silent too.
 			{
 				ID: "E-0001", Kind: entity.KindEpic, Title: "Foundations", Status: "active",
 				Path: "e.md",
@@ -42,6 +44,7 @@ func TestProjectionFindings_PreExistingFiltered(t *testing.T) {
 			{
 				ID: "M-0001", Kind: entity.KindMilestone, Title: "Queued", Status: "draft",
 				Parent: "E-0001", Path: "m.md", TDD: "none",
+				ACs: []entity.AcceptanceCriterion{{ID: "AC-1", Title: "Ship the queued widget", Status: "open"}},
 			},
 		},
 	}
