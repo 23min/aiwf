@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -143,6 +144,43 @@ func StagedPaths(ctx context.Context, workdir string) ([]string, error) {
 		}
 		paths = append(paths, p)
 	}
+	return paths, nil
+}
+
+// DirtyPaths returns the repo-relative paths that differ from HEAD in the
+// working tree — unstaged and staged modifications, additions, and deletions
+// of tracked files (via `git diff --name-only HEAD -z`), plus untracked,
+// non-ignored files (via `git ls-files --others --exclude-standard -z`). It is
+// the raw material the red/green diff-shape gate classifies (M-0276). Paths are
+// '/'-separated and repo-relative; the result is sorted and deduplicated. A
+// clean tree returns an empty slice.
+//
+// `-z` null-delimits both listings so paths containing spaces, newlines, or
+// other shell-hostile bytes round-trip safely.
+func DirtyPaths(ctx context.Context, workdir string) ([]string, error) {
+	set := make(map[string]struct{})
+	for _, args := range [][]string{
+		{"diff", "--name-only", "HEAD", "-z"},
+		{"ls-files", "--others", "--exclude-standard", "-z"},
+	} {
+		out, err := output(ctx, workdir, args...)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+			if p != "" {
+				set[p] = struct{}{}
+			}
+		}
+	}
+	if len(set) == 0 {
+		return nil, nil
+	}
+	paths := make([]string, 0, len(set))
+	for p := range set {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
 	return paths, nil
 }
 

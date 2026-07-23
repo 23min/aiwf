@@ -327,6 +327,89 @@ func TestStagedPaths(t *testing.T) {
 	}
 }
 
+// TestDirtyPaths pins AC-2 of M-0276: DirtyPaths returns every repo-relative
+// path that differs from HEAD in the working tree — unstaged modifications,
+// staged additions, and untracked (non-ignored) files alike — while excluding
+// gitignored paths and returning empty on a clean tree. It is the raw material
+// the red/green diff-shape gate classifies.
+func TestDirtyPaths(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	// Seed commit: a tracked file to modify, a tracked file to leave alone,
+	// and a .gitignore so *.log is excluded from the dirty set.
+	for name, content := range map[string]string{
+		"mod.md":     "original\n",
+		"tracked.md": "tracked\n",
+		".gitignore": "*.log\n",
+	} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Add(ctx, root, "mod.md", "tracked.md", ".gitignore"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	// Clean tree → empty.
+	clean, cleanErr := DirtyPaths(ctx, root)
+	if cleanErr != nil {
+		t.Fatalf("DirtyPaths clean: %v", cleanErr)
+	}
+	if len(clean) != 0 {
+		t.Errorf("clean tree returned %v, want empty", clean)
+	}
+
+	// Dirty the tree four ways:
+	//   - unstaged modification of a tracked file
+	//   - staged new file
+	//   - untracked new file
+	//   - ignored new file (must be excluded)
+	if err := os.WriteFile(filepath.Join(root, "mod.md"), []byte("changed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "staged_new.md"), []byte("s\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "staged_new.md"); err != nil {
+		t.Fatalf("add staged_new: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "untracked_new.md"), []byte("u\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "ignored.log"), []byte("noise\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := DirtyPaths(ctx, root)
+	if err != nil {
+		t.Fatalf("DirtyPaths dirty: %v", err)
+	}
+	// Sorted, deduped; ignored.log and the unchanged tracked.md are absent.
+	want := []string{"mod.md", "staged_new.md", "untracked_new.md"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DirtyPaths mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestDirtyPaths_NonRepoErrors covers DirtyPaths' error path: a workdir that is
+// not a git repository makes the first git listing fail, and the error
+// propagates rather than being swallowed as a clean tree.
+func TestDirtyPaths_NonRepoErrors(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	if _, err := DirtyPaths(ctx, t.TempDir()); err == nil {
+		t.Fatal("DirtyPaths on a non-repo dir: want error, got nil")
+	}
+}
+
 // TestHooksDir covers the three states HooksDir distinguishes:
 // `core.hooksPath` unset (fall back to <gitDir>/hooks), set to an
 // absolute path (returned verbatim), set to a relative path
