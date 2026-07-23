@@ -174,10 +174,13 @@ points at `aiwf edit-body` (the AC exists; only its body is missing), and the
 `TestCheckRun_DraftMilestoneEmptyACBodyWarns` (fires + warning severity +
 composite id) and `TestCheckRun_DraftMilestoneEmptyACBody_CarveOuts` (the three
 skip branches); the fires path was confirmed non-vacuous by the live red→green
-transition and a targeted severity mutation. No blast radius outside
-`internal/check` — no fixture, golden, or stress baseline changed, since
-empty-body fires only on a draft milestone whose ACs have empty bodies, a shape
-none of them carry. · commit 1b28bb10
+transition and a targeted severity mutation. The only cross-package ripple is
+one stress scenario — `concurrent-milestone-race` adds an AC via `aiwf add ac`
+with no body-fill on a milestone that can settle at `draft`, so its
+expected-warnings baseline gained the finding (commit 982155be); the
+check-package fixtures, the cmd/aiwf goldens, and the other stress scenarios were
+unaffected, since empty-body needs a draft milestone whose AC body is empty. ·
+commit 1b28bb10
 
 ### AC-3 — The draft-AC finding is archive-scoped (silent on archived milestones)
 
