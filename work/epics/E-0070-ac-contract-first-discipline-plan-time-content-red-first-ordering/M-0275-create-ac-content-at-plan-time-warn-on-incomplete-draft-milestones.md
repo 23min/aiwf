@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Draft milestone with an empty AC body raises the finding
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: The draft-AC finding is archive-scoped (silent on archived milestones)
