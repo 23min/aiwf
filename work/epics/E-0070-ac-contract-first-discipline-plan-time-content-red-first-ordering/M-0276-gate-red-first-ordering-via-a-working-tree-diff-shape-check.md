@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: --phase red refuses when non-test paths are dirty or nothing is dirty
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-4
       title: --phase green refuses until a non-test path is dirty
       status: open
