@@ -176,3 +176,17 @@ transition and a targeted severity mutation. No blast radius outside
 `internal/check` — no fixture, golden, or stress baseline changed, since
 empty-body fires only on a draft milestone whose ACs have empty bodies, a shape
 none of them carry. · commit 1b28bb10
+
+### AC-3 — The draft-AC finding is archive-scoped (silent on archived milestones)
+
+Pinned by `TestCheckRun_DraftMilestoneIncompleteACs_ArchiveScoped`
+(`internal/check/`): a table over both subcodes asserts each fires on an
+active-tree draft milestone (the non-vacuity guard) yet stays silent on the same
+shape under an archive path, exercising the shared `entity.IsArchivedPath` guard
+for `zero-acs` and `empty-body` together. No production change — the guard
+predates this AC (it has capped the rule since AC-1); AC-3 promotes
+archive-scoping from an incidental sub-assertion inside the AC-1/AC-2 tests to a
+first-class named property. RED was genuine: with the guard temporarily removed,
+both archived subcodes fired and both silent-assertions failed; restoring it (a
+byte-exact revert, empty acs.go diff) returned the test to green. · commit
+191e1120
