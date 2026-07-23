@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
-      status: open
+      status: met
       tdd_phase: done
 ---
 
