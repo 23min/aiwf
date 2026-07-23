@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: Test-path glob config surface with validation and schema registration
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: gitops helper lists working-tree paths dirty against HEAD
