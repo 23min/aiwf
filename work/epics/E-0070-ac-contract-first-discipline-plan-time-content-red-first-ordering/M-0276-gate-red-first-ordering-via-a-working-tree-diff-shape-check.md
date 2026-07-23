@@ -30,7 +30,7 @@ acs:
     - id: AC-6
       title: Path universe excludes planning files and the verb's own entity write
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: wf-tdd-cycle documents the red/green diff-shape gate semantics
       status: open
