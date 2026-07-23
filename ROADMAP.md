@@ -983,7 +983,7 @@ event rather than trusted from a self-reported phase timeline.
 | Milestone | Title | Status |
 |---|---|---|
 | M-0274 | Seed tdd:required ACs pre-cycle so red is a live event | done |
-| M-0275 | Create AC content at plan time; warn on incomplete draft milestones | draft |
+| M-0275 | Create AC content at plan time; warn on incomplete draft milestones | in_progress |
 | M-0276 | Gate red-first ordering via a working-tree diff-shape check | draft |
 
 ## E-0071 — Milestone tdd-policy mutation verb (G-0168) (proposed)

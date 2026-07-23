@@ -227,3 +227,53 @@ to the `milestone-draft-incomplete-acs` warning. Pinned by
 the plan-time reframe, the fallback framing, and the retained `aiwf add ac`
 recovery command. RED was genuine — the preflight carried neither "plan time"
 nor "fallback" framing before the edit. · commit 1ef79d50
+
+## Decisions made during implementation
+
+Two local implementation choices, both within D-0047's scope — neither rose to a
+separate decision entity:
+
+- **empty-body as a subcode of `milestone-draft-incomplete-acs`, not a new
+  finding code** (AC-2). It shares the rule's archive-scoping and draft-status
+  gate, so a paired subcode keeps the whole "incomplete draft contract" concept
+  under one code.
+- **AC-creation folded into `aiwfx-plan-milestones` step 5, not a new numbered
+  step** (AC-4). Folding avoided renumbering the workflow's two "step N"
+  cross-references; the behaviour (add ac + body-fill before merge) is identical.
+
+## Validation
+
+- `go build ./...` — clean.
+- `go test ./...` — 71 packages ok, 0 failures.
+- `make lint` (full golangci-lint set) — 0 issues.
+- `make coverage-gate` — green after every AC (diff-scoped coverage + firing-fixture meta-gate).
+- Race detector on `internal/{check,policies,verb}` — clean.
+- Stress: `concurrent-milestone-race` reproduced 0/15 failures after the baseline fix (~2/12 before).
+
+## Deferrals
+
+None. All five ACs reached `met`; no work was punted.
+
+## Reviewer notes
+
+The wrap's independent, fresh-context code-quality review surfaced two issues,
+both fixed before this wrap:
+
+- **Blocking** — the `empty-body` finding rippled to the `concurrent-milestone-race`
+  stress scenario, whose Setup adds an AC with no body-fill on a milestone that can
+  settle at `draft`. The AC-2 blast-radius analysis missed it, so the scenario's
+  expected-warnings baseline was not updated, producing an intermittent (~15–30%)
+  CI failure. Fixed by baselining the finding (commit 982155be); reproduced 2/12 →
+  0/15.
+- **Non-blocking** — `TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275` was
+  partially vacuous: a bare `aiwf add ac` prose mention plus step 5's
+  milestone-body `edit-body` satisfied it, so a dangling redirect with no live
+  command block would have passed. Tightened to pin the actual `aiwf add ac M-NNNN`
+  command block with a co-located AC-body `edit-body` in the same fence (commit
+  69739789); confirmed non-vacuous (block removal → red).
+
+The design-quality lens (`wf-rethink`) was not run: M-0275 introduced no new
+module, abstraction, or data model — it extended an existing check rule with a
+subcode and edited two ritual skills. No qualifying design unit to rethink.
+
+No `TODO`/`FIXME`/debug code was left behind.
