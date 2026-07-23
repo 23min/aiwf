@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: gitops helper lists working-tree paths dirty against HEAD
       status: open
+      tdd_phase: red
     - id: AC-3
       title: --phase red refuses when non-test paths are dirty or nothing is dirty
       status: open
