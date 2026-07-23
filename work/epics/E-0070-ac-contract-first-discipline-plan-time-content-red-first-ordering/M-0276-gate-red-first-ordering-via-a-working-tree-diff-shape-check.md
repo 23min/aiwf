@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: Test-path glob config surface with validation and completion wiring
+      title: Test-path glob config surface with validation and schema registration
       status: open
     - id: AC-2
       title: gitops helper lists working-tree paths dirty against HEAD
@@ -74,7 +74,7 @@ test is any good stays a review-time judgment (`wf-vacuity`, `wf-review-code`).
 7. `wf-tdd-cycle` documents the red/green diff-shape gate semantics —
    structural policy test (skill-edit backstop).
 
-### AC-1 — Test-path glob config surface with validation and completion wiring
+### AC-1 — Test-path glob config surface with validation and schema registration
 
 A config surface in `aiwf.yaml` names the glob set that classifies a path as a
 *test* path for the red/green diff-shape gate. It is a first-class key with a
