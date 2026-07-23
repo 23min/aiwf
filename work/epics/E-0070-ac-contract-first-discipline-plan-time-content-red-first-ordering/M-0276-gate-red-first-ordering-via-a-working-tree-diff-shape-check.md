@@ -244,3 +244,11 @@ paths) or on a wholly-clean tree; inactive when unconfigured, so existing
 callers and stress scenarios are untouched. · commit 99c694c4 · tests:
 `TestPromoteACPhase_RedGate_DiffShape` (test-only pass / non-test refuse+name /
 nothing-dirty refuse / unconfigured-inactive).
+
+### AC-4 — --phase green diff-shape guard
+
+Extended `requireDiffShapeForPhasePromote` to gate `--phase green` alongside red:
+green refuses when no non-test (implementation) path is dirty and succeeds once
+one is. Stateless — the current diff only, no red-time snapshot. · commit
+978cb02f · tests: `TestPromoteACPhase_GreenGate_DiffShape` (no-impl refuse /
+impl-present succeed).
