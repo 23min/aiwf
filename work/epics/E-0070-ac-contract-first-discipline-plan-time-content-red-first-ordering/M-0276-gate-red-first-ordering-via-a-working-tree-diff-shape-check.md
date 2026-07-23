@@ -6,6 +6,28 @@ parent: E-0070
 depends_on:
     - M-0274
 tdd: required
+acs:
+    - id: AC-1
+      title: Test-path glob config surface with validation and completion wiring
+      status: open
+    - id: AC-2
+      title: gitops helper lists working-tree paths dirty against HEAD
+      status: open
+    - id: AC-3
+      title: --phase red refuses when non-test paths are dirty or nothing is dirty
+      status: open
+    - id: AC-4
+      title: --phase green refuses until a non-test path is dirty
+      status: open
+    - id: AC-5
+      title: Diff-shape refusals overridable via --force --reason (human-only)
+      status: open
+    - id: AC-6
+      title: Path universe excludes planning files and the verb's own entity write
+      status: open
+    - id: AC-7
+      title: wf-tdd-cycle documents the red/green diff-shape gate semantics
+      status: open
 ---
 
 # M-0276 — Gate red-first ordering via a working-tree diff-shape check
@@ -51,6 +73,92 @@ test is any good stays a review-time judgment (`wf-vacuity`, `wf-review-code`).
    self-refuse — verb test with a planning-file-dirty fixture.
 7. `wf-tdd-cycle` documents the red/green diff-shape gate semantics —
    structural policy test (skill-edit backstop).
+
+### AC-1 — Test-path glob config surface with validation and completion wiring
+
+A config surface in `aiwf.yaml` names the glob set that classifies a path as a
+*test* path for the red/green diff-shape gate. It is a first-class key with a
+typed config field (parsed and defaulted), Tier-1 load-time validation that
+rejects a malformed glob with an operator-facing error, and tab-completion
+wiring.
+
+The `areamatch` matcher is reused to evaluate the globs; only the glob set is
+new. The areas `paths:` config is deliberately *not* the classifier — a
+separate key keeps test-classification independent of area assignment.
+
+**Mechanical assertion:** config parse/validation tests over a fixture
+`aiwf.yaml` (a valid set parses and round-trips; a malformed glob is rejected at
+Tier-1), plus the completion-drift test exercising the new key.
+
+### AC-2 — gitops helper lists working-tree paths dirty against HEAD
+
+An `internal/gitops` helper returns the set of paths that differ in the working
+tree relative to `HEAD` — the raw material the phase gate classifies. It reports
+both staged and unstaged changes so a `git add`-ed edit is not invisible to the
+gate.
+
+**Mechanical assertion:** a gitops-level test over a fixture git repo — seed a
+dirty working tree (staged and unstaged edits), assert the helper returns
+exactly the expected path set; assert the empty set on a clean tree.
+
+### AC-3 — --phase red refuses when non-test paths are dirty or nothing is dirty
+
+The `--phase red` promote consults the working-tree diff (AC-2) classified by
+the test-path globs (AC-1) and:
+
+- **refuses** when any non-test path is dirty, naming the offending path(s) —
+  code-before-test violates red-first;
+- **succeeds** when only test paths are dirty — the honest red state;
+- **refuses** when nothing is dirty — a red phase with no test written is
+  vacuous.
+
+**Mechanical assertion:** a verb-level test driving `PromoteACPhase` over a
+fixture repo across all three arms (non-test path dirty → refused, offending
+path named; test-only dirty → allowed; clean → refused).
+
+### AC-4 — --phase green refuses until a non-test path is dirty
+
+The `--phase green` promote refuses when no non-test path is dirty (no
+implementation exists to have turned the test green) and succeeds once a
+non-test path is dirty. The check is stateless — it inspects the current diff
+only, with no red-time snapshot to compare against.
+
+**Mechanical assertion:** a verb-level test driving `PromoteACPhase` over both
+arms (no non-test path dirty → refused; a non-test path dirty → allowed).
+
+### AC-5 — Diff-shape refusals overridable via --force --reason (human-only)
+
+Both diff-shape refusals (red and green) are overridable with `--force
+--reason "<justification>"`. `--force` is a sovereign, human-only act under the
+existing provenance rule — a non-human actor is refused — so the escape hatch
+cannot be exercised by an automated actor.
+
+**Mechanical assertion:** a verb-level test asserting a would-be-refused promote
+succeeds under `--force --reason`, and that `--force` from a non-human actor is
+refused.
+
+### AC-6 — Path universe excludes planning files and the verb's own entity write
+
+The path universe the gate inspects excludes planning/entity files — `work/**`
+and `docs/**` — and the verb's own frontmatter write to the milestone spec.
+Without this, a legitimate red promote (which itself rewrites the AC's
+frontmatter and may sit alongside dirty planning prose) would self-refuse.
+
+**Mechanical assertion:** a verb-level test with a planning-file-dirty fixture
+asserting a red promote still succeeds when only `work/**` / `docs/**` paths are
+dirty.
+
+### AC-7 — wf-tdd-cycle documents the red/green diff-shape gate semantics
+
+The `wf-tdd-cycle` skill documents the red/green diff-shape gate: that
+`--phase red` requires test-only dirtiness, `--phase green` requires
+implementation dirtiness, and both are `--force`-overridable. The RED and GREEN
+steps of the cycle reference the gate so an operator understands why a promote
+may refuse.
+
+**Mechanical assertion:** a structural policy test under `internal/policies/`
+asserting the gate semantics appear in the named section of the embedded
+`wf-tdd-cycle` SKILL.md (skill-edit structural-test backstop).
 
 ## Constraints
 
