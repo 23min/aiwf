@@ -44,31 +44,57 @@ extends that family one stage earlier, as a warning (not a block), because
 
 ## Acceptance criteria
 
-<!-- Prose shape; formalized via `aiwf add ac` at aiwfx-start-milestone.
-     Each is observable behavior with a mechanical assertion. -->
-
-1. A new warning-severity check-time finding fires for a non-archived `draft`
-   milestone with zero AC entities — check-level test.
-2. The finding (or a paired one) fires for a non-archived `draft` milestone
-   with any AC whose body subsection is empty — check-level test.
-3. The finding is archive-scoped via the existing `entity.IsArchivedPath`
-   guard — an archived `draft` milestone does not fire — check-level test.
-4. `aiwfx-plan-milestones` calls `aiwf add ac` and fills each AC body before
-   its merge-to-main step — structural policy test asserting the call appears
-   in the plan step and precedes the merge step (skill-edit backstop).
-5. `aiwfx-start-milestone`'s preflight reframes ACs as expected-to-pre-exist,
-   retaining the "add them now" fallback as a recovery path for hand-written
-   specs — structural policy test.
-
 ### AC-1 — Draft milestone with zero ACs raises a warning-severity finding
+
+A new warning-severity check-time finding fires for a non-archived `draft`
+milestone whose `acs[]` is empty. Warning, not error — `draft` is a legitimate
+mid-planning state, so the finding surfaces the missing-contract gap without
+blocking the milestone from resting in `draft`.
+
+Mechanical evidence: a check-level test builds a non-archived `draft` milestone
+with zero AC entities, runs the check, and asserts the new finding fires at
+warning severity (and does not fire for a `draft` milestone that has ACs).
 
 ### AC-2 — Draft milestone with an empty AC body raises the finding
 
+The finding (or a paired subcode) fires for a non-archived `draft` milestone
+with any AC whose body subsection carries no non-heading prose — the same
+empty-body condition `acs-empty-body` guards at `in_progress` (G-0216/D-0039),
+surfaced one FSM stage earlier at `draft` as a warning.
+
+Mechanical evidence: a check-level test builds a non-archived `draft` milestone
+with an AC whose `### AC-N` body is empty, runs the check, and asserts the
+finding fires.
+
 ### AC-3 — The draft-AC finding is archive-scoped (silent on archived milestones)
+
+The finding is archive-scoped via the existing `entity.IsArchivedPath` guard:
+an archived `draft` milestone (zero ACs or an empty AC body) does not fire it,
+matching every sibling shape/health rule in `internal/check`.
+
+Mechanical evidence: a check-level test places the same zero-AC / empty-body
+`draft` milestone under an archive path and asserts the finding stays silent.
 
 ### AC-4 — aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
 
+The `aiwfx-plan-milestones` ritual gains a step that calls `aiwf add ac` and
+fills each AC's body *before* its merge-to-main step, so a milestone never
+lands on main with missing or empty ACs — closing the visibility gap G-0440
+names.
+
+Mechanical evidence: a structural policy test asserts the embedded
+`aiwfx-plan-milestones` skill drives `aiwf add ac` + body-fill and that this
+step precedes the merge-to-main step (the skill-edit structural-test backstop).
+
 ### AC-5 — aiwfx-start-milestone preflight reframes ACs as expected-to-pre-exist
+
+The `aiwfx-start-milestone` preflight reframes ACs as expected to already exist
+(added at plan time), retaining the "add them now" step as a recovery fallback
+for hand-written specs rather than the default path.
+
+Mechanical evidence: a structural policy test asserts the embedded
+`aiwfx-start-milestone` preflight names ACs as expected-to-pre-exist and keeps
+the fallback wording.
 
 ## Constraints
 
