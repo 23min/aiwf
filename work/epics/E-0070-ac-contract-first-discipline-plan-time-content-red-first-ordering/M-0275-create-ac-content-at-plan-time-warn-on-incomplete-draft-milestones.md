@@ -191,3 +191,21 @@ first-class named property. RED was genuine: with the guard temporarily removed,
 both archived subcodes fired and both silent-assertions failed; restoring it (a
 byte-exact revert, empty acs.go diff) returned the test to green. · commit
 191e1120
+
+### AC-4 — aiwfx-plan-milestones adds and body-fills ACs before its merge-to-main step
+
+Folded AC-entity creation into the embedded `aiwfx-plan-milestones` step 5
+(authoring the milestone spec): the "Acceptance criteria" template bullet now
+redirects to a dedicated block that runs `aiwf add ac` per criterion and fills
+each scaffolded `### AC-N` body via `aiwf edit-body`, carrying the rationale that
+doing this before the merge-to-main step is what keeps a milestone off main with
+zero ACs or empty AC bodies (the `milestone-draft-incomplete-acs` gap AC-1/AC-2
+surface), and that `aiwfx-start-milestone`'s preflight then expects the ACs to
+pre-exist. Folded into step 5 rather than a new numbered step to avoid
+renumbering the two "step N" cross-references. Pinned by
+`TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275` (`internal/policies/`),
+which reads the embedded skill bytes and asserts — content-driven — that `aiwf
+add ac` plus a co-located `aiwf edit-body` appear in `## Workflow` and precede
+the merge-to-main step; the file's existing path constant satisfies the
+skill-edit structural-test backstop. RED was genuine — the assertion failed
+against the unedited skill (no `aiwf add ac` in the workflow). · commit 2c946eb0
