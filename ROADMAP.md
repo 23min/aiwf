@@ -969,7 +969,7 @@ reaches every verb from one place instead of drifting per hand-rolled copy.
 | M-0272 | Extract the read-side helpers into a neutral entityview package | done |
 | M-0273 | Converge contract-mutating verbs on one shared diff-based validation gate | done |
 
-## E-0070 — AC contract-first discipline: plan-time content, red-first ordering (active)
+## E-0070 — AC contract-first discipline: plan-time content, red-first ordering (done)
 
 ### Goal
 
