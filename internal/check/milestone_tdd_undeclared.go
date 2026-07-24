@@ -39,18 +39,12 @@ const CodeMilestoneTDDUndeclared = "milestone-tdd-undeclared"
 // config-agnostic.
 func milestoneTDDUndeclared(t *tree.Tree) []Finding {
 	var findings []Finding
-	for _, e := range t.Entities {
-		if e.Kind != entity.KindMilestone {
-			continue
-		}
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
+	eachActiveMilestone(t, func(e *entity.Entity) {
 		// Empty string covers absent, explicit null, and empty-value
 		// frontmatter alike — all three deserialize to "". Out-of-set
 		// values are a parse-time concern, not this rule's.
 		if e.TDD != "" {
-			continue
+			return
 		}
 		findings = append(findings, Finding{
 			Code:     CodeMilestoneTDDUndeclared,
@@ -62,6 +56,6 @@ func milestoneTDDUndeclared(t *tree.Tree) []Finding {
 			EntityID: e.ID,
 			Field:    "tdd",
 		})
-	}
+	})
 	return findings
 }

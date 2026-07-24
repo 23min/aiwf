@@ -286,6 +286,58 @@ func acsTDDAudit(t *tree.Tree) []Finding {
 	return findings
 }
 
+// eachActiveMilestone calls fn for every non-archived milestone in the
+// tree — the `kind == Milestone && !IsArchivedPath` preamble shared by
+// every milestone-scoped shape-and-health rule (M-0086, ADR-0004
+// §"Check shape rules": archived milestones are historical state, not
+// active drift, so they are uniformly skipped). Each rule applies its
+// own status/field filter inside fn.
+func eachActiveMilestone(t *tree.Tree, fn func(e *entity.Entity)) {
+	for _, e := range t.Entities {
+		if e.Kind != entity.KindMilestone {
+			continue
+		}
+		if entity.IsArchivedPath(e.Path) {
+			continue
+		}
+		fn(e)
+	}
+}
+
+// milestoneTerminalIncompleteACs is the shared body of
+// milestoneDoneIncompleteACs and milestoneCancelledIncompleteACs: an
+// error-severity finding for every non-archived milestone at the given
+// terminal `status` that still carries an `open` AC. The two rules were
+// byte-identical apart from the status compared, the finding code, and
+// the status word in the message.
+func milestoneTerminalIncompleteACs(t *tree.Tree, status, code, word string) []Finding {
+	var findings []Finding
+	eachActiveMilestone(t, func(e *entity.Entity) {
+		if e.Status != status {
+			return
+		}
+		var openIDs []string
+		for _, ac := range e.ACs {
+			if ac.Status == entity.StatusOpen {
+				openIDs = append(openIDs, ac.ID)
+			}
+		}
+		if len(openIDs) == 0 {
+			return
+		}
+		findings = append(findings, Finding{
+			Code:     code,
+			Severity: SeverityError,
+			Message: fmt.Sprintf("milestone %s is %s but %d AC(s) still open: %s",
+				e.ID, word, len(openIDs), strings.Join(openIDs, ", ")),
+			Path:     e.Path,
+			EntityID: e.ID,
+			Field:    "status",
+		})
+	})
+	return findings
+}
+
 // milestoneDoneIncompleteACs fires when a milestone has status: done
 // and at least one AC has status: open. Cancelled and deferred are
 // acceptable terminal AC states for a done milestone — only `open`
@@ -297,41 +349,7 @@ func acsTDDAudit(t *tree.Tree) []Finding {
 // reach a terminal state. The companion verb-time guard lives in
 // the promote verb.
 func milestoneDoneIncompleteACs(t *tree.Tree) []Finding {
-	var findings []Finding
-	for _, e := range t.Entities {
-		if e.Kind != entity.KindMilestone {
-			continue
-		}
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		// milestone-done-incomplete-acs is in the shape-and-health
-		// group; archived done milestones whose ACs aren't all met
-		// represent historical state, not active drift.
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
-		if e.Status != entity.StatusDone {
-			continue
-		}
-		var openIDs []string
-		for _, ac := range e.ACs {
-			if ac.Status == entity.StatusOpen {
-				openIDs = append(openIDs, ac.ID)
-			}
-		}
-		if len(openIDs) == 0 {
-			continue
-		}
-		findings = append(findings, Finding{
-			Code:     CodeMilestoneDoneIncompleteACs,
-			Severity: SeverityError,
-			Message: fmt.Sprintf("milestone %s is done but %d AC(s) still open: %s",
-				e.ID, len(openIDs), strings.Join(openIDs, ", ")),
-			Path:     e.Path,
-			EntityID: e.ID,
-			Field:    "status",
-		})
-	}
-	return findings
+	return milestoneTerminalIncompleteACs(t, entity.StatusDone, CodeMilestoneDoneIncompleteACs, "done")
 }
 
 // milestoneDraftIncompleteACs fires (warning) when a non-archived draft
@@ -425,22 +443,12 @@ func milestoneDraftIncompleteACs(t *tree.Tree) []Finding {
 // never reach (a nil acs[] has no open entries to report).
 func milestoneDoneZeroACs(t *tree.Tree) []Finding {
 	var findings []Finding
-	for _, e := range t.Entities {
-		if e.Kind != entity.KindMilestone {
-			continue
-		}
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		// milestone-done-zero-acs is in the shape-and-health group;
-		// archived done milestones with zero ACs represent historical
-		// state, not active drift.
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
+	eachActiveMilestone(t, func(e *entity.Entity) {
 		if e.Status != entity.StatusDone {
-			continue
+			return
 		}
 		if len(e.ACs) > 0 {
-			continue
+			return
 		}
 		findings = append(findings, Finding{
 			Code:     CodeMilestoneDoneZeroACs,
@@ -450,7 +458,7 @@ func milestoneDoneZeroACs(t *tree.Tree) []Finding {
 			EntityID: e.ID,
 			Field:    "acs",
 		})
-	}
+	})
 	return findings
 }
 
@@ -469,41 +477,7 @@ func milestoneDoneZeroACs(t *tree.Tree) []Finding {
 // entirely (a hand-edit, a pre-fix binary), the same backstop role
 // milestoneDoneIncompleteACs already plays for `done`.
 func milestoneCancelledIncompleteACs(t *tree.Tree) []Finding {
-	var findings []Finding
-	for _, e := range t.Entities {
-		if e.Kind != entity.KindMilestone {
-			continue
-		}
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		// milestone-cancelled-incomplete-acs is in the shape-and-health
-		// group; archived cancelled milestones whose ACs aren't all
-		// terminal represent historical state, not active drift.
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
-		if e.Status != entity.StatusCancelled {
-			continue
-		}
-		var openIDs []string
-		for _, ac := range e.ACs {
-			if ac.Status == entity.StatusOpen {
-				openIDs = append(openIDs, ac.ID)
-			}
-		}
-		if len(openIDs) == 0 {
-			continue
-		}
-		findings = append(findings, Finding{
-			Code:     CodeMilestoneCancelledIncompleteACs,
-			Severity: SeverityError,
-			Message: fmt.Sprintf("milestone %s is cancelled but %d AC(s) still open: %s",
-				e.ID, len(openIDs), strings.Join(openIDs, ", ")),
-			Path:     e.Path,
-			EntityID: e.ID,
-			Field:    "status",
-		})
-	}
-	return findings
+	return milestoneTerminalIncompleteACs(t, entity.StatusCancelled, CodeMilestoneCancelledIncompleteACs, "cancelled")
 }
 
 // acsEmptyBodyOnStart fires (error) when a non-archived milestone is
@@ -526,27 +500,20 @@ func milestoneCancelledIncompleteACs(t *tree.Tree) []Finding {
 // carve-out (M-0268/AC-2).
 func acsEmptyBodyOnStart(t *tree.Tree) []Finding {
 	var findings []Finding
-	for _, e := range t.Entities {
-		if e.Kind != entity.KindMilestone {
-			continue
-		}
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
+	eachActiveMilestone(t, func(e *entity.Entity) {
 		if e.Status != entity.StatusInProgress && e.Status != entity.StatusDone {
-			continue
+			return
 		}
 		fullPath := filepath.Join(t.Root, e.Path)
 		raw, err := os.ReadFile(fullPath)
 		if err != nil {
 			//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; the loader's own load-error finding already covers a vanished file
-			continue
+			return
 		}
 		_, body, ok := entity.Split(raw)
 		if !ok {
 			//coverage:ignore defensive: a file that round-tripped through the loader already has valid frontmatter delimiters
-			continue
+			return
 		}
 		sections := entity.ParseACSections(body)
 		for _, ac := range e.ACs {
@@ -570,7 +537,7 @@ func acsEmptyBodyOnStart(t *tree.Tree) []Finding {
 				Field:    "acs",
 			})
 		}
-	}
+	})
 	return findings
 }
 
