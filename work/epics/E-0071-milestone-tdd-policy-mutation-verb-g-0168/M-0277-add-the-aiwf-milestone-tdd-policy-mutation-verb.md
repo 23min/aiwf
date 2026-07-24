@@ -128,6 +128,34 @@ no ACs, so it cannot reach a met-phaseless flip-to-`required`.
 - `internal/stresstest/verb_sequence.go` — add `milestone tdd` to the
   `verb-sequence` walker's operation table as a milestone-only simple step.
 
+## Work log
+
+- **AC-1 — verb + one trailered commit.** `aiwf milestone tdd <M-id> --policy
+  <value>` sets the `tdd:` field and commits once with the standard trailers;
+  full discoverability wiring (root banner, `--policy` completion, `aiwf-add`
+  skill mention) landed alongside so the drift guards stay green. · commit
+  3e1e350f
+- **AC-2 — policy validation.** Unknown `--policy` values are a clean usage
+  error at the verb layer; also refreshed two now-stale check hints that told
+  operators to hand-edit `tdd:` frontmatter. · commit 89614704
+- **AC-3 — uniform-ordinary gating.** Binary-level test: an authorized `ai/`
+  actor flips either direction with no `--force`; an unauthorized one is refused
+  by the standard entity-scoped provenance gate. No sovereign carve-out. ·
+  commit b1555ca6
+- **AC-4 — refuse-with-hint.** A `required` flip stranding a met, phaseless AC
+  is refused with a hint naming the ACs, aborting before any commit and never
+  seeding a phase; the guard is precise (met + phase-done flips cleanly). ·
+  commit 5eb44585
+- **AC-5 — discoverability.** Named pins for the subcommand, its flag shape,
+  `--policy` closed-set completion, and the root-banner line. · commit 5a2472ad
+- **AC-6 — stress walker.** `milestone tdd` is a milestone-only, always-legal
+  walk operation; the walk stays check-clean and the list invariant holds across
+  flips (ops-table, every-operation dispatch, focused step, and full-scenario
+  tests, plus a 5× harness run). · commit 53b7824b
+- **Coverage completeness.** ResolveActor + lock-contention cli-guard tests; the
+  defensive projection-error branch is `//coverage:ignore`d (guard-preempted). ·
+  commit cd6e8669
+
 ## Out of scope
 
 - The three relation-field editors and the set-at-transition amend verbs
