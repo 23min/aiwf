@@ -12,7 +12,6 @@ import (
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // newVerifyCmd builds `aiwf contract verify`. Runs the verify and
@@ -106,17 +105,11 @@ func Run(root, format string, pretty bool, correlationID string) (code int) {
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := render.Envelope{
-			Tool:     "aiwf",
-			Version:  version.Current().Version,
-			Status:   render.StatusFor(findings),
-			Findings: findings,
-			Metadata: map[string]any{
-				"root":     rootDir,
-				"bindings": BindingCount(contracts),
-				"findings": len(findings),
-			},
-		}
+		env := cliutil.FindingsEnvelope(findings, map[string]any{
+			"root":     rootDir,
+			"bindings": BindingCount(contracts),
+			"findings": len(findings),
+		})
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf contract verify: writing output: %v\n", err)
 			return cliutil.ExitInternal

@@ -20,7 +20,6 @@ import (
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf history <id>`: filters git log for the
@@ -160,16 +159,10 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 			}
 		}
 	case "json":
-		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  map[string]any{"id": id, "events": events},
-			Metadata: map[string]any{
-				"root":   rootDir,
-				"events": len(events),
-			},
-		}
+		env := cliutil.OKEnvelope(map[string]any{"id": id, "events": events}, map[string]any{
+			"root":   rootDir,
+			"events": len(events),
+		})
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf history: %v\n", err)
 			return cliutil.ExitInternal
