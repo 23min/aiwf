@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: milestone tdd sets the policy in one trailered commit
       status: open
+    - id: AC-2
+      title: policy value validated against the closed set; unknown is a usage error
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -64,6 +67,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
    no ACs, so it cannot reach a met-phaseless flip-to-`required`.
 
 ### AC-1 — milestone tdd sets the policy in one trailered commit
+
+### AC-2 — policy value validated against the closed set; unknown is a usage error
 
 ## Constraints
 
