@@ -27,7 +27,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: milestone tdd is a selectable op in the verb-sequence stress walker
-      status: open
+      status: met
       tdd_phase: done
 ---
 
