@@ -32,7 +32,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-7
-      title: wf-tdd-cycle documents the red/green diff-shape gate semantics
+      title: wf-tdd-cycle documents the red-first diff-shape gate semantics
       status: met
       tdd_phase: done
 ---
@@ -158,7 +158,7 @@ frontmatter and may sit alongside dirty planning prose) would self-refuse.
 asserting a red promote still succeeds when only `work/**` / `docs/**` paths are
 dirty.
 
-### AC-7 — wf-tdd-cycle documents the red/green diff-shape gate semantics
+### AC-7 — wf-tdd-cycle documents the red-first diff-shape gate semantics
 
 The `wf-tdd-cycle` skill documents the red/green diff-shape gate: that
 `--phase red` requires test-only dirtiness, `--phase green` requires
@@ -276,7 +276,7 @@ write) are excluded from the dirty universe — a legitimate red promote beside
 dirty planning prose no longer self-refuses. · commit 77b1a604 · tests:
 `TestPromoteACPhase_RedGate_ExcludesPlanningPaths` (docs-path / work-path).
 
-### AC-7 — wf-tdd-cycle documents the gate
+### AC-7 — wf-tdd-cycle documents the red-first diff-shape gate semantics
 
 Added a named "The red/green diff-shape gate" section to the embedded
 `wf-tdd-cycle` skill (`--phase red` wants test-only dirtiness, `--phase green`
