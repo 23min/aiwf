@@ -42,10 +42,11 @@ acs:
 ## Goal
 
 Close G-0252: make red-first test-then-code ordering mechanical. A
-working-tree diff-shape check on the AC's TDD-phase promotes refuses
-`--phase red` when implementation is already dirty and `--phase green` when no
-implementation is dirty yet — proving file-touch ordering without running
-tests or trusting a self-reported timeline.
+working-tree diff-shape check on the AC's `--phase red` promote refuses when
+implementation is already dirty (or nothing is dirty at all) — proving
+file-touch ordering without running tests or trusting a self-reported timeline.
+The gate is **red-only** (D-0049); `--phase green` is not gated (see the
+Decisions section for why).
 
 ## Context
 
@@ -71,20 +72,21 @@ test is any good stays a review-time judgment (`wf-vacuity`, `wf-review-code`).
 3. `--phase red` refuses when any non-test path is dirty (naming the
    offending path[s]); succeeds when only test paths are dirty; refuses when
    nothing is dirty — verb test covering all three arms.
-4. `--phase green` refuses when no non-test path is dirty and succeeds once a
-   non-test path is dirty — verb test, both arms.
-5. Both refusals are overridable via `--force --reason` (human-only per the
+4. *(Cancelled — D-0049.)* The `--phase green` gate was dropped: it
+   false-refuses test-only ACs (a test-only AC reaches green with no
+   implementation change). The gate is red-only.
+5. The red refusals are overridable via `--force --reason` (human-only per the
    existing sovereign rule) — verb test.
 6. The inspected path universe excludes the verb's own entity write and
    planning files (`work/**`/`docs/**`) so a legitimate red promote does not
    self-refuse — verb test with a planning-file-dirty fixture.
-7. `wf-tdd-cycle` documents the red/green diff-shape gate semantics —
+7. `wf-tdd-cycle` documents the red-first diff-shape gate semantics —
    structural policy test (skill-edit backstop).
 
 ### AC-1 — Test-path glob config surface with validation and schema registration
 
 A config surface in `aiwf.yaml` names the glob set that classifies a path as a
-*test* path for the red/green diff-shape gate. It is a first-class key with a
+*test* path for the red-first diff-shape gate. It is a first-class key with a
 typed config field (parsed and defaulted) and Tier-1 load-time validation that
 rejects a malformed glob with an operator-facing error.
 
@@ -125,6 +127,12 @@ path named; test-only dirty → allowed; clean → refused).
 
 ### AC-4 — --phase green refuses until a non-test path is dirty
 
+**Cancelled (D-0049).** The green gate false-refuses test-only ACs: a regression
+or characterization test reaches green with no implementation change, so
+`--phase green` could never pass without `--force`. The gate is red-only;
+`--phase green` is not gated. The original contract, no longer implemented, is
+preserved below for the record.
+
 The `--phase green` promote refuses when no non-test path is dirty (no
 implementation exists to have turned the test green) and succeeds once a
 non-test path is dirty. The check is stateless — it inspects the current diff
@@ -135,17 +143,17 @@ arms (no non-test path dirty → refused; a non-test path dirty → allowed).
 
 ### AC-5 — Diff-shape refusals overridable via --force --reason (human-only)
 
-Both diff-shape refusals (red and green) are overridable with `--force
---reason "<justification>"`. `--force` is a sovereign, human-only act under the
-existing provenance rule — a non-human actor is refused — so the escape hatch
-cannot be exercised by an automated actor.
+The red diff-shape refusals (a non-test path already dirty, or nothing dirty)
+are overridable with `--force --reason "<justification>"`. `--force` is a
+sovereign, human-only act under the existing provenance rule — a non-human actor
+is refused — so the escape hatch cannot be exercised by an automated actor.
 
 **Mechanical assertion:** a verb-level test that a would-be-refused `--phase red`
-promote and a would-be-refused `--phase green` promote each succeed under
-`force=true` (the gate runs only under `if !force`). The human-only property is
-enforced at the provenance-decoration layer by the existing coherence rule
-(`CoherenceRuleForceNonHuman`) and independently pinned by the coherence tests;
-the escape hatch inherits it rather than re-checking it in the verb.
+promote succeeds under `force=true` (the gate runs only under `if !force`). The
+human-only property is enforced at the provenance-decoration layer by the
+existing coherence rule (`CoherenceRuleForceNonHuman`) and independently pinned
+by the coherence tests; the escape hatch inherits it rather than re-checking it
+in the verb.
 
 ### AC-6 — Path universe excludes planning files and the verb's own entity write
 
@@ -160,11 +168,12 @@ dirty.
 
 ### AC-7 — wf-tdd-cycle documents the red-first diff-shape gate semantics
 
-The `wf-tdd-cycle` skill documents the red/green diff-shape gate: that
-`--phase red` requires test-only dirtiness, `--phase green` requires
-implementation dirtiness, and both are `--force`-overridable. The RED and GREEN
-steps of the cycle reference the gate so an operator understands why a promote
-may refuse.
+The `wf-tdd-cycle` skill documents the red-first diff-shape gate: that
+`--phase red` requires test-only dirtiness, that `--phase green` is deliberately
+not gated (a test-only AC reaches green with no implementation change), and that
+the red refusal is `--force`-overridable. The RED step of the cycle references
+the gate, and the section resolves the new-symbol / compile-stub case, so an
+operator understands when a promote may refuse.
 
 **Mechanical assertion:** a structural policy test under `internal/policies/`
 asserting the gate semantics appear in the named section of the embedded
@@ -176,9 +185,9 @@ asserting the gate semantics appear in the named section of the embedded
   state; no new commit, trailer, or flag to remember.
 - Stack-agnostic — classification is glob-based, never toolchain-coupled (no
   `go test -list` equivalent).
-- Stateless — `--phase green` checks the current diff only; there is no
-  red-time snapshot. Ordering comes from the pair of gates, not a
-  "grown since red" comparison the verb cannot compute.
+- Stateless — the `--phase red` gate checks the current diff only; there is no
+  red-time snapshot. Ordering comes from the red gate alone (red-only per
+  D-0049), not a "grown since red" comparison the verb cannot compute.
 
 ## Design notes
 
@@ -285,3 +294,79 @@ references from the RED and GREEN steps. Shipped surface — canonical
 placeholders, no real ids. · commit 411664ac · tests:
 `TestM0276_TddCycleDocumentsDiffShapeGate` (structural, section-scoped;
 skill-edit backstop).
+
+### Wrap review — red-only rework
+
+The independent wrap design review found the green gate false-refuses test-only
+ACs. Reworked to a **red-only** gate: recorded D-0049, removed the green branch
+from the verb and its tests, de-greened the `wf-tdd-cycle` skill, cancelled
+AC-4, and narrowed AC-5/AC-7 to the red gate. From the same review, reconciled
+the skill's strict-red guidance with the gate for the new-symbol / compile-stub
+case. · commits fb134633 (skill: ordering-red vs semantic-red) · 6e0c657b
+(verb: red-only) · c9e07335 (skill: red-only) · D-0049.
+
+## Decisions made during implementation
+
+### Opt-in gate activation (empty `tdd.test_paths` → inactive)
+
+The gate is opt-in: with no test-path globs configured it is a no-op. Forced by
+D-0047's constraints — a baked-in default glob set would be language-specific
+(violating stack-agnosticism) and would start refusing every existing consumer's
+`--phase` promotes (violating zero-friction). A project activates the gate by
+declaring its own test globs. This repo ships the gate but does **not** activate
+it (no `tdd.test_paths` in its own `aiwf.yaml`); dogfooding is a separate
+operator decision, deferred to epic wrap.
+
+### D-0049 — the gate is red-only (green gate dropped)
+
+Implementation and the wrap design review found the green half unsound: it
+false-refuses test-only ACs (a regression/characterization test reaches green
+with no implementation change, so `--phase green` could never pass without
+`--force`), and its only unique catch is indistinguishable from a legitimate
+test-only AC. The red gate carries the whole ordering guarantee. Recorded as
+D-0049; AC-4 cancelled; AC-5/AC-7 narrowed to red.
+
+### The compile-stub tension (documented, not gated)
+
+For a new symbol in a typed language the failing test needs a minimal stub to
+reach its assertion — a non-test change the red gate would reject. Rather than
+force `--force`, `wf-tdd-cycle` now distinguishes ordering-red (the test exists,
+the code does not — a compile failure counts, per the Three Laws of TDD) from
+semantic-red (the assertion fails once it compiles): promote `--phase red` at
+the compile-failure moment, before the stub. No mechanical fix exists —
+distinguishing an honest stub from real implementation is the
+existence-not-relevance wall D-0047 / D-0038 refuse to climb.
+
+## Validation
+
+- `go test -race ./...` — green (71 packages) at the wrap review.
+- `make check-fast` — exit 0 (vet + lint + full test suite), re-run green after
+  the red-only rework.
+- `make coverage-gate` — exit 0; every changed line covered or `//coverage:ignore`'d.
+- `aiwf check` — 0 error-severity findings on M-0276.
+- Independent two-lens review (code-quality + design-quality, fresh-context) —
+  both approved; the design review's green-gate finding drove D-0049.
+
+## Deferrals
+
+- **G-0445** — the gate hardcodes a `docs/` exclusion that may be real
+  implementation in a consumer repo (a false-pass at `--phase red`); make the
+  excluded set configurable or scope it to `work/` only.
+
+## Reviewer notes
+
+- The `DirtyPaths`-error branch in `requireDiffShapeForPhasePromote` is
+  `//coverage:ignore`'d — genuinely unreachable (promoting an AC requires a
+  committed milestone, so HEAD always exists; the gitops error path itself is
+  tested at the gitops layer).
+- `pathMatchesAnyGlob` swallows `areamatch.Match`'s error — safe because
+  `tdd.test_paths` globs are Tier-1 validated at config load, so a pattern error
+  cannot reach it.
+- The gate assumes the aiwf project root equals the git repo root (consistent
+  with all of aiwf's gitops helpers); a nested-project layout would drift — a
+  whole-design property, out of scope here.
+- D-0047's "structural fact about which paths changed and when" prose slightly
+  over-claims: committed changes are invisible to the gate, so the guarantee is
+  "working-tree-dirty ordering at the red-promote instant," not full
+  touch-ordering. Honest overall (the what-it-doesn't-prove boundary is stated);
+  noted for a future D-0047 prose tidy.
