@@ -3,10 +3,8 @@ package verb
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
-	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -73,24 +71,16 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	if err != nil { //coverage:ignore filesystem IO failure reading a file the loaded tree already resolved; no realistic unit-test trigger
 		return nil, err
 	}
-	content, err := entity.Serialize(&modified, body)
-	if err != nil { //coverage:ignore serialization of a struct that round-tripped through the loader; no realistic unit-test trigger
-		return nil, fmt.Errorf("serializing %s: %w", id, err)
-	}
-
-	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) { //coverage:ignore defensive: projectionFindings returns only *introduced* errors; the sole error a valid policy can introduce (acs-tdd-audit under `required`) is preempted by the refuse-with-hint guard above, so this never fires — kept for uniformity with every writer verb's projection safety net
-		return findings(fs), nil
-	}
-
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone tdd %s -> %s", canonID, policy)
-	result := plan(&Plan{
-		Subject:  subject,
-		Body:     reason,
-		Trailers: standardTrailers("milestone-tdd", canonID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+	// projection inside planEntityWrite cannot fire here: the sole error
+	// a valid policy change could introduce (acs-tdd-audit under
+	// `required`) is preempted by the refuse-with-hint guard above. It
+	// runs anyway as the uniform writer net.
+	return planEntityWrite(t, &modified, e.Path, body, entityWrite{
+		subject:  subject,
+		body:     reason,
+		trailers: standardTrailers("milestone-tdd", canonID, actor),
+		metadata: map[string]any{"entity_id": canonID, "tdd": policy},
 	})
-	result.Metadata = map[string]any{"entity_id": canonID, "tdd": policy}
-	return result, nil
 }

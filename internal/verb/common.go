@@ -8,6 +8,7 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -148,6 +149,51 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 		}
 	}
 	return introduced
+}
+
+// entityWrite carries the commit-shaping fields of a single-entity
+// write — everything the Plan needs that isn't derived from the entity
+// bytes themselves. Bundled into a struct so planEntityWrite reads at
+// its call sites without a long positional parameter list.
+type entityWrite struct {
+	subject  string           // commit subject line
+	body     string           // commit-message body paragraph; "" for none
+	trailers []gitops.Trailer // audit-trail trailers
+	metadata map[string]any   // Result.Metadata (JSON envelope fields)
+}
+
+// planEntityWrite is the shared tail of every single-entity, single-file
+// mutating verb: it serializes `modified` with the already-computed
+// `fileBody`, runs the projection safety-net (refusing with findings if
+// the change would introduce an error-severity check finding), and
+// returns a Plan writing exactly one OpWrite to `path`.
+//
+// The body-reading and body-transforming steps above it vary per verb
+// (a plain readBody, an AC-heading rewrite, a batch upsert), so they
+// stay at the call sites; this helper begins at Serialize.
+//
+// Verbs that deliberately skip the projection net — set-priority and
+// set-area, whose single-scalar edits are already guarded at verb time
+// and whose --clear paths must be allowed to write a state the standing
+// check then flags (see their own notes) — do NOT route through here.
+func planEntityWrite(t *tree.Tree, modified *entity.Entity, path string, fileBody []byte, w entityWrite) (*Result, error) {
+	content, err := entity.Serialize(modified, fileBody)
+	if err != nil {
+		//coverage:ignore defensive: Serialize fails only on a malformed entity; `modified` round-tripped through the loader, so no realistic unit-test trigger. Consolidates the per-verb serialize-error guards this helper replaced.
+		return nil, fmt.Errorf("serializing %s: %w", modified.ID, err)
+	}
+	proj := projectReplace(t, modified, filepath.ToSlash(path))
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
+		return findings(fs), nil
+	}
+	result := plan(&Plan{
+		Subject:  w.subject,
+		Body:     w.body,
+		Trailers: w.trailers,
+		Ops:      []FileOp{{Type: OpWrite, Path: path, Content: content}},
+	})
+	result.Metadata = w.metadata
+	return result, nil
 }
 
 // skipDuringProjection reports whether a finding code should be
