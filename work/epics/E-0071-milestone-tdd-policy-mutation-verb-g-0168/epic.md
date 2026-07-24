@@ -1,7 +1,7 @@
 ---
 id: E-0071
 title: Milestone tdd-policy mutation verb (G-0168)
-status: proposed
+status: active
 ---
 
 # E-0071 — Milestone tdd-policy mutation verb (G-0168)
