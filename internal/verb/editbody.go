@@ -93,7 +93,7 @@ func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason
 	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
-		Trailers: editBodyTrailers(e.ID, actor),
+		Trailers: standardTrailers("edit-body", e.ID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	})
 	result.Metadata = map[string]any{"entity_id": e.ID}
@@ -165,22 +165,9 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 	result := plan(&Plan{
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
-		Trailers: editBodyTrailers(e.ID, actor),
+		Trailers: standardTrailers("edit-body", e.ID, actor),
 		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: workingBytes}},
 	})
 	result.Metadata = map[string]any{"entity_id": e.ID}
 	return result, nil
-}
-
-// editBodyTrailers builds the standard trailer triple for edit-body
-// commits. Centralized so the explicit and bless paths emit
-// identical trailers — `aiwf history <id>` cannot tell them apart,
-// which is the right outcome (both are "the body was edited").
-func editBodyTrailers(id, actor string) []gitops.Trailer {
-	return []gitops.Trailer{
-		{Key: gitops.TrailerVerb, Value: "edit-body"},
-		// Canonical width per AC-1 in M-081.
-		{Key: gitops.TrailerEntity, Value: entity.Canonicalize(id)},
-		{Key: gitops.TrailerActor, Value: actor},
-	}
 }

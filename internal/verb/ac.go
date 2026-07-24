@@ -400,12 +400,16 @@ func appendTestsTrailer(trailers []gitops.Trailer, tests *gitops.TestMetrics) []
 	return append(trailers, gitops.Trailer{Key: gitops.TrailerTests, Value: formatted})
 }
 
-// standardTrailers builds the verb/entity/actor trailer triple for
-// non-transition verbs (add, rename). Used by AC verbs that don't
-// participate in the aiwf-to: / aiwf-force: schema.
+// standardTrailers builds the verb/entity/actor trailer triple — the
+// single source of truth for the audit-trail triple emitted by verbs
+// that don't participate in the aiwf-to: / aiwf-force: schema (add,
+// rename, retitle, edit-body, set-priority, set-area, milestone-tdd,
+// milestone-depends-on). A verb that only ever emits the bare triple
+// should route through here rather than reconstruct it inline.
 //
 // The id is canonicalized per AC-1 in M-081 — kernel commits never
-// re-emit narrow legacy widths.
+// re-emit narrow legacy widths. Canonicalize is idempotent, so passing
+// an already-canonical id is a safe no-op.
 func standardTrailers(verbName, id, actor string) []gitops.Trailer {
 	return []gitops.Trailer{
 		{Key: gitops.TrailerVerb, Value: verbName},
