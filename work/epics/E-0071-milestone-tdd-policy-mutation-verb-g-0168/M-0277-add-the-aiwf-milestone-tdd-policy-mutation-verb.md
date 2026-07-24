@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: verb is discoverable via --help, root banner, completion, and skill
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-6
       title: milestone tdd is a selectable op in the verb-sequence stress walker
       status: open
