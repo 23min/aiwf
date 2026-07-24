@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -117,12 +118,7 @@ func AllowedStatuses(k Kind) []string {
 
 // IsAllowedStatus reports whether status is in the kind's allowed set.
 func IsAllowedStatus(k Kind, status string) bool {
-	for _, s := range AllowedStatuses(k) {
-		if s == status {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(AllowedStatuses(k), status)
 }
 
 // acAllowedStatuses is the closed status set for an acceptance criterion,
@@ -142,12 +138,7 @@ func AllowedACStatuses() []string {
 // string returns false; the empty-string sentinel for "absent" is not
 // itself a legal status value.
 func IsAllowedACStatus(s string) bool {
-	for _, want := range acAllowedStatuses {
-		if want == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(acAllowedStatuses, s)
 }
 
 // tddPhases is the closed phase set for the TDD audit trail on an
@@ -166,12 +157,7 @@ func AllowedTDDPhases() []string {
 // string returns false; phase absence (when the parent milestone is
 // `tdd: none` or `tdd: advisory`) is checked separately by the caller.
 func IsAllowedTDDPhase(p string) bool {
-	for _, want := range tddPhases {
-		if want == p {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(tddPhases, p)
 }
 
 // tddPolicies is the closed policy set for a milestone's `tdd:` field.
@@ -192,12 +178,7 @@ func AllowedTDDPolicies() []string {
 // the caller is responsible for substituting that before consulting
 // this predicate (the empty string is not itself a legal policy value).
 func IsAllowedTDDPolicy(p string) bool {
-	for _, want := range tddPolicies {
-		if want == p {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(tddPolicies, p)
 }
 
 // Priority-level constants for the `priority` frontmatter field
@@ -226,12 +207,7 @@ func AllowedPriorityLevels() []string {
 // level. Empty string returns false; absence (no `priority` key) is
 // the legal "unset" state and is checked separately by the caller.
 func IsAllowedPriorityLevel(p string) bool {
-	for _, want := range priorityLevels {
-		if want == p {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(priorityLevels, p)
 }
 
 // CarriesOwnPriority reports whether a kind may carry its own

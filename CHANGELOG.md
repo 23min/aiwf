@@ -37,6 +37,17 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: closed-set membership scans replaced with `slices.Contains`
+
+- Internal refactor, no user-visible change. Nine hand-written linear-scan
+  predicates in `internal/entity` (`IsAllowedStatus`, `IsAllowedACStatus`,
+  `IsAllowedTDDPhase`, `IsAllowedTDDPolicy`, `IsAllowedPriorityLevel`,
+  `IsValidAreaValue`, `ValidateTransition`, `IsLegalACTransition`,
+  `IsLegalTDDPhaseTransition`) now use `slices.Contains` — already the repo idiom
+  — instead of a bespoke `for … { if == { return } }` loop. Behavior is identical
+  (`slices.Contains` is exactly that scan); the change removes the repeated loop
+  shape.
+
 ### Changed — G-0447: `--format=json` envelope construction consolidated onto shared constructors
 
 - Internal refactor, no user-visible change. The `--format=json` envelope's
