@@ -1,7 +1,9 @@
 ---
 id: G-0449
 title: 'Remove untracked dead code: entity.SubKindFromID and resolver var-guards'
-status: open
+status: addressed
+addressed_by_commit:
+    - 43f45f7c
 ---
 ## What's missing
 
