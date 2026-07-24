@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: 'uniform-ordinary gating: any actor flips either direction without --force'
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: flip to required refuses when a met AC lacks tdd_phase done
