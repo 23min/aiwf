@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-07-24
+
 ### Added — E-0070: contract-first, red-first AC discipline
 
 - `tdd.test_paths` (`aiwf.yaml`) — opt-in glob set enabling a working-tree
