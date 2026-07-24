@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -138,13 +137,9 @@ func SetArea(
 		subject = fmt.Sprintf("aiwf set-area %s --clear", canonID)
 	}
 	result := plan(&Plan{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "set-area"},
-			{Key: gitops.TrailerEntity, Value: canonID},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Trailers: standardTrailers("set-area", canonID, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "area": modified.Area}
 	return result, nil

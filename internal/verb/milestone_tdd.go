@@ -8,7 +8,6 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -87,14 +86,10 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone tdd %s -> %s", canonID, policy)
 	result := plan(&Plan{
-		Subject: subject,
-		Body:    reason,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "milestone-tdd"},
-			{Key: gitops.TrailerEntity, Value: canonID},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Body:     reason,
+		Trailers: standardTrailers("milestone-tdd", canonID, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "tdd": policy}
 	return result, nil

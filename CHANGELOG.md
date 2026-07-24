@@ -27,6 +27,16 @@ section in this file.
   `tdd_phase: done` is refused with an actionable hint naming the offending ACs,
   rather than silently back-stamping a phase.
 
+### Changed — G-0447: trailer-triple consolidated onto a single builder
+
+- Internal refactor, no user-visible change. The commit-trailer triple
+  (`aiwf-verb` / `aiwf-entity` / `aiwf-actor`) is now emitted from one builder
+  (`standardTrailers`) across the `edit-body`, `set-priority`, `set-area`,
+  `milestone-tdd`, and `milestone-depends-on` verbs, replacing hand-assembled
+  copies (and a duplicate `editBodyTrailers`). Emitted trailers are byte-identical;
+  this collapses the audit-trail contract to a single source of truth so a future
+  schema change can no longer be applied to some verbs and missed on others.
+
 ### Fixed — G-0446: `aiwf init` no longer hangs on hook consent where no human can answer
 
 - `aiwf init --no-prompt` — a new flag that skips the interactive hook-consent

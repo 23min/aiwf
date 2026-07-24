@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -105,13 +104,9 @@ func SetPriority(
 		subject = fmt.Sprintf("aiwf set-priority %s --clear", canonID)
 	}
 	result := plan(&Plan{
-		Subject: subject,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "set-priority"},
-			{Key: gitops.TrailerEntity, Value: canonID},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Trailers: standardTrailers("set-priority", canonID, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "priority": modified.Priority}
 	return result, nil

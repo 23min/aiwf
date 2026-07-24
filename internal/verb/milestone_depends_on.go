@@ -7,7 +7,6 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -95,15 +94,10 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone depends-on %s", canonID)
 	result := plan(&Plan{
-		Subject: subject,
-		Body:    reason,
-		Trailers: []gitops.Trailer{
-			{Key: gitops.TrailerVerb, Value: "milestone-depends-on"},
-			// Canonical width per AC-1 in M-081.
-			{Key: gitops.TrailerEntity, Value: canonID},
-			{Key: gitops.TrailerActor, Value: actor},
-		},
-		Ops: []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Subject:  subject,
+		Body:     reason,
+		Trailers: standardTrailers("milestone-depends-on", canonID, actor),
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
 	})
 	result.Metadata = map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn}
 	return result, nil
