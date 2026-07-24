@@ -86,7 +86,7 @@ legal until an AC is `met`).
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
-| Verb spelling: `milestone tdd --policy <x>` vs `milestone set-tdd <x>` | no | settled at implementation in the milestone below |
+| Verb spelling: `milestone tdd --policy <x>` vs `milestone set-tdd <x>` | no | Settled — `milestone tdd --policy <x>`: mirrors the `milestone depends-on` subverb precedent and completes a closed-set value in a flag rather than a bare positional. |
 
 ## Milestones
 
