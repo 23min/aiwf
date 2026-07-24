@@ -3,9 +3,7 @@ package verb
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
-	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -81,24 +79,12 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	if err != nil {
 		return nil, err
 	}
-	content, err := entity.Serialize(&modified, body)
-	if err != nil {
-		return nil, fmt.Errorf("serializing %s: %w", id, err)
-	}
-
-	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
-	}
-
 	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone depends-on %s", canonID)
-	result := plan(&Plan{
-		Subject:  subject,
-		Body:     reason,
-		Trailers: standardTrailers("milestone-depends-on", canonID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+	return planEntityWrite(t, &modified, e.Path, body, entityWrite{
+		subject:  subject,
+		body:     reason,
+		trailers: standardTrailers("milestone-depends-on", canonID, actor),
+		metadata: map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn},
 	})
-	result.Metadata = map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn}
-	return result, nil
 }

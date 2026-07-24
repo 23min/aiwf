@@ -37,6 +37,19 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: single-entity write tail consolidated onto `planEntityWrite`
+
+- Internal refactor, no user-visible change. The shared tail of every
+  single-entity, single-file mutating verb — serialize the modified entity, run
+  the projection safety-net (refuse if the change would introduce a check error),
+  and plan exactly one write — is now one helper (`planEntityWrite`) instead of
+  seven hand-copied blocks across `cancel`, `milestone-tdd`, `milestone-depends-on`,
+  `add`/`rename`/`promote` of ACs, and AC `retitle`. Behavior is unchanged; the
+  projection net still runs identically. `set-priority` and `set-area` deliberately
+  stay out — they skip the projection net on purpose (for `set-area` it is
+  load-bearing: projecting would break `--clear` under `areas.required`), now
+  documented at each site so a future pass won't fold them in.
+
 ### Fixed — G-0446: `aiwf init` no longer hangs on hook consent where no human can answer
 
 - `aiwf init --no-prompt` — a new flag that skips the interactive hook-consent

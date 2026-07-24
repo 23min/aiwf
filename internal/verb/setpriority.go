@@ -89,6 +89,15 @@ func SetPriority(
 		modified.Priority = level
 	}
 
+	// Deliberately NOT routed through planEntityWrite: set-priority skips
+	// the projection safety-net on purpose. The only checks that read the
+	// priority field (priority-valid, priority-not-applicable) are already
+	// preempted by this verb's own closed-set and carries-priority guards
+	// above, and --clear can introduce no finding (there is no
+	// priority-required check). Routing it through the projecting helper
+	// would add a provably-inert double check.Run pass for no gain. See
+	// the set-area sibling for the case where projection would actively
+	// break --clear.
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
 		return nil, err

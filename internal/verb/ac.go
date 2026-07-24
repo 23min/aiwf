@@ -12,11 +12,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
@@ -134,25 +132,13 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 		body = upsertACSection(body, ac.ID, ac.Title, content, hasBody)
 	}
 
-	content, err := entity.Serialize(&modified, body)
-	if err != nil {
-		return nil, fmt.Errorf("serializing %s: %w", parent.ID, err)
-	}
-
-	proj := projectReplace(t, &modified, filepath.ToSlash(parent.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
-	}
-
 	subject := batchACSubject(compositeIDs, titles)
 	trailers := batchACTrailers(compositeIDs, actor)
-	result := plan(&Plan{
-		Subject:  subject,
-		Trailers: trailers,
-		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
+	return planEntityWrite(t, &modified, parent.Path, body, entityWrite{
+		subject:  subject,
+		trailers: trailers,
+		metadata: map[string]any{"entity_id": parent.ID, "ac_ids": compositeIDs},
 	})
-	result.Metadata = map[string]any{"entity_id": parent.ID, "ac_ids": compositeIDs}
-	return result, nil
 }
 
 // batchACSubject builds the commit subject. N=1 preserves the
@@ -293,22 +279,12 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error
 		return nil, err
 	}
 	body = rewriteACHeading(body, ac.ID, newTitle)
-	content, err := entity.Serialize(modified, body)
-	if err != nil {
-		return nil, fmt.Errorf("serializing %s: %w", parent.ID, err)
-	}
-	proj := projectReplace(t, modified, filepath.ToSlash(parent.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
-	}
 	subject := fmt.Sprintf("aiwf rename %s title -> %q", compositeID, newTitle)
-	result := plan(&Plan{
-		Subject:  subject,
-		Trailers: standardTrailers("rename", compositeID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
+	return planEntityWrite(t, modified, parent.Path, body, entityWrite{
+		subject:  subject,
+		trailers: standardTrailers("rename", compositeID, actor),
+		metadata: map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle},
 	})
-	result.Metadata = map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle}
-	return result, nil
 }
 
 // lookupAC parses a composite id, finds the parent milestone, and
@@ -365,24 +341,14 @@ func finalizeACPlan(t *tree.Tree, parent, modified *entity.Entity, verbName, com
 	if err != nil {
 		return nil, err
 	}
-	content, err := entity.Serialize(modified, body)
-	if err != nil {
-		return nil, fmt.Errorf("serializing %s: %w", parent.ID, err)
-	}
-	proj := projectReplace(t, modified, filepath.ToSlash(parent.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
-	}
 	trailers := transitionTrailers(verbName, compositeID, actor, reason, to, force)
 	trailers = appendTestsTrailer(trailers, tests)
-	result := plan(&Plan{
-		Subject:  subject,
-		Body:     reason,
-		Trailers: trailers,
-		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
+	return planEntityWrite(t, modified, parent.Path, body, entityWrite{
+		subject:  subject,
+		body:     reason,
+		trailers: trailers,
+		metadata: map[string]any{"entity_id": compositeID, "from": from, "to": metaTo},
 	})
-	result.Metadata = map[string]any{"entity_id": compositeID, "from": from, "to": metaTo}
-	return result, nil
 }
 
 // appendTestsTrailer appends an aiwf-tests trailer to trailers when
