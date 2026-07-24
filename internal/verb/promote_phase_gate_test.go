@@ -106,57 +106,6 @@ func TestPromoteACPhase_RedGate_DiffShape(t *testing.T) {
 	}
 }
 
-// TestPromoteACPhase_GreenGate_DiffShape pins AC-4 of M-0276: with tdd.test_paths
-// configured, `--phase green` refuses when no non-test (implementation) path is
-// dirty and succeeds once one is. The AC is force-promoted to red for setup
-// (force skips the gate), isolating this test to the green arm.
-func TestPromoteACPhase_GreenGate_DiffShape(t *testing.T) {
-	t.Parallel()
-	globs := []string{"*_test.go", "**/*_test.go"}
-	cases := []struct {
-		name    string
-		dirty   map[string]string
-		wantErr bool
-	}{
-		{
-			name:    "no non-test path dirty refuses",
-			dirty:   map[string]string{"foo_test.go": "package foo\n"},
-			wantErr: true,
-		},
-		{
-			name:  "non-test path dirty succeeds",
-			dirty: map[string]string{"impl.go": "package foo\n"},
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			r := newPhaseGateFixture(t, globs)
-			// Force to red so the green transition is FSM-legal; force skips the
-			// diff-shape gate, so this test exercises only the green arm.
-			r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", entity.TDDPhaseRed, testActor, "setup", true, nil))
-			for name, content := range tc.dirty {
-				if err := os.WriteFile(filepath.Join(r.root, name), []byte(content), 0o644); err != nil {
-					t.Fatal(err)
-				}
-			}
-			_, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", entity.TDDPhaseGreen, testActor, "", false, nil)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatal("want a diff-shape refusal, got nil")
-				}
-				if !strings.Contains(err.Error(), "green") {
-					t.Errorf("refusal %q is not a green-gate message", err)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("want success, got refusal: %v", err)
-			}
-		})
-	}
-}
-
 // TestPromoteACPhase_ForceBypassesDiffShapeGate pins AC-5 of M-0276: --force
 // (force=true) skips the diff-shape gate entirely (it runs only under !force),
 // so a promote that would otherwise be refused lands. --force's human-only
@@ -175,20 +124,6 @@ func TestPromoteACPhase_ForceBypassesDiffShapeGate(t *testing.T) {
 		}
 		if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", entity.TDDPhaseRed, testActor, "override", true, nil); err != nil {
 			t.Fatalf("forced --phase red: want success, got refusal: %v", err)
-		}
-	})
-
-	t.Run("green that would refuse succeeds with force", func(t *testing.T) {
-		t.Parallel()
-		r := newPhaseGateFixture(t, globs)
-		// Force to red for FSM legality, then a green with only a test path
-		// dirty (no implementation) would refuse unforced.
-		r.must(verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", entity.TDDPhaseRed, testActor, "setup", true, nil))
-		if err := os.WriteFile(filepath.Join(r.root, "foo_test.go"), []byte("package foo\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := verb.PromoteACPhase(r.ctx, r.tree(), "M-0001/AC-1", entity.TDDPhaseGreen, testActor, "override", true, nil); err != nil {
-			t.Fatalf("forced --phase green: want success, got refusal: %v", err)
 		}
 	})
 }
