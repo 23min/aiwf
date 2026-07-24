@@ -254,6 +254,7 @@ Verbs:
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   milestone depends-on <M-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append
+  milestone tdd <M-id> --policy <none|advisory|required>   set a milestone's TDD policy after creation; either direction, no --force (optional --reason "...")
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
   rewidth [--apply]              canonicalize legacy narrow-width ids to canonical width, tree-wide; dry-run by default, --apply commits (one idempotent commit)
   set-area <id> <member>         tag one entity to a declared area (aiwf.yaml areas.members); --clear removes the tag

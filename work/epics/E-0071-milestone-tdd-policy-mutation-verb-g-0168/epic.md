@@ -93,6 +93,36 @@ legal until an AC is `met`).
 - `M-0277` — the `aiwf milestone tdd` verb: mutation + policy validation +
   uniform-ordinary gating + refuse-with-hint + discoverability. · depends on: —
 
+## Cross-gap coordination (at wrap)
+
+Three related gaps interact with this epic. None expands its build scope; each
+is a wrap-time action recorded here so the wrap ritual carries it forward. The
+two gap-body edits below only become true once M-0277 lands, so they are made at
+wrap, not now.
+
+- **G-0168** (originating parent) — this epic closes only the `tdd:` slice of
+  its four set-at-create fields. The three relation editors (`discovered_in`,
+  `relates_to`, `linked_adrs`) stay deferred per D-0048; G-0442 is a separate
+  sibling (the set-at-transition pair), not G-0168's residual tracker. At wrap:
+  leave G-0168 `open` — do not promote it to `addressed` — and note that the
+  `tdd:` slice landed via M-0277.
+- **G-0121** (legal-workflow composition) — M-0277's stress-walker acceptance
+  criterion adds `milestone tdd` to the verb-sequence walker as an always-legal
+  op. That is the shallow stepping-stone, not G-0121's named invariant ("no AC
+  `met` under `tdd: required` with `tdd_phase ≠ done` after any legal
+  sequence"): the walker seeds no ACs, so it cannot reach that state. At wrap:
+  update G-0121's body to record that the walker now exercises tdd-policy flips,
+  and name the AC-composition invariant-fuzz as the follow-on this epic unblocks
+  — a standalone G-0121 milestone, deliberately not folded here.
+- **G-0166** (verb-time rejection layer) — M-0277's refuse-with-hint acceptance
+  criterion is a new verb-time rejection: the milestone-policy-side mirror of
+  the AC-side `acs-tdd-audit` cell. It is not registered in the
+  `internal/workflows/spec/` table by this epic — that table keys on
+  `(Kind, FromState, Verb)` with an FSM status `FromState` and cannot yet model
+  a data-field-mutation rejection; extending it is G-0166's own work. At wrap:
+  note that refuse-with-hint criterion in G-0166 as a candidate cell for that
+  systematization. Its own evidence stays a standalone verb-time test in M-0277.
+
 ## References
 
 - D-0048 — the governing decision (verb surface, uniform-ordinary gating, defer
@@ -100,4 +130,8 @@ legal until an AC is `met`).
 - G-0168 — the originating gap (four set-at-create fields lacking mutation
   verbs).
 - G-0442 — the split-out set-at-transition amend problem (out of scope here).
+- G-0121 — legal-workflow composition; the verb-sequence walker this epic
+  extends (see Cross-gap coordination).
+- G-0166 — verb-time rejection-layer systematization; AC-4 adds a mirror cell
+  (see Cross-gap coordination).
 - `aiwf milestone depends-on` — the existing subverb precedent this verb mirrors.

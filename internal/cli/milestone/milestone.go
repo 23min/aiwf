@@ -1,8 +1,9 @@
 // Package milestone implements the `aiwf milestone` verb namespace.
-// Currently it carries one child — depends-on — that sets or clears
-// a milestone's depends_on list. The parent itself is non-Runnable
-// (the kind-scoped namespace is forward-compatible with G-073's
-// eventual cross-kind generalisation).
+// It carries two children today — depends-on (sets or clears a
+// milestone's depends_on list) and tdd (sets a milestone's TDD policy
+// after creation). The parent itself is non-Runnable (the kind-scoped
+// namespace is forward-compatible with G-073's eventual cross-kind
+// generalisation).
 package milestone
 
 import (
@@ -28,7 +29,94 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceUsage:  true,
 	}
 	cmd.AddCommand(newDependsOnCmd(correlationID))
+	cmd.AddCommand(newTDDCmd(correlationID))
 	return cmd
+}
+
+// newTDDCmd builds `aiwf milestone tdd <M-id> --policy
+// none|advisory|required [--reason "..."]`. The post-creation mutator
+// for a milestone's TDD policy, mirroring the depends-on subverb's
+// shape and closing the `tdd:` slice of G-0168. Gating is
+// uniform-ordinary (D-0048): any actor may flip the policy in either
+// direction with no `--force`.
+func newTDDCmd(correlationID string) *cobra.Command {
+	var (
+		actor     string
+		principal string
+		root      string
+		reason    string
+		policy    string
+		out       *cliutil.OutputFormat
+	)
+	cmd := &cobra.Command{
+		Use:   "tdd <milestone-id>",
+		Short: "Set a milestone's TDD policy after creation",
+		Example: `  # Downgrade a milestone's TDD policy
+  aiwf milestone tdd M-003 --policy advisory
+
+  # Re-require TDD discipline
+  aiwf milestone tdd M-003 --policy required --reason "AC list stabilized"`,
+		Args:          cobra.ExactArgs(1),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(c *cobra.Command, args []string) error {
+			return cliutil.WrapExitCode(runTDD(args[0], actor, principal, root, reason, policy, *out))
+		},
+	}
+	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
+	cmd.Flags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
+	cmd.Flags().StringVar(&root, "root", "", "consumer repo root")
+	cmd.Flags().StringVar(&reason, "reason", "", "free-form prose explaining why; lands in the commit body, surfaces in `aiwf history`")
+	cmd.Flags().StringVar(&policy, "policy", "", "the TDD policy to set: none | advisory | required")
+	out = cliutil.AddFormatFlags(cmd)
+	out.CorrelationID = correlationID
+	_ = cmd.RegisterFlagCompletionFunc("policy", cobra.FixedCompletions(
+		entity.AllowedTDDPolicies(),
+		cobra.ShellCompDirectiveNoFileComp,
+	))
+	cmd.ValidArgsFunction = cliutil.CompleteEntityIDArg(entity.KindMilestone, 0)
+	return cmd
+}
+
+func runTDD(id, actor, principal, root, reason, policy string, out cliutil.OutputFormat) int {
+	if policy == "" {
+		cliutil.Errorln("aiwf milestone tdd: pass --policy <none|advisory|required>")
+		return cliutil.ExitUsage
+	}
+
+	rootDir, err := cliutil.ResolveRoot(root)
+	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
+		cliutil.Errorf("aiwf milestone tdd: %v\n", err)
+		return cliutil.ExitUsage
+	}
+	actorStr, err := cliutil.ResolveActor(actor, rootDir)
+	if err != nil {
+		cliutil.Errorf("aiwf milestone tdd: %v\n", err)
+		return cliutil.ExitUsage
+	}
+
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone tdd", out)
+	if release == nil {
+		return rc
+	}
+	defer release()
+
+	ctx := context.Background()
+	tr, _, err := tree.Load(ctx, rootDir)
+	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.
+		cliutil.Errorf("aiwf milestone tdd: loading tree: %v\n", err)
+		return cliutil.ExitInternal
+	}
+
+	pctx := cliutil.ProvenanceContext{
+		Actor:     actorStr,
+		Principal: strings.TrimSpace(principal),
+		VerbKind:  verb.VerbAct,
+		TargetID:  id,
+	}
+	result, vErr := verb.MilestoneTDD(ctx, tr, id, policy, actorStr, reason)
+	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone tdd", tr, result, vErr, pctx, out)
+	return code
 }
 
 // newDependsOnCmd builds `aiwf milestone depends-on M-NNN --on
