@@ -2,10 +2,8 @@ package render
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/23min/aiwf/internal/areagroup"
@@ -786,20 +784,3 @@ func dateOnlyOrEmpty(s string) string {
 	}
 	return s[:10]
 }
-
-// errorf is a tiny adapter matching the package's error-wrapping
-// convention without pulling fmt into more files than necessary.
-//
-// Reserved for future use when the resolver gains validation that
-// surfaces as wrapped errors. Unused today.
-var _ = errorf
-
-func errorf(format string, args ...any) error {
-	return fmt.Errorf(format, args...)
-}
-
-// strings import guard — keeps gofumpt happy while strings stays
-// reserved for trailing-slash-style normalization the resolver
-// will need when incremental --scope rendering lands in step 4's
-// follow-up.
-var _ = strings.TrimSpace

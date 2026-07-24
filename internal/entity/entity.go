@@ -335,8 +335,7 @@ func CompositeRoot(id string) string {
 // reverse-lookup when validating cross-kind references.
 //
 // Composite ids (e.g. `M-007/AC-1`) resolve to their parent's kind
-// (here, milestone). The sub-kind is reported separately by
-// SubKindFromID.
+// (here, milestone).
 func KindFromID(id string) (Kind, bool) {
 	if parent, _, ok := ParseCompositeID(id); ok {
 		return KindFromID(parent)
@@ -347,16 +346,6 @@ func KindFromID(id string) (Kind, bool) {
 		}
 	}
 	return "", false
-}
-
-// SubKindFromID returns the sub-kind label encoded in a composite id.
-// Currently only `"ac"` is defined (acceptance criterion). Bare ids and
-// malformed composites return ("", false).
-func SubKindFromID(id string) (string, bool) {
-	if !IsCompositeID(id) {
-		return "", false
-	}
-	return "ac", true
 }
 
 // AcceptanceCriterion is a milestone sub-element addressed by composite id

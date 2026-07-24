@@ -217,31 +217,6 @@ func TestParseCompositeID(t *testing.T) {
 	}
 }
 
-func TestSubKindFromID(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		id     string
-		want   string
-		wantOk bool
-	}{
-		{"M-007/AC-1", "ac", true},
-		{"M-100/AC-42", "ac", true},
-		{"M-007", "", false},
-		{"E-01", "", false},
-		{"", "", false},
-		{"M-7/AC-1", "", false}, // invalid composite
-	}
-	for _, tt := range tests {
-		t.Run(tt.id, func(t *testing.T) {
-			t.Parallel()
-			got, ok := SubKindFromID(tt.id)
-			if got != tt.want || ok != tt.wantOk {
-				t.Errorf("SubKindFromID(%q) = (%q, %v); want (%q, %v)", tt.id, got, ok, tt.want, tt.wantOk)
-			}
-		})
-	}
-}
-
 func TestIDFromPath(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
