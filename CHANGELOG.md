@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0071: `aiwf milestone tdd` post-creation TDD-policy verb
+
+- `aiwf milestone tdd <M-id> --policy none|advisory|required` changes a
+  milestone's TDD policy after creation — a first-class, trailered, discoverable
+  verb, closing the `tdd:` slice of the set-at-create verb-chokepoint gap (no
+  more hand-editing `tdd:` frontmatter). Gating is uniform-ordinary: any
+  authorized actor may flip the policy in either direction with no `--force`. A
+  flip to `required` that would strand an already-`met` AC lacking
+  `tdd_phase: done` is refused with an actionable hint naming the offending ACs,
+  rather than silently back-stamping a phase.
+
 ### Fixed — G-0446: `aiwf init` no longer hangs on hook consent where no human can answer
 
 - `aiwf init --no-prompt` — a new flag that skips the interactive hook-consent
