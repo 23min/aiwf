@@ -7,7 +7,7 @@ tdd: required
 acs:
     - id: AC-1
       title: milestone tdd sets the policy in one trailered commit
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: policy value validated against the closed set; unknown is a usage error
