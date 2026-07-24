@@ -43,7 +43,7 @@ func requireDiffShapeForPhasePromote(ctx context.Context, t *tree.Tree, newPhase
 	dirty, err := gitops.DirtyPaths(ctx, t.Root)
 	if err != nil {
 		//coverage:ignore defensive: DirtyPaths only errors on a broken repo (e.g. unborn HEAD); unreachable here — promoting an AC requires a committed milestone, so HEAD exists
-		return fmt.Errorf("aiwf promote --phase red: could not inspect the working tree for the red/green diff-shape gate: %w", err)
+		return fmt.Errorf("aiwf promote --phase %s: could not inspect the working tree for the red/green diff-shape gate: %w", newPhase, err)
 	}
 	var testDirty int
 	var nonTestDirty []string
