@@ -1315,6 +1315,76 @@ func TestConfig_AreasRequired_ParsesAndValidates(t *testing.T) {
 	}
 }
 
+// TestConfig_TDDTestPaths_ParsesAndValidates pins AC-1 of M-0276: the
+// tdd.test_paths glob surface parses into TDD.TestPaths and every entry is
+// Tier-1 validated at load — an empty, whitespace-dirty, or malformed glob is
+// a hard load error naming the offending entry, not a silently-skipped no-op
+// at the red/green diff-shape gate.
+func TestConfig_TDDTestPaths_ParsesAndValidates(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		yaml      string
+		wantErr   bool
+		wantField string // substring expected in the error message
+		wantPaths string // "|"-joined expected TestPaths when no error
+	}{
+		{
+			name:      "absent defaults to empty",
+			yaml:      "hosts: [claude-code]\n",
+			wantPaths: "",
+		},
+		{
+			name:      "valid globs parse and round-trip",
+			yaml:      "tdd:\n  test_paths:\n    - \"*_test.go\"\n    - \"**/testdata/**\"\n",
+			wantPaths: "*_test.go|**/testdata/**",
+		},
+		{
+			name:      "malformed glob rejected at Tier-1",
+			yaml:      "tdd:\n  test_paths:\n    - \"[\"\n",
+			wantErr:   true,
+			wantField: "test_paths",
+		},
+		{
+			name:      "empty entry rejected",
+			yaml:      "tdd:\n  test_paths:\n    - \"\"\n",
+			wantErr:   true,
+			wantField: "test_paths",
+		},
+		{
+			name:      "whitespace-dirty entry rejected",
+			yaml:      "tdd:\n  test_paths:\n    - \" *_test.go \"\n",
+			wantErr:   true,
+			wantField: "whitespace",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, FileName), []byte(tc.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load(root)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil (cfg=%+v)", cfg)
+				}
+				if !strings.Contains(err.Error(), tc.wantField) {
+					t.Errorf("error %q does not name %q", err, tc.wantField)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if got := strings.Join(cfg.TDD.TestPaths, "|"); got != tc.wantPaths {
+				t.Errorf("TestPaths = %q, want %q", got, tc.wantPaths)
+			}
+		})
+	}
+}
+
 // TestWrite_OmitsArchiveByDefault: a default Config must not emit an
 // active `archive:` key on Write — mirrors the StatusMd default-shape
 // guarantee. Otherwise `aiwf init` would surprise the operator with a

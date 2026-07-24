@@ -221,7 +221,6 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 // for status changes; the verb name + composite id make it
 // unambiguous which dimension moved). aiwf-force: when forced.
 func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, actor, reason string, force bool, tests *gitops.TestMetrics) (*Result, error) {
-	_ = ctx
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
@@ -229,6 +228,9 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	if !force {
 		if !entity.IsLegalTDDPhaseTransition(ac.TDDPhase, newPhase) {
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)}
+		}
+		if gateErr := requireDiffShapeForPhasePromote(ctx, t, newPhase); gateErr != nil {
+			return nil, gateErr
 		}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {

@@ -514,9 +514,34 @@ func (c *Config) HTMLOutDir() string {
 // (G-0268). Single source of truth for the project's TDD strictness
 // posture — no parallel field, no second config knob. Default false.
 // See check.ApplyTDDStrict for the precise set of codes covered.
+//
+// TestPaths lists the globs that classify a repo-relative path as a test
+// path for the red/green diff-shape gate on `--phase` promotes (M-0276);
+// entries reuse the areamatch glob SSOT and are Tier-1 validated at load.
 type TDD struct {
-	RequireTestMetrics bool `yaml:"require_test_metrics,omitempty"`
-	Strict             bool `yaml:"strict,omitempty"`
+	RequireTestMetrics bool     `yaml:"require_test_metrics,omitempty"`
+	Strict             bool     `yaml:"strict,omitempty"`
+	TestPaths          []string `yaml:"test_paths,omitempty"`
+}
+
+// validate enforces the tdd.test_paths schema: each entry must be a non-empty,
+// whitespace-clean, syntactically well-formed glob. Routing the syntax check
+// through the areamatch SSOT (the same Tier-1 gate Areas.validate uses) makes a
+// malformed glob a hard load error naming the bad entry, rather than a
+// silently-skipped no-op at the red/green diff-shape gate (M-0276).
+func (t TDD) validate() error {
+	for _, p := range t.TestPaths {
+		if strings.TrimSpace(p) == "" {
+			return fmt.Errorf("tdd.test_paths contains an empty path entry")
+		}
+		if p != strings.TrimSpace(p) {
+			return fmt.Errorf("tdd.test_paths entry %q has leading or trailing whitespace", p)
+		}
+		if err := areamatch.Validate(p); err != nil {
+			return fmt.Errorf("tdd.test_paths entry %q is not a valid glob: %w", p, err)
+		}
+	}
+	return nil
 }
 
 // StatusMd carries the opt-out for the pre-commit hook that
@@ -846,6 +871,9 @@ func Load(root string) (*Config, error) {
 // here; the method remains the entry point for future rules.
 func (c *Config) Validate() error {
 	if err := c.Areas.validate(); err != nil {
+		return err
+	}
+	if err := c.TDD.validate(); err != nil {
 		return err
 	}
 	return c.validateAgents()
