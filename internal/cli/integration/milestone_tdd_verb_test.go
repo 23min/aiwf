@@ -310,6 +310,21 @@ func TestMilestoneTDD_AllowsRequiredWhenMetACPhaseDone(t *testing.T) {
 	}
 }
 
+// TestMilestoneTDD_BannerNamesVerb pins AC-5's banner surface: the root
+// `aiwf --help` banner documents the `milestone tdd` verb and its
+// --policy flag, so the verb is discoverable without grepping source.
+//
+// Serial (no t.Parallel): captureHelpBanner swaps os.Stdout — see
+// setup_test.go's serial list.
+func TestMilestoneTDD_BannerNamesVerb(t *testing.T) {
+	banner := captureHelpBanner(t)
+	for _, want := range []string{"milestone tdd", "--policy"} {
+		if !strings.Contains(banner, want) {
+			t.Errorf("root --help banner missing %q (AC-5 discoverability):\n%s", want, banner)
+		}
+	}
+}
+
 // TestMilestoneTDD_CompositeIDRejected pins AC-1's verb-level guard:
 // tdd is a milestone-level field, so a composite id (M-NNNN/AC-N) is
 // rejected before any mutation.
