@@ -93,6 +93,56 @@ func TestMilestoneTDD_SetsPolicy_OneTrailered(t *testing.T) {
 	}
 }
 
+// TestMilestoneTDD_PolicyValidation pins AC-2: --policy is validated
+// against the closed set {none, advisory, required}. An unknown value
+// is a usage error that makes no mutation; each valid value succeeds.
+func TestMilestoneTDD_PolicyValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("unknown value is usage error and makes no mutation", func(t *testing.T) {
+		t.Parallel()
+		root := milestoneTDDSetup(t)
+
+		before := commitCountSafe(t, root)
+		rc := cli.Execute([]string{
+			"milestone", "tdd", "M-0001",
+			"--policy", "bogus",
+			"--actor", "human/test",
+			"--root", root,
+		})
+		if rc != cliutil.ExitUsage {
+			t.Errorf("milestone tdd --policy bogus = %d, want %d", rc, cliutil.ExitUsage)
+		}
+		// No mutation: still `tdd: none` from setup, and no new commit.
+		body, err := os.ReadFile(milestoneOnePath(root))
+		if err != nil {
+			t.Fatalf("read milestone: %v", err)
+		}
+		if !strings.Contains(string(body), "tdd: none") {
+			t.Errorf("milestone mutated by a rejected --policy value:\n%s", body)
+		}
+		if after := commitCountSafe(t, root); after != before {
+			t.Errorf("commit count = %d, want %d (rejected value must land no commit)", after, before)
+		}
+	})
+
+	for _, val := range []string{"none", "advisory", "required"} {
+		t.Run("valid value "+val, func(t *testing.T) {
+			t.Parallel()
+			root := milestoneTDDSetup(t)
+			rc := cli.Execute([]string{
+				"milestone", "tdd", "M-0001",
+				"--policy", val,
+				"--actor", "human/test",
+				"--root", root,
+			})
+			if rc != cliutil.ExitOK {
+				t.Errorf("milestone tdd --policy %s = %d, want %d", val, rc, cliutil.ExitOK)
+			}
+		})
+	}
+}
+
 // TestMilestoneTDD_CompositeIDRejected pins AC-1's verb-level guard:
 // tdd is a milestone-level field, so a composite id (M-NNNN/AC-N) is
 // rejected before any mutation.

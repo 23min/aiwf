@@ -132,7 +132,7 @@ var hintTable = map[string]string{
 	"acs-shape/title":                      "set a non-empty AC title via `aiwf retitle <milestone-id>/AC-N \"...\"`",
 	"acs-shape/status":                     "correct the AC's status in the `acs:` frontmatter to a legal value by hand, then re-run `aiwf check`; `aiwf promote <milestone-id>/AC-N <status>` can't transition an AC whose current status is unrecognized",
 	"acs-shape/tdd-phase":                  "the AC's tdd_phase value isn't in the allowed set; advance it via `aiwf promote <milestone-id>/AC-N --phase <red|green|refactor|done>`, or clear it by hand — absence is always legal, only an invalid value fires this",
-	"acs-shape/tdd-policy":                 "declare the milestone's TDD policy at creation via `aiwf add milestone --tdd <required|advisory|none>`; for an existing milestone, set `tdd:` in the frontmatter by hand and re-run `aiwf check` (there is no post-create --tdd verb)",
+	"acs-shape/tdd-policy":                 "declare the milestone's TDD policy at creation via `aiwf add milestone --tdd <required|advisory|none>`; for an existing milestone, change it with `aiwf milestone tdd <M-id> --policy <required|advisory|none>`",
 	"acs-body-coherence/missing-heading":   "add a `### AC-<N> — <title>` heading in the milestone body via `aiwf edit-body <milestone-id>`, or drop the AC from the `acs:` frontmatter",
 	"acs-body-coherence/orphan-heading":    "register the AC in the milestone's `acs:` frontmatter via `aiwf add ac <milestone-id> --title \"...\"`, or remove the stray body heading via `aiwf edit-body <milestone-id>`",
 	"acs-body-coherence/duplicate-heading": "delete the extra `### AC-<N>` heading via `aiwf edit-body <milestone-id>`; keep exactly one per AC",
@@ -168,9 +168,9 @@ var hintTable = map[string]string{
 	// G-0268 milestone-tdd-undeclared: the milestone has no tdd: policy
 	// and absent is silently treated as tdd: none. New milestones get
 	// the policy from the required `--tdd` flag at create time; an
-	// existing/grandfathered milestone is fixed by a frontmatter edit
-	// (there is no post-create --tdd verb — tdd is creation-set).
-	"milestone-tdd-undeclared": "declare the milestone's TDD policy — create with `aiwf add milestone --tdd <required|advisory|none>`, or for an existing milestone add `tdd: required` (or advisory/none) to the frontmatter; absent `tdd:` is silently treated as `tdd: none`",
+	// existing/grandfathered milestone is fixed by the post-create
+	// `aiwf milestone tdd` verb (E-0071).
+	"milestone-tdd-undeclared": "declare the milestone's TDD policy — create with `aiwf add milestone --tdd <required|advisory|none>`, or for an existing milestone set it with `aiwf milestone tdd <M-id> --policy <required|advisory|none>`; absent `tdd:` is silently treated as `tdd: none`",
 
 	// M-0172 area-unknown: the entity's `area` value is present but not
 	// a member of the aiwf.yaml: areas set (typo protection). Absence is

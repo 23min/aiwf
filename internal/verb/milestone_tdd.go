@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
@@ -32,6 +33,9 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	_ = ctx
 	if entity.IsCompositeID(id) {
 		return nil, fmt.Errorf("milestone tdd does not accept composite ids; pass a milestone id (M-NNNN)")
+	}
+	if !entity.IsAllowedTDDPolicy(policy) {
+		return nil, fmt.Errorf("--policy %q is not a recognized TDD policy; allowed: %s", policy, strings.Join(entity.AllowedTDDPolicies(), ", "))
 	}
 
 	e := t.ByID(id)
