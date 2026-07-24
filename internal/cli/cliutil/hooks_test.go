@@ -32,7 +32,7 @@ func seedHookDecisionForSyncTest(t *testing.T, root, name string, enabled bool) 
 
 func TestGateHookDecisions_EmptyRegistry(t *testing.T) {
 	t.Parallel()
-	got := GateHookDecisions(nil, nil, false)
+	got := GateHookDecisions(nil, nil, false, false)
 	if len(got) != 0 {
 		t.Errorf("GateHookDecisions(nil, ...) = %#v, want empty", got)
 	}
@@ -44,71 +44,89 @@ func TestGateHookDecisions_EmptyRegistry(t *testing.T) {
 func TestGateHookDecisions_EnableHookFlagBypassesPrompt(t *testing.T) {
 	t.Parallel()
 	hooks := []skills.HookDef{{Name: "hook-a", Description: "does a thing"}}
-	got := GateHookDecisions(hooks, []string{"hook-a"}, false)
+	got := GateHookDecisions(hooks, []string{"hook-a"}, false, false)
 	want := map[string]bool{"hook-a": true}
 	if len(got) != 1 || got["hook-a"] != true {
 		t.Errorf("GateHookDecisions(...) = %#v, want %#v", got, want)
 	}
 }
 
-// TestGateHookDecisions_NonTTYDeclinesByDefault: under `go test`, stdin is
-// never a real TTY, so a hook not named via --enable-hook silently
-// declines rather than hanging on a prompt.
-func TestGateHookDecisions_NonTTYDeclinesByDefault(t *testing.T) {
+// TestGateHookDecisions_NonTTYLeavesUndecided: under `go test`, stdin is
+// never a real TTY, so a hook not named via --enable-hook is left UNDECIDED
+// (G-0446) — its name absent from the map, never recorded as a false
+// decline. Absent-not-false is what surfaces it as a doctor "undecided"
+// warning rather than an honored decline.
+func TestGateHookDecisions_NonTTYLeavesUndecided(t *testing.T) {
 	t.Parallel()
 	hooks := []skills.HookDef{{Name: "hook-a", Description: "does a thing"}}
-	got := GateHookDecisions(hooks, nil, false)
-	if got["hook-a"] != false {
-		t.Errorf("GateHookDecisions(...)[\"hook-a\"] = %v, want false (non-TTY, not enabled via flag)", got["hook-a"])
+	got := GateHookDecisions(hooks, nil, false, false)
+	if _, decided := got["hook-a"]; decided {
+		t.Errorf("GateHookDecisions(...) recorded a decision for \"hook-a\" = %v, want it left undecided (absent)", got["hook-a"])
 	}
 }
 
-// TestGateHookDecisions_FormatJSONForcesNonInteractive pins the
-// !formatJSON short-circuit explicitly (mirrors the statusline gate's
-// !opts.FormatJSON check) rather than relying only on go test's
-// never-a-TTY stdin to reach the decline path.
-func TestGateHookDecisions_FormatJSONForcesNonInteractive(t *testing.T) {
+// TestGateHookDecisions_FormatJSONLeavesUndecided pins the !formatJSON
+// short-circuit explicitly (mirrors the statusline gate's !opts.FormatJSON
+// check) rather than relying only on go test's never-a-TTY stdin: under
+// --format=json the hook is left undecided, not defaulted to false.
+func TestGateHookDecisions_FormatJSONLeavesUndecided(t *testing.T) {
 	t.Parallel()
 	hooks := []skills.HookDef{{Name: "hook-a", Description: "does a thing"}}
-	got := GateHookDecisions(hooks, nil, true)
-	if got["hook-a"] != false {
-		t.Errorf("GateHookDecisions(..., formatJSON=true)[\"hook-a\"] = %v, want false", got["hook-a"])
+	got := GateHookDecisions(hooks, nil, true, false)
+	if _, decided := got["hook-a"]; decided {
+		t.Errorf("GateHookDecisions(..., formatJSON=true) recorded a decision for \"hook-a\", want undecided (absent)")
+	}
+}
+
+// TestGateHookDecisions_NoPromptLeavesUndecided pins the --no-prompt contract
+// (G-0446): a hook not named via --enable-hook is left undecided rather than
+// prompted or defaulted. (The TTY-suppression itself — noPrompt forcing the
+// non-interactive path when stdin IS a real TTY — cannot be exercised without
+// a pty library, the same untestable gap the promptYN arm carries; here
+// go test's non-TTY stdin already yields the non-interactive path, so this
+// pins the omit contract the flag guarantees.)
+func TestGateHookDecisions_NoPromptLeavesUndecided(t *testing.T) {
+	t.Parallel()
+	hooks := []skills.HookDef{{Name: "hook-a", Description: "does a thing"}}
+	got := GateHookDecisions(hooks, nil, false, true)
+	if _, decided := got["hook-a"]; decided {
+		t.Errorf("GateHookDecisions(..., noPrompt=true) recorded a decision for \"hook-a\", want undecided (absent)")
 	}
 }
 
 // TestGateHookDecisions_MultipleHooksIndependentDecisions: each hook in the
-// registry gets its own decision — one named via --enable-hook, the other
-// left to the non-TTY default decline.
+// registry gets its own outcome — one enabled via --enable-hook, the other
+// left undecided (absent) under the non-interactive default.
 func TestGateHookDecisions_MultipleHooksIndependentDecisions(t *testing.T) {
 	t.Parallel()
 	hooks := []skills.HookDef{
 		{Name: "hook-a", Description: "a"},
 		{Name: "hook-b", Description: "b"},
 	}
-	got := GateHookDecisions(hooks, []string{"hook-a"}, false)
-	want := map[string]bool{"hook-a": true, "hook-b": false}
-	for name, wantVal := range want {
-		if got[name] != wantVal {
-			t.Errorf("GateHookDecisions(...)[%q] = %v, want %v", name, got[name], wantVal)
-		}
+	got := GateHookDecisions(hooks, []string{"hook-a"}, false, false)
+	if got["hook-a"] != true {
+		t.Errorf("GateHookDecisions(...)[\"hook-a\"] = %v, want true (enabled via flag)", got["hook-a"])
+	}
+	if _, decided := got["hook-b"]; decided {
+		t.Errorf("GateHookDecisions(...) recorded a decision for \"hook-b\", want it left undecided (absent)")
 	}
 }
 
 // TestGateHookDecisions_EnableHookNameNotInRegistry: an --enable-hook value
 // naming a hook absent from the registry is simply inert — it neither
-// errors nor affects any registry hook's own decision. Registry membership
+// errors nor affects any registry hook's own outcome. The one registry hook
+// is left undecided (absent), so the map is empty. Registry membership
 // validation (rejecting an unknown --enable-hook name) is a CLI-layer
 // concern for the flag itself, not this pure decision function.
 func TestGateHookDecisions_EnableHookNameNotInRegistry(t *testing.T) {
 	t.Parallel()
 	hooks := []skills.HookDef{{Name: "hook-a", Description: "a"}}
-	got := GateHookDecisions(hooks, []string{"nonexistent-hook"}, false)
-	want := map[string]bool{"hook-a": false}
-	if diffVal := got["hook-a"]; diffVal != want["hook-a"] {
-		t.Errorf("GateHookDecisions(...)[\"hook-a\"] = %v, want %v", diffVal, want["hook-a"])
+	got := GateHookDecisions(hooks, []string{"nonexistent-hook"}, false, false)
+	if _, decided := got["hook-a"]; decided {
+		t.Errorf("GateHookDecisions(...) recorded a decision for \"hook-a\", want undecided (absent)")
 	}
-	if len(got) != 1 {
-		t.Errorf("GateHookDecisions(...) = %#v, want exactly the registry's own hooks, not the flag's typo'd name", got)
+	if len(got) != 0 {
+		t.Errorf("GateHookDecisions(...) = %#v, want empty (the typo'd name decides nothing, the registry hook is undecided)", got)
 	}
 }
 

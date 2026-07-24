@@ -46,7 +46,7 @@ func TestRun_HooksGatedAndBakedIntoFreshAiwfYaml(t *testing.T) {
 	root := freshGitRepo(t)
 	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
 
-	rc := initcmd.Run(root, "", false, true, false, "", false, false, []string{"test-hook"}, hooks)
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, false, []string{"test-hook"}, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -69,16 +69,19 @@ func TestRun_HooksGatedAndBakedIntoFreshAiwfYaml(t *testing.T) {
 	}
 }
 
-// TestRun_HookDeclinesByDefaultWithoutEnableFlag: a registry hook not named
-// via --enable-hook declines (non-TTY default per ADR-0032), and that
-// decision is still recorded (decided=true, enabled=false) — not left
-// undecided, which would re-prompt on every future `aiwf update`.
-func TestRun_HookDeclinesByDefaultWithoutEnableFlag(t *testing.T) {
+// TestRun_HookLeftUndecidedWithoutEnableFlag pins G-0446: a registry hook
+// not named via --enable-hook, gated where no interactive answer is
+// available (here go test's non-TTY stdin), is left UNDECIDED — absent from
+// aiwf.yaml's hooks: map, never recorded as a false decline. Absent-not-false
+// is what surfaces it as a doctor "undecided" warning (yellow in the
+// statusline) so a human decides it later, rather than a silent decline that
+// hides the missed config.
+func TestRun_HookLeftUndecidedWithoutEnableFlag(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
 	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
 
-	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, hooks)
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, false, nil, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -87,9 +90,50 @@ func TestRun_HookDeclinesByDefaultWithoutEnableFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("config.Load: %v", err)
 	}
-	enabled, decided := cfg.HookDecision("test-hook")
-	if !decided || enabled {
-		t.Errorf("HookDecision(test-hook) = (%v, %v), want (false, true)", enabled, decided)
+	if _, decided := cfg.HookDecision("test-hook"); decided {
+		enabled, _ := cfg.HookDecision("test-hook")
+		t.Errorf("HookDecision(test-hook) recorded a decision (enabled=%v), want it left undecided (absent)", enabled)
+	}
+}
+
+// TestRun_HonorsExistingDecisionAndDefersNewHookUnderNoPrompt pins G-0446's
+// core fix through the Run seam, simulating a container rebuild: init runs a
+// second time (initrepo.Init preserves the existing aiwf.yaml), and under
+// --no-prompt an already-decided hook is carried forward untouched — never
+// re-prompted or re-defaulted to false — while a newly-registered hook the
+// gate cannot decide is left undecided (absent) rather than silently
+// declined. On the pre-G-0446 code this failed both ways: existing-hook was
+// re-gated and clobbered to false, and new-hook was defaulted to false.
+func TestRun_HonorsExistingDecisionAndDefersNewHookUnderNoPrompt(t *testing.T) {
+	t.Parallel()
+	root := freshGitRepo(t)
+	existingHook := skills.HookDef{Name: "existing-hook", Description: "already decided"}
+	newHook := skills.HookDef{Name: "new-hook", Description: "just added to the registry"}
+
+	// First run: enable existing-hook via the flag so it's recorded true.
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, true, []string{"existing-hook"}, []skills.HookDef{existingHook})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("first Run() = %d, want ExitOK", rc)
+	}
+
+	// Second run (the rebuild): the registry now also carries new-hook;
+	// --no-prompt, no --enable-hook. existing-hook must stay true (honored);
+	// new-hook must be left undecided (absent).
+	rc = initcmd.Run(root, "", false, true, false, "", false, false, true, nil, []skills.HookDef{existingHook, newHook})
+	if rc != cliutil.ExitOK {
+		t.Fatalf("second Run() = %d, want ExitOK", rc)
+	}
+
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	if enabled, decided := cfg.HookDecision("existing-hook"); !decided || !enabled {
+		t.Errorf("HookDecision(existing-hook) = (%v, %v), want (true, true) — honored across the rebuild", enabled, decided)
+	}
+	if _, decided := cfg.HookDecision("new-hook"); decided {
+		enabled, _ := cfg.HookDecision("new-hook")
+		t.Errorf("HookDecision(new-hook) recorded a decision (enabled=%v), want it left undecided so doctor surfaces it", enabled)
 	}
 }
 
@@ -101,7 +145,7 @@ func TestRun_DryRunSkipsHookGatingEntirely(t *testing.T) {
 	root := freshGitRepo(t)
 	hooks := []skills.HookDef{{Name: "test-hook", Description: "does a thing"}}
 
-	rc := initcmd.Run(root, "", true, true, false, "", false, false, []string{"test-hook"}, hooks)
+	rc := initcmd.Run(root, "", true, true, false, "", false, false, false, []string{"test-hook"}, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -118,7 +162,7 @@ func TestRun_EmptyRegistrySkipsGatingEntirely(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
 
-	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, nil)
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, false, nil, nil)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -146,7 +190,7 @@ func TestRun_HookMaterializesScriptAndWiresSettingsWhenEnabled(t *testing.T) {
 		Events:  []string{"SessionStart", "SubagentStart"},
 	}}
 
-	rc := initcmd.Run(root, "", false, true, false, "", false, false, []string{"test-hook.sh"}, hooks)
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, false, []string{"test-hook.sh"}, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
@@ -177,7 +221,7 @@ func TestRun_HookNotMaterializedWhenDeclinedByDefault(t *testing.T) {
 		Events:  []string{"SessionStart"},
 	}}
 
-	rc := initcmd.Run(root, "", false, true, false, "", false, false, nil, hooks)
+	rc := initcmd.Run(root, "", false, true, false, "", false, false, false, nil, hooks)
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}

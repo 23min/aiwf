@@ -38,7 +38,7 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 		}
 	}
 
-	newDecisions := cliutil.GateHookDecisions(newHooks, enableHooks, false)
+	newDecisions := cliutil.GateHookDecisions(newHooks, enableHooks, false, false)
 
 	union := make(map[string]bool, len(existing)+len(newDecisions))
 	for name, enabled := range existing {
@@ -55,9 +55,13 @@ func gateAndSyncHookDecisions(rootDir string, hooks []skills.HookDef, enableHook
 	}
 
 	for _, h := range newHooks {
-		state := "declined"
-		if newDecisions[h.Name] {
-			state = "enabled"
+		enabled, decided := newDecisions[h.Name]
+		state := "deferred (undecided — run `aiwf doctor`)"
+		if decided {
+			state = "declined"
+			if enabled {
+				state = "enabled"
+			}
 		}
 		cliutil.Printf("aiwf update: hook %q — %s (new)\n", h.Name, state)
 	}

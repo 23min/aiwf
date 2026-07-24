@@ -33,6 +33,7 @@ func NewCmd() *cobra.Command {
 		scope         string
 		wireSettings  bool
 		allowUntagged bool
+		noPrompt      bool
 		enableHooks   []string
 	)
 	cmd := &cobra.Command{
@@ -58,7 +59,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, allowUntagged, enableHooks, skills.ShippedHooks))
+			return cliutil.WrapExitCode(Run(root, actor, dryRun, skipHook, statusline, scope, wireSettings, allowUntagged, noPrompt, enableHooks, skills.ShippedHooks))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: cwd)")
@@ -75,6 +76,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 	cmd.Flags().BoolVar(&allowUntagged, "allow-untagged-statusline", false, "write the statusline script even when this binary's version is untagged (a dev/worktree build), without interactive confirmation (G-0367)")
 	cmd.Flags().StringArrayVar(&enableHooks, "enable-hook", nil, "consent to enabling the named registry hook without an interactive prompt (repeatable; non-TTY consent per ADR-0032)")
 	_ = cmd.RegisterFlagCompletionFunc("enable-hook", cliutil.CompleteHookNames)
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "never prompt for hook consent; leave undecided hooks undecided (surfaced by `aiwf doctor`) instead of hanging where no human can answer, e.g. a devcontainer postCreateCommand (G-0446)")
 	return cmd
 }
 
@@ -93,7 +95,7 @@ Safe to re-run: init is idempotent. A second run never overwrites an existing ai
 // the named ones) and the resulting decisions are baked into the
 // freshly-written aiwf.yaml, after the main init pipeline succeeds — a
 // `--dry-run` init skips gating entirely, same as the statusline scaffold.
-func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged bool, enableHooks []string, hooks []skills.HookDef) int {
+func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wireSettings, allowUntagged, noPrompt bool, enableHooks []string, hooks []skills.HookDef) int {
 	rootDir, err := resolveInitRoot(root)
 	if err != nil { //coverage:ignore resolveInitRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness
 		cliutil.Errorf("aiwf init: %v\n", err)
@@ -162,7 +164,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 
 	if len(hooks) > 0 {
 		if !dryRun {
-			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
+			if rc := gateAndPersistHookDecisions(rootDir, hooks, enableHooks, noPrompt); rc != cliutil.ExitOK { //coverage:ignore gateAndPersistHookDecisions's own failure paths are unit-tested directly (TestGateAndPersistHookDecisions_MissingAiwfYamlReturnsInternal); triggering one from here would require initrepo.Init to report success while leaving no readable aiwf.yaml, which its own contract precludes
 				return rc
 			}
 			if rc := cliutil.SyncHookMaterialization(rootDir, skills.ClaudeTarget, hooks); rc != cliutil.ExitOK { //coverage:ignore SyncHookMaterialization's own failure paths are unit-tested directly against the function itself; triggering one from here would require the aiwf.yaml gateAndPersistHookDecisions just wrote successfully to become unreadable before this call, which its own contract precludes
@@ -188,30 +190,64 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 	return cliutil.ExitOK
 }
 
-// gateAndPersistHookDecisions runs the consent gate (ADR-0032) over every
-// registry hook and splices the resulting decisions into the just-written
-// aiwf.yaml's hooks: block, via aiwfyaml's surgical splice so every other
-// byte of the file — including the full commented schema reference
-// initrepo.Init already wrote — survives untouched.
-func gateAndPersistHookDecisions(rootDir string, hooks []skills.HookDef, enableHooks []string) int {
-	decisions := cliutil.GateHookDecisions(hooks, enableHooks, false)
-
+// gateAndPersistHookDecisions runs the consent gate (ADR-0032) over the
+// registry hooks NOT already decided in the just-preserved aiwf.yaml, and
+// splices the union of existing and newly-gated decisions back into the
+// hooks: block via aiwfyaml's surgical splice so every other byte of the
+// file — including the full commented schema reference — survives untouched.
+//
+// Honoring existing decisions matters on a container rebuild (G-0446):
+// initrepo.Init preserves a pre-existing aiwf.yaml verbatim, so an
+// already-decided hook (enabled: true/false) must not be re-prompted or
+// re-defaulted — it passes through untouched, exactly as `aiwf update` does.
+// A hook the gate leaves undecided (no interactive answer, e.g. under
+// --no-prompt) is omitted from what we write, so it surfaces as a doctor
+// "undecided" warning rather than a silent decline.
+func gateAndPersistHookDecisions(rootDir string, hooks []skills.HookDef, enableHooks []string, noPrompt bool) int {
 	configPath := filepath.Join(rootDir, config.FileName)
 	doc, _, err := aiwfyaml.Read(configPath)
 	if err != nil {
 		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitInternal
 	}
-	doc.SetHooks(decisions)
+
+	existing, err := doc.Hooks()
+	if err != nil {
+		cliutil.Errorf("aiwf init: %v\n", err)
+		return cliutil.ExitInternal
+	}
+
+	var newHooks []skills.HookDef
+	for _, h := range hooks {
+		if _, decided := existing[h.Name]; !decided {
+			newHooks = append(newHooks, h)
+		}
+	}
+
+	newDecisions := cliutil.GateHookDecisions(newHooks, enableHooks, false, noPrompt)
+
+	union := make(map[string]bool, len(existing)+len(newDecisions))
+	for name, enabled := range existing {
+		union[name] = enabled
+	}
+	for name, enabled := range newDecisions {
+		union[name] = enabled
+	}
+
+	doc.SetHooks(union)
 	if err := doc.Write(configPath); err != nil { //coverage:ignore the preceding Read already succeeded against the same path; only external interference (disk failure, permission change between the two calls) reaches this, not any code path this binary's own control flow produces
 		cliutil.Errorf("aiwf init: %v\n", err)
 		return cliutil.ExitInternal
 	}
 
-	for _, h := range hooks {
-		state := "declined"
-		if decisions[h.Name] {
-			state = "enabled"
+	for _, h := range newHooks {
+		enabled, decided := newDecisions[h.Name]
+		state := "deferred (undecided — run `aiwf doctor`)"
+		if decided {
+			state = "declined"
+			if enabled {
+				state = "enabled"
+			}
 		}
 		cliutil.Printf("aiwf init: hook %q — %s\n", h.Name, state)
 	}
