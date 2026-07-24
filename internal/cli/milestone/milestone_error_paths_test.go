@@ -53,3 +53,17 @@ func TestDependsOnCmd_ResolveActorFailure(t *testing.T) {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
 }
+
+// TestTDDCmd_ResolveActorFailure covers runTDD's cliutil.ResolveActor
+// guard using M-0252's BrokenGitIdentity fixture. Serial:
+// BrokenGitIdentity uses t.Setenv, which panics under t.Parallel.
+func TestTDDCmd_ResolveActorFailure(t *testing.T) {
+	testutil.BrokenGitIdentity(t)
+	root := t.TempDir()
+	rc := execExitCode(t, milestone.NewCmd(""), []string{
+		"tdd", "M-0001", "--policy", "required", "--root", root,
+	})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage", rc)
+	}
+}

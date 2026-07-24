@@ -80,7 +80,7 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	}
 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
+	if fs := projectionFindings(t, proj); check.HasErrors(fs) { //coverage:ignore defensive: projectionFindings returns only *introduced* errors; the sole error a valid policy can introduce (acs-tdd-audit under `required`) is preempted by the refuse-with-hint guard above, so this never fires — kept for uniformity with every writer verb's projection safety net
 		return findings(fs), nil
 	}
 

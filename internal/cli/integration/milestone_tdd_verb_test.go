@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/cli"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/repolock"
 )
 
 // E-0071 / M-0277: `aiwf milestone tdd <M-id> --policy
@@ -307,6 +309,39 @@ func TestMilestoneTDD_AllowsRequiredWhenMetACPhaseDone(t *testing.T) {
 		"--actor", "human/test", "--root", root,
 	}); rc != cliutil.ExitOK {
 		t.Errorf("flip to required with a met+phase-done AC = %d, want %d (guard must not over-block)", rc, cliutil.ExitOK)
+	}
+}
+
+// TestMilestoneTDD_LockContentionBusy covers runTDD's AcquireRepoLock
+// guard: with the repo lock already held, the verb blocks on Acquire,
+// times out, and returns ExitUsage via the `release == nil` branch —
+// never proceeding to mutate. Mirrors TestRun_ConcurrentMutations.
+func TestMilestoneTDD_LockContentionBusy(t *testing.T) {
+	t.Parallel()
+	root := milestoneTDDSetup(t)
+
+	preLock, err := repolock.Acquire(root, 0)
+	if err != nil {
+		t.Fatalf("pre-acquire: %v", err)
+	}
+	defer func() { _ = preLock.Release() }()
+
+	var rc int
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		rc = cli.Execute([]string{
+			"milestone", "tdd", "M-0001", "--policy", "required",
+			"--actor", "human/test", "--root", root,
+		})
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("milestone tdd did not return within 5s; lock acquisition seems unbounded")
+	}
+	if rc != cliutil.ExitUsage {
+		t.Errorf("lock-contended milestone tdd returned rc=%d, want %d (busy)", rc, cliutil.ExitUsage)
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 //   - TestDependsOnCmd_ResolveActorFailure (milestone_error_paths_test.go) —
 //     via testutil.BrokenGitIdentity, uses t.Setenv (HOME, XDG_CONFIG_HOME,
 //     GIT_CONFIG_NOSYSTEM), which panics under t.Parallel.
+//   - TestTDDCmd_ResolveActorFailure (milestone_error_paths_test.go) — same
+//     BrokenGitIdentity t.Setenv reason.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
