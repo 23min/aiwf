@@ -1,7 +1,7 @@
 ---
 id: D-0049
 title: Red-first ordering gate is red-only; drop the green gate
-status: proposed
+status: accepted
 ---
 M-0276 implements D-0047 point 1's red-first ordering gate. Implementation and
 the wrap design review found the **green** half unsound; this decision drops it,
