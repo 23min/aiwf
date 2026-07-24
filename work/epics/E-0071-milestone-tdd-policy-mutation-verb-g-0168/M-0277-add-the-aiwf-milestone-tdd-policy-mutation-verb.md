@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: policy value validated against the closed set; unknown is a usage error
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: 'uniform-ordinary gating: any actor flips either direction without --force'
       status: open
