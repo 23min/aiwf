@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: policy value validated against the closed set; unknown is a usage error
       status: open
+    - id: AC-3
+      title: 'uniform-ordinary gating: any actor flips either direction without --force'
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -69,6 +72,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 ### AC-1 — milestone tdd sets the policy in one trailered commit
 
 ### AC-2 — policy value validated against the closed set; unknown is a usage error
+
+### AC-3 — uniform-ordinary gating: any actor flips either direction without --force
 
 ## Constraints
 
