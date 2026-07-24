@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0070: contract-first, red-first AC discipline
+
+- `tdd.test_paths` (`aiwf.yaml`) — opt-in glob set enabling a working-tree
+  diff-shape gate on `aiwf promote M-NNNN/AC-N --phase red`: the promote refuses
+  when a non-test (implementation) path is already dirty, or when nothing is
+  dirty, proving the test was written before the code without running it.
+  `--force --reason` overrides (human-only). Red-only per D-0049. (M-0276.)
+- `milestone-draft-incomplete-acs` check — warns on a `draft` milestone with
+  zero acceptance criteria (`zero-acs`) or an AC with an empty body
+  (`empty-body`), so an incomplete contract cannot quietly reach main; ACs are
+  now created and body-filled at plan time. (M-0275.)
+
+### Changed — E-0070: AC red phase is a live event
+
+- `aiwf add ac` on a `tdd: required` milestone now seeds the AC at the pre-cycle
+  empty phase, not `red`, so the `--phase red` promote is a genuine live
+  transition recorded in `aiwf history` as test-before-code. (M-0274.)
+
 ### Fixed — G-0443: stale cmd/aiwf/*_cmd.go source paths in design docs
 
 Internal docs/test-only change: the audit catalog (`legal-workflows-audit.md`)
