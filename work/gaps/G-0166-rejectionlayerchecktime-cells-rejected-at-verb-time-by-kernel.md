@@ -50,9 +50,14 @@ Either path lets AC-3's driver participate in coverage of these cells (post-A by
 - **Path A**: `internal/workflows/spec/rules.go` — flip `RejectionLayer: RejectionLayerCheckTime` → `RejectionLayerVerbTime` on the two cells. The AC-3 driver's enumeration handles the change automatically.
 - **Path B**: `internal/verb/promote.go` (resolver guard) + `internal/verb/ac.go::finalizeACPlan` (projection guard).
 
+## Candidate cell outside the current table shape
+
+`aiwf milestone tdd` (E-0071) adds a new verb-time rejection: a flip to `tdd: required` that would strand an already-`met` AC lacking `tdd_phase: done` is refused at the verb layer — the milestone-policy-side mirror of the AC-side `acs-tdd-audit` cell this gap already tracks. It is a candidate cell for the same systematization, but the current spec table cannot yet model it: the table keys on `(Kind, FromState, Verb)` with an FSM-*status* `FromState`, whereas this rejection is conditioned on a data-field mutation (`tdd:` none/advisory → required) combined with the milestone's AC sub-state, not a status edge. Extending the RejectionLayer axis to cover data-field-mutation rejections is part of this gap's remaining work; the refuse-with-hint's own evidence stays a standalone verb-time test in its milestone.
+
 ## Related
 
 - M-0123 (spec table authoring; introduced the RejectionLayer axis)
 - M-0125/AC-3 (this gap surfaced during its red phase)
 - M-0131 (spec audit; may pick up the reclassification)
 - G-0096 (verb-time resolver requirement; the gap cell's chokepoint)
+- M-0277 (E-0071; the `milestone tdd` refuse-with-hint — a verb-time rejection outside the current spec-table's `(Kind, FromState, Verb)` shape)
