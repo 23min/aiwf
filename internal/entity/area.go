@@ -1,5 +1,7 @@
 package entity
 
+import "slices"
+
 // AreaGlobal is the reserved area value for inherently-cross-cutting
 // entities (ADRs, decisions, seam contracts) — the affirmative, never-
 // inferred not-1:1 escape valve (ADR-0021, E-0044 / M-0184). It is one
@@ -34,10 +36,5 @@ func IsValidAreaValue(v string, members []string) bool {
 	if v == AreaGlobal {
 		return true
 	}
-	for _, m := range members {
-		if m == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(members, v)
 }

@@ -2,6 +2,7 @@ package entity
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/23min/aiwf/internal/codes"
 )
@@ -85,10 +86,8 @@ func ValidateTransition(k Kind, from, to string) error {
 	if !knownFrom {
 		return fmt.Errorf("status %q is not a recognized %s state", from, k)
 	}
-	for _, candidate := range allowed {
-		if candidate == to {
-			return nil
-		}
+	if slices.Contains(allowed, to) {
+		return nil
 	}
 	return &FSMTransitionError{Kind: k, From: from, To: to, Allowed: allowed}
 }
@@ -209,12 +208,7 @@ var acTransitions = map[string][]string{
 // `acs-transition` (Step 6) consults this; `--force --reason` (Step 4)
 // is what relaxes it.
 func IsLegalACTransition(from, to string) bool {
-	for _, allowed := range acTransitions[from] {
-		if allowed == to {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(acTransitions[from], to)
 }
 
 // tddPhaseTransitions encodes the linear FSM for an AC's `tdd_phase`.
@@ -240,12 +234,7 @@ var tddPhaseTransitions = map[string][]string{
 // transition along an AC's TDD phase FSM. Self-transitions, unknown
 // `from`, and unknown `to` all return false.
 func IsLegalTDDPhaseTransition(from, to string) bool {
-	for _, allowed := range tddPhaseTransitions[from] {
-		if allowed == to {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(tddPhaseTransitions[from], to)
 }
 
 // MilestoneCanGoDone reports whether the milestone's ACs are in a
