@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: flip to required refuses when a met AC lacks tdd_phase done
       status: open
+    - id: AC-5
+      title: verb is discoverable via --help, root banner, completion, and skill
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -79,6 +82,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 ### AC-3 — uniform-ordinary gating: any actor flips either direction without --force
 
 ### AC-4 — flip to required refuses when a met AC lacks tdd_phase done
+
+### AC-5 — verb is discoverable via --help, root banner, completion, and skill
 
 ## Constraints
 
