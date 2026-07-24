@@ -4,6 +4,10 @@ title: Add the aiwf milestone tdd policy-mutation verb
 status: draft
 parent: E-0071
 tdd: required
+acs:
+    - id: AC-1
+      title: milestone tdd sets the policy in one trailered commit
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -58,6 +62,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
    scenario run. This covers only the uniform-ordinary legal path; the
    refuse-with-hint branch stays owned by AC-4's targeted test — the walker seeds
    no ACs, so it cannot reach a met-phaseless flip-to-`required`.
+
+### AC-1 — milestone tdd sets the policy in one trailered commit
 
 ## Constraints
 
