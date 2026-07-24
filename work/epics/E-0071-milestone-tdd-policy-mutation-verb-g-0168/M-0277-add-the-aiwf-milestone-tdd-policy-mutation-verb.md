@@ -50,6 +50,14 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
    `--help` banner, `--policy` values tab-complete, and a skill covers it —
    asserted by the existing chokepoints (`completion_drift_test`, the root-banner
    drift guard from G-0285, and the `skill_coverage` policy).
+6. `aiwf milestone tdd` is a selectable operation in the `verb-sequence` stress
+   walker — milestone-only (like `move`), classified as an always-legal simple
+   step — and a walk keeps `aiwf check` clean against its baseline and the
+   list-vs-ground-truth invariant intact across policy flips. Asserted by the
+   walker's operation-table test (`TestWalkOperationsFor_*` naming the op) plus a
+   scenario run. This covers only the uniform-ordinary legal path; the
+   refuse-with-hint branch stays owned by AC-4's targeted test — the walker seeds
+   no ACs, so it cannot reach a met-phaseless flip-to-`required`.
 
 ## Constraints
 
@@ -65,8 +73,9 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 
 - Governed by D-0048 (verb surface, uniform-ordinary gating). Mirrors the
   `aiwf milestone depends-on` subverb shape.
-- Verb spelling — `milestone tdd --policy <x>` vs `milestone set-tdd <x>` — is
-  the epic's one open question; settle it at implementation start.
+- Verb spelling is `milestone tdd --policy <x>` (the flag form): it mirrors the
+  `milestone depends-on` subverb precedent and completes a closed-set value in a
+  flag rather than a bare positional.
 
 ## Surfaces touched
 
@@ -75,6 +84,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 - `internal/check/acs.go` — read path for the met-phaseless detection.
 - `cmd/aiwf/` root banner + completion wiring; the covering skill under the
   embedded rituals, or a `skill_coverage` allowlist entry.
+- `internal/stresstest/verb_sequence.go` — add `milestone tdd` to the
+  `verb-sequence` walker's operation table as a milestone-only simple step.
 
 ## Out of scope
 
