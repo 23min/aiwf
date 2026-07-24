@@ -45,50 +45,54 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 
 ## Acceptance criteria
 
-<!-- Prose shape; formalized via `aiwf add ac` at aiwfx-start-milestone.
-     Each is observable behavior with a mechanical assertion. -->
-
-1. `aiwf milestone tdd <M-id> --policy <value>` sets the milestone's `tdd:`
-   field and produces exactly one commit carrying `aiwf-verb` / `aiwf-entity` /
-   `aiwf-actor` trailers — verb integration test driving `run([]string{...})`
-   and asserting the frontmatter change, the single commit, and the trailers.
-2. `--policy` is validated against the closed set `{none, advisory, required}`;
-   an unknown value is a usage error (exit 2) naming the allowed values and
-   makes no mutation — table test over valid and invalid values.
-3. Gating is uniform-ordinary: any actor — including an `ai/` actor with a
-   principal — may flip the policy in either direction (including the weakening
-   `required -> none`) with no `--force`, and `--reason` is optional; weakening
-   and strengthening take the identical path — gating test with an `ai/` actor
-   and no `--force` (embodies D-0048).
-4. A flip to `required` that would leave an already-`met` AC without
-   `tdd_phase: done` is refused with an actionable error naming the offending
-   ACs, and aborts before committing — never auto-seeding a phase. Test: a
-   milestone with a met + phaseless AC, flip to `required` -> error names the
-   AC, working tree unmutated.
-5. The verb is discoverable: it appears in `aiwf milestone --help` and the root
-   `--help` banner, `--policy` values tab-complete, and a skill covers it —
-   asserted by the existing chokepoints (`completion_drift_test`, the root-banner
-   drift guard from G-0285, and the `skill_coverage` policy).
-6. `aiwf milestone tdd` is a selectable operation in the `verb-sequence` stress
-   walker — milestone-only (like `move`), classified as an always-legal simple
-   step — and a walk keeps `aiwf check` clean against its baseline and the
-   list-vs-ground-truth invariant intact across policy flips. Asserted by the
-   walker's operation-table test (`TestWalkOperationsFor_*` naming the op) plus a
-   scenario run. This covers only the uniform-ordinary legal path; the
-   refuse-with-hint branch stays owned by AC-4's targeted test — the walker seeds
-   no ACs, so it cannot reach a met-phaseless flip-to-`required`.
+Each AC is observable behavior paired with a mechanical assertion.
 
 ### AC-1 — milestone tdd sets the policy in one trailered commit
 
+`aiwf milestone tdd <M-id> --policy <value>` sets the milestone's `tdd:` field
+and produces exactly one commit carrying `aiwf-verb` / `aiwf-entity` /
+`aiwf-actor` trailers. Verb integration test driving `run([]string{...})` and
+asserting the frontmatter change, the single commit, and the trailers.
+
 ### AC-2 — policy value validated against the closed set; unknown is a usage error
+
+`--policy` is validated against the closed set `{none, advisory, required}`; an
+unknown value is a usage error (exit 2) naming the allowed values and makes no
+mutation. Table test over valid and invalid values.
 
 ### AC-3 — uniform-ordinary gating: any actor flips either direction without --force
 
+Gating is uniform-ordinary: any actor — including an `ai/` actor with a
+principal — may flip the policy in either direction (including the weakening
+`required -> none`) with no `--force`, and `--reason` is optional; weakening and
+strengthening take the identical path. Gating test with an `ai/` actor and no
+`--force` (embodies D-0048).
+
 ### AC-4 — flip to required refuses when a met AC lacks tdd_phase done
+
+A flip to `required` that would leave an already-`met` AC without
+`tdd_phase: done` is refused with an actionable error naming the offending ACs,
+and aborts before committing — never auto-seeding a phase. Test: a milestone
+with a met + phaseless AC, flip to `required` -> error names the AC, working
+tree unmutated.
 
 ### AC-5 — verb is discoverable via --help, root banner, completion, and skill
 
+The verb is discoverable: it appears in `aiwf milestone --help` and the root
+`--help` banner, `--policy` values tab-complete, and a skill covers it. Asserted
+by the existing chokepoints (`completion_drift_test`, the root-banner drift
+guard from G-0285, and the `skill_coverage` policy).
+
 ### AC-6 — milestone tdd is a selectable op in the verb-sequence stress walker
+
+`aiwf milestone tdd` is a selectable operation in the `verb-sequence` stress
+walker — milestone-only (like `move`), classified as an always-legal simple
+step — and a walk keeps `aiwf check` clean against its baseline and the
+list-vs-ground-truth invariant intact across policy flips. Asserted by the
+walker's operation-table test (`TestWalkOperationsFor_*` naming the op) plus a
+scenario run. This covers only the uniform-ordinary legal path; the
+refuse-with-hint branch stays owned by AC-4's targeted test — the walker seeds
+no ACs, so it cannot reach a met-phaseless flip-to-`required`.
 
 ## Constraints
 
