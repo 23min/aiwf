@@ -46,6 +46,27 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 		return nil, fmt.Errorf("%q is of kind %s, not milestone", id, e.Kind)
 	}
 
+	// Refuse-with-hint: a flip to `required` must not strand an
+	// already-`met` AC that has no `tdd_phase: done`. Requiring TDD
+	// after the fact cannot honestly manufacture a `red`/`done` phase
+	// on work that already passed, so the verb names the offending ACs
+	// and aborts rather than either seeding a false phase or letting
+	// the projection check reject the write as an untargeted finding.
+	// Detection mirrors the acs-tdd-audit rule (internal/check/acs.go).
+	if policy == "required" {
+		var stranded []string
+		for _, ac := range e.ACs {
+			if ac.Status == entity.StatusMet && ac.TDDPhase != entity.TDDPhaseDone {
+				stranded = append(stranded, ac.ID)
+			}
+		}
+		if len(stranded) > 0 {
+			return nil, fmt.Errorf(
+				"cannot set tdd: required — the following met AC(s) have no tdd_phase: done: %s; requiring TDD now would strand them. Keep the policy at advisory or none, since the phase ladder cannot be re-run on already-met work",
+				strings.Join(stranded, ", "))
+		}
+	}
+
 	modified := *e
 	modified.TDD = policy
 

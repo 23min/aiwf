@@ -225,6 +225,91 @@ func TestMilestoneTDD_UnauthorizedAgentRefused(t *testing.T) {
 	}
 }
 
+// TestMilestoneTDD_RefusesRequiredWhenMetACPhaseless pins AC-4: a flip
+// to `required` that would strand an already-`met` AC lacking
+// `tdd_phase: done` is refused with an error naming the offending AC,
+// aborting before any commit — never auto-seeding a phase.
+//
+// Serial (no t.Parallel): captureStderr swaps the os.Stderr process
+// global to read the refusal message — see setup_test.go's serial list.
+func TestMilestoneTDD_RefusesRequiredWhenMetACPhaseless(t *testing.T) {
+	root := milestoneTDDSetup(t)
+
+	// Under tdd: none, an AC may be promoted `met` without a phase.
+	if rc := cli.Execute([]string{"add", "ac", "M-0001", "--title", "legacy work", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add ac: %d", rc)
+	}
+	if rc := cli.Execute([]string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("promote AC met: %d", rc)
+	}
+
+	before := commitCountSafe(t, root)
+	var rc int
+	stderr := captureStderr(t, func() {
+		rc = cli.Execute([]string{
+			"milestone", "tdd", "M-0001", "--policy", "required",
+			"--actor", "human/test", "--root", root,
+		})
+	})
+	if rc == cliutil.ExitOK {
+		t.Fatalf("flip to required with a met phaseless AC unexpectedly succeeded")
+	}
+	// The verb-layer refuse-with-hint fired (not the projection
+	// fallback) and names the offending AC.
+	if !strings.Contains(stderr, "cannot set tdd: required") || !strings.Contains(stderr, "AC-1") {
+		t.Errorf("refusal is not the verb-layer hint naming AC-1:\n%s", stderr)
+	}
+	// Aborts before committing: no new commit.
+	if after := commitCountSafe(t, root); after != before {
+		t.Errorf("refused flip landed a commit: count %d, want %d", after, before)
+	}
+	// Working tree unmutated: still `tdd: none`, never auto-seeded a phase.
+	body, err := os.ReadFile(milestoneOnePath(root))
+	if err != nil {
+		t.Fatalf("read milestone: %v", err)
+	}
+	if !strings.Contains(string(body), "tdd: none") {
+		t.Errorf("milestone policy mutated despite refusal:\n%s", body)
+	}
+	if strings.Contains(string(body), "tdd_phase:") {
+		t.Errorf("refusal auto-seeded a tdd_phase (must never happen):\n%s", body)
+	}
+}
+
+// TestMilestoneTDD_AllowsRequiredWhenMetACPhaseDone pins AC-4's
+// precision: the guard blocks only a met+phaseless AC, not any met AC.
+// A milestone whose met AC carries `tdd_phase: done` flips to required
+// cleanly.
+func TestMilestoneTDD_AllowsRequiredWhenMetACPhaseDone(t *testing.T) {
+	t.Parallel()
+	root := setupCLITestRepo(t)
+	if rc := cli.Execute([]string{"add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add epic: %d", rc)
+	}
+	// advisory milestone: the phase ladder is meaningful but non-blocking.
+	if rc := cli.Execute([]string{"add", "milestone", "--epic", "E-0001", "--tdd", "advisory", "--title", "First", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add milestone: %d", rc)
+	}
+	if rc := cli.Execute([]string{"add", "ac", "M-0001", "--title", "done work", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("add ac: %d", rc)
+	}
+	for _, phase := range []string{"red", "green", "done"} {
+		if rc := cli.Execute([]string{"promote", "M-0001/AC-1", "--phase", phase, "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+			t.Fatalf("promote AC --phase %s: %d", phase, rc)
+		}
+	}
+	if rc := cli.Execute([]string{"promote", "M-0001/AC-1", "met", "--actor", "human/test", "--root", root}); rc != cliutil.ExitOK {
+		t.Fatalf("promote AC met: %d", rc)
+	}
+
+	if rc := cli.Execute([]string{
+		"milestone", "tdd", "M-0001", "--policy", "required",
+		"--actor", "human/test", "--root", root,
+	}); rc != cliutil.ExitOK {
+		t.Errorf("flip to required with a met+phase-done AC = %d, want %d (guard must not over-block)", rc, cliutil.ExitOK)
+	}
+}
+
 // TestMilestoneTDD_CompositeIDRejected pins AC-1's verb-level guard:
 // tdd is a milestone-level field, so a composite id (M-NNNN/AC-N) is
 // rejected before any mutation.
