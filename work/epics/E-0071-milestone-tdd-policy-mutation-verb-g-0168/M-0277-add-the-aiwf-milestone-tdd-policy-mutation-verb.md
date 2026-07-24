@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: flip to required refuses when a met AC lacks tdd_phase done
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: verb is discoverable via --help, root banner, completion, and skill
       status: open
