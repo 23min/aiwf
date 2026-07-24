@@ -610,6 +610,68 @@ latency-critical paths; capture everything on correctness-critical ones.
 
 ---
 
+## H. Economy
+
+### H1. Reuse over duplication
+
+The same job is implemented once. Before writing a routine-looking block —
+setup, an output envelope, a serialization step, a filter preamble, an error
+wrapper — look for the unit that already does it; don't assume there isn't
+one. Duplicated *logic* is a defect even when every copy is correct: the cost
+is drift, and it arrives one plausible line at a time.
+
+**Smells:**
+- The same short block pasted across many call sites, each diverging slightly.
+- A shared helper exists, but call sites re-implement it inline instead of
+  calling it.
+- "I'll copy this and tweak it" — a second copy with no extraction.
+- One rule / format / shape change requires editing N places by hand.
+- Two differently-named functions computing the same result.
+
+**Moves:**
+- Search before you write: grep the package for the shape you're about to
+  author. Reuse beats re-create.
+- The *second* copy is the extraction trigger, not a future one — pull the
+  shared unit now, pin its behavior once, delete the copies against it.
+- If a correct helper already exists, route through it; never re-inline it.
+- Textually-divergent duplication (same job, different code) is still
+  duplication — an exact-clone linter won't catch it; you must.
+
+**Tradeoff:** a few similar lines beat a premature abstraction (KISS). Two
+sites that merely *look* alike but change for different reasons stay apart —
+abstract on the third, or when the shared reason is real. The force is
+against duplicated *logic*, not against every repeated token.
+
+### H2. No dead weight
+
+Every symbol has a caller; every branch is reachable. Code that nothing uses
+is deleted, not parked. "Might need it later" is a future that hasn't arrived.
+
+**Smells:**
+- A reference added solely to keep otherwise-unused code compiling or passing
+  the linter (a blank-identifier alias silencing the unused-symbol check on
+  reserved-for-future code) — it defeats the very check whose job is to find it.
+- A function / type / field only its own test reaches.
+- A refactor that supersedes a path but leaves the old one behind —
+  "superseded but still here" reads as live.
+- A value produced upstream and discarded downstream (assigned, passed, never
+  read for a decision).
+
+**Moves:**
+- No call site → it isn't ready to land. Delete it; add it back with its first
+  real caller.
+- A change that supersedes a path deletes that path in the *same* change.
+- If dead code must stay (a coupled downstream not yet repointed), give it a
+  tracked owner and a named removal trigger — not silence.
+- Let the unused-symbol check do its job; don't suppress it to preserve a guess.
+
+**Tradeoff:** a genuinely-planned extension point with a near-term, committed
+caller can land just ahead of it — but "near-term and committed," not "maybe
+someday." When in doubt, delete; re-adding is cheap, and a graveyard of
+maybe-code is not.
+
+---
+
 # Scoring a codebase against this
 
 1. **One reviewer per principle.** Evaluate one principle end-to-end; find

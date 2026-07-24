@@ -203,6 +203,7 @@ Repo-wide principles (KISS, YAGNI, no half-finished implementations, errors-as-f
 
 - **`gofumpt`** formats (via `golangci-lint`, no separate install); gofumpt-clean implies gofmt/goimports-clean.
 - **`golangci-lint`** is the only linter. Enabled: `errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gocritic`, `revive`, `gosec`, `bodyclose`, `unconvert`, `misspell`, `gofumpt`, `goimports`. CI fails on any finding. No `//nolint` without a one-line rationale.
+- **Never `var _ = x` to silence `unused`.** A blank-identifier alias kept solely to stop `unused`/`staticcheck` flagging reserved-for-future code defeats the check whose job is to find exactly that. No caller → not ready to land; delete it and re-add with its first real caller (the shipped form of this force is `wf-codebase-health` H2).
 
 ### Testing
 

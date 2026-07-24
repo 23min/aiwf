@@ -72,3 +72,4 @@ Hold these highest-leverage forces *while writing code*; reach for the full
 - **C3 — atomic writes.** A crash leaves persisted state fully-old or fully-new, never half-written.
 - **B1/B2 — typed interfaces and validated schemas at boundaries**, not loose maps or unchecked shapes.
 - **E1 — structured logs.** Events with a name and fields, not interpolated strings.
+- **H1 — reuse over duplication.** Before writing a routine block, search for the unit that already does it; a second copy is the trigger to extract; if a helper exists, route through it — never re-inline. Duplicated logic drifts one plausible line at a time.
