@@ -7,22 +7,28 @@ tdd: required
 acs:
     - id: AC-1
       title: milestone tdd sets the policy in one trailered commit
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: policy value validated against the closed set; unknown is a usage error
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: 'uniform-ordinary gating: any actor flips either direction without --force'
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: flip to required refuses when a met AC lacks tdd_phase done
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: verb is discoverable via --help, root banner, completion, and skill
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: milestone tdd is a selectable op in the verb-sequence stress walker
-      status: open
+      status: met
+      tdd_phase: done
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -121,6 +127,71 @@ no ACs, so it cannot reach a met-phaseless flip-to-`required`.
   embedded rituals, or a `skill_coverage` allowlist entry.
 - `internal/stresstest/verb_sequence.go` — add `milestone tdd` to the
   `verb-sequence` walker's operation table as a milestone-only simple step.
+
+## Work log
+
+- **AC-1 — verb + one trailered commit.** `aiwf milestone tdd <M-id> --policy
+  <value>` sets the `tdd:` field and commits once with the standard trailers;
+  full discoverability wiring (root banner, `--policy` completion, `aiwf-add`
+  skill mention) landed alongside so the drift guards stay green. · commit
+  3e1e350f
+- **AC-2 — policy validation.** Unknown `--policy` values are a clean usage
+  error at the verb layer; also refreshed two now-stale check hints that told
+  operators to hand-edit `tdd:` frontmatter. · commit 89614704
+- **AC-3 — uniform-ordinary gating.** Binary-level test: an authorized `ai/`
+  actor flips either direction with no `--force`; an unauthorized one is refused
+  by the standard entity-scoped provenance gate. No sovereign carve-out. ·
+  commit b1555ca6
+- **AC-4 — refuse-with-hint.** A `required` flip stranding a met, phaseless AC
+  is refused with a hint naming the ACs, aborting before any commit and never
+  seeding a phase; the guard is precise (met + phase-done flips cleanly). ·
+  commit 5eb44585
+- **AC-5 — discoverability.** Named pins for the subcommand, its flag shape,
+  `--policy` closed-set completion, and the root-banner line. · commit 5a2472ad
+- **AC-6 — stress walker.** `milestone tdd` is a milestone-only, always-legal
+  walk operation; the walk stays check-clean and the list invariant holds across
+  flips (ops-table, every-operation dispatch, focused step, and full-scenario
+  tests, plus a 5× harness run). · commit 53b7824b
+- **Coverage completeness.** ResolveActor + lock-contention cli-guard tests; the
+  defensive projection-error branch is `//coverage:ignore`d (guard-preempted). ·
+  commit cd6e8669
+
+## Validation
+
+- `make check-fast` (vet + lint + full test suite): green — every package `ok`,
+  zero failures.
+- `make lint` (full `golangci-lint` set): 0 issues.
+- `make coverage-gate` (diff-scoped statement coverage + firing-fixture
+  meta-gate + skill-edit structural backstop): pass.
+- `aiwf check`: 0 error-severity findings (2 benign warnings — the active-epic
+  drafted-milestone advisory and the no-upstream provenance-audit skip).
+- `go run ./cmd/stresstest run --scenario verb-sequence --repeat 5`: 5/5 passed
+  with the new `milestone tdd` walk operation.
+
+## Reviewer notes
+
+- **Independent code-quality review** (fresh-context, adversarial, `wf-review-code`
+  lens): APPROVE, no blocking findings. All six ACs verified by measurement; the
+  refuse-with-hint predicate confirmed a character-exact mirror of the
+  `acs-tdd-audit` detection; the `//coverage:ignore` on the projection-error
+  branch confirmed genuinely unreachable for a valid policy (no check rule
+  escalates a `tdd:`-field change to an introduced error once the guard preempts
+  the `required` case); branch coverage and serial-test discipline confirmed.
+- **Design lens** (`wf-rethink`): no new design surface — the verb mirrors the
+  existing `milestone depends-on` subverb shape (no new module, abstraction, or
+  data model), so there is nothing to rethink.
+- **Deliberately left (non-blocking, all consistent with the `depends-on`
+  sibling's precedent):**
+  - The refuse-with-hint guard does not skip archived milestones, whereas the
+    `acs-tdd-audit` check does (`IsArchivedPath`). Flipping an archived milestone
+    with a met, phaseless AC to `required` is therefore conservatively refused
+    even though the resulting tree would be check-clean. The divergence only ever
+    *refuses a benign flip* — it never admits bad state — and requires the extreme
+    edge of mutating a terminal, archived milestone; the walker never reaches it
+    (it seeds no ACs).
+  - A same-value flip (e.g. `none → none`) writes and commits redundantly; there
+    is no no-op suppression, matching `MilestoneDependsOn`. Correct, just not
+    minimized.
 
 ## Out of scope
 

@@ -2,6 +2,7 @@ package stresstest
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -422,15 +423,60 @@ func TestVerbSequenceScenario_RealBinary_StepMoveRelocatesAndAlternates(t *testi
 	}
 }
 
+// TestVerbSequenceScenario_RealBinary_StepTDDFlipsPolicy pins E-0071
+// M-0277/AC-6 at the step level: stepTDD runs `aiwf milestone tdd`
+// against the milestone, the flip is a legal simple step (no
+// violation), and the tree stays check-clean across repeated flips.
+func TestVerbSequenceScenario_RealBinary_StepTDDFlipsPolicy(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin, rng: rand.New(rand.NewPCG(1, 1))}
+
+	epicEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "epic", "--title", "epic a", "--body", "b")
+	if err != nil {
+		t.Fatalf("add epic: %v", err)
+	}
+	msEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "milestone", "--epic", epicEnv.Metadata.EntityID, "--tdd", "none", "--title", "m", "--body", "b")
+	if err != nil {
+		t.Fatalf("add milestone: %v", err)
+	}
+	msID := msEnv.Metadata.EntityID
+
+	// Several flips in a row: each is a legal simple step, and the tree
+	// stays check-clean (no met AC exists, so the refuse-with-hint
+	// branch is never reached).
+	for i := 0; i < 3; i++ {
+		violations, err := s.stepTDD(dir, msID)
+		if err != nil {
+			t.Fatalf("stepTDD #%d: %v", i, err)
+		}
+		if len(violations) != 0 {
+			t.Fatalf("stepTDD #%d unexpected violations: %+v", i, violations)
+		}
+		checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
+		if err != nil {
+			t.Fatalf("check after stepTDD #%d: %v", i, err)
+		}
+		if v := classifyCheckFindings(checkEnv.Findings); len(v) != 0 {
+			t.Fatalf("stepTDD #%d left check unclean: %+v", i, v)
+		}
+	}
+	if s.tddCounter != 3 {
+		t.Errorf("tddCounter = %d, want 3", s.tddCounter)
+	}
+}
+
 // TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation
 // drives walk itself (not the individual stepX methods directly) with
 // a seed/step count empirically confirmed to draw every one of the
-// five weighted operations at least once, pinning that walk's switch
+// six weighted operations at least once, pinning that walk's switch
 // statement really does dispatch to every case — not just that each
 // stepX method works in isolation, and not left to the statistical
 // luck of whichever seeds TestVerbSequenceScenario_FullWalkAcrossAllKindsPasses
-// happens to use. seed=0/steps=30 was found by exhaustively searching
-// seeds 0..199 with the walker's exact weight table.
+// happens to use. seed=1/steps=30 was found by replaying the walker's
+// exact weight table (six ops after E-0071 added milestone-tdd).
 func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
@@ -457,7 +503,7 @@ func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing
 		t.Fatalf("show: %v", err)
 	}
 
-	s := NewVerbSequenceScenario(bin, 0, 30)
+	s := NewVerbSequenceScenario(bin, 1, 30)
 	mv := &moveState{current: epicA, other: epicB}
 	if err := s.walk(dir, entity.KindMilestone, msID, showEnv.Result.Status, mv); err != nil {
 		t.Fatalf("walk: %v", err)
@@ -476,6 +522,9 @@ func TestVerbSequenceScenario_RealBinary_WalkDispatchesEveryOperation(t *testing
 	}
 	if s.moveCounter <= 0 {
 		t.Errorf("moveCounter = %d, want walk to have dispatched to the move case at least once", s.moveCounter)
+	}
+	if s.tddCounter <= 0 {
+		t.Errorf("tddCounter = %d, want walk to have dispatched to the milestone-tdd case at least once", s.tddCounter)
 	}
 }
 

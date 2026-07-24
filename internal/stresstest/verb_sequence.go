@@ -71,6 +71,7 @@ type VerbSequenceScenario struct {
 	retitleCounter int
 	archiveCounter int
 	moveCounter    int
+	tddCounter     int
 }
 
 // NewVerbSequenceScenario builds a scenario that walks `steps`
@@ -235,6 +236,8 @@ func (s *VerbSequenceScenario) walk(dir string, kind entity.Kind, id, current st
 			stepViolations, err = s.stepArchive(dir)
 		case moveOperationName:
 			stepViolations, err = s.stepMove(dir, id, mv)
+		case tddOperationName:
+			stepViolations, err = s.stepTDD(dir, id)
 		}
 		if err != nil { //coverage:ignore defensive: forwards whichever stepX method's own launch-failure error fired — each is already pinned at its own source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing's launch-failure class
 			return err
@@ -344,6 +347,24 @@ func (s *VerbSequenceScenario) stepMove(dir, id string, mv *moveState) ([]Violat
 	return violations, nil
 }
 
+// stepTDD runs one `aiwf milestone tdd` against id, flipping the
+// milestone's TDD policy to a uniformly-random value from the closed
+// set. The walk seeds no ACs, so no met-phaseless AC can exist — the
+// verb's refuse-with-hint branch is unreachable here and every flip is
+// legal, classified via classifySimpleStep (an unexpected refusal is a
+// violation). s.tddCounter mirrors s.moveCounter's dispatch-attempt
+// bookkeeping so a test can confirm walk's switch reached this case.
+func (s *VerbSequenceScenario) stepTDD(dir, id string) ([]Violation, error) {
+	s.tddCounter++
+	policies := entity.AllowedTDDPolicies()
+	policy := policies[s.rng.IntN(len(policies))]
+	env, err := runAiwfJSON(s.aiwfBin, dir, "milestone", "tdd", id, "--policy", policy)
+	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
+		return nil, fmt.Errorf("running milestone tdd %s --policy %s: %w", id, policy, err)
+	}
+	return classifySimpleStep(fmt.Sprintf("%s: milestone tdd --policy %s", id, policy), env), nil
+}
+
 // moveState tracks a milestone's current parent epic across a walk's
 // move steps: current is its live parent, other is the alternate
 // target the next move step selects. Both epic ids are guaranteed
@@ -373,6 +394,11 @@ type walkOperation struct {
 // append can't drift apart on what selecting "move" means.
 const moveOperationName = "move"
 
+// tddOperationName is the milestone-tdd operation's entry name in the
+// table (E-0071 M-0277/AC-6). Like move, it is milestone-only — the
+// `aiwf milestone tdd` verb accepts only the milestone kind.
+const tddOperationName = "milestone-tdd"
+
 // baseWalkOperations are the operations every kind's walk can select
 // regardless of kind. promote carries most of the weight (it is the
 // walker's original, still-primary operation per M-0241/AC-1); the
@@ -386,15 +412,20 @@ var baseWalkOperations = []walkOperation{
 }
 
 // walkOperationsFor returns the operation set for one kind's walk:
-// baseWalkOperations, plus move when moveEnabled (kind == milestone,
-// verb.Move's only accepted kind, and a second epic exists to move
-// between — see Run's doc comment). M-0250/AC-2's own acceptance
-// criterion is pinned directly against this table's shape by
-// TestWalkOperationsFor_NamesAllFourExtensionOpsWithNonzeroWeight.
-func walkOperationsFor(moveEnabled bool) []walkOperation {
+// baseWalkOperations, plus the milestone-only operations (move and
+// milestone-tdd) when milestoneKind. Both extras are gated on the same
+// flag because both verbs accept only the milestone kind (move needs a
+// second epic to move between as well — see Run's doc comment).
+// M-0250/AC-2 and E-0071 M-0277/AC-6 pin this table's shape directly
+// via TestWalkOperationsFor_NamesAllFourExtensionOpsWithNonzeroWeight
+// and TestWalkOperationsFor_IncludesMilestoneTDD.
+func walkOperationsFor(milestoneKind bool) []walkOperation {
 	ops := append([]walkOperation(nil), baseWalkOperations...)
-	if moveEnabled {
-		ops = append(ops, walkOperation{Name: moveOperationName, Weight: 1})
+	if milestoneKind {
+		ops = append(ops,
+			walkOperation{Name: moveOperationName, Weight: 1},
+			walkOperation{Name: tddOperationName, Weight: 1},
+		)
 	}
 	return ops
 }

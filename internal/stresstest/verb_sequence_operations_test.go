@@ -33,6 +33,31 @@ func TestWalkOperationsFor_NamesAllFourExtensionOpsWithNonzeroWeight(t *testing.
 	}
 }
 
+// TestWalkOperationsFor_IncludesMilestoneTDD pins E-0071 M-0277/AC-6:
+// `milestone tdd` is a selectable walk operation for the milestone kind
+// (milestone-only, like move) with nonzero weight, and is absent for
+// non-milestone kinds.
+func TestWalkOperationsFor_IncludesMilestoneTDD(t *testing.T) {
+	t.Parallel()
+
+	milestoneOps := walkOperationsFor(true)
+	var weight int
+	for _, op := range milestoneOps {
+		if op.Name == tddOperationName {
+			weight = op.Weight
+		}
+	}
+	if weight <= 0 {
+		t.Errorf("walkOperationsFor(true) does not name %q with nonzero weight (got weight %d)", tddOperationName, weight)
+	}
+
+	for _, op := range walkOperationsFor(false) {
+		if op.Name == tddOperationName {
+			t.Errorf("walkOperationsFor(false) unexpectedly includes %q (tdd is milestone-only)", tddOperationName)
+		}
+	}
+}
+
 func TestWalkOperationsFor_MoveDisabledExcludesMove(t *testing.T) {
 	t.Parallel()
 	ops := walkOperationsFor(false)

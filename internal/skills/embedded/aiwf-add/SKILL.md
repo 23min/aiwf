@@ -158,6 +158,17 @@ Each id passed to `--depends-on` or `--on` must resolve to an existing milestone
 
 Don't hand-edit `depends_on:` directly — `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render.
 
+### Changing a milestone's TDD policy after creation
+
+The `--tdd` flag sets the policy at allocation time. To change it afterwards, use the dedicated post-creation verb — never hand-edit the `tdd:` frontmatter:
+
+```bash
+aiwf milestone tdd M-NNN --policy advisory
+aiwf milestone tdd M-NNN --policy required --reason "AC list stabilized"
+```
+
+`--policy` takes one of `none | advisory | required`. Gating is uniform-ordinary: any actor may flip the policy in either direction (weakening or strengthening) with no `--force`, and `--reason` is optional. One refusal guards data integrity — a flip to `required` that would leave an already-`met` AC without `tdd_phase: done` is refused with an error naming the offending ACs, so re-requiring TDD never back-stamps a phase onto passed work. Each invocation leaves one trailered commit.
+
 ## After `aiwf add <kind>`: fill in the body
 
 `aiwf add` is step 1 of 2. The verb writes correct frontmatter and an atomic create commit; the body prose under each `## <Section>` heading is **required, not optional**, across all six top-level kinds and ACs. The kernel doesn't fail closed on missing prose at create time so the verb stays cheap, but `aiwf check` surfaces empty bodies as `entity-body-empty` findings, and any milestone or epic or AC with a hollow body is half-shipped.
