@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: 'uniform-ordinary gating: any actor flips either direction without --force'
       status: open
+    - id: AC-4
+      title: flip to required refuses when a met AC lacks tdd_phase done
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -74,6 +77,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 ### AC-2 — policy value validated against the closed set; unknown is a usage error
 
 ### AC-3 — uniform-ordinary gating: any actor flips either direction without --force
+
+### AC-4 — flip to required refuses when a met AC lacks tdd_phase done
 
 ## Constraints
 
