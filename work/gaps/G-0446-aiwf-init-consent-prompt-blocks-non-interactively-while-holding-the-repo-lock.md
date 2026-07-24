@@ -1,8 +1,10 @@
 ---
 id: G-0446
 title: aiwf init consent prompt blocks non-interactively while holding the repo lock
-status: open
+status: addressed
 discovered_in: E-0071
+addressed_by_commit:
+    - ab588d37
 ---
 `aiwf init` runs its hook-consent gate (`GateHookDecisions`, `hooks.go:38`)
 while holding the repo flock: `initcmd.go:104` acquires the lock, `defer
