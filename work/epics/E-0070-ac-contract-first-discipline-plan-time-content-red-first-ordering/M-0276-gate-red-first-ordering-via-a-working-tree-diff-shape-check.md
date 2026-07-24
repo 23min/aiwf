@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: --phase green refuses until a non-test path is dirty
-      status: met
+      status: cancelled
       tdd_phase: done
     - id: AC-5
       title: Diff-shape refusals overridable via --force --reason (human-only)
