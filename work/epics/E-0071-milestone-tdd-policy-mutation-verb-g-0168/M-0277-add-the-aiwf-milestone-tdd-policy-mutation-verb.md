@@ -156,6 +156,43 @@ no ACs, so it cannot reach a met-phaseless flip-to-`required`.
   defensive projection-error branch is `//coverage:ignore`d (guard-preempted). ·
   commit cd6e8669
 
+## Validation
+
+- `make check-fast` (vet + lint + full test suite): green — every package `ok`,
+  zero failures.
+- `make lint` (full `golangci-lint` set): 0 issues.
+- `make coverage-gate` (diff-scoped statement coverage + firing-fixture
+  meta-gate + skill-edit structural backstop): pass.
+- `aiwf check`: 0 error-severity findings (2 benign warnings — the active-epic
+  drafted-milestone advisory and the no-upstream provenance-audit skip).
+- `go run ./cmd/stresstest run --scenario verb-sequence --repeat 5`: 5/5 passed
+  with the new `milestone tdd` walk operation.
+
+## Reviewer notes
+
+- **Independent code-quality review** (fresh-context, adversarial, `wf-review-code`
+  lens): APPROVE, no blocking findings. All six ACs verified by measurement; the
+  refuse-with-hint predicate confirmed a character-exact mirror of the
+  `acs-tdd-audit` detection; the `//coverage:ignore` on the projection-error
+  branch confirmed genuinely unreachable for a valid policy (no check rule
+  escalates a `tdd:`-field change to an introduced error once the guard preempts
+  the `required` case); branch coverage and serial-test discipline confirmed.
+- **Design lens** (`wf-rethink`): no new design surface — the verb mirrors the
+  existing `milestone depends-on` subverb shape (no new module, abstraction, or
+  data model), so there is nothing to rethink.
+- **Deliberately left (non-blocking, all consistent with the `depends-on`
+  sibling's precedent):**
+  - The refuse-with-hint guard does not skip archived milestones, whereas the
+    `acs-tdd-audit` check does (`IsArchivedPath`). Flipping an archived milestone
+    with a met, phaseless AC to `required` is therefore conservatively refused
+    even though the resulting tree would be check-clean. The divergence only ever
+    *refuses a benign flip* — it never admits bad state — and requires the extreme
+    edge of mutating a terminal, archived milestone; the walker never reaches it
+    (it seeds no ACs).
+  - A same-value flip (e.g. `none → none`) writes and commits redundantly; there
+    is no no-op suppression, matching `MilestoneDependsOn`. Correct, just not
+    minimized.
+
 ## Out of scope
 
 - The three relation-field editors and the set-at-transition amend verbs
