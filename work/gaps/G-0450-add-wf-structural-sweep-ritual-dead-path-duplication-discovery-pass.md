@@ -1,7 +1,9 @@
 ---
 id: G-0450
 title: 'Add wf-structural-sweep ritual: dead-path + duplication discovery pass'
-status: open
+status: addressed
+addressed_by_commit:
+    - 91c49946
 ---
 ## What's missing
 
