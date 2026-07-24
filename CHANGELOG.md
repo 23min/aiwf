@@ -37,6 +37,18 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: `--format=json` envelope construction consolidated onto shared constructors
+
+- Internal refactor, no user-visible change. The `--format=json` envelope's
+  invariant `tool`/`version` pair was hand-assembled at ~15 read-verb sites
+  (`list`, `show`, `check`, `schema`, `history`, `status`, `template`, `worktree`,
+  `render`, `contract verify`) and repeated again inside the mutating side's
+  `emit*` methods. All now flow through three shared constructors
+  (`cliutil.OKEnvelope` / `FindingsEnvelope` / `ErrorEnvelope`, over a single
+  `newEnvelope` base), so the `aiwf`/`<version>` identity pair has one source of
+  truth. Emitted envelopes are byte-identical; a future envelope-shape change no
+  longer has to be applied at every call site by hand.
+
 ### Changed — G-0447: single-entity write tail consolidated onto `planEntityWrite`
 
 - Internal refactor, no user-visible change. The shared tail of every

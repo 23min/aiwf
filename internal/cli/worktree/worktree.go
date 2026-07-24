@@ -20,7 +20,6 @@ import (
 	"github.com/23min/aiwf/internal/initrepo"
 	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds the `aiwf worktree` parent command. Non-Runnable;
@@ -206,13 +205,10 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		// emitErrorEnvelope routes through — worktree add builds its own
 		// envelope rather than calling those, so it calls the exported
 		// method directly instead of leaving CorrelationID unread.
-		env := render.Envelope{
-			Tool:     "aiwf",
-			Version:  version.Current().Version,
-			Status:   "ok",
-			Result:   map[string]any{"path": absPath},
-			Metadata: out.Metadata(map[string]any{"branch": branch, "path": absPath}),
-		}
+		env := cliutil.OKEnvelope(
+			map[string]any{"path": absPath},
+			out.Metadata(map[string]any{"branch": branch, "path": absPath}),
+		)
 		if werr := render.JSON(os.Stdout, env, out.Pretty); werr != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			return fail("aiwf worktree add", werr, cliutil.ExitInternal)
 		}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/render"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // OutputFormat carries a mutating verb's chosen output format, plumbed
@@ -95,13 +94,7 @@ func (o OutputFormat) emitErrorEnvelope(label, code, message string) {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", label, message)
 		return
 	}
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   "error",
-		Error:    &render.EnvelopeError{Code: code, Message: message},
-		Metadata: o.Metadata(nil),
-	}
+	env := ErrorEnvelope(code, message, o.Metadata(nil))
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
 
@@ -113,13 +106,7 @@ func (o OutputFormat) emitFindings(findings []check.Finding) {
 		_ = render.Text(os.Stderr, findings)
 		return
 	}
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   render.StatusFor(findings),
-		Findings: findings,
-		Metadata: o.Metadata(nil),
-	}
+	env := FindingsEnvelope(findings, o.Metadata(nil))
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }
 
@@ -137,13 +124,10 @@ func (o OutputFormat) emitSuccess(subject string, findings []check.Finding, meta
 		fmt.Println(subject)
 		return
 	}
-	env := render.Envelope{
-		Tool:     "aiwf",
-		Version:  version.Current().Version,
-		Status:   render.StatusFor(findings),
-		Findings: findings,
-		Result:   map[string]any{"subject": subject},
-		Metadata: o.Metadata(metadata),
-	}
+	env := newEnvelope()
+	env.Status = render.StatusFor(findings)
+	env.Findings = findings
+	env.Result = map[string]any{"subject": subject}
+	env.Metadata = o.Metadata(metadata)
 	_ = render.JSON(os.Stdout, env, o.Pretty)
 }

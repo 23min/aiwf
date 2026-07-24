@@ -22,7 +22,6 @@ import (
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/roadmap"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf render`. Two surfaces:
@@ -342,17 +341,14 @@ func RunSite(root, format, out, scope string, noHistory, pretty bool) int {
 	}
 	emitGitignoreWarning(rootDir, outDir, cfg)
 
-	env := baserender.Envelope{
-		Tool:    "aiwf",
-		Version: version.Current().Version,
-		Status:  "ok",
-		Result: map[string]any{
+	env := cliutil.OKEnvelope(
+		map[string]any{
 			"out_dir":       outDir,
 			"files_written": res.FilesWritten,
 			"elapsed_ms":    res.ElapsedMs,
 		},
-		Metadata: map[string]any{"root": rootDir},
-	}
+		map[string]any{"root": rootDir},
+	)
 	if werr := baserender.JSON(os.Stdout, env, pretty); werr != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 		cliutil.Errorf("aiwf render: %v\n", werr)
 		return cliutil.ExitInternal

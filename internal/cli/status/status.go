@@ -23,7 +23,6 @@ import (
 	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // RecentActivityLimit is the number of recent commits surfaced by
@@ -432,16 +431,10 @@ func Run(root, format, area, priority string, pretty, noTrunc, worktrees bool) i
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  &report,
-			Metadata: map[string]any{
-				"root":     rootDir,
-				"entities": report.Health.Entities,
-			},
-		}
+		env := cliutil.OKEnvelope(&report, map[string]any{
+			"root":     rootDir,
+			"entities": report.Health.Entities,
+		})
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf status: writing output: %v\n", err)
 			return cliutil.ExitInternal

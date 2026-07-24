@@ -22,7 +22,6 @@ import (
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // ListSummary is the per-entity row emitted by `aiwf list`. The shape
@@ -226,15 +225,9 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 		case "text":
 			RenderListCountsText(os.Stdout, counts)
 		case "json":
-			env := render.Envelope{
-				Tool:    "aiwf",
-				Version: version.Current().Version,
-				Status:  "ok",
-				Result:  counts,
-				Metadata: map[string]any{
-					"root": rootDir,
-				},
-			}
+			env := cliutil.OKEnvelope(counts, map[string]any{
+				"root": rootDir,
+			})
 			if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 				cliutil.Errorf("aiwf list: writing output: %v\n", err)
 				return cliutil.ExitInternal
@@ -249,16 +242,10 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 		w := termTitleBudget(os.Stdout, noTrunc)
 		RenderListRowsText(os.Stdout, rows, w, render.ColorEnabled(os.Stdout))
 	case "json":
-		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  rows,
-			Metadata: map[string]any{
-				"root":  rootDir,
-				"count": len(rows),
-			},
-		}
+		env := cliutil.OKEnvelope(rows, map[string]any{
+			"root":  rootDir,
+			"count": len(rows),
+		})
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf list: writing output: %v\n", err)
 			return cliutil.ExitInternal
