@@ -20,6 +20,9 @@ acs:
     - id: AC-5
       title: verb is discoverable via --help, root banner, completion, and skill
       status: open
+    - id: AC-6
+      title: milestone tdd is a selectable op in the verb-sequence stress walker
+      status: open
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
@@ -84,6 +87,8 @@ verb follows the one existing subverb precedent, `aiwf milestone depends-on`.
 ### AC-4 — flip to required refuses when a met AC lacks tdd_phase done
 
 ### AC-5 — verb is discoverable via --help, root banner, completion, and skill
+
+### AC-6 — milestone tdd is a selectable op in the verb-sequence stress walker
 
 ## Constraints
 
