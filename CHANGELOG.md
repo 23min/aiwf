@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0446: `aiwf init` no longer hangs on hook consent where no human can answer
+
+- `aiwf init --no-prompt` — a new flag that skips the interactive hook-consent
+  `[y/N]` and leaves undecided hooks undecided. A devcontainer `postCreateCommand`
+  can allocate a pty with no human behind it, so the prior TTY check still
+  prompted and blocked forever *while holding the repo lock*, wedging every later
+  `aiwf` call; the flag is the deterministic non-interactive signal (`isatty`
+  cannot tell a fake pty from a real human). The repo devcontainer's `init.sh`
+  now passes it.
+- `aiwf init` now **honors hook decisions already recorded in `aiwf.yaml`** — on
+  a re-run (e.g. a container rebuild) an already-decided hook is carried forward
+  untouched instead of being re-prompted or re-defaulted, matching `aiwf update`.
+- Hooks the consent gate cannot decide are now **left undecided** (absent from
+  `aiwf.yaml`) rather than silently recorded as declined, so they surface as an
+  `aiwf doctor` "undecided" warning (yellow in the statusline) for a human to
+  decide, instead of hiding the missed config as an honored decline. Applies to
+  both `aiwf init` and `aiwf update`.
+
 ## [0.29.0] — 2026-07-24
 
 ### Added — E-0070: contract-first, red-first AC discipline

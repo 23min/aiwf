@@ -146,10 +146,17 @@ fi
 # /workspaces/${localWorkspaceFolderBasename} in devcontainer.json,
 # so all paths below are relative to the opened folder — main
 # checkout, worktree, or any other clone path works without edit.
+#
+# --no-prompt: postCreateCommand has no interactive human to answer a
+# hook-consent [y/N], but the pty it runs under can still read as a TTY —
+# without this flag `aiwf init` blocks forever on that prompt while holding
+# the repo lock, wedging every later aiwf call (G-0446). With it, an
+# already-decided hook is honored and any undecided one is left undecided
+# (surfaced yellow by `aiwf doctor`) for a human to decide interactively.
 echo "==> Installing aiwf binary and materializing framework hooks"
 go install ./cmd/aiwf
 export PATH="$(go env GOPATH)/bin:$PATH"
-aiwf init || true
+aiwf init --no-prompt || true
 
 # --- kernel pre-commit chain ---------------------------------------
 # `make install-hooks` symlinks scripts/git-hooks/pre-commit into

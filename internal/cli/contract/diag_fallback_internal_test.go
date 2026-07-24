@@ -37,7 +37,7 @@ func fallbackTestRepo(t *testing.T) string {
 	if err := gitops.Init(context.Background(), root); err != nil {
 		t.Fatalf("git init: %v", err)
 	}
-	if rc := initcmd.Run(root, "human/test", false, true, false, "user", false, false, nil, skills.ShippedHooks); rc != cliutil.ExitOK {
+	if rc := initcmd.Run(root, "human/test", false, true, false, "user", false, false, false, nil, skills.ShippedHooks); rc != cliutil.ExitOK {
 		t.Fatalf("aiwf init: rc=%d", rc)
 	}
 	return root

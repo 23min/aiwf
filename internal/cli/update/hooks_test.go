@@ -145,11 +145,13 @@ func TestRun_PreservesDecisionForHookRemovedFromRegistry(t *testing.T) {
 	}
 }
 
-// TestRun_NewHookDeclinesByDefaultWithoutEnableFlag: a newly-introduced
-// registry hook not named via --enable-hook declines (non-TTY default per
-// ADR-0032) — recorded as decided=true/enabled=false, not left undecided
-// (which would re-prompt every future run).
-func TestRun_NewHookDeclinesByDefaultWithoutEnableFlag(t *testing.T) {
+// TestRun_NewHookLeftUndecidedWithoutEnableFlag pins G-0446 on the update
+// path: a newly-introduced registry hook not named via --enable-hook, gated
+// where no interactive answer is available (go test's non-TTY stdin), is
+// left UNDECIDED — absent from aiwf.yaml's hooks: map, never a false decline
+// — so it surfaces as a doctor "undecided" warning rather than a silent
+// decline that hides the missed config.
+func TestRun_NewHookLeftUndecidedWithoutEnableFlag(t *testing.T) {
 	t.Parallel()
 	root := freshInitializedRepo(t)
 	hooks := []skills.HookDef{{Name: "new-hook", Description: "does a thing"}}
@@ -158,9 +160,9 @@ func TestRun_NewHookDeclinesByDefaultWithoutEnableFlag(t *testing.T) {
 	if rc != cliutil.ExitOK {
 		t.Fatalf("Run() = %d, want ExitOK", rc)
 	}
-	enabled, decided := hookDecision(t, root, "new-hook")
-	if !decided || enabled {
-		t.Errorf("HookDecision(new-hook) = (%v, %v), want (false, true)", enabled, decided)
+	if _, decided := hookDecision(t, root, "new-hook"); decided {
+		enabled, _ := hookDecision(t, root, "new-hook")
+		t.Errorf("HookDecision(new-hook) recorded a decision (enabled=%v), want it left undecided (absent)", enabled)
 	}
 }
 

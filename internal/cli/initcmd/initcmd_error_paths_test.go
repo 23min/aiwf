@@ -31,7 +31,7 @@ func TestRun_InitFailure(t *testing.T) {
 	if out, err := exec.Command("git", "init", "-q", root).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	rc := initcmd.Run(root, "", false, false, false, "", false, false, nil, nil)
+	rc := initcmd.Run(root, "", false, false, false, "", false, false, false, nil, nil)
 	if rc != cliutil.ExitInternal {
 		t.Errorf("rc = %d, want ExitInternal", rc)
 	}
@@ -58,7 +58,7 @@ func TestRun_HookMigrationCollision(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(hooksDir, "commit-msg.local"), prior, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	rc := initcmd.Run(root, "", false, false, false, "", false, false, nil, skills.ShippedHooks)
+	rc := initcmd.Run(root, "", false, false, false, "", false, false, false, nil, skills.ShippedHooks)
 	if rc != cliutil.ExitFindings {
 		t.Errorf("rc = %d, want ExitFindings", rc)
 	}
@@ -70,7 +70,7 @@ func TestRun_HookMigrationCollision(t *testing.T) {
 func TestRun_StatuslineDryRun(t *testing.T) {
 	t.Parallel()
 	root := freshGitRepo(t)
-	rc := initcmd.Run(root, "", true, false, true, string(skills.StatuslineScopeUser), false, false, nil, nil)
+	rc := initcmd.Run(root, "", true, false, true, string(skills.StatuslineScopeUser), false, false, false, nil, nil)
 	if rc != cliutil.ExitOK {
 		t.Errorf("rc = %d, want ExitOK", rc)
 	}
