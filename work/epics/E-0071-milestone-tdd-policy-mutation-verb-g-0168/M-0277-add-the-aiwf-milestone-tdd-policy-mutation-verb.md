@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: milestone tdd is a selectable op in the verb-sequence stress walker
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 # M-0277 — Add the aiwf milestone tdd policy-mutation verb
