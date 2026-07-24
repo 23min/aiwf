@@ -37,6 +37,17 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: milestone-scoped check rules share an `eachActiveMilestone` iterator
+
+- Internal refactor, no user-visible change. The `kind == Milestone &&
+  !IsArchivedPath` preamble (with its repeated M-0086/ADR-0004 archive-scoping
+  comment) was hand-rolled in five `internal/check` rules; it now lives once in an
+  `eachActiveMilestone` iterator the rules call. The two byte-identical rules
+  `milestoneDoneIncompleteACs` and `milestoneCancelledIncompleteACs` (differing
+  only in the status compared, the finding code, and one word of the message) are
+  merged into a shared `milestoneTerminalIncompleteACs` helper, with thin named
+  wrappers preserved. Emitted findings are unchanged.
+
 ### Changed — G-0447: closed-set membership scans replaced with `slices.Contains`
 
 - Internal refactor, no user-visible change. Nine hand-written linear-scan
