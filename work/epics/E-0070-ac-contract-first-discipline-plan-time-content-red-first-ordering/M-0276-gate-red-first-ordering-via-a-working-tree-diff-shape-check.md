@@ -1,7 +1,7 @@
 ---
 id: M-0276
 title: Gate red-first ordering via a working-tree diff-shape check
-status: in_progress
+status: done
 parent: E-0070
 depends_on:
     - M-0274
