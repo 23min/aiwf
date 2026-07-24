@@ -1,7 +1,9 @@
 ---
 id: G-0451
 title: 'Code-health guidance: add duplication and dead-code write-time forces'
-status: open
+status: addressed
+addressed_by_commit:
+    - b4fd1ac2
 ---
 ## What's missing
 
