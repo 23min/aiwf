@@ -37,6 +37,42 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: closed-set membership scans replaced with `slices.Contains`
+
+- Internal refactor, no user-visible change. Nine hand-written linear-scan
+  predicates in `internal/entity` (`IsAllowedStatus`, `IsAllowedACStatus`,
+  `IsAllowedTDDPhase`, `IsAllowedTDDPolicy`, `IsAllowedPriorityLevel`,
+  `IsValidAreaValue`, `ValidateTransition`, `IsLegalACTransition`,
+  `IsLegalTDDPhaseTransition`) now use `slices.Contains` — already the repo idiom
+  — instead of a bespoke `for … { if == { return } }` loop. Behavior is identical
+  (`slices.Contains` is exactly that scan); the change removes the repeated loop
+  shape.
+
+### Changed — G-0447: `--format=json` envelope construction consolidated onto shared constructors
+
+- Internal refactor, no user-visible change. The `--format=json` envelope's
+  invariant `tool`/`version` pair was hand-assembled at ~15 read-verb sites
+  (`list`, `show`, `check`, `schema`, `history`, `status`, `template`, `worktree`,
+  `render`, `contract verify`) and repeated again inside the mutating side's
+  `emit*` methods. All now flow through three shared constructors
+  (`cliutil.OKEnvelope` / `FindingsEnvelope` / `ErrorEnvelope`, over a single
+  `newEnvelope` base), so the `aiwf`/`<version>` identity pair has one source of
+  truth. Emitted envelopes are byte-identical; a future envelope-shape change no
+  longer has to be applied at every call site by hand.
+
+### Changed — G-0447: single-entity write tail consolidated onto `planEntityWrite`
+
+- Internal refactor, no user-visible change. The shared tail of every
+  single-entity, single-file mutating verb — serialize the modified entity, run
+  the projection safety-net (refuse if the change would introduce a check error),
+  and plan exactly one write — is now one helper (`planEntityWrite`) instead of
+  seven hand-copied blocks across `cancel`, `milestone-tdd`, `milestone-depends-on`,
+  `add`/`rename`/`promote` of ACs, and AC `retitle`. Behavior is unchanged; the
+  projection net still runs identically. `set-priority` and `set-area` deliberately
+  stay out — they skip the projection net on purpose (for `set-area` it is
+  load-bearing: projecting would break `--clear` under `areas.required`), now
+  documented at each site so a future pass won't fold them in.
+
 ### Fixed — G-0446: `aiwf init` no longer hangs on hook consent where no human can answer
 
 - `aiwf init --no-prompt` — a new flag that skips the interactive hook-consent

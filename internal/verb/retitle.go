@@ -196,21 +196,11 @@ func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Resu
 		return nil, err
 	}
 	body = rewriteACHeading(body, ac.ID, newTitle)
-	content, err := entity.Serialize(modified, body)
-	if err != nil {
-		return nil, fmt.Errorf("serializing %s: %w", parent.ID, err)
-	}
-	proj := projectReplace(t, modified, filepath.ToSlash(parent.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		return findings(fs), nil
-	}
 	subject := fmt.Sprintf("aiwf retitle %s -> %q", compositeID, newTitle)
-	result := plan(&Plan{
-		Subject:  subject,
-		Body:     reason,
-		Trailers: standardTrailers("retitle", compositeID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: parent.Path, Content: content}},
+	return planEntityWrite(t, modified, parent.Path, body, entityWrite{
+		subject:  subject,
+		body:     reason,
+		trailers: standardTrailers("retitle", compositeID, actor),
+		metadata: map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle},
 	})
-	result.Metadata = map[string]any{"entity_id": compositeID, "old_title": ac.Title, "new_title": newTitle}
-	return result, nil
 }

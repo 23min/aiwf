@@ -12,7 +12,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/render"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // TemplateOut is the per-kind payload `aiwf template` emits in both
@@ -99,12 +98,7 @@ func Run(args []string, format string, pretty bool) int {
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  map[string]any{"templates": templates},
-		}
+		env := cliutil.OKEnvelope(map[string]any{"templates": templates}, nil)
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf template: writing output: %v\n", err)
 			return cliutil.ExitInternal

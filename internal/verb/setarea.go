@@ -122,6 +122,17 @@ func SetArea(
 		modified.Area = member
 	}
 
+	// Deliberately NOT routed through planEntityWrite: set-area MUST skip
+	// the projection safety-net, and this is load-bearing, not an
+	// oversight. Under `areas.required`, `set-area <id> --clear` untags an
+	// entity into a state the standing check then flags with an
+	// error-severity area-required finding — which is the intended
+	// remediation surface (the docstring's "untagging must still work with
+	// no block"). The projecting helper would see that newly-introduced
+	// error and REFUSE the commit, making --clear impossible under
+	// areas.required. area-unknown (the set path's other risk) is already
+	// preempted by the membership guard above. Do not "unify" this verb
+	// into planEntityWrite without re-reading G-0447 and this note.
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
 		return nil, err

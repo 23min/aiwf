@@ -3,9 +3,7 @@ package verb
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
-	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -85,29 +83,21 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		//coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
 		return nil, err
 	}
-	content, err := entity.Serialize(&modified, body)
-	if err != nil {
-		//coverage:ignore defensive: Serialize fails only on a malformed entity; e already round-tripped through the loader
-		return nil, fmt.Errorf("serializing %s: %w", id, err)
-	}
-
-	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
-	if fs := projectionFindings(t, proj); check.HasErrors(fs) {
-		//coverage:ignore defensive: Cancel only ever writes a status flip to one of the kind's own terminal-cancel values, and the two known cascade-shaped findings this could otherwise introduce (epic-cancel-non-terminal-children, milestone-cancelled-incomplete-acs) are already refused above by epicChildrenCascadeGuard/milestoneACsCascadeGuard before reaching this projection — this check-rule pass is defense-in-depth for a finding class not yet identified, not a reachable path through the verb's own current call graph
-		return findings(fs), nil
-	}
-
 	subject := fmt.Sprintf("aiwf cancel %s -> %s", id, target)
-	result := plan(&Plan{
-		Subject: subject,
-		Body:    reason,
-		// Cancel does not emit aiwf-to:. The cancel target is implicit
-		// per kind (entity.CancelTarget) and the verb name itself
-		// communicates the destination — no need for a structured
-		// trailer to disambiguate. Only `promote` events carry aiwf-to:.
-		Trailers: transitionTrailers("cancel", id, actor, reason, "", force),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+	// The projection net inside planEntityWrite cannot fire for Cancel:
+	// the two cascade-shaped findings a status flip could introduce
+	// (epic-cancel-non-terminal-children, milestone-cancelled-incomplete-acs)
+	// are already refused above by epicChildrenCascadeGuard /
+	// milestoneACsCascadeGuard. It runs anyway as the uniform writer net.
+	//
+	// Cancel does not emit aiwf-to:. The cancel target is implicit per
+	// kind (entity.CancelTarget) and the verb name itself communicates
+	// the destination — no need for a structured trailer to
+	// disambiguate. Only `promote` events carry aiwf-to:.
+	return planEntityWrite(t, &modified, e.Path, body, entityWrite{
+		subject:  subject,
+		body:     reason,
+		trailers: transitionTrailers("cancel", id, actor, reason, "", force),
+		metadata: map[string]any{"entity_id": id, "from": e.Status, "to": target},
 	})
-	result.Metadata = map[string]any{"entity_id": id, "from": e.Status, "to": target}
-	return result, nil
 }

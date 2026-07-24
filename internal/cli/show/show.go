@@ -25,7 +25,6 @@ import (
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // AreaMissLine is the one-line text rendered when `aiwf show <id>
@@ -146,13 +145,7 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 		case "text":
 			cliutil.Errorf("aiwf show: %s\n", message)
 		case "json":
-			env := render.Envelope{
-				Tool:     "aiwf",
-				Version:  version.Current().Version,
-				Status:   "error",
-				Error:    &render.EnvelopeError{Message: message},
-				Metadata: map[string]any{"root": rootDir, "id": id},
-			}
+			env := cliutil.ErrorEnvelope("", message, map[string]any{"root": rootDir, "id": id})
 			if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
 				cliutil.Errorf("aiwf show: %v\n", err)
 				return cliutil.ExitInternal
@@ -182,19 +175,13 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 			case "text":
 				cliutil.Println(AreaMissLine(view.ID, actual, area))
 			case "json":
-				env := render.Envelope{
-					Tool:    "aiwf",
-					Version: version.Current().Version,
-					Status:  "ok",
-					Result:  nil,
-					Metadata: map[string]any{
-						"root":         rootDir,
-						"id":           id,
-						"filtered_out": true,
-						"area":         area,
-						"actual_area":  actual,
-					},
-				}
+				env := cliutil.OKEnvelope(nil, map[string]any{
+					"root":         rootDir,
+					"id":           id,
+					"filtered_out": true,
+					"area":         area,
+					"actual_area":  actual,
+				})
 				if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
 					cliutil.Errorf("aiwf show: %v\n", err)
 					return cliutil.ExitInternal
@@ -208,16 +195,10 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 	case "text":
 		renderShowText(view)
 	case "json":
-		env := render.Envelope{
-			Tool:    "aiwf",
-			Version: version.Current().Version,
-			Status:  "ok",
-			Result:  view,
-			Metadata: map[string]any{
-				"root": rootDir,
-				"id":   id,
-			},
-		}
+		env := cliutil.OKEnvelope(view, map[string]any{
+			"root": rootDir,
+			"id":   id,
+		})
 		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON only errors on a stdout write failure (not portably triggerable in test); mirrors this verb's other json render branches
 			cliutil.Errorf("aiwf show: %v\n", err)
 			return cliutil.ExitInternal

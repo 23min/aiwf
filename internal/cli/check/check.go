@@ -14,7 +14,6 @@ import (
 	"github.com/23min/aiwf/internal/logger"
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
-	"github.com/23min/aiwf/internal/version"
 )
 
 // NewCmd builds `aiwf check`: validate the consumer repo's planning
@@ -334,18 +333,12 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := baserender.Envelope{
-			Tool:     "aiwf",
-			Version:  version.Current().Version,
-			Status:   baserender.StatusFor(findings),
-			Findings: findings,
-			Metadata: map[string]any{
-				"root":     resolved,
-				"entities": len(tr.Entities),
-				"bindings": contract.BindingCount(contracts),
-				"findings": len(findings),
-			},
-		}
+		env := cliutil.FindingsEnvelope(findings, map[string]any{
+			"root":     resolved,
+			"entities": len(tr.Entities),
+			"bindings": contract.BindingCount(contracts),
+			"findings": len(findings),
+		})
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
@@ -426,18 +419,12 @@ func runFast(ctx context.Context, root, format string, pretty bool) int {
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := baserender.Envelope{
-			Tool:     "aiwf",
-			Version:  version.Current().Version,
-			Status:   baserender.StatusFor(findings),
-			Findings: findings,
-			Metadata: map[string]any{
-				"root":     root,
-				"entities": len(tr.Entities),
-				"fast":     true,
-				"findings": len(findings),
-			},
-		}
+		env := cliutil.FindingsEnvelope(findings, map[string]any{
+			"root":     root,
+			"entities": len(tr.Entities),
+			"fast":     true,
+			"findings": len(findings),
+		})
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
@@ -483,18 +470,12 @@ func runShapeOnly(ctx context.Context, root, format string, pretty bool) int {
 			return cliutil.ExitInternal
 		}
 	case "json":
-		env := baserender.Envelope{
-			Tool:     "aiwf",
-			Version:  version.Current().Version,
-			Status:   baserender.StatusFor(findings),
-			Findings: findings,
-			Metadata: map[string]any{
-				"root":       root,
-				"entities":   len(tr.Entities),
-				"shape_only": true,
-				"findings":   len(findings),
-			},
-		}
+		env := cliutil.FindingsEnvelope(findings, map[string]any{
+			"root":       root,
+			"entities":   len(tr.Entities),
+			"shape_only": true,
+			"findings":   len(findings),
+		})
 		if err := baserender.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore os.Stdout write fails only on a closed/broken pipe, not triggerable under test
 			cliutil.Errorf("aiwf check: writing output: %v\n", err)
 			return cliutil.ExitInternal
