@@ -410,6 +410,42 @@ func TestDirtyPaths_NonRepoErrors(t *testing.T) {
 	}
 }
 
+// TestDirtyPaths_Rename covers the rename edge the M-0276 spec flagged as a
+// potential false-positive: a working-tree rename of a tracked file surfaces as
+// dirty — the old path as a tracked deletion (git diff HEAD) and the new path as
+// an untracked addition (ls-files) — so a renamed implementation file still
+// counts as dirty at the red/green gate rather than slipping through.
+func TestDirtyPaths_Rename(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "old.md"), []byte("body\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "old.md"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	// Rename on disk without staging: old.md becomes a tracked deletion and
+	// new.md an untracked addition — both must surface.
+	if err := os.Rename(filepath.Join(root, "old.md"), filepath.Join(root, "new.md")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := DirtyPaths(ctx, root)
+	if err != nil {
+		t.Fatalf("DirtyPaths: %v", err)
+	}
+	want := []string{"new.md", "old.md"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DirtyPaths after rename mismatch (-want +got):\n%s", diff)
+	}
+}
+
 // TestHooksDir covers the three states HooksDir distinguishes:
 // `core.hooksPath` unset (fall back to <gitDir>/hooks), set to an
 // absolute path (returned verbatim), set to a relative path
