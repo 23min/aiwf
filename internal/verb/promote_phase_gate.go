@@ -1,0 +1,98 @@
+package verb
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/23min/aiwf/internal/areamatch"
+	"github.com/23min/aiwf/internal/config"
+	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
+	"github.com/23min/aiwf/internal/tree"
+)
+
+// requireDiffShapeForPhasePromote enforces red-first ordering on a `--phase red`
+// promote (M-0276, D-0047, D-0049): it classifies the working-tree dirty paths
+// against the configured tdd.test_paths globs and refuses when any non-test path
+// is already dirty (implementation before test) or nothing is dirty at all (a
+// red phase with no failing test written). The check is stateless — it inspects
+// the current diff only, with no red-time snapshot. Planning/entity and
+// documentation files (work/**, docs/**) are excluded from the dirty universe,
+// so the verb's own frontmatter write and unrelated planning edits never
+// self-refuse a legitimate promote.
+//
+// The gate is red-only (D-0049). `--phase green` is not gated: whether an
+// implementation path is dirty is orthogonal to whether the test passes — a
+// test-only AC has no implementation change yet legitimately reaches green, so
+// gating green would false-refuse it. The red gate carries the whole ordering
+// guarantee on its own.
+//
+// Opt-in: a no-op unless tdd.test_paths is configured, and silent for any phase
+// other than red. The caller has already verified !force; --force is the
+// explicit human-only override (via the existing provenance rule), so this
+// helper does not re-check it.
+func requireDiffShapeForPhasePromote(ctx context.Context, t *tree.Tree, newPhase string) error {
+	if newPhase != entity.TDDPhaseRed {
+		return nil
+	}
+	cfg, err := config.Load(t.Root)
+	if err != nil || cfg == nil {
+		cfg = &config.Config{}
+	}
+	globs := cfg.TDD.TestPaths
+	if len(globs) == 0 {
+		return nil // opt-in: gate inactive when no test-path globs are configured
+	}
+	dirty, err := gitops.DirtyPaths(ctx, t.Root)
+	if err != nil {
+		//coverage:ignore defensive: DirtyPaths only errors on a broken repo (e.g. unborn HEAD); unreachable here — promoting an AC requires a committed milestone, so HEAD exists
+		return fmt.Errorf("aiwf promote --phase %s: could not inspect the working tree for the red-first diff-shape gate: %w", newPhase, err)
+	}
+	var testDirty int
+	var nonTestDirty []string
+	for _, p := range dirty {
+		if isPlanningPath(p) {
+			continue // planning/entity + doc files (and the verb's own write) are not implementation
+		}
+		if pathMatchesAnyGlob(globs, p) {
+			testDirty++
+		} else {
+			nonTestDirty = append(nonTestDirty, p)
+		}
+	}
+	if len(nonTestDirty) > 0 {
+		return fmt.Errorf("aiwf promote --phase red: refusing — red-first requires the test to change before the implementation, but these non-test paths are already dirty: %s; write the failing test first, or use `--force --reason \"...\"` to override", strings.Join(nonTestDirty, ", "))
+	}
+	if testDirty == 0 {
+		return fmt.Errorf("aiwf promote --phase red: refusing — a red phase records a failing test, but no test-path changes are present in the working tree; write the failing test first, or use `--force --reason \"...\"` to override")
+	}
+	return nil
+}
+
+// isPlanningPath reports whether the repo-relative path is a planning/entity or
+// documentation file — under work/ or docs/ — which the diff-shape gate excludes
+// from its dirty universe (M-0276/AC-6). The verb's own frontmatter write to the
+// milestone spec lives under work/, so this also keeps a legitimate red promote
+// (which may sit alongside unrelated dirty planning prose) from self-refusing.
+func isPlanningPath(p string) bool {
+	for _, prefix := range []string{"work/", "docs/"} {
+		if strings.HasPrefix(p, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// pathMatchesAnyGlob reports whether the repo-relative path matches any of the
+// test-path globs (M-0276). The globs are Tier-1 validated at config load
+// (M-0276/AC-1), so areamatch.Match cannot return a pattern error here; a
+// theoretical bad pattern is treated as non-matching.
+func pathMatchesAnyGlob(globs []string, path string) bool {
+	for _, g := range globs {
+		if ok, err := areamatch.Match(g, path); err == nil && ok {
+			return true
+		}
+	}
+	return false
+}

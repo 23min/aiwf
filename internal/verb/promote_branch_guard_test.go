@@ -119,7 +119,7 @@ func TestPromote_MilestoneInProgress_SucceedsOnParentEpicBranch(t *testing.T) {
 	// M-0268/AC-1+AC-2: draft -> in_progress now refuses a zero-AC
 	// milestone, or one with an empty AC body; seed a real one so this
 	// test exercises the branch guard, not the AC-completeness guards.
-	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Boots up"}, [][]byte{[]byte("Real prose.")}, testActor, nil))
+	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Boots up"}, [][]byte{[]byte("Real prose.")}, testActor))
 	gitCheckoutNewBranch(t, r.root, "epic/E-0001-foundations")
 
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))

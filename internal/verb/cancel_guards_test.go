@@ -43,7 +43,7 @@ func TestCancel_MilestoneWithOpenAC_Refuses(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Work", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	// A freshly-added AC enters at `open`.
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First criterion", testActor))
 
 	res, err := verb.Cancel(r.ctx, r.tree(), "M-0001", testActor, "", false)
 	if err == nil {

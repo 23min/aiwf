@@ -1,9 +1,30 @@
 ---
 id: M-0274
 title: Seed tdd:required ACs pre-cycle so red is a live event
-status: draft
+status: done
 parent: E-0070
 tdd: required
+acs:
+    - id: AC-1
+      title: aiwf add ac seeds ACs at the pre-cycle empty phase, not red
+      status: met
+      tdd_phase: done
+    - id: AC-2
+      title: A live empty-to-red phase promote succeeds from the seeded state
+      status: met
+      tdd_phase: done
+    - id: AC-3
+      title: Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+      status: met
+      tdd_phase: done
+    - id: AC-4
+      title: wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+      status: met
+      tdd_phase: done
+    - id: AC-5
+      title: The --tests flag at add time is reconciled with pre-cycle seeding
+      status: met
+      tdd_phase: done
 ---
 
 # M-0274 — Seed tdd:required ACs pre-cycle so red is a live event
@@ -30,23 +51,64 @@ guard must attach to. Full rationale in D-0047.
 
 ## Acceptance criteria
 
-<!-- Prose shape; formalized via `aiwf add ac` at aiwfx-start-milestone.
-     Each is observable behavior with a mechanical assertion. -->
+### AC-1 — aiwf add ac seeds ACs at the pre-cycle empty phase, not red
 
-1. `aiwf add ac` against a `tdd: required` milestone leaves the new AC's
-   `tdd_phase` empty (`""`), not `red` — verb-level test over the resulting
-   frontmatter `acs[]`.
-2. From that seeded state, `aiwf promote <M>/AC-<N> --phase red` succeeds as a
-   live `"" -> red` transition — verb/integration test.
-3. A `tdd: required` milestone whose ACs rest at `""` through `draft` and
-   `in_progress` raises no `acs-shape`/`acs-tdd-audit` finding — check-level
-   test.
-4. `wf-tdd-cycle` no longer instructs skipping the red promote; the `"" -> red`
-   promote is a live, mandatory RED step — structural policy test under
-   `internal/policies/` (skill-edit backstop).
-5. The `--tests`-at-`add` flag (`internal/verb/ac.go:106-108`, "only valid
-   when seeding red") is reconciled with pre-cycle seeding — moved to the red
-   promote or removed — with the chosen behavior pinned by a verb-level test.
+`aiwf add ac <M>` against a `tdd: required` milestone seeds the new AC at the
+pre-cycle empty phase (`tdd_phase: ""`), not `red`. `red` means "a failing test
+exists"; a freshly-added AC has written no test yet, so its honest resting phase
+is absent. The failing test is recorded later, by a live
+`aiwf promote <M>/AC-<N> --phase red`.
+
+Mechanical evidence: a verb-level test adds an AC under a `tdd: required`
+milestone and asserts the resulting frontmatter `acs[]` entry carries an empty
+`tdd_phase`.
+
+### AC-2 — A live empty-to-red phase promote succeeds from the seeded state
+
+From an AC seeded at the empty phase, `aiwf promote <M>/AC-<N> --phase red`
+succeeds as a live `"" -> red` transition — the event that means "a failing test
+has been written and shown to fail." Before this milestone the AC was born at
+`red`, so this transition could never fire: the phase FSM refuses `red -> red`.
+
+Mechanical evidence: a verb/integration test seeds an AC at the empty phase, runs
+the `--phase red` promote, and asserts the transition succeeds with the AC then
+resting at `red`.
+
+### AC-3 — Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+
+A `tdd: required` milestone whose ACs rest at the empty phase through both
+`draft` and `in_progress` raises no `acs-shape` or `acs-tdd-audit` finding — an
+absent phase is legal until the AC is promoted to `met`. This is the check-layer
+behavior G-0286 already ratified; this milestone makes the seeder agree with it
+rather than contradict it.
+
+Mechanical evidence: a check-level test builds a `tdd: required` milestone with
+empty-phase ACs, once in `draft` and once in `in_progress`, runs `aiwf check`,
+and asserts neither `acs-shape` nor `acs-tdd-audit` fires.
+
+### AC-4 — wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+
+The `wf-tdd-cycle` ritual no longer instructs the operator to skip the red
+promote for `tdd: required` ACs. It names the `"" -> red` promote as a live,
+mandatory RED step, run the moment the failing test is written and shown to
+fail.
+
+Mechanical evidence: a structural policy test under `internal/policies/` asserts
+the embedded `wf-tdd-cycle` `SKILL.md` drives a live `--phase red` promote and
+no longer carries "skip the red promote" guidance — the skill-edit
+structural-test backstop.
+
+### AC-5 — The --tests flag at add time is reconciled with pre-cycle seeding
+
+The `--tests` flag on `aiwf add ac` (previously "only valid when seeding red")
+is reconciled with pre-cycle seeding: because ACs are no longer born at `red`,
+the flag's home moves to the `--phase red` promote or the flag is removed
+outright. The chosen resolution is pinned by a verb-level test so it cannot
+silently regress.
+
+Mechanical evidence: a verb-level test exercises the reconciled behavior (test
+metrics accepted at the `--phase red` promote, or the flag's removal refused at
+`add`) and asserts the outcome.
 
 ## Constraints
 
@@ -81,3 +143,112 @@ guard must attach to. Full rationale in D-0047.
 - G-0441 — the seeding-correctness gap this milestone closes.
 - D-0047 — Contract-first AC timing and red-first ordering enforcement.
 - G-0286 — the accepted decision that `red` means "a failing test exists."
+
+## Work log
+
+### AC-1 — Seed ACs at the pre-cycle empty phase, not red
+
+Removed the born-red seeding in `internal/verb/ac.go` so `aiwf add ac` leaves
+`tdd_phase` absent under any tdd policy; the live `"" → red` promote now records
+the failing test. Downstream fixtures (cellcoverage, the M-0124/M-0125 cell
+drivers, tests-metrics and single-commit-invariant setups) walk the live
+`"" → red → green → done` flow. Pinned by
+`TestAddAC_SeedsEmptyPhaseUnderTDDRequired`. · commit 46061419
+
+### AC-5 — Reconcile the --tests-at-add flag with pre-cycle seeding
+
+Removed `--tests` from `aiwf add ac` entirely (flag, the `tests` param on
+`AddAC`/`AddACBatch`, the seeding validation and trailer emission); red-phase
+test metrics are recorded only at the live red promote
+(`aiwf promote --phase red --tests`, already supported). Pinned by
+`TestNewCmd_AC_NoTestsFlag`. Shares AC-1's commit — removing born-red is what
+orphans the flag, so the two are one coherent change. · commit 46061419
+
+### AC-2 — A live empty-to-red phase promote succeeds from the seeded state
+
+Pinned at the CLI seam by `TestPromoteACPhaseRed_LiveEmptyToRedUnderTDDRequired`
+(`internal/cli/integration/`): the real `aiwf add ac` seeds a `tdd: required`
+AC at the empty phase, then `aiwf promote --phase red` fires the live
+`"" → red` transition — exit 0, AC rests at red — the event the M-0276 ordering
+gate attaches to. No production change: AC-1's seeding fix plus the existing
+phase FSM already make it work, so this is a regression pin, its three
+assertions (seeded empty, promote exits 0, rests at red) each confirmed
+non-vacuous by targeted mutation. · commit cc38dcc5
+
+### AC-3 — Empty-phase ACs raise no acs-shape or acs-tdd-audit finding
+
+Pinned by `TestCheckRun_EmptyPhaseACsRaiseNoShapeOrTDDAudit`
+(`internal/check/`): a `tdd: required` milestone whose open ACs rest at the
+empty phase stays clean of both `acs-shape` and `acs-tdd-audit` through the
+full `check.Run` aggregate, across `draft` and `in_progress`. No production
+change — this is G-0286's check-layer tolerance, asserted at the aggregate
+rather than the two rule functions in isolation. Both assertions were
+confirmed non-vacuous by targeted mutation (drop the empty-phase guard in
+`acsShape`; drop the met-status guard in `acsTDDAudit`), each in both
+statuses. · commit 954e7945
+
+### AC-4 — wf-tdd-cycle makes the empty-to-red promote a live mandatory step
+
+Rewrote the `wf-tdd-cycle` RED step in the embedded ritual source
+(`internal/skills/embedded-rituals/.../wf-tdd-cycle/SKILL.md`): dropped the
+born-red "skip this step / redundant re-run" guidance and named the
+`"" → red` promote a live, mandatory step run the moment the failing test
+is written and shown to fail. A genuine red→green cycle — the new
+structural pin `TestM0274_TddCycleRedPromoteIsLiveMandatory` fails on the
+stale skill and passes on the rewrite. The G-0297 test's now-obsolete
+RED-redundant half is retired (renamed `TestWfTddCycle_ForceSovereign`,
+keeping its orthogonal RECORD `--force` half), with the honesty guard
+against mislabeling the re-run "idempotent" carried into the new
+pin. · commit 8ed32559
+
+## Decisions made during implementation
+
+- AC-5 (`--tests` reconciliation) shares AC-1's commit rather than standing as
+  its own unit: removing born-red seeding is precisely what orphans the
+  add-time `--tests` flag, so the two are one coherent change. No new decision
+  record — governed by D-0047.
+- `--tests` was removed from `aiwf add ac` outright (not relocated), because
+  red-phase metrics already have a home on the live promote
+  (`aiwf promote --phase red --tests`); keeping a second entry point would
+  duplicate the surface. Pinned by `TestNewCmd_AC_NoTestsFlag`.
+
+## Validation
+
+- `go build ./...` — clean.
+- `make check-fast` (vet + lint + full test suite) — green.
+- `make lint` — 0 issues.
+- `make coverage-gate` (diff-scoped branch coverage + firing-fixture meta-gate
+  + skill-edit structural-test backstop) — green after each AC commit.
+- `aiwf check` — 0 errors (1 benign `provenance-untrailered-scope-undefined`
+  warning: no upstream configured in the worktree).
+- Race/coverage matrix runs on push via CI.
+
+## Deferrals
+
+- None. All five ACs reached `met`; nothing was punted. M-0275 (plan-time AC
+  content) and M-0276 (the ordering gate) are planned sibling milestones under
+  E-0070, not deferrals of this milestone.
+
+## Reviewer notes
+
+- Independent two-lens review before wrap: **code-quality (`wf-review-code`) —
+  APPROVE.** The reviewer independently re-ran the AC mutations (re-injecting
+  born-red fails AC-1's pin; dropping the empty-phase guard fails AC-3's),
+  confirming non-vacuity; verified the born-red and `--tests` removals are
+  complete, the ~14-file test sweep is purely mechanical, and shipped surfaces
+  carry no real ids. **Design-quality (`wf-rethink`) — not run:** the milestone
+  introduced no new module boundary, abstraction, or data model (it removes
+  code and adds tests/docs), so there is no design unit to rethink.
+- M-0274's own five ACs were themselves born at `red` — they predate this fix
+  and are grandfathered under the milestone's own no-backfill constraint. Each
+  cycle skipped the (already-spent) `"" → red` promote. Expected, not a defect.
+- Two incidental, pre-existing issues surfaced during review, both orthogonal
+  to the born-red work:
+  - `docs/explorations/06-tdd-diagnostic.md` names the old born-red template
+    seeding as evidence in a design-tension diagnostic. Left as-is — Exploratory
+    tier (not lockstep with code); editing it would rewrite the historical
+    analysis that motivated this work.
+  - `legal-workflows-audit.md`'s Source column (and two other normative docs)
+    carry stale `cmd/aiwf/*` paths left by the M-0116 CLI restructure — pre-
+    existing and unrelated. Tracked as a high-priority gap and fixed as a
+    standalone `wf-patch` off main, not folded into this milestone.

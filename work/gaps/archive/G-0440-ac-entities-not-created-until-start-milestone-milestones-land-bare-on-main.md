@@ -1,8 +1,10 @@
 ---
 id: G-0440
 title: AC entities not created until start-milestone; milestones land bare on main
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 2c946eb0
 ---
 ## What's missing
 

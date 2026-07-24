@@ -41,6 +41,7 @@ var fieldDescriptions = map[string]string{
 	"tdd":                      "Opt-in governance for the acceptance-criteria TDD workflow.",
 	"tdd.require_test_metrics": "Require an aiwf-tests: trailer on every AC promoted to done under tdd: required (default false).",
 	"tdd.strict":               "Promote TDD-related warnings to errors so the pre-push hook blocks the push (default false).",
+	"tdd.test_paths":           "Glob set classifying a path as a test path for the red/green diff-shape gate on --phase red/green promotes.",
 
 	"html":               "Settings for the static site rendered by aiwf render --format=html.",
 	"html.out_dir":       "Directory the HTML renderer writes into (default \"site\").",

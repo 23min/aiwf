@@ -26,8 +26,9 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 
 <!-- ACs are first-class kernel state under aiwf I2. Add each via:
        aiwf add ac M-NNN --title "<observable behavior>"
-     The verb appends the AC to frontmatter `acs:` (with `tdd_phase: red` seeded
-     when the milestone is `tdd: required`) and scaffolds a `### AC-<N> — <title>`
+     The verb appends the AC to frontmatter `acs:` (seeded at the pre-cycle
+     empty phase regardless of tdd policy — the live red promote records the
+     failing test later) and scaffolds a `### AC-<N> — <title>`
      heading below this section. Don't hand-edit `acs:` — the position-stable
      allocator and the body-coherence check both depend on the verb path.
 

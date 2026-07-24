@@ -163,8 +163,9 @@ func setupTDDDoneAC(t *testing.T) string {
 	mustRun(t, "add", "milestone", "--tdd", "required", "--epic", "E-0001", "--title", "Required", "--actor", "human/test", "--root", root)
 
 	mustRun(t, "add", "ac", "--actor", "human/test", "--root", root, "M-0001", "--title", "Engine")
-	// AC is auto-seeded at red because the milestone is tdd: required;
-	// walk it to done with no metrics flagged.
+	// AC is seeded at the pre-cycle empty phase; walk it "" → red →
+	// green → done with no metrics flagged.
+	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "red")
 	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "green")
 	mustRun(t, "promote", "--actor", "human/test", "--root", root, "M-0001/AC-1", "--phase", "done")
 	return root

@@ -237,10 +237,13 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 		// "all-children-acs.status != open" predicate without
 		// tripping acs-tdd-audit under tdd: required.
 		for i := 0; i < opts.ACs; i++ {
-			f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", fmt.Sprintf("AC %d", i+1), testActor, nil))
+			f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", fmt.Sprintf("AC %d", i+1), testActor))
 			acID := fmt.Sprintf("M-0001/AC-%d", i+1)
-			// Walk the TDD phase first (red -> green -> done) so
+			// Walk the full TDD phase ("" -> red -> green -> done) so
 			// the subsequent status open -> met clears acs-tdd-audit.
+			// The AC is seeded at the pre-cycle empty phase, so the red
+			// promote is the live "failing test written" step.
+			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseRed, testActor, "", false, nil))
 			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseGreen, testActor, "", false, nil))
 			f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseDone, testActor, "", false, nil))
 			f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "covered by Test"+fmt.Sprint(i+1), false, verb.PromoteOptions{}))
@@ -362,7 +365,7 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Cell-coverage Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: parentTDD}))
 	f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
-	f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", "Cell-coverage AC", testActor, nil))
+	f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", "Cell-coverage AC", testActor))
 	acID := "M-0001/AC-1"
 	switch fromState {
 	case entity.StatusOpen:
@@ -371,8 +374,9 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 		// Under tdd: required, AC.open -> met is illegal while
 		// tdd_phase != done (acs-tdd-audit fires). Phase changes
 		// go through PromoteACPhase (NOT Promote, which is for
-		// status). Advance red -> green -> done, then status
-		// open -> met.
+		// status). The AC is seeded at the pre-cycle empty phase, so
+		// advance "" -> red -> green -> done, then status open -> met.
+		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseRed, testActor, "", false, nil))
 		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseGreen, testActor, "", false, nil))
 		f.Must(verb.PromoteACPhase(f.ctx, f.Tree(), acID, entity.TDDPhaseDone, testActor, "", false, nil))
 		f.Must(verb.Promote(f.ctx, f.Tree(), acID, entity.StatusMet, testActor, "covered by TestCellCoverage", false, verb.PromoteOptions{}))
@@ -642,7 +646,7 @@ func (f *CellFixture) ensureOpenACChild(t *testing.T, milestoneID string) {
 			return
 		}
 	}
-	f.Must(verb.AddAC(f.ctx, f.Tree(), milestoneID, "Open AC for predicate satisfaction", testActor, nil))
+	f.Must(verb.AddAC(f.ctx, f.Tree(), milestoneID, "Open AC for predicate satisfaction", testActor))
 }
 
 func (f *CellFixture) populateEvalCtxAC(t *testing.T, compositeID string, evalCtx *spec.EvalContext) {

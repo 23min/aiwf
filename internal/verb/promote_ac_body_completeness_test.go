@@ -53,7 +53,7 @@ func stripHeading(t *testing.T, path string) {
 func TestPromote_EmptyACBodyRefusedAtDraftToInProgress(t *testing.T) {
 	t.Parallel()
 	r := setupACLessMilestoneOnEpicBranch(t)
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{})
 	if err == nil {
@@ -80,7 +80,7 @@ func TestPromote_EmptyACBodyRefusedAtDraftToInProgress(t *testing.T) {
 func TestPromote_EmptyACBodyForceSkipsVerbGuardButCheckStillBlocks(t *testing.T) {
 	t.Parallel()
 	r := setupACLessMilestoneOnEpicBranch(t)
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor))
 
 	res, err := verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "starting anyway", true, verb.PromoteOptions{})
 	if err != nil {
@@ -115,7 +115,7 @@ func TestPromote_PopulatedACBodyUnaffectedByEmptyBodyGuard(t *testing.T) {
 	t.Parallel()
 	r := setupACLessMilestoneOnEpicBranch(t)
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Does the thing"},
-		[][]byte{[]byte("Real prose describing the criterion.")}, testActor, nil))
+		[][]byte{[]byte("Real prose describing the criterion.")}, testActor))
 
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))
 
@@ -134,7 +134,7 @@ func TestPromote_HeadingOnlySubHeadingACBodyStillRefused(t *testing.T) {
 	t.Parallel()
 	r := setupACLessMilestoneOnEpicBranch(t)
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001", []string{"Does the thing"},
-		[][]byte{[]byte("#### Notes")}, testActor, nil))
+		[][]byte{[]byte("#### Notes")}, testActor))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{})
 	if err == nil {
@@ -154,7 +154,7 @@ func TestPromote_HeadingOnlySubHeadingACBodyStillRefused(t *testing.T) {
 func TestPromote_MissingACHeadingNotTreatedAsEmptyBody(t *testing.T) {
 	t.Parallel()
 	r := setupACLessMilestoneOnEpicBranch(t)
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Does the thing", testActor))
 
 	// Strip the scaffolded heading from the body entirely, simulating a
 	// hand-edit that desynced frontmatter acs[] from the body.

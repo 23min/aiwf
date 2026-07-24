@@ -1,8 +1,10 @@
 ---
 id: G-0441
 title: aiwf add ac seeds tdd:required ACs at red before any test exists
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - "46061419"
 ---
 ## What's missing
 

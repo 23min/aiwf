@@ -348,3 +348,55 @@ func TestAiwfxPlanMilestones_DependsOnUsesVerb_ClosesG0079(t *testing.T) {
 		t.Error("G-0079: skill must explicitly warn against hand-editing `depends_on:` so the verb-based path stays the default")
 	}
 }
+
+// TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275 pins M-0275/AC-4: the
+// plan-milestones workflow creates each milestone's acceptance criteria as AC
+// entities (`aiwf add ac`) and fills their bodies (`aiwf edit-body`) at plan
+// time, and does so before the merge-to-main step — so a milestone never lands
+// on main with zero ACs or empty AC bodies (the gap the
+// `milestone-draft-incomplete-acs` check surfaces on a draft milestone, closing
+// G-0440). Ordering is asserted content-driven (marker offsets within the
+// `## Workflow` section), so a reshuffle that keeps both actions still passes.
+func TestAiwfxPlanMilestones_CreatesACsBeforeMerge_M0275(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxPlanMilestonesFixture(t)
+	workflow := extractMarkdownSection(body, 2, "Workflow")
+	if workflow == "" {
+		t.Fatal("AC-4: skill must have a `## Workflow` section")
+	}
+
+	// Locate the actual AC-creation command, not a prose mention: the
+	// `aiwf add ac M-NNNN --title …` command form lives only in the fenced
+	// command block, so a dangling "see the AC-creation block" redirect with no
+	// live block cannot satisfy this (the weakness a bare `aiwf add ac` search
+	// would have — the step-5 bullet mentions the verb in prose).
+	cmdIdx := strings.Index(workflow, "aiwf add ac M-NNNN")
+	if cmdIdx == -1 {
+		t.Fatal("AC-4: the workflow must show the AC-creation command `aiwf add ac M-NNNN --title …` at plan time")
+	}
+
+	// Body-fill must be co-located in the SAME fenced block as the add-ac
+	// command: the next `aiwf edit-body` after the add-ac command, with no
+	// intervening ``` fence close between them. This pins the AC-body fill
+	// specifically — step 5's earlier milestone-body `aiwf edit-body` sits
+	// before cmdIdx (so it can't satisfy this), and a separate later step's
+	// edit-body would have a fence close in between (so it can't either).
+	tail := workflow[cmdIdx:]
+	editIdx := strings.Index(tail, "aiwf edit-body")
+	if editIdx == -1 {
+		t.Fatal("AC-4: the AC-creation block must fill each AC body via `aiwf edit-body`")
+	}
+	if strings.Contains(tail[:editIdx], "```") {
+		t.Error("AC-4: the AC-body `aiwf edit-body` must sit in the same fenced block as `aiwf add ac`, not a separate step")
+	}
+
+	// The AC-creation command must precede the merge-to-main step so ACs exist
+	// before the milestone lands on main. Content-driven (marker offsets).
+	mergeIdx := strings.Index(workflow, "**Merge planning to main")
+	if mergeIdx == -1 {
+		t.Fatal("AC-4: the workflow must retain a merge-to-main step")
+	}
+	if cmdIdx >= mergeIdx {
+		t.Errorf("AC-4: the AC-creation command (offset %d) must precede the merge-to-main step (offset %d) so ACs exist before the milestone lands on main", cmdIdx, mergeIdx)
+	}
+}

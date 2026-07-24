@@ -162,6 +162,46 @@
       "hint": "name the resolver atomically with the status change via `aiwf promote \u003cid\u003e addressed --by \u003cmilestone-id\u003e` (or `--by-commit \u003csha\u003e` when a specific commit closed it), or step back with `aiwf promote \u003cid\u003e open` / `aiwf promote \u003cid\u003e wontfix`"
     },
     {
+      "code": "milestone-draft-incomplete-acs",
+      "severity": "warning",
+      "message": "draft milestone M-001 has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+      "path": "work/epics/E-01-orig/M-001-cycle-a.md",
+      "line": 1,
+      "entity_id": "M-001",
+      "subcode": "zero-acs",
+      "hint": "add the milestone's acceptance criteria at plan time via `aiwf add ac \u003cmilestone-id\u003e --title \"...\"` (and fill each AC body); a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it"
+    },
+    {
+      "code": "milestone-draft-incomplete-acs",
+      "severity": "warning",
+      "message": "draft milestone M-002 has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+      "path": "work/epics/E-01-orig/M-002-cycle-b.md",
+      "line": 1,
+      "entity_id": "M-002",
+      "subcode": "zero-acs",
+      "hint": "add the milestone's acceptance criteria at plan time via `aiwf add ac \u003cmilestone-id\u003e --title \"...\"` (and fill each AC body); a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it"
+    },
+    {
+      "code": "milestone-draft-incomplete-acs",
+      "severity": "warning",
+      "message": "draft milestone M-004 has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+      "path": "work/epics/E-01-orig/M-004-wrong-parent-kind.md",
+      "line": 1,
+      "entity_id": "M-004",
+      "subcode": "zero-acs",
+      "hint": "add the milestone's acceptance criteria at plan time via `aiwf add ac \u003cmilestone-id\u003e --title \"...\"` (and fill each AC body); a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it"
+    },
+    {
+      "code": "milestone-draft-incomplete-acs",
+      "severity": "warning",
+      "message": "draft milestone M-005 has zero acceptance criteria; add them at plan time (aiwf add ac) so the contract is visible before the milestone lands on main",
+      "path": "work/epics/E-01-orig/M-005-missing-parent.md",
+      "line": 1,
+      "entity_id": "M-005",
+      "subcode": "zero-acs",
+      "hint": "add the milestone's acceptance criteria at plan time via `aiwf add ac \u003cmilestone-id\u003e --title \"...\"` (and fill each AC body); a warning only — a draft milestone is legitimately mid-planning, so no action is needed if you are still scoping it"
+    },
+    {
       "code": "terminal-entity-not-archived",
       "severity": "warning",
       "message": "entity ADR-0001 has terminal status \"superseded\" but file is still in the active tree; awaiting `aiwf archive --apply` sweep",
@@ -201,7 +241,7 @@
   "metadata": {
     "bindings": 0,
     "entities": 13,
-    "findings": 21,
+    "findings": 25,
     "root": "/tmp/messy-regen"
   }
 }

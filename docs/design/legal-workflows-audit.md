@@ -242,7 +242,7 @@ The Cobra command tree under `cmd/aiwf/` enforces per-verb preconditions before 
 | R-AUDIT-0106 | internal/cli/add/add.go | add verb | `aiwf add <kind>` | Kind must be one of the six (epic, milestone, adr, gap, decision, contract) plus `ac` subcommand; unknown kind errors | hard-reject |
 | R-AUDIT-0107 | internal/cli/add/add.go | add milestone | `aiwf add milestone` | `--epic <id>` is required AND `--tdd <required\|advisory\|none>` is required at creation time (G-0055 layer 1) | hard-reject |
 | R-AUDIT-0108 | internal/cli/add/add.go | add ac | `aiwf add ac` | The target milestone must be non-terminal (not `done` / `cancelled`); adding an AC to a done milestone errors | hard-reject |
-| R-AUDIT-0109 | internal/cli/add/add.go | add ac --tests | `aiwf add ac --tests "..."` | The `--tests` flag (red-phase metrics) is only legal when the parent milestone is `tdd: required` | hard-reject |
+| R-AUDIT-0109 | internal/cli/add/add.go | add ac --tests | `aiwf add ac --tests "..."` | `aiwf add ac` does not accept `--tests`; red-phase metrics are recorded at the red promote (`aiwf promote --phase red --tests`), not at add time | hard-reject (unknown flag) |
 | R-AUDIT-0110 | internal/cli/add/add.go | add | `aiwf add` --title | Title length capped at `entities.title_max_length` from aiwf.yaml (default 80); over-cap is hard-rejected (G-0102) | hard-reject |
 | R-AUDIT-0111 | internal/cli/promote/promote.go | promote verb | `aiwf promote <id> <new-status>` | The (kind, from-state, to-state) tuple must be in `entity.AllowedTransitions`; otherwise hard-rejected unless `--force --reason "..."` | hard-reject |
 | R-AUDIT-0112 | internal/cli/promote/promote.go | promote --phase | `aiwf promote <id>/AC-N --phase <p>` | `--phase` is mutex with positional `<new-status>`; phase transition follows `IsLegalTDDPhaseTransition` | hard-reject |
@@ -366,7 +366,7 @@ This doc is the canonical *decision source* for most of what §1–§4 mechanize
 | R-AUDIT-0170 | design-decisions.md | §Contracts | Contract verb | Validator availability is a per-machine concern — missing validator produces `validator-unavailable` *warning* by default; `aiwf.yaml.contracts.strict_validators: true` flips it to error | check-warning (escalates to error under config) |
 | R-AUDIT-0171 | design-decisions.md | §ACs | Milestone | ACs are first-class but namespaced inside their milestone, addressable as `M-NNN/AC-N`; they are *not* a seventh entity kind | hard-reject (composite-id grammar) |
 | R-AUDIT-0172 | design-decisions.md | §ACs | Milestone | `tdd: required \| advisory \| none` — default `none` when absent; opt-in policy on the milestone | hard-reject (closed-set field) |
-| R-AUDIT-0173 | design-decisions.md | §ACs | Milestone | When milestone is `tdd: required`, `aiwf add ac` seeds `tdd_phase: red` in the same commit; otherwise `tdd_phase` is absent | hard-reject (verb contract) |
+| R-AUDIT-0173 | design-decisions.md | §ACs | Milestone | `aiwf add ac` seeds the pre-cycle empty phase (`tdd_phase` absent) regardless of parent tdd policy; the live `"" → red` promote records the failing test | verb contract |
 | R-AUDIT-0174 | design-decisions.md | §ACs | Milestone (anti-rule) | NOT a kernel rule: "milestone must have ≥1 AC" — ACs remain optional | (acknowledgment; intentional absence) |
 | R-AUDIT-0175 | design-decisions.md | §ACs | Milestone (anti-rule) | NOT a kernel rule: "milestone can't enter `in_progress` without all ACs in `red`" — the kernel guards the *outcome* (`met` requires `done`), not the entry | (acknowledgment) |
 | R-AUDIT-0176 | design-decisions.md | §ACs | Milestone (anti-rule) | NOT a kernel rule: global AC allocator — ACs are per-milestone, no global allocator | (acknowledgment) |
@@ -452,7 +452,7 @@ The `--help` text for each verb declares its flag set, defaults, and mutex/requi
 | R-AUDIT-0223 | `aiwf doctor --help` | top-level | Doctor verb | `--check-latest` hits the Go module proxy for the latest published `aiwf` version; advisory; honors `GOPROXY=off`; network errors print "unavailable" without failing doctor | unenforced (best-effort) |
 | R-AUDIT-0224 | `aiwf check --help` | top-level | Check verb | `--format <fmt>` accepts `text` (default) or `json`; `--pretty` indents JSON only when used with `--format=json` | hard-reject (closed-set flag value) |
 | R-AUDIT-0225 | `aiwf history --help` | top-level | History verb | `--show-authorization` includes the full `aiwf-authorized-by` SHA on scope-authorized rows (text format only) | unenforced (display-only) |
-| R-AUDIT-0226 | `aiwf add ac --help` | top-level | Add AC verb | `--tests "pass=N fail=N ..."` is only legal when the parent milestone is `tdd: required` (already captured at R-AUDIT-0109; restated here for citation completeness) | hard-reject |
+| R-AUDIT-0226 | `aiwf add ac --help` | top-level | Add AC verb | `aiwf add ac` no longer accepts `--tests`; red-phase metrics live on `aiwf promote --phase red --tests` (already captured at R-AUDIT-0109; restated here for citation completeness) | hard-reject (unknown flag) |
 
 **Total for §9: 15 rules**
 
@@ -663,8 +663,8 @@ Both paths together satisfy the kernel's "correctness must not depend on the LLM
 |---|---|---|---|---|---|---|---|
 | R-RULE-092 | Verb | `aiwf add <kind>` | Kind must be one of (epic, milestone, adr, gap, decision, contract) + `ac` subcommand; unknown kind hard-rejected | add verb dispatch | hard-reject | R-AUDIT-0106 | — |
 | R-RULE-093 | Verb | `aiwf add milestone` | Requires `--epic <id>` (parent epic) AND `--tdd <required\|advisory\|none>` | add-milestone verb | hard-reject | R-AUDIT-0107, 0172 | — |
-| R-RULE-094 | Verb | `aiwf add ac` | Parent milestone must be non-terminal (not `done`/`cancelled`); seeds `tdd_phase: red` when parent is `tdd: required`; otherwise omits the field | add-ac verb | hard-reject | R-AUDIT-0108, 0173 | — |
-| R-RULE-095 | Verb | `aiwf add ac --tests` | Only legal when parent milestone is `tdd: required` | add-ac verb; --help | hard-reject | R-AUDIT-0109, 0217, 0226 | — |
+| R-RULE-094 | Verb | `aiwf add ac` | Parent milestone must be non-terminal (not `done`/`cancelled`); a new AC is seeded at the pre-cycle empty phase (`tdd_phase` absent) regardless of parent tdd policy | add-ac verb | hard-reject | R-AUDIT-0108, 0173 | — |
+| R-RULE-095 | Verb | `aiwf add ac --tests` | `aiwf add ac` does not accept `--tests`; red-phase metrics are recorded at `aiwf promote --phase red --tests` | add-ac verb; --help | hard-reject | R-AUDIT-0109, 0217, 0226 | — |
 | R-RULE-096 | Verb | `aiwf promote --phase` | Mutex with positional `<new-status>` | promote verb | hard-reject | R-AUDIT-0112, 0216 | — |
 | R-RULE-097 | Verb | `aiwf edit-body` | Frontmatter untouched; body replacement only. `--body-file` must not start with `---` (refused) | edit-body verb | hard-reject | R-AUDIT-0116 | — |
 | R-RULE-098 | Verb | `aiwf rename` | Bare-id form renames on-disk slug, id preserved; composite-id form (`M-NNN/AC-N`) updates `acs[].title` AND body `### AC-N — <title>` heading in one commit | rename verb dispatch | hard-reject | R-AUDIT-0117, 0180 | — |

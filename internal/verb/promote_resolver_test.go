@@ -327,7 +327,7 @@ func TestPromote_ResolverOnAC(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Bar", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "an AC", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "an AC", testActor))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false,
 		verb.PromoteOptions{AddressedBy: []string{"M-0001"}})

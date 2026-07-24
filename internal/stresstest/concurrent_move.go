@@ -35,6 +35,10 @@ import (
 // applies.
 var concurrentMoveExpectedWarnings = map[string]bool{
 	check.CodeProvenanceUntrailedScopeUndefined: true,
+	// the scenario creates draft milestones to move between epics; the
+	// M-0275 draft-incomplete-acs advisory on those bare drafts is an
+	// expected side effect of the setup, not incidental noise.
+	check.CodeMilestoneDraftIncompleteACs: true,
 }
 
 // ConcurrentMoveScenario implements Scenario.

@@ -36,8 +36,8 @@ const acceptanceCriteriaHeading = "Acceptance criteria"
 // rules with len(titles)=1. No body content is supplied; callers
 // that want to populate the AC body in the same atomic commit use
 // AddACBatch directly with a non-nil bodies slice.
-func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tests *gitops.TestMetrics) (*Result, error) {
-	return AddACBatch(ctx, t, parentID, []string{title}, nil, actor, tests)
+func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string) (*Result, error) {
+	return AddACBatch(ctx, t, parentID, []string{title}, nil, actor)
 }
 
 // AddACBatch creates one or more acceptance criteria under the same
@@ -47,9 +47,10 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 // matching `### AC-<N> — <title>` heading is appended to the
 // milestone body for each created AC.
 //
-// When the parent milestone is `tdd: required`, every new AC is
-// seeded with `tdd_phase: red` — the only legal starting state under
-// the FSM.
+// Every new AC is seeded at the pre-cycle empty phase regardless of
+// the parent's tdd: policy — `red` means "a failing test exists,"
+// which a just-created AC has not written. The live "" -> red promote
+// records the failing test.
 //
 // Validation is whole-batch (M-057/AC-2): titles are checked first
 // (empty-after-trim, not-prosey), then the milestone projection runs
@@ -64,12 +65,6 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 // trailer line. The single-title invocation produces exactly one
 // aiwf-entity trailer, matching pre-batch behavior (M-057/AC-5).
 //
-// --tests is only meaningful when seeding a single AC into a
-// tdd-required milestone (the original AddAC semantic). For N > 1 it
-// is rejected; an LLM batching N criteria with one --tests value
-// would otherwise silently apply the same metrics to every AC,
-// which is almost certainly not what the operator meant.
-//
 // When bodies is non-nil and bodies[i] is non-empty, its bytes are
 // appended under the matching AC's `### AC-N — <title>` heading in
 // the same atomic commit (M-067/AC-1). Other AC-067 ACs (count
@@ -77,10 +72,9 @@ func AddAC(ctx context.Context, t *tree.Tree, parentID, title, actor string, tes
 // rules in subsequent cycles; the AC-1 cycle does only the wiring.
 //
 // Returns a Go error for setup failures (empty titles slice, empty
-// or prosey title, milestone not found, kind mismatch, --tests with
-// N > 1 or with non-tdd-required parent). Tree-level findings caused
-// by the addition are returned in Result.Findings.
-func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []string, bodies [][]byte, actor string, tests *gitops.TestMetrics) (*Result, error) {
+// or prosey title, milestone not found, kind mismatch). Tree-level
+// findings caused by the addition are returned in Result.Findings.
+func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []string, bodies [][]byte, actor string) (*Result, error) {
 	_ = ctx
 	if len(titles) == 0 {
 		return nil, fmt.Errorf("--title is required (at least one)")
@@ -100,12 +94,6 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 	if parent.Kind != entity.KindMilestone {
 		return nil, fmt.Errorf("%s is a %s, not a milestone — only milestones host ACs", parentID, parent.Kind)
 	}
-	if tests != nil && len(titles) > 1 {
-		return nil, fmt.Errorf("--tests is only valid when adding a single AC at a time (got %d titles); test metrics for a batch would apply ambiguously", len(titles))
-	}
-	if tests != nil && parent.TDD != "required" {
-		return nil, fmt.Errorf("--tests is only valid when seeding red (parent milestone %s is not tdd: required)", parent.ID)
-	}
 
 	base := len(parent.ACs)
 	newACs := make([]entity.AcceptanceCriterion, 0, len(titles))
@@ -119,9 +107,12 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 			Title:  title,
 			Status: entity.StatusOpen,
 		}
-		if parent.TDD == "required" {
-			ac.TDDPhase = entity.TDDPhaseRed
-		}
+		// A freshly-added AC rests at the pre-cycle empty phase
+		// regardless of the parent's tdd: policy — `red` means "a
+		// failing test exists," which a just-created AC has not
+		// written. The live "" → red promote records the failing
+		// test (see wf-tdd-cycle); auto-seeding red here would spend
+		// that transition before any test is written.
 		newACs = append(newACs, ac)
 		compositeIDs = append(compositeIDs, canonParent+"/"+nextID)
 	}
@@ -155,14 +146,6 @@ func AddACBatch(ctx context.Context, t *tree.Tree, parentID string, titles []str
 
 	subject := batchACSubject(compositeIDs, titles)
 	trailers := batchACTrailers(compositeIDs, actor)
-	// --tests applies only to the single-AC seeding path (length-1
-	// batch into a tdd-required milestone). The validation above
-	// already guards N > 1 and non-tdd parents, so reaching here
-	// with tests != nil implies len(titles) == 1 and the AC is in
-	// red — emit the trailer.
-	if tests != nil {
-		trailers = appendTestsTrailer(trailers, tests)
-	}
 	result := plan(&Plan{
 		Subject:  subject,
 		Trailers: trailers,
@@ -238,7 +221,6 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 // for status changes; the verb name + composite id make it
 // unambiguous which dimension moved). aiwf-force: when forced.
 func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, actor, reason string, force bool, tests *gitops.TestMetrics) (*Result, error) {
-	_ = ctx
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
@@ -246,6 +228,9 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 	if !force {
 		if !entity.IsLegalTDDPhaseTransition(ac.TDDPhase, newPhase) {
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC tdd_phase %q cannot transition to %q (allowed under FSM: see tddPhaseTransitions)", ac.TDDPhase, newPhase)}
+		}
+		if gateErr := requireDiffShapeForPhasePromote(ctx, t, newPhase); gateErr != nil {
+			return nil, gateErr
 		}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {

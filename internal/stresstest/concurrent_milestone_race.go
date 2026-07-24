@@ -58,6 +58,11 @@ const (
 //     AC has been promoted to `met`), and this scenario never sweeps
 //     via `aiwf archive`. Absent when no cancel actor wins the race —
 //     the milestone then stays non-terminal at `draft`.
+//   - milestone-draft-incomplete-acs: Setup adds one AC via `aiwf add ac`
+//     with no body-fill, so whenever the race settles with the milestone
+//     at `draft` (above), the M-0275 empty-body subcode fires on that empty
+//     AC body — the same expected setup side effect the concurrent-move /
+//     force-override-durability / verb-sequence baselines already carry.
 //
 // Any OTHER finding — any error-severity finding, or a warning with a
 // code not in this set — is a real violation.
@@ -65,6 +70,7 @@ var concurrentMilestoneRaceExpectedWarnings = map[string]bool{
 	check.CodeProvenanceUntrailedScopeUndefined: true,
 	check.CodeArchiveSweepPending:               true,
 	check.CodeTerminalEntityNotArchived:         true,
+	check.CodeMilestoneDraftIncompleteACs:       true,
 }
 
 // ConcurrentMilestoneRaceScenario implements Scenario.

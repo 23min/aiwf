@@ -40,7 +40,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 5. **Replace each milestone's body with the rich template** at `.claude/templates/milestone-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing milestone spec). Fill in:
    - **Goal** — 1–2 sentences.
    - **Context** — what exists before; what must be in place; why now.
-   - **Acceptance criteria** — testable, numbered (AC1, AC2, …).
+   - **Acceptance criteria** — created as AC entities via `aiwf add ac`, not freehand template prose (see the AC-creation block below the template list).
    - **Constraints** — non-negotiable invariants for *this* milestone.
    - **Design notes** — locked decisions; reference ADRs by id.
    - **Out of scope** — what this milestone explicitly does NOT do.
@@ -55,6 +55,15 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    ```
 
    `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against a milestone spec would trip the kernel's `provenance-untrailered-entity-commit` finding — the same finding step 6 warns about for `depends_on` edits. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
+
+   **Create the acceptance criteria as AC entities now — at plan time, not deferred to milestone start.** For each criterion, run `aiwf add ac` (which appends the AC to the milestone's frontmatter `acs[]` and scaffolds its `### AC-N` body heading), then fill that heading with the testable contract via `aiwf edit-body`:
+
+   ```bash
+   aiwf add ac M-NNNN --title "<observable behavior>"   # once per criterion
+   aiwf edit-body M-NNNN                                 # fill each ### AC-N body with its contract
+   ```
+
+   Creating and body-filling the ACs here — before the merge-to-main step below — is what keeps a milestone from ever landing on main with zero ACs or empty AC bodies; the `milestone-draft-incomplete-acs` check (subcodes `zero-acs` / `empty-body`) surfaces exactly that gap on a `draft` milestone. `aiwfx-start-milestone`'s preflight then expects the ACs to already exist, treating on-the-spot creation as a recovery fallback for a hand-written spec.
 
 6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
 

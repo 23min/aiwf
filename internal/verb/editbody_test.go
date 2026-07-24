@@ -134,7 +134,7 @@ func TestEditBody_RejectsCompositeID(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Epic", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "criterion", testActor))
 
 	_, err := verb.EditBody(r.ctx, r.tree(), "M-0001/AC-1", []byte("body\n"), testActor, "")
 	if err == nil || !strings.Contains(err.Error(), "composite ids") {
@@ -178,8 +178,8 @@ func TestEditBody_PreservesFrontmatterFields(t *testing.T) {
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mile", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "first", testActor, nil))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "second", testActor, nil))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "first", testActor))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "second", testActor))
 
 	r.must(verb.EditBody(r.ctx, r.tree(), "M-0001",
 		[]byte("## Goal\n\nrewritten\n\n### AC-1 — first\n\n### AC-2 — second\n"),

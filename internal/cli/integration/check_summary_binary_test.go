@@ -190,17 +190,19 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 		t.Errorf("want 12 per-instance error lines, got %d", len(errorPerInstance))
 	}
 
-	// AC-1: warning-code summary count for the messy fixture is 6.
+	// AC-1: warning-code summary count for the messy fixture is 7.
 	// The kernel test for the fixture pins this: adr-supersession-mutual,
 	// archive-sweep-pending, epic-active-no-drafted-milestones (added
 	// by M-0094 alongside the E-02-no-drafts fixture entity),
-	// gap-addressed-has-resolver, terminal-entity-not-archived,
-	// titles-nonempty.
+	// gap-addressed-has-resolver, milestone-draft-incomplete-acs (added
+	// by M-0275, on the fixture's four zero-AC draft milestones),
+	// terminal-entity-not-archived, titles-nonempty.
 	wantCodes := map[string]int{
 		check.CodeADRSupersessionMutual:         2,
 		check.CodeArchiveSweepPending:           1,
 		check.CodeEpicActiveNoDraftedMilestones: 1,
 		check.CodeGapAddressedHasResolver:       1,
+		check.CodeMilestoneDraftIncompleteACs:   4,
 		check.CodeTerminalEntityNotArchived:     3,
 		check.CodeTitlesNonempty:                1,
 	}
@@ -224,11 +226,12 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 	}
 
 	// AC-1 ordering pin: count desc, alphabetic tie-break.
-	// Expected order: terminal-entity-not-archived (3),
-	// adr-supersession-mutual (2), archive-sweep-pending (1),
-	// epic-active-no-drafted-milestones (1), gap-addressed-has-resolver (1),
-	// titles-nonempty (1).
+	// Expected order: milestone-draft-incomplete-acs (4),
+	// terminal-entity-not-archived (3), adr-supersession-mutual (2),
+	// archive-sweep-pending (1), epic-active-no-drafted-milestones (1),
+	// gap-addressed-has-resolver (1), titles-nonempty (1).
 	wantOrder := []string{
+		check.CodeMilestoneDraftIncompleteACs,
 		check.CodeTerminalEntityNotArchived,
 		check.CodeADRSupersessionMutual,
 		check.CodeArchiveSweepPending,
@@ -247,8 +250,10 @@ func TestBinary_CheckDefault_SummarizesWarnings(t *testing.T) {
 
 	// Footer: instance counts shift by +1 warning with M-0094's
 	// fixture addition (E-02-no-drafts), +2 errors with the G-0184
-	// follow-through body-prose-id coverage → 12 errors + 9 warnings = 21.
-	if !strings.Contains(out, "21 findings (12 errors, 9 warnings)") {
+	// follow-through body-prose-id coverage, +4 warnings with M-0275's
+	// milestone-draft-incomplete-acs on the fixture's four zero-AC draft
+	// milestones → 12 errors + 13 warnings = 25.
+	if !strings.Contains(out, "25 findings (12 errors, 13 warnings)") {
 		t.Errorf("default-mode footer missing or wrong:\n%s", out)
 	}
 }

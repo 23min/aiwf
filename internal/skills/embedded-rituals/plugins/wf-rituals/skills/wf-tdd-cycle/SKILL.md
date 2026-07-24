@@ -22,14 +22,17 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - Write the test(s) that describe the expected behavior. Test names follow the project's convention; if there is none, prefer `MethodName_Scenario_ExpectedResult` (or the language-idiomatic equivalent).
 - Use the project's test framework. Don't introduce a new one mid-cycle.
 - Mock or stub external dependencies (network, clock, filesystem if the test isn't about the filesystem). Tests must be deterministic.
-- Run the tests. Confirm they **fail for the right reason** — the test reaches the assertion and the assertion is the thing that fails. A test that errors on import or fails on a typo isn't red yet.
-- If the project uses aiwf and the milestone is `tdd: required`, advance the AC's TDD phase to `red`:
+- Run the test and watch it fail. Red has two parts, and they can arrive at different moments:
+    - **Test-first (the ordering).** You have written the test and *not* the implementation. If the test won't even compile — or, in a dynamic language, won't import — because the symbol under test doesn't exist yet, that already counts: per the Three Laws of TDD, *not compiling is failing*. Nothing but the test exists, which is the strongest test-first evidence there is.
+    - **The right reason (the behavior).** Once the test does compile, the *assertion* is what fails — the behavior is missing — not a typo, an unrelated import error, or a broken fixture. A failure that isn't about the behavior means the test is broken, not red; fix it.
+- If the project uses aiwf and the milestone is `tdd: required`, advance the AC's TDD phase to `red` — a live, mandatory step, run the moment the failing test is written and shown to fail, **before you touch the implementation**:
 
   ```bash
   aiwf promote M-NNN/AC-<N> --phase red
   ```
 
-  When `aiwf add ac` was called against a `tdd: required` milestone, the AC was already seeded at `red`; **skip this step** in that case — re-running it is redundant. The FSM *refuses* `red → red`, and a refusal is an error you would have to work around, not a silent no-op, so don't re-run it expecting nothing to happen.
+  This `"" → red` promote is the event that records "a failing test now exists," so it must fire live, as it happens — the `aiwf history` timeline is what shows the test came before the code. A freshly-added AC rests at the pre-cycle empty phase, so the transition is always available; never skip it, defer it, or back-stamp it later.
+- When the project declares test-path globs, this promote is **gated** on exactly that test-first shape by the red-first diff-shape gate (below): it refuses unless *only* test-path files are dirty. That is why you promote `red` the moment the test is written — before any implementation, a compile stub included. See the gate section for the new-symbol / compile-stub case.
 
 ### GREEN — Make it pass with the minimum code
 
@@ -56,6 +59,18 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
   ```
 
   This step is optional — `green → done` is legal under the FSM. Use it when the refactor pass meaningfully reshaped the code.
+
+### The red-first diff-shape gate
+
+When a project declares test-path globs (the `tdd.test_paths` config), the `--phase red` promote enforces red-first ordering mechanically by inspecting the working tree — no extra command, trailer, or flag to remember:
+
+- **`--phase red`** wants *only* test-path files dirty. It refuses when any non-test (implementation) path is already dirty — code before test, naming the offending paths — and refuses when nothing is dirty at all (a red phase with no failing test). Write the failing test first.
+
+`--phase green` is deliberately not gated: whether an implementation path is dirty is orthogonal to whether the test passes, and a test-only AC (a regression pin or characterization test) legitimately reaches green with no implementation change at all.
+
+The gate reads the current working-tree diff only; it keeps no red-time snapshot, and it excludes planning and documentation files from the inspected set. Its refusals are overridable with `--force --reason "<why>"`, a human-only act. A project that declares no test-path globs is unaffected — the gate is opt-in.
+
+**New symbols and compile stubs.** In a typed language a test for a brand-new symbol can't compile until a minimal declaration exists — and that declaration is a non-test change the red gate rejects. There is no real conflict once you promote at the right moment: *the test failing to compile is the test-first red* (only the test is dirty), so run `--phase red` **then**, before adding the stub. Add the minimal stub afterward to watch the assertion fail for the right reason — you are already moving toward green, past the red gate. Reserve `--force --reason` for genuine exceptions, not this everyday path.
 
 ## Branch-coverage audit (HARD RULE — runs before declaring done)
 
