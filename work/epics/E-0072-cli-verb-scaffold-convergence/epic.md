@@ -66,11 +66,9 @@ The read-verb JSON-envelope duplication that G-0447 also listed in this package 
 
 ## Milestones
 
-<!-- Ids are allocated by aiwfx-plan-milestones; this list is refined there. -->
-
-- BeginVerbDiag helper + migrate the ~30 verbs + drop the now-redundant `slog` / `os` / `logger` imports (internally staged: helper + pilot verb reviewed first, then the bulk migration) · depends on: —
-- Shared `ResolveRoot → ResolveActor` prelude helper + migrate the ~23 verbs · depends on: the BeginVerbDiag milestone
-- `internal/policies` structural regression-guard test asserting no verb hand-rolls either scaffold · depends on: the prelude milestone
+- `M-0278` — Extract BeginVerbDiag and migrate the verb diagnostic block (internally staged: helper + pilot verb reviewed first, then the bulk migration; drops the now-redundant `slog` / `os` / `logger` imports) · depends on: —
+- `M-0279` — Extract the shared `ResolveRoot → ResolveActor` prelude and migrate the ~23 verbs · depends on: `M-0278`
+- `M-0280` — Regression-guard structural test asserting no verb hand-rolls either scaffold · depends on: `M-0279`
 
 ## References
 
