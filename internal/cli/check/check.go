@@ -2,7 +2,6 @@ package check
 
 import (
 	"context"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -11,7 +10,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/contract"
 	"github.com/23min/aiwf/internal/config"
-	"github.com/23min/aiwf/internal/logger"
 	baserender "github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -86,29 +84,9 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern — check is a pure read with no --actor flag
-	// and no single target entity (it validates the whole tree), so
-	// actor resolution is best-effort only and entity stays empty; see
-	// show.Run's identical rationale (ADR-0017: diagnostic logging
-	// must never affect a verb's own behavior or exit code). The defer
-	// still fires correctly through the runShapeOnly/runFast delegate
-	// calls below — Go's defer runs when Run itself returns, regardless
-	// of which nested call produced the value.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(resolved, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		actorStr, actorErr := cliutil.ResolveActor("", resolved)
-		if actorErr != nil {
-			actorStr = ""
-		}
-		runID := correlationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "check", "", actorStr, runID)
-	}
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+	finish := cliutil.BeginReadVerbDiag(resolved, "check", "", correlationID)
+	var sha string
+	defer finish(&code, &sha)
 
 	if shapeOnly {
 		return runShapeOnly(ctx, resolved, format, pretty)

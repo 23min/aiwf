@@ -22,6 +22,9 @@ import (
 //     TestFinishVerbOutcome_MultiPlan_Apply, TestFinishVerbOutcome_ApplyError_MessageFormat,
 //     TestFinishVerbOutcome_ApplySuccess_FindingsRenderInTextMode
 //     (apply_outcome_test.go) — use captureStdStreams.
+//   - TestBestEffortActor_DerivesFromGitConfig, TestBestEffortActor_MissingIdentityReturnsEmpty
+//     (beginverbdiag_test.go) — t.Setenv the git-locator env vars
+//     (HOME/XDG_CONFIG_HOME/GIT_CONFIG_NOSYSTEM) to isolate git config.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")

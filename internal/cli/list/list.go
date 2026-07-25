@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
@@ -184,25 +182,9 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 
 	ctx := context.Background()
 
-	// M-0249 follow-up: diagnostic-logging wiring, mirroring show.Run's
-	// own read-only rationale — list has no --actor flag, so actor
-	// resolution is best-effort only and never fails the verb
-	// (ADR-0017). No single target id (a filter/query verb), so entity
-	// stays empty, matching add/archive/rewidth's own rationale.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
-		if actorErr != nil {
-			actorStr = ""
-		}
-		runID := correlationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "list", "", actorStr, runID)
-	}
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+	finish := cliutil.BeginReadVerbDiag(rootDir, "list", "", correlationID)
+	var sha string
+	defer finish(&code, &sha)
 
 	// Advisory note when --area names a value that isn't declared
 	// (E-0043, M-0174/AC-5). The filter below stays mechanical; the note

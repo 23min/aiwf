@@ -10,15 +10,12 @@ package setpriority
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -124,17 +121,9 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 
 	ctx := context.Background()
 
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "set-priority", id, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "set-priority", id, actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf set-priority", out)
 	if release == nil {

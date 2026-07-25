@@ -2,14 +2,11 @@ package acknowledge
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -140,21 +137,9 @@ func runIllegal(sha, actor, root, reason, forEntity string, out cliutil.OutputFo
 
 	ctx := context.Background()
 
-	// M-0249 follow-up: diagnostic-logging wiring, mirroring cancel.Run's
-	// own M-0238/AC-5 pattern. entity is forEntity when supplied (the
-	// verb's own per-(SHA, entity) binding), empty otherwise — the
-	// acknowledged target is fundamentally a SHA, not an entity id.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "acknowledge-illegal", forEntity, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "acknowledge-illegal", forEntity, actorStr, out.CorrelationID)
 	var commitSHA string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, commitSHA) }()
+	defer finish(&code, &commitSHA)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge illegal", out)
 	if release == nil {

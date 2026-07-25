@@ -9,7 +9,6 @@ package show
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/entityview"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/trunk"
@@ -99,29 +97,9 @@ func Run(id, root, format, area string, pretty bool, historyLimit int, correlati
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern — with one difference: show is a pure read
-	// with no --actor flag and no commit, so actor resolution is
-	// best-effort only. A missing git identity must never fail a read
-	// verb that never needed one before; ADR-0017's own principle
-	// ("diagnostic logging must never affect a verb's own behavior or
-	// exit code") governs here even though ResolveLogger's own
-	// fallback only covers the logger's own resolve/open failures, not
-	// this actor lookup.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
-		if actorErr != nil {
-			actorStr = ""
-		}
-		runID := correlationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "show", id, actorStr, runID)
-	}
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+	finish := cliutil.BeginReadVerbDiag(rootDir, "show", id, correlationID)
+	var sha string
+	defer finish(&code, &sha)
 
 	// Advisory note when --area names an undeclared value (M-0174/AC-5).
 	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {

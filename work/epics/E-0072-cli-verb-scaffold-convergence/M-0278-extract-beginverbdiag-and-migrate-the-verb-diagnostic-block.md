@@ -7,13 +7,13 @@ tdd: advisory
 acs:
     - id: AC-1
       title: BeginVerbDiag encapsulates the verb diagnostic lifecycle
-      status: open
+      status: met
     - id: AC-2
       title: All diagnostic-block verbs route through BeginVerbDiag
-      status: open
+      status: met
     - id: AC-3
       title: Migrated verb diagnostics and JSON envelopes are byte-identical
-      status: open
+      status: met
 ---
 # M-0278 — Extract BeginVerbDiag and migrate the verb diagnostic block
 
@@ -62,3 +62,36 @@ Across the migrated verbs, the emitted diagnostic events and the `--format=json`
 
 - E-0072 — parent epic.
 - G-0447 — the convergent-duplication cleanup this seam completes.
+
+## Work log
+
+### AC-1 — BeginVerbDiag helper + promote pilot
+
+Extracted `cliutil.BeginVerbDiag`, returning a finish closure that captures the verb's named `code` / `sha` returns by pointer and fires `EmitVerbOutcome` then close in the inline block's LIFO order; migrated the `promote` pilot and dropped its now-redundant `slog` / `os` / `logger` imports. Independently reviewed before the bulk migration. · commit e0a2b433 · tests: `beginverbdiag_test.go` + the integration diag suite green.
+
+### AC-2 / AC-3 — bulk migration
+
+Migrated the remaining diagnostic-block verbs through the helper family. Extracted a shared `beginVerbDiagCore` engine and added `BeginReadVerbDiag` for the six verbs with no `--actor` flag (`show`, `list`, `check`, `history`, `contract-verify`, `worktree`) that resolve a best-effort actor lazily inside the `Enabled` guard, preserving the git-config exec-avoidance when logging is off (the default). `upgrade` remains a deliberate non-member (non-`"verb"` prefix, non-deferred emit). Net −304 lines across 28 files. · commit cfc1db49 · byte-identical verified by the integration diag suite staying green.
+
+### Corrective
+
+Restored `move`'s diagnostic-entity rationale comment that the bulk-migration script dropped. · commit 74941aa7
+
+## Validation
+
+- `make check-fast` (vet + full `golangci-lint` set + tests): exit 0.
+- `make coverage-gate` (diff-scoped branch-coverage + firing-fixture gates): green — every changed line covered.
+- `make lint`: 0 issues.
+- Byte-identical net: the `internal/cli/integration` diagnostic suite (`wired_verbs_diag_test.go` et al.) pins every migrated verb's emitted events and JSON envelopes and stays green.
+- All `internal/cli/...`, `internal/verb`, `internal/policies`, `internal/check` tests green.
+
+## Reviewer notes
+
+- Three independent fresh-context reviews — the AC-1 pilot, the AC-2 bulk migration (exhaustive per-verb), and the wrap design-lens pass over the helper family — all returned APPROVE.
+- Design decision (two entrypoints over one): a single eager helper would add an unconditional `git config` subprocess to every default-config (logging-off) read-verb call. The shared-core + lazy-actor-callback shape preserves that exec-avoidance and single-sources both the eager (mutating) and lazy (actorless) shapes.
+- `BeginReadVerbDiag` naming: the real axis is "no `--actor` flag / best-effort lazy actor" rather than "read verb" (`worktree-add` is git-plumbing, not a read). The name was kept; the doc comment states the real axis. Non-blocking nit.
+- Pre-existing, not introduced here: `internal/cli/integration/correlation_id_test.go` carries a stale comment claiming `rename` has no diagnostic call site — already false before this milestone. Left for a future touch of that file rather than slipping an unrelated file into this wrap.
+
+## Deferrals
+
+None. The remaining E-0072 seams — the `ResolveRoot → ResolveActor` prelude and the regression-guard structural test — are their own milestones (M-0279, M-0280), not deferrals of this one.
