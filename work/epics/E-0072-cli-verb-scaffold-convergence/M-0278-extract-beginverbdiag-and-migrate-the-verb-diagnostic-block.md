@@ -4,6 +4,16 @@ title: Extract BeginVerbDiag and migrate the verb diagnostic block
 status: draft
 parent: E-0072
 tdd: advisory
+acs:
+    - id: AC-1
+      title: BeginVerbDiag encapsulates the verb diagnostic lifecycle
+      status: open
+    - id: AC-2
+      title: All diagnostic-block verbs route through BeginVerbDiag
+      status: open
+    - id: AC-3
+      title: Migrated verb diagnostics and JSON envelopes are byte-identical
+      status: open
 ---
 # M-0278 — Extract BeginVerbDiag and migrate the verb diagnostic block
 
@@ -18,6 +28,12 @@ Every mutating verb opens with the same ~11-line block — `ResolveLogger` → `
 ## Acceptance criteria
 
 <!-- ACs created via `aiwf add ac`; contracts filled below. -->
+
+### AC-1 — BeginVerbDiag encapsulates the verb diagnostic lifecycle
+
+### AC-2 — All diagnostic-block verbs route through BeginVerbDiag
+
+### AC-3 — Migrated verb diagnostics and JSON envelopes are byte-identical
 
 ## Constraints
 
