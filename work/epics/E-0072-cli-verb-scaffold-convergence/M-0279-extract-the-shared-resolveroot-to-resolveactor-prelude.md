@@ -6,6 +6,16 @@ parent: E-0072
 depends_on:
     - M-0278
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Shared ResolveRoot to ResolveActor prelude helper exists
+      status: open
+    - id: AC-2
+      title: All prelude-duplicating verbs route through the shared helper
+      status: open
+    - id: AC-3
+      title: Prelude behavior including the usage-error arm is unchanged
+      status: open
 ---
 # M-0279 — Extract the shared ResolveRoot to ResolveActor prelude
 
@@ -20,6 +30,12 @@ After the diagnostic block is single-sourced, the second-largest per-verb scaffo
 ## Acceptance criteria
 
 <!-- ACs created via `aiwf add ac`; contracts filled below. -->
+
+### AC-1 — Shared ResolveRoot to ResolveActor prelude helper exists
+
+### AC-2 — All prelude-duplicating verbs route through the shared helper
+
+### AC-3 — Prelude behavior including the usage-error arm is unchanged
 
 ## Constraints
 
