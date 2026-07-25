@@ -1,7 +1,7 @@
 ---
 id: M-0280
 title: Regression-guard structural test for the verb scaffolds
-status: draft
+status: in_progress
 parent: E-0072
 depends_on:
     - M-0279
