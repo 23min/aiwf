@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: Structural test asserts no verb hand-rolls the root/actor prelude
-      status: open
+      status: met
     - id: AC-3
       title: Guard test fails red if either scaffold is re-inlined
       status: open
