@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"slices"
 	"strings"
 )
 
@@ -29,7 +30,10 @@ const verbScaffoldCliutilPrefix = "internal/cli/cliutil/"
 type verbScaffold struct {
 	// name is the human label used in the finding Detail.
 	name string
-	// helper is the shared entry point a verb should call instead.
+	// helper names the shared entry point(s) a verb should call
+	// instead. Both scaffolds expose two seams (a write/full variant and
+	// a read/envelope variant), so the finding must name both rather
+	// than misdirect a read- or envelope-verb author to the wrong one.
 	helper string
 	// primitives are the cliutil func names that constitute the
 	// scaffold. The detection is an OR over the set — a verb that calls
@@ -48,7 +52,7 @@ func verbScaffolds() []verbScaffold {
 	return []verbScaffold{
 		{
 			name:       "diagnostic block",
-			helper:     "cliutil.BeginVerbDiag",
+			helper:     "cliutil.BeginVerbDiag / BeginReadVerbDiag",
 			primitives: []string{"ResolveLogger", "EmitVerbOutcome"},
 			allow: map[string]string{
 				// upgrade emits two decoupled diagnostic outcomes — an
@@ -63,7 +67,7 @@ func verbScaffolds() []verbScaffold {
 		},
 		{
 			name:   "root/actor prelude",
-			helper: "cliutil.ResolvePrelude",
+			helper: "cliutil.ResolvePrelude / ResolvePreludeEnvelope",
 			// ResolveActor is the actor primitive the prelude seam owns —
 			// the prelude can't be reconstructed without it. ResolveRoot
 			// is deliberately NOT keyed: read-only verbs (show, list,
@@ -176,7 +180,7 @@ func PolicyVerbScaffoldSingleSeam(root string) ([]Violation, error) {
 				return true
 			}
 			for _, s := range scaffolds {
-				if !containsString(s.primitives, sel.Sel.Name) {
+				if !slices.Contains(s.primitives, sel.Sel.Name) {
 					continue
 				}
 				if _, exempt := s.allow[f.Path]; exempt {
@@ -202,14 +206,4 @@ func PolicyVerbScaffoldSingleSeam(root string) ([]Violation, error) {
 	}
 
 	return out, nil
-}
-
-// containsString reports whether s contains v.
-func containsString(s []string, v string) bool {
-	for _, x := range s {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }

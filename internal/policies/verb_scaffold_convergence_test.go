@@ -155,6 +155,27 @@ func run() {
 	}
 }
 
+// TestPolicyVerbScaffold_WalkContinuesPastUnparsable proves the
+// per-file parse-error skip (a `continue`, not an abort) does not swallow
+// later files: an unparsable file and a genuine re-inline coexist, and
+// the re-inline must still fire. Guards against a refactor that turns the
+// skip into a walk-ending return, which would silently blind the guard.
+func TestPolicyVerbScaffold_WalkContinuesPastUnparsable(t *testing.T) {
+	t.Parallel()
+	root := writeVerbScaffoldTree(t, "internal/cli/broken/broken.go", "package broken\n\nfunc {{{ not go\n")
+	writeVerbScaffoldGo(t, root, "internal/cli/frob/frob.go", `package frob
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveLogger()
+}
+`)
+	if !verbScaffoldFires(t, root, "internal/cli/frob/frob.go", 0) {
+		t.Errorf("re-inline after an unparsable file did not fire — the walk aborted at the parse error")
+	}
+}
+
 // TestPolicyVerbScaffold_RelocationAnchor is part of M-0280/AC-3's
 // non-vacuity guarantee: it proves the guard fails LOUD, not silent, if
 // a wrapped primitive is relocated out of package cliutil (the future
