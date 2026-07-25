@@ -12,7 +12,7 @@ acs:
       status: met
     - id: AC-2
       title: All prelude-duplicating verbs route through the shared helper
-      status: open
+      status: met
     - id: AC-3
       title: Prelude behavior including the usage-error arm is unchanged
       status: open
