@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: All diagnostic-block verbs route through BeginVerbDiag
-      status: open
+      status: met
     - id: AC-3
       title: Migrated verb diagnostics and JSON envelopes are byte-identical
       status: open
