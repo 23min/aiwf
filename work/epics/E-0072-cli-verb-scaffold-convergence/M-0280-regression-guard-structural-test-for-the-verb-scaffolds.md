@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Structural test asserts no verb hand-rolls the diagnostic block
-      status: open
+      status: met
     - id: AC-2
       title: Structural test asserts no verb hand-rolls the root/actor prelude
       status: open
