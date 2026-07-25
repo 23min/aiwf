@@ -37,6 +37,16 @@ section in this file.
   this collapses the audit-trail contract to a single source of truth so a future
   schema change can no longer be applied to some verbs and missed on others.
 
+### Changed — G-0447: path-axis area checks share an `areaFS` preamble helper
+
+- Internal refactor, no user-visible change. The `t.Root == "" → nil`, stat-guard,
+  `os.DirFS` preamble — the "never fail on IO" contract for the filesystem-reading
+  area checks — was duplicated in `AreaDeadGlob` and `AreaOverlap`; it now lives
+  once in an `areaFS(t) (fs.FS, bool)` helper both call. `AreaCoverage` is left
+  as-is: despite sharing the one-line root guard, it reads the tree differently
+  (per-root `os.ReadDir` + string globbing, not `os.DirFS`), so folding it in
+  would have been a false match. Behavior is unchanged.
+
 ### Changed — G-0447: milestone-scoped check rules share an `eachActiveMilestone` iterator
 
 - Internal refactor, no user-visible change. The `kind == Milestone &&
