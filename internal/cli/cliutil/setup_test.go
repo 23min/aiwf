@@ -25,6 +25,10 @@ import (
 //   - TestBestEffortActor_DerivesFromGitConfig, TestBestEffortActor_MissingIdentityReturnsEmpty
 //     (beginverbdiag_test.go) — t.Setenv the git-locator env vars
 //     (HOME/XDG_CONFIG_HOME/GIT_CONFIG_NOSYSTEM) to isolate git config.
+//   - TestResolvePrelude_ActorError_EmitsUsageError,
+//     TestResolvePreludeEnvelope_ActorError_EmitsEnvelope (prelude_test.go) —
+//     t.Setenv the git-locator env vars to isolate git config AND capture the
+//     process-global os.Stdout/os.Stderr.
 
 func TestMain(m *testing.M) {
 	os.Setenv("GIT_AUTHOR_NAME", "aiwf-test")
