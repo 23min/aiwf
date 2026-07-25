@@ -31,9 +31,15 @@ Every mutating verb opens with the same ~11-line block — `ResolveLogger` → `
 
 ### AC-1 — BeginVerbDiag encapsulates the verb diagnostic lifecycle
 
+`cliutil.BeginVerbDiag(...)` resolves the logger, sets up the run-id / `WithVerb` context, and returns a `finish`-closure that captures the verb's named `code` / `sha` returns and fires the deferred close + `EmitVerbOutcome`. A single pilot verb, migrated onto the helper, emits diagnostics (run-id, outcome event and its fields) identical to what its inline block emitted — established by an independent review of the pilot before the bulk migration.
+
 ### AC-2 — All diagnostic-block verbs route through BeginVerbDiag
 
+Every verb that previously hand-rolled the diagnostic block now calls `BeginVerbDiag`; none reconstructs the block inline. Each such verb no longer imports `log/slog`, `os`, or `logger` where those imports existed only to host the block. (Reference-phrased against the set of verbs carrying the block today, not a fixed count.)
+
 ### AC-3 — Migrated verb diagnostics and JSON envelopes are byte-identical
+
+Across the migrated verbs, the emitted diagnostic events and the `--format=json` envelopes are unchanged from pre-migration — verified by the existing verb-metadata and integration JSON suites staying green, with no assertion changes that would mask a diff.
 
 ## Constraints
 
