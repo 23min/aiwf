@@ -61,6 +61,32 @@ func verbScaffolds() []verbScaffold {
 				"internal/cli/upgrade/upgrade.go": "emits two decoupled diagnostic outcomes under a custom \"install\" prefix (install.completed before the update re-exec, a guarded install.failed) — BeginVerbDiag's single deferred finish can't express it; documented M-0278 non-member",
 			},
 		},
+		{
+			name:   "root/actor prelude",
+			helper: "cliutil.ResolvePrelude",
+			// ResolveActor is the actor primitive the prelude seam owns —
+			// the prelude can't be reconstructed without it. ResolveRoot
+			// is deliberately NOT keyed: read-only verbs (show, list,
+			// check, …) legitimately resolve the root alone.
+			// ResolveActorWithSource is ResolveActor with the source
+			// returned; keying on it too closes the same-package sibling
+			// dodge (a re-inline could resolve the actor through it and
+			// discard the source).
+			primitives: []string{"ResolveActor", "ResolveActorWithSource"},
+			allow: map[string]string{
+				// import interleaves a manifest parse between root and
+				// actor resolution and applies three-way actor precedence
+				// (--actor → manifest.actor → git-config derivation) — the
+				// common prelude models neither shape.
+				"internal/cli/importcmd/importcmd.go": "interleaves a manifest parse between root and actor resolution and applies three-way actor precedence — the common prelude models neither; documented M-0279 non-member",
+				// whoami / doctor resolve the actor via ResolveActorWithSource
+				// to display the identity and its source — a read for
+				// display, not the mutating root→actor prelude of a
+				// state-changing verb.
+				"internal/cli/whoami/whoami.go": "resolves the actor via ResolveActorWithSource for identity display, not the mutating root→actor prelude",
+				"internal/cli/doctor/doctor.go": "resolves the actor via ResolveActorWithSource for identity display, not the mutating root→actor prelude",
+			},
+		},
 	}
 }
 

@@ -153,3 +153,120 @@ func run() {
 		})
 	}
 }
+
+// TestPolicyVerbScaffold_Prelude is the mechanical evidence for
+// M-0280/AC-2: the guard fires when a verb reconstructs the root/actor
+// prelude inline (a direct cliutil.ResolveActor call, or the
+// ResolveActorWithSource sibling), is exempt for each documented
+// non-member, and stays silent for a verb that routes through
+// cliutil.ResolvePrelude or resolves only the root.
+func TestPolicyVerbScaffold_Prelude(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name     string
+		relPath  string
+		body     string
+		wantFire bool
+	}{
+		{
+			name:    "direct ResolveActor re-inline fires",
+			relPath: "internal/cli/frob/frob.go",
+			body: `package frob
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveActor()
+}
+`,
+			wantFire: true,
+		},
+		{
+			name:    "ResolveActorWithSource sibling re-inline fires",
+			relPath: "internal/cli/frob/frob.go",
+			body: `package frob
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveActorWithSource()
+}
+`,
+			wantFire: true,
+		},
+		{
+			name:    "allowlisted importcmd non-member is exempt",
+			relPath: "internal/cli/importcmd/importcmd.go",
+			body: `package importcmd
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveActor()
+}
+`,
+			wantFire: false,
+		},
+		{
+			name:    "allowlisted whoami non-member is exempt",
+			relPath: "internal/cli/whoami/whoami.go",
+			body: `package whoami
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveActorWithSource()
+}
+`,
+			wantFire: false,
+		},
+		{
+			name:    "allowlisted doctor non-member is exempt",
+			relPath: "internal/cli/doctor/doctor.go",
+			body: `package doctor
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveActorWithSource()
+}
+`,
+			wantFire: false,
+		},
+		{
+			name:    "verb routing through ResolvePrelude does not fire",
+			relPath: "internal/cli/frob/frob.go",
+			body: `package frob
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolvePrelude()
+}
+`,
+			wantFire: false,
+		},
+		{
+			name:    "read-only verb resolving only the root does not fire",
+			relPath: "internal/cli/show/show.go",
+			body: `package show
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolveRoot()
+}
+`,
+			wantFire: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := writeVerbScaffoldTree(t, tc.relPath, tc.body)
+			if got := verbScaffoldFires(t, root, tc.relPath, 0); got != tc.wantFire {
+				t.Errorf("fire = %v, want %v", got, tc.wantFire)
+			}
+		})
+	}
+}
