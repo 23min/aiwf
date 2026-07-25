@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Guard test fails red if either scaffold is re-inlined
-      status: open
+      status: met
 ---
 # M-0280 — Regression-guard structural test for the verb scaffolds
 
