@@ -66,6 +66,11 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (cod
 
 	ctx := context.Background()
 
+	// entity is id — the milestone being moved, not epic (the
+	// destination): pctx.TargetID below is epic because that is whose
+	// authorization scope governs the move, a different question ("who
+	// may do this") from what the diagnostic entity field records
+	// ("what this verb acted on").
 	finish := cliutil.BeginVerbDiag(rootDir, "move", id, actorStr, out.CorrelationID)
 	var sha string
 	defer finish(&code, &sha)
