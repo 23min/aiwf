@@ -1,7 +1,7 @@
 ---
 id: M-0279
 title: Extract the shared ResolveRoot to ResolveActor prelude
-status: in_progress
+status: done
 parent: E-0072
 depends_on:
     - M-0278
