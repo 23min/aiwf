@@ -1000,3 +1000,15 @@ this epic makes it a first-class, trailered, discoverable act.
 |---|---|---|
 | M-0277 | Add the aiwf milestone tdd policy-mutation verb | done |
 
+## E-0072 — CLI verb-scaffold convergence (proposed)
+
+### Goal
+
+Single-source the two copy-pasted per-verb scaffolds in `internal/cli` — the diagnostic-logging wiring block and the `ResolveRoot → ResolveActor` prelude — so the verb layer stops retyping the same setup at every command. This is the largest and last seam of G-0447's convergent-duplication cleanup.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0278 | Extract BeginVerbDiag and migrate the verb diagnostic block | draft |
+| M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | draft |
+| M-0280 | Regression-guard structural test for the verb scaffolds | draft |
+
