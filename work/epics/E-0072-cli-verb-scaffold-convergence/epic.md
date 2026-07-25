@@ -1,7 +1,7 @@
 ---
 id: E-0072
 title: CLI verb-scaffold convergence
-status: proposed
+status: active
 ---
 
 # E-0072 — CLI verb-scaffold convergence
