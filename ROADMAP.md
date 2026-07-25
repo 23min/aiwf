@@ -1009,6 +1009,6 @@ Single-source the two copy-pasted per-verb scaffolds in `internal/cli` — the d
 | Milestone | Title | Status |
 |---|---|---|
 | M-0278 | Extract BeginVerbDiag and migrate the verb diagnostic block | done |
-| M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | draft |
+| M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | in_progress |
 | M-0280 | Regression-guard structural test for the verb scaffolds | draft |
 
