@@ -4,15 +4,12 @@ package move
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -69,29 +66,9 @@ func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (cod
 
 	ctx := context.Background()
 
-	// Minted once here rather than at the tail, per M-0238/AC-5 (see
-	// cancel.Run's identical comment). entity is id — the milestone
-	// being moved, not epic (the destination) — deliberately: pctx's
-	// TargetID below is epic because that's whose authorization scope
-	// governs the move, a different question ("who may do this") from
-	// what a diagnostic entity field answers ("what did this verb act
-	// on"). A human grepping this log for a milestone id should find
-	// the moves that touched it.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		// out.CorrelationID reuses the invocation-wide id NewRootCmd
-		// minted (M-0239/AC-1), matching the JSON envelope's
-		// metadata.correlation_id. Falls back to a fresh id only for a
-		// test that builds out directly, bypassing NewCmd/Execute.
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "move", id, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "move", id, actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf move", out)
 	if release == nil {

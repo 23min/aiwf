@@ -5,15 +5,12 @@ package archive
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -134,21 +131,9 @@ func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputForm
 		return code
 	}
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. archive is a multi-entity sweep (no single
-	// TargetID), so entity stays empty, matching add.Run's own
-	// rationale.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "archive", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "archive", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	// Provenance coherence check: a non-human actor needs a principal;
 	// a human actor must not carry one. Mirrors `aiwf rewidth` and

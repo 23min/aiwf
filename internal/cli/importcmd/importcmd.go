@@ -5,15 +5,12 @@ package importcmd
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/manifest"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -97,21 +94,9 @@ func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, 
 		actorStr = resolved
 	}
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. import can batch multiple entities into one
-	// invocation, so entity stays empty (like add/archive) — every
-	// created id is already in entityIDs/the JSON envelope.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "import", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "import", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	// dry-run is read-only; lock only when we'd write.
 	if !dryRun {

@@ -2,14 +2,12 @@ package contract
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/recipe"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
@@ -197,19 +195,9 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "contract-recipe-install", r.Name, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "contract-recipe-install", r.Name, actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe install", out)
 	if release == nil {
@@ -276,19 +264,9 @@ func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) (code i
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "contract-recipe-remove", name, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "contract-recipe-remove", name, actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf contract recipe remove", out)
 	if release == nil {

@@ -2,14 +2,12 @@ package contract
 
 import (
 	"context"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -65,24 +63,9 @@ func Run(root, format string, pretty bool, correlationID string) (code int) {
 	}
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring check.Run's/show.Run's
-	// own read-only rationale — contract verify has no --actor flag, so
-	// actor resolution is best-effort only and never fails the verb
-	// (ADR-0017).
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
-		if actorErr != nil {
-			actorStr = ""
-		}
-		runID := correlationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "contract-verify", "", actorStr, runID)
-	}
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+	finish := cliutil.BeginReadVerbDiag(rootDir, "contract-verify", "", correlationID)
+	var sha string
+	defer finish(&code, &sha)
 
 	tr, _, err := tree.Load(ctx, rootDir)
 	if err != nil { //coverage:ignore tree.Load errors only on filesystem IO failure (e.g. a permission fault) or context cancellation; malformed entities surface as load findings, not an error here.

@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// readOneDiagRecord reads the single JSON diagnostic record BeginVerbDiag's
-// finish closure wrote to an explicit AIWF_LOG_FILE destination.
+// readOneDiagRecord reads the single JSON diagnostic record the finish
+// closure wrote to an explicit AIWF_LOG_FILE destination.
 func readOneDiagRecord(t *testing.T, path string) map[string]any {
 	t.Helper()
 	content, err := os.ReadFile(path)
@@ -33,11 +33,17 @@ func enabledDiagEnv(path string) func(string) string {
 	})
 }
 
-func TestBeginVerbDiag_EnabledEmitsCompletedWithFinalCodeAndSHA(t *testing.T) {
+// staticActor is the actor-provider a mutating verb passes: the actor
+// was already resolved in the prelude, so the provider just returns it.
+func staticActor(actor string) func() string {
+	return func() string { return actor }
+}
+
+func TestBeginVerbDiagCore_EnabledEmitsCompletedWithFinalCodeAndSHA(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "diag.log")
-	finish := beginVerbDiag(t.TempDir(), enabledDiagEnv(path),
-		"promote", "M-0001", "human/peter", "corr-123")
+	finish := beginVerbDiagCore(t.TempDir(), enabledDiagEnv(path),
+		"promote", "M-0001", staticActor("human/peter"), "corr-123")
 
 	// Pointer capture: the verb assigns code/sha mid-body, after the
 	// defer was registered. finish dereferences the pointers at call
@@ -61,11 +67,11 @@ func TestBeginVerbDiag_EnabledEmitsCompletedWithFinalCodeAndSHA(t *testing.T) {
 	}
 }
 
-func TestBeginVerbDiag_EmptyCorrelationID_GeneratesRunID(t *testing.T) {
+func TestBeginVerbDiagCore_EmptyCorrelationID_GeneratesRunID(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "diag.log")
-	finish := beginVerbDiag(t.TempDir(), enabledDiagEnv(path),
-		"promote", "M-0001", "human/peter", "")
+	finish := beginVerbDiagCore(t.TempDir(), enabledDiagEnv(path),
+		"promote", "M-0001", staticActor("human/peter"), "")
 
 	code := ExitOK
 	sha := ""
@@ -79,11 +85,11 @@ func TestBeginVerbDiag_EmptyCorrelationID_GeneratesRunID(t *testing.T) {
 	}
 }
 
-func TestBeginVerbDiag_NonOK_EmitsFailedWithErrorClass(t *testing.T) {
+func TestBeginVerbDiagCore_NonOK_EmitsFailedWithErrorClass(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "diag.log")
-	finish := beginVerbDiag(t.TempDir(), enabledDiagEnv(path),
-		"promote", "M-0001", "human/peter", "corr-123")
+	finish := beginVerbDiagCore(t.TempDir(), enabledDiagEnv(path),
+		"promote", "M-0001", staticActor("human/peter"), "corr-123")
 
 	code := ExitInternal
 	sha := ""
@@ -101,20 +107,76 @@ func TestBeginVerbDiag_NonOK_EmitsFailedWithErrorClass(t *testing.T) {
 	}
 }
 
-func TestBeginVerbDiag_Disabled_NoOutputNoPanic(t *testing.T) {
+func TestBeginVerbDiagCore_Enabled_ResolvesActorExactlyOnce(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "diag.log")
+	calls := 0
+	resolveActor := func() string { calls++; return "human/lazy" }
+	finish := beginVerbDiagCore(t.TempDir(), enabledDiagEnv(path),
+		"show", "M-0001", resolveActor, "corr-123")
+
+	code := ExitOK
+	sha := ""
+	finish(&code, &sha)
+
+	if calls != 1 {
+		t.Errorf("resolveActor called %d times, want exactly 1", calls)
+	}
+	if rec := readOneDiagRecord(t, path); rec["actor"] != "human/lazy" {
+		t.Errorf("actor = %v, want %q", rec["actor"], "human/lazy")
+	}
+}
+
+func TestBeginVerbDiagCore_Disabled_DoesNotResolveActorNoOutputNoPanic(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "diag.log")
+	called := false
 	// fakeGetenv(nil): AIWF_LOG unset → the logger resolves to disabled,
-	// exercising the false arm of the Enabled guard (WithVerb skipped)
-	// and EmitVerbOutcome's no-op path.
-	finish := beginVerbDiag(t.TempDir(), fakeGetenv(nil),
-		"promote", "M-0001", "human/peter", "corr-123")
+	// exercising the false arm of the Enabled guard. The lazy actor
+	// resolver must NOT run — that is the exec-avoidance the read-verb
+	// variant preserves.
+	resolveActor := func() string { called = true; return "human/never" }
+	finish := beginVerbDiagCore(t.TempDir(), fakeGetenv(nil),
+		"show", "M-0001", resolveActor, "corr-123")
 
 	code := ExitOK
 	sha := "deadbeef"
 	finish(&code, &sha) // must not panic
 
+	if called {
+		t.Error("resolveActor ran while logging disabled; the lazy-actor exec-avoidance is broken")
+	}
 	if content, err := os.ReadFile(path); err == nil && len(content) > 0 {
 		t.Errorf("disabled logger wrote %q, want no output", content)
+	}
+}
+
+// TestBestEffortActor_DerivesFromGitConfig and _MissingReturnsEmpty are
+// serial: they t.Setenv the git-locator env vars (HOME/XDG_CONFIG_HOME/
+// GIT_CONFIG_NOSYSTEM), so they must not run under t.Parallel.
+
+func TestBestEffortActor_DerivesFromGitConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"),
+		[]byte("[user]\n\temail = reader@example.com\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := bestEffortActor(t.TempDir()); got != "human/reader" {
+		t.Errorf("bestEffortActor = %q, want human/reader", got)
+	}
+}
+
+func TestBestEffortActor_MissingIdentityReturnsEmpty(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	// No .gitconfig written: git config user.email finds nothing, so
+	// ResolveActor errors and bestEffortActor collapses it to "".
+	if got := bestEffortActor(t.TempDir()); got != "" {
+		t.Errorf("bestEffortActor = %q, want %q on missing identity", got, "")
 	}
 }
