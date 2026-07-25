@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: Migrated verb diagnostics and JSON envelopes are byte-identical
-      status: open
+      status: met
 ---
 # M-0278 — Extract BeginVerbDiag and migrate the verb diagnostic block
 
