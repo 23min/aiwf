@@ -14,26 +14,48 @@ import (
 // are not structural assertions".
 const wfStructuralSweepFixturePath = "internal/skills/embedded-rituals/plugins/wf-rituals/skills/wf-structural-sweep/SKILL.md"
 
-// TestWfStructuralSweep_HasThreeNamedLenses pins the load-bearing shape of
-// the skill: a "## The three lenses" section carrying exactly three `###`
-// sub-lenses, one each for dead paths, textual clones, and convergent
-// duplication. Dropping a lens (e.g. shipping only the mechanical two and
-// losing the convergence lens that motivates the pass) fails here.
-func TestWfStructuralSweep_HasThreeNamedLenses(t *testing.T) {
+// TestWfStructuralSweep_HasFourNamedLenses pins the load-bearing shape of
+// the skill: a "## The four lenses" section carrying exactly four `###`
+// sub-lenses, one each for dead paths, textual clones, convergent
+// duplication, and data flow. Dropping a lens (e.g. shipping only the
+// mechanical ones and losing the convergence or data-flow lens that
+// motivate the pass) fails here.
+func TestWfStructuralSweep_HasFourNamedLenses(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, wfStructuralSweepFixturePath)
 
-	lenses := extractMarkdownSection(body, 2, "The three lenses")
+	lenses := extractMarkdownSection(body, 2, "The four lenses")
 	if lenses == "" {
-		t.Fatal("wf-structural-sweep must have a `## The three lenses` section")
+		t.Fatal("wf-structural-sweep must have a `## The four lenses` section")
 	}
-	if got := countSubHeadings(lenses, 3); got != 3 {
-		t.Errorf("`## The three lenses` has %d `###` sub-lenses; want exactly 3", got)
+	if got := countSubHeadings(lenses, 3); got != 4 {
+		t.Errorf("`## The four lenses` has %d `###` sub-lenses; want exactly 4", got)
 	}
-	for _, want := range []string{"Dead paths", "Textual clones", "Convergent duplication"} {
+	for _, want := range []string{"Dead paths", "Textual clones", "Convergent duplication", "Data flow"} {
 		if !strings.Contains(lenses, want) {
 			t.Errorf("the lenses section is missing a lens named %q", want)
 		}
+	}
+}
+
+// TestWfStructuralSweep_DataFlowLensNamesProducedButUnconsumed pins the
+// distinguishing property of Lens 4: it traces producer→consumer and flags a
+// value that is "used" in the call-graph sense yet consumed nowhere — the
+// class no reachability or clone tool reaches.
+func TestWfStructuralSweep_DataFlowLensNamesProducedButUnconsumed(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfStructuralSweepFixturePath)
+
+	lens4 := extractMarkdownSection(body, 3, "Lens 4")
+	if lens4 == "" {
+		t.Fatal("wf-structural-sweep must have a `### Lens 4 …` data-flow section")
+	}
+	low := strings.ToLower(lens4)
+	if !strings.Contains(low, "consume") {
+		t.Error("Lens 4 must frame the trace as producer→consumer")
+	}
+	if !strings.Contains(low, "unconsumed") {
+		t.Error("Lens 4 must flag produced-but-unconsumed values (the class reachability calls live)")
 	}
 }
 
