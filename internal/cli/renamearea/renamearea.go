@@ -67,16 +67,9 @@ rename reverses via the same verb with swapped args.`,
 
 // Run executes `aiwf rename-area`. Returns one of the cliutil.Exit* codes.
 func Run(oldName, newName, actor, principal, root string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		cliutil.Errorf("aiwf rename-area: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf rename-area: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf rename-area", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

@@ -46,15 +46,9 @@ func NewCmd(correlationID string) *cobra.Command {
 
 // Run executes `aiwf rename`. Returns one of the cliutil.Exit* codes.
 func Run(id, newSlug, actor, principal, root string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf rename: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf rename: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf rename", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

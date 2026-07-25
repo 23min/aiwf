@@ -90,14 +90,8 @@ runs.`,
 func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) (code int) {
 	ctx := context.Background()
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
-		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf rewidth", nil, err, out)
-		return code
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, err, out)
+	rootDir, actorStr, code, ok := cliutil.ResolvePreludeEnvelope(ctx, "aiwf rewidth", root, actor, out)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
 	}
 

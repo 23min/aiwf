@@ -53,15 +53,9 @@ func NewCmd(correlationID string) *cobra.Command {
 
 // Run executes `aiwf move`. Returns one of the cliutil.Exit* codes.
 func Run(id, epic, actor, principal, root string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		cliutil.Errorf("aiwf move: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf move: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf move", root, actor)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
+		return code
 	}
 
 	ctx := context.Background()
