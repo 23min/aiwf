@@ -1,7 +1,7 @@
 ---
 id: M-0278
 title: Extract BeginVerbDiag and migrate the verb diagnostic block
-status: draft
+status: in_progress
 parent: E-0072
 tdd: advisory
 acs:
