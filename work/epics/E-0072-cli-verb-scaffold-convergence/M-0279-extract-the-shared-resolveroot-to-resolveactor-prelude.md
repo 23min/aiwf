@@ -9,7 +9,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Shared ResolveRoot to ResolveActor prelude helper exists
-      status: open
+      status: met
     - id: AC-2
       title: All prelude-duplicating verbs route through the shared helper
       status: open
