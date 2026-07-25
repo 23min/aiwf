@@ -3,6 +3,7 @@ package policies
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -151,6 +152,52 @@ func run() {
 				t.Errorf("fire = %v, want %v", got, tc.wantFire)
 			}
 		})
+	}
+}
+
+// TestPolicyVerbScaffold_RelocationAnchor is part of M-0280/AC-3's
+// non-vacuity guarantee: it proves the guard fails LOUD, not silent, if
+// a wrapped primitive is relocated out of package cliutil (the future
+// G-0227 split). Detection keys on the cliutil-qualified selector, so a
+// relocated primitive would leave detection matching nothing and the
+// guard green vacuously; the relocation anchor must fire instead. Here
+// cliutil declares every primitive except ResolveActor — the anchor
+// must name exactly that one.
+func TestPolicyVerbScaffold_RelocationAnchor(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	// cliutil stub with ResolveActor "relocated" out (every other
+	// keyed primitive still declared here).
+	writeVerbScaffoldGo(t, root, "internal/cli/cliutil/prim.go", `package cliutil
+
+func ResolveLogger()          {}
+func EmitVerbOutcome()        {}
+func ResolveActorWithSource() {}
+func BeginVerbDiag()          {}
+func ResolvePrelude()         {}
+`)
+	// A correctly-routed verb — nothing re-inlined — so the anchor is
+	// the only violation the policy can produce.
+	writeVerbScaffoldGo(t, root, "internal/cli/frob/frob.go", `package frob
+
+import "github.com/23min/aiwf/internal/cli/cliutil"
+
+func Run() {
+	_ = cliutil.ResolvePrelude()
+}
+`)
+	vs, err := PolicyVerbScaffoldSingleSeam(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range vs {
+		if v.File == verbScaffoldCliutilPrefix && strings.Contains(v.Detail, "cliutil.ResolveActor is no longer declared") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("relocation anchor did not fire for the relocated cliutil.ResolveActor; violations: %+v", vs)
 	}
 }
 
