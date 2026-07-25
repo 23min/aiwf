@@ -33,9 +33,15 @@ After the diagnostic block is single-sourced, the second-largest per-verb scaffo
 
 ### AC-1 — Shared ResolveRoot to ResolveActor prelude helper exists
 
+One `cliutil` helper resolves the repo root and the actor and returns them (or the shared usage error), replacing the hand-rolled `ResolveRoot → ResolveActor` sequence and its identical usage-error arm.
+
 ### AC-2 — All prelude-duplicating verbs route through the shared helper
 
+Every verb that previously duplicated the prelude now calls the shared helper; none reconstructs it inline. Any verb with a legitimately different prelude is documented as an intentional non-member. (Reference-phrased against the set of verbs carrying the prelude today, not a fixed count.)
+
 ### AC-3 — Prelude behavior including the usage-error arm is unchanged
+
+Across the migrated verbs, the resolved root, the resolved actor, the usage-error message text, and the exit path are byte-identical to pre-migration — verified by the existing verb and integration suites staying green.
 
 ## Constraints
 
