@@ -2,7 +2,6 @@ package check
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/23min/aiwf/internal/areamatch"
@@ -33,15 +32,10 @@ const CodeAreaOverlap = "area-overlap"
 // carrying paths. Severity is warning, escalated to error under
 // areas.required by ApplyAreaRequiredStrict.
 func AreaOverlap(t *tree.Tree, areas []AreaPaths) []Finding {
-	if t.Root == "" {
+	fsys, ok := areaFS(t)
+	if !ok {
 		return nil
 	}
-	// Never fail on IO: a missing or unreadable root yields no findings
-	// (the roadmapCaseCollision precedent), the same guard AreaDeadGlob uses.
-	if _, err := os.Stat(t.Root); err != nil {
-		return nil
-	}
-	fsys := os.DirFS(t.Root)
 	// Each area's matched path set (files and directories alike). MatchFS,
 	// not MatchesAny: overlap needs the full sets to intersect them.
 	matchSets := make([]map[string]bool, len(areas))

@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/23min/aiwf/internal/areamatch"
@@ -20,6 +21,26 @@ const CodeAreaDeadGlob = "area-dead-glob"
 type AreaPaths struct {
 	Name  string
 	Paths []string
+}
+
+// areaFS returns a read-only fs.FS rooted at the tree root for the
+// path-axis area checks (AreaDeadGlob, AreaOverlap), with ok reporting
+// whether a usable root was found. ok is false — and the caller returns
+// no findings — when the tree has no root, or the root fails to stat.
+//
+// This is the shared "never fail on IO" guard (the roadmapCaseCollision
+// precedent): doublestar.Glob over a non-existent root returns empty
+// without erroring, so without this guard every declared glob would read
+// as dead. An empty or unreadable root therefore means "no path oracle to
+// check", not "every glob is dead".
+func areaFS(t *tree.Tree) (fs.FS, bool) {
+	if t.Root == "" {
+		return nil, false
+	}
+	if _, err := os.Stat(t.Root); err != nil {
+		return nil, false
+	}
+	return os.DirFS(t.Root), true
 }
 
 // AreaDeadGlob (warning) reports any declared area path glob that matches no
@@ -41,17 +62,10 @@ type AreaPaths struct {
 // fires nothing on the path axis (M-0180/AC-5). Severity is warning,
 // escalated to error under areas.required by ApplyAreaRequiredStrict.
 func AreaDeadGlob(t *tree.Tree, areas []AreaPaths) []Finding {
-	if t.Root == "" {
+	fsys, ok := areaFS(t)
+	if !ok {
 		return nil
 	}
-	// Never fail on IO: a missing or unreadable root yields no findings
-	// rather than firing dead-glob for every area (the roadmapCaseCollision
-	// precedent). doublestar.Glob over a non-existent root returns empty
-	// without erroring, so without this guard every glob would read as dead.
-	if _, err := os.Stat(t.Root); err != nil {
-		return nil
-	}
-	fsys := os.DirFS(t.Root)
 	var findings []Finding
 	for _, a := range areas {
 		for _, glob := range a.Paths {
