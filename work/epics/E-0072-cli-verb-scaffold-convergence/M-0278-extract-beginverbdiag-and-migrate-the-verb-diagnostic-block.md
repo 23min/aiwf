@@ -7,7 +7,7 @@ tdd: advisory
 acs:
     - id: AC-1
       title: BeginVerbDiag encapsulates the verb diagnostic lifecycle
-      status: open
+      status: met
     - id: AC-2
       title: All diagnostic-block verbs route through BeginVerbDiag
       status: open
