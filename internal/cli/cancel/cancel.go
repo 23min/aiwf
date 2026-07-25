@@ -72,15 +72,9 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		cliutil.Errorf("aiwf cancel: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf cancel: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf cancel", root, actor)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
+		return code
 	}
 
 	ctx := context.Background()

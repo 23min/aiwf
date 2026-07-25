@@ -204,15 +204,9 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf authorize: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf authorize: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf authorize", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

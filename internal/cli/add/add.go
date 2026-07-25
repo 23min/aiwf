@@ -159,15 +159,9 @@ func Run(k entity.Kind, title, actor, principal, root,
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf add: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf add: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf add", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()
@@ -545,15 +539,9 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root s
 		}
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf add ac: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf add ac: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf add ac", root, actor)
+	if !ok {
+		return code
 	}
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac", out)
@@ -577,6 +565,6 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root s
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
+	code, _ = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
 	return code
 }

@@ -45,15 +45,9 @@ func NewCmd(correlationID string) *cobra.Command {
 
 // Run executes `aiwf reallocate`. Returns one of the cliutil.Exit* codes.
 func Run(target, actor, principal, root string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf reallocate: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf reallocate: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf reallocate", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

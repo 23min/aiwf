@@ -106,16 +106,9 @@ func Run(args []string, actor, principal, root string, clearTag bool, out cliuti
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		cliutil.Errorf("aiwf set-area: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf set-area: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf set-area", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

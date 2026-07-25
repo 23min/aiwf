@@ -182,15 +182,9 @@ func runRecipeInstall(args []string, root, actor, from string, force bool, out c
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf contract recipe install: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf contract recipe install", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()
@@ -251,15 +245,9 @@ func newRecipeRemoveCmd(correlationID string) *cobra.Command {
 }
 
 func runRecipeRemove(name, root, actor string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf contract recipe remove: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf contract recipe remove", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

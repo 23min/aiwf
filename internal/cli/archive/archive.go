@@ -120,14 +120,8 @@ func archiveKindCompletions() []string {
 func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) (code int) {
 	ctx := context.Background()
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf archive", nil, err, out)
-		return code
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, err, out)
+	rootDir, actorStr, code, ok := cliutil.ResolvePreludeEnvelope(ctx, "aiwf archive", root, actor, out)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
 	}
 

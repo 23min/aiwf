@@ -52,15 +52,9 @@ func newBindCmd(correlationID string) *cobra.Command {
 }
 
 func runBind(id, root, actor, validator, schema, fixtures string, force bool, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf contract bind: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf contract bind: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf contract bind", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()

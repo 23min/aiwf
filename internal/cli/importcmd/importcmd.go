@@ -67,6 +67,11 @@ func NewCmd(correlationID string) *cobra.Command {
 func Run(manifestPath, root, actor, principal, onCollision string, dryRun bool, out cliutil.OutputFormat) (code int) {
 	ctx := context.Background()
 
+	// Intentional non-member of the shared ResolveRoot → ResolveActor prelude
+	// (cliutil.ResolvePrelude / ResolvePreludeEnvelope): import parses the
+	// manifest between resolving the root and the actor, and its actor
+	// precedence is three-way (--actor → manifest.actor → git-config
+	// derivation via ResolveActor) — neither shape the common prelude models.
 	rootDir, err := cliutil.ResolveRoot(root)
 	if err != nil { //coverage:ignore ResolveRoot only wraps filepath.Abs (explicit --root) or os.Getwd (no --root) — neither fails in a healthy test harness; a missing aiwf.yaml is tolerated, not an error
 		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf import", nil, err, out)

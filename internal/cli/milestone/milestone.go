@@ -84,15 +84,9 @@ func runTDD(id, actor, principal, root, reason, policy string, out cliutil.Outpu
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf milestone tdd: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf milestone tdd: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf milestone tdd", root, actor)
+	if !ok {
+		return code
 	}
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone tdd", out)
@@ -115,7 +109,7 @@ func runTDD(id, actor, principal, root, reason, policy string, out cliutil.Outpu
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneTDD(ctx, tr, id, policy, actorStr, reason)
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone tdd", tr, result, vErr, pctx, out)
+	code, _ = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone tdd", tr, result, vErr, pctx, out)
 	return code
 }
 
@@ -172,15 +166,9 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf milestone depends-on: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf milestone depends-on", root, actor)
+	if !ok {
+		return code
 	}
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf milestone depends-on", out)
@@ -204,6 +192,6 @@ func runDependsOn(id, actor, principal, root, reason, on string, clearList bool,
 		TargetID:  id,
 	}
 	result, vErr := verb.MilestoneDependsOn(ctx, tr, id, deps, clearList, actorStr, reason)
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
+	code, _ = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf milestone depends-on", tr, result, vErr, pctx, out)
 	return code
 }
