@@ -15,7 +15,7 @@ acs:
       status: met
     - id: AC-3
       title: Prelude behavior including the usage-error arm is unchanged
-      status: open
+      status: met
 ---
 # M-0279 — Extract the shared ResolveRoot to ResolveActor prelude
 
