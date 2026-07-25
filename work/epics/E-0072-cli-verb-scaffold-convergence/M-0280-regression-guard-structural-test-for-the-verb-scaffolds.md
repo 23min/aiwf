@@ -6,6 +6,16 @@ parent: E-0072
 depends_on:
     - M-0279
 tdd: advisory
+acs:
+    - id: AC-1
+      title: Structural test asserts no verb hand-rolls the diagnostic block
+      status: open
+    - id: AC-2
+      title: Structural test asserts no verb hand-rolls the root/actor prelude
+      status: open
+    - id: AC-3
+      title: Guard test fails red if either scaffold is re-inlined
+      status: open
 ---
 # M-0280 — Regression-guard structural test for the verb scaffolds
 
@@ -20,6 +30,12 @@ Once both scaffolds are single-sourced, nothing mechanical stops a future verb f
 ## Acceptance criteria
 
 <!-- ACs created via `aiwf add ac`; contracts filled below. -->
+
+### AC-1 — Structural test asserts no verb hand-rolls the diagnostic block
+
+### AC-2 — Structural test asserts no verb hand-rolls the root/actor prelude
+
+### AC-3 — Guard test fails red if either scaffold is re-inlined
 
 ## Constraints
 
