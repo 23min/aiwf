@@ -33,9 +33,15 @@ Once both scaffolds are single-sourced, nothing mechanical stops a future verb f
 
 ### AC-1 — Structural test asserts no verb hand-rolls the diagnostic block
 
+A test under `internal/policies` scans the verb sources and fails if any verb reconstructs the diagnostic block inline (the `ResolveLogger` / `EmitVerbOutcome` wiring appearing outside `cliutil.BeginVerbDiag`), allowing a named, rationale-carrying allowlist for any documented intentional non-member.
+
 ### AC-2 — Structural test asserts no verb hand-rolls the root/actor prelude
 
+The same (or a sibling) structural test fails if any verb reconstructs the `ResolveRoot → ResolveActor` prelude inline instead of calling the shared helper, with the same allowlist affordance.
+
 ### AC-3 — Guard test fails red if either scaffold is re-inlined
+
+The guard is demonstrably non-vacuous: re-inlining either scaffold into a verb turns the test red, and the test is green on the post-migration tree. (Established the wf-vacuity way — break it, watch it fail — not merely asserted.)
 
 ## Constraints
 
