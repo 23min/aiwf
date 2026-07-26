@@ -1,7 +1,9 @@
 ---
 id: G-0447
 title: 'Convergent-duplication tax: shared scaffolds unextracted or bypassed'
-status: open
+status: addressed
+addressed_by_commit:
+    - ccf877b0
 ---
 ## What's missing
 
