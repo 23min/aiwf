@@ -1,6 +1,6 @@
 ---
 id: G-0228
-title: 'Type-system tightening: typed Status, FindingCode, codes.Code coverage'
+title: Typed Status enum in internal/entity
 status: open
 priority: medium
 ---
