@@ -15,7 +15,7 @@ Two parallel uniformity gaps in the mutating-verb surface, plus the policy test 
    - `cancel` of already-cancelled → NoOp
    - `move` to current parent → NoOp
    - `acknowledge-illegal` against an already-acknowledged SHA → NoOp (avoids appending duplicate empty audit commits — the limited "re-running creates duplicates" C2 smell)
-2. **Dry-run / `--apply` on wide-blast-radius rewrites.** `archive` and `rewidth` are dry-run-by-default with `--apply` flipping the Plan into execution. Two more verbs have the same blast-radius shape but no dry-run: `aiwf reallocate` (rewrites every cross-reference to the renumbered id) and `aiwf rename` (today only mutates the file's slug, but if it ever grows cross-ref rewrites it inherits the same shape). Extend the pattern; share the `--apply` semantics.
+2. **Dry-run / `--apply` on wide-blast-radius rewrites.** `archive` and `rewidth` are dry-run-by-default with `--apply` flipping the Plan into execution. Two more verbs have the same blast-radius shape but no dry-run: `aiwf reallocate` (rewrites every cross-reference to the renumbered id) and `aiwf rename` (already rewrites markdown links to the renamed entity, since the slug lives in the file path — so it carries the same rewrite blast radius today, not hypothetically). Extend the pattern; share the `--apply` semantics.
 3. **`internal/policies/verb_result_noop_invariant.go`** — AST-level policy test asserting every mutating verb in `internal/verb/` has at least one test case that drives it with same-state inputs and asserts `Result.NoOp == true`. Allowlist the by-design-additive verbs (`add`, `authorize-open`, `edit-body --body-file`) with a one-line rationale.
 
 ## Why it matters
