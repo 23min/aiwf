@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-07-26
+
 ### Changed — E-0072: single-sourced the two per-verb CLI scaffolds
 
 - Internal refactor, no user-visible change — diagnostic events and `--format=json`
