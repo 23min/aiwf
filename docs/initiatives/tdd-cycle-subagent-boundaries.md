@@ -16,7 +16,7 @@ following the precedent of
 [`agent-agnostic-execution-topology.md`](agent-agnostic-execution-topology.md).
 
 This is not an ADR: it does not ratify a decision. The one design it
-reconciles that reached ADR status ([ADR-0009](../adr/ADR-0009-orchestration-substrate-vs-driver-split.md))
+reconciles that reached ADR status ([ADR-0009](../adr/archive/ADR-0009-orchestration-substrate-vs-driver-split.md))
 was rejected, not superseded — a fresh ADR is a possible later output of
 this initiative, not a precondition for it.
 
@@ -31,12 +31,12 @@ Several separate artifacts answer overlapping parts of one question: *how
 does aiwf make TDD-cycle discipline hold structurally, instead of depending
 on an LLM remembering the rules across a long conversation?*
 
-1. **[G-0252](../../work/gaps/G-0252-wf-tdd-cycle-red-first-ordering-unguarded-for-consumer-tdd-required-ac-cycles.md)**
+1. **[G-0252](../../work/gaps/archive/G-0252-wf-tdd-cycle-red-first-ordering-unguarded-for-consumer-tdd-required-ac-cycles.md)**
    (`status: open`) — `wf-tdd-cycle` asks for a failing test before the
    implementation, but nothing mechanically confirms the test *preceded*
    the code. Root cause: the skill is advisory text a long conversation can
    drift through.
-2. **[ADR-0009](../adr/ADR-0009-orchestration-substrate-vs-driver-split.md)**
+2. **[ADR-0009](../adr/archive/ADR-0009-orchestration-substrate-vs-driver-split.md)**
    (`status: rejected`, 2026-07-16) — proposed bounding a cycle's lifetime
    to a fresh subagent invocation as the structural fix, bundled with a
    substrate/driver naming split, a ~17-key `aiwf-cycle-*` trailer schema,
@@ -48,7 +48,7 @@ on an LLM remembering the rules across a long conversation?*
 3. **[E-0019](../../work/epics/E-0019-parallel-tdd-subagents-with-finding-gated-ac-closure/epic.md)**
    (`status: proposed`, unstarted) — the epic that would have implemented
    ADR-0009's design, including the finding-gated AC closure model. Its
-   design doc, [`parallel-tdd-subagents.md`](../pocv3/design/parallel-tdd-subagents.md),
+   design doc, [`parallel-tdd-subagents.md`](../archive/pocv3/parallel-tdd-subagents.md),
    depends on the `finding` entity kind, which is not implemented (only six
    kinds exist in the kernel today, despite ADR-0003/ADR-0004 being
    `accepted` as ratified *designs*).
@@ -57,7 +57,7 @@ on an LLM remembering the rules across a long conversation?*
    isolation-escape's cherry-pick detection, already implemented in M-0106.
    Orthogonal to this initiative's scope; tracked separately in the same
    decision-review pass that produced this document.
-5. **[G-0099](../../work/gaps/G-0099-worktree-isolation-parent-side-precondition.md)**
+5. **[G-0099](../../work/gaps/archive/G-0099-worktree-isolation-parent-side-precondition.md)**
    (`status: open`) — its resolution shipped via M-0106 ("closes G-0099" per
    the milestone's own title), but the gap was never promoted to
    `addressed`. Bookkeeping drift, not an open design question.
@@ -98,21 +98,21 @@ Rather than redesign how cycles execute, target the specific unenforced
 claims directly, each a real kernel chokepoint gap rather than a workflow
 change:
 
-1. **[G-0252](../../work/gaps/G-0252-wf-tdd-cycle-red-first-ordering-unguarded-for-consumer-tdd-required-ac-cycles.md)**
+1. **[G-0252](../../work/gaps/archive/G-0252-wf-tdd-cycle-red-first-ordering-unguarded-for-consumer-tdd-required-ac-cycles.md)**
    — red-first ordering unguarded for `tdd: required` AC cycles.
-2. **[G-0140](../../work/gaps/G-0140-implement-evidence-flag-on-aiwf-promote-ac-met-per-d-0005.md)**
+2. **[G-0140](../../work/gaps/archive/G-0140-implement-evidence-flag-on-aiwf-promote-ac-met-per-d-0005.md)**
    — implement the `--evidence` flag per
-   [D-0005](../../work/decisions/D-0005-ac-mechanical-evidence-promote-time-evidence-flag-binds-claim-to-test-symbol.md)
+   [D-0005](../../work/decisions/archive/D-0005-ac-mechanical-evidence-promote-time-evidence-flag-binds-claim-to-test-symbol.md)
    (`status: accepted`, promoted 2026-07-16 — the design was already being
    treated as decided in practice; the flag itself is unbuilt). Arguably the
    higher-leverage of the two: CLAUDE.md already states AC-met requires
    mechanical evidence for *every* milestone, not just `tdd: required` ones,
    and today that's reviewer-discipline only.
-3. **[G-0286](../../work/gaps/G-0286-acs-shape-tdd-phase-over-demands-a-phase-on-every-ac-under-tdd-required.md)**
+3. **[G-0286](../../work/gaps/archive/G-0286-acs-shape-tdd-phase-over-demands-a-phase-on-every-ac-under-tdd-required.md)**
    — `acs-shape/tdd-phase` over-demands a phase on every AC under
    `tdd: required`, reddening the tree on an `advisory → required` upgrade.
    Friction cleanup, not a discipline hole, but cheap and adjacent.
-4. **[G-0334](../../work/gaps/G-0334-milestone-can-start-and-finish-with-zero-acceptance-criteria-no-guard.md)**
+4. **[G-0334](../../work/gaps/archive/G-0334-milestone-can-start-and-finish-with-zero-acceptance-criteria-no-guard.md)**
    — a milestone can start and finish with zero ACs, no guard. Adjacent axis
    (milestone-level completeness rather than per-AC ordering/evidence) but
    the same "advisory ritual, no kernel backstop" shape.
