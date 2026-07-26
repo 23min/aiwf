@@ -1,8 +1,10 @@
 ---
 id: G-0227
 title: Options-struct adapters for long-signature CLI verb Run()s
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - a523047b
 ---
 ## What's missing
 
