@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0072: single-sourced the two per-verb CLI scaffolds
+
+- Internal refactor, no user-visible change — diagnostic events and `--format=json`
+  envelopes are byte-identical. The two copy-pasted per-verb scaffolds in
+  `internal/cli` are now single-sourced in `cliutil`: the diagnostic-logging block
+  (`BeginVerbDiag` / `BeginReadVerbDiag`) and the `ResolveRoot → ResolveActor`
+  prelude (`ResolvePrelude` / `ResolvePreludeEnvelope`), with every hand-rolling
+  verb migrated. A structural regression-guard policy (`verb-scaffold-single-seam`)
+  now fails CI if any verb re-inlines either scaffold. Completes and closes G-0447.
+
 ### Added — E-0071: `aiwf milestone tdd` post-creation TDD-policy verb
 
 - `aiwf milestone tdd <M-id> --policy none|advisory|required` changes a
