@@ -123,6 +123,13 @@ func GlobalRules() []Rule {
 // illegal." Encodes the no-outgoing-transitions truth in the spec so the
 // drift policy's "every (Kind, FromState) covered" check holds without
 // implicit reasoning about FSM closure.
+//
+// The cell scopes to transitions that would change status. Promoting a
+// terminal entity to a *different* status is illegal (fsm-transition-illegal);
+// promoting to the *same* status is a NoOp, not a rejection (M-0281/AC-1) — the
+// spec's (Kind, FromState, Verb) granularity carries no target axis, so this
+// cell states the dominant truth (real transitions from terminal are illegal),
+// and the same-status NoOp is a verb-level idempotency orthogonal to it.
 func terminalIllegal(k entity.Kind, state string, sources RuleSource) Rule {
 	return Rule{
 		Kind:              k,

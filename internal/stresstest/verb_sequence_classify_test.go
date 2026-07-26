@@ -125,6 +125,36 @@ func TestClassifyVerbSequenceStep(t *testing.T) {
 			wantNext:       "open",
 			wantViolations: 1,
 		},
+		{
+			name:    "same-status promote is a NoOp: status ok, zero commits, no violation (ADR-0036)",
+			kind:    entity.KindGap,
+			current: "wontfix",
+			target:  "wontfix",
+			before:  2, after: 2,
+			env:            verbEnvelope{Status: "ok"},
+			wantNext:       "wontfix", // status unchanged — the identity request is already satisfied
+			wantViolations: 0,
+		},
+		{
+			name:    "same-status promote refused instead of a NoOp — a violation",
+			kind:    entity.KindGap,
+			current: "wontfix",
+			target:  "wontfix",
+			before:  2, after: 2,
+			env:            verbEnvelope{Status: "error", Error: &verbEnvelopeError{Code: entity.CodeFSMTransitionIllegal.ID}},
+			wantNext:       "wontfix",
+			wantViolations: 1,
+		},
+		{
+			name:    "same-status NoOp reported ok but landed a commit — a violation",
+			kind:    entity.KindGap,
+			current: "wontfix",
+			target:  "wontfix",
+			before:  2, after: 3,
+			env:            verbEnvelope{Status: "ok"},
+			wantNext:       "wontfix",
+			wantViolations: 1,
+		},
 	}
 
 	for _, tc := range tests {

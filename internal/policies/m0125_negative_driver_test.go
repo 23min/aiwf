@@ -297,7 +297,33 @@ func deriveIllegalPromoteTarget(t *testing.T, rule spec.Rule) string {
 	if len(allowed) > 0 {
 		return string(allowed[0])
 	}
-	return anyKindDomainStatus(t, rule.Kind)
+	// Terminal FromState: no legal outgoing transition, so any target trips
+	// fsm-transition-illegal — but the target must differ from FromState. A
+	// same-status promote is now a NoOp (M-0281/AC-1), not a rejection, so a
+	// self-target would exit 0 and no longer exercise the rejection this cell
+	// pins. anyKindDomainStatus coincides with FromState only for gap
+	// (addressed); the guard swaps in a different domain status there.
+	target := anyKindDomainStatus(t, rule.Kind)
+	if target == rule.FromState {
+		target = anyKindDomainStatusExcept(t, rule.Kind, rule.FromState)
+	}
+	return target
+}
+
+// anyKindDomainStatusExcept returns a status in the kind's domain that is
+// not `except`. Used by deriveIllegalPromoteTarget for a terminal-FromState
+// cell whose representative domain status equals the FromState — any other
+// status of the kind trips fsm-transition-illegal just as well, while
+// avoiding the same-status NoOp path (M-0281/AC-1).
+func anyKindDomainStatusExcept(t *testing.T, k entity.Kind, except string) string {
+	t.Helper()
+	for _, s := range entity.AllowedStatuses(k) {
+		if string(s) != except {
+			return string(s)
+		}
+	}
+	t.Fatalf("anyKindDomainStatusExcept: kind %q has no status other than %q", k, except)
+	return ""
 }
 
 func anyKindDomainStatus(t *testing.T, k entity.Kind) string {

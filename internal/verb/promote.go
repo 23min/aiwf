@@ -76,6 +76,20 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
+	// Same-state convergence (M-0281/AC-1): a promote whose target status
+	// already equals the current status, with no resolver flag, has nothing
+	// to change — return a NoOp instead of an FSM "cannot transition to
+	// itself" error, so a re-run (interactive or from a forgotten script) is
+	// a clean exit 0. The `!hasResolverFlag()` clause keeps this mutually
+	// exclusive with the G-0096 resolver-backfill carve-out below (which
+	// requires a resolver flag): a same-status promote that carries a
+	// resolver flag falls through to backfill (writes the resolver) or, when
+	// the resolver is already set, to the FSM refusal — the resolver-flag
+	// path keeps its existing behavior. Fires regardless of --force: there is
+	// nothing for a sovereign override to re-apply.
+	if e.Status == newStatus && !opts.hasResolverFlag() {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already %s", id, newStatus)}, nil
+	}
 	// Back-fill carve-out (G-0096): if the requested transition is to
 	// the entity's current status, that status is a resolution-class
 	// terminal (gap addressed / ADR superseded), the entity's resolver
