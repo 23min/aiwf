@@ -24,7 +24,7 @@ import (
 // kindInitialStatus is the entry state for each kind's FSM. Every
 // non-initial state must be reachable from this one via some sequence
 // of legal transitions.
-var kindInitialStatus = map[Kind]string{
+var kindInitialStatus = map[Kind]Status{
 	KindEpic:      "proposed",
 	KindMilestone: "draft",
 	KindADR:       "proposed",
@@ -45,7 +45,7 @@ func TestKindFSM_StateSetAgreement(t *testing.T) {
 		t.Run(string(kind), func(t *testing.T) {
 			t.Parallel()
 			declared := stringSet(AllowedStatuses(kind))
-			fsm := stringSet(nil)
+			fsm := stringSet[Status](nil)
 			for from, tos := range transitions[kind] {
 				fsm[from] = struct{}{}
 				for _, to := range tos {
@@ -143,8 +143,8 @@ func TestKindFSM_AllStatesReachableFromInitial(t *testing.T) {
 			if !ok {
 				t.Fatalf("test bug: no initial status declared for %s", kind)
 			}
-			reachable := map[string]struct{}{initial: {}}
-			frontier := []string{initial}
+			reachable := map[Status]struct{}{initial: {}}
+			frontier := []Status{initial}
 			for len(frontier) > 0 {
 				next := frontier[0]
 				frontier = frontier[1:]
@@ -210,7 +210,7 @@ func TestKindFSM_ValidateTransition_TotalOverClosedSet(t *testing.T) {
 func TestACFSM_StateSetAgreement(t *testing.T) {
 	t.Parallel()
 	declared := stringSet(acAllowedStatuses)
-	fsm := stringSet(nil)
+	fsm := stringSet[Status](nil)
 	for from, tos := range acTransitions {
 		fsm[from] = struct{}{}
 		for _, to := range tos {
@@ -233,8 +233,8 @@ func TestACFSM_StateSetAgreement(t *testing.T) {
 // from the initial state "open" via some sequence of legal transitions.
 func TestACFSM_AllStatesReachableFromOpen(t *testing.T) {
 	t.Parallel()
-	reachable := map[string]struct{}{"open": {}}
-	frontier := []string{"open"}
+	reachable := map[Status]struct{}{"open": {}}
+	frontier := []Status{"open"}
 	for len(frontier) > 0 {
 		next := frontier[0]
 		frontier = frontier[1:]
@@ -292,7 +292,7 @@ func TestACFSM_IsLegalACTransition_TotalOverClosedSet(t *testing.T) {
 func TestTDDPhaseFSM_StateSetAgreement(t *testing.T) {
 	t.Parallel()
 	declared := stringSet(tddPhases)
-	fsm := stringSet(nil)
+	fsm := stringSet[string](nil)
 	for from, tos := range tddPhaseTransitions {
 		if from != "" {
 			fsm[from] = struct{}{}
@@ -387,7 +387,7 @@ func TestCancelTarget_AllKinds(t *testing.T) {
 			if IsTerminal(kind, from) {
 				continue
 			}
-			name := string(kind) + "/" + from
+			name := string(kind) + "/" + string(from)
 			currentStatus := from
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
@@ -408,8 +408,8 @@ func TestCancelTarget_AllKinds(t *testing.T) {
 
 // stringSet builds a set from a slice of strings. Returns an empty
 // (non-nil) set when xs is nil so callers can write into it.
-func stringSet(xs []string) map[string]struct{} {
-	s := make(map[string]struct{}, len(xs))
+func stringSet[T ~string](xs []T) map[T]struct{} {
+	s := make(map[T]struct{}, len(xs))
 	for _, x := range xs {
 		s[x] = struct{}{}
 	}

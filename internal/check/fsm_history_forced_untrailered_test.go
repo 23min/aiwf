@@ -382,7 +382,7 @@ func TestForcedUntraileredAndIllegal_DisjointPerD0008(t *testing.T) {
 		t.Skip("no sovereign-act-shapes registered; nothing to assert")
 	}
 	for _, s := range shapes {
-		t.Run(string(s.Kind)+":"+s.From+"->"+s.To, func(t *testing.T) {
+		t.Run(string(s.Kind)+":"+string(s.From)+"->"+string(s.To), func(t *testing.T) {
 			t.Parallel()
 			// Build an observation matching the sovereign-act-shape
 			// with no trailers — the worst-case for both predicates.

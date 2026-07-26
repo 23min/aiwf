@@ -16,6 +16,21 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0228: typed `Status` enum in `internal/entity`
+
+- Internal refactor, no user-visible change — YAML frontmatter, `--format=json`
+  envelopes, and commit trailers are byte-identical (a defined string type
+  serializes to the same scalar). The closed-set status constants
+  (`StatusActive`, `StatusDone`, …) and the `Entity.Status` /
+  `AcceptanceCriterion.Status` fields are now the named type `entity.Status`
+  rather than bare `string`, and the FSM surface (`ValidateTransition`,
+  `IsTerminal`, `CancelTarget`, `AllowedTransitions`, the `transitions` map) and
+  the `verb.Promote` entry point carry it through. Passing a plain string or a
+  wrong-typed value where a status is expected is now a compile error; the
+  string boundary resumes only at the wire/CLI/completion edges. Complements the
+  existing `enum-literal-adoption` policy (which still guards comparison-site
+  literals). Addresses G-0228.
+
 ### Changed — G-0227: Options-struct adapters at the long-signature CLI verb Run boundaries
 
 - Internal refactor, no user-visible change — flag parsing, output, and

@@ -36,7 +36,7 @@ func (r defaultResolver) IndexData() (*IndexData, error) {
 		summary := EpicSummary{
 			ID:       canonEpic,
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			FileName: idToFileName(e.ID),
 		}
 		for _, m := range sortedByID(r.tree.ByKind(entity.KindMilestone)) {
@@ -145,7 +145,7 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 		Epic: &EntityRef{
 			ID:       canonEpic,
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			Kind:     string(e.Kind),
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
@@ -161,7 +161,7 @@ func (r defaultResolver) EpicData(id string) (*EpicData, error) {
 		data.Milestones = append(data.Milestones, MilestoneSummary{
 			ID:       canonM,
 			Title:    m.Title,
-			Status:   m.Status,
+			Status:   string(m.Status),
 			TDD:      m.TDD,
 			FileName: idToFileName(m.ID),
 			ACMet:    met,
@@ -205,7 +205,7 @@ func (r defaultResolver) EntityData(id string) (*EntityData, error) {
 		Entity: &EntityRef{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			Kind:     string(e.Kind),
 			Path:     e.Path,
 			FileName: idToFileName(e.ID),
@@ -247,7 +247,7 @@ func (r defaultResolver) KindIndexData(kind string, includeArchived bool) (*Kind
 		data.Entries = append(data.Entries, KindIndexEntry{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			FileName: idToFileName(e.ID),
 			Archived: isArchived,
 			Priority: e.Priority,
@@ -306,7 +306,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 		Milestone: &EntityRef{
 			ID:       entity.Canonicalize(m.ID),
 			Title:    m.Title,
-			Status:   m.Status,
+			Status:   string(m.Status),
 			Kind:     string(m.Kind),
 			Path:     m.Path,
 			FileName: idToFileName(m.ID),
@@ -321,7 +321,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 			data.ParentEpic = &EntityRef{
 				ID:       entity.Canonicalize(parent.ID),
 				Title:    parent.Title,
-				Status:   parent.Status,
+				Status:   string(parent.Status),
 				Kind:     string(parent.Kind),
 				FileName: idToFileName(parent.ID),
 			}
@@ -331,7 +331,7 @@ func (r defaultResolver) MilestoneData(id string) (*MilestoneData, error) {
 		data.ACs = append(data.ACs, ACDetail{
 			ID:       ac.ID,
 			Title:    ac.Title,
-			Status:   ac.Status,
+			Status:   string(ac.Status),
 			TDDPhase: ac.TDDPhase,
 			Anchor:   ACAnchor(ac.ID),
 		})

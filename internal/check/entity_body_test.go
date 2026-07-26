@@ -1147,7 +1147,7 @@ func writeEpicFixture(emptySection string) func(root string) ([]*entity.Entity, 
 	return writeEpicFixtureWithStatus(emptySection, "active")
 }
 
-func writeEpicFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeEpicFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/epic.md"
 		body := buildBody(map[string]string{
@@ -1155,7 +1155,7 @@ func writeEpicFixtureWithStatus(emptySection, status string) func(root string) (
 			"Scope":        "Scope prose.",
 			"Out of scope": "Out-of-scope prose.",
 		}, []string{"Goal", "Scope", "Out of scope"}, emptySection)
-		fm := "---\nid: E-01\ntitle: Foo\nstatus: " + status + "\n---\n\n"
+		fm := "---\nid: E-01\ntitle: Foo\nstatus: " + string(status) + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "E-0001", Kind: entity.KindEpic, Title: "Foo", Status: status, Path: path,
 		})
@@ -1166,7 +1166,7 @@ func writeMilestoneFixture(emptySection string) func(root string) ([]*entity.Ent
 	return writeMilestoneFixtureWithStatus(emptySection, "in_progress")
 }
 
-func writeMilestoneFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeMilestoneFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/epics/E-01-foo/M-001-bar.md"
 		body := buildBody(map[string]string{
@@ -1174,7 +1174,7 @@ func writeMilestoneFixtureWithStatus(emptySection, status string) func(root stri
 			"Approach":            "Approach prose.",
 			"Acceptance criteria": "Each AC pins one observable behavior.",
 		}, []string{"Goal", "Approach", "Acceptance criteria"}, emptySection)
-		fm := "---\nid: M-001\ntitle: Bar\nstatus: " + status + "\nparent: E-01\ntdd: none\n---\n\n"
+		fm := "---\nid: M-001\ntitle: Bar\nstatus: " + string(status) + "\nparent: E-01\ntdd: none\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "M-0001", Kind: entity.KindMilestone, Title: "Bar",
 			Status: status, Parent: "E-0001", TDD: "none", Path: path,
@@ -1237,14 +1237,14 @@ func writeGapFixture(emptySection string) func(root string) ([]*entity.Entity, e
 	return writeGapFixtureWithStatus(emptySection, "open")
 }
 
-func writeGapFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeGapFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/gaps/G-001-foo.md"
 		body := buildBody(map[string]string{
 			"What's missing": "Missing prose.",
 			"Why it matters": "Matters prose.",
 		}, []string{"What's missing", "Why it matters"}, emptySection)
-		fm := "---\nid: G-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
+		fm := "---\nid: G-001\ntitle: Foo\nstatus: " + string(status) + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "G-0001", Kind: entity.KindGap, Title: "Foo", Status: status, Path: path,
 		})
@@ -1255,7 +1255,7 @@ func writeADRFixture(emptySection string) func(root string) ([]*entity.Entity, e
 	return writeADRFixtureWithStatus(emptySection, "proposed")
 }
 
-func writeADRFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeADRFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "docs/adr/ADR-0001-foo.md"
 		body := buildBody(map[string]string{
@@ -1263,7 +1263,7 @@ func writeADRFixtureWithStatus(emptySection, status string) func(root string) ([
 			"Decision":     "Decision prose.",
 			"Consequences": "Consequences prose.",
 		}, []string{"Context", "Decision", "Consequences"}, emptySection)
-		fm := "---\nid: ADR-0001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
+		fm := "---\nid: ADR-0001\ntitle: Foo\nstatus: " + string(status) + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "ADR-0001", Kind: entity.KindADR, Title: "Foo", Status: status, Path: path,
 		})
@@ -1274,7 +1274,7 @@ func writeDecisionFixture(emptySection string) func(root string) ([]*entity.Enti
 	return writeDecisionFixtureWithStatus(emptySection, "proposed")
 }
 
-func writeDecisionFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeDecisionFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/decisions/D-001-foo.md"
 		body := buildBody(map[string]string{
@@ -1282,7 +1282,7 @@ func writeDecisionFixtureWithStatus(emptySection, status string) func(root strin
 			"Decision":  "Decision prose.",
 			"Reasoning": "Reasoning prose.",
 		}, []string{"Question", "Decision", "Reasoning"}, emptySection)
-		fm := "---\nid: D-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
+		fm := "---\nid: D-001\ntitle: Foo\nstatus: " + string(status) + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "D-0001", Kind: entity.KindDecision, Title: "Foo", Status: status, Path: path,
 		})
@@ -1293,14 +1293,14 @@ func writeContractFixture(emptySection string) func(root string) ([]*entity.Enti
 	return writeContractFixtureWithStatus(emptySection, "proposed")
 }
 
-func writeContractFixtureWithStatus(emptySection, status string) func(root string) ([]*entity.Entity, error) {
+func writeContractFixtureWithStatus(emptySection string, status entity.Status) func(root string) ([]*entity.Entity, error) {
 	return func(root string) ([]*entity.Entity, error) {
 		path := "work/contracts/C-001-foo/contract.md"
 		body := buildBody(map[string]string{
 			"Purpose":   "Purpose prose.",
 			"Stability": "Stability prose.",
 		}, []string{"Purpose", "Stability"}, emptySection)
-		fm := "---\nid: C-001\ntitle: Foo\nstatus: " + status + "\n---\n\n"
+		fm := "---\nid: C-001\ntitle: Foo\nstatus: " + string(status) + "\n---\n\n"
 		return write1(root, path, fm+body, &entity.Entity{
 			ID: "C-0001", Kind: entity.KindContract, Title: "Foo", Status: status, Path: path,
 		})

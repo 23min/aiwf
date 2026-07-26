@@ -484,14 +484,14 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 		se := StatusEpic{
 			ID:     canonEpic,
 			Title:  e.Title,
-			Status: e.Status,
+			Status: string(e.Status),
 			Area:   tr.ResolvedArea(e),
 		}
 		for _, m := range milestonesByParent[canonEpic] {
 			se.Milestones = append(se.Milestones, StatusMilestone{
 				ID:     entity.Canonicalize(m.ID),
 				Title:  m.Title,
-				Status: m.Status,
+				Status: string(m.Status),
 				TDD:    m.TDD,
 				ACs:    SummarizeACs(m.ACs),
 			})
@@ -511,7 +511,7 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 		r.OpenDecisions = append(r.OpenDecisions, StatusEntity{
 			ID:     entity.Canonicalize(e.ID),
 			Title:  e.Title,
-			Status: e.Status,
+			Status: string(e.Status),
 			Kind:   string(entity.KindADR),
 			// Priority stays empty here — entity.CarriesOwnPriority is
 			// false for ADR, so e.Priority is always "".
@@ -522,7 +522,7 @@ func BuildStatus(tr *tree.Tree, loadErrs []tree.LoadError, now time.Time) Status
 		r.OpenDecisions = append(r.OpenDecisions, StatusEntity{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			Kind:     string(entity.KindDecision),
 			Priority: e.Priority,
 		})
@@ -1001,7 +1001,7 @@ func bucketDigestCommits(commits []digestCommit, tr *tree.Tree) ActivityDigest {
 		switch {
 		case c.Verb == "add" && kind == entity.KindGap:
 			d.GapsOpened = append(d.GapsOpened, digestEntry(tr, c.EntityID, ""))
-		case c.Verb == "promote" && kind == entity.KindGap && c.To != "" && c.To != entity.StatusOpen:
+		case c.Verb == "promote" && kind == entity.KindGap && c.To != "" && entity.Status(c.To) != entity.StatusOpen:
 			d.GapsClosed = append(d.GapsClosed, digestEntry(tr, c.EntityID, c.To))
 		case c.Verb == "add" && kind == entity.KindADR:
 			d.ADRsCreated = append(d.ADRsCreated, digestEntry(tr, c.EntityID, currentADRStatus(tr, c.EntityID)))
@@ -1028,7 +1028,7 @@ func digestEntry(tr *tree.Tree, id, status string) DigestEntry {
 // Empty when tr can't resolve id.
 func currentADRStatus(tr *tree.Tree, id string) string {
 	if e := tr.ByID(id); e != nil {
-		return e.Status
+		return string(e.Status)
 	}
 	return ""
 }
@@ -1423,7 +1423,7 @@ func WriteStatusEpicMarkdown(b *strings.Builder, e StatusEpic) {
 	}
 	for _, m := range e.Milestones {
 		marker := ""
-		switch m.Status {
+		switch entity.Status(m.Status) {
 		case entity.StatusInProgress:
 			marker = "→ "
 		case entity.StatusDone:

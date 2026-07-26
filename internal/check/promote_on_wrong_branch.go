@@ -166,7 +166,7 @@ func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string
 		}
 		entityID := idx[gitops.TrailerEntity]
 		targetStatus := idx[gitops.TrailerTo]
-		if !isActivatingPromoteTransition(entityID, targetStatus) {
+		if !isActivatingPromoteTransition(entityID, entity.Status(targetStatus)) {
 			continue
 		}
 		// Per-commit force suppresses (existing override
@@ -228,7 +228,7 @@ func RunPromoteOnWrongBranch(commits []scope.Commit, expectedBranches map[string
 // kind without requiring a tree lookup (the rule stays pure
 // per the BranchOracle pattern). E-NNNN → epic; M-NNNN →
 // milestone.
-func isActivatingPromoteTransition(entityID, targetStatus string) bool {
+func isActivatingPromoteTransition(entityID string, targetStatus entity.Status) bool {
 	if strings.HasPrefix(entityID, "E-") {
 		return targetStatus == entity.StatusActive
 	}

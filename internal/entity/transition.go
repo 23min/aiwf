@@ -14,7 +14,7 @@ import (
 // The PoC's FSM is deliberately one-directional — there is no "demote".
 // Edit frontmatter directly if you need to back out a transition;
 // markdown is the source of truth.
-var transitions = map[Kind]map[string][]string{
+var transitions = map[Kind]map[Status][]Status{
 	KindEpic: {
 		"proposed":  {"active", "cancelled"},
 		"active":    {"done", "cancelled"},
@@ -55,7 +55,7 @@ var transitions = map[Kind]map[string][]string{
 
 // AllowedTransitions returns the statuses reachable from `from` for the
 // given kind. Returns nil if the kind or the source status is unknown.
-func AllowedTransitions(k Kind, from string) []string {
+func AllowedTransitions(k Kind, from Status) []Status {
 	kindTransitions, ok := transitions[k]
 	if !ok {
 		return nil
@@ -77,7 +77,7 @@ var CodeFSMTransitionIllegal = codes.Code{ID: "fsm-transition-illegal", Class: c
 // An illegal transition of a *recognized* (kind, from) is reported as
 // an [FSMTransitionError] carrying CodeFSMTransitionIllegal; malformed
 // input (unknown kind, unrecognized from) returns a plain error.
-func ValidateTransition(k Kind, from, to string) error {
+func ValidateTransition(k Kind, from, to Status) error {
 	kindTransitions, ok := transitions[k]
 	if !ok {
 		return fmt.Errorf("unknown kind %q", k)
@@ -100,9 +100,9 @@ func ValidateTransition(k Kind, from, to string) error {
 // message text so message-matching consumers keep working.
 type FSMTransitionError struct {
 	Kind    Kind
-	From    string
-	To      string
-	Allowed []string
+	From    Status
+	To      Status
+	Allowed []Status
 }
 
 // Error implements error, preserving the kernel's established phrasing
@@ -126,7 +126,7 @@ func (e *FSMTransitionError) Code() string { return CodeFSMTransitionIllegal.ID 
 // Derives terminality from the FSM rather than a parallel hardcoded
 // list to keep one source of truth: if the FSM grows or shrinks a
 // state's outgoing edges, IsTerminal tracks it automatically.
-func IsTerminal(k Kind, status string) bool {
+func IsTerminal(k Kind, status Status) bool {
 	kindTransitions, ok := transitions[k]
 	if !ok {
 		return false
@@ -167,7 +167,7 @@ func IsTerminal(k Kind, status string) bool {
 //
 // Unknown kinds return "" — defensive against future kind additions
 // where CancelTarget hasn't been wired yet.
-func CancelTarget(k Kind, currentStatus string) string {
+func CancelTarget(k Kind, currentStatus Status) Status {
 	switch k {
 	case KindEpic, KindMilestone:
 		return StatusCancelled
@@ -195,7 +195,7 @@ func CancelTarget(k Kind, currentStatus string) string {
 // `open → cancelled` are the two terminal removals. `met → deferred`
 // and `met → cancelled` cover scope changes after the AC was already
 // done. `deferred` and `cancelled` are terminal.
-var acTransitions = map[string][]string{
+var acTransitions = map[Status][]Status{
 	"open":      {"met", "deferred", "cancelled"},
 	"met":       {"deferred", "cancelled"},
 	"deferred":  {},
@@ -207,7 +207,7 @@ var acTransitions = map[string][]string{
 // unknown `to` all return false. The verb-projection finding
 // `acs-transition` (Step 6) consults this; `--force --reason` (Step 4)
 // is what relaxes it.
-func IsLegalACTransition(from, to string) bool {
+func IsLegalACTransition(from, to Status) bool {
 	return slices.Contains(acTransitions[from], to)
 }
 

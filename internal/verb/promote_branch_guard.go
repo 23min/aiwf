@@ -34,7 +34,7 @@ import (
 // resolved (no configured trunk name, or a milestone missing its
 // parent epic) — an unresolvable expectation is not evidence of a
 // violation, matching G-0270's own fail-shut posture.
-func requireExpectedBranchForActivatingTransition(ctx context.Context, t *tree.Tree, e *entity.Entity, newStatus string) error {
+func requireExpectedBranchForActivatingTransition(ctx context.Context, t *tree.Tree, e *entity.Entity, newStatus entity.Status) error {
 	expected, ok := expectedActivationBranch(t, e, newStatus)
 	if !ok {
 		return nil
@@ -70,7 +70,7 @@ func currentBranchLabel(current string) string {
 // verb sits below cli), so the small derivation is duplicated in each
 // package's own natural types rather than exported across the
 // boundary for a single caller.
-func expectedActivationBranch(t *tree.Tree, e *entity.Entity, newStatus string) (string, bool) {
+func expectedActivationBranch(t *tree.Tree, e *entity.Entity, newStatus entity.Status) (string, bool) {
 	switch {
 	case e.Kind == entity.KindEpic && newStatus == entity.StatusActive:
 		cfg, err := config.Load(t.Root)

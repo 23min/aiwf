@@ -555,7 +555,7 @@ func mostRecentScopeInState(scopes []*scope.Scope, state scope.State) *scope.Sco
 // for a known terminal state; the latter is intentional — we treat
 // "no defined moves out" as terminal. Verb refusal happens before
 // this for entities not in the tree.
-func isTerminalStatus(k entity.Kind, status string) bool {
+func isTerminalStatus(k entity.Kind, status entity.Status) bool {
 	return len(entity.AllowedTransitions(k, status)) == 0
 }
 

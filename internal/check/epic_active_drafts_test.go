@@ -75,7 +75,7 @@ func TestEpicActiveNoDraftedMilestones_SilentForNonActiveEpic(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"proposed", entity.StatusProposed},
 		{"done", entity.StatusDone},

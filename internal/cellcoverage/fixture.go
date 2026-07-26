@@ -197,7 +197,7 @@ func (f *CellFixture) BringEntityToState(t *testing.T, k entity.Kind, fromState 
 func (f *CellFixture) epicAt(t *testing.T, fromState string) string {
 	t.Helper()
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Cell-coverage Epic", testActor, verb.AddOptions{}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusProposed:
 		return "E-0001"
 	case entity.StatusActive:
@@ -224,7 +224,7 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindEpic, "Cell-coverage Epic", testActor, verb.AddOptions{}))
 	f.Must(verb.Promote(f.ctx, f.Tree(), "E-0001", entity.StatusActive, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindMilestone, "Cell-coverage Milestone", testActor, verb.AddOptions{EpicID: "E-0001", TDD: parentTDD}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusDraft:
 		return "M-0001"
 	case entity.StatusInProgress:
@@ -261,7 +261,7 @@ func (f *CellFixture) milestoneAt(t *testing.T, fromState string, opts BringOpts
 func (f *CellFixture) adrAt(t *testing.T, fromState string) string {
 	t.Helper()
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindADR, "Cell-coverage ADR", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusProposed:
 		return "ADR-0001"
 	case entity.StatusAccepted:
@@ -282,7 +282,7 @@ func (f *CellFixture) adrAt(t *testing.T, fromState string) string {
 func (f *CellFixture) gapAt(t *testing.T, fromState string) string {
 	t.Helper()
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindGap, "Cell-coverage Gap", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusOpen:
 		return "G-0001"
 	case entity.StatusWontfix:
@@ -304,7 +304,7 @@ func (f *CellFixture) gapAt(t *testing.T, fromState string) string {
 func (f *CellFixture) decisionAt(t *testing.T, fromState string) string {
 	t.Helper()
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindDecision, "Cell-coverage Decision", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindDecision)}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusProposed:
 		return "D-0001"
 	case entity.StatusAccepted:
@@ -325,7 +325,7 @@ func (f *CellFixture) decisionAt(t *testing.T, fromState string) string {
 func (f *CellFixture) contractAt(t *testing.T, fromState string) string {
 	t.Helper()
 	f.Must(verb.Add(f.ctx, f.Tree(), entity.KindContract, "Cell-coverage Contract", testActor, verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindContract)}))
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusProposed:
 		return "C-0001"
 	case entity.StatusAccepted:
@@ -367,7 +367,7 @@ func (f *CellFixture) acAt(t *testing.T, fromState string, opts BringOpts) strin
 	f.Must(verb.Promote(f.ctx, f.Tree(), "M-0001", entity.StatusInProgress, testActor, "fixture-setup", true, verb.PromoteOptions{}))
 	f.Must(verb.AddAC(f.ctx, f.Tree(), "M-0001", "Cell-coverage AC", testActor))
 	acID := "M-0001/AC-1"
-	switch fromState {
+	switch entity.Status(fromState) {
 	case entity.StatusOpen:
 		return acID
 	case entity.StatusMet:
@@ -479,7 +479,7 @@ func (f *CellFixture) SatisfyPredicate(t *testing.T, p spec.Predicate, entityID 
 	case "any-child-ac.status":
 		switch p.Op {
 		case "==":
-			if p.Value == entity.StatusOpen {
+			if entity.Status(p.Value) == entity.StatusOpen {
 				f.ensureOpenACChild(t, entityID)
 			}
 		default:

@@ -301,7 +301,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		ID:           entity.Canonicalize(e.ID),
 		Kind:         string(e.Kind),
 		Title:        e.Title,
-		Status:       e.Status,
+		Status:       string(e.Status),
 		Path:         e.Path,
 		Parent:       entity.Canonicalize(e.Parent),
 		TDD:          e.TDD,
@@ -318,7 +318,7 @@ func BuildShowView(ctx context.Context, root string, t *tree.Tree, loadErrs []tr
 		view.ACs = append(view.ACs, ShowAC{
 			ID:          ac.ID,
 			Title:       ac.Title,
-			Status:      ac.Status,
+			Status:      string(ac.Status),
 			TDDPhase:    ac.TDDPhase,
 			Description: acDesc[ac.ID],
 		})
@@ -442,7 +442,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		ID:           entity.Canonicalize(resolved.ID),
 		Kind:         string(resolved.Kind),
 		Title:        resolved.Title,
-		Status:       resolved.Status,
+		Status:       string(resolved.Status),
 		Path:         resolved.Path,
 		Parent:       entity.Canonicalize(resolved.Parent),
 		TDD:          resolved.TDD,
@@ -460,7 +460,7 @@ func buildCrossBranchShowView(ctx context.Context, root string, t *tree.Tree, id
 		view.ACs = append(view.ACs, ShowAC{
 			ID:          ac.ID,
 			Title:       ac.Title,
-			Status:      ac.Status,
+			Status:      string(ac.Status),
 			TDDPhase:    ac.TDDPhase,
 			Description: acDesc[ac.ID],
 		})
@@ -493,13 +493,13 @@ func BuildCompositeShowView(ctx context.Context, root string, t *tree.Tree, load
 		ID:       entity.Canonicalize(id),
 		Kind:     "ac",
 		Title:    found.Title,
-		Status:   found.Status,
+		Status:   string(found.Status),
 		Path:     parent.Path,
 		ParentID: entity.Canonicalize(parentID),
 		AC: &ShowAC{
 			ID:          found.ID,
 			Title:       found.Title,
-			Status:      found.Status,
+			Status:      string(found.Status),
 			TDDPhase:    found.TDDPhase,
 			Description: desc,
 		},

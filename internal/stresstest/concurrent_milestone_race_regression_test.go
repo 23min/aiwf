@@ -37,7 +37,7 @@ import (
 // be indented; strings.Count(content, this) must equal 1 in
 // cancel_guards.go, or patchFileExactlyOnce refuses to patch (see its
 // own doc comment).
-const milestoneCancelGuardAnchor = "func milestoneACsCascadeGuard(e *entity.Entity, newStatus string, buildErr func(openACs []string) error) error {\n"
+const milestoneCancelGuardAnchor = "func milestoneACsCascadeGuard(e *entity.Entity, newStatus entity.Status, buildErr func(openACs []string) error) error {\n"
 
 // milestoneCancelGuardReplacement stubs milestoneACsCascadeGuard to
 // always return nil — both Cancel and Promote's milestone-open-AC

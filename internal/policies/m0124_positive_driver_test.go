@@ -165,13 +165,13 @@ func deriveLegalTargets(t *testing.T, rule spec.Rule) []string {
 		// only. The AC FSM lands cancel at "cancelled" regardless of
 		// from-state.
 		if rule.Kind == spec.KindAC {
-			return []string{entity.StatusCancelled}
+			return []string{string(entity.StatusCancelled)}
 		}
-		tgt := entity.CancelTarget(rule.Kind, rule.FromState)
+		tgt := entity.CancelTarget(rule.Kind, entity.Status(rule.FromState))
 		if tgt == "" {
 			t.Fatalf("CancelTarget returned empty for (%s, %s)", rule.Kind, rule.FromState)
 		}
-		return []string{tgt}
+		return []string{string(tgt)}
 	case "promote":
 		return derivePromoteTargets(t, rule)
 	}
@@ -185,23 +185,23 @@ func derivePromoteTargets(t *testing.T, rule spec.Rule) []string {
 	case entity.KindGap:
 		for _, p := range rule.Preconditions {
 			if p.Subject == "self.addressed_by" && p.Op == "non-empty" {
-				return []string{entity.StatusAddressed}
+				return []string{string(entity.StatusAddressed)}
 			}
 		}
 	case spec.KindAC:
 		for _, p := range rule.Preconditions {
 			if p.Subject == "parent.tdd" {
-				return []string{entity.StatusMet}
+				return []string{string(entity.StatusMet)}
 			}
 		}
 	case spec.KindTDDPhase:
 		return tddPhaseTargetsFromState(t, rule.FromState)
 	}
-	tgts := entity.AllowedTransitions(rule.Kind, rule.FromState)
+	tgts := entity.AllowedTransitions(rule.Kind, entity.Status(rule.FromState))
 	if len(tgts) == 0 {
 		t.Fatalf("AllowedTransitions(%s, %s) returned empty for Legal cell %+v", rule.Kind, rule.FromState, rule)
 	}
-	return tgts
+	return entity.StatusStrings(tgts)
 }
 
 func tddPhaseTargetsFromState(t *testing.T, fromPhase string) []string {
@@ -368,7 +368,7 @@ func bringEntityForCell(t *testing.T, f *cellcoverage.CellFixture, rule spec.Rul
 // title (and therefore slug) ever changes.
 func checkoutRitualBranchIfActivating(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase, id string) {
 	t.Helper()
-	if tc.rule.Kind != entity.KindMilestone || tc.target != entity.StatusInProgress {
+	if tc.rule.Kind != entity.KindMilestone || tc.target != string(entity.StatusInProgress) {
 		return
 	}
 	m := f.Tree().ByID(id)
@@ -417,7 +417,7 @@ func checkoutEpicRitualBranch(t *testing.T, f *cellcoverage.CellFixture, epicID 
 // exercising the FSM transition under test.
 func seedACIfMilestoneActivating(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase, id string) {
 	t.Helper()
-	if tc.rule.Kind != entity.KindMilestone || tc.target != entity.StatusInProgress {
+	if tc.rule.Kind != entity.KindMilestone || tc.target != string(entity.StatusInProgress) {
 		return
 	}
 	f.Must(verb.AddACBatch(context.Background(), f.Tree(), id, []string{"Cell-coverage AC"}, [][]byte{[]byte("Real prose.")}, "human/test"))
@@ -525,7 +525,7 @@ func assertPostState(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase,
 		if err != nil {
 			t.Fatalf("lookup composite %q after verb: %v", id, err)
 		}
-		if ac.Status != tc.target {
+		if ac.Status != entity.Status(tc.target) {
 			t.Errorf("AC status = %q, want %q", ac.Status, tc.target)
 		}
 		return
@@ -534,7 +534,7 @@ func assertPostState(t *testing.T, f *cellcoverage.CellFixture, tc positiveCase,
 	if e == nil {
 		t.Fatalf("entity %q not in tree after verb", id)
 	}
-	if e.Status != tc.target {
+	if e.Status != entity.Status(tc.target) {
 		t.Errorf("entity %q status = %q, want %q", id, e.Status, tc.target)
 	}
 }

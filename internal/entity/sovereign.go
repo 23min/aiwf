@@ -8,8 +8,8 @@ package entity
 // derived structures against the closed set.
 type SovereignActShape struct {
 	Kind Kind
-	From string
-	To   string
+	From Status
+	To   Status
 }
 
 // sovereignActShapes is the closed-set list of transitions the kernel
@@ -55,7 +55,7 @@ var sovereignActShapes = []SovereignActShape{
 //
 // Returns false for unknown kinds, unknown statuses, and any tuple not
 // in the sovereignActShapes closed set.
-func IsSovereignActShape(k Kind, from, to string) bool {
+func IsSovereignActShape(k Kind, from, to Status) bool {
 	for _, s := range sovereignActShapes {
 		if s.Kind == k && s.From == from && s.To == to {
 			return true

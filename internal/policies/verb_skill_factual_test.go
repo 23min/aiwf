@@ -96,7 +96,7 @@ func TestAiwfCheckSkill_ACStatusSetMatchesKernel(t *testing.T) {
 		t.Fatal("aiwf-check skill has no acs-shape/status row")
 	}
 	for _, s := range entity.AllowedACStatuses() {
-		if !strings.Contains(row, s) {
+		if !strings.Contains(row, string(s)) {
 			t.Errorf("acs-shape/status row omits kernel AC status %q; row = %q", s, row)
 		}
 	}
@@ -158,7 +158,7 @@ func TestAiwfContractSkill_RecipePathAndCancelFSM(t *testing.T) {
 	if cancelSection == "" {
 		t.Fatal(`aiwf-contract skill has no "Cancel a contract entirely" section`)
 	}
-	contractStatuses := []string{
+	contractStatuses := []entity.Status{
 		entity.StatusProposed, entity.StatusAccepted,
 		entity.StatusDeprecated, entity.StatusRetired, entity.StatusRejected,
 	}
@@ -167,7 +167,7 @@ func TestAiwfContractSkill_RecipePathAndCancelFSM(t *testing.T) {
 		if to == "" {
 			continue
 		}
-		if !strings.Contains(cancelSection, to) {
+		if !strings.Contains(cancelSection, string(to)) {
 			t.Errorf("cancel section omits cancel target %q (from %q)", to, from)
 		}
 	}

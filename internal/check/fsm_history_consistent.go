@@ -236,8 +236,8 @@ type statusChange struct {
 	Commit     string
 	Parent     string
 	Path       string
-	Prior      string
-	Next       string
+	Prior      entity.Status
+	Next       entity.Status
 	Trailers   map[string]string
 	// IsMergeCommit is true when Commit has more than one parent —
 	// a merge commit. Set uniformly by the walker; predicates apply
@@ -389,7 +389,7 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "illegal-transition",
 			Severity: SeverityError,
-			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+			Message: "entity " + o.EntityID + " status changed " + string(o.Prior) + " → " + string(o.Next) +
 				" in commit " + shortHash(o.Commit) +
 				" — not a legal " + string(o.EntityKind) +
 				" FSM transition and no aiwf-force trailer",
@@ -416,7 +416,7 @@ func illegalTransitionFindings(observations []statusChange, ackedSHAs map[string
 // state lives in milestone frontmatter, not in its own files. If
 // a future kind extension adds per-AC files (or similar), this
 // helper widens accordingly.
-func isLegalTransition(k entity.Kind, prior, next string) bool {
+func isLegalTransition(k entity.Kind, prior, next entity.Status) bool {
 	for _, allowed := range entity.AllowedTransitions(k, prior) {
 		if allowed == next {
 			return true
@@ -511,7 +511,7 @@ func manualEditFindings(observations []statusChange, ackedObs map[string]bool) [
 			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "manual-edit",
 			Severity: SeverityWarning,
-			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+			Message: "entity " + o.EntityID + " status changed " + string(o.Prior) + " → " + string(o.Next) +
 				" in commit " + shortHash(o.Commit) +
 				" — legal " + string(o.EntityKind) +
 				" FSM transition but commit has no aiwf-verb trailer (kernel bypassed)",
@@ -734,7 +734,7 @@ func forcedUntraileredFindings(observations []statusChange, ackedSHAs map[string
 			Code:     CodeFSMHistoryConsistent,
 			Subcode:  "forced-untrailered",
 			Severity: SeverityError,
-			Message: "entity " + o.EntityID + " status changed " + o.Prior + " → " + o.Next +
+			Message: "entity " + o.EntityID + " status changed " + string(o.Prior) + " → " + string(o.Next) +
 				" in commit " + shortHash(o.Commit) +
 				" — sovereign-act-shape " + string(o.EntityKind) +
 				" transition by non-human actor without aiwf-force trailer",

@@ -277,7 +277,7 @@ var promoteTargetOverride = map[string]string{
 	// is itself refused first by the unrelated G-0269 activating-branch
 	// guard, masking the cell under test entirely. Force the target to
 	// "cancelled" so the driver actually exercises the AC guard.
-	"milestone-draft-promote-anychildacstatuseqopen": entity.StatusCancelled,
+	"milestone-draft-promote-anychildacstatuseqopen": string(entity.StatusCancelled),
 }
 
 // deriveIllegalPromoteTarget picks the target for an Illegal promote
@@ -293,9 +293,9 @@ func deriveIllegalPromoteTarget(t *testing.T, rule spec.Rule) string {
 	if target, ok := promoteTargetOverride[illegalCaseName(rule)]; ok {
 		return target
 	}
-	allowed := entity.AllowedTransitions(rule.Kind, rule.FromState)
+	allowed := entity.AllowedTransitions(rule.Kind, entity.Status(rule.FromState))
 	if len(allowed) > 0 {
-		return allowed[0]
+		return string(allowed[0])
 	}
 	return anyKindDomainStatus(t, rule.Kind)
 }
@@ -304,17 +304,17 @@ func anyKindDomainStatus(t *testing.T, k entity.Kind) string {
 	t.Helper()
 	switch k {
 	case entity.KindEpic:
-		return entity.StatusActive
+		return string(entity.StatusActive)
 	case entity.KindMilestone:
-		return entity.StatusInProgress
+		return string(entity.StatusInProgress)
 	case entity.KindADR, entity.KindDecision:
-		return entity.StatusAccepted
+		return string(entity.StatusAccepted)
 	case entity.KindGap:
-		return entity.StatusAddressed
+		return string(entity.StatusAddressed)
 	case entity.KindContract:
-		return entity.StatusAccepted
+		return string(entity.StatusAccepted)
 	case spec.KindAC:
-		return entity.StatusMet
+		return string(entity.StatusMet)
 	}
 	t.Fatalf("anyKindDomainStatus: no domain status for kind %q", k)
 	return ""

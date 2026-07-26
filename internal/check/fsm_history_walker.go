@@ -244,8 +244,8 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 					Commit:        rec.Commit,
 					Parent:        parent,
 					Path:          touch.Path,
-					Prior:         priorStatus,
-					Next:          commitStatus,
+					Prior:         entity.Status(priorStatus),
+					Next:          entity.Status(commitStatus),
 					Trailers:      rec.Trailers,
 					IsMergeCommit: isMerge,
 				})

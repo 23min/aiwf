@@ -2,7 +2,7 @@ package policies
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/23min/aiwf/internal/entity"
 )
@@ -75,7 +75,7 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 		// Drift mode 2b: every transition target must itself be in
 		// the kind's AllowedStatuses. Catches "FSM transitions to a
 		// status the schemas table doesn't know about."
-		declared := make(map[string]struct{}, len(statuses))
+		declared := make(map[entity.Status]struct{}, len(statuses))
 		for _, s := range statuses {
 			declared[s] = struct{}{}
 		}
@@ -132,14 +132,14 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 		// detects back-edges in O(V+E). Because the FSMs are tiny
 		// (≤5 states per kind), the deterministic ordering helps
 		// reproducibility — sort sources before walking.
-		sortedSources := make([]string, len(statuses))
+		sortedSources := make([]entity.Status, len(statuses))
 		copy(sortedSources, statuses)
-		sort.Strings(sortedSources)
+		slices.Sort(sortedSources)
 
 		// One cycle is enough to violate the commitment. Stop at the
 		// first one found per kind to keep the violation message
 		// readable; finding all cycles is not the point.
-		if cycle := findCycle(sortedSources, func(from string) []string {
+		if cycle := findCycle(sortedSources, func(from entity.Status) []entity.Status {
 			return entity.AllowedTransitions(kind, from)
 		}); cycle != nil {
 			out = append(out, Violation{
@@ -152,17 +152,12 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 	// AC and TDD-phase composite FSMs: same DAG check, exposed via
 	// IsLegalACTransition / IsLegalTDDPhaseTransition. We probe the
 	// FSM by querying every (from, to) pair against the closed sets.
-	for _, fsm := range []struct {
-		name        string
-		statuses    []string
-		entryStates []string
-		isLegal     func(from, to string) bool
-	}{
-		{"ac-status", entity.AllowedACStatuses(), []string{"open"}, entity.IsLegalACTransition},
-		{"tdd-phase", entity.AllowedTDDPhases(), []string{"", "red"}, entity.IsLegalTDDPhaseTransition},
-	} {
-		out = append(out, fsmDAGViolations(fsm.name, fsm.statuses, fsm.entryStates, fsm.isLegal)...)
-	}
+	// These two composite FSMs have different node types after the Status
+	// retype (ac-status is keyed by entity.Status, tdd-phase by plain
+	// string), so they can no longer share a single []struct loop — each
+	// instantiates fsmDAGViolations at its own element type.
+	out = append(out, fsmDAGViolations("ac-status", entity.AllowedACStatuses(), []entity.Status{entity.StatusOpen}, entity.IsLegalACTransition)...)
+	out = append(out, fsmDAGViolations("tdd-phase", entity.AllowedTDDPhases(), []string{"", entity.TDDPhaseRed}, entity.IsLegalTDDPhaseTransition)...)
 
 	return out, nil
 }
@@ -171,19 +166,19 @@ func PolicyFSMInvariants(_ string) ([]Violation, error) {
 // transitions are exposed via a single isLegal predicate rather than
 // an AllowedTransitions(kind, from) probe). Returns one Violation if
 // a cycle is found, none otherwise.
-func fsmDAGViolations(name string, statuses, entryStates []string, isLegal func(from, to string) bool) []Violation {
-	allFroms := append([]string{}, entryStates...)
+func fsmDAGViolations[T ~string](name string, statuses, entryStates []T, isLegal func(from, to T) bool) []Violation {
+	allFroms := append([]T{}, entryStates...)
 	allFroms = append(allFroms, statuses...)
-	sort.Strings(allFroms)
+	slices.Sort(allFroms)
 
-	successors := func(from string) []string {
-		var out []string
+	successors := func(from T) []T {
+		var out []T
 		for _, to := range statuses {
 			if isLegal(from, to) {
 				out = append(out, to)
 			}
 		}
-		sort.Strings(out)
+		slices.Sort(out)
 		return out
 	}
 
@@ -207,23 +202,23 @@ func fsmDAGViolations(name string, statuses, entryStates []string, isLegal func(
 // commitment, and finding every cycle would just clutter the
 // violation list. Once the policy fires the contributor fixes the
 // FSM and reruns; the next cycle (if any) appears on the next pass.
-func findCycle(vertices []string, successors func(string) []string) []string {
+func findCycle[T ~string](vertices []T, successors func(T) []T) []T {
 	const (
 		white = 0
 		gray  = 1
 		black = 2
 	)
-	color := make(map[string]int, len(vertices))
-	var found []string
+	color := make(map[T]int, len(vertices))
+	var found []T
 
-	var visit func(s string, path []string) bool
-	visit = func(s string, path []string) bool {
+	var visit func(s T, path []T) bool
+	visit = func(s T, path []T) bool {
 		color[s] = gray
 		path = append(path, s)
 		for _, to := range successors(s) {
 			switch color[to] {
 			case gray:
-				found = append(append([]string{}, path...), to)
+				found = append(append([]T{}, path...), to)
 				return true
 			case white:
 				if visit(to, path) {

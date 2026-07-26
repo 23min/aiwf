@@ -65,7 +65,7 @@ func (o PromoteOptions) hasResolverFlag() bool {
 // transition (when not forced), resolver-flag/kind/status mismatch.
 // Tree-level findings caused by the change are returned as a Result
 // with non-empty Findings.
-func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string, force bool, opts PromoteOptions) (*Result, error) {
+func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Status, actor, reason string, force bool, opts PromoteOptions) (*Result, error) {
 	if entity.IsCompositeID(id) {
 		if opts.hasResolverFlag() {
 			return nil, fmt.Errorf("resolver flags (--by/--by-commit/--superseded-by) are not valid for AC promotions")
@@ -175,7 +175,7 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	// (internal/verb/archive.go) is the defense-in-depth backstop for a
 	// raw frontmatter hand-edit that bypasses this verb entirely.
 	if err := epicChildrenCascadeGuard(t, e, newStatus, func(children []string) error {
-		return &EpicPromoteNonTerminalChildrenError{Epic: e.ID, NewStatus: newStatus, Children: children}
+		return &EpicPromoteNonTerminalChildrenError{Epic: e.ID, NewStatus: string(newStatus), Children: children}
 	}); err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	// under --force, matching Cancel's guard — force relaxes
 	// FSM-transition legality, not this structural AC precondition.
 	if err := milestoneACsCascadeGuard(e, newStatus, func(openACs []string) error {
-		return &MilestonePromoteNonTerminalACsError{Milestone: e.ID, NewStatus: newStatus, ACs: openACs}
+		return &MilestonePromoteNonTerminalACsError{Milestone: e.ID, NewStatus: string(newStatus), ACs: openACs}
 	}); err != nil {
 		return nil, err
 	}
@@ -240,10 +240,16 @@ func Promote(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason str
 	result := plan(&Plan{
 		Subject:  subject,
 		Body:     reason,
-		Trailers: transitionTrailers("promote", id, actor, reason, newStatus, force),
+		Trailers: transitionTrailers("promote", id, actor, reason, string(newStatus), force),
 		Ops:      ops,
 	})
-	result.Metadata = map[string]any{"entity_id": id, "from": e.Status, "to": newStatus}
+	// Metadata is the map[string]any that becomes the --format=json
+	// envelope AND is compared in-Go by callers/tests; store status as a
+	// plain string so an interface-held entity.Status can't fail a
+	// `Metadata["to"] == "active"` equality on dynamic-type mismatch
+	// (invisible through JSON, which marshals both identically). Mirrors
+	// every sibling Metadata site (auditonly.go, ac.go via finalizeACPlan).
+	result.Metadata = map[string]any{"entity_id": id, "from": string(e.Status), "to": string(newStatus)}
 	return result, nil
 }
 
@@ -305,7 +311,7 @@ func transitionTrailers(verbName, id, actor, reason, to string, force bool) []gi
 // combination is a usage misalignment — return a Go error so the
 // dispatcher exits with the right code rather than producing a
 // projection finding the user has to interpret.
-func validateResolverFlags(k entity.Kind, newStatus string, opts PromoteOptions) error {
+func validateResolverFlags(k entity.Kind, newStatus entity.Status, opts PromoteOptions) error {
 	if len(opts.AddressedBy) > 0 || len(opts.AddressedByCommit) > 0 {
 		if k != entity.KindGap {
 			return fmt.Errorf("--by/--by-commit are only valid for gap entities; got kind %q", k)
@@ -332,7 +338,7 @@ func validateResolverFlags(k entity.Kind, newStatus string, opts PromoteOptions)
 // (adr, superseded). G-0096 introduces verb-time enforcement that
 // resolver pointers ride these transitions; the same set drives the
 // same-status back-fill carve-out.
-func isResolutionClassStatus(k entity.Kind, status string) bool {
+func isResolutionClassStatus(k entity.Kind, status entity.Status) bool {
 	return (k == entity.KindGap && status == entity.StatusAddressed) ||
 		(k == entity.KindADR && status == entity.StatusSuperseded)
 }
@@ -367,7 +373,7 @@ func needsResolverBackfill(e *entity.Entity, opts PromoteOptions) bool {
 // and adr-supersession-mutual warnings cannot be reached via the verb.
 // --force bypasses (sovereign override path); the caller checks force
 // before invoking this.
-func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts PromoteOptions) error {
+func requireResolverForResolutionClass(k entity.Kind, newStatus entity.Status, opts PromoteOptions) error {
 	switch {
 	case k == entity.KindGap && newStatus == entity.StatusAddressed:
 		if len(opts.AddressedBy) == 0 && len(opts.AddressedByCommit) == 0 {
@@ -397,7 +403,7 @@ func requireResolverForResolutionClass(k entity.Kind, newStatus string, opts Pro
 // not an inconsistency force would be papering over. The caller checks
 // force before invoking this, matching requireResolverForResolutionClass's
 // own --force stance.
-func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus string) error {
+func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus entity.Status) error {
 	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
 		return nil
 	}
@@ -432,7 +438,7 @@ func requireNonEmptyACsAtMilestoneStart(e *entity.Entity, newStatus string) erro
 // lets the commit land; the message below does not claim otherwise.
 // The only way through is the honest one: write real prose via
 // `aiwf edit-body`.
-func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, newStatus string) error {
+func requireNonEmptyACBodiesAtMilestoneStart(t *tree.Tree, e *entity.Entity, newStatus entity.Status) error {
 	if e.Kind != entity.KindMilestone || e.Status != entity.StatusDraft || newStatus != entity.StatusInProgress {
 		return nil
 	}

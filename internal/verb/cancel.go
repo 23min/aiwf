@@ -98,6 +98,10 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 		subject:  subject,
 		body:     reason,
 		trailers: transitionTrailers("cancel", id, actor, reason, "", force),
-		metadata: map[string]any{"entity_id": id, "from": e.Status, "to": target},
+		// Store status as plain string: Metadata is compared in-Go by
+		// callers/tests, where an interface-held entity.Status fails a
+		// string equality on dynamic-type mismatch (invisible through the
+		// --format=json envelope). Mirrors promote.go / auditonly.go.
+		metadata: map[string]any{"entity_id": id, "from": string(e.Status), "to": string(target)},
 	})
 }

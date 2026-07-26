@@ -67,6 +67,18 @@ func IsBornComplete(k Kind) bool {
 	}
 }
 
+// Status is the closed-set lifecycle status carried by every entity and
+// acceptance criterion. Its underlying type is string, so it serializes
+// to the same YAML/JSON scalar it always has. The named type keeps a
+// status from silently crossing with an unrelated string: passing a plain
+// string (or another named string type) where a Status is expected is a
+// compile error. It deliberately does NOT constrain to the closed set —
+// Status("garbage") compiles; validate with IsAllowedStatus — and does
+// not catch two transposed Status arguments, which share the type. What
+// it buys is separating status-space from arbitrary-string-space, and
+// self-documenting signatures.
+type Status string
+
 // Status constants for the closed sets. Hardcoded; see
 // docs/design/design-decisions.md and the schemas table for
 // per-kind allowance. Use these constants instead of bare string
@@ -74,27 +86,27 @@ func IsBornComplete(k Kind) bool {
 // place.
 const (
 	// Epic / shared.
-	StatusProposed  = "proposed"
-	StatusActive    = "active"
-	StatusDone      = "done"
-	StatusCancelled = "cancelled"
+	StatusProposed  Status = "proposed"
+	StatusActive    Status = "active"
+	StatusDone      Status = "done"
+	StatusCancelled Status = "cancelled"
 	// Milestone-only.
-	StatusDraft      = "draft"
-	StatusInProgress = "in_progress"
+	StatusDraft      Status = "draft"
+	StatusInProgress Status = "in_progress"
 	// ADR / Decision.
-	StatusAccepted   = "accepted"
-	StatusSuperseded = "superseded"
-	StatusRejected   = "rejected"
+	StatusAccepted   Status = "accepted"
+	StatusSuperseded Status = "superseded"
+	StatusRejected   Status = "rejected"
 	// Gap.
-	StatusOpen      = "open"
-	StatusAddressed = "addressed"
-	StatusWontfix   = "wontfix"
+	StatusOpen      Status = "open"
+	StatusAddressed Status = "addressed"
+	StatusWontfix   Status = "wontfix"
 	// Contract.
-	StatusDeprecated = "deprecated"
-	StatusRetired    = "retired"
+	StatusDeprecated Status = "deprecated"
+	StatusRetired    Status = "retired"
 	// Acceptance criterion (composite).
-	StatusMet      = "met"
-	StatusDeferred = "deferred"
+	StatusMet      Status = "met"
+	StatusDeferred Status = "deferred"
 )
 
 // TDD-phase constants for the AC FSM.
@@ -108,7 +120,7 @@ const (
 // AllowedStatuses returns the closed status set for the kind. Statuses
 // outside this set are reported by the status-valid check. Delegates
 // to the schemas table so there is a single source of truth.
-func AllowedStatuses(k Kind) []string {
+func AllowedStatuses(k Kind) []Status {
 	s, ok := schemas[k]
 	if !ok {
 		return nil
@@ -117,27 +129,39 @@ func AllowedStatuses(k Kind) []string {
 }
 
 // IsAllowedStatus reports whether status is in the kind's allowed set.
-func IsAllowedStatus(k Kind, status string) bool {
+func IsAllowedStatus(k Kind, status Status) bool {
 	return slices.Contains(AllowedStatuses(k), status)
+}
+
+// StatusStrings converts a slice of Status to a plain []string. Used at
+// presentation / message-building boundaries (e.g. strings.Join of the
+// allowed-status set into an operator-facing finding message) where the
+// typed domain value must resume as a wire/display string.
+func StatusStrings(ss []Status) []string {
+	out := make([]string, len(ss))
+	for i, s := range ss {
+		out[i] = string(s)
+	}
+	return out
 }
 
 // acAllowedStatuses is the closed status set for an acceptance criterion,
 // ordered as the FSM reads: open → met (or deferred/cancelled), met can
 // move to deferred or cancelled if scope changes after the fact. Both
 // deferred and cancelled are terminal.
-var acAllowedStatuses = []string{StatusOpen, StatusMet, StatusDeferred, StatusCancelled}
+var acAllowedStatuses = []Status{StatusOpen, StatusMet, StatusDeferred, StatusCancelled}
 
 // AllowedACStatuses returns the closed status set for an acceptance
 // criterion. The returned slice shares memory with the package-level
 // constant; callers must not mutate it.
-func AllowedACStatuses() []string {
+func AllowedACStatuses() []Status {
 	return acAllowedStatuses
 }
 
 // IsAllowedACStatus reports whether s is a recognized AC status. Empty
 // string returns false; the empty-string sentinel for "absent" is not
 // itself a legal status value.
-func IsAllowedACStatus(s string) bool {
+func IsAllowedACStatus(s Status) bool {
 	return slices.Contains(acAllowedStatuses, s)
 }
 
@@ -339,7 +363,7 @@ func KindFromID(id string) (Kind, bool) {
 type AcceptanceCriterion struct {
 	ID       string `yaml:"id,omitempty"`
 	Title    string `yaml:"title,omitempty"`
-	Status   string `yaml:"status,omitempty"`
+	Status   Status `yaml:"status,omitempty"`
 	TDDPhase string `yaml:"tdd_phase,omitempty"`
 }
 
@@ -407,7 +431,7 @@ type Entity struct {
 	// Common — present on every kind.
 	ID     string `yaml:"id"`
 	Title  string `yaml:"title"`
-	Status string `yaml:"status"`
+	Status Status `yaml:"status"`
 
 	// Lineage. PriorIDs lists the ids this entity has carried before
 	// the current one, oldest first. Populated by `aiwf reallocate`
@@ -501,7 +525,7 @@ type RefField struct {
 type Schema struct {
 	Kind            Kind       `json:"kind"`
 	IDFormat        string     `json:"id_format"`
-	AllowedStatuses []string   `json:"allowed_statuses"`
+	AllowedStatuses []Status   `json:"allowed_statuses"`
 	RequiredFields  []string   `json:"required_fields"`
 	OptionalFields  []string   `json:"optional_fields,omitempty"`
 	References      []RefField `json:"references,omitempty"`
@@ -525,13 +549,13 @@ var schemas = map[Kind]Schema{
 	KindEpic: {
 		Kind:            KindEpic,
 		IDFormat:        "E-NN",
-		AllowedStatuses: []string{StatusProposed, StatusActive, StatusDone, StatusCancelled},
+		AllowedStatuses: []Status{StatusProposed, StatusActive, StatusDone, StatusCancelled},
 		RequiredFields:  commonRequired,
 	},
 	KindMilestone: {
 		Kind:            KindMilestone,
 		IDFormat:        "M-NNN",
-		AllowedStatuses: []string{StatusDraft, StatusInProgress, StatusDone, StatusCancelled},
+		AllowedStatuses: []Status{StatusDraft, StatusInProgress, StatusDone, StatusCancelled},
 		RequiredFields:  append(append([]string(nil), commonRequired...), "parent"),
 		OptionalFields:  []string{"depends_on", "tdd", "acs"},
 		References: []RefField{
@@ -542,7 +566,7 @@ var schemas = map[Kind]Schema{
 	KindADR: {
 		Kind:            KindADR,
 		IDFormat:        "ADR-NNNN",
-		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
+		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"supersedes", "superseded_by"},
 		References: []RefField{
@@ -553,7 +577,7 @@ var schemas = map[Kind]Schema{
 	KindGap: {
 		Kind:            KindGap,
 		IDFormat:        "G-NNN",
-		AllowedStatuses: []string{StatusOpen, StatusAddressed, StatusWontfix},
+		AllowedStatuses: []Status{StatusOpen, StatusAddressed, StatusWontfix},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"discovered_in", "addressed_by", "addressed_by_commit", "priority"},
 		References: []RefField{
@@ -568,7 +592,7 @@ var schemas = map[Kind]Schema{
 	KindDecision: {
 		Kind:            KindDecision,
 		IDFormat:        "D-NNN",
-		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
+		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusSuperseded, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"relates_to", "priority"},
 		References: []RefField{
@@ -579,7 +603,7 @@ var schemas = map[Kind]Schema{
 	KindContract: {
 		Kind:            KindContract,
 		IDFormat:        "C-NNN",
-		AllowedStatuses: []string{StatusProposed, StatusAccepted, StatusDeprecated, StatusRetired, StatusRejected},
+		AllowedStatuses: []Status{StatusProposed, StatusAccepted, StatusDeprecated, StatusRetired, StatusRejected},
 		RequiredFields:  commonRequired,
 		OptionalFields:  []string{"linked_adrs"},
 		References: []RefField{

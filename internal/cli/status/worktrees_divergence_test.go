@@ -22,7 +22,7 @@ func TestAnnotateWorktreeDivergence_FlagsDisagreement(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -34,7 +34,7 @@ func TestAnnotateWorktreeDivergence_FlagsDisagreement(t *testing.T) {
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-0043",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}
@@ -45,7 +45,7 @@ func TestAnnotateWorktreeDivergence_FlagsDisagreement(t *testing.T) {
 	if got == nil {
 		t.Fatalf("WorktreeDivergence = nil, want a flagged divergence")
 	}
-	if got.Status != entity.StatusDone {
+	if got.Status != string(entity.StatusDone) {
 		t.Errorf("Status = %q, want %q", got.Status, entity.StatusDone)
 	}
 	if !strings.Contains(got.Label, "E-0043") {
@@ -65,7 +65,7 @@ func TestAnnotateWorktreeDivergence_FlagsPlannedEpic(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -77,7 +77,7 @@ func TestAnnotateWorktreeDivergence_FlagsPlannedEpic(t *testing.T) {
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-0043",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}
@@ -88,7 +88,7 @@ func TestAnnotateWorktreeDivergence_FlagsPlannedEpic(t *testing.T) {
 	if got == nil {
 		t.Fatalf("WorktreeDivergence = nil, want a flagged divergence on the PlannedEpics row")
 	}
-	if got.Status != entity.StatusDone {
+	if got.Status != string(entity.StatusDone) {
 		t.Errorf("Status = %q, want %q", got.Status, entity.StatusDone)
 	}
 }
@@ -104,7 +104,7 @@ func TestAnnotateWorktreeDivergence_MatchesNarrowEpicID(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -116,7 +116,7 @@ func TestAnnotateWorktreeDivergence_MatchesNarrowEpicID(t *testing.T) {
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-43",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}
@@ -138,7 +138,7 @@ func TestAnnotateWorktreeDivergence_NoOpWhenStatusesAgree(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDone},
+					{ID: "M-0171", Status: string(entity.StatusDone)},
 				},
 			},
 		},
@@ -150,7 +150,7 @@ func TestAnnotateWorktreeDivergence_NoOpWhenStatusesAgree(t *testing.T) {
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-0043",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}
@@ -174,7 +174,7 @@ func TestAnnotateWorktreeDivergence_IgnoresCurrentCheckout(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -186,7 +186,7 @@ func TestAnnotateWorktreeDivergence_IgnoresCurrentCheckout(t *testing.T) {
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-0043",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}
@@ -209,7 +209,7 @@ func TestAnnotateWorktreeDivergence_IgnoresNonEpicDriver(t *testing.T) {
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -241,8 +241,8 @@ func TestStatusRun_FlagsCrossWorktreeDivergence(t *testing.T) {
 	main := t.TempDir()
 	gitDo(t, main, "init", "-q", "-b", "main")
 
-	writeEpic(t, main, "E-9002-divergence", "E-9002", entity.StatusActive)
-	writeMilestone(t, main, "E-9002-divergence", "M-9002", entity.StatusDraft, "E-9002")
+	writeEpic(t, main, "E-9002-divergence", "E-9002", string(entity.StatusActive))
+	writeMilestone(t, main, "E-9002-divergence", "M-9002", string(entity.StatusDraft), "E-9002")
 	gitDo(t, main, "add", "-A")
 	gitDo(t, main, "commit", "-q", "-m", "base: E-9002 active, M-9002 draft")
 	gitDo(t, main, "branch", "epic/E-9002-divergence")
@@ -254,7 +254,7 @@ func TestStatusRun_FlagsCrossWorktreeDivergence(t *testing.T) {
 	// branch — the main checkout's own copy stays draft, reproducing
 	// the exact G-0277 scenario (an unmerged epic branch with a more
 	// current milestone status than trunk/main sees).
-	writeMilestone(t, wtPath, "E-9002-divergence", "M-9002", entity.StatusDone, "E-9002")
+	writeMilestone(t, wtPath, "E-9002-divergence", "M-9002", string(entity.StatusDone), "E-9002")
 	gitDo(t, wtPath, "add", "-A")
 	gitDo(t, wtPath, "commit", "-q", "-m", "promote M-9002 done")
 
@@ -285,13 +285,13 @@ func TestStatusRun_FlagsCrossWorktreeDivergence(t *testing.T) {
 	// to the milestone's own status row — a bare "M-9002" also appears
 	// in this fixture's tdd-undeclared warning line.
 	line := findLine(t, out, "M-9002 — ")
-	if !strings.Contains(line, entity.StatusDone) || !strings.Contains(line, "E-9002") {
+	if !strings.Contains(line, string(entity.StatusDone)) || !strings.Contains(line, "E-9002") {
 		t.Errorf("milestone row = %q, want it to flag %q as available on the E-9002 worktree", line, entity.StatusDone)
 	}
 	// The row must still show the checkout's own (stale) status too —
 	// this is an annotation, not a silent overwrite of the branch-local
 	// read.
-	if !strings.Contains(line, entity.StatusDraft) {
+	if !strings.Contains(line, string(entity.StatusDraft)) {
 		t.Errorf("milestone row = %q, want it to still show the checkout-local %q status", line, entity.StatusDraft)
 	}
 
@@ -302,7 +302,7 @@ func TestStatusRun_FlagsCrossWorktreeDivergence(t *testing.T) {
 		t.Fatalf("RenderStatusMarkdown: %v", err)
 	}
 	mdLine := findLine(t, md.String(), "**M-9002**")
-	if !strings.Contains(mdLine, entity.StatusDone) || !strings.Contains(mdLine, "E-9002") {
+	if !strings.Contains(mdLine, string(entity.StatusDone)) || !strings.Contains(mdLine, "E-9002") {
 		t.Errorf("markdown milestone row = %q, want it to flag %q as available on the E-9002 worktree", mdLine, entity.StatusDone)
 	}
 }
@@ -320,13 +320,13 @@ func TestAnnotateWorktreeDivergence_SkipsEpicWithNoSiblingWorktree(t *testing.T)
 			{
 				ID: "E-0043",
 				Milestones: []StatusMilestone{
-					{ID: "M-0171", Status: entity.StatusDraft},
+					{ID: "M-0171", Status: string(entity.StatusDraft)},
 				},
 			},
 			{
 				ID: "E-0100",
 				Milestones: []StatusMilestone{
-					{ID: "M-0500", Status: entity.StatusDraft},
+					{ID: "M-0500", Status: string(entity.StatusDraft)},
 				},
 			},
 		},
@@ -338,7 +338,7 @@ func TestAnnotateWorktreeDivergence_SkipsEpicWithNoSiblingWorktree(t *testing.T)
 			DriverKind:     string(entity.KindEpic),
 			DriverEntityID: "E-0043",
 			EpicMilestones: []EpicChildRow{
-				{ID: "M-0171", Status: entity.StatusDone},
+				{ID: "M-0171", Status: string(entity.StatusDone)},
 			},
 		},
 	}

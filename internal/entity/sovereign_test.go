@@ -14,13 +14,13 @@ func TestIsSovereignActShape_TrueCases(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		kind Kind
-		from string
-		to   string
+		from Status
+		to   Status
 	}{
 		{KindEpic, StatusProposed, StatusActive},
 	}
 	for _, c := range cases {
-		t.Run(string(c.kind)+"/"+c.from+"->"+c.to, func(t *testing.T) {
+		t.Run(string(c.kind)+"/"+string(c.from)+"->"+string(c.to), func(t *testing.T) {
 			t.Parallel()
 			if !IsSovereignActShape(c.kind, c.from, c.to) {
 				t.Errorf("IsSovereignActShape(%s, %q, %q) = false, want true", c.kind, c.from, c.to)
@@ -42,8 +42,8 @@ func TestIsSovereignActShape_FalseCases(t *testing.T) {
 	cases := []struct {
 		name string
 		kind Kind
-		from string
-		to   string
+		from Status
+		to   Status
 	}{
 		// Legal epic transitions that are NOT sovereign-act-shape.
 		{"epic proposed->cancelled", KindEpic, StatusProposed, StatusCancelled},
@@ -109,7 +109,7 @@ func TestSovereignActShapes_DefensiveCopy(t *testing.T) {
 func TestSovereignActShapes_AllFSMLegal(t *testing.T) {
 	t.Parallel()
 	for _, s := range SovereignActShapes() {
-		t.Run(string(s.Kind)+"/"+s.From+"->"+s.To, func(t *testing.T) {
+		t.Run(string(s.Kind)+"/"+string(s.From)+"->"+string(s.To), func(t *testing.T) {
 			t.Parallel()
 			if err := ValidateTransition(s.Kind, s.From, s.To); err != nil {
 				t.Errorf("SovereignActShape entry (%s, %q, %q) is not FSM-legal: %v", s.Kind, s.From, s.To, err)

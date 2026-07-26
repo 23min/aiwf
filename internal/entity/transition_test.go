@@ -9,8 +9,8 @@ func TestValidateTransition_Allowed(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		kind Kind
-		from string
-		to   string
+		from Status
+		to   Status
 	}{
 		{KindEpic, "proposed", "active"},
 		{KindEpic, "active", "done"},
@@ -29,7 +29,7 @@ func TestValidateTransition_Allowed(t *testing.T) {
 		{KindContract, "accepted", "rejected"},
 	}
 	for _, tt := range tests {
-		t.Run(string(tt.kind)+"/"+tt.from+"->"+tt.to, func(t *testing.T) {
+		t.Run(string(tt.kind)+"/"+string(tt.from)+"->"+string(tt.to), func(t *testing.T) {
 			t.Parallel()
 			if err := ValidateTransition(tt.kind, tt.from, tt.to); err != nil {
 				t.Errorf("unexpected error: %v", err)
@@ -43,8 +43,8 @@ func TestValidateTransition_Forbidden(t *testing.T) {
 	tests := []struct {
 		name      string
 		kind      Kind
-		from      string
-		to        string
+		from      Status
+		to        Status
 		errorPart string // substring expected in the error message
 	}{
 		{"epic skip-ahead", KindEpic, "proposed", "done", "cannot transition"},
@@ -83,8 +83,8 @@ func TestCancelTarget(t *testing.T) {
 	tests := []struct {
 		name          string
 		kind          Kind
-		currentStatus string
-		want          string
+		currentStatus Status
+		want          Status
 	}{
 		// Epic / Milestone / Gap — status-agnostic; the second arg is
 		// ignored. The verb's `if e.Status == target` guard handles
@@ -160,7 +160,7 @@ func TestEveryAllowedStatusHasTransitionEntry(t *testing.T) {
 func TestIsLegalACTransition_AllPairs(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		from, to string
+		from, to Status
 		want     bool
 	}{
 		// open → ...
@@ -190,7 +190,7 @@ func TestIsLegalACTransition_AllPairs(t *testing.T) {
 		{"draft", "open", false},       // milestone status as `from`
 	}
 	for _, tt := range tests {
-		t.Run(tt.from+"->"+tt.to, func(t *testing.T) {
+		t.Run(string(tt.from)+"->"+string(tt.to), func(t *testing.T) {
 			t.Parallel()
 			if got := IsLegalACTransition(tt.from, tt.to); got != tt.want {
 				t.Errorf("IsLegalACTransition(%q, %q) = %v, want %v", tt.from, tt.to, got, tt.want)
@@ -384,7 +384,7 @@ func TestIsTerminal_ExhaustiveOverFSM(t *testing.T) {
 	t.Parallel()
 	for _, k := range AllKinds() {
 		for _, status := range AllowedStatuses(k) {
-			t.Run(string(k)+"/"+status, func(t *testing.T) {
+			t.Run(string(k)+"/"+string(status), func(t *testing.T) {
 				t.Parallel()
 				want := len(AllowedTransitions(k, status)) == 0
 				if got := IsTerminal(k, status); got != want {
@@ -400,7 +400,7 @@ func TestIsTerminal_ExhaustiveOverFSM(t *testing.T) {
 // failing this assertion.
 func TestIsTerminal_TerminalSet(t *testing.T) {
 	t.Parallel()
-	wantTerminal := map[Kind][]string{
+	wantTerminal := map[Kind][]Status{
 		KindEpic:      {"done", "cancelled"},
 		KindMilestone: {"done", "cancelled"},
 		KindADR:       {"superseded", "rejected"},
@@ -410,7 +410,7 @@ func TestIsTerminal_TerminalSet(t *testing.T) {
 	}
 	for kind, statuses := range wantTerminal {
 		for _, s := range statuses {
-			t.Run(string(kind)+"/"+s, func(t *testing.T) {
+			t.Run(string(kind)+"/"+string(s), func(t *testing.T) {
 				t.Parallel()
 				if !IsTerminal(kind, s) {
 					t.Errorf("IsTerminal(%s, %q) = false, want true", kind, s)
@@ -426,7 +426,7 @@ func TestIsTerminal_NonTerminal(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		kind   Kind
-		status string
+		status Status
 	}{
 		{KindEpic, "proposed"},
 		{KindEpic, "active"},
@@ -442,7 +442,7 @@ func TestIsTerminal_NonTerminal(t *testing.T) {
 		{KindContract, "deprecated"},
 	}
 	for _, c := range cases {
-		t.Run(string(c.kind)+"/"+c.status, func(t *testing.T) {
+		t.Run(string(c.kind)+"/"+string(c.status), func(t *testing.T) {
 			t.Parallel()
 			if IsTerminal(c.kind, c.status) {
 				t.Errorf("IsTerminal(%s, %q) = true, want false", c.kind, c.status)
@@ -460,7 +460,7 @@ func TestIsTerminal_UnknownInputs(t *testing.T) {
 	cases := []struct {
 		name   string
 		kind   Kind
-		status string
+		status Status
 	}{
 		{"unknown kind", Kind("widget"), "done"},
 		{"unknown status on known kind", KindEpic, "weird"},

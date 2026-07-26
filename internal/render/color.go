@@ -87,7 +87,7 @@ func StatusColor(s, status string, enabled bool) string {
 		return s
 	}
 	var code string
-	switch status {
+	switch entity.Status(status) {
 	case entity.StatusDone, entity.StatusMet, entity.StatusAddressed,
 		entity.StatusAccepted, entity.StatusActive:
 		code = ansiFgGreen

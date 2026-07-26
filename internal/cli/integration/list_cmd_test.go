@@ -465,7 +465,7 @@ func TestNewListCmd_CompletionWiring(t *testing.T) {
 		if dir != cobra.ShellCompDirectiveNoFileComp {
 			t.Errorf("directive = %v, want NoFileComp", dir)
 		}
-		want := entity.AllowedStatuses(entity.KindMilestone)
+		want := entity.StatusStrings(entity.AllowedStatuses(entity.KindMilestone))
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("--status (kind=milestone) completions mismatch (-want +got):\n%s", diff)
 		}

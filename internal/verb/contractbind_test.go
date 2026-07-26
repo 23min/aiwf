@@ -56,19 +56,17 @@ contracts:
   entries: []
 `
 
-func contractTree(id, status string) *tree.Tree {
+func contractTree(id string, status entity.Status) *tree.Tree {
+	if status == "" {
+		status = entity.StatusProposed
+	}
 	return &tree.Tree{
 		Entities: []*entity.Entity{{
-			ID:    id,
-			Kind:  entity.KindContract,
-			Title: "Test contract",
-			Status: func() string {
-				if status == "" {
-					return "proposed"
-				}
-				return status
-			}(),
-			Path: "work/contracts/" + id + "-test/contract.md",
+			ID:     id,
+			Kind:   entity.KindContract,
+			Title:  "Test contract",
+			Status: status,
+			Path:   "work/contracts/" + id + "-test/contract.md",
 		}},
 	}
 }

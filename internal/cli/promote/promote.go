@@ -203,11 +203,11 @@ func Run(args []string, actor, principal, root, reason,
 		}
 	}
 	if auditOnly {
-		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, newStatus, actorStr, reason)
+		result, vErr := verb.PromoteAuditOnly(ctx, tr, id, entity.Status(newStatus), actorStr, reason)
 		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 		return code
 	}
-	result, vErr := verb.Promote(ctx, tr, id, newStatus, actorStr, reason, force, resolverOpts)
+	result, vErr := verb.Promote(ctx, tr, id, entity.Status(newStatus), actorStr, reason, force, resolverOpts)
 	code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf promote", tr, result, vErr, pctx, out)
 	return code
 }
