@@ -548,7 +548,7 @@ func statusValid(t *tree.Tree) []Finding {
 				Code:     CodeStatusValid,
 				Severity: SeverityError,
 				Message: fmt.Sprintf("status %q is not allowed for kind %s (allowed: %s)",
-					e.Status, e.Kind, strings.Join(entity.AllowedStatuses(e.Kind), ", ")),
+					e.Status, e.Kind, strings.Join(entity.StatusStrings(entity.AllowedStatuses(e.Kind)), ", ")),
 				Path:     e.Path,
 				EntityID: e.ID,
 				Field:    "status",

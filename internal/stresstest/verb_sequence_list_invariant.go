@@ -63,7 +63,7 @@ func classifyListInvariant(label string, gotRows []listRow, wantEntities []*enti
 		want[entity.Canonicalize(e.ID)] = &listRow{
 			ID:     entity.Canonicalize(e.ID),
 			Kind:   string(e.Kind),
-			Status: e.Status,
+			Status: string(e.Status),
 			Title:  e.Title,
 			Parent: entity.Canonicalize(e.Parent),
 			Path:   e.Path,

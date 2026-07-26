@@ -189,7 +189,7 @@ func TestCancelAuditOnly_AcceptsBothContractTerminals(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name           string
-		terminalStatus string
+		terminalStatus entity.Status
 	}{
 		{"rejected", entity.StatusRejected},
 		{"retired", entity.StatusRetired},

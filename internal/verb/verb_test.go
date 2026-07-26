@@ -253,6 +253,49 @@ func TestCancel_RoundTrip(t *testing.T) {
 	}
 }
 
+// TestPromote_MetadataStatusesAreStrings pins that the promote Result's
+// Metadata from/to are plain strings, not interface-held entity.Status.
+// Metadata is a map[string]any compared in-Go (here, and by the CLI diag
+// layer); after the typed-Status retype (G-0228) a raw entity.Status
+// would fail a `== "active"` equality on dynamic-type mismatch while
+// still marshaling identically through --format=json, so only this in-Go
+// assertion catches the regression. `!=` against a string literal is
+// exactly that probe: it fails iff the stored value is not dynamic-type
+// string.
+func TestPromote_MetadataStatusesAreStrings(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
+	res, err := verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{})
+	if err != nil {
+		t.Fatalf("Promote: %v", err)
+	}
+	if res.Metadata["from"] != "proposed" {
+		t.Errorf("Metadata[from] = %#v, want dynamic-type string %q", res.Metadata["from"], "proposed")
+	}
+	if res.Metadata["to"] != "active" {
+		t.Errorf("Metadata[to] = %#v, want dynamic-type string %q", res.Metadata["to"], "active")
+	}
+}
+
+// TestCancel_MetadataStatusesAreStrings is the cancel-side twin of
+// TestPromote_MetadataStatusesAreStrings (cancel.go's metadata line).
+func TestCancel_MetadataStatusesAreStrings(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed", testActor, verb.AddOptions{}))
+	res, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)
+	if err != nil {
+		t.Fatalf("Cancel: %v", err)
+	}
+	if res.Metadata["from"] != "proposed" {
+		t.Errorf("Metadata[from] = %#v, want dynamic-type string %q", res.Metadata["from"], "proposed")
+	}
+	if res.Metadata["to"] != "cancelled" {
+		t.Errorf("Metadata[to] = %#v, want dynamic-type string %q", res.Metadata["to"], "cancelled")
+	}
+}
+
 // TestCancel_WithReason: --reason prose lands in the commit body
 // between the subject and the trailers, queryable via `git show`.
 func TestCancel_WithReason(t *testing.T) {
@@ -1222,7 +1265,7 @@ func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name           string
-		terminalStatus string
+		terminalStatus entity.Status
 	}{
 		{"rejected", entity.StatusRejected},
 		{"retired", entity.StatusRetired},

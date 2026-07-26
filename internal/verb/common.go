@@ -44,7 +44,7 @@ func pathInside(p, dir string) bool {
 
 // initialStatus is the status `aiwf add` assigns to a freshly-created
 // entity. Each kind starts at the leftmost state of its FSM.
-func initialStatus(k entity.Kind) string {
+func initialStatus(k entity.Kind) entity.Status {
 	switch k {
 	case entity.KindEpic:
 		return "proposed"

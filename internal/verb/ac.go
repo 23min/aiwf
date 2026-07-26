@@ -176,7 +176,7 @@ func batchACTrailers(compositeIDs []string, actor string) []gitops.Trailer {
 // the parent milestone file with the AC's new status, run projection
 // findings, plan the commit. Trailers carry the composite id and
 // aiwf-to: <newStatus>.
-func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force bool) (*Result, error) {
+func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor, reason string, force bool) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func promoteAC(t *tree.Tree, compositeID, newStatus, actor, reason string, force
 	if err != nil {
 		return nil, err
 	}
-	return finalizeACPlan(t, parent, modified, "promote", compositeID, ac.Status, newStatus, newStatus, actor, reason, force, nil,
+	return finalizeACPlan(t, parent, modified, "promote", compositeID, string(ac.Status), string(newStatus), string(newStatus), actor, reason, force, nil,
 		fmt.Sprintf("aiwf promote %s %s -> %s", compositeID, ac.Status, newStatus))
 }
 
@@ -250,7 +250,7 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 	// Cancel does not emit aiwf-to: per Step 5's design (target is
 	// implicit). Pass empty `to` to suppress the trailer, but report the
 	// real terminal in metadata.to (mirrors Cancel in promote.go).
-	return finalizeACPlan(t, parent, modified, "cancel", compositeID, ac.Status, "", entity.StatusCancelled, actor, reason, force, nil,
+	return finalizeACPlan(t, parent, modified, "cancel", compositeID, string(ac.Status), "", string(entity.StatusCancelled), actor, reason, force, nil,
 		fmt.Sprintf("aiwf cancel %s -> cancelled", compositeID))
 }
 

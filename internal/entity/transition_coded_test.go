@@ -23,7 +23,7 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 		cases := []struct {
 			name     string
 			kind     Kind
-			from, to string
+			from, to Status
 		}{
 			{"epic", KindEpic, "proposed", "done"},
 			{"milestone", KindMilestone, "draft", "done"},
@@ -52,7 +52,7 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 		cases := []struct {
 			name     string
 			kind     Kind
-			from, to string
+			from, to Status
 		}{
 			{"epic", KindEpic, "done", "active"},
 			{"milestone", KindMilestone, "cancelled", "in_progress"},
@@ -81,7 +81,7 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 		cases := []struct {
 			name     string
 			kind     Kind
-			from, to string
+			from, to Status
 		}{
 			{"epic", KindEpic, "proposed", "active"},
 			{"milestone", KindMilestone, "draft", "in_progress"},
@@ -105,7 +105,7 @@ func TestValidateTransition_FSMTransitionIllegalCode(t *testing.T) {
 		cases := []struct {
 			name     string
 			kind     Kind
-			from, to string
+			from, to Status
 		}{
 			{"unknown kind", Kind("bogus"), "x", "y"},
 			{"unrecognized from", KindEpic, "weird", "active"},

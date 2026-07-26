@@ -188,7 +188,7 @@ func TestManualEditFindings_NoFireOnSovereignActShape(t *testing.T) {
 		t.Skip("no sovereign-act-shapes registered; nothing to assert")
 	}
 	for _, s := range shapes {
-		t.Run(string(s.Kind)+":"+s.From+"->"+s.To, func(t *testing.T) {
+		t.Run(string(s.Kind)+":"+string(s.From)+"->"+string(s.To), func(t *testing.T) {
 			t.Parallel()
 			obs := []statusChange{
 				{
@@ -510,7 +510,7 @@ func TestFSMHistoryConsistent_ManualEditClearedByLaterAuditOnlyCommit(t *testing
 			gitops.TrailerEntity:    "M-0001",
 			gitops.TrailerActor:     "human/peter",
 			gitops.TrailerAuditOnly: "post-hoc acknowledgment of hand-edit",
-			gitops.TrailerTo:        entity.StatusInProgress,
+			gitops.TrailerTo:        string(entity.StatusInProgress),
 		})
 
 	post := FSMHistoryConsistent(context.Background(), r.root, r.tree(), nil, mustHead(t, r.root))

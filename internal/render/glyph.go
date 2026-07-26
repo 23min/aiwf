@@ -24,7 +24,7 @@ import "github.com/23min/aiwf/internal/entity"
 // the kernel's current status vocabulary; ADR-0008 keeps that
 // vocabulary stable.
 func StatusGlyph(status string) string {
-	switch status {
+	switch entity.Status(status) {
 	// ✓ — finished
 	case entity.StatusDone, entity.StatusMet, entity.StatusAddressed, entity.StatusAccepted:
 		return "✓"

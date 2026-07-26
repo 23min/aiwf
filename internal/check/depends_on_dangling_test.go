@@ -49,7 +49,7 @@ func TestDependsOnCancelled_SilentWhenReferentNotCancelled(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"referent in_progress", entity.StatusInProgress},
 		{"referent done", entity.StatusDone},
@@ -78,7 +78,7 @@ func TestDependsOnCancelled_SilentWhenDependentTerminal(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"dependent done", entity.StatusDone},
 		{"dependent cancelled", entity.StatusCancelled},
@@ -109,7 +109,7 @@ func TestDependsOnCancelled_SkipsDependentWithEmptyOrUnknownStatus(t *testing.T)
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"empty", ""},
 		{"unknown", "bogus"},

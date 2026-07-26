@@ -11,14 +11,14 @@ func TestAllowedStatuses(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		kind Kind
-		want []string
+		want []Status
 	}{
-		{KindEpic, []string{"proposed", "active", "done", "cancelled"}},
-		{KindMilestone, []string{"draft", "in_progress", "done", "cancelled"}},
-		{KindADR, []string{"proposed", "accepted", "superseded", "rejected"}},
-		{KindGap, []string{"open", "addressed", "wontfix"}},
-		{KindDecision, []string{"proposed", "accepted", "superseded", "rejected"}},
-		{KindContract, []string{"proposed", "accepted", "deprecated", "retired", "rejected"}},
+		{KindEpic, []Status{"proposed", "active", "done", "cancelled"}},
+		{KindMilestone, []Status{"draft", "in_progress", "done", "cancelled"}},
+		{KindADR, []Status{"proposed", "accepted", "superseded", "rejected"}},
+		{KindGap, []Status{"open", "addressed", "wontfix"}},
+		{KindDecision, []Status{"proposed", "accepted", "superseded", "rejected"}},
+		{KindContract, []Status{"proposed", "accepted", "deprecated", "retired", "rejected"}},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.kind), func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestIsAllowedStatus(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		kind   Kind
-		status string
+		status Status
 		want   bool
 	}{
 		{KindEpic, "active", true},
@@ -49,7 +49,7 @@ func TestIsAllowedStatus(t *testing.T) {
 		{KindEpic, "", false},
 	}
 	for _, tt := range tests {
-		t.Run(string(tt.kind)+"/"+tt.status, func(t *testing.T) {
+		t.Run(string(tt.kind)+"/"+string(tt.status), func(t *testing.T) {
 			t.Parallel()
 			if got := IsAllowedStatus(tt.kind, tt.status); got != tt.want {
 				t.Errorf("IsAllowedStatus(%s, %q) = %v, want %v", tt.kind, tt.status, got, tt.want)
@@ -329,7 +329,7 @@ func TestAllowedStatuses_DelegatesToSchemas(t *testing.T) {
 	for _, k := range AllKinds() {
 		s, _ := SchemaForKind(k)
 		got := AllowedStatuses(k)
-		if diff := strings.Join(got, ","); diff != strings.Join(s.AllowedStatuses, ",") {
+		if diff := strings.Join(StatusStrings(got), ","); diff != strings.Join(StatusStrings(s.AllowedStatuses), ",") {
 			t.Errorf("kind %v: AllowedStatuses=%v, schema.AllowedStatuses=%v", k, got, s.AllowedStatuses)
 		}
 	}
@@ -348,7 +348,7 @@ func TestIDFormat_DelegatesToSchemas(t *testing.T) {
 func TestIsAllowedACStatus(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		status string
+		status Status
 		want   bool
 	}{
 		{"open", true},
@@ -361,7 +361,7 @@ func TestIsAllowedACStatus(t *testing.T) {
 		{"OPEN", false}, // case-sensitive
 	}
 	for _, tt := range tests {
-		t.Run(tt.status, func(t *testing.T) {
+		t.Run(string(tt.status), func(t *testing.T) {
 			t.Parallel()
 			if got := IsAllowedACStatus(tt.status); got != tt.want {
 				t.Errorf("IsAllowedACStatus(%q) = %v, want %v", tt.status, got, tt.want)

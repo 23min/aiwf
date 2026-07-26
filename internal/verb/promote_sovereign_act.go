@@ -27,7 +27,7 @@ import (
 // coherence rule (`aiwf-force requires a human/ actor`) ensures
 // non-human + --force still fails at the coherence chokepoint, so the
 // override path is human-only by construction.
-func requireHumanActorForSovereignAct(kind entity.Kind, from, to, actor string) error {
+func requireHumanActorForSovereignAct(kind entity.Kind, from, to entity.Status, actor string) error {
 	if !entity.IsSovereignActShape(kind, from, to) {
 		return nil
 	}

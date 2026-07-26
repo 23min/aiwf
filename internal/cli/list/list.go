@@ -134,7 +134,7 @@ func NewCmd(correlationID string) *cobra.Command {
 		if k == "" {
 			return UnionAllStatuses(), cobra.ShellCompDirectiveNoFileComp
 		}
-		return entity.AllowedStatuses(entity.Kind(k)), cobra.ShellCompDirectiveNoFileComp
+		return entity.StatusStrings(entity.AllowedStatuses(entity.Kind(k))), cobra.ShellCompDirectiveNoFileComp
 	})
 	_ = cmd.RegisterFlagCompletionFunc("parent", cliutil.CompleteEntityIDFlag(""))
 	_ = cmd.RegisterFlagCompletionFunc("area", cliutil.CompleteAreaFlag())
@@ -155,11 +155,11 @@ func UnionAllStatuses() []string {
 	var out []string
 	for _, k := range entity.AllKinds() {
 		for _, s := range entity.AllowedStatuses(k) {
-			if _, ok := seen[s]; ok {
+			if _, ok := seen[string(s)]; ok {
 				continue
 			}
-			seen[s] = struct{}{}
-			out = append(out, s)
+			seen[string(s)] = struct{}{}
+			out = append(out, string(s))
 		}
 	}
 	sort.Strings(out)
@@ -305,9 +305,9 @@ func IsKnownKind(s string) bool {
 // Priority, so it never matches a specific level — no separate
 // kind-gate needed here, same as an untagged gap/decision.
 func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, area, priority string, archived bool) []ListSummary {
-	var statuses []string
+	var statuses []entity.Status
 	if status != "" {
-		statuses = []string{status}
+		statuses = []entity.Status{entity.Status(status)}
 	}
 	matched := tr.FilterByKindStatuses(entity.Kind(kind), statuses...)
 	canonParent := entity.Canonicalize(parent)
@@ -331,7 +331,7 @@ func BuildListRows(ctx context.Context, tr *tree.Tree, kind, status, parent, are
 		rows = append(rows, ListSummary{
 			ID:       entity.Canonicalize(e.ID),
 			Kind:     string(e.Kind),
-			Status:   e.Status,
+			Status:   string(e.Status),
 			Title:    e.Title,
 			Parent:   entity.Canonicalize(e.Parent),
 			Path:     e.Path,
@@ -440,7 +440,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		}
 		e.Kind = hit.Kind
 
-		if status != "" && e.Status != status {
+		if status != "" && e.Status != entity.Status(status) {
 			continue
 		}
 		if !archived && entity.IsTerminal(e.Kind, e.Status) {
@@ -458,7 +458,7 @@ func crossBranchListRows(ctx context.Context, tr *tree.Tree, kind, status, paren
 		rows = append(rows, ListSummary{
 			ID:             entity.Canonicalize(e.ID),
 			Kind:           string(e.Kind),
-			Status:         e.Status,
+			Status:         string(e.Status),
 			Title:          e.Title,
 			Parent:         entity.Canonicalize(e.Parent),
 			Path:           e.Path,

@@ -393,7 +393,7 @@ func TestWalkStatusChanges_RenameWithoutStatusChange(t *testing.T) {
 		t.Fatalf("expected 2 observations (pre-rename promote + post-rename promote), got %d: %+v", len(obs), obs)
 	}
 	want := []struct {
-		prior, next string
+		prior, next entity.Status
 	}{
 		{entity.StatusProposed, entity.StatusActive},
 		{entity.StatusActive, entity.StatusDone},
@@ -595,18 +595,18 @@ func (r *repoFixture) run(args ...string) string {
 // writeEntityAtRel writes an entity file at the named repo-relative
 // path with the given status. Body is the markdown content after the
 // frontmatter (empty string = body-less).
-func (r *repoFixture) writeEntityAtRel(relPath, id string, kind entity.Kind, status, body string) {
+func (r *repoFixture) writeEntityAtRel(relPath, id string, kind entity.Kind, status entity.Status, body string) {
 	r.t.Helper()
 	abs := filepath.Join(r.root, relPath)
 	r.writeEntityAt(abs, id, kind, status, body)
 }
 
-func (r *repoFixture) writeEntityAt(absPath, id string, kind entity.Kind, status, body string) {
+func (r *repoFixture) writeEntityAt(absPath, id string, kind entity.Kind, status entity.Status, body string) {
 	r.t.Helper()
 	if err := mkdirAll(filepath.Dir(absPath)); err != nil {
 		r.t.Fatalf("mkdir: %v", err)
 	}
-	content := "---\nid: " + id + "\nkind: " + string(kind) + "\ntitle: " + id + "\nstatus: " + status + "\n---\n" + body + "\n"
+	content := "---\nid: " + id + "\nkind: " + string(kind) + "\ntitle: " + id + "\nstatus: " + string(status) + "\n---\n" + body + "\n"
 	if err := writeFile(absPath, content); err != nil {
 		r.t.Fatalf("write %s: %v", absPath, err)
 	}
@@ -628,12 +628,12 @@ func (r *repoFixture) gitCommit(msg string) string {
 
 // commitEntity writes the entity at its canonical kind-derived path,
 // stages, and commits. Returns the new commit's SHA.
-func (r *repoFixture) commitEntity(id string, kind entity.Kind, status, msg string) string {
+func (r *repoFixture) commitEntity(id string, kind entity.Kind, status entity.Status, msg string) string {
 	r.t.Helper()
 	return r.commitEntityWithBody(id, kind, status, "", msg)
 }
 
-func (r *repoFixture) commitEntityWithBody(id string, kind entity.Kind, status, body, msg string) string {
+func (r *repoFixture) commitEntityWithBody(id string, kind entity.Kind, status entity.Status, body, msg string) string {
 	r.t.Helper()
 	// Use a simple kind-derived path; the walker only needs entity.Path
 	// to match the working-tree location, not the canonical aiwf
@@ -652,7 +652,7 @@ func (r *repoFixture) commitEntityWithBody(id string, kind entity.Kind, status, 
 // Used by AC-3 / AC-4 tests that need to exercise trailer-based
 // exemption predicates (aiwf-force for sovereign-act overrides,
 // aiwf-verb for verb-mediated provenance).
-func (r *repoFixture) commitEntityWithTrailers(id string, kind entity.Kind, status, msg string, trailers map[string]string) string {
+func (r *repoFixture) commitEntityWithTrailers(id string, kind entity.Kind, status entity.Status, msg string, trailers map[string]string) string {
 	r.t.Helper()
 	relPath := canonicalEntityPath(id, kind)
 	r.writeEntityAtRel(relPath, id, kind, status, "")

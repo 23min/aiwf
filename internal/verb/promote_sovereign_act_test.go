@@ -60,7 +60,7 @@ func TestPromote_EpicActive_OtherTransitionsUnaffected(t *testing.T) {
 	cases := []struct {
 		name      string
 		setup     func(r *runner) // leaves E-0001 in the appropriate starting state
-		newStatus string
+		newStatus entity.Status
 	}{
 		{
 			name: "proposed -> cancelled",
@@ -112,7 +112,7 @@ func TestPromote_EpicActive_OtherKindsUnaffected(t *testing.T) {
 		name      string
 		setup     func(r *runner) // returns with the entity created (and parent epic if needed)
 		id        string
-		newStatus string
+		newStatus entity.Status
 	}{
 		{
 			name: "milestone draft -> in_progress",

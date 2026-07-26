@@ -107,7 +107,7 @@ func WriteSchemaText(w io.Writer, schemas []entity.Schema) error {
 		if _, err := fmt.Fprintf(w, "  id format:        %s\n", s.IDFormat); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "  allowed statuses: %s\n", strings.Join(s.AllowedStatuses, ", ")); err != nil {
+		if _, err := fmt.Fprintf(w, "  allowed statuses: %s\n", strings.Join(entity.StatusStrings(s.AllowedStatuses), ", ")); err != nil {
 			return err
 		}
 		if _, err := fmt.Fprintf(w, "  required fields:  %s\n", strings.Join(s.RequiredFields, ", ")); err != nil {

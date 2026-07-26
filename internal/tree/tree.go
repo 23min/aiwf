@@ -603,10 +603,10 @@ func (t *Tree) ByKind(k entity.Kind) []*entity.Entity {
 // empty statuses means "any status". Used by both `aiwf list --kind
 // X --status Y` and `aiwf status`'s per-section slices so the two
 // verbs cannot drift on the same query.
-func (t *Tree) FilterByKindStatuses(k entity.Kind, statuses ...string) []*entity.Entity {
-	var statusSet map[string]struct{}
+func (t *Tree) FilterByKindStatuses(k entity.Kind, statuses ...entity.Status) []*entity.Entity {
+	var statusSet map[entity.Status]struct{}
 	if len(statuses) > 0 {
-		statusSet = make(map[string]struct{}, len(statuses))
+		statusSet = make(map[entity.Status]struct{}, len(statuses))
 		for _, s := range statuses {
 			statusSet[s] = struct{}{}
 		}

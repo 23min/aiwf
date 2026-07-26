@@ -260,7 +260,7 @@ func loadActiveScopeAuthSHAsForEntity(ctx context.Context, root, entityID string
 // Returns false for unknown kinds or unknown statuses (cautious; the
 // trigger should fire on real terminal moves only).
 func IsTerminalPromote(k entity.Kind, newStatus string) bool {
-	allowed := entity.AllowedTransitions(k, newStatus)
+	allowed := entity.AllowedTransitions(k, entity.Status(newStatus))
 	if allowed != nil {
 		return len(allowed) == 0
 	}

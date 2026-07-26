@@ -40,7 +40,7 @@ import (
 // Composite ids dispatch to promoteACAuditOnly. Top-level ids run
 // against the per-kind FSM only insofar as the closed-set membership
 // of newStatus must hold (an unknown status is rejected).
-func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id, newStatus, actor, reason string) (*Result, error) {
+func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id string, newStatus entity.Status, actor, reason string) (*Result, error) {
 	_ = ctx
 	if strings.TrimSpace(reason) == "" {
 		return nil, fmt.Errorf("aiwf promote --audit-only requires a non-empty --reason")
@@ -58,7 +58,7 @@ func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id, newStatus, actor, r
 	if e.Status != newStatus {
 		return nil, fmt.Errorf("aiwf promote --audit-only: %s is at %q, not %q (audit-only records what's already true; use --force --reason to transition)", id, e.Status, newStatus)
 	}
-	trailers := auditOnlyTrailers("promote", id, actor, reason, newStatus)
+	trailers := auditOnlyTrailers("promote", id, actor, reason, string(newStatus))
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func PromoteAuditOnly(ctx context.Context, t *tree.Tree, id, newStatus, actor, r
 		Trailers:   trailers,
 		AllowEmpty: true,
 	})
-	result.Metadata = map[string]any{"entity_id": id, "to": newStatus}
+	result.Metadata = map[string]any{"entity_id": id, "to": string(newStatus)}
 	return result, nil
 }
 
@@ -130,7 +130,7 @@ func CancelAuditOnly(ctx context.Context, t *tree.Tree, id, actor, reason string
 	// reverse-lookup — every non-terminal predecessor contributes its
 	// CancelTarget — so auditonly stays in lock-step with the cancel
 	// verb's projection map without duplicating the per-kind data.
-	cancelTerminals := make(map[string]struct{})
+	cancelTerminals := make(map[entity.Status]struct{})
 	for _, predecessor := range entity.AllowedStatuses(e.Kind) {
 		if entity.IsTerminal(e.Kind, predecessor) {
 			continue
@@ -158,11 +158,11 @@ func CancelAuditOnly(ctx context.Context, t *tree.Tree, id, actor, reason string
 		Trailers:   trailers,
 		AllowEmpty: true,
 	})
-	result.Metadata = map[string]any{"entity_id": id, "to": e.Status}
+	result.Metadata = map[string]any{"entity_id": id, "to": string(e.Status)}
 	return result, nil
 }
 
-func promoteACAuditOnly(t *tree.Tree, compositeID, newStatus, actor, reason string) (*Result, error) {
+func promoteACAuditOnly(t *tree.Tree, compositeID string, newStatus entity.Status, actor, reason string) (*Result, error) {
 	_, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func promoteACAuditOnly(t *tree.Tree, compositeID, newStatus, actor, reason stri
 	if ac.Status != newStatus {
 		return nil, fmt.Errorf("aiwf promote --audit-only: %s is at %q, not %q (audit-only records what's already true)", compositeID, ac.Status, newStatus)
 	}
-	trailers := auditOnlyTrailers("promote", compositeID, actor, reason, newStatus)
+	trailers := auditOnlyTrailers("promote", compositeID, actor, reason, string(newStatus))
 	if err := finalizeAuditOnlyPlanCheck(trailers); err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func promoteACAuditOnly(t *tree.Tree, compositeID, newStatus, actor, reason stri
 		Trailers:   trailers,
 		AllowEmpty: true,
 	})
-	result.Metadata = map[string]any{"entity_id": compositeID, "to": newStatus}
+	result.Metadata = map[string]any{"entity_id": compositeID, "to": string(newStatus)}
 	return result, nil
 }
 
@@ -207,7 +207,7 @@ func cancelACAuditOnly(t *tree.Tree, compositeID, actor, reason string) (*Result
 		Trailers:   trailers,
 		AllowEmpty: true,
 	})
-	result.Metadata = map[string]any{"entity_id": compositeID, "to": entity.StatusCancelled}
+	result.Metadata = map[string]any{"entity_id": compositeID, "to": string(entity.StatusCancelled)}
 	return result, nil
 }
 
@@ -248,7 +248,7 @@ func finalizeAuditOnlyPlanCheck(trailers []gitops.Trailer) error {
 // (`done` vs `Done`) before producing a malformed commit. The check
 // hits the FSM map: a status with an entry (even an empty one — i.e.,
 // terminal) is known; an absent key is unknown.
-func isKnownStatus(k entity.Kind, status string) bool {
+func isKnownStatus(k entity.Kind, status entity.Status) bool {
 	if status == "" {
 		return false
 	}
@@ -273,23 +273,23 @@ func isKnownStatus(k entity.Kind, status string) bool {
 // transitions map. Kept tight on purpose — when a new kind/status
 // lands in entity/transition.go, this slice gets the new terminal in
 // the same commit.
-func terminalStatusesForKind(k entity.Kind) []string {
+func terminalStatusesForKind(k entity.Kind) []entity.Status {
 	switch k {
 	case entity.KindEpic, entity.KindMilestone:
-		return []string{"done", "cancelled"}
+		return []entity.Status{"done", "cancelled"}
 	case entity.KindADR, entity.KindDecision:
-		return []string{"superseded", "rejected"}
+		return []entity.Status{"superseded", "rejected"}
 	case entity.KindGap:
-		return []string{"addressed", "wontfix"}
+		return []entity.Status{"addressed", "wontfix"}
 	case entity.KindContract:
-		return []string{"retired", "rejected"}
+		return []entity.Status{"retired", "rejected"}
 	}
 	return nil
 }
 
 // isKnownACStatus reports whether status is a recognized AC status
 // (open / met / deferred / cancelled).
-func isKnownACStatus(status string) bool {
+func isKnownACStatus(status entity.Status) bool {
 	switch status {
 	case entity.StatusOpen, entity.StatusMet, entity.StatusDeferred, entity.StatusCancelled:
 		return true

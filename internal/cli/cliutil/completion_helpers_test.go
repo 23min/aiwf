@@ -25,12 +25,12 @@ func TestStatusesForID(t *testing.T) {
 		id   string
 		want []string
 	}{
-		{"epic", "E-0001", entity.AllowedStatuses(entity.KindEpic)},
-		{"milestone", "M-0007", entity.AllowedStatuses(entity.KindMilestone)},
-		{"adr", "ADR-0001", entity.AllowedStatuses(entity.KindADR)},
-		{"gap", "G-0042", entity.AllowedStatuses(entity.KindGap)},
-		{"decision", "D-0013", entity.AllowedStatuses(entity.KindDecision)},
-		{"contract", "C-0005", entity.AllowedStatuses(entity.KindContract)},
+		{"epic", "E-0001", entity.StatusStrings(entity.AllowedStatuses(entity.KindEpic))},
+		{"milestone", "M-0007", entity.StatusStrings(entity.AllowedStatuses(entity.KindMilestone))},
+		{"adr", "ADR-0001", entity.StatusStrings(entity.AllowedStatuses(entity.KindADR))},
+		{"gap", "G-0042", entity.StatusStrings(entity.AllowedStatuses(entity.KindGap))},
+		{"decision", "D-0013", entity.StatusStrings(entity.AllowedStatuses(entity.KindDecision))},
+		{"contract", "C-0005", entity.StatusStrings(entity.AllowedStatuses(entity.KindContract))},
 		{"empty", "", nil},
 		{"composite", "M-0007/AC-1", nil},
 		{"unknown_prefix", "X-01", nil},

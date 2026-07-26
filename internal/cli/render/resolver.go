@@ -69,7 +69,7 @@ func (r *Resolver) IndexData() (*htmlrender.IndexData, error) {
 		summary := htmlrender.EpicSummary{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			FileName: idToHTMLFile(e.ID),
 		}
 		for _, m := range r.milestonesUnder(e.ID) {
@@ -157,7 +157,7 @@ func (r *Resolver) KindIndexData(plural string, includeArchived bool) (*htmlrend
 		data.Entries = append(data.Entries, htmlrender.KindIndexEntry{
 			ID:       entity.Canonicalize(e.ID),
 			Title:    e.Title,
-			Status:   e.Status,
+			Status:   string(e.Status),
 			FileName: idToHTMLFile(e.ID),
 			Archived: isArchived,
 			Priority: e.Priority,
@@ -218,7 +218,7 @@ func (r *Resolver) EpicData(id string) (*htmlrender.EpicData, error) {
 		data.Milestones = append(data.Milestones, htmlrender.MilestoneSummary{
 			ID:           canonM,
 			Title:        m.Title,
-			Status:       m.Status,
+			Status:       string(m.Status),
 			TDD:          m.TDD,
 			FileName:     idToHTMLFile(m.ID),
 			ACMet:        met,
@@ -301,7 +301,7 @@ func (r *Resolver) MilestoneData(id string) (*htmlrender.MilestoneData, error) {
 		detail := htmlrender.ACDetail{
 			ID:          ac.ID,
 			Title:       ac.Title,
-			Status:      ac.Status,
+			Status:      string(ac.Status),
 			TDDPhase:    ac.TDDPhase,
 			Description: acDescriptions[ac.ID],
 			Anchor:      htmlrender.ACAnchor(ac.ID),
@@ -487,7 +487,7 @@ func (r *Resolver) entityRef(e *entity.Entity) *htmlrender.EntityRef {
 	return &htmlrender.EntityRef{
 		ID:       entity.Canonicalize(e.ID),
 		Title:    e.Title,
-		Status:   e.Status,
+		Status:   string(e.Status),
 		Path:     e.Path,
 		Kind:     string(e.Kind),
 		TDD:      e.TDD,
@@ -582,7 +582,7 @@ func (r *Resolver) linkedEntitiesFor(e *entity.Entity) []htmlrender.LinkedEntity
 		out = append(out, htmlrender.LinkedEntity{
 			ID:        entity.Canonicalize(other.ID),
 			Title:     other.Title,
-			Status:    other.Status,
+			Status:    string(other.Status),
 			Kind:      string(other.Kind),
 			FileName:  idToHTMLFile(other.ID),
 			Direction: dir,

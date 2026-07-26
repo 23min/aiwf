@@ -145,7 +145,7 @@ func acsShape(t *tree.Tree) []Finding {
 					Severity: SeverityError,
 					Subcode:  "status",
 					Message: fmt.Sprintf("%s status %q is not allowed (allowed: %s)",
-						composeForMessage(e.ID, ac.ID, i), ac.Status, strings.Join(entity.AllowedACStatuses(), ", ")),
+						composeForMessage(e.ID, ac.ID, i), ac.Status, strings.Join(entity.StatusStrings(entity.AllowedACStatuses()), ", ")),
 					Path:     e.Path,
 					EntityID: composeIfValid(e.ID, ac.ID),
 					Field:    "acs",
@@ -310,7 +310,7 @@ func eachActiveMilestone(t *tree.Tree, fn func(e *entity.Entity)) {
 // terminal `status` that still carries an `open` AC. The two rules were
 // byte-identical apart from the status compared, the finding code, and
 // the status word in the message.
-func milestoneTerminalIncompleteACs(t *tree.Tree, status, code, word string) []Finding {
+func milestoneTerminalIncompleteACs(t *tree.Tree, status entity.Status, code, word string) []Finding {
 	var findings []Finding
 	eachActiveMilestone(t, func(e *entity.Entity) {
 		if e.Status != status {

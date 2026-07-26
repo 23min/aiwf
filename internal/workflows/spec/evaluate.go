@@ -95,15 +95,15 @@ func EvaluatePredicate(p Predicate, e *entity.Entity, t *tree.Tree, ctx EvalCont
 		return cmpString(p.Op, parent.TDD, p.Value)
 	case "any-child.status":
 		return anyChild(t, e, func(c *entity.Entity) (bool, error) {
-			return cmpStatusNamedSet(p.Op, c.Status, p.Value)
+			return cmpStatusNamedSet(p.Op, string(c.Status), p.Value)
 		})
 	case "any-child-ac.status":
 		return anyChildAC(e, func(ac entity.AcceptanceCriterion) (bool, error) {
-			return cmpString(p.Op, ac.Status, p.Value)
+			return cmpString(p.Op, string(ac.Status), p.Value)
 		})
 	case "all-children-acs.status":
 		return allChildrenACs(e, func(ac entity.AcceptanceCriterion) (bool, error) {
-			return cmpString(p.Op, ac.Status, p.Value)
+			return cmpString(p.Op, string(ac.Status), p.Value)
 		})
 	case "scope-reach":
 		// Verb-invocation predicate: does the actor's active scope-entity

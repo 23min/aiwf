@@ -164,8 +164,8 @@ func TestAcsShape_TitleStatusTDDPhaseAndPolicy(t *testing.T) {
 // TestAcsTDDAudit_MetWithAbsentPhaseFiresAsError below).
 func TestAcsShape_AbsentTDDPhaseNeverFires(t *testing.T) {
 	t.Parallel()
-	for _, status := range []string{"open", "met", "deferred", "cancelled"} {
-		t.Run(status, func(t *testing.T) {
+	for _, status := range []entity.Status{"open", "met", "deferred", "cancelled"} {
+		t.Run(string(status), func(t *testing.T) {
 			t.Parallel()
 			tr := makeTree(&entity.Entity{
 				ID: "M-0007", Kind: entity.KindMilestone, Title: "Foo",
@@ -439,8 +439,8 @@ func TestAcsTDDAudit_NonMetIgnored(t *testing.T) {
 // start flagging the honest empty phase.
 func TestCheckRun_EmptyPhaseACsRaiseNoShapeOrTDDAudit(t *testing.T) {
 	t.Parallel()
-	for _, status := range []string{"draft", "in_progress"} {
-		t.Run(status, func(t *testing.T) {
+	for _, status := range []entity.Status{"draft", "in_progress"} {
+		t.Run(string(status), func(t *testing.T) {
 			t.Parallel()
 			tr := makeTree(
 				&entity.Entity{

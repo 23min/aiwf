@@ -58,7 +58,7 @@ func TestM0123_AC5_ImplToSpec_EntityFSMCovered(t *testing.T) {
 
 	for _, k := range entity.AllKinds() {
 		for _, fs := range entity.AllowedStatuses(k) {
-			if !covered[k][fs] {
+			if !covered[k][string(fs)] {
 				t.Errorf("spec.Rules() missing coverage for (Kind=%q, FromState=%q): no cell references this FSM position", k, fs)
 			}
 		}
@@ -74,7 +74,7 @@ func TestM0123_AC5_ImplToSpec_ACFSMCovered(t *testing.T) {
 	covered := buildSpecCoverageMap()
 
 	for _, fs := range entity.AllowedACStatuses() {
-		if !covered[spec.KindAC][fs] {
+		if !covered[spec.KindAC][string(fs)] {
 			t.Errorf("spec.Rules() missing coverage for (Kind=KindAC, FromState=%q): no cell references this AC FSM position", fs)
 		}
 	}
@@ -214,11 +214,11 @@ func TestM0123_AC5_SpecToImpl_FromStatesResolve(t *testing.T) {
 	}
 
 	allowedByKind := map[entity.Kind]map[string]bool{
-		spec.KindAC:       stateSet(entity.AllowedACStatuses()),
+		spec.KindAC:       stateSet(entity.StatusStrings(entity.AllowedACStatuses())),
 		spec.KindTDDPhase: stateSet(append([]string{""}, entity.AllowedTDDPhases()...)),
 	}
 	for _, k := range entity.AllKinds() {
-		allowedByKind[k] = stateSet(entity.AllowedStatuses(k))
+		allowedByKind[k] = stateSet(entity.StatusStrings(entity.AllowedStatuses(k)))
 	}
 
 	for i, r := range spec.Rules() {

@@ -185,7 +185,7 @@ func TestSovereignActPromoteRegexes_TracksKernelClosedSet(t *testing.T) {
 	// matches it.
 	for i, s := range shapes {
 		prefix := entity.IDPrefix(s.Kind)
-		example := "aiwf promote " + prefix + "0001 " + s.To
+		example := "aiwf promote " + prefix + "0001 " + string(s.To)
 		if !regexes[i].MatchString(example) {
 			t.Errorf("regex[%d] (%s) does not match example invocation %q built from shape entry %+v", i, regexes[i].String(), example, s)
 		}

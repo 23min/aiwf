@@ -50,7 +50,7 @@ func TestMergedStaleOverride(t *testing.T) {
 			aheadOfTrunk: 0,
 			trunk:        &entity.Entity{Kind: entity.KindEpic, Status: entity.StatusDone, Title: "Done epic"},
 			wantStale:    true,
-			wantStatus:   entity.StatusDone,
+			wantStatus:   string(entity.StatusDone),
 			wantTitle:    "Done epic",
 		},
 		{
@@ -58,7 +58,7 @@ func TestMergedStaleOverride(t *testing.T) {
 			aheadOfTrunk: 0,
 			trunk:        &entity.Entity{Kind: entity.KindMilestone, Status: entity.StatusCancelled, Title: "Abandoned"},
 			wantStale:    true,
-			wantStatus:   entity.StatusCancelled,
+			wantStatus:   string(entity.StatusCancelled),
 			wantTitle:    "Abandoned",
 		},
 	}
@@ -191,7 +191,7 @@ func TestBuildWorktreeViews_MergedEpicTrunkTerminal(t *testing.T) {
 	if !got.Stale {
 		t.Errorf("merged worktree whose driver is terminal on trunk should be Stale; got Stale=false — the G-0172 phantom-in-flight bug")
 	}
-	if got.DriverStatus != entity.StatusDone {
+	if got.DriverStatus != string(entity.StatusDone) {
 		t.Errorf("DriverStatus = %q, want %q (trunk-authoritative, not the stale branch view)", got.DriverStatus, entity.StatusDone)
 	}
 }
@@ -253,7 +253,7 @@ func TestBuildWorktreeViews_PreservesGenuineInFlight(t *testing.T) {
 	if active.Stale {
 		t.Errorf("active driver with unmerged commits must stay non-stale; override over-fired (Stale=true)")
 	}
-	if active.DriverStatus != entity.StatusActive {
+	if active.DriverStatus != string(entity.StatusActive) {
 		t.Errorf("DriverStatus = %q, want %q (unchanged in-flight)", active.DriverStatus, entity.StatusActive)
 	}
 
@@ -261,7 +261,7 @@ func TestBuildWorktreeViews_PreservesGenuineInFlight(t *testing.T) {
 	if !localDone.Stale {
 		t.Errorf("branch-local-terminal driver should be Stale via the existing G-0153 path; got Stale=false")
 	}
-	if localDone.DriverStatus != entity.StatusDone {
+	if localDone.DriverStatus != string(entity.StatusDone) {
 		t.Errorf("DriverStatus = %q, want %q (branch-local terminal)", localDone.DriverStatus, entity.StatusDone)
 	}
 }
@@ -296,7 +296,7 @@ func TestBuildWorktreeViews_NoTrunkWorktree_NoOverride(t *testing.T) {
 	if got.Stale {
 		t.Errorf("with no trunk worktree the override must skip; driver should stay branch-local non-stale, got Stale=true")
 	}
-	if got.DriverStatus != entity.StatusActive {
+	if got.DriverStatus != string(entity.StatusActive) {
 		t.Errorf("DriverStatus = %q, want %q (branch-local, override skipped)", got.DriverStatus, entity.StatusActive)
 	}
 }

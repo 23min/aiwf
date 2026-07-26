@@ -96,7 +96,7 @@ func TestBringEntityToState(t *testing.T) {
 					t.Fatalf("lookup composite %q: %v", id, err)
 				}
 				_ = milestone
-				if ac.Status != tc.fromState {
+				if ac.Status != entity.Status(tc.fromState) {
 					t.Errorf("AC %q status = %q, want %q", id, ac.Status, tc.fromState)
 				}
 			} else {
@@ -104,7 +104,7 @@ func TestBringEntityToState(t *testing.T) {
 				if e == nil {
 					t.Fatalf("entity %q not in tree after BringEntityToState", id)
 				}
-				if e.Status != tc.fromState {
+				if e.Status != entity.Status(tc.fromState) {
 					t.Errorf("entity %q status = %q, want %q", id, e.Status, tc.fromState)
 				}
 			}
@@ -159,7 +159,7 @@ func TestNextTDDPhaseTowards(t *testing.T) {
 func TestBringEntityToState_MilestoneDoneWithACs(t *testing.T) {
 	t.Parallel()
 	f := NewCellFixture(t)
-	id := f.BringEntityToState(t, entity.KindMilestone, entity.StatusDone, BringOpts{ACs: 2})
+	id := f.BringEntityToState(t, entity.KindMilestone, string(entity.StatusDone), BringOpts{ACs: 2})
 	if id != "M-0001" {
 		t.Fatalf("BringEntityToState returned id %q, want M-0001", id)
 	}

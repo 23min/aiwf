@@ -80,7 +80,7 @@ func TestEpicTerminalNonTerminalChildren_SilentForNonTerminalEpic(t *testing.T) 
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"proposed", entity.StatusProposed},
 		{"active", entity.StatusActive},
@@ -128,7 +128,7 @@ func TestEpicTerminalNonTerminalChildren_SkipsUnknownOrEmptyChildStatus(t *testi
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"empty", ""},
 		{"unknown", "bogus"},
@@ -157,7 +157,7 @@ func TestEpicTerminalNonTerminalChildren_SkipsEpicWithEmptyOrUnknownStatus(t *te
 	t.Parallel()
 	cases := []struct {
 		name   string
-		status string
+		status entity.Status
 	}{
 		{"empty", ""},
 		{"unknown", "bogus"},

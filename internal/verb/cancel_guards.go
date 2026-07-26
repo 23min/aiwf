@@ -230,7 +230,7 @@ func (e *MilestonePromoteNonTerminalACsError) Code() string {
 // (cancel.go) and Promote (promote.go) — the two verbs' preconditions
 // differ only in which error type reports the refusal, not in the
 // check itself.
-func epicChildrenCascadeGuard(t *tree.Tree, e *entity.Entity, newStatus string, buildErr func(children []string) error) error {
+func epicChildrenCascadeGuard(t *tree.Tree, e *entity.Entity, newStatus entity.Status, buildErr func(children []string) error) error {
 	if e.Kind != entity.KindEpic || !entity.IsTerminal(entity.KindEpic, newStatus) {
 		return nil
 	}
@@ -252,7 +252,7 @@ func epicChildrenCascadeGuard(t *tree.Tree, e *entity.Entity, newStatus string, 
 // caller-specific error, kept distinct for the same reason as
 // epicChildrenCascadeGuard's. Shared by Cancel (cancel.go) and
 // Promote (promote.go).
-func milestoneACsCascadeGuard(e *entity.Entity, newStatus string, buildErr func(openACs []string) error) error {
+func milestoneACsCascadeGuard(e *entity.Entity, newStatus entity.Status, buildErr func(openACs []string) error) error {
 	if e.Kind != entity.KindMilestone || newStatus != entity.StatusCancelled {
 		return nil
 	}

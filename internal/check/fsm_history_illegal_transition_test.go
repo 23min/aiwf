@@ -223,7 +223,7 @@ func TestIsLegalTransition_Predicate(t *testing.T) {
 	cases := []struct {
 		name        string
 		kind        entity.Kind
-		prior, next string
+		prior, next entity.Status
 		want        bool
 	}{
 		// Epic legal edges.

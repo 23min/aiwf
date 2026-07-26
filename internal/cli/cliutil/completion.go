@@ -57,7 +57,7 @@ func StatusesForID(id string) []string {
 	if !ok {
 		return nil
 	}
-	return entity.AllowedStatuses(k)
+	return entity.StatusStrings(entity.AllowedStatuses(k))
 }
 
 // CompleteEntityIDs returns the live ids in the consumer repo's

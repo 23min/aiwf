@@ -58,7 +58,7 @@ func sovereignActPromoteRegexes() []*regexp.Regexp {
 		// names are user input today, but the discipline keeps the
 		// helper safe if either ever derives from less-controlled
 		// data.
-		pattern := `aiwf\s+promote\s+` + regexp.QuoteMeta(prefix) + `\S+\s+` + regexp.QuoteMeta(s.To)
+		pattern := `aiwf\s+promote\s+` + regexp.QuoteMeta(prefix) + `\S+\s+` + regexp.QuoteMeta(string(s.To))
 		out = append(out, regexp.MustCompile(pattern))
 	}
 	return out

@@ -206,7 +206,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 		}
 		v.DriverEntityID = e.ID
 		v.DriverKind = string(e.Kind)
-		v.DriverStatus = e.Status
+		v.DriverStatus = string(e.Status)
 		v.DriverTitle = e.Title
 		v.Stale = isTerminalStatus(e.Kind, e.Status)
 		// G-0172: a worktree branch fully merged into trunk carries
@@ -235,10 +235,10 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 			if parent := wtTree.ByID(e.Parent); parent != nil {
 				v.ParentEpicID = parent.ID
 				v.ParentEpicTitle = parent.Title
-				v.ParentEpicStatus = parent.Status
+				v.ParentEpicStatus = string(parent.Status)
 			}
 			for _, ac := range e.ACs {
-				v.ACs = append(v.ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
+				v.ACs = append(v.ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: string(ac.Status), TDDPhase: ac.TDDPhase})
 			}
 			// depends_on enumeration with resolved title/status.
 			// Try the worktree tree first (the operator cares about
@@ -256,7 +256,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 				if dep != nil {
 					row.ID = dep.ID
 					row.Title = dep.Title
-					row.Status = dep.Status
+					row.Status = string(dep.Status)
 				}
 				v.DependsOn = append(v.DependsOn, row)
 			}
@@ -269,7 +269,7 @@ func BuildWorktreeViews(ctx context.Context, rootDir string, tr *tree.Tree) ([]W
 					continue
 				}
 				if entity.Canonicalize(g.DiscoveredIn) == driverCanonical {
-					v.SurfacedGaps = append(v.SurfacedGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: g.Status})
+					v.SurfacedGaps = append(v.SurfacedGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: string(g.Status)})
 				}
 			}
 			sort.SliceStable(v.SurfacedGaps, func(i, j int) bool { return v.SurfacedGaps[i].ID < v.SurfacedGaps[j].ID })
@@ -457,16 +457,16 @@ func branchAiwfEvents(ctx context.Context, rootDir, branch string) []branchAiwfE
 func scopeDefiningEntity(events []branchAiwfEventRecord) string {
 	var firstActive, firstAny string
 	activeStates := map[string]bool{
-		entity.StatusActive:     true,
-		entity.StatusInProgress: true,
-		entity.TDDPhaseRed:      true,
-		entity.TDDPhaseGreen:    true,
-		entity.TDDPhaseRefactor: true,
+		string(entity.StatusActive):     true,
+		string(entity.StatusInProgress): true,
+		entity.TDDPhaseRed:              true,
+		entity.TDDPhaseGreen:            true,
+		entity.TDDPhaseRefactor:         true,
 	}
 	for _, e := range events {
 		id := parentEntity(e.Entity)
 		isScope := e.Verb == "authorize" ||
-			(e.Verb == "promote" && (activeStates[e.To] || e.To == entity.StatusDone))
+			(e.Verb == "promote" && (activeStates[e.To] || entity.Status(e.To) == entity.StatusDone))
 		if !isScope {
 			continue
 		}
@@ -544,7 +544,7 @@ func mergedStaleOverride(aheadOfTrunk int, trunkEntity *entity.Entity) (status, 
 	if !isTerminalStatus(trunkEntity.Kind, trunkEntity.Status) {
 		return "", "", false
 	}
-	return trunkEntity.Status, trunkEntity.Title, true
+	return string(trunkEntity.Status), trunkEntity.Title, true
 }
 
 // isTerminalStatus reports whether the kind's status is a terminal
@@ -552,7 +552,7 @@ func mergedStaleOverride(aheadOfTrunk int, trunkEntity *entity.Entity) (status, 
 // superseded). Mirrors entity.IsTerminalStatus when present; falls back
 // to a closed-set check here so the worktree view doesn't pull in a
 // package-level dependency for a narrowly-scoped check.
-func isTerminalStatus(kind entity.Kind, status string) bool {
+func isTerminalStatus(kind entity.Kind, status entity.Status) bool {
 	switch status {
 	case entity.StatusDone,
 		entity.StatusCancelled,
@@ -587,7 +587,7 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 			continue
 		}
 		milestoneIDs[entity.Canonicalize(m.ID)] = true
-		row := EpicChildRow{ID: m.ID, Title: m.Title, Status: m.Status}
+		row := EpicChildRow{ID: m.ID, Title: m.Title, Status: string(m.Status)}
 		for _, wt := range worktrees {
 			if wt.Branch == "" {
 				continue
@@ -614,7 +614,7 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 			}
 		}
 		if closed {
-			closesGaps = append(closesGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: g.Status})
+			closesGaps = append(closesGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: string(g.Status)})
 			continue
 		}
 		// "Surfaced" — gap.discovered_in points at this epic or any
@@ -626,7 +626,7 @@ func epicExpansion(tr *tree.Tree, epicID string, worktrees []gitops.Worktree) (m
 		}
 		di := entity.Canonicalize(g.DiscoveredIn)
 		if di == canonical || milestoneIDs[di] {
-			surfacedGaps = append(surfacedGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: g.Status})
+			surfacedGaps = append(surfacedGaps, EpicChildRow{ID: g.ID, Title: g.Title, Status: string(g.Status)})
 		}
 	}
 	sort.SliceStable(closesGaps, func(i, j int) bool { return closesGaps[i].ID < closesGaps[j].ID })
@@ -701,7 +701,7 @@ func markCheckedOutMilestone(rows []EpicChildRow, checkedOut *entity.Entity) {
 		}
 		rows[i].CheckedOut = true
 		for _, ac := range checkedOut.ACs {
-			rows[i].ACs = append(rows[i].ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: ac.Status, TDDPhase: ac.TDDPhase})
+			rows[i].ACs = append(rows[i].ACs, ACRow{ID: ac.ID, Title: ac.Title, Status: string(ac.Status), TDDPhase: ac.TDDPhase})
 		}
 		return
 	}
@@ -796,7 +796,7 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 	if v.Dirty {
 		// "dirty" is colored (yellow) rather than dimmed so it stands
 		// out — the operator wants to know about uncommitted work.
-		secondaryLine += render.Dim("  •  ", colorEnabled) + render.StatusColor("dirty", entity.StatusInProgress, colorEnabled)
+		secondaryLine += render.Dim("  •  ", colorEnabled) + render.StatusColor("dirty", string(entity.StatusInProgress), colorEnabled)
 	}
 	if _, err := fmt.Fprintln(w, secondaryLine); err != nil {
 		return err
@@ -878,9 +878,9 @@ func renderWorktreeSection(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 // done-but-not-yet-merged milestone ("right, this is the wrap step
 // in E-NNNN").
 func renderStaleSection(w io.Writer, v *WorktreeView, colorEnabled bool) error {
-	cancelledFlavor := v.DriverStatus == entity.StatusCancelled ||
-		v.DriverStatus == entity.StatusRejected ||
-		v.DriverStatus == entity.StatusWontfix
+	cancelledFlavor := entity.Status(v.DriverStatus) == entity.StatusCancelled ||
+		entity.Status(v.DriverStatus) == entity.StatusRejected ||
+		entity.Status(v.DriverStatus) == entity.StatusWontfix
 
 	// Wrap-pending: positively terminal driver with unmerged commits.
 	// Preserve the full body layout (parent epic, ACs, depends_on,
@@ -1108,17 +1108,17 @@ func renderMilestoneDriver(w io.Writer, v *WorktreeView, colorEnabled bool) erro
 func orderMilestonesByActivity(rows []EpicChildRow) []EpicChildRow {
 	out := make([]EpicChildRow, 0, len(rows))
 	for _, r := range rows {
-		if r.Status == entity.StatusInProgress {
+		if entity.Status(r.Status) == entity.StatusInProgress {
 			out = append(out, r)
 		}
 	}
 	for _, r := range rows {
-		if r.Status != entity.StatusInProgress && !isTerminalStatus("", r.Status) {
+		if entity.Status(r.Status) != entity.StatusInProgress && !isTerminalStatus("", entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}
 	for _, r := range rows {
-		if isTerminalStatus("", r.Status) {
+		if isTerminalStatus("", entity.Status(r.Status)) {
 			out = append(out, r)
 		}
 	}
@@ -1235,7 +1235,7 @@ func renderWorktreeShortDriver(b *strings.Builder, v *WorktreeView, now time.Tim
 		}
 		dirty := ""
 		if v.Dirty {
-			dirty = render.Dim("  •  ", colorEnabled) + render.StatusColor("dirty", entity.StatusInProgress, colorEnabled)
+			dirty = render.Dim("  •  ", colorEnabled) + render.StatusColor("dirty", string(entity.StatusInProgress), colorEnabled)
 		}
 		if len(ageParts) > 0 {
 			tail = render.Dim("  •  "+strings.Join(ageParts, "  •  "), colorEnabled) + dirty
@@ -1268,7 +1268,7 @@ func renderWorktreeShortTrunk(b *strings.Builder, v *WorktreeView, now time.Time
 		parts = append(parts, "last commit "+relativeAge(now.Sub(v.HeadTime)))
 	}
 	if v.Dirty {
-		parts = append(parts, render.StatusColor("dirty", entity.StatusInProgress, colorEnabled))
+		parts = append(parts, render.StatusColor("dirty", string(entity.StatusInProgress), colorEnabled))
 	}
 	fmt.Fprintf(b, "  %s\n", render.Dim(strings.Join(parts, "  •  "), colorEnabled))
 }
@@ -1485,7 +1485,7 @@ func buildOtherInFlight(tr *tree.Tree, worktreeDriverIDs map[string]bool, branch
 		if worktreeDriverIDs[canonical] {
 			return // already shown under a worktree section
 		}
-		row := OtherInFlightRow{ID: e.ID, Title: e.Title, Status: e.Status}
+		row := OtherInFlightRow{ID: e.ID, Title: e.Title, Status: string(e.Status)}
 		if b, ok := branchByEntity[canonical]; ok {
 			row.Branch = b.Name
 			row.BranchTime = b.Time

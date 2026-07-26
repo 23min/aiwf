@@ -272,7 +272,7 @@ func (s *VerbSequenceScenario) stepPromote(dir string, kind entity.Kind, id, cur
 	if err != nil { //coverage:ignore defensive: git rev-list on a repo this scenario itself just created and is still driving has no realistic failure mode
 		return current, nil, fmt.Errorf("counting commits before %s %s -> %s: %w", id, current, target, err)
 	}
-	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, target)
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, string(target))
 	if err != nil { //coverage:ignore defensive: same launch-failure class pinned at its source by TestVerbSequenceScenario_RealBinary_RunErrorsWhenBinaryMissing
 		return current, nil, fmt.Errorf("running promote %s %s: %w", id, target, err)
 	}
@@ -281,7 +281,7 @@ func (s *VerbSequenceScenario) stepPromote(dir string, kind entity.Kind, id, cur
 		return current, nil, fmt.Errorf("counting commits after %s %s -> %s: %w", id, current, target, err)
 	}
 
-	next, violations = classifyVerbSequenceStep(kind, current, target, before, after, env)
+	next, violations = classifyVerbSequenceStep(kind, current, string(target), before, after, env)
 	return next, violations, nil
 }
 
@@ -486,7 +486,7 @@ func classifySimpleStep(label string, env verbEnvelope) []Violation {
 // tagged fsm-transition-illegal and it lands no commit. Whenever
 // the verb reports success, exactly one commit must land.
 func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, after int, env verbEnvelope) (next string, violations []Violation) {
-	legal := entity.ValidateTransition(kind, current, target) == nil
+	legal := entity.ValidateTransition(kind, entity.Status(current), entity.Status(target)) == nil
 	refusedAsIllegal := env.Status == "error" && env.Error != nil && env.Error.Code == entity.CodeFSMTransitionIllegal.ID
 
 	if env.Status == "ok" {
