@@ -8,8 +8,6 @@ package add
 import (
 	"bytes"
 	"context"
-	"log/slog"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -20,7 +18,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/tree"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -162,36 +159,16 @@ func Run(k entity.Kind, title, actor, principal, root,
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf add: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf add: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf add", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. entity is unknown at bind time — add
-	// allocates the id, it doesn't take one — so this binds with an
-	// empty entity field; the JSON envelope's metadata.entity_id
-	// (populated on every mutating verb) is where a human cross-
-	// references the allocated id against this run_id.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "add", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "add", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add", out)
 	if release == nil {
@@ -562,15 +539,9 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root s
 		}
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		cliutil.Errorf("aiwf add ac: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf add ac: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf add ac", root, actor)
+	if !ok {
+		return code
 	}
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf add ac", out)
@@ -594,6 +565,6 @@ func runAC(parentID string, titles, bodyFiles []string, actor, principal, root s
 		VerbKind:     verb.VerbCreate,
 		CreationRefs: []string{parentID},
 	}
-	code, _ := cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
+	code, _ = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf add ac", tr, result, err, pctx, out)
 	return code
 }

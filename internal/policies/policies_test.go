@@ -277,3 +277,14 @@ func TestPolicy_MintIDsViaAllocate(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyMintIDsViaAllocate)
 }
+
+// TestPolicy_VerbScaffoldSingleSeam is the green-on-migrated-tree half
+// of M-0280/AC-3: the scaffold guard reports zero violations against
+// the live tree, mechanically pinning that no verb hand-rolls either
+// scaffold today (and that both allowlists stay exactly the documented
+// non-members). The red-when-re-inlined half is TestPolicyVerbScaffold_*
+// in verb_scaffold_convergence_test.go.
+func TestPolicy_VerbScaffoldSingleSeam(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyVerbScaffoldSingleSeam)
+}

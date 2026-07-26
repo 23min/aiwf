@@ -5,15 +5,12 @@ package archive
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -123,32 +120,14 @@ func archiveKindCompletions() []string {
 func Run(actor, principal, root, kind string, apply bool, out cliutil.OutputFormat) (code int) {
 	ctx := context.Background()
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
-		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf archive", nil, err, out)
-		return code
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor cannot be derived from any source
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf archive", nil, err, out)
+	rootDir, actorStr, code, ok := cliutil.ResolvePreludeEnvelope(ctx, "aiwf archive", root, actor, out)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
 	}
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. archive is a multi-entity sweep (no single
-	// TargetID), so entity stays empty, matching add.Run's own
-	// rationale.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "archive", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "archive", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	// Provenance coherence check: a non-human actor needs a principal;
 	// a human actor must not carry one. Mirrors `aiwf rewidth` and

@@ -7,14 +7,11 @@ package renamearea
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -70,34 +67,16 @@ rename reverses via the same verb with swapped args.`,
 
 // Run executes `aiwf rename-area`. Returns one of the cliutil.Exit* codes.
 func Run(oldName, newName, actor, principal, root string, out cliutil.OutputFormat) (code int) {
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		cliutil.Errorf("aiwf rename-area: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf rename-area: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf rename-area", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. rename-area operates on an area name, not a
-	// single entity, so entity stays empty (like add/archive/import).
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "rename-area", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "rename-area", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf rename-area", out)
 	if release == nil {

@@ -5,7 +5,6 @@ package rewidth
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/gitops"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -92,31 +90,14 @@ runs.`,
 func Run(actor, principal, root string, apply, skipChecks bool, out cliutil.OutputFormat) (code int) {
 	ctx := context.Background()
 
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path; the test repo always provides one
-		code, _ = cliutil.FinishVerbOutcome(ctx, root, "aiwf rewidth", nil, err, out)
-		return code
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil { //coverage:ignore cliutil.ResolveActor only fails when actor can't be derived from any source; tests always pass --actor
-		code, _ = cliutil.FinishVerbOutcome(ctx, rootDir, "aiwf rewidth", nil, err, out)
+	rootDir, actorStr, code, ok := cliutil.ResolvePreludeEnvelope(ctx, "aiwf rewidth", root, actor, out)
+	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
 	}
 
-	// M-0249: diagnostic-logging wiring, mirroring cancel.Run's own
-	// M-0238/AC-5 pattern. rewidth is a multi-entity sweep (no single
-	// TargetID), so entity stays empty, matching archive/import.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "rewidth", "", actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "rewidth", "", actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	// Provenance coherence check (mirrors `aiwf import`'s shape — bulk
 	// sweep, no per-entity scope gating). A non-human actor needs a

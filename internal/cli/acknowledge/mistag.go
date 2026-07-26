@@ -2,14 +2,11 @@ package acknowledge
 
 import (
 	"context"
-	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -72,34 +69,16 @@ func runMistag(id, actor, root, reason string, out cliutil.OutputFormat) (code i
 		cliutil.Errorln("aiwf acknowledge mistag: --reason \"...\" is required (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
-	rootDir, err := cliutil.ResolveRoot(root)
-	if err != nil {
-		//coverage:ignore ResolveRoot errors only on a broken cwd (filepath.Abs / os.Getwd); not deterministically reproducible.
-		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
-		return cliutil.ExitUsage
-	}
-	actorStr, err := cliutil.ResolveActor(actor, rootDir)
-	if err != nil {
-		cliutil.Errorf("aiwf acknowledge mistag: %v\n", err)
-		return cliutil.ExitUsage
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf acknowledge mistag", root, actor)
+	if !ok {
+		return code
 	}
 
 	ctx := context.Background()
 
-	// M-0249 follow-up: diagnostic-logging wiring, mirroring
-	// acknowledge illegal's own pattern. mistag always targets a
-	// specific entity id.
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		runID := out.CorrelationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "acknowledge-mistag", id, actorStr, runID)
-	}
+	finish := cliutil.BeginVerbDiag(rootDir, "acknowledge-mistag", id, actorStr, out.CorrelationID)
 	var sha string
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, sha) }()
+	defer finish(&code, &sha)
 
 	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf acknowledge mistag", out)
 	if release == nil {

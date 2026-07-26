@@ -1000,7 +1000,7 @@ this epic makes it a first-class, trailered, discoverable act.
 |---|---|---|
 | M-0277 | Add the aiwf milestone tdd policy-mutation verb | done |
 
-## E-0072 — CLI verb-scaffold convergence (proposed)
+## E-0072 — CLI verb-scaffold convergence (active)
 
 ### Goal
 
@@ -1008,7 +1008,7 @@ Single-source the two copy-pasted per-verb scaffolds in `internal/cli` — the d
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0278 | Extract BeginVerbDiag and migrate the verb diagnostic block | draft |
-| M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | draft |
-| M-0280 | Regression-guard structural test for the verb scaffolds | draft |
+| M-0278 | Extract BeginVerbDiag and migrate the verb diagnostic block | done |
+| M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | done |
+| M-0280 | Regression-guard structural test for the verb scaffolds | done |
 

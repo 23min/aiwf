@@ -9,7 +9,6 @@ package history
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
@@ -17,7 +16,6 @@ import (
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entityview"
-	"github.com/23min/aiwf/internal/logger"
 	"github.com/23min/aiwf/internal/render"
 	"github.com/23min/aiwf/internal/tree"
 )
@@ -70,24 +68,9 @@ func Run(id, root, format string, pretty, showAuth bool, correlationID string) (
 
 	ctx := context.Background()
 
-	// M-0249 follow-up: diagnostic-logging wiring, mirroring show.Run's
-	// own read-only rationale — history has no --actor flag, so actor
-	// resolution is best-effort only and never fails the verb
-	// (ADR-0017).
-	diagLog, closeDiagLog := cliutil.ResolveLogger(rootDir, os.Getenv)
-	defer func() { _ = closeDiagLog() }()
-	if diagLog.Enabled(ctx, slog.LevelInfo) {
-		actorStr, actorErr := cliutil.ResolveActor("", rootDir)
-		if actorErr != nil {
-			actorStr = ""
-		}
-		runID := correlationID
-		if runID == "" {
-			runID = logger.NewRunID()
-		}
-		diagLog = logger.WithVerb(diagLog, "history", id, actorStr, runID)
-	}
-	defer func() { cliutil.EmitVerbOutcome(diagLog, "verb", code, "") }()
+	finish := cliutil.BeginReadVerbDiag(rootDir, "history", id, correlationID)
+	var sha string
+	defer finish(&code, &sha)
 
 	// Resolve the queried id through prior_ids lineage so a query for
 	// an old id returns the same chronological chain as a query for

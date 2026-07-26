@@ -1,7 +1,7 @@
 ---
 id: M-0280
 title: Regression-guard structural test for the verb scaffolds
-status: draft
+status: done
 parent: E-0072
 depends_on:
     - M-0279
@@ -9,13 +9,13 @@ tdd: advisory
 acs:
     - id: AC-1
       title: Structural test asserts no verb hand-rolls the diagnostic block
-      status: open
+      status: met
     - id: AC-2
       title: Structural test asserts no verb hand-rolls the root/actor prelude
-      status: open
+      status: met
     - id: AC-3
       title: Guard test fails red if either scaffold is re-inlined
-      status: open
+      status: met
 ---
 # M-0280 — Regression-guard structural test for the verb scaffolds
 
@@ -62,3 +62,42 @@ The guard is demonstrably non-vacuous: re-inlining either scaffold into a verb t
 - E-0072 — parent epic.
 - `skill-edit-structural-test-backstop` — the existing structural-guard pattern this mirrors.
 - G-0447 — the convergent-duplication cleanup this seam completes.
+
+## Work log
+
+### AC-1 — Diagnostic-block guard
+
+`PolicyVerbScaffoldSingleSeam` (`internal/policies/verb_scaffold_convergence.go`) detects a hand-rolled diagnostic block — a direct `cliutil.ResolveLogger` / `EmitVerbOutcome` call from a verb under `internal/cli/` instead of routing through `cliutil.BeginVerbDiag` — with `upgrade` allowlisted as the documented non-member and a relocation anchor pinning the primitives to package `cliutil`. Detection is AST-based, keyed on the `cliutil.`-qualified selector, scoped to `internal/cli/`. · commit 8c267f90
+
+### AC-2 — Root/actor prelude guard
+
+Extended the policy with the prelude scaffold: a direct `cliutil.ResolveActor` — or the `ResolveActorWithSource` sibling, closing a same-package dodge — from a verb not routing through `cliutil.ResolvePrelude`. `importcmd` (three-way actor precedence), `whoami`, and `doctor` (identity display via `ResolveActorWithSource`) are allowlisted with rationale; `ResolveRoot` is deliberately unkeyed, since read verbs resolve the root alone. · commit 5e4c3b81
+
+### AC-3 — Non-vacuity
+
+Green-on-migrated-tree assertion wired via `runPolicy` (`TestPolicy_VerbScaffoldSingleSeam` → zero violations, pinning both allowlists to exactly the documented non-members); the red-when-re-inlined half is the per-scaffold fire tests; `TestPolicyVerbScaffold_RelocationAnchor` proves the guard fails loud — naming the relocated primitive — rather than rotting green if a primitive leaves `cliutil`. · commit acb9d26e
+
+Wrap-review corrections landed in commit b3837b00 (see Reviewer notes).
+
+## Decisions made during implementation
+
+No decision recorded as an ADR or `D-NNNN` entity. The two design forks — keying the prelude on `ResolveActor` + the `ResolveActorWithSource` sibling rather than a `ResolveRoot → ResolveActor` co-occurrence, and adding the relocation anchor so a future `cliutil` split fails loud rather than green-vacuously — were resolved by independent review and are recorded under Reviewer notes as the design rationale.
+
+## Validation
+
+- `go build ./...`: clean.
+- `go test ./internal/policies/...` (incl. the guard, the real-tree assertion, and the relocation-anchor test): green.
+- `make check-fast` (race tests + full `golangci-lint` set + `go vet`): clean.
+- `make coverage-gate` (diff-scoped branch coverage + firing-fixture-presence + no-stale-allowlist): green. `PolicyVerbScaffoldSingleSeam` at 97.5% statement coverage — the one uncovered arm is the `WalkGoFiles` filesystem-error path, `//coverage:ignore`d.
+- `aiwf check`: 0 error-severity findings on the milestone.
+
+## Reviewer notes
+
+- Independent fresh-context two-lens review before wrap. **Code-quality** (`wf-review-code`): APPROVE — all six load-bearing claims verified by measurement (real-tree green, fire-on-re-inline non-vacuous, both allowlists exactly the documented non-members, 97.5% branch coverage, conventions, allowlist-rationale accuracy). **Design-quality** (`wf-rethink`) on the `PolicyVerbScaffoldSingleSeam` / `verbScaffold` unit: DESIGN-SOUND — the abstraction shape, single-primitive keying, and G-0227 durability all sound, with the relocation anchor called the strongest part.
+- A pre-implementation independent design analysis shaped three choices adopted before the first commit: the relocation anchor; keying the prelude on `ResolveActor` + the `ResolveActorWithSource` sibling (a concrete same-package dodge, not a speculative one); and scoping the walk to `internal/cli/` so a non-verb package legitimately calling a primitive cannot false-positive. The rejected alternative — `ResolveRoot → ResolveActor` co-occurrence — would be weaker, since `ResolveRoot` alone is legitimate for read verbs.
+- Wrap-review corrections: the finding message now names both seams per scaffold (`BeginVerbDiag` / `BeginReadVerbDiag`; `ResolvePrelude` / `ResolvePreludeEnvelope`) so it can't misdirect a read- or envelope-verb author; `containsString` was replaced by stdlib `slices.Contains`; a walk-continuation test now asserts the per-file parse-error skip does not abort the walk.
+- Accepted, precedent-consistent trade-offs (not defects): the allowlist is per-file and blankets both of a scaffold's primitives (matching `atomic_write_chokepoint.go`); a stale allowlist entry can only suppress a finding in an already-exempt file, never hide a re-inline elsewhere. The documented blind spots — an aliased `cliutil` import and a from-scratch reimplementation of a primitive's internals — match the sibling AST policies and are not the copy-paste regression this guard protects against.
+
+## Deferrals
+
+- None. The guard adds no deferred work. G-0447 — the convergent-duplication cleanup this epic executes — remains open by design and closes when the epic wraps, not at this milestone. G-0456 (filed in M-0279) is unrelated to this guard and stays open.
