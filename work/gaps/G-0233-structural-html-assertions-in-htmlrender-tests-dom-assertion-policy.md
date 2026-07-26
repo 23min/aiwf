@@ -1,6 +1,6 @@
 ---
 id: G-0233
-title: 'Test-shape upgrades: DOM-structural htmlrender, fault harness, e2e widening'
+title: Structural HTML assertions in htmlrender tests + DOM-assertion policy
 status: open
 priority: medium
 ---
