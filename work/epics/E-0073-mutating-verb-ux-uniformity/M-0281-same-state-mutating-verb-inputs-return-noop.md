@@ -1,7 +1,7 @@
 ---
 id: M-0281
 title: Same-state mutating-verb inputs return NoOp
-status: draft
+status: in_progress
 parent: E-0073
 tdd: required
 acs:
