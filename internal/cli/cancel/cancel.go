@@ -39,7 +39,16 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, principal, root, reason, force, auditOnly, *out))
+			return cliutil.WrapExitCode(Run(Options{
+				ID:        args[0],
+				Actor:     actor,
+				Principal: principal,
+				Root:      root,
+				Reason:    reason,
+				Force:     force,
+				AuditOnly: auditOnly,
+				Out:       *out,
+			}))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer")
@@ -54,36 +63,52 @@ func NewCmd(correlationID string) *cobra.Command {
 	return cmd
 }
 
+// Options carries the `aiwf cancel` invocation inputs to Run.
+// Collapsing the previously-positional signature into a named struct
+// removes the transpose-two-strings hazard the long positional form
+// carried, mirroring internal/verb's PromoteOptions / AddOptions
+// convention at the CLI adapter boundary (G-0227).
+type Options struct {
+	ID        string
+	Actor     string
+	Principal string
+	Root      string
+	Reason    string
+	Force     bool
+	AuditOnly bool
+	Out       cliutil.OutputFormat
+}
+
 // Run executes `aiwf cancel`. Returns one of the cliutil.Exit* codes;
 // the caller (RunE in NewCmd) wraps the int in cliutil.WrapExitCode
 // so Cobra's RunE channel preserves the exit code through the run()
 // dispatcher.
-func Run(id, actor, principal, root, reason string, force, auditOnly bool, out cliutil.OutputFormat) (code int) {
-	if force && auditOnly {
+func Run(opts Options) (code int) {
+	if opts.Force && opts.AuditOnly {
 		cliutil.Errorln("aiwf cancel: --force and --audit-only cannot coexist (force makes a transition; audit-only records one that already happened)")
 		return cliutil.ExitUsage
 	}
-	if (force || auditOnly) && strings.TrimSpace(reason) == "" {
+	if (opts.Force || opts.AuditOnly) && strings.TrimSpace(opts.Reason) == "" {
 		gateFlag := "--force"
-		if auditOnly {
+		if opts.AuditOnly {
 			gateFlag = "--audit-only"
 		}
 		cliutil.Errorf("aiwf cancel: --reason \"...\" is required when %s is set (non-empty after trim)\n", gateFlag)
 		return cliutil.ExitUsage
 	}
 
-	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf cancel", root, actor)
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf cancel", opts.Root, opts.Actor)
 	if !ok { //coverage:ignore prelude resolution failure is covered by the shared helper's own tests; this per-verb short-circuit is not separately reproducible
 		return code
 	}
 
 	ctx := context.Background()
 
-	finish := cliutil.BeginVerbDiag(rootDir, "cancel", id, actorStr, out.CorrelationID)
+	finish := cliutil.BeginVerbDiag(rootDir, "cancel", opts.ID, actorStr, opts.Out.CorrelationID)
 	var sha string
 	defer finish(&code, &sha)
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel", out)
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf cancel", opts.Out)
 	if release == nil {
 		return rc
 	}
@@ -96,17 +121,17 @@ func Run(id, actor, principal, root, reason string, force, auditOnly bool, out c
 	}
 	pctx := cliutil.ProvenanceContext{
 		Actor:             actorStr,
-		Principal:         strings.TrimSpace(principal),
+		Principal:         strings.TrimSpace(opts.Principal),
 		VerbKind:          verb.VerbAct,
-		TargetID:          id,
-		IsTerminalPromote: !entity.IsCompositeID(id),
+		TargetID:          opts.ID,
+		IsTerminalPromote: !entity.IsCompositeID(opts.ID),
 	}
-	if auditOnly {
-		result, vErr := verb.CancelAuditOnly(ctx, tr, id, actorStr, reason)
-		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+	if opts.AuditOnly {
+		result, vErr := verb.CancelAuditOnly(ctx, tr, opts.ID, actorStr, opts.Reason)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, opts.Out)
 	} else {
-		result, vErr := verb.Cancel(ctx, tr, id, actorStr, reason, force)
-		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, out)
+		result, vErr := verb.Cancel(ctx, tr, opts.ID, actorStr, opts.Reason, opts.Force)
+		code, sha = cliutil.DecorateAndFinish(ctx, rootDir, "aiwf cancel", tr, result, vErr, pctx, opts.Out)
 	}
 	return code
 }

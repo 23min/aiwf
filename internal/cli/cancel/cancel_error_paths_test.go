@@ -21,9 +21,14 @@ import (
 // this milestone's scope (internal/verb has its own coverage).
 func TestRun_AuditOnlyBranch_EntityNotFound(t *testing.T) {
 	t.Parallel()
-	var out cliutil.OutputFormat
 	root := t.TempDir()
-	rc := cancel.Run("G-0001", "human/test", "", root, "manual flip from earlier", false, true, out)
+	rc := cancel.Run(cancel.Options{
+		ID:        "G-0001",
+		Actor:     "human/test",
+		Root:      root,
+		Reason:    "manual flip from earlier",
+		AuditOnly: true,
+	})
 	if rc == cliutil.ExitOK {
 		t.Errorf("audit-only cancel of a nonexistent entity: rc = ExitOK, want a non-OK exit code")
 	}

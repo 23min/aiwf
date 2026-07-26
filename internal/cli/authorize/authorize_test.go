@@ -33,18 +33,12 @@ func TestNewCmd_SmokeShape(t *testing.T) {
 func TestRun_BranchWithPauseRejected(t *testing.T) {
 	t.Parallel()
 	// pause supplies the reason; --branch must NOT be combined.
-	rc := authorize.Run(
-		"E-0001",          // id
-		"human/test",      // actor
-		"",                // root (unused; we fail before tree load)
-		"",                // to
-		"blocked by E-09", // pause
-		"",                // resume
-		"",                // reason
-		"epic/E-0001-eng", // branch
-		false,             // force
-		cliutil.OutputFormat{},
-	)
+	rc := authorize.Run(authorize.Options{
+		ID:     "E-0001",
+		Actor:  "human/test",
+		Pause:  "blocked by E-09", // pause supplies the reason
+		Branch: "epic/E-0001-eng", // must NOT be combined with --pause
+	})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}
@@ -54,18 +48,12 @@ func TestRun_BranchWithPauseRejected(t *testing.T) {
 // resume mode.
 func TestRun_BranchWithResumeRejected(t *testing.T) {
 	t.Parallel()
-	rc := authorize.Run(
-		"E-0001",
-		"human/test",
-		"",
-		"",
-		"",                // pause
-		"resume work now", // resume
-		"",
-		"epic/E-0001-eng",
-		false,
-		cliutil.OutputFormat{},
-	)
+	rc := authorize.Run(authorize.Options{
+		ID:     "E-0001",
+		Actor:  "human/test",
+		Resume: "resume work now",
+		Branch: "epic/E-0001-eng",
+	})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage (%d)", rc, cliutil.ExitUsage)
 	}

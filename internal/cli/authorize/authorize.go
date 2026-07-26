@@ -59,7 +59,18 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(args[0], actor, root, to, pause, resume, reason, branch, force, *out))
+			return cliutil.WrapExitCode(Run(Options{
+				ID:     args[0],
+				Actor:  actor,
+				Root:   root,
+				To:     to,
+				Pause:  pause,
+				Resume: resume,
+				Reason: reason,
+				Branch: branch,
+				Force:  force,
+				Out:    *out,
+			}))
 		},
 	}
 	cmd.Flags().StringVar(&actor, "actor", "", "actor for the commit trailer (default: derived from git config user.email; must be human/...)")
@@ -163,16 +174,35 @@ func branchTipSHA(rootDir, branch string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// Options carries the `aiwf authorize` invocation inputs to Run.
+// Collapsing the previously-positional signature (ten parameters, seven
+// of them adjacent strings) into a named struct removes the
+// transpose-two-strings hazard, mirroring internal/verb's
+// PromoteOptions / AddOptions convention at the CLI adapter boundary
+// (G-0227).
+type Options struct {
+	ID     string
+	Actor  string
+	Root   string
+	To     string
+	Pause  string
+	Resume string
+	Reason string
+	Branch string
+	Force  bool
+	Out    cliutil.OutputFormat
+}
+
 // Run executes `aiwf authorize`. Returns one of the cliutil.Exit* codes.
-func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, out cliutil.OutputFormat) (code int) {
+func Run(opts Options) (code int) {
 	modes := 0
-	if to != "" {
+	if opts.To != "" {
 		modes++
 	}
-	if pause != "" {
+	if opts.Pause != "" {
 		modes++
 	}
-	if resume != "" {
+	if opts.Resume != "" {
 		modes++
 	}
 	if modes != 1 {
@@ -182,11 +212,11 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	// `--reason` is meaningful only with --to (and --to --force). For
 	// --pause / --resume the flag value IS the reason; a separate
 	// --reason would be ambiguous.
-	if (pause != "" || resume != "") && reason != "" {
+	if (opts.Pause != "" || opts.Resume != "") && opts.Reason != "" {
 		cliutil.Errorln("aiwf authorize: --reason is not used with --pause / --resume; the argument to --pause/--resume is itself the reason")
 		return cliutil.ExitUsage
 	}
-	if force && to == "" {
+	if opts.Force && opts.To == "" {
 		cliutil.Errorln("aiwf authorize: --force is only meaningful with --to (overrides terminal-scope-entity refusal)")
 		return cliutil.ExitUsage
 	}
@@ -195,27 +225,27 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 	// binding. Silently ignoring --branch in those modes is a usability
 	// footgun, so refuse the combination upfront — matches the
 	// existing --reason + --pause/--resume gate above.
-	if (pause != "" || resume != "") && branch != "" {
+	if (opts.Pause != "" || opts.Resume != "") && opts.Branch != "" {
 		cliutil.Errorln("aiwf authorize: --branch is only meaningful with --to (binds a fresh scope to a ritual branch); --pause / --resume reuse the opening scope's branch")
 		return cliutil.ExitUsage
 	}
-	if force && strings.TrimSpace(reason) == "" {
+	if opts.Force && strings.TrimSpace(opts.Reason) == "" {
 		cliutil.Errorln("aiwf authorize: --force requires --reason \"...\" (non-empty after trim)")
 		return cliutil.ExitUsage
 	}
 
-	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf authorize", root, actor)
+	rootDir, actorStr, code, ok := cliutil.ResolvePrelude("aiwf authorize", opts.Root, opts.Actor)
 	if !ok {
 		return code
 	}
 
 	ctx := context.Background()
 
-	finish := cliutil.BeginVerbDiag(rootDir, "authorize", id, actorStr, out.CorrelationID)
+	finish := cliutil.BeginVerbDiag(rootDir, "authorize", opts.ID, actorStr, opts.Out.CorrelationID)
 	var sha string
 	defer finish(&code, &sha)
 
-	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf authorize", out)
+	release, rc := cliutil.AcquireRepoLock(rootDir, "aiwf authorize", opts.Out)
 	if release == nil {
 		return rc
 	}
@@ -227,57 +257,57 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 		return cliutil.ExitInternal
 	}
 
-	opts := verb.AuthorizeOptions{}
-	// M-0103 structural invariant: opts.Agent is populated ONLY in the
-	// `case to != ""` arm (i.e., only for AuthorizeOpen). Pause and
+	vOpts := verb.AuthorizeOptions{}
+	// M-0103 structural invariant: vOpts.Agent is populated ONLY in the
+	// `case opts.To != ""` arm (i.e., only for AuthorizeOpen). Pause and
 	// resume modes never carry an Agent value here, which is the second
 	// of the two gates protecting pause/resume from the AI-target
 	// preflight (the first being the preflight's location inside
-	// authorizeOpen). A refactor that filled opts.Agent for pause/
+	// authorizeOpen). A refactor that filled vOpts.Agent for pause/
 	// resume — e.g., to thread scope context into transitional
 	// commits — would, in combination with a verb-side leak of the
 	// preflight to non-Open modes, regress AC-7. The combined
 	// regression is caught by the AC-7 cli-seam test
 	// (TestRunAuthorize_PauseResume_NonRitualBranch_Accepts).
 	switch {
-	case to != "":
-		opts.Mode = verb.AuthorizeOpen
-		opts.Agent = to
-		opts.Reason = reason
-		opts.Branch = branch
-		opts.Force = force
+	case opts.To != "":
+		vOpts.Mode = verb.AuthorizeOpen
+		vOpts.Agent = opts.To
+		vOpts.Reason = opts.Reason
+		vOpts.Branch = opts.Branch
+		vOpts.Force = opts.Force
 		// M-0103 preflight inputs: only the AuthorizeOpen path on an
 		// ai/* target consumes them; --pause / --resume modes ignore
 		// them entirely. Computed once per invocation; if git fails
 		// the verb interprets the empty CurrentBranch + false
 		// BranchExists as "no ritual context detected" and refuses
 		// when the gate fires.
-		opts.CurrentBranch = currentBranch(rootDir)
-		opts.BranchExists = branchExists(rootDir, branch)
+		vOpts.CurrentBranch = currentBranch(rootDir)
+		vOpts.BranchExists = branchExists(rootDir, opts.Branch)
 		// M-0161/AC-6 (G-0206): plumb the bound branch's tip SHA
 		// so the verb can record aiwf-branch-sha:. Resolved iff
 		// Branch exists (BranchExists path); empty for the
 		// future-branch carve-out keeps the trailer absent and
 		// preserves the existing name-only behavior for that
 		// case.
-		if opts.BranchExists {
-			opts.BranchSHA = branchTipSHA(rootDir, branch)
+		if vOpts.BranchExists {
+			vOpts.BranchSHA = branchTipSHA(rootDir, opts.Branch)
 		}
 		// M-0161/AC-1 (G-0200): plumb the configured trunk
 		// short-name into the verb so the carve-out's "trunk +
 		// ritual --branch" predicate honors the configured trunk
 		// rather than the literal "main". cliutil reads aiwf.yaml
 		// and derives via Config.TrunkBranchShortName().
-		opts.TrunkShort = cliutil.ConfiguredTrunkBranchShortName(rootDir)
-	case pause != "":
-		opts.Mode = verb.AuthorizePause
-		opts.Reason = pause
-	case resume != "":
-		opts.Mode = verb.AuthorizeResume
-		opts.Reason = resume
+		vOpts.TrunkShort = cliutil.ConfiguredTrunkBranchShortName(rootDir)
+	case opts.Pause != "":
+		vOpts.Mode = verb.AuthorizePause
+		vOpts.Reason = opts.Pause
+	case opts.Resume != "":
+		vOpts.Mode = verb.AuthorizeResume
+		vOpts.Reason = opts.Resume
 	}
-	if opts.Mode == verb.AuthorizePause || opts.Mode == verb.AuthorizeResume {
-		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, id)
+	if vOpts.Mode == verb.AuthorizePause || vOpts.Mode == verb.AuthorizeResume {
+		scopes, scopesErr := cliutil.LoadEntityScopes(ctx, rootDir, opts.ID)
 		if scopesErr != nil {
 			//coverage:ignore LoadEntityScopes' `git log` only fails for
 			// a genuine git/environmental fault once cliutil.HasCommits
@@ -289,10 +319,10 @@ func Run(id, actor, root, to, pause, resume, reason, branch string, force bool, 
 			cliutil.Errorf("aiwf authorize: %v\n", scopesErr)
 			return cliutil.ExitInternal
 		}
-		opts.Scopes = scopes
+		vOpts.Scopes = scopes
 	}
 
-	result, vErr := verb.Authorize(ctx, tr, id, actorStr, opts)
-	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, out)
+	result, vErr := verb.Authorize(ctx, tr, opts.ID, actorStr, vOpts)
+	code, sha = cliutil.FinishVerb(ctx, rootDir, "aiwf authorize", result, vErr, opts.Out)
 	return code
 }

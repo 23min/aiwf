@@ -99,7 +99,19 @@ func NewCmd(correlationID string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cliutil.WrapExitCode(Run(root, kind, status, parent, area, priority, archived, format, pretty, noTrunc, correlationID))
+			return cliutil.WrapExitCode(Run(Options{
+				Root:          root,
+				Kind:          kind,
+				Status:        status,
+				Parent:        parent,
+				Area:          area,
+				Priority:      priority,
+				Archived:      archived,
+				Format:        format,
+				Pretty:        pretty,
+				NoTrunc:       noTrunc,
+				CorrelationID: correlationID,
+			}))
 		},
 	}
 	cmd.Flags().StringVar(&root, "root", "", "consumer repo root (default: discover via aiwf.yaml)")
@@ -154,14 +166,33 @@ func UnionAllStatuses() []string {
 	return out
 }
 
+// Options carries the `aiwf list` invocation inputs to Run. Collapsing
+// the previously-positional signature into a named struct removes the
+// transpose-two-strings hazard the long positional form carried (six
+// adjacent string filters), mirroring internal/verb's PromoteOptions /
+// AddOptions convention at the CLI adapter boundary (G-0227).
+type Options struct {
+	Root          string
+	Kind          string
+	Status        string
+	Parent        string
+	Area          string
+	Priority      string
+	Archived      bool
+	Format        string
+	Pretty        bool
+	NoTrunc       bool
+	CorrelationID string
+}
+
 // Run executes `aiwf list`. Returns one of the cliutil.Exit* codes.
-func Run(root, kind, status, parent, area, priority string, archived bool, format string, pretty, noTrunc bool, correlationID string) (code int) {
-	if format != "text" && format != "json" {
-		cliutil.Errorf("aiwf list: --format must be 'text' or 'json', got %q\n", format)
+func Run(opts Options) (code int) {
+	if opts.Format != "text" && opts.Format != "json" {
+		cliutil.Errorf("aiwf list: --format must be 'text' or 'json', got %q\n", opts.Format)
 		return cliutil.ExitUsage
 	}
-	if kind != "" && !IsKnownKind(kind) {
-		cliutil.Errorf("aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), kind)
+	if opts.Kind != "" && !IsKnownKind(opts.Kind) {
+		cliutil.Errorf("aiwf list: --kind must be one of %v, got %q\n", cliutil.AllKindNames(), opts.Kind)
 		return cliutil.ExitUsage
 	}
 	// Priority is a closed, Go-hardcoded set (unlike --area's operator-
@@ -169,12 +200,12 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 	// mirroring --kind's validation, not --area's undeclared-value note
 	// (M-0263 constraint: "a bad --priority value is a usage error, not
 	// a silent empty result").
-	if priority != "" && !entity.IsAllowedPriorityLevel(priority) {
-		cliutil.Errorf("aiwf list: --priority must be one of %v, got %q\n", entity.AllowedPriorityLevels(), priority)
+	if opts.Priority != "" && !entity.IsAllowedPriorityLevel(opts.Priority) {
+		cliutil.Errorf("aiwf list: --priority must be one of %v, got %q\n", entity.AllowedPriorityLevels(), opts.Priority)
 		return cliutil.ExitUsage
 	}
 
-	rootDir, err := cliutil.ResolveRoot(root)
+	rootDir, err := cliutil.ResolveRoot(opts.Root)
 	if err != nil { //coverage:ignore cliutil.ResolveRoot only fails on missing aiwf.yaml + non-existent --root path
 		cliutil.Errorf("aiwf list: %v\n", err)
 		return cliutil.ExitUsage
@@ -182,7 +213,7 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 
 	ctx := context.Background()
 
-	finish := cliutil.BeginReadVerbDiag(rootDir, "list", "", correlationID)
+	finish := cliutil.BeginReadVerbDiag(rootDir, "list", "", opts.CorrelationID)
 	var sha string
 	defer finish(&code, &sha)
 
@@ -190,7 +221,7 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 	// (E-0043, M-0174/AC-5). The filter below stays mechanical; the note
 	// only tells the operator the value they typed isn't one they
 	// declared. To stderr so it never pollutes the (stdout) result.
-	if note := cliutil.UndeclaredAreaNote(rootDir, area); note != "" {
+	if note := cliutil.UndeclaredAreaNote(rootDir, opts.Area); note != "" {
 		cliutil.Errorln(note)
 	}
 
@@ -200,17 +231,17 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 		return cliutil.ExitInternal
 	}
 
-	noArgs := kind == "" && status == "" && parent == "" && area == "" && priority == "" && !archived
+	noArgs := opts.Kind == "" && opts.Status == "" && opts.Parent == "" && opts.Area == "" && opts.Priority == "" && !opts.Archived
 	if noArgs {
 		counts := BuildListCounts(tr)
-		switch format {
+		switch opts.Format {
 		case "text":
 			RenderListCountsText(os.Stdout, counts)
 		case "json":
 			env := cliutil.OKEnvelope(counts, map[string]any{
 				"root": rootDir,
 			})
-			if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
+			if err := render.JSON(os.Stdout, env, opts.Pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 				cliutil.Errorf("aiwf list: writing output: %v\n", err)
 				return cliutil.ExitInternal
 			}
@@ -218,17 +249,17 @@ func Run(root, kind, status, parent, area, priority string, archived bool, forma
 		return cliutil.ExitOK
 	}
 
-	rows := BuildListRows(ctx, tr, kind, status, parent, area, priority, archived)
-	switch format {
+	rows := BuildListRows(ctx, tr, opts.Kind, opts.Status, opts.Parent, opts.Area, opts.Priority, opts.Archived)
+	switch opts.Format {
 	case "text":
-		w := termTitleBudget(os.Stdout, noTrunc)
+		w := termTitleBudget(os.Stdout, opts.NoTrunc)
 		RenderListRowsText(os.Stdout, rows, w, render.ColorEnabled(os.Stdout))
 	case "json":
 		env := cliutil.OKEnvelope(rows, map[string]any{
 			"root":  rootDir,
 			"count": len(rows),
 		})
-		if err := render.JSON(os.Stdout, env, pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
+		if err := render.JSON(os.Stdout, env, opts.Pretty); err != nil { //coverage:ignore render.JSON to os.Stdout fails only on a write fault (broken pipe, closed fd); not deterministically reproducible.
 			cliutil.Errorf("aiwf list: writing output: %v\n", err)
 			return cliutil.ExitInternal
 		}

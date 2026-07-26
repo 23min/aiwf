@@ -33,7 +33,7 @@ func TestRun_ModeMutex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			rc := authorize.Run("E-0001", "", "", tc.to, tc.pause, tc.resume, "", "", false, cliutil.OutputFormat{})
+			rc := authorize.Run(authorize.Options{ID: "E-0001", To: tc.to, Pause: tc.pause, Resume: tc.resume})
 			if rc != cliutil.ExitUsage {
 				t.Errorf("rc = %d, want ExitUsage", rc)
 			}
@@ -46,7 +46,7 @@ func TestRun_ModeMutex(t *testing.T) {
 // separate --reason is a usage error.
 func TestRun_ReasonNotUsedWithPauseOrResume(t *testing.T) {
 	t.Parallel()
-	rc := authorize.Run("E-0001", "", "", "", "blocked", "", "also a reason", "", false, cliutil.OutputFormat{})
+	rc := authorize.Run(authorize.Options{ID: "E-0001", Pause: "blocked", Reason: "also a reason"})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
@@ -56,7 +56,7 @@ func TestRun_ReasonNotUsedWithPauseOrResume(t *testing.T) {
 // applies to --to (overriding the terminal-scope-entity refusal).
 func TestRun_ForceRequiresTo(t *testing.T) {
 	t.Parallel()
-	rc := authorize.Run("E-0001", "", "", "", "blocked", "", "", "", true, cliutil.OutputFormat{})
+	rc := authorize.Run(authorize.Options{ID: "E-0001", Pause: "blocked", Force: true})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
@@ -66,7 +66,7 @@ func TestRun_ForceRequiresTo(t *testing.T) {
 // whitespace-only reason is rejected the same as an empty one.
 func TestRun_ForceRequiresReason(t *testing.T) {
 	t.Parallel()
-	rc := authorize.Run("E-0001", "", "", "ai/claude", "", "", "   ", "", true, cliutil.OutputFormat{})
+	rc := authorize.Run(authorize.Options{ID: "E-0001", To: "ai/claude", Reason: "   ", Force: true})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
@@ -78,7 +78,7 @@ func TestRun_ForceRequiresReason(t *testing.T) {
 func TestRun_ResolveActorFailure(t *testing.T) {
 	testutil.BrokenGitIdentity(t)
 	root := t.TempDir()
-	rc := authorize.Run("E-0001", "", root, "ai/claude", "", "", "delegate", "", false, cliutil.OutputFormat{})
+	rc := authorize.Run(authorize.Options{ID: "E-0001", Root: root, To: "ai/claude", Reason: "delegate"})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("rc = %d, want ExitUsage", rc)
 	}
