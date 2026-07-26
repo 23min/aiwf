@@ -1,6 +1,6 @@
 ---
 id: G-0227
-title: Relocate LoadEntityScopes to internal/scope + Options-struct adapters
+title: Options-struct adapters for long-signature CLI verb Run()s
 status: open
 priority: medium
 ---
