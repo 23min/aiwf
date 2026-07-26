@@ -1,7 +1,7 @@
 ---
 id: ADR-0036
 title: Same-status FSM transitions converge to NoOp, not refusal
-status: proposed
+status: accepted
 ---
 ## Context
 
