@@ -308,7 +308,7 @@ func TestCorrelationID_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 	t.Setenv("AIWF_LOG_FORMAT", "json")
 	t.Setenv("AIWF_LOG_FILE", logPath)
 
-	rc := cancel.Run("G-0001", "human/test", "", root, "no longer needed", false, false, cliutil.OutputFormat{})
+	rc := cancel.Run(cancel.Options{ID: "G-0001", Actor: "human/test", Root: root, Reason: "no longer needed"})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("cancel.Run: rc=%d", rc)
 	}
@@ -528,7 +528,7 @@ func TestCorrelationID_AuthorizeFallsBackWhenOutputFormatCarriesNone(t *testing.
 	t.Setenv("AIWF_LOG_FORMAT", "json")
 	t.Setenv("AIWF_LOG_FILE", logPath)
 
-	rc := authorize.Run("M-0001", "human/test", root, "ai/claude", "", "", "", "", false, cliutil.OutputFormat{})
+	rc := authorize.Run(authorize.Options{ID: "M-0001", Actor: "human/test", Root: root, To: "ai/claude"})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("authorize.Run: rc=%d", rc)
 	}

@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0227: Options-struct adapters at the long-signature CLI verb Run boundaries
+
+- Internal refactor, no user-visible change — flag parsing, output, and
+  `--format=json` envelopes are byte-identical. The three CLI verbs with the
+  longest positional `Run(...)` signatures — `list` (11 params), `authorize`
+  (10), `cancel` (8) — now take a single named `Options` struct at the adapter
+  boundary, mirroring `internal/verb`'s `PromoteOptions` / `AddOptions`
+  convention and removing the transpose-two-adjacent-strings hazard the
+  positional form carried. Addresses G-0227.
+
 ## [0.30.0] — 2026-07-26
 
 ### Changed — E-0072: single-sourced the two per-verb CLI scaffolds
