@@ -1000,7 +1000,7 @@ this epic makes it a first-class, trailered, discoverable act.
 |---|---|---|
 | M-0277 | Add the aiwf milestone tdd policy-mutation verb | done |
 
-## E-0072 — CLI verb-scaffold convergence (active)
+## E-0072 — CLI verb-scaffold convergence (done)
 
 ### Goal
 
