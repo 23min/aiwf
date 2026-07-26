@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: promote to current status returns NoOp instead of an error
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: cancel of an already-terminal entity returns NoOp
       status: open
