@@ -1,8 +1,10 @@
 ---
 id: G-0228
 title: Typed Status enum in internal/entity
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 85a61c3963e1cb4150f8271fe8719fac84e19dbe
 ---
 ## What's missing
 
