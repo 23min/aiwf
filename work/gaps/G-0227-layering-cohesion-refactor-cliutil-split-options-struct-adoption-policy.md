@@ -6,24 +6,21 @@ priority: medium
 ---
 ## What's missing
 
-A consolidated refactor of the Cobra-adapter ring that (a) splits the `internal/cli/cliutil/` grab-bag along its own package-doc fault lines, (b) extends the `internal/verb/` `Options`-struct pattern outward one layer to the `cli/<verb>/Run(...)` adapters that still carry 8–10 positional flag parameters, (c) relocates the one domain-shaped helper that drifted upward, and (d) lands a kernel policy test that pins the layering direction mechanically so the next sideways/upward import gets caught at CI time rather than at the next audit.
+One genuine layering fix, plus one contained readability cleanup. The regression guard this gap was named around — `internal/policies/layering_direction.go`, the AST policy that pins the canonical import direction — has already landed, so the load-bearing piece is banked; what remains is targeted cleanup, not a refactor.
 
-Specific work, file-level:
+1. **Relocate `internal/cli/cliutil/scopes.go`'s `LoadEntityScopes` to `internal/scope/`.** This is a real upward-import inversion, not mere drift: two *lower-layer* packages — `internal/entityview/scopeguard.go` and `internal/cellcoverage/authorized_scope.go` — call it, reaching up into the cli-support layer for a domain helper that walks entity history. It's exactly why the layering policy carries `internal/cellcoverage` as its one allowlisted exception. Move the function down into `internal/scope/` (the package already exists; 7 non-test callers), then **delete the `internal/cellcoverage` allowlist entry** in `layering_direction.go` — turning a documented exception into a clean rule. That deletion is the mechanical evidence the relocation worked.
+2. **Adopt an `Options`-struct at the `cli/<verb>/Run(...)` boundary** for the verbs with long positional signatures — `list.Run` takes 11 positional params, `authorize.Run` 10, `cancel.Run` 8 — mirroring what `internal/verb/` already does with `PromoteOptions` / `AddOptions`. A transpose-two-strings hazard today; one struct per verb, ~one caller each. Independent per-verb polish, do the ones that are in the way.
 
-1. **Split `internal/cli/cliutil/`** into four focused packages along the seams its own package-doc already names: `internal/cli/cliidentity/` (actor/principal resolution), `internal/cli/clioutput/` (formatter, envelope helpers), `internal/cli/cligitstate/` (lock, repo-state helpers), `internal/cli/cliflagsupport/` (completion, annotation helpers). Importers update via gofmt-aware rewrites.
-2. **Relocate `internal/cli/cliutil/scopes.go`'s `LoadEntityScopes`** to `internal/scope/history.go` — it's domain-shaped (walks entity history) and currently sits one layer above the domain it operates on.
-3. **Adopt `Options`-struct at `cli/<verb>/Run(...)` boundary** for the four verbs the scorecard named (`list`, `cancel`, `authorize`, `milestone`) — mirrors what `internal/verb/` already does with `PromoteOptions` / `ContractBindOptions` / `AddOptions`. One level deep; not a wholesale rewrite of every cmd.
-4. **Consider splitting `internal/cli/render/resolver.go`** (785 lines, 24 methods on one `Resolver` type) into per-page sub-files (`resolver_epic.go`, `resolver_milestone.go`, `resolver_entity.go`, `resolver_index.go`). One file per page-shape; the type stays one type.
-5. **Add `internal/policies/layering_direction.go`** — an AST-level policy test that asserts the canonical import direction: `cmd → cli → verb → check|render|htmlrender|initrepo → tree|scope|trunk|contractcheck → entity|gitops|aiwfyaml|config → codes|pathutil`. Any upward or sideways import outside a documented allowlist (`internal/cellcoverage` is the existing exception) fails CI. The `internal/cellcoverage` exception is allowlisted by name + rationale.
+## Out of scope
+
+**No cliutil package split.** The original scope proposed cleaving `internal/cli/cliutil/` into four sub-packages (`cliidentity` / `clioutput` / `cligitstate` / `cliflagsupport`). The premise doesn't hold: the package doc names ~nine responsibilities, not a clean four-way seam, and the 26 files are already single-responsibility per file (`actor.go`, `lock.go`, `completion.go`, …). The "grab-bag" smell is aesthetic. Against it: 244 files import cliutil, so a split rewrites all of them and leaves each caller importing several sub-packages instead of one — worse ergonomics for no coupling reduction (they're all the same layer). With the layering policy already guarding direction, there's no chokepoint pressure forcing this, and it's refactor-for-its-own-sake against Strong-verdict code.
+
+**No `resolver.go` file-split.** Splitting `internal/cli/render/resolver.go` (~785 lines, 24 methods on one `Resolver`) into per-page sub-files is pure file-organization — the type stays one type. Cosmetic; not worth the churn.
 
 ## Why it matters
 
-The A1 / A2 / A3 verdicts were all Strong but the adversarial passes named the cliutil grab-bag, the positional-param shape, and the `scopes.go` latent inversion as concentrated mid-layer smell. Today nothing in CI tells the next contributor "you broke layering" — the property exists by reviewer vigilance and prior-discipline momentum. The layering policy test is the load-bearing piece: cleanup without a chokepoint reverts.
+The A1–A3 verdicts were all Strong; the concrete residue worth acting on is the `scopes.go` upward import, because it's the one item that measurably improves the layering the gap is named after and lets the policy shed its lone exception. The positional-param structs are a modest safety win. The two dropped items are aesthetic reorganizations the landed layering policy already makes unnecessary to force.
 
 ## Source
 
-`docs/archive/pocv3/health-scorecard-2026-06-04.md` §A1 (recommended moves 1–3), §A2 (move 2: codify layering doctrine), §A3 (moves 1–2).
-
-## Notes
-
-Only item 5 has landed: `internal/policies/layering_direction.go` (commit `2be5729b`), whose own commit message states "does not close the gap." Items 1–4 are unaddressed — `internal/cli/cliutil/` is still one ~30-file package with no `cliidentity`/`clioutput`/`cligitstate`/`cliflagsupport` split; `LoadEntityScopes` still lives in `cliutil/scopes.go`, not `internal/scope/`; `list`/`cancel`/`authorize`/`milestone`'s `Run(...)` adapters still take 8–11 positional parameters with no `Options` struct; and `internal/cli/render/resolver.go` is still one 800+ line file.
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §A1 (move: relocate the drifted helper), §A3 (move: Options-struct at the adapter boundary).
