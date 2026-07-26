@@ -48,8 +48,13 @@ re-running it against an already-acknowledged SHA today appends a duplicate empt
 audit commit — the "re-running creates duplicates" smell the scorecard's C2 noted.
 
 The convergence is codified as a policy invariant (AC-6) so it cannot rot back to
-one-of as new verbs land. No ADR: this completes a pattern already live in four
-verbs rather than introducing a new kernel decision.
+one-of as new verbs land. For the field-mutation verbs (`move`, `rename`,
+`retitle`, `acknowledge-illegal`) this completes a pattern already live in four
+verbs. For the FSM-transition verbs (`promote`, `cancel`) it is a kernel-semantics
+change — same-status is reclassified from FSM refusal to a first-class NoOp,
+recorded in ADR-0036 — because the one-directional FSM encoded "same-status is
+refused" across four correctness surfaces (the FSM, the legal-workflow spec, the
+negative-driver, the stresstest oracle) that this milestone updates to model NoOp.
 
 **Design note — the `promote` wrinkle.** `promote` already has a legitimate
 same-status *mutation*: when a resolver flag is supplied it sets a resolver
@@ -103,4 +108,19 @@ every mutating verb in `internal/verb/` has at least one test case that drives i
 with same-state input and asserts `Result.NoOp == true`. By-design-additive verbs
 (`add`, `authorize-open`, `edit-body --body-file`) are allowlisted, each with a
 one-line rationale.
+
+## Decisions made during implementation
+
+- **ADR-0036** — Same-status FSM transitions converge to NoOp, not refusal.
+  Surfaced while implementing AC-1: the one-directional FSM classified a
+  same-status promote as illegal-and-refused across four correctness surfaces, so
+  making it a NoOp is a kernel-semantics decision, not a local guard.
+
+## Work log
+
+### AC-1 — promote same-status returns NoOp
+NoOp guard in `verb.Promote` gated on no resolver flag; same-status reclassified
+from FSM refusal to a first-class NoOp and the four FSM-legality oracles updated
+to model it. commit b0ea0a17 · tests: verb + CLI-seam + negative-driver +
+stresstest classify, all green.
 
