@@ -6,17 +6,23 @@ priority: medium
 ---
 ## What's missing
 
-Three independent test-shape upgrades that the audit surfaced under different principles but share a common shape ("the test discipline is partial; tighten it"):
+The htmlrender test suite asserts rendered-HTML structure with `strings.Contains` — a substring search that proves a literal appears *somewhere* in the output, not that it appears in the right element, id, or section. CLAUDE.md's §"Substring assertions are not structural assertions" names this exact anti-pattern. Two changes make the discipline structural:
 
-1. **htmlrender DOM-structural assertions.** Today `internal/htmlrender/htmlrender_test.go:61-181` and several integration tests use `strings.Contains` to assert anchor/id/section presence in rendered HTML. CLAUDE.md's §"Substring assertions are not structural assertions" specifically names this anti-pattern. Adopt `golang.org/x/net/html` for parse-and-traverse; add a small `internal/testutil/htmlassert/findInside(node, pred)` helper; migrate the existing substring assertions to structural ones (one PR per page-shape is fine).
-2. **`internal/policies/dom_structural_assertions.go`** — AST-level policy test forbidding `strings.Contains` against the result of any function returning HTML bytes / `template.HTML` / `[]byte` known to be HTML. Allowlist the few tests where substring is genuinely correct (free-text CLI human-output checks) with rationales.
-3. **Synthetic-fault test harness.** Today 70+ `//coverage:ignore` markers carry the rationale "requires concurrent FS mutation / requires ENOSPC / requires syscall race." Add a small fault-injection harness (`internal/testutil/fault/`) that can simulate `ENOSPC`, `EAGAIN`, mid-write process kill, lock-contention — and migrate the highest-leverage `//coverage:ignore` sites into executed tests.
-4. **Widen Playwright e2e.** `e2e/playwright/tests/render.spec.ts` is the only Playwright spec (55 tests). All 55 share one fixture project tree; a fixture-break invalidates every assertion. Add at least one second spec exercising a distinct fixture (an archive-heavy tree, a contract-heavy tree, or a multi-epic tree) so the tail-risk is bounded.
+1. **Parse-and-traverse HTML assertions.** Adopt `golang.org/x/net/html`; add a small `internal/testutil/htmlassert` helper (`findInside(node, pred)`); migrate the ~13 `strings.Contains` assertions in `internal/htmlrender/htmlrender_test.go` (plus the handful in `markdown_test.go`) to parse the DOM and assert presence inside the named element / id / section.
+2. **`internal/policies/dom_structural_assertions.go`** — an AST-level policy test forbidding `strings.Contains` against the result of any function returning HTML bytes / `template.HTML` / `[]byte` known to be HTML. Allowlist the few free-text CLI human-output checks where substring is genuinely correct, each with a one-line rationale. This is the load-bearing piece: without it the pattern creeps back as new render tests land.
+
+Scope is small — an afternoon's `wf-patch`, not a milestone.
+
+## Out of scope
+
+**No synthetic-fault harness.** The ~35 fault-shaped `//coverage:ignore` sites (ENOSPC, lock-contention, TOCTOU races between two syscalls) mark defensive error-wrap-and-return lines that carry no branch logic. Exercising them would require injecting fake-filesystem / fake-syscall seams through production code — adding shipping-code complexity to test lines that only wrap an error, against KISS and the repo's real-dependencies-over-mocks rule. The `//coverage:ignore` annotation is already the correct disposition for a genuinely-unreachable line, so this is not a gap to close.
+
+**Playwright fixture widening is deferred.** `e2e/playwright/tests/render.spec.ts` is a single 55-test spec over one fixture tree, so a fixture break invalidates every assertion — a real but bounded tail-risk. A second spec over a distinct tree (archive-heavy / contract-heavy / multi-epic) belongs in its own gap, filed if the tail-risk bites.
 
 ## Why it matters
 
-D1's verdict was Strong but flagged the substring-assertion pattern as a "known weakness" CLAUDE.md already names; D4 noted the single-spec Playwright shape; E2 noted the synthetic-fault gap. All three are "the discipline exists, here are the places it isn't applied yet."
+D1's verdict was Strong but flagged the substring-assertion pattern as a known weakness CLAUDE.md already names by hand. Turning it into a parse-and-traverse discipline plus an AST tripwire finishes the habit and keeps it finished.
 
 ## Source
 
-`docs/archive/pocv3/health-scorecard-2026-06-04.md` §D1 (all three moves), §D4 (move 2: widen Playwright), §E2 (move 1: synthetic-fault harness).
+`docs/archive/pocv3/health-scorecard-2026-06-04.md` §D1 (structural-assertion move).
