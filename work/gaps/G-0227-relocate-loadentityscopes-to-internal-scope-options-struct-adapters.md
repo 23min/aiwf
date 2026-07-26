@@ -1,6 +1,6 @@
 ---
 id: G-0227
-title: 'Layering & cohesion refactor: cliutil split + Options-struct adoption + policy'
+title: Relocate LoadEntityScopes to internal/scope + Options-struct adapters
 status: open
 priority: medium
 ---
