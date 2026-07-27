@@ -43,8 +43,13 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if target.Kind != entity.KindEpic {
 		return nil, fmt.Errorf("--epic %q is not an epic (it's a %s)", newEpicID, target.Kind)
 	}
+	// Same-state convergence (M-0281/AC-3): the milestone is already under
+	// the requested epic — there's nothing to relocate — so a re-run
+	// converges to a NoOp at exit 0 rather than an error. move is a
+	// field-mutation verb (no FSM transition), so this needs no ADR-0036
+	// oracle changes.
 	if e.Parent == newEpicID {
-		return nil, fmt.Errorf("milestone %q is already under epic %q; nothing to move", id, newEpicID)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("milestone %q is already under epic %q; nothing to move", id, newEpicID)}, nil
 	}
 
 	source := filepath.ToSlash(e.Path)
