@@ -36,6 +36,14 @@ the entity's current status, with no other field changing, converges to a
 - The resolver-flag path is unaffected: a same-status promote carrying a
   resolver flag (gap `--by`, ADR `--superseded-by`) still backfills or refuses.
   The guard is gated on no resolver flag and no field change.
+- For `cancel`, whose target is implicit (the kind's terminal end-state), the
+  convergence condition is that the entity is already at *any* terminal status,
+  not only cancel's own cancel-class terminal — a terminal entity is already
+  disposed, so cancel has nothing to project (Option A). `cancel` of a
+  success-terminal entity (a `done` epic, an `addressed` gap) is therefore a NoOp
+  too; the message still names the actual state, so an operator cancelling a
+  completed entity is informed, not misled. This is cancel's analog of promote's
+  "target equals current."
 - NoOp is a **first-class outcome** in the FSM-legality oracles. The correctness
   model becomes: *same-status FSM verb → NoOp (0 commits); a real mutation →
   exactly 1 commit.* The per-mutation-atomicity property is preserved — a NoOp
