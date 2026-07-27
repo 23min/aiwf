@@ -61,8 +61,11 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-5): the entity already lives at the
+	// requested slug, so there is nothing to move or rewrite — a re-run
+	// converges to a NoOp at exit 0 rather than an error.
 	if source == dest {
-		return nil, fmt.Errorf("new slug %q matches the current slug; nothing to rename", cleanSlug)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already named %q; nothing to rename", id, cleanSlug)}, nil
 	}
 
 	// Update the entity's path so checks see the projected location.

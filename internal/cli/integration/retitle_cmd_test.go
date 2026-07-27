@@ -130,23 +130,6 @@ func TestRetitle_EmptyTitleRejected(t *testing.T) {
 	}
 }
 
-// TestRetitle_SameTitleRejected pins the no-op guard: passing the
-// current title produces a clear error so the operator notices the
-// typo (no commit lands).
-func TestRetitle_SameTitleRejected(t *testing.T) {
-	t.Parallel()
-	root := retitleSetup(t)
-
-	rc := cli.Execute([]string{
-		"retitle", "E-0001", "Foundations",
-		"--actor", "human/test",
-		"--root", root,
-	})
-	if rc != cliutil.ExitUsage {
-		t.Errorf("retitle E-01 with same title = %d, want %d", rc, cliutil.ExitUsage)
-	}
-}
-
 // TestRetitle_UnknownIdRejected pins the missing-target guard.
 func TestRetitle_UnknownIdRejected(t *testing.T) {
 	t.Parallel()

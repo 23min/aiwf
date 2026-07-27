@@ -58,8 +58,10 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
+	// Same-state convergence (M-0281/AC-5): the title already reads as
+	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
 	if e.Title == newTitle {
-		return nil, fmt.Errorf("%s title already %q", id, newTitle)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
 	}
 
 	modified := *e
@@ -182,8 +184,9 @@ func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Resu
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-5), matching the entity-level path above.
 	if ac.Title == newTitle {
-		return nil, fmt.Errorf("%s title already %q", compositeID, newTitle)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", compositeID, newTitle)}, nil
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Title = newTitle

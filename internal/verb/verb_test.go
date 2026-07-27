@@ -1272,18 +1272,6 @@ func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
 	}
 }
 
-// TestRename_SameSlug returns an error rather than producing a no-op
-// commit.
-func TestRename_SameSlug(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Same name", testActor, verb.AddOptions{}))
-	_, err := verb.Rename(r.ctx, r.tree(), "E-0001", "same-name", testActor, 0)
-	if err == nil || !strings.Contains(err.Error(), "matches the current slug") {
-		t.Errorf("expected same-slug error, got %v", err)
-	}
-}
-
 // TestAdd_GapWithDiscoveredIn confirms the --discovered-in flag wires
 // through to the gap's frontmatter and resolves correctly.
 func TestAdd_GapWithDiscoveredIn(t *testing.T) {

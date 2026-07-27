@@ -578,21 +578,6 @@ func TestRename_CompositeUpdatesTitleAndHeading(t *testing.T) {
 	}
 }
 
-// TestRename_CompositeNoOp errors when the new title equals the
-// current one — no diff to write.
-func TestRename_CompositeNoOp(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Same title", testActor))
-
-	_, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "Same title", testActor, 0)
-	if err == nil || !strings.Contains(err.Error(), "already") {
-		t.Errorf("expected no-op error, got %v", err)
-	}
-}
-
 // TestPromoteACPhase_RoundTrip walks the full TDD cycle on a freshly-
 // created AC: "" → red → green → done. The "" → red transition is
 // the load-bearing pre-cycle entry case for ACs that didn't get an

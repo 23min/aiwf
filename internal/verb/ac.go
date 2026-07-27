@@ -265,8 +265,11 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-5): an AC carries a title but no slug,
+	// so `rename` on a composite id operates on that title — it converges the
+	// same way the entity-level rename path does.
 	if ac.Title == newTitle {
-		return nil, fmt.Errorf("%s title already %q", compositeID, newTitle)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already named %q; nothing to rename", compositeID, newTitle)}, nil
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Title = newTitle
