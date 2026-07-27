@@ -61,8 +61,11 @@ func RenameArea(
 	if oldName == "" || newName == "" {
 		return nil, fmt.Errorf("rename-area requires a non-empty <old> and <new>")
 	}
+	// Same-state convergence (M-0281/AC-7): the member already carries the
+	// requested name, so there is no aiwf.yaml edit and no entity retag to
+	// make — a re-run converges to a NoOp at exit 0 rather than an error.
 	if oldName == newName {
-		return nil, fmt.Errorf("rename-area: <old> and <new> are identical (%q); nothing to rename", oldName)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("area %q is already named %q; nothing to rename", oldName, newName)}, nil
 	}
 	// `global` is the reserved cross-cutting sentinel (ADR-0021, M-0184),
 	// never a declarable member. Refuse renaming a member to it up front —

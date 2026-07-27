@@ -3,6 +3,7 @@ package verb
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -75,6 +76,20 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		modified.DependsOn = append([]string(nil), deps...)
 	}
 
+	// Same-state convergence (M-0281/AC-7): the list already reads exactly as
+	// requested. Without this guard the verb wrote byte-identical content and
+	// still landed a commit: Apply's empty-plan guard only refuses a plan with
+	// ZERO Ops, and this plan has one write Op, while `git commit-tree` has no
+	// same-tree refusal — so every re-run appended an empty-diff commit.
+	//
+	// Compared with slices.Equal, order included: `--on` is
+	// replace-not-append, so a reordered list is a real change to the stored
+	// sequence and still commits. Placed after the dep-resolution loop above,
+	// so a bogus `--on` id is still refused rather than silently converged.
+	if slices.Equal(e.DependsOn, modified.DependsOn) {
+		return &Result{NoOp: true, NoOpMessage: dependsOnNoOpMessage(id, clearList)}, nil
+	}
+
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
 		return nil, err
@@ -87,4 +102,13 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		trailers: standardTrailers("milestone-depends-on", canonID, actor),
 		metadata: map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn},
 	})
+}
+
+// dependsOnNoOpMessage renders the same-state message for the two arms:
+// re-declaring an identical list, and clearing an already-empty one.
+func dependsOnNoOpMessage(id string, clearList bool) string {
+	if clearList {
+		return fmt.Sprintf("%s has no depends_on edges; nothing to clear", id)
+	}
+	return fmt.Sprintf("%s depends_on already reads exactly as requested; nothing to change", id)
 }

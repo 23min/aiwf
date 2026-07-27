@@ -223,16 +223,6 @@ func TestSetArea_AC3_Refusals(t *testing.T) {
 			args:      []string{"set-area", "E-0002", "platform", "--clear"},
 			wantInErr: []string{"mutually exclusive"},
 		},
-		{
-			name:      "no-op already tagged",
-			args:      []string{"set-area", "E-0002", "platform"},
-			wantInErr: []string{"already tagged"},
-		},
-		{
-			name:      "no-op clear already untagged",
-			args:      []string{"set-area", "E-0001", "--clear"},
-			wantInErr: []string{"already untagged"},
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -268,6 +258,44 @@ func TestSetArea_AC3_Refusals(t *testing.T) {
 			}
 		})
 	}
+
+	// Both same-state cases converge to a NoOp rather than refusing
+	// (M-0281/AC-7): exit 0, the message on stdout, and no commit.
+	t.Run("no-op already tagged", func(t *testing.T) {
+		root := setAreaRepo(t)
+		before := revCount(t, root)
+
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{"set-area", "E-0002", "platform", "--actor", "human/test", "--root", root})
+		})
+		if rc != cliutil.ExitOK {
+			t.Errorf("rc = %d, want ExitOK for a same-state no-op", rc)
+		}
+		if !strings.Contains(stdout, "already tagged") {
+			t.Errorf("stdout %q should carry the NoOp message", stdout)
+		}
+		if after := revCount(t, root); after != before {
+			t.Errorf("commit count = %d, want unchanged %d", after, before)
+		}
+	})
+
+	t.Run("no-op clear already untagged", func(t *testing.T) {
+		root := setAreaRepo(t)
+		before := revCount(t, root)
+
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
+			return cli.Execute([]string{"set-area", "E-0001", "--clear", "--actor", "human/test", "--root", root})
+		})
+		if rc != cliutil.ExitOK {
+			t.Errorf("rc = %d, want ExitOK for a same-state no-op clear", rc)
+		}
+		if !strings.Contains(stdout, "already untagged") {
+			t.Errorf("stdout %q should carry the NoOp message", stdout)
+		}
+		if after := revCount(t, root); after != before {
+			t.Errorf("commit count = %d, want unchanged %d", after, before)
+		}
+	})
 
 	t.Run("no areas block declared", func(t *testing.T) {
 		root := setupCLITestRepo(t)

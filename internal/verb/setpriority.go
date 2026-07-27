@@ -74,12 +74,13 @@ func SetPriority(
 		}
 	}
 
-	// No-op refusals: nothing to change.
+	// Same-state convergence (M-0281/AC-7): the priority already reads as
+	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
 	if !clearTag && e.Priority == level {
-		return nil, fmt.Errorf("%s priority is already set to %q; nothing to change", id, level)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s priority is already set to %q; nothing to change", id, level)}, nil
 	}
 	if clearTag && e.Priority == "" {
-		return nil, fmt.Errorf("%s priority is already unset; nothing to clear", id)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s priority is already unset; nothing to clear", id)}, nil
 	}
 
 	modified := *e

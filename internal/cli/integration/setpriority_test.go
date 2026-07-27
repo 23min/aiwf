@@ -272,19 +272,21 @@ func TestSetPriority_AC2_Refusals(t *testing.T) {
 		})
 	}
 
+	// Both same-state cases converge to a NoOp rather than refusing
+	// (M-0281/AC-7): exit 0, the message on stdout, and no commit.
 	t.Run("no-op already set", func(t *testing.T) {
 		root := setPriorityRepo(t)
 		mustRun(t, "set-priority", "G-0001", "high", "--actor", "human/test", "--root", root)
 		before := revCount(t, root)
 
-		rc, _, stderr := testutil.CaptureRun(t, func() int {
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
 			return cli.Execute([]string{"set-priority", "G-0001", "high", "--actor", "human/test", "--root", root})
 		})
-		if rc == cliutil.ExitOK {
-			t.Errorf("rc = ExitOK, want a refusal for no-op")
+		if rc != cliutil.ExitOK {
+			t.Errorf("rc = %d, want ExitOK for a same-state no-op", rc)
 		}
-		if !strings.Contains(stderr, "already set to") {
-			t.Errorf("stderr %q should name the no-op refusal", stderr)
+		if !strings.Contains(stdout, "already set to") {
+			t.Errorf("stdout %q should carry the NoOp message", stdout)
 		}
 		if after := revCount(t, root); after != before {
 			t.Errorf("commit count = %d, want unchanged %d", after, before)
@@ -295,14 +297,14 @@ func TestSetPriority_AC2_Refusals(t *testing.T) {
 		root := setPriorityRepo(t)
 		before := revCount(t, root)
 
-		rc, _, stderr := testutil.CaptureRun(t, func() int {
+		rc, stdout, _ := testutil.CaptureRun(t, func() int {
 			return cli.Execute([]string{"set-priority", "G-0001", "--clear", "--actor", "human/test", "--root", root})
 		})
-		if rc == cliutil.ExitOK {
-			t.Errorf("rc = ExitOK, want a refusal for no-op clear")
+		if rc != cliutil.ExitOK {
+			t.Errorf("rc = %d, want ExitOK for a same-state no-op clear", rc)
 		}
-		if !strings.Contains(stderr, "already unset") {
-			t.Errorf("stderr %q should name the no-op refusal", stderr)
+		if !strings.Contains(stdout, "already unset") {
+			t.Errorf("stdout %q should carry the NoOp message", stdout)
 		}
 		if after := revCount(t, root); after != before {
 			t.Errorf("commit count = %d, want unchanged %d", after, before)

@@ -107,12 +107,13 @@ func SetArea(
 		}
 	}
 
-	// No-op refusals: nothing to change.
+	// Same-state convergence (M-0281/AC-7): the tag already reads as
+	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
 	if !clearTag && e.Area == member {
-		return nil, fmt.Errorf("%s is already tagged %q; nothing to change", id, member)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already tagged %q; nothing to change", id, member)}, nil
 	}
 	if clearTag && e.Area == "" {
-		return nil, fmt.Errorf("%s is already untagged; nothing to clear", id)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already untagged; nothing to clear", id)}, nil
 	}
 
 	modified := *e

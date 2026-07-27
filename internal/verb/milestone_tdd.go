@@ -43,6 +43,22 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 		return nil, fmt.Errorf("%q is of kind %s, not milestone", id, e.Kind)
 	}
 
+	// Same-state convergence (M-0281/AC-7): the policy already reads as
+	// requested. This verb had no same-state guard at all, so a re-run wrote
+	// byte-identical content and landed a commit with an empty diff — a no-op
+	// commit polluting history on every repeat, the same "re-running creates
+	// duplicates" shape acknowledge-illegal carried. Converging here writes
+	// nothing.
+	//
+	// Placed before the stranded-AC check below by intent: that check guards a
+	// *flip* to `required` from stranding met-but-phaseless ACs. When the
+	// policy is already `required`, no flip is happening — any existing strand
+	// predates this call and is the `acs-tdd-audit` check rule's business,
+	// which reports it independently of this verb.
+	if e.TDD == policy {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s tdd policy is already %q; nothing to change", id, policy)}, nil
+	}
+
 	// Refuse-with-hint: a flip to `required` must not strand an
 	// already-`met` AC that has no `tdd_phase: done`. Requiring TDD
 	// after the fact cannot honestly manufacture a `red`/`done` phase
