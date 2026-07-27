@@ -137,3 +137,17 @@ mutates a field rather than status, and the verb-sequence walk always targets th
 *alternate* epic, never the current parent. commit 7387f474 · tests: verb +
 CLI-seam, full suite green.
 
+### AC-4 — acknowledge-illegal on an acknowledged SHA is a NoOp
+The duplicate-empty-audit-commit path is closed. "Already acknowledged" is
+answered by the check package's own ack walkers, so the verb's notion matches the
+rules' exactly; the blanket per-SHA and per-(SHA, entity) shapes stay independent,
+and an unwalkable history fails open to recording. Adds
+`gitops.ResolveCommitSHA` so short and full SHA spellings compare equal.
+commit dfcabfab · tests: verb (duplicate suppression asserted by commit count,
+blanket-vs-entity-bound independence, orphan SHA under an unborn HEAD) + gitops
+resolver + CLI-seam.
+
+`check.resolveFullSHA` keeps its own resolver rather than routing through the new
+gitops primitive: its `len(sha)==40` fast path returns unverified input as-is and
+seven audit rules depend on that, so converging them is a separate concern.
+
