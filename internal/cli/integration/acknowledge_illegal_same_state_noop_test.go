@@ -16,7 +16,10 @@ import (
 // is compared across the second invocation, so a regression that re-lands the
 // duplicate fails here even if the exit code stays 0.
 func TestAcknowledgeIllegal_AlreadyAcknowledged_NoOp_ExitZeroNoCommit(t *testing.T) {
-	t.Parallel()
+	// Serial by design, per this package's setup_test.go skip-list: the NoOp
+	// assertion below goes through testutil.CaptureStdout, which swaps the
+	// process-global os.Stdout. Declaring t.Parallel() here races every
+	// concurrent reader of that fd (cobra's OutOrStdout, cliutil.Println).
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foo", "--actor", "human/test", "--root", root)

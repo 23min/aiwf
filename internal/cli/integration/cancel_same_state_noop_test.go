@@ -18,7 +18,10 @@ import (
 // exit 0 here can only come from the NoOp guard — and the unchanged history
 // length proves no second commit landed.
 func TestCancel_AlreadyTerminal_NoOp_ExitZeroNoCommit(t *testing.T) {
-	t.Parallel()
+	// Serial by design, per this package's setup_test.go skip-list: the NoOp
+	// assertion below goes through testutil.CaptureStdout, which swaps the
+	// process-global os.Stdout. Declaring t.Parallel() here races every
+	// concurrent reader of that fd (cobra's OutOrStdout, cliutil.Println).
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Doomed", "--actor", "human/test", "--root", root)

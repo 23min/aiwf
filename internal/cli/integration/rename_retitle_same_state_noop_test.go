@@ -18,7 +18,10 @@ import (
 // One repo serves both verbs; the history length is checked after each so a
 // stray commit from either is attributed correctly.
 func TestRenameRetitle_SameValue_NoOp_ExitZeroNoCommit(t *testing.T) {
-	t.Parallel()
+	// Serial by design, per this package's setup_test.go skip-list: the NoOp
+	// assertion below goes through testutil.CaptureStdout, which swaps the
+	// process-global os.Stdout. Declaring t.Parallel() here races every
+	// concurrent reader of that fd (cobra's OutOrStdout, cliutil.Println).
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
 	mustRun(t, "add", "epic", "--title", "Foundations", "--actor", "human/test", "--root", root)
