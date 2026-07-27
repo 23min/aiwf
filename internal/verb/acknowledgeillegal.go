@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
@@ -100,6 +101,14 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 			return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 		}
 	}
+	// Same-state convergence (M-0281/AC-4): when HEAD's history already
+	// carries a matching ack, there is nothing left to record — return a
+	// NoOp instead of appending a duplicate empty audit commit. This is a
+	// correctness fix, not only UX polish: every re-run used to grow the
+	// history by one indistinguishable ack.
+	if ackAlreadyRecorded(ctx, root, sha, cleanedEntity) {
+		return &Result{NoOp: true, NoOpMessage: ackNoOpMessage(sha, cleanedEntity)}, nil
+	}
 	short := sha
 	if len(short) > 8 {
 		short = short[:8]
@@ -112,6 +121,60 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	})
 	result.Metadata = map[string]any{"sha": sha}
 	return result, nil
+}
+
+// ackAlreadyRecorded reports whether HEAD's reachable history already
+// carries an acknowledgment matching (sha, forEntity), so a re-run has
+// nothing to add (M-0281/AC-4).
+//
+// The two ack shapes are checked independently because they suppress
+// different rules, and the answer must mean exactly what the *check* rules
+// mean by "acknowledged" — hence the reuse of check's own walkers rather
+// than a second trailer scan here:
+//
+//   - forEntity == "" (blanket per-SHA): matches when any ack commit names
+//     this SHA in `aiwf-force-for`, which is precisely the set the seven
+//     SHA-scoped rules consult. An entity-bound ack also carries
+//     force-for, so it satisfies the blanket shape too — a later blanket
+//     ack for the same SHA would genuinely be redundant.
+//   - forEntity != "" (per-(SHA, entity)): matches only when an ack names
+//     both this SHA and this entity, the pair
+//     provenance-untrailered-entity-commit requires. A blanket-only ack
+//     does NOT cover it, so the entity-bound ack still records.
+//
+// Answers "not acknowledged" whenever it cannot establish otherwise — an
+// unwalkable history, or a HEAD carrying no commits (an orphan SHA acked
+// against an unborn HEAD, the extreme of the reflog-only case). Failing open
+// degrades to the pre-existing always-record behavior, which at worst re-lands
+// a duplicate ack; failing closed would silently skip an ack the operator
+// needs. This mirrors the fail-open-toward-firing convention check's own ack
+// walkers use when a trailer SHA won't resolve.
+func ackAlreadyRecorded(ctx context.Context, root, sha, forEntity string) bool {
+	head, err := check.WalkHeadCommits(ctx, root)
+	if err != nil || len(head) == 0 {
+		return false
+	}
+	// Normalize to the full SHA the walkers key their maps on, so a short
+	// and a full spelling of the same commit compare equal.
+	fullSHA, err := gitops.ResolveCommitSHA(ctx, root, sha)
+	if err != nil {
+		//coverage:ignore defensive: shaAckable ran first and proved sha resolves to a commit, so reaching this needs the object DB to change mid-verb
+		return false
+	}
+	if forEntity == "" {
+		return check.WalkAcknowledgedSHAs(ctx, root, head)[fullSHA]
+	}
+	return check.WalkAcknowledgedSHAEntities(ctx, root, head)[fullSHA][entity.Canonicalize(entity.CompositeRoot(forEntity))]
+}
+
+// ackNoOpMessage renders the NoOp message for an already-recorded ack,
+// naming the entity binding when the ack is the per-(SHA, entity) shape so
+// the operator sees which acknowledgment was found.
+func ackNoOpMessage(sha, forEntity string) string {
+	if forEntity == "" {
+		return fmt.Sprintf("%s is already acknowledged; nothing to record", sha)
+	}
+	return fmt.Sprintf("%s is already acknowledged for %s; nothing to record", sha, entity.Canonicalize(forEntity))
 }
 
 // verifySHATouchesEntity runs `git diff-tree --no-commit-id

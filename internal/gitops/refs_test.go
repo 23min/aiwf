@@ -110,6 +110,53 @@ func TestCommitExists(t *testing.T) {
 	}
 }
 
+// TestResolveCommitSHA pins ResolveCommitSHA's normalization: every spelling
+// that resolves to the same commit (full sha, abbreviated sha, HEAD) yields the
+// identical canonical 40-hex form, while a non-commit object (a tree) and an
+// unresolvable sha error. The abbreviated case is the one the ack-duplicate
+// guard depends on — a short and a full spelling must compare equal.
+func TestResolveCommitSHA(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	dir := initTestRepo(t)
+	commitFile(t, ctx, dir, "a.txt", "hello")
+	fullSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD")
+	shortSHA := mustOutput(t, ctx, dir, "rev-parse", "--short=8", "HEAD")
+	treeSHA := mustOutput(t, ctx, dir, "rev-parse", "HEAD^{tree}")
+
+	cases := []struct {
+		name    string
+		ref     string
+		want    string
+		wantErr bool
+	}{
+		{name: "full-sha", ref: fullSHA, want: fullSHA},
+		{name: "abbreviated-sha-normalizes-to-full", ref: shortSHA, want: fullSHA},
+		{name: "head", ref: "HEAD", want: fullSHA},
+		{name: "tree-not-commit", ref: treeSHA, wantErr: true},
+		{name: "unresolvable", ref: "deadbeef", wantErr: true},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := ResolveCommitSHA(ctx, dir, tc.ref)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("ResolveCommitSHA(%q) = %q, want an error", tc.ref, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ResolveCommitSHA(%q): %v", tc.ref, err)
+			}
+			if got != tc.want {
+				t.Errorf("ResolveCommitSHA(%q) = %q, want %q", tc.ref, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestLsTreePaths_FullTree(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
