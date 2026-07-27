@@ -32,7 +32,7 @@ acs:
     - id: AC-7
       title: Four remaining field-mutation verbs converge to NoOp on same-state input
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
