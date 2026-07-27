@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: verb_result_noop_invariant policy pins same-state NoOp across mutating verbs
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-7
       title: Four remaining field-mutation verbs converge to NoOp on same-state input
       status: open
@@ -113,6 +113,25 @@ with same-state input and asserts `Result.NoOp == true`. By-design-additive verb
 one-line rationale.
 
 ### AC-7 — Four remaining field-mutation verbs converge to NoOp on same-state input
+
+`set-area`, `set-priority`, `rename-area`, and `milestone tdd` each return
+`Result.NoOp == true` on input that already equals current state, closing the
+last non-phase holes AC-6's policy surfaced:
+
+- `set-area <id> <current-member>` and `set-area <id> --clear` on an untagged
+  entity (two guards).
+- `set-priority <id> <current-level>` and `set-priority <id> --clear` on an
+  unset priority (two guards).
+- `rename-area <name> <same-name>`.
+- `milestone tdd <M-id> --policy <current-policy>` — a **correctness** fix, not
+  only UX: this verb had no same-state guard at all, so a re-run wrote
+  byte-identical content and landed a commit with an empty diff, growing history
+  on every repeat. Its assertion checks the commit count, not just the result.
+
+`promote --phase` is deliberately excluded and carries an allowlist entry in the
+AC-6 policy: the TDD-phase ladder is audit-bearing evidence and its `--tests`
+payload makes same-phase convergence a separate design question, tracked in
+G-0458.
 
 ## Decisions made during implementation
 
