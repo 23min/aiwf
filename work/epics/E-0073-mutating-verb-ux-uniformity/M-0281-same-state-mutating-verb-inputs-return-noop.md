@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: cancel of an already-terminal entity returns NoOp
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: move to the current parent epic returns NoOp
@@ -123,4 +123,11 @@ NoOp guard in `verb.Promote` gated on no resolver flag; same-status reclassified
 from FSM refusal to a first-class NoOp and the four FSM-legality oracles updated
 to model it. commit b0ea0a17 · tests: verb + CLI-seam + negative-driver +
 stresstest classify, all green.
+
+### AC-2 — cancel of a terminal entity returns NoOp
+`verb.Cancel`'s terminal guard flips from a coded FSM refusal to a NoOp (Option A:
+any terminal, not only cancel's cancel-class terminal). The concurrent-milestone-
+race oracle now models the cancel NoOp — the "one cancel wins" invariant moves
+from ok-count to commit-count. commit 8533f85f · tests: verb (2 new, 2 updated) +
+CLI-seam + race oracle (scenario 4×) + classify unit, all green.
 
