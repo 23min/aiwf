@@ -131,3 +131,9 @@ race oracle now models the cancel NoOp — the "one cancel wins" invariant moves
 from ok-count to commit-count. commit 8533f85f · tests: verb (2 new, 2 updated) +
 CLI-seam + race oracle (scenario 4×) + classify unit, all green.
 
+### AC-3 — move to the current parent epic returns NoOp
+`verb.Move`'s `already under epic` guard flips to a NoOp. No oracle cascade: move
+mutates a field rather than status, and the verb-sequence walk always targets the
+*alternate* epic, never the current parent. commit 7387f474 · tests: verb +
+CLI-seam, full suite green.
+
