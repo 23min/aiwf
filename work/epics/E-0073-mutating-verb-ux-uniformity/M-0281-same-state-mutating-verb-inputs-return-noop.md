@@ -20,7 +20,7 @@ acs:
     - id: AC-4
       title: acknowledge-illegal on an acknowledged SHA is NoOp, appends no duplicate commit
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-5
       title: rename to current slug and retitle to current title return NoOp
       status: open
