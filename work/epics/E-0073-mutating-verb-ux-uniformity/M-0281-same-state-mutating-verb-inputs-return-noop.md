@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: move to the current parent epic returns NoOp
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: acknowledge-illegal on an acknowledged SHA is NoOp, appends no duplicate commit
