@@ -30,7 +30,7 @@ acs:
       status: open
       tdd_phase: done
     - id: AC-7
-      title: Four remaining field-mutation verbs converge to NoOp on same-state input
+      title: Five field-mutation verbs converge to NoOp on same-state input
       status: open
       tdd_phase: done
 ---
@@ -108,31 +108,56 @@ count is unchanged.
 ### AC-6 — verb_result_noop_invariant policy pins same-state NoOp across mutating verbs
 
 `internal/policies/verb_result_noop_invariant.go` asserts, at the AST level, that
-every mutating verb in `internal/verb/` has at least one test case that drives it
-with same-state input and asserts `Result.NoOp == true`. By-design-additive verbs
-(`add`, `authorize-open`, `edit-body --body-file`) are allowlisted, each with a
-one-line rationale.
+every exported `internal/verb/` entry point — a function returning
+`(*Result, error)` — has at least one test under `internal/verb/` that both
+drives it and asserts on `Result.NoOp`, unless it carries an allowlist entry with
+a reason.
 
-### AC-7 — Four remaining field-mutation verbs converge to NoOp on same-state input
+Both signals must come from the *same* test function: a file-level co-occurrence
+would credit any verb merely used as fixture setup alongside an unrelated NoOp
+assertion. The entry-point set is derived from the AST rather than hardcoded, so
+a newly-added verb is picked up with no list to maintain.
 
-`set-area`, `set-priority`, `rename-area`, and `milestone tdd` each return
-`Result.NoOp == true` on input that already equals current state, closing the
-last non-phase holes AC-6's policy surfaced:
+The allowlist holds verbs with no same-state input to converge on — the bar is
+"can a caller supply input that already equals current state?" Purely additive
+verbs (`Add`, `AddAC`, `AddACBatch`), audit-only recovery modes (which *require*
+the entity to already be at the target state), removal verbs whose absent target
+is a referential-integrity refusal, and whole-value replacements whose identical
+input is an empty diff. `PromoteACPhase` is the one entry that records an open
+question rather than a settled property (G-0458).
+
+Granularity is structural, not semantic: it verifies such a test exists, not that
+it drives genuinely same-state input. What it catches is the failure mode that
+actually recurred here — a verb with no same-state NoOp coverage at all.
+
+### AC-7 — Five field-mutation verbs converge to NoOp on same-state input
+
+`set-area`, `set-priority`, `rename-area`, `milestone tdd`, and
+`milestone depends-on` each return `Result.NoOp == true` on input that already
+equals current state, closing the field-mutation holes AC-6's policy surfaced:
 
 - `set-area <id> <current-member>` and `set-area <id> --clear` on an untagged
   entity (two guards).
 - `set-priority <id> <current-level>` and `set-priority <id> --clear` on an
   unset priority (two guards).
 - `rename-area <name> <same-name>`.
-- `milestone tdd <M-id> --policy <current-policy>` — a **correctness** fix, not
-  only UX: this verb had no same-state guard at all, so a re-run wrote
-  byte-identical content and landed a commit with an empty diff, growing history
-  on every repeat. Its assertion checks the commit count, not just the result.
+- `milestone tdd <M-id> --policy <current-policy>` and
+  `milestone depends-on <M-id> --on <identical-list>` / `--clear` on an empty
+  list — both **correctness** fixes, not only UX. Neither verb had any
+  same-state guard, so a re-run wrote byte-identical content and still landed a
+  commit with an empty diffstat, growing history on every repeat. Their
+  assertions check the commit count, not just the result.
 
-`promote --phase` is deliberately excluded and carries an allowlist entry in the
-AC-6 policy: the TDD-phase ladder is audit-bearing evidence and its `--tests`
-payload makes same-phase convergence a separate design question, tracked in
-G-0458.
+The empty-diff commits are possible because aiwf does not reject one: `Apply`'s
+guard refuses only a plan with *zero* file ops, and `git commit-tree` has no
+same-tree refusal, so a byte-identical write is one op that commits cleanly. The
+guard therefore has to live in each verb. `depends-on` compares order-sensitively,
+since `--on` is replace-not-append and a reordered list is a real change.
+
+Verbs deliberately excluded, each carrying an `OPEN` allowlist entry in the AC-6
+policy rather than a by-design reason: `promote --phase` (G-0458), and the five
+event-shaped verbs whose repeats append duplicate records (G-0459), one of which
+also leaves two active scopes (G-0460).
 
 ## Decisions made during implementation
 
@@ -182,4 +207,50 @@ carried the same same-title refusal, so `rename`/`retitle` now behave uniformly
 whether the target is an entity or one of its ACs. Three tests pinning the old
 refusals are folded into the new same-state tests. commit d0d5b561 · tests: verb
 (entity + both AC variants) + CLI-seam driving both commands.
+
+### AC-6 — the convergence chokepoint, and what it immediately found
+The policy earned its keep on first run: it flagged five verbs still outside the
+convention (`SetArea`, `SetPriority`, `RenameArea`, `MilestoneTDD`,
+`PromoteACPhase`) — evidence for the "half-rolled-out discipline rots" premise
+the milestone was filed on.
+
+Auditing the allowlist then found more, because the first draft's reasons were
+*inferred* rather than measured. Re-running every exempt verb against a freshly
+built binary and reading each implementation falsified six of thirteen entries:
+`MilestoneDependsOn` (no guard at all), and the five event-shaped verbs
+(`AcknowledgeMistag`, `Authorize`, and the three audit-only modes) whose repeats
+each append a duplicate record. `EditBody`'s conclusion held but its stated
+mechanism was wrong.
+
+The false inference was one claim reused across entries: that aiwf rejects an
+empty diff. It does not — `Apply` refuses only a plan with zero file ops, and
+`git commit-tree` has no same-tree refusal, so a byte-identical write commits
+cleanly. Every allowlist reason now states measured behavior, and the list's
+header records that trap so a future entry cannot repeat it.
+
+`MilestoneDependsOn` was converted under AC-7. The remaining six carry `OPEN`
+entries naming their gap (G-0458, G-0459, G-0460) rather than a by-design reason,
+so the chokepoint's known holes are legible instead of excused.
+
+A firing fixture covers the violation branch, and its negative control proves the
+check is not satisfied by the mere existence of a test — only a `Result.NoOp`
+assertion in the same function counts.
+
+### AC-7 — Five field-mutation verbs converge to NoOp on same-state input
+`SetArea` (2 guards), `SetPriority` (2), `RenameArea` (1), `MilestoneTDD` (1) and
+`MilestoneDependsOn` (2) converge. The last two are correctness fixes, not UX
+polish: neither had any same-state guard, so each re-run landed an empty-diffstat
+commit — the duplicate-commit shape AC-4 closed for `acknowledge-illegal`, and
+worse than an error because it polluted history silently. Both assert commit
+counts. `depends-on` compares order-sensitively, with a control test proving a
+reordered list still commits.
+
+Six pre-existing refusal assertions across the verb and CLI layers were retargeted
+rather than deleted where they were the natural home for the seam coverage: the
+`set-area` / `set-priority` CLI subtests now assert exit 0 + message + no commit.
+
+Process note: the phase ladders for AC-6 and AC-7 were stamped after the fact
+rather than live. The tests were genuinely written before their implementations,
+but `aiwf history` cannot distinguish that from back-stamping — the ladder is
+weaker evidence here than on AC-1 through AC-5.
 
