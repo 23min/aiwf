@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: cancel of an already-terminal entity returns NoOp
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: move to the current parent epic returns NoOp
       status: open
