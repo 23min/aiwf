@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: rename to current slug and retitle to current title return NoOp
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-6
       title: verb_result_noop_invariant policy pins same-state NoOp across mutating verbs
