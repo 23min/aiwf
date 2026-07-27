@@ -275,7 +275,11 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 	promoteRefused := raceActorOutcome{operation: raceOpPromote, status: "error", errorCode: entity.CodeFSMTransitionIllegal.ID}
 	cancelOK := raceActorOutcome{operation: raceOpCancel, status: "ok"}
 	cancelRefusedOpenAC := raceActorOutcome{operation: raceOpCancel, status: "error", errorCode: verb.CodeMilestoneCancelNonTerminalACs.ID}
-	cancelRefusedAlreadyCancelled := raceActorOutcome{operation: raceOpCancel, status: "error", errorCode: entity.CodeFSMTransitionIllegal.ID}
+	// cancelNoOp models a cancel that raced after the milestone was already
+	// cancelled: a NoOp (ADR-0036, M-0281/AC-2) — reported "ok" with no
+	// commit, structurally identical to a winning cancel at the outcome
+	// level; only the commit order distinguishes the two.
+	cancelNoOp := raceActorOutcome{operation: raceOpCancel, status: "ok"}
 
 	promoteCommit := raceCommit{verb: raceOpPromote, entity: acEntity}
 	cancelCommit := raceCommit{verb: raceOpCancel, entity: milestoneID}
@@ -299,7 +303,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			name: "legitimate race, a cancel wins after the promote — zero violations",
 			outcomes: []raceActorOutcome{
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
-				cancelOK, cancelRefusedOpenAC, cancelRefusedAlreadyCancelled, cancelRefusedAlreadyCancelled,
+				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{promoteCommit, cancelCommit},
 			wantSubstrings: nil,
@@ -323,12 +327,16 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			wantSubstrings: []string{"want exactly 1"},
 		},
 		{
-			name: "two cancel actors both ok — a mutually-exclusive-transition violation",
+			name: "two cancel commits land — a mutually-exclusive-transition violation",
 			outcomes: []raceActorOutcome{
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
-				cancelOK, cancelOK, cancelRefusedAlreadyCancelled, cancelRefusedAlreadyCancelled,
+				cancelOK, cancelOK, cancelNoOp, cancelNoOp,
 			},
-			order:          []raceCommit{promoteCommit, cancelCommit},
+			// Two cancel commits is the impossible-in-reality shape the
+			// oracle must still flag: draft -> cancelled can land only once.
+			// Multiple cancel "ok"s are legitimate now (NoOps report ok with
+			// no commit), so the bound moved from ok-count to commit-count.
+			order:          []raceCommit{promoteCommit, cancelCommit, cancelCommit},
 			wantSubstrings: []string{"want at most 1"},
 		},
 		{
@@ -343,20 +351,20 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			wantSubstrings: []string{"contradicts the FSM's own verdict"},
 		},
 		{
-			name: "a cancel refusal carries an unexpected error code — contradicts the guard or the FSM's own verdict",
+			name: "a cancel refusal carries an unexpected error code — not the open-AC guard",
 			outcomes: []raceActorOutcome{
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
 				{operation: raceOpCancel, status: "error", errorCode: "some-unexpected-code"},
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          []raceCommit{promoteCommit},
-			wantSubstrings: []string{"contradicts"},
+			wantSubstrings: []string{"only legitimate cancel refusal"},
 		},
 		{
 			name: "a cancel actor reports ok but its commit landed before the promote commit — the G-0335 regression shape",
 			outcomes: []raceActorOutcome{
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
-				cancelOK, cancelRefusedOpenAC, cancelRefusedAlreadyCancelled, cancelRefusedAlreadyCancelled,
+				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{cancelCommit, promoteCommit}, // cancel BEFORE promote
 			wantSubstrings: []string{"the open-AC guard did not hold"},
@@ -365,7 +373,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			name: "a cancel actor reports ok but no promote commit is found in the order at all — malformed input",
 			outcomes: []raceActorOutcome{
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
-				cancelOK, cancelRefusedOpenAC, cancelRefusedAlreadyCancelled, cancelRefusedAlreadyCancelled,
+				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{cancelCommit},
 			wantSubstrings: []string{"no " + raceOpPromote + " commit"},

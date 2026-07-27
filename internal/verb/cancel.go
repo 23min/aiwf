@@ -33,17 +33,17 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	// Pre-flight terminal check. Cancel never makes sense on an entity
-	// already at a terminal status — there's nothing to project to.
-	// Without this guard, the older code silently constructed
-	// FSM-illegal projections (e.g., Cancel on a `done` epic set
-	// status to `cancelled` even though Epic.done has no outgoing
-	// edges); since M-0131's state-aware CancelTarget the trap moved
-	// to the empty-return path with a less informative message. This
-	// catches the case once, at the verb boundary, with a clear
-	// "already at terminal X" error.
+	// Same-state convergence (M-0281/AC-2, ADR-0036): an entity already at
+	// a terminal status is already disposed — cancel has nothing to project
+	// to — so a re-run converges to a NoOp at exit 0 rather than an error.
+	// This is the cancel-analog of promote's same-status NoOp: cancel's
+	// implicit target is "a terminal end-state," and the entity is already
+	// at one, whether it reached it via cancel (cancelled/wontfix/rejected/
+	// retired) or another path (done/addressed/superseded — Option A: any
+	// terminal, not only cancel's own). The message still names the actual
+	// state so an operator who cancels a `done` entity is not misled.
 	if entity.IsTerminal(e.Kind, e.Status) {
-		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}, nil
 	}
 	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {

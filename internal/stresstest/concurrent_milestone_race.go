@@ -277,11 +277,13 @@ func parseRaceCommitSHAs(out []byte) []string {
 // refusal-reason signal: the promote group must land exactly one "ok"
 // (the AC's open->met transition can only land once), with every other
 // promote actor refused as CodeFSMTransitionIllegal; the cancel group
-// must land zero or one "ok" (the milestone's draft->cancelled
-// transition can only land once), with every other cancel actor
-// refused as either CodeMilestoneCancelNonTerminalACs (raced while the
-// AC was still open) or CodeFSMTransitionIllegal (raced after another
-// actor already cancelled the milestone). The commit-order causality
+// must land at most one *commit* (the milestone's draft->cancelled
+// transition can only land once). A cancel that raced while the AC was
+// still open is refused as CodeMilestoneCancelNonTerminalACs; a cancel
+// that raced after the milestone was already cancelled is now a NoOp
+// (ADR-0036, M-0281/AC-2) — reported "ok" with zero commits, not an FSM
+// refusal — so more than one cancel may report "ok" while still only one
+// commit lands. The commit-order causality
 // signal: when a cancel actor did land, that commit's real position in
 // dir's git history must come strictly after the promote commit's —
 // otherwise the open-AC guard did not actually hold at the moment that
@@ -314,30 +316,41 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 		)})
 	}
 
-	cancelOKCount := 0
+	// Cancel refusals: the only legitimate one in this race is the open-AC
+	// guard (a cancel that raced while AC-1 was still open). A cancel that
+	// raced after the milestone was already cancelled is now a NoOp
+	// (ADR-0036) — reported "ok" with no commit — so it needs no allowed
+	// error code here.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpCancel {
+		if oc.operation != raceOpCancel || oc.status == "ok" {
 			continue
 		}
-		if oc.status == "ok" {
-			cancelOKCount++
-			continue
-		}
-		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID && oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
+		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"a cancel actor was refused with error code %q, want %q or %q — the refusal reason contradicts the open-AC guard or the FSM's own verdict",
-				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID, entity.CodeFSMTransitionIllegal.ID,
+				"a cancel actor was refused with error code %q, want %q — the only legitimate cancel refusal here is the open-AC guard",
+				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID,
 			)})
 		}
 	}
-	if cancelOKCount > 1 {
+
+	// At most one cancel can land the draft->cancelled transition; any other
+	// cancel that reported "ok" was a NoOp on the already-cancelled milestone
+	// (zero commits). Count real cancel commits from the git order, not "ok"
+	// outcomes, since NoOps also report ok now (ADR-0036).
+	cancelCommits := 0
+	for _, c := range order {
+		if c.verb == raceOpCancel && c.entity == milestoneID {
+			cancelCommits++
+		}
+	}
+	if cancelCommits > 1 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%d cancel actors reported ok for %s, want at most 1",
-			cancelOKCount, milestoneID,
+			"%d cancel commits landed for %s, want at most 1 (draft -> cancelled can happen once)",
+			cancelCommits, milestoneID,
 		)})
 	}
 
-	if cancelOKCount >= 1 {
+	if cancelCommits >= 1 {
 		promoteIdx, cancelIdx := -1, -1
 		for i, c := range order {
 			if promoteIdx == -1 && c.verb == raceOpPromote && c.entity == acEntity {
@@ -349,8 +362,8 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 		}
 		if promoteIdx == -1 {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"a cancel actor reported ok but no %s commit for %s was found in the commit order — cannot verify commit-order causality",
-				raceOpPromote, acEntity,
+				"a cancel commit landed for %s but no %s commit for %s was found in the commit order — the open-AC guard did not hold",
+				milestoneID, raceOpPromote, acEntity,
 			)})
 		} else if cancelIdx <= promoteIdx {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
