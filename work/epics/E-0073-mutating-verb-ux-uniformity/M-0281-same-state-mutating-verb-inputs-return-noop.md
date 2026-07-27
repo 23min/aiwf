@@ -151,3 +151,10 @@ resolver + CLI-seam.
 gitops primitive: its `len(sha)==40` fast path returns unverified input as-is and
 seven audit rules depend on that, so converging them is a separate concern.
 
+### AC-5 — rename and retitle to the current value return NoOp
+Four guards converge, not two: the composite-id (AC) variants of both verbs
+carried the same same-title refusal, so `rename`/`retitle` now behave uniformly
+whether the target is an entity or one of its ACs. Three tests pinning the old
+refusals are folded into the new same-state tests. commit d0d5b561 · tests: verb
+(entity + both AC variants) + CLI-seam driving both commands.
+
