@@ -28,7 +28,7 @@ acs:
     - id: AC-6
       title: verb_result_noop_invariant policy pins same-state NoOp across mutating verbs
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-7
       title: Four remaining field-mutation verbs converge to NoOp on same-state input
       status: open
