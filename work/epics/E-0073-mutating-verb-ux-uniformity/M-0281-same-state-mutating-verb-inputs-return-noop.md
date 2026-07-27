@@ -38,14 +38,22 @@ acs:
 ## Goal
 
 Extend the NoOp-on-same-state convention already shipped in `archive`,
-`rewidth`, `contract bind`, and `contract recipe install` to the six mutating
-verbs that still return a Go error when the requested change already equals
-current state. An operator who re-runs `aiwf promote M-… done` — interactively,
-or from a forgotten script — should get a clean "already done" no-op at exit 0,
-matching the kernel's atomic / single-commit / FSM-policed safety, not a
-confusing second-run error. The tradeoff between fail-loud and idempotent
-resolves toward convergence here, consistent with the four verbs that already
-behave this way.
+`rewidth`, `contract bind`, and `contract recipe install` to the mutating verbs
+that still return a Go error — or silently commit nothing — when the requested
+change already equals current state. An operator who re-runs
+`aiwf promote M-… done` — interactively, or from a forgotten script — should get
+a clean "already done" no-op at exit 0, matching the kernel's atomic /
+single-commit / FSM-policed safety, not a confusing second-run error. The
+tradeoff between fail-loud and idempotent resolves toward convergence here,
+consistent with the four verbs that already behave this way.
+
+Scope was set by the six verbs the source scan named up front (`promote`,
+`cancel`, `move`, `rename`, `retitle`, `acknowledge-illegal`) and then grew to
+eleven: AC-6's policy surfaced five more the scan had missed, and AC-7 converted
+those with a same-state notion. The growth is the premise being confirmed, not
+scope creep — a convention that four verbs honored and the rest did not was
+exactly the "half-rolled-out discipline rots" condition this milestone was filed
+against.
 
 `acknowledge-illegal` is additionally a **correctness** fix, not only a UX one:
 re-running it against an already-acknowledged SHA today appends a duplicate empty
@@ -119,12 +127,25 @@ assertion. The entry-point set is derived from the AST rather than hardcoded, so
 a newly-added verb is picked up with no list to maintain.
 
 The allowlist holds verbs with no same-state input to converge on — the bar is
-"can a caller supply input that already equals current state?" Purely additive
-verbs (`Add`, `AddAC`, `AddACBatch`), audit-only recovery modes (which *require*
-the entity to already be at the target state), removal verbs whose absent target
-is a referential-integrity refusal, and whole-value replacements whose identical
-input is an empty diff. `PromoteACPhase` is the one entry that records an open
-question rather than a settled property (G-0458).
+"can a caller supply input that already equals current state?" Two kinds qualify
+by design: purely additive verbs, which allocate a fresh id every call (`Add`,
+`AddAC`, `AddACBatch`, `Reallocate`), and verbs that already compare and refuse
+in their own body, so a same-state input writes nothing (`EditBody`'s
+working-copy-vs-HEAD byte comparison, `ContractUnbind` and `RecipeRemove`
+refusing an absent target as a referential-integrity error).
+
+Every reason states behavior verified by running the real binary and reading the
+verb's source. That discipline is load-bearing rather than pedantic: the first
+draft inferred its reasons instead, and six of thirteen were wrong — most reusing
+a single false claim, that an identical write is an empty diff aiwf rejects.
+
+Six entries are marked `OPEN`: they record a deferred decision, not a settled
+property, and each names its gap (`PromoteACPhase` → G-0458; the five
+event-shaped verbs whose repeats append duplicate records → G-0459, with
+`Authorize` additionally blocked on G-0460). Keeping them legible as holes rather
+than dressing them as by-design exemptions is the point — an allowlist that
+excuses a live defect is worse than no chokepoint, because it manufactures
+confidence.
 
 Granularity is structural, not semantic: it verifies such a test exists, not that
 it drives genuinely same-state input. What it catches is the failure mode that
