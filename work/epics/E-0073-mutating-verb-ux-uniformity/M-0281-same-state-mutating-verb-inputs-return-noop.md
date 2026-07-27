@@ -29,6 +29,9 @@ acs:
       title: verb_result_noop_invariant policy pins same-state NoOp across mutating verbs
       status: open
       tdd_phase: red
+    - id: AC-7
+      title: Four remaining field-mutation verbs converge to NoOp on same-state input
+      status: open
 ---
 
 ## Goal
@@ -108,6 +111,8 @@ every mutating verb in `internal/verb/` has at least one test case that drives i
 with same-state input and asserts `Result.NoOp == true`. By-design-additive verbs
 (`add`, `authorize-open`, `edit-body --body-file`) are allowlisted, each with a
 one-line rationale.
+
+### AC-7 — Four remaining field-mutation verbs converge to NoOp on same-state input
 
 ## Decisions made during implementation
 
