@@ -31,7 +31,7 @@ acs:
       tdd_phase: done
     - id: AC-7
       title: Five field-mutation verbs converge to NoOp on same-state input
-      status: open
+      status: met
       tdd_phase: done
 ---
 
