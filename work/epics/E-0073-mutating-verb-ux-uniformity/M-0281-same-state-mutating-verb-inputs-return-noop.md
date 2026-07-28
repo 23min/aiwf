@@ -36,6 +36,7 @@ acs:
     - id: AC-8
       title: edit-body --body-file converges to NoOp when the body is already committed
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
