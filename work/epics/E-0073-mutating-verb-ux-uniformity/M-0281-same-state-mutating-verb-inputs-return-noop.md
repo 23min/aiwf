@@ -36,7 +36,7 @@ acs:
     - id: AC-8
       title: edit-body --body-file converges to NoOp when the body is already committed
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
@@ -134,9 +134,8 @@ The allowlist holds verbs with no same-state input to converge on — the bar is
 "can a caller supply input that already equals current state?" Two kinds qualify
 by design: purely additive verbs, which allocate a fresh id every call (`Add`,
 `AddAC`, `AddACBatch`, `Reallocate`), and verbs that already compare and refuse
-in their own body, so a same-state input writes nothing (`EditBody`'s
-working-copy-vs-HEAD byte comparison, `ContractUnbind` and `RecipeRemove`
-refusing an absent target as a referential-integrity error).
+in their own body, so a same-state input writes nothing (`ContractUnbind` and
+`RecipeRemove` refusing an absent target as a referential-integrity error).
 
 Every reason states behavior verified by running the real binary and reading the
 verb's source. That discipline is load-bearing rather than pedantic: the first
@@ -289,8 +288,10 @@ Auditing the allowlist then found more, because the first draft's reasons were
 built binary and reading each implementation falsified six of thirteen entries:
 `MilestoneDependsOn` (no guard at all), and the five event-shaped verbs
 (`AcknowledgeMistag`, `Authorize`, and the three audit-only modes) whose repeats
-each append a duplicate record. `EditBody`'s conclusion held but its stated
-mechanism was wrong.
+each append a duplicate record. `EditBody`'s entry was false in both directions:
+the byte comparison it cited exists only in bless mode, and the explicit
+`--body-file` path had no comparison at all, so a byte-identical re-run landed
+an empty-diff commit every time. AC-8 converges it and the entry is gone.
 
 The false inference was one claim reused across entries: that aiwf rejects an
 empty diff. It does not — `Apply` refuses only a plan with zero file ops, and
