@@ -133,6 +133,20 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 		}
 	}
 
+	if len(entries) == 0 {
+		// No entry points found — internal/verb/ moved, or the signature
+		// every verb shares changed. Either way an empty set produces an
+		// empty violation list, so the policy would report green while
+		// scanning nothing. Surface it as a self-policy violation instead,
+		// the same fail-closed shape PolicyTrailerKeysViaConstants uses
+		// when its constants go missing.
+		return []Violation{{
+			Policy: "verb-result-noop-invariant",
+			File:   "internal/verb/",
+			Detail: "no exported (*Result, error) entry points found under internal/verb/ — the tree moved or the verb signature changed, so this policy is scanning nothing and cannot vouch for same-state NoOp coverage; repoint it at the verbs' new location",
+		}}, nil
+	}
+
 	covered := map[string]bool{}
 	for _, fn := range testFuncs {
 		for name := range noopInspectedVerbs(fn, entryNames) {

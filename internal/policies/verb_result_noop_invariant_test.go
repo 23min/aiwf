@@ -295,6 +295,26 @@ func TestX(t *testing.T) {
 	}
 }
 
+// TestVerbResultNoOpInvariant_FailsClosedOnEmptyEntrySet pins the fail-closed
+// arm: pointed at a tree with no verb entry points, the policy must report a
+// violation rather than the zero-violation "green" an empty scan would
+// otherwise produce. Without this the chokepoint silently stops guarding the
+// moment internal/verb/ is renamed.
+func TestVerbResultNoOpInvariant_FailsClosedOnEmptyEntrySet(t *testing.T) {
+	t.Parallel()
+	violations, err := PolicyVerbResultNoOpInvariant(t.TempDir())
+	if err != nil {
+		t.Fatalf("running the policy over an empty tree: %v", err)
+	}
+	if !hasPolicyViolation(violations, "verb-result-noop-invariant") {
+		t.Fatalf("an empty tree yielded %d violations, want a self-policy violation — "+
+			"the policy must not report green while scanning nothing", len(violations))
+	}
+	if !strings.Contains(violations[0].Detail, "scanning nothing") {
+		t.Errorf("Detail = %q, want it to say the policy is scanning nothing", violations[0].Detail)
+	}
+}
+
 // TestVerbResultNoOpInvariant_LiveTreeCreditsEveryNonExemptVerb pins the
 // property the policy exists to protect, against the real tree rather than a
 // fixture: every exported internal/verb entry point is either on the reviewed
