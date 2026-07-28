@@ -60,9 +60,11 @@ var noopExemptVerbs = []struct {
 
 // PolicyVerbResultNoOpInvariant asserts that every exported
 // internal/verb/*.go entry point — a function returning (*Result, error) —
-// has at least one test under internal/verb/ that both drives that verb and
-// asserts on Result.NoOp, unless the verb appears on the reviewed allowlist
-// above.
+// has at least one test under internal/verb/ that binds that verb's *Result
+// and inspects the bound value's NoOp field, unless the verb appears on the
+// reviewed allowlist above. The binding is what connects the two halves; see
+// noopInspectedVerbs for why a looser relation credits verbs that have no
+// NoOp coverage at all.
 //
 // The property it protects is the same-state convergence convention
 // (ADR-0036): a mutating verb handed input that already equals current state
@@ -72,11 +74,12 @@ var noopExemptVerbs = []struct {
 // policy is that chokepoint: a new verb either carries a NoOp test or earns
 // an allowlist entry stating why it cannot.
 //
-// Granularity is deliberately structural, not semantic: it verifies a test
-// function exists that mentions both the verb call and Result.NoOp. It
-// cannot prove the test drives genuinely same-state input — that is what
-// review and the AC's own tests are for. What it does catch is the failure
-// mode that actually recurs: a verb with no same-state NoOp coverage at all.
+// Granularity is deliberately structural, not semantic: it verifies that some
+// test binds the verb's *Result and inspects that value's NoOp field. It
+// cannot prove the test drives genuinely same-state input, nor that the
+// assertion expects a NoOp rather than its absence — that is what review and
+// the AC's own tests are for. What it does catch is the failure mode that
+// actually recurs: a verb with no same-state NoOp coverage at all.
 func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 	// excludeTests=false: this policy needs the test bodies as much as the
 	// production ones — the property spans both halves.
@@ -93,12 +96,14 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 
 	fset := token.NewFileSet()
 	var entries []entryPoint
-	var noopTestBodies []string
+	entryNames := map[string]bool{}
+	var testFuncs []*ast.FuncDecl
 
 	// One AST pass collects both halves: the entry points (from production
-	// files) and the bodies of every test function that asserts on
-	// Result.NoOp. The entry-point set is derived here rather than
-	// hardcoded, so a newly-added verb is picked up with no list to update.
+	// files) and every test function declaration (analyzed below, once the
+	// entry-point set is complete). The entry-point set is derived here
+	// rather than hardcoded, so a newly-added verb is picked up with no
+	// list to update.
 	for _, f := range files {
 		if !strings.HasPrefix(f.Path, "internal/verb/") {
 			continue
@@ -113,23 +118,8 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 			if !ok || fn.Body == nil || fn.Recv != nil {
 				continue
 			}
-			start := fset.Position(fn.Body.Lbrace).Offset
-			end := fset.Position(fn.Body.Rbrace).Offset
-			if start < 0 || end <= start || end > len(f.Contents) {
-				continue
-			}
-			body := string(f.Contents[start:end])
-
 			if isTest {
-				// A test function counts toward coverage only if it asserts
-				// on Result.NoOp. Which verbs it credits is resolved in the
-				// second loop, once the entry-point set is complete — both
-				// signals must come from the SAME function, since a
-				// file-level co-occurrence would credit any verb merely used
-				// as fixture setup alongside an unrelated NoOp assertion.
-				if strings.Contains(body, ".NoOp") {
-					noopTestBodies = append(noopTestBodies, body)
-				}
+				testFuncs = append(testFuncs, fn)
 				continue
 			}
 			if isCapitalized(fn.Name.Name) && returnsResultAndError(fn.Type) {
@@ -138,16 +128,15 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 					file: f.Path,
 					line: fset.Position(fn.Pos()).Line,
 				})
+				entryNames[fn.Name.Name] = true
 			}
 		}
 	}
 
 	covered := map[string]bool{}
-	for _, body := range noopTestBodies {
-		for _, e := range entries {
-			if callsVerb(body, e.name) {
-				covered[e.name] = true
-			}
+	for _, fn := range testFuncs {
+		for name := range noopInspectedVerbs(fn, entryNames) {
+			covered[name] = true
 		}
 	}
 
@@ -171,38 +160,110 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 	return out, nil
 }
 
-// callsVerb reports whether a test body calls the verb entry point named
-// name. Recognizes the two spellings tests use: the external-test form
-// `verb.Promote(` (package verb_test) and the in-package form `Promote(`.
-// The bare form requires a non-identifier byte before the name so `Promote(`
-// does not match inside `PromoteAuditOnly(` — the substring trap that would
-// silently credit a longer verb's test to a shorter verb.
-func callsVerb(body, name string) bool {
-	return strings.Contains(body, "verb."+name+"(") || containsBareCall(body, name)
-}
+// noopInspectedVerbs reports which verb entry points the test function fn both
+// drives and inspects the Result.NoOp of. The two facts must be connected by
+// dataflow: the identifier a call's *Result is bound to must be the same
+// identifier whose NoOp (or NoOpMessage) field is referenced.
+//
+// Requiring that connection is what makes the credit mean something. Scanning
+// the function's text for a call and a `.NoOp` independently credits a verb for
+// three shapes that carry no NoOp evidence whatsoever:
+//
+//   - a `.NoOp` inside a comment or a format string — neither is a selector
+//     expression, so neither is visible to this walk;
+//   - a verb called only as fixture setup, in a test whose NoOp assertion is
+//     about some other verb's Result. This is the common one, and it is not
+//     addressed by scoping the scan to a single function: setup and assertion
+//     live in the same function. Only the binding identifier separates them.
+//   - a Result that is discarded (`_, err := verb.Foo(...)`), which cannot be
+//     inspected at all.
+//
+// The analysis is intra-function and flow-insensitive: it ignores statement
+// order and does not follow a Result through a helper call, so a value
+// laundered through one (`res := mustNoOp(t, verb.Foo(...))`) earns no credit.
+// That direction is the safe one — an unrecognized shape under-credits and the
+// policy fires, rather than passing silently.
+//
+// What it deliberately does not judge is the assertion's polarity: a test that
+// asserts a Result is *not* a NoOp inspects the same field, and no structural
+// signal distinguishes the two. Polarity is review's job.
+func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string]bool {
+	// identifier name -> the verb entry points whose *Result it is bound to.
+	// One name can carry several across a function (a reused `res`).
+	bound := map[string]map[string]bool{}
+	// identifier names whose NoOp / NoOpMessage field is referenced.
+	inspected := map[string]bool{}
 
-// containsBareCall reports whether body calls name( with no qualifier and no
-// surrounding identifier characters — the in-package call spelling.
-func containsBareCall(body, name string) bool {
-	needle := name + "("
-	for i := 0; ; {
-		idx := strings.Index(body[i:], needle)
-		if idx < 0 {
-			return false
+	// ast.Inspect descends into nested function literals, so a call and an
+	// assertion inside a t.Run subtest closure are both reached.
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.AssignStmt:
+			// An entry point returns (*Result, error), so a call to one is
+			// the sole right-hand side and the *Result lands in Lhs[0].
+			if len(node.Rhs) != 1 || len(node.Lhs) == 0 {
+				return true
+			}
+			call, ok := node.Rhs[0].(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			verbName, ok := calledEntryPoint(call, entryNames)
+			if !ok {
+				return true
+			}
+			// A non-identifier target (`got["k"], err = …`) binds no name
+			// this walk can follow. A blank one (`_, err := …`) needs no
+			// guard of its own: binding `_` is inert, because crediting it
+			// would take a `_.NoOp` reference and that cannot appear in
+			// source that compiles.
+			target, ok := node.Lhs[0].(*ast.Ident)
+			if !ok {
+				return true
+			}
+			if bound[target.Name] == nil {
+				bound[target.Name] = map[string]bool{}
+			}
+			bound[target.Name][verbName] = true
+		case *ast.SelectorExpr:
+			if node.Sel.Name != "NoOp" && node.Sel.Name != "NoOpMessage" {
+				return true
+			}
+			if recv, ok := node.X.(*ast.Ident); ok {
+				inspected[recv.Name] = true
+			}
 		}
-		at := i + idx
-		if at == 0 || !isIdentByte(body[at-1]) {
-			return true
-		}
-		i = at + len(needle)
-	}
-}
-
-// isIdentByte reports whether b can appear inside a Go identifier.
-func isIdentByte(b byte) bool {
-	switch {
-	case b >= 'a' && b <= 'z', b >= 'A' && b <= 'Z', b >= '0' && b <= '9', b == '_', b == '.':
 		return true
+	})
+
+	out := map[string]bool{}
+	for name := range inspected {
+		for verbName := range bound[name] {
+			out[verbName] = true
+		}
 	}
-	return false
+	return out
+}
+
+// calledEntryPoint resolves a call expression to the verb entry point it
+// invokes, recognizing the two spellings the tests use: the external-test form
+// `verb.Promote(...)` (package verb_test) and the in-package form
+// `Promote(...)`. A call qualified by anything other than the verb package
+// (`harness.Promote(...)`) and a same-named local wrapper
+// (`mustPromote(...)`) are not entry points.
+func calledEntryPoint(call *ast.CallExpr, entryNames map[string]bool) (string, bool) {
+	switch fun := call.Fun.(type) {
+	case *ast.SelectorExpr:
+		pkg, ok := fun.X.(*ast.Ident)
+		if !ok || pkg.Name != "verb" || !entryNames[fun.Sel.Name] {
+			return "", false
+		}
+		return fun.Sel.Name, true
+	case *ast.Ident:
+		if !entryNames[fun.Name] {
+			return "", false
+		}
+		return fun.Name, true
+	}
+	return "", false
 }
