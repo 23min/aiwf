@@ -106,8 +106,8 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	// NoOp instead of appending a duplicate empty audit commit. This is a
 	// correctness fix, not only UX polish: every re-run used to grow the
 	// history by one indistinguishable ack.
-	if ackAlreadyRecorded(ctx, root, sha, cleanedEntity) {
-		return &Result{NoOp: true, NoOpMessage: ackNoOpMessage(sha, cleanedEntity)}, nil
+	if matched, ok := ackAlreadyRecorded(ctx, root, sha, cleanedEntity); ok {
+		return &Result{NoOp: true, NoOpMessage: ackNoOpMessage(sha, matched)}, nil
 	}
 	short := sha
 	if len(short) > 8 {
@@ -124,8 +124,10 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 }
 
 // ackAlreadyRecorded reports whether HEAD's reachable history already
-// carries an acknowledgment matching (sha, forEntity), so a re-run has
-// nothing to add (M-0281/AC-4).
+// carries an acknowledgment covering (sha, forEntity), so a re-run has
+// nothing to add (M-0281/AC-4). The first return is the entity binding that
+// was matched — empty for the blanket shape — so the caller's message names
+// the acknowledgment that exists rather than the one that was asked about.
 //
 // The two ack shapes are checked independently because they suppress
 // different rules, and the answer must mean exactly what the *check* rules
@@ -142,6 +144,18 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 //     provenance-untrailered-entity-commit requires. A blanket-only ack
 //     does NOT cover it, so the entity-bound ack still records.
 //
+// Two spellings of the entity key have to be consulted, because the write
+// side and the rule side disagree about width. This verb emits `aiwf-entity`
+// at full composite width and check's walker stores that value as given, so
+// the exact spelling is what a repeat of this same invocation would add. The
+// consuming rule, meanwhile, rolls a touched id up to its parent before
+// looking the ack up (check's isShaEntityAcked), so a parent-scoped ack
+// already suppresses every finding an AC-scoped one would — which makes it a
+// genuine cover for this request even though the spellings differ. Consulting
+// only the rolled-up key is the bug this replaced: it never matched the
+// composite value the verb itself had just written, so every AC-scoped ack
+// re-landed a duplicate.
+//
 // Answers "not acknowledged" whenever it cannot establish otherwise — an
 // unwalkable history, or a HEAD carrying no commits (an orphan SHA acked
 // against an unborn HEAD, the extreme of the reflog-only case). Failing open
@@ -149,32 +163,42 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 // a duplicate ack; failing closed would silently skip an ack the operator
 // needs. This mirrors the fail-open-toward-firing convention check's own ack
 // walkers use when a trailer SHA won't resolve.
-func ackAlreadyRecorded(ctx context.Context, root, sha, forEntity string) bool {
+func ackAlreadyRecorded(ctx context.Context, root, sha, forEntity string) (string, bool) {
 	head, err := check.WalkHeadCommits(ctx, root)
 	if err != nil || len(head) == 0 {
-		return false
+		return "", false
 	}
 	// Normalize to the full SHA the walkers key their maps on, so a short
 	// and a full spelling of the same commit compare equal.
 	fullSHA, err := gitops.ResolveCommitSHA(ctx, root, sha)
 	if err != nil {
 		//coverage:ignore defensive: shaAckable ran first and proved sha resolves to a commit, so reaching this needs the object DB to change mid-verb
-		return false
+		return "", false
 	}
 	if forEntity == "" {
-		return check.WalkAcknowledgedSHAs(ctx, root, head)[fullSHA]
+		return "", check.WalkAcknowledgedSHAs(ctx, root, head)[fullSHA]
 	}
-	return check.WalkAcknowledgedSHAEntities(ctx, root, head)[fullSHA][entity.Canonicalize(entity.CompositeRoot(forEntity))]
+	recorded := check.WalkAcknowledgedSHAEntities(ctx, root, head)[fullSHA]
+	if want := entity.Canonicalize(forEntity); recorded[want] {
+		return want, true
+	}
+	// For a bare forEntity this is the same key just tested, so it can only
+	// match for a composite — no separate guard needed.
+	if rolled := entity.Canonicalize(entity.CompositeRoot(forEntity)); recorded[rolled] {
+		return rolled, true
+	}
+	return "", false
 }
 
-// ackNoOpMessage renders the NoOp message for an already-recorded ack,
-// naming the entity binding when the ack is the per-(SHA, entity) shape so
-// the operator sees which acknowledgment was found.
-func ackNoOpMessage(sha, forEntity string) string {
-	if forEntity == "" {
+// ackNoOpMessage renders the NoOp message for an already-recorded ack.
+// matchedEntity is the binding the lookup actually found — already canonical,
+// and empty for the blanket per-SHA shape — so the operator is never told an
+// acknowledgment exists for a binding no commit names.
+func ackNoOpMessage(sha, matchedEntity string) string {
+	if matchedEntity == "" {
 		return fmt.Sprintf("%s is already acknowledged; nothing to record", sha)
 	}
-	return fmt.Sprintf("%s is already acknowledged for %s; nothing to record", sha, entity.Canonicalize(forEntity))
+	return fmt.Sprintf("%s is already acknowledged for %s; nothing to record", sha, matchedEntity)
 }
 
 // verifySHATouchesEntity runs `git diff-tree --no-commit-id

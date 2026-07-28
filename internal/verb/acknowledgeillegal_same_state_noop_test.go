@@ -89,6 +89,96 @@ func TestAcknowledgeIllegal_OrphanSHAWithUnbornHEAD_StillRecords(t *testing.T) {
 	}
 }
 
+// ackFixtureWithAC builds an epic + milestone + AC and returns the root and the
+// SHA of the add-ac commit. That commit's diff touches the milestone file, so a
+// composite `--for-entity M-0001/AC-1` clears the verb's touches-the-entity
+// verification (which compares at the rolled-up parent id).
+func ackFixtureWithAC(t *testing.T) (r *runner, acSHA string) {
+	t.Helper()
+	r = newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "cache warms on boot", testActor))
+	return r, resolveHeadSHA(t, r.root)
+}
+
+// TestAcknowledgeIllegal_CompositeForEntity_ConvergesOnRepeat closes the
+// composite half of M-0281/AC-4. The verb emits `aiwf-entity` at full composite
+// width, and check's walker stores that value as given, so a duplicate guard
+// that looks up only the rolled-up parent id never matches its own writes —
+// every re-run of an AC-scoped ack appended another indistinguishable audit
+// commit, the exact history growth AC-4 exists to stop. The bare-id tests above
+// cannot catch this: for them the composite and rolled-up spellings coincide.
+func TestAcknowledgeIllegal_CompositeForEntity_ConvergesOnRepeat(t *testing.T) {
+	t.Parallel()
+	r, acSHA := ackFixtureWithAC(t)
+
+	first, err := verb.AcknowledgeIllegal(r.ctx, r.root, acSHA, "M-0001/AC-1", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("first composite ack: %v", err)
+	}
+	if first.Plan == nil {
+		t.Fatal("first composite ack produced no plan")
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, first.Plan); applyErr != nil {
+		t.Fatalf("applying the first composite ack: %v", applyErr)
+	}
+	countAfterFirst := countCommits(t, r.root)
+
+	again, err := verb.AcknowledgeIllegal(r.ctx, r.root, acSHA, "M-0001/AC-1", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("re-running the composite ack returned a Go error, want a NoOp: %v", err)
+	}
+	if !again.NoOp {
+		t.Errorf("again.NoOp = false, want true — this (SHA, composite entity) pair is already acknowledged")
+	}
+	if again.Plan != nil {
+		t.Errorf("again.Plan = %+v, want nil — the repeat must not append a duplicate audit commit", again.Plan)
+	}
+	if !strings.Contains(again.NoOpMessage, "M-0001/AC-1") {
+		t.Errorf("NoOpMessage = %q, want it to name the composite binding that was found", again.NoOpMessage)
+	}
+	if got := countCommits(t, r.root); got != countAfterFirst {
+		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, countAfterFirst)
+	}
+}
+
+// TestAcknowledgeIllegal_CompositeAfterParentAck_NamesTheBindingItFound pins
+// the message against overclaiming. A parent-scoped ack already suppresses
+// every finding an AC-scoped one would, because the consuming rule rolls a
+// touched id up to its parent before looking the ack up — so a composite
+// request afterwards has nothing left to record and converges. What it must not
+// do is report convergence against the composite binding: no ack names
+// `M-0001/AC-1`, and an operator told otherwise would believe a per-AC record
+// exists in the history when only the parent one does.
+func TestAcknowledgeIllegal_CompositeAfterParentAck_NamesTheBindingItFound(t *testing.T) {
+	t.Parallel()
+	r, acSHA := ackFixtureWithAC(t)
+
+	parent, err := verb.AcknowledgeIllegal(r.ctx, r.root, acSHA, "M-0001", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("parent-scoped ack: %v", err)
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, parent.Plan); applyErr != nil {
+		t.Fatalf("applying the parent-scoped ack: %v", applyErr)
+	}
+
+	composite, err := verb.AcknowledgeIllegal(r.ctx, r.root, acSHA, "M-0001/AC-1", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("composite ack after a parent-scoped ack: %v", err)
+	}
+	if !composite.NoOp {
+		t.Fatalf("composite.NoOp = false, want true — the parent ack already covers what this would record")
+	}
+	if strings.Contains(composite.NoOpMessage, "AC-1") {
+		t.Errorf("NoOpMessage = %q, must not claim an acknowledgment for M-0001/AC-1 — the recorded ack names M-0001", composite.NoOpMessage)
+	}
+	if !strings.Contains(composite.NoOpMessage, "M-0001") {
+		t.Errorf("NoOpMessage = %q, want it to name M-0001, the binding actually found", composite.NoOpMessage)
+	}
+}
+
 // TestAcknowledgeIllegal_EntityBoundAckIsIndependentOfBlanketAck guards the
 // per-(SHA, entity) shape: a blanket per-SHA ack does not suppress the
 // provenance rule's per-(commit, entity) findings, so an entity-bound ack for
