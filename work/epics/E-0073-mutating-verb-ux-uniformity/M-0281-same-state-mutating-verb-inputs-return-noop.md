@@ -273,5 +273,168 @@ rather than deleted where they were the natural home for the seam coverage: the
 Process note: the phase ladders for AC-6 and AC-7 were stamped after the fact
 rather than live. The tests were genuinely written before their implementations,
 but `aiwf history` cannot distinguish that from back-stamping — the ladder is
-weaker evidence here than on AC-1 through AC-5.
+weaker evidence here than on AC-1 through AC-5. Measured commit times put the
+AC-6/AC-7 ladder rungs in a 12-second burst over an hour *before* their
+implementation commits, so for those two ACs the ladder is not evidence at all.
+
+## Reviewer notes
+
+Four independent fresh-context reviewers ran at wrap over `base..HEAD` (three
+code-quality slices — verb guards, correctness oracles, the AC-6 policy — plus a
+design-quality pass on the policy module). All four returned request-changes.
+Findings below are open unless marked resolved; every one was verified by
+measurement (real binary against disposable repos, or production mutants in
+scratch copies), not by reading.
+
+Three ACs are `met` on claims the review falsified: **AC-1** (V5), **AC-4** (V2),
+**AC-6** (P5, P6). The milestone must not wrap until these are reconciled — either
+the code converges or the AC text and allowlist state the narrower truth.
+
+### Blocking — verb guards
+
+- **V1 — the committed tree fails `-race`.** All five CLI-seam NoOp tests carry
+  `t.Parallel()` plus `testutil.CaptureStdout`, which swaps the process-global
+  `os.Stdout`. The whole `internal/cli/integration` package fails from commit
+  `8533f85f` onward, cascading into unrelated `TestAuthorize_*`; `-count=20`
+  yields 23 `write |1: file already closed`. The fix (drop `t.Parallel()`, add the
+  serial rationale required by that package's `setup_test.go` skip-list) exists in
+  the working tree and must be committed. The base is clean, so the regression is
+  wholly this milestone's.
+- **V2 — a composite `--for-entity` ack never converges; AC-4 is false.** The verb
+  emits `aiwf-entity` at full composite width; `check.WalkAcknowledgedSHAEntities`
+  stores it verbatim; `ackAlreadyRecorded` looks up the `CompositeRoot` rollup.
+  The keys never match, so a repeat lands a duplicate audit commit — the exact
+  path AC-4 claims to close. The rollup is correct in
+  `verifySHATouchesEntity` (a diff resolves to a milestone path) and wrong in the
+  lookup. The inverse case also misreports: after a bare-id ack, the composite
+  form claims "already acknowledged for `M-NNNN/AC-N`", naming a binding it never
+  found. Fix: consult both the composite and rolled-up keys. Separately, the
+  emit-vs-lookup asymmetry makes `--for-entity <composite>` inert against the
+  `provenance-untrailered-entity-commit` rule it exists to suppress — pre-existing,
+  wider than this milestone, wants its own gap.
+- **V3 — `rename-area`'s guard precedes its validation.** It returns a NoOp for an
+  undeclared member and for the reserved `global` sentinel, asserting success for
+  state that cannot exist, where the verb previously refused. `SetArea` places the
+  equivalent guard after validation; this is the outlier. Move it below the
+  declared-member check.
+- **V4 — width-sensitive comparison in `move` and `milestone depends-on`.** Both
+  compare raw operator input against stored values, but `ByID` accepts legacy
+  narrow widths, so a legal spelling of the same state is missed — and the
+  resulting write degrades a canonical id to narrow width, against ADR-0008.
+  `entity.Canonicalize` on both sides of each comparison.
+- **V5 — the resolver arm leaves AC-1 half-met.** AC-1 says "target equals current
+  **and no other field is changing**"; the guard implements "no resolver flag was
+  supplied". A re-run of `promote <gap> addressed --by-commit <sha>` — the
+  tracker-closure command this repo's own gate discipline names as routine — still
+  refuses. Either extend the guard to "status equals current and
+  `applyResolverFlags` would be a no-op", or narrow AC-1's wording and record the
+  carve-out as an `OPEN` allowlist entry plus a gap.
+- **V6 — composite ids still refuse, so ADR-0036 over-claims.** One semantic family
+  yields three exit codes: entity same-status 0, AC same-status 1, AC
+  already-cancelled 2. ADR-0036's Decision carries no AC carve-out, and G-0458
+  covers `tdd_phase` only — neither AC status nor `cancel <composite>`. Converge,
+  or narrow the ADR and file the gap. Per-function policy granularity cannot see
+  branch-level holes like this.
+
+### Blocking — correctness oracles
+
+- **O1 — the concurrent-milestone-race oracle lost a cross-check it could have
+  kept.** Replacing the (genuinely unsound) `cancelOKCount > 1` invariant dropped
+  the per-actor "reported success implies exactly one commit" check instead of
+  re-deriving it. A NoOp is machine-distinguishable — a real cancel's JSON
+  metadata carries `commit_sha`, a NoOp's does not — but `verbEnvelope.Metadata`
+  never parses that field. Consequence, measured: a mutant that lands
+  `git commit --allow-empty` from cancel's NoOp branch (a real violation of the
+  one-commit-per-mutation commitment) leaves **`make stress` green**. Two further
+  shapes went undetected: two cancel "ok"s with one commit, and one "ok" with
+  zero. The `-1` sentinel is now dead code. Fix (~8 lines): parse `commit_sha`,
+  carry it on `raceActorOutcome`, assert real-success count equals cancel-commit
+  count and that every NoOp carries an empty `commit_sha`.
+- **O2 — the spec-cell justification is false.** `terminalIllegal`'s new comment
+  claims the spec "carries no target axis". `Rule.Preconditions` is that axis and
+  is already live (`self.target-state`, with `Op: "!="` in the vocabulary, and
+  `cellKey` folding `preconditionSignature` into cell identity). The fix declared
+  impossible is available with no schema change, so the false reason forecloses
+  it. Either add the precondition, or record the NoOp via an `AntiRule`, and state
+  the real constraint (cell-count churn) instead.
+- **O3 — dead OR-arm and stale cross-references.** `"is already at terminal
+  status"` in `errorSubstringsFor` is now unreachable as a refusal; if any future
+  path re-emits that phrasing the arm would bless it. `promote.go`'s
+  `fsmTransitionIllegalError` doc still names Cancel's already-terminal pre-check
+  as a construction site — Cancel no longer constructs the type.
+- **O4 — the fourth outcome shape has no real-binary seam test**, and
+  `verb_sequence_test.go` still documents three. The NoOp shape is pinned only
+  against fabricated envelopes and seed-dependent walk coverage.
+
+### Blocking — the AC-6 policy
+
+- **P1 — the credit relation admits three false greens** (both the policy and
+  design reviewers converged here independently, and one prototyped the fix). A
+  `.NoOp` mention in a **comment** credits the verb; so does a **negative**
+  assertion (`if res.NoOp { t.Fatal(...) }`); so does **fixture setup** — on the
+  live tree `Add` is credited by 17–18 test functions that merely call it as
+  setup. Replace the body-text scan with intra-function AST dataflow: bind the
+  identifier receiving the call, require `<ident>.NoOp` to be read. Verified to
+  keep all 15 non-exempt verbs green, drop every spurious credit, and need no test
+  changes.
+- **P2 — the policy fails OPEN.** An empty entry set yields zero violations, so a
+  rename of `internal/verb/` leaves it green while scanning nothing. Sibling
+  `firing_fixture_presence.go` fails closed for exactly this class. Note the
+  enumerate-and-slice block is now its third copy, so the defect is tripled.
+- **P3 — branch-coverage rule violated; `make coverage-gate` fails.** Five changed
+  lines untested and unannotated, confirmed with the repo's own engine. The
+  notable pair is `containsBareCall`'s continuation and `isIdentByte`'s
+  `return true` — the only subtle logic in the file, advertised as load-bearing,
+  never traversed. The AST rewrite (P1) deletes both. `make coverage-gate` has
+  never been run for this milestone.
+- **P4 — `containsBareCall`'s rationale is mechanically false and its helper's doc
+  contradicts the behavior callers depend on.** The needle includes `(`, so
+  `Promote(` cannot match inside `PromoteAuditOnly(` — the described collision is
+  impossible. What the guard actually rejects is a qualified or suffixed call
+  (`harness.Promote(`, `mustPromote(`), and it works only because `isIdentByte`
+  treats `.` as an identifier byte while its doc says a period cannot appear in an
+  identifier. A maintainer "correcting" that turns every `pkg.Verb(` into a false
+  credit — on an untested line.
+- **P5 — `EditBody` is a seventh false allowlist entry.** `bytes.Equal` exists only
+  in `editBodyBless`; `editBodyExplicit` has no equality comparison and emits one
+  `OpWrite` unconditionally. Measured: `edit-body --body-file <byte-identical>`
+  exits 0 and lands an empty-diffstat commit, repeatably — the same shape AC-7
+  treated as a correctness fix elsewhere. Not covered by G-0459 (scoped to
+  event-shaped verbs). Pick one: guard `editBodyExplicit`, or reclassify the entry
+  as `OPEN` with a new gap. The AC-6 body and the work log need the same
+  correction.
+- **P6 — the same-function claim is false in both the code comment and the AC-6
+  body.** Function scoping was presented as preventing fixture-setup credit; setup
+  lives in the same function, so it does not. State the real limit.
+- **P7 — ADR-0036 scope overreach.** The policy cites ADR-0036 as its authority but
+  enforces the convention across all 28 entry points, while the ADR scopes itself
+  to `promote`/`cancel`. Widen the ADR or cite the convention instead.
+
+### Non-blocking, carried
+
+- An eighth inferred claim, disproved: the work log says `check.resolveFullSHA`
+  cannot converge with `gitops.ResolveCommitSHA` because audit rules depend on its
+  unverified 40-hex fast path. Converging them in a scratch copy left every
+  affected package green. The real difference is one `git rev-parse` per trailer on
+  a hot path — a performance argument. Restate it, and file a gap for the
+  convergence.
+- Stale docstrings still documenting removed refusals: `setarea.go`,
+  `setpriority.go`, `renamearea.go`, `cancel.go`, `move.go`, `retitle.go`.
+- `acks.go` and `acks_helper_lift.go` docs claim a single/four-consumer set that
+  the new verb call site invalidates; that helper's own doc names same-commit
+  updating as the chokepoint.
+- NoOp surface inconsistency across the eleven verbs: `promote` omits the
+  `"; nothing to …"` clause, `move` alone quotes the id, all messages echo the raw
+  rather than canonicalized id, and none set `Result.Metadata` — so a JSON
+  consumer distinguishes no-op from mutation only by prose in `result.subject`.
+- `verb_sequence_classify_test.go` asserts violation counts only; a mutant
+  swapping the two same-status arms survives the suite. The sibling race classify
+  test already uses `wantSubstrings`.
+- `shaAckable` and `ResolveCommitSHA` issue two `git rev-parse --verify …^{commit}`
+  subprocesses for one question; the latter subsumes the former.
+- The policy's OPEN entries have no ratchet, no gap-shape check, and no
+  stale-entry check, so a resolved hole survives as a false exemption. A typed
+  state field plus those three assertions is the sibling `grandfatherDark` idiom.
+- AC-6 body lines carry drafting history inside the criterion text; keep the
+  reasoning, drop the framing.
 
