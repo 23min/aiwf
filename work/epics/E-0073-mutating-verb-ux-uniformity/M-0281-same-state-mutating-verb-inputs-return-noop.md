@@ -33,6 +33,9 @@ acs:
       title: Five field-mutation verbs converge to NoOp on same-state input
       status: met
       tdd_phase: done
+    - id: AC-8
+      title: edit-body --body-file converges to NoOp when the body is already committed
+      status: open
 ---
 
 ## Goal
@@ -179,6 +182,51 @@ Verbs deliberately excluded, each carrying an `OPEN` allowlist entry in the AC-6
 policy rather than a by-design reason: `promote --phase` (G-0458), and the five
 event-shaped verbs whose repeats append duplicate records (G-0459), one of which
 also leaves two active scopes (G-0460).
+
+### AC-8 — edit-body --body-file converges to NoOp when the body is already committed
+
+`aiwf edit-body <id> --body-file <content>` lands a commit unconditionally. Handed
+content byte-identical to what is already committed, it produces a commit whose
+diff is empty, and it does so on every repeat — measured taking a repo from 2 to
+5 commits across three runs, each with zero files changed, leaving three
+indistinguishable rows in `aiwf history`.
+
+This is the shape AC-7 treated as a correctness fix rather than UX polish for
+`milestone tdd` and `milestone depends-on`: a verb with no same-state guard
+silently polluting history. `edit-body` is a hotter path than either.
+
+The verb's other mode keeps refusing. Bless mode (no `--body-file`) commits
+whatever edit is already in the working copy, and when the working copy equals
+HEAD it reports "no changes to commit". The two outcomes are not an
+inconsistency to unify — they follow from whether the verb can check the
+operator's target against reality. Explicit mode is handed a target, so it can
+truthfully say the target is already met. Bless mode's input *is* the current
+state, so it cannot distinguish "I meant to change nothing" from "my editor did
+not save"; the refusal is the only honest answer to a premise it cannot falsify.
+
+Convergence requires the serialized content to equal **both** the committed
+bytes at HEAD and the bytes on disk. Neither comparison alone is correct:
+
+- HEAD alone reports "already matches" while a dirty working copy holds
+  different content, stranding an operator's revert and lying about the state.
+- Disk alone converges when the working copy already carries the requested
+  content uncommitted — never landing the commit that was the point of the call,
+  which is exactly the agent-writes-then-routes-through-the-verb flow the
+  guidance encourages.
+
+The comparison is on serialized output, not body bytes: a byte-identical body
+over non-canonical frontmatter still needs a real write, because
+`entity.Serialize` re-canonicalizes.
+
+## Acceptance
+
+- A clean tree plus byte-identical content returns a NoOp at exit 0 and the
+  commit count is unchanged.
+- A working copy carrying the requested content uncommitted still commits.
+- A byte-identical body over non-canonical frontmatter still commits.
+- Bless mode continues to refuse on a clean tree.
+- `EditBody` leaves the `verb_result_noop_invariant` allowlist, and the policy
+  is satisfied by a real NoOp assertion rather than an exemption.
 
 ## Decisions made during implementation
 
