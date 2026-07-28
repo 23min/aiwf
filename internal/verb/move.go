@@ -43,12 +43,21 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if target.Kind != entity.KindEpic {
 		return nil, fmt.Errorf("--epic %q is not an epic (it's a %s)", newEpicID, target.Kind)
 	}
+	// Resolve the target epic to canonical width once, and use it for both
+	// the comparison below and the value written to `parent:`. Parsers accept
+	// narrower legacy spellings on input — ByID canonicalizes both sides
+	// before matching — so `--epic E-01` names the same epic as a stored
+	// `E-0001`. Comparing the raw argument missed that convergence, and the
+	// miss then wrote the operator's spelling into the frontmatter, degrading
+	// a canonical id to legacy width against ADR-0008.
+	canonNew := entity.Canonicalize(newEpicID)
+
 	// Same-state convergence (M-0281/AC-3): the milestone is already under
 	// the requested epic — there's nothing to relocate — so a re-run
 	// converges to a NoOp at exit 0 rather than an error. move is a
 	// field-mutation verb (no FSM transition), so this needs no ADR-0036
 	// oracle changes.
-	if e.Parent == newEpicID {
+	if entity.Canonicalize(e.Parent) == canonNew {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("milestone %q is already under epic %q; nothing to move", id, newEpicID)}, nil
 	}
 
@@ -57,7 +66,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 
 	modified := *e
 	priorParent := e.Parent
-	modified.Parent = newEpicID
+	modified.Parent = canonNew
 	modified.Path = dest
 
 	body, err := readBody(t.Root, e.Path)
@@ -74,10 +83,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 		return findings(fs), nil
 	}
 
-	// Canonical width per AC-1 in M-081.
+	// Canonical width per AC-1 in M-081. canonNew is resolved above, where the
+	// same-state comparison needs it.
 	canonID := entity.Canonicalize(id)
 	canonPrior := entity.Canonicalize(priorParent)
-	canonNew := entity.Canonicalize(newEpicID)
 	subject := fmt.Sprintf("aiwf move %s %s -> %s", canonID, canonPrior, canonNew)
 	result := plan(&Plan{
 		Subject: subject,

@@ -1,6 +1,7 @@
 package verb_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -99,6 +100,60 @@ func TestSetPriority_SameState_ReturnsNoOp(t *testing.T) {
 
 // RenameArea's same-name NoOp lives in renamearea_test.go (package verb), where
 // its areaTree/mustReadAreaDoc fixtures already are.
+
+// TestMilestoneDependsOn_SameListAtLegacyWidth_ReturnsNoOp pins that the
+// depends_on guard compares ids, not spellings. The milestone grammar accepts
+// three or more digits, so `M-002` is a legal narrow spelling of the stored
+// `M-0002` and re-declaring it changes nothing. Comparing the raw argument
+// against the stored canonical value missed that and wrote the operator's
+// narrower spelling into `depends_on`, degrading a canonical id against
+// ADR-0008.
+func TestMilestoneDependsOn_SameListAtLegacyWidth_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.MilestoneDependsOn(r.ctx, r.tree(), "M-0001", []string{"M-0002"}, false, testActor, ""))
+	before := countCommits(t, r.root)
+
+	res, err := verb.MilestoneDependsOn(r.ctx, r.tree(), "M-0001", []string{"M-002"}, false, testActor, "")
+	if err != nil {
+		t.Fatalf("re-declaring the same list at legacy width returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true — M-002 and M-0002 are the same milestone")
+	}
+	if res.Plan != nil {
+		t.Fatalf("res.Plan = %+v, want nil — writing this plan would degrade depends_on to legacy width", res.Plan)
+	}
+	if got := countCommits(t, r.root); got != before {
+		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
+	}
+}
+
+// TestMilestoneDependsOn_SelfEdgeAtLegacyWidth_Refused pins the self-dependency
+// refusal against the same width-sensitivity. The guard compared `--on` against
+// the id argument verbatim, so `M-001` — a legal narrow spelling of the
+// milestone's own `M-0001` — slipped past it, and `ByID` then resolved it
+// happily, admitting exactly the self-edge the check exists to refuse.
+func TestMilestoneDependsOn_SelfEdgeAtLegacyWidth_Refused(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+
+	res, err := verb.MilestoneDependsOn(r.ctx, r.tree(), "M-0001", []string{"M-001"}, false, testActor, "")
+	if err == nil {
+		t.Fatalf("depends-on M-0001 --on M-001 returned res=%+v, want a refusal — a milestone cannot depend on itself", res)
+	}
+	if !strings.Contains(err.Error(), "cannot depend on itself") {
+		t.Errorf("err = %q, want it to name the self-dependency refusal", err)
+	}
+}
 
 // TestMilestoneDependsOn_SameList_ReturnsNoOp: re-declaring the depends_on list
 // a milestone already carries wrote byte-identical content and landed a commit

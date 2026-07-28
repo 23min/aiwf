@@ -96,6 +96,15 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// verbatim (body-prose canonicalization is M-082's job).
 		"internal/verb/contractbind_test.go": "yaml-entry round-trip preserves narrow legacy widths verbatim (deferred to M-082)",
 
+		// Same-state convergence has to compare ids, not spellings: a
+		// narrow legacy argument names the same entity a canonical stored
+		// value does, so the narrow literal IS the input space here. These
+		// tests drive move / milestone depends-on with a narrow spelling of
+		// the value already stored and assert the verb converges rather than
+		// writing the operator's width back into frontmatter.
+		"internal/verb/move_same_state_noop_test.go":        "same-state guard compares canonicalized ids; narrow input proves width-insensitivity",
+		"internal/verb/field_verbs_same_state_noop_test.go": "same-state guard and self-edge refusal compare canonicalized ids; narrow input proves width-insensitivity",
+
 		// Skills package asserts on-disk SKILL.md content; doc-prose
 		// canonicalization is M-082's `aiwf rewidth` job.
 		"internal/skills/skills_test.go": "skill SKILL.md prose markers (body-prose canonicalization deferred to M-082)",
