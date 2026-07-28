@@ -33,9 +33,9 @@ func TestMove_ToCurrentParent_ReturnsNoOp(t *testing.T) {
 // compares ids, not spellings. Parsers accept narrower legacy widths on input
 // (ByID canonicalizes both sides before matching), so `--epic E-01` names the
 // very epic the milestone already sits under. Comparing the raw argument
-// against the stored canonical value missed that, and the miss was not merely a
-// lost NoOp: the verb went on to write the operator's spelling into `parent:`,
-// degrading a canonical id to legacy width against ADR-0008.
+// against the stored canonical value missed that, and the miss cost more than a
+// NoOp: the move then rewrote an already-canonical `parent:` to the operator's
+// narrower spelling. Converging is what removes that write.
 func TestMove_ToCurrentParentAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -51,6 +51,6 @@ func TestMove_ToCurrentParentAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 		t.Errorf("res.NoOp = false, want true — E-01 and E-0001 are the same epic")
 	}
 	if res.Plan != nil {
-		t.Errorf("res.Plan = %+v, want nil — writing this plan would degrade parent: to legacy width", res.Plan)
+		t.Errorf("res.Plan = %+v, want nil — applying it would rewrite parent: for no change", res.Plan)
 	}
 }

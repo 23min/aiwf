@@ -105,9 +105,8 @@ func TestSetPriority_SameState_ReturnsNoOp(t *testing.T) {
 // depends_on guard compares ids, not spellings. The milestone grammar accepts
 // three or more digits, so `M-002` is a legal narrow spelling of the stored
 // `M-0002` and re-declaring it changes nothing. Comparing the raw argument
-// against the stored canonical value missed that and wrote the operator's
-// narrower spelling into `depends_on`, degrading a canonical id against
-// ADR-0008.
+// against the stored canonical value missed that and rewrote the list to a
+// different spelling of the very same edges.
 func TestMilestoneDependsOn_SameListAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -127,7 +126,7 @@ func TestMilestoneDependsOn_SameListAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 		t.Errorf("res.NoOp = false, want true — M-002 and M-0002 are the same milestone")
 	}
 	if res.Plan != nil {
-		t.Fatalf("res.Plan = %+v, want nil — writing this plan would degrade depends_on to legacy width", res.Plan)
+		t.Fatalf("res.Plan = %+v, want nil — applying it would rewrite depends_on for no change", res.Plan)
 	}
 	if got := countCommits(t, r.root); got != before {
 		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)

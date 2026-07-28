@@ -56,19 +56,14 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		return nil, fmt.Errorf("%q is of kind %s, not milestone", id, e.Kind)
 	}
 
-	// Every id comparison and the stored list itself run at canonical width.
-	// The grammar accepts narrower legacy spellings (`M-002` for `M-0002`) and
-	// ByID canonicalizes before matching, so comparing raw arguments both
-	// missed same-state convergence and let a narrow spelling of the
+	// Id comparisons run at canonical width. The grammar accepts narrower
+	// legacy spellings (`M-002` for `M-0002`) and ByID canonicalizes before
+	// matching, so comparing raw arguments let a narrow spelling of the
 	// milestone's own id slip past the self-edge refusal — after which ByID
-	// resolved it happily. Canonicalizing at the point the input becomes the
-	// stored value fixes all three at once, and keeps the write from degrading
-	// a canonical id to legacy width against ADR-0008.
+	// resolved it happily, admitting the very edge this refuses.
 	canonID := entity.Canonicalize(id)
-	canonDeps := make([]string, len(deps))
-	for i, dep := range deps {
-		canonDep := entity.Canonicalize(dep)
-		if canonDep == canonID {
+	for _, dep := range deps {
+		if entity.Canonicalize(dep) == canonID {
 			return nil, fmt.Errorf("--on %q is the milestone itself; a milestone cannot depend on itself", dep)
 		}
 		ref := t.ByID(dep)
@@ -78,14 +73,16 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		if ref.Kind != entity.KindMilestone {
 			return nil, fmt.Errorf("--on %q is of kind %s, not milestone (depends_on edges are milestone→milestone only)", dep, ref.Kind)
 		}
-		canonDeps[i] = canonDep
 	}
 
 	modified := *e
 	if clearList {
 		modified.DependsOn = nil
 	} else {
-		modified.DependsOn = canonDeps
+		// Stored as given, matching the verbatim convention Add documents
+		// for this same field. Width normalization across the tree is
+		// `aiwf rewidth`'s job, not a side effect of an edge declaration.
+		modified.DependsOn = append([]string(nil), deps...)
 	}
 
 	// Same-state convergence (M-0281/AC-7): the list already reads exactly as
@@ -98,9 +95,10 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	// replace-not-append, so a reordered list is a real change to the stored
 	// sequence and still commits. Placed after the dep-resolution loop above,
 	// so a bogus `--on` id is still refused rather than silently converged.
-	// Both sides are canonical-width: modified.DependsOn from canonDeps, and
-	// the stored side normalized here so a legacy-width tree still converges.
-	if slices.Equal(canonicalIDs(e.DependsOn), modified.DependsOn) {
+	// Both sides are normalized to canonical width for the comparison only, so
+	// a narrow argument naming the stored entity converges instead of
+	// re-writing the list to a different spelling of the same edges.
+	if slices.Equal(canonicalIDs(e.DependsOn), canonicalIDs(modified.DependsOn)) {
 		return &Result{NoOp: true, NoOpMessage: dependsOnNoOpMessage(id, clearList)}, nil
 	}
 

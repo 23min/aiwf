@@ -43,13 +43,14 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if target.Kind != entity.KindEpic {
 		return nil, fmt.Errorf("--epic %q is not an epic (it's a %s)", newEpicID, target.Kind)
 	}
-	// Resolve the target epic to canonical width once, and use it for both
-	// the comparison below and the value written to `parent:`. Parsers accept
-	// narrower legacy spellings on input — ByID canonicalizes both sides
-	// before matching — so `--epic E-01` names the same epic as a stored
-	// `E-0001`. Comparing the raw argument missed that convergence, and the
-	// miss then wrote the operator's spelling into the frontmatter, degrading
-	// a canonical id to legacy width against ADR-0008.
+	// Resolve the target epic to canonical width for the comparison below.
+	// Parsers accept narrower legacy spellings on input — ByID canonicalizes
+	// both sides before matching — so `--epic E-01` names the same epic as a
+	// stored `E-0001`, and comparing the raw argument missed that. The miss
+	// mattered twice over: it lost the convergence, and it then wrote the
+	// operator's narrower spelling over an already-canonical `parent:`.
+	// Converging removes that write entirely; what a genuine move stores is
+	// governed by the verbatim convention Add documents for referent ids.
 	canonNew := entity.Canonicalize(newEpicID)
 
 	// Same-state convergence (M-0281/AC-3): the milestone is already under
@@ -66,7 +67,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 
 	modified := *e
 	priorParent := e.Parent
-	modified.Parent = canonNew
+	modified.Parent = newEpicID
 	modified.Path = dest
 
 	body, err := readBody(t.Root, e.Path)
