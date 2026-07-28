@@ -76,30 +76,65 @@ func TestPromote_SameStatus_ResolverBackfill_StillMutates(t *testing.T) {
 // the outcome belongs on the converging side.
 func TestPromote_SameStatus_IdenticalResolver_ReturnsNoOp(t *testing.T) {
 	t.Parallel()
+
+	// Both resolver flavors a gap accepts. --by-commit is the one the routine
+	// tracker-closure command uses, so it carries the case; --by shares the
+	// guard and is covered alongside it rather than assumed equivalent.
+	cases := []struct {
+		name    string
+		resolve func(r *runner) verb.PromoteOptions
+	}{
+		{
+			name: "--by entity id",
+			resolve: func(_ *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedBy: []string{"M-0001"}}
+			},
+		},
+		{
+			name: "--by-commit sha",
+			resolve: func(r *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{resolveHeadSHA(r.t, r.root)}}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := gapResolverFixture(t)
+			opts := tc.resolve(r)
+			r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts))
+			before := countCommits(t, r.root)
+
+			res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts)
+			if err != nil {
+				t.Fatalf("re-running an identical resolver promote returned a Go error, want a NoOp: %v", err)
+			}
+			if !res.NoOp {
+				t.Errorf("res.NoOp = false, want true — status and resolver both already read as requested")
+			}
+			if res.Plan != nil {
+				t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
+			}
+			if got := countCommits(t, r.root); got != before {
+				t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
+			}
+		})
+	}
+}
+
+// gapResolverFixture builds an epic, two milestones and an open gap — the
+// referents the gap-addressed resolver flags point at.
+func gapResolverFixture(t *testing.T) *runner {
+	t.Helper()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
 		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Index", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
 		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-
-	opts := verb.PromoteOptions{AddressedBy: []string{"M-0001"}}
-	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts))
-	before := countCommits(t, r.root)
-
-	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts)
-	if err != nil {
-		t.Fatalf("re-running an identical resolver promote returned a Go error, want a NoOp: %v", err)
-	}
-	if !res.NoOp {
-		t.Errorf("res.NoOp = false, want true — status and resolver both already read as requested")
-	}
-	if res.Plan != nil {
-		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
-	}
-	if got := countCommits(t, r.root); got != before {
-		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
-	}
+	return r
 }
 
 // TestPromote_SameStatus_DifferentResolver_StillRefused is the other side of
@@ -112,24 +147,51 @@ func TestPromote_SameStatus_IdenticalResolver_ReturnsNoOp(t *testing.T) {
 // refusing, and the operator keeps needing a deliberate verb or --force.
 func TestPromote_SameStatus_DifferentResolver_StillRefused(t *testing.T) {
 	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
-		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Index", testActor,
-		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
-		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
 
-	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
-		verb.PromoteOptions{AddressedBy: []string{"M-0002"}})
-	if err == nil {
-		t.Fatalf("re-pointing a set resolver returned res=%+v, want the refusal to stand", res)
+	// Each case records one resolver, then re-promotes naming a different
+	// value of the same flavor. Covering both flavors matters: they are
+	// separate comparisons, and only one of them is the flag the routine
+	// tracker-closure command passes.
+	cases := []struct {
+		name             string
+		first, different func(r *runner) verb.PromoteOptions
+	}{
+		{
+			name: "--by entity id",
+			first: func(_ *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedBy: []string{"M-0001"}}
+			},
+			different: func(_ *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedBy: []string{"M-0002"}}
+			},
+		},
+		{
+			name: "--by-commit sha",
+			first: func(r *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{resolveHeadSHA(r.t, r.root)}}
+			},
+			// Resolved after the first promote has landed, so it names a real
+			// but different commit — --by-commit refuses a SHA that resolves
+			// to nothing, which would mask the comparison under test.
+			different: func(r *runner) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{resolveHeadSHA(r.t, r.root)}}
+			},
+		},
 	}
-	if !strings.Contains(err.Error(), "cannot transition to") {
-		t.Errorf("err = %q, want the FSM refusal — re-pointing needs a deliberate verb or --force", err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := gapResolverFixture(t)
+			r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, tc.first(r)))
+
+			res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, tc.different(r))
+			if err == nil {
+				t.Fatalf("re-pointing a set resolver returned res=%+v, want the refusal to stand", res)
+			}
+			if !strings.Contains(err.Error(), "cannot transition to") {
+				t.Errorf("err = %q, want the FSM refusal — re-pointing needs a deliberate verb or --force", err)
+			}
+		})
 	}
 }
 
