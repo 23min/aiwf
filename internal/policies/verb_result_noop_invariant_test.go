@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -292,6 +294,47 @@ func TestX(t *testing.T) {
 				t.Errorf("credited verbs mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// TestVerbResultNoOpInvariant_SurfacesAWalkFailure pins the error path: a root
+// the walk cannot read is reported as an error, not swallowed into the zero
+// violations an empty scan would otherwise produce.
+func TestVerbResultNoOpInvariant_SurfacesAWalkFailure(t *testing.T) {
+	t.Parallel()
+	if _, err := PolicyVerbResultNoOpInvariant(filepath.Join(t.TempDir(), "absent")); err == nil {
+		t.Error("walking an absent root returned no error, want one — a policy that cannot read the tree must not report success")
+	}
+}
+
+// TestVerbResultNoOpInvariant_SkipsAFileThatDoesNotParse pins that a file under
+// internal/verb/ which fails to parse is skipped rather than aborting the scan.
+// The tree here holds a broken file alongside a covered entry point, so the
+// policy must still see Foo's coverage and report nothing.
+func TestVerbResultNoOpInvariant_SkipsAFileThatDoesNotParse(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal", "verb")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatalf("creating the fixture verb dir: %v", err)
+	}
+	write := func(name, content string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
+			t.Fatalf("writing %s: %v", name, err)
+		}
+	}
+	write("broken.go", "package verb\n\nfunc Oops( { }\n")
+	write("v.go", "package verb\n\nfunc Foo() (*Result, error) { return nil, nil }\n")
+	write("v_test.go", "package verb\n\nimport \"testing\"\n\n"+
+		"func TestFoo(t *testing.T) {\n\tres, _ := Foo()\n\tif !res.NoOp {\n\t\tt.Errorf(\"want a NoOp\")\n\t}\n}\n")
+
+	violations, err := PolicyVerbResultNoOpInvariant(root)
+	if err != nil {
+		t.Fatalf("a tree holding one unparseable file returned an error, want it skipped: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Errorf("got %d violations, want 0 — Foo is covered by the parseable half, and broken.go must be skipped rather than fatal: %+v", len(violations), violations)
 	}
 }
 
