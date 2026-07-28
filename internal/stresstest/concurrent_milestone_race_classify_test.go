@@ -271,14 +271,15 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 	const milestoneID = "M-0100"
 	const acEntity = milestoneID + "/AC-1"
 
-	promoteOK := raceActorOutcome{operation: raceOpPromote, status: "ok"}
+	promoteOK := raceActorOutcome{operation: raceOpPromote, status: "ok", commitSHA: "promotesha"}
 	promoteRefused := raceActorOutcome{operation: raceOpPromote, status: "error", errorCode: entity.CodeFSMTransitionIllegal.ID}
-	cancelOK := raceActorOutcome{operation: raceOpCancel, status: "ok"}
+	cancelOK := raceActorOutcome{operation: raceOpCancel, status: "ok", commitSHA: "cancelsha"}
 	cancelRefusedOpenAC := raceActorOutcome{operation: raceOpCancel, status: "error", errorCode: verb.CodeMilestoneCancelNonTerminalACs.ID}
 	// cancelNoOp models a cancel that raced after the milestone was already
-	// cancelled: a NoOp (ADR-0036, M-0281/AC-2) — reported "ok" with no
-	// commit, structurally identical to a winning cancel at the outcome
-	// level; only the commit order distinguishes the two.
+	// cancelled: a NoOp (ADR-0036, M-0281/AC-2), reported "ok" like a winning
+	// cancel. metadata.commit_sha is the only thing separating them — the
+	// winner carries one, the NoOp does not — which is what lets the oracle
+	// reconcile actor reports against the commits git actually recorded.
 	cancelNoOp := raceActorOutcome{operation: raceOpCancel, status: "ok"}
 
 	promoteCommit := raceCommit{verb: raceOpPromote, entity: acEntity}
@@ -288,6 +289,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 		name           string
 		outcomes       []raceActorOutcome
 		order          []raceCommit
+		commitDelta    int
 		wantSubstrings []string
 	}{
 		{
@@ -297,6 +299,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          []raceCommit{promoteCommit},
+			commitDelta:    1,
 			wantSubstrings: nil,
 		},
 		{
@@ -306,6 +309,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{promoteCommit, cancelCommit},
+			commitDelta:    2,
 			wantSubstrings: nil,
 		},
 		{
@@ -315,6 +319,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          nil,
+			commitDelta:    0,
 			wantSubstrings: []string{"want exactly 1"},
 		},
 		{
@@ -323,8 +328,11 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				promoteOK, promoteOK, promoteRefused, promoteRefused,
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
-			order:          []raceCommit{promoteCommit},
-			wantSubstrings: []string{"want exactly 1"},
+			order:       []raceCommit{promoteCommit},
+			commitDelta: 1,
+			// Two actors each claim a commit while only one landed, so the
+			// actor-vs-git cross-check fires alongside the transition bound.
+			wantSubstrings: []string{"want exactly 1", "the repo gained 1"},
 		},
 		{
 			name: "two cancel commits land — a mutually-exclusive-transition violation",
@@ -337,6 +345,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			// Multiple cancel "ok"s are legitimate now (NoOps report ok with
 			// no commit), so the bound moved from ok-count to commit-count.
 			order:          []raceCommit{promoteCommit, cancelCommit, cancelCommit},
+			commitDelta:    3,
 			wantSubstrings: []string{"want at most 1"},
 		},
 		{
@@ -348,6 +357,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          []raceCommit{promoteCommit},
+			commitDelta:    1,
 			wantSubstrings: []string{"contradicts the FSM's own verdict"},
 		},
 		{
@@ -358,6 +368,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          []raceCommit{promoteCommit},
+			commitDelta:    1,
 			wantSubstrings: []string{"only legitimate cancel refusal"},
 		},
 		{
@@ -367,6 +378,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{cancelCommit, promoteCommit}, // cancel BEFORE promote
+			commitDelta:    2,
 			wantSubstrings: []string{"the open-AC guard did not hold"},
 		},
 		{
@@ -375,8 +387,52 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 				promoteOK, promoteRefused, promoteRefused, promoteRefused,
 				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
-			order:          []raceCommit{cancelCommit},
-			wantSubstrings: []string{"no " + raceOpPromote + " commit"},
+			order:       []raceCommit{cancelCommit},
+			commitDelta: 1,
+			// The promote actor claims a commit that is nowhere in the order,
+			// so the cross-check fires beside the missing-commit finding.
+			wantSubstrings: []string{"no " + raceOpPromote + " commit", "the repo gained 1"},
+		},
+
+		// The three shapes the commit-count-only oracle could not see. Each is
+		// a real breach of the one-commit-per-mutation guarantee that leaves
+		// final state, "ok" counts and trailered commit counts all plausible.
+		{
+			name: "a NoOp cancel landed a commit anyway — more commits than actors claim",
+			outcomes: []raceActorOutcome{
+				promoteOK, promoteRefused, promoteRefused, promoteRefused,
+				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
+			},
+			// One trailered cancel commit, but the repo gained an extra one:
+			// the shape a `git commit --allow-empty` in the NoOp branch
+			// produces. Untrailered, so no per-verb count notices it.
+			order:          []raceCommit{promoteCommit, cancelCommit},
+			commitDelta:    3,
+			wantSubstrings: []string{"the repo gained 3"},
+		},
+		{
+			name: "a cancel reported a commit that never landed — fewer commits than actors claim",
+			outcomes: []raceActorOutcome{
+				promoteOK, promoteRefused, promoteRefused, promoteRefused,
+				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
+			},
+			order:       []raceCommit{promoteCommit},
+			commitDelta: 1,
+			wantSubstrings: []string{
+				"the repo gained 1",
+				"1 cancel actors reported landing a commit but 0 cancel commits",
+			},
+		},
+		{
+			name: "a refused actor carries a commit_sha — it committed despite reporting failure",
+			outcomes: []raceActorOutcome{
+				promoteOK, promoteRefused, promoteRefused, promoteRefused,
+				{operation: raceOpCancel, status: "error", errorCode: verb.CodeMilestoneCancelNonTerminalACs.ID, commitSHA: "leakedsha"},
+				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
+			},
+			order:          []raceCommit{promoteCommit},
+			commitDelta:    1,
+			wantSubstrings: []string{"a refused verb must not have committed"},
 		},
 	}
 
@@ -384,7 +440,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := classifyMilestoneRaceOutcomes(tc.outcomes, tc.order, milestoneID)
+			got := classifyMilestoneRaceOutcomes(tc.outcomes, tc.order, milestoneID, tc.commitDelta)
 			if len(got) != len(tc.wantSubstrings) {
 				t.Fatalf("violations = %+v, want %d matching %v", got, len(tc.wantSubstrings), tc.wantSubstrings)
 			}

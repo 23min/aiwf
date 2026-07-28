@@ -184,14 +184,21 @@ func (s *ConcurrentMilestoneRaceScenario) launchActor(dir, operation string) raw
 }
 
 // raceActorOutcome is one concurrent actor's reduced result: which
-// operation it ran, the verb's reported envelope status, and the
-// typed error code it carried (empty when it succeeded) — the shape
+// operation it ran, the verb's reported envelope status, the typed
+// error code it carried (empty when it succeeded), and the SHA of the
+// commit it claims to have landed — the shape
 // classifyMilestoneRaceOutcomes (AC-2) classifies as a legitimate race
 // outcome or a guard violation.
+//
+// commitSHA is what separates a mutation from a NoOp. Since ADR-0036
+// both report status "ok", so status alone cannot tell "I cancelled the
+// milestone" from "it was already cancelled, I did nothing" — and an
+// oracle that cannot tell them apart cannot notice a NoOp that committed.
 type raceActorOutcome struct {
 	operation string
 	status    string
 	errorCode string
+	commitSHA string
 }
 
 // buildRaceOutcome reduces one actor's decoded envelope to a
@@ -204,7 +211,12 @@ func buildRaceOutcome(operation string, env verbEnvelope) raceActorOutcome {
 	if env.Error != nil {
 		errorCode = env.Error.Code
 	}
-	return raceActorOutcome{operation: operation, status: env.Status, errorCode: errorCode}
+	return raceActorOutcome{
+		operation: operation,
+		status:    env.Status,
+		errorCode: errorCode,
+		commitSHA: env.Metadata.CommitSHA,
+	}
 }
 
 // raceCommit is one commit's aiwf-verb/aiwf-entity trailer pair, in
@@ -289,7 +301,7 @@ func parseRaceCommitSHAs(out []byte) []string {
 // otherwise the open-AC guard did not actually hold at the moment that
 // cancel committed, the G-0335 regression shape, indistinguishable
 // from a legitimate race by final state alone.
-func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceCommit, milestoneID string) []Violation {
+func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceCommit, milestoneID string, commitDelta int) []Violation {
 	var violations []Violation
 	acEntity := milestoneID + "/AC-1"
 
@@ -347,6 +359,45 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 		violations = append(violations, Violation{Message: fmt.Sprintf(
 			"%d cancel commits landed for %s, want at most 1 (draft -> cancelled can happen once)",
 			cancelCommits, milestoneID,
+		)})
+	}
+
+	// Cross-check what the actors reported against what git recorded. Counting
+	// commits alone cannot see a NoOp that committed, and counting "ok"s alone
+	// cannot see a success that didn't — since ADR-0036 both wear status "ok".
+	// metadata.commit_sha is what separates them, so it is what the two sides
+	// are reconciled through. Without this the kernel's one-commit-per-mutation
+	// guarantee has no oracle in this scenario: a NoOp branch that committed
+	// would leave the whole catalog green.
+	reportedCommits, cancelReportedCommits := 0, 0
+	for _, oc := range outcomes {
+		if oc.commitSHA == "" {
+			continue
+		}
+		if oc.status != "ok" {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a %s actor reported status %q yet carried metadata.commit_sha %q — a refused verb must not have committed",
+				oc.operation, oc.status, oc.commitSHA,
+			)})
+			continue
+		}
+		reportedCommits++
+		if oc.operation == raceOpCancel {
+			cancelReportedCommits++
+		}
+	}
+	if reportedCommits != commitDelta {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d actors reported landing a commit but the repo gained %d during the race — "+
+				"every mutation lands exactly one commit and a NoOp lands none, so the two counts must agree",
+			reportedCommits, commitDelta,
+		)})
+	}
+	if cancelReportedCommits != cancelCommits {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d cancel actors reported landing a commit but %d cancel commits for %s are in the history — "+
+				"a cancel that reported a commit it did not land, or a cancel commit no actor claims, breaks the audit trail",
+			cancelReportedCommits, cancelCommits, milestoneID,
 		)})
 	}
 
@@ -456,7 +507,7 @@ func (s *ConcurrentMilestoneRaceScenario) Run(dir string) error {
 	if orderErr != nil { //coverage:ignore defensive: reading commit trailer order off a repo this scenario itself just produced commits in has no realistic failure mode; readRaceCommitOrder's own error branch is unit-tested directly against a non-git directory
 		return fmt.Errorf("reading commit trailer order after the concurrent race: %w", orderErr)
 	}
-	s.violations = classifyMilestoneRaceOutcomes(s.outcomes, order, s.milestoneID)
+	s.violations = classifyMilestoneRaceOutcomes(s.outcomes, order, s.milestoneID, s.after-s.before)
 	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentMilestoneRaceExpectedWarnings)...)
 	return nil
 }
