@@ -64,6 +64,50 @@ func mustReadAreaDoc(t *testing.T) *aiwfyaml.Doc {
 	return d
 }
 
+// TestRenameArea_SameNameStillValidatesTheMember pins the ordering between
+// rename-area's same-state guard and its validation. Converging to a NoOp means
+// asserting "nothing to rename", which is only true of a member that exists. An
+// undeclared name and the reserved `global` sentinel are not members at all, so
+// both must still be refused — a NoOp there reports success for state that
+// cannot exist, and hides the operator's typo. SetArea already orders its
+// equivalent guard after validation; this keeps rename-area consistent.
+func TestRenameArea_SameNameStillValidatesTheMember(t *testing.T) {
+	t.Parallel()
+	declared := []config.Member{{Name: "platform"}, {Name: "billing"}}
+
+	cases := []struct {
+		name    string
+		area    string
+		wantErr string
+	}{
+		{
+			name:    "undeclared member",
+			area:    "nosucharea",
+			wantErr: "not a declared member",
+		},
+		{
+			name:    "reserved global sentinel",
+			area:    entity.AreaGlobal,
+			wantErr: "reserved",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tr := areaTree(t, map[string]string{"E-0001": "platform"})
+			doc := mustReadAreaDoc(t)
+
+			res, err := RenameArea(context.Background(), tr, doc, declared, tc.area, tc.area, "human/test")
+			if err == nil {
+				t.Fatalf("rename-area %[1]q %[1]q returned res=%+v, want a refusal — %[1]q is not a declared member", tc.area, res)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("err = %q, want it to mention %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 // TestRenameArea_SameName_ReturnsNoOp covers M-0281/AC-7 for rename-area:
 // renaming a member to the name it already carries has nothing to rewrite, so
 // it converges to a NoOp instead of the "<old> and <new> are identical" error.

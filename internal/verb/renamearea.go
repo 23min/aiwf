@@ -61,12 +61,6 @@ func RenameArea(
 	if oldName == "" || newName == "" {
 		return nil, fmt.Errorf("rename-area requires a non-empty <old> and <new>")
 	}
-	// Same-state convergence (M-0281/AC-7): the member already carries the
-	// requested name, so there is no aiwf.yaml edit and no entity retag to
-	// make — a re-run converges to a NoOp at exit 0 rather than an error.
-	if oldName == newName {
-		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("area %q is already named %q; nothing to rename", oldName, newName)}, nil
-	}
 	// `global` is the reserved cross-cutting sentinel (ADR-0021, M-0184),
 	// never a declarable member. Refuse renaming a member to it up front —
 	// symmetric to config.validate()'s guard — so the verb can't inject a
@@ -83,6 +77,18 @@ func RenameArea(
 	}
 	if !declared[oldName] {
 		return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", oldName, declaredList(names))
+	}
+	// Same-state convergence (M-0281/AC-7): the member already carries the
+	// requested name, so there is no aiwf.yaml edit and no entity retag to
+	// make — a re-run converges to a NoOp at exit 0 rather than an error.
+	//
+	// Placed after the declared-member check, not before it: "nothing to
+	// rename" is only true of a member that exists, so an undeclared name or
+	// the reserved sentinel must still be refused rather than told it already
+	// carries the name it asked for. SetArea orders its equivalent guard the
+	// same way.
+	if oldName == newName {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("area %q is already named %q; nothing to rename", oldName, newName)}, nil
 	}
 	if declared[newName] {
 		return nil, fmt.Errorf("area %q is already a declared member; declared areas: %s", newName, declaredList(names))
