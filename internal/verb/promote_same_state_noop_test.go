@@ -1,6 +1,9 @@
 package verb_test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -59,6 +62,162 @@ func TestPromote_SameStatus_ResolverBackfill_StillMutates(t *testing.T) {
 	}
 	if res.Plan == nil {
 		t.Fatal("res.Plan = nil, want a plan (backfill writes the resolver)")
+	}
+}
+
+// TestPromote_SameStatus_IdenticalResolver_ReturnsNoOp closes AC-1's stated
+// claim: a promote converges when the target equals the current status AND no
+// other field is changing. The guard originally keyed on "no resolver flag was
+// supplied", which is a narrower condition — so re-running the tracker-closure
+// command this repo's own gate discipline treats as routine,
+// `promote <gap> addressed --by-commit <sha>`, still refused with the FSM's
+// "cannot transition to itself" at exit 1. The resolver it carries is already
+// stored, so applying it would write the same bytes: nothing is changing, and
+// the outcome belongs on the converging side.
+func TestPromote_SameStatus_IdenticalResolver_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+
+	opts := verb.PromoteOptions{AddressedBy: []string{"M-0001"}}
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts))
+	before := countCommits(t, r.root)
+
+	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts)
+	if err != nil {
+		t.Fatalf("re-running an identical resolver promote returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true — status and resolver both already read as requested")
+	}
+	if res.Plan != nil {
+		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
+	}
+	if got := countCommits(t, r.root); got != before {
+		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
+	}
+}
+
+// TestPromote_SameStatus_DifferentResolver_StillRefused is the other side of
+// that guard: convergence is keyed on the resolver being *identical*, not on
+// one merely being present. Re-pointing a resolver that is already set is
+// deliberately not this verb's job — the G-0096 back-fill carve-out requires
+// the current resolver to be empty, so that this path cannot become a generic
+// "rewrite the resolver" surface. The same-state NoOp must not quietly become
+// one either: a same-status promote naming a *different* resolver keeps
+// refusing, and the operator keeps needing a deliberate verb or --force.
+func TestPromote_SameStatus_DifferentResolver_StillRefused(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Index", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0001"}}))
+
+	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedBy: []string{"M-0002"}})
+	if err == nil {
+		t.Fatalf("re-pointing a set resolver returned res=%+v, want the refusal to stand", res)
+	}
+	if !strings.Contains(err.Error(), "cannot transition to") {
+		t.Errorf("err = %q, want the FSM refusal — re-pointing needs a deliberate verb or --force", err)
+	}
+}
+
+// supersededADRPair builds two accepted ADRs and supersedes the first by the
+// second, leaving both sides of the link recorded: `superseded_by` on ADR-0001
+// and the `supersedes` back-link on ADR-0002.
+func supersededADRPair(t *testing.T) *runner {
+	t.Helper()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Old choice", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "New choice", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "accepted", testActor, "", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0002", "accepted", testActor, "", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false,
+		verb.PromoteOptions{SupersededBy: "ADR-0002"}))
+	return r
+}
+
+// TestPromote_SameStatus_IdenticalSupersededBy_ReturnsNoOp is the supersession
+// arm of the convergence guard: with both sides of the link already recorded,
+// a re-run of the identical command writes nothing and converges.
+func TestPromote_SameStatus_IdenticalSupersededBy_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := supersededADRPair(t)
+	before := countCommits(t, r.root)
+
+	res, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false,
+		verb.PromoteOptions{SupersededBy: "ADR-0002"})
+	if err != nil {
+		t.Fatalf("re-running an identical supersede returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true — status and both sides of the link already read as requested")
+	}
+	if got := countCommits(t, r.root); got != before {
+		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
+	}
+}
+
+// TestPromote_SameStatus_MissingBackLink_DoesNotConverge guards the subtle half
+// of the supersession arm. `--superseded-by` records a pointer on the superseded
+// ADR *and* a `supersedes` back-link on the superseding one, because
+// adr-supersession-mutual is a two-sided invariant. A tree carrying only the
+// first half — written before the reciprocal write existed, or hand-edited — is
+// not in the state the command describes, however much the superseded side
+// alone may look like it.
+//
+// Judging convergence on that side alone would report "already superseded" and
+// exit 0 over a broken invariant. Consulting the reciprocal keeps the verb
+// honest: it declines to converge, and the operator gets the standing FSM
+// refusal instead of a false success. Repairing the back-link is not something
+// this path can do — the back-fill carve-out needs an *empty* resolver, and
+// this one is set — so the refusal is the pre-existing behavior, preserved
+// rather than papered over. `aiwf check`'s adr-supersession-mutual rule is what
+// names the real problem.
+func TestPromote_SameStatus_MissingBackLink_DoesNotConverge(t *testing.T) {
+	t.Parallel()
+	r := supersededADRPair(t)
+
+	// Strip the back-link, leaving ADR-0001.superseded_by pointing at an
+	// ADR-0002 that no longer claims it.
+	superseding := r.tree().ByID("ADR-0002")
+	if superseding == nil {
+		t.Fatal("ADR-0002 missing from the fixture tree")
+	}
+	path := filepath.Join(r.root, superseding.Path)
+	raw, err := os.ReadFile(path) //nolint:gosec // test fixture path built from the loaded tree
+	if err != nil {
+		t.Fatalf("reading the superseding ADR: %v", err)
+	}
+	stripped := strings.Replace(string(raw), "supersedes:\n    - ADR-0001\n", "", 1)
+	if stripped == string(raw) {
+		t.Fatalf("fixture did not contain the expected back-link block:\n%s", raw)
+	}
+	if writeErr := os.WriteFile(path, []byte(stripped), 0o600); writeErr != nil {
+		t.Fatalf("writing the stripped ADR: %v", writeErr)
+	}
+
+	res, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false,
+		verb.PromoteOptions{SupersededBy: "ADR-0002"})
+	if err == nil {
+		t.Fatalf("re-running the supersede over a missing back-link returned res=%+v, want no convergence — "+
+			"the two-sided link is incomplete, so 'already superseded' would be a false success", res)
+	}
+	if !strings.Contains(err.Error(), "cannot transition to") {
+		t.Errorf("err = %q, want the standing FSM refusal", err)
 	}
 }
 

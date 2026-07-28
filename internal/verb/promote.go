@@ -77,17 +77,28 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
 	// Same-state convergence (M-0281/AC-1): a promote whose target status
-	// already equals the current status, with no resolver flag, has nothing
-	// to change — return a NoOp instead of an FSM "cannot transition to
-	// itself" error, so a re-run (interactive or from a forgotten script) is
-	// a clean exit 0. The `!hasResolverFlag()` clause keeps this mutually
-	// exclusive with the G-0096 resolver-backfill carve-out below (which
-	// requires a resolver flag): a same-status promote that carries a
-	// resolver flag falls through to backfill (writes the resolver) or, when
-	// the resolver is already set, to the FSM refusal — the resolver-flag
-	// path keeps its existing behavior. Fires regardless of --force: there is
-	// nothing for a sovereign override to re-apply.
-	if e.Status == newStatus && !opts.hasResolverFlag() {
+	// already equals the current status AND whose resolver flags would write
+	// back exactly what is stored has nothing to change — return a NoOp
+	// instead of an FSM "cannot transition to itself" error, so a re-run
+	// (interactive or from a forgotten script) is a clean exit 0. Fires
+	// regardless of --force: there is nothing for a sovereign override to
+	// re-apply.
+	//
+	// Keying on "would this write anything" rather than "was a resolver flag
+	// supplied" is what makes the criterion match its claim. The narrower
+	// spelling refused `promote <gap> addressed --by-commit <sha>` on a
+	// re-run — the tracker-closure command this repo's own gate discipline
+	// treats as routine — even though the SHA it carried was already the one
+	// on disk.
+	//
+	// It stays mutually exclusive with the G-0096 resolver-backfill carve-out
+	// below, which needs the stored resolver to be EMPTY: a backfill is by
+	// definition a change, so it never satisfies this guard and still falls
+	// through to write. A same-status promote naming a *different* resolver
+	// is also a change, so it likewise falls through — to the FSM refusal
+	// that keeps this path from becoming a generic rewrite-the-resolver
+	// surface.
+	if e.Status == newStatus && !promoteWouldWrite(t, e, opts) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already %s", id, newStatus)}, nil
 	}
 	// Back-fill carve-out (G-0096): if the requested transition is to
@@ -355,6 +366,41 @@ func validateResolverFlags(k entity.Kind, newStatus entity.Status, opts PromoteO
 func isResolutionClassStatus(k entity.Kind, status entity.Status) bool {
 	return (k == entity.KindGap && status == entity.StatusAddressed) ||
 		(k == entity.KindADR && status == entity.StatusSuperseded)
+}
+
+// promoteWouldWrite reports whether the resolver flags in opts would change
+// anything if applied to e — on e itself, or on the reciprocal ADR that
+// --superseded-by back-links. It is the "is anything actually changing"
+// half of the same-status convergence guard, asked only once the status is
+// already known to match.
+//
+// Comparison is byte-for-byte, matching applyResolverFlags, which replaces a
+// field wholesale rather than merging. Two spellings of one referent (a short
+// and a full SHA, a narrow and a canonical id) are therefore treated as a
+// change, because applying them would rewrite the stored bytes. Converging
+// there would silently discard an edit the operator asked for; normalizing
+// widths across a tree is `aiwf rewidth`'s job.
+func promoteWouldWrite(t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
+	if len(opts.AddressedBy) > 0 && !slices.Equal(e.AddressedBy, opts.AddressedBy) {
+		return true
+	}
+	if len(opts.AddressedByCommit) > 0 && !slices.Equal(e.AddressedByCommit, opts.AddressedByCommit) {
+		return true
+	}
+	if opts.SupersededBy != "" {
+		if e.SupersededBy != opts.SupersededBy {
+			return true
+		}
+		// The flag records a back-link on the superseding ADR too, so the
+		// superseded side matching is not enough to call this settled. A
+		// re-run whose reciprocal is still missing has repair work to do
+		// (G-0255), and must not be converged away.
+		recOp, _, err := reciprocalSupersedesOp(t, e.ID, opts.SupersededBy)
+		if err != nil || recOp != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // needsResolverBackfill reports whether e is in a resolution-class
