@@ -9,13 +9,12 @@ import (
 // review finding): gatherActivationCommitsLocalBranches must be scoped
 // to LOCAL branches only (`git log --branches`), symmetric with
 // branchTips (built from listRitualBranches, which also reads
-// refs/heads/ only). An earlier version of this gather used `--all`,
-// which also pulls in remote-tracking refs — surfacing a commit that
-// exists only on `refs/remotes/origin/*` as a candidate with no local
-// tip to judge it against, so RunPromoteOnWrongBranch fired on
-// activations that were actually correct, just not yet fetched,
-// merged, or pulled locally. Reproduced empirically against a real
-// bare-origin + two-clone setup before this test was written.
+// refs/heads/ only). Using `--all` instead also pulls in remote-tracking
+// refs — surfacing a commit that exists only on `refs/remotes/origin/*`
+// as a candidate with no local tip to judge it against, so
+// RunPromoteOnWrongBranch fires on activations that are correct but not
+// yet fetched, merged, or pulled locally. Confirmed empirically against
+// a real bare-origin + two-clone setup.
 
 // TestGatherActivationCommitsLocalBranches_ExcludesRemoteOnlyRef pins
 // the fix: a promote commit pushed to origin by a DIFFERENT clone,

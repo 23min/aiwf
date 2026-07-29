@@ -122,7 +122,7 @@ jobs:
         env:
           AIWF_COVERAGE_PROFILE: ${{ github.workspace }}/coverage.out
           AIWF_COVERAGE_BASE: ${{ steps.covbase.outputs.base }}
-        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop)$' -count=1 ./internal/policies/
+        run: go test -exec=$GITHUB_WORKSPACE/scripts/sign-and-run.sh -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition)$' -count=1 ./internal/policies/
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

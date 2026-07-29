@@ -25,10 +25,10 @@ import (
 //   - --since <ref> on the verb wins.
 //   - Otherwise `@{u}..HEAD` when an upstream is configured.
 //   - Otherwise the audit is SKIPPED with a single
-//     `provenance-untrailered-scope-undefined` advisory; the
-//     fallback used to be "all of HEAD," which on long-lived
-//     branches floods with warnings against commits already
-//     merged in from trunk. See issue #5 sub-item 2.
+//     `provenance-untrailered-scope-undefined` advisory. Falling back
+//     to "all of HEAD" instead floods long-lived branches with
+//     warnings against commits already merged in from trunk. See
+//     issue #5 sub-item 2.
 //
 // Returns a single concatenated finding slice; transport errors
 // propagate.

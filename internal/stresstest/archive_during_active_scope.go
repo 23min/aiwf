@@ -23,8 +23,8 @@ import (
 // that fix holds under a real authorize scope: the promote is refused,
 // the epic never reaches done, and the child's active scope is
 // unaffected — so the invalid archived-non-terminal-child state this
-// scenario used to be able to construct is no longer reachable through
-// the normal verb surface at all.
+// scenario probes for is unreachable through the normal verb surface at
+// all.
 //
 // G-0212 item 3's own literal fear — scope resolution becomes
 // unresolvable once its holder crosses the archive boundary — was

@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -29,6 +29,7 @@ help:
 	@echo "  coverage  - run tests with coverage; print summary"
 	@echo "  test-cov  - combined race+coverage pass (one suite run); what 'ci' uses"
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
+	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + selfcheck); run once before pushing, not per commit"
@@ -135,7 +136,21 @@ coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
-	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop)$$' -count=1 ./internal/policies/
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition)$$' -count=1 ./internal/policies/
+
+# comment-history-audit is the focused whole-tree run of the comment
+# history-attrition scan — the surface the wf-codebase-health rubric's
+# comment-hygiene force reaches for during an audit.
+#
+# It is not advisory: PolicyCommentHistoryAttritionTree runs in the
+# ordinary policy suite, so the same finding already fails `make
+# check-fast`, `make ci`, and CI. This target is the fast focused way to
+# ask the question on its own — after a large merge or an import — and it
+# exits non-zero on a finding, because a target that reported green while
+# the build went red would be lying.
+comment-history-audit:
+	@echo "Scanning every tracked Go file for comments narrating a superseded state..."
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_CommentHistoryAttritionTree$$' -count=1 ./internal/policies/
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
 # just the internal/ packages changed since the merge-base with
