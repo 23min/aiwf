@@ -1,9 +1,10 @@
 #!/bin/sh
 # pre-push (kernel pre-push gates): lint boundary (G-0179) +
-# secret scan (G-0291).
+# secret scan (G-0291) + comment history-attrition scan.
 #
-# Blocks a push that would carry unlinted Go changes or leaked
-# secrets / contributor paths across the machine boundary.
+# Blocks a push that would carry unlinted Go changes, leaked
+# secrets / contributor paths, or comments narrating a superseded
+# state across the machine boundary.
 #
 # Lint boundary (G-0179): long-lived branches accumulate
 # golangci-lint debt invisibly — CI only lints on push, and
@@ -50,12 +51,27 @@
 # a deliberate push past either gate: `git push --no-verify`
 # (sovereign, visible, human-initiated).
 #
+# Comment history-attrition gate: runs the diff-scoped
+# PolicyCommentHistoryAttrition against the merge-base with
+# origin/main, so a comment narrating a defect no reader can
+# encounter is caught here rather than after the trunk push has
+# landed. Go-gated on the pushed range (*.go only — a go.mod or
+# .golangci.yml touch cannot add a comment). It uses the same base
+# expression as `make coverage-gate`, so local and CI agree on what
+# is in scope; that base is a superset of the pushed range on a
+# branch pushed more than once, which at worst re-reports an
+# offender you already own. Costs a couple of seconds — an
+# incremental rebuild of one test package, well under the lint run
+# it follows.
+#
 # Test overrides: AIWF_PREPUSH_LINT_CMD replaces the lint command
-# (default: "golangci-lint run") and AIWF_PREPUSH_GITLEAKS_CMD
-# replaces the gitleaks command (default: "gitleaks git
-# --config=.gitleaks.toml --no-banner"). The policy tests in
-# internal/policies/prepush_lint_hook_test.go use them to pin the
-# trigger/skip decision without running the real tools.
+# (default: "golangci-lint run"), AIWF_PREPUSH_GITLEAKS_CMD replaces
+# the gitleaks command (default: "gitleaks git
+# --config=.gitleaks.toml --no-banner"), and
+# AIWF_PREPUSH_COMMENT_SCAN_CMD replaces the comment-scan command.
+# The policy tests in internal/policies/prepush_lint_hook_test.go use
+# them to pin the trigger/skip decision without running the real
+# tools.
 
 set -e
 
@@ -64,9 +80,11 @@ cd "$repo_root"
 
 lint_cmd="${AIWF_PREPUSH_LINT_CMD:-golangci-lint run}"
 gitleaks_cmd="${AIWF_PREPUSH_GITLEAKS_CMD:-gitleaks git --config=.gitleaks.toml --no-banner}"
+comment_scan_cmd="${AIWF_PREPUSH_COMMENT_SCAN_CMD:-go test -run ^TestPolicy_CommentHistoryAttrition$ -count=1 ./internal/policies/}"
 
 zero="0000000000000000000000000000000000000000"
 needs_lint=0
+needs_comment_scan=0
 gitleaks_ranges=""
 gitleaks_scan_all=0
 
@@ -85,6 +103,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
             range="$base..$local_sha"
         else
             needs_lint=1
+            needs_comment_scan=1
             gitleaks_scan_all=1
             continue
         fi
@@ -95,6 +114,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         # Range not resolvable locally (e.g. remote sha not
         # fetched) — be conservative: lint, and full-history scan.
         needs_lint=1
+        needs_comment_scan=1
         gitleaks_scan_all=1
         continue
     fi
@@ -105,6 +125,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     # Lint gate is Go-gated: only Go-surface changes trigger it.
     if [ -n "$(git diff --name-only "$range" -- '*.go' go.mod go.sum .golangci.yml 2>/dev/null)" ]; then
         needs_lint=1
+    fi
+    # Comment scan is narrower: only Go sources can carry a Go comment.
+    if [ -n "$(git diff --name-only "$range" -- '*.go' 2>/dev/null)" ]; then
+        needs_comment_scan=1
     fi
 done
 
@@ -165,6 +189,31 @@ if [ "$gitleaks_scan_all" -eq 1 ] || [ -n "$gitleaks_ranges" ]; then
             echo "pre-push.local: gitleaks reported path-leak / secret findings (G-0291)." >&2
             echo "                These would cross the machine boundary on push. Fix the" >&2
             echo "                offender, allowlist via .gitleaks.toml, or fingerprint-ignore." >&2
+            echo "                For a deliberate push: git push --no-verify" >&2
+            exit 1
+        fi
+    fi
+fi
+
+# --- Comment history-attrition gate: Go-source changes only. ---
+if [ "$needs_comment_scan" -eq 1 ]; then
+    scan_bin="${comment_scan_cmd%% *}"
+    if ! command -v "$scan_bin" >/dev/null 2>&1; then
+        echo "pre-push.local: $scan_bin not on PATH — comment history-attrition gate skipped." >&2
+        echo "                The CI coverage-gate step runs it independently." >&2
+    elif ! scan_base="$(git merge-base HEAD origin/main 2>/dev/null)"; then
+        echo "pre-push.local: no merge-base with origin/main — comment history-attrition" >&2
+        echo "                gate skipped (nothing to diff against)." >&2
+    else
+        # Word-splitting of $comment_scan_cmd is intentional (command + args).
+        if ! AIWF_COVERAGE_BASE="$scan_base" $comment_scan_cmd >&2; then
+            echo "" >&2
+            echo "pre-push.local: a comment on a changed line narrates history — push blocked." >&2
+            echo "                A guard is documented by what it guarantees, not by the" >&2
+            echo "                defect that motivated it; git blame and the tracked entity" >&2
+            echo "                already own that. If the past state is one a reader can" >&2
+            echo "                still encounter, state it in the present tense. Deliberate" >&2
+            echo "                exception: add '//history:ok <reason>' to the comment." >&2
             echo "                For a deliberate push: git push --no-verify" >&2
             exit 1
         fi
