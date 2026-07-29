@@ -414,3 +414,87 @@ func TestCommentHistoryAttrition_WiredIntoCoverageGate(t *testing.T) {
 		}
 	}
 }
+
+// TestWfCodebaseHealth_F2NamesTheMechanicalCompanion pins that the rubric's
+// comment force routes to the scanner before the read, and — the part that
+// matters for a skill materialized into repos with no such tooling — that it
+// stays conditional with the read as the fallback, mirroring how wf-vacuity
+// references a mutation harness.
+//
+// Scoped to the F2 section rather than grepped over the body: a bare
+// substring would pass on a stray mention anywhere in a 750-line rubric.
+func TestWfCodebaseHealth_F2NamesTheMechanicalCompanion(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfCodebaseHealthFixturePath)
+
+	f2 := extractMarkdownSection(body, 3, "F2.")
+	if f2 == "" {
+		t.Fatal("wf-codebase-health must have a `### F2. …` comments principle")
+	}
+	low := strings.ToLower(f2)
+
+	if !strings.Contains(low, "comment-history-audit") {
+		t.Error("F2 must name a whole-tree audit target, or the rubric's comment force has no mechanical route")
+	}
+	if !strings.Contains(low, "if the project") {
+		t.Error("F2 must condition the scanner on the project having one wired up — the skill materializes into repos that do not")
+	}
+	if !strings.Contains(low, "where no such scanner") {
+		t.Error("F2 must give the read as the fallback when no scanner exists, or the force is unusable in those repos")
+	}
+	if !strings.Contains(low, "cannot classify") {
+		t.Error("F2 must say a clean report is the floor, not the finding — otherwise the scanner reads as a substitute for the review")
+	}
+}
+
+// TestCommentHistoryAudit_TargetIsWired pins the advisory whole-tree target:
+// it must exist, drive the same policy test the gate uses (one matcher, not a
+// second implementation), and stay advisory. A target that started failing the
+// build would turn pre-existing debt into a blocked change.
+func TestCommentHistoryAudit_TargetIsWired(t *testing.T) {
+	t.Parallel()
+	root := repoRoot(t)
+
+	data, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		t.Fatalf("read Makefile: %v", err)
+	}
+	mk := string(data)
+
+	target := extractMakeTarget(mk, "comment-history-audit")
+	if target == "" {
+		t.Fatal("Makefile must define a comment-history-audit target for the rubric's mechanical companion")
+	}
+	if !strings.Contains(target, "TestPolicy_CommentHistoryAttrition") {
+		t.Error("the audit target must drive the same policy the gate runs, not a separate scanner that can drift")
+	}
+	if !strings.Contains(target, "hash-object -t tree /dev/null") {
+		t.Error("the audit target must use the empty tree as its base — that is what makes the diff-scoped policy cover the whole tree")
+	}
+	if !strings.Contains(target, "|| true") {
+		t.Error("the audit target must stay advisory (exit 0); whole-tree findings are pre-existing debt, not a gate")
+	}
+}
+
+// extractMakeTarget returns the recipe lines of a make target: everything from
+// the `<name>:` line up to the next line that is neither indented nor blank.
+func extractMakeTarget(makefile, name string) string {
+	lines := strings.Split(makefile, "\n")
+	var out []string
+	inTarget := false
+	for _, ln := range lines {
+		if strings.HasPrefix(ln, name+":") {
+			inTarget = true
+			continue
+		}
+		if !inTarget {
+			continue
+		}
+		if ln == "" || strings.HasPrefix(ln, "\t") || strings.HasPrefix(ln, " ") {
+			out = append(out, ln)
+			continue
+		}
+		break
+	}
+	return strings.Join(out, "\n")
+}

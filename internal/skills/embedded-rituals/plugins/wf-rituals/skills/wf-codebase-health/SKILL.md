@@ -528,6 +528,15 @@ code arrived there.
   fact about what the code must accept. If the old state exists only in
   history, leave it in history.
 
+**Mechanical companion:** if the project wires a comment-history scanner into
+its check suite — a whole-tree audit target (e.g. `make comment-history-audit`)
+for scoring, or a diff-scoped variant on the pre-push boundary for new work —
+run it first and triage what it reports before reading. It matches only the
+phrasings whose historical sense is unambiguous, so treat a clean report as
+the floor, not the finding: the sentence-level cases a matcher cannot classify
+are exactly what the read above is for. Where no such scanner is wired up, the
+read is the whole method.
+
 **Tradeoff:** for public APIs, docstrings are expected even when "obvious."
 Internal code can be sparser.
 

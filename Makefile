@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -29,6 +29,7 @@ help:
 	@echo "  coverage  - run tests with coverage; print summary"
 	@echo "  test-cov  - combined race+coverage pass (one suite run); what 'ci' uses"
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
+	@echo "  comment-history-audit - advisory whole-tree scan for comments narrating a superseded state"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + selfcheck); run once before pushing, not per commit"
@@ -136,6 +137,30 @@ coverage-gate:
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
 	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition)$$' -count=1 ./internal/policies/
+
+# comment-history-audit is the whole-tree companion to the diff-scoped
+# comment history-attrition gate — the audit surface the
+# wf-codebase-health rubric's comment-hygiene force reaches for.
+#
+# It runs the same policy the pre-push hook and CI run, against the empty
+# tree as its base: `git diff <empty-tree> HEAD` presents every tracked Go
+# file as newly added, so every line lands in the changed set and the scan
+# covers the whole tree. One matcher, one escape convention, no second
+# implementation to drift out of step with the gate.
+#
+# Advisory: it reports for triage and always exits 0. A whole-tree finding
+# is pre-existing debt, not something the change in front of you
+# introduced — the diff-scoped invocation is what blocks, and it is the
+# one wired into the push boundary and the coverage gate.
+comment-history-audit:
+	@echo "Scanning every tracked Go file for comments narrating a superseded state..."
+	@AIWF_COVERAGE_BASE="$$(git hash-object -t tree /dev/null)" \
+	go test -exec=$(TEST_EXEC) -run '^TestPolicy_CommentHistoryAttrition$$' -count=1 ./internal/policies/ 2>&1 \
+	  | grep -vE '^(--- )?FAIL|^FAIL[[:space:]]' || true
+	@echo ""
+	@echo "Advisory report — findings above are triage candidates, not a gate."
+	@echo "Fix by stating the guarantee in the present tense, or annotate a"
+	@echo "still-reachable past state with '//history:ok <reason>'."
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
 # just the internal/ packages changed since the merge-base with
