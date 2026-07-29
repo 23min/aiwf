@@ -126,10 +126,16 @@ func GlobalRules() []Rule {
 //
 // The cell scopes to transitions that would change status. Promoting a
 // terminal entity to a *different* status is illegal (fsm-transition-illegal);
-// promoting to the *same* status is a NoOp, not a rejection (M-0281/AC-1) — the
-// spec's (Kind, FromState, Verb) granularity carries no target axis, so this
-// cell states the dominant truth (real transitions from terminal are illegal),
-// and the same-status NoOp is a verb-level idempotency orthogonal to it.
+// promoting to the *same* status is a NoOp, not a rejection (M-0281/AC-1), so
+// this cell states the dominant truth rather than the whole one.
+//
+// That is a deliberate coarseness, not a limit of the schema: Rule.Preconditions
+// carries a `self.target-state` subject — live in the tdd-phase cells — and
+// cellKey folds a precondition signature into cell identity, so the distinction
+// is expressible today. Splitting it would multiply cells across every terminal
+// state of every kind and churn the coverage set the drift policy pins, for a
+// distinction the verb layer already enforces and tests. The AC terminal cells
+// carry the identical boundary and the identical reason.
 func terminalIllegal(k entity.Kind, state string, sources RuleSource) Rule {
 	return Rule{
 		Kind:              k,

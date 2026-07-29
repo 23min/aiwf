@@ -192,7 +192,7 @@ func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor,
 	if ac.Status == newStatus {
 		return &Result{
 			NoOp:        true,
-			NoOpMessage: fmt.Sprintf("%s is already %s", compositeID, newStatus),
+			NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", compositeID, newStatus),
 		}, nil
 	}
 	if !force {

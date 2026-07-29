@@ -188,8 +188,14 @@ func TestPromote_SameStatus_DifferentResolver_StillRefused(t *testing.T) {
 			if err == nil {
 				t.Fatalf("re-pointing a set resolver returned res=%+v, want the refusal to stand", res)
 			}
-			if !strings.Contains(err.Error(), "cannot transition to") {
-				t.Errorf("err = %q, want the FSM refusal — re-pointing needs a deliberate verb or --force", err)
+			// The message must name the RESOLVER, not the status: the status
+			// is not what the operator got wrong, and "cannot transition to"
+			// gives them nothing to act on.
+			if !strings.Contains(err.Error(), "already carries a resolver") {
+				t.Errorf("err = %q, want a resolver-specific refusal naming --force as the override", err)
+			}
+			if strings.Contains(err.Error(), "cannot transition to") {
+				t.Errorf("err = %q, must not report a status-transition problem for a resolver request", err)
 			}
 		})
 	}
@@ -278,8 +284,10 @@ func TestPromote_SameStatus_MissingBackLink_DoesNotConverge(t *testing.T) {
 		t.Fatalf("re-running the supersede over a missing back-link returned res=%+v, want no convergence — "+
 			"the two-sided link is incomplete, so 'already superseded' would be a false success", res)
 	}
-	if !strings.Contains(err.Error(), "cannot transition to") {
-		t.Errorf("err = %q, want the standing FSM refusal", err)
+	// The message must name the back-link, which is what is actually
+	// missing — not a status transition the operator never asked for.
+	if !strings.Contains(err.Error(), "supersedes") {
+		t.Errorf("err = %q, want it to name the missing back-link", err)
 	}
 }
 

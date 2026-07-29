@@ -20,8 +20,9 @@ import (
 // come from?" from either the milestone's or the old epic's perspective.
 //
 // Returns a Go error for "couldn't even start": id not found, kind not
-// milestone, target epic missing or wrong kind, milestone already under
-// the target epic. Tree-level findings caused by the move (e.g. a
+// milestone, target epic missing or wrong kind. A milestone already
+// under the target epic is not an error — it converges to a NoOp
+// (M-0281/AC-3). Tree-level findings caused by the move (e.g. a
 // depends_on cycle introduced by the new neighborhood) are returned in
 // Result.Findings.
 func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Result, error) {
@@ -59,7 +60,7 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	// field-mutation verb (no FSM transition), so this needs no ADR-0036
 	// oracle changes.
 	if entity.Canonicalize(e.Parent) == canonNew {
-		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("milestone %q is already under epic %q; nothing to move", id, newEpicID)}, nil
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already under epic %q; nothing to move", id, newEpicID)}, nil
 	}
 
 	source := filepath.ToSlash(e.Path)

@@ -32,8 +32,10 @@ import (
 //     refuses — priority is legal only on gap and decision;
 //   - <level> and clear given together refuse (mutex);
 //   - an out-of-range <level> refuses, naming the allowed set;
-//   - a no-op (already set to <level>, or --clear on an already-unset
-//     entity) refuses.
+//
+// A request that is already satisfied — already set to <level>, or
+// --clear on an already-unset entity — is not a refusal: it converges to
+// a NoOp at exit 0 and writes nothing (M-0281/AC-7).
 //
 // The commit carries `aiwf-verb: set-priority`, `aiwf-entity: <canonical
 // id>`, and `aiwf-actor:`. The verb trailer suppresses the

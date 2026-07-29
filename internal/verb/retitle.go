@@ -33,10 +33,10 @@ import (
 // commit body so the rationale surfaces in `aiwf history`.
 //
 // Returns a Go error for "couldn't even start": id not found, empty
-// new title (after trimming), no-op (current title equals new title),
-// or a title that slugifies to the empty string (e.g., punctuation-
-// only). Tree-level findings caused by the projection are returned in
-// Result.Findings.
+// new title (after trimming), or a title that slugifies to the empty
+// string (e.g., punctuation-only). A new title equal to the current one
+// is not an error — it converges to a NoOp (M-0281/AC-5). Tree-level
+// findings caused by the projection are returned in Result.Findings.
 //
 // titleMaxLength caps the new title per `entities.title_max_length`
 // (G-0102, kernel default 80). Title and slug share the same budget;

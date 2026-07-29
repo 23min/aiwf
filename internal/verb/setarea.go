@@ -42,8 +42,10 @@ import (
 //   - <member> and clear given together refuse (mutex);
 //   - a non-empty <member> not in `members` refuses, naming the declared
 //     set;
-//   - a no-op (already tagged <member>, or --clear on an already-untagged
-//     entity) refuses.
+//
+// A request that is already satisfied — already tagged <member>, or
+// --clear on an already-untagged entity — is not a refusal: it converges
+// to a NoOp at exit 0 and writes nothing (M-0281/AC-7).
 //
 // The commit carries `aiwf-verb: set-area`, `aiwf-entity: <canonical id>`,
 // and `aiwf-actor:`. The verb trailer suppresses the

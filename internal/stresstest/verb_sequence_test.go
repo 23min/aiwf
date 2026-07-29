@@ -17,10 +17,11 @@ import (
 // (classifyVerbSequenceStep / classifyCheckFindings) is pinned
 // exhaustively in verb_sequence_classify_test.go against fabricated
 // envelopes; these tests confirm the real binary's wiring actually
-// produces the three JSON shapes that logic classifies: an
-// FSM-legal success, an FSM-illegal refusal, and a legal-but-refused-
-// by-an-orthogonal-business-rule case (gap's addressed-resolver
-// gate) — plus the full end-to-end scenario across every kind.
+// produces the four JSON shapes that logic classifies: an FSM-legal
+// success, an FSM-illegal refusal, a legal-but-refused-by-an-
+// orthogonal-business-rule case (gap's addressed-resolver gate), and a
+// same-status NoOp (ADR-0036) — plus the full end-to-end scenario
+// across every kind.
 
 // runGitOrFatal runs git with args in dir, fatal'ing the test on
 // failure. Test-local helper, not exported — this package's
@@ -82,6 +83,65 @@ func TestVerbSequenceScenario_RealBinary_LegalTransitionSucceedsWithOneCommit(t 
 	}
 	if after != before+1 {
 		t.Fatalf("commit count %d -> %d, want exactly +1", before, after)
+	}
+}
+
+// TestVerbSequenceScenario_RealBinary_SameStatusIsANoOpWithNoCommit pins the
+// fourth outcome shape at the seam. classifyVerbSequenceStep gained a
+// first-class NoOp branch when same-status promotes stopped being FSM refusals
+// (ADR-0036), but until now that branch was exercised only against fabricated
+// envelopes and whichever states a seeded walk happened to revisit. This drives
+// the real binary at a state it already holds and feeds the real envelope and
+// real commit counts through the classifier — so a wiring change that turned the
+// NoOp back into a refusal, or let it land a commit, fails here rather than
+// surviving as a seed-dependent gap.
+func TestVerbSequenceScenario_RealBinary_SameStatusIsANoOpWithNoCommit(t *testing.T) {
+	t.Parallel()
+	skipIfUnsupported(t)
+	bin := sharedTestBinary(t)
+	dir := newVerbSequenceTestRepo(t)
+	s := &VerbSequenceScenario{aiwfBin: bin}
+
+	addEnv, err := runAiwfJSON(s.aiwfBin, dir, "add", "adr", "--title", "t", "--body", "b")
+	if err != nil {
+		t.Fatalf("add adr: %v", err)
+	}
+	if addEnv.Status != "ok" {
+		t.Fatalf("add adr refused: %+v", addEnv.Error)
+	}
+	id := addEnv.Metadata.EntityID
+	if _, promoteErr := runAiwfJSON(s.aiwfBin, dir, "promote", id, "accepted"); promoteErr != nil {
+		t.Fatalf("promote to accepted: %v", promoteErr)
+	}
+
+	before, err := gitHeadCommitCount(dir)
+	if err != nil {
+		t.Fatalf("commit count before: %v", err)
+	}
+	env, err := runAiwfJSON(s.aiwfBin, dir, "promote", id, "accepted")
+	if err != nil {
+		t.Fatalf("same-status promote: %v", err)
+	}
+	after, err := gitHeadCommitCount(dir)
+	if err != nil {
+		t.Fatalf("commit count after: %v", err)
+	}
+
+	if env.Status != "ok" {
+		t.Fatalf("same-status promote reported status=%q error=%+v, want ok", env.Status, env.Error)
+	}
+	if env.Metadata.CommitSHA != "" {
+		t.Errorf("metadata.commit_sha = %q, want empty — a NoOp commits nothing", env.Metadata.CommitSHA)
+	}
+	next, violations := classifyVerbSequenceStep(entity.KindADR, "accepted", "accepted", before, after, env)
+	if len(violations) != 0 {
+		t.Fatalf("unexpected violations: %+v", violations)
+	}
+	if next != "accepted" {
+		t.Fatalf("next = %q, want %q — a NoOp leaves the state where it was", next, "accepted")
+	}
+	if after != before {
+		t.Fatalf("commit count %d -> %d, want no change", before, after)
 	}
 }
 
