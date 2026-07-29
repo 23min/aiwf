@@ -44,8 +44,11 @@ it applies while nothing else has claimed it.
 
 ## Consequences
 
-`rename` becomes durable. A slug it sets survives every subsequent retitle, so
-choosing a short path for an unwieldy title is a decision that stays made.
+`rename` becomes durable. A slug it sets survives a retitle for as long as it
+differs from the one the title derives, so choosing a short path for an unwieldy
+title is a decision that stays made. Rename an entity to precisely the slug its
+title derives and it is tracking again by definition, which is also how an
+operator opts back in.
 
 Retitle's guarantee narrows honestly. It no longer promises that title and slug
 never diverge; it promises they agree by default and diverge only where the
@@ -54,8 +57,10 @@ behavior state the new rule.
 
 A filename that diverged for reasons other than `rename` — the narrow-id slugs
 left by an id-width migration — is no longer repaired incidentally by a retitle.
-`aiwf rename` and `aiwf rewidth` are the verbs for that, which keeps an explicit
-act behind an explicit change.
+`aiwf rename` is the verb for that, which keeps an explicit act behind an
+explicit change. `aiwf rewidth` does not reach these: it canonicalizes the
+entity's own leading id in the filename and carries the remainder through
+unchanged, so a narrow id embedded in the slug text survives it.
 
 The rule cannot distinguish a deliberate `rename` from an accidental divergence,
 because both present identically on disk. It resolves that ambiguity toward
