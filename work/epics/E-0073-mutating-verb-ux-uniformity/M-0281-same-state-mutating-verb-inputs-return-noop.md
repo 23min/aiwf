@@ -415,6 +415,32 @@ fixture-setup credit; the dataflow binding does), and the policy's citation of
 ADR-0036 as authority for a convention spanning entry points that ADR explicitly
 disclaims.
 
+### AC-9 — Composite promote and cancel converge; cancel stops bypassing the AC FSM
+Implemented in `54360c30`. `IsTerminalACStatus` derives AC terminality from
+`acTransitions`; `cancelAC` converges on a terminal AC and otherwise consults the
+FSM; `promoteAC` converges on a same-status request above its existing consult.
+
+The convergence half was the filed finding; the correctness half was found while
+investigating it. `cancel` on a `deferred` AC wrote an edge the FSM does not
+contain, and a junk status was laundered into `cancelled` the same way — both
+invisible to `aiwf check`, `aiwf history` and the JSON envelope, because the
+`acs-transition` rule that two doc surfaces name as the enforcement point was
+never shipped. `promoteAC` had asked the FSM all along; `cancelAC` was the lone
+outlier.
+
+Two review rounds changed this materially rather than confirming it. A proposed
+policy asserting every non-terminal AC status can reach `cancelled` was dropped:
+it contradicts `PolicyFSMInvariants`, which permits exactly that shape at kind
+level, and it could not have covered the junk-status case anyway since it
+quantifies over the declared set while the defect arrives from disk. And the
+promote half of the concurrent-milestone-race oracle broke deterministically
+under the change — its actors drive a composite id — which the review predicted
+and measurement confirmed before the fix landed.
+
+`met` stays non-terminal, so cancelling a met AC still does real work. The
+reasoning now lives beside the FSM data it constrains: an AC is a claim inside a
+contract that can still be rescoped, an epic is a closed unit of work.
+
 ## Reviewer notes
 
 Four independent fresh-context reviewers ran at wrap over `base..HEAD` (three
