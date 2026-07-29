@@ -61,6 +61,6 @@ the entity's current status, with no other field changing, converges to a
   allow 0 commits), and the mid-write-kill control (swapped to a genuine
   non-self illegal transition). These are correctness oracles changed on
   purpose.
-- **Scope:** applies to the FSM-transition verbs (`promote`, `cancel`).
+- **Scope:** applies to the FSM-transition verbs (`promote`, `cancel`), at entity and acceptance-criterion granularity alike — each against its own FSM's notion of terminal.
   Field-mutation verbs (`move`, `rename`, `retitle`, `acknowledge-illegal`)
   reach same-state NoOp with no FSM interaction, independent of this decision.
