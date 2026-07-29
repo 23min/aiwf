@@ -66,7 +66,7 @@ exactly the "half-rolled-out discipline rots" condition this milestone was filed
 against.
 
 `acknowledge-illegal` is additionally a **correctness** fix, not only a UX one:
-re-running it against an already-acknowledged SHA today appends a duplicate empty
+re-running it against an already-acknowledged SHA appended a duplicate empty
 audit commit — the "re-running creates duplicates" smell the scorecard's C2 noted.
 
 The convergence is codified as a policy invariant (AC-6) so it cannot rot back to
@@ -149,10 +149,11 @@ in their own body, so a same-state input writes nothing (`ContractUnbind` and
 `RecipeRemove` refusing an absent target as a referential-integrity error).
 
 Every reason states behavior verified by running the real binary and reading the
-verb's source. That discipline is load-bearing rather than pedantic: the first
-draft inferred its reasons instead, and seven of thirteen were wrong — most
-reusing a single false claim, that an identical write is an empty diff aiwf
-rejects.
+verb's source, never inferred from the verb's shape. That discipline is
+load-bearing rather than pedantic: an inferred reason is how an allowlist entry
+comes to excuse a live defect. The specific trap is the assumption that a
+byte-identical write produces an empty diff aiwf rejects — it does not, so a verb
+that merely looks additive can still be appending commits.
 
 Six entries are marked `OPEN`: they record a deferred decision, not a settled
 property, and each names its gap (`PromoteACPhase` → G-0458; the five
@@ -197,10 +198,10 @@ also leaves two active scopes (G-0460).
 
 ### AC-8 — edit-body --body-file converges to NoOp when the body is already committed
 
-`aiwf edit-body <id> --body-file <content>` lands a commit unconditionally. Handed
-content byte-identical to what is already committed, it produces a commit whose
-diff is empty, and it does so on every repeat — measured taking a repo from 2 to
-5 commits across three runs, each with zero files changed, leaving three
+`aiwf edit-body <id> --body-file <content>` landed a commit unconditionally.
+Handed content byte-identical to what was already committed, it produced a commit
+whose diff was empty, and did so on every repeat — measured taking a repo from 2
+to 5 commits across three runs, each with zero files changed, leaving three
 indistinguishable rows in `aiwf history`.
 
 This is the shape AC-7 treated as a correctness fix rather than UX polish for
@@ -230,22 +231,33 @@ The comparison is on serialized output, not body bytes: a byte-identical body
 over non-canonical frontmatter still needs a real write, because
 `entity.Serialize` re-canonicalizes.
 
+#### Acceptance
+
+- A clean tree plus byte-identical content returns a NoOp at exit 0 and the
+  commit count is unchanged.
+- A working copy carrying the requested content uncommitted still commits.
+- A byte-identical body over non-canonical frontmatter still commits.
+- Bless mode continues to refuse on a clean tree.
+- `EditBody` leaves the `verb_result_noop_invariant` allowlist, and the policy
+  is satisfied by a real NoOp assertion rather than an exemption.
+
 ### AC-9 — Composite promote and cancel converge; cancel stops bypassing the AC FSM
 
-Two defects, one root cause. `cancelAC` decides for itself which AC statuses mean
+Two defects, one root cause. `cancelAC` decided for itself which AC statuses mean
 "nothing left to cancel", hardcoding a comparison against `cancelled`, while
-`promoteAC` asks `entity.IsLegalACTransition`. The FSM says two statuses are
-terminal, so the verb's private answer is wrong — and because it never consults
-the FSM at all, it also writes states the FSM forbids.
+`promoteAC` asked `entity.IsLegalACTransition`. The FSM holds two terminal
+statuses, so the verb's private answer was wrong — and because it never consulted
+the FSM at all, it also wrote states the FSM forbids.
 
-**The correctness half.** `aiwf cancel <M-NNNN>/AC-N` on a `deferred` AC exits 0
-and transitions it to `cancelled`, though that edge does not exist —
-`acTransitions["deferred"]` is empty. The same edge asked of `promote` is
-refused. Nothing catches the write afterwards: `aiwf check` reports zero errors,
-the commit carries ordinary `cancel` trailers with no `aiwf-force:`, and the JSON
+**The correctness half.** `aiwf cancel <M-NNNN>/AC-N` on a `deferred` AC exited 0
+and transitioned it to `cancelled`, though that edge does not exist —
+`acTransitions["deferred"]` is empty. The same edge asked of `promote` was
+refused. Nothing caught the write afterwards: `aiwf check` reported zero errors,
+the commit carried ordinary `cancel` trailers with no `aiwf-force:`, and the JSON
 envelope publishes `from: deferred, to: cancelled` — an edge that is not in the
-kernel. The `acs-transition` rule that `internal/entity/transition.go` and the
-design docs both name as the enforcement point does not exist. A junk status
+kernel. No `acs-transition` check rule exists. A code comment and two design
+docs named one as the enforcement point; this milestone removed the comment, and
+both docs now record that the rule was never shipped. A junk status
 reaches the same write: an AC hand-edited to an unrecognized status is refused by
 `promote` and laundered into `cancelled` by `cancel`.
 
@@ -288,15 +300,6 @@ while the defect arrives from disk.
 - The concurrent-milestone-race oracle judges promote actors by commits landed
   rather than by success count, so an AC NoOp is not read as a duplicate winner.
 
-#### Acceptance
-
-- A clean tree plus byte-identical content returns a NoOp at exit 0 and the
-  commit count is unchanged.
-- A working copy carrying the requested content uncommitted still commits.
-- A byte-identical body over non-canonical frontmatter still commits.
-- Bless mode continues to refuse on a clean tree.
-- `EditBody` leaves the `verb_result_noop_invariant` allowlist, and the policy
-  is satisfied by a real NoOp assertion rather than an exemption.
 
 ## Decisions made during implementation
 
@@ -435,8 +438,8 @@ The convergence half was the filed finding; the correctness half was found while
 investigating it. `cancel` on a `deferred` AC wrote an edge the FSM does not
 contain, and a junk status was laundered into `cancelled` the same way — both
 invisible to `aiwf check`, `aiwf history` and the JSON envelope, because the
-`acs-transition` rule that two doc surfaces name as the enforcement point was
-never shipped. `promoteAC` had asked the FSM all along; `cancelAC` was the lone
+`acs-transition` rule those surfaces named as the enforcement point was never
+shipped. `promoteAC` had asked the FSM all along; `cancelAC` was the lone
 outlier.
 
 Two review rounds changed this materially rather than confirming it. A proposed
@@ -476,8 +479,9 @@ Six claims in the earlier commit messages are not supported by the commits that
 carry them. They are stated here as measured, rather than rewritten in history:
 
 - `65a91ee1` says all six non-primary guard conjuncts gained false-arm tests.
-  Five did — `move`'s path comparison, `retitle`'s path and H1 comparisons, and
-  the AC heading comparison on each of `retitleAC` and `renameAC`.
+  There are five such conjuncts, not six, and all five gained one: `move`'s path
+  comparison, `retitle`'s path and H1 comparisons, and the AC heading comparison
+  on each of `retitleAC` and `renameAC`. No conjunct is untested.
 - The same commit reports roughly 200 comment lines removed. It removes 143 and
   adds 130: a net of 13 across the commit.
 - It reports the empty-diff premise consolidated into the policy that depends on
@@ -490,8 +494,10 @@ carry them. They are stated here as measured, rather than rewritten in history:
 - It describes the round-four scoping defect as a nested scope costing the outer
   scope its credit. A scope's credit is decided before the walk descends into
   it, so the loss landed on a sibling.
-- `f7c37f16` says convergence-above-force is tested in both verbs. Only the AC
-  path was; the entity-level `Cancel` force arm gained its test in `d04b4a8e`.
+- `f7c37f16` says convergence-above-force is tested in both verbs. `promote` was
+  tested at both granularities from AC-1 onward; `cancel` only at the AC
+  granularity. The entity-level `Cancel` force arm gained its test in
+  `d04b4a8e`.
 
 `f7c37f16`'s message was amended once, to drop two fixes it claimed but did not
 contain. The amendment left standing a summarizing claim that it fixed the whole
@@ -500,9 +506,9 @@ set, which is equally unsupported — those two fixes landed in `65a91ee1`.
 Round six additionally surfaced a contract conflict this milestone made visible
 rather than created. `aiwf rename` sets a slug independently of the title while
 `retitle` re-derived one unconditionally, so a rename lasted only until the next
-retitle. Measured against this repo's own tree, 44 of 900 entities carry a slug
-their title does not derive, most of them deliberate short paths rather than
-artifacts of an id-width migration. ADR-0037 records the resolution — retitle
+retitle. Measured against this repo's own tree, 44 of 902 entities carry a slug
+their title does not derive; widening the narrow ids embedded in those slugs
+reconciles 17, leaving 27 deliberate short paths. ADR-0037 records the resolution — retitle
 re-derives only while the slug still tracks the title — and `d04b4a8e`
 implements it, with `df7478e3` closing a slug-warning test hole the restructure
 exposed in a path that predates this milestone.
@@ -552,8 +558,9 @@ Each carries a gap, so none of it depends on this spec being read again.
   `deferred` when deciding whether an AC is out of scope, though the FSM makes
   both terminal.
 - **G-0465** — no chokepoint catches a shipped surface drifting from the verb
-  behavior it describes. Four such drifts were caught by reading in this
-  milestone alone, which is the argument for the gap.
+  behavior it describes. Three separate review rounds each caught more of them by
+  reading, which is the argument for the gap: reading is the only detector, and
+  it does not scale.
 
 ## Reviewer notes
 
@@ -573,12 +580,13 @@ itself a finding: the mechanical gates cover the code, and nothing mechanical
 reads a claim about the code back against it, which is what G-0465 is filed
 for.
 
-**Every blocking finding below is resolved, and every non-blocking one except
-the three named at the end.** The three ACs the first round falsified were
-reconciled by making the code true rather than narrowing the claim: AC-1 by
-converging the resolver arm (V5), AC-4 by converging composite acknowledgments
-(V2), AC-6 by rewriting the credit relation and removing a false allowlist entry
-(P1, P5, P6).
+**Every blocking finding is resolved, and every non-blocking one except those
+named at the end.** The first round falsified three ACs outright, and each was
+reconciled by making the code true rather than by narrowing the claim: AC-1 by
+converging the resolver arm, AC-4 by converging composite acknowledgments, and
+AC-6 by rewriting the credit relation and removing a false allowlist entry.
+Choosing the other direction — editing the criterion to match what shipped —
+would have left three ACs that passed by definition.
 
 The later rounds paid for themselves twice over. The AC-8 review caught a guard
 that would have shipped a false NoOp — reporting "already matches" while a dirty
@@ -588,125 +596,20 @@ would break the concurrent-milestone-race oracle deterministically in
 `go test ./...`; it also falsified a policy assertion this milestone had planned
 to add, by reaching a branch that assertion assumed unreachable.
 
-### Resolved — verb guards
+### Resolved
 
-- **V1 — the committed tree fails `-race`.** All five CLI-seam NoOp tests carry
-  `t.Parallel()` plus `testutil.CaptureStdout`, which swaps the process-global
-  `os.Stdout`. The whole `internal/cli/integration` package fails from commit
-  `8533f85f` onward, cascading into unrelated `TestAuthorize_*`; `-count=20`
-  yields 23 `write |1: file already closed`. The fix (drop `t.Parallel()`, add the
-  serial rationale required by that package's `setup_test.go` skip-list) exists in
-  the working tree and must be committed. The base is clean, so the regression is
-  wholly this milestone's.
-- **V2 — a composite `--for-entity` ack never converges; AC-4 is false.** The verb
-  emits `aiwf-entity` at full composite width; `check.WalkAcknowledgedSHAEntities`
-  stores it verbatim; `ackAlreadyRecorded` looks up the `CompositeRoot` rollup.
-  The keys never match, so a repeat lands a duplicate audit commit — the exact
-  path AC-4 claims to close. The rollup is correct in
-  `verifySHATouchesEntity` (a diff resolves to a milestone path) and wrong in the
-  lookup. The inverse case also misreports: after a bare-id ack, the composite
-  form claims "already acknowledged for `M-NNNN/AC-N`", naming a binding it never
-  found. Fix: consult both the composite and rolled-up keys. Separately, the
-  emit-vs-lookup asymmetry makes `--for-entity <composite>` inert against the
-  `provenance-untrailered-entity-commit` rule it exists to suppress — pre-existing,
-  wider than this milestone, wants its own gap.
-- **V3 — `rename-area`'s guard precedes its validation.** It returns a NoOp for an
-  undeclared member and for the reserved `global` sentinel, asserting success for
-  state that cannot exist, where the verb previously refused. `SetArea` places the
-  equivalent guard after validation; this is the outlier. Move it below the
-  declared-member check.
-- **V4 — width-sensitive comparison in `move` and `milestone depends-on`.** Both
-  compare raw operator input against stored values, but `ByID` accepts legacy
-  narrow widths, so a legal spelling of the same state is missed — and the
-  resulting write degrades a canonical id to narrow width, against ADR-0008.
-  `entity.Canonicalize` on both sides of each comparison.
-- **V5 — the resolver arm leaves AC-1 half-met.** AC-1 says "target equals current
-  **and no other field is changing**"; the guard implements "no resolver flag was
-  supplied". A re-run of `promote <gap> addressed --by-commit <sha>` — the
-  tracker-closure command this repo's own gate discipline names as routine — still
-  refuses. Either extend the guard to "status equals current and
-  `applyResolverFlags` would be a no-op", or narrow AC-1's wording and record the
-  carve-out as an `OPEN` allowlist entry plus a gap.
-- **V6 — composite ids still refuse, so ADR-0036 over-claims.** One semantic family
-  yields three exit codes: entity same-status 0, AC same-status 1, AC
-  already-cancelled 2. ADR-0036's Decision carries no AC carve-out, and G-0458
-  covers `tdd_phase` only — neither AC status nor `cancel <composite>`. Converge,
-  or narrow the ADR and file the gap. Per-function policy granularity cannot see
-  branch-level holes like this.
+Round one returned seventeen blocking findings across three code-quality slices
+and a design pass: verb guards (V1–V6), correctness oracles (O1–O4), and the
+AC-6 policy (P1–P7). All are resolved, and the design they produced is stated in
+the acceptance criteria and work log above rather than reconstructed from the
+findings here.
 
-### Resolved — correctness oracles
-
-- **O1 — the concurrent-milestone-race oracle lost a cross-check it could have
-  kept.** Replacing the (genuinely unsound) `cancelOKCount > 1` invariant dropped
-  the per-actor "reported success implies exactly one commit" check instead of
-  re-deriving it. A NoOp is machine-distinguishable — a real cancel's JSON
-  metadata carries `commit_sha`, a NoOp's does not — but `verbEnvelope.Metadata`
-  never parses that field. Consequence, measured: a mutant that lands
-  `git commit --allow-empty` from cancel's NoOp branch (a real violation of the
-  one-commit-per-mutation commitment) leaves **`make stress` green**. Two further
-  shapes went undetected: two cancel "ok"s with one commit, and one "ok" with
-  zero. The `-1` sentinel is now dead code. Fix (~8 lines): parse `commit_sha`,
-  carry it on `raceActorOutcome`, assert real-success count equals cancel-commit
-  count and that every NoOp carries an empty `commit_sha`.
-- **O2 — the spec-cell justification is false.** `terminalIllegal`'s new comment
-  claims the spec "carries no target axis". `Rule.Preconditions` is that axis and
-  is already live (`self.target-state`, with `Op: "!="` in the vocabulary, and
-  `cellKey` folding `preconditionSignature` into cell identity). The fix declared
-  impossible is available with no schema change, so the false reason forecloses
-  it. Either add the precondition, or record the NoOp via an `AntiRule`, and state
-  the real constraint (cell-count churn) instead.
-- **O3 — dead OR-arm and stale cross-references.** `"is already at terminal
-  status"` in `errorSubstringsFor` is now unreachable as a refusal; if any future
-  path re-emits that phrasing the arm would bless it. `promote.go`'s
-  `fsmTransitionIllegalError` doc still names Cancel's already-terminal pre-check
-  as a construction site — Cancel no longer constructs the type.
-- **O4 — the fourth outcome shape has no real-binary seam test**, and
-  `verb_sequence_test.go` still documents three. The NoOp shape is pinned only
-  against fabricated envelopes and seed-dependent walk coverage.
-
-### Resolved — the AC-6 policy
-
-- **P1 — the credit relation admits three false greens** (both the policy and
-  design reviewers converged here independently, and one prototyped the fix). A
-  `.NoOp` mention in a **comment** credits the verb; so does a **negative**
-  assertion (`if res.NoOp { t.Fatal(...) }`); so does **fixture setup** — on the
-  live tree `Add` is credited by 17–18 test functions that merely call it as
-  setup. Replace the body-text scan with intra-function AST dataflow: bind the
-  identifier receiving the call, require `<ident>.NoOp` to be read. Verified to
-  keep all 15 non-exempt verbs green, drop every spurious credit, and need no test
-  changes.
-- **P2 — the policy fails OPEN.** An empty entry set yields zero violations, so a
-  rename of `internal/verb/` leaves it green while scanning nothing. Sibling
-  `firing_fixture_presence.go` fails closed for exactly this class. Note the
-  enumerate-and-slice block is now its third copy, so the defect is tripled.
-- **P3 — branch-coverage rule violated; `make coverage-gate` fails.** Five changed
-  lines untested and unannotated, confirmed with the repo's own engine. The
-  notable pair is `containsBareCall`'s continuation and `isIdentByte`'s
-  `return true` — the only subtle logic in the file, advertised as load-bearing,
-  never traversed. The AST rewrite (P1) deletes both. `make coverage-gate` has
-  never been run for this milestone.
-- **P4 — `containsBareCall`'s rationale is mechanically false and its helper's doc
-  contradicts the behavior callers depend on.** The needle includes `(`, so
-  `Promote(` cannot match inside `PromoteAuditOnly(` — the described collision is
-  impossible. What the guard actually rejects is a qualified or suffixed call
-  (`harness.Promote(`, `mustPromote(`), and it works only because `isIdentByte`
-  treats `.` as an identifier byte while its doc says a period cannot appear in an
-  identifier. A maintainer "correcting" that turns every `pkg.Verb(` into a false
-  credit — on an untested line.
-- **P5 — `EditBody` is a seventh false allowlist entry.** `bytes.Equal` exists only
-  in `editBodyBless`; `editBodyExplicit` has no equality comparison and emits one
-  `OpWrite` unconditionally. Measured: `edit-body --body-file <byte-identical>`
-  exits 0 and lands an empty-diffstat commit, repeatably — the same shape AC-7
-  treated as a correctness fix elsewhere. Not covered by G-0459 (scoped to
-  event-shaped verbs). Pick one: guard `editBodyExplicit`, or reclassify the entry
-  as `OPEN` with a new gap. The AC-6 body and the work log need the same
-  correction.
-- **P6 — the same-function claim is false in both the code comment and the AC-6
-  body.** Function scoping was presented as preventing fixture-setup credit; setup
-  lives in the same function, so it does not. State the real limit.
-- **P7 — ADR-0036 scope overreach.** The policy cites ADR-0036 as its authority but
-  enforces the convention across all 28 entry points, while the ADR scopes itself
-  to `promote`/`cancel`. Widen the ADR or cite the convention instead.
+Two changed the design rather than fixing a defect, and both have a permanent
+home elsewhere. V5 forced AC-1's guard from "no resolver flag was supplied" to
+"nothing would be written", which is what ADR-0036's resolver bullet now records.
+P1 forced the chokepoint's credit relation from a body-text scan to intra-function
+AST dataflow, which AC-6's body states. The remaining fifteen were defects: they
+left no trace beyond the code that no longer has them.
 
 ### Non-blocking
 
@@ -738,14 +641,15 @@ Closed except where noted inline.
 - AC-6 body lines carry drafting history inside the criterion text; keep the
   reasoning, drop the framing.
 
-The three that are **not** closed are recorded under
+Those that are **not** closed are recorded under
 "Deliberately not closed here" below, with the reasoning for each.
 
 ### Deliberately not closed here
 
 The work this milestone found but did not do is enumerated under `## Deferrals`
 above, each with its gap. Three items are recorded here instead, because for
-them the decision is to not act rather than to act later.
+them the decision is to not act rather than to act later. A fourth, at the end,
+is a live residual small enough to carry no gap of its own.
 
 - `Result.Metadata` stays unset on a NoOp. `metadata.commit_sha` is already the
   machine-readable discriminator — present on a mutation, absent on a NoOp — and
@@ -756,8 +660,8 @@ them the decision is to not act rather than to act later.
   per-group. The promote group's own bound is counted from git order and catches
   a zero as readily as a two, and the cross-group reconciliation catches an
   unclaimed commit from either side, so a per-group promote mirror would add no
-  shape the oracle cannot already see. It is available if a future scenario
-  needs one.
+  shape this scenario can produce. It is available if a future scenario needs
+  one.
 - NoOp messages echo the operator's spelling rather than the canonical id. The
   `; nothing to …` clause and `move`'s id quoting were aligned across the verbs;
   the raw echo was left, because the message names what the operator typed and
