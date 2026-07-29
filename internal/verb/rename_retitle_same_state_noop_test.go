@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -213,6 +214,88 @@ func TestRetitle_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
 	}
 	if !hasWarning {
 		t.Errorf("expected slug-dropped-chars warning on retitle; got %+v", res.Findings)
+	}
+}
+
+// writeLooseEntity plants an entity file at an arbitrary path, bypassing the
+// verb layer the way a hand-authored or imported tree does. The loader resolves
+// entities by their frontmatter id, so these load and `aiwf check` reports no
+// error on them — which is what makes the paths below reachable rather than
+// defensive.
+func writeLooseEntity(t *testing.T, r *runner, dir, title string) {
+	t.Helper()
+	full := filepath.Join(r.root, "work", "epics", dir)
+	if err := os.MkdirAll(full, 0o750); err != nil {
+		t.Fatalf("mkdir %s: %v", dir, err)
+	}
+	body := "---\nid: E-0001\ntitle: " + title + "\nstatus: proposed\n---\n## Goal\n\nFixture prose for test setup; not the subject under test.\n"
+	if err := os.WriteFile(filepath.Join(full, "epic.md"), []byte(body), 0o600); err != nil {
+		t.Fatalf("write %s: %v", dir, err)
+	}
+}
+
+// TestRetitle_PathWithoutIDPrefix_Refuses pins the refusal for a name
+// renamePaths cannot rewrite. The slug substitution splits the on-disk name on
+// its leading id, so a directory that carries no id prefix has nothing to
+// substitute — and the verb must say so rather than proceed.
+func TestRetitle_PathWithoutIDPrefix_Refuses(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	writeLooseEntity(t, r, "plainname", "Hand authored epic")
+
+	_, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Another title", testActor, "", 0)
+	if err == nil {
+		t.Fatal("retitle over a path with no id prefix returned no error, want a refusal")
+	}
+	// Naming the path shape keeps this from passing on an unrelated refusal —
+	// an entity that failed to load would also return non-nil.
+	if !strings.Contains(err.Error(), "no id prefix") {
+		t.Errorf("err = %v, want the path-shape refusal", err)
+	}
+}
+
+// TestRetitle_StoredTitleSlugifiesToNothing_PreservesTheSlug pins the polarity
+// of slugTracksTitle's empty-derived arm. A stored title that normalizes away
+// entirely cannot be the source of the slug on disk, so that slug is the
+// operator's and survives the retitle. Answering the other way would re-derive
+// over it.
+func TestRetitle_StoredTitleSlugifiesToNothing_PreservesTheSlug(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	writeLooseEntity(t, r, "E-0001-legacy-slug", "日本語のタイトル")
+
+	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Now An ASCII Title", testActor, "", 0)
+	if err != nil {
+		t.Fatalf("retitle over a title that slugifies to nothing: %v", err)
+	}
+	if res.Plan == nil {
+		t.Fatal("res.Plan = nil, want a plan rewriting the title")
+	}
+	for _, op := range res.Plan.Ops {
+		if op.Type == verb.OpMove {
+			t.Errorf("plan moves %s -> %s, want the slug preserved", op.Path, op.NewPath)
+		}
+	}
+}
+
+// TestRetitle_PreservedSlug_SuppressesTheSlugDroppedWarning pins the negative
+// half of the warning. The notice names the slug a title derives; on a path
+// where that slug is never written, reporting it would point an operator at a
+// path that does not exist.
+func TestRetitle_PreservedSlug_SuppressesTheSlugDroppedWarning(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+	r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "short-path", testActor, 0))
+
+	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Café Bar", testActor, "", 0)
+	if err != nil {
+		t.Fatalf("retitle a preserved-slug entity to a non-ASCII title: %v", err)
+	}
+	for _, f := range res.Findings {
+		if f.Code == "slug-dropped-chars" {
+			t.Errorf("got %s naming a slug this call never writes: %+v", f.Code, f)
+		}
 	}
 }
 

@@ -24,11 +24,14 @@ import (
 
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. The set is consumed by
+// returns the set of target SHAs. Four check rules consume it —
 // illegalTransitionFindings, RunIsolationEscape,
-// RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4)
+// RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4) —
 // to exempt commits that have been retroactively acknowledged via
-// `aiwf acknowledge illegal`.
+// `aiwf acknowledge illegal`. The verb consumes it too, to recognize
+// a SHA it has already acknowledged and converge rather than append a
+// duplicate record, so the verb's notion of "already acknowledged"
+// is the rules' notion by construction rather than by agreement.
 //
 // Returns nil for non-git directories and empty histories; the
 // consumers treat nil and an empty map identically (no
@@ -109,7 +112,7 @@ func WalkAcknowledgedSHAs(ctx context.Context, root string, head []HeadCommit) m
 // sides. The verb's `git diff-tree` write-time check is what
 // gives the (SHA, entity) pair its kernel-attested binding.
 //
-// Returns nil for non-git directories and empty histories; the
+// Returns nil for non-git directories and empty histories; every
 // consumer treats nil and an empty map identically (no
 // exemptions).
 //

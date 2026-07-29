@@ -77,7 +77,10 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		return nil, fmt.Errorf("retitle: new title %q produces an empty slug after normalization; pick a title with at least one alphanumeric character or use `aiwf rename` with an explicit slug", newTitle)
 	}
 	source, dest, err := renamePaths(e, newSlug)
-	if err != nil { //coverage:ignore defensive: renamePaths fails only when the entity's filename does not carry its own id, which the loader cannot produce for an entity it resolved by that id
+	if err != nil {
+		// Reachable: the loader resolves an entity by its frontmatter id, not
+		// by its filename, so a tree `aiwf check` calls clean can hold a file
+		// or directory whose name renamePaths cannot rewrite.
 		return nil, err
 	}
 
@@ -98,17 +101,19 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		dest = source
 	}
 
-	// Same-state convergence (M-0281/AC-5). Retitle writes three surfaces —
-	// the frontmatter title, the slug-derived filename, and a canonical
-	// `# <id> — <title>` body H1 — so all three must already read as requested
-	// before there is nothing to do. Placed after renamePaths so the path
-	// comparison is against what this call would actually produce.
+	// Same-state convergence (M-0281/AC-5). Two surfaces must already read as
+	// requested: the frontmatter title and a canonical `# <id> — <title>` body
+	// H1. The filename is not a third. An unchanged title derives exactly the
+	// slug this call would write, and a slug the operator set is preserved
+	// above, so on both paths the destination already equals the source by the
+	// time this runs — comparing them here would test a condition that cannot
+	// be false.
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
 		//coverage:ignore defensive: the loader read this same file to build e, so a failure here needs it to vanish mid-verb
 		return nil, err
 	}
-	if e.Title == newTitle && source == dest && entityH1MatchesTitle(body, id, newTitle) {
+	if e.Title == newTitle && entityH1MatchesTitle(body, id, newTitle) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
 	}
 
@@ -192,7 +197,11 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 // so the slug is the operator's either way.
 func slugTracksTitle(e *entity.Entity) (bool, error) {
 	derived := entity.Slugify(e.Title)
-	if derived == "" { //coverage:ignore defensive: add and retitle both reject a title that slugifies to empty, so a stored title always yields a slug; this guards a hand-authored or imported file, which the verb layer cannot construct
+	if derived == "" {
+		// A title that slugifies to nothing cannot be the source of the slug on
+		// disk, so the slug is the operator's. add and retitle both reject such
+		// a title, but the loader accepts one from a hand-authored or imported
+		// file, which is what makes this arm reachable.
 		return false, nil
 	}
 	source, dest, err := renamePaths(e, derived)
