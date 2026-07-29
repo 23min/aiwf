@@ -43,7 +43,6 @@ var noopExemptVerbs = []struct {
 
 	// Verified to compare-and-refuse in the verb itself, so a same-state input
 	// already writes nothing.
-	{"EditBody", "bless mode compares the working copy against HEAD (bytes.Equal in editbody.go) and refuses when they match, so no commit lands; the refusal is informative rather than convergent because the operator asked to commit an edit they had not made"},
 	{"ContractUnbind", "removes a binding: an absent binding is refused as a referential-integrity error, no commit (measured: exit 2, `no binding for <id>`)"},
 	{"RecipeRemove", "shares ContractUnbind's rationale: removing an absent validator is a referential-integrity refusal (measured: exit 2, `validator not declared`)"},
 
@@ -66,13 +65,18 @@ var noopExemptVerbs = []struct {
 // noopInspectedVerbs for why a looser relation credits verbs that have no
 // NoOp coverage at all.
 //
-// The property it protects is the same-state convergence convention
-// (ADR-0036): a mutating verb handed input that already equals current state
-// returns a NoOp at exit 0 rather than an error. That convention was
-// half-rolled-out once already — four verbs had it, six did not — and
-// nothing mechanical stopped the next verb from landing without it. This
-// policy is that chokepoint: a new verb either carries a NoOp test or earns
-// an allowlist entry stating why it cannot.
+// The property it protects is the same-state convergence convention — a
+// mutating verb handed input that already equals current state returns a NoOp
+// at exit 0 rather than an error — stated in CLAUDE.md under "Designing a new
+// verb" as the resolve-then-converge rules. ADR-0036 is the narrower authority
+// cited there: it settles the FSM-transition case (promote / cancel) and
+// explicitly disclaims field-mutation verbs, which are most of the entry points
+// scanned here. So the convention, not the ADR, is what this enforces.
+//
+// That convention was half-rolled-out once already — four verbs had it, six
+// did not — and nothing mechanical stopped the next verb from landing without
+// it. This policy is that chokepoint: a new verb either carries a NoOp test or
+// earns an allowlist entry stating why it cannot.
 //
 // Granularity is deliberately structural, not semantic: it verifies that some
 // test binds the verb's *Result and inspects that value's NoOp field. It

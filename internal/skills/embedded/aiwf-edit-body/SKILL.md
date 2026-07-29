@@ -5,7 +5,7 @@ description: Use when the user wants to edit (rewrite or replace) the markdown b
 
 # aiwf-edit-body
 
-The `aiwf edit-body` verb replaces the markdown body of an existing entity in a single trailered commit. Frontmatter is left untouched — that stays the domain of `aiwf promote`, `aiwf rename`, `aiwf cancel`, and `aiwf reallocate`.
+The `aiwf edit-body` verb replaces the markdown body of an existing entity in a single trailered commit, or reports that there was nothing to change. Frontmatter is left untouched — that stays the domain of `aiwf promote`, `aiwf rename`, `aiwf cancel`, and `aiwf reallocate`.
 
 ## When to use
 
@@ -61,7 +61,10 @@ Editing the prose under a single `### AC-N — title` heading inside a milestone
 
 1. Loads the entity by id, validates the supplied body content (refuses leading `---`).
 2. Re-serializes the entity with its existing frontmatter unchanged and the new body in place.
-3. Writes one OpWrite to the entity file and creates one commit with the same trailer set as bless mode — `aiwf history` cannot tell them apart, which is the right outcome.
+3. Reports "nothing to commit" at exit 0 when that serialized result already equals *both* the committed version and the file on disk — there is no change to record, so no commit is made.
+4. Otherwise writes one OpWrite to the entity file and creates one commit with the same trailer set as bless mode — `aiwf history` cannot tell them apart, which is the right outcome.
+
+The two modes answer a repeat differently, and the difference is deliberate. Explicit mode is handed a target, so it can check that target against reality and truthfully say it is already met. Bless mode is handed no target — its input *is* the working copy — so it cannot tell "I meant to change nothing" from "my editor never saved"; refusing is the only honest answer there.
 
 The frontmatter `id`, `title`, `status`, references, and acs[] are all preserved verbatim in both modes. Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`.
 

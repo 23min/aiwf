@@ -305,6 +305,20 @@ Package names short, lowercase, singular (`entity` not `entities`). Avoid stutte
 
 The design isn't done until you can answer **"what verb undoes this?"** Acceptable: another invocation of the same verb; an explicit terminal transition (`aiwf cancel`, `aiwf reallocate`); "you can't, deliberately — here's why" (`aiwf init` is one-shot; written down); "you'd open a new entity for the inverse." Not acceptable: "we'll figure it out later." See [docs/design/design-lessons.md](docs/design/design-lessons.md) §"On reversal".
 
+#### Same-state convergence — resolve, then converge
+
+A mutating verb handed input that already equals current state returns a NoOp (exit 0, no commit), not an error. Two rules decide it, **in order**:
+
+- **R1 — resolve before you converge.** Every argument must name something real — an existing entity, a declared area member, an AC, a working-copy edit — *before* the verb asks whether the request is already satisfied. An unresolvable argument is a refusal, never a NoOp. Converging there asserts success for state that cannot exist and buries the operator's typo (`aiwf rename-area <undeclared> <undeclared>` must refuse, not report "already named").
+- **R2 — converge when the verb's intended effect already holds.** "Effect" is the verb's own declared target, which is not always a single field: stored bytes for the field-mutation verbs, a *terminal disposition* for `cancel` (any terminal converges, not only the one `cancel` would have picked), an existing exemption record for `acknowledge illegal`, the committed body for `edit-body --body-file`.
+
+Two corollaries worth stating, because getting either wrong loses work rather than merely annoying someone:
+
+- **A NoOp claims the target is met, so it must be true of everything the operator can observe.** Where a verb's effect spans more than one surface, every one must already hold: `edit-body --body-file` converges only when the serialized result equals both HEAD and the file on disk, and a `--superseded-by` re-run does not converge while the reciprocal back-link is still missing.
+- **Same-state is not the same as same-spelling.** Compare ids canonicalized, since narrower legacy widths name the same entity (`E-01` is `E-0001`). Compare *content* byte-for-byte, since a write that changes stored bytes is a real change.
+
+A verb whose input cannot be checked against reality is outside R2 entirely: `aiwf edit-body` in bless mode is handed no target — its input *is* the working copy — so it cannot distinguish "I meant to change nothing" from "my editor never saved", and refusing is the only honest answer. Mechanical companion: `internal/policies/verb_result_noop_invariant.go`. [ADR-0036](docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md) settles the FSM-transition case (`promote`/`cancel`) specifically; this section is the general convention.
+
 ### Skills policy
 
 Every top-level Cobra verb is reachable through some AI-discoverable channel, in one of four shapes (per-verb skill / topical multi-verb skill / no skill when `--help`+completion suffice / discoverability-priority split). Judgment rule in [ADR-0006](docs/adr/ADR-0006-skills-policy-per-verb-default-or-help-only.md); mechanical companion `internal/policies/skill_coverage.go` (every verb has an `aiwf-<verb>` skill or an allowlist entry; every skill carries valid `name:`/`description:` frontmatter; every backticked `` `aiwf <verb>` `` in a skill body resolves).
