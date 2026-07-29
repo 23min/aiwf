@@ -93,47 +93,99 @@ func TestRenameRetitleAC_SameTitle_ReturnsNoOp(t *testing.T) {
 	})
 }
 
-// TestRetitle_TitleMatchesButOtherSurfacesDrifted_StillRewrites pins the two
-// conjuncts beyond the title. Retitle writes three surfaces — the frontmatter
-// title, the slug-derived filename, and the canonical `# <id> — <title>` body
-// H1 — so drift in either of the other two leaves work to do, and comparing
-// the title alone claimed success over exactly that state.
-func TestRetitle_TitleMatchesButOtherSurfacesDrifted_StillRewrites(t *testing.T) {
+// TestRetitle_H1DriftedFromTitle_StillRewrites pins the H1 conjunct. Retitle
+// owns the canonical `# <id> — <title>` body H1 outright — no verb lets an
+// operator set it independently of the title — so an H1 out of sync with the
+// title is work left to do; comparing the title alone would claim success over
+// that state.
+func TestRetitle_H1DriftedFromTitle_StillRewrites(t *testing.T) {
 	t.Parallel()
 	const title = "Foundations"
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, title, testActor, verb.AddOptions{}))
+	writeEntityH1(r.t, r, "E-0001", "# E-0001 — Stale heading")
+
+	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", title, testActor, "", 0)
+	if err != nil {
+		t.Fatalf("retitle over a drifted H1: %v", err)
+	}
+	if res.NoOp {
+		t.Errorf("res.NoOp = true, want false — the H1 retitle writes is out of sync")
+	}
+	if res.Plan == nil {
+		t.Fatal("res.Plan = nil, want a plan resolving the drift")
+	}
+}
+
+// TestRetitle_OperatorSetSlug_IsPreserved pins the boundary of what retitle
+// owns. The slug is retitle's to re-derive only while it still tracks the
+// title; `aiwf rename` exists to choose one independently, so re-deriving over
+// that choice would leave rename's effect lasting only until the next retitle.
+//
+// Both arms matter. Under an unchanged title nothing retitle owns is moving,
+// so the call converges. Under a changed title the frontmatter is rewritten
+// but the operator's slug still stands, which is what makes rename durable
+// rather than merely most-recent.
+func TestRetitle_OperatorSetSlug_IsPreserved(t *testing.T) {
+	t.Parallel()
+	const customSlug = "short-path"
 	cases := []struct {
-		name  string
-		drift func(r *runner)
+		name      string
+		newTitle  string
+		wantNoOp  bool
+		wantTitle string
 	}{
 		{
-			name: "the filename drifted away from the slug this title derives",
-			drift: func(r *runner) {
-				r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "totally-different-slug", testActor, 0))
-			},
+			name:      "an unchanged title moves nothing retitle owns",
+			newTitle:  "Foundations",
+			wantNoOp:  true,
+			wantTitle: "Foundations",
 		},
 		{
-			name: "the body H1 drifted away from the title",
-			drift: func(r *runner) {
-				writeEntityH1(r.t, r, "E-0001", "# E-0001 — Stale heading")
-			},
+			name:      "a changed title rewrites the title and keeps the slug",
+			newTitle:  "Foundations And Then Some",
+			wantNoOp:  false,
+			wantTitle: "Foundations And Then Some",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			r := newRunner(t)
-			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, title, testActor, verb.AddOptions{}))
-			tc.drift(r)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+			r.must(verb.Rename(r.ctx, r.tree(), "E-0001", customSlug, testActor, 0))
 
-			res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", title, testActor, "", 0)
+			res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", tc.newTitle, testActor, "", 0)
 			if err != nil {
-				t.Fatalf("retitle over drifted state: %v", err)
+				t.Fatalf("retitle over an operator-set slug: %v", err)
 			}
-			if res.NoOp {
-				t.Errorf("res.NoOp = true, want false — a surface retitle writes is out of sync")
+			if res.NoOp != tc.wantNoOp {
+				t.Errorf("res.NoOp = %v, want %v", res.NoOp, tc.wantNoOp)
 			}
-			if res.Plan == nil {
-				t.Fatal("res.Plan = nil, want a plan resolving the drift")
+			if !tc.wantNoOp {
+				if res.Plan == nil {
+					t.Fatal("res.Plan = nil, want a plan rewriting the title")
+				}
+				for _, op := range res.Plan.Ops {
+					if op.Type == verb.OpMove {
+						t.Errorf("plan moves %s -> %s, want the operator's slug untouched", op.Path, op.NewPath)
+					}
+				}
+				if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+					t.Fatalf("apply: %v", applyErr)
+				}
+			}
+
+			e := r.tree().ByID("E-0001")
+			if e == nil {
+				t.Fatal("E-0001 vanished")
+			}
+			if got := filepath.Base(filepath.Dir(e.Path)); got != "E-0001-"+customSlug {
+				t.Errorf("on-disk dir = %q, want %q — retitle re-derived over an operator-set slug",
+					got, "E-0001-"+customSlug)
+			}
+			if e.Title != tc.wantTitle {
+				t.Errorf("title = %q, want %q", e.Title, tc.wantTitle)
 			}
 		})
 	}

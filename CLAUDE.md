@@ -299,7 +299,7 @@ Package names short, lowercase, singular (`entity` not `entities`). Avoid stutte
 
 - **Closed-set enums ship only values with a current call site.** Speculative future values violate YAGNI.
 - **The six kinds and their status sets are hardcoded in Go**, not external YAML (deferred until a real consumer needs custom vocabulary).
-- **`entities.title_max_length` in `aiwf.yaml`** caps title (at `add`/`retitle`/`import`) and slug (at `rename`); default 80. Hard-reject, not truncate — the error points at `--body-file`. Title and slug share the budget so filenames and frontmatter stay in sync. Pre-cap titles are grandfathered; clean up with `aiwf retitle` (re-derives the slug), which the check treats as a git rename so a retitle batch pushes cleanly.
+- **`entities.title_max_length` in `aiwf.yaml`** caps title (at `add`/`retitle`/`import`) and slug (at `rename`); default 80. Hard-reject, not truncate — the error points at `--body-file`. Title and slug share the budget so filenames and frontmatter stay in sync. Pre-cap titles are grandfathered; clean up with `aiwf retitle` (re-derives the slug), which the check treats as a git rename so a retitle batch pushes cleanly. Re-derivation applies only while the slug still tracks the title — one set deliberately with `aiwf rename` is preserved, so `rename`'s effect outlives the next retitle rather than lasting until it ([ADR-0037](docs/adr/ADR-0037-retitle-re-derives-the-slug-only-while-it-tracks-the-title.md)).
 
 ### Designing a new verb
 

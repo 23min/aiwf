@@ -15,6 +15,11 @@ import (
 // kinds. Per G-0108, the on-disk slug is also re-derived from the new
 // title in the same commit, so frontmatter and filesystem stay in sync.
 // Closes the top-level half of G-065 + G-0108.
+//
+// Every entity here is created by `add`, so its slug tracks its title and
+// re-derivation applies. A slug set with `aiwf rename` does not track the
+// title and retitle preserves it; that boundary is pinned at the verb layer
+// in internal/verb.
 
 // retitleSetup gives every test in this file a freshly-init'd repo
 // with one entity per top-level kind so the verb has live targets to

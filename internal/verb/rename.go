@@ -15,8 +15,13 @@ import (
 
 // Rename changes the slug portion of an entity's file or directory
 // path. The id is preserved (per the design's "ids are immortal"
-// invariant); the title in frontmatter is unchanged. Hand-edit the
-// title in markdown if you want it to track the new slug.
+// invariant); the title in frontmatter is unchanged. Use `aiwf retitle`
+// if you want the title to track the new slug.
+//
+// A slug set here is durable: it no longer matches what the title would
+// derive, so a later retitle preserves it instead of re-deriving over it.
+// That is what makes this verb worth reaching for on an entity whose
+// descriptive title makes an unwieldy path.
 //
 // For epic and contract (directory-based kinds), the directory itself
 // is moved; nested files (milestones under an epic, the schema/

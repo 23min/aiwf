@@ -15,9 +15,10 @@ import (
 
 // NewCmd builds `aiwf retitle <id|composite-id> <new-title>
 // [--reason "..."]`. Title mutation: updates the entity's frontmatter
-// `title:`; for top-level entities also re-derives the on-disk slug
-// (G-0108) and syncs a canonical `# <ID> — <title>` body H1 if one is
-// present (G-0083); for composite ids regenerates the matching
+// `title:`; for top-level entities whose slug still tracks the title it
+// also re-derives the on-disk slug (G-0108), leaving a slug set with
+// `aiwf rename` alone; and syncs a canonical `# <ID> — <title>` body H1
+// if one is present (G-0083); for composite ids regenerates the matching
 // `### AC-N — <title>` body heading inside the parent milestone.
 // Closes G-065 — the asymmetry where `aiwf rename` exists for slugs
 // but no verb exists for titles.

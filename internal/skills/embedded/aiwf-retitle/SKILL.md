@@ -5,7 +5,7 @@ description: Use when the user wants to fix or change an entity's title — "the
 
 # aiwf-retitle
 
-The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities the on-disk slug is also re-derived from the new title so the filesystem stays in sync, and any canonical `# <ID> — <title>` body H1 is rewritten to track the new title — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated.
+The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities whose slug still tracks the title, the on-disk slug is re-derived from the new title so the filesystem stays in sync; a slug you chose with `aiwf rename` is preserved instead, so renaming for a shorter path is not undone by a later retitle. Any canonical `# <ID> — <title>` body H1 is rewritten to track the new title — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated.
 
 ## When to use
 

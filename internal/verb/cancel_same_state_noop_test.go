@@ -54,3 +54,31 @@ func TestCancel_AlreadyAtSuccessTerminal_ReturnsNoOp(t *testing.T) {
 		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
 	}
 }
+
+// TestCancel_AlreadyTerminalUnderForce_StillReturnsNoOp pins the guard's
+// position relative to the force check. Convergence sits ABOVE `--force`
+// deliberately: force exists to override a rule that is standing in the way,
+// and on a terminal entity no rule is — there is simply nothing to do. A force
+// that reached the writer would spend a sovereign act on an empty diff and
+// stamp the history with an override that overrode nothing.
+//
+// Without this test the guard could be moved below the force gate with the
+// whole suite still green, which is exactly the arrangement cancel's own doc
+// and ADR-0036 rule out.
+func TestCancel_AlreadyTerminalUnderForce_StillReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)) // proposed -> cancelled
+
+	res, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "still nothing to cancel", true)
+	if err != nil {
+		t.Fatalf("forced cancel of an already-cancelled epic returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true — force does not manufacture work on a terminal entity")
+	}
+	if res.Plan != nil {
+		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit, forced or not)", res.Plan)
+	}
+}
