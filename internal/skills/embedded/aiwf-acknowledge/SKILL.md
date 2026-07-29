@@ -106,7 +106,7 @@ The `area-mistag` rule walks HEAD's reachable history for `aiwf-verb: acknowledg
 
 - **Reverse themselves.** There's no companion "un-acknowledge" verb — the acts are one-way by deliberate design (the "What verb undoes this?" answer is *"you can't, and that's deliberate"*). To undo a mistag ack, re-tag with `aiwf set-area` so the finding no longer fires; an illegal ack is lived with or, in extremis, rewritten out of history.
 - **Acknowledge an absent target.** `illegal` refuses a SHA reachable from neither HEAD nor the object DB; `mistag` refuses an id that resolves to no entity — both rather than silently recording a no-op ack.
-- **Re-acknowledge the same target.** `illegal` converges: when HEAD's history already carries a matching acknowledgment it reports that at exit 0 and records nothing, so a repeat cannot grow the audit trail with an indistinguishable duplicate. `mistag` does not yet do this.
+- **Re-acknowledge the same target.** `illegal` converges: when HEAD's history already carries a matching acknowledgment it reports that at exit 0 and records nothing, so a repeat cannot grow the audit trail with an indistinguishable duplicate. `mistag` does not converge — each invocation records another acknowledgment, so run it once per target.
 - **Acknowledge across rule families.** `illegal` clears the FSM-history / provenance set; `mistag` clears `area-mistag`. Other findings (`forced-untrailered`, `manual-edit`, …) have their own resolution paths.
 
 ## Related

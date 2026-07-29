@@ -305,8 +305,8 @@ func TestRenameAC_EmptyTitle_Refused(t *testing.T) {
 // TestRetitleAndRenameAC_HeadingDrifted_StillRewrite pins the body-heading half
 // of the AC guards. Both verbs write the frontmatter title AND the
 // `### AC-N — <title>` heading, so an AC whose title is right while its heading
-// has drifted still has work to do. Comparing the title alone reported "nothing
-// to rename" over exactly that state, leaving the stale prose in place.
+// has drifted still has work to do: comparing the title alone would report
+// "nothing to rename" and leave the stale prose standing.
 func TestRetitleAndRenameAC_HeadingDrifted_StillRewrite(t *testing.T) {
 	t.Parallel()
 	const title = "criterion"

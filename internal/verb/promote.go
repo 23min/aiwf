@@ -293,7 +293,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 // fsmTransitionIllegalError wraps a legality refusal that isn't itself
 // produced by entity.ValidateTransition. Three groups of construction site:
 //
-// ac.go, where the sub-FSMs are keyed by status or phase
+// Three are in ac.go, where the sub-FSMs are keyed by status or phase
 // rather than by Kind, so entity.ValidateTransition does not apply:
 // promoteAC and cancelAC consult entity.IsLegalACTransition,
 // PromoteACPhase consults IsLegalTDDPhaseTransition.
@@ -430,6 +430,11 @@ func entityResolverSatisfied(ctx context.Context, root string, e *entity.Entity,
 	if len(opts.AddressedByCommit) > 0 && !sameCommits(ctx, root, e.AddressedByCommit, opts.AddressedByCommit) {
 		return false
 	}
+	// Canonicalize is the identity on every ADR id the parser accepts — the
+	// grammar's minimum digit count IS the canonical width, so unlike gap or
+	// milestone ids there is no narrower legacy spelling to fold. It is kept
+	// for symmetry with the width-folding comparisons above; a plain string
+	// comparison would behave identically today.
 	return opts.SupersededBy == "" ||
 		entity.Canonicalize(e.SupersededBy) == entity.Canonicalize(opts.SupersededBy)
 }

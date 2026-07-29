@@ -292,9 +292,8 @@ func parseRaceCommitSHAs(out []byte) []string {
 // mutually-exclusive transition allows — one for the AC's open->met
 // promote, at most one for the milestone's draft->cancelled cancel.
 // Both bounds are counted from the git order rather than from "ok"
-// outcomes, because since M-0281 the losers in both groups converge to
-// NoOp and report "ok" with zero commits (the milestone's draft->cancelled
-// transition can only land once). A cancel that raced while the AC was
+// outcomes, because the losers in both groups converge to NoOp and
+// report "ok" with zero commits. A cancel that raced while the AC was
 // still open is refused as CodeMilestoneCancelNonTerminalACs; a cancel
 // that raced after the milestone was already cancelled is now a NoOp
 // (ADR-0036, M-0281/AC-2) — reported "ok" with zero commits, not an FSM

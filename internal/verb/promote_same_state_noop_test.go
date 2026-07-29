@@ -474,13 +474,18 @@ func TestPromote_SameStatus_ResolverDiffers_StillRefuses(t *testing.T) {
 			},
 		},
 		{
-			name: "a SHA that resolves to a different commit",
+			// Both of these take sameCommits' resolve-error arm: a well-formed
+			// 40-hex string that names no object in this repo. They differ only
+			// in shape, not in the branch they drive. The genuinely-both-resolve
+			// -but-differ arm is covered by
+			// TestPromote_SameStatus_DifferentResolver_StillRefused.
+			name: "an all-zero SHA names no object here",
 			requested: func(string) verb.PromoteOptions {
 				return verb.PromoteOptions{AddressedByCommit: []string{"0000000000000000000000000000000000000000"}}
 			},
 		},
 		{
-			name: "a SHA that resolves to nothing",
+			name: "an arbitrary SHA names no object here",
 			requested: func(string) verb.PromoteOptions {
 				return verb.PromoteOptions{AddressedByCommit: []string{"deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"}}
 			},
@@ -535,7 +540,10 @@ func TestPromote_SameStatus_ResolverListLengthDiffers_StillRefuses(t *testing.T)
 // TestPromote_SameStatus_MixedResolverSpellings_ReturnsNoOp covers a list where
 // some entries match byte-for-byte and others only by referent — the shape an
 // operator produces by pasting one SHA from `aiwf history` and copying another
-// in full. The exact matches short-circuit; the rest resolve.
+// in full. What this pins is the outcome — a mixed list still converges. The
+// per-entry short-circuit it exercises on the way is an optimization, and
+// removing it leaves this test green, so treat it as an integration case rather
+// than a pin on that line.
 func TestPromote_SameStatus_MixedResolverSpellings_ReturnsNoOp(t *testing.T) {
 	t.Parallel()
 	r := gapResolverFixture(t)

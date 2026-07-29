@@ -47,8 +47,9 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	// Resolve the target epic to canonical width for the comparison below.
 	// Parsers accept narrower legacy spellings on input — ByID canonicalizes
 	// both sides before matching — so `--epic E-01` names the same epic as a
-	// stored `E-0001`. What a genuine move stores is governed by the verbatim
-	// convention Add documents for referent ids.
+	// stored `E-0001`. Canonicalizing here settles only the comparison: a
+	// genuine move still stores the operator's spelling verbatim, matching
+	// what Add writes for a parent supplied at creation.
 	canonNew := entity.Canonicalize(newEpicID)
 
 	source := filepath.ToSlash(e.Path)

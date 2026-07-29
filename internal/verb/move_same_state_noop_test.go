@@ -61,8 +61,8 @@ func TestMove_ToCurrentParentAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 // TestMove_ParentMatchesButFileMisplaced_StillMoves pins the second half of
 // AC-3's guard. A move writes `parent:` AND relocates the file, so a milestone
 // whose frontmatter already names the target epic while its file sits under
-// another still has work to do — and `move` is the verb that would repair it.
-// Comparing the field alone reported "nothing to move" over exactly that state.
+// another still has work to do — and `move` is the verb that repairs it.
+// Comparing the field alone would report "nothing to move" over that state.
 func TestMove_ParentMatchesButFileMisplaced_StillMoves(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)

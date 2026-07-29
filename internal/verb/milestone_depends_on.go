@@ -85,10 +85,9 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	}
 
 	// Same-state convergence (M-0281/AC-7): the list already reads exactly as
-	// requested. Without this guard the verb wrote byte-identical content and
-	// still landed a commit: Apply's empty-plan guard only refuses a plan with
-	// ZERO Ops, and this plan has one write Op, while `git commit-tree` has no
-	// same-tree refusal — so every re-run appended an empty-diff commit.
+	// requested. Without this guard a re-run writes byte-identical content and
+	// still lands a commit with an empty diff (see
+	// verb_result_noop_invariant.go for why aiwf does not reject one).
 	//
 	// Compared with slices.Equal, order included: `--on` is
 	// replace-not-append, so a reordered list is a real change to the stored

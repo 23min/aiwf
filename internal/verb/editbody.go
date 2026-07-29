@@ -79,9 +79,10 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 	}
 
 	// Same-state convergence (M-0281/AC-8): writing content the entity already
-	// carries produced a commit with an empty diff, on every repeat. Converge
-	// instead — but only once the requested content is what BOTH git and the
-	// operator would see, which is why this settles nothing on its own and
+	// carries lands a commit with an empty diff on every repeat (see
+	// verb_result_noop_invariant.go for why aiwf does not reject one).
+	// Converging is sound only once the requested content is what BOTH git and
+	// the operator would see, which is why this settles nothing on its own and
 	// defers to explicitBodySettled below.
 	settled, err := explicitBodySettled(ctx, t, e, content)
 	if err != nil {
