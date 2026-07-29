@@ -502,19 +502,31 @@ lying name the next time you touch the function.
 ### F2. Comments only for non-obvious "why"
 
 Every comment answers a question the code can't: a hidden constraint, a
-subtle invariant, a bug workaround, a historical decision that would be
-reverted without context.
+subtle invariant, a bug workaround, a constraint whose removal would break
+something non-obvious. It states what holds now — not the history of how the
+code arrived there.
 
 **Smells:**
 - Comments restating the code in English.
 - "Increment counter" above `counter += 1`.
 - Parameter/type block comments when the signature already says it.
 - Stale comments contradicting the code.
+- **History attrition:** a past-tense clause appended to a guard narrating a
+  defect nobody can encounter — "used to", "the bug this replaced", "there
+  was a third arm here". Version control and the decision record own that;
+  the comment is a second copy, and the copy no test pins is the one that
+  goes stale.
 
 **Moves:**
 - Delete comments that restate code.
 - Keep comments that explain a surprising choice.
 - When tempted to comment, ask "could I rename a variable/function instead?"
+- Before writing a past-tense clause, apply the reachable-state test: **can a
+  reader still meet the state being described** — a legacy on-disk format, a
+  supported older release, a wire contract you don't control? Then it is
+  current truth about the input space; write it in the present tense as a
+  fact about what the code must accept. If the old state exists only in
+  history, leave it in history.
 
 **Tradeoff:** for public APIs, docstrings are expected even when "obvious."
 Internal code can be sparser.
@@ -534,9 +546,11 @@ design docs, decision notes — the format matters less than the practice.
 **Moves:**
 - One short doc per non-obvious decision: context, options, choice,
   consequences, date, author.
-- Link the doc from the code where the decision is enforced.
+- Link the doc from the code where the decision is enforced — a link, not a
+  retelling. Rejected options and the defect that prompted the choice belong
+  in the record; the comment names the live constraint and points at it.
 - Update or supersede when the decision changes; don't delete — history
-  matters.
+  matters, and the record is the place it matters in.
 
 **Tradeoff:** an ADR for every choice is paralysis. Reserve them for
 decisions future-you (or a new hire) would otherwise re-litigate.
