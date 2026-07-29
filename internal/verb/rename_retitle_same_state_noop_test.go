@@ -191,6 +191,31 @@ func TestRetitle_OperatorSetSlug_IsPreserved(t *testing.T) {
 	}
 }
 
+// TestRetitle_NonASCIITitle_SurfacesSlugWarning completes the slug-dropped
+// warning across the three verbs that derive a slug. `add` and `rename` each
+// surface what normalization discarded; retitle derives a slug too, so an
+// operator who retitles to a title carrying non-ASCII characters must see the
+// same warning rather than silently getting a lossy path.
+func TestRetitle_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
+
+	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Café Bar", testActor, "", 0)
+	if err != nil {
+		t.Fatalf("retitle to a non-ASCII title: %v", err)
+	}
+	hasWarning := false
+	for _, f := range res.Findings {
+		if f.Code == "slug-dropped-chars" {
+			hasWarning = true
+		}
+	}
+	if !hasWarning {
+		t.Errorf("expected slug-dropped-chars warning on retitle; got %+v", res.Findings)
+	}
+}
+
 // writeEntityH1 replaces an entity body's canonical H1 with an arbitrary line.
 func writeEntityH1(t *testing.T, r *runner, id, heading string) {
 	t.Helper()

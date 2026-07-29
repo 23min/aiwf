@@ -77,7 +77,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		return nil, fmt.Errorf("retitle: new title %q produces an empty slug after normalization; pick a title with at least one alphanumeric character or use `aiwf rename` with an explicit slug", newTitle)
 	}
 	source, dest, err := renamePaths(e, newSlug)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: renamePaths fails only when the entity's filename does not carry its own id, which the loader cannot produce for an entity it resolved by that id
 		return nil, err
 	}
 
@@ -192,11 +192,11 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 // so the slug is the operator's either way.
 func slugTracksTitle(e *entity.Entity) (bool, error) {
 	derived := entity.Slugify(e.Title)
-	if derived == "" {
+	if derived == "" { //coverage:ignore defensive: add and retitle both reject a title that slugifies to empty, so a stored title always yields a slug; this guards a hand-authored or imported file, which the verb layer cannot construct
 		return false, nil
 	}
 	source, dest, err := renamePaths(e, derived)
-	if err != nil {
+	if err != nil { //coverage:ignore defensive: same path-shape failure as the caller's own renamePaths call, which has already succeeded for this entity by the time this runs
 		return false, err
 	}
 	return source == dest, nil
