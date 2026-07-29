@@ -65,7 +65,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    Creating and body-filling the ACs here — before the merge-to-main step below — is what keeps a milestone from ever landing on main with zero ACs or empty AC bodies; the `milestone-draft-incomplete-acs` check (subcodes `zero-acs` / `empty-body`) surfaces exactly that gap on a `draft` milestone. `aiwfx-start-milestone`'s preflight then expects the ACs to already exist, treating on-the-spot creation as a recovery fallback for a hand-written spec.
 
-6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
+6. **Declare milestone dependencies via verb, not by hand-editing frontmatter.** Two writer surfaces, each producing one atomic commit with `aiwf-verb` trailers when the list actually changes — re-declaring the list already stored converges to exit 0 with no commit:
 
    ```bash
    # At allocation time: pass --depends-on on aiwf add milestone
@@ -81,7 +81,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    Replace-not-append semantics: a second `--on` invocation replaces the list, it does not extend. To add a single dependency to an existing list, pass the full updated list. `--on` and `--clear` are mutually exclusive. Each id passed to `--depends-on` or `--on` must already resolve to an existing milestone — typos and forward-references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity.
 
-   Do not hand-edit `depends_on:` in frontmatter. `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file trips the kernel's `provenance-untrailered-entity-commit` warning. Both writer verbs above leave a trailered commit that `aiwf history M-NNNN` can render.
+   Do not hand-edit `depends_on:` in frontmatter. Bless-mode `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file trips the kernel's `provenance-untrailered-entity-commit` warning. Both writer verbs above leave a trailered commit that `aiwf history M-NNNN` can render whenever they change the list.
 
 7. **Update the epic's Milestones list.** Edit the epic spec to list all milestones in execution order. Use the format from the epic template — link, one-line description, dependencies.
 

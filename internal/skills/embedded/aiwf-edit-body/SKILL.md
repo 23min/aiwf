@@ -66,7 +66,7 @@ Editing the prose under a single `### AC-N — title` heading inside a milestone
 
 The two modes answer a repeat differently, and the difference is deliberate. Explicit mode is handed a target, so it can check that target against reality and truthfully say it is already met. Bless mode is handed no target — its input *is* the working copy — so it cannot tell "I meant to change nothing" from "my editor never saved"; refusing is the only honest answer there.
 
-The frontmatter `id`, `title`, `status`, references, and acs[] are all preserved verbatim in both modes. Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`.
+Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Bless mode enforces that: it refuses when the working copy's frontmatter differs from the committed one. Explicit mode re-serializes the entity as loaded, so a frontmatter edit already sitting in the working copy rides into the commit — do not use `--body-file` to land one, and check `git status` first if the tree may be dirty.
 
 ## Composite ids (M-NNNN/AC-N)
 

@@ -59,12 +59,18 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	// converges to a NoOp at exit 0 rather than an error. move is a
 	// field-mutation verb (no FSM transition), so this needs no ADR-0036
 	// oracle changes.
-	if entity.Canonicalize(e.Parent) == canonNew {
-		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already under epic %q; nothing to move", id, newEpicID)}, nil
-	}
-
 	source := filepath.ToSlash(e.Path)
 	dest := filepath.ToSlash(filepath.Join(filepath.Dir(target.Path), filepath.Base(e.Path)))
+
+	// Both surfaces must already hold. A move's effect is the `parent:` field
+	// AND the file's location under the epic's directory, so comparing the
+	// field alone reported "nothing to move" for a milestone whose frontmatter
+	// pointed at the target epic while the file sat under another — a NoOp
+	// asserting a state the operator can see is false, with `move` itself the
+	// verb that would repair it. Falling through relocates the file.
+	if entity.Canonicalize(e.Parent) == canonNew && source == dest {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already under epic %q; nothing to move", id, newEpicID)}, nil
+	}
 
 	modified := *e
 	priorParent := e.Parent

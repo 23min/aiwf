@@ -58,12 +58,6 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	// Same-state convergence (M-0281/AC-5): the title already reads as
-	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
-	if e.Title == newTitle {
-		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
-	}
-
 	modified := *e
 	modified.Title = newTitle
 
@@ -82,6 +76,20 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	source, dest, err := renamePaths(e, newSlug)
 	if err != nil {
 		return nil, err
+	}
+
+	// Same-state convergence (M-0281/AC-5): the title already reads as
+	// requested AND the on-disk slug already matches the one this title
+	// derives, so a re-run converges to a NoOp at exit 0 rather than an error.
+	//
+	// Both conditions are load-bearing. Retitle re-derives the slug and renames
+	// the file, so comparing the title alone reported "nothing to retitle" for
+	// an entity whose title was right but whose filename had been changed by
+	// `aiwf rename` — leaving the very drift retitle exists to resolve, and
+	// claiming success. Placed after renamePaths so the comparison is against
+	// the path this call would actually produce.
+	if e.Title == newTitle && source == dest {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
 	}
 
 	ops := make([]FileOp, 0, 2)
@@ -184,8 +192,14 @@ func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Resu
 	if err != nil {
 		return nil, err
 	}
-	// Same-state convergence (M-0281/AC-5), matching the entity-level path above.
-	if ac.Title == newTitle {
+	// Same-state convergence (M-0281/AC-5), matching the entity-level path
+	// above — and, like it, spanning both surfaces the verb writes: the
+	// frontmatter title and the `### AC-N — <title>` body heading.
+	acBody, err := readBody(t.Root, parent.Path)
+	if err != nil {
+		return nil, err
+	}
+	if ac.Title == newTitle && acHeadingMatchesTitle(acBody, ac.ID, newTitle) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", compositeID, newTitle)}, nil
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {

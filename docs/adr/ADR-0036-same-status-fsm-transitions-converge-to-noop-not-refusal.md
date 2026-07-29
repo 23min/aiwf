@@ -33,9 +33,20 @@ the entity's current status, with no other field changing, converges to a
   asking to stay where you are — now recognized as already-satisfied rather than
   an illegal transition. Self-loops remain absent from the FSM data; the NoOp is
   a verb-level short-circuit *above* `ValidateTransition`.
-- The resolver-flag path is unaffected: a same-status promote carrying a
-  resolver flag (gap `--by`, ADR `--superseded-by`) still backfills or refuses.
-  The guard is gated on no resolver flag and no field change.
+- The guard is gated on **nothing changing**, not on the absence of a resolver
+  flag. A same-status promote carrying a resolver still backfills when the
+  stored resolver is empty, and still refuses when it names a different one —
+  but when the resolver it carries is already the one recorded, nothing is
+  changing and the call converges. Gating on "no resolver flag was supplied"
+  instead would refuse the tracker-closure command
+  `promote <gap> addressed --by-commit <sha>` on a routine re-run, which is the
+  case the criterion exists to serve. Referents are compared, not spellings:
+  a narrower id width or an abbreviated SHA naming the recorded value converges.
+- `--force` does not change any of this. Convergence fires above the force
+  check, because a sovereign override exists to relax the FSM and there is no
+  transition here to relax. The consequence is deliberate: a forced same-state
+  promote succeeds at exit 0 with no commit, and therefore leaves no
+  `aiwf-force:` trailer — there is no act to audit.
 - For `cancel`, whose target is implicit (the kind's terminal end-state), the
   convergence condition is that the entity is already at *any* terminal status,
   not only cancel's own cancel-class terminal — a terminal entity is already

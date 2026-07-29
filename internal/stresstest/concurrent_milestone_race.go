@@ -34,8 +34,8 @@ import (
 // reason each actor reported, and the real commit order
 // readRaceCommitOrder reads back via git trailers — so a legitimate
 // race (exactly one promote/cancel actor lands per mutually-exclusive
-// transition, everyone else cleanly refused) is never flagged, while a
-// guard that silently didn't hold (the G-0335 shape) is.
+// transition, everyone else converging or cleanly refused) is never
+// flagged, while a guard that silently didn't hold (the G-0335 shape) is.
 
 // raceOpPromote and raceOpCancel name the two operations this
 // scenario's actors race, doubling as the `aiwf` subcommand each
@@ -80,9 +80,11 @@ type ConcurrentMilestoneRaceScenario struct {
 	milestoneID string
 
 	// before/after are the repo's HEAD commit count immediately
-	// surrounding the fan-out — a harness sanity signal a test can
-	// check directly (e.g. after == before + the number of "ok"
-	// outcomes), independent of Verify's own check-clean assertion.
+	// surrounding the fan-out. Their delta is the one signal that sees a
+	// commit no trailer accounts for, which is why classify reconciles it
+	// against the actors' reported commit_shas. Note it is NOT
+	// before + the number of "ok" outcomes: a NoOp reports ok and commits
+	// nothing.
 	before, after int
 
 	// outcomes is every actor's reduced result, in launch order — the
@@ -286,10 +288,12 @@ func parseRaceCommitSHAs(out []byte) []string {
 // matched against "<milestoneID>/AC-1" and milestoneID itself).
 //
 // Two independent signals feed the judgment. The outcome-shape/
-// refusal-reason signal: the promote group must land exactly one "ok"
-// (the AC's open->met transition can only land once), with every other
-// promote actor refused as CodeFSMTransitionIllegal; the cancel group
-// must land at most one *commit* (the milestone's draft->cancelled
+// refusal-reason signal: each group must land exactly the commits its
+// mutually-exclusive transition allows — one for the AC's open->met
+// promote, at most one for the milestone's draft->cancelled cancel.
+// Both bounds are counted from the git order rather than from "ok"
+// outcomes, because since M-0281 the losers in both groups converge to
+// NoOp and report "ok" with zero commits (the milestone's draft->cancelled
 // transition can only land once). A cancel that raced while the AC was
 // still open is refused as CodeMilestoneCancelNonTerminalACs; a cancel
 // that raced after the milestone was already cancelled is now a NoOp

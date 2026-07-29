@@ -103,7 +103,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 	// that needs repairing. Without it a junk status hand-edited onto disk
 	// converged against itself — "already <invalid>" at exit 0 — instead of
 	// falling through to the FSM refusal below.
-	if e.Status == newStatus && entity.IsAllowedStatus(e.Kind, e.Status) && !promoteWouldWrite(t, e, opts) {
+	if e.Status == newStatus && entity.IsAllowedStatus(e.Kind, e.Status) && !promoteWouldWrite(ctx, t, e, opts) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", id, newStatus)}, nil
 	}
 	// Same status, a resolver flag, and no backfill to do means the operator
@@ -116,7 +116,7 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 	// a kind that has none still gets validateResolverFlags' own message.
 	if !force && e.Status == newStatus && opts.hasResolverFlag() &&
 		isResolutionClassStatus(e.Kind, newStatus) && !needsResolverBackfill(e, opts) {
-		if entityResolverSatisfied(e, opts) {
+		if entityResolverSatisfied(ctx, t.Root, e, opts) {
 			// The resolver matches; what differs is the reciprocal back-link
 			// on the superseding ADR, which this path cannot write on its own.
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
@@ -305,8 +305,8 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 }
 
 // fsmTransitionIllegalError wraps a legality refusal that isn't itself
-// produced by entity.ValidateTransition. Five sites construct it, in two
-// groups.
+// produced by entity.ValidateTransition. Six sites construct it, in three
+// groups — keep this count honest, it has drifted twice.
 //
 // Three are in ac.go, where the sub-FSMs are keyed by status or phase
 // rather than by Kind, so entity.ValidateTransition does not apply:
@@ -320,8 +320,11 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 // type because the operator hit the same wall — a legality rule saying
 // no before any disk work — not because an FSM edge was consulted.
 //
-// Entity-level Cancel used to construct it for an already-terminal
-// entity; that path is a NoOp now (M-0281/AC-2).
+// One is in cancel.go, refusing a status outside the kind's closed set
+// so cancel cannot launder an unrecognized status into a terminal one.
+//
+// Entity-level Cancel no longer constructs it for an already-terminal
+// entity; that path is a NoOp (M-0281/AC-2).
 //
 // The refusal is the same class entity.ValidateTransition's own
 // FSMTransitionError reports for kind-level transitions. Carrying the
@@ -416,8 +419,8 @@ func isResolutionClassStatus(k entity.Kind, status entity.Status) bool {
 // change, because applying them would rewrite the stored bytes. Converging
 // there would silently discard an edit the operator asked for; normalizing
 // widths across a tree is `aiwf rewidth`'s job.
-func promoteWouldWrite(t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
-	if !entityResolverSatisfied(e, opts) {
+func promoteWouldWrite(ctx context.Context, t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
+	if !entityResolverSatisfied(ctx, t.Root, e, opts) {
 		return true
 	}
 	if opts.SupersededBy != "" {
@@ -439,14 +442,51 @@ func promoteWouldWrite(t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool
 // whole picture use promoteWouldWrite, while callers distinguishing "you are
 // re-pointing a resolver" from "the resolver matches but the other side of the
 // link is missing" need precisely this narrower answer.
-func entityResolverSatisfied(e *entity.Entity, opts PromoteOptions) bool {
-	if len(opts.AddressedBy) > 0 && !slices.Equal(e.AddressedBy, opts.AddressedBy) {
+func entityResolverSatisfied(ctx context.Context, root string, e *entity.Entity, opts PromoteOptions) bool {
+	if len(opts.AddressedBy) > 0 && !slices.Equal(canonicalIDs(e.AddressedBy), canonicalIDs(opts.AddressedBy)) {
 		return false
 	}
-	if len(opts.AddressedByCommit) > 0 && !slices.Equal(e.AddressedByCommit, opts.AddressedByCommit) {
+	if len(opts.AddressedByCommit) > 0 && !sameCommits(ctx, root, e.AddressedByCommit, opts.AddressedByCommit) {
 		return false
 	}
-	return opts.SupersededBy == "" || e.SupersededBy == opts.SupersededBy
+	return opts.SupersededBy == "" ||
+		entity.Canonicalize(e.SupersededBy) == entity.Canonicalize(opts.SupersededBy)
+}
+
+// sameCommits reports whether two commit-SHA lists name the same commits in the
+// same order, comparing what the SHAs resolve to rather than how they were
+// spelled. `aiwf history` prints the 7-char form, so the abbreviated spelling is
+// the one an operator copies back in — comparing raw strings refused it as a
+// re-point of a resolver it in fact matched. This is the same equivalence
+// `acknowledge illegal` already applies via gitops.ResolveCommitSHA.
+//
+// The raw comparison runs first, so the common case costs no subprocess. A SHA
+// that fails to resolve compares unequal, which routes to a refusal rather than
+// a NoOp — the safe direction.
+func sameCommits(ctx context.Context, root string, stored, requested []string) bool {
+	if slices.Equal(stored, requested) {
+		return true
+	}
+	if len(stored) != len(requested) {
+		return false
+	}
+	for i := range stored {
+		if stored[i] == requested[i] {
+			continue
+		}
+		a, err := gitops.ResolveCommitSHA(ctx, root, stored[i])
+		if err != nil {
+			return false
+		}
+		b, err := gitops.ResolveCommitSHA(ctx, root, requested[i])
+		if err != nil {
+			return false
+		}
+		if a != b {
+			return false
+		}
+	}
+	return true
 }
 
 // needsResolverBackfill reports whether e is in a resolution-class

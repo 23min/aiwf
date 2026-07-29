@@ -118,6 +118,42 @@ func TestX(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "sibling closures are independent scopes and each credits its own verb",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	t.Run("rename", func(t *testing.T) {
+		res, _ := verb.Foo(ctx)
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+	t.Run("retitle", func(t *testing.T) {
+		res, _ := verb.Bar(ctx)
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+}`,
+			// Two subtests each declaring their own `res` is idiomatic and
+			// unambiguous — nothing is rebound. Treating the whole test
+			// function as one namespace made this look like the case above
+			// and refused credit for both, a false negative on real coverage.
+			want: []string{"Bar", "Foo"},
+		},
+		{
+			name: "a closure inspects a Result bound in the enclosing scope",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	res, _ := verb.Foo(ctx)
+	t.Run("sub", func(t *testing.T) {
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+}`,
+			want: []string{"Foo"},
+		},
+		{
 			name: "polarity is not judged: a not-a-NoOp assertion still credits",
 			src: `package verb_test
 func TestX(t *testing.T) {

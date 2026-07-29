@@ -312,16 +312,17 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error
 	// Same-state convergence (M-0281/AC-5): an AC carries a title but no slug,
 	// so `rename` on a composite id operates on that title — it converges the
 	// same way the entity-level rename path does.
-	if ac.Title == newTitle {
+	body, err := readBody(t.Root, parent.Path)
+	if err != nil {
+		//coverage:ignore defensive: lookupAC resolved the parent from the loaded tree, which read this same file, so a failure here needs it to vanish mid-verb
+		return nil, err
+	}
+	if ac.Title == newTitle && acHeadingMatchesTitle(body, ac.ID, newTitle) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already named %q; nothing to rename", compositeID, newTitle)}, nil
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Title = newTitle
 	})
-	if err != nil {
-		return nil, err
-	}
-	body, err := readBody(t.Root, parent.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -548,6 +549,19 @@ func trimTrailingBlankLines(lines [][]byte) [][]byte {
 // start with `(?m)` so a regex over multi-line input matches each
 // candidate line.
 var acHeadingLinePattern = regexp.MustCompile(`(?m)^### AC-(\d+)(?:\s*[—\-:]\s*[^\n]*)?$`)
+
+// acHeadingMatchesTitle reports whether body's `### AC-<N>` heading for acID
+// already reads exactly as rewriteACHeading would write it for title.
+//
+// The AC rename/retitle guards need this because their effect spans two
+// surfaces: the frontmatter title AND the body heading. Comparing the title
+// alone reported "nothing to rename" for an AC whose heading had drifted —
+// leaving stale prose the verb exists to fix, and claiming success. A body with
+// no matching heading is treated as already-consistent: rewriteACHeading would
+// not add one either, and `acs-body-coherence` is what reports the absence.
+func acHeadingMatchesTitle(body []byte, acID, title string) bool {
+	return bytes.Equal(body, rewriteACHeading(body, acID, title))
+}
 
 // rewriteACHeading scans body for a `### AC-<N>` heading matching
 // acID and rewrites it in place to the canonical em-dash form. When

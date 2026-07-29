@@ -209,16 +209,35 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 // asserts a Result is *not* a NoOp inspects the same field, and no structural
 // signal distinguishes the two. Polarity is review's job.
 func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string]bool {
-	// identifier name -> the verb entry points whose *Result it is bound to.
-	// One name can carry several across a function (a reused `res`).
-	bound := map[string]map[string]bool{}
-	// identifier names whose NoOp / NoOpMessage field is referenced.
-	inspected := map[string]bool{}
+	out := map[string]bool{}
+	creditScope(fn.Body, nil, entryNames, out)
+	return out
+}
 
-	// ast.Inspect descends into nested function literals, so a call and an
-	// assertion inside a t.Run subtest closure are both reached.
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
+// creditScope walks one lexical scope — a function body or a function literal
+// body — and records the verbs it credits into out, then recurses into the
+// function literals nested directly inside it, passing its own bindings down so
+// a closure that inspects a Result bound outside still earns credit.
+//
+// Scoping per function literal is what keeps sibling `t.Run` subtests
+// independent. Each declares its own `res`; treating the whole test function as
+// one namespace made those look like a single identifier bound to two verbs and
+// refused credit for both, which is a false negative on an idiomatic table-free
+// subtest pair.
+func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entryNames, out map[string]bool) {
+	bound := map[string]map[string]bool{}
+	for name, verbs := range inherited {
+		bound[name] = verbs
+	}
+	inspected := map[string]bool{}
+	var nested []*ast.FuncLit
+
+	ast.Inspect(body, func(n ast.Node) bool {
 		switch node := n.(type) {
+		case *ast.FuncLit:
+			// Its own scope; collected after this one's bindings are complete.
+			nested = append(nested, node)
+			return false
 		case *ast.AssignStmt:
 			// An entry point returns (*Result, error), so a call to one is
 			// the sole right-hand side and the *Result lands in Lhs[0].
@@ -257,25 +276,20 @@ func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string
 		return true
 	})
 
-	out := map[string]bool{}
 	for name := range inspected {
-		verbs := bound[name]
-		// An identifier bound to more than one entry point credits none of
-		// them. Flow-insensitivity means this walk cannot tell which binding
-		// was live at the inspection, and `res, _ := verb.A(...)` followed by
-		// `res, _ = verb.B(...)` is ordinary Go — so crediting both would
-		// hand a verb coverage from a call that was only fixture setup, the
-		// exact false green the binding requirement exists to close. Refusing
-		// keeps the analysis's failure mode on the safe side: an unrecognized
-		// shape under-credits and the policy fires.
-		if len(verbs) != 1 {
-			continue
-		}
-		for verbName := range verbs {
-			out[verbName] = true
+		// An identifier bound to more than one entry point WITHIN one scope
+		// credits neither: this walk has no statement order, so it cannot tell
+		// which binding was live at the inspection, and guessing would reopen
+		// the fixture-setup hole one rebound variable at a time.
+		if verbs := bound[name]; len(verbs) == 1 {
+			for verbName := range verbs {
+				out[verbName] = true
+			}
 		}
 	}
-	return out
+	for _, lit := range nested {
+		creditScope(lit.Body, bound, entryNames, out)
+	}
 }
 
 // calledEntryPoint resolves a call expression to the verb entry point it

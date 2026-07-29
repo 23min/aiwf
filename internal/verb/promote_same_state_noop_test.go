@@ -398,3 +398,60 @@ func TestCancel_UnrecognizedStatus_ForceStillOverrides(t *testing.T) {
 		t.Fatal("res.Plan = nil, want a plan (force relaxes the FSM)")
 	}
 }
+
+// TestPromote_SameStatus_ResolverAtAnotherSpelling_ReturnsNoOp pins that the
+// resolver comparison compares referents, not spellings — the corollary this
+// milestone wrote into CLAUDE.md and then honored for `move` and `milestone
+// depends-on` while leaving `promote`'s resolver arm behind.
+//
+// Both spellings below are ones an operator actually reaches for: `M-001` is a
+// legal narrow id, and the 7-char SHA is the form `aiwf history` prints, so the
+// short form is what a copy-paste produces. Comparing raw strings refused both
+// with a message claiming the operator was re-pointing a resolver they had in
+// fact matched, and pointed them at `--force`, which then wrote the narrower
+// spelling over a canonical one.
+func TestPromote_SameStatus_ResolverAtAnotherSpelling_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		// Both spellings are derived from one pre-promote SHA, so the
+		// respelling names the same commit rather than a later one.
+		spellings func(sha string) (stored, requested verb.PromoteOptions)
+	}{
+		{
+			name: "--by at a narrower legacy width",
+			spellings: func(string) (verb.PromoteOptions, verb.PromoteOptions) {
+				return verb.PromoteOptions{AddressedBy: []string{"M-0001"}},
+					verb.PromoteOptions{AddressedBy: []string{"M-001"}}
+			},
+		},
+		{
+			name: "--by-commit abbreviated to the width aiwf history prints",
+			spellings: func(sha string) (verb.PromoteOptions, verb.PromoteOptions) {
+				return verb.PromoteOptions{AddressedByCommit: []string{sha}},
+					verb.PromoteOptions{AddressedByCommit: []string{sha[:7]}}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := gapResolverFixture(t)
+			stored, requested := tc.spellings(resolveHeadSHA(t, r.root))
+			r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, stored))
+			before := countCommits(t, r.root)
+
+			res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, requested)
+			if err != nil {
+				t.Fatalf("re-promoting with an equivalent respelling returned a Go error, want a NoOp: %v", err)
+			}
+			if !res.NoOp {
+				t.Errorf("res.NoOp = false, want true — the respelled resolver names the value already stored")
+			}
+			if got := countCommits(t, r.root); got != before {
+				t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, before)
+			}
+		})
+	}
+}
