@@ -85,6 +85,7 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 	// defers to explicitBodySettled below.
 	settled, err := explicitBodySettled(ctx, t, e, content)
 	if err != nil {
+		//coverage:ignore defensive: explicitBodySettled errors only from its own two annotated-unreachable arms (a git failure reading HEAD, or the loader's own file gone missing mid-verb), so this propagation is unreachable for the same reasons
 		return nil, err
 	}
 	if settled {
