@@ -125,10 +125,15 @@ every exported `internal/verb/` entry point — a function returning
 drives it and asserts on `Result.NoOp`, unless it carries an allowlist entry with
 a reason.
 
-Both signals must come from the *same* test function: a file-level co-occurrence
-would credit any verb merely used as fixture setup alongside an unrelated NoOp
-assertion. The entry-point set is derived from the AST rather than hardcoded, so
-a newly-added verb is picked up with no list to maintain.
+The two signals must be connected by *dataflow*, not merely co-occur: the
+identifier a call's `*Result` is bound to must be the identifier whose `NoOp`
+field is read. Scoping to a single test function is not enough on its own —
+fixture setup and the assertion live in the same function, so a verb called only
+to build a fixture would be credited by a NoOp assertion about some other verb's
+result. On the live tree that was not hypothetical: a text scan credited `Add`
+from 18 test functions and `Promote` from three of `Cancel`'s. The binding is
+what separates them. The entry-point set is derived from the AST rather than
+hardcoded, so a newly-added verb is picked up with no list to maintain.
 
 The allowlist holds verbs with no same-state input to converge on — the bar is
 "can a caller supply input that already equals current state?" Two kinds qualify
@@ -139,8 +144,9 @@ in their own body, so a same-state input writes nothing (`ContractUnbind` and
 
 Every reason states behavior verified by running the real binary and reading the
 verb's source. That discipline is load-bearing rather than pedantic: the first
-draft inferred its reasons instead, and six of thirteen were wrong — most reusing
-a single false claim, that an identical write is an empty diff aiwf rejects.
+draft inferred its reasons instead, and seven of thirteen were wrong — most
+reusing a single false claim, that an identical write is an empty diff aiwf
+rejects.
 
 Six entries are marked `OPEN`: they record a deferred decision, not a settled
 property, and each names its gap (`PromoteACPhase` → G-0458; the five
@@ -326,6 +332,26 @@ but `aiwf history` cannot distinguish that from back-stamping — the ladder is
 weaker evidence here than on AC-1 through AC-5. Measured commit times put the
 AC-6/AC-7 ladder rungs in a 12-second burst over an hour *before* their
 implementation commits, so for those two ACs the ladder is not evidence at all.
+
+### AC-8 — edit-body --body-file converges when the body is already committed
+Implemented in `fc4c1709`. `editBodyExplicit` gained a guard converging when the
+serialized entity equals both the committed bytes and the bytes on disk, and
+`EditBody` left the allowlist — the policy is now satisfied by a real NoOp
+assertion rather than an exemption. Four verb-layer tests plus a CLI-seam test;
+three mutants (HEAD-only, disk-only, body-bytes-instead-of-serialized) each kill
+a test, so all three comparison choices are load-bearing rather than incidental.
+
+The ladder ran live here, unlike AC-6 and AC-7: red was stamped before the tests
+were written, and the primary case failed for the expected reason before the
+guard existed. The other three tests passed from the start by design — they are
+regression guards on behavior that was already correct and that the fix must not
+break.
+
+Two corrections rode this AC because they were false statements in text it was
+already editing: AC-6's same-function claim (function scoping does not prevent
+fixture-setup credit; the dataflow binding does), and the policy's citation of
+ADR-0036 as authority for a convention spanning entry points that ADR explicitly
+disclaims.
 
 ## Reviewer notes
 
