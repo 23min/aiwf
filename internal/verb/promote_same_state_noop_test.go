@@ -531,3 +531,49 @@ func TestPromote_SameStatus_ResolverListLengthDiffers_StillRefuses(t *testing.T)
 		t.Fatalf("promote with a shorter resolver list returned res=%+v, want a refusal", res)
 	}
 }
+
+// TestPromote_SameStatus_MixedResolverSpellings_ReturnsNoOp covers a list where
+// some entries match byte-for-byte and others only by referent — the shape an
+// operator produces by pasting one SHA from `aiwf history` and copying another
+// in full. The exact matches short-circuit; the rest resolve.
+func TestPromote_SameStatus_MixedResolverSpellings_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := gapResolverFixture(t)
+	first := resolveHeadSHA(t, r.root)
+	second := commitOne(t, r.root, "probe.md", "probe\n", "second commit")
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{first, second}}))
+	before := countCommits(t, r.root)
+
+	// first verbatim, second abbreviated.
+	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{first, second[:7]}})
+	if err != nil {
+		t.Fatalf("mixed spellings returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true — both entries name the stored commits")
+	}
+	if got := countCommits(t, r.root); got != before {
+		t.Errorf("commit count = %s, want %s", got, before)
+	}
+}
+
+// TestPromote_SameStatus_StoredResolverUnresolvable_StillRefuses covers the arm
+// where the STORED SHA is the one that cannot be resolved. --force bypasses the
+// write-time SHA validation, so a tree can carry a resolver pointing at nothing;
+// the comparison must then report a difference rather than treating two
+// unresolvable values as equal.
+func TestPromote_SameStatus_StoredResolverUnresolvable_StillRefuses(t *testing.T) {
+	t.Parallel()
+	r := gapResolverFixture(t)
+	const bogus = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "forced stray", true,
+		verb.PromoteOptions{AddressedByCommit: []string{bogus}}))
+
+	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{resolveHeadSHA(t, r.root)}})
+	if err == nil {
+		t.Fatalf("promote against an unresolvable stored resolver returned res=%+v, want a refusal", res)
+	}
+}
