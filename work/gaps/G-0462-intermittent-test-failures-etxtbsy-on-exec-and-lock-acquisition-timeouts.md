@@ -1,6 +1,6 @@
 ---
 id: G-0462
-title: Tests that exec a just-written file fail intermittently with ETXTBSY
+title: 'Intermittent test failures: ETXTBSY on exec and lock-acquisition timeouts'
 status: open
 priority: high
 discovered_in: M-0281
