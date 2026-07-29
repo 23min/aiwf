@@ -27,6 +27,8 @@ import (
 //   - TestPolicySkillEditStructuralTestBackstop_Env — sets
 //     AIWF_COVERAGE_BASE to drive the env-fed skill-edit-backstop entry
 //     point (M-0196 / G-0220).
+//   - TestPolicyCommentHistoryAttrition_Env — sets AIWF_COVERAGE_BASE to
+//     drive the env-fed comment-history-attrition entry point.
 //
 // Every other Test* function reads-only against the shared *Tree (do
 // not mutate) or uses t.TempDir for fixture work.
