@@ -56,9 +56,11 @@ tradeoff between fail-loud and idempotent resolves toward convergence here,
 consistent with the four verbs that already behave this way.
 
 Scope was set by the six verbs the source scan named up front (`promote`,
-`cancel`, `move`, `rename`, `retitle`, `acknowledge-illegal`) and then grew to
-eleven: AC-6's policy surfaced five more the scan had missed, and AC-7 converted
-those with a same-state notion. The growth is the premise being confirmed, not
+`cancel`, `move`, `rename`, `retitle`, `acknowledge-illegal`) and grew to
+twelve: AC-6's policy surfaced five more the scan had missed, AC-7 converted
+those with a same-state notion, and AC-8 added `edit-body --body-file`. AC-9
+then extended `promote` and `cancel` to their composite-id paths, so the twelve
+operator-facing verbs are sixteen entry points in the code. The growth is the premise being confirmed, not
 scope creep — a convention that four verbs honored and the rest did not was
 exactly the "half-rolled-out discipline rots" condition this milestone was filed
 against.
@@ -302,6 +304,11 @@ while the defect arrives from disk.
   Surfaced while implementing AC-1: the one-directional FSM classified a
   same-status promote as illegal-and-refused across four correctness surfaces, so
   making it a NoOp is a kernel-semantics decision, not a local guard.
+- **ADR-0037** — Retitle re-derives the slug only while it tracks the title.
+  Surfaced at the final review: `aiwf rename` sets a slug independently of the
+  title, so re-deriving unconditionally left rename's effect lasting only until
+  the next retitle. Which surfaces a verb owns is a contract question, not a
+  guard detail, so it is recorded rather than absorbed.
 
 ## Work log
 
@@ -445,15 +452,126 @@ and measurement confirmed before the fix landed.
 reasoning now lives beside the FSM data it constrains: an AC is a claim inside a
 contract that can still be rescoped, an epic is a closed unit of work.
 
+### Wrap rounds — remediation, and the record of what the commits claimed
+
+Three commits closed review rounds four and five (`f7c37f16`, `65a91ee1`,
+`888b3393`); four more closed round six (`a9f3051d`, `d04b4a8e`, `14a1a8ed`,
+`df7478e3`), alongside ADR-0037.
+
+Round six reviewed the round-four and round-five commits themselves — the one
+part of the milestone no independent pass had covered. Its code lens planted 27
+mutants and killed 22. Every conjunct in every changed guard proved
+load-bearing, the policy fails closed on an empty entry set, and the race oracle
+detects both a byte-identical re-write from cancel's NoOp branch (4 of 5
+attempts) and an unclaimed `--allow-empty` commit (5 of 6). Three of the five
+surviving mutants are provably equivalent rather than untested.
+
+It also found a genuine hole in that policy: `:=` replaced a name's binding set
+unconditionally, so a second one in the same scope transferred credit to the
+verb it named. A verb with no NoOp assertion of its own could then satisfy the
+chokepoint on a neighbour's assertion. No verb depended on the shape, so the
+hole was latent rather than live; `a9f3051d` closes it.
+
+Six claims in the earlier commit messages are not supported by the commits that
+carry them. They are stated here as measured, rather than rewritten in history:
+
+- `65a91ee1` says all six non-primary guard conjuncts gained false-arm tests.
+  Five did — `move`'s path comparison, `retitle`'s path and H1 comparisons, and
+  the AC heading comparison on each of `retitleAC` and `renameAC`.
+- The same commit reports roughly 200 comment lines removed. It removes 143 and
+  adds 130: a net of 13 across the commit.
+- It reports the empty-diff premise consolidated into the policy that depends on
+  it. All three restatements survived it; the consolidation lands in `14a1a8ed`.
+- It calls the deep-copy guard it discarded unfalsifiable. With the verb sets
+  shared, a closure's `=` reaches whichever sibling the walk visits next, so two
+  programs identical but for sibling order return different answers. The guard
+  changed no outcome only because no test exercised `=` inside a closure;
+  `a9f3051d` restores the copy and adds that test.
+- It describes the round-four scoping defect as a nested scope costing the outer
+  scope its credit. A scope's credit is decided before the walk descends into
+  it, so the loss landed on a sibling.
+- `f7c37f16` says convergence-above-force is tested in both verbs. Only the AC
+  path was; the entity-level `Cancel` force arm gained its test in `d04b4a8e`.
+
+`f7c37f16`'s message was amended once, to drop two fixes it claimed but did not
+contain. The amendment left standing a summarizing claim that it fixed the whole
+set, which is equally unsupported — those two fixes landed in `65a91ee1`.
+
+Round six additionally surfaced a contract conflict this milestone made visible
+rather than created. `aiwf rename` sets a slug independently of the title while
+`retitle` re-derived one unconditionally, so a rename lasted only until the next
+retitle. Measured against this repo's own tree, 44 of 900 entities carry a slug
+their title does not derive, most of them deliberate short paths rather than
+artifacts of an id-width migration. ADR-0037 records the resolution — retitle
+re-derives only while the slug still tracks the title — and `d04b4a8e`
+implements it, with `df7478e3` closing a slug-warning test hole the restructure
+exposed in a path that predates this milestone.
+
+## Validation
+
+Every result below was taken after the commit it describes. `make coverage-gate`
+compares committed HEAD against the merge-base, so a pre-commit run measures the
+wrong diff — that trap cost two false greens earlier in this milestone.
+
+- `go build ./...` — clean.
+- `go vet ./...` — clean.
+- `go test -count=1 ./...` — every package passes.
+- `make lint` — 0 issues.
+- `make coverage-gate` — exit 0.
+- `aiwf check` — 0 errors. Two warnings stand, both pre-existing and unrelated:
+  an active epic with no drafted milestones, and the provenance audit skipping
+  for want of an upstream ref.
+
+The concurrent-milestone-race scenario was additionally driven against a built
+binary during round six, with planted mutants confirming the oracle fires rather
+than merely passing.
+
+## Deferrals
+
+Each carries a gap, so none of it depends on this spec being read again.
+
+- **G-0458** — `promote --phase` refuses a same-phase input rather than
+  converging. The phase ladder is audit-bearing evidence and the verb carries a
+  test payload, so convergence needs a deliberate carve-out, not a mechanical
+  repeat.
+- **G-0459** — five event-shaped verbs append a duplicate record on an identical
+  re-run.
+- **G-0460** — a repeat `authorize` leaves two simultaneously-active scopes on
+  one entity with no check finding. It settles the invariant G-0459's
+  `Authorize` entry waits on.
+- **G-0461** — `acknowledge illegal --for-entity <composite>` emits at full
+  composite width while the check walkers look up the rolled-up key, so the flag
+  suppresses nothing.
+- **G-0462** — intermittent suite failures from two distinct causes: ETXTBSY on
+  exec of a just-written file, and a repo-lock budget that holds only on an idle
+  machine.
+- **G-0463** — `edit-body --body-file` re-serializes from the loaded entity, so
+  a working-copy frontmatter edit rides into the commit. The verb is not
+  body-only in practice, despite its doc.
+- **G-0464** — three `internal/check` predicates skip `cancelled` but not
+  `deferred` when deciding whether an AC is out of scope, though the FSM makes
+  both terminal.
+- **G-0465** — no chokepoint catches a shipped surface drifting from the verb
+  behavior it describes. Four such drifts were caught by reading in this
+  milestone alone, which is the argument for the gap.
+
 ## Reviewer notes
 
-Eight independent fresh-context reviewers ran across three rounds: four at the
+Thirteen independent fresh-context reviewers ran across six rounds: four at the
 first wrap attempt over `base..HEAD` (three code-quality slices — verb guards,
-correctness oracles, the AC-6 policy — plus a design-quality pass), then two more
-on each of the AC-8 and AC-9 designs before they were implemented. Every round
-returned request-changes. Every finding was verified by measurement — real binary
-against disposable repos, or production mutants in scratch copies — not by
-reading.
+correctness oracles, the AC-6 policy — plus a design-quality pass), two more on
+each of the AC-8 and AC-9 designs before they were implemented, then a narrow
+sixth round over the remediation commits themselves, split into a code lens and
+a prose lens. Every round returned request-changes. Every finding was verified by
+measurement — real binary against disposable repos, or production mutants in
+scratch copies — not by reading.
+
+The rounds separate cleanly by what they caught. Rounds one through five found
+defects in the code; round six found one latent defect in the code and nine in
+the prose describing it, six of those in commit messages. That distribution is
+itself a finding: the mechanical gates cover the code, and nothing mechanical
+reads a claim about the code back against it, which is what G-0465 is filed
+for.
 
 **Every blocking finding below is resolved, and every non-blocking one except
 the three named at the end.** The three ACs the first round falsified were
@@ -605,7 +723,7 @@ Closed except where noted inline.
 - `acks.go` and `acks_helper_lift.go` docs claim a single/four-consumer set that
   the new verb call site invalidates; that helper's own doc names same-commit
   updating as the chokepoint.
-- NoOp surface inconsistency across the eleven verbs: `promote` omits the
+- NoOp surface inconsistency across the converging verbs: `promote` omits the
   `"; nothing to …"` clause, `move` alone quotes the id, all messages echo the raw
   rather than canonicalized id, and none set `Result.Metadata` — so a JSON
   consumer distinguishes no-op from mutation only by prose in `result.subject`.
@@ -620,38 +738,33 @@ Closed except where noted inline.
 - AC-6 body lines carry drafting history inside the criterion text; keep the
   reasoning, drop the framing.
 
-**Three of the above are NOT closed**, and are stated here rather than left to be
-rediscovered:
-
-- NoOp messages still echo the operator's spelling rather than the canonical id
-  (`M-001 is already draft`). The `; nothing to …` clause and `move`'s id quoting
-  were aligned; the raw-echo was not.
-- The allowlist's `OPEN` entries still have no ratchet, no gap-shape check and no
-  stale-entry check, so a resolved hole would survive as a false exemption. The
-  sibling `grandfatherDark` idiom is the shape to copy.
-- `Result.Metadata` stays unset on a NoOp. This one is deliberate, not deferred:
-  `metadata.commit_sha` is already the machine-readable discriminator — present
-  on a mutation, absent on a NoOp — and the race oracle reconciles against it, so
-  a second signal would be a second source of truth for one fact.
+The three that are **not** closed are recorded under
+"Deliberately not closed here" below, with the reasoning for each.
 
 ### Deliberately not closed here
 
-Two items are architecturally distinct from same-state convergence and are left
-for their own entities rather than widened into this milestone:
+The work this milestone found but did not do is enumerated under `## Deferrals`
+above, each with its gap. Three items are recorded here instead, because for
+them the decision is to not act rather than to act later.
 
-- `editBodyExplicit` re-serializes from the loaded entity, so a working-copy
-  frontmatter edit rides into an `edit-body` commit — the verb is not body-only
-  in practice despite its doc and despite bless mode guarding exactly that. It
-  lets a hand-edited structural change land under an `aiwf-verb: edit-body`
-  trailer, bypassing the structured-state verbs. Measured, pre-existing.
-- Three `internal/check` predicates skip `cancelled` but not `deferred` when
-  deciding whether an AC is out of scope for a body-completeness lint, though the
-  FSM makes both terminal. Pre-existing, and surfaced by AC-9 only because
-  converging `cancel` closed the illegal route that used to silence the lint.
+- `Result.Metadata` stays unset on a NoOp. `metadata.commit_sha` is already the
+  machine-readable discriminator — present on a mutation, absent on a NoOp — and
+  the race oracle reconciles against it, so a second signal would be a second
+  source of truth for one fact.
+- The race oracle reconciles reported successes against the observed commit
+  delta across both actor groups, but only the cancel group also reconciles
+  per-group. The promote group's own bound is counted from git order and catches
+  a zero as readily as a two, and the cross-group reconciliation catches an
+  unclaimed commit from either side, so a per-group promote mirror would add no
+  shape the oracle cannot already see. It is available if a future scenario
+  needs one.
+- NoOp messages echo the operator's spelling rather than the canonical id. The
+  `; nothing to …` clause and `move`'s id quoting were aligned across the verbs;
+  the raw echo was left, because the message names what the operator typed and
+  that is the more useful thing to read back.
 
-Separately, the suite carries intermittent `text file busy` failures — observed
-in three unrelated tests across this milestone's runs, each passing on re-run.
-The shape is a script or binary written and immediately exec'd under parallel
-load. It is worth its own entity: a gate that is occasionally red teaches readers
-to re-run rather than read.
-
+The allowlist's `OPEN` entries still carry no ratchet, no gap-shape check and no
+stale-entry check, so a resolved hole would survive as a false exemption. The
+sibling `grandfatherDark` idiom is the shape to copy. This one is a genuine
+residual rather than a decision, and it is small enough to ride the next change
+to that file.
