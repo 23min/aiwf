@@ -273,7 +273,7 @@ the entity-level commitment already encoded in `PolicyFSMInvariants` — where
 could not cover junk statuses anyway, since it quantifies over the declared set
 while the defect arrives from disk.
 
-## Acceptance
+#### Acceptance
 
 - `cancel <M-NNNN>/AC-N` on a terminal AC (`deferred` or `cancelled`) returns a
   NoOp at exit 0, appends no commit, and names the actual status; it fires
@@ -286,7 +286,7 @@ while the defect arrives from disk.
 - The concurrent-milestone-race oracle judges promote actors by commits landed
   rather than by success count, so an AC NoOp is not read as a duplicate winner.
 
-## Acceptance
+#### Acceptance
 
 - A clean tree plus byte-identical content returns a NoOp at exit 0 and the
   commit count is unchanged.
@@ -335,8 +335,12 @@ blanket-vs-entity-bound independence, orphan SHA under an unborn HEAD) + gitops
 resolver + CLI-seam.
 
 `check.resolveFullSHA` keeps its own resolver rather than routing through the new
-gitops primitive: its `len(sha)==40` fast path returns unverified input as-is and
-seven audit rules depend on that, so converging them is a separate concern.
+gitops primitive. The reason first recorded here — that seven audit rules depend
+on its unverified 40-hex fast path — did not survive checking: converging the two
+in a scratch copy left every affected package green. The real difference is cost,
+one `git rev-parse` per trailer on a walk that runs over every commit in HEAD's
+history. That is a performance argument, and a weaker one than the original
+claim, so the convergence stays available rather than foreclosed.
 
 ### AC-5 — rename and retitle to the current value return NoOp
 Four guards converge, not two: the composite-id (AC) variants of both verbs
@@ -451,7 +455,8 @@ returned request-changes. Every finding was verified by measurement — real bin
 against disposable repos, or production mutants in scratch copies — not by
 reading.
 
-**All findings below are resolved.** The three ACs the first round falsified were
+**Every blocking finding below is resolved, and every non-blocking one except
+the three named at the end.** The three ACs the first round falsified were
 reconciled by making the code true rather than narrowing the claim: AC-1 by
 converging the resolver arm (V5), AC-4 by converging composite acknowledgments
 (V2), AC-6 by rewriting the credit relation and removing a false allowlist entry
@@ -585,10 +590,9 @@ to add, by reaching a branch that assertion assumed unreachable.
   enforces the convention across all 28 entry points, while the ADR scopes itself
   to `promote`/`cancel`. Widen the ADR or cite the convention instead.
 
-### Resolved — non-blocking
+### Non-blocking
 
-Each of these was closed rather than carried, with two exceptions noted at the
-end.
+Closed except where noted inline.
 
 - An eighth inferred claim, disproved: the work log says `check.resolveFullSHA`
   cannot converge with `gitops.ResolveCommitSHA` because audit rules depend on its
@@ -615,6 +619,20 @@ end.
   state field plus those three assertions is the sibling `grandfatherDark` idiom.
 - AC-6 body lines carry drafting history inside the criterion text; keep the
   reasoning, drop the framing.
+
+**Three of the above are NOT closed**, and are stated here rather than left to be
+rediscovered:
+
+- NoOp messages still echo the operator's spelling rather than the canonical id
+  (`M-001 is already draft`). The `; nothing to …` clause and `move`'s id quoting
+  were aligned; the raw-echo was not.
+- The allowlist's `OPEN` entries still have no ratchet, no gap-shape check and no
+  stale-entry check, so a resolved hole would survive as a false exemption. The
+  sibling `grandfatherDark` idiom is the shape to copy.
+- `Result.Metadata` stays unset on a NoOp. This one is deliberate, not deferred:
+  `metadata.commit_sha` is already the machine-readable discriminator — present
+  on a mutation, absent on a NoOp — and the race oracle reconciles against it, so
+  a second signal would be a second source of truth for one fact.
 
 ### Deliberately not closed here
 
