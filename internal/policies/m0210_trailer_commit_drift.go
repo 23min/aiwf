@@ -10,12 +10,10 @@ import (
 // PolicyM0210TrailerCommitDrift asserts that the trailered-commit /
 // trailered-merge prescription duplicated across aiwfx-wrap-epic and
 // aiwfx-wrap-milestone is protected against drift — the reframed M-0210
-// deliverable. M-0210 originally proposed extracting the block into a
-// wf-commit-trailers reference skill (ADR-0024); that was rejected in favour
-// of this chokepoint, which meets the epic's drift-safety goal without a new
-// reference-skill category or a mid-merge skill-invocation step. The block
-// stays inline in each wrap ritual (the command is visible where it is run);
-// this policy is what keeps the copies from drifting.
+// deliverable. The block stays inline in each wrap ritual rather than being
+// extracted into a shared reference skill (ADR-0024): the command is visible
+// where it is run, with no new reference-skill category and no mid-merge
+// skill-invocation step. This policy is what keeps the copies from drifting.
 //
 // The prescription is the block that composes an aiwf-trailered commit: a
 // `git commit --trailer` invocation naming the three kernel-required trailer

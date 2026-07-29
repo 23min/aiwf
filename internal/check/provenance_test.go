@@ -319,7 +319,7 @@ func TestRunProvenance_PriorEntityChainResolves(t *testing.T) {
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 			},
 		},
-		// Agent acts on M-001 (under E-01, which used to be E-07).
+		// Agent acts on M-001 (under E-01, reallocated from E-07 above).
 		agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
 	}
 	got := RunProvenance(commits, tr)

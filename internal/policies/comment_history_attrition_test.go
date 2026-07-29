@@ -2,6 +2,7 @@ package policies
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -447,10 +448,69 @@ func TestWfCodebaseHealth_F2NamesTheMechanicalCompanion(t *testing.T) {
 	}
 }
 
-// TestCommentHistoryAudit_TargetIsWired pins the advisory whole-tree target:
-// it must exist, drive the same policy test the gate uses (one matcher, not a
-// second implementation), and stay advisory. A target that started failing the
-// build would turn pre-existing debt into a blocked change.
+// TestPolicy_CommentHistoryAttritionTree is the whole-tree gate. Unlike its
+// diff-scoped sibling it takes no environment, so it runs in the ordinary
+// policy suite and fails the build on an offending comment anywhere in the
+// tree — not only on lines the current change touched.
+func TestPolicy_CommentHistoryAttritionTree(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyCommentHistoryAttritionTree)
+}
+
+// TestEmptyTreeOID_MatchesGit pins that the base the whole-tree scan diffs
+// against really is the empty tree: every tracked Go file must appear in that
+// diff. A wrong base would silently narrow the gate to nothing while still
+// reporting green.
+func TestEmptyTreeOID_MatchesGit(t *testing.T) {
+	t.Parallel()
+	root := repoRoot(t)
+
+	oid, err := emptyTreeOID(root)
+	if err != nil {
+		t.Fatalf("emptyTreeOID: %v", err)
+	}
+	changed, err := changedLines(root, oid)
+	if err != nil {
+		t.Fatalf("changedLines against the empty tree: %v", err)
+	}
+
+	out, err := exec.Command("git", "-C", root, "ls-files", "*.go").Output()
+	if err != nil {
+		t.Fatalf("git ls-files: %v", err)
+	}
+	var tracked int
+	for _, ln := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if ln == "" {
+			continue
+		}
+		tracked++
+		if changed[ln] == nil {
+			t.Errorf("%s is tracked but absent from the empty-tree diff — the whole-tree scan would skip it", ln)
+		}
+	}
+	if tracked == 0 {
+		t.Fatal("no tracked Go files found; the assertion would be vacuous")
+	}
+}
+
+// TestPolicyCommentHistoryAttritionTree_NonRepoErrors pins that the gate
+// fails loudly where it cannot do its job. Resolving the base succeeds
+// anywhere (hashing a fixed input needs no repository), so the failure
+// surfaces at the diff — and it must surface, because a gate that reported a
+// clean tree when it had scanned nothing is worse than no gate.
+func TestPolicyCommentHistoryAttritionTree_NonRepoErrors(t *testing.T) {
+	t.Parallel()
+
+	if _, err := PolicyCommentHistoryAttritionTree(t.TempDir()); err == nil {
+		t.Fatal("want an error outside a git repository, got a clean report")
+	}
+}
+
+// TestCommentHistoryAudit_TargetIsWired pins the focused whole-tree target:
+// it must exist, drive the whole-tree policy (one matcher, not a second
+// scanner that can drift), and not suppress its exit code — the same finding
+// already fails the ordinary suite, so a target reporting green while the
+// build goes red would be lying.
 func TestCommentHistoryAudit_TargetIsWired(t *testing.T) {
 	t.Parallel()
 	root := repoRoot(t)
@@ -459,20 +519,16 @@ func TestCommentHistoryAudit_TargetIsWired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read Makefile: %v", err)
 	}
-	mk := string(data)
 
-	target := extractMakeTarget(mk, "comment-history-audit")
+	target := extractMakeTarget(string(data), "comment-history-audit")
 	if target == "" {
 		t.Fatal("Makefile must define a comment-history-audit target for the rubric's mechanical companion")
 	}
-	if !strings.Contains(target, "TestPolicy_CommentHistoryAttrition") {
-		t.Error("the audit target must drive the same policy the gate runs, not a separate scanner that can drift")
+	if !strings.Contains(target, "TestPolicy_CommentHistoryAttritionTree") {
+		t.Error("the audit target must drive the whole-tree policy, not a separate scanner that can drift from it")
 	}
-	if !strings.Contains(target, "hash-object -t tree /dev/null") {
-		t.Error("the audit target must use the empty tree as its base — that is what makes the diff-scoped policy cover the whole tree")
-	}
-	if !strings.Contains(target, "|| true") {
-		t.Error("the audit target must stay advisory (exit 0); whole-tree findings are pre-existing debt, not a gate")
+	if strings.Contains(target, "|| true") {
+		t.Error("the audit target must not suppress its exit code — the same finding fails the ordinary policy suite")
 	}
 }
 

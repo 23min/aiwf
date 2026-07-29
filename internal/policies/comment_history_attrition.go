@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,6 +47,41 @@ import (
 // is HEAD. This matches PolicyBranchCoverageAudit's readSourceLines.
 func PolicyCommentHistoryAttrition(root string) ([]Violation, error) {
 	return commentHistoryViolations(root, strings.TrimSpace(os.Getenv("AIWF_COVERAGE_BASE")))
+}
+
+// PolicyCommentHistoryAttritionTree is the whole-tree gate: the same scan
+// with the empty tree as its base, so `git diff` presents every tracked Go
+// file as newly added and every line lands in the changed set. One matcher,
+// one phrase set, one escape convention — the two entry points differ only
+// in which base ref they pass.
+//
+// It takes no environment, so it runs in the ordinary policy suite
+// (`make check-fast`, `make ci`, CI) and blocks any offending comment
+// anywhere in the tree. The diff-scoped sibling stays because it answers a
+// different question — "did *this change* introduce one" — cheaply enough
+// for the push boundary.
+func PolicyCommentHistoryAttritionTree(root string) ([]Violation, error) {
+	base, err := emptyTreeOID(root)
+	if err != nil { //coverage:ignore emptyTreeOID hashes without consulting a repository, so it fails only if git is absent from PATH — not deterministically reachable from a test.
+		return nil, err
+	}
+	return commentHistoryViolations(root, base)
+}
+
+// emptyTreeOID returns the empty-tree object id. It is asked of git rather
+// than hardcoded so the value is correct for the repository's object format —
+// the well-known 4b825dc… constant is the SHA-1 spelling, and a SHA-256 repo
+// has a different one. Hashing needs no repository, so this succeeds in any
+// directory; a wrong-format id would fail loudly at the `git diff` in
+// changedLines rather than silently scanning nothing.
+func emptyTreeOID(root string) (string, error) {
+	cmd := exec.Command("git", "hash-object", "-t", "tree", os.DevNull)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil { //coverage:ignore hashing a fixed input needs no repository and no network; reaching this requires git to be absent from PATH.
+		return "", fmt.Errorf("resolving the empty tree in %s: %w\n%s", root, err, out)
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 // historyOKMarker is the deliberate-exception escape, mirroring

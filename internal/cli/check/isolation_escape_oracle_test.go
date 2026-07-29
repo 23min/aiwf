@@ -47,9 +47,8 @@ func TestNewGitBranchOracle_NilDAGFallback(t *testing.T) {
 // short name, not the literal string "main". A repo whose trunk
 // branch is named something else entirely (here "trunk") must still
 // have that branch enumerated by the oracle when the matching
-// trunkShort is threaded through — before this fix, a repo like this
-// one would have silently excluded its own trunk from ritual-branch
-// enumeration.
+// trunkShort is threaded through. Without it a repo like this one
+// silently excludes its own trunk from ritual-branch enumeration.
 func TestNewGitBranchOracle_NonDefaultTrunkName_Recognized(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
