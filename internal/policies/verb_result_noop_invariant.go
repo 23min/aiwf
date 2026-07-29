@@ -196,10 +196,13 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 // order and does not follow a Result through a helper call, so a value
 // laundered through one (`res := mustNoOp(t, verb.Foo(...))`) earns no credit.
 // Flow-insensitivity is also why an identifier bound to more than one entry
-// point credits neither: without statement order there is no way to tell which
-// binding was live at the inspection, and guessing would re-open the
-// fixture-setup hole one rebound variable at a time. Every unrecognized shape
-// therefore under-credits and the policy fires, rather than passing silently.
+// point within one scope credits neither: without statement order there is no
+// way to tell which binding was live at the inspection, and guessing would
+// re-open the fixture-setup hole one rebound variable at a time. Scopes are
+// independent, so sibling `t.Run` closures that each declare their own `res`
+// are two names bound once, not one name bound twice, and both earn credit.
+// Every unrecognized shape therefore under-credits and the policy fires,
+// rather than passing silently.
 //
 // What it deliberately does not judge is the assertion's polarity: a test that
 // asserts a Result is *not* a NoOp inspects the same field, and no structural
@@ -221,17 +224,29 @@ func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string
 // refused credit for both, which is a false negative on an idiomatic table-free
 // subtest pair.
 func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entryNames, out map[string]bool) {
-	// Each scope gets its own outer map, so a `:=` here cannot disturb the
-	// enclosing scope's view of that name. The inner sets are shared
-	// deliberately: an `=` in a closure genuinely rebinds the enclosing
-	// variable, and since this walk has no statement order it cannot tell
-	// whether the closure ran before the enclosing inspection — so letting
-	// that ambiguity propagate outward is the honest answer.
+	// Each scope gets its own maps — the outer name->verbs map and the inner
+	// verb sets both — so nothing a nested scope binds reaches back into this
+	// scope or across into a sibling. Sharing the inner sets would not buy
+	// precision: this scope's credit decision is made below, before the walk
+	// recurses, so a child can never inform its parent. What sharing would buy
+	// is a verdict that depends on which sibling closure the walk reaches
+	// first, which is source-order dependence.
 	bound := map[string]map[string]bool{}
 	for name, verbs := range inherited {
-		bound[name] = verbs
+		copied := make(map[string]bool, len(verbs))
+		for verbName := range verbs {
+			copied[verbName] = true
+		}
+		bound[name] = copied
 	}
 	inspected := map[string]bool{}
+	// locallyBound records the names this scope has already declared with `:=`.
+	// The first `:=` shadows whatever the name held and replaces it; a second
+	// one in the same scope rebinds the same variable, so it accumulates and
+	// the two-verb rule refuses credit. Replacing on every `:=` instead would
+	// hand credit to the last verb named even when the function's only .NoOp
+	// assertion is about an earlier one — the fixture-setup hole, reopened.
+	locallyBound := map[string]bool{}
 	var nested []*ast.FuncLit
 
 	ast.Inspect(body, func(n ast.Node) bool {
@@ -263,19 +278,21 @@ func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entr
 			if !ok {
 				return true
 			}
-			if node.Tok == token.DEFINE {
-				// `:=` declares a new variable, which shadows any binding of
-				// the same name inherited from an enclosing scope. The new
-				// variable unambiguously holds this verb's Result, so it
+			if node.Tok == token.DEFINE && !locallyBound[target.Name] {
+				// The first `:=` for this name declares a new variable, which
+				// shadows any binding inherited from an enclosing scope. The
+				// new variable unambiguously holds this verb's Result, so it
 				// REPLACES rather than joins — otherwise a subtest declaring
 				// its own `res` would look like the outer `res` rebound, and
 				// the two-verb rule would disqualify both.
+				locallyBound[target.Name] = true
 				bound[target.Name] = map[string]bool{verbName: true}
 				return true
 			}
-			// `=` rebinds an existing variable. Without statement order this
-			// walk cannot tell which binding was live at the inspection, so
-			// the name accumulates and the two-verb rule refuses credit.
+			// A rebinding of a name this scope already holds: an `=`, or a
+			// second `:=` in the same scope. Without statement order this walk
+			// cannot tell which binding was live at the inspection, so the name
+			// accumulates and the two-verb rule refuses credit.
 			if bound[target.Name] == nil {
 				bound[target.Name] = map[string]bool{}
 			}

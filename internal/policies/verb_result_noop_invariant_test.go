@@ -135,9 +135,10 @@ func TestX(t *testing.T) {
 	})
 }`,
 			// Two subtests each declaring their own `res` is idiomatic and
-			// unambiguous — nothing is rebound. Treating the whole test
-			// function as one namespace made this look like the case above
-			// and refused credit for both, a false negative on real coverage.
+			// unambiguous — nothing is rebound. Reading the whole test function
+			// as one namespace would make this indistinguishable from the case
+			// above and refuse credit for both, a false negative on real
+			// coverage; per-literal scoping is what keeps them apart.
 			want: []string{"Bar", "Foo"},
 		},
 		{
@@ -155,9 +156,9 @@ func TestX(t *testing.T) {
 		}
 	})
 }`,
-			// Each scope binds its own `res`. Sharing the inherited map by
-			// reference let the child's binding leak upward, pushing the outer
-			// name to two verbs and disqualifying both.
+			// Each scope binds its own `res`, and the credit decision for a
+			// scope is made before the walk descends into it, so a child's
+			// binding can neither reach its parent nor cost it credit.
 			want: []string{"Bar", "Foo"},
 		},
 		{
@@ -177,7 +178,49 @@ func TestX(t *testing.T) {
 }`,
 			// Sibling "a" never inspects its own Result, so Bar earns nothing;
 			// sibling "b" inspects the Result bound in the enclosing scope, so
-			// Foo does. Leaking "a"'s binding upward cost Foo its credit too.
+			// Foo does. A binding that escaped "a" would cost Foo its credit.
+			want: []string{"Foo"},
+		},
+		{
+			name: "a second := in the same scope rebinds, so neither verb is credited",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	res, err := verb.Foo(ctx)
+	_ = err
+	if !res.NoOp {
+		t.Errorf("want a NoOp")
+	}
+	res, err2 := verb.Bar(ctx)
+	_ = err2
+	_ = res
+}`,
+			// `res, err2 := ...` redeclares res in the SAME scope: one variable
+			// rebound, not a new one shadowing an outer name. Only the first
+			// `:=` for a name gets to replace what it holds; this one
+			// accumulates, so the two-verb rule refuses both. Crediting Bar
+			// instead would pass a verb this function asserts nothing about.
+			want: nil,
+		},
+		{
+			name: "a closure's = stays inside that closure, so sibling order cannot change the verdict",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	res, _ := verb.Foo(ctx)
+	t.Run("a", func(t *testing.T) {
+		res, _ = verb.Bar(ctx)
+	})
+	t.Run("b", func(t *testing.T) {
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+}`,
+			// Siblings are walked in source order. If they shared one verb set,
+			// "a"'s `=` would push the name "b" inherits to two verbs and cost
+			// Foo its credit — an answer that flips when the two t.Run blocks
+			// swap places. Copying the set per scope makes source order
+			// irrelevant, which is the only defensible reading for a walk that
+			// has no statement order to consult.
 			want: []string{"Foo"},
 		},
 		{
