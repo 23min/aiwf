@@ -39,7 +39,7 @@ acs:
       tdd_phase: done
     - id: AC-9
       title: Composite promote and cancel converge; cancel stops bypassing the AC FSM
-      status: open
+      status: met
       tdd_phase: done
 ---
 
