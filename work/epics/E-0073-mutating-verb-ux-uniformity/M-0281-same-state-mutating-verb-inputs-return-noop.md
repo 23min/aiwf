@@ -443,18 +443,29 @@ contract that can still be rescoped, an epic is a closed unit of work.
 
 ## Reviewer notes
 
-Four independent fresh-context reviewers ran at wrap over `base..HEAD` (three
-code-quality slices — verb guards, correctness oracles, the AC-6 policy — plus a
-design-quality pass on the policy module). All four returned request-changes.
-Findings below are open unless marked resolved; every one was verified by
-measurement (real binary against disposable repos, or production mutants in
-scratch copies), not by reading.
+Eight independent fresh-context reviewers ran across three rounds: four at the
+first wrap attempt over `base..HEAD` (three code-quality slices — verb guards,
+correctness oracles, the AC-6 policy — plus a design-quality pass), then two more
+on each of the AC-8 and AC-9 designs before they were implemented. Every round
+returned request-changes. Every finding was verified by measurement — real binary
+against disposable repos, or production mutants in scratch copies — not by
+reading.
 
-Three ACs are `met` on claims the review falsified: **AC-1** (V5), **AC-4** (V2),
-**AC-6** (P5, P6). The milestone must not wrap until these are reconciled — either
-the code converges or the AC text and allowlist state the narrower truth.
+**All findings below are resolved.** The three ACs the first round falsified were
+reconciled by making the code true rather than narrowing the claim: AC-1 by
+converging the resolver arm (V5), AC-4 by converging composite acknowledgments
+(V2), AC-6 by rewriting the credit relation and removing a false allowlist entry
+(P1, P5, P6).
 
-### Blocking — verb guards
+The later rounds paid for themselves twice over. The AC-8 review caught a guard
+that would have shipped a false NoOp — reporting "already matches" while a dirty
+working copy held different content, stranding an operator's revert. The AC-9
+review predicted, and measurement confirmed, that converging composite promotes
+would break the concurrent-milestone-race oracle deterministically in
+`go test ./...`; it also falsified a policy assertion this milestone had planned
+to add, by reaching a branch that assertion assumed unreachable.
+
+### Resolved — verb guards
 
 - **V1 — the committed tree fails `-race`.** All five CLI-seam NoOp tests carry
   `t.Parallel()` plus `testutil.CaptureStdout`, which swaps the process-global
@@ -500,7 +511,7 @@ the code converges or the AC text and allowlist state the narrower truth.
   or narrow the ADR and file the gap. Per-function policy granularity cannot see
   branch-level holes like this.
 
-### Blocking — correctness oracles
+### Resolved — correctness oracles
 
 - **O1 — the concurrent-milestone-race oracle lost a cross-check it could have
   kept.** Replacing the (genuinely unsound) `cancelOKCount > 1` invariant dropped
@@ -530,7 +541,7 @@ the code converges or the AC text and allowlist state the narrower truth.
   `verb_sequence_test.go` still documents three. The NoOp shape is pinned only
   against fabricated envelopes and seed-dependent walk coverage.
 
-### Blocking — the AC-6 policy
+### Resolved — the AC-6 policy
 
 - **P1 — the credit relation admits three false greens** (both the policy and
   design reviewers converged here independently, and one prototyped the fix). A
@@ -574,7 +585,10 @@ the code converges or the AC text and allowlist state the narrower truth.
   enforces the convention across all 28 entry points, while the ADR scopes itself
   to `promote`/`cancel`. Widen the ADR or cite the convention instead.
 
-### Non-blocking, carried
+### Resolved — non-blocking
+
+Each of these was closed rather than carried, with two exceptions noted at the
+end.
 
 - An eighth inferred claim, disproved: the work log says `check.resolveFullSHA`
   cannot converge with `gitops.ResolveCommitSHA` because audit rules depend on its
@@ -601,4 +615,25 @@ the code converges or the AC text and allowlist state the narrower truth.
   state field plus those three assertions is the sibling `grandfatherDark` idiom.
 - AC-6 body lines carry drafting history inside the criterion text; keep the
   reasoning, drop the framing.
+
+### Deliberately not closed here
+
+Two items are architecturally distinct from same-state convergence and are left
+for their own entities rather than widened into this milestone:
+
+- `editBodyExplicit` re-serializes from the loaded entity, so a working-copy
+  frontmatter edit rides into an `edit-body` commit — the verb is not body-only
+  in practice despite its doc and despite bless mode guarding exactly that. It
+  lets a hand-edited structural change land under an `aiwf-verb: edit-body`
+  trailer, bypassing the structured-state verbs. Measured, pre-existing.
+- Three `internal/check` predicates skip `cancelled` but not `deferred` when
+  deciding whether an AC is out of scope for a body-completeness lint, though the
+  FSM makes both terminal. Pre-existing, and surfaced by AC-9 only because
+  converging `cancel` closed the illegal route that used to silence the lint.
+
+Separately, the suite carries intermittent `text file busy` failures — observed
+in three unrelated tests across this milestone's runs, each passing on re-run.
+The shape is a script or binary written and immediately exec'd under parallel
+load. It is worth its own entity: a gate that is occasionally red teaches readers
+to re-run rather than read.
 
