@@ -37,6 +37,9 @@ acs:
       title: edit-body --body-file converges to NoOp when the body is already committed
       status: met
       tdd_phase: done
+    - id: AC-9
+      title: Composite promote and cancel converge; cancel stops bypassing the AC FSM
+      status: open
 ---
 
 ## Goal
@@ -223,6 +226,64 @@ bytes at HEAD and the bytes on disk. Neither comparison alone is correct:
 The comparison is on serialized output, not body bytes: a byte-identical body
 over non-canonical frontmatter still needs a real write, because
 `entity.Serialize` re-canonicalizes.
+
+### AC-9 — Composite promote and cancel converge; cancel stops bypassing the AC FSM
+
+Two defects, one root cause. `cancelAC` decides for itself which AC statuses mean
+"nothing left to cancel", hardcoding a comparison against `cancelled`, while
+`promoteAC` asks `entity.IsLegalACTransition`. The FSM says two statuses are
+terminal, so the verb's private answer is wrong — and because it never consults
+the FSM at all, it also writes states the FSM forbids.
+
+**The correctness half.** `aiwf cancel <M-NNNN>/AC-N` on a `deferred` AC exits 0
+and transitions it to `cancelled`, though that edge does not exist —
+`acTransitions["deferred"]` is empty. The same edge asked of `promote` is
+refused. Nothing catches the write afterwards: `aiwf check` reports zero errors,
+the commit carries ordinary `cancel` trailers with no `aiwf-force:`, and the JSON
+envelope publishes `from: deferred, to: cancelled` — an edge that is not in the
+kernel. The `acs-transition` rule that `internal/entity/transition.go` and the
+design docs both name as the enforcement point does not exist. A junk status
+reaches the same write: an AC hand-edited to an unrecognized status is refused by
+`promote` and laundered into `cancelled` by `cancel`.
+
+**The convergence half.** Composite ids sat outside the convention this milestone
+established, so one semantic family answered with three exit codes: `retitle` and
+`rename` converge at 0, `promote` to the current status refuses at 1, and `cancel`
+of an already-cancelled AC refuses at 2 through a bespoke error that never
+reaches the FSM.
+
+Converging `cancel` on a terminal AC is sound because **both AC terminals are
+removal-class**: `deferred` and `cancelled` each mean "off the milestone's
+contract", and neither claims the criterion succeeded. There is no success-terminal
+to conflate with, which is what makes this narrower than the entity-level rule —
+where `cancel` of a `done` entity converges and does absorb a success outcome. The
+reasoning is a fact about `acTransitions`, not about terminality in general; a
+future success-class terminal AC status would have to revisit it.
+
+`met` is deliberately **not** terminal. An AC is a claim inside a contract that is
+still being rescoped, so a met criterion can legitimately be descoped while its
+parent milestone runs; an epic is a closed unit of work. `cancel` on a `met` AC
+therefore keeps doing real work.
+
+The verb consults the FSM rather than a policy asserting the FSM's shape. An
+assertion that every non-terminal AC status can reach `cancelled` would contradict
+the entity-level commitment already encoded in `PolicyFSMInvariants` — where
+`ADR.accepted` is non-terminal with no cancel target, explicitly permitted — and
+could not cover junk statuses anyway, since it quantifies over the declared set
+while the defect arrives from disk.
+
+## Acceptance
+
+- `cancel <M-NNNN>/AC-N` on a terminal AC (`deferred` or `cancelled`) returns a
+  NoOp at exit 0, appends no commit, and names the actual status; it fires
+  regardless of `--force`.
+- `cancel <M-NNNN>/AC-N` on an AC whose status the FSM does not recognize is
+  refused rather than written, and `--force` remains the sanctioned override.
+- `cancel <M-NNNN>/AC-N` on a `met` AC still transitions.
+- `promote <M-NNNN>/AC-N <current-status>` returns a NoOp instead of the FSM
+  refusal, regardless of `--force`.
+- The concurrent-milestone-race oracle judges promote actors by commits landed
+  rather than by success count, so an AC NoOp is not read as a duplicate winner.
 
 ## Acceptance
 
