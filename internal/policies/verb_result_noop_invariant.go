@@ -20,15 +20,13 @@ import (
 // verb only ever appends (a new entity, a new AC), there is no same state to
 // detect.
 //
-// Every Reason below states behavior that was verified by running the real
-// binary against a disposable repo and reading the verb's source — not
-// inferred. The distinction matters because one plausible-sounding inference
-// was wrong across several entries: aiwf does NOT reject an empty diff. Apply's
-// guard (internal/verb/apply.go) refuses only a plan with ZERO file ops, and
-// `git commit-tree` has no same-tree refusal, so a verb that writes
-// byte-identical content lands a real commit with an empty diffstat. Any future
-// entry claiming "an identical input is an empty diff that gets rejected" is
-// wrong unless the verb itself compares and refuses.
+// Every Reason below states measured behavior, not inferred behavior. The
+// premise that makes the difference: aiwf does NOT reject an empty diff.
+// Apply's guard (internal/verb/apply.go) refuses only a plan with ZERO file
+// ops, and `git commit-tree` has no same-tree refusal, so a verb writing
+// byte-identical content lands a real commit with an empty diffstat. An entry
+// claiming "an identical input is an empty diff that gets rejected" is wrong
+// unless the verb itself compares and refuses.
 var noopExemptVerbs = []struct {
 	Func   string
 	Reason string
@@ -73,9 +71,7 @@ var noopExemptVerbs = []struct {
 // explicitly disclaims field-mutation verbs, which are most of the entry points
 // scanned here. So the convention, not the ADR, is what this enforces.
 //
-// That convention was half-rolled-out once already — four verbs had it, six
-// did not — and nothing mechanical stopped the next verb from landing without
-// it. This policy is that chokepoint: a new verb either carries a NoOp test or
+// This policy is the chokepoint: a new verb either carries a NoOp test or
 // earns an allowlist entry stating why it cannot.
 //
 // Granularity is deliberately structural, not semantic: it verifies that some
@@ -225,6 +221,12 @@ func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string
 // refused credit for both, which is a false negative on an idiomatic table-free
 // subtest pair.
 func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entryNames, out map[string]bool) {
+	// Each scope gets its own outer map, so a `:=` here cannot disturb the
+	// enclosing scope's view of that name. The inner sets are shared
+	// deliberately: an `=` in a closure genuinely rebinds the enclosing
+	// variable, and since this walk has no statement order it cannot tell
+	// whether the closure ran before the enclosing inspection — so letting
+	// that ambiguity propagate outward is the honest answer.
 	bound := map[string]map[string]bool{}
 	for name, verbs := range inherited {
 		bound[name] = verbs
@@ -261,6 +263,19 @@ func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entr
 			if !ok {
 				return true
 			}
+			if node.Tok == token.DEFINE {
+				// `:=` declares a new variable, which shadows any binding of
+				// the same name inherited from an enclosing scope. The new
+				// variable unambiguously holds this verb's Result, so it
+				// REPLACES rather than joins — otherwise a subtest declaring
+				// its own `res` would look like the outer `res` rebound, and
+				// the two-verb rule would disqualify both.
+				bound[target.Name] = map[string]bool{verbName: true}
+				return true
+			}
+			// `=` rebinds an existing variable. Without statement order this
+			// walk cannot tell which binding was live at the inspection, so
+			// the name accumulates and the two-verb rule refuses credit.
 			if bound[target.Name] == nil {
 				bound[target.Name] = map[string]bool{}
 			}
@@ -277,10 +292,8 @@ func creditScope(body *ast.BlockStmt, inherited map[string]map[string]bool, entr
 	})
 
 	for name := range inspected {
-		// An identifier bound to more than one entry point WITHIN one scope
-		// credits neither: this walk has no statement order, so it cannot tell
-		// which binding was live at the inspection, and guessing would reopen
-		// the fixture-setup hole one rebound variable at a time.
+		// Two verbs bound to one name within a scope credits neither — see
+		// noopInspectedVerbs.
 		if verbs := bound[name]; len(verbs) == 1 {
 			for verbName := range verbs {
 				out[verbName] = true

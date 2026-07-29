@@ -76,33 +76,19 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	// Same-state convergence (M-0281/AC-1): a promote whose target status
-	// already equals the current status AND whose resolver flags would write
-	// back exactly what is stored has nothing to change — return a NoOp
-	// instead of an FSM "cannot transition to itself" error, so a re-run
-	// (interactive or from a forgotten script) is a clean exit 0. Fires
-	// regardless of --force: there is nothing for a sovereign override to
-	// re-apply.
+	// Same-state convergence (M-0281/AC-1, ADR-0036): a promote whose target
+	// status already equals the current status AND whose resolver flags would
+	// write back exactly what is stored has nothing to change, so it returns a
+	// NoOp rather than the FSM's self-transition error. Fires regardless of
+	// --force — a sovereign override has no transition here to relax.
 	//
-	// Keying on "would this write anything" rather than "was a resolver flag
-	// supplied" is what makes the criterion match its claim. The narrower
-	// spelling refused `promote <gap> addressed --by-commit <sha>` on a
-	// re-run — the tracker-closure command this repo's own gate discipline
-	// treats as routine — even though the SHA it carried was already the one
-	// on disk.
-	//
-	// It stays mutually exclusive with the G-0096 resolver-backfill carve-out
-	// below, which needs the stored resolver to be EMPTY: a backfill is by
-	// definition a change, so it never satisfies this guard and still falls
-	// through to write. A same-status promote naming a *different* resolver
-	// is also a change, so it likewise falls through — to the refusal
-	// immediately below, which keeps this path from becoming a generic
-	// rewrite-the-resolver surface.
-	// IsAllowedStatus is what keeps R1 ahead of R2 here: a status the kind's
+	// The IsAllowedStatus conjunct keeps R1 ahead of R2: a status the kind's
 	// closed set does not contain is not a state to converge on, it is a tree
-	// that needs repairing. Without it a junk status hand-edited onto disk
-	// converged against itself — "already <invalid>" at exit 0 — instead of
-	// falling through to the FSM refusal below.
+	// that needs repairing, so it falls through to the FSM refusal below.
+	//
+	// Mutually exclusive with the G-0096 backfill carve-out below, which needs
+	// the stored resolver EMPTY, and with the re-point refusal between them —
+	// both are changes, so neither satisfies promoteWouldWrite.
 	if e.Status == newStatus && entity.IsAllowedStatus(e.Kind, e.Status) && !promoteWouldWrite(ctx, t, e, opts) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", id, newStatus)}, nil
 	}
@@ -305,10 +291,9 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 }
 
 // fsmTransitionIllegalError wraps a legality refusal that isn't itself
-// produced by entity.ValidateTransition. Six sites construct it, in three
-// groups — keep this count honest, it has drifted twice.
+// produced by entity.ValidateTransition. Three groups of construction site:
 //
-// Three are in ac.go, where the sub-FSMs are keyed by status or phase
+// ac.go, where the sub-FSMs are keyed by status or phase
 // rather than by Kind, so entity.ValidateTransition does not apply:
 // promoteAC and cancelAC consult entity.IsLegalACTransition,
 // PromoteACPhase consults IsLegalTDDPhaseTransition.
@@ -320,11 +305,8 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 // type because the operator hit the same wall — a legality rule saying
 // no before any disk work — not because an FSM edge was consulted.
 //
-// One is in cancel.go, refusing a status outside the kind's closed set
-// so cancel cannot launder an unrecognized status into a terminal one.
-//
-// Entity-level Cancel no longer constructs it for an already-terminal
-// entity; that path is a NoOp (M-0281/AC-2).
+// cancel.go refuses a status outside the kind's closed set, so cancel
+// cannot launder an unrecognized status into a terminal one.
 //
 // The refusal is the same class entity.ValidateTransition's own
 // FSMTransitionError reports for kind-level transitions. Carrying the
@@ -413,12 +395,11 @@ func isResolutionClassStatus(k entity.Kind, status entity.Status) bool {
 // half of the same-status convergence guard, asked only once the status is
 // already known to match.
 //
-// Comparison is byte-for-byte, matching applyResolverFlags, which replaces a
-// field wholesale rather than merging. Two spellings of one referent (a short
-// and a full SHA, a narrow and a canonical id) are therefore treated as a
-// change, because applying them would rewrite the stored bytes. Converging
-// there would silently discard an edit the operator asked for; normalizing
-// widths across a tree is `aiwf rewidth`'s job.
+// Referents are compared, not spellings: a narrower id width or an abbreviated
+// SHA naming the value already stored satisfies the guard. The abbreviated form
+// is what `aiwf history` prints, so it is what a copy-paste produces. A real
+// change still writes the operator's spelling verbatim — normalizing widths
+// across a tree is `aiwf rewidth`'s job, not this guard's.
 func promoteWouldWrite(ctx context.Context, t *tree.Tree, e *entity.Entity, opts PromoteOptions) bool {
 	if !entityResolverSatisfied(ctx, t.Root, e, opts) {
 		return true

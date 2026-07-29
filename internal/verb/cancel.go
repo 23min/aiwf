@@ -42,20 +42,17 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	// Same-state convergence (M-0281/AC-2, ADR-0036): an entity already at
 	// a terminal status is already disposed — cancel has nothing to project
 	// to — so a re-run converges to a NoOp at exit 0 rather than an error.
-	// This is the cancel-analog of promote's same-status NoOp: cancel's
-	// implicit target is "a terminal end-state," and the entity is already
-	// at one, whether it reached it via cancel (cancelled/wontfix/rejected/
-	// retired) or another path (done/addressed/superseded — Option A: any
-	// terminal, not only cancel's own). The message still names the actual
-	// state so an operator who cancels a `done` entity is not misled.
+	// Cancel's implicit target is "a terminal end-state", and the entity is
+	// already at one — whether it got there via cancel or another path. The
+	// message names the actual state, so an operator cancelling a `done`
+	// entity is informed rather than misled.
 	if entity.IsTerminal(e.Kind, e.Status) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}, nil
 	}
-	// The AC path's lesson applied symmetrically (M-0281/AC-9): a status the
-	// kind's closed set does not contain is not terminal, so it falls past the
-	// guard above and used to reach the write below — laundering junk into a
-	// terminal status under an ordinary cancel trailer, with `aiwf check`
-	// reporting nothing. Refuse instead; --force stays the repair path.
+	// A status outside the kind's closed set is not terminal, so it falls past
+	// the guard above. Refusing here keeps cancel from laundering junk into a
+	// terminal status under an ordinary cancel trailer; --force is the repair
+	// path.
 	if !force && !entity.IsAllowedStatus(e.Kind, e.Status) {
 		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
 			"%s status %q is not a recognized %s status; cannot cancel from it",

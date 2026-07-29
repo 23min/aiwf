@@ -1,6 +1,7 @@
 package verb
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -78,17 +79,17 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		return nil, err
 	}
 
-	// Same-state convergence (M-0281/AC-5): the title already reads as
-	// requested AND the on-disk slug already matches the one this title
-	// derives, so a re-run converges to a NoOp at exit 0 rather than an error.
-	//
-	// Both conditions are load-bearing. Retitle re-derives the slug and renames
-	// the file, so comparing the title alone reported "nothing to retitle" for
-	// an entity whose title was right but whose filename had been changed by
-	// `aiwf rename` — leaving the very drift retitle exists to resolve, and
-	// claiming success. Placed after renamePaths so the comparison is against
-	// the path this call would actually produce.
-	if e.Title == newTitle && source == dest {
+	// Same-state convergence (M-0281/AC-5). Retitle writes three surfaces —
+	// the frontmatter title, the slug-derived filename, and a canonical
+	// `# <id> — <title>` body H1 — so all three must already read as requested
+	// before there is nothing to do. Placed after renamePaths so the path
+	// comparison is against what this call would actually produce.
+	h1Body, err := readBody(t.Root, e.Path)
+	if err != nil {
+		//coverage:ignore defensive: the loader read this same file to build e, so a failure here needs it to vanish mid-verb
+		return nil, err
+	}
+	if e.Title == newTitle && source == dest && entityH1MatchesTitle(h1Body, id, newTitle) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
 	}
 
@@ -174,6 +175,13 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 // hyphen, missing id, etc.) are operator-shaped hand edits and stay
 // untouched so retitle never silently clobbers a deliberate
 // divergence.
+// entityH1MatchesTitle reports whether body's canonical `# <id> — <title>` H1
+// already reads as rewriteEntityH1 would write it. A body with no canonical H1
+// is already consistent: rewriteEntityH1 would not add one either.
+func entityH1MatchesTitle(body []byte, id, newTitle string) bool {
+	return bytes.Equal(body, rewriteEntityH1(body, id, newTitle))
+}
+
 func rewriteEntityH1(body []byte, id, newTitle string) []byte {
 	pattern := regexp.MustCompile(`(?m)^# ` + regexp.QuoteMeta(id) + ` — .*$`)
 	replacement := []byte(fmt.Sprintf("# %s — %s", id, newTitle))
@@ -197,6 +205,7 @@ func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Resu
 	// frontmatter title and the `### AC-N — <title>` body heading.
 	acBody, err := readBody(t.Root, parent.Path)
 	if err != nil {
+		//coverage:ignore defensive: lookupAC resolved the parent from the loaded tree, which read this same file, so a failure here needs it to vanish mid-verb
 		return nil, err
 	}
 	if ac.Title == newTitle && acHeadingMatchesTitle(acBody, ac.ID, newTitle) {

@@ -1,6 +1,9 @@
 package verb_test
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -88,4 +91,72 @@ func TestRenameRetitleAC_SameTitle_ReturnsNoOp(t *testing.T) {
 			t.Errorf("res.Plan = %+v, want nil", res.Plan)
 		}
 	})
+}
+
+// TestRetitle_TitleMatchesButOtherSurfacesDrifted_StillRewrites pins the two
+// conjuncts beyond the title. Retitle writes three surfaces — the frontmatter
+// title, the slug-derived filename, and the canonical `# <id> — <title>` body
+// H1 — so drift in either of the other two leaves work to do, and comparing
+// the title alone claimed success over exactly that state.
+func TestRetitle_TitleMatchesButOtherSurfacesDrifted_StillRewrites(t *testing.T) {
+	t.Parallel()
+	const title = "Foundations"
+	cases := []struct {
+		name  string
+		drift func(r *runner)
+	}{
+		{
+			name: "the filename drifted away from the slug this title derives",
+			drift: func(r *runner) {
+				r.must(verb.Rename(r.ctx, r.tree(), "E-0001", "totally-different-slug", testActor, 0))
+			},
+		},
+		{
+			name: "the body H1 drifted away from the title",
+			drift: func(r *runner) {
+				writeEntityH1(r.t, r, "E-0001", "# E-0001 — Stale heading")
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, title, testActor, verb.AddOptions{}))
+			tc.drift(r)
+
+			res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", title, testActor, "", 0)
+			if err != nil {
+				t.Fatalf("retitle over drifted state: %v", err)
+			}
+			if res.NoOp {
+				t.Errorf("res.NoOp = true, want false — a surface retitle writes is out of sync")
+			}
+			if res.Plan == nil {
+				t.Fatal("res.Plan = nil, want a plan resolving the drift")
+			}
+		})
+	}
+}
+
+// writeEntityH1 replaces an entity body's canonical H1 with an arbitrary line.
+func writeEntityH1(t *testing.T, r *runner, id, heading string) {
+	t.Helper()
+	e := r.tree().ByID(id)
+	if e == nil {
+		t.Fatalf("%s missing from the fixture tree", id)
+	}
+	path := filepath.Join(r.root, e.Path)
+	raw, err := os.ReadFile(path) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading %s: %v", id, err)
+	}
+	patched := regexp.MustCompile(`(?m)^# `+regexp.QuoteMeta(id)+` — .*$`).ReplaceAllString(string(raw), heading)
+	if patched == string(raw) {
+		// The template may ship no canonical H1; add one so the drift is real.
+		patched = string(raw) + "\n" + heading + "\n"
+	}
+	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
+		t.Fatalf("writing %s: %v", id, writeErr)
+	}
 }

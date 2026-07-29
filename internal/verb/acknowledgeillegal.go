@@ -104,9 +104,7 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	}
 	// Same-state convergence (M-0281/AC-4): when HEAD's history already
 	// carries a matching ack, there is nothing left to record — return a
-	// NoOp instead of appending a duplicate empty audit commit. This is a
-	// correctness fix, not only UX polish: every re-run used to grow the
-	// history by one indistinguishable ack.
+	// NoOp instead of appending a duplicate empty audit commit.
 	if matched, ok := ackAlreadyRecorded(ctx, root, fullSHA, cleanedEntity); ok {
 		return &Result{NoOp: true, NoOpMessage: ackNoOpMessage(sha, matched)}, nil
 	}
@@ -152,17 +150,13 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 // consuming rule, meanwhile, rolls a touched id up to its parent before
 // looking the ack up (check's isShaEntityAcked), so a parent-scoped ack
 // already suppresses every finding an AC-scoped one would — which makes it a
-// genuine cover for this request even though the spellings differ. Consulting
-// only the rolled-up key is the bug this replaced: it never matched the
-// composite value the verb itself had just written, so every AC-scoped ack
-// re-landed a duplicate.
+// genuine cover for this request even though the spellings differ.
 //
 // Answers "not acknowledged" whenever it cannot establish otherwise — an
 // unwalkable history, or a HEAD carrying no commits (an orphan SHA acked
 // against an unborn HEAD, the extreme of the reflog-only case). fullSHA is
-// already resolved by shaAckable, whose rev-parse is the same question this
-// used to ask a second time — the walkers key their maps on the full form, so
-// a short and a full spelling of one commit still compare equal. Failing open
+// already resolved by shaAckable; the walkers key their maps on the full
+// form, so a short and a full spelling of one commit compare equal. Failing open
 // degrades to the pre-existing always-record behavior, which at worst re-lands
 // a duplicate ack; failing closed would silently skip an ack the operator
 // needs. This mirrors the fail-open-toward-firing convention check's own ack
@@ -251,11 +245,6 @@ func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) er
 // commit's full SHA, via gitops.ResolveCommitSHA. The "^{commit}" peel
 // it performs goes through tags and rejects non-commit objects (trees,
 // blobs), so an ack against a blob SHA still refuses.
-//
-// Returning the resolved SHA rather than discarding it is what lets
-// ackAlreadyRecorded skip a second identical `git rev-parse` for the
-// same question — check's ack walkers key their maps on the full form,
-// so the caller needs it anyway.
 //
 // Existence — not HEAD-reachability — is the actual acceptance
 // criterion: the isolation-escape-orphaned-ai-commit rule's offending

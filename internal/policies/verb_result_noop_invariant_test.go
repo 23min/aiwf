@@ -141,6 +141,46 @@ func TestX(t *testing.T) {
 			want: []string{"Bar", "Foo"},
 		},
 		{
+			name: "a nested scope shadowing a name does not cost the outer scope its credit",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	res, _ := verb.Foo(ctx)
+	if !res.NoOp {
+		t.Errorf("want a NoOp")
+	}
+	t.Run("sub", func(t *testing.T) {
+		res, _ := verb.Bar(ctx)
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+}`,
+			// Each scope binds its own `res`. Sharing the inherited map by
+			// reference let the child's binding leak upward, pushing the outer
+			// name to two verbs and disqualifying both.
+			want: []string{"Bar", "Foo"},
+		},
+		{
+			name: "a sibling shadowing a name does not cost its sibling the inherited credit",
+			src: `package verb_test
+func TestX(t *testing.T) {
+	res, _ := verb.Foo(ctx)
+	t.Run("a", func(t *testing.T) {
+		res, _ := verb.Bar(ctx)
+		_ = res
+	})
+	t.Run("b", func(t *testing.T) {
+		if !res.NoOp {
+			t.Errorf("want a NoOp")
+		}
+	})
+}`,
+			// Sibling "a" never inspects its own Result, so Bar earns nothing;
+			// sibling "b" inspects the Result bound in the enclosing scope, so
+			// Foo does. Leaking "a"'s binding upward cost Foo its credit too.
+			want: []string{"Foo"},
+		},
+		{
 			name: "a closure inspects a Result bound in the enclosing scope",
 			src: `package verb_test
 func TestX(t *testing.T) {

@@ -132,10 +132,10 @@ func GlobalRules() []Rule {
 // That is a deliberate coarseness, not a limit of the schema: Rule.Preconditions
 // carries a `self.target-state` subject — live on the two AC cells that gate a
 // `deferred` target below — and cell identity folds in a precondition
-// signature, so the distinction is expressible today. Splitting it would multiply cells across every terminal
-// state of every kind and churn the coverage set the drift policy pins, for a
-// distinction the verb layer already enforces and tests. The AC terminal cells
-// carry the identical boundary and the identical reason.
+// signature, so the distinction is expressible today. Splitting it would
+// multiply cells across every terminal state of every kind and churn the
+// coverage set the drift policy pins, for a distinction the verb layer already
+// enforces and tests. The AC terminal cells carry the identical boundary.
 func terminalIllegal(k entity.Kind, state string, sources RuleSource) Rule {
 	return Rule{
 		Kind:              k,
@@ -619,16 +619,8 @@ func acRules() []Rule {
 		},
 		// Q1: deferred is terminal — explicit illegal cell for clarity.
 		//
-		// Scope note, shared with the `cancelled` cell below. The
-		// (Kind, FromState, Verb) triple states the dominant truth: a promote
-		// out of a terminal AC status to any *other* status is refused. It does
-		// not cover the same-target request (`promote <ac> deferred` on a
-		// deferred AC), which converges to a NoOp above the FSM consult
-		// (M-0281/AC-9). The spec can express that distinction — Rule
-		// .Preconditions carries a `self.target-state` subject, exercised by the
-		// two `deferred`-target AC cells above — so what keeps these cells
-		// coarse is cell-count churn, not a missing axis. The entity-level
-		// terminal cells carry the identical boundary.
+		// Same scope boundary as terminalIllegal, for the same reason — see
+		// its doc comment. Applies to the `cancelled` cell below too.
 		{
 			Kind:              KindAC,
 			FromState:         "deferred",

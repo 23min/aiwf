@@ -44,11 +44,9 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	}
 
 	// Same-state convergence (M-0281/AC-7): the policy already reads as
-	// requested. This verb had no same-state guard at all, so a re-run wrote
-	// byte-identical content and landed a commit with an empty diff — a no-op
-	// commit polluting history on every repeat, the same "re-running creates
-	// duplicates" shape acknowledge-illegal carried. Converging here writes
-	// nothing.
+	// requested. Without this guard a re-run writes byte-identical content and
+	// still lands a commit with an empty diff (see
+	// verb_result_noop_invariant.go for why aiwf does not reject one).
 	//
 	// Placed before the stranded-AC check below by intent: that check guards a
 	// *flip* to `required` from stranding met-but-phaseless ACs. When the

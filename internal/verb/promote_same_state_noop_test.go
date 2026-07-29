@@ -455,3 +455,79 @@ func TestPromote_SameStatus_ResolverAtAnotherSpelling_ReturnsNoOp(t *testing.T) 
 		})
 	}
 }
+
+// TestPromote_SameStatus_ResolverDiffers_StillRefuses covers the arms of the
+// resolver comparison that convergence does NOT reach. Each case is a shape a
+// referent-based comparison must still call a difference, and each exercises a
+// distinct branch: a shorter list, a list whose SHAs resolve to different
+// commits, and one naming a SHA that resolves to nothing at all.
+func TestPromote_SameStatus_ResolverDiffers_StillRefuses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		requested func(sha string) verb.PromoteOptions
+	}{
+		{
+			name: "a shorter list is not the stored list",
+			requested: func(string) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{}}
+			},
+		},
+		{
+			name: "a SHA that resolves to a different commit",
+			requested: func(string) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{"0000000000000000000000000000000000000000"}}
+			},
+		},
+		{
+			name: "a SHA that resolves to nothing",
+			requested: func(string) verb.PromoteOptions {
+				return verb.PromoteOptions{AddressedByCommit: []string{"deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"}}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := gapResolverFixture(t)
+			sha := resolveHeadSHA(t, r.root)
+			r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+				verb.PromoteOptions{AddressedByCommit: []string{sha}}))
+
+			opts := tc.requested(sha)
+			if len(opts.AddressedByCommit) == 0 {
+				// An empty list supplies no resolver at all, so the guard sees
+				// nothing to compare and converges — assert that, not a refusal.
+				res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts)
+				if err != nil {
+					t.Fatalf("promote with no resolver flag: %v", err)
+				}
+				if !res.NoOp {
+					t.Errorf("res.NoOp = false, want true — no resolver supplied means nothing to compare")
+				}
+				return
+			}
+			res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false, opts)
+			if err == nil {
+				t.Fatalf("promote naming a different resolver returned res=%+v, want a refusal", res)
+			}
+		})
+	}
+}
+
+// TestPromote_SameStatus_ResolverListLengthDiffers_StillRefuses drives the
+// length-mismatch arm directly: two stored SHAs against one requested.
+func TestPromote_SameStatus_ResolverListLengthDiffers_StillRefuses(t *testing.T) {
+	t.Parallel()
+	r := gapResolverFixture(t)
+	first := resolveHeadSHA(t, r.root)
+	second := commitOne(t, r.root, "probe.md", "probe\n", "second commit")
+	r.must(verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{first, second}}))
+
+	res, err := verb.Promote(r.ctx, r.tree(), "G-0001", "addressed", testActor, "", false,
+		verb.PromoteOptions{AddressedByCommit: []string{first}})
+	if err == nil {
+		t.Fatalf("promote with a shorter resolver list returned res=%+v, want a refusal", res)
+	}
+}

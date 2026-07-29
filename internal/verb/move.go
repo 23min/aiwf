@@ -47,27 +47,18 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	// Resolve the target epic to canonical width for the comparison below.
 	// Parsers accept narrower legacy spellings on input — ByID canonicalizes
 	// both sides before matching — so `--epic E-01` names the same epic as a
-	// stored `E-0001`, and comparing the raw argument missed that. The miss
-	// mattered twice over: it lost the convergence, and it then wrote the
-	// operator's narrower spelling over an already-canonical `parent:`.
-	// Converging removes that write entirely; what a genuine move stores is
-	// governed by the verbatim convention Add documents for referent ids.
+	// stored `E-0001`. What a genuine move stores is governed by the verbatim
+	// convention Add documents for referent ids.
 	canonNew := entity.Canonicalize(newEpicID)
 
-	// Same-state convergence (M-0281/AC-3): the milestone is already under
-	// the requested epic — there's nothing to relocate — so a re-run
-	// converges to a NoOp at exit 0 rather than an error. move is a
-	// field-mutation verb (no FSM transition), so this needs no ADR-0036
-	// oracle changes.
 	source := filepath.ToSlash(e.Path)
 	dest := filepath.ToSlash(filepath.Join(filepath.Dir(target.Path), filepath.Base(e.Path)))
 
-	// Both surfaces must already hold. A move's effect is the `parent:` field
-	// AND the file's location under the epic's directory, so comparing the
-	// field alone reported "nothing to move" for a milestone whose frontmatter
-	// pointed at the target epic while the file sat under another — a NoOp
-	// asserting a state the operator can see is false, with `move` itself the
-	// verb that would repair it. Falling through relocates the file.
+	// Same-state convergence (M-0281/AC-3). A move's effect spans two surfaces
+	// — the `parent:` field and the file's location under the epic's directory
+	// — so both must already hold before there is nothing to relocate. move is
+	// a field-mutation verb (no FSM transition), so this needs no ADR-0036
+	// oracle changes.
 	if entity.Canonicalize(e.Parent) == canonNew && source == dest {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already under epic %q; nothing to move", id, newEpicID)}, nil
 	}

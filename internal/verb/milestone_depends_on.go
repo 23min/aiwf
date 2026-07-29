@@ -58,9 +58,8 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 
 	// Id comparisons run at canonical width. The grammar accepts narrower
 	// legacy spellings (`M-002` for `M-0002`) and ByID canonicalizes before
-	// matching, so comparing raw arguments let a narrow spelling of the
-	// milestone's own id slip past the self-edge refusal — after which ByID
-	// resolved it happily, admitting the very edge this refuses.
+	// matching, so a narrow spelling of the milestone's own id would otherwise
+	// slip past the self-edge refusal that ByID then resolves.
 	canonID := entity.Canonicalize(id)
 	for _, dep := range deps {
 		if entity.Canonicalize(dep) == canonID {

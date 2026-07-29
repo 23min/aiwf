@@ -528,7 +528,7 @@ One rule per (kind, from-state) listing all legal next-states plus the chokepoin
 
 **Enforcement status legend:** "hard-reject" in §10.1 rows means the legality claim is enforced through *two* chokepoints, both now active:
 
-- **Verb-time path:** `aiwf promote` / `aiwf cancel` consult `ValidateTransition`; illegal (from, to) tuples return an error and the verb refuses to commit.
+- **Verb-time path:** `aiwf promote` consults `ValidateTransition`; illegal (from, to) tuples return an error and the verb refuses to commit. Two qualifications since M-0281: a request whose target already equals the current status converges to a NoOp *above* that consult, so `(X, X)` is not operator-visible as a rejection; and `aiwf cancel` does not call `ValidateTransition` at all — it converges on any terminal status, refuses a status outside the kind's closed set, and otherwise writes `CancelTarget`.
 - **History-walk path (`fsm-history-consistent`, R-RULE-149):** Walks `git log` per entity and validates each frontmatter `status:` change against the FSM. Three subcodes partition the violation space disjointly (per D-0008):
   - `illegal-transition` (**error**) — the (from, to) tuple is not in the FSM and the commit carries no `aiwf-force:` trailer.
   - `forced-untrailered` (**error**) — the change matches a sovereign-act shape (e.g., epic `proposed → active`) by a non-human actor without the force trailer. The predicate mirrors M-0095's `requireHumanActorForSovereignAct` verb gate: a `human/` actor OR a non-empty `aiwf-force:` satisfies the discipline.

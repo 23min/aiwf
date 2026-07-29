@@ -3,6 +3,7 @@ package verb_test
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -298,5 +299,68 @@ func TestRenameAC_EmptyTitle_Refused(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "empty") {
 		t.Errorf("err = %q, want it to name the empty title", err)
+	}
+}
+
+// TestRetitleAndRenameAC_HeadingDrifted_StillRewrite pins the body-heading half
+// of the AC guards. Both verbs write the frontmatter title AND the
+// `### AC-N — <title>` heading, so an AC whose title is right while its heading
+// has drifted still has work to do. Comparing the title alone reported "nothing
+// to rename" over exactly that state, leaving the stale prose in place.
+func TestRetitleAndRenameAC_HeadingDrifted_StillRewrite(t *testing.T) {
+	t.Parallel()
+	const title = "criterion"
+	cases := []struct {
+		name string
+		call func(r *runner) (*verb.Result, error)
+	}{
+		{
+			name: "retitle",
+			call: func(r *runner) (*verb.Result, error) {
+				return verb.Retitle(r.ctx, r.tree(), "M-0001/AC-1", title, testActor, "", 0)
+			},
+		},
+		{
+			name: "rename",
+			call: func(r *runner) (*verb.Result, error) {
+				return verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", title, testActor, 0)
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := acFixture(t, 1)
+			writeACHeading(t, r, "### AC-1 — STALE HEADING")
+
+			res, err := tc.call(r)
+			if err != nil {
+				t.Fatalf("%s over a drifted heading: %v", tc.name, err)
+			}
+			if res.NoOp {
+				t.Errorf("res.NoOp = true, want false — the heading differs, so there is prose to rewrite")
+			}
+			if res.Plan == nil {
+				t.Fatal("res.Plan = nil, want a plan restoring the heading")
+			}
+		})
+	}
+}
+
+// writeACHeading replaces AC-1's body heading with an arbitrary line, producing
+// the frontmatter-vs-body drift only a hand edit can create.
+func writeACHeading(t *testing.T, r *runner, heading string) {
+	t.Helper()
+	path := filepath.Join(r.root, r.tree().ByID("M-0001").Path)
+	raw, err := os.ReadFile(path) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading the milestone: %v", err)
+	}
+	patched := regexp.MustCompile(`(?m)^### AC-1 .*$`).ReplaceAllString(string(raw), heading)
+	if patched == string(raw) {
+		t.Fatalf("fixture had no AC-1 heading to rewrite:\n%s", raw)
+	}
+	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
+		t.Fatalf("writing the patched milestone: %v", writeErr)
 	}
 }

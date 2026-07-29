@@ -1,6 +1,9 @@
 package verb_test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -52,5 +55,54 @@ func TestMove_ToCurrentParentAtLegacyWidth_ReturnsNoOp(t *testing.T) {
 	}
 	if res.Plan != nil {
 		t.Errorf("res.Plan = %+v, want nil — applying it would rewrite parent: for no change", res.Plan)
+	}
+}
+
+// TestMove_ParentMatchesButFileMisplaced_StillMoves pins the second half of
+// AC-3's guard. A move writes `parent:` AND relocates the file, so a milestone
+// whose frontmatter already names the target epic while its file sits under
+// another still has work to do — and `move` is the verb that would repair it.
+// Comparing the field alone reported "nothing to move" over exactly that state.
+func TestMove_ParentMatchesButFileMisplaced_StillMoves(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Second", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	// Point the frontmatter at E-0002 while the file stays under E-0001.
+	writeEntityParent(t, r, "M-0001", "E-0002")
+
+	res, err := verb.Move(r.ctx, r.tree(), "M-0001", "E-0002", testActor)
+	if err != nil {
+		t.Fatalf("move of a misplaced milestone: %v", err)
+	}
+	if res.NoOp {
+		t.Errorf("res.NoOp = true, want false — the file is under the wrong epic, so there is a move to make")
+	}
+	if res.Plan == nil {
+		t.Fatal("res.Plan = nil, want a plan relocating the file")
+	}
+}
+
+// writeEntityParent rewrites an entity's `parent:` frontmatter directly,
+// producing the field-vs-location drift only a hand edit can create.
+func writeEntityParent(t *testing.T, r *runner, id, parent string) {
+	t.Helper()
+	e := r.tree().ByID(id)
+	if e == nil {
+		t.Fatalf("%s missing from the fixture tree", id)
+	}
+	path := filepath.Join(r.root, e.Path)
+	raw, err := os.ReadFile(path) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading %s: %v", id, err)
+	}
+	patched := strings.Replace(string(raw), "parent: "+e.Parent+"\n", "parent: "+parent+"\n", 1)
+	if patched == string(raw) {
+		t.Fatalf("fixture had no parent: %s to rewrite:\n%s", e.Parent, raw)
+	}
+	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
+		t.Fatalf("writing %s: %v", id, writeErr)
 	}
 }

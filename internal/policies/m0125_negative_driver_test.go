@@ -159,11 +159,9 @@ func errorSubstringsFor(code string) []string {
 		return []string{
 			"cannot transition to", // non-terminal & terminal cases both
 			"no cancel target",     // CancelTarget returns "" for terminal
-			// "is already at terminal status" was a third arm here. It is
-			// gone rather than kept as a harmless spare: cancel converges on
-			// an already-terminal entity now (M-0281/AC-2), so that phrasing
-			// is a NoOp message, and an arm matching it would bless a NoOp as
-			// a valid refusal if any path ever emitted it again.
+			// No arm for "is already at terminal status": cancel converges
+			// there, so that phrasing is a NoOp message, and matching it
+			// would bless a NoOp as a valid refusal.
 		}
 	case "milestone-done-incomplete-acs":
 		return []string{"open AC", "incomplete"}

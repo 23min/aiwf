@@ -782,7 +782,9 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 // about to write already exists (M-0281/AC-4). That call takes no map
 // from the gather layer and feeds no rule, so it neither participates in
 // nor threatens the single-compute invariant — but it does mean the
-// walker has a caller this policy deliberately does not police. A future second consumer or a relocation of the walker
+// walker has a caller this policy deliberately does not police.
+//
+// A future second consumer or a relocation of the walker
 // requires updating this helper in the same commit — that visibility is
 // the chokepoint.
 func policeEntitiesWalkerSingleCompute(acksFile *FileEntry, cliCheckProdFiles, checkInternalProd []*FileEntry) ([]Violation, error) {

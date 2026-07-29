@@ -191,9 +191,7 @@ func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor,
 	// ids), so a bare status comparison is the whole condition here.
 	// Gated on IsAllowedACStatus for the same reason Promote's guard is: an
 	// AC hand-edited to a status the FSM does not know is not a state to
-	// converge on. Without this it converged against itself while `cancel`
-	// correctly refused the same AC — the two verbs disagreeing about whether
-	// a junk status is real.
+	// converge on.
 	if ac.Status == newStatus && entity.IsAllowedACStatus(ac.Status) {
 		return &Result{
 			NoOp:        true,
@@ -260,11 +258,7 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 // re-apply. `met` is deliberately NOT terminal, so cancelling a met AC
 // still does real work.
 //
-// Otherwise the FSM decides, exactly as promoteAC does. Asking rather
-// than hardcoding the answer is the point: this guard previously
-// compared against `cancelled` alone, so it wrote `deferred` ->
-// `cancelled` — an edge the FSM does not contain — and laundered
-// unrecognized statuses into `cancelled` the same way. An unrecognized
+// Otherwise the FSM decides, exactly as promoteAC does. An unrecognized
 // status is not terminal (IsTerminalACStatus answers false for unknown
 // input by design), so it reaches this consult and is refused;
 // `--force` remains the sanctioned repair path.
