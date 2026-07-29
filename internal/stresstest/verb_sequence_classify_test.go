@@ -1,6 +1,7 @@
 package stresstest
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
@@ -24,6 +25,12 @@ func TestClassifyVerbSequenceStep(t *testing.T) {
 		env            verbEnvelope
 		wantNext       string
 		wantViolations int
+		// wantSubstrings, when set, requires each string to appear in some
+		// violation message. Counts alone cannot tell one violation from
+		// another, so a mutant that swaps two arms' messages passes a
+		// count-only assertion — the sibling race classify test already
+		// guards this way.
+		wantSubstrings []string
 	}{
 		{
 			name:    "illegal transition correctly refused as fsm-transition-illegal, no commit",
@@ -144,6 +151,7 @@ func TestClassifyVerbSequenceStep(t *testing.T) {
 			env:            verbEnvelope{Status: "error", Error: &verbEnvelopeError{Code: entity.CodeFSMTransitionIllegal.ID}},
 			wantNext:       "wontfix",
 			wantViolations: 1,
+			wantSubstrings: []string{"should be a NoOp"},
 		},
 		{
 			name:    "same-status NoOp reported ok but landed a commit — a violation",
@@ -154,6 +162,7 @@ func TestClassifyVerbSequenceStep(t *testing.T) {
 			env:            verbEnvelope{Status: "ok"},
 			wantNext:       "wontfix",
 			wantViolations: 1,
+			wantSubstrings: []string{"landed 1 commits, want 0"},
 		},
 	}
 
@@ -167,6 +176,18 @@ func TestClassifyVerbSequenceStep(t *testing.T) {
 			}
 			if len(violations) != tc.wantViolations {
 				t.Errorf("violations = %d (%+v), want %d", len(violations), violations, tc.wantViolations)
+			}
+			for _, want := range tc.wantSubstrings {
+				found := false
+				for _, v := range violations {
+					if strings.Contains(v.Message, want) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("no violation contained %q; got %+v", want, violations)
+				}
 			}
 		})
 	}
