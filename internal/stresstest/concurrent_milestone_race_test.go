@@ -148,8 +148,14 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 		if promoteCount != n/2 || cancelCount != n-n/2 {
 			t.Fatalf("attempt %d: promoteCount=%d cancelCount=%d, want %d/%d", attempt, promoteCount, cancelCount, n/2, n-n/2)
 		}
-		if promoteOKCount != 1 {
-			t.Fatalf("attempt %d: promoteOKCount = %d, want exactly 1 (the AC can only transition open -> met once)", attempt, promoteOKCount)
+		// promoteOKCount is no longer bounded at 1 for the same reason
+		// cancelOKCount is not: one promote lands the AC's open->met
+		// transition and every promote that raced after it is a NoOp on the
+		// already-met AC — also "ok", but zero commits (M-0281/AC-9). At least
+		// the winner must report ok; the commit-count assertion below is what
+		// pins "exactly one promote actually committed".
+		if promoteOKCount < 1 {
+			t.Fatalf("attempt %d: promoteOKCount = %d, want at least 1 (some actor must land open -> met)", attempt, promoteOKCount)
 		}
 		// cancelOKCount is no longer bounded at 1: exactly one cancel lands
 		// the draft->cancelled transition, and every cancel that raced after

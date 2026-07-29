@@ -536,8 +536,10 @@ func TestPromoteAC_TDDRequiredMetWithoutPhaseDoneRefusedViaFindings(t *testing.T
 	}
 }
 
-// TestCancel_CompositeAlreadyCancelled refuses re-cancelling — same
-// guard as for top-level entities. No diff to write.
+// TestCancel_CompositeAlreadyCancelled converges on re-cancelling — the
+// same same-state guard top-level entities carry. No diff to write, so
+// the second call reports the terminal status it found instead of
+// erroring (M-0281/AC-9).
 func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -546,9 +548,15 @@ func TestCancel_CompositeAlreadyCancelled(t *testing.T) {
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor))
 	r.must(verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false))
 
-	_, err := verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false)
-	if err == nil || !strings.Contains(err.Error(), "already cancelled") {
-		t.Errorf("expected 'already cancelled' error, got %v", err)
+	res, err := verb.Cancel(r.ctx, r.tree(), "M-0001/AC-1", testActor, "", false)
+	if err != nil {
+		t.Fatalf("re-cancelling a cancelled AC returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true")
+	}
+	if !strings.Contains(res.NoOpMessage, "already at terminal status") {
+		t.Errorf("NoOpMessage = %q, want it to name the terminal status found", res.NoOpMessage)
 	}
 }
 
@@ -633,21 +641,24 @@ func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 	}
 }
 
-// TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode: a second
-// promote to an AC's already-reached status is FSM-illegal (met → met
-// isn't in acTransitions's allowed set), and the refusal carries the
-// same typed CodeFSMTransitionIllegal entity.ValidateTransition's own
-// FSMTransitionError carries for kind-level transitions elsewhere —
-// the exact shape M-0258's concurrent-milestone-race stress scenario
-// depends on to tell a legitimate race (one promote actor lands,
-// every other cleanly refused as FSM-illegal) from a guard violation.
+// TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode: an AC promote
+// along an edge the FSM does not contain is refused, and the refusal
+// carries the same typed CodeFSMTransitionIllegal that
+// entity.ValidateTransition's own FSMTransitionError carries for
+// kind-level transitions elsewhere.
+//
+// The probe is `deferred -> met`: deferred is terminal, so the edge is
+// genuinely absent. It used to be a repeated `met` promote, but a
+// same-status promote is a NoOp now (M-0281/AC-9) and would exercise the
+// convergence guard rather than the FSM, testing the opposite of what
+// this test is for.
 func TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foundations", testActor, verb.AddOptions{}))
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "First", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "First", testActor))
-	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{}))
+	r.must(verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "deferred", testActor, "", false, verb.PromoteOptions{}))
 
 	_, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "met", testActor, "", false, verb.PromoteOptions{})
 	if err == nil || !strings.Contains(err.Error(), "cannot transition to") {

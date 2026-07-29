@@ -305,13 +305,16 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 	var violations []Violation
 	acEntity := milestoneID + "/AC-1"
 
-	promoteOKCount := 0
+	// A promote actor that lost the race no longer refuses: since
+	// M-0281/AC-9 a composite promote to the status already recorded is a
+	// NoOp, so every loser reports "ok" with zero commits. The bound that
+	// still holds is on commits — the AC's own open -> met transition can
+	// land exactly once — so it is counted from the git order, the same
+	// move AC-2 made for the cancel group below when entity-level cancel
+	// converged. A refusal is now unexpected rather than routine, but if
+	// one occurs its reason must still agree with the FSM's verdict.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpPromote {
-			continue
-		}
-		if oc.status == "ok" {
-			promoteOKCount++
+		if oc.operation != raceOpPromote || oc.status == "ok" {
 			continue
 		}
 		if oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
@@ -321,10 +324,16 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 			)})
 		}
 	}
-	if promoteOKCount != 1 {
+	promoteCommits := 0
+	for _, c := range order {
+		if c.verb == raceOpPromote && c.entity == acEntity {
+			promoteCommits++
+		}
+	}
+	if promoteCommits != 1 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%d promote actors reported ok for %s (open -> met), want exactly 1",
-			promoteOKCount, acEntity,
+			"%d promote commits landed for %s (open -> met), want exactly 1",
+			promoteCommits, acEntity,
 		)})
 	}
 

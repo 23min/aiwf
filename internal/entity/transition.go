@@ -195,6 +195,22 @@ func CancelTarget(k Kind, currentStatus Status) Status {
 // `open → cancelled` are the two terminal removals. `met → deferred`
 // and `met → cancelled` cover scope changes after the AC was already
 // done. `deferred` and `cancelled` are terminal.
+//
+// Two properties of this shape are load-bearing elsewhere and easy to
+// undo by accident:
+//
+// `met` is deliberately NOT terminal, unlike a kind's `done`. An AC is
+// a claim inside a contract that can still be rescoped, so a met
+// criterion may legitimately be descoped while its parent milestone
+// runs; an epic is a closed unit of work. That is why cancelling a met
+// AC does real work while cancelling a done epic converges.
+//
+// Both terminals are removal-class: `deferred` and `cancelled` each
+// mean "off the milestone's contract", and neither claims the criterion
+// succeeded. The AC FSM therefore has no success-terminal, which is
+// what lets `cancel` converge on any terminal AC without absorbing a
+// success outcome. A future success-class terminal would have to
+// revisit that (see cancelAC).
 var acTransitions = map[Status][]Status{
 	"open":      {"met", "deferred", "cancelled"},
 	"met":       {"deferred", "cancelled"},
@@ -204,11 +220,33 @@ var acTransitions = map[Status][]Status{
 
 // IsLegalACTransition reports whether (from, to) is a legal AC status
 // transition under the FSM. Self-transitions, unknown `from`, and
-// unknown `to` all return false. The verb-projection finding
-// `acs-transition` (Step 6) consults this; `--force --reason` (Step 4)
-// is what relaxes it.
+// unknown `to` all return false. The AC-promoting and AC-cancelling
+// verb paths consult this; `--force --reason` (Step 4) is what relaxes
+// it.
 func IsLegalACTransition(from, to Status) bool {
 	return slices.Contains(acTransitions[from], to)
+}
+
+// IsTerminalACStatus reports whether status names a terminal state in
+// the acceptance-criterion FSM — a state with no outgoing transitions.
+// The AC analogue of [IsTerminal], and deliberately the same shape:
+// derived from acTransitions rather than a parallel hardcoded list, so
+// the answer tracks the FSM if its edges change.
+//
+// Returns false for a status the FSM does not know, matching
+// IsTerminal, so a junk status is never silently treated as disposed —
+// a verb reaching this with an unrecognized status still has to consult
+// IsLegalACTransition, which refuses it.
+//
+// Distinct from [MilestoneCanGoDone], which asks a different
+// AC-disposal question ("is every AC out of `open`?") for the
+// milestone-completion guard.
+func IsTerminalACStatus(status Status) bool {
+	outgoing, known := acTransitions[status]
+	if !known {
+		return false
+	}
+	return len(outgoing) == 0
 }
 
 // tddPhaseTransitions encodes the linear FSM for an AC's `tdd_phase`.

@@ -273,6 +273,10 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 
 	promoteOK := raceActorOutcome{operation: raceOpPromote, status: "ok", commitSHA: "promotesha"}
 	promoteRefused := raceActorOutcome{operation: raceOpPromote, status: "error", errorCode: entity.CodeFSMTransitionIllegal.ID}
+	// promoteNoOp models a promote actor that lost the race: since
+	// M-0281/AC-9 a composite promote to the status already recorded converges,
+	// so losers report "ok" with no commit rather than an FSM refusal.
+	promoteNoOp := raceActorOutcome{operation: raceOpPromote, status: "ok"}
 	cancelOK := raceActorOutcome{operation: raceOpCancel, status: "ok", commitSHA: "cancelsha"}
 	cancelRefusedOpenAC := raceActorOutcome{operation: raceOpCancel, status: "error", errorCode: verb.CodeMilestoneCancelNonTerminalACs.ID}
 	// cancelNoOp models a cancel that raced after the milestone was already
@@ -295,7 +299,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 		{
 			name: "legitimate race, no cancel wins — zero violations",
 			outcomes: []raceActorOutcome{
-				promoteOK, promoteRefused, promoteRefused, promoteRefused,
+				promoteOK, promoteNoOp, promoteNoOp, promoteNoOp,
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          []raceCommit{promoteCommit},
@@ -305,7 +309,7 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 		{
 			name: "legitimate race, a cancel wins after the promote — zero violations",
 			outcomes: []raceActorOutcome{
-				promoteOK, promoteRefused, promoteRefused, promoteRefused,
+				promoteOK, promoteNoOp, promoteNoOp, promoteNoOp,
 				cancelOK, cancelRefusedOpenAC, cancelNoOp, cancelNoOp,
 			},
 			order:          []raceCommit{promoteCommit, cancelCommit},
@@ -313,26 +317,28 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			wantSubstrings: nil,
 		},
 		{
-			name: "zero promote actors succeed — a mutually-exclusive-transition violation (the AC's own open -> met never landed at all)",
+			name: "no promote commit lands — the AC's own open -> met never happened at all",
 			outcomes: []raceActorOutcome{
 				promoteRefused, promoteRefused, promoteRefused, promoteRefused,
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
 			order:          nil,
 			commitDelta:    0,
-			wantSubstrings: []string{"want exactly 1"},
+			wantSubstrings: []string{"0 promote commits landed"},
 		},
 		{
-			name: "two promote actors both ok — a mutually-exclusive-transition violation",
+			name: "two promote commits land — a mutually-exclusive-transition violation",
 			outcomes: []raceActorOutcome{
-				promoteOK, promoteOK, promoteRefused, promoteRefused,
+				promoteOK, promoteOK, promoteNoOp, promoteNoOp,
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
-			order:       []raceCommit{promoteCommit},
-			commitDelta: 1,
-			// Two actors each claim a commit while only one landed, so the
-			// actor-vs-git cross-check fires alongside the transition bound.
-			wantSubstrings: []string{"want exactly 1", "the repo gained 1"},
+			// open -> met can land once; two commits for it is the impossible
+			// shape. Multiple promote "ok"s are legitimate now — the losers
+			// converge — so the bound moved from ok-count to commit-count, the
+			// same move the cancel group made when entity cancel converged.
+			order:          []raceCommit{promoteCommit, promoteCommit},
+			commitDelta:    2,
+			wantSubstrings: []string{"2 promote commits landed"},
 		},
 		{
 			name: "two cancel commits land — a mutually-exclusive-transition violation",
@@ -391,7 +397,14 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			commitDelta: 1,
 			// The promote actor claims a commit that is nowhere in the order,
 			// so the cross-check fires beside the missing-commit finding.
-			wantSubstrings: []string{"no " + raceOpPromote + " commit", "the repo gained 1"},
+			// Three findings, all true of this input: the promote-commit bound,
+			// the actor-vs-git cross-check, and the causality check inside the
+			// cancel-landed block.
+			wantSubstrings: []string{
+				"0 promote commits landed",
+				"no " + raceOpPromote + " commit",
+				"the repo gained 1",
+			},
 		},
 
 		// The three shapes the commit-count-only oracle could not see. Each is

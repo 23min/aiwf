@@ -181,6 +181,20 @@ func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor,
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-9): the AC already holds the
+	// requested status, so there is nothing to change — converge instead of
+	// returning the FSM's self-transition refusal. Placed above the FSM
+	// consult, the same short-circuit-above-ValidateTransition shape
+	// entity-level Promote uses, and firing regardless of force for the same
+	// reason: a sovereign override has no transition to re-apply. A composite
+	// promote carries no resolver flags (Promote refuses them for composite
+	// ids), so a bare status comparison is the whole condition here.
+	if ac.Status == newStatus {
+		return &Result{
+			NoOp:        true,
+			NoOpMessage: fmt.Sprintf("%s is already %s", compositeID, newStatus),
+		}, nil
+	}
 	if !force {
 		if !entity.IsLegalACTransition(ac.Status, newStatus) {
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC status %q cannot transition to %q (allowed under FSM: see acTransitions)", ac.Status, newStatus)}
@@ -230,16 +244,41 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 }
 
 // cancelAC handles `aiwf cancel M-NNN/AC-N`. The AC's status flips to
-// `cancelled`; the entry stays in acs[] at its original position. The
-// "already cancelled" guard fires when the AC is already terminal —
-// force does not relax that since there's no diff to write.
+// `cancelled`; the entry stays in acs[] at its original position.
+//
+// Two guards, in order. An AC already at a terminal status converges to
+// a NoOp (M-0281/AC-9): both AC terminals are removal-class — `deferred`
+// and `cancelled` each mean "off the milestone's contract", and neither
+// claims the criterion succeeded — so cancel has nothing left to do from
+// either. This fires regardless of force, matching Cancel's own
+// same-state guard: there is no transition for a sovereign override to
+// re-apply. `met` is deliberately NOT terminal, so cancelling a met AC
+// still does real work.
+//
+// Otherwise the FSM decides, exactly as promoteAC does. Asking rather
+// than hardcoding the answer is the point: this guard previously
+// compared against `cancelled` alone, so it wrote `deferred` ->
+// `cancelled` — an edge the FSM does not contain — and laundered
+// unrecognized statuses into `cancelled` the same way. An unrecognized
+// status is not terminal (IsTerminalACStatus answers false for unknown
+// input by design), so it reaches this consult and is refused;
+// `--force` remains the sanctioned repair path.
 func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
 	}
-	if ac.Status == entity.StatusCancelled {
-		return nil, fmt.Errorf("%s is already cancelled", compositeID)
+	if entity.IsTerminalACStatus(ac.Status) {
+		return &Result{
+			NoOp: true,
+			NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel",
+				compositeID, ac.Status),
+		}, nil
+	}
+	if !force && !entity.IsLegalACTransition(ac.Status, entity.StatusCancelled) {
+		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
+			"AC status %q cannot transition to %q (allowed under FSM: see acTransitions)",
+			ac.Status, entity.StatusCancelled)}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Status = "cancelled"

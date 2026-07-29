@@ -317,7 +317,11 @@ Two corollaries worth stating, because getting either wrong loses work rather th
 - **A NoOp claims the target is met, so it must be true of everything the operator can observe.** Where a verb's effect spans more than one surface, every one must already hold: `edit-body --body-file` converges only when the serialized result equals both HEAD and the file on disk, and a `--superseded-by` re-run does not converge while the reciprocal back-link is still missing.
 - **Same-state is not the same as same-spelling.** Compare ids canonicalized, since narrower legacy widths name the same entity (`E-01` is `E-0001`). Compare *content* byte-for-byte, since a write that changes stored bytes is a real change.
 
-A verb whose input cannot be checked against reality is outside R2 entirely: `aiwf edit-body` in bless mode is handed no target — its input *is* the working copy — so it cannot distinguish "I meant to change nothing" from "my editor never saved", and refusing is the only honest answer. Mechanical companion: `internal/policies/verb_result_noop_invariant.go`. [ADR-0036](docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md) settles the FSM-transition case (`promote`/`cancel`) specifically; this section is the general convention.
+A verb whose input cannot be checked against reality is outside R2 entirely: `aiwf edit-body` in bless mode is handed no target — its input *is* the working copy — so it cannot distinguish "I meant to change nothing" from "my editor never saved", and refusing is the only honest answer.
+
+**Composite ids follow the same rules at sub-entity granularity.** `promote <id>/AC-N` and `cancel <id>/AC-N` converge exactly as their entity-level counterparts do, against the AC FSM's own notion of terminal — which is not the entity FSM's: `met` has outgoing edges and is *not* terminal, so cancelling a met AC still does real work. R1 binds hardest here, because a sub-element's state can be edited onto disk without passing a verb: a status the FSM does not recognize is not terminal, so it must reach the FSM consult and be refused rather than converged or silently written.
+
+Mechanical companion: `internal/policies/verb_result_noop_invariant.go` — note it scans *exported* entry points, so an unexported composite branch is invisible to it and needs its own test. [ADR-0036](docs/adr/ADR-0036-same-status-fsm-transitions-converge-to-noop-not-refusal.md) settles the FSM-transition case (`promote`/`cancel`, at both granularities) specifically; this section is the general convention.
 
 ### Skills policy
 

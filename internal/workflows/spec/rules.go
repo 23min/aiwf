@@ -537,7 +537,12 @@ func contractRules() []Rule {
 
 // AC sub-FSM cells: open → {met, deferred, cancelled}; met → {deferred, cancelled}.
 // Q1 (deferred is terminal) is captured by absence of outgoing cells.
-// Q2 (self-promote illegal globally) is captured by no FromState-to-same-state cells.
+//
+// Q2 (AC self-promote) is no longer "illegal globally". Since M-0281/AC-9 a
+// composite promote to the status already recorded converges to a NoOp above
+// the FSM consult, so the absence of FromState-to-same-state cells records that
+// no such *transition* exists — not that the request is refused. The terminal
+// illegal cells below inherit the same boundary; see the note on them.
 func acRules() []Rule {
 	return []Rule{
 		// open → met. The Legal cell is split on parent.tdd: when the
@@ -607,6 +612,17 @@ func acRules() []Rule {
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0038"}, FP: []string{"R-FP-0050"}},
 		},
 		// Q1: deferred is terminal — explicit illegal cell for clarity.
+		//
+		// Scope note, shared with the `cancelled` cell below. The
+		// (Kind, FromState, Verb) triple states the dominant truth: a promote
+		// out of a terminal AC status to any *other* status is refused. It does
+		// not cover the same-target request (`promote <ac> deferred` on a
+		// deferred AC), which converges to a NoOp above the FSM consult
+		// (M-0281/AC-9). The spec can express that distinction — Rule
+		// .Preconditions carries a `self.target-state` subject, used live by the
+		// tdd-phase cells — so what keeps these cells coarse is cell-count
+		// churn, not a missing axis. The entity-level terminal cells carry the
+		// identical boundary.
 		{
 			Kind:              KindAC,
 			FromState:         "deferred",
