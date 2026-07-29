@@ -474,18 +474,23 @@ func TestEmptyTreeOID_MatchesGit(t *testing.T) {
 		t.Fatalf("changedLines against the empty tree: %v", err)
 	}
 
-	out, err := exec.Command("git", "-C", root, "ls-files", "*.go").Output()
+	// The file list comes from HEAD rather than the index, because that is
+	// what changedLines diffs the empty tree against. `git ls-files` reads the
+	// index, so with a merge staged but not yet committed — exactly the state
+	// the pre-commit hook runs in — it reports files HEAD does not carry, and
+	// this assertion would fail on a tree that is perfectly fine.
+	out, err := exec.Command("git", "-C", root, "ls-tree", "-r", "--name-only", "HEAD").Output()
 	if err != nil {
-		t.Fatalf("git ls-files: %v", err)
+		t.Fatalf("git ls-tree: %v", err)
 	}
 	var tracked int
 	for _, ln := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		if ln == "" {
+		if !strings.HasSuffix(ln, ".go") {
 			continue
 		}
 		tracked++
 		if changed[ln] == nil {
-			t.Errorf("%s is tracked but absent from the empty-tree diff — the whole-tree scan would skip it", ln)
+			t.Errorf("%s is in HEAD but absent from the empty-tree diff — the whole-tree scan would skip it", ln)
 		}
 	}
 	if tracked == 0 {
