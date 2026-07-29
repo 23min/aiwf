@@ -1,7 +1,7 @@
 ---
 id: ADR-0037
 title: Retitle re-derives the slug only while it tracks the title
-status: proposed
+status: accepted
 ---
 ## Context
 
