@@ -310,3 +310,91 @@ func TestPromote_SameStatus_Force_StillNoOp(t *testing.T) {
 		t.Errorf("res.NoOp = false, want true (nothing to change even under --force)")
 	}
 }
+
+// writeEntityStatus rewrites an entity's frontmatter status to an arbitrary
+// value, bypassing the verbs — the on-disk shape a hand-edit produces, and the
+// only way to reach a status the kind's closed set does not contain.
+func writeEntityStatus(t *testing.T, r *runner, id, status string) {
+	t.Helper()
+	e := r.tree().ByID(id)
+	if e == nil {
+		t.Fatalf("%s missing from the fixture tree", id)
+	}
+	path := filepath.Join(r.root, e.Path)
+	raw, err := os.ReadFile(path) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading %s: %v", id, err)
+	}
+	patched := strings.Replace(string(raw), "status: "+string(e.Status)+"\n", "status: "+status+"\n", 1)
+	if patched == string(raw) {
+		t.Fatalf("fixture did not contain %q to rewrite:\n%s", "status: "+string(e.Status), raw)
+	}
+	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
+		t.Fatalf("writing %s: %v", id, writeErr)
+	}
+}
+
+// TestPromote_UnrecognizedStatus_RefusedNotConverged pins R1 ahead of R2 at the
+// entity level. A status the kind's closed set does not contain is not a state
+// to converge on — it is a tree that needs repairing — so a promote naming that
+// same junk value must reach the FSM and be refused, not report "already
+// <invalid>" at exit 0. The convergence guard sits above the FSM consult, so
+// without an explicit recognized-status condition it answered first.
+func TestPromote_UnrecognizedStatus_RefusedNotConverged(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Render envelope", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindADR)}))
+	writeEntityStatus(t, r, "ADR-0001", "bogus")
+
+	res, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "bogus", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatalf("promote to an unrecognized status returned res=%+v, want a refusal", res)
+	}
+	if !strings.Contains(err.Error(), "not a recognized") {
+		t.Errorf("err = %q, want a refusal naming the unrecognized status", err)
+	}
+}
+
+// TestCancel_UnrecognizedStatus_RefusedNotWritten is the entity-level analogue
+// of the AC fix: an unrecognized status is not terminal, so it fell past the
+// convergence guard and reached the write, laundering junk into the kind's
+// terminal-cancel status under an ordinary cancel trailer with `aiwf check`
+// reporting nothing.
+func TestCancel_UnrecognizedStatus_RefusedNotWritten(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	writeEntityStatus(t, r, "G-0001", "bogus")
+
+	res, err := verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "probe", false)
+	if err == nil {
+		t.Fatalf("cancel from an unrecognized status returned res=%+v, want a refusal", res)
+	}
+	if !strings.Contains(err.Error(), "not a recognized") {
+		t.Errorf("err = %q, want a refusal naming the unrecognized status", err)
+	}
+}
+
+// TestCancel_UnrecognizedStatus_ForceStillOverrides keeps the repair path open:
+// --force is what relaxes the FSM, and refusing the unforced call must not strip
+// the operator's way to dispose of a hand-damaged entity.
+func TestCancel_UnrecognizedStatus_ForceStillOverrides(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Stray gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	writeEntityStatus(t, r, "G-0001", "bogus")
+
+	res, err := verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "repairing a hand-edit", true)
+	if err != nil {
+		t.Fatalf("forced cancel from an unrecognized status: %v", err)
+	}
+	if res.NoOp {
+		t.Errorf("res.NoOp = true, want false — the entity is not terminal, so force performs the write")
+	}
+	if res.Plan == nil {
+		t.Fatal("res.Plan = nil, want a plan (force relaxes the FSM)")
+	}
+}

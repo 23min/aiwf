@@ -100,7 +100,7 @@ func TestX(t *testing.T) {
 			want: []string{"Foo"},
 		},
 		{
-			name: "one identifier reused across two verbs credits both",
+			name: "one identifier reused across two verbs credits neither",
 			src: `package verb_test
 func TestX(t *testing.T) {
 	res, _ := verb.Foo(ctx)
@@ -109,7 +109,13 @@ func TestX(t *testing.T) {
 		t.Errorf("want a NoOp")
 	}
 }`,
-			want: []string{"Bar", "Foo"},
+			// Fixture setup that happens to reuse the assertion's identifier.
+			// This walk has no statement order, so it cannot tell which call
+			// the assertion is about — and crediting both would let a verb
+			// with no NoOp coverage of its own ride along on a neighbour's
+			// test. Under-crediting is the safe answer: the policy fires and
+			// a human writes the missing test.
+			want: nil,
 		},
 		{
 			name: "polarity is not judged: a not-a-NoOp assertion still credits",

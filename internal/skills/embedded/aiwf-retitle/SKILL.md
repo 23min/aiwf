@@ -43,7 +43,7 @@ The body prose under `## Goal`, `## Scope`, etc. and the id are unchanged. To ch
 ## Validation
 
 - Empty new title (after trimming whitespace) is rejected with a usage error.
-- Same-as-current title is rejected — there's no diff to commit.
+- Same-as-current title reports "nothing to retitle" at exit 0 and commits nothing — there is no diff to make.
 - Unknown entity id is rejected.
 - Unknown AC id (e.g. `M-001/AC-99` when the milestone has fewer ACs) is rejected.
 

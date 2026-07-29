@@ -225,3 +225,78 @@ func writeACStatus(t *testing.T, r *runner, status string) {
 		t.Fatalf("writing the patched milestone: %v", writeErr)
 	}
 }
+
+// TestPromoteAC_UnrecognizedStatus_RefusedNotConverged is the AC analogue of the
+// entity-level guard: cancel already refused a junk status, and promote must
+// too, or the two verbs disagree about whether an unrecognized status is real.
+func TestPromoteAC_UnrecognizedStatus_RefusedNotConverged(t *testing.T) {
+	t.Parallel()
+	r := acFixture(t, 1)
+	writeACStatus(t, r, "blocked")
+
+	res, err := verb.Promote(r.ctx, r.tree(), "M-0001/AC-1", "blocked", testActor, "", false, verb.PromoteOptions{})
+	if err == nil {
+		t.Fatalf("promote to an unrecognized AC status returned res=%+v, want a refusal", res)
+	}
+	if !strings.Contains(err.Error(), "cannot transition") {
+		t.Errorf("err = %q, want the FSM refusal", err)
+	}
+}
+
+// TestACVerbs_RejectAnUnresolvableCompositeID pins R1 at the AC verbs' entry:
+// every one resolves its composite id before doing anything else, so a
+// composite naming a milestone or an AC that does not exist is refused rather
+// than converged or written. lookupAC is the shared resolver; these drive it
+// through each verb so a future path that skips it is caught.
+func TestACVerbs_RejectAnUnresolvableCompositeID(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		call func(r *runner) (*verb.Result, error)
+	}{
+		{
+			name: "cancel a composite whose AC does not exist",
+			call: func(r *runner) (*verb.Result, error) {
+				return verb.Cancel(r.ctx, r.tree(), "M-0001/AC-9", testActor, "probe", false)
+			},
+		},
+		{
+			name: "promote a composite whose AC does not exist",
+			call: func(r *runner) (*verb.Result, error) {
+				return verb.Promote(r.ctx, r.tree(), "M-0001/AC-9", entity.StatusMet, testActor, "", false, verb.PromoteOptions{})
+			},
+		},
+		{
+			name: "rename a composite whose AC does not exist",
+			call: func(r *runner) (*verb.Result, error) {
+				return verb.Rename(r.ctx, r.tree(), "M-0001/AC-9", "a new title", testActor, 0)
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := acFixture(t, 1)
+			res, err := tc.call(r)
+			if err == nil {
+				t.Fatalf("%s returned res=%+v, want a refusal", tc.name, res)
+			}
+		})
+	}
+}
+
+// TestRenameAC_EmptyTitle_Refused keeps the empty-title guard ahead of the
+// same-title convergence: an empty new title is not a request that is already
+// satisfied, it is a request that cannot be satisfied.
+func TestRenameAC_EmptyTitle_Refused(t *testing.T) {
+	t.Parallel()
+	r := acFixture(t, 1)
+
+	res, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", "   ", testActor, 0)
+	if err == nil {
+		t.Fatalf("rename to an empty title returned res=%+v, want a refusal", res)
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Errorf("err = %q, want it to name the empty title", err)
+	}
+}

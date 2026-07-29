@@ -199,8 +199,11 @@ func PolicyVerbResultNoOpInvariant(root string) ([]Violation, error) {
 // The analysis is intra-function and flow-insensitive: it ignores statement
 // order and does not follow a Result through a helper call, so a value
 // laundered through one (`res := mustNoOp(t, verb.Foo(...))`) earns no credit.
-// That direction is the safe one — an unrecognized shape under-credits and the
-// policy fires, rather than passing silently.
+// Flow-insensitivity is also why an identifier bound to more than one entry
+// point credits neither: without statement order there is no way to tell which
+// binding was live at the inspection, and guessing would re-open the
+// fixture-setup hole one rebound variable at a time. Every unrecognized shape
+// therefore under-credits and the policy fires, rather than passing silently.
 //
 // What it deliberately does not judge is the assertion's polarity: a test that
 // asserts a Result is *not* a NoOp inspects the same field, and no structural
@@ -256,7 +259,19 @@ func noopInspectedVerbs(fn *ast.FuncDecl, entryNames map[string]bool) map[string
 
 	out := map[string]bool{}
 	for name := range inspected {
-		for verbName := range bound[name] {
+		verbs := bound[name]
+		// An identifier bound to more than one entry point credits none of
+		// them. Flow-insensitivity means this walk cannot tell which binding
+		// was live at the inspection, and `res, _ := verb.A(...)` followed by
+		// `res, _ = verb.B(...)` is ordinary Go — so crediting both would
+		// hand a verb coverage from a call that was only fixture setup, the
+		// exact false green the binding requirement exists to close. Refusing
+		// keeps the analysis's failure mode on the safe side: an unrecognized
+		// shape under-credits and the policy fires.
+		if len(verbs) != 1 {
+			continue
+		}
+		for verbName := range verbs {
 			out[verbName] = true
 		}
 	}

@@ -98,7 +98,12 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 	// is also a change, so it likewise falls through — to the refusal
 	// immediately below, which keeps this path from becoming a generic
 	// rewrite-the-resolver surface.
-	if e.Status == newStatus && !promoteWouldWrite(t, e, opts) {
+	// IsAllowedStatus is what keeps R1 ahead of R2 here: a status the kind's
+	// closed set does not contain is not a state to converge on, it is a tree
+	// that needs repairing. Without it a junk status hand-edited onto disk
+	// converged against itself — "already <invalid>" at exit 0 — instead of
+	// falling through to the FSM refusal below.
+	if e.Status == newStatus && entity.IsAllowedStatus(e.Kind, e.Status) && !promoteWouldWrite(t, e, opts) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", id, newStatus)}, nil
 	}
 	// Same status, a resolver flag, and no backfill to do means the operator
@@ -300,16 +305,23 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 }
 
 // fsmTransitionIllegalError wraps a legality refusal that isn't itself
-// produced by entity.ValidateTransition. Every construction site is in
-// ac.go, where the sub-FSMs are keyed by status or phase rather than by
-// Kind, so entity.ValidateTransition does not apply: promoteAC and
-// cancelAC consult entity.IsLegalACTransition, PromoteACPhase consults
-// IsLegalTDDPhaseTransition.
+// produced by entity.ValidateTransition. Five sites construct it, in two
+// groups.
 //
-// Entity-level Cancel used to construct it too, for an already-terminal
-// entity; that path is a NoOp now (M-0281/AC-2), so cancel reaches this
-// type only through cancelAC, refusing an AC whose status the FSM has no
-// edge from (M-0281/AC-9).
+// Three are in ac.go, where the sub-FSMs are keyed by status or phase
+// rather than by Kind, so entity.ValidateTransition does not apply:
+// promoteAC and cancelAC consult entity.IsLegalACTransition,
+// PromoteACPhase consults IsLegalTDDPhaseTransition.
+//
+// Two are in this file, for a same-status promote carrying a resolver
+// the verb will not write: re-pointing a resolver that is already set,
+// and a supersession whose reciprocal back-link is missing. Those are
+// resolver-policy refusals rather than FSM ones, and they carry this
+// type because the operator hit the same wall — a legality rule saying
+// no before any disk work — not because an FSM edge was consulted.
+//
+// Entity-level Cancel used to construct it for an already-terminal
+// entity; that path is a NoOp now (M-0281/AC-2).
 //
 // The refusal is the same class entity.ValidateTransition's own
 // FSMTransitionError reports for kind-level transitions. Carrying the

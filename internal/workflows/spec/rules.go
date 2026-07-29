@@ -130,9 +130,9 @@ func GlobalRules() []Rule {
 // this cell states the dominant truth rather than the whole one.
 //
 // That is a deliberate coarseness, not a limit of the schema: Rule.Preconditions
-// carries a `self.target-state` subject — live in the tdd-phase cells — and
-// cellKey folds a precondition signature into cell identity, so the distinction
-// is expressible today. Splitting it would multiply cells across every terminal
+// carries a `self.target-state` subject — live on the two AC cells that gate a
+// `deferred` target below — and cell identity folds in a precondition
+// signature, so the distinction is expressible today. Splitting it would multiply cells across every terminal
 // state of every kind and churn the coverage set the drift policy pins, for a
 // distinction the verb layer already enforces and tests. The AC terminal cells
 // carry the identical boundary and the identical reason.
@@ -625,10 +625,10 @@ func acRules() []Rule {
 		// not cover the same-target request (`promote <ac> deferred` on a
 		// deferred AC), which converges to a NoOp above the FSM consult
 		// (M-0281/AC-9). The spec can express that distinction — Rule
-		// .Preconditions carries a `self.target-state` subject, used live by the
-		// tdd-phase cells — so what keeps these cells coarse is cell-count
-		// churn, not a missing axis. The entity-level terminal cells carry the
-		// identical boundary.
+		// .Preconditions carries a `self.target-state` subject, exercised by the
+		// two `deferred`-target AC cells above — so what keeps these cells
+		// coarse is cell-count churn, not a missing axis. The entity-level
+		// terminal cells carry the identical boundary.
 		{
 			Kind:              KindAC,
 			FromState:         "deferred",

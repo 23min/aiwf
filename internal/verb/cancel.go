@@ -51,6 +51,16 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	if entity.IsTerminal(e.Kind, e.Status) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}, nil
 	}
+	// The AC path's lesson applied symmetrically (M-0281/AC-9): a status the
+	// kind's closed set does not contain is not terminal, so it falls past the
+	// guard above and used to reach the write below — laundering junk into a
+	// terminal status under an ordinary cancel trailer, with `aiwf check`
+	// reporting nothing. Refuse instead; --force stays the repair path.
+	if !force && !entity.IsAllowedStatus(e.Kind, e.Status) {
+		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
+			"%s status %q is not a recognized %s status; cannot cancel from it",
+			id, e.Status, e.Kind)}
+	}
 	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {
 		return nil, fmt.Errorf("%s (kind %q, status %q) has no cancel target", id, e.Kind, e.Status)

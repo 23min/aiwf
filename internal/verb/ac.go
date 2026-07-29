@@ -189,7 +189,12 @@ func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor,
 	// reason: a sovereign override has no transition to re-apply. A composite
 	// promote carries no resolver flags (Promote refuses them for composite
 	// ids), so a bare status comparison is the whole condition here.
-	if ac.Status == newStatus {
+	// Gated on IsAllowedACStatus for the same reason Promote's guard is: an
+	// AC hand-edited to a status the FSM does not know is not a state to
+	// converge on. Without this it converged against itself while `cancel`
+	// correctly refused the same AC — the two verbs disagreeing about whether
+	// a junk status is real.
+	if ac.Status == newStatus && entity.IsAllowedACStatus(ac.Status) {
 		return &Result{
 			NoOp:        true,
 			NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", compositeID, newStatus),
