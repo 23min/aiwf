@@ -1049,7 +1049,12 @@ attributed to an act that did not make it.
 
 Addresses G-0466 and G-0463.
 
-_No milestones yet._
+| Milestone | Title | Status |
+|---|---|---|
+| M-0282 | Settle the write-scope precondition's seam, scope, verdict and escape hatch | draft |
+| M-0283 | Add the shared write-scope precondition and route the single-entity verbs | draft |
+| M-0284 | Cover the nested-path vector and call each multi-entity sweep in or out | draft |
+| M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | draft |
 
 ## E-0076 — Chokepoints for three documented rules that have no detector (proposed)
 
