@@ -69,6 +69,24 @@ annotation and job summary. The workflow's toolchain pin is now a single
   `aiwf retitle` applies. The two verbs set the same field, so a title accepted
   by one and refused by the other was a uniformity gap.
 
+### Changed — `aiwf retitle` preserves a slug set deliberately with `rename`
+
+- `aiwf retitle` re-derives the on-disk slug from the new title only while the
+  slug still tracks the title. A slug set deliberately with `aiwf rename` is now
+  preserved, so `rename`'s effect outlives the next retitle rather than lasting
+  only until it. This narrows the unconditional re-derivation described in the
+  G-0108 entry below. See ADR-0037.
+- The predicate is derived, not stored: retitle compares the current slug against
+  the slug the *stored* title would produce. No frontmatter field records that a
+  slug was customized, and no history walk is consulted.
+- The body `# <id> — <title>` heading is unaffected — retitle still repairs a
+  canonical heading whenever it disagrees with the title, because no verb lets an
+  operator claim that heading independently.
+- Measured against this repo's own tree, 44 entities carry a slug their title
+  does not derive; widening the narrow ids embedded in those slugs reconciles 17,
+  leaving 27 deliberate short paths that a retitle would previously have
+  flattened.
+
 ### Changed — G-0228: typed `Status` enum in `internal/entity`
 
 - Internal refactor, no user-visible change — YAML frontmatter, `--format=json`
