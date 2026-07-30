@@ -205,3 +205,44 @@ workflow — silence there would mean the cost was not weighed.
 - E-0074 — waits on this milestone's first decision
 - `internal/verb/apply.go` — `checkStagedConflict`, the precedent to extend
 
+
+## Work log
+
+All five acceptance criteria are satisfied by one deliverable — ADR-0038 — and
+one mechanical assertion over it. They are logged together rather than
+per-AC because no AC could be met without the others: the ADR is a single
+document and the policy reads all five of its subsections in one pass.
+
+### AC-1..AC-5 — ADR-0038 and its structural assertion
+
+ADR-0038 accepted, five decisions recorded · commits 644cf9fe1 (add),
+f642b502e (accept), 53d6abd50 (canonical subsection anchors) · tests 10/10
+
+`PolicyM0282ADRWriteScopeDecisions` (commit c612e5e65) asserts each decision
+appears in its own `### ` subsection under `## Decision` carrying a recorded
+verdict, plus the seam's reach and the field scope's bless-workflow effect in
+`## Consequences`. Structural rather than substring: the marker must sit
+inside the named subsection, so prose mentioning "refuse" elsewhere in the
+document does not satisfy the verdict decision. Eight firing fixtures, one per
+failure mode, plus a clean-fixture negative case and the loader-miss arm.
+
+The ADR resolves through `tree.Load` + `ByID` + `entity.Path` rather than a
+path literal, so the assertion survives an archive sweep and a retitle.
+
+Two decisions changed shape during the work rather than being transcribed
+from the milestone spec:
+
+- The seam is **two** seams, not one. A single top-of-verb helper would have
+  to predict the paths a verb will touch, duplicating `gatherCommitOps`'
+  recursive walk; siting the commit-side guard at `verb.Apply` — where that
+  path set is already computed — removes the prediction, and the NoOp
+  constructor covers the window `Apply` structurally cannot see.
+- A fifth decision was added mid-milestone. The laundering is whole-file, not
+  frontmatter-only: measured, an unblessed body edit rides into an unrelated
+  verb's commit with no `edit-body` event in `aiwf history`. AC-5 and the
+  epic's field-axis open question came from that measurement.
+
+The escape-hatch decision also shed a proposed `aiwf repair` verb: measured,
+every mutating verb refuses cleanly on an unparseable entity, and the recovery
+the `load-error` hint already names (hand-fix, hand-commit, then
+`aiwf acknowledge illegal`) is complete. No new surface was needed.
