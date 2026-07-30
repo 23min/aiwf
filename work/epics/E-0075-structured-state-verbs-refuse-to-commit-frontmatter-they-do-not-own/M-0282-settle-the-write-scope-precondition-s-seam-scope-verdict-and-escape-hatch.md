@@ -13,7 +13,7 @@ acs:
       status: met
     - id: AC-3
       title: ADR records refuse-or-warn, weighed against the illegal-transition escape
-      status: open
+      status: met
     - id: AC-4
       title: ADR records whether an escape hatch exists and what it costs
       status: open
