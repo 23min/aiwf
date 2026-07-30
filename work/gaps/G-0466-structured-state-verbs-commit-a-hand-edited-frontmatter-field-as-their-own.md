@@ -57,9 +57,12 @@ structured-state verb: `promote`, `cancel`, `move`, `retitle`, `rename`,
 `reallocate`, `set-priority`, `set-area`, `milestone tdd`,
 `milestone depends-on`.
 
-The harm sits on the *mutating* path, not the converging one. Measured against
-the same dirty tree, a same-state `retitle` converges to a NoOp, commits nothing,
-and leaves the hand-edit where `git status` still shows it.
+Both paths are affected, in different ways. On the mutating path the hand-edit is
+committed under the verb's trailer. On the converging path a same-state `retitle`
+commits nothing and leaves the hand-edit on disk — but the same-state comparison
+reads the loaded value rather than HEAD, so it also reports "already set" about a
+value HEAD does not have, and commits an empty diff when asked for the value HEAD
+does have. See the closing paragraph.
 
 ## Options
 
@@ -78,12 +81,12 @@ and leaves the hand-edit where `git status` still shows it.
 
 Option 1 is the lean, on the same reasoning that settled G-0463: refusing tells
 the operator something true about their tree, and one precondition shared by
-every verb beats ten per-verb comparisons. Option 3 is a plausible companion
+every verb beats a comparison duplicated into each. Option 3 is a plausible companion
 rather than an alternative.
 
 **Not the fix:** a HEAD conjunct inside each same-state NoOp guard. The
 comparison belongs at one shared precondition ahead of the guards rather than
-duplicated into eleven of them, and where that precondition sits relative to the
+duplicated into each of them, and where that precondition sits relative to the
 same-state check decides whether any conjunct is needed at all — run it in the
 verb prelude and a guard can never be reached with HEAD-divergent frontmatter.
 
