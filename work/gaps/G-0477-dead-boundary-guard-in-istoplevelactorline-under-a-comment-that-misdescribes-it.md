@@ -2,6 +2,7 @@
 id: G-0477
 title: Dead boundary guard in isTopLevelActorLine under a comment that misdescribes it
 status: open
+priority: low
 ---
 ## What's missing
 
