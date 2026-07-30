@@ -1,8 +1,10 @@
 ---
 id: G-0469
 title: Diff-scoped coverage gate fires only in CI, after the trunk push lands
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 3ca5382f9c6c29466a5d03dee7b34bf8cc1fc8f3
 ---
 ## What's missing
 
