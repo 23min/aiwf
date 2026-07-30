@@ -35,7 +35,9 @@ its answer is constrained by that precedent.
 
 ## Decision
 
-### Seam: two, both inside `internal/verb`
+### Seam
+
+Two seams, both inside `internal/verb`.
 
 The precondition runs at two seams, sharing one comparison function:
 
@@ -58,7 +60,9 @@ implementation of `gatherCommitOps`'s recursive walk — duplicated path logic f
 to drift. Placing the guard where the path set is already computed removes the
 prediction. A CLI-layer seam was rejected on the layering grounds above.
 
-### Path scope: committed-path at `Apply`, target at the NoOp seam
+### Path scope
+
+Committed-path at `Apply`; target-scoped at the NoOp seam.
 
 At `Apply` the comparison covers the full committed path set — `gatherCommitOps`'
 `removes` plus `writes` — not the verb-named `op.Path` / `op.NewPath`.
@@ -72,7 +76,9 @@ At the NoOp seam the comparison covers the target entity only. A NoOp writes
 nothing and so cannot launder; what it can do is make a false claim, and that
 claim is about the target's own state.
 
-### Field scope: whole-file at `Apply`, frontmatter at the NoOp seam
+### Field scope
+
+Whole-file at `Apply`; frontmatter-scoped at the NoOp seam.
 
 At `Apply` the honest question is what the commit will carry, and it carries
 whole files — so the comparison is whole-file. Frontmatter-only would leave the
@@ -93,7 +99,9 @@ the bulk of that rule's work, and because it would change `gatherCommitOps`'
 contract underneath every verb at once. It is the shape a later epic should reach
 for; this decision is not the end state.
 
-### Verdict: refuse, at both seams
+### Verdict
+
+Refuse, at both seams.
 
 Divergence refuses. It does not warn.
 
@@ -115,7 +123,9 @@ The refusal reuses `checkStagedConflict`'s error shape and exit code, so the two
 conditions are indistinguishable to a caller, and names the overlapping paths the
 same way.
 
-### Escape hatch: none
+### Escape hatch
+
+None.
 
 No `--force`, and no repair verb.
 
