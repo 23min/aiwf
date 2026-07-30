@@ -1,7 +1,7 @@
 ---
 id: ADR-0038
 title: Refuse verb writes over HEAD-divergent entity content
-status: proposed
+status: accepted
 ---
 ## Context
 
