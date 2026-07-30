@@ -7,7 +7,7 @@ tdd: none
 acs:
     - id: AC-1
       title: ADR records where the precondition runs relative to the same-state check
-      status: open
+      status: met
     - id: AC-2
       title: ADR records whether the guard is entity-scoped or committed-path-scoped
       status: open
