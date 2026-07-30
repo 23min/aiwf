@@ -2,6 +2,7 @@
 id: G-0474
 title: No chokepoint enforces the ban on blank-identifier unused-silencers
 status: open
+priority: low
 ---
 ## What's missing
 
