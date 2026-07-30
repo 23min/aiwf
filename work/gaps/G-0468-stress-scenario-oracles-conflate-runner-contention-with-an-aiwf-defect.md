@@ -16,7 +16,7 @@ The correctness properties these scenarios exist to test — mutual exclusion, d
 
 ## Why it matters
 
-18 of the 100 `go.yml` runs preceding 2026-07-30 failed on these scenarios, spanning 2026-07-08 to 2026-07-29 without interruption. That is the chronic component of the red gate G-0457 records; the `govulncheck` component it names alongside was an eleven-day burst that has since closed.
+18 of the 100 `go.yml` runs preceding 2026-07-30 failed on these scenarios, spanning 2026-07-11 to 2026-07-29 without interruption. That is the chronic component of the red gate G-0457 records; the `govulncheck` component it names alongside was an eleven-day burst that has since closed.
 
 The flake tracks co-tenancy, not machine size. Run in isolation on four cores, both stress packages pass five repeats out of five, at roughly 38 seconds per run of `internal/stresstest`. Run co-tenant with the full `go test ./...` on those same four cores, the package takes 66.7 seconds — matching the 65 to 77 seconds observed in CI. The scenarios are sound when they own the machine and unsound when they share it, which is a statement about the oracle, not about the runner.
 
