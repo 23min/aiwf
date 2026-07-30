@@ -16,10 +16,17 @@ invocations with identical arguments both exit 0, each lands its own commit, and
 `aiwf show <id> --format=json` then reports two scope records, both
 `"state": "active"`, differing only by `auth_sha`.
 
-The kernel's stated semantics are one scope per entity — the scope FSM is
-described as `active | paused | ended`, with pause and resume acting on "the
-most-recently-opened active scope," a phrasing that presumes a single active
-scope exists. Nothing observed refuses or reconciles the second open.
+Multiple simultaneously-active scopes are *not* themselves undefined.
+`docs/design/provenance-model.md` §"Multiple parallel scopes" states that a human
+may authorize the same agent for several scopes at once, and that when more than
+one active scope matches a verb "the kernel picks the *most-recently-opened*
+scope deterministically and records that one." `verb.Allow` implements exactly
+that, walking scopes in reverse insertion order and citing the rule.
+
+What is undefined is narrower: whether an **exactly-duplicate** re-grant — same
+entity, same agent, same branch — is a distinct event worth recording or a
+same-state input that should converge. Nothing refuses or reconciles it, and no
+finding reports the resulting pair.
 
 ## Why it matters
 
@@ -29,11 +36,13 @@ provenance behavior keys on the active scope — matching an agent's verbs again
 it, stamping `aiwf-on-behalf-of:` / `aiwf-authorized-by:` trailers, and deciding
 when delegated work is in or out of scope.
 
-Two active scopes make "the active scope" ambiguous, so any consumer resolving it
-is picking one by an unstated rule (order of discovery, most-recent, first
-found). If a pause then acts on only one of them, an entity can be left with a
-paused scope and a live one simultaneously — an authorization state no operator
-asked for and no finding reports.
+Resolution itself is not ambiguous — the design fixes it as most-recently-opened
+and the code follows. What the duplicate costs is elsewhere: a pause acts on one
+scope, so an entity can be left carrying a paused scope and a live one
+simultaneously, an authorization state no operator asked for and no finding
+reports. And the second grant's commit records an event that conveys nothing a
+reader can act on, which is the same audit-noise class as the duplicate records
+in G-0459.
 
 This is separate from same-state verb convergence. Making `authorize` a no-op on
 a repeat would hide the condition rather than resolve it, which is why the
