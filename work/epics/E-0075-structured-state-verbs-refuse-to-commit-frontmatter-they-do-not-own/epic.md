@@ -75,10 +75,11 @@ them:
   with `--on-collision update` rewrites existing entities; `archive` moves files.
   Each needs an explicit in-or-out call rather than inheriting the single-entity
   answer.
-- **Nested paths under a moved directory** — not only `rename`. `reallocate`,
-  `archive` and `rewidth --apply` all emit directory `OpMove`s through the same
-  helper, and each carries the identical vector; reproduced for `reallocate`. No verb
-  names the nested entities, so a guard keyed on the verb's target cannot see them.
+- **Nested paths under a moved directory** — not only `rename`. `retitle`,
+  `reallocate`, `archive` and `rewidth --apply` all emit directory `OpMove`s
+  through the same helper, and each carries the identical vector; reproduced for
+  `reallocate`. No verb names the nested entities, so a guard keyed on the verb's
+  target cannot see them.
 
 Deliberately out, so nobody re-derives it: `authorize`, `acknowledge illegal`,
 `acknowledge mistag`, and `promote` / `cancel --audit-only` write no files — they
@@ -109,8 +110,8 @@ direction for someone already running one, and it names four of the routes above
 - **A check rule for laundering already in history.** A genuine companion rather
   than an alternative: it catches what is already committed, which a precondition
   cannot, and it is the only thing that catches the nested case if the precondition
-  ends up entity-scoped. It is G-0466's third option and has no entity of its own,
-  so closing G-0466 under this epic would orphan it — file it before that happens.
+  ends up entity-scoped. It is G-0466's third option, tracked as G-0480, so
+  closing G-0466 under this epic no longer orphans it.
 - **The FSM walker's rename-plus-status blind spot.** This epic's precondition would
   incidentally mask it, but the rule stays wrong for any other route to such a
   commit. Tracked as G-0475.
@@ -139,8 +140,8 @@ direction for someone already running one, and it names four of the routes above
 - Whatever lands must not be read as fixing the FSM walker's blind spot. The
   precondition would incidentally mask it; the rule stays wrong for any other
   route to such a commit, and G-0475 stays open on its own terms.
-- The after-the-fact check rule is filed as its own entity *before* G-0466 is
-  promoted to `addressed`, or closing G-0466 orphans it.
+- G-0480 carries the after-the-fact check rule and stays open on its own terms.
+  Promoting G-0466 to `addressed` does not close it.
 - An `internal/policies/` invariant so the discipline cannot rot as new verbs
   land, mirroring what M-0281 did for same-state convergence.
 
@@ -162,8 +163,12 @@ direction for someone already running one, and it names four of the routes above
       which gets an explicit call rather than inheriting the single-entity one.
 - [ ] An `internal/policies/` invariant fails when a new frontmatter-writing
       route is added that does not pass through the precondition seam.
+- [ ] Neither failure direction of a loaded-only comparison survives: a verb no
+      longer reports "already set; nothing to change" while HEAD disagrees, and
+      no longer commits a tree byte-identical to its parent when HEAD's value is
+      the one requested.
 - [ ] An ADR records the four decisions listed in *Open questions*.
-- [ ] The after-the-fact laundering check rule exists as its own entity.
+- [ ] The after-the-fact laundering check rule exists as its own entity — G-0480.
 - [ ] G-0466 and G-0463 are promoted to `addressed`.
 
 ## Open questions
@@ -186,27 +191,32 @@ substance, not scheduling detail.
 | An entity-scoped guard ships and silently misses the nested case, which is the worst vector and the one that defeats a blocking check | high | scope is the second decision, made explicitly and before code; the after-the-fact check rule is the only backstop if the precondition ends up entity-scoped, so it is filed regardless |
 | Refusing blocks an operator workflow that currently succeeds, and the friction lands on every verb rather than the rare laundering case | medium | the third decision weighs it against the FSM escape; the fourth covers the escape hatch. `checkStagedConflict` already imposes this shape for staged edits, so the cost is bounded by observed practice |
 | The precondition incidentally masks the FSM walker's blind spot, so the walker looks fixed while staying wrong for any other route | medium | G-0475 tracked separately, stated in *Out of scope*, and stays open on its own terms |
-| G-0466 is closed under this epic and the after-the-fact rule — its third option — is orphaned with it | medium | filing that entity is a constraint and a success criterion, not a follow-up |
+| G-0466 is closed under this epic and the after-the-fact rule — its third option — is orphaned with it | medium | filed as G-0480 at milestone-planning, ahead of any promotion, so the orphaning window never opens |
 | A merge commit carrying laundered frontmatter goes unaudited, since the untrailered audit skips multi-parent non-squash merges | low | verbs cannot produce a merge commit; the after-the-fact rule is what covers this route |
 
 ## Milestones
 
-Not yet allocated; ids are assigned when `aiwfx-plan-milestones` runs. Candidate
-deliverables, in execution order:
+In execution order. The chain is linear rather than partly parallel: the seam has
+to exist before routes reach it, and the invariant would fail against unrouted
+sweeps if it landed first.
 
-- An ADR settling the four decisions in *Open questions*. Nothing else starts
-  first, and E-0074 waits on the first of them.
-- The shared precondition at the chosen seam, covering the single-entity routes.
-- The multi-entity sweeps and the nested-path case, each with its explicit
-  in-or-out call.
-- An `internal/policies/` invariant so a newly-added write route cannot bypass
-  the seam, mirroring what M-0281 did for same-state convergence.
+- **M-0282** — settle the seam, scope, verdict and escape hatch in one ADR.
+  Nothing else starts first, and E-0074 waits on the first of its decisions.
+  `tdd: none`.
+- **M-0283** — the shared precondition at the chosen seam, covering the
+  single-entity routes. Depends on M-0282. `tdd: required`.
+- **M-0284** — the nested-path vector and the multi-entity sweeps, each with its
+  explicit in-or-out call. Depends on M-0283. `tdd: required`.
+- **M-0285** — an `internal/policies/` invariant so a newly-added write route
+  cannot bypass the seam, mirroring what M-0281 did for same-state convergence.
+  Depends on M-0284. `tdd: required`.
 
 ## References
 
 - G-0466 — a verb commits frontmatter it does not own (the laundering; `high`)
 - G-0463 — `edit-body --body-file` instance of the same write-scope question
 - G-0475 — the FSM history walker skips a commit that both renames and changes status
+- G-0480 — after-the-fact detection of laundering already in history
 - ADR-0036 — same-status FSM transitions converge to NoOp, not refusal
 - E-0074 — same-state convergence remainder; waits on this epic's first decision
 - `internal/verb/apply.go` — `checkStagedConflict`, the precedent to extend
