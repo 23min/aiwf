@@ -4,8 +4,41 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
+	"slices"
 	"strings"
 )
+
+// ackedSHAsConsumers is the closed set of exported rules the CLI gather
+// layer must call with the single gather-computed ackedSHAs map. It is
+// the policy's copy of the list internal/check/acks.go enumerates in
+// WalkAcknowledgedSHAs' doc comment, and class 4f fails when the two
+// disagree — so a rule that starts reading ackedSHAs without being added
+// here and documented there cannot land silently.
+var ackedSHAsConsumers = []string{
+	"FSMHistoryConsistent",
+	"RunIsolationEscape",
+	"RunTrailerVerbUnknown",
+	"RunIDRenameUntrailered",
+	"RunOrphanedAICommits",
+	"RunPromoteOnWrongBranch",
+}
+
+// ackedSHAsBodyConsumers is the set whose bodies must actually read the
+// map (class 4d). It is ackedSHAsConsumers minus FSMHistoryConsistent's
+// forwarding chain, plus the two leaf predicates that perform the
+// per-observation lookup at the end of it — those are where the value is
+// consumed rather than passed along.
+var ackedSHAsBodyConsumers = []string{
+	"FSMHistoryConsistent",
+	"RunIsolationEscape",
+	"RunTrailerVerbUnknown",
+	"RunIDRenameUntrailered",
+	"RunOrphanedAICommits",
+	"RunPromoteOnWrongBranch",
+	"illegalTransitionFindings",
+	"forcedUntraileredFindings",
+}
 
 // PolicyAcksHelperLift pins M-0159/AC-3's structural claim that the
 // retroactive-acknowledgment SHA walker lives at a single canonical
@@ -13,18 +46,12 @@ import (
 // canonical name (WalkAcknowledgedSHAs, exported because the CLI
 // gather layer in internal/cli/check/ consumes it across the
 // package boundary), is called from a sanctioned site exactly ONCE,
-// and the resulting ackedSHAs value flows to all four named
-// consumers (fsm-history-consistent, isolation-escape,
-// trailer-verb-unknown, and id-rename-untrailered) through
-// identifier provenance — each call site's argument identifier
+// and the resulting ackedSHAs value flows to every consumer named
+// in ackedSHAsConsumers through identifier provenance — each call
+// site's argument identifier
 // must trace either to the local WalkAcknowledgedSHAs assignment
 // or to a function parameter named ackedSHAs (parameter
 // pass-through).
-//
-// M-0159/AC-3 introduced the policy with three consumers (fsm-
-// history-consistent, isolation-escape, trailer-verb-unknown).
-// M-0160/AC-4 added id-rename-untrailered as the fourth consumer;
-// the policy's closed-set map and iteration list cover all four.
 //
 // The AC's load-bearing language: "walkAcknowledgedSHAs lifted to
 // internal/check/acks.go; consumed by fsm-history-consistent,
@@ -32,8 +59,8 @@ import (
 // ackedSHAs map[string]bool parameter populated by the CLI gather
 // layer." Both halves of the claim — structural (file location,
 // identifier presence, no-duplicate, no-recompute) and
-// architectural (single-compute, four-consumer wiring with
-// traced provenance) — are policed here as one chokepoint.
+// architectural (single-compute, consumer wiring with traced
+// provenance) — are policed here as one chokepoint.
 //
 // The signature half (the consuming rules' surfaces accept
 // ackedSHAs map[string]bool) is policed by sibling behavioral
@@ -43,12 +70,12 @@ import (
 // (M-0160/AC-4) which exercise the new signatures directly and
 // fail with compile errors if the lift hasn't happened.
 //
-// Ten violation classes are surfaced (grouped 1, 2, 3a-3c, 4a-4e):
+// The violation classes are grouped 1, 2, 3a-3c, 4a-4f:
 //
 //  1. internal/check/acks.go does not exist OR exists but does not
 //     declare WalkAcknowledgedSHAs as a top-level FuncDecl. Without
-//     this the lift never landed and the four consumers cannot
-//     reach the helper as a package-shared symbol.
+//     this the lift never landed and the consumers cannot reach
+//     the helper as a package-shared symbol.
 //
 //  2. internal/check/fsm_history_consistent.go still declares
 //     walkAcknowledgedSHAs (lowercased — the pre-lift name) at the
@@ -68,9 +95,8 @@ import (
 //     accepts ackedSHAs as a parameter. Closes the "swap to the
 //     lifted symbol but keep computing internally" sabotage.
 //
-//     4a. A named consumer (FSMHistoryConsistent, RunIsolationEscape,
-//     RunTrailerVerbUnknown) is not called from internal/cli/check/
-//     at all. The four-consumer wiring is incomplete.
+//     4a. A consumer named in ackedSHAsConsumers is not called from
+//     internal/cli/check/ at all. The wiring is incomplete.
 //
 //     4b. A consumer call site does not receive an `ackedSHAs`
 //     identifier as one of its arguments. The convention-driven
@@ -101,12 +127,10 @@ import (
 //     policy layer (the behavioral tests also catch it; this is
 //     the structural backstop).
 //
-//     Consumers covered: the four named public consumers
-//     (FSMHistoryConsistent, RunIsolationEscape,
-//     RunTrailerVerbUnknown, RunIDRenameUntrailered) PLUS the two
-//     FSMHistoryConsistent-
-//     internal predicate helpers that perform the per-observation
-//     check (illegalTransitionFindings, forcedUntraileredFindings).
+//     Consumers covered: ackedSHAsBodyConsumers — the exported
+//     rules plus the two FSMHistoryConsistent-internal predicate
+//     helpers that perform the per-observation check
+//     (illegalTransitionFindings, forcedUntraileredFindings).
 //
 //     4e. A call to one of the leaf predicate helpers
 //     (illegalTransitionFindings or forcedUntraileredFindings)
@@ -124,7 +148,7 @@ import (
 //     would catch this; class 4e closes the gap at the policy
 //     layer too. The convention-driven match (must be an
 //     *ast.Ident named "ackedSHAs") mirrors class 4b's gather-
-//     side seam-contract on the four public consumers.
+//     side seam-contract on the exported consumers.
 //
 // The policy is intentionally narrow — file locations, symbol
 // names, call shape, identifier provenance at known paths. A
@@ -223,7 +247,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		}
 	}
 
-	// (3) + (4) Gather-layer single-compute + four-consumer wiring.
+	// (3) + (4) Gather-layer single-compute + consumer wiring.
 	if !hasCliCheck {
 		out = append(out, Violation{
 			Policy: "acks-helper-lift",
@@ -273,14 +297,9 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	// 3a/3b + 4*: scan internal/cli/check/ non-test files.
 	var walkCallSites []callSite
 	consumerCalledAt := map[string]callSite{}
-	consumerHits := map[string][]consumerHit{
-		"FSMHistoryConsistent":  nil,
-		"RunIsolationEscape":    nil,
-		"RunTrailerVerbUnknown": nil,
-		// M-0160/AC-4: id-rename-untrailered is the fourth consumer
-		// of the ackedSHAs map. Per-SHA closed-set scoping consistent
-		// with the M-0159/AC-3 contract.
-		"RunIDRenameUntrailered": nil,
+	consumerHits := map[string][]consumerHit{}
+	for _, name := range ackedSHAsConsumers {
+		consumerHits[name] = nil
 	}
 
 	for _, f := range cliCheckProdFiles {
@@ -489,7 +508,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		out = append(out, Violation{
 			Policy: "acks-helper-lift",
 			File:   "internal/cli/check/",
-			Detail: "M-0159/AC-3 requires the CLI gather layer to call check.WalkAcknowledgedSHAs exactly once; found zero call sites — the gather never computes ackedSHAs and the four consuming rules (M-0159/AC-3 + M-0160/AC-4) have nothing to consume",
+			Detail: "M-0159/AC-3 requires the CLI gather layer to call check.WalkAcknowledgedSHAs exactly once; found zero call sites — the gather never computes ackedSHAs and every consuming rule has nothing to consume",
 		})
 	case 1:
 		// happy path
@@ -507,13 +526,13 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	// (4a/4b/4c) Each consumer must (a) be called from the gather
 	// layer, (b) receive an ackedSHAs arg, (c) have provenance for
 	// that arg within the enclosing function.
-	for _, name := range []string{"FSMHistoryConsistent", "RunIsolationEscape", "RunTrailerVerbUnknown", "RunIDRenameUntrailered"} {
+	for _, name := range ackedSHAsConsumers {
 		hits := consumerHits[name]
 		if len(hits) == 0 {
 			out = append(out, Violation{
 				Policy: "acks-helper-lift",
 				File:   "internal/cli/check/",
-				Detail: "M-0159/AC-3 (extended at M-0160/AC-4) requires the CLI gather layer to call check." + name + " with ackedSHAs; no call site for this consumer was found in internal/cli/check/ — the AC's four-consumer wiring is incomplete",
+				Detail: "M-0159/AC-3 (extended at M-0160/AC-4) requires the CLI gather layer to call check." + name + " with ackedSHAs; no call site for this consumer was found in internal/cli/check/ — the AC's consumer wiring is incomplete",
 			})
 			continue
 		}
@@ -578,12 +597,12 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	//
 	// Both shapes are present in the green-phase implementation;
 	// either alone satisfies the policy. The check scans the
-	// internal/check/ production files (non-test) for the four
-	// named consumer FuncDecls and asserts the body has at least
-	// one consuming reference. A FuncDecl whose body is missing
-	// (interface method, nil body) is skipped — the AC's four
-	// consumers all have concrete bodies, so a nil body would be
-	// an unrelated regression already caught elsewhere.
+	// internal/check/ production files (non-test) for the
+	// ackedSHAsBodyConsumers FuncDecls and asserts the body has at
+	// least one consuming reference. A FuncDecl whose body is missing
+	// (interface method, nil body) is skipped — every consumer has a
+	// concrete body, so a nil body would be an unrelated regression
+	// already caught elsewhere.
 	consumerFiles := map[string]*FileEntry{}
 	for _, f := range checkInternalProd {
 		consumerFiles[f.Path] = f
@@ -601,12 +620,9 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	// the lookup at the predicates (not just the top-level
 	// public surface) closes the "fsmHistoryConsistentWithDeps
 	// drops the value before reaching the predicate" sabotage.
-	consumerBodySeen := map[string]bool{
-		"FSMHistoryConsistent":      false,
-		"RunIsolationEscape":        false,
-		"RunTrailerVerbUnknown":     false,
-		"illegalTransitionFindings": false,
-		"forcedUntraileredFindings": false,
+	consumerBodySeen := map[string]bool{}
+	for _, name := range ackedSHAsBodyConsumers {
+		consumerBodySeen[name] = false
 	}
 	consumerBodyDecl := map[string]bodyHit{}
 	for _, f := range checkInternalProd {
@@ -655,13 +671,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 			})
 		}
 	}
-	for _, name := range []string{
-		"FSMHistoryConsistent",
-		"RunIsolationEscape",
-		"RunTrailerVerbUnknown",
-		"illegalTransitionFindings",
-		"forcedUntraileredFindings",
-	} {
+	for _, name := range ackedSHAsBodyConsumers {
 		if consumerBodySeen[name] {
 			continue
 		}
@@ -669,7 +679,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		if !declared {
 			// The consumer doesn't have a FuncDecl in
 			// internal/check/. Either renamed or missing —
-			// class (4a) already flags the four public
+			// class (4a) already flags the exported
 			// surfaces from the gather side; for the two
 			// internal predicate helpers a missing FuncDecl
 			// is unusual but not a separate AC-policed
@@ -734,6 +744,16 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 		})
 	}
 
+	// (4f) The consumer list is stated in two places — this policy's
+	// ackedSHAsConsumers and WalkAcknowledgedSHAs' doc comment in
+	// internal/check/acks.go — and a reader trusts the prose. Assert
+	// they agree in both directions: every policed consumer is named in
+	// the doc, and every function that reads `ackedSHAs[...]` anywhere in
+	// internal/check/ is policed. The second direction is what makes the
+	// count self-maintaining; without it a new rule can consume the map
+	// while the doc and this list both keep describing the old set.
+	out = append(out, policeConsumerListAgreement(acksFile, checkInternalProd)...)
+
 	// G-0239: extend the same single-compute / one-consumer / no-rule-
 	// internal-recompute contract to WalkAcknowledgedSHAEntities — the
 	// per-(SHA, entity) ack walker added by G-0231 item 3 and consumed
@@ -745,6 +765,108 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	out = append(out, entViolations...)
 
 	return out, nil
+}
+
+// policeConsumerListAgreement implements class 4f: the ackedSHAs consumer
+// set is enumerated both here (ackedSHAsConsumers) and in prose in
+// internal/check/acks.go, and the two must not drift apart.
+//
+// Direction 1 — every policed consumer is named in WalkAcknowledgedSHAs'
+// doc comment, so the prose a reader trusts cannot understate the set.
+//
+// Direction 2 — every function in internal/check/ whose body indexes
+// `ackedSHAs[...]` is in ackedSHAsBodyConsumers. This is the direction
+// that makes the list self-maintaining: a new rule that starts consuming
+// the map fails here until it is added to both lists, rather than sitting
+// unpoliced behind a doc comment that still describes the old set.
+func policeConsumerListAgreement(acksFile *FileEntry, checkInternalProd []*FileEntry) []Violation {
+	var out []Violation
+	if acksFile == nil {
+		return nil // class 1 already reports the missing file.
+	}
+
+	// Direction 1: the doc comment must name each policed consumer.
+	// Scoped to WalkAcknowledgedSHAs' own doc so a stray mention
+	// elsewhere in the file does not satisfy the requirement.
+	fset := token.NewFileSet()
+	astFile, perr := parser.ParseFile(fset, acksFile.AbsPath, acksFile.Contents, parser.ParseComments)
+	if perr != nil {
+		//coverage:ignore defensive: acks.go parses in every earlier class of this policy; reaching here needs the file to become invalid Go mid-run
+		return nil
+	}
+	var walkerDoc string
+	for _, decl := range astFile.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Recv != nil || fn.Name.Name != "WalkAcknowledgedSHAs" {
+			continue
+		}
+		if fn.Doc != nil {
+			walkerDoc = fn.Doc.Text()
+		}
+		break
+	}
+	// The doc enumerates both sets, so require every name from either.
+	documented := map[string]bool{}
+	for _, name := range ackedSHAsConsumers {
+		documented[name] = true
+	}
+	for _, name := range ackedSHAsBodyConsumers {
+		documented[name] = true
+	}
+	for _, name := range slices.Sorted(maps.Keys(documented)) {
+		if strings.Contains(walkerDoc, name) {
+			continue
+		}
+		out = append(out, Violation{
+			Policy: "acks-helper-lift",
+			File:   "internal/check/acks.go",
+			Detail: "M-0159/AC-3 class 4f: " + name + " consumes the gather-computed ackedSHAs map and is policed by ackedSHAsConsumers, but WalkAcknowledgedSHAs' doc comment does not name it — that doc is the single place the consumer set is enumerated for readers, so add it there in the same commit",
+		})
+	}
+
+	// Direction 2: every ackedSHAs[...] reader in internal/check/ is
+	// policed. Attribute each IndexExpr to its enclosing top-level
+	// FuncDecl.
+	policed := map[string]bool{}
+	for _, name := range ackedSHAsBodyConsumers {
+		policed[name] = true
+	}
+	for _, f := range checkInternalProd {
+		ffset := token.NewFileSet()
+		fileAST, err := parser.ParseFile(ffset, f.AbsPath, f.Contents, parser.AllErrors)
+		if err != nil {
+			//coverage:ignore defensive: WalkGoFiles yields parseable production files; every earlier class parses the same set
+			continue
+		}
+		for _, decl := range fileAST.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil || policed[fn.Name.Name] {
+				continue
+			}
+			reads := false
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				idx, ok := n.(*ast.IndexExpr)
+				if !ok {
+					return true
+				}
+				if id, ok := idx.X.(*ast.Ident); ok && id.Name == "ackedSHAs" {
+					reads = true
+					return false
+				}
+				return true
+			})
+			if !reads {
+				continue
+			}
+			out = append(out, Violation{
+				Policy: "acks-helper-lift",
+				File:   f.Path,
+				Line:   ffset.Position(fn.Pos()).Line,
+				Detail: "M-0159/AC-3 class 4f: " + fn.Name.Name + " reads the ackedSHAs map but is not in ackedSHAsBodyConsumers, so none of the wiring classes (4a-4d) police it — a call site that drops the gather-computed value here would silently stop silencing acknowledged commits; add it to both consumer lists in internal/policies/acks_helper_lift.go and to WalkAcknowledgedSHAs' doc comment",
+			})
+		}
+	}
+	return out
 }
 
 // policeEntitiesWalkerSingleCompute extends the acks-helper-lift
@@ -771,9 +893,10 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 //	    rule recomputing the map internally defeats the single-compute
 //	    claim.
 //
-// Unlike WalkAcknowledgedSHAs (four consumers), the entities walker has
-// a SINGLE consumer inside the gather flow (RunProvenanceCheck), so the
-// four-consumer provenance-wiring classes (4a-4e) do not apply here; the
+// Unlike WalkAcknowledgedSHAs, whose consumers are enumerated in
+// ackedSHAsConsumers, the entities walker has a SINGLE consumer inside
+// the gather flow (RunProvenanceCheck), so the provenance-wiring
+// classes (4a-4f) do not apply here; the
 // parameter flow into RunProvenanceCheck is policed by that rule's
 // behavioral ack tests.
 //

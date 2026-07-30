@@ -14,22 +14,35 @@ import (
 // where it originally landed for M-0136/AC-2 alongside
 // illegalTransitionFindings; now exposed as an exported package
 // symbol so the CLI gather layer in internal/cli/check/ can call
-// it once per check invocation and pass the resulting map to all
-// four rules that consume it (fsm-history-consistent,
-// isolation-escape, trailer-verb-unknown, id-rename-untrailered;
-// the fourth added at M-0160/AC-4).
+// it once per check invocation and pass the resulting map to every
+// rule that consumes it. WalkAcknowledgedSHAs' own doc comment
+// below carries the consumer list; it is the single place that
+// enumerates them, so a new consumer is added there and nowhere
+// else.
 //
-// The single-compute invariant is policed by
-// internal/policies/acks_helper_lift.go.
+// The single-compute invariant and the consumer list are both
+// policed by internal/policies/acks_helper_lift.go.
 
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. Seven SHA-scoped rules consume it —
+// returns the set of target SHAs. Consumers exempt commits that have
+// been retroactively acknowledged via `aiwf acknowledge illegal`, and
+// fall into two sets the policy tracks separately because they are
+// different things.
+//
+// The gather layer passes the map to these exported rules:
+// FSMHistoryConsistent, RunIsolationEscape, RunTrailerVerbUnknown,
+// RunIDRenameUntrailered (M-0160/AC-4), RunOrphanedAICommits and
+// RunPromoteOnWrongBranch.
+//
+// These functions read `ackedSHAs[...]` directly:
 // illegalTransitionFindings, forcedUntraileredFindings,
 // RunIsolationEscape, RunOrphanedAICommits, RunPromoteOnWrongBranch,
-// RunTrailerVerbUnknown and RunIDRenameUntrailered (M-0160/AC-4) — to
-// exempt commits that have been retroactively acknowledged via
-// `aiwf acknowledge illegal`. The verb consumes it too, to recognize
+// RunTrailerVerbUnknown and RunIDRenameUntrailered. The two sets differ
+// by FSMHistoryConsistent, which forwards the map down its own chain to
+// the two leaf predicates rather than indexing it itself.
+//
+// The verb consumes the walker too, to recognize
 // a SHA it has already acknowledged and converge rather than append a
 // duplicate record, so the verb's notion of "already acknowledged"
 // is the rules' notion by construction rather than by agreement.
@@ -54,11 +67,11 @@ import (
 //
 // AC-3 caller convention: the CLI gather layer at
 // internal/cli/check/check.go::Run calls this exactly once and
-// passes the result to all four downstream rules through a
-// uniformly-named ackedSHAs parameter (id-rename-untrailered
-// added at M-0160/AC-4 as the fourth consumer). Rule-internal
-// recomputes are forbidden by PolicyAcksHelperLift (violation
-// class 3c).
+// passes the result to every downstream rule listed above through
+// a uniformly-named ackedSHAs parameter. Rule-internal recomputes
+// are forbidden by PolicyAcksHelperLift (violation class 3c),
+// which also pins the consumer list itself, so a rule that starts
+// reading ackedSHAs without being named above fails the policy.
 //
 // M-0216/AC-5: derives from the shared HEAD walk (head) instead of
 // spawning its own `git log HEAD` — the CLI gather layer computes
