@@ -83,7 +83,9 @@ make lint                        # linters (worktree-scoped cache; bare `golangc
 go build -o /tmp/aiwf ./cmd/aiwf # binary builds
 ```
 
-`make check-fast` bundles the first two plus `go vet` for the inner loop; `make ci` runs the full CI-parity gate (race, coverage, self-check). CI runs the full gate on every push.
+`make check-fast` bundles the first two plus `go vet` for the inner loop; `make ci` runs the full CI-parity gate (race, coverage, the profile-driven gates, self-check). CI runs the full gate on every push.
+
+The profile-driven gates — the diff-scoped coverage audit chief among them — run inside `make ci` off the profile `test-cov` just built, so they cost seconds rather than the second instrumented suite run `make coverage-gate` pays for. That second run is never served from the test cache: every `go test` in the Makefile passes `-exec=$(TEST_EXEC)` (the Darwin-signing wrapper), and `-exec` is outside the cacheable flag set `go help test` defines — the coverage flags themselves are all cacheable. The gates diff the **working tree** against the base, not `HEAD`, which is what lets `make ci` gate a change before the commit that carries it.
 
 **Local validation cadence.** `make ci` gates the *integration boundaries* (the epic→main merge and the push); it need **not** run before every local commit:
 
@@ -178,7 +180,7 @@ When diagnosing `aiwf`'s own behavior against a worktree with uncommitted/unmerg
 
 Rituals (`aiwfx-*` / `wf-*` skills, agents, templates) are **authored directly** at `internal/skills/embedded-rituals/plugins/<plugin>/skills/<skill>/SKILL.md`, embedded via `go:embed`, and materialized into consumers' `.claude/` by `aiwf init` / `aiwf update` (ADR-0014). A ritual edit is one commit here — no cross-repo coordination. The upstream `23min/ai-workflow-rituals` repo is archived (ADR-0016); the embedded snapshot IS the single source of truth. When a milestone's deliverable is ritual content, the authoring location is the embedded snapshot itself, and AC tests under `internal/policies/` assert against the embedded bytes via path constants.
 
-**Every embedded-rituals `SKILL.md` edit must land alongside a referencing structural test under `internal/policies/`.** This is mechanical, not vigilance: the `skill-edit-structural-test-backstop` policy fails the CI coverage-gate step when a commit modifies a `SKILL.md` under `internal/skills/embedded-rituals/**` whose path no `internal/policies/*_test.go` references. It's diff-scoped and CI-tier (the property is an aiwf-repo invariant, meaningless in a consumer tree). v1 granularity is file-existence + skill-reference.
+**Every embedded-rituals `SKILL.md` edit must land alongside a referencing structural test under `internal/policies/`.** This is mechanical, not vigilance: the `skill-edit-structural-test-backstop` policy fails the profile-driven gate step when a `SKILL.md` under `internal/skills/embedded-rituals/**` is added or modified and no `internal/policies/*_test.go` references its path. It's diff-scoped against the working tree, so an uncommitted or still-untracked skill counts, and it runs in `make ci` as well as CI (the property is an aiwf-repo invariant, meaningless in a consumer tree). v1 granularity is file-existence + skill-reference.
 
 ---
 
@@ -256,8 +258,8 @@ Presence chokepoint: `internal/policies/test_setup_presence.go` (AST walk of `in
 
 High coverage on `internal/...` (PoC target 90%; total-coverage check advisory). Exclusions: `cmd/aiwf/main.go` (integration-tested), generated code, `//coverage:ignore <reason>` lines.
 
-- **Diff-scoped coverage gate.** Every statement on a line changed since the base ref must be tested or `//coverage:ignore`'d — an untested changed branch fails CI naming the `file:line`. Engine: `internal/policies/branch_coverage_audit.go`; run locally with `make coverage-gate` (compares committed `HEAD` to the merge-base, so commit first). It's *statement* coverage with the ignore-escape, not true per-arm branch coverage.
-- **Firing-fixture meta-gate.** Every policy's `Policy: "<id>"` construction line must be covered by some test (no vacuous chokepoints), else it fails unless its id is in the shrinking `grandfatherDark` ledger. Engine: `internal/policies/firing_fixture_presence.go`; runs with `make coverage-gate`. Fail-closed if the profile carries no `internal/policies` blocks.
+- **Diff-scoped coverage gate.** Every statement on a line changed since the base ref must be tested or `//coverage:ignore`'d — an untested changed branch names the `file:line`. Engine: `internal/policies/branch_coverage_audit.go`; runs inside `make ci`, and standalone via `make coverage-gate` (which builds its own profile). It compares the base against the **working tree**, so uncommitted edits and untracked `.go` files are in scope and you need not commit first. Once a merge has landed the default base resolves to `HEAD`; name the landed range with `AIWF_COVERAGE_BASE=<ref> make coverage-gate`. It's *statement* coverage with the ignore-escape, not true per-arm branch coverage. One asymmetry to know: CI builds its profile with `-tags testpins` and `make test-cov` does not, so a statement reached only by a `testpins`-gated test reads as uncovered locally while CI sees it covered — local red, CI green.
+- **Firing-fixture meta-gate.** Every policy's `Policy: "<id>"` construction line must be covered by some test (no vacuous chokepoints), else it fails unless its id is in the shrinking `grandfatherDark` ledger. Engine: `internal/policies/firing_fixture_presence.go`; runs with `make ci` / `make coverage-gate`. Fail-closed if the profile carries no `internal/policies` blocks.
 - **Beyond line coverage.** Fuzz targets (`Fuzz*` in `internal/{entity,gitops,version,pathutil}/`, full runs on the `fuzz` workflow); property tests (`internal/entity/transition_property_test.go` + `PolicyFSMInvariants`); mutation testing (`mutate-hunt`, workflow_dispatch only, `--workers 1 --timeout-coefficient 15`; ignore equivalent-mutant / unreachable-branch noise).
 
 ### Error handling

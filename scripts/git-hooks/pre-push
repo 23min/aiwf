@@ -60,7 +60,16 @@
 # expression as `make coverage-gate`, so local and CI agree on what
 # is in scope; that base is a superset of the pushed range on a
 # branch pushed more than once, which at worst re-reports an
-# offender you already own. Costs a couple of seconds — an
+# offender you already own. The scan diffs that base against the
+# working tree, so it inherits both halves of the lint gate's
+# approximation above: on a dirty tree it can report a comment the
+# pushed commits do not carry, and a tree-side fix can mask an
+# offender that is inside them (CI, which scans the pushed sha,
+# remains the backstop). On the clean tree a push normally runs from,
+# working tree and HEAD are the same tree and neither case arises.
+# Untracked files stay out of scope here — that widening belongs to
+# the coverage audit alone, so a scratch .go file cannot block a push.
+# Costs a couple of seconds — an
 # incremental rebuild of one test package, well under the lint run
 # it follows.
 #

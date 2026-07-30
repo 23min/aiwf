@@ -30,9 +30,9 @@ import (
 // ref from the environment so it keeps the uniform `func(root)
 // ([]Violation, error)` shape the runPolicy harness drives:
 //
-//   - AIWF_COVERAGE_BASE — the git ref to diff HEAD against. An empty or
-//     all-zero value (the default in the broad `go test ./...` job, and a
-//     brand-new branch's github.event.before) means "no comparison point"
+//   - AIWF_COVERAGE_BASE — the git ref to diff the working tree against.
+//     An empty or all-zero value (the default in the broad `go test ./...`
+//     job, and a brand-new branch's github.event.before) means "no comparison point"
 //     and the audit no-ops. The authoritative invocation is the dedicated
 //     CI coverage-gate step and `make coverage-gate`, both of which set it.
 //
@@ -51,7 +51,8 @@ func PolicySkillEditStructuralTestBackstop(root string) ([]Violation, error) {
 const skillRitualsDir = "internal/skills/embedded-rituals"
 
 // skillEditBackstopViolations is the testable IO core: it resolves the
-// changed embedded-rituals SKILL.md paths between baseRef and HEAD, scans
+// changed embedded-rituals SKILL.md paths between baseRef and the working
+// tree (untracked ones included), scans
 // the policy test sources for path references, and delegates the per-path
 // decision to detectUnbackedSkillEdits.
 func skillEditBackstopViolations(root, baseRef string) ([]Violation, error) {
@@ -95,14 +96,47 @@ func detectUnbackedSkillEdits(changedSkillPaths []string, policyTestSources stri
 }
 
 // changedSkillFiles returns the embedded-rituals SKILL.md paths added or
-// modified between baseRef and HEAD, sorted for deterministic output.
-// Deletions (--diff-filter excludes D) don't need a backstop test.
+// modified between baseRef and the working tree, sorted for deterministic
+// output. Deletions (--diff-filter excludes D) don't need a backstop test.
+//
+// The comparison target is the working tree, matching the coverage audit
+// and the comment scan: `make ci` runs this gate before the ritual's
+// commit step, so a HEAD-scoped diff would report green on an edit that
+// has not been committed yet — vacuous at exactly the moment it is asked.
+// Where the tree is clean, working tree and HEAD are the same tree.
+// An untracked skill file is listed separately, because `git diff`
+// cannot see one at any revision — and a ritual skill that has just been
+// written is exactly the case the backstop exists for.
 func changedSkillFiles(root, baseRef string) ([]string, error) {
-	cmd := exec.Command("git", "diff", "--name-only", "--diff-filter=AM", baseRef, "HEAD", "--", skillRitualsDir)
+	diffed, err := gitSkillPaths(root, "diff", "--name-only", "--diff-filter=AM", baseRef, "--", skillRitualsDir)
+	if err != nil {
+		return nil, err
+	}
+	untracked, err := gitSkillPaths(root, "ls-files", "--others", "--exclude-standard", "--", skillRitualsDir)
+	if err != nil {
+		return nil, err //coverage:ignore unreachable in practice: the diff above already ran git against this same repo, and ls-files takes no ref that could be invalid
+	}
+
+	// The lists cannot overlap: --diff-filter=AM drops deletions, and a
+	// path that ls-files reports as untracked is absent from the index,
+	// so the diff can only carry it as one.
+	paths := make([]string, 0, len(diffed)+len(untracked))
+	paths = append(paths, diffed...)
+	paths = append(paths, untracked...)
+	sort.Strings(paths)
+	return paths, nil
+}
+
+// gitSkillPaths runs a git command that emits one path per line and keeps
+// the SKILL.md entries, slash-normalized.
+func gitSkillPaths(root string, args ...string) ([]string, error) {
+	cmd := exec.Command("git", args...)
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("git diff %s..HEAD in %s: %w\n%s", baseRef, root, err, out)
+		// The whole argv, not just the subcommand: an unresolvable base
+		// ref is the realistic failure and it is only visible there.
+		return nil, fmt.Errorf("git %s in %s: %w\n%s", strings.Join(args, " "), root, err, out)
 	}
 	var paths []string
 	for _, line := range strings.Split(string(out), "\n") {
@@ -112,7 +146,6 @@ func changedSkillFiles(root, baseRef string) ([]string, error) {
 		}
 		paths = append(paths, filepath.ToSlash(line))
 	}
-	sort.Strings(paths)
 	return paths, nil
 }
 

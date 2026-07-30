@@ -32,7 +32,7 @@ import (
 // it is diff-scoped and reads its base ref from the environment, keeping the
 // uniform func(root) ([]Violation, error) shape the runPolicy harness drives:
 //
-//   - AIWF_COVERAGE_BASE — the git ref to diff HEAD against. An empty or
+//   - AIWF_COVERAGE_BASE — the git ref to diff the working tree against. An empty or
 //     all-zero value (the default in the broad `go test ./...` job, and a
 //     brand-new branch's github.event.before) means "no comparison point"
 //     and the audit no-ops. The authoritative invocations are the dedicated
@@ -42,8 +42,9 @@ import (
 // blocks a change — which is what makes the rule adoptable on a tree that
 // already carries the pattern in a few hundred places.
 //
-// Both authoritative invocations compare committed HEAD to the merge-base,
-// which is why the scan parses the working-tree file: at those call sites it
+// The diff is taken against the working tree, which is the tree the scan
+// then parses, so a reported line number always points at the text it
+// names. Where the tree is clean — CI, and the push boundary — that tree
 // is HEAD. This matches PolicyBranchCoverageAudit's readSourceLines.
 func PolicyCommentHistoryAttrition(root string) ([]Violation, error) {
 	return commentHistoryViolations(root, strings.TrimSpace(os.Getenv("AIWF_COVERAGE_BASE")))
@@ -134,9 +135,10 @@ type commentLine struct {
 }
 
 // commentHistoryViolations is the testable IO core: it resolves the changed
-// Go lines between baseRef and HEAD, parses each touched file for the
-// comment text on those lines, and delegates the decision to the pure
-// detector.
+// Go lines between baseRef and the working tree, parses each touched file
+// for the comment text on those lines, and delegates the decision to the
+// pure detector. Reading the same tree the diff is taken against is what
+// keeps the reported line numbers pointing at the text they name.
 func commentHistoryViolations(root, baseRef string) ([]Violation, error) {
 	baseRef = strings.TrimSpace(baseRef)
 	if baseRef == "" || baseRef == zeroSHA {

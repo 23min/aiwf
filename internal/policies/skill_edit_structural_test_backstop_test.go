@@ -168,6 +168,51 @@ func TestSkillEditBackstopViolations_Seam(t *testing.T) {
 	}
 }
 
+// TestSkillEditBackstopViolations_ScopeIsTheWorkingTree pins that an
+// uncommitted SKILL.md edit is in scope, in both shapes it can take.
+// `make ci` runs this gate before the ritual's commit step, so scoping the
+// diff to HEAD would report green on precisely the edit the operator is
+// asking about — and a brand-new skill is invisible to `git diff` at any
+// revision until it is at least staged.
+func TestSkillEditBackstopViolations_ScopeIsTheWorkingTree(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		tracked bool // does the skill exist in the base commit?
+	}{
+		{name: "modified tracked skill, uncommitted", tracked: true},
+		{name: "brand-new untracked skill", tracked: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, runGit, writeFile, baseSHA := skillFixtureBase(t)
+			if tt.tracked {
+				writeFile(seamSkillRel, "# fictional seam skill\n\noriginal content\n")
+				runGit("add", "-A")
+				runGit("commit", "-m", "seed the skill")
+				baseSHA = trimLine(runGit("rev-parse", "HEAD"))
+			}
+
+			// Written into the working tree and never committed, with no
+			// policies test referencing the path.
+			writeFile(seamSkillRel, "# fictional seam skill\n\nprescriptive content\n")
+			writeFile("internal/policies/seam_test.go", "package policies\n\n// references no skill path\n")
+
+			vs, err := skillEditBackstopViolations(root, baseSHA)
+			if err != nil {
+				t.Fatalf("skillEditBackstopViolations: %v", err)
+			}
+			want := []string{seamSkillRel}
+			if got := violationFiles(vs); !equalStrings(got, want) {
+				t.Errorf("violation files = %v, want %v (an uncommitted skill edit must be in scope)", got, want)
+			}
+		})
+	}
+}
+
 // TestSkillEditBackstopViolations_BaseUnresolvable confirms the gate
 // no-ops on an empty or all-zero base ref (AC-3: inert without a base) —
 // the broad `go test ./...` job and a brand-new branch's all-zero
