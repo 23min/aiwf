@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: ADR records whether an escape hatch exists and what it costs
       status: open
+    - id: AC-5
+      title: ADR records whether the guard compares frontmatter only or the whole file
+      status: open
 ---
 
 ## Goal
@@ -97,6 +100,8 @@ several distinct things across the CLI.
 Evidence: a structural assertion that `## Decision` records whether a hatch
 exists; where one does, that the same section names the flag and the
 completion-wiring obligation it incurs.
+
+### AC-5 — ADR records whether the guard compares frontmatter only or the whole file
 
 ## Constraints
 
