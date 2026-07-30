@@ -124,8 +124,10 @@ func isMeaningfulNonASCII(r rune) bool {
 // operator at `--body-file` for elaboration that doesn't belong in
 // the title.
 //
-// A non-positive maxLength is a no-op (validation always passes), so
-// callers in tests or paths that don't thread a config can pass 0.
+// A non-positive maxLength disables the length cap only. The
+// single-line shape check below runs regardless, so a caller that
+// passes 0 to opt out of cap policy still gets a title it can write
+// into a YAML scalar, a body H1, and a commit subject.
 //
 // The same cap also applies to slugs (see ValidateSlug) — title and
 // slug share a length budget so on-disk filenames and frontmatter

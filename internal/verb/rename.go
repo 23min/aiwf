@@ -44,7 +44,7 @@ import (
 func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMaxLength int) (*Result, error) {
 	_ = ctx
 	if entity.IsCompositeID(id) {
-		return renameAC(t, id, newSlug, actor)
+		return renameAC(t, id, newSlug, actor, slugMaxLength)
 	}
 	e := t.ByID(id)
 	if e == nil {

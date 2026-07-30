@@ -39,7 +39,11 @@ An entity already at a terminal status is already disposed, so a re-run reports
 that status at exit 0 and commits nothing. Cancel's target is a terminal
 end-state rather than one specific status, so an entity that reached a terminal
 by another path — a done epic, an addressed gap — converges too. Convergence
-holds even under --force: there is no diff for a sovereign override to re-apply.`,
+holds even under --force: there is no diff for a sovereign override to re-apply.
+
+--audit-only is the exception, by design. It records a transition that already
+happened, so it commits precisely in the state the other paths converge on, and
+requires the entity to be at the terminal-cancel target already.`,
 		Example: `  # Cancel an in-flight epic with a rationale
   aiwf cancel E-01 --reason "scope absorbed into E-02"`,
 		Args:          cobra.ExactArgs(1),

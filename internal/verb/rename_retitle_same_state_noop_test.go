@@ -258,6 +258,34 @@ func TestRetitle_TitleWithDollarToken_SurvivesTheH1Rewrite(t *testing.T) {
 					got, "# E-0001 — "+tc.title)
 			}
 		})
+		t.Run(tc.name+", retitling to it", func(t *testing.T) {
+			t.Parallel()
+			// The converging case above never applies a plan, so it cannot see
+			// a mangled replacement — it reads back the H1 the fixture wrote.
+			// This drives the write itself: the token has to survive landing in
+			// the heading, which is where `$`-expansion actually corrupts it.
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Placeholder title", testActor, verb.AddOptions{}))
+			writeEntityH1(r.t, r, "E-0001", "# E-0001 — Placeholder title")
+
+			res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", tc.title, testActor, "", 0)
+			if err != nil {
+				t.Fatalf("retitle to a $-bearing title: %v", err)
+			}
+			if res.NoOp {
+				t.Fatal("res.NoOp = true, want a real retitle — the title changed")
+			}
+			if res.Plan == nil {
+				t.Fatal("res.Plan = nil, want a plan writing the new H1")
+			}
+			if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+				t.Fatalf("apply: %v", applyErr)
+			}
+			if got := readEntityBody(t, r, "E-0001"); !strings.Contains(got, "# E-0001 — "+tc.title) {
+				t.Errorf("the $-token did not survive the H1 write.\n got: %q\nwant it to contain: %q",
+					got, "# E-0001 — "+tc.title)
+			}
+		})
 	}
 }
 
@@ -417,26 +445,46 @@ func TestRetitleAndRename_LineBreakTitle_Refused(t *testing.T) {
 
 	t.Run("retitle an entity", func(t *testing.T) {
 		t.Parallel()
-		if _, err := verb.Retitle(r.ctx, r.tree(), "E-0001", bad, testActor, "", 0); err == nil {
-			t.Error("retitle accepted a title containing a line break, want a refusal")
+		_, err := verb.Retitle(r.ctx, r.tree(), "E-0001", bad, testActor, "", 0)
+		if err == nil {
+			t.Fatal("retitle accepted a title containing a line break, want a refusal")
+		}
+		if !strings.Contains(err.Error(), "line break") {
+			t.Errorf("retitle refused for the wrong reason: %v", err)
 		}
 	})
 	t.Run("retitle an AC", func(t *testing.T) {
 		t.Parallel()
-		if _, err := verb.Retitle(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, "", 0); err == nil {
-			t.Error("retitle accepted an AC title containing a line break, want a refusal")
+		_, err := verb.Retitle(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, "", 0)
+		if err == nil {
+			t.Fatal("retitle accepted an AC title containing a line break, want a refusal")
+		}
+		if !strings.Contains(err.Error(), "line break") {
+			t.Errorf("retitle on an AC refused for the wrong reason: %v", err)
 		}
 	})
 	t.Run("rename an AC", func(t *testing.T) {
 		t.Parallel()
-		if _, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, 0); err == nil {
-			t.Error("rename accepted an AC title containing a line break, want a refusal")
+		_, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, 0)
+		if err == nil {
+			t.Fatal("rename accepted an AC title containing a line break, want a refusal")
+		}
+		if !strings.Contains(err.Error(), "line break") {
+			t.Errorf("rename on an AC refused for the wrong reason: %v", err)
 		}
 	})
 	t.Run("add an entity", func(t *testing.T) {
 		t.Parallel()
-		if _, err := verb.Add(r.ctx, r.tree(), entity.KindGap, bad, testActor, verb.AddOptions{}); err == nil {
-			t.Error("add accepted a title containing a line break, want a refusal")
+		// KindEpic, not KindGap: a gap is born-complete (G-0326), so creating
+		// one with no body is refused for that reason alone and the assertion
+		// would hold whether or not the title was ever inspected. Asserting on
+		// the message closes the same gap from the other side.
+		_, err := verb.Add(r.ctx, r.tree(), entity.KindEpic, bad, testActor, verb.AddOptions{})
+		if err == nil {
+			t.Fatal("add accepted a title containing a line break, want a refusal")
+		}
+		if !strings.Contains(err.Error(), "line break") {
+			t.Errorf("add refused for the wrong reason: %v", err)
 		}
 	})
 }

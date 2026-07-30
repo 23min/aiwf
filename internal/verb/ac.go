@@ -295,17 +295,20 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 // renameAC handles `aiwf rename M-NNN/AC-N "<new-title>"`. Updates
 // the AC's title in the milestone's frontmatter and rewrites the
 // matching `### AC-<N>` body heading. One commit, no path change.
-func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error) {
+func renameAC(t *tree.Tree, compositeID, newTitle, actor string, maxLength int) (*Result, error) {
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("rename: new title is empty")
 	}
 	// Rename dispatches here before its own validation, because the second
-	// positional argument is a slug for an entity and a title for an AC. The
-	// shape check has to happen on this side of that split: an AC title reaches
-	// a line-anchored `### AC-N — <title>` heading rewrite, which a line break
-	// breaks the same way it breaks an entity H1. Cap policy stays with the
-	// caller (0 = no cap), matching how Retitle passes it through.
-	if err := entity.ValidateTitle(newTitle, 0); err != nil {
+	// positional argument is a slug for an entity and a title for an AC. Both
+	// halves of title policy therefore have to run on this side of that split.
+	// The shape check matters because an AC title reaches a line-anchored
+	// `### AC-N — <title>` heading rewrite, which a line break breaks the same
+	// way it breaks an entity H1. The cap matters because retitle's AC path is
+	// capped, and the two verbs name the same field: maxLength arrives as
+	// Rename's slugMaxLength, which is the same `entities.title_max_length`
+	// budget titles and slugs share.
+	if err := entity.ValidateTitle(newTitle, maxLength); err != nil {
 		return nil, err
 	}
 	parent, ac, err := lookupAC(t, compositeID)

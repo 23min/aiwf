@@ -35,6 +35,19 @@ section in this file.
 - `aiwf rename-area <name> <name>` now validates the area before converging, so
   an undeclared name is still refused rather than reported as already renamed.
 
+### Changed — titles are validated as a single line
+
+- A title containing a line break is now refused by `aiwf add`, `aiwf retitle`,
+  `aiwf rename` (on an AC) and `aiwf import`, rather than accepted. A title
+  becomes a one-line YAML scalar, a `# <id> — <title>` body H1, and a commit
+  subject, and an embedded newline splits the heading so each subsequent
+  `retitle` appended the remainder again — a repeat that never converged and
+  that `aiwf check` did not report. Put multi-line detail in the entity body
+  (`--body` / `--body-file` at create time, `aiwf edit-body` after).
+- `aiwf rename` on an AC now applies the same `entities.title_max_length` cap
+  `aiwf retitle` applies. The two verbs set the same field, so a title accepted
+  by one and refused by the other was a uniformity gap.
+
 ### Changed — G-0228: typed `Status` enum in `internal/entity`
 
 - Internal refactor, no user-visible change — YAML frontmatter, `--format=json`
