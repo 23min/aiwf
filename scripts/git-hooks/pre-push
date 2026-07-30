@@ -65,13 +65,12 @@
 # approximation above: on a dirty tree it can report a comment the
 # pushed commits do not carry, and a tree-side fix can mask an
 # offender that is inside them (CI, which scans the pushed sha,
-# remains the backstop). On the clean tree a push normally runs from,
-# working tree and HEAD are the same tree and neither case arises.
-# Untracked files stay out of scope here — that widening belongs to
-# the coverage audit alone, so a scratch .go file cannot block a push.
-# Costs a couple of seconds — an
-# incremental rebuild of one test package, well under the lint run
-# it follows.
+# remains the backstop). On the clean tree a push normally runs
+# from, working tree and HEAD are the same tree and neither case
+# arises. Untracked files stay out of scope here — that widening
+# belongs to the coverage audit alone, so a scratch .go file cannot
+# block a push. Costs a couple of seconds — an incremental rebuild
+# of one test package, well under the lint run it follows.
 #
 # Test overrides: AIWF_PREPUSH_LINT_CMD replaces the lint command
 # (default: "golangci-lint run"), AIWF_PREPUSH_GITLEAKS_CMD replaces
