@@ -1028,3 +1028,130 @@ G-0230, narrowed to its NoOp-convergence half.
 |---|---|---|
 | M-0281 | Same-state mutating-verb inputs return NoOp | done |
 
+## E-0074 — Event-shaped verbs converge: close the six OPEN NoOp allowlist entries (proposed)
+
+### Goal
+
+Finish the same-state convergence M-0281 started. That milestone converged twelve
+operator-facing verbs and shipped
+`internal/policies/verb_result_noop_invariant.go` to keep the convention from
+rotting — but it left six allowlist entries marked OPEN, each an explicit IOU
+rather than a by-design exemption. The policy therefore claims a discipline it
+does not yet enforce everywhere, which is the same half-rolled-out condition
+M-0281 was itself filed against.
+
+Definition of done is **zero OPEN entries in that allowlist** — but nothing asserts
+that today: the allowlist's `Reason` strings are read by no test, so "no OPEN
+entries" is currently a grep over a comment. Making the bar real is part of this
+epic's scope, not a precondition it inherits. And an entry rewritten with a
+by-design reason rather than a NoOp assertion changes no behavior and adds no test,
+so the rewrite branch needs its own evidence bar to satisfy the
+mechanical-evidence rule.
+
+Addresses G-0458, G-0459 and G-0460.
+
+_No milestones yet._
+
+## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (proposed)
+
+### Goal
+
+Stop a mutating verb from committing frontmatter it does not own.
+
+Two distinct mechanisms produce this, and a guard that closes one leaves the other
+open.
+
+**Serializing verbs** read the entity from the loaded tree, re-serialize the whole
+frontmatter, and commit. Nothing compares that frontmatter against HEAD first, so a
+hand-edited field rides into the next verb's commit under that verb's trailer.
+Measured: a gap's priority set to `high` through `aiwf set-priority`, hand-edited to
+`low`, then `aiwf retitle` run — the retitle commit carried
+`-priority: high / +priority: low` under `aiwf-verb: retitle`, and `aiwf history`
+still shows `set-priority high` as the last priority act, so a reader concludes
+`high` when it is `low`.
+
+**Move-shaped verbs launder through a different path.** `rename`'s plan leads with
+an `OpMove`, and the laundering enters through `gatherCommitOps` → `addFile`, which
+commits the moved file's on-disk bytes verbatim and walks a moved directory
+recursively — so an epic rename commits every nested entity's on-disk bytes. The
+two mechanisms are not disjoint verb classes: the link-rewrite pass re-serializes
+*any* entity whose body links to a moved path, including the moved entity itself,
+and `retitle` builds both an `OpMove` and an `OpWrite`, so it sits in both.
+
+That nested case is the worst vector and it changes the required shape of the fix.
+Measured: `tdd: none` hand-edited to `tdd: required` on a milestone — a policy field
+that decides whether `acs-tdd-audit` fires — then `aiwf rename` run on the *parent
+epic*. The change landed in a commit trailered `aiwf-entity: <the epic>`, and
+`aiwf history <the milestone>` shows only its creation, with no event for the change
+at all. The field moved, it is attributed to a different entity, and the committed
+guarantee that `aiwf history <id>` reads the log is wrong for the entity that
+actually changed.
+
+**Two blocking rules are defeated, not one.** `provenance-untrailered-entity-commit`
+skips any commit carrying a non-empty `aiwf-verb:` trailer, and it reads changed
+*paths* — it never inspects frontmatter — so which fields moved is invisible to it.
+And `fsm-history-consistent/illegal-transition` is evaded when the laundering rides
+a commit that *also* changes the file's path — measured: an illegal terminal-to-open
+edit passes the check through `rename`, and is caught through `set-priority`. Its
+walker skips a commit that both renames and changes status,
+documented in `internal/check/fsm_history_walker.go` on the reasoning that "pure
+renames don't change status, so no observation is lost on the typical path." This
+defect is precisely what falsifies that premise. So the escape is confined to the
+path-changing routes — `rename`, `retitle` when the slug re-derives, `reallocate`,
+`archive`, `rewidth`, `move`. On the serializing routes a laundered `status:` is
+already a hard error today, which narrows this rule's exposure without narrowing the
+provenance rule's.
+
+Addresses G-0466 and G-0463.
+
+_No milestones yet._
+
+## E-0076 — Chokepoints for three documented rules that have no detector (proposed)
+
+### Goal
+
+Give three documented conventions the detectors they lack.
+
+This repo holds that framework correctness must not depend on an assistant — or a
+human — remembering a rule, and that a guarantee depending on someone remembering
+is not a guarantee. Three rules currently depend on exactly that. Each is stated in
+an authoritative surface, each is held at review, and none has a mechanical
+chokepoint. Two produced live evidence during E-0073; the third was surfaced by a structural
+sweep after it wrapped.
+
+The common shape matters more than any one instance: a rule without a detector
+reads as enforced, so the next reader stops looking. Closing them together makes
+the pattern visible rather than treating each as an isolated oversight.
+
+Addresses G-0465, G-0471 and G-0474.
+
+_No milestones yet._
+
+## E-0077 — Collapse convergent duplication and own the exclusion inventory (proposed)
+
+### Goal
+
+Collapse the convergent duplication a structural sweep and the earlier
+verb-layer-cleanup audit both surfaced, and put the acknowledged-duplication
+inventory back under an owner.
+
+Two things are tangled here. Several families of near-identical functions each do
+one job while differing only by a name or a key — the cheap kind of duplication,
+where a shared unit is not merely possible but is what the code is already shaped
+like. And the `dupl` exclusion list that grandfathers some of them is unowned: the
+comment says the debt is tracked, and nothing tracks it.
+
+The predicate pair in that family deserves a note, because it is easy to read as a
+bug and is not one. `initrepo` tests for a legacy key with its own column-0 prefix
+check rather than asking `config`, and discards the `changed` return it already gets
+back. But `config`'s predicate is the same column-0 prefix test — its extra
+"boundary" guard is dead code under a comment that misdescribes it (G-0477) — so no
+divergence is constructible today. The duplication is real; the wrong-message
+consequence is a latent risk that arrives only if one side gains a distinction the
+other lacks.
+
+Addresses G-0472 and G-0473, and clears the G-0447 remainder — G-0453, G-0454,
+G-0455.
+
+_No milestones yet._
+
