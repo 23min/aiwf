@@ -2,6 +2,7 @@
 id: G-0473
 title: The dupl exclusion catalogue is unowned and two entries are stale
 status: open
+priority: medium
 ---
 ## What's missing
 
