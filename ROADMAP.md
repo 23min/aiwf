@@ -1026,5 +1026,5 @@ G-0230, narrowed to its NoOp-convergence half.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0281 | Same-state mutating-verb inputs return NoOp | in_progress |
+| M-0281 | Same-state mutating-verb inputs return NoOp | done |
 
