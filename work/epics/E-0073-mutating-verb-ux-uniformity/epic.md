@@ -1,7 +1,7 @@
 ---
 id: E-0073
 title: Mutating-verb UX uniformity
-status: active
+status: done
 ---
 
 ## Goal
