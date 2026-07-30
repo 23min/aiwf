@@ -12,10 +12,12 @@
 // via the kernel's fd cleanup, so stale lockfiles never block a
 // future invocation.
 //
-// Read-only verbs (check, history, status, render, doctor) do not
-// acquire the lock — they can safely run concurrently with each
-// other and with mutations (the worst they see is a snapshot
-// from before the mutation lands).
+// A verb that only reads does not acquire the lock — reads run
+// safely alongside each other and alongside a mutation (the worst
+// they see is a snapshot from before it lands). R-AUDIT-0133 in
+// docs/design/legal-workflows-audit.md enumerates which verbs those
+// are; internal/policies' readOnlyVerbs enforces the subset that has
+// a mechanical chokepoint.
 //
 // Windows: a separate stub in repolock_windows.go satisfies the
 // type contract so the rest of the binary cross-compiles, but

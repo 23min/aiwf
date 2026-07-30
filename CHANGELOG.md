@@ -16,6 +16,31 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0467: the repo-lock refusals carry a machine-readable code
+
+Every mutating verb takes a per-repo lock before doing any work. Both ways
+that can fail now stamp the `--format=json` error envelope's `code` field,
+which was empty on either path:
+
+- `repo-lock-busy` — another aiwf process holds the lock. Exit 2, as before;
+  the caller should back off and retry.
+- `repo-lock-acquire-failed` — the lock could not be taken at all (an I/O or
+  permission failure under the repo's git dir). Exit 3, as before; retrying
+  will not help.
+
+A consumer scripting `--format=json` can now express "retry on contention,
+fail on everything else" against the envelope, instead of matching a
+substring of the human-readable message — the only discriminator the two
+outcomes previously had. Message text and exit codes are unchanged, so a
+consumer reading either keeps working. `aiwf --help` documents both codes
+under a new *Concurrency* heading, and a test pins them there — the codes
+are a published contract, so neither the strings nor their documentation
+can drift without failing.
+
+What an *uncoded* error should exit with is a separate question, filed as
+G-0483 rather than settled here: it is a wire-contract change spanning every
+verb, not a property of the lock.
+
 ### Changed — G-0469: the diff-scoped coverage gate runs locally, before the push
 
 Nothing user-facing in the `aiwf` binary changes. Development-side, the

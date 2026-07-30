@@ -8,11 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/23min/aiwf/internal/check"
-	"github.com/23min/aiwf/internal/repolock"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // concurrent_writer_at_scale.go — M-0244/AC-1: ConcurrentWriterAtScaleScenario
@@ -144,12 +143,17 @@ func (s *ConcurrentWriterAtScaleScenario) runCancelOnce(dir, logPath, id string)
 // repo-lock-busy envelope is not an error — busy is reported so the caller
 // retries — while any other non-zero exit or launch failure is a real actor
 // error. A clean exit yields the parsed envelope's correlation id.
+//
+// A real failure carries the subprocess's own envelope into the returned
+// error when stdout parsed as one. The run error alone is the bare text
+// "exit status N", which names nothing about what broke; the envelope's
+// code and message are the only account of the cause that reaches a CI log.
 func classifyCancelOutcome(id string, out []byte, runErr error) (correlationID string, busy bool, err error) {
 	if runErr != nil {
 		if env, ok := parseBusyEnvelope(out); ok {
 			return env.Metadata.CorrelationID, true, nil
 		}
-		return "", false, fmt.Errorf("running aiwf cancel %s: %w", id, runErr)
+		return "", false, fmt.Errorf("running aiwf cancel %s: %w%s", id, runErr, envelopeErrorDetail(out))
 	}
 	env, err := parseVerbEnvelope([]string{"cancel", id}, out)
 	if err != nil {
@@ -160,21 +164,43 @@ func classifyCancelOutcome(id string, out []byte, runErr error) (correlationID s
 
 // parseBusyEnvelope reports whether out is the --format=json error envelope
 // a repo-lock-busy cancel emits — the expected-under-contention outcome
-// (repolock.ErrBusy → ExitUsage) an actor retries past. It keys on
-// repolock.ErrBusy's own sentinel text rather than the scenario re-hard-coding
-// the message; the CLI wraps that sentinel with "; retry in a moment"
-// (internal/cli/cliutil/lock.go), so the end-to-end coupling — that a real busy
-// exit is actually recognized here — is pinned by the RunRetriesPastLockBusy
-// integration test, not by this substring match alone.
+// (repolock.ErrBusy → ExitUsage) an actor retries past. It keys on the
+// envelope's own error code, the identity the CLI stamps on exactly this
+// refusal (cliutil.CodeRepoLockBusy), so contention is told apart from any
+// other failing exit by data rather than by the wording of a human-readable
+// message. Emitter and matcher share that one compile-time constant, so the
+// two cannot disagree; the RunRetriesPastLockBusy test drives the coupling
+// through a real binary under a held lock, but carries the stress tag and so
+// runs only under `make stress-tests`, not on every push.
 func parseBusyEnvelope(out []byte) (verbEnvelope, bool) {
 	env, err := parseVerbEnvelope([]string{"cancel"}, out)
 	if err != nil {
 		return verbEnvelope{}, false
 	}
-	if env.Status != "error" || env.Error == nil || !strings.Contains(env.Error.Message, repolock.ErrBusy.Error()) {
+	if env.Status != "error" || env.Error == nil || env.Error.Code != cliutil.CodeRepoLockBusy {
 		return verbEnvelope{}, false
 	}
 	return env, true
+}
+
+// envelopeErrorDetail renders the error identity carried by a failing
+// subprocess's --format=json stdout, as a suffix ready to append to a
+// wrapped run error. It returns "" when stdout is not a parseable error
+// envelope — a subprocess that died before emitting one has nothing to
+// add beyond the run error itself. Both conjuncts are load-bearing:
+// encoding/json leaves a destination untouched on a syntax error but
+// populates it on a type error, so an envelope that failed to decode
+// can still carry a non-nil Error, and quoting one as if it were the
+// subprocess's own account of the failure would be a fabrication.
+func envelopeErrorDetail(out []byte) string {
+	env, err := parseVerbEnvelope([]string{"cancel"}, out)
+	if err != nil || env.Error == nil {
+		return ""
+	}
+	if env.Error.Code == "" {
+		return fmt.Sprintf(" (envelope: %s)", env.Error.Message)
+	}
+	return fmt.Sprintf(" (envelope %s: %s)", env.Error.Code, env.Error.Message)
 }
 
 // retryWhileBusy calls attempt until it reports a non-busy outcome or the
