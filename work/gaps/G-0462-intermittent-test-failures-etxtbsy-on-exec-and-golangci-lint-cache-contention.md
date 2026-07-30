@@ -1,6 +1,6 @@
 ---
 id: G-0462
-title: 'Intermittent test failures: ETXTBSY on exec and lock-acquisition timeouts'
+title: 'Intermittent test failures: ETXTBSY on exec and golangci-lint cache contention'
 status: open
 priority: high
 discovered_in: M-0281
