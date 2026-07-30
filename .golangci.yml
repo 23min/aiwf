@@ -1,6 +1,22 @@
 # Lint configuration for the aiwf Go module.
 # See CLAUDE.md § Go conventions for the full discipline.
 version: "2"
+# build-tags brings tag-gated sources into the lint surface. Without
+# `stress`, the concurrency and observation-window scenario drivers under
+# internal/stresstest and cmd/stresstest compile in no gate that runs by
+# default, so a defect there reaches trunk clean and surfaces only when
+# someone runs `make stress-tests`. Linting a tagged file costs a compile,
+# never a scenario run.
+#
+# `testpins` is deliberately absent: adding it pulls
+# internal/workflows/spec/branch/branchtest into the lint surface for the
+# first time, which reports pre-existing findings unrelated to any tagged
+# scenario. The compile-level hole is closed for both tags by the `go vet
+# -tags` steps in .github/workflows/go.yml; extending the *lint* surface
+# to testpins is its own change.
+run:
+  build-tags:
+    - stress
 linters:
   default: none
   enable:

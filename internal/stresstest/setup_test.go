@@ -12,7 +12,12 @@ import (
 // panics under parallel). See CLAUDE.md §"Test discipline".
 //
 // Serial tests: TestResolvePrebuiltBinary, TestSharedBinaryHelpers_PrebuiltEnvVar
-// — both use t.Setenv, which panics under a parallel test. Every other
+// — both use t.Setenv, which panics under a parallel test. Under the
+// `stress` build tag,
+// TestConcurrentMilestoneRaceScenario_RealBinary_DetectsAReintroducedG0335Regression
+// is serial too: it copies this worktree, patches the guard out of the
+// copy, and rebuilds a binary from it, so it must not share CPU with the
+// scenario drivers whose own oracles are wall-clock bounded. Every other
 // Test* function in this package builds its own binary into its own
 // t.TempDir() and shares no state.
 func TestMain(m *testing.M) {

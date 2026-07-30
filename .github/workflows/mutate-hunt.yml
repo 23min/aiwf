@@ -142,7 +142,7 @@ jobs:
           git config --global user.name "aiwf-ci"
           git config --global user.email "ci@example.com"
       - name: Install gremlins
-        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+        run: go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: Build shared aiwf + lockholder binaries once
         run: |
           go build -o "${{ runner.temp }}/aiwf" ./cmd/aiwf
@@ -162,7 +162,18 @@ jobs:
             done
           fi
           pattern="${PKG_PATTERN%/...}"
+          # --tags stress compiles the `stress`-tagged scenario drivers
+          # into the test binary gremlins runs per mutant. Without it, a
+          # mutant in internal/stresstest's concurrency or fault-injection
+          # production code can only be killed by that scenario's
+          # *_classify_test.go decision tests, and every mutant reachable
+          # solely through the real-subprocess driver survives — a
+          # mutation-score drop that reads as missing coverage rather than
+          # as a build-tag artifact. Inert for any pattern whose packages
+          # carry no `stress`-tagged file, which is every package outside
+          # internal/stresstest and cmd/stresstest.
           gremlins unleash \
+            --tags stress \
             --timeout-coefficient ${{ inputs.timeout_coefficient }} \
             --workers 1 \
             --output mutate-report.json \

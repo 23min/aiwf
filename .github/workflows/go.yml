@@ -19,6 +19,13 @@ on:
       - ".github/workflows/go.yml"
       - "Makefile"
 
+# GO_VERSION is the single source of truth for this workflow's toolchain
+# pin. A stdlib CVE that only a toolchain release can clear is remediated
+# by editing this one value; every job below reads it. The companion pin
+# in gitleaks.yml is that workflow's own.
+env:
+  GO_VERSION: "1.25.12"
+
 jobs:
   vet:
     runs-on: ubuntu-latest
@@ -26,9 +33,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - run: go vet ./...
+      # Tag-gated sources compile in no other job: `go test ./...` builds
+      # neither, so a type error in a `stress`- or `testpins`-tagged file
+      # reaches trunk clean and surfaces only when someone runs
+      # `make stress-tests` by hand. Vetting each tagged configuration
+      # costs a compile and runs no scenario.
+      - run: go vet -tags stress ./...
+      - run: go vet -tags testpins ./...
 
   lint:
     runs-on: ubuntu-latest
@@ -36,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - uses: golangci/golangci-lint-action@v7
         with:
@@ -68,7 +82,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: Configure git identity for tests
         run: |
@@ -134,7 +148,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: Build aiwf
         run: |
@@ -142,21 +156,140 @@ jobs:
           /tmp/aiwf version
           /tmp/aiwf help
 
-  # vuln runs govulncheck against the dep tree to catch any newly
-  # disclosed CVE in a transitive that is reachable from aiwf code.
-  # Per the kernel's "validation is the chokepoint" principle this is
-  # blocking: a vuln finding fails the workflow. The dep set is small
-  # (go-cmp / goldmark / yaml.v3) so the run is ~10s.
+  # vuln scans for reachable CVEs in two lanes, because the two classes
+  # have different remediators:
+  #
+  #   - A dependency CVE is actionable in this repository right now —
+  #     bump the module — so it blocks, per the kernel's "validation is
+  #     the chokepoint" principle. The dep set is small (go-cmp /
+  #     goldmark / yaml.v3) so the run is ~10s.
+  #   - A stdlib CVE clears only on a toolchain release this repository
+  #     does not control. Blocking on it makes every push red for a
+  #     reason no change under test can address, which spends more
+  #     signal than it buys. It is reported as a warning annotation and
+  #     in the job summary, and the remediation is to bump GO_VERSION
+  #     at the top of this workflow.
+  #
+  # Both lanes read one scan. "Reachable" means a symbol-level finding —
+  # trace[0].function is set, i.e. govulncheck resolved a call path from
+  # this module's code into the vulnerable symbol. Module- and
+  # package-level findings (function null) are "present but not called"
+  # and gate nothing, matching what the text-mode exit code did before.
+  #
+  # govulncheck is pinned rather than resolved at @latest so the
+  # scanner's own version is a reviewed input rather than a moving one:
+  # a scanner bump can change the verdict without any change here.
   vuln:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
-      - run: govulncheck ./...
+      # The stdlib lane's verdict is a statement about one exact
+      # toolchain. setup-go selects some other Go — go.mod's floor, or
+      # the preinstalled one — rather than failing when `go-version`
+      # resolves to an empty string, so a GO_VERSION reference that
+      # stopped resolving would scan a toolchain nobody chose, silently.
+      # Assert the pin took effect before scanning.
+      #
+      # This comparison requires GO_VERSION to be a full patch version:
+      # `go env GOVERSION` reports e.g. go1.25.12, so a minor-only pin
+      # like "1.25" fails here by construction. That coupling is
+      # deliberate — the vuln job's verdict is only meaningful against an
+      # exact version — but it means GO_VERSION cannot be loosened
+      # without reworking this step.
+      - name: Confirm the pinned toolchain is active
+        run: |
+          active=$(go env GOVERSION)
+          if [ "$active" != "go${{ env.GO_VERSION }}" ]; then
+            echo "::error::expected go${{ env.GO_VERSION }} but the active toolchain is $active — the GO_VERSION pin did not take effect."
+            exit 1
+          fi
+          echo "toolchain: $active"
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+      # JSON mode always exits 0, so each lane below derives its own
+      # verdict from this one scan rather than from an exit code.
+      - name: Scan
+        run: govulncheck -format=json ./... > govulncheck.json
+      # Fail closed on a scanner-schema change. Both lanes below read
+      # their verdict out of this JSON, so a shape change would make jq
+      # match nothing and report "no CVEs" for a scan that found some.
+      # `protocol_version` is govulncheck's own compatibility signal and
+      # the thing that moves when the record shape does — `scanner_name`
+      # would survive a rename of every field the lanes actually read.
+      # `// empty` matters: without it a missing key yields the string
+      # "null", which is non-empty and would pass this check.
+      #
+      # This guard covers a *versioned* shape change. A silent one is
+      # caught by the lanes themselves: each runs a single jq invocation
+      # (no pipeline), so a jq runtime error propagates through `set -e`
+      # rather than being masked by a downstream command's exit status.
+      - name: Confirm the scan is readable
+        run: |
+          set -o pipefail
+          proto=$(jq -r 'select(.config) | .config.protocol_version // empty' govulncheck.json)
+          if [ "$proto" != "v1.0.0" ]; then
+            echo "::error::govulncheck JSON reports protocol_version '${proto:-<absent>}', but the CVE filters below are written against v1.0.0. Their silence cannot be trusted. Re-read the govulncheck release notes and update the jq filters."
+            head -40 govulncheck.json
+            exit 1
+          fi
+          echo "scan readable (protocol $proto)"
+      # `unique` inside jq rather than `| sort -u`: GitHub's default `run:`
+      # shell on Linux is `bash -e` without `pipefail`, so in a pipeline
+      # the assignment would take sort's exit status and discard a jq
+      # failure — leaving this blocking lane green on a scan it could not
+      # read. `set -o pipefail` is belt-and-braces for the same reason.
+      - name: Dependency CVEs (blocking)
+        run: |
+          set -o pipefail
+          found=$(jq -s -r '[
+            .[]
+            | select(.finding)
+            | select(.finding.trace[0].function != null)
+            | select(.finding.trace[0].module != "stdlib")
+            | "\(.finding.osv)\t\(.finding.trace[0].module)\t\(.finding.trace[0].package).\(.finding.trace[0].function)\tfixed in \(.finding.fixed_version // "no fixed version published")\thttps://pkg.go.dev/vuln/\(.finding.osv)"
+          ] | unique | .[]' govulncheck.json)
+          if [ -n "$found" ]; then
+            echo "::error::govulncheck: reachable CVE in a dependency — bump the module to the fixed version named below."
+            printf '%s\n' "$found"
+            exit 1
+          fi
+          echo "No reachable dependency CVEs."
+      # if: always() so a blocking dependency CVE does not also suppress
+      # the stdlib report — the two lanes are independent verdicts.
+      - name: Stdlib CVEs (reported, non-blocking)
+        if: always()
+        run: |
+          set -o pipefail
+          # Report the toolchain actually scanned, not the pin it was
+          # expected to be: a summary that names a version it did not
+          # measure is only as good as a guard several steps earlier.
+          active=$(go env GOVERSION)
+          found=$(jq -s -r '[
+            .[]
+            | select(.finding)
+            | select(.finding.trace[0].function != null)
+            | select(.finding.trace[0].module == "stdlib")
+            | "\(.finding.osv)\t\(.finding.trace[0].package).\(.finding.trace[0].function)\thttps://pkg.go.dev/vuln/\(.finding.osv)"
+          ] | unique | .[]' govulncheck.json)
+          if [ -z "$found" ]; then
+            echo "No reachable stdlib CVEs."
+            echo "No reachable stdlib CVEs at $active." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::warning::govulncheck: reachable stdlib CVE at $active — remediate by bumping GO_VERSION in .github/workflows/go.yml."
+          printf '%s\n' "$found"
+          {
+            echo "### Reachable stdlib CVEs at $active"
+            echo
+            echo "Non-blocking: remediation is a toolchain bump (\`GO_VERSION\` in \`.github/workflows/go.yml\`), not a change in this repository."
+            echo
+            echo "| Advisory | Symbol |"
+            echo "|---|---|"
+            printf '%s\n' "$found" | awk -F'\t' '{printf "| [%s](%s) | `%s` |\n", $1, $3, $2}'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # selfcheck drives every verb against a temp repo via
   # `aiwf doctor --self-check`. Catches end-to-end regressions
@@ -169,7 +302,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25.12"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: Configure git identity for the test repo
         run: |

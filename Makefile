@@ -1,7 +1,7 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -37,6 +37,7 @@ help:
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
 	@echo "  stress    - run the on-demand correctness stress harness's whole scenario catalog (opt-in, dev-only; override STRESS_REPEAT=N)"
+	@echo "  stress-tests - run the concurrency/fault scenario Go tests behind the 'stress' build tag (opt-in, dev-only)"
 	@echo "  clean     - remove build artifacts"
 
 build:
@@ -227,3 +228,13 @@ STRESS_REPEAT ?= 5
 
 stress:
 	go run ./cmd/stresstest run --scenario all --repeat $(STRESS_REPEAT)
+
+# stress-tests runs the Go tests behind the `stress` build tag: the
+# concurrency and fault-injection scenario drivers, plus the
+# whole-catalog runner tests. Their oracles assert timing and
+# observation-window properties of the machine they run on, so they own
+# the runner here rather than sharing it with `go test ./...`. Opt-in
+# and dev-only, same as `stress` above; the workflow-legality drivers
+# (verb-sequence and its siblings) carry no tag and run on every push.
+stress-tests:
+	go test -exec=$(TEST_EXEC) -tags stress -parallel 8 -count=1 ./internal/stresstest/ ./cmd/stresstest/

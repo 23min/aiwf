@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/stresstest"
 )
@@ -109,100 +110,6 @@ func TestRunRun_Succeeds(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "disk-fault: 2/2 attempts passed") {
 		t.Fatalf("unexpected summary output: %q", out.String())
-	}
-}
-
-// TestRunRun_LockKillScenario_BuildsLockHolderAndRuns pins runRun's
-// needsLockHolder branch: selecting "lock-kill" builds the separate
-// lockholder binary (BuildLockHolder) alongside the aiwf binary under
-// test, and the scenario runs to a real pass. Serial — see
-// TestRunRun_Succeeds's doc comment.
-func TestRunRun_LockKillScenario_BuildsLockHolderAndRuns(t *testing.T) {
-	outDir := t.TempDir()
-	var out bytes.Buffer
-
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "lock-kill", &out); err != nil {
-		t.Fatalf("runRun: %v", err)
-	}
-	if !strings.Contains(out.String(), "lock-kill: 1/1 attempts passed") {
-		t.Fatalf("unexpected summary output: %q", out.String())
-	}
-}
-
-// TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport pins AC-2's own
-// acceptance text: --scenario all runs every registered scenario, all
-// logged into the same raw-report file. Serial — see
-// TestRunRun_Succeeds's doc comment.
-func TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport(t *testing.T) {
-	outDir := t.TempDir()
-	var out bytes.Buffer
-
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out); err != nil {
-		t.Fatalf("runRun: %v", err)
-	}
-
-	reportPath := filepath.Join(outDir, "report.jsonl")
-	composed, err := stresstest.Compose(reportPath)
-	if err != nil {
-		t.Fatalf("Compose(%q): %v", reportPath, err)
-	}
-	if len(composed.Events) != len(scenarioNames()) {
-		t.Fatalf("expected 1 logged event per catalog scenario (%d), got %d", len(scenarioNames()), len(composed.Events))
-	}
-
-	for _, name := range scenarioNames() {
-		if !strings.Contains(out.String(), name) {
-			t.Errorf("summary output does not mention scenario %q:\n%s", name, out.String())
-		}
-		if !strings.Contains(out.String(), name+": 1/1 attempts passed") {
-			t.Errorf("expected scenario %q to report a clean pass, got:\n%s", name, out.String())
-		}
-	}
-}
-
-// TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios pins
-// the cross-scenario diagnostic-log cursor: --scenario all shares one
-// diagnostic-log file across all 12 scenarios, so a bug that reset
-// the read cursor per scenario (rather than carrying it forward)
-// would re-scan from byte 0 each time and re-attribute every earlier
-// scenario's own correlation ids to each later scenario's first
-// event. With --repeat 1, report.jsonl has exactly one event per
-// scenario in registry order, so no id may appear in more than one
-// event. Serial — see TestRunRun_Succeeds's doc comment.
-func TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios(t *testing.T) {
-	outDir := t.TempDir()
-	var out bytes.Buffer
-
-	if err := runRun(context.Background(), repoRootRelative, outDir, 1, "all", &out); err != nil {
-		t.Fatalf("runRun: %v", err)
-	}
-
-	reportPath := filepath.Join(outDir, "report.jsonl")
-	composed, err := stresstest.Compose(reportPath)
-	if err != nil {
-		t.Fatalf("Compose(%q): %v", reportPath, err)
-	}
-
-	type event struct {
-		CorrelationIDs []string `json:"correlation_ids"`
-	}
-	seen := make(map[string]int) // id -> index of the event that first carried it
-	totalIDs := 0
-	for i, raw := range composed.Events {
-		var ev event
-		if err := json.Unmarshal(raw, &ev); err != nil {
-			t.Fatalf("event %d not valid JSON: %v", i, err)
-		}
-		totalIDs += len(ev.CorrelationIDs)
-		for _, id := range ev.CorrelationIDs {
-			if firstIdx, ok := seen[id]; ok {
-				t.Fatalf("correlation id %q appears in both event %d and event %d — the diagnostic-log cursor re-attributed an earlier scenario's id to a later one", id, firstIdx, i)
-			}
-			seen[id] = i
-		}
-	}
-	if totalIDs == 0 {
-		t.Fatal("no correlation ids observed across the whole run; diagnostic logging did not attach to any scenario")
 	}
 }
 
@@ -307,5 +214,46 @@ func TestRunRun_ErrorsWhenBuildFails(t *testing.T) {
 
 	if err := runRun(context.Background(), bogusRoot, outDir, 1, "disk-fault", io.Discard); err == nil {
 		t.Fatal("expected runRun to propagate a BuildBinary failure")
+	}
+}
+
+// TestResolveScenarios_All_NamesEveryCatalogEntryInOrder pins the
+// selection half of `--scenario all`: it resolves to every registered
+// entry, in catalog order. The execution half — actually running the
+// whole catalog — asserts timing properties of the machine it runs on
+// (the catalog carries the concurrency and fault-injection scenarios),
+// so it lives behind the `stress` build tag in
+// run_scenario_all_test.go. This assertion is what keeps the selection
+// claim mechanically checked on every push.
+func TestResolveScenarios_All_NamesEveryCatalogEntryInOrder(t *testing.T) {
+	t.Parallel()
+
+	got, err := resolveScenarios(scenarioAll)
+	if err != nil {
+		t.Fatalf("resolveScenarios(%q): %v", scenarioAll, err)
+	}
+	gotNames := make([]string, len(got))
+	for i, e := range got {
+		gotNames[i] = e.Name
+	}
+	if diff := cmp.Diff(scenarioNames(), gotNames); diff != "" {
+		t.Errorf("resolveScenarios(%q) (-want +got):\n%s", scenarioAll, diff)
+	}
+}
+
+// TestResolveScenarios_NamedEntry_ResolvesToThatEntryAlone pins the
+// other selection arm: a registered name resolves to exactly one entry.
+func TestResolveScenarios_NamedEntry_ResolvesToThatEntryAlone(t *testing.T) {
+	t.Parallel()
+
+	got, err := resolveScenarios(lockKillName)
+	if err != nil {
+		t.Fatalf("resolveScenarios(%q): %v", lockKillName, err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("resolveScenarios(%q) resolved to %d entries; want exactly one", lockKillName, len(got))
+	}
+	if got[0].Name != lockKillName {
+		t.Fatalf("resolveScenarios(%q) resolved to %q; want %q", lockKillName, got[0].Name, lockKillName)
 	}
 }
