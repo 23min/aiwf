@@ -1,8 +1,10 @@
 ---
 id: G-0230
 title: 'Verb UX uniformity: NoOp on same-state + dry-run on wide-blast verbs'
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - c2fb192c
 ---
 ## What's missing
 
