@@ -1012,7 +1012,7 @@ Single-source the two copy-pasted per-verb scaffolds in `internal/cli` — the d
 | M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | done |
 | M-0280 | Regression-guard structural test for the verb scaffolds | done |
 
-## E-0073 — Mutating-verb UX uniformity (active)
+## E-0073 — Mutating-verb UX uniformity (done)
 
 ### Goal
 
