@@ -11,7 +11,8 @@ This repo holds that framework correctness must not depend on an assistant — o
 human — remembering a rule, and that a guarantee depending on someone remembering
 is not a guarantee. Three rules currently depend on exactly that. Each is stated in
 an authoritative surface, each is held at review, and none has a mechanical
-chokepoint. All three produced live evidence during E-0073.
+chokepoint. Two produced live evidence during E-0073; the third was surfaced by a structural
+sweep after it wrapped.
 
 The common shape matters more than any one instance: a rule without a detector
 reads as enforced, so the next reader stops looking. Closing them together makes
@@ -47,10 +48,12 @@ plus an explicit review obligation for the rest.
 
 ## Out of scope
 
-- **Deleting the two `deadcode` hits that are already owned.**
-  `PreflightBranchNotFoundError.Error` and `.Code` are retained by accepted D-0018
-  and scheduled for removal by open G-0417, coupled to a spec-table cleanup.
-  Removing them here would preempt tracked work and contradict a recorded decision.
+- **Deleting the other unreachable methods.** A whole-program reachability run —
+  `deadcode` is in no linter set, no Make target and no workflow, so this is not
+  something the gate reports — finds `PreflightBranchNotFoundError.Error` and
+  `.Code` alongside the instance above. Both are retained by accepted D-0018 and
+  scheduled for removal by open G-0417, coupled to a spec-table cleanup. Removing
+  them here would preempt tracked work and contradict a recorded decision.
 - **Making the code-health rubric enforcing.** ADR-0019 ships it as advisory
   deliberately. An `internal/policies/` test is kernel-internal and adds no consumer
   surface, so it does not contradict that ADR — but the ADR is not being revisited.
