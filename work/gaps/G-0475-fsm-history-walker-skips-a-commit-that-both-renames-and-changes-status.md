@@ -2,6 +2,7 @@
 id: G-0475
 title: FSM history walker skips a commit that both renames and changes status
 status: open
+priority: high
 discovered_in: E-0075
 ---
 ## What's missing
