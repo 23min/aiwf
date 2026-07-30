@@ -107,7 +107,7 @@ character and different lifespans, tracked as
 (placement and the `govulncheck` lanes),
 [G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md)
 and
-[G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
+[G-0467](../../work/gaps/archive/G-0467-lock-busy-refusal-emits-an-empty-error-code.md)
 (the oracles and their enabling error-code fix), and
 [G-0469](../../work/gaps/archive/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md)
 (the coverage gate's tier).
@@ -333,7 +333,7 @@ item 4 down is independently actionable.
    because a jq error was masked by a downstream `sort`, and no gate compiled
    tag-gated sources at all until `go vet -tags` joined the vet job.
 2. **Q1, cure** —
-   [G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
+   [G-0467](../../work/gaps/archive/G-0467-lock-busy-refusal-emits-an-empty-error-code.md)
    then
    [G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md).
    Give the repo-lock-busy refusal a machine-readable code, then split each
