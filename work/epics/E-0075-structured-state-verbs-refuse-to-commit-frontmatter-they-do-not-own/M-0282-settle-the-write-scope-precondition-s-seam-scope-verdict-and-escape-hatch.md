@@ -24,9 +24,9 @@ acs:
 
 ## Goal
 
-Settle, in one ADR, the four decisions that determine what the write-scope
-precondition is: where it runs, what it compares, whether it refuses, and
-whether it can be overridden.
+Settle, in one ADR, the five decisions that determine what the write-scope
+precondition is: where it runs, which paths it compares, which parts of a file
+it compares, whether it refuses, and whether it can be overridden.
 
 ## Context
 
@@ -36,20 +36,37 @@ against answers this one produces, and E-0074 waits on the first of them,
 because `PromoteACPhase` writes frontmatter and so falls inside this epic's
 route list.
 
-Two facts about the current code bound the decisions. `tree.Tree` carries
-`Root`, so any verb holding a loaded tree can already reach HEAD — the seam
-choice is not constrained by plumbing. And `planEntityWrite` covers seven call
-sites across six files, while `promote`, `move`, `rename`, `reallocate`,
-`set-priority`, `set-area` and `edit-body` build their plans directly — so there
-is no existing single-entity seam to simply extend, and "put it at the shared
-seam" names a seam that has yet to be created.
+Three facts about the current code bound the decisions.
+
+`tree.Tree` carries `Root`, so any verb holding a loaded tree can already reach
+HEAD — the seam choice is not constrained by plumbing. `gitops.ReadFromHEAD` is
+the primitive `edit-body` already uses for exactly this comparison, and
+`gitops.BlobReader` is a batched cat-file reader exposing blob SHAs, so
+comparing many paths does not cost one subprocess per path.
+
+`planEntityWrite` covers seven call sites across six files, while `promote`,
+`move`, `rename`, `reallocate`, `set-priority`, `set-area` and `edit-body` build
+their plans directly — so there is no existing single-entity seam to simply
+extend, and "put it at the shared seam" names a seam that has yet to be created.
+
+And the laundering is whole-file rather than frontmatter-only. A serializing
+verb reads the body off disk (`readBody`) and re-serializes it alongside the
+frontmatter it computed, so an unblessed body edit rides into the commit exactly
+as a hand-edited field does. Reproduced: a gap's body rewritten in the working
+tree, then `aiwf set-priority` run, produced one commit carrying both the
+priority change and the body rewrite under `aiwf-verb: set-priority`, with
+`aiwf history` showing no `edit-body` event and `aiwf check` reporting no errors.
+That is why the field-scope question below is a decision rather than an
+implementation detail, and it is the reason this epic's title understates its
+subject.
 
 ## Approach
 
-One ADR, four decisions, each recorded with the reasoning that produced it
+One ADR, five decisions, each recorded with the reasoning that produced it
 rather than the verdict alone. Order matters: the seam decision constrains what
-the scope decision can mean, and the verdict decision is what makes the
-escape-hatch question live at all.
+the path-scope decision can mean, the field-scope decision sets how often the
+guard fires at all, and the verdict decision is what makes the escape-hatch
+question live.
 
 `checkStagedConflict` is read first, as the precedent E-0075 names — its message
 shape, its position in the one function every write route passes through, and
@@ -72,11 +89,15 @@ seam, and that `## Consequences` states which of the two misbehaviors — a fals
 
 ### AC-2 — ADR records whether the guard is entity-scoped or committed-path-scoped
 
-The nested case forces this: a guard comparing only the verb's named entity
+This is the *path* axis — which files the guard compares. AC-5 is the
+orthogonal *field* axis, which parts of each file. Both need an answer, and
+answering one does not imply the other.
+
+The nested case forces this one: a guard comparing only the verb's named entity
 misses a nested milestone's frontmatter riding along inside a parent epic's
 directory move, and no verb names those entities.
 
-Evidence: a structural assertion that `## Decision` records one of the two
+Evidence: a structural assertion that `## Decision` records one of the two path
 scopes and that the nested-path case is addressed in that decision's own text,
 not merely listed elsewhere in the document.
 
@@ -85,6 +106,11 @@ not merely listed elsewhere in the document.
 The weighing is against a laundered `status` on a path-changing route, not
 against a laundered `priority`. Refusing blocks a workflow that currently
 succeeds; permitting one lets a blocking check be bypassed.
+
+AC-5's answer feeds directly into this one: under a whole-file field scope the
+guard fires during the ordinary bless workflow, so "refuse" is a far larger
+behavioral change than it is under a frontmatter-only scope. The two are decided
+together or not at all.
 
 Evidence: a structural assertion that `## Decision` records refuse or warn, and
 that its reasoning cites the illegal-transition escape rather than only the
@@ -102,6 +128,29 @@ exists; where one does, that the same section names the flag and the
 completion-wiring obligation it incurs.
 
 ### AC-5 — ADR records whether the guard compares frontmatter only or the whole file
+
+The *field* axis, orthogonal to AC-2's path axis. E-0075 frames the defect as
+frontmatter, but the mechanism is whole-file: a serializing verb re-serializes
+the frontmatter it computed around a body it read off disk, so an unblessed body
+edit lands in the commit under the verb's own trailer with no `edit-body` event
+in `aiwf history`.
+
+What makes this a genuine decision rather than a formality is the cost
+asymmetry. A hand-edited frontmatter field is rare and nearly always a mistake.
+An uncommitted body edit is *ordinary* — it is the normal mid-state of the
+review-before-commit rhythm the shipped guidance recommends, where the body is
+edited in the working tree, read as a real diff, then blessed with
+`aiwf edit-body`. A whole-file guard refuses every structured-state verb run
+inside that window.
+
+That refusal is defensible: today the same window silently commits the body edit
+under `aiwf-verb: promote`. But it makes the guard fire during a workflow the
+project actively teaches, which is a different proposition from catching a rare
+mistake, and it is the input the verdict decision in AC-3 has to weigh.
+
+Evidence: a structural assertion that `## Decision` records a field scope, and
+that `## Consequences` addresses what the chosen scope does to the bless
+workflow — silence there would mean the cost was not weighed.
 
 ## Constraints
 
