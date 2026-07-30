@@ -12,8 +12,11 @@ file and changes its status. The walker seeds a path-to-entity map from the tree
 current paths and adds a rename's source path as it processes the touch, so older
 commits resolve at the pre-rename path — but for the renaming commit itself the
 parent holds the file at the source path while the rule reads the parent at the new
-path, which does not exist there. The pair is skipped and no status observation is
-recorded.
+path. Usually nothing is there, so the pair is skipped and no status observation is
+recorded. When the destination *did* exist at the parent — a force-rename over an
+existing file, which the walker's own comment anticipates — a blob is found and the
+pair is compared against a prior status belonging to whatever was overwritten,
+which is worse than skipping it.
 
 The code states this and states why it is acceptable: "pure renames don't change
 status, so no observation is lost on the typical path."
@@ -46,11 +49,13 @@ operator sequence is blocked upstream.
 
 ## Options
 
-1. **Resolve the parent at the source path for a rename touch.** The walker already
-   knows the source path — it adds it to the map in the same pass. Reading the
-   parent blob at the source path rather than the new one makes the pair observable
-   with no change to the walk's shape. Smallest fix, and it removes the exception
-   rather than documenting it.
+1. **Read the rename touch's own pre-image blob.** For a rename or copy the diff
+   record's pre-image object id already points at the *source* path's blob — the
+   walker documents exactly that, and skips the object-id fast path for `R`/`C`
+   only to stay byte-identical with the pre-refactor path-resolving walk. Using it
+   for a rename touch makes the pair observable without resolving a path at all,
+   removes the exception rather than documenting it, and fixes the
+   wrong-prior-status case above along with the skipped one.
 2. **Emit a finding for the skipped pair** rather than resolving it, so an
    unobservable rename-plus-status commit is reported instead of silently dropped.
    Honest and cheap, but it converts a correctness gap into an operator-visible
