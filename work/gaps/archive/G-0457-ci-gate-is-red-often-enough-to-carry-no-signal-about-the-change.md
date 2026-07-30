@@ -1,8 +1,10 @@
 ---
 id: G-0457
 title: CI gate is red often enough to carry no signal about the change
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 24874cc0c66f640e903baf1bc0620c6169fb8e64
 ---
 ## What's missing
 

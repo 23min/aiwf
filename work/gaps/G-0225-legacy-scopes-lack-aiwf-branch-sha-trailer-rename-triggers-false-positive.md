@@ -10,7 +10,7 @@ discovered_in: M-0161
 ---
 ## What's missing
 
-M-0161's AC-6 (closes [G-0206](G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md)) introduces `aiwf-branch-sha:` trailer + SHA-fallback resolution in `BranchOracle` so a `git branch -m oldname newname` rename is transparent to the `isolation-escape` rule. The fix works for authorize commits made AFTER AC-6 lands.
+M-0161's AC-6 (closes [G-0206](archive/G-0206-branchoracle-false-positive-on-branch-renames-after-authorize.md)) introduces `aiwf-branch-sha:` trailer + SHA-fallback resolution in `BranchOracle` so a `git branch -m oldname newname` rename is transparent to the `isolation-escape` rule. The fix works for authorize commits made AFTER AC-6 lands.
 
 **Authorize commits made BEFORE AC-6 ("legacy scopes") lack the `aiwf-branch-sha:` trailer.** When the bound branch of such a scope is renamed AND the old name no longer resolves AND there are AI-actor commits on the renamed branch, AC-6's SHA-fallback path has no SHA to fall back to — the rule's name-only resolution finds the (now-unreachable) old name, falls back to AC-3's `isolation-escape-oracle-failure` advisory, but EVERY AI commit on the renamed branch still hits the false-positive path of the original G-0206 failure mode for the duration the scope stays open.
 

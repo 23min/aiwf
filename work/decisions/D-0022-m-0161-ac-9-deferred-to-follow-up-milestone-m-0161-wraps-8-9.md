@@ -61,6 +61,6 @@ Rationale:
 - M-0161 body lines 577-694 — the AC-9 four-part scope this defers
 - D-0020 (AC-5 cell-5 deferral) — partial-AC-deferral pattern precedent
 - D-0021 (AC-7 doctor JSON deferral) — partial-AC-deferral pattern precedent
-- [G-0210](../gaps/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap AC-9 targets; stays open until the follow-up milestone
+- [G-0210](../gaps/archive/G-0210-m-0158-spec-table-contains-9-documentation-only-or-duplicate-cells.md) — the gap AC-9 targets; stays open until the follow-up milestone
 - `internal/policies/m0158_ac5_meta_coverage_test.go` — the keyword-set meta-coverage that stays in place until AC-9's bijection replacement lands
 - `internal/workflows/spec/branch/rules.go` — the catalog AC-9 was to refactor; current 1-cell-per-AC shape stays in place

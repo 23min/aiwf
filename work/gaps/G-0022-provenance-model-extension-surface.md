@@ -5,7 +5,7 @@ status: open
 priority: low
 ---
 
-The I2.5 provenance model ([`design/provenance-model.md`](design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
+The I2.5 provenance model ([`docs/design/provenance-model.md`](../../docs/design/provenance-model.md)) deliberately keeps the verb surface narrow. Six known extensions are filed here for future evaluation, all YAGNI for the PoC:
 
 1. **Explicit revoke verb (`aiwf revoke <auth-sha> --reason "..."`).** End an active scope before its scope-entity reaches a terminal status. The trailer slot is reserved (`aiwf-revoked-by:`) but the verb is not implemented in I2.5. Scopes today auto-end only on terminal scope-entity status; a human cannot un-authorize an in-flight scope without forcing the entity to a terminal status.
 2. **Time-bound scopes (`--until <date>` or `--for <duration>`).** Auto-end on a wall-clock deadline. Adds a clock dependency to the kernel; not present today.

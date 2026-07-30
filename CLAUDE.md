@@ -97,10 +97,18 @@ The authoritative gate is CI-on-push; local `make ci` is pre-flight insurance at
 
 ## Stress-test harness
 
-`cmd/stresstest` is an on-demand correctness stress harness — dev-only tooling, never installed alongside `cmd/aiwf`, run by hand rather than scheduled or wired into `make ci`. It builds the `aiwf` binary under test and drives it as a real subprocess against disposable git repos through a catalog of concurrency, fault-injection, and FSM-random-walk scenarios, each with a deterministic pass/fail oracle.
+`cmd/stresstest` is a correctness stress harness — dev-only tooling, never installed alongside `cmd/aiwf`. It builds the `aiwf` binary under test and drives it as a real subprocess against disposable git repos through a catalog of workflow-legality, concurrency, and fault-injection scenarios, each with a pass/fail oracle. The catalog runner itself (`make stress`, `go run ./cmd/stresstest`) is on-demand only, never scheduled and never wired into `make ci`.
+
+**The scenarios' own Go tests split by what their oracle asserts, and the split is the `stress` build tag.**
+
+- **Hermetic scenarios run on every push**, untagged, inside the ordinary `go test ./...`. The workflow-legality group is what the harness exists for and is the composition coverage G-0121 asks for: `verb-sequence` (a seeded random walk of `aiwf promote` across all six kinds, asserting the FSM's legality verdict is honored and `aiwf check` never regresses) plus `archive-during-active-scope`, `force-override-durability`, `head-drift`, and `promote-on-wrong-branch-detection`. Four more qualify on the same test and stay untagged despite their subject matter: `disk-fault` (permission-denied write, no timing at all), `parallel-branch-reallocate` and `cross-worktree-edit-body-race` (collisions deterministic by construction — two clones computing the same `max(id)+1`, two sequential commits to one body field), and `reachability-isolation` (a byte-identical `aiwf check` outcome either side of an invisible sibling commit). Category name is not the criterion; oracle shape is.
+- **Scenarios that race real concurrent processes or wait on an observation window carry `//go:build stress`** and run only via `make stress-tests` (or `go test -tags stress ./internal/stresstest/ ./cmd/stresstest/`). Their oracles assert properties of the machine — that N racing actors all serialize inside `AcquireRepoLock`'s two-second deadline, or that a poller catches a sibling temp file mid-write — so they need to own the runner. Sharing one with `go test ./...` roughly doubles their wall time and turns contention into a reported violation. In `cmd/stresstest`, the whole-catalog runner tests (`TestRunRun_ScenarioAll_*`) carry the tag because `--scenario all` executes this class, and so does the lock-kill runner test, which waits up to five seconds for its holder to report ready; `--scenario all`'s *selection* claim stays pinned untagged by `TestResolveScenarios_All_NamesEveryCatalogEntryInOrder`.
+
+Adding a scenario means choosing its lane: a hermetic oracle goes untagged, a timing- or observation-shaped one carries the tag. G-0468 tracks making the tagged class's oracles hermetic, at which point the lane becomes a cost decision rather than a correctness one.
 
 ```bash
 make stress                          # run the whole catalog, 5 attempts per scenario by default (override: STRESS_REPEAT=N make stress)
+make stress-tests                    # run the `stress`-tagged Go tests: the racing/observation-window drivers + the whole-catalog runner tests
 go run ./cmd/stresstest list         # enumerate every scenario name --scenario can select
 go run ./cmd/stresstest run --scenario <name>|all --repeat N [--out DIR] [--module-root DIR]
 go run ./cmd/stresstest compose <raw-report-path>   # render a human-readable summary from a run's raw-report JSONL

@@ -53,8 +53,8 @@ Concretely:
 ## References
 
 - M-0161/AC-3 (G-0203) body — `OracleErrors() []OracleErr`, fail-shut/fail-open framing, two finding codes
-- [G-0203](../gaps/G-0203-branchoracle-firstparentbranches-conflates-lookup-failed-with-no-branches.md) — the gap this decision closes the framing question for
+- [G-0203](../gaps/archive/G-0203-branchoracle-firstparentbranches-conflates-lookup-failed-with-no-branches.md) — the gap this decision closes the framing question for
 - [`internal/check/isolation_escape.go`](../../internal/check/isolation_escape.go) lines 49–51, 240–242 — the BranchOracle interface + the existing nil-branch silent path the per-ref contract layers onto
 - [`internal/cli/check/isolation_escape_oracle.go`](../../internal/cli/check/isolation_escape_oracle.go) lines 57–73 — current all-or-nothing construction
 - [`internal/cli/check/provenance.go`](../../internal/cli/check/provenance.go) lines 72–75 — the call site that silently swallows the construction error pre-AC-3
-- [M-0106](../epics/E-0019-poc-validation-of-isolation-escape/M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — original isolation-escape landing
+- [M-0106](../epics/archive/E-0030-branch-model-chokepoint-branch-flag-sequencing-isolation-escape-finding/M-0106-kernel-finding-isolation-escape-closes-g-0099.md) — original isolation-escape landing

@@ -16,10 +16,11 @@ import (
 // Serial skip-list (CLAUDE.md §"Test discipline"): every runRun-driving
 // test that reaches runRun's AIWF_LOG* os.Setenv call (past scenario
 // and out-dir resolution, past the binary build) — TestRunRun_Succeeds,
-// TestRunRun_LockKillScenario_BuildsLockHolderAndRuns,
-// TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport,
-// TestRunRun_PrintsPreservedDirOnAFailingAttempt (run_test.go), and
-// TestRun_RunCommand_Succeeds (main_test.go) — omits t.Parallel(). Each
+// TestRunRun_LockKillScenario_BuildsLockHolderAndRuns (run_test.go),
+// TestRun_RunCommand_Succeeds (main_test.go), and, under the `stress`
+// build tag, TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport and
+// TestRunRun_ScenarioAll_CorrelationIDsDoNotBleedAcrossScenarios
+// (run_scenario_all_test.go) — omits t.Parallel(). Each
 // mutates the process-wide AIWF_LOG/AIWF_LOG_FORMAT/AIWF_LOG_FILE env
 // (M-0249/AC-2) so every scenario subprocess it launches inherits
 // diagnostic logging; two such tests running concurrently could

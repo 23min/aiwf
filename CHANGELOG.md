@@ -16,6 +16,27 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0457: CI gate reports on the change under test again
+
+Nothing user-facing in the `aiwf` binary changes. Development-side, the
+`go` workflow now distinguishes a failure caused by the change under test
+from one caused by the environment it ran in.
+
+The stress harness's scenario tests split by what their oracle asserts.
+Scenarios whose oracle is hermetic — the workflow-legality walk plus the
+deterministic collision, isolation and disk-fault scenarios — keep running
+on every push. The scenarios that race real concurrent processes or wait on
+an observation window move behind a `stress` build tag and run via the new
+`make stress-tests`. They caused 18 of the 32 red runs in the preceding 100
+and none of them indicated a defect in `aiwf`.
+
+`govulncheck` is pinned to `v1.6.0` instead of resolving `@latest` per run,
+and its findings split into two lanes: a reachable CVE in a dependency
+still blocks, while a reachable stdlib CVE — clearable only by a toolchain
+release this repository does not control — is reported as a warning
+annotation and job summary. The workflow's toolchain pin is now a single
+`GO_VERSION` value rather than six copies.
+
 ### Changed — G-0230: mutating verbs converge on same-state input
 
 - A mutating verb handed input that already equals current state now exits 0
