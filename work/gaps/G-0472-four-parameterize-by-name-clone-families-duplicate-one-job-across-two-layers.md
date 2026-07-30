@@ -2,6 +2,7 @@
 id: G-0472
 title: Four parameterize-by-name clone families duplicate one job across two layers
 status: open
+priority: medium
 ---
 ## What's missing
 
