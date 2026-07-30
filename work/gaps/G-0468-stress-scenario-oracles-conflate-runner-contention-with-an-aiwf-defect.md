@@ -20,7 +20,7 @@ The correctness properties these scenarios exist to test — mutual exclusion, d
 
 The flake tracks co-tenancy, not machine size. Run in isolation on four cores, both stress packages pass five repeats out of five, at roughly 38 seconds per run of `internal/stresstest`. Run co-tenant with the full `go test ./...` on those same four cores, the package takes 66.7 seconds — matching the 65 to 77 seconds observed in CI. The scenarios are sound when they own the machine and unsound when they share it, which is a statement about the oracle, not about the runner.
 
-This blocks G-0400. Widening the catalog from 10 verbs to 38 multiplies the flake surface for as long as the oracles conflate contention with defect. It also constrains G-0457's resolution: gating the real-binary drivers out of the default run drops `internal/stresstest` statement coverage from 85.5% to 34.7%, so every scenario driver G-0400 adds or touches faces the diff-scoped coverage gate with no covering test in the default lane. Hermetic oracles are what turn "may these run in the default lane" back into a cost decision rather than a correctness one.
+This blocks G-0400. Widening the catalog from 10 verbs to 38 multiplies the flake surface for as long as the oracles conflate contention with defect. It also constrains what G-0457's tourniquet could achieve. That patch splits the scenarios by oracle shape — hermetic ones stay on the every-push path, the ones that race real processes or wait on an observation window move behind a `stress` build tag — which leaves `internal/stresstest` at 62.8% statement coverage in the default lane, down from 85.5%. Every scenario driver G-0400 adds or touches in the tagged class therefore faces the diff-scoped coverage gate with no covering test in that lane. Hermetic oracles are what turn "may these run in the default lane" back into a cost decision rather than a correctness one.
 
 G-0438 records the same defect class one lane over: `flake-hunt.yml` fails on the same runner for the same reason, naming these same packages. Any destination that shares a runner with a broad test sweep reproduces this.
 
@@ -38,3 +38,16 @@ Recognizing a busy refusal structurally requires the machine-readable code G-046
 - `internal/stresstest/mid_write_kill.go`, `internal/stresstest/lock_kill.go` — the observation-window failures.
 - `internal/stresstest/concurrent_writer_at_scale.go` — busy recognition, jointly with G-0467.
 - The paired `*_classify_test.go` files, which pin each classifier against fabricated outcomes and are where the revised oracle is specified.
+
+## Stranded hermetic unit tests
+
+Seven pure-decision tests sit inside `stress`-tagged driver files and left the every-push lane as collateral of G-0457's split, because every tagged file holds at least one real-subprocess driver alongside them:
+
+- `TestClassifyCancelOutcome`, `TestParseBusyEnvelope`, `TestRetryWhileBusy` — `concurrent_writer_at_scale_retry_test.go`
+- `TestPatchExactlyOnce` — `concurrent_milestone_race_regression_test.go`
+- `TestReadGapFile_ErrorsWhenNoneOrMultipleMatch`, `TestWaitForTempFile_ErrorsOnUnreadableDir` — `mid_write_kill_test.go`
+- `TestCrossWorktreeIDRaceScenario_ReconcileErrorsWhenAnActorDidNotSucceed` — `cross_worktree_id_race_test.go`
+
+None of them touches a subprocess, a clock, or a goroutine; each is a fabricated-input decision test of exactly the kind the untagged lane is for. Recovering them means splitting each driver file so the decision tests live in an untagged sibling.
+
+That split belongs here rather than in its own change: this gap rewrites what those same classifiers assert, so the file layout should be chosen once, against the revised oracles, rather than settled first and then disturbed.
