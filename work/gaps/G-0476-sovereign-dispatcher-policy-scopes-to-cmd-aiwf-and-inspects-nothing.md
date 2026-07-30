@@ -10,7 +10,9 @@ discovered_in: E-0075
 `PolicySovereignDispatchersGuardHumanActor` asserts that every CLI dispatcher
 parsing a sovereign act guards on a human actor. It scopes its walk to `cmd/aiwf/`.
 That directory now contains only `main.go`; every verb dispatcher lives under
-`internal/cli/<verb>/` after the M-0115 relocation. The policy therefore inspects
+`internal/cli/<verb>/` after the per-verb relocation, which spanned several
+milestones — `promote` and `cancel` under M-0115, `authorize` under M-0116. The
+policy therefore inspects
 nothing and cannot fire.
 
 Measured: a synthetic guardless dispatcher naming both `"force"` and `"reason"` —
@@ -18,9 +20,11 @@ the policy's own trigger for the sovereign-FSM-bypass meaning — added to
 `internal/cli/promote/promote.go`, where the real `promote` dispatcher lives, leaves
 `TestPolicy_SovereignDispatchersGuardHumanActor` passing.
 
-Seven files under `internal/cli/` declare a `"force"` flag today, including the
-`promote`, `cancel` and `authorize` dispatchers the policy names in its own doc
-comment as the surfaces it protects. None is examined.
+Seven files under `internal/cli/` declare a `"force"` flag today — `add`,
+`authorize`, `cancel`, `contract bind`, `contract recipes`, `promote` and
+`update`. None is examined. The policy's own doc comment names `runAuthorize` as
+its third trigger and `aiwf contract bind --force` as a deliberate non-target, so
+two of the dispatchers it reasons about explicitly are among the unexamined.
 
 ## Why it matters
 
@@ -42,10 +46,15 @@ detects nothing while reporting success.
 1. **Rescope the walk to `internal/cli/`** and re-run. The likely outcome is that
    the policy fires on real dispatchers, so this is a fix plus whatever it finds —
    which is the point, and should be measured before deciding how much work it is.
-2. **Add a firing fixture** so the policy proves it can fail, independently of the
-   scope fix. This is what would have caught the vacuity when the dispatchers moved,
-   and it generalizes: any policy whose path scope is a string prefix can be
-   silently orphaned by a relocation.
+2. **Assert against the real tree, not a synthetic root.** A firing fixture already
+   exists — `firing_fixtures_single_site_test.go` plants a sovereign dispatcher at
+   `cmd/aiwf/sv.go` — but it writes into a temp directory, so it passes whatever the
+   real layout is and structurally cannot detect scope-orphaning. What is missing is
+   an assertion over the actual repo: that the scanned prefix contains at least one
+   dispatcher. That is the shape G-0264 used for dormant `forbidigo` config — an
+   execution harness against the live config rather than a synthetic fixture — and it
+   generalizes: any policy whose scope is a path prefix can be silently orphaned by a
+   relocation.
 3. **Delete the policy** and rely on the verb-layer refusal plus
    `provenance-force-non-human`. Defensible — the property is enforced elsewhere —
    but it gives up the dispatcher-level check at the layer that parses the actor,
@@ -60,6 +69,11 @@ before trusting what it says about the wider scope.
 Surfaced while reviewing E-0075, whose fourth decision concerns adding `--force` to
 verbs that lack it — which made the state of the sovereign-act chokepoint worth
 checking.
+
+`docs/design/legal-workflows-audit.md` encodes the same stale scope in R-AUDIT-0070
+— "Every **cmd** dispatcher with a sovereign-act flag pair must reference
+`human/`" — and needs the same correction, or the normative spec keeps asserting a
+scope the code should no longer have.
 
 Worth checking as part of this: whether any other policy scopes its walk to a path
 prefix that a relocation has since emptied. The failure mode is not specific to this
