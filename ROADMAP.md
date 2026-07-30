@@ -643,7 +643,7 @@ currently violate the gate discipline CLAUDE.md *claims* they already follow.
 |---|---|---|
 | M-0209 | Generalize the declared-sequence gate; fix wrap/release drift | done |
 
-## E-0051 — Context and compute economy across the ritual lifecycle (proposed)
+## E-0051 — Context and compute economy across the ritual lifecycle (cancelled)
 
 ### Goal
 
@@ -1011,4 +1011,20 @@ Single-source the two copy-pasted per-verb scaffolds in `internal/cli` — the d
 | M-0278 | Extract BeginVerbDiag and migrate the verb diagnostic block | done |
 | M-0279 | Extract the shared ResolveRoot to ResolveActor prelude | done |
 | M-0280 | Regression-guard structural test for the verb scaffolds | done |
+
+## E-0073 — Mutating-verb UX uniformity (active)
+
+### Goal
+
+Converge the mutating-verb surface toward consistent operator UX. The PoCv3
+health scorecard's C2 finding flagged two uniformity smells in the mutating-verb
+surface: same-state inputs that return a Go error instead of a clean no-op, and
+wide-blast-radius rewrites that offer no preview before they commit. This epic
+addresses the first, uniformly across every affected verb; the second is
+deliberately deferred with recorded rationale (see Out of scope). Addresses
+G-0230, narrowed to its NoOp-convergence half.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0281 | Same-state mutating-verb inputs return NoOp | in_progress |
 

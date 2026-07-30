@@ -86,9 +86,13 @@ target status equals current **and** no other field is changing, so it never
 swallows a resolver-pointer write.
 
 **Design note — the seam.** `verb.Result.NoOp` maps to exit 0 with `NoOpMessage`
-on stdout; the CLI layer already surfaces NoOp for `archive`/`rewidth`. Each verb
-is covered at the CLI seam (drive `run([]string{"<verb>", …})`), not just at the
-verb layer, so a verb-layer NoOp that the CLI wiring drops would be caught.
+on stdout; the CLI layer already surfaces NoOp for `archive`/`rewidth`. Most of
+the converging verbs are covered at the CLI seam as well as the verb layer (drive
+`run([]string{"<verb>", …})`), so a verb-layer NoOp the CLI wiring dropped would
+be caught. `rename-area`, `milestone tdd` and `milestone depends-on` are covered
+at the verb layer only; every verb reaches stdout through one shared branch in
+`cliutil`, which carries its own tests, so the wiring they share is pinned even
+where their own seam test is absent.
 
 ## Acceptance criteria
 
@@ -413,9 +417,14 @@ implementation commits, so for those two ACs the ladder is not evidence at all.
 Implemented in `fc4c1709`. `editBodyExplicit` gained a guard converging when the
 serialized entity equals both the committed bytes and the bytes on disk, and
 `EditBody` left the allowlist — the policy is now satisfied by a real NoOp
-assertion rather than an exemption. Four verb-layer tests plus a CLI-seam test;
-three mutants (HEAD-only, disk-only, body-bytes-instead-of-serialized) each kill
-a test, so all three comparison choices are load-bearing rather than incidental.
+assertion rather than an exemption. Six verb-layer tests plus a CLI-seam test.
+Four mutants each kill a test, so every choice the guard makes is load-bearing
+rather than incidental: comparing HEAD only, comparing disk only, comparing body
+bytes rather than the serialized entity, and treating a missing HEAD version as
+settled. The last two needed cases that did not exist when this AC first closed —
+a body-bytes comparison is only distinguishable when HEAD and the working copy
+carry the same body under different serializations, and the missing-HEAD arm only
+misbehaves when the body already matches on disk.
 
 The ladder ran live here, unlike AC-6 and AC-7: red was stamped before the tests
 were written, and the primary case failed for the expected reason before the
@@ -479,9 +488,11 @@ Six claims in the earlier commit messages are not supported by the commits that
 carry them. They are stated here as measured, rather than rewritten in history:
 
 - `65a91ee1` says all six non-primary guard conjuncts gained false-arm tests.
-  There are five such conjuncts, not six, and all five gained one: `move`'s path
-  comparison, `retitle`'s path and H1 comparisons, and the AC heading comparison
-  on each of `retitleAC` and `renameAC`. No conjunct is untested.
+  There were five, not six, and all five gained one. Four remain — `move`'s path
+  comparison, `retitle`'s H1 comparison, and the AC heading comparison on each of
+  `retitleAC` and `renameAC` — because `retitle`'s path comparison was later
+  removed as unreachable-false, taking its test with it. Every conjunct that
+  exists has a false-arm test.
 - The same commit reports roughly 200 comment lines removed. It removes 143 and
   adds 130: a net of 13 across the commit.
 - It reports the empty-diff premise consolidated into the policy that depends on
@@ -494,10 +505,10 @@ carry them. They are stated here as measured, rather than rewritten in history:
 - It describes the round-four scoping defect as a nested scope costing the outer
   scope its credit. A scope's credit is decided before the walk descends into
   it, so the loss landed on a sibling.
-- `f7c37f16` says convergence-above-force is tested in both verbs. `promote` was
-  tested at both granularities from AC-1 onward; `cancel` only at the AC
-  granularity. The entity-level `Cancel` force arm gained its test in
-  `d04b4a8e`.
+- `f7c37f16` says convergence-above-force is tested in both verbs. `promote` had
+  an entity-level force test from AC-1 and gained its composite one with AC-9;
+  `cancel` had only the AC granularity. The entity-level `Cancel` force arm
+  gained its test in `d04b4a8e`.
 
 `f7c37f16`'s message was amended once, to drop two fixes it claimed but did not
 contain. The amendment left standing a summarizing claim that it fixed the whole
@@ -506,12 +517,89 @@ set, which is equally unsupported — those two fixes landed in `65a91ee1`.
 Round six additionally surfaced a contract conflict this milestone made visible
 rather than created. `aiwf rename` sets a slug independently of the title while
 `retitle` re-derived one unconditionally, so a rename lasted only until the next
-retitle. Measured against this repo's own tree, 44 of 902 entities carry a slug
-their title does not derive; widening the narrow ids embedded in those slugs
-reconciles 17, leaving 27 deliberate short paths. ADR-0037 records the resolution — retitle
+retitle. Measured against this repo's own tree, 44 entities carry a slug their title does
+not derive; widening the narrow ids embedded in those slugs reconciles 17,
+leaving 27 deliberate short paths. ADR-0037 records the resolution — retitle
 re-derives only while the slug still tracks the title — and `d04b4a8e`
 implements it, with `df7478e3` closing a slug-warning test hole the restructure
 exposed in a path that predates this milestone.
+
+Every review round so far has returned request-changes, including the last.
+Rounds seven and eight are closed by `10af2006`, `0da04370` and `35d67a4b`;
+`b64caed7` comes from the trunk merge's comment gate rather than from a
+reviewer.
+
+Two of its findings were regressions this milestone introduced, both in
+`retitle`'s convergence guard. `rewriteEntityH1` used `ReplaceAll`, which expands
+`$name` inside the replacement, so a title carrying one was corrupted in the
+heading the call existed to repair. And the H1 comparison keyed on the raw id
+argument rather than the stored one, so a narrow spelling matched no canonical
+heading and converged over a drifted one — an R1 violation inside the guard R1
+was written for. Both carry a test now.
+
+A third was pre-existing, and this milestone made it reachable and
+self-concealing at once: a title containing a line break left retitle
+permanently non-convergent, because the line-anchored H1 pattern matched only
+the first fragment and each re-run appended the remainder again. Four
+invocations of one title produced four commits and five accumulating H1 lines,
+with `aiwf check` reporting nothing. `ValidateTitle` rejects line breaks ahead
+of the cap gate, which covers add, retitle and import together; `renameAC`
+re-validates because `Rename` dispatches to its AC path before its own
+validation runs.
+
+AC-4 and AC-8 were both promoted on correct behavior with no assertion behind
+the claim. Three tests close that, each killing a mutant that had survived the
+whole suite: an abbreviated SHA on re-acknowledge, an identical body over
+non-canonical frontmatter, and explicit mode on a never-committed entity. The
+last two needed states that did not exist when AC-8 first closed — a body-bytes
+comparison is only distinguishable when HEAD and the working copy carry one body
+under two serializations.
+
+The consumer count in `internal/check/acks.go` drifted because two sets were
+both called "the consumers": the exported rules the gather layer calls, and the
+functions that index the map, differing by `FSMHistoryConsistent`, which
+forwards rather than reads. `RunOrphanedAICommits` and `RunPromoteOnWrongBranch`
+index it and sat outside `PolicyAcksHelperLift`'s set, so no class checked their
+wiring — dropping either argument would have stopped silencing acknowledged
+commits silently. Class 4f asserts the policy's lists and the doc agree in both
+directions, and that every `ackedSHAs` reader is policed; three planted mutants
+confirm it fires. Every hand-maintained count in the two files is replaced by a
+reference to the vars, on the reasoning that a figure carrying no weight is
+better dropped than corrected again — the sweep had to run twice, because the
+first pass introduced a fresh stale count of its own while removing others.
+
+`08532a0f` merges trunk in so this branch is held to the
+`comment-history-attrition` gate before it merges onward. The whole-tree audit
+returned one violation, in a comment this milestone wrote; `b64caed7` clears it
+and the tree is clean.
+
+A ninth round reviewed those commits, sliced into the verb changes and the
+policy change. Both returned request-changes, and between them found ten
+blocking defects the green gate could not see, because every one is a claim
+rather than a behavior: a subtest that passed against its own mutant (it created
+a gap with no body, which is refused for that reason alone, so the assertion
+never discriminated); an exported doc comment that still said a zero cap skips
+validation after the guard moved above it; `rename` on an AC left uncapped while
+`retitle` on the same AC refused a 200-character title; `cancel`'s new help text
+claiming no path commits, contradicted by `--audit-only`, whose whole contract is
+the converging state; a hard-reject shipped with no `--help`, skill, or changelog
+surface; and, in the commit that replaced hand-maintained counts with policed
+rosters, a var doc describing seven names above a literal of eight.
+
+The chokepoint itself was weaker than its commit message said. Direction 1
+matched substrings, so a doc asserting the set was *empty* satisfied it while
+naming the right tokens. Direction 2 forced only the body-consumer roster, so an
+exported rule in the forwarding shape satisfied it the moment its leaf predicate
+was listed, leaving its own gather-layer wiring unpoliced — the exact regression
+the class was added to prevent. Direction 1 now compares whole identifier tokens
+for set equality in both directions, and direction 3 keys on the signature: an
+exported `internal/check` function taking an `ackedSHAs map[string]bool`
+parameter must be in the roster whose classes check that wiring, which also
+catches a rule reading the map through a struct field or a renamed local. Six
+mutants that survived the round-eight fixtures are now killed, and
+`passesAckedAtHit` matches the recorded call rather than re-walking its
+enclosing function, so a dropped argument is no longer reported as a fabricated
+identifier.
 
 ## Validation
 
@@ -524,6 +612,8 @@ wrong diff — that trap cost two false greens earlier in this milestone.
 - `go test -count=1 ./...` — every package passes.
 - `make lint` — 0 issues.
 - `make coverage-gate` — exit 0.
+- `make comment-history-audit` — clean across every tracked Go file, after the
+  trunk merge brought the gate onto this branch.
 - `aiwf check` — 0 errors. Two warnings stand, both pre-existing and unrelated:
   an active epic with no drafted milestones, and the provenance audit skipping
   for want of an upstream ref.
@@ -561,6 +651,13 @@ Each carries a gap, so none of it depends on this spec being read again.
   behavior it describes. Three separate review rounds each caught more of them by
   reading, which is the argument for the gap: reading is the only detector, and
   it does not scale.
+- **G-0466** — every structured-state verb commits a hand-edited frontmatter
+  field as its own, so the trailer attributes a change the verb never made and
+  `provenance-untrailered-entity-commit` never fires. Generalizes G-0463 from
+  `edit-body` to all ten verbs. The harm is on the mutating path, not the
+  converging one: measured against the same dirty tree, a same-state re-run
+  converges and leaves the hand-edit uncommitted, which is why the fix is a
+  shared precondition and not a HEAD conjunct in the NoOp guards.
 
 ## Reviewer notes
 
