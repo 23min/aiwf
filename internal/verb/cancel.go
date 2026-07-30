@@ -51,8 +51,12 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	}
 	// A status outside the kind's closed set is not terminal, so it falls past
 	// the guard above. Refusing here keeps cancel from laundering junk into a
-	// terminal status under an ordinary cancel trailer; --force is the repair
-	// path.
+	// terminal status under an ordinary cancel trailer. --force gets past this
+	// guard, but it is a repair path only for the kinds whose cancel target is
+	// status-agnostic (epic, milestone, gap). For adr, decision and contract
+	// entity.CancelTarget derives the target from the current status, so an
+	// unrecognized one yields no target and the guard below refuses regardless
+	// of force — restore a recognized status before cancelling those.
 	if !force && !entity.IsAllowedStatus(e.Kind, e.Status) {
 		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
 			"%s status %q is not a recognized %s status; cannot cancel from it",

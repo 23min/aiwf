@@ -33,6 +33,13 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cancel <id>",
 		Short: "Promote to the kind's terminal-cancel status",
+		Long: `Set an entity to its kind's terminal-cancel status.
+
+An entity already at a terminal status is already disposed, so a re-run reports
+that status at exit 0 and commits nothing. Cancel's target is a terminal
+end-state rather than one specific status, so an entity that reached a terminal
+by another path — a done epic, an addressed gap — converges too. Convergence
+holds even under --force: there is no diff for a sovereign override to re-apply.`,
 		Example: `  # Cancel an in-flight epic with a rationale
   aiwf cancel E-01 --reason "scope absorbed into E-02"`,
 		Args:          cobra.ExactArgs(1),

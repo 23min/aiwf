@@ -27,6 +27,14 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "move <M-id> --epic <E-id>",
 		Short: "Move a milestone to a different epic; id preserved",
+		Long: `Reparent a milestone under a different epic. The milestone id is preserved.
+
+A milestone already under the named epic has nothing to relocate, so a re-run
+reports that at exit 0 and commits nothing. The move spans two surfaces — the
+` + "`parent:`" + ` field and the file's location under the epic's directory — and both must
+already hold to converge. Ids compare at canonical width, so a narrow --epic
+spelling names the stored epic. The target epic must exist either way: an
+unknown --epic is refused, never converged.`,
 		Example: `  # Reparent M-007 under epic E-04
   aiwf move M-007 --epic E-04`,
 		Args:          cobra.ExactArgs(1),
