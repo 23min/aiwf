@@ -109,7 +109,7 @@ character and different lifespans, tracked as
 and
 [G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
 (the oracles and their enabling error-code fix), and
-[G-0469](../../work/gaps/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md)
+[G-0469](../../work/gaps/archive/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md)
 (the coverage gate's tier).
 
 **Q1a — `govulncheck` blocks on stdlib CVEs against a pinned toolchain.**
@@ -342,7 +342,7 @@ item 4 down is independently actionable.
    G-0400. Larger than a `wf-patch`; scoping it may show it wants milestones.
    Item 1 without this item is a tourniquet mistaken for a cure.
 3. **Q1, tier** —
-   [G-0469](../../work/gaps/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md),
+   [G-0469](../../work/gaps/archive/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md),
    move the diff-scoped coverage gate to a chokepoint that fires before the
    trunk push. Independent of the other three and small.
 
