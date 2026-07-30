@@ -3,6 +3,7 @@ package policies
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -75,20 +76,49 @@ func TestBranchCoverageViolations_Errors(t *testing.T) {
 		}
 	})
 
-	t.Run("readSourceLines error when working-tree file removed", func(t *testing.T) {
+	t.Run("removed working-tree file is out of scope", func(t *testing.T) {
 		t.Parallel()
 		const headSrc = "package foo\n\nfunc Add(a, b int) int {\n\tif a < 0 {\n\t\treturn 0\n\t}\n\treturn a + b\n}\n"
 		profile := "mode: atomic\n" + fixtureModule + "/internal/foo/bar.go:4.12,6.3 1 0\n"
 		root, baseSHA, profilePath := covFixture(t,
 			"package foo\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
 			headSrc, profile)
-		// The file is committed at HEAD but absent on disk → readSourceLines fails.
+		// Deleting the file makes it a deletion against the working tree,
+		// and a file that is gone has no statements left to audit. The
+		// profile still names it, so this pins that scope — not the
+		// stale profile — decides.
 		if rmErr := os.Remove(filepath.Join(root, "internal", "foo", "bar.go")); rmErr != nil {
 			t.Fatalf("remove: %v", rmErr)
 		}
+		vs, err := branchCoverageViolations(root, profilePath, baseSHA)
+		if err != nil {
+			t.Fatalf("a deleted file must drop out of scope, not error: %v", err)
+		}
+		if len(vs) != 0 {
+			t.Errorf("want no violations for a deleted file, got %+v", vs)
+		}
+	})
+
+	t.Run("readSourceLines error when a changed file is unreadable", func(t *testing.T) {
+		t.Parallel()
+		const headSrc = "package foo\n\nfunc Add(a, b int) int {\n\tif a < 0 {\n\t\treturn 0\n\t}\n\treturn a + b\n}\n"
+		profile := "mode: atomic\n" + fixtureModule + "/internal/foo/bar.go:4.12,6.3 1 0\n"
+		root, baseSHA, profilePath := covFixture(t,
+			"package foo\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
+			headSrc, profile)
+		// Replace the file with a dangling symlink: git still reports it
+		// changed, and the read fails for every uid, so the branch is
+		// reachable without depending on file modes.
+		bar := filepath.Join(root, "internal", "foo", "bar.go")
+		if rmErr := os.Remove(bar); rmErr != nil {
+			t.Fatalf("remove: %v", rmErr)
+		}
+		if lnErr := os.Symlink(filepath.Join(root, "no-such-target"), bar); lnErr != nil {
+			t.Fatalf("symlink: %v", lnErr)
+		}
 		_, err := branchCoverageViolations(root, profilePath, baseSHA)
 		if err == nil {
-			t.Fatal("want error for removed source file, got nil")
+			t.Fatal("want error for an unreadable source file, got nil")
 		}
 	})
 }
@@ -239,6 +269,231 @@ func TestChangedLines(t *testing.T) {
 	// keep.go must have at least one added/modified line recorded.
 	if len(changed["keep.go"]) == 0 {
 		t.Errorf("keep.go: expected changed lines, got none (%+v)", changed)
+	}
+}
+
+// newGoFixtureRepo returns an initialized repo with one committed Go
+// file, plus the committed SHA and the closures the caller needs to keep
+// mutating it.
+func newGoFixtureRepo(t *testing.T, seed map[string]string) (root, base string, runGit func(...string) string, writeFile func(string, string)) {
+	t.Helper()
+	root = t.TempDir()
+	runGit = repoGitRunner(t, root)
+	writeFile = repoFileWriter(t, root)
+	runGit("init")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "aiwf-test")
+	for rel, content := range seed {
+		writeFile(rel, content)
+	}
+	runGit("add", "-A")
+	runGit("commit", "-m", "base")
+	return root, trimLine(runGit("rev-parse", "HEAD")), runGit, writeFile
+}
+
+// TestChangedLines_ScopeIsTheWorkingTree pins that the diff target is the
+// working tree rather than HEAD, across all three states a change can be
+// in relative to HEAD.
+//
+// Every caller classifies content it reads off disk — the coverage audit
+// against a profile produced by running the suite over the working tree,
+// the comment scan by parsing the same files. Diffing HEAD lines that
+// numbering up against content nobody measured, and reports nothing at
+// all for a change that is not committed yet, which is the state the tree
+// is in when `make ci` runs.
+func TestChangedLines_ScopeIsTheWorkingTree(t *testing.T) {
+	t.Parallel()
+	root, base, runGit, writeFile := newGoFixtureRepo(t, map[string]string{
+		"committed.go": "package k\n\nfunc A() {}\n",
+		"staged.go":    "package k\n\nfunc B() {}\n",
+		"dirty.go":     "package k\n\nfunc C() {}\n",
+	})
+
+	writeFile("committed.go", "package k\n\nfunc A() { _ = 1 }\n")
+	runGit("commit", "-am", "committed change")
+	writeFile("staged.go", "package k\n\nfunc B() { _ = 2 }\n")
+	runGit("add", "staged.go")
+	writeFile("dirty.go", "package k\n\nfunc C() { _ = 3 }\n")
+
+	changed, err := changedLines(root, base)
+	if err != nil {
+		t.Fatalf("changedLines: %v", err)
+	}
+	for _, rel := range []string{"committed.go", "staged.go", "dirty.go"} {
+		if !changed[rel][3] {
+			t.Errorf("%s: the edited line 3 must be in scope, got %+v", rel, changed[rel])
+		}
+	}
+}
+
+// TestChangedLines_ExcludesUntrackedFiles pins the scope boundary of the
+// shared helper. The coverage audit adds untracked files itself; the two
+// comment history-attrition scans that also call this must not get them,
+// or an untracked scratch file would fail `make check-fast` — and the
+// whole-tree scan documents its subject as every *tracked* Go file.
+func TestChangedLines_ExcludesUntrackedFiles(t *testing.T) {
+	t.Parallel()
+	root, base, _, writeFile := newGoFixtureRepo(t, map[string]string{"keep.go": "package k\n"})
+	writeFile("scratch.go", "package k\n\nfunc Scratch() {}\n")
+
+	changed, err := changedLines(root, base)
+	if err != nil {
+		t.Fatalf("changedLines: %v", err)
+	}
+	if _, ok := changed["scratch.go"]; ok {
+		t.Error("changedLines must stay tracked-only; untracked files belong to the coverage audit alone")
+	}
+}
+
+// TestAddUntrackedGoLines pins the audit-only widening: a file git diff
+// cannot see at any revision still enters the scope, because a file just
+// written is where an untested statement is most likely to live. Ignored
+// files stay out — they are not part of the build.
+func TestAddUntrackedGoLines(t *testing.T) {
+	t.Parallel()
+
+	t.Run("untracked files are wholly changed, ignored ones are not", func(t *testing.T) {
+		t.Parallel()
+		root, _, _, writeFile := newGoFixtureRepo(t, map[string]string{
+			"keep.go":    "package k\n",
+			".gitignore": "ignored.go\n",
+		})
+		const fresh = "package k\n\nfunc New() int {\n\treturn 7\n}\n"
+		writeFile("fresh.go", fresh)
+		writeFile("ignored.go", "package k\n\nfunc Ignored() int {\n\treturn 8\n}\n")
+
+		changed := map[string]map[int]bool{}
+		if err := addUntrackedGoLines(root, changed); err != nil {
+			t.Fatalf("addUntrackedGoLines: %v", err)
+		}
+		// A newline-terminated file has exactly Count("\n") lines; one
+		// past that is the trailing empty split element, not a line.
+		lines := strings.Count(fresh, "\n")
+		for ln := 1; ln <= lines; ln++ {
+			if !changed["fresh.go"][ln] {
+				t.Errorf("fresh.go: line %d of an untracked file must be in scope, got %+v", ln, changed["fresh.go"])
+			}
+		}
+		if changed["fresh.go"][lines+1] {
+			t.Errorf("fresh.go: line %d is past EOF and must not be recorded", lines+1)
+		}
+		if _, ok := changed["ignored.go"]; ok {
+			t.Error("a gitignored file must stay out of scope (git ls-files --exclude-standard)")
+		}
+	})
+
+	t.Run("an unreadable listed file is skipped", func(t *testing.T) {
+		t.Parallel()
+		root, _, _, writeFile := newGoFixtureRepo(t, map[string]string{"keep.go": "package k\n"})
+		writeFile("readable.go", "package k\n\nfunc R() {}\n")
+		// A dangling symlink is listed by ls-files and fails every read,
+		// regardless of uid.
+		if err := os.Symlink(filepath.Join(root, "no-such-target"), filepath.Join(root, "broken.go")); err != nil {
+			t.Fatalf("symlink: %v", err)
+		}
+
+		changed := map[string]map[int]bool{}
+		if err := addUntrackedGoLines(root, changed); err != nil {
+			t.Fatalf("an unreadable untracked file must not fail the scan: %v", err)
+		}
+		if _, ok := changed["broken.go"]; ok {
+			t.Error("an unreadable untracked file must be skipped, not recorded")
+		}
+		if len(changed["readable.go"]) == 0 {
+			t.Error("the readable untracked file beside it must still be in scope")
+		}
+	})
+
+	t.Run("a root git cannot resolve is an error", func(t *testing.T) {
+		t.Parallel()
+		changed := map[string]map[int]bool{}
+		if err := addUntrackedGoLines(t.TempDir(), changed); err == nil {
+			t.Error("listing untracked files outside a repository must error, not report none")
+		}
+	})
+}
+
+// TestBranchCoverageViolations_FiresOnAnUntrackedFile pins that the audit
+// applies the widening its shared helper deliberately omits.
+func TestBranchCoverageViolations_FiresOnAnUntrackedFile(t *testing.T) {
+	t.Parallel()
+	root, base, _, writeFile := newGoFixtureRepo(t, map[string]string{
+		"go.mod":              "module " + fixtureModule + "\n\ngo 1.24\n",
+		"internal/foo/bar.go": "package foo\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
+	})
+
+	// A brand-new, never-staged file carrying an untested guard.
+	writeFile("internal/foo/baz.go", "package foo\n\nfunc Sub(a, b int) int {\n\tif a < 0 {\n\t\treturn 0\n\t}\n\treturn a - b\n}\n")
+
+	profilePath := filepath.Join(root, "coverage.out")
+	profile := "mode: atomic\n" + fixtureModule + "/internal/foo/baz.go:4.12,6.3 1 0\n"
+	if err := os.WriteFile(profilePath, []byte(profile), 0o644); err != nil {
+		t.Fatalf("write profile: %v", err)
+	}
+
+	vs, err := branchCoverageViolations(root, profilePath, base)
+	if err != nil {
+		t.Fatalf("branchCoverageViolations: %v", err)
+	}
+	if len(vs) != 1 || vs[0].File != "internal/foo/baz.go" {
+		t.Fatalf("want one violation in the untracked file, got %+v", vs)
+	}
+}
+
+// TestBranchCoverageViolations_FiresOnAnUncommittedChange is the vacuity
+// pin for running the gate inside `make ci`: that target runs before the
+// ritual's commit gate, so a HEAD-scoped audit would report green on
+// precisely the change it was asked to judge.
+func TestBranchCoverageViolations_FiresOnAnUncommittedChange(t *testing.T) {
+	t.Parallel()
+	root, base, _, writeFile := newGoFixtureRepo(t, map[string]string{
+		"go.mod":              "module " + fixtureModule + "\n\ngo 1.24\n",
+		"internal/foo/bar.go": "package foo\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
+	})
+
+	// The untested guard lands in the working tree only — never committed.
+	writeFile("internal/foo/bar.go", "package foo\n\nfunc Add(a, b int) int {\n\tif a < 0 {\n\t\treturn 0\n\t}\n\treturn a + b\n}\n")
+
+	profilePath := filepath.Join(root, "coverage.out")
+	profile := "mode: atomic\n" + fixtureModule + "/internal/foo/bar.go:4.12,6.3 1 0\n"
+	if err := os.WriteFile(profilePath, []byte(profile), 0o644); err != nil {
+		t.Fatalf("write profile: %v", err)
+	}
+
+	vs, err := branchCoverageViolations(root, profilePath, base)
+	if err != nil {
+		t.Fatalf("branchCoverageViolations: %v", err)
+	}
+	if len(vs) != 1 {
+		t.Fatalf("want exactly one violation for the uncommitted guard, got %d: %+v", len(vs), vs)
+	}
+	if vs[0].File != "internal/foo/bar.go" || vs[0].Line != 4 {
+		t.Errorf("violation = %s:%d, want internal/foo/bar.go:4", vs[0].File, vs[0].Line)
+	}
+}
+
+// TestTrailingTrimmedLen pins the line count the untracked-file scan
+// marks as changed. readSourceLines splits on "\n", so whether the file
+// ends in a newline decides if the last element is a line or an artifact.
+func TestTrailingTrimmedLen(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		src  []string
+		want int
+	}{
+		{name: "newline-terminated file", src: []string{"package k", "", "func A() {}", ""}, want: 3},
+		{name: "file with no trailing newline", src: []string{"package k", "", "func A() {}"}, want: 3},
+		{name: "empty file", src: []string{""}, want: 0},
+		{name: "no content at all", src: nil, want: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := trailingTrimmedLen(tt.src); got != tt.want {
+				t.Errorf("trailingTrimmedLen(%q) = %d, want %d", tt.src, got, tt.want)
+			}
+		})
 	}
 }
 

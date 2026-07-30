@@ -1,7 +1,16 @@
 # Convenience targets for ai-workflow development.
 # CI runs `make ci`; everything else is for local dev.
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
+# Targets here are ordered pipelines over shared files, not independent
+# units of work: coverage, test-cov and coverage-gate all write the same
+# coverage.out, and `ci` gates on the profile test-cov produces. Under -j
+# make would start those concurrently, and the gate would read whatever
+# coverage.out happened to be on disk — reporting green off a stale
+# profile. Nothing here benefits from parallel make anyway; the suite
+# already fans out internally via `go test -parallel 8`.
+.NOTPARALLEL:
+
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -28,11 +37,12 @@ help:
 	@echo "  vet       - run go vet"
 	@echo "  coverage  - run tests with coverage; print summary"
 	@echo "  test-cov  - combined race+coverage pass (one suite run); what 'ci' uses"
-	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); run after committing"
+	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); builds its own profile"
+	@echo "  coverage-gate-only - the same gates against an existing coverage.out (what 'ci' uses)"
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
-	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + selfcheck); run once before pushing, not per commit"
+	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + coverage-gate-only + selfcheck); run once before pushing, not per commit"
 	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
@@ -96,8 +106,15 @@ test-race:
 test-pins:
 	go test -exec=$(TEST_EXEC) -tags testpins -race -parallel 8 -count=1 ./...
 
+# The tagged runs mirror go.yml's vet job. Tag-gated sources compile in
+# no other target — `go test ./...` builds neither — so without them a
+# type error in a `stress`- or `testpins`-tagged file passes the whole
+# local gate and surfaces only in CI, or when someone runs
+# `make stress-tests` by hand. Each is a compile, no scenario runs.
 vet:
 	go vet ./...
+	go vet -tags stress ./...
+	go vet -tags testpins ./...
 
 # Lint cache is scoped per working tree (same rationale as the
 # pre-push hook): the shared user-level cache replays issues carrying
@@ -129,14 +146,61 @@ test-cov:
 # allowlist check, and the skill-edit structural-test backstop (G-0220 —
 # a ritual SKILL.md edit must be paired with a referencing structural
 # test under internal/policies/). It generates a fresh atomic-mode
-# profile, resolves the base as the merge-base with origin/main, then
-# runs them with that profile + base. Run this after committing your
-# work; the diff-scoped gates compare committed HEAD to the base, so
-# uncommitted changes are not seen. CI runs the same gates in the test job.
+# profile, then delegates to coverage-gate-only. The diff-scoped gates
+# compare the base against the working tree, so uncommitted changes are
+# in scope and you need not commit first. CI runs the same gates in the
+# test job.
 coverage-gate:
 	go test -exec=$(TEST_EXEC) -covermode=atomic -coverprofile=coverage.out -coverpkg=./internal/... -parallel 8 ./...
+	$(MAKE) coverage-gate-only
+
+# coverage-gate-only runs those same gates against a coverage.out that
+# already exists, skipping the instrumented suite run that produces it.
+# That run is the whole cost — 2 minutes against the gates' 3 seconds —
+# and it is never served from the test cache, because every `go test` here
+# passes -exec=$(TEST_EXEC), which is outside the cacheable flag set `go
+# help test` defines. (The coverage flags themselves are all cacheable;
+# -exec is what defeats it.) Splitting the gates out is what lets `make ci`
+# run them against the profile `test-cov` just built instead of paying for
+# the suite twice.
+#
+# AIWF_COVERAGE_BASE is honored when the caller sets it, so a range that
+# has already landed on trunk stays auditable:
+#   AIWF_COVERAGE_BASE=<ref> make coverage-gate
+# Left unset it resolves to the merge-base with origin/main, which is the
+# fork point on a branch and github.event.before's equivalent once a merge
+# is staged for push.
+#
+# The three arms below each report a distinct outcome, because the gates
+# do not treat them alike:
+#   - unset, or the all-zero sha CI hands a brand-new branch: every
+#     diff-scoped policy reads that as "no base" and no-ops.
+#   - a base that names no commit (a typo, a deleted ref): the policies
+#     do NOT no-op, they fail on git's bad-revision error. Saying "will
+#     no-op" here would promise silence and then die three seconds later.
+#   - a base resolving to HEAD: only uncommitted changes are in scope.
+# The HEAD comparison goes through `git rev-parse --verify` so a symbolic
+# base like HEAD or a branch name is caught as readily as a sha.
+ZERO_SHA := 0000000000000000000000000000000000000000
+coverage-gate-only:
+	@test -s "$(CURDIR)/coverage.out" || { \
+	  echo "coverage-gate-only: no usable coverage.out at $(CURDIR) — nothing to audit."; \
+	  echo "                    Generate one with 'make coverage-gate' or 'make test-cov'."; \
+	  exit 1; \
+	}
+	@base="$${AIWF_COVERAGE_BASE:-$$(git merge-base origin/main HEAD 2>/dev/null)}"; \
+	resolved="$$(git rev-parse --verify --quiet "$$base^{commit}" 2>/dev/null)"; \
+	if [ -z "$$base" ] || [ "$$base" = "$(ZERO_SHA)" ]; then \
+	  echo "coverage-gate: no comparison point ($${base:-unset}) — the diff-scoped gates will no-op."; \
+	  echo "               Set AIWF_COVERAGE_BASE=<ref> to give them one."; \
+	elif [ -z "$$resolved" ]; then \
+	  echo "coverage-gate: base '$$base' does not name a commit — the diff-scoped gates will fail."; \
+	elif [ "$$resolved" = "$$(git rev-parse HEAD)" ]; then \
+	  echo "coverage-gate: base resolves to HEAD — only uncommitted changes are in scope."; \
+	  echo "               To audit a range already on trunk: AIWF_COVERAGE_BASE=<ref> make coverage-gate"; \
+	fi; \
 	AIWF_COVERAGE_PROFILE="$(CURDIR)/coverage.out" \
-	AIWF_COVERAGE_BASE="$$(git merge-base origin/main HEAD)" \
+	AIWF_COVERAGE_BASE="$$base" \
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_(BranchCoverageAudit|FiringFixturePresence|FiringFixtureNoStaleAllowlist|SkillEditStructuralTestBackstop|CommentHistoryAttrition)$$' -count=1 ./internal/policies/
 
 # comment-history-audit is the focused whole-tree run of the comment
@@ -172,7 +236,21 @@ mutate-diff:
 selfcheck: build
 	./bin/aiwf doctor --self-check
 
-ci: vet lint test-cov selfcheck
+# ci is the gate the wrap rituals run before a merge or a push. It covers
+# go.yml's build/vet/lint/test matrix and its profile-driven gate step;
+# coverage-gate-only reads the profile test-cov just wrote, so the
+# diff-scoped coverage gate costs seconds here rather than a second
+# instrumented suite run.
+#
+# It is not literally everything CI does: go.yml additionally runs the
+# suite under -tags testpins, the govulncheck job, the build job, and the
+# linter-config rule-firing harness. Those stay CI-side. The tagged vet
+# runs are covered — `vet` mirrors go.yml's vet job.
+#
+# The prerequisites are an ordered pipeline — coverage-gate-only reads
+# what test-cov writes — which is safe only because .NOTPARALLEL: at the
+# top of this file forbids -j from interleaving them.
+ci: vet lint test-cov coverage-gate-only selfcheck
 
 clean:
 	rm -rf bin coverage.out

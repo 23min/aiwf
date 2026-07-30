@@ -16,6 +16,45 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0469: the diff-scoped coverage gate runs locally, before the push
+
+Nothing user-facing in the `aiwf` binary changes. Development-side, the
+diff-scoped coverage audit and its sibling profile-driven gates now run as
+part of `make ci` instead of only in CI, where their first report arrived
+after the push had already landed on trunk.
+
+`make ci` previously ran `vet lint test-cov selfcheck` — not the coverage
+gate — so an operator following the wrap rituals to the letter still shipped
+the failure. It now gates off the profile `test-cov` already builds, which
+costs seconds rather than the second instrumented suite run `make
+coverage-gate` pays for — a run the test cache never serves, because every
+`go test` in the Makefile passes `-exec`, which is outside `go test`'s
+cacheable flag set. `make coverage-gate-only` is the split-out step, and
+refuses outright when no profile exists rather than passing vacuously.
+`.NOTPARALLEL:` now guards the ordered pipeline the `ci` target depends on;
+without it a `-j` invocation could gate against a stale profile and report
+green.
+
+The gates diff their base against the **working tree** rather than `HEAD`.
+Every one of them already read the content it classifies off disk, so a
+`HEAD`-scoped diff numbered lines against content nobody measured whenever
+the tree was dirty — and reported nothing at all for a change not yet
+committed, which is the state the tree is in when `make ci` runs. Where the
+tree is clean, in CI and at the push boundary, the scope is unchanged.
+
+The coverage audit and the ritual skill-edit backstop additionally treat
+untracked `.go` and `SKILL.md` files as wholly changed, since a file just
+written is where untested or unbacked code lives and `git diff` cannot see
+one at any revision. The comment history-attrition scans deliberately keep
+their tracked-only scope, so an untracked scratch file cannot fail
+`make check-fast`.
+
+`AIWF_COVERAGE_BASE` is now honored when the caller sets it. The recipe used
+to overwrite it unconditionally, so the documented escape hatch for auditing
+a range that had already landed did not work; `make coverage-gate` also now
+says when its base resolves to `HEAD` or to nothing at all instead of
+silently reporting green.
+
 ### Changed — G-0457: CI gate reports on the change under test again
 
 Nothing user-facing in the `aiwf` binary changes. Development-side, the
