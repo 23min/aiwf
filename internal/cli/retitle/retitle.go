@@ -15,9 +15,10 @@ import (
 
 // NewCmd builds `aiwf retitle <id|composite-id> <new-title>
 // [--reason "..."]`. Title mutation: updates the entity's frontmatter
-// `title:`; for top-level entities also re-derives the on-disk slug
-// (G-0108) and syncs a canonical `# <ID> — <title>` body H1 if one is
-// present (G-0083); for composite ids regenerates the matching
+// `title:`; for top-level entities whose slug still tracks the title it
+// also re-derives the on-disk slug (G-0108), leaving a slug set with
+// `aiwf rename` alone; and syncs a canonical `# <ID> — <title>` body H1
+// if one is present (G-0083); for composite ids regenerates the matching
 // `### AC-N — <title>` body heading inside the parent milestone.
 // Closes G-065 — the asymmetry where `aiwf rename` exists for slugs
 // but no verb exists for titles.
@@ -37,6 +38,17 @@ func NewCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "retitle <id> <new-title>",
 		Short: "Update an entity's or AC's frontmatter title",
+		Long: `Update an entity's or AC's frontmatter title.
+
+A title is a single line: it is written into a one-line YAML scalar, a
+` + "`# <id> — <title>`" + ` body H1, and a commit subject, so a title containing a
+line break is refused rather than truncated. Put multi-line detail in the
+entity body with aiwf edit-body.
+
+Retitling to the title already stored has nothing to change, so a re-run reports
+that at exit 0 and commits nothing — unless the body H1 has drifted from the
+title, which retitle still repairs. The slug is re-derived only while it still
+tracks the title; one set deliberately with aiwf rename is preserved.`,
 		Example: `  # Refocus an epic's title after scope shifts
   aiwf retitle E-22 "Planning toolchain hardening" --reason "scope absorbed E-21"
 

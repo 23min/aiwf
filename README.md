@@ -393,7 +393,7 @@ For the full kind/status/transition reference and the per-kind state-machine dia
 | `case-paths` | error | Two paths differ only in case (footgun on case-insensitive volumes). |
 | `load-error` | error | Frontmatter or file-load failure for an entity (with stub registration so referrers don't cascade). |
 
-**ACs + TDD (I2):** `acs-shape`, `acs-body-coherence`, `acs-tdd-audit`, `acs-transition`, `acs-title-prose`, `milestone-done-incomplete-acs`.
+**ACs + TDD (I2):** `acs-shape`, `acs-body-coherence`, `acs-tdd-audit`, `acs-title-prose`, `milestone-done-incomplete-acs`. (AC transition legality is enforced at verb time, not by a check rule.)
 
 **Contracts (I1):** `contract-config` with subcodes (`missing-entity`, `missing-schema`, `missing-fixtures`, `no-binding`, `path-escape`, `validator-unavailable`).
 

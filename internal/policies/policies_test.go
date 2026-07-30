@@ -168,6 +168,11 @@ func TestPolicy_VerbsProjectionFindingsPresence(t *testing.T) {
 	runPolicy(t, PolicyVerbsProjectionFindingsPresence)
 }
 
+func TestPolicy_VerbResultNoOpInvariant(t *testing.T) {
+	t.Parallel()
+	runPolicy(t, PolicyVerbResultNoOpInvariant)
+}
+
 func TestPolicy_CommitConstructionSingleSeam(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyCommitConstructionSingleSeam)

@@ -37,6 +37,38 @@ release this repository does not control — is reported as a warning
 annotation and job summary. The workflow's toolchain pin is now a single
 `GO_VERSION` value rather than six copies.
 
+### Changed — G-0230: mutating verbs converge on same-state input
+
+- A mutating verb handed input that already equals current state now exits 0
+  with a "nothing to change" message instead of erroring, and writes no commit.
+  This covers `promote`, `cancel`, `move`, `rename`, `retitle`,
+  `acknowledge illegal`, `set-area`, `set-priority`, `rename-area`,
+  `milestone tdd`, `milestone depends-on`, and `edit-body --body-file`.
+  Re-running any of them — from a script, or after a partial wrap — is now a
+  clean no-op rather than a failure.
+- Several of these previously landed a commit with an *empty diff* on every
+  repeat (`milestone tdd`, `milestone depends-on`, `edit-body --body-file`) or
+  appended a duplicate audit record (`acknowledge illegal`), so this is a
+  history-correctness fix, not only an ergonomic one.
+- `aiwf edit-body` in **bless mode** (no `--body-file`) is unchanged: it still
+  refuses when the working copy matches HEAD. It is handed no target to check
+  against, so it cannot tell "nothing to change" from "the editor never saved".
+- `aiwf rename-area <name> <name>` now validates the area before converging, so
+  an undeclared name is still refused rather than reported as already renamed.
+
+### Changed — titles are validated as a single line
+
+- A title containing a line break is now refused by `aiwf add`, `aiwf retitle`,
+  `aiwf rename` (on an AC) and `aiwf import`, rather than accepted. A title
+  becomes a one-line YAML scalar, a `# <id> — <title>` body H1, and a commit
+  subject, and an embedded newline splits the heading so each subsequent
+  `retitle` appended the remainder again — a repeat that never converged and
+  that `aiwf check` did not report. Put multi-line detail in the entity body
+  (`--body` / `--body-file` at create time, `aiwf edit-body` after).
+- `aiwf rename` on an AC now applies the same `entities.title_max_length` cap
+  `aiwf retitle` applies. The two verbs set the same field, so a title accepted
+  by one and refused by the other was a uniformity gap.
+
 ### Changed — G-0228: typed `Status` enum in `internal/entity`
 
 - Internal refactor, no user-visible change — YAML frontmatter, `--format=json`

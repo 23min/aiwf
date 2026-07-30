@@ -227,12 +227,15 @@ func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLockBusyRefus
 }
 
 // TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteFSMRefusal
-// pre-advances the control repo's gap to "wontfix" (terminal, no
-// outgoing transitions) before calling Run, so Run's own internal
-// "promote to wontfix" attempt is refused as FSM-illegal — a refusal
-// that (unlike the lock-busy path above) DOES emit a valid
-// --format=json envelope with status "error", pinning Run's
-// promoteEnv.Status != "ok" branch specifically.
+// pre-advances the control repo's gap to "addressed" (a terminal state
+// distinct from Run's "wontfix" target) before calling Run, so Run's own
+// internal "promote to wontfix" attempt is a non-self FSM-illegal
+// transition (addressed -> wontfix) and is refused — a refusal that
+// (unlike the lock-busy path above) DOES emit a valid --format=json
+// envelope with status "error", pinning Run's promoteEnv.Status != "ok"
+// branch specifically. A same-status target (wontfix -> wontfix) is now a
+// NoOp, not a refusal (ADR-0036), so the pre-advance must land on a
+// *different* terminal to keep the transition genuinely illegal.
 func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteFSMRefusal(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
@@ -244,12 +247,16 @@ func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteFSMRefusal(t 
 		t.Fatalf("Setup: %v", err)
 	}
 
-	preEnv, err := runAiwfJSON(bin, filepath.Join(dir, "control"), "promote", "G-0001", "wontfix")
+	// --force reaches the terminal `addressed` without a resolver; the only
+	// requirement here is that the control gap ends in a terminal state
+	// other than wontfix, so Run's promote-to-wontfix is refused.
+	preEnv, err := runAiwfJSON(bin, filepath.Join(dir, "control"), "promote", "G-0001", "addressed",
+		"--force", "--reason", "seed a terminal state so the control promote to wontfix is a non-self FSM refusal")
 	if err != nil {
-		t.Fatalf("pre-advancing control to wontfix: %v", err)
+		t.Fatalf("pre-advancing control to addressed: %v", err)
 	}
 	if preEnv.Status != "ok" {
-		t.Fatalf("pre-advancing control to wontfix did not report ok: %+v", preEnv)
+		t.Fatalf("pre-advancing control to addressed did not report ok: %+v", preEnv)
 	}
 
 	if err := s.Run(dir); err == nil {

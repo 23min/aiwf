@@ -34,8 +34,8 @@ import (
 // reason each actor reported, and the real commit order
 // readRaceCommitOrder reads back via git trailers — so a legitimate
 // race (exactly one promote/cancel actor lands per mutually-exclusive
-// transition, everyone else cleanly refused) is never flagged, while a
-// guard that silently didn't hold (the G-0335 shape) is.
+// transition, everyone else converging or cleanly refused) is never
+// flagged, while a guard that silently didn't hold (the G-0335 shape) is.
 
 // raceOpPromote and raceOpCancel name the two operations this
 // scenario's actors race, doubling as the `aiwf` subcommand each
@@ -80,9 +80,11 @@ type ConcurrentMilestoneRaceScenario struct {
 	milestoneID string
 
 	// before/after are the repo's HEAD commit count immediately
-	// surrounding the fan-out — a harness sanity signal a test can
-	// check directly (e.g. after == before + the number of "ok"
-	// outcomes), independent of Verify's own check-clean assertion.
+	// surrounding the fan-out. Their delta is the one signal that sees a
+	// commit no trailer accounts for, which is why classify reconciles it
+	// against the actors' reported commit_shas. Note it is NOT
+	// before + the number of "ok" outcomes: a NoOp reports ok and commits
+	// nothing.
 	before, after int
 
 	// outcomes is every actor's reduced result, in launch order — the
@@ -184,14 +186,21 @@ func (s *ConcurrentMilestoneRaceScenario) launchActor(dir, operation string) raw
 }
 
 // raceActorOutcome is one concurrent actor's reduced result: which
-// operation it ran, the verb's reported envelope status, and the
-// typed error code it carried (empty when it succeeded) — the shape
+// operation it ran, the verb's reported envelope status, the typed
+// error code it carried (empty when it succeeded), and the SHA of the
+// commit it claims to have landed — the shape
 // classifyMilestoneRaceOutcomes (AC-2) classifies as a legitimate race
 // outcome or a guard violation.
+//
+// commitSHA is what separates a mutation from a NoOp. Since ADR-0036
+// both report status "ok", so status alone cannot tell "I cancelled the
+// milestone" from "it was already cancelled, I did nothing" — and an
+// oracle that cannot tell them apart cannot notice a NoOp that committed.
 type raceActorOutcome struct {
 	operation string
 	status    string
 	errorCode string
+	commitSHA string
 }
 
 // buildRaceOutcome reduces one actor's decoded envelope to a
@@ -204,7 +213,12 @@ func buildRaceOutcome(operation string, env verbEnvelope) raceActorOutcome {
 	if env.Error != nil {
 		errorCode = env.Error.Code
 	}
-	return raceActorOutcome{operation: operation, status: env.Status, errorCode: errorCode}
+	return raceActorOutcome{
+		operation: operation,
+		status:    env.Status,
+		errorCode: errorCode,
+		commitSHA: env.Metadata.CommitSHA,
+	}
 }
 
 // raceCommit is one commit's aiwf-verb/aiwf-entity trailer pair, in
@@ -274,30 +288,36 @@ func parseRaceCommitSHAs(out []byte) []string {
 // matched against "<milestoneID>/AC-1" and milestoneID itself).
 //
 // Two independent signals feed the judgment. The outcome-shape/
-// refusal-reason signal: the promote group must land exactly one "ok"
-// (the AC's open->met transition can only land once), with every other
-// promote actor refused as CodeFSMTransitionIllegal; the cancel group
-// must land zero or one "ok" (the milestone's draft->cancelled
-// transition can only land once), with every other cancel actor
-// refused as either CodeMilestoneCancelNonTerminalACs (raced while the
-// AC was still open) or CodeFSMTransitionIllegal (raced after another
-// actor already cancelled the milestone). The commit-order causality
+// refusal-reason signal: each group must land exactly the commits its
+// mutually-exclusive transition allows — one for the AC's open->met
+// promote, at most one for the milestone's draft->cancelled cancel.
+// Both bounds are counted from the git order rather than from "ok"
+// outcomes, because the losers in both groups converge to NoOp and
+// report "ok" with zero commits. A cancel that raced while the AC was
+// still open is refused as CodeMilestoneCancelNonTerminalACs; a cancel
+// that raced after the milestone was already cancelled is now a NoOp
+// (ADR-0036, M-0281/AC-2) — reported "ok" with zero commits, not an FSM
+// refusal — so more than one cancel may report "ok" while still only one
+// commit lands. The commit-order causality
 // signal: when a cancel actor did land, that commit's real position in
 // dir's git history must come strictly after the promote commit's —
 // otherwise the open-AC guard did not actually hold at the moment that
 // cancel committed, the G-0335 regression shape, indistinguishable
 // from a legitimate race by final state alone.
-func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceCommit, milestoneID string) []Violation {
+func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceCommit, milestoneID string, commitDelta int) []Violation {
 	var violations []Violation
 	acEntity := milestoneID + "/AC-1"
 
-	promoteOKCount := 0
+	// A promote actor that lost the race no longer refuses: since
+	// M-0281/AC-9 a composite promote to the status already recorded is a
+	// NoOp, so every loser reports "ok" with zero commits. The bound that
+	// still holds is on commits — the AC's own open -> met transition can
+	// land exactly once — so it is counted from the git order, the same
+	// move AC-2 made for the cancel group below when entity-level cancel
+	// converged. A refusal is now unexpected rather than routine, but if
+	// one occurs its reason must still agree with the FSM's verdict.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpPromote {
-			continue
-		}
-		if oc.status == "ok" {
-			promoteOKCount++
+		if oc.operation != raceOpPromote || oc.status == "ok" {
 			continue
 		}
 		if oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
@@ -307,37 +327,93 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 			)})
 		}
 	}
-	if promoteOKCount != 1 {
+	promoteCommits := 0
+	for _, c := range order {
+		if c.verb == raceOpPromote && c.entity == acEntity {
+			promoteCommits++
+		}
+	}
+	if promoteCommits != 1 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%d promote actors reported ok for %s (open -> met), want exactly 1",
-			promoteOKCount, acEntity,
+			"%d promote commits landed for %s (open -> met), want exactly 1",
+			promoteCommits, acEntity,
 		)})
 	}
 
-	cancelOKCount := 0
+	// Cancel refusals: the only legitimate one in this race is the open-AC
+	// guard (a cancel that raced while AC-1 was still open). A cancel that
+	// raced after the milestone was already cancelled is now a NoOp
+	// (ADR-0036) — reported "ok" with no commit — so it needs no allowed
+	// error code here.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpCancel {
+		if oc.operation != raceOpCancel || oc.status == "ok" {
 			continue
 		}
-		if oc.status == "ok" {
-			cancelOKCount++
-			continue
-		}
-		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID && oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
+		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"a cancel actor was refused with error code %q, want %q or %q — the refusal reason contradicts the open-AC guard or the FSM's own verdict",
-				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID, entity.CodeFSMTransitionIllegal.ID,
+				"a cancel actor was refused with error code %q, want %q — the only legitimate cancel refusal here is the open-AC guard",
+				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID,
 			)})
 		}
 	}
-	if cancelOKCount > 1 {
+
+	// At most one cancel can land the draft->cancelled transition; any other
+	// cancel that reported "ok" was a NoOp on the already-cancelled milestone
+	// (zero commits). Count real cancel commits from the git order, not "ok"
+	// outcomes, since NoOps also report ok now (ADR-0036).
+	cancelCommits := 0
+	for _, c := range order {
+		if c.verb == raceOpCancel && c.entity == milestoneID {
+			cancelCommits++
+		}
+	}
+	if cancelCommits > 1 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%d cancel actors reported ok for %s, want at most 1",
-			cancelOKCount, milestoneID,
+			"%d cancel commits landed for %s, want at most 1 (draft -> cancelled can happen once)",
+			cancelCommits, milestoneID,
 		)})
 	}
 
-	if cancelOKCount >= 1 {
+	// Cross-check what the actors reported against what git recorded. Counting
+	// commits alone cannot see a NoOp that committed, and counting "ok"s alone
+	// cannot see a success that didn't — since ADR-0036 both wear status "ok".
+	// metadata.commit_sha is what separates them, so it is what the two sides
+	// are reconciled through. Without this the kernel's one-commit-per-mutation
+	// guarantee has no oracle in this scenario: a NoOp branch that committed
+	// would leave the whole catalog green.
+	reportedCommits, cancelReportedCommits := 0, 0
+	for _, oc := range outcomes {
+		if oc.commitSHA == "" {
+			continue
+		}
+		if oc.status != "ok" {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"a %s actor reported status %q yet carried metadata.commit_sha %q — a refused verb must not have committed",
+				oc.operation, oc.status, oc.commitSHA,
+			)})
+			continue
+		}
+		reportedCommits++
+		if oc.operation == raceOpCancel {
+			cancelReportedCommits++
+		}
+	}
+	if reportedCommits != commitDelta {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d actors reported landing a commit but the repo gained %d during the race — "+
+				"every mutation lands exactly one commit and a NoOp lands none, so the two counts must agree",
+			reportedCommits, commitDelta,
+		)})
+	}
+	if cancelReportedCommits != cancelCommits {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d cancel actors reported landing a commit but %d cancel commits for %s are in the history — "+
+				"a cancel that reported a commit it did not land, or a cancel commit no actor claims, breaks the audit trail",
+			cancelReportedCommits, cancelCommits, milestoneID,
+		)})
+	}
+
+	if cancelCommits >= 1 {
 		promoteIdx, cancelIdx := -1, -1
 		for i, c := range order {
 			if promoteIdx == -1 && c.verb == raceOpPromote && c.entity == acEntity {
@@ -349,8 +425,8 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 		}
 		if promoteIdx == -1 {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"a cancel actor reported ok but no %s commit for %s was found in the commit order — cannot verify commit-order causality",
-				raceOpPromote, acEntity,
+				"a cancel commit landed for %s but no %s commit for %s was found in the commit order — the open-AC guard did not hold",
+				milestoneID, raceOpPromote, acEntity,
 			)})
 		} else if cancelIdx <= promoteIdx {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
@@ -443,7 +519,7 @@ func (s *ConcurrentMilestoneRaceScenario) Run(dir string) error {
 	if orderErr != nil { //coverage:ignore defensive: reading commit trailer order off a repo this scenario itself just produced commits in has no realistic failure mode; readRaceCommitOrder's own error branch is unit-tested directly against a non-git directory
 		return fmt.Errorf("reading commit trailer order after the concurrent race: %w", orderErr)
 	}
-	s.violations = classifyMilestoneRaceOutcomes(s.outcomes, order, s.milestoneID)
+	s.violations = classifyMilestoneRaceOutcomes(s.outcomes, order, s.milestoneID, s.after-s.before)
 	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentMilestoneRaceExpectedWarnings)...)
 	return nil
 }

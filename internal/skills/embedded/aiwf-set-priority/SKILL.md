@@ -34,7 +34,7 @@ aiwf set-priority <id> --clear
 1. Looks up the entity by id; refuses an unknown id.
 2. Refuses a target whose kind doesn't carry a priority — only gap and decision do.
 3. Refuses `<level>` outside the closed set, naming the allowed levels.
-4. Refuses a no-op: setting the level it's already at, or `--clear` on an entity that's already unset.
+4. Reports "nothing to change" at exit 0 without committing when the request is already satisfied: setting the level it's already at, or `--clear` on an entity that's already unset.
 5. Rewrites the `priority:` frontmatter key (or, with `--clear`, drops it entirely — the on-disk shape returns to exactly the unset state) and creates one commit with `aiwf-verb: set-priority`, `aiwf-entity: <id>`, `aiwf-actor: <actor>` trailers.
 
 The change reverses totally through the same verb: a set reverses with `--clear`; a change from one level to another reverses by setting the prior level back.

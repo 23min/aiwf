@@ -5,7 +5,7 @@ description: Use when the user wants to fix or change an entity's title — "the
 
 # aiwf-retitle
 
-The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities the on-disk slug is also re-derived from the new title so the filesystem stays in sync, and any canonical `# <ID> — <title>` body H1 is rewritten to track the new title — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated.
+The `aiwf retitle` verb updates the frontmatter `title:` of an existing entity (any of the six top-level kinds) or AC (composite id), in one atomic commit. For top-level entities whose slug still tracks the title, the on-disk slug is re-derived from the new title so the filesystem stays in sync; a slug you chose with `aiwf rename` is preserved instead, so renaming for a shorter path is not undone by a later retitle. Any canonical `# <ID> — <title>` body H1 is rewritten to track the new title — H1 sync is a no-op when the body has no H1 or carries an operator-shaped non-canonical heading. For composite ids the matching `### AC-N — <title>` body heading is regenerated.
 
 ## When to use
 
@@ -33,22 +33,22 @@ Two positional arguments matching `aiwf rename`'s shape: id (or `M-NNN/AC-N`), n
 ## What aiwf does
 
 1. Looks up the entity (or AC) by id.
-2. For top-level entities: rewrites the frontmatter `title:` field, re-derives the on-disk slug from the new title and renames the file/dir in the same commit, and rewrites a canonical `# <ID> — <title>` body H1 if one is present. Non-canonical H1s and bodies without an H1 are left untouched.
+2. For top-level entities: rewrites the frontmatter `title:` field; re-derives the on-disk slug from the new title and renames the file/dir in the same commit, but only when the current slug is still the one the current title derives — a slug you chose with `aiwf rename` is left alone; and rewrites a canonical `# <ID> — <title>` body H1 if one is present. Non-canonical H1s and bodies without an H1 are left untouched.
 3. For composite ids: rewrites the AC's `title` inside the parent milestone's `acs[]` AND regenerates the matching `### AC-N — <new-title>` body heading. Both happen in one atomic file write.
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
 5. Creates one commit with `aiwf-verb: retitle`, `aiwf-entity: <id>` (or `<id>/AC-N` for composite ids), `aiwf-actor: <actor>` trailers.
 
-The body prose under `## Goal`, `## Scope`, etc. and the id are unchanged. To change those, use a different verb: `aiwf edit-body` for body prose; `aiwf reallocate` for id. `aiwf rename` stays the slug-only verb for the rare case where you want to tweak the path without touching the title.
+The body prose under `## Goal`, `## Scope`, etc. and the id are unchanged. To change those, use a different verb: `aiwf edit-body` for body prose; `aiwf reallocate` for id. `aiwf rename` stays the slug-only verb for when you want a different path without touching the title — and the slug it sets is durable, because a later retitle preserves any slug that no longer tracks the title.
 
 ## Validation
 
 - Empty new title (after trimming whitespace) is rejected with a usage error.
-- Same-as-current title is rejected — there's no diff to commit.
+- Same-as-current title reports "nothing to retitle" at exit 0 and commits nothing, provided the canonical body H1 already matches it. When the H1 has drifted, the same command rewrites it and commits — the title is not the only surface being compared.
 - Unknown entity id is rejected.
 - Unknown AC id (e.g. `M-001/AC-99` when the milestone has fewer ACs) is rejected.
 
 ## Don't
 
 - Don't hand-edit frontmatter to "skip the verb" — `aiwf history` won't show the retitle and the next `aiwf check` will surface `provenance-untrailered-entity-commit`.
-- Don't use `aiwf retitle` for slug-only changes when the title is fine — that's `aiwf rename`. (Retitle does re-derive the slug from the new title; rename is for the rare case where you want to tweak the slug without touching the title.)
+- Don't use `aiwf retitle` for slug-only changes when the title is fine — that's `aiwf rename`. (Retitle re-derives the slug only while the slug still tracks the title. Once `aiwf rename` has set one, retitle preserves it; to put an entity back on the title-derived path, `aiwf rename` it to that slug.)
 - Don't expect the body prose under `## Goal`, `## Scope`, etc. to track the new title. That's `aiwf edit-body`'s job. (The canonical `# <ID> — <title>` H1 *is* synced; sub-section prose is not.)

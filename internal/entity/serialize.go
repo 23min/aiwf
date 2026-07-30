@@ -124,8 +124,10 @@ func isMeaningfulNonASCII(r rune) bool {
 // operator at `--body-file` for elaboration that doesn't belong in
 // the title.
 //
-// A non-positive maxLength is a no-op (validation always passes), so
-// callers in tests or paths that don't thread a config can pass 0.
+// A non-positive maxLength disables the length cap only. The
+// single-line shape check below runs regardless, so a caller that
+// passes 0 to opt out of cap policy still gets a title it can write
+// into a YAML scalar, a body H1, and a commit subject.
 //
 // The same cap also applies to slugs (see ValidateSlug) — title and
 // slug share a length budget so on-disk filenames and frontmatter
@@ -133,6 +135,18 @@ func isMeaningfulNonASCII(r rune) bool {
 // (CLI tables, HTML render, git-log subjects, `aiwf history`,
 // filesystem) all degrade uniformly rather than diverging.
 func ValidateTitle(title string, maxLength int) error {
+	// A title is a single line. It is written into a one-line YAML scalar, into
+	// a `# <id> — <title>` body H1, and into a commit subject, and every one of
+	// those readers is line-oriented: an embedded newline splits the H1 so the
+	// line-anchored pattern that maintains it matches only the first fragment,
+	// and each rewrite then appends the remainder again. Rejecting the shape
+	// here covers add, retitle and import at once, ahead of the cap gate so a
+	// caller that opts out of cap policy still gets it.
+	if strings.ContainsAny(title, "\n\r") {
+		return fmt.Errorf(
+			"title contains a line break; a title is a single line (it becomes a YAML scalar, a body H1, and a commit subject) — " +
+				"put multi-line detail in the entity body (`--body-file` at create time, or `aiwf edit-body` after)")
+	}
 	if maxLength <= 0 {
 		return nil
 	}

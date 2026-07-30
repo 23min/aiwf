@@ -123,6 +123,19 @@ func GlobalRules() []Rule {
 // illegal." Encodes the no-outgoing-transitions truth in the spec so the
 // drift policy's "every (Kind, FromState) covered" check holds without
 // implicit reasoning about FSM closure.
+//
+// The cell scopes to transitions that would change status. Promoting a
+// terminal entity to a *different* status is illegal (fsm-transition-illegal);
+// promoting to the *same* status is a NoOp, not a rejection (M-0281/AC-1), so
+// this cell states the dominant truth rather than the whole one.
+//
+// That is a deliberate coarseness, not a limit of the schema: Rule.Preconditions
+// carries a `self.target-state` subject — live on the two AC cells that gate a
+// `deferred` target below — and cell identity folds in a precondition
+// signature, so the distinction is expressible today. Splitting it would
+// multiply cells across every terminal state of every kind and churn the
+// coverage set the drift policy pins, for a distinction the verb layer already
+// enforces and tests. The AC terminal cells carry the identical boundary.
 func terminalIllegal(k entity.Kind, state string, sources RuleSource) Rule {
 	return Rule{
 		Kind:              k,
@@ -530,7 +543,12 @@ func contractRules() []Rule {
 
 // AC sub-FSM cells: open → {met, deferred, cancelled}; met → {deferred, cancelled}.
 // Q1 (deferred is terminal) is captured by absence of outgoing cells.
-// Q2 (self-promote illegal globally) is captured by no FromState-to-same-state cells.
+//
+// Q2 (AC self-promote) is no longer "illegal globally". Since M-0281/AC-9 a
+// composite promote to the status already recorded converges to a NoOp above
+// the FSM consult, so the absence of FromState-to-same-state cells records that
+// no such *transition* exists — not that the request is refused. The terminal
+// illegal cells below inherit the same boundary; see the note on them.
 func acRules() []Rule {
 	return []Rule{
 		// open → met. The Legal cell is split on parent.tdd: when the
@@ -600,6 +618,9 @@ func acRules() []Rule {
 			Sources:   RuleSource{Audit: []string{"R-AUDIT-0038"}, FP: []string{"R-FP-0050"}},
 		},
 		// Q1: deferred is terminal — explicit illegal cell for clarity.
+		//
+		// Same scope boundary as terminalIllegal, for the same reason — see
+		// its doc comment. Applies to the `cancelled` cell below too.
 		{
 			Kind:              KindAC,
 			FromState:         "deferred",

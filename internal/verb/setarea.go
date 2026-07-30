@@ -42,8 +42,10 @@ import (
 //   - <member> and clear given together refuse (mutex);
 //   - a non-empty <member> not in `members` refuses, naming the declared
 //     set;
-//   - a no-op (already tagged <member>, or --clear on an already-untagged
-//     entity) refuses.
+//
+// A request that is already satisfied — already tagged <member>, or
+// --clear on an already-untagged entity — is not a refusal: it converges
+// to a NoOp at exit 0 and writes nothing (M-0281/AC-7).
 //
 // The commit carries `aiwf-verb: set-area`, `aiwf-entity: <canonical id>`,
 // and `aiwf-actor:`. The verb trailer suppresses the
@@ -107,12 +109,13 @@ func SetArea(
 		}
 	}
 
-	// No-op refusals: nothing to change.
+	// Same-state convergence (M-0281/AC-7): the tag already reads as
+	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
 	if !clearTag && e.Area == member {
-		return nil, fmt.Errorf("%s is already tagged %q; nothing to change", id, member)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already tagged %q; nothing to change", id, member)}, nil
 	}
 	if clearTag && e.Area == "" {
-		return nil, fmt.Errorf("%s is already untagged; nothing to clear", id)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already untagged; nothing to clear", id)}, nil
 	}
 
 	modified := *e

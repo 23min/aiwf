@@ -250,7 +250,7 @@ Verbs:
   promote <id> <new-status>      advance an entity's status (optional --reason "..."; --force --reason "..." to skip the FSM); composite ids (M-NNN/AC-N) accepted; --phase <p> for AC tdd_phase (mutex with positional new-status); --tests "pass=N fail=N skip=N [total=N]" attaches an aiwf-tests trailer in phase mode (recognized keys only; non-negative integers)
   cancel <id>                    promote to the kind's terminal-cancel status (optional --reason "..."; --force --reason "..." records the cancellation as an audit event)
   rename <id> <new-slug>         rename the file/dir slug; id preserved
-  retitle <id> <new-title>       fix an entity's title (frontmatter + filename slug); re-derives the slug
+  retitle <id> <new-title>       fix an entity's title; re-derives the slug unless rename set one
   edit-body <id> [--body-file <p>] replace the entity's markdown body (frontmatter untouched); omit --body-file to bless current working-copy edits, or use --body-file - for stdin; --reason "..." optional
   move <M-id> --epic <E-id>      move a milestone to a different epic; id preserved
   milestone depends-on <M-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append

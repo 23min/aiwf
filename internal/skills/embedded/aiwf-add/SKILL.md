@@ -138,7 +138,7 @@ What to expect:
 
 ## Milestone `depends_on`: declare DAG edges via verb
 
-Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array. Two writer surfaces, both producing one atomic commit with `aiwf-verb` trailers:
+Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array. Two writer surfaces, each producing one atomic commit with `aiwf-verb` trailers when the list actually changes — a re-run declaring the list already stored converges to exit 0 with no commit:
 
 ```bash
 # At allocation time: pass --depends-on
@@ -156,7 +156,7 @@ Replace-not-append semantics: a second `--on` invocation replaces the list, it d
 
 Each id passed to `--depends-on` or `--on` must resolve to an existing milestone before the verb commits — typos and pre-allocation references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity. Cross-kind dependencies (e.g. milestone depends on ADR) are out of scope today; a gap captures the generalization if the friction earns it.
 
-Don't hand-edit `depends_on:` directly — `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render.
+Don't hand-edit `depends_on:` directly — bless-mode `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render whenever they change the list.
 
 ### Changing a milestone's TDD policy after creation
 
@@ -167,7 +167,7 @@ aiwf milestone tdd M-NNN --policy advisory
 aiwf milestone tdd M-NNN --policy required --reason "AC list stabilized"
 ```
 
-`--policy` takes one of `none | advisory | required`. Gating is uniform-ordinary: any actor may flip the policy in either direction (weakening or strengthening) with no `--force`, and `--reason` is optional. One refusal guards data integrity — a flip to `required` that would leave an already-`met` AC without `tdd_phase: done` is refused with an error naming the offending ACs, so re-requiring TDD never back-stamps a phase onto passed work. Each invocation leaves one trailered commit.
+`--policy` takes one of `none | advisory | required`. Gating is uniform-ordinary: any actor may flip the policy in either direction (weakening or strengthening) with no `--force`, and `--reason` is optional. One refusal guards data integrity — a flip to `required` that would leave an already-`met` AC without `tdd_phase: done` is refused with an error naming the offending ACs, so re-requiring TDD never back-stamps a phase onto passed work. An invocation that changes the policy leaves one trailered commit; setting the policy already in force converges to exit 0 with no commit.
 
 ## After `aiwf add <kind>`: fill in the body
 

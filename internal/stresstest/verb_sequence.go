@@ -422,7 +422,8 @@ var baseWalkOperations = []walkOperation{
 func walkOperationsFor(milestoneKind bool) []walkOperation {
 	ops := append([]walkOperation(nil), baseWalkOperations...)
 	if milestoneKind {
-		ops = append(ops,
+		ops = append(
+			ops,
 			walkOperation{Name: moveOperationName, Weight: 1},
 			walkOperation{Name: tddOperationName, Weight: 1},
 		)
@@ -470,33 +471,59 @@ func classifySimpleStep(label string, env verbEnvelope) []Violation {
 		return nil
 	}
 	return []Violation{{Message: fmt.Sprintf(
-		"%s unexpectedly refused (status=%s, error=%+v)", label, env.Status, env.Error)}}
+		"%s unexpectedly refused (status=%s, error=%+v)", label, env.Status, env.Error,
+	)}}
 }
 
 // classifyVerbSequenceStep judges one promote attempt's outcome
 // against the FSM's own legality verdict (entity.ValidateTransition),
 // returning the resulting current status and any violations found.
 //
-// An FSM-illegal target must always be refused specifically with
-// CodeFSMTransitionIllegal, and must never land a commit — that
-// direction is unconditional. An FSM-legal target may still be
-// refused for an orthogonal business rule (e.g. a gap's
+// A same-status target (current == target) is a NoOp per ADR-0036:
+// success with zero commits, not an FSM refusal — handled first, before
+// the legal/illegal split. An FSM-illegal (non-self) target must always
+// be refused specifically with CodeFSMTransitionIllegal, and must never
+// land a commit — that direction is unconditional. An FSM-legal target
+// may still be refused for an orthogonal business rule (e.g. a gap's
 // addressed-status resolver requirement) that sits outside the FSM
 // proper; that refusal is legitimate as long as it isn't also
-// tagged fsm-transition-illegal and it lands no commit. Whenever
-// the verb reports success, exactly one commit must land.
+// tagged fsm-transition-illegal and it lands no commit. Whenever the
+// verb reports success on a real (non-NoOp) transition, exactly one
+// commit must land.
 func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, after int, env verbEnvelope) (next string, violations []Violation) {
+	// Same-status promote is a NoOp, not an FSM refusal (ADR-0036): the
+	// identity request is already satisfied, so the verb converges to
+	// success with no commit. It is neither a legal transition (no state
+	// change) nor an illegal one (nothing is refused) — a first-class third
+	// outcome, checked before the legal/illegal split below.
+	if current == target {
+		if env.Status != "ok" {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"%s: same-status promote %s -> %s should be a NoOp (status ok), got status=%s error=%+v",
+				kind, current, target, env.Status, env.Error,
+			)})
+		}
+		if after != before {
+			violations = append(violations, Violation{Message: fmt.Sprintf(
+				"%s: same-status NoOp %s -> %s landed %d commits, want 0", kind, current, target, after-before,
+			)})
+		}
+		return current, violations
+	}
+
 	legal := entity.ValidateTransition(kind, entity.Status(current), entity.Status(target)) == nil
 	refusedAsIllegal := env.Status == "error" && env.Error != nil && env.Error.Code == entity.CodeFSMTransitionIllegal.ID
 
 	if env.Status == "ok" {
 		if !legal {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"%s: FSM-illegal %s -> %s was accepted (status ok) instead of refused", kind, current, target)})
+				"%s: FSM-illegal %s -> %s was accepted (status ok) instead of refused", kind, current, target,
+			)})
 		}
 		if after != before+1 {
 			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"%s: promote %s -> %s reported success but landed %d commits, want exactly 1", kind, current, target, after-before)})
+				"%s: promote %s -> %s reported success but landed %d commits, want exactly 1", kind, current, target, after-before,
+			)})
 		}
 		if legal {
 			return target, violations
@@ -510,15 +537,18 @@ func classifyVerbSequenceStep(kind entity.Kind, current, target string, before, 
 	if !legal && !refusedAsIllegal {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
 			"%s: FSM-illegal %s -> %s was not refused as %s (status=%s, error=%+v)",
-			kind, current, target, entity.CodeFSMTransitionIllegal.ID, env.Status, env.Error)})
+			kind, current, target, entity.CodeFSMTransitionIllegal.ID, env.Status, env.Error,
+		)})
 	}
 	if legal && refusedAsIllegal {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%s: FSM-legal %s -> %s was refused as %s", kind, current, target, entity.CodeFSMTransitionIllegal.ID)})
+			"%s: FSM-legal %s -> %s was refused as %s", kind, current, target, entity.CodeFSMTransitionIllegal.ID,
+		)})
 	}
 	if after != before {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%s: refused promote %s -> %s still landed a commit (%d -> %d)", kind, current, target, before, after)})
+			"%s: refused promote %s -> %s still landed a commit (%d -> %d)", kind, current, target, before, after,
+		)})
 	}
 	return current, violations
 }

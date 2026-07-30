@@ -126,18 +126,6 @@ func TestMove_RejectsTargetWrongKind(t *testing.T) {
 	}
 }
 
-func TestMove_RejectsSameEpic(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Foo", testActor, verb.AddOptions{}))
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "M", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
-
-	_, err := verb.Move(r.ctx, r.tree(), "M-0001", "E-0001", testActor)
-	if err == nil || !strings.Contains(err.Error(), "already under") {
-		t.Errorf("expected same-epic error, got %v", err)
-	}
-}
-
 func TestMove_RequiresEpicFlag(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)

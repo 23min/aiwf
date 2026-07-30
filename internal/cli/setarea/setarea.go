@@ -49,9 +49,11 @@ clean correction back to untagged (run 'aiwf set-area <id> --clear').
 Refuses a milestone or composite/AC-id target — those derive their area
 from the parent epic, and the refusal names the epic and the command to
 run there. Also refuses an unknown id, an undeclared <member> (naming
-the declared set), <member> together with --clear, and a no-op. The
-change reverses totally via the same verb: a tag reverses with --clear,
-a retag with the prior member.`,
+the declared set), and <member> together with --clear. A request that
+is already satisfied is not refused: re-tagging with the member already
+set, or --clear on an untagged entity, exits 0 reporting nothing to
+change and writes no commit. The change reverses totally via the same
+verb: a tag reverses with --clear, a retag with the prior member.`,
 		Example: `  # Tag an untagged entity (the areas.required remediation)
   aiwf set-area E-0001 platform
 

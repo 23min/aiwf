@@ -38,9 +38,16 @@ type verbEnvelope struct {
 		} `json:"scopes"`
 	} `json:"result"`
 	Metadata struct {
-		EntityID      string `json:"entity_id"`
-		Entities      int    `json:"entities"`       // populated by `check`
-		Events        int    `json:"events"`         // populated by `history`
+		EntityID string `json:"entity_id"`
+		Entities int    `json:"entities"` // populated by `check`
+		Events   int    `json:"events"`   // populated by `history`
+		// CommitSHA is populated by a mutating verb that actually
+		// committed, and absent from a verb that converged to a NoOp
+		// (ADR-0036). It is the machine-readable difference between the
+		// two, which are otherwise both status "ok" — letting an oracle
+		// cross-check what actors reported against what git recorded
+		// (M-0281).
+		CommitSHA     string `json:"commit_sha"`
 		CorrelationID string `json:"correlation_id"` // populated by every instrumented verb (M-0239/AC-1)
 	} `json:"metadata"`
 }

@@ -14,21 +14,42 @@ import (
 // where it originally landed for M-0136/AC-2 alongside
 // illegalTransitionFindings; now exposed as an exported package
 // symbol so the CLI gather layer in internal/cli/check/ can call
-// it once per check invocation and pass the resulting map to all
-// four rules that consume it (fsm-history-consistent,
-// isolation-escape, trailer-verb-unknown, id-rename-untrailered;
-// the fourth added at M-0160/AC-4).
+// it once per check invocation and pass the resulting map to every
+// rule that consumes it. WalkAcknowledgedSHAs' doc comment below
+// enumerates those rules for readers; the two rosters in
+// internal/policies/acks_helper_lift.go enumerate them for the
+// chokepoint. A new consumer is added to both — the comment is not a
+// substitute for the roster that drives enforcement.
 //
-// The single-compute invariant is policed by
-// internal/policies/acks_helper_lift.go.
+// The single-compute invariant and the agreement between comment and
+// rosters are both policed by internal/policies/acks_helper_lift.go.
 
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. The set is consumed by
-// illegalTransitionFindings, RunIsolationEscape,
-// RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4)
-// to exempt commits that have been retroactively acknowledged via
-// `aiwf acknowledge illegal`.
+// returns the set of target SHAs. Consumers use it to exempt commits
+// retroactively acknowledged via `aiwf acknowledge illegal`. Two
+// rosters describe them, because the chokepoint checks two different
+// properties of a consumer.
+//
+// The gather layer passes the map as a parameter to these exported
+// rules, and their wiring is what classes 4a-4c check
+// (ackedSHAsConsumers): FSMHistoryConsistent, RunIsolationEscape,
+// RunTrailerVerbUnknown, RunIDRenameUntrailered (M-0160/AC-4),
+// RunOrphanedAICommits and RunPromoteOnWrongBranch.
+//
+// Those rules, plus the two leaf predicates at the end of
+// FSMHistoryConsistent's forwarding chain —
+// illegalTransitionFindings and forcedUntraileredFindings — make up
+// the roster whose bodies must keep referencing the map, which is what
+// class 4d checks (ackedSHAsBodyConsumers). So the second roster is
+// the first plus those two predicates. FSMHistoryConsistent is in it
+// by forwarding the map to that chain rather than indexing it, the
+// reference shape 4d accepts for a rule that delegates its lookup.
+//
+// The verb consumes the walker too, to recognize
+// a SHA it has already acknowledged and converge rather than append a
+// duplicate record, so the verb's notion of "already acknowledged"
+// is the rules' notion by construction rather than by agreement.
 //
 // Returns nil for non-git directories and empty histories; the
 // consumers treat nil and an empty map identically (no
@@ -50,11 +71,11 @@ import (
 //
 // AC-3 caller convention: the CLI gather layer at
 // internal/cli/check/check.go::Run calls this exactly once and
-// passes the result to all four downstream rules through a
-// uniformly-named ackedSHAs parameter (id-rename-untrailered
-// added at M-0160/AC-4 as the fourth consumer). Rule-internal
-// recomputes are forbidden by PolicyAcksHelperLift (violation
-// class 3c).
+// passes the result to every downstream rule listed above through
+// a uniformly-named ackedSHAs parameter. Rule-internal recomputes
+// are forbidden by PolicyAcksHelperLift (violation class 3c),
+// which also pins the consumer list itself, so a rule that starts
+// reading ackedSHAs without being named above fails the policy.
 //
 // M-0216/AC-5: derives from the shared HEAD walk (head) instead of
 // spawning its own `git log HEAD` — the CLI gather layer computes
@@ -103,13 +124,13 @@ func WalkAcknowledgedSHAs(ctx context.Context, root string, head []HeadCommit) m
 // map[fullSHA]map[canonicalEntityID]bool.
 //
 // Only ack commits carrying BOTH `aiwf-force-for: <sha>` AND
-// `aiwf-entity: <id>` count. SHA-only acks (the legacy seven
-// rules' blanket shape via WalkAcknowledgedSHAs) do NOT suppress
+// `aiwf-entity: <id>` count. SHA-only acks (the blanket shape the
+// WalkAcknowledgedSHAs consumers use) do NOT suppress
 // findings here — the per-(commit, entity) shape requires both
 // sides. The verb's `git diff-tree` write-time check is what
 // gives the (SHA, entity) pair its kernel-attested binding.
 //
-// Returns nil for non-git directories and empty histories; the
+// Returns nil for non-git directories and empty histories; every
 // consumer treats nil and an empty map identically (no
 // exemptions).
 //

@@ -32,8 +32,10 @@ import (
 //     refuses — priority is legal only on gap and decision;
 //   - <level> and clear given together refuse (mutex);
 //   - an out-of-range <level> refuses, naming the allowed set;
-//   - a no-op (already set to <level>, or --clear on an already-unset
-//     entity) refuses.
+//
+// A request that is already satisfied — already set to <level>, or
+// --clear on an already-unset entity — is not a refusal: it converges to
+// a NoOp at exit 0 and writes nothing (M-0281/AC-7).
 //
 // The commit carries `aiwf-verb: set-priority`, `aiwf-entity: <canonical
 // id>`, and `aiwf-actor:`. The verb trailer suppresses the
@@ -74,12 +76,13 @@ func SetPriority(
 		}
 	}
 
-	// No-op refusals: nothing to change.
+	// Same-state convergence (M-0281/AC-7): the priority already reads as
+	// requested, so a re-run converges to a NoOp at exit 0 rather than an error.
 	if !clearTag && e.Priority == level {
-		return nil, fmt.Errorf("%s priority is already set to %q; nothing to change", id, level)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s priority is already set to %q; nothing to change", id, level)}, nil
 	}
 	if clearTag && e.Priority == "" {
-		return nil, fmt.Errorf("%s priority is already unset; nothing to clear", id)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s priority is already unset; nothing to clear", id)}, nil
 	}
 
 	modified := *e
