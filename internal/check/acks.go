@@ -24,10 +24,11 @@ import (
 
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. Four check rules consume it —
-// illegalTransitionFindings, RunIsolationEscape,
-// RunTrailerVerbUnknown, and RunIDRenameUntrailered (M-0160/AC-4) —
-// to exempt commits that have been retroactively acknowledged via
+// returns the set of target SHAs. Seven SHA-scoped rules consume it —
+// illegalTransitionFindings, forcedUntraileredFindings,
+// RunIsolationEscape, RunOrphanedAICommits, RunPromoteOnWrongBranch,
+// RunTrailerVerbUnknown and RunIDRenameUntrailered (M-0160/AC-4) — to
+// exempt commits that have been retroactively acknowledged via
 // `aiwf acknowledge illegal`. The verb consumes it too, to recognize
 // a SHA it has already acknowledged and converge rather than append a
 // duplicate record, so the verb's notion of "already acknowledged"

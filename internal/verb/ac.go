@@ -299,6 +299,15 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("rename: new title is empty")
 	}
+	// Rename dispatches here before its own validation, because the second
+	// positional argument is a slug for an entity and a title for an AC. The
+	// shape check has to happen on this side of that split: an AC title reaches
+	// a line-anchored `### AC-N — <title>` heading rewrite, which a line break
+	// breaks the same way it breaks an entity H1. Cap policy stays with the
+	// caller (0 = no cap), matching how Retitle passes it through.
+	if err := entity.ValidateTitle(newTitle, 0); err != nil {
+		return nil, err
+	}
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err

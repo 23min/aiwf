@@ -113,7 +113,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		//coverage:ignore defensive: the loader read this same file to build e, so a failure here needs it to vanish mid-verb
 		return nil, err
 	}
-	if e.Title == newTitle && entityH1MatchesTitle(body, id, newTitle) {
+	if e.Title == newTitle && entityH1MatchesTitle(body, e.ID, newTitle) {
 		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s title is already %q; nothing to retitle", id, newTitle)}, nil
 	}
 
@@ -142,7 +142,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 	// scaffold doesn't produce one); when absent, rewriteEntityH1 is a
 	// no-op. Non-canonical H1s (operator-shaped headings) are left
 	// alone so an intentional divergence isn't silently clobbered.
-	body = rewriteEntityH1(body, id, newTitle)
+	body = rewriteEntityH1(body, e.ID, newTitle)
 	if len(moves) > 0 {
 		// Fold the entity's own outgoing link rewrite into this same
 		// body, rather than letting planLinkRewriteWrites below emit a
@@ -214,6 +214,11 @@ func slugTracksTitle(e *entity.Entity) (bool, error) {
 // entityH1MatchesTitle reports whether body's canonical `# <id> — <title>` H1
 // already reads as rewriteEntityH1 would write it. A body with no canonical H1
 // is already consistent: rewriteEntityH1 would not add one either.
+//
+// id must be the entity's own stored id, not the spelling the operator typed.
+// Parsers accept narrower legacy widths on input, and a narrow spelling matches
+// no H1 carrying the canonical one — which would make a stale heading look
+// already-consistent and converge the caller over it.
 func entityH1MatchesTitle(body []byte, id, newTitle string) bool {
 	return bytes.Equal(body, rewriteEntityH1(body, id, newTitle))
 }
@@ -232,8 +237,13 @@ func entityH1MatchesTitle(body []byte, id, newTitle string) bool {
 // divergence.
 func rewriteEntityH1(body []byte, id, newTitle string) []byte {
 	pattern := regexp.MustCompile(`(?m)^# ` + regexp.QuoteMeta(id) + ` — .*$`)
-	replacement := []byte(fmt.Sprintf("# %s — %s", id, newTitle))
-	return pattern.ReplaceAll(body, replacement)
+	replacement := fmt.Appendf(nil, "# %s — %s", id, newTitle)
+	// ReplaceAllFunc, not ReplaceAll: the replacement carries the operator's
+	// title, and ReplaceAll expands `$name` / `${name}` inside it. With no
+	// capture groups in the pattern every such reference expands to the empty
+	// string, so a title like `Cost is $1 per unit` would lose the `$1`.
+	// rewriteACHeading takes the same precaution for the same reason.
+	return pattern.ReplaceAllFunc(body, func([]byte) []byte { return replacement })
 }
 
 // retitleAC handles `aiwf retitle M-NNN/AC-N "<new-title>"`. Updates

@@ -412,3 +412,46 @@ func TestSerialize_EmptyBodyForNewEntity(t *testing.T) {
 		t.Errorf("round-trip parse: %v", err)
 	}
 }
+
+// TestValidateTitle_RejectsLineBreaks pins the single-line shape a title has to
+// keep. A title is written into a one-line YAML scalar, a `# <id> — <title>`
+// body H1, and a commit subject; all three readers are line-oriented.
+//
+// The H1 is the one that corrupts silently. Its maintaining pattern is
+// line-anchored, so an embedded newline leaves the pattern matching only the
+// first fragment and every rewrite appends the remainder again — the heading
+// grows by one line per invocation, the convergence guard can never see a
+// match, and `aiwf check` reports nothing. Rejecting the shape here is what
+// keeps add, retitle and import from reaching that state at all.
+//
+// The check precedes the cap gate deliberately: a caller passing maxLength 0 is
+// opting out of cap policy, not out of well-formedness.
+func TestValidateTitle_RejectsLineBreaks(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		title string
+	}{
+		{"a bare newline", "Alpha\nBeta"},
+		{"a carriage return", "Alpha\rBeta"},
+		{"a CRLF pair", "Alpha\r\nBeta"},
+		{"a trailing newline", "Alpha\n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// maxLength 0 = cap policy opted out; the shape check still applies.
+			if err := ValidateTitle(tc.title, 0); err == nil {
+				t.Errorf("ValidateTitle(%q, 0) = nil, want a refusal", tc.title)
+			}
+			if err := ValidateTitle(tc.title, 80); err == nil {
+				t.Errorf("ValidateTitle(%q, 80) = nil, want a refusal", tc.title)
+			}
+		})
+	}
+
+	// A single-line title within the cap stays acceptable.
+	if err := ValidateTitle("Alpha Beta", 80); err != nil {
+		t.Errorf("ValidateTitle on a single-line title returned %v, want nil", err)
+	}
+}

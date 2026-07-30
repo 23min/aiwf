@@ -95,10 +95,11 @@ func TestRenameRetitleAC_SameTitle_ReturnsNoOp(t *testing.T) {
 }
 
 // TestRetitle_H1DriftedFromTitle_StillRewrites pins the H1 conjunct. Retitle
-// owns the canonical `# <id> — <title>` body H1 outright — no verb lets an
-// operator set it independently of the title — so an H1 out of sync with the
-// title is work left to do; comparing the title alone would claim success over
-// that state.
+// owns the CANONICAL `# <id> — <title>` heading: it states the entity's own
+// title, so one that disagrees is stale rather than chosen, and an operator who
+// wants their own heading writes a non-canonical one that retitle leaves alone.
+// An out-of-sync canonical H1 is therefore work left to do; comparing the title
+// alone would claim success over that state.
 func TestRetitle_H1DriftedFromTitle_StillRewrites(t *testing.T) {
 	t.Parallel()
 	const title = "Foundations"
@@ -217,21 +218,92 @@ func TestRetitle_NonASCIITitle_SurfacesSlugWarning(t *testing.T) {
 	}
 }
 
-// writeLooseEntity plants an entity file at an arbitrary path, bypassing the
-// verb layer the way a hand-authored or imported tree does. The loader resolves
-// entities by their frontmatter id, so these load and `aiwf check` reports no
-// error on them — which is what makes the paths below reachable rather than
-// defensive.
-func writeLooseEntity(t *testing.T, r *runner, dir, title string) {
+// TestRetitle_TitleWithDollarToken_SurvivesTheH1Rewrite pins the H1 rewrite
+// against regexp replacement-template expansion. The replacement string carries
+// the operator's title, and `Regexp.ReplaceAll` expands `$name` / `${name}`
+// inside a replacement. The H1 pattern has no capture groups, so every such
+// reference would expand to the empty string and silently delete part of the
+// title.
+//
+// The same-title arm is the one that bites twice: the convergence guard compares
+// the body against what rewriteEntityH1 would write, so a mangled H1 matches its
+// own mangling and every later retitle converges over the damage.
+func TestRetitle_TitleWithDollarToken_SurvivesTheH1Rewrite(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		title string
+	}{
+		{"a positional-looking token", "Cost is $1 per unit"},
+		{"a braced token", "Use ${TOKEN} in env"},
+		{"a named token", "Budget in $USD only"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRunner(t)
+			r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, tc.title, testActor, verb.AddOptions{}))
+			writeEntityH1(r.t, r, "E-0001", "# E-0001 — "+tc.title)
+
+			// Retitling to the title already stored must leave the H1 alone.
+			res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", tc.title, testActor, "", 0)
+			if err != nil {
+				t.Fatalf("retitle to the stored title: %v", err)
+			}
+			if !res.NoOp {
+				t.Errorf("res.NoOp = false, want true — the H1 already reads as requested")
+			}
+			if got := readEntityBody(t, r, "E-0001"); !strings.Contains(got, "# E-0001 — "+tc.title) {
+				t.Errorf("H1 lost part of the title.\n got: %q\nwant it to contain: %q",
+					got, "# E-0001 — "+tc.title)
+			}
+		})
+	}
+}
+
+// TestRetitle_NarrowIDSpelling_StillRepairsTheH1 pins R1 for the H1 comparison.
+// Parsers accept narrower legacy widths, so `E-01` names the very entity stored
+// as `E-0001`. Comparing against the operator's spelling matches no H1 carrying
+// the canonical id, which reports a drifted heading as already-consistent and
+// converges over it — a NoOp that is false about the surface it claims to have
+// checked.
+func TestRetitle_NarrowIDSpelling_StillRepairsTheH1(t *testing.T) {
+	t.Parallel()
+	const title = "Alpha epic"
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, title, testActor, verb.AddOptions{}))
+	writeEntityH1(r.t, r, "E-0001", "# E-0001 — Stale drifted heading")
+
+	res, err := verb.Retitle(r.ctx, r.tree(), "E-01", title, testActor, "", 0)
+	if err != nil {
+		t.Fatalf("retitle at a narrow id width: %v", err)
+	}
+	if res.NoOp {
+		t.Fatalf("res.NoOp = true, want false — E-01 is E-0001, whose H1 has drifted")
+	}
+	if res.Plan == nil {
+		t.Fatal("res.Plan = nil, want a plan repairing the H1")
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("apply: %v", applyErr)
+	}
+	if got := readEntityBody(t, r, "E-0001"); !strings.Contains(got, "# E-0001 — "+title) {
+		t.Errorf("H1 not repaired.\ngot: %q", got)
+	}
+}
+
+// readEntityBody returns an entity file's contents as a string.
+func readEntityBody(t *testing.T, r *runner, id string) string {
 	t.Helper()
-	full := filepath.Join(r.root, "work", "epics", dir)
-	if err := os.MkdirAll(full, 0o750); err != nil {
-		t.Fatalf("mkdir %s: %v", dir, err)
+	e := r.tree().ByID(id)
+	if e == nil {
+		t.Fatalf("%s missing from the fixture tree", id)
 	}
-	body := "---\nid: E-0001\ntitle: " + title + "\nstatus: proposed\n---\n## Goal\n\nFixture prose for test setup; not the subject under test.\n"
-	if err := os.WriteFile(filepath.Join(full, "epic.md"), []byte(body), 0o600); err != nil {
-		t.Fatalf("write %s: %v", dir, err)
+	raw, err := os.ReadFile(filepath.Join(r.root, e.Path)) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading %s: %v", id, err)
 	}
+	return string(raw)
 }
 
 // TestRetitle_PathWithoutIDPrefix_Refuses pins the refusal for a name
@@ -241,7 +313,7 @@ func writeLooseEntity(t *testing.T, r *runner, dir, title string) {
 func TestRetitle_PathWithoutIDPrefix_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	writeLooseEntity(t, r, "plainname", "Hand authored epic")
+	writeLooseEpicOnly(t, r.root, "plainname", "E-0001", "Hand authored epic")
 
 	_, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Another title", testActor, "", 0)
 	if err == nil {
@@ -262,7 +334,7 @@ func TestRetitle_PathWithoutIDPrefix_Refuses(t *testing.T) {
 func TestRetitle_StoredTitleSlugifiesToNothing_PreservesTheSlug(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
-	writeLooseEntity(t, r, "E-0001-legacy-slug", "日本語のタイトル")
+	writeLooseEpicOnly(t, r.root, "E-0001-legacy-slug", "E-0001", "日本語のタイトル")
 
 	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Now An ASCII Title", testActor, "", 0)
 	if err != nil {
@@ -311,7 +383,10 @@ func writeEntityH1(t *testing.T, r *runner, id, heading string) {
 	if err != nil {
 		t.Fatalf("reading %s: %v", id, err)
 	}
-	patched := regexp.MustCompile(`(?m)^# `+regexp.QuoteMeta(id)+` — .*$`).ReplaceAllString(string(raw), heading)
+	// ReplaceAllLiteralString, not ReplaceAllString: heading carries test titles
+	// that contain `$1` / `${TOKEN}`, which the template form would expand away —
+	// silently mangling the fixture the $-token test depends on.
+	patched := regexp.MustCompile(`(?m)^# `+regexp.QuoteMeta(id)+` — .*$`).ReplaceAllLiteralString(string(raw), heading)
 	if patched == string(raw) {
 		// The template may ship no canonical H1; add one so the drift is real.
 		patched = string(raw) + "\n" + heading + "\n"
@@ -319,4 +394,49 @@ func writeEntityH1(t *testing.T, r *runner, id, heading string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing %s: %v", id, writeErr)
 	}
+}
+
+// TestRetitleAndRename_LineBreakTitle_Refused pins the verb-level consequence of
+// the single-line title rule. A line break in a title is not merely malformed:
+// it makes the H1 and AC-heading rewrites permanently non-convergent, because
+// their patterns are line-anchored and match only the first fragment, so every
+// invocation appends the remainder again and the same-state guard can never see
+// a match. Unbounded growth, at exit 0, invisible to `aiwf check`.
+//
+// All four surfaces that accept a title are covered — the entity and composite
+// paths of both verbs — because `rename` dispatches to its AC path before its
+// own validation runs, so the entity-level guard does not cover it.
+func TestRetitleAndRename_LineBreakTitle_Refused(t *testing.T) {
+	t.Parallel()
+	const bad = "Alpha\nBeta"
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Cache", testActor,
+		verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
+	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "cache warms on boot", testActor))
+
+	t.Run("retitle an entity", func(t *testing.T) {
+		t.Parallel()
+		if _, err := verb.Retitle(r.ctx, r.tree(), "E-0001", bad, testActor, "", 0); err == nil {
+			t.Error("retitle accepted a title containing a line break, want a refusal")
+		}
+	})
+	t.Run("retitle an AC", func(t *testing.T) {
+		t.Parallel()
+		if _, err := verb.Retitle(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, "", 0); err == nil {
+			t.Error("retitle accepted an AC title containing a line break, want a refusal")
+		}
+	})
+	t.Run("rename an AC", func(t *testing.T) {
+		t.Parallel()
+		if _, err := verb.Rename(r.ctx, r.tree(), "M-0001/AC-1", bad, testActor, 0); err == nil {
+			t.Error("rename accepted an AC title containing a line break, want a refusal")
+		}
+	})
+	t.Run("add an entity", func(t *testing.T) {
+		t.Parallel()
+		if _, err := verb.Add(r.ctx, r.tree(), entity.KindGap, bad, testActor, verb.AddOptions{}); err == nil {
+			t.Error("add accepted a title containing a line break, want a refusal")
+		}
+	})
 }

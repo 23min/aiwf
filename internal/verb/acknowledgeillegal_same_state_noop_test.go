@@ -231,3 +231,47 @@ func TestAcknowledgeIllegal_EntityBoundAckIsIndependentOfBlanketAck(t *testing.T
 		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, countBefore)
 	}
 }
+
+// TestAcknowledgeIllegal_AbbreviatedSHA_ReturnsNoOp pins the arm that makes
+// AC-4's convergence usable in practice. `aiwf history` prints the 7-char form,
+// so the abbreviated spelling is the one an operator copies back in — the same
+// argument promote's resolver comparison makes for itself.
+//
+// The guard resolves both sides through gitops.ResolveCommitSHA before
+// comparing, so a short spelling and the full SHA it names are one referent.
+// Comparing the raw strings instead leaves this arm appending a duplicate empty
+// audit commit on every repeat, which is the defect AC-4 exists to close — and
+// resolving is invisible to a test that only ever spells the SHA in full.
+func TestAcknowledgeIllegal_AbbreviatedSHA_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	fullSHA := commitOne(t, r.root, "beta.md", "beta v1\n", "historical illegal flip")
+
+	res, err := verb.AcknowledgeIllegal(r.ctx, r.root, fullSHA, "", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("first AcknowledgeIllegal: %v", err)
+	}
+	if res.Plan == nil {
+		t.Fatal("first ack produced no plan")
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("applying the first ack: %v", applyErr)
+	}
+	countAfterFirst := countCommits(t, r.root)
+
+	// The abbreviated form names the very commit just acknowledged.
+	short := fullSHA[:7]
+	again, err := verb.AcknowledgeIllegal(r.ctx, r.root, short, "", testActor, ackReason)
+	if err != nil {
+		t.Fatalf("re-acking at the abbreviated spelling returned a Go error, want a NoOp: %v", err)
+	}
+	if !again.NoOp {
+		t.Errorf("again.NoOp = false, want true — %s is %s", short, fullSHA)
+	}
+	if again.Plan != nil {
+		t.Errorf("again.Plan = %+v, want nil — an abbreviated re-ack must not append a duplicate", again.Plan)
+	}
+	if got := countCommits(t, r.root); got != countAfterFirst {
+		t.Errorf("commit count = %s, want %s (the NoOp must append no commit)", got, countAfterFirst)
+	}
+}
