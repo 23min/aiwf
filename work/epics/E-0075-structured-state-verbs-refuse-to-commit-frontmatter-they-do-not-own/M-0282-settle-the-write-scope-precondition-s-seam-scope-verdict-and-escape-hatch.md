@@ -19,7 +19,7 @@ acs:
       status: met
     - id: AC-5
       title: ADR records whether the guard compares frontmatter only or the whole file
-      status: open
+      status: met
 ---
 
 ## Goal
