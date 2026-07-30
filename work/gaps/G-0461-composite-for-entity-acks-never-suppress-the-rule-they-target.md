@@ -49,8 +49,14 @@ untouched by that fix.
 
 1. **Roll up at ingest**, in `WalkAcknowledgedSHAEntities`. One line, and it
    makes every consumer agree on the key without changing what the trailer
-   records. The ack map loses AC-level granularity, but no consumer uses it
-   today — both readers roll up before looking anything up.
+   records. The ack map loses AC-level granularity, and one consumer does read
+   at that granularity: the verb's own duplicate guard, `ackAlreadyRecorded`,
+   looks the composite spelling up first and falls back to the parent. With the
+   composite key gone it still finds the parent-scoped cover — that fallback
+   exists precisely because the two sides disagree about width — but the binding
+   it reports back changes from the AC to its parent, and that value is what the
+   NoOp message names. The cost is an operator-visible message, not a missed
+   guard.
 2. **Roll up at emit**, in the verb. The ack commit would carry the parent id,
    which discards the record of which AC the operator meant — the one piece of
    information the composite form exists to preserve.
@@ -59,5 +65,6 @@ untouched by that fix.
    composite ids.
 
 Option 1 is the lean: the mismatch is an ingest-side inconsistency, the trailer
-stays the durable record of operator intent, and it needs no change to any
-consuming rule.
+stays the durable record of operator intent, and no consuming rule changes. Its
+one cost is the message change noted above, which reads as a correction rather
+than a regression — the parent binding is what actually suppresses the finding.
