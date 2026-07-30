@@ -14,10 +14,10 @@ path. `aiwf retitle` sets the title and, per G-0108, re-derived the slug from
 the new title so a title change could not leave a stale filename behind.
 
 Re-deriving unconditionally makes `rename`'s effect last only until the next
-retitle. The kernel's own planning tree shows this is not a hypothetical: of 900
-entities, 44 carry a slug that differs from the one their title derives, and
-roughly two thirds of those are deliberate short paths rather than width
-artifacts left by an id migration.
+retitle. The kernel's own planning tree shows this is not a hypothetical: 44 entities
+carry a slug that differs from the one their title derives. Widening the narrow
+ids embedded in those slugs reconciles 17 of them, so 27 are deliberate short
+paths rather than artifacts of an id migration.
 
 The conflict surfaced while extending same-state NoOp convergence (M-0281,
 ADR-0036). Adding a filename conjunct to retitle's convergence guard turned
@@ -37,10 +37,14 @@ No frontmatter field records whether a slug was customized, and no history walk
 is consulted.
 
 The body H1 is unaffected by this decision. Retitle continues to rewrite a
-canonical `# <id> — <title>` heading whenever it is out of sync, because no verb
-lets an operator set that heading independently of the title. The distinction is
-ownership: retitle owns the H1 outright, and owns the slug only as the default
-it applies while nothing else has claimed it.
+canonical `# <id> — <title>` heading whenever it is out of sync. The distinction
+is ownership, and it turns on the canonical form rather than the heading: an
+operator who wants a heading of their own writes a non-canonical one, which
+retitle leaves untouched by design. Writing a *canonical* heading that disagrees
+with the title claims nothing — it states the entity's own title, so retitle
+correcting it is the verb doing its job. The slug has no such escape hatch, and
+`aiwf rename` is the verb for claiming one, which is why the slug is preserved
+and the canonical H1 is not.
 
 ## Consequences
 
