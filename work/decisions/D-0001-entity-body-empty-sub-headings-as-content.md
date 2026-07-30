@@ -9,7 +9,7 @@ relates_to:
 
 ## Question
 
-[M-0066](../epics/E-17-entity-body-prose-chokepoint-closes-g-058/M-066-aiwf-check-finding-entity-body-empty.md) defines the `entity-body-empty` finding's "empty" condition as *"between the section heading and the next heading (or EOF), no non-heading non-whitespace content"*. Read literally, a milestone whose `## Acceptance criteria` section contains only `### AC-N` sub-headings (the standard markdown shape) would qualify as **empty** — sub-headings are headings, "non-heading non-whitespace content" excludes them. That would fire `entity-body-empty/milestone` on every milestone with ACs but no parent-level prose, which is the typical milestone shape across the kernel repo (and across what the M-0067 friction-reducer is designed to enable). Should the rule fire on those milestones?
+[M-0066](../epics/archive/E-0017-entity-body-prose-chokepoint-closes-g-058/M-0066-aiwf-check-finding-entity-body-empty.md) defines the `entity-body-empty` finding's "empty" condition as *"between the section heading and the next heading (or EOF), no non-heading non-whitespace content"*. Read literally, a milestone whose `## Acceptance criteria` section contains only `### AC-N` sub-headings (the standard markdown shape) would qualify as **empty** — sub-headings are headings, "non-heading non-whitespace content" excludes them. That would fire `entity-body-empty/milestone` on every milestone with ACs but no parent-level prose, which is the typical milestone shape across the kernel repo (and across what the M-0067 friction-reducer is designed to enable). Should the rule fire on those milestones?
 
 ## Decision
 
