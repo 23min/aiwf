@@ -2,6 +2,7 @@
 id: G-0466
 title: Structured-state verbs commit a hand-edited frontmatter field as their own
 status: open
+priority: high
 discovered_in: M-0281
 ---
 ## What's missing
