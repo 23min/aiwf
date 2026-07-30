@@ -1,6 +1,6 @@
 ---
 title: Verb-layer cleanup — closing the redundancies and invariant gaps in the call-graph
-status: captured
+status: realized
 date: 2026-07-18
 ---
 
@@ -9,10 +9,10 @@ date: 2026-07-18
 ## Classifier note
 
 This is an initiative document. `initiative` is not yet an official aiwf
-entity kind ([G-0311](../../work/gaps/G-0311-no-cross-cutting-initiative-tier-above-epic-for-multi-component-features.md)),
+entity kind ([G-0311](../../../work/gaps/G-0311-no-cross-cutting-initiative-tier-above-epic-for-multi-component-features.md)),
 so this file lives under `docs/initiatives/` as an umbrella capture, following
-the precedent of [`id-lifecycle.md`](id-lifecycle.md) and
-[`agent-agnostic-execution-topology.md`](agent-agnostic-execution-topology.md).
+the precedent of [`id-lifecycle.md`](../id-lifecycle.md) and
+[`agent-agnostic-execution-topology.md`](../agent-agnostic-execution-topology.md).
 
 This is not an ADR: none of the findings below require a new architectural
 decision — the shared spine they should converge on already exists and is

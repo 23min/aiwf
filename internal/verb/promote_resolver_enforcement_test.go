@@ -11,12 +11,11 @@ import (
 
 // TestPromote_GapAddressedRequiresResolver pins G-0096's verb-time
 // invariant: `aiwf promote <gap> addressed` is rejected when neither
-// `--by` nor `--by-commit` is set. Before this fix, the verb accepted
-// the empty case and the gap-addressed-has-resolver warning surfaced
-// post-hoc — but warnings don't block the pre-push hook, so the gap
-// landed in `addressed` with no resolver and no path back without
-// --force (since `addressed` is terminal in the gap FSM). G-0096
-// closes that hole at the verb chokepoint.
+// `--by` nor `--by-commit` is set. A post-hoc
+// gap-addressed-has-resolver warning is not enough on its own: warnings
+// don't block the pre-push hook, so the gap lands in `addressed` with no
+// resolver and no path back without --force (`addressed` is terminal in
+// the gap FSM). The verb chokepoint is what closes that hole.
 func TestPromote_GapAddressedRequiresResolver(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)

@@ -93,14 +93,16 @@ func runPrepushHook(t *testing.T, repoDir, stdin, lintCmd string, extraEnv ...st
 	cmd := exec.Command(prepushHookPath(t))
 	cmd.Dir = repoDir
 	cmd.Stdin = strings.NewReader(stdin)
-	// Both pre-push gates default to no-op stand-ins so a test exercises
+	// Every pre-push gate defaults to a no-op stand-in so a test exercises
 	// exactly the gate it overrides: the lint cases don't trip the
-	// (ungated) gitleaks scan, and the gitleaks cases don't trip the lint
-	// gate. A caller's extraEnv entry for either key wins via the
-	// last-occurrence dedup below.
+	// (ungated) gitleaks scan, the gitleaks cases don't trip the lint
+	// gate, and neither shells out to the real comment-scan `go test`. A
+	// caller's extraEnv entry for any key wins via the last-occurrence
+	// dedup below.
 	overrides := append([]string{
 		"AIWF_PREPUSH_LINT_CMD=" + lintCmd,
 		"AIWF_PREPUSH_GITLEAKS_CMD=true",
+		"AIWF_PREPUSH_COMMENT_SCAN_CMD=true",
 	}, extraEnv...)
 	// Collapse duplicate keys, last occurrence winning, so a caller's
 	// extraEnv replaces a default rather than both landing in env (which
@@ -508,6 +510,142 @@ func TestPrepushLintHook_CacheIsolation(t *testing.T) {
 		wantLine := `GOLANGCI_LINT_CACHE="$${GOLANGCI_LINT_CACHE:-$$(git rev-parse --absolute-git-dir)/golangci-lint-cache}" golangci-lint run`
 		if !strings.Contains(string(makefile), wantLine) {
 			t.Errorf("Makefile lint recipe must scope the lint cache per working tree; missing line: %s", wantLine)
+		}
+	})
+}
+
+// prepushFixtureWithOrigin returns a fixture whose refs/remotes/origin/main
+// points at the base commit, so the comment history-attrition gate — which
+// diffs against the merge-base with origin/main — has something to resolve.
+// Without the ref the gate self-skips, which is its own asserted case below.
+func prepushFixtureWithOrigin(t *testing.T) prepushFixture {
+	t.Helper()
+	fx := newPrepushFixture(t)
+	gitInFixture(t, fx.dir, "update-ref", "refs/remotes/origin/main", fx.base)
+	return fx
+}
+
+// TestPrepushCommentScanHook_Decision pins the comment history-attrition
+// gate's trigger/skip decision per pushed range. The AIWF_PREPUSH_COMMENT_SCAN_CMD
+// override stands in for the real `go test` invocation — "false" (the scan
+// found something) and "true" (clean) make "did the scan run?" observable
+// through the hook's exit code without scanning anything.
+//
+// The gate is deliberately narrower than the lint gate: lint triggers on
+// go.mod / go.sum / .golangci.yml too, but only a Go source file can carry a
+// Go comment, so a go.mod-only push must not pay for the scan.
+func TestPrepushCommentScanHook_Decision(t *testing.T) {
+	t.Parallel()
+	fx := prepushFixtureWithOrigin(t) // shared read-only across subtests — do not mutate
+
+	tests := []struct {
+		name     string
+		from     string
+		to       string
+		scanCmd  string
+		wantExit int
+		wantErr  string
+	}{
+		{
+			name:     "go source change runs the scan and blocks on a finding",
+			from:     fx.docs,
+			to:       fx.goChange,
+			scanCmd:  "false",
+			wantExit: 1,
+			wantErr:  "narrates history",
+		},
+		{
+			name:     "go source change with a clean scan passes",
+			from:     fx.docs,
+			to:       fx.goChange,
+			scanCmd:  "true",
+			wantExit: 0,
+		},
+		{
+			name:     "prose-only change skips the scan",
+			from:     fx.base,
+			to:       fx.docs,
+			scanCmd:  "false",
+			wantExit: 0,
+		},
+		{
+			name:     "go.mod-only change skips the scan",
+			from:     fx.goChange,
+			to:       fx.goMod,
+			scanCmd:  "false",
+			wantExit: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdin := "refs/heads/main " + tt.to + " refs/heads/main " + tt.from + "\n"
+			exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true",
+				"AIWF_PREPUSH_COMMENT_SCAN_CMD="+tt.scanCmd)
+
+			if exitCode != tt.wantExit {
+				t.Errorf("exit code = %d, want %d\nstderr: %s", exitCode, tt.wantExit, stderr)
+			}
+			if tt.wantErr != "" && !strings.Contains(stderr, tt.wantErr) {
+				t.Errorf("stderr must explain the block (%q); got: %s", tt.wantErr, stderr)
+			}
+		})
+	}
+}
+
+// TestPrepushCommentScanHook_BlockNamesTheEscape pins that a blocked push
+// tells the operator how to proceed deliberately. A gate whose message does
+// not name its escape gets bypassed with --no-verify wholesale, which drops
+// the secret scan too.
+func TestPrepushCommentScanHook_BlockNamesTheEscape(t *testing.T) {
+	t.Parallel()
+	fx := prepushFixtureWithOrigin(t)
+	stdin := "refs/heads/main " + fx.goChange + " refs/heads/main " + fx.docs + "\n"
+
+	exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true",
+		"AIWF_PREPUSH_COMMENT_SCAN_CMD=false")
+	if exitCode != 1 {
+		t.Fatalf("exit code = %d, want 1\nstderr: %s", exitCode, stderr)
+	}
+	for _, want := range []string{"history:ok", "--no-verify"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("block message must name %q; got: %s", want, stderr)
+		}
+	}
+}
+
+// TestPrepushCommentScanHook_Tolerant pins the hook's tolerance contract for
+// this gate: a missing tool warns rather than blocks (CI runs the same policy
+// independently), and so does a repo with no origin/main to diff against.
+func TestPrepushCommentScanHook_Tolerant(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing tool warns", func(t *testing.T) {
+		t.Parallel()
+		fx := prepushFixtureWithOrigin(t)
+		stdin := "refs/heads/main " + fx.goChange + " refs/heads/main " + fx.docs + "\n"
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true",
+			"AIWF_PREPUSH_COMMENT_SCAN_CMD=aiwf-no-such-scan-binary")
+		if exitCode != 0 {
+			t.Errorf("exit code = %d, want 0 (missing tool must not block)\nstderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stderr, "not on PATH") {
+			t.Errorf("stderr must report the skipped gate; got: %s", stderr)
+		}
+	})
+
+	t.Run("no merge-base warns", func(t *testing.T) {
+		t.Parallel()
+		fx := newPrepushFixture(t) // no refs/remotes/origin/main
+		stdin := "refs/heads/main " + fx.goChange + " refs/heads/main " + fx.docs + "\n"
+		exitCode, stderr := runPrepushHook(t, fx.dir, stdin, "true",
+			"AIWF_PREPUSH_COMMENT_SCAN_CMD=false")
+		if exitCode != 0 {
+			t.Errorf("exit code = %d, want 0 (no base to diff must not block)\nstderr: %s", exitCode, stderr)
+		}
+		if !strings.Contains(stderr, "no merge-base") {
+			t.Errorf("stderr must report why the gate skipped; got: %s", stderr)
 		}
 	})
 }
