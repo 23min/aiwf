@@ -72,12 +72,44 @@ from noise.
 | `aiwf check` wall time | 6.7s |
 | `internal/stresstest` package test time | 34s local, 77s in CI |
 
+Re-measured 2026-07-30 against the same surfaces, resolving the failure rate
+into its causes and the stress-harness timing into its isolated and co-tenant
+cases:
+
+| Signal | 2026-07-27 | 2026-07-30 |
+|---|---|---|
+| `go.yml` failures, last 100 runs | 31 | 32 |
+| — of which the `vuln` job | not split | 21, all 2026-07-08 → 07-18 |
+| — of which the stress harness | not split | 18, 2026-07-11 → 07-29 |
+| — of which the diff-scoped coverage gate | not split | 8, 2026-06-28 → 07-21 |
+| `internal/stresstest` time, isolated | 34s local | 38s local, 38s on 4 cores |
+| `internal/stresstest` time, co-tenant with `./...` | 77s in CI | 66.7s on 4 cores, 65–77s in CI |
+| `cmd/stresstest` time in CI | not measured | 42–68s |
+| `internal/stresstest` coverage, full run | not measured | 85.5% |
+| `internal/stresstest` coverage, real-binary drivers skipped | not measured | 34.7% |
+| Exact Go toolchain pins across workflow files | not measured | 7 |
+
+The three causes have different lifespans. The `vuln` job closed with the
+toolchain bump on 2026-07-18 and has not failed since. The stress harness
+opened the fully-red window and has continued past its close. The coverage
+gate predates the window entirely, first failing on 2026-06-28. Neither of
+the latter two was caused by the window.
+
 ## Findings
 
 ### Q1 — The gate is red often enough that a red gate carries no information
 
 Acute, and the only finding here with a deadline attached in the sense that
-every push until it lands pays for it. Two independent causes, both live.
+every push until it lands pays for it. Three independent causes, of different
+character and different lifespans, tracked as
+[G-0457](../../work/gaps/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md)
+(placement and the `govulncheck` lanes),
+[G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md)
+and
+[G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
+(the oracles and their enabling error-code fix), and
+[G-0469](../../work/gaps/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md)
+(the coverage gate's tier).
 
 **Q1a — `govulncheck` blocks on stdlib CVEs against a pinned toolchain.**
 `go.yml`'s `vuln` job installs `golang.org/x/vuln/cmd/govulncheck@latest` and
@@ -90,33 +122,78 @@ that "the dep set is small (go-cmp / goldmark / yaml.v3) so the run is ~10s"
 CVEs, which have a completely different remediation path and latency. The
 two cases were never distinguished.
 
-**Q1b — The stress harness runs inside the default test step.**
-`go.yml`'s test job runs `go test … ./...`, which includes
-`internal/stresstest`. That package's real-binary scenarios launch concurrent
-`aiwf` subprocesses against disposable git repos; they take 34s locally and
-77s in CI, and they are timing-shaped by construction.
-`TestConcurrentIDAllocationScenario_RealBinary_NConcurrentActorsAllGetDistinctIDs`
-failed the three most recent red runs with *"only 7/8 concurrent actors
-succeeded — expected all to serialize successfully within repolock's
-timeout"* — a runner-contention symptom, not a defect the test was written
-to catch.
+This one was an acute burst: 21 red runs, all inside the eleven-day window,
+none since the toolchain bump on 2026-07-18. The structural exposure survives
+that bump. The scanner's own version still resolves at `@latest` on every
+run, and the toolchain is pinned to an exact patch in seven places across two
+workflow files, so each stdlib disclosure costs seven edits before it can be
+cleared. This was the third such forced bump.
+
+**Q1b — The stress harness runs inside the default test step, on two lanes.**
+`go.yml`'s test job runs `go test … ./...`, which sweeps in
+`internal/stresstest` — real-binary scenarios launching concurrent `aiwf`
+subprocesses against disposable git repos, 65–77s in CI — and also
+`cmd/stresstest`, whose `TestRunRun_ScenarioAll_*` tests invoke the whole
+catalog, the same run `make stress` performs, for a further 42–68s. This is
+the chronic cause: 18 red runs spanning 2026-07-11 to 2026-07-29 without
+interruption. It opened the fully-red window and has continued past its
+close, so unlike Q1a it is not bounded by that window at either end.
+
+The failures are not one shape. `classifyConcurrentIDAllocation` and its
+counterpart in `concurrent_move.go` require every concurrent actor to succeed
+*"within repolock's timeout"* — hardcoded at two seconds in
+`internal/cli/cliutil/lock.go` — so a tail actor receiving the documented
+busy refusal is recorded as a violation. `mid_write_kill.go` fails when its
+poller does not catch the sibling temp file in flight, which is a failure to
+sample rather than a broken atomic-write property.
+`concurrent_writer_at_scale.go` models contention correctly but recognizes
+the busy envelope by substring match, so a busy refusal it fails to
+recognize aborts the run outright. Each of the three asserts a property of
+the machine rather than a property of aiwf.
+
+The flake tracks co-tenancy, not machine size. Run in isolation on four cores
+both stress packages pass five repeats out of five; run co-tenant with the
+full `./...` on those same four cores, `internal/stresstest` takes 66.7s,
+matching what CI observes. Placement is therefore load-bearing, and any
+destination sharing a runner with a broad sweep reproduces the flake —
+`flake-hunt.yml` already does, which
+[G-0438](../../work/gaps/G-0438-flake-hunt-yml-s-count-10-sweep-is-undersized-for-its-github-runner.md)
+records independently, naming these same packages.
 
 `CLAUDE.md` describes the harness as *"dev-only tooling, never installed
 alongside `cmd/aiwf`, run by hand rather than scheduled or wired into
-`make ci`."* The workflow disagrees with the stated contract. Whichever way
-that reconciles, the two should say the same thing.
+`make ci`."* The workflow disagrees with the stated contract, and
+`cmd/stresstest`'s whole-catalog test disagrees most directly of all.
+Whichever way that reconciles, the two should say the same thing.
 
 The seam for a fix already exists in the package's own structure: each
 scenario is split into a `*_classify_test.go` file pinning the pure decision
 function against fabricated outcomes (fast, deterministic, genuinely
 valuable on every push) and a `*_test.go` file driving real subprocesses
 (slow, timing-shaped, valuable on demand). The split to make is the one the
-package already made.
+package already made. Gating the drivers out costs coverage, though —
+`internal/stresstest` drops from 85.5% to 34.7% statement coverage — so the
+split restores signal without restoring the scenarios' own trustworthiness.
+That is why the oracle work is scoped separately.
+
+**Q1c — The diff-scoped coverage gate can fire nowhere but CI.**
+`scripts/git-hooks/pre-push` runs the lint boundary, the gitleaks secret
+scan, and the comment history-attrition scan. It does not run the coverage
+gate, and `make coverage-gate` is invoked by hand and named in no ritual. A
+changed line with no covering test therefore surfaces only after the push has
+landed on trunk — 8 red runs, a quarter of the window's total. The gate is
+correct and its findings name real untested statements; the defect is that it
+fires past the boundary it exists to protect. The comment history-attrition
+scan, which shares the same diff-scoped shape and the same base expression,
+is wired into pre-push on exactly the reasoning that was not applied here.
 
 **Why this is Q1 and not Q2.** Every other finding here is about making a
 gate stronger. This one is about making any gate mean anything at all. It is
-also the cheapest: one `wf-patch`, no design decision beyond the two
-questions in *Open design questions* below.
+not, however, the cheapest. Restoring the signal is one `wf-patch` — the
+placement split plus the two `govulncheck` lanes — but the oracle redesign
+underneath Q1b is larger, and the two must not be conflated. A placement
+change on its own is a tourniquet: it stops the bleeding and leaves the
+scenarios reporting contention as defect wherever they end up running.
 
 ### Q2 — Several gates are shallower than their names imply
 
@@ -225,44 +302,69 @@ recorded as an open question rather than a target.
 
 ## Scoped targets
 
-Each is independently actionable. Only the first is urgent; the rest are
-ordinary work whose sequencing is a planning question, not a finding.
+Only the Q1 cluster is urgent; the rest are ordinary work whose sequencing is
+a planning question, not a finding. Within that cluster the ordering is real
+rather than preferential — item 2 depends on the error code its own gap pairs
+with, and item 1 delivers signal without delivering trust. Everything from
+item 4 down is independently actionable.
+
+**Acute — tracked, unscheduled:**
+
+1. **Q1, tourniquet** —
+   [G-0457](../../work/gaps/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md),
+   restore gate signal integrity. One `wf-patch`: gate the real-binary stress
+   drivers and `cmd/stresstest`'s whole-catalog tests behind a build tag
+   while keeping the `*_classify_test.go` decision tests in the default run;
+   pin `govulncheck`; separate the stdlib-CVE lane from the dependency-CVE
+   lane so a disclosure the repo cannot act on does not mask one it can;
+   single-source the toolchain pin. Reconcile `CLAUDE.md`'s stress-harness
+   contract with whatever `go.yml` ends up doing. The gap carries the two
+   decisions that ride along (where the real-binary scenarios run instead;
+   whether stdlib findings block at all). `-short` is not the mechanism: it
+   is a global switch that would also disable the binary integration tests
+   across `cmd/aiwf` and `internal/cli`, which CI wants.
+2. **Q1, cure** —
+   [G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
+   then
+   [G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md).
+   Give the repo-lock-busy refusal a machine-readable code, then split each
+   scenario's hermetic correctness assertion from its timing assertion. This
+   is what makes the harness trustworthy wherever it runs, and it unblocks
+   G-0400. Larger than a `wf-patch`; scoping it may show it wants milestones.
+   Item 1 without this item is a tourniquet mistaken for a cure.
+3. **Q1, tier** —
+   [G-0469](../../work/gaps/G-0469-diff-scoped-coverage-gate-fires-only-in-ci-after-the-trunk-push-lands.md),
+   move the diff-scoped coverage gate to a chokepoint that fires before the
+   trunk push. Independent of the other three and small.
 
 **File first — no tracking entity exists yet:**
 
-1. **Q1** — restore gate signal integrity. One `wf-patch`: gate the
-   real-binary stress scenarios behind a build tag or `-short` while keeping
-   the `*_classify_test.go` decision tests in the default run; pin
-   `govulncheck`; separate the stdlib-CVE lane from the dependency-CVE lane
-   so a disclosure the repo cannot act on does not mask one it can. Reconcile
-   `CLAUDE.md`'s stress-harness contract with whatever `go.yml` ends up
-   doing.
-2. **Q4** — a read-side history filter (`aiwf history --code-only` or
+4. **Q4** — a read-side history filter (`aiwf history --code-only` or
    equivalent, plus a documented git alias). Small, reversible, no kernel
    property at risk.
 
 **Already tracked — depth over breadth, per Q2:**
 
-3. [G-0253](../../work/gaps/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)
+5. [G-0253](../../work/gaps/G-0253-branch-coverage-audit-is-statement-scoped-not-per-arm-branch-coverage.md)
    — per-arm branch coverage. The largest single lift here and the one that
    most improves what a green gate is worth. Deferred once already, in
    [`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md),
    pending its relative priority becoming judgeable — this document is that
    judgement: it is the highest-value item in Q2.
-4. [G-0110](../../work/gaps/G-0110-gremlins-diff-ref-filter-excludes-new-files-entirely-manual-mutation-review-needed-for-m-0094-95-96.md)
+6. [G-0110](../../work/gaps/G-0110-gremlins-diff-ref-filter-excludes-new-files-entirely-manual-mutation-review-needed-for-m-0094-95-96.md)
    — mutation testing's new-file blind spot.
-5. [G-0317](../../work/gaps/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
+7. [G-0317](../../work/gaps/G-0317-skill-edit-backstop-checks-test-references-path-not-asserts-changed-section.md)
    — assert-the-changed-section, not reference-the-path.
-6. [G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)
+8. [G-0328](../../work/gaps/G-0328-golden-fixture-byte-identity-comparator-for-aiwf-check.md)
    — golden-fixture comparator for `aiwf check` output.
 
 **Already tracked — the duplication queue, per Q3:**
 
-7. [G-0448](../../work/gaps/G-0448-check-rule-list-split-across-two-dispatch-surfaces-no-single-source.md)
+9. [G-0448](../../work/gaps/G-0448-check-rule-list-split-across-two-dispatch-surfaces-no-single-source.md)
    — one rule registry. The highest-leverage of the four: every future check
    rule pays the "which of the two surfaces does this go in?" tax, and the
    answer is currently determined by function signature.
-8. [G-0453](../../work/gaps/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
+10. [G-0453](../../work/gaps/G-0453-unify-shorthash-short-sha-abbreviation-helpers-in-check-width-decision.md)
    /
    [G-0454](../../work/gaps/G-0454-unify-the-three-id-shape-parsers-in-entity-parseidnumber-vs-canonicalize.md)
    /
@@ -270,17 +372,21 @@ ordinary work whose sequencing is a planning question, not a finding.
    — the current sweep output. G-0455 explicitly may close as won't-do; that
    is a legitimate outcome and the determination is the work, not the
    refactor.
-9. [G-0452](../../work/gaps/G-0452-add-producer-to-consumer-data-flow-lens-to-wf-structural-sweep.md)
+11. [G-0452](../../work/gaps/G-0452-add-producer-to-consumer-data-flow-lens-to-wf-structural-sweep.md)
    — the sweep's fourth lens. Worth weighing *after* the current sweep's
    output is absorbed, not before: a wider net over an unabsorbed catch adds
    findings without adding closures.
 
 **Blocked behind Q1:**
 
-10. [G-0400](../../work/gaps/G-0400-stress-scenario-catalog-exercises-only-10-of-38-aiwf-verbs.md)
+12. [G-0400](../../work/gaps/G-0400-stress-scenario-catalog-exercises-only-10-of-38-aiwf-verbs.md)
     — the stress catalog covers 10 of 38 verbs and should be wider. Widening
     it while it sits on the critical path of every push would multiply Q1b
-    rather than help. Genuinely valuable once the harness is off that path.
+    rather than help. The blocker is item 2, not item 1: widening a catalog
+    whose oracles report contention as defect multiplies the flake surface
+    wherever that catalog runs. Item 1 additionally leaves the drivers
+    uncovered in the default lane (85.5% to 34.7%), so each scenario G-0400
+    adds would meet the diff-scoped coverage gate with no covering test.
 
 ## Open design questions
 
@@ -290,11 +396,23 @@ Intentionally not answered here.
   split inside `go.yml`, a separate `workflow_dispatch` job, and a scheduled
   nightly are three different answers with three different failure modes. The
   answer settles Q1b's shape and reconciles `CLAUDE.md` with the workflow.
+  One candidate is already excluded: `flake-hunt.yml` fails on the same
+  runner for the same reason, so it moves the problem rather than solving it.
 - **Should `govulncheck` block on stdlib CVEs?** A dependency CVE is
   actionable on the spot; a stdlib CVE waits on a toolchain release the
   repository does not control. Blocking on both treats them as one class.
   Non-blocking on stdlib has its own cost — a real, exploitable stdlib
-  finding would then only warn.
+  finding would then only warn. A third answer is to stop pinning an exact
+  patch version, so a fix arrives with the next patch release rather than
+  with an edit, trading toolchain reproducibility for remediation latency.
+  Weigh also that stdlib symbol results over-approximate through interface
+  dispatch: of the four traces `GO-2026-5856` reported here, two reach TLS
+  only via `io.Copy` and `io.WriteString` on arbitrary writers.
+- **What should an uncoded verb error exit as?** `ExitUsage` is currently the
+  default bucket, so an I/O failure deep inside a verb is indistinguishable
+  from bad arguments, and the repo-lock-busy refusal shares that code and
+  carries an empty envelope `code`. G-0467 holds the question; it is listed
+  here because the answer is a kernel CLI-contract decision, not a test fix.
 - **What is the ceiling on `internal/policies`?** At 16% of all Go and 66
   policies it is the largest package in the repo. A stated budget — even a
   soft one — gives every future "add a chokepoint" proposal something to
@@ -323,7 +441,17 @@ found real bugs; that is why the harness exists. The fix is to move them off
 the every-push path, not to delete or weaken them — and G-0400 wants the
 catalog *wider*, which only becomes safe afterwards. A fix that quietly
 reduces what the harness exercises has traded an acute problem for a silent
-one.
+one. The measurement puts a number on this: gating the drivers out drops
+`internal/stresstest` from 85.5% to 34.7% statement coverage, and a lane
+nobody reads exercises nothing at all.
+
+**Risk: the tourniquet closing the file on Q1.** The placement change is
+cheap, visible, and turns CI green, which makes it the natural stopping
+point. It leaves every scenario oracle still reporting runner contention as
+an aiwf defect, so the on-demand lane inherits the flake and becomes a lane
+nobody trusts — the same failure this initiative documents, relocated. The
+guard is that the cure is a tracked entity of its own (G-0468, on G-0467)
+rather than a follow-up sentence inside the tourniquet's gap.
 
 **Risk: Q4 drifting into a kernel change.** The read-side filter is small and
 safe. Any proposal that reduces commit *count* is touching committed property
@@ -366,5 +494,13 @@ tree — no gap, no epic, and no entity recorded it, because the entity surface
 has no way to notice that its own gate was uninformative. The measured
 baseline above was taken in that pass, from `git log`, `gh run list`, package
 line counts, and direct timing of `aiwf check` and the `internal/stresstest`
-package. Q1's two causes were confirmed by reading the failing runs' logs and
+package. Q1's causes were confirmed by reading the failing runs' logs and
 `go.yml` rather than inferred from the failure rate.
+
+Q1 was re-measured on 2026-07-30 in a pass that read every red run's
+job-level and test-level failure, traced the stress failures into the
+scenario classifiers and the CLI's error-envelope path, and reproduced the
+timing behaviour locally under a four-core constraint. That pass resolved the
+failure rate into three causes with distinct lifespans, found the coverage
+gate as a third cause, and split Q1's remedy into a tourniquet (G-0457) and a
+cure (G-0468, on G-0467), with the coverage gate's tier as G-0469.
