@@ -15,32 +15,36 @@ import (
 // illegalTransitionFindings; now exposed as an exported package
 // symbol so the CLI gather layer in internal/cli/check/ can call
 // it once per check invocation and pass the resulting map to every
-// rule that consumes it. WalkAcknowledgedSHAs' own doc comment
-// below carries the consumer list; it is the single place that
-// enumerates them, so a new consumer is added there and nowhere
-// else.
+// rule that consumes it. WalkAcknowledgedSHAs' doc comment below
+// enumerates those rules for readers; the two rosters in
+// internal/policies/acks_helper_lift.go enumerate them for the
+// chokepoint. A new consumer is added to both — the comment is not a
+// substitute for the roster that drives enforcement.
 //
-// The single-compute invariant and the consumer list are both
-// policed by internal/policies/acks_helper_lift.go.
+// The single-compute invariant and the agreement between comment and
+// rosters are both policed by internal/policies/acks_helper_lift.go.
 
 // WalkAcknowledgedSHAs walks HEAD's reachable history for commits
 // carrying an `aiwf-force-for: <sha>` trailer (per M-0136) and
-// returns the set of target SHAs. Consumers exempt commits that have
-// been retroactively acknowledged via `aiwf acknowledge illegal`, and
-// fall into two sets the policy tracks separately because they are
-// different things.
+// returns the set of target SHAs. Consumers use it to exempt commits
+// retroactively acknowledged via `aiwf acknowledge illegal`. Two
+// rosters describe them, because the chokepoint checks two different
+// properties of a consumer.
 //
-// The gather layer passes the map to these exported rules:
-// FSMHistoryConsistent, RunIsolationEscape, RunTrailerVerbUnknown,
-// RunIDRenameUntrailered (M-0160/AC-4), RunOrphanedAICommits and
-// RunPromoteOnWrongBranch.
+// The gather layer passes the map as a parameter to these exported
+// rules, and their wiring is what classes 4a-4c check
+// (ackedSHAsConsumers): FSMHistoryConsistent, RunIsolationEscape,
+// RunTrailerVerbUnknown, RunIDRenameUntrailered (M-0160/AC-4),
+// RunOrphanedAICommits and RunPromoteOnWrongBranch.
 //
-// These functions read `ackedSHAs[...]` directly:
-// illegalTransitionFindings, forcedUntraileredFindings,
-// RunIsolationEscape, RunOrphanedAICommits, RunPromoteOnWrongBranch,
-// RunTrailerVerbUnknown and RunIDRenameUntrailered. The two sets differ
-// by FSMHistoryConsistent, which forwards the map down its own chain to
-// the two leaf predicates rather than indexing it itself.
+// Those rules, plus the two leaf predicates at the end of
+// FSMHistoryConsistent's forwarding chain —
+// illegalTransitionFindings and forcedUntraileredFindings — make up
+// the roster whose bodies must keep referencing the map, which is what
+// class 4d checks (ackedSHAsBodyConsumers). So the second roster is
+// the first plus those two predicates. FSMHistoryConsistent is in it
+// by forwarding the map to that chain rather than indexing it, the
+// reference shape 4d accepts for a rule that delegates its lookup.
 //
 // The verb consumes the walker too, to recognize
 // a SHA it has already acknowledged and converge rather than append a
@@ -120,8 +124,8 @@ func WalkAcknowledgedSHAs(ctx context.Context, root string, head []HeadCommit) m
 // map[fullSHA]map[canonicalEntityID]bool.
 //
 // Only ack commits carrying BOTH `aiwf-force-for: <sha>` AND
-// `aiwf-entity: <id>` count. SHA-only acks (the legacy seven
-// rules' blanket shape via WalkAcknowledgedSHAs) do NOT suppress
+// `aiwf-entity: <id>` count. SHA-only acks (the blanket shape the
+// WalkAcknowledgedSHAs consumers use) do NOT suppress
 // findings here — the per-(commit, entity) shape requires both
 // sides. The verb's `git diff-tree` write-time check is what
 // gives the (SHA, entity) pair its kernel-attested binding.

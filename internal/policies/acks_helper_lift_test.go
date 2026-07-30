@@ -167,12 +167,13 @@ func TestPolicyAcksHelperLift_EntitiesWalker_FiresOnInternalRecompute(t *testing
 	}
 }
 
-// Class-4f fixtures. The consumer set is stated twice — ackedSHAsConsumers
-// here and WalkAcknowledgedSHAs' doc comment in internal/check/acks.go —
-// and 4f is what keeps them from drifting apart. Direction 1 catches a
-// policed consumer the doc forgets to name; direction 2 catches a rule
-// that starts reading the map without being policed at all, which is the
-// direction that makes the set self-maintaining.
+// Class-4f fixtures. The consumer roster is stated in three places — the two
+// policy vars and WalkAcknowledgedSHAs' doc comment — and 4f keeps them from
+// drifting apart. Direction 1 checks the doc names exactly the union of the
+// vars, in both directions; direction 2 catches a rule that starts reading
+// the map without being policed; direction 3 catches an exported rule that
+// takes the map as a parameter without being in the roster whose classes
+// check its gather-layer wiring.
 
 // class4fViolations filters to the 4f-tagged output so the minimal
 // synthetic trees' other wiring violations don't mask the assertion.
@@ -190,6 +191,11 @@ func class4fViolations(vs []Violation) []Violation {
 // doc comment naming every consumer in docNames, plus one internal/check
 // rule file per entry in extraReaders declaring a function of that name
 // that indexes ackedSHAs.
+//
+// Each reader file leads with an unrelated declaration so the reader is not
+// the file's first FuncDecl — a scan that stopped after decl 0 would pass a
+// single-declaration fixture while missing a real rule, which lands at the
+// bottom of an existing multi-declaration file.
 func buildClass4fTree(t *testing.T, docNames, extraReaders []string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -207,7 +213,7 @@ func buildClass4fTree(t *testing.T, docNames, extraReaders []string) string {
 		t.Fatal(err)
 	}
 	for i, name := range extraReaders {
-		src := "package check\n\nfunc " + name +
+		src := "package check\n\nfunc unrelatedLeadingDecl() int { return 0 }\n\nfunc " + name +
 			"(ackedSHAs map[string]bool, sha string) bool { return ackedSHAs[sha] }\n"
 		fname := filepath.Join(checkDir, "reader"+string(rune('a'+i))+".go")
 		if err := os.WriteFile(fname, []byte(src), 0o644); err != nil {
@@ -285,5 +291,168 @@ func TestPolicyAcksHelperLift_Class4f_FiresOnAnUnpolicedAckedSHAsReader(t *testi
 	}
 	if !found {
 		t.Errorf("class 4f did not fire for an unpoliced ackedSHAs reader; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_FiresWhenDocOmitsALeafPredicate(t *testing.T) {
+	t.Parallel()
+	// illegalTransitionFindings is unique to ackedSHAsBodyConsumers. Omitting
+	// it proves direction 1 checks that roster too — a fixture that only ever
+	// omits a name present in BOTH lists is satisfied by either loop alone.
+	var docNames []string
+	for _, n := range append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...) {
+		if n != "illegalTransitionFindings" {
+			docNames = append(docNames, n)
+		}
+	}
+	root := buildClass4fTree(t, docNames, nil)
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "illegalTransitionFindings") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("class 4f did not fire for a body-consumer the doc omits; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_FiresWhenDocNamesANonConsumer(t *testing.T) {
+	t.Parallel()
+	// The reverse of direction 1: a doc that still advertises a rule nothing
+	// polices. Without this arm the doc can keep describing wiring that no
+	// class verifies.
+	all := append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...)
+	root := buildClass4fTree(t, append(all, "RunRetiredRule"), nil)
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "RunRetiredRule") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("class 4f did not fire for a doc-named non-consumer; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_FiresOnAReceiverBearingReader(t *testing.T) {
+	t.Parallel()
+	// Direction 2 scans methods, so a receiver-bearing rule cannot slip past.
+	// Class 4d scans receivers for the same reason, so the remedy direction 2
+	// names is not vacuous.
+	all := append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...)
+	root := buildClass4fTree(t, all, nil)
+	mustWrite(t, filepath.Join(root, "internal", "check", "methodreader.go"),
+		"package check\n\ntype ruleSet struct{}\n\n"+
+			"func (r ruleSet) RunMethodRule(ackedSHAs map[string]bool, sha string) bool { return ackedSHAs[sha] }\n")
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "RunMethodRule") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("class 4f did not fire for a receiver-bearing ackedSHAs reader; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_FiresOnAnUnpolicedForwarder(t *testing.T) {
+	t.Parallel()
+	// Direction 3. An exported rule that threads the map to a leaf predicate
+	// without indexing it satisfies direction 2 as soon as the leaf is listed,
+	// while its own gather-layer wiring stays outside classes 4a-4c — the
+	// shape of the regression this policy exists to catch.
+	all := append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...)
+	root := buildClass4fTree(t, all, nil)
+	mustWrite(t, filepath.Join(root, "internal", "check", "forwarder.go"),
+		"package check\n\nfunc RunForwardingRule(ackedSHAs map[string]bool, sha string) bool {\n"+
+			"\treturn someLeaf(ackedSHAs, sha)\n}\n")
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "RunForwardingRule") && strings.Contains(v.Detail, "ackedSHAsConsumers") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("direction 3 did not fire for an unpoliced exported forwarder; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_PrefixSharingTokenIsNotTheConsumer(t *testing.T) {
+	t.Parallel()
+	// Direction 1 matches whole identifier tokens. A doc that names a
+	// different rule sharing a leading substring must not stand in for the
+	// consumer it omits, which a `strings.Contains` check cannot tell apart.
+	var docNames []string
+	for _, n := range append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...) {
+		if n != "RunPromoteOnWrongBranch" {
+			docNames = append(docNames, n)
+		}
+	}
+	docNames = append(docNames, "RunPromoteSomethingElse")
+	root := buildClass4fTree(t, docNames, nil)
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "RunPromoteOnWrongBranch is policed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("direction 1 accepted a prefix-sharing token in place of the consumer it omits; got %+v", class4fViolations(vs))
+	}
+}
+
+func TestPolicyAcksHelperLift_Class4f_MentionElsewhereInAcksGoDoesNotCount(t *testing.T) {
+	t.Parallel()
+	// Direction 1 is scoped to WalkAcknowledgedSHAs' own doc comment. A
+	// mention anywhere else in acks.go must not satisfy it, or the roster
+	// could be "documented" by an unrelated aside.
+	var docNames []string
+	for _, n := range append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...) {
+		if n != "RunOrphanedAICommits" {
+			docNames = append(docNames, n)
+		}
+	}
+	root := buildClass4fTree(t, docNames, nil)
+	acksPath := filepath.Join(root, "internal", "check", "acks.go")
+	existing, err := os.ReadFile(acksPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The omitted name appears in the file, attached to a different symbol.
+	mustWrite(t, acksPath, string(existing)+
+		"\n// unrelatedAside mentions RunOrphanedAICommits outside the walker doc.\nfunc unrelatedAside() {}\n")
+	vs, err := PolicyAcksHelperLift(root)
+	if err != nil {
+		t.Fatalf("policy: %v", err)
+	}
+	found := false
+	for _, v := range class4fViolations(vs) {
+		if strings.Contains(v.Detail, "RunOrphanedAICommits is policed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("direction 1 was satisfied by a mention outside the walker doc; got %+v", class4fViolations(vs))
 	}
 }
