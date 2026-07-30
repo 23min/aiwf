@@ -756,6 +756,7 @@ func PolicyAcksHelperLift(root string) ([]Violation, error) {
 	// every roster keeps describing the old set.
 	listViolations, lerr := policeConsumerListAgreement(acksFile, checkInternalProd)
 	if lerr != nil {
+		//coverage:ignore defensive: the helper's only error returns are its two parser.ParseFile calls, and both file sets are parsed-and-propagated by an earlier class in this same function, so an unparseable file aborts before 4f runs
 		return nil, lerr
 	}
 	out = append(out, listViolations...)
@@ -812,6 +813,7 @@ func policeConsumerListAgreement(acksFile *FileEntry, checkInternalProd []*FileE
 	fset := token.NewFileSet()
 	astFile, perr := parser.ParseFile(fset, acksFile.AbsPath, acksFile.Contents, parser.ParseComments)
 	if perr != nil {
+		//coverage:ignore defensive: class 1 parses acks.go and returns its parse error before 4f is reached, so this arm needs the file to become invalid Go between the two parses
 		return nil, fmt.Errorf("parsing %s: %w", acksFile.Path, perr)
 	}
 	var walkerDoc string
@@ -877,6 +879,7 @@ func policeConsumerListAgreement(acksFile *FileEntry, checkInternalProd []*FileE
 		ffset := token.NewFileSet()
 		fileAST, err := parser.ParseFile(ffset, f.AbsPath, f.Contents, parser.AllErrors)
 		if err != nil {
+			//coverage:ignore defensive: classes 3c, 4d and 4e parse this same checkInternalProd set and return their parse errors before 4f is reached
 			return nil, fmt.Errorf("parsing %s: %w", f.Path, err)
 		}
 		for _, decl := range fileAST.Decls {
@@ -943,6 +946,7 @@ func bodyIndexesAckedSHAs(body *ast.BlockStmt) bool {
 // parameter that happens to share the name does not count.
 func declaresAckedSHAsParam(fn *ast.FuncDecl) bool {
 	if fn.Type == nil || fn.Type.Params == nil {
+		//coverage:ignore defensive: parser.ParseFile always sets FuncDecl.Type and FuncType.Params — a no-arg func gets an empty Params.List, not a nil one — so this guards only a hand-built AST
 		return false
 	}
 	for _, field := range fn.Type.Params.List {
@@ -1135,6 +1139,7 @@ func policeEntitiesWalkerSingleCompute(acksFile *FileEntry, cliCheckProdFiles, c
 // (class 4c).
 func passesAckedAtHit(h *consumerHit) bool {
 	if h == nil || h.call == nil {
+		//coverage:ignore defensive: the sole call site passes &hits[i], and both consumerHit construction sites set call, so neither field can be nil here
 		return false
 	}
 	for _, arg := range h.call.Args {
