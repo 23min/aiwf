@@ -648,9 +648,9 @@ func TestPromoteACPhase_RejectsIllegalSkipAhead(t *testing.T) {
 // kind-level transitions elsewhere.
 //
 // The probe is `deferred -> met`: deferred is terminal, so the edge is
-// genuinely absent. It used to be a repeated `met` promote, but a
-// same-status promote is a NoOp now (M-0281/AC-9) and would exercise the
-// convergence guard rather than the FSM, testing the opposite of what
+// genuinely absent. A repeated `met` promote will not serve — a
+// same-status promote converges to a NoOp (M-0281/AC-9), so it exercises
+// the convergence guard rather than the FSM, testing the opposite of what
 // this test is for.
 func TestPromoteAC_RejectsIllegalTransitionAndCarriesFSMCode(t *testing.T) {
 	t.Parallel()
