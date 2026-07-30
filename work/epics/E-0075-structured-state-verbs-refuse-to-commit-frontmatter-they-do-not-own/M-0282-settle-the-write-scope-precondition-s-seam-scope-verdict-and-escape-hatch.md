@@ -16,7 +16,7 @@ acs:
       status: met
     - id: AC-4
       title: ADR records whether an escape hatch exists and what it costs
-      status: open
+      status: met
     - id: AC-5
       title: ADR records whether the guard compares frontmatter only or the whole file
       status: open
