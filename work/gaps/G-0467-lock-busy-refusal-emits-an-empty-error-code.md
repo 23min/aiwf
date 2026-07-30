@@ -1,6 +1,6 @@
 ---
 id: G-0467
-title: Lock-busy refusal emits an empty error code; exit 2 is the uncoded-error bucket
+title: Lock-busy refusal emits an empty error code
 status: open
 priority: high
 ---
