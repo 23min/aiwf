@@ -129,7 +129,7 @@ rot as new verbs land, mirroring what M-0281 did for same-state convergence.
   ends up entity-scoped.
 - **The FSM walker's rename-plus-status blind spot.** This epic's precondition would
   incidentally mask it, but the rule stays wrong for any other route to such a
-  commit. Filed separately.
+  commit. Tracked as G-0475.
 - **Merge commits.** Already handled: `checkNoGitOperationInProgress` refuses any
   verb while a merge, cherry-pick, revert or rebase is in progress, and the
   untrailered audit skips multi-parent non-squash merges.
