@@ -1,7 +1,7 @@
 ---
 id: M-0282
 title: Settle the write-scope precondition's seam, scope, verdict and escape hatch
-status: draft
+status: in_progress
 parent: E-0075
 tdd: none
 acs:
