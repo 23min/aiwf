@@ -2,6 +2,7 @@
 id: G-0466
 title: Structured-state verbs commit a hand-edited frontmatter field as their own
 status: open
+priority: high
 discovered_in: M-0281
 ---
 ## What's missing
@@ -80,6 +81,17 @@ the operator something true about their tree, and one precondition shared by
 every verb beats ten per-verb comparisons. Option 3 is a plausible companion
 rather than an alternative.
 
-**Not the fix:** adding a HEAD conjunct to the same-state NoOp guards. That
-hardens the converging path, which the measurement above shows is the harmless
-one, and leaves the mutating path laundering exactly as before.
+**Not the fix:** a HEAD conjunct inside each same-state NoOp guard. The
+comparison belongs at one shared precondition ahead of the guards rather than
+duplicated into eleven of them, and where that precondition sits relative to the
+same-state check decides whether any conjunct is needed at all — run it in the
+verb prelude and a guard can never be reached with HEAD-divergent frontmatter.
+
+The converging path is not, however, harmless. With HEAD at `priority: high` and
+the working copy hand-edited to `low`, asking for `low` reports "already set to
+`low`; nothing to change" — false about the record, and the operator's requested
+mutation is silently dropped — while asking for `high` commits a tree
+byte-identical to its parent, an empty-diff commit of the class the same-state
+convergence work existed to eliminate. So a loaded-only comparison yields both a
+false negative and a false positive, and "harmless" is the wrong reason to leave
+the guards alone.
