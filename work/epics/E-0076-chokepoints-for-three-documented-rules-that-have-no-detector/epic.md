@@ -26,12 +26,22 @@ Addresses G-0465, G-0471 and G-0474.
 the kernel means the `aiwf` on PATH predates the tree. Every verb then runs older
 logic, reads *and writes*, with no signal. Measured during E-0073: a met acceptance
 criterion appeared to fail because the PATH binary predated its convergence guard,
-and `aiwf update` materialized seven stale skills including the one for the verb
-that milestone had just changed. `doctor` stayed silent throughout, by design — its
-staleness check skips tagged releases by shape, and it is opt-in besides, so it
-cannot catch a failure that arrives when nobody runs it. Two predecessors bound
-this without covering it: G-0147 closed by documenting the hazard, G-0176 shipped
-detection that skips this case.
+and `aiwf update` materialized stale skills including the one for the verb that
+milestone had just changed.
+
+`doctor` reports skill drift at error severity, so that half is already detected;
+what it does not report is the staleness itself. Its binary-staleness check compares
+the running binary against `refs/remotes/origin/main`, never against the working
+tree — the decisive miss, given the gap is titled for a binary older than the
+*worktree's* source. It additionally skips tagged releases by shape, so a developer
+many commits past a tag is the case it most declines to examine. And it lives in a
+verb nobody runs at the moment the failure arrives.
+
+Two predecessors bound this without covering it. G-0147 — titled for the missing
+mechanical chokepoint — closed by shipping a `make diag-aiwf` convenience target
+plus a documented discipline, which is a tool an operator must remember to reach for
+rather than a chokepoint. G-0176 shipped real detection that skips this case twice
+over, on the comparison target and on the tagged-release shape.
 
 **G-0474 — blank-identifier unused-silencers.** CLAUDE.md bans `var _ = <ident>`
 kept solely to quiet `unused`, a rule G-0451 asked for and G-0449 acted on by hand.
