@@ -16,7 +16,9 @@ import (
 //   - TestTextIO_Wrappers (textio_test.go) — uses captureStdStreams.
 //   - TestResolveLogger_StderrDestination_NeverClosesRealStderr
 //     (resolvelogger_test.go) — uses captureStdStreams.
-//   - TestAcquireRepoLock_JSONEnvelopeOnBusy, TestAcquireRepoLock_TextModeUnchanged
+//   - TestAcquireRepoLock_JSONEnvelopeOnBusy,
+//     TestAcquireRepoLock_JSONEnvelopeOnAcquireFailure,
+//     TestAcquireRepoLock_TextModeUnchanged
 //     (lock_test.go) — use testutil.CaptureStdout / CaptureStderr.
 //   - TestFinishVerbOutcome_DryRun_JSON, TestFinishVerbOutcome_DryRun_Text,
 //     TestFinishVerbOutcome_MultiPlan_Apply, TestFinishVerbOutcome_ApplyError_MessageFormat,

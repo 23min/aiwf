@@ -350,5 +350,10 @@ Flags for 'upgrade':
 
 Exit codes: 0 = no errors, 1 = errors found, 2 = usage error, 3 = internal error.
 
+Concurrency:
+  Every mutating verb takes a per-repo lock before doing any work. A verb that only reads never takes it, so reads run freely alongside a mutation — at worst they see a snapshot from before it landed. ('render roadmap --write' and 'render --format=html' read without the lock but write derived files — ROADMAP.md and the site tree — so a concurrent mutation can leave those stale; re-run them.) When the lock is already held, the verb refuses without touching the tree, and under --format=json the error envelope's "code" field names which refusal it was:
+    repo-lock-busy             another aiwf process holds the lock (exit 2) — the verb waits a couple of seconds for it before refusing, so back off and retry
+    repo-lock-acquire-failed   the lock could not be taken at all (exit 3) — the lockfile could not be located, opened or locked; retrying will not help
+
 Docs: docs/archive/pocv3/poc-plan-pre-migration.md and docs/design/design-decisions.md.`)
 }
