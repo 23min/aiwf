@@ -1,7 +1,7 @@
 ---
 id: E-0075
 title: Structured-state verbs refuse to commit frontmatter they do not own
-status: proposed
+status: active
 ---
 ## Goal
 
