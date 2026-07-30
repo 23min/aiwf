@@ -10,7 +10,7 @@ acs:
       status: met
     - id: AC-2
       title: ADR records whether the guard is entity-scoped or committed-path-scoped
-      status: open
+      status: met
     - id: AC-3
       title: ADR records refuse-or-warn, weighed against the illegal-transition escape
       status: open
