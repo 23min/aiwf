@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 )
@@ -92,13 +93,20 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 			return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 		}
 	}
-	if err := shaAckable(ctx, root, sha); err != nil {
+	fullSHA, err := shaAckable(ctx, root, sha)
+	if err != nil {
 		return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 	}
 	if cleanedEntity != "" {
 		if err := verifySHATouchesEntity(ctx, root, sha, cleanedEntity); err != nil {
 			return nil, fmt.Errorf("aiwf acknowledge illegal: %w", err)
 		}
+	}
+	// Same-state convergence (M-0281/AC-4): when HEAD's history already
+	// carries a matching ack, there is nothing left to record — return a
+	// NoOp instead of appending a duplicate empty audit commit.
+	if matched, ok := ackAlreadyRecorded(ctx, root, fullSHA, cleanedEntity); ok {
+		return &Result{NoOp: true, NoOpMessage: ackNoOpMessage(sha, matched)}, nil
 	}
 	short := sha
 	if len(short) > 8 {
@@ -112,6 +120,76 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 	})
 	result.Metadata = map[string]any{"sha": sha}
 	return result, nil
+}
+
+// ackAlreadyRecorded reports whether HEAD's reachable history already
+// carries an acknowledgment covering (sha, forEntity), so a re-run has
+// nothing to add (M-0281/AC-4). The first return is the entity binding that
+// was matched — empty for the blanket shape — so the caller's message names
+// the acknowledgment that exists rather than the one that was asked about.
+//
+// The two ack shapes are checked independently because they suppress
+// different rules, and the answer must mean exactly what the *check* rules
+// mean by "acknowledged" — hence the reuse of check's own walkers rather
+// than a second trailer scan here:
+//
+//   - forEntity == "" (blanket per-SHA): matches when any ack commit names
+//     this SHA in `aiwf-force-for`, which is precisely the set the seven
+//     SHA-scoped rules consult. An entity-bound ack also carries
+//     force-for, so it satisfies the blanket shape too — a later blanket
+//     ack for the same SHA would genuinely be redundant.
+//   - forEntity != "" (per-(SHA, entity)): matches only when an ack names
+//     both this SHA and this entity, the pair
+//     provenance-untrailered-entity-commit requires. A blanket-only ack
+//     does NOT cover it, so the entity-bound ack still records.
+//
+// Two spellings of the entity key have to be consulted, because the write
+// side and the rule side disagree about width. This verb emits `aiwf-entity`
+// at full composite width and check's walker stores that value as given, so
+// the exact spelling is what a repeat of this same invocation would add. The
+// consuming rule, meanwhile, rolls a touched id up to its parent before
+// looking the ack up (check's isShaEntityAcked), so a parent-scoped ack
+// already suppresses every finding an AC-scoped one would — which makes it a
+// genuine cover for this request even though the spellings differ.
+//
+// Answers "not acknowledged" whenever it cannot establish otherwise — an
+// unwalkable history, or a HEAD carrying no commits (an orphan SHA acked
+// against an unborn HEAD, the extreme of the reflog-only case). fullSHA is
+// already resolved by shaAckable; the walkers key their maps on the full
+// form, so a short and a full spelling of one commit compare equal. Failing open
+// degrades to the pre-existing always-record behavior, which at worst re-lands
+// a duplicate ack; failing closed would silently skip an ack the operator
+// needs. This mirrors the fail-open-toward-firing convention check's own ack
+// walkers use when a trailer SHA won't resolve.
+func ackAlreadyRecorded(ctx context.Context, root, fullSHA, forEntity string) (string, bool) {
+	head, err := check.WalkHeadCommits(ctx, root)
+	if err != nil || len(head) == 0 {
+		return "", false
+	}
+	if forEntity == "" {
+		return "", check.WalkAcknowledgedSHAs(ctx, root, head)[fullSHA]
+	}
+	recorded := check.WalkAcknowledgedSHAEntities(ctx, root, head)[fullSHA]
+	if want := entity.Canonicalize(forEntity); recorded[want] {
+		return want, true
+	}
+	// For a bare forEntity this is the same key just tested, so it can only
+	// match for a composite — no separate guard needed.
+	if rolled := entity.Canonicalize(entity.CompositeRoot(forEntity)); recorded[rolled] {
+		return rolled, true
+	}
+	return "", false
+}
+
+// ackNoOpMessage renders the NoOp message for an already-recorded ack.
+// matchedEntity is the binding the lookup actually found — already canonical,
+// and empty for the blanket per-SHA shape — so the operator is never told an
+// acknowledgment exists for a binding no commit names.
+func ackNoOpMessage(sha, matchedEntity string) string {
+	if matchedEntity == "" {
+		return fmt.Sprintf("%s is already acknowledged; nothing to record", sha)
+	}
+	return fmt.Sprintf("%s is already acknowledged for %s; nothing to record", sha, matchedEntity)
 }
 
 // verifySHATouchesEntity runs `git diff-tree --no-commit-id
@@ -163,12 +241,10 @@ func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) er
 		sha, want, want)
 }
 
-// shaAckable verifies sha resolves to a real commit, via the shared
-// gitops.CommitExists primitive (F3) instead of a hand-rolled
-// exec.Command("git", "rev-parse", "--verify", ...) call.
-// gitops.CommitExists's "^{commit}" peels through tags and rejects
-// non-commit objects (trees, blobs), so an ack against a blob SHA
-// still refuses.
+// shaAckable verifies sha resolves to a real commit and returns that
+// commit's full SHA, via gitops.ResolveCommitSHA. The "^{commit}" peel
+// it performs goes through tags and rejects non-commit objects (trees,
+// blobs), so an ack against a blob SHA still refuses.
 //
 // Existence — not HEAD-reachability — is the actual acceptance
 // criterion: the isolation-escape-orphaned-ai-commit rule's offending
@@ -184,14 +260,10 @@ func verifySHATouchesEntity(ctx context.Context, root, sha, forEntity string) er
 // Returns a typed error when sha resolves to no commit, catching the
 // typo / copy-paste / wrong-repo failure modes the original M-0136/AC-4
 // check was designed to refuse.
-func shaAckable(ctx context.Context, root, sha string) error {
-	exists, err := gitops.CommitExists(ctx, root, sha)
+func shaAckable(ctx context.Context, root, sha string) (string, error) {
+	full, err := gitops.ResolveCommitSHA(ctx, root, sha)
 	if err != nil {
-		//coverage:ignore defensive: CommitExists maps an unresolvable sha to (false,nil); a non-nil err needs git absent or a broken workdir, not reachable deterministically in-process (mirrors promote.go's validateAddressedByCommit)
-		return fmt.Errorf("checking object DB for %q: %w", sha, err)
+		return "", fmt.Errorf("SHA %q does not resolve to a commit in the local object database (typo? wrong repo? object pruned?)", sha)
 	}
-	if !exists {
-		return fmt.Errorf("SHA %q does not resolve to a commit in the local object database (typo? wrong repo? object pruned?)", sha)
-	}
-	return nil
+	return full, nil
 }

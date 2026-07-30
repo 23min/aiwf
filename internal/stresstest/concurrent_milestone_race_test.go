@@ -128,7 +128,7 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 		if len(s.outcomes) != n {
 			t.Fatalf("attempt %d: len(outcomes) = %d, want %d", attempt, len(s.outcomes), n)
 		}
-		var promoteCount, cancelCount, okCount, promoteOKCount, cancelOKCount int
+		var promoteCount, cancelCount, promoteOKCount, cancelOKCount int
 		for _, oc := range s.outcomes {
 			switch oc.operation {
 			case raceOpPromote:
@@ -144,19 +144,24 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 			default:
 				t.Fatalf("attempt %d: unexpected operation %q", attempt, oc.operation)
 			}
-			if oc.status == "ok" {
-				okCount++
-			}
 		}
 		if promoteCount != n/2 || cancelCount != n-n/2 {
 			t.Fatalf("attempt %d: promoteCount=%d cancelCount=%d, want %d/%d", attempt, promoteCount, cancelCount, n/2, n-n/2)
 		}
-		if promoteOKCount != 1 {
-			t.Fatalf("attempt %d: promoteOKCount = %d, want exactly 1 (the AC can only transition open -> met once)", attempt, promoteOKCount)
+		// promoteOKCount is no longer bounded at 1 for the same reason
+		// cancelOKCount is not: one promote lands the AC's open->met
+		// transition and every promote that raced after it is a NoOp on the
+		// already-met AC — also "ok", but zero commits (M-0281/AC-9). At least
+		// the winner must report ok; the commit-count assertion below is what
+		// pins "exactly one promote actually committed".
+		if promoteOKCount < 1 {
+			t.Fatalf("attempt %d: promoteOKCount = %d, want at least 1 (some actor must land open -> met)", attempt, promoteOKCount)
 		}
-		if cancelOKCount != 0 && cancelOKCount != 1 {
-			t.Fatalf("attempt %d: cancelOKCount = %d, want 0 or 1", attempt, cancelOKCount)
-		}
+		// cancelOKCount is no longer bounded at 1: exactly one cancel lands
+		// the draft->cancelled transition, and every cancel that raced after
+		// it is a NoOp on the already-cancelled milestone — also "ok", but
+		// zero commits (ADR-0036, M-0281/AC-2). The commit-count assertion
+		// below is what pins "at most one cancel actually committed".
 
 		if s.finalACStatus != "met" {
 			t.Fatalf("attempt %d: finalACStatus = %q, want %q", attempt, s.finalACStatus, "met")
@@ -164,15 +169,27 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 		if s.finalMilestoneStatus != "draft" && s.finalMilestoneStatus != "cancelled" {
 			t.Fatalf("attempt %d: finalMilestoneStatus = %q, want draft or cancelled", attempt, s.finalMilestoneStatus)
 		}
-		if cancelOKCount == 1 && s.finalMilestoneStatus != "cancelled" {
+		// A NoOp cancel requires the milestone to already be terminal, which
+		// only a committed cancel produces — so a cancel "ok" (real or NoOp)
+		// implies the milestone ended cancelled, and zero cancel "ok"s
+		// implies it stayed draft.
+		if cancelOKCount >= 1 && s.finalMilestoneStatus != "cancelled" {
 			t.Fatalf("attempt %d: a cancel actor reported ok but finalMilestoneStatus = %q, want cancelled", attempt, s.finalMilestoneStatus)
 		}
 		if cancelOKCount == 0 && s.finalMilestoneStatus != "draft" {
 			t.Fatalf("attempt %d: no cancel actor reported ok but finalMilestoneStatus = %q, want draft", attempt, s.finalMilestoneStatus)
 		}
 
-		if s.after != s.before+okCount {
-			t.Fatalf("attempt %d: commit count %d -> %d after %d ok outcomes, want exactly +%d", attempt, s.before, s.after, okCount, okCount)
+		// Commit accounting: exactly one promote commit (open -> met) always
+		// lands, plus one cancel commit iff the milestone ended cancelled.
+		// NoOp cancels report ok but add no commit, so the total is not
+		// before+okCount (ADR-0036).
+		wantCommits := 1
+		if s.finalMilestoneStatus == "cancelled" {
+			wantCommits++
+		}
+		if s.after != s.before+wantCommits {
+			t.Fatalf("attempt %d: commit count %d -> %d, want exactly +%d (1 promote + %d cancel)", attempt, s.before, s.after, wantCommits, wantCommits-1)
 		}
 	}
 }

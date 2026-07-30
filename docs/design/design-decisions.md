@@ -152,7 +152,7 @@ ACs are first-class but namespaced inside their milestone, addressable as `M-NNN
   - `acs-shape` (error) — frontmatter `acs[]` items have valid `id` (`AC-N`, position-equal including cancelled entries), `status` in the closed set, `tdd_phase` in the closed set when present.
   - `acs-body-coherence` (warning) — every frontmatter AC has a matching `### AC-<N>` heading in body, and vice versa. Pairs by id only, not by title text — body title is prose and remains kernel-blind. The body heading regex is permissive: em-dash, hyphen, colon, or id-only forms all parse.
   - `acs-tdd-audit` (error when `tdd: required`; warning when `advisory`) — every AC with `status: met` has `tdd_phase: done`.
-  - `acs-transition` (error, on verb projection) — refuses illegal AC-status or `tdd_phase` transitions unless `--force --reason` is supplied.
+  - AC-status and `tdd_phase` transition legality is enforced **at verb time**, not by a check rule: `promoteAC` / `cancelAC` / `PromoteACPhase` consult the AC and phase FSMs and refuse before any write, with `--force --reason` as the relaxation. (Earlier drafts named an `acs-transition` check rule; it was never shipped.)
   - `milestone-done-incomplete-acs` (error) — fires on every `aiwf check` pass when a milestone has `status: done` and at least one AC has `status: open`.
 - **What's not a kernel rule.** No "milestone must have ≥1 AC" — ACs remain optional. No "milestone can't enter `in_progress` without all ACs in `red`" — the kernel guards the outcome (`met` requires `done`), not the entry. No global AC allocator. No AC tombstone beyond status-cancel. No `aiwf doctor` warnings about deleted skill names from the rituals shrink — the kernel stays uncoupled from rituals plugin internals.
 

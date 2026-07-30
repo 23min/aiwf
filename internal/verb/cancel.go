@@ -10,8 +10,13 @@ import (
 
 // Cancel promotes an entity to its kind's terminal-cancel status —
 // `cancelled` for epic/milestone, `rejected` for adr/decision,
-// `wontfix` for gap, `retired` for contract. Errors when the entity is
-// already in a terminal state or when the kind is unknown.
+// `wontfix` for gap, `retired` for contract. An entity already at ANY
+// terminal status converges to a NoOp rather than erroring: it is
+// already disposed, so cancel has nothing to project (ADR-0036,
+// M-0281/AC-2). An unknown kind still errors.
+//
+// For a composite id the same rule applies against the AC FSM's own
+// terminal set, which is not the entity FSM's — see cancelAC.
 //
 // reason is optional free-form prose; when non-empty, it lands in the
 // commit body so the cancellation's "why" is preserved for future
@@ -21,9 +26,10 @@ import (
 // standard ones so the cancellation is auditable as a forced action.
 // Cancel has no FSM transition rule to relax (it always sets status to
 // the kind's terminal-cancel target), so force is purely an audit
-// signal here. The "already at target" guard remains in place even
-// under force — there is no diff to write. Force requires a non-empty
-// reason; the caller is responsible for enforcing that.
+// signal here. The already-terminal convergence fires even under force —
+// there is no diff to write, so there is nothing for a sovereign
+// override to re-apply. Force requires a non-empty reason; the caller is
+// responsible for enforcing that.
 func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force bool) (*Result, error) {
 	_ = ctx
 	if entity.IsCompositeID(id) {
@@ -33,17 +39,28 @@ func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force b
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
 	}
-	// Pre-flight terminal check. Cancel never makes sense on an entity
-	// already at a terminal status — there's nothing to project to.
-	// Without this guard, the older code silently constructed
-	// FSM-illegal projections (e.g., Cancel on a `done` epic set
-	// status to `cancelled` even though Epic.done has no outgoing
-	// edges); since M-0131's state-aware CancelTarget the trap moved
-	// to the empty-return path with a less informative message. This
-	// catches the case once, at the verb boundary, with a clear
-	// "already at terminal X" error.
+	// Same-state convergence (M-0281/AC-2, ADR-0036): an entity already at
+	// a terminal status is already disposed — cancel has nothing to project
+	// to — so a re-run converges to a NoOp at exit 0 rather than an error.
+	// Cancel's implicit target is "a terminal end-state", and the entity is
+	// already at one — whether it got there via cancel or another path. The
+	// message names the actual state, so an operator cancelling a `done`
+	// entity is informed rather than misled.
 	if entity.IsTerminal(e.Kind, e.Status) {
-		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel", id, e.Status)}, nil
+	}
+	// A status outside the kind's closed set is not terminal, so it falls past
+	// the guard above. Refusing here keeps cancel from laundering junk into a
+	// terminal status under an ordinary cancel trailer. --force gets past this
+	// guard, but it is a repair path only for the kinds whose cancel target is
+	// status-agnostic (epic, milestone, gap). For adr, decision and contract
+	// entity.CancelTarget derives the target from the current status, so an
+	// unrecognized one yields no target and the guard below refuses regardless
+	// of force — restore a recognized status before cancelling those.
+	if !force && !entity.IsAllowedStatus(e.Kind, e.Status) {
+		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
+			"%s status %q is not a recognized %s status; cannot cancel from it",
+			id, e.Status, e.Kind)}
 	}
 	target := entity.CancelTarget(e.Kind, e.Status)
 	if target == "" {

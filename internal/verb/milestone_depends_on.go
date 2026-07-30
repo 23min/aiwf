@@ -3,6 +3,7 @@ package verb
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/tree"
@@ -55,8 +56,13 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		return nil, fmt.Errorf("%q is of kind %s, not milestone", id, e.Kind)
 	}
 
+	// Id comparisons run at canonical width. The grammar accepts narrower
+	// legacy spellings (`M-002` for `M-0002`) and ByID canonicalizes before
+	// matching, so a narrow spelling of the milestone's own id would otherwise
+	// slip past the self-edge refusal that ByID then resolves.
+	canonID := entity.Canonicalize(id)
 	for _, dep := range deps {
-		if dep == id {
+		if entity.Canonicalize(dep) == canonID {
 			return nil, fmt.Errorf("--on %q is the milestone itself; a milestone cannot depend on itself", dep)
 		}
 		ref := t.ByID(dep)
@@ -72,14 +78,32 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 	if clearList {
 		modified.DependsOn = nil
 	} else {
+		// Stored as given, matching the verbatim convention Add documents
+		// for this same field. Width normalization across the tree is
+		// `aiwf rewidth`'s job, not a side effect of an edge declaration.
 		modified.DependsOn = append([]string(nil), deps...)
+	}
+
+	// Same-state convergence (M-0281/AC-7): the list already reads exactly as
+	// requested. Without this guard a re-run writes byte-identical content and
+	// still lands a commit with an empty diff (see
+	// verb_result_noop_invariant.go for why aiwf does not reject one).
+	//
+	// Compared with slices.Equal, order included: `--on` is
+	// replace-not-append, so a reordered list is a real change to the stored
+	// sequence and still commits. Placed after the dep-resolution loop above,
+	// so a bogus `--on` id is still refused rather than silently converged.
+	// Both sides are normalized to canonical width for the comparison only, so
+	// a narrow argument naming the stored entity converges instead of
+	// re-writing the list to a different spelling of the same edges.
+	if slices.Equal(canonicalIDs(e.DependsOn), canonicalIDs(modified.DependsOn)) {
+		return &Result{NoOp: true, NoOpMessage: dependsOnNoOpMessage(id, clearList)}, nil
 	}
 
 	body, err := readBody(t.Root, e.Path)
 	if err != nil {
 		return nil, err
 	}
-	canonID := entity.Canonicalize(id)
 	subject := fmt.Sprintf("aiwf milestone depends-on %s", canonID)
 	return planEntityWrite(t, &modified, e.Path, body, entityWrite{
 		subject:  subject,
@@ -87,4 +111,28 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		trailers: standardTrailers("milestone-depends-on", canonID, actor),
 		metadata: map[string]any{"entity_id": canonID, "depends_on": modified.DependsOn},
 	})
+}
+
+// canonicalIDs returns ids rewritten to canonical width, so a stored list
+// written before the width migration compares equal to a freshly canonicalized
+// one. Returns nil for an empty input, which keeps slices.Equal's nil/empty
+// equivalence intact for the cleared-list arm.
+func canonicalIDs(ids []string) []string {
+	if len(ids) == 0 {
+		return nil
+	}
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = entity.Canonicalize(id)
+	}
+	return out
+}
+
+// dependsOnNoOpMessage renders the same-state message for the two arms:
+// re-declaring an identical list, and clearing an already-empty one.
+func dependsOnNoOpMessage(id string, clearList bool) string {
+	if clearList {
+		return fmt.Sprintf("%s has no depends_on edges; nothing to clear", id)
+	}
+	return fmt.Sprintf("%s depends_on already reads exactly as requested; nothing to change", id)
 }

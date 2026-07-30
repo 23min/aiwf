@@ -5,7 +5,7 @@ description: Use when the user wants to advance an entity (or acceptance criteri
 
 # aiwf-promote
 
-The `aiwf promote` verb edits an entity's `status` field — or, for composite ids, an AC's `status` or `tdd_phase`. Allowed transitions are hardcoded per kind; illegal moves are refused before any disk change.
+The `aiwf promote` verb edits an entity's `status` field — or, for composite ids, an AC's `status` or `tdd_phase`. Allowed transitions are hardcoded per kind; illegal moves are refused before any disk change. Promoting to the status already recorded is not an illegal move — it reports "already `<status>`" at exit 0 and commits nothing.
 
 ## When to use
 
@@ -32,7 +32,7 @@ aiwf promote <M-id>/AC-N --phase <p>            # AC tdd_phase (mutex with posit
 | AC status | `open`, `met`, `deferred`, `cancelled` |
 | AC `tdd_phase` | `red`, `green`, `refactor`, `done` (linear; refactor optional) |
 
-`aiwf promote` enforces the per-kind legal-transition function. If the move is illegal it reports a finding and exits without writing. To reach a terminal-cancel status use `aiwf cancel <id>` instead — same end state, clearer intent in the log.
+`aiwf promote` enforces the per-kind legal-transition function. If the move is illegal it reports a finding and exits without writing; if the target status is the one already recorded there is no move to make, so it exits 0 having written nothing. To reach a terminal-cancel status use `aiwf cancel <id>` instead — same end state, clearer intent in the log.
 
 ## --force --reason for exceptional moves
 

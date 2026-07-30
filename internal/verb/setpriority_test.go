@@ -142,8 +142,10 @@ func TestSetPriority_WritesDecision(t *testing.T) {
 }
 
 // TestSetPriority_ValidationRefusals exhausts the refusal paths: unknown
-// id, a non-gap/decision target, an out-of-range level, and both no-op
-// cases. Each returns an error, a nil result, and writes nothing.
+// id, a non-gap/decision target, and an out-of-range level. Each returns an
+// error, a nil result, and writes nothing. The two same-state cases are NOT
+// refusals — they converge to a NoOp (M-0281/AC-7) and are covered by
+// TestSetPriority_SameState_ReturnsNoOp.
 func TestSetPriority_ValidationRefusals(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -156,8 +158,6 @@ func TestSetPriority_ValidationRefusals(t *testing.T) {
 		{name: "unknown id", id: "G-9999", level: "urgent", wantInError: "unknown id"},
 		{name: "non-gap/decision target", id: "E-0001", level: "urgent", wantInError: "does not carry a priority"},
 		{name: "out-of-range level", id: "G-0001", level: "critical", wantInError: "not a recognized priority level"},
-		{name: "no-op already set", startPri: "high", id: "G-0001", level: "high", wantInError: "already set to"},
-		{name: "no-op clear already unset", startPri: "", id: "G-0001", clear: true, wantInError: "already unset"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

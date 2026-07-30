@@ -7,6 +7,8 @@ description: Use when the user wants to rename an entity's slug (the human-reada
 
 The `aiwf rename` verb changes the slug portion of an entity's path while preserving the id. References to the entity (which use the id) keep working.
 
+A slug set this way is durable. It no longer matches the one the title would derive, so a later `aiwf retitle` preserves it rather than re-deriving over it — which is what makes this the right verb for an entity whose descriptive title makes an unwieldy path.
+
 > **Looking to change a title?** For changing an entity's title (the prose label, distinct from the slug), use `aiwf retitle <id> <new-title>` — that is the dedicated verb for title mutations. This skill covers slug renames only. (The two verbs stay separate by design — single-mutation rule keeps reasoning local.)
 
 ## When to use
@@ -19,7 +21,7 @@ The user wants the file or directory name to read better but the entity itself i
 aiwf rename <id> <new-slug>
 ```
 
-`aiwf` normalizes the new slug into kebab-case (lowercases, ASCII-only, runs of non-alphanumerics collapse into single hyphens, trailing hyphens trimmed). `"Acceptance Criteria!"` becomes `acceptance-criteria`. The verb refuses only when normalization yields the empty string or the same slug as the current path.
+`aiwf` normalizes the new slug into kebab-case (lowercases, ASCII-only, runs of non-alphanumerics collapse into single hyphens, trailing hyphens trimmed). `"Acceptance Criteria!"` becomes `acceptance-criteria`. The verb refuses when normalization yields the empty string. A slug identical to the current one is not a refusal: there is nothing to rename, so it reports that at exit 0 and commits nothing.
 
 ## What aiwf does
 

@@ -193,6 +193,20 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 			files: map[string]string{"internal/verb/v.go": "package verb\n\nfunc Foo() (*Result, error) { return nil, nil }\n"},
 		},
 		{
+			id:     "verb-result-noop-invariant",
+			policy: PolicyVerbResultNoOpInvariant,
+			// Foo has the verb entry-point signature and carries no
+			// allowlist entry. The accompanying test file drives it but
+			// never asserts on Result.NoOp, so the same-state convergence
+			// coverage is missing — exercising the violation branch. The
+			// test file also proves the check is not satisfied by the mere
+			// existence of a test: only a NoOp assertion counts.
+			files: map[string]string{
+				"internal/verb/v.go":      "package verb\n\nfunc Foo() (*Result, error) { return nil, nil }\n",
+				"internal/verb/v_test.go": "package verb\n\nimport \"testing\"\n\nfunc TestFoo(t *testing.T) { _, _ = Foo() }\n",
+			},
+		},
+		{
 			id:     "commit-construction-single-seam",
 			policy: PolicyCommitConstructionSingleSeam,
 			files: map[string]string{

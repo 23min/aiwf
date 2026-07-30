@@ -20,8 +20,9 @@ import (
 // come from?" from either the milestone's or the old epic's perspective.
 //
 // Returns a Go error for "couldn't even start": id not found, kind not
-// milestone, target epic missing or wrong kind, milestone already under
-// the target epic. Tree-level findings caused by the move (e.g. a
+// milestone, target epic missing or wrong kind. A milestone already
+// under the target epic is not an error — it converges to a NoOp
+// (M-0281/AC-3). Tree-level findings caused by the move (e.g. a
 // depends_on cycle introduced by the new neighborhood) are returned in
 // Result.Findings.
 func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Result, error) {
@@ -43,12 +44,25 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 	if target.Kind != entity.KindEpic {
 		return nil, fmt.Errorf("--epic %q is not an epic (it's a %s)", newEpicID, target.Kind)
 	}
-	if e.Parent == newEpicID {
-		return nil, fmt.Errorf("milestone %q is already under epic %q; nothing to move", id, newEpicID)
-	}
+	// Resolve the target epic to canonical width for the comparison below.
+	// Parsers accept narrower legacy spellings on input — ByID canonicalizes
+	// both sides before matching — so `--epic E-01` names the same epic as a
+	// stored `E-0001`. Canonicalizing here settles only the comparison: a
+	// genuine move still stores the operator's spelling verbatim, matching
+	// what Add writes for a parent supplied at creation.
+	canonNew := entity.Canonicalize(newEpicID)
 
 	source := filepath.ToSlash(e.Path)
 	dest := filepath.ToSlash(filepath.Join(filepath.Dir(target.Path), filepath.Base(e.Path)))
+
+	// Same-state convergence (M-0281/AC-3). A move's effect spans two surfaces
+	// — the `parent:` field and the file's location under the epic's directory
+	// — so both must already hold before there is nothing to relocate. move is
+	// a field-mutation verb (no FSM transition), so this needs no ADR-0036
+	// oracle changes.
+	if entity.Canonicalize(e.Parent) == canonNew && source == dest {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already under epic %q; nothing to move", id, newEpicID)}, nil
+	}
 
 	modified := *e
 	priorParent := e.Parent
@@ -69,10 +83,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 		return findings(fs), nil
 	}
 
-	// Canonical width per AC-1 in M-081.
+	// Canonical width per AC-1 in M-081. canonNew is resolved above, where the
+	// same-state comparison needs it.
 	canonID := entity.Canonicalize(id)
 	canonPrior := entity.Canonicalize(priorParent)
-	canonNew := entity.Canonicalize(newEpicID)
 	subject := fmt.Sprintf("aiwf move %s %s -> %s", canonID, canonPrior, canonNew)
 	result := plan(&Plan{
 		Subject: subject,

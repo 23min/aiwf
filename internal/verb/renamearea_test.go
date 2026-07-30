@@ -64,6 +64,71 @@ func mustReadAreaDoc(t *testing.T) *aiwfyaml.Doc {
 	return d
 }
 
+// TestRenameArea_SameNameStillValidatesTheMember pins the ordering between
+// rename-area's same-state guard and its validation. Converging to a NoOp means
+// asserting "nothing to rename", which is only true of a member that exists. An
+// undeclared name and the reserved `global` sentinel are not members at all, so
+// both must still be refused — a NoOp there reports success for state that
+// cannot exist, and hides the operator's typo. SetArea already orders its
+// equivalent guard after validation; this keeps rename-area consistent.
+func TestRenameArea_SameNameStillValidatesTheMember(t *testing.T) {
+	t.Parallel()
+	declared := []config.Member{{Name: "platform"}, {Name: "billing"}}
+
+	cases := []struct {
+		name    string
+		area    string
+		wantErr string
+	}{
+		{
+			name:    "undeclared member",
+			area:    "nosucharea",
+			wantErr: "not a declared member",
+		},
+		{
+			name:    "reserved global sentinel",
+			area:    entity.AreaGlobal,
+			wantErr: "reserved",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tr := areaTree(t, map[string]string{"E-0001": "platform"})
+			doc := mustReadAreaDoc(t)
+
+			res, err := RenameArea(context.Background(), tr, doc, declared, tc.area, tc.area, "human/test")
+			if err == nil {
+				t.Fatalf("rename-area %[1]q %[1]q returned res=%+v, want a refusal — %[1]q is not a declared member", tc.area, res)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("err = %q, want it to mention %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// TestRenameArea_SameName_ReturnsNoOp covers M-0281/AC-7 for rename-area:
+// renaming a member to the name it already carries has nothing to rewrite, so
+// it converges to a NoOp instead of the "<old> and <new> are identical" error.
+func TestRenameArea_SameName_ReturnsNoOp(t *testing.T) {
+	t.Parallel()
+	tr := areaTree(t, map[string]string{"E-0001": "platform"})
+	doc := mustReadAreaDoc(t)
+
+	res, err := RenameArea(context.Background(), tr, doc,
+		[]config.Member{{Name: "platform"}, {Name: "billing"}}, "platform", "platform", "human/test")
+	if err != nil {
+		t.Fatalf("rename-area to the same name returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true")
+	}
+	if res.Plan != nil {
+		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
+	}
+}
+
 func TestRenameArea_RewritesMemberAndEntities(t *testing.T) {
 	t.Parallel()
 	tr := areaTree(t, map[string]string{
@@ -221,7 +286,6 @@ func TestRenameArea_ValidationRefusals(t *testing.T) {
 		{name: "nil doc", nilDoc: true, old: "platform", new: "infra", wantInError: "aiwf.yaml"},
 		{name: "empty old", old: "", new: "infra", wantInError: "non-empty"},
 		{name: "empty new", old: "platform", new: "", wantInError: "non-empty"},
-		{name: "identical", old: "platform", new: "platform", wantInError: "identical"},
 		{name: "undeclared old", old: "nonsense", new: "infra", wantInError: "not a declared member"},
 		{name: "new already declared", old: "platform", new: "billing", wantInError: "already a declared member"},
 	}

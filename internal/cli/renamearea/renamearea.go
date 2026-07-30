@@ -42,8 +42,10 @@ them into the untagged complement. Using this verb instead of a hand
 edit is what keeps referencing entities from being silently orphaned.
 
 Refuses when <old> is not a declared member, or when <new> already
-names one; the refusal names the declared set and writes nothing. The
-rename reverses via the same verb with swapped args.`,
+names a different one; the refusal names the declared set and writes
+nothing. Renaming a declared member to the name it already carries is
+not refused: it exits 0 reporting nothing to rename and writes no
+commit. The rename reverses via the same verb with swapped args.`,
 		Example: `  # Rename the 'platform' area to 'infra', carrying every tagged entity along
   aiwf rename-area platform infra
 

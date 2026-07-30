@@ -96,4 +96,5 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"cross-branch-allocation", []string{"--fetch", "push promptly"}},
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
+	{"conclusion-not-drafting-history", []string{"not the drafting history", "code comment"}},
 }

@@ -192,6 +192,23 @@ func ShortSHA(ctx context.Context, workdir, ref string, n int) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// ResolveCommitSHA returns the canonical full (40-hex) SHA that ref's
+// commit resolves to, via `git rev-parse --verify <ref>^{commit}`. The
+// `^{commit}` peel rejects non-commit objects (trees, blobs) and follows
+// annotated tags, matching CommitExists's acceptance shape. Returns ""
+// (and a wrapped error) when the ref does not resolve.
+//
+// Used to normalize an operator-supplied short SHA to the full form the
+// ack-trailer walkers key their maps on, so a short and a full spelling of
+// the same commit compare equal.
+func ResolveCommitSHA(ctx context.Context, workdir, ref string) (string, error) {
+	out, err := output(ctx, workdir, "rev-parse", "--verify", ref+"^{commit}")
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse --verify %s^{commit}: %w", ref, err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
 // HasRef reports whether ref resolves to an object in workdir's repo.
 // Returns (false, nil) when the ref is absent — distinguishing it
 // from any other git failure, which propagates as a wrapped error.

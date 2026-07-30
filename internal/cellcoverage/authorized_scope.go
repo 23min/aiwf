@@ -24,15 +24,13 @@ import (
 //
 // M-0159/AC-7 / G-0213: a real branch ref is created in the fixture's
 // tmp git repo BEFORE the verb stamps the aiwf-branch: trailer, so
-// the trailer value resolves end-to-end. Before this fix the fixture
-// stamped a fictional `epic/E-NNNN-cellcoverage-fixture` value
-// purely to satisfy verb.Authorize's M-0103 AI-target preflight;
-// today's rules don't validate branch resolvability, but the moment
-// any future milestone (M-0159 finishing or M-0161) lands a rule
-// that does, every M-0125 positive cell test would silently break
-// at once. Creating the branch in fixture setup is G-0213's Option
-// 1 — keeps rule semantics strict, no production-code coupling to
-// fixture markers, ~few-ms overhead per cell. See the test pin at
+// the trailer value resolves end-to-end. Today's rules don't validate
+// branch resolvability, so a fictional value stamped purely to satisfy
+// verb.Authorize's M-0103 AI-target preflight would pass — but the
+// moment a rule that does validate lands, every M-0125 positive cell
+// test breaks at once. Creating the branch in fixture setup keeps rule
+// semantics strict with no production-code coupling to fixture
+// markers, at ~few-ms overhead per cell. See the test pin at
 // authorized_scope_branch_resolves_test.go for the invariant.
 func (f *CellFixture) AuthorizeScope(t *testing.T, entityID, agent string) *scope.Scope {
 	t.Helper()

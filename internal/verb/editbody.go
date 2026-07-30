@@ -57,13 +57,13 @@ func EditBody(ctx context.Context, t *tree.Tree, id string, body []byte, actor, 
 	if body == nil {
 		return editBodyBless(ctx, t, e, actor, reason)
 	}
-	return editBodyExplicit(t, e, body, actor, reason)
+	return editBodyExplicit(ctx, t, e, body, actor, reason)
 }
 
 // editBodyExplicit covers the M-058 path: caller supplies new body
 // bytes (typically from `--body-file <path>` or stdin). The verb
 // re-serializes the entity's existing frontmatter with the new body.
-func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason string) (*Result, error) {
+func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body []byte, actor, reason string) (*Result, error) {
 	if err := validateUserBodyBytes(body); err != nil {
 		return nil, fmt.Errorf("--body-file: %w", err)
 	}
@@ -76,6 +76,24 @@ func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason
 	content, err := entity.Serialize(&modified, body)
 	if err != nil {
 		return nil, fmt.Errorf("serializing %s: %w", e.ID, err)
+	}
+
+	// Same-state convergence (M-0281/AC-8): writing content the entity already
+	// carries lands a commit with an empty diff on every repeat (see
+	// verb_result_noop_invariant.go for why aiwf does not reject one).
+	// Converging is sound only once the requested content is what BOTH git and
+	// the operator would see, which is why this settles nothing on its own and
+	// defers to explicitBodySettled below.
+	settled, err := explicitBodySettled(ctx, t, e, content)
+	if err != nil {
+		//coverage:ignore defensive: explicitBodySettled errors only from its own two annotated-unreachable arms (a git failure reading HEAD, or the loader's own file gone missing mid-verb), so this propagation is unreachable for the same reasons
+		return nil, err
+	}
+	if settled {
+		return &Result{
+			NoOp:        true,
+			NoOpMessage: fmt.Sprintf("%s: HEAD already carries this body; nothing to commit", e.ID),
+		}, nil
 	}
 
 	proj := projectReplace(t, &modified, filepath.ToSlash(e.Path))
@@ -98,6 +116,46 @@ func editBodyExplicit(t *tree.Tree, e *entity.Entity, body []byte, actor, reason
 	})
 	result.Metadata = map[string]any{"entity_id": e.ID}
 	return result, nil
+}
+
+// explicitBodySettled reports whether writing content would change nothing an
+// operator or git can observe: the committed bytes at HEAD and the bytes on
+// disk both already equal it.
+//
+// Both comparisons are load-bearing, and either one alone is wrong in a way
+// that loses work:
+//
+//   - HEAD alone would report the body already matches while a dirty working
+//     copy holds something else — stranding a revert (asking for the committed
+//     content back is a legitimate declarative request) and stating something
+//     false about the file the operator is looking at.
+//   - Disk alone would converge when the working copy already carries the
+//     requested content uncommitted, never landing the commit that was the
+//     point of the call — the write-the-file-then-route-it-through-the-verb
+//     flow this project's own guidance encourages.
+//
+// The comparison is on the SERIALIZED entity rather than the body bytes,
+// because entity.Serialize re-canonicalizes frontmatter: a byte-identical body
+// over non-canonical frontmatter still has a real write to make.
+//
+// An entity with no committed version yet (headBytes nil) is never settled, so
+// explicit mode keeps working for a file that exists only in the working tree —
+// which is exactly the case bless mode refuses and redirects here.
+func explicitBodySettled(ctx context.Context, t *tree.Tree, e *entity.Entity, content []byte) (bool, error) {
+	headBytes, err := gitops.ReadFromHEAD(ctx, t.Root, filepath.ToSlash(e.Path))
+	if err != nil {
+		//coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
+		return false, fmt.Errorf("reading HEAD version of %s: %w", e.Path, err)
+	}
+	if headBytes == nil || !bytes.Equal(content, headBytes) {
+		return false, nil
+	}
+	diskBytes, err := os.ReadFile(filepath.Join(t.Root, e.Path))
+	if err != nil {
+		//coverage:ignore defensive: the loader just read this same path to build e, so it is present and readable by the time this runs
+		return false, fmt.Errorf("reading working copy of %s: %w", e.Path, err)
+	}
+	return bytes.Equal(content, diskBytes), nil
 }
 
 // editBodyBless covers the M-060 path: the user already edited the

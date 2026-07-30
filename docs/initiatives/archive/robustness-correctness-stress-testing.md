@@ -1,6 +1,6 @@
 ---
 title: 'Robustness: an on-demand correctness stress harness, and a retrace-ready diagnostic foundation'
-status: captured
+status: realized
 date: 2026-07-07
 ---
 
@@ -9,8 +9,8 @@ date: 2026-07-07
 ## Classifier note
 
 This is an initiative document, following the precedent of
-[`check-performance-incremental-revwalk-cache.md`](check-performance-incremental-revwalk-cache.md)
-and [`id-lifecycle.md`](id-lifecycle.md): `initiative` is not yet an official
+[`check-performance-incremental-revwalk-cache.md`](../check-performance-incremental-revwalk-cache.md)
+and [`id-lifecycle.md`](../id-lifecycle.md): `initiative` is not yet an official
 aiwf entity kind, so this lives under `docs/initiatives/` as a capture point
 for a design that's concrete enough to scope but not yet built. This document
 is closer to `id-lifecycle.md`'s shape than the revwalk-cache one — an
@@ -46,7 +46,7 @@ than a one-line "it failed once, couldn't reproduce."
 
 **Correctness only, not performance.** This initiative deliberately does not
 touch throughput or latency — that's
-[`check-performance-incremental-revwalk-cache.md`](check-performance-incremental-revwalk-cache.md)'s
+[`check-performance-incremental-revwalk-cache.md`](../check-performance-incremental-revwalk-cache.md)'s
 territory, a sibling initiative already in flight. A stress run here may well
 be slow; that's acceptable, because it never runs in the hot path (see
 "On-demand, not scheduled" below).

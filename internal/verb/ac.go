@@ -181,6 +181,23 @@ func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor,
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-9): the AC already holds the
+	// requested status, so there is nothing to change — converge instead of
+	// returning the FSM's self-transition refusal. Placed above the FSM
+	// consult, the same short-circuit-above-ValidateTransition shape
+	// entity-level Promote uses, and firing regardless of force for the same
+	// reason: a sovereign override has no transition to re-apply. A composite
+	// promote carries no resolver flags (Promote refuses them for composite
+	// ids), so a bare status comparison is the whole condition here.
+	// Gated on IsAllowedACStatus for the same reason Promote's guard is: an
+	// AC hand-edited to a status the FSM does not know is not a state to
+	// converge on.
+	if ac.Status == newStatus && entity.IsAllowedACStatus(ac.Status) {
+		return &Result{
+			NoOp:        true,
+			NoOpMessage: fmt.Sprintf("%s is already %s; nothing to change", compositeID, newStatus),
+		}, nil
+	}
 	if !force {
 		if !entity.IsLegalACTransition(ac.Status, newStatus) {
 			return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf("AC status %q cannot transition to %q (allowed under FSM: see acTransitions)", ac.Status, newStatus)}
@@ -230,16 +247,37 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 }
 
 // cancelAC handles `aiwf cancel M-NNN/AC-N`. The AC's status flips to
-// `cancelled`; the entry stays in acs[] at its original position. The
-// "already cancelled" guard fires when the AC is already terminal —
-// force does not relax that since there's no diff to write.
+// `cancelled`; the entry stays in acs[] at its original position.
+//
+// Two guards, in order. An AC already at a terminal status converges to
+// a NoOp (M-0281/AC-9): both AC terminals are removal-class — `deferred`
+// and `cancelled` each mean "off the milestone's contract", and neither
+// claims the criterion succeeded — so cancel has nothing left to do from
+// either. This fires regardless of force, matching Cancel's own
+// same-state guard: there is no transition for a sovereign override to
+// re-apply. `met` is deliberately NOT terminal, so cancelling a met AC
+// still does real work.
+//
+// Otherwise the FSM decides, exactly as promoteAC does. An unrecognized
+// status is not terminal (IsTerminalACStatus answers false for unknown
+// input by design), so it reaches this consult and is refused;
+// `--force` remains the sanctioned repair path.
 func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
 	}
-	if ac.Status == entity.StatusCancelled {
-		return nil, fmt.Errorf("%s is already cancelled", compositeID)
+	if entity.IsTerminalACStatus(ac.Status) {
+		return &Result{
+			NoOp: true,
+			NoOpMessage: fmt.Sprintf("%s is already at terminal status %q; nothing to cancel",
+				compositeID, ac.Status),
+		}, nil
+	}
+	if !force && !entity.IsLegalACTransition(ac.Status, entity.StatusCancelled) {
+		return nil, &fsmTransitionIllegalError{msg: fmt.Sprintf(
+			"AC status %q cannot transition to %q (allowed under FSM: see acTransitions)",
+			ac.Status, entity.StatusCancelled)}
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Status = "cancelled"
@@ -257,24 +295,41 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 // renameAC handles `aiwf rename M-NNN/AC-N "<new-title>"`. Updates
 // the AC's title in the milestone's frontmatter and rewrites the
 // matching `### AC-<N>` body heading. One commit, no path change.
-func renameAC(t *tree.Tree, compositeID, newTitle, actor string) (*Result, error) {
+func renameAC(t *tree.Tree, compositeID, newTitle, actor string, maxLength int) (*Result, error) {
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("rename: new title is empty")
+	}
+	// Rename dispatches here before its own validation, because the second
+	// positional argument is a slug for an entity and a title for an AC. Both
+	// halves of title policy therefore have to run on this side of that split.
+	// The shape check matters because an AC title reaches a line-anchored
+	// `### AC-N — <title>` heading rewrite, which a line break breaks the same
+	// way it breaks an entity H1. The cap matters because retitle's AC path is
+	// capped, and the two verbs name the same field: maxLength arrives as
+	// Rename's slugMaxLength, which is the same `entities.title_max_length`
+	// budget titles and slugs share.
+	if err := entity.ValidateTitle(newTitle, maxLength); err != nil {
+		return nil, err
 	}
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
 	}
-	if ac.Title == newTitle {
-		return nil, fmt.Errorf("%s title already %q", compositeID, newTitle)
+	// Same-state convergence (M-0281/AC-5): an AC carries a title but no slug,
+	// so `rename` on a composite id operates on that title. The entity-level
+	// path converges on a path comparison; this one compares the title and the
+	// body heading, because those are the two surfaces it writes.
+	body, err := readBody(t.Root, parent.Path)
+	if err != nil {
+		//coverage:ignore defensive: lookupAC resolved the parent from the loaded tree, which read this same file, so a failure here needs it to vanish mid-verb
+		return nil, err
+	}
+	if ac.Title == newTitle && acHeadingMatchesTitle(body, ac.ID, newTitle) {
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already named %q; nothing to rename", compositeID, newTitle)}, nil
 	}
 	modified, err := withACMutation(parent, ac.ID, func(updated *entity.AcceptanceCriterion) {
 		updated.Title = newTitle
 	})
-	if err != nil {
-		return nil, err
-	}
-	body, err := readBody(t.Root, parent.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -501,6 +556,19 @@ func trimTrailingBlankLines(lines [][]byte) [][]byte {
 // start with `(?m)` so a regex over multi-line input matches each
 // candidate line.
 var acHeadingLinePattern = regexp.MustCompile(`(?m)^### AC-(\d+)(?:\s*[—\-:]\s*[^\n]*)?$`)
+
+// acHeadingMatchesTitle reports whether body's `### AC-<N>` heading for acID
+// already reads exactly as rewriteACHeading would write it for title.
+//
+// The AC rename/retitle guards need this because their effect spans two
+// surfaces: the frontmatter title AND the body heading. Comparing the title
+// alone would claim success for an AC whose heading has drifted, leaving the
+// stale prose the verb exists to fix. A body with
+// no matching heading is treated as already-consistent: rewriteACHeading would
+// not add one either, and `acs-body-coherence` is what reports the absence.
+func acHeadingMatchesTitle(body []byte, acID, title string) bool {
+	return bytes.Equal(body, rewriteACHeading(body, acID, title))
+}
 
 // rewriteACHeading scans body for a `### AC-<N>` heading matching
 // acID and rewrites it in place to the canonical em-dash form. When

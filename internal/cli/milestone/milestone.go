@@ -51,6 +51,10 @@ func newTDDCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tdd <milestone-id>",
 		Short: "Set a milestone's TDD policy after creation",
+		Long: `Set a milestone's TDD policy after creation.
+
+A milestone already carrying the named policy has nothing to change, so a re-run
+reports that at exit 0 and commits nothing.`,
 		Example: `  # Downgrade a milestone's TDD policy
   aiwf milestone tdd M-003 --policy advisory
 
@@ -131,6 +135,14 @@ func newDependsOnCmd(correlationID string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "depends-on <milestone-id>",
 		Short: "Set or clear a milestone's depends_on list",
+		Long: `Set or clear a milestone's depends_on list.
+
+--on replaces the list rather than appending to it. A list that already reads
+exactly as requested has nothing to change, so a re-run reports that at exit 0
+and commits nothing — as does --clear against a milestone with no edges. Order
+counts, so a reordered list is a real change and still commits. Ids compare at
+canonical width, so a narrow --on spelling names the stored entity. Every --on
+id must resolve: an unknown one is refused, never converged.`,
 		Example: `  # Declare M-003 depends on M-001 and M-002
   aiwf milestone depends-on M-003 --on M-001,M-002
 

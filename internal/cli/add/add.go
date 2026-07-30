@@ -95,7 +95,7 @@ func NewCmd(correlationID string) *cobra.Command {
 	// PersistentFlags are inherited by the `add ac` child so the shared
 	// `--title`, `--actor`, `--principal`, `--root` work uniformly on
 	// both `aiwf add <kind>` and `aiwf add ac <milestone-id>`.
-	cmd.PersistentFlags().StringArrayVar(&titles, "title", nil, "entity title (required; for `aiwf add ac` may repeat to create multiple ACs in one atomic commit — M-057)")
+	cmd.PersistentFlags().StringArrayVar(&titles, "title", nil, "entity title (required; a single line — a line break is refused, since the title becomes a YAML scalar, a body H1 and a commit subject; for `aiwf add ac` may repeat to create multiple ACs in one atomic commit — M-057)")
 	cmd.PersistentFlags().StringVar(&actor, "actor", "", "actor for the commit trailer")
 	cmd.PersistentFlags().StringVar(&principal, "principal", "", "the human/<id> the actor is acting on behalf of (required when --actor is non-human; gates the verb through the I2.5 allow-rule)")
 	cmd.PersistentFlags().StringVar(&root, "root", "", "consumer repo root")

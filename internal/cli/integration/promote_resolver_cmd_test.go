@@ -84,11 +84,11 @@ func TestPromote_ByFlag_BinaryEndToEnd(t *testing.T) {
 // BOTH sides of the link in one commit — superseded_by on ADR-0001 and
 // the reciprocal supersedes on ADR-0002 (G-0255).
 //
-// The earlier version asserted only the commit trailers and never ran
-// `aiwf check`; its doc comment claimed the supersedes link was written
-// "via the same flag", which was false — the reciprocal side was never
-// written and the warning fired permanently. This test now drives the
-// real check and pins the reciprocal write.
+// Asserting the commit trailers alone would not catch a missing
+// reciprocal write — the trailers name only the promoted side, so an
+// implementation that never writes `supersedes` on ADR-0002 passes them
+// while the warning fires permanently. Driving the real `aiwf check` is
+// what pins that both sides land.
 func TestPromote_SupersededByFlag_BinaryEndToEnd(t *testing.T) {
 	t.Parallel()
 	bin := testutil.AiwfBinary(t)

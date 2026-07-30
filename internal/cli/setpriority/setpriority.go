@@ -48,8 +48,11 @@ set, reset, and clear all flow through a discoverable commit rather
 than a hand-edit.
 
 Refuses an unknown id, a target whose kind does not carry a priority
-(only gap and decision do), an out-of-range <level>, <level> together
-with --clear, and a no-op. The change reverses totally via the same
+(only gap and decision do), an out-of-range <level>, and <level>
+together with --clear. A request that is already
+satisfied is not refused: re-setting the level already recorded, or
+--clear on an unset entity, exits 0 reporting nothing to change and
+writes no commit. The change reverses totally via the same
 verb: a set reverses with --clear, a reset with the prior level.`,
 		Example: `  # Set a gap's priority
   aiwf set-priority G-0001 urgent

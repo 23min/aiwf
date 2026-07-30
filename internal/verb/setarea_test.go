@@ -184,8 +184,10 @@ func TestSetArea_AcceptsGlobal(t *testing.T) {
 }
 
 // TestSetArea_ValidationRefusals exhausts the refusal paths: unknown id,
-// undeclared member, empty-members (no areas block), and both no-op
-// cases. Each returns an error, a nil result, and writes nothing.
+// undeclared member, and empty-members (no areas block). Each returns an
+// error, a nil result, and writes nothing. The two same-state cases are NOT
+// refusals — they converge to a NoOp (M-0281/AC-7) and are covered by
+// TestSetArea_SameState_ReturnsNoOp.
 func TestSetArea_ValidationRefusals(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -205,8 +207,6 @@ func TestSetArea_ValidationRefusals(t *testing.T) {
 		// message a member would otherwise hit with no block.
 		{name: "no areas block (member)", members: nil, id: "E-0001", member: "platform", wantInError: "no areas block is declared"},
 		{name: "no areas block (global)", members: nil, id: "E-0001", member: entity.AreaGlobal, wantInError: "no areas block is declared"},
-		{name: "no-op already tagged", members: setAreaMembers, startArea: "platform", id: "E-0001", member: "platform", wantInError: "already tagged"},
-		{name: "no-op clear already untagged", members: setAreaMembers, startArea: "", id: "E-0001", clear: true, wantInError: "already untagged"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

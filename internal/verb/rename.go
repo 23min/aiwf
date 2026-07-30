@@ -15,8 +15,13 @@ import (
 
 // Rename changes the slug portion of an entity's file or directory
 // path. The id is preserved (per the design's "ids are immortal"
-// invariant); the title in frontmatter is unchanged. Hand-edit the
-// title in markdown if you want it to track the new slug.
+// invariant); the title in frontmatter is unchanged. Use `aiwf retitle`
+// if you want the title to track the new slug.
+//
+// A slug set here is durable: it no longer matches what the title would
+// derive, so a later retitle preserves it instead of re-deriving over it.
+// That is what makes this verb worth reaching for on an entity whose
+// descriptive title makes an unwieldy path.
 //
 // For epic and contract (directory-based kinds), the directory itself
 // is moved; nested files (milestones under an epic, the schema/
@@ -39,7 +44,7 @@ import (
 func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMaxLength int) (*Result, error) {
 	_ = ctx
 	if entity.IsCompositeID(id) {
-		return renameAC(t, id, newSlug, actor)
+		return renameAC(t, id, newSlug, actor, slugMaxLength)
 	}
 	e := t.ByID(id)
 	if e == nil {
@@ -61,8 +66,11 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 	if err != nil {
 		return nil, err
 	}
+	// Same-state convergence (M-0281/AC-5): the entity already lives at the
+	// requested slug, so there is nothing to move or rewrite — a re-run
+	// converges to a NoOp at exit 0 rather than an error.
 	if source == dest {
-		return nil, fmt.Errorf("new slug %q matches the current slug; nothing to rename", cleanSlug)
+		return &Result{NoOp: true, NoOpMessage: fmt.Sprintf("%s is already named %q; nothing to rename", id, cleanSlug)}, nil
 	}
 
 	// Update the entity's path so checks see the projected location.

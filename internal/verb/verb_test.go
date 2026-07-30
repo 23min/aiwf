@@ -547,15 +547,16 @@ func TestReallocate_RewritesProseReferences(t *testing.T) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Mentions M-001 in prose", testActor, verb.AddOptions{EpicID: "E-0001", TDD: "none"}))
 
 	m2Path := filepath.Join(r.root, "work", "epics", "E-0001-platform", "M-0002-mentions-m-001-in-prose.md")
-	if err := os.WriteFile(m2Path, []byte("---\n"+
-		"id: M-002\n"+
-		"title: Mentions M-001 in prose\n"+
-		"status: draft\n"+
-		"parent: E-01\n"+
+	if err := os.WriteFile(m2Path, []byte(
 		"---\n"+
-		"\n"+
-		"This depends on M-001 (mentioned in prose).\n"+
-		"M-001 again, and a longer id `M-0010` that must NOT match.\n",
+			"id: M-002\n"+
+			"title: Mentions M-001 in prose\n"+
+			"status: draft\n"+
+			"parent: E-01\n"+
+			"---\n"+
+			"\n"+
+			"This depends on M-001 (mentioned in prose).\n"+
+			"M-001 again, and a longer id `M-0010` that must NOT match.\n",
 	), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1169,36 +1170,10 @@ func TestCancel_ADRAcceptedHasNoCancelTarget(t *testing.T) {
 	}
 }
 
-// TestCancel_AlreadyTerminal returns an error rather than producing a
-// no-op commit.
-func TestCancel_AlreadyTerminal(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Doomed twice", testActor, verb.AddOptions{}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false))
-
-	_, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)
-	if err == nil || !strings.Contains(err.Error(), "already") {
-		t.Errorf("expected 'already cancelled' error, got %v", err)
-	}
-	// M-0258/AC-2: the already-terminal refusal is the same class of
-	// FSM-illegal-transition refusal entity.ValidateTransition reports
-	// for kind-level transitions elsewhere, so it must carry the same
-	// typed CodeFSMTransitionIllegal — a Coded consumer (a stress-
-	// harness oracle checking the FSM's own verdict, or cliutil's own
-	// exit-code contract) can't otherwise distinguish it from a plain,
-	// uncoded internal error.
-	if code, ok := entity.Code(err); !ok || code != entity.CodeFSMTransitionIllegal.ID {
-		t.Errorf("entity.Code(err) = (%q, %v), want (%q, true)", code, ok, entity.CodeFSMTransitionIllegal.ID)
-	}
-}
-
-// TestCancel_OnAlreadyDoneEpic pins the M-0131 pre-flight IsTerminal
-// guard: cancelling an epic at `done` (the natural-success terminal,
-// not the cancel-class terminal `cancelled`) errors before the verb
-// constructs an FSM-illegal projection. Without the guard, the older
-// code would set status to `cancelled` even though Epic.done has no
-// outgoing FSM edges — a silent FSM violation.
+// TestCancel_OnAlreadyDoneEpic pins M-0281/AC-2 (ADR-0036) for a success
+// terminal: cancelling an epic at `done` (the natural-success terminal, not
+// the cancel-class `cancelled`) is a NoOp — a terminal entity is already
+// disposed, so cancel has nothing to project.
 func TestCancel_OnAlreadyDoneEpic(t *testing.T) {
 	t.Parallel()
 	r := newRunner(t)
@@ -1206,9 +1181,15 @@ func TestCancel_OnAlreadyDoneEpic(t *testing.T) {
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "active", testActor, "", false, verb.PromoteOptions{}))
 	r.must(verb.Promote(r.ctx, r.tree(), "E-0001", "done", testActor, "", false, verb.PromoteOptions{}))
 
-	_, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)
-	if err == nil || !strings.Contains(err.Error(), "already at terminal") {
-		t.Errorf("expected 'already at terminal' refusal; got %v", err)
+	res, err := verb.Cancel(r.ctx, r.tree(), "E-0001", testActor, "", false)
+	if err != nil {
+		t.Fatalf("cancel of a done epic returned a Go error, want a NoOp: %v", err)
+	}
+	if !res.NoOp {
+		t.Errorf("res.NoOp = false, want true (cancel of a terminal entity is a no-op)")
+	}
+	if res.Plan != nil {
+		t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
 	}
 }
 
@@ -1253,14 +1234,12 @@ func TestCancel_DeprecatedContractLandsAtRetired(t *testing.T) {
 	mustHaveTrailer(t, tr, "aiwf-entity", "C-0001")
 }
 
-// TestCancel_OnAlreadyTerminalContract is the Contract-side
-// counterpart of TestCancel_OnAlreadyDoneEpic. Contract has two
-// terminal statuses (rejected = cancel-class; retired = natural-
-// success-after-deprecated); cancel on either errors. The retired
-// case is the one the M-0131 state-aware CancelTarget makes
-// reachable through the cancel verb — without the IsTerminal
-// guard the verb would error with the vague "has no cancel target"
-// because CancelTarget(KindContract, "retired") = "".
+// TestCancel_OnAlreadyTerminalContract is the Contract-side counterpart of
+// TestCancel_OnAlreadyDoneEpic. Contract has two terminal statuses (rejected,
+// retired); cancel on either is a NoOp per M-0281/AC-2 (ADR-0036). The retired
+// case is the one M-0131's state-aware CancelTarget makes reachable through
+// the cancel verb — CancelTarget(KindContract, "retired") = "", so before the
+// terminal guard the verb would have surfaced the vague "has no cancel target".
 func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -1279,23 +1258,17 @@ func TestCancel_OnAlreadyTerminalContract(t *testing.T) {
 			// hops aren't relevant to the assertion under test.
 			r.must(verb.Promote(r.ctx, r.tree(), "C-0001", tc.terminalStatus, testActor, "test setup", true, verb.PromoteOptions{}))
 
-			_, err := verb.Cancel(r.ctx, r.tree(), "C-0001", testActor, "", false)
-			if err == nil || !strings.Contains(err.Error(), "already at terminal") {
-				t.Errorf("expected 'already at terminal' refusal; got %v", err)
+			res, err := verb.Cancel(r.ctx, r.tree(), "C-0001", testActor, "", false)
+			if err != nil {
+				t.Fatalf("cancel of a terminal contract returned a Go error, want a NoOp: %v", err)
+			}
+			if !res.NoOp {
+				t.Errorf("res.NoOp = false, want true (cancel of a terminal entity is a no-op)")
+			}
+			if res.Plan != nil {
+				t.Errorf("res.Plan = %+v, want nil (a NoOp produces no commit)", res.Plan)
 			}
 		})
-	}
-}
-
-// TestRename_SameSlug returns an error rather than producing a no-op
-// commit.
-func TestRename_SameSlug(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Same name", testActor, verb.AddOptions{}))
-	_, err := verb.Rename(r.ctx, r.tree(), "E-0001", "same-name", testActor, 0)
-	if err == nil || !strings.Contains(err.Error(), "matches the current slug") {
-		t.Errorf("expected same-slug error, got %v", err)
 	}
 }
 

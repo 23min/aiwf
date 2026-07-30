@@ -15,6 +15,11 @@ import (
 // kinds. Per G-0108, the on-disk slug is also re-derived from the new
 // title in the same commit, so frontmatter and filesystem stay in sync.
 // Closes the top-level half of G-065 + G-0108.
+//
+// Every entity here is created by `add`, so its slug tracks its title and
+// re-derivation applies. A slug set with `aiwf rename` does not track the
+// title and retitle preserves it; that boundary is pinned at the verb layer
+// in internal/verb.
 
 // retitleSetup gives every test in this file a freshly-init'd repo
 // with one entity per top-level kind so the verb has live targets to
@@ -127,23 +132,6 @@ func TestRetitle_EmptyTitleRejected(t *testing.T) {
 	})
 	if rc != cliutil.ExitUsage {
 		t.Errorf("retitle E-01 with whitespace title = %d, want %d", rc, cliutil.ExitUsage)
-	}
-}
-
-// TestRetitle_SameTitleRejected pins the no-op guard: passing the
-// current title produces a clear error so the operator notices the
-// typo (no commit lands).
-func TestRetitle_SameTitleRejected(t *testing.T) {
-	t.Parallel()
-	root := retitleSetup(t)
-
-	rc := cli.Execute([]string{
-		"retitle", "E-0001", "Foundations",
-		"--actor", "human/test",
-		"--root", root,
-	})
-	if rc != cliutil.ExitUsage {
-		t.Errorf("retitle E-01 with same title = %d, want %d", rc, cliutil.ExitUsage)
 	}
 }
 
