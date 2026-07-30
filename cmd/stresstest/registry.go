@@ -7,7 +7,7 @@ import (
 
 // registry.go — M-0249/AC-1: the name -> constructor catalog backing
 // `--scenario <name>`, `--scenario all`, and `list`. Adapts each of
-// the 12 scenarios built across M-0241 through M-0244 into
+// every scenario built across M-0241 through M-0244 into
 // RunRepeated's newScenario(seed int64) Scenario shape; every
 // scenario's own constructor signature stays exactly as its own
 // package defines it (G-0397) — the adaptation (fixed kind/scale
