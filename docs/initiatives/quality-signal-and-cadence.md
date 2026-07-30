@@ -86,7 +86,8 @@ cases:
 | `internal/stresstest` time, co-tenant with `./...` | 77s in CI | 66.7s on 4 cores, 65–77s in CI |
 | `cmd/stresstest` time in CI | not measured | 42–68s |
 | `internal/stresstest` coverage, full run | not measured | 85.5% |
-| `internal/stresstest` coverage, real-binary drivers skipped | not measured | 34.7% |
+| `internal/stresstest` coverage, all real-binary drivers skipped | not measured | 34.7% |
+| `internal/stresstest` coverage, non-hermetic scenarios skipped | not measured | 62.8% |
 | Exact Go toolchain pins across workflow files | not measured | 7 |
 
 The three causes have different lifespans. The `vuln` job closed with the
@@ -102,7 +103,7 @@ the latter two was caused by the window.
 Acute, and the only finding here with a deadline attached in the sense that
 every push until it lands pays for it. Three independent causes, of different
 character and different lifespans, tracked as
-[G-0457](../../work/gaps/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md)
+[G-0457](../../work/gaps/archive/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md)
 (placement and the `govulncheck` lanes),
 [G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md)
 and
@@ -166,15 +167,21 @@ alongside `cmd/aiwf`, run by hand rather than scheduled or wired into
 `cmd/stresstest`'s whole-catalog test disagrees most directly of all.
 Whichever way that reconciles, the two should say the same thing.
 
-The seam for a fix already exists in the package's own structure: each
-scenario is split into a `*_classify_test.go` file pinning the pure decision
-function against fabricated outcomes (fast, deterministic, genuinely
-valuable on every push) and a `*_test.go` file driving real subprocesses
-(slow, timing-shaped, valuable on demand). The split to make is the one the
-package already made. Gating the drivers out costs coverage, though —
-`internal/stresstest` drops from 85.5% to 34.7% statement coverage — so the
-split restores signal without restoring the scenarios' own trustworthiness.
-That is why the oracle work is scoped separately.
+The seam is oracle shape, not test shape. Splitting on "drives a real
+subprocess" is the seam the package's own `*_classify_test.go` /
+`*_test.go` layout suggests, and it is the wrong one: it would bench every
+real-binary driver including the hermetic ones, costing coverage
+(`internal/stresstest` falls to 34.7%) for scenarios that were never the
+problem. Splitting on what the oracle asserts — does it depend on timing,
+scheduling, or an observation window — keeps the workflow-legality walk and
+the deterministic collision, isolation and disk-fault scenarios on the
+every-push path at 62.8% coverage, and benches only the nine that race real
+processes or wait on a clock. Category name is not the criterion either:
+`disk-fault` is fault-injection with no timing construct at all, while
+`lock-kill` waits five seconds for a holder to report ready.
+
+Either way the split restores signal without restoring the scenarios' own
+trustworthiness, which is why the oracle work is scoped separately.
 
 **Q1c — The diff-scoped coverage gate can fire nowhere but CI.**
 `scripts/git-hooks/pre-push` runs the lint boundary, the gitleaks secret
@@ -310,19 +317,21 @@ item 4 down is independently actionable.
 
 **Acute — tracked, unscheduled:**
 
-1. **Q1, tourniquet** —
-   [G-0457](../../work/gaps/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md),
-   restore gate signal integrity. One `wf-patch`: gate the real-binary stress
-   drivers and `cmd/stresstest`'s whole-catalog tests behind a build tag
-   while keeping the `*_classify_test.go` decision tests in the default run;
-   pin `govulncheck`; separate the stdlib-CVE lane from the dependency-CVE
-   lane so a disclosure the repo cannot act on does not mask one it can;
-   single-source the toolchain pin. Reconcile `CLAUDE.md`'s stress-harness
-   contract with whatever `go.yml` ends up doing. The gap carries the two
-   decisions that ride along (where the real-binary scenarios run instead;
-   whether stdlib findings block at all). `-short` is not the mechanism: it
-   is a global switch that would also disable the binary integration tests
-   across `cmd/aiwf` and `internal/cli`, which CI wants.
+1. **Q1, tourniquet — landed.**
+   [G-0457](../../work/gaps/archive/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md),
+   addressed. One `wf-patch`: the nine scenarios whose oracles depend on
+   timing or an observation window, plus `cmd/stresstest`'s whole-catalog and
+   lock-kill runner tests, moved behind a `stress` build tag reachable via
+   `make stress-tests`; `govulncheck` pinned and its findings split into a
+   blocking dependency lane and a reporting stdlib lane; the toolchain pin
+   single-sourced as one `GO_VERSION`. Push-path cost for the two stress
+   packages fell from ~106s to ~23s. `-short` was rejected as the mechanism:
+   it is a global switch that would also have disabled the binary
+   integration tests across `cmd/aiwf` and `internal/cli`, which CI wants.
+   Two holes the patch's review surfaced were closed with it — the blocking
+   CVE lane failed open under GitHub's default `bash -e` (no `pipefail`)
+   because a jq error was masked by a downstream `sort`, and no gate compiled
+   tag-gated sources at all until `go vet -tags` joined the vet job.
 2. **Q1, cure** —
    [G-0467](../../work/gaps/G-0467-lock-busy-refusal-emits-an-empty-error-code-exit-2-is-the-uncoded-error-bucket.md)
    then
@@ -385,8 +394,9 @@ item 4 down is independently actionable.
     rather than help. The blocker is item 2, not item 1: widening a catalog
     whose oracles report contention as defect multiplies the flake surface
     wherever that catalog runs. Item 1 additionally leaves the drivers
-    uncovered in the default lane (85.5% to 34.7%), so each scenario G-0400
-    adds would meet the diff-scoped coverage gate with no covering test.
+    uncovered in the default lane (85.5% to 62.8%), so each tagged scenario
+    G-0400 adds would meet the diff-scoped coverage gate with no covering
+    test.
 
 ## Open design questions
 
@@ -441,9 +451,9 @@ found real bugs; that is why the harness exists. The fix is to move them off
 the every-push path, not to delete or weaken them — and G-0400 wants the
 catalog *wider*, which only becomes safe afterwards. A fix that quietly
 reduces what the harness exercises has traded an acute problem for a silent
-one. The measurement puts a number on this: gating the drivers out drops
-`internal/stresstest` from 85.5% to 34.7% statement coverage, and a lane
-nobody reads exercises nothing at all.
+one. The measurement puts a number on this: the shipped split leaves
+`internal/stresstest` at 62.8% statement coverage, down from 85.5%, and a
+lane nobody reads exercises nothing at all.
 
 **Risk: the tourniquet closing the file on Q1.** The placement change is
 cheap, visible, and turns CI green, which makes it the natural stopping
