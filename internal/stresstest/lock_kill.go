@@ -20,27 +20,40 @@ import (
 // internal/repolock, per M-0242/AC-3), SIGKILLs the holder, and
 // confirms a subsequent probe re-acquires immediately — the kernel
 // fd-cleanup-on-exit behavior repolock's own doc comment claims.
+//
+// Readiness is bounded by the holder process rather than by a clock:
+// its stdout closing is what reports a holder that died or refused,
+// so no amount of slowness reads as failure (G-0468).
 
 // LockKillScenario implements Scenario.
 type LockKillScenario struct {
 	lockHolderBin string
-	// readyTimeout bounds how long Run waits for the holder to report
-	// ACQUIRED. Defaulted by the constructor; tests in this package
-	// may set it directly (same-package struct literal) to force the
-	// timeout branch deterministically and quickly.
-	readyTimeout time.Duration
-	violations   []Violation
+	// hangGuard bounds how long Run waits for the holder to resolve
+	// one way or the other. Defaulted by the constructor; tests in
+	// this package may set it directly (same-package struct literal)
+	// to force the guard branch deterministically and quickly.
+	hangGuard  time.Duration
+	violations []Violation
 }
 
-// defaultReadyTimeout is generous enough that a healthy holder always
-// reports ACQUIRED well within it on any machine this runs on.
-const defaultReadyTimeout = 5 * time.Second
+// defaultHangGuard is the backstop for a holder that neither reports
+// ACQUIRED nor exits. It is deliberately far longer than a healthy
+// holder needs, because it is not the thing that detects a broken
+// one: waitForReady returns as soon as the holder's stdout closes, so
+// a holder that dies or refuses is caught the moment it happens, at
+// any speed of machine. What is left for a clock to catch is a wedge,
+// and only slowness can be mistaken for one — hence the margin.
+const defaultHangGuard = 60 * time.Second
+
+// errHolderWedged reports a lockholder that neither reported ACQUIRED
+// nor closed its stdout within the hang guard.
+var errHolderWedged = errors.New("the lockholder neither reported ACQUIRED nor exited within the hang guard")
 
 // NewLockKillScenario builds a scenario driving lockHolderBin (the
 // built internal/stresstest/lockholder binary) as the lock-holding
 // process to kill.
 func NewLockKillScenario(lockHolderBin string) *LockKillScenario {
-	return &LockKillScenario{lockHolderBin: lockHolderBin, readyTimeout: defaultReadyTimeout}
+	return &LockKillScenario{lockHolderBin: lockHolderBin, hangGuard: defaultHangGuard}
 }
 
 // Setup git-inits dir so the lockfile resolves to the real
@@ -84,10 +97,10 @@ func (s *LockKillScenario) Run(dir string) error {
 			_ = holder.Wait()
 			return err
 		}
-	case <-time.After(s.readyTimeout):
+	case <-time.After(s.hangGuard):
 		_ = holder.Process.Kill()
 		_ = holder.Wait()
-		return errors.New("timed out waiting for lockholder to report ACQUIRED")
+		return errHolderWedged
 	}
 
 	probeBeforeKillErr := probeLock(dir)

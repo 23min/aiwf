@@ -178,7 +178,8 @@ the deterministic collision, isolation and disk-fault scenarios on the
 every-push path at 62.8% coverage, and benches only the nine that race real
 processes or wait on a clock. Category name is not the criterion either:
 `disk-fault` is fault-injection with no timing construct at all, while
-`lock-kill` waits five seconds for a holder to report ready.
+`concurrent-milestone-race` requires every racing actor to serialize inside
+a two-second deadline.
 
 Either way the split restores signal without restoring the scenarios' own
 trustworthiness, which is why the oracle work is scoped separately.
