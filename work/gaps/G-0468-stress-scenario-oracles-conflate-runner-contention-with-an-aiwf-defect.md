@@ -25,7 +25,9 @@ G-0438 records the same defect class one lane over: `flake-hunt.yml` fails on th
 
 ## Resolution shape
 
-Separate the hermetic assertion from the timing assertion in each classifier. The correctness oracle asserts that every successful actor allocated a distinct id, that no actor failed for a reason other than a recognized busy refusal, that at least one actor succeeded so a genuine deadlock is still caught, and that the resulting tree is check-clean beyond the scenario's declared baseline. The throughput assertion — all N succeed within the lock timeout — belongs to the on-demand `make stress` lane, where the environment is controlled, not to a classifier shared with the every-push path.
+Separate the hermetic assertion from the timing assertion in each classifier. The correctness oracle asserts that every successful actor allocated a distinct id, that no actor failed for a reason other than a recognized busy refusal, that at least one actor succeeded so a genuine deadlock is still caught, and that the resulting tree is check-clean beyond the scenario's declared baseline.
+
+The throughput assertion — all N succeed within the lock timeout — is dropped rather than relocated to the on-demand lane. It measures the machine in every lane, not only under CI contention, so a controlled lane would preserve an unsound signal rather than rescue a sound one; and `make stress` is on-demand and never scheduled, so nothing watches what it would preserve. Total deadlock, the property worth keeping from it, is covered by requiring at least one actor to succeed. Pinning lock throughput, should that ever be wanted, belongs in a purpose-built benchmark rather than in a correctness classifier.
 
 For the observation-window scenarios, either retry the sampling loop until it observes the window, or report a failure to sample as an outcome distinct from a violation.
 
