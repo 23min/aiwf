@@ -1,6 +1,6 @@
 ---
 id: M-0283
-title: Add the shared write-scope precondition and route the single-entity verbs
+title: Spike the guard's mechanics and land the commit-side seam
 status: draft
 parent: E-0075
 depends_on:
