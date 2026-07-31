@@ -166,7 +166,7 @@ func (s *ConcurrentMoveScenario) Run(dir string) error {
 			}
 			parent = showEnv.Result.Parent
 		}
-		outcomes[i] = moveActorOutcome{milestoneID: s.milestoneIDs[i], status: env.Status, parent: parent}
+		outcomes[i] = newMoveActorOutcome(s.milestoneIDs[i], env, parent)
 	}
 
 	s.violations = classifyConcurrentMove(outcomes, s.n, s.targetEpic, before, after)
@@ -196,27 +196,46 @@ type moveActorOutcome struct {
 	milestoneID string
 	status      string
 	parent      string // the milestone's parent after Run's move attempt; "" when the attempt didn't succeed
+	errorCode   string // the envelope's error code, which separates a refusal the scenario expects from one it does not
+}
+
+// newMoveActorOutcome reduces one actor's envelope, plus the parent
+// Run resolved for it, to the fields the classifier judges. Separate
+// from Run's loop for the reason newActorOutcome records.
+func newMoveActorOutcome(milestoneID string, env verbEnvelope, parent string) moveActorOutcome {
+	return moveActorOutcome{
+		milestoneID: milestoneID,
+		status:      env.Status,
+		parent:      parent,
+		errorCode:   envelopeErrorCode(env),
+	}
 }
 
 // classifyConcurrentMove judges n concurrent `aiwf move` attempts,
 // each targeting a distinct milestone under the same source epic and
-// moving to the same target epic: every non-"ok" status is its own
-// violation (repolock should serialize every attempt to success
-// within its timeout, since none of these n attempts logically
-// conflicts with another — each targets its own milestone), any
-// successfully-moved milestone that didn't actually end up parented
-// under targetEpic is a violation (move's file-rename + frontmatter-
-// write landed inconsistently under contention), and the total commit
-// count must land exactly successCount more than before — any other
-// delta means a commit was lost or duplicated.
+// moving to the same target epic, against the properties that hold
+// regardless of how loaded the machine is: any failure that is not
+// repolock's documented busy refusal is unexplained by contention;
+// any successfully-moved milestone that didn't actually end up
+// parented under targetEpic is a violation (move's file-rename +
+// frontmatter-write landed inconsistently under contention); the
+// total commit count must land exactly successCount more than before,
+// since a refused actor commits nothing and any other delta means a
+// commit was lost or duplicated; and a run in which no actor at all
+// succeeded is a deadlock rather than congestion.
+//
+// How many actors get through is deliberately not asserted, for the
+// reason classifyConcurrentIDAllocation records.
 func classifyConcurrentMove(outcomes []moveActorOutcome, n int, targetEpic string, before, after int) []Violation {
 	var violations []Violation
 	successCount := 0
 	for _, oc := range outcomes {
 		if oc.status != "ok" {
-			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"%s: aiwf move did not report ok under concurrent contention (status=%s)", oc.milestoneID, oc.status,
-			)})
+			if !isBusyRefusal(oc.errorCode) {
+				violations = append(violations, Violation{Message: fmt.Sprintf(
+					"%s: aiwf move failed for a reason other than repolock contention (status=%s, code=%q)", oc.milestoneID, oc.status, oc.errorCode,
+				)})
+			}
 			continue
 		}
 		successCount++
@@ -226,9 +245,9 @@ func classifyConcurrentMove(outcomes []moveActorOutcome, n int, targetEpic strin
 			)})
 		}
 	}
-	if successCount != n {
+	if n > 0 && successCount == 0 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"only %d/%d concurrent move actors succeeded — expected all to serialize successfully within repolock's timeout", successCount, n,
+			"none of %d concurrent move actors succeeded — contention explains some actors being refused, never all of them", n,
 		)})
 	}
 	if after != before+successCount {

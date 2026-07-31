@@ -16,6 +16,21 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0468: the concurrent-contention stress oracles judge correctness, not throughput
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. The `concurrent-id-allocation` and `concurrent-move` scenarios
+required every racing actor to succeed within repolock's two-second timeout,
+so on a loaded machine the tail actors received the documented `repo-lock-busy`
+refusal — the verb honoring its specification — and the scenario reported it as
+an aiwf defect. Both classifiers now judge only what holds regardless of load:
+no failure outside that busy refusal, a commit count matching exactly the
+actors that succeeded — so a refusal that nonetheless wrote something is still
+caught — and at least one actor through, so a genuine deadlock still fails.
+Each keeps its own subject-matter assertion besides: that no id was allocated
+twice, and that every milestone reported moved really landed under the target
+epic. How many actors get through is no longer asserted anywhere.
+
 ### Fixed — G-0485: the gpg-signing test fixture no longer leaks a daemon per test run
 
 Nothing user-facing changed. Internal test hygiene: `internal/gitops`'s

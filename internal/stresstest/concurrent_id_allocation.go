@@ -14,9 +14,9 @@ import (
 // launches n real `aiwf add <kind>` subprocesses against ONE working
 // copy, started close together via goroutine + OS process scheduling
 // (no artificial synchronization delay — the race window is real, not
-// simulated), and confirms repolock's mutual exclusion holds: every
-// attempt serializes to a distinct id within the lock's 2-second
-// timeout, and no two attempts ever allocate the same one.
+// simulated), and confirms repolock's mutual exclusion holds: no two
+// attempts ever allocate the same id, and any attempt that does not
+// succeed was refused because another actor held the lock.
 
 // concurrentIDAllocationExpectedWarnings is the baseline of finding
 // codes this scenario's post-run check is expected to carry
@@ -83,6 +83,11 @@ func (s *ConcurrentIDAllocationScenario) launchActor(dir string, i int) rawActor
 // Run launches s.n `aiwf add` subprocesses concurrently, waits for
 // all of them, then classifies the outcomes.
 func (s *ConcurrentIDAllocationScenario) Run(dir string) error {
+	before, err := gitHeadCommitCount(dir)
+	if err != nil { //coverage:ignore defensive: counting commits in a repo this scenario's own Setup just created has no realistic failure mode
+		return fmt.Errorf("counting commits before the concurrent add: %w", err)
+	}
+
 	raw := make([]rawActorResult, s.n)
 	var wg sync.WaitGroup
 	for i := 0; i < s.n; i++ {
@@ -94,6 +99,11 @@ func (s *ConcurrentIDAllocationScenario) Run(dir string) error {
 	}
 	wg.Wait()
 
+	after, err := gitHeadCommitCount(dir)
+	if err != nil { //coverage:ignore defensive: see the "before" call above
+		return fmt.Errorf("counting commits after the concurrent add: %w", err)
+	}
+
 	outcomes := make([]actorOutcome, s.n)
 	for i, ro := range raw {
 		var exitErr *exec.ExitError
@@ -104,17 +114,20 @@ func (s *ConcurrentIDAllocationScenario) Run(dir string) error {
 		if err != nil { //coverage:ignore defensive: parseVerbEnvelope's own malformed-input branch is unit-tested directly in verb_sequence_classify_test.go; a real `add` invocation's stdout is never malformed
 			return fmt.Errorf("actor %d: %w", i, err)
 		}
-		outcomes[i] = actorOutcome{status: env.Status, entityID: env.Metadata.EntityID}
+		outcomes[i] = newActorOutcome(env)
 	}
 
-	s.violations = append(s.violations, classifyConcurrentIDAllocation(outcomes, s.n)...)
+	s.violations = append(s.violations, classifyConcurrentIDAllocation(outcomes, s.n, before, after)...)
 
 	// M-0257/AC-1: alongside the per-actor outcome assertion above,
 	// confirm the resulting tree stays check-clean beyond baseline
 	// noise — this scenario never ran `aiwf check` at all before.
-	checkEnv, err := runAiwfJSON(s.aiwfBin, dir, "check")
-	if err != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
-		return fmt.Errorf("running aiwf check after the concurrent add: %w", err)
+	// checkErr, not err: this repo's govet config runs with
+	// enable-all: true, and reusing err here trips its shadow check
+	// against the per-actor loop's own inner `err` declaration above.
+	checkEnv, checkErr := runAiwfJSON(s.aiwfBin, dir, "check")
+	if checkErr != nil { //coverage:ignore defensive: same launch-failure class other scenarios pin at runAiwfJSON's own source; the actor loop above already exercised this binary successfully by the time this call runs
+		return fmt.Errorf("running aiwf check after the concurrent add: %w", checkErr)
 	}
 	s.violations = append(s.violations, classifyAgainstBaseline(checkEnv.Findings, concurrentIDAllocationExpectedWarnings)...)
 	return nil
@@ -126,28 +139,60 @@ func (s *ConcurrentIDAllocationScenario) Verify(_ string) []Violation {
 }
 
 // actorOutcome is one concurrent actor's `aiwf add` result, reduced
-// to the two fields classifyConcurrentIDAllocation needs.
+// to the fields classifyConcurrentIDAllocation needs. errorCode
+// carries the envelope's error code, which is what separates a
+// refusal the scenario expects from one it does not.
 type actorOutcome struct {
-	status   string
-	entityID string
+	status    string
+	entityID  string
+	errorCode string
+}
+
+// newActorOutcome reduces one actor's envelope to the fields the
+// classifier judges. Separate from Run's loop so that the reduction —
+// in particular that the error code is carried across at all, without
+// which every refusal looks alike to the classifier — is pinned
+// against a fabricated envelope rather than only through a real
+// subprocess race.
+func newActorOutcome(env verbEnvelope) actorOutcome {
+	return actorOutcome{
+		status:    env.Status,
+		entityID:  env.Metadata.EntityID,
+		errorCode: envelopeErrorCode(env),
+	}
 }
 
 // classifyConcurrentIDAllocation judges n concurrent `aiwf add`
-// attempts: every non-"ok" status is its own violation (repolock
-// should serialize every attempt to success within its timeout), any
-// entity id allocated by more than one successful attempt is a
-// violation (repolock's core mutual-exclusion promise broken), and an
-// overall success-count shortfall is reported once more in aggregate
-// so a partial-failure run can't slip through as "no duplicates
-// found" when few or no ids were even allocated.
-func classifyConcurrentIDAllocation(outcomes []actorOutcome, n int) []Violation {
+// attempts against the properties that hold regardless of how loaded
+// the machine is: every id allocated by more than one successful
+// attempt breaks repolock's core mutual-exclusion promise; every
+// failure that is not repolock's documented busy refusal is
+// unexplained by contention; the commit count must land exactly
+// successCount above before, since a refused actor takes the lock
+// before it writes anything and so commits nothing (ADR-0036); and a
+// run in which no actor at all succeeded is a deadlock rather than
+// congestion, since the lock is released by whichever actor holds it.
+//
+// The commit-count arm is what keeps refusals honest. Once some
+// actors are expected to fail, "it reported busy" and "it changed
+// nothing" are separate claims, and only the second is checked here
+// against git rather than against the actor's own account of itself.
+//
+// How many actors get through is deliberately not asserted. That
+// count measures the machine's throughput against a two-second lock
+// timeout, so on a contended runner the tail actors receive the busy
+// refusal the verb promises and a count-based oracle reports the
+// specification being honored as a defect.
+func classifyConcurrentIDAllocation(outcomes []actorOutcome, n, before, after int) []Violation {
 	var violations []Violation
 	seen := map[string]int{}
 	successCount := 0
 	for i, oc := range outcomes {
 		if oc.status != "ok" {
-			violations = append(violations, Violation{Message: fmt.Sprintf(
-				"actor %d: aiwf add did not report ok under concurrent contention (status=%s)", i, oc.status)})
+			if !isBusyRefusal(oc.errorCode) {
+				violations = append(violations, Violation{Message: fmt.Sprintf(
+					"actor %d: aiwf add failed for a reason other than repolock contention (status=%s, code=%q)", i, oc.status, oc.errorCode)})
+			}
 			continue
 		}
 		successCount++
@@ -159,9 +204,13 @@ func classifyConcurrentIDAllocation(outcomes []actorOutcome, n int) []Violation 
 				"id %s was allocated by %d concurrent actors — repolock failed to serialize id allocation", id, count)})
 		}
 	}
-	if successCount != n {
+	if n > 0 && successCount == 0 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"only %d/%d concurrent actors succeeded — expected all to serialize successfully within repolock's timeout", successCount, n)})
+			"none of %d concurrent actors succeeded — contention explains some actors being refused, never all of them", n)})
+	}
+	if after != before+successCount {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"commit count %d -> %d after %d successful adds, want exactly +%d", before, after, successCount, successCount)})
 	}
 	return violations
 }
