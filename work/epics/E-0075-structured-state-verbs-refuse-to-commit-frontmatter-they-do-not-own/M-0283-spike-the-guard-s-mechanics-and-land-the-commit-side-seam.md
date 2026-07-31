@@ -19,6 +19,12 @@ acs:
     - id: AC-4
       title: The spike matrix answers every question ADR-0038 defers
       status: open
+    - id: AC-5
+      title: The measured nested laundering through a parent rename no longer succeeds
+      status: open
+    - id: AC-6
+      title: edit-body bless mode still commits a working-copy edit
+      status: open
 ---
 
 ## Goal
@@ -105,6 +111,10 @@ The routes deliberately excluded there — `authorize`, `acknowledge illegal`,
 `acknowledge mistag`, and `promote` / `cancel --audit-only` — write no files at
 all, so there is nothing for a write-scope guard to compare. They are out by
 construction, not by exemption.
+
+### AC-5 — The measured nested laundering through a parent rename no longer succeeds
+
+### AC-6 — edit-body bless mode still commits a working-copy edit
 
 ## Constraints
 
