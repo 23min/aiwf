@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: Unstaged HEAD-divergent content is never committed silently
       status: open
+      tdd_phase: red
     - id: AC-2
       title: The measured priority-through-retitle laundering no longer succeeds
       status: open
