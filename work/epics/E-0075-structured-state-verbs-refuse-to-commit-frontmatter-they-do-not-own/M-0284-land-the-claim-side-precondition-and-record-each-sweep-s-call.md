@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
       status: open
+    - id: AC-4
+      title: The measured cancel-classifies-terminal defect no longer occurs
+      status: open
 ---
 
 ## Goal
@@ -102,6 +105,8 @@ every tagged entity plus `aiwf.yaml`; `rewidth --apply` rewrites `id:` tree-wide
 `archive` moves files without changing their content. The last is the one most
 likely to be exempt and the one whose exemption most needs writing down, since it
 also emits directory moves and so appears in AC-2.
+
+### AC-4 — The measured cancel-classifies-terminal defect no longer occurs
 
 ## Constraints
 
