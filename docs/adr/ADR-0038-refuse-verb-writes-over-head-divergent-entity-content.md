@@ -124,7 +124,8 @@ That is a deliberate trade, not a free choice: "nothing to change" is not a true
 statement about the record when the body is uncommitted — there is something to
 change, just not through that verb.
 
-**What happens to a path no verb named is deferred to M-0283.** A path that
+**What happens to a path no verb named — call it carry-along substitution — is
+deferred to M-0283.** A path that
 enters the commit only because it is nested under an `OpMove` was named by no
 verb, so the verb owns none of its bytes, and taking HEAD's blob there rather
 than refusing is an attractive refinement: it would prevent the laundering
@@ -205,13 +206,14 @@ The precedent has no override, and adding one would reproduce the staged/unstage
 asymmetry a notch further. The escape already exists at no cost: bless the edit
 (`aiwf edit-body <id>`), set it aside (`git stash`), or drop it (`git restore`).
 
-`--force` is the wrong lever regardless of how many verbs would need it. Among
-the routes in scope it already appears on `promote`, `cancel`, `contract bind`
-and `contract recipe install`, and elsewhere on `authorize` and `add` — carrying
-*sovereign act* in one place and *born-complete-body bypass* in another. A third
-meaning would not extend a consistent lever; it would overload an already
-ambiguous one, and it would have to be added to the remaining routes with their
-completion wiring besides.
+`--force` is the wrong lever regardless of how many verbs would need it. It
+already carries at least three unrelated meanings: *sovereign act* on `promote`
+and `cancel`, *born-complete-body bypass* on `add`, and *replace an existing
+entry whose values differ* on `contract bind` and `contract recipe install`.
+`authorize` and `update` expose it too. Adding "commit content this verb did not
+compute" would not extend a consistent lever; it would overload an already
+ambiguous one, and it would have to reach the routes that lack the flag, with
+their completion wiring besides.
 
 A `--force` would also not fix what it appears to fix. The commit would still
 carry the wrong verb's name; the misattribution this decision exists to remove
@@ -244,11 +246,10 @@ scoped to the paths a plan touches, so an unblessed edit to an unrelated entity
 never interferes. But `rename-area` writes every tagged entity, `rewidth --apply`
 rewrites tree-wide, `archive` writes every linking entity, and `rename` /
 `retitle` / `reallocate` emit link-rewrite writes for referencing entities — so
-for those, one dirty participant refuses the whole operation. A stray untracked
-file inside a moved directory has the same effect, and its recovery is the
-weakest: it cannot be blessed with `aiwf edit-body`, since it is not an entity.
-That cost is the direct reason the carry-along refinement is worth settling in
-M-0283 rather than dropped.
+for those, one dirty participant refuses the whole operation. A stray untracked file inside a moved
+directory has the same effect and the weakest recovery, since it cannot be
+blessed — which is why carry-along substitution is worth settling in M-0283
+rather than dropped.
 
 **A NoOp constructor still becomes a chokepoint, but it is not where the check
 runs.** Literal `Result{NoOp: true}` construction is confined to a shared
