@@ -8,16 +8,18 @@ import (
 )
 
 // TestPolicy_M0282ADRWriteScopeDecisions is the live assertion: the
-// repo's own ADR-0038 records all five write-scope decisions in the
-// named subsections. This is the test that fails if the ADR drifts.
+// repo's own ADR-0038 has the shape M-0282's criteria require.
 func TestPolicy_M0282ADRWriteScopeDecisions(t *testing.T) {
 	t.Parallel()
 	runPolicy(t, PolicyM0282ADRWriteScopeDecisions)
 }
 
 // completeFixtureBody is a minimal ADR body satisfying every assertion.
-// Each firing-fixture case below removes or hollows exactly one piece,
-// so a failure names which acceptance criterion lost its evidence.
+// Each firing case below removes or hollows exactly one piece, so a
+// failure names which criterion lost its evidence. The prose is
+// deliberately terse: this policy asserts placement and presence, so a
+// fixture that reads like a real decision would imply a reach the policy
+// does not have.
 const completeFixtureBody = `## Context
 
 Fixture.
@@ -26,44 +28,42 @@ Fixture.
 
 ### Seam
 
-The precondition runs at verb.Apply and at a shared NoOp constructor.
+Two seams, both inside the verb layer.
 
 ### Path scope
 
-At Apply the comparison covers the full committed path set, which is what covers
-every nested path under a directory move.
+Every path the plan touches, and every path prefixed by one.
 
 ### Field scope
 
-Whole-file at Apply; frontmatter at the NoOp seam.
+Whole-file at both seams.
 
 ### Verdict
 
-Divergence refuses. It does not warn: a laundered status would otherwise bypass
-the illegal-transition check.
+Divergence refuses.
 
 ### Escape hatch
 
-No ` + "`--force`" + `, and no repair verb.
+None.
 
 ## Consequences
 
-Both misbehaviors are reached: the false no-change claim and the
-empty-diff commit. The guard fires during the bless workflow by design.
+The guard fires during the review-before-commit window by design.
 `
 
 // writeFixtureADR materializes a temp root carrying one ADR entity with
-// the given body. The filename is built by concatenation rather than as
-// a single literal so it does not trip PolicyNoHardcodedEntityPaths,
-// which flags entity-slug string literals passed to filepath.Join.
-func writeFixtureADR(t *testing.T, body string) string {
+// the given body and status. The filename is built by concatenation
+// rather than as a single literal so it does not trip
+// PolicyNoHardcodedEntityPaths, which flags entity-slug string literals
+// passed to filepath.Join.
+func writeFixtureADR(t *testing.T, body, status string) string {
 	t.Helper()
 	root := t.TempDir()
 	dir := filepath.Join(root, "docs", "adr")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	content := "---\nid: " + adrWriteScopeID + "\ntitle: Fixture\nstatus: accepted\n---\n" + body
+	content := "---\nid: " + adrWriteScopeID + "\ntitle: Fixture\nstatus: " + status + "\n---\n" + body
 	if err := os.WriteFile(filepath.Join(dir, adrWriteScopeID+"-fixture.md"), []byte(content), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
@@ -73,132 +73,108 @@ func writeFixtureADR(t *testing.T, body string) string {
 func TestPolicyM0282_FiringFixtures(t *testing.T) {
 	t.Parallel()
 
+	// hollow replaces a subsection's prose with blank space, exercising
+	// the present-but-empty arm distinctly from the absent-heading arm.
+	hollow := func(prose string) string {
+		return strings.Replace(completeFixtureBody, prose, "", 1)
+	}
+
 	cases := []struct {
-		name     string
-		body     string
-		wantsAC  string
-		wantsAll []string
+		name       string
+		body       string
+		status     string
+		wantDetail string
 	}{
 		{
-			name:    "AC-1 seam subsection absent",
-			body:    strings.Replace(completeFixtureBody, "### Seam", "### Something else", 1),
-			wantsAC: "AC-1",
+			name:       "AC-1 seam subsection absent",
+			body:       strings.Replace(completeFixtureBody, "### Seam", "### Something else", 1),
+			wantDetail: "`### Seam` subsection",
 		},
 		{
-			// Drops the verdict marker while keeping the nested-case
-			// marker, so this case isolates the AnyOf arm from the
-			// Requires arm exercised further down.
-			name:    "AC-2 path scope records no verdict",
-			body:    strings.Replace(completeFixtureBody, "At Apply the comparison covers the full committed path set, which is what covers", "We thought about it, and about", 1),
-			wantsAC: "AC-2",
+			name:       "AC-1 seam subsection present but empty",
+			body:       hollow("Two seams, both inside the verb layer."),
+			wantDetail: "`### Seam` subsection",
 		},
 		{
-			name:    "AC-5 field scope records no verdict",
-			body:    strings.Replace(completeFixtureBody, "Whole-file at Apply; frontmatter at the NoOp seam.", "We thought about it.", 1),
-			wantsAC: "AC-5",
+			name:       "AC-2 path scope subsection absent",
+			body:       strings.Replace(completeFixtureBody, "### Path scope", "### Musings", 1),
+			wantDetail: "`### Path scope` subsection",
 		},
 		{
-			name:    "AC-3 verdict subsection absent",
-			body:    strings.Replace(completeFixtureBody, "### Verdict", "### Musings", 1),
-			wantsAC: "AC-3",
+			name:       "AC-5 field scope subsection absent",
+			body:       strings.Replace(completeFixtureBody, "### Field scope", "### Musings", 1),
+			wantDetail: "`### Field scope` subsection",
 		},
 		{
-			name:    "AC-4 escape hatch subsection absent",
-			body:    strings.Replace(completeFixtureBody, "### Escape hatch", "### Trapdoor", 1),
-			wantsAC: "AC-4",
+			name:       "AC-3 verdict subsection absent",
+			body:       strings.Replace(completeFixtureBody, "### Verdict", "### Musings", 1),
+			wantDetail: "`### Verdict` subsection",
 		},
 		{
-			name:     "consequences section absent",
-			body:     strings.Split(completeFixtureBody, "## Consequences")[0],
-			wantsAll: []string{"AC-1/AC-5"},
+			name:       "AC-4 escape hatch subsection absent",
+			body:       strings.Replace(completeFixtureBody, "### Escape hatch", "### Trapdoor", 1),
+			wantDetail: "`### Escape hatch` subsection",
 		},
 		{
-			name:    "AC-1 consequences omit the seam's reach",
-			body:    strings.Replace(completeFixtureBody, "Both misbehaviors are reached: the false no-change claim and the\nempty-diff commit.", "Things follow.", 1),
-			wantsAC: "AC-1",
+			name:       "a decision heading outside the Decision section does not count",
+			body:       strings.Replace(completeFixtureBody, "## Decision", "## Prologue", 1),
+			wantDetail: "`### Seam` subsection",
 		},
 		{
-			name:    "AC-2 path scope omits the nested case",
-			body:    strings.Replace(completeFixtureBody, ", which is what covers\nevery nested path under a directory move", "", 1),
-			wantsAC: "AC-2",
+			name:       "consequences absent",
+			body:       strings.Split(completeFixtureBody, "## Consequences")[0],
+			wantDetail: "`## Consequences` is missing or empty",
 		},
 		{
-			name:    "AC-3 verdict omits the illegal-transition weighing",
-			body:    strings.Replace(completeFixtureBody, ": a laundered status would otherwise bypass\nthe illegal-transition check", "", 1),
-			wantsAC: "AC-3",
+			name:       "consequences present but empty",
+			body:       hollow("The guard fires during the review-before-commit window by design."),
+			wantDetail: "`## Consequences` is missing or empty",
 		},
 		{
-			name: "an ADR that decides nothing does not pass",
-			body: `## Context
-
-x
-
-## Decision
-
-### Seam
-
-The seam question does not apply here. Deferred.
-
-### Path scope
-
-No agreement on whether a committed path set is the right unit. Open.
-
-### Field scope
-
-Whether whole-file or frontmatter-only is right is unresolved.
-
-### Verdict
-
-The team refuses to settle refuse-vs-warn today.
-
-### Escape hatch
-
-Nonetheless: undecided.
-
-## Consequences
-
-A falsely optimistic reading would be unblessed by the authors.
-`,
-			wantsAC: "AC-1",
+			name:       "a rejected ADR does not satisfy the criteria",
+			body:       completeFixtureBody,
+			status:     "rejected",
+			wantDetail: `status is "rejected"`,
 		},
 		{
-			name:    "AC-5 consequences omit the bless workflow",
-			body:    strings.Replace(completeFixtureBody, "The guard fires during the bless workflow by design.", "It fires sometimes.", 1),
-			wantsAC: "AC-5",
+			name:       "a superseded ADR does not satisfy the criteria",
+			body:       completeFixtureBody,
+			status:     "superseded",
+			wantDetail: `status is "superseded"`,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			root := writeFixtureADR(t, tc.body)
-			vs, err := PolicyM0282ADRWriteScopeDecisions(root)
+			status := tc.status
+			if status == "" {
+				status = "accepted"
+			}
+			vs, err := PolicyM0282ADRWriteScopeDecisions(writeFixtureADR(t, tc.body, status))
 			if err != nil {
 				t.Fatalf("policy returned error: %v", err)
 			}
-			if len(vs) == 0 {
-				t.Fatalf("expected a violation, got none")
+			var matched bool
+			for _, v := range vs {
+				if strings.Contains(v.Detail, tc.wantDetail) {
+					matched = true
+				}
 			}
-			joined := joinDetails(vs)
-			want := tc.wantsAC
-			if want == "" && len(tc.wantsAll) > 0 {
-				want = tc.wantsAll[0]
-			}
-			if !strings.Contains(joined, want) {
-				t.Errorf("violation does not name %s:\n%s", want, joined)
+			if !matched {
+				t.Errorf("no violation contains %q; got:\n%s", tc.wantDetail, joinDetails(vs))
 			}
 		})
 	}
 }
 
-// TestPolicyM0282_CompleteFixturePasses pins the negative case: the
-// fixture the firing cases mutate is itself clean, so each case above
+// TestPolicyM0282_CompleteFixturePasses pins the negative control: the
+// fixture every firing case mutates is itself clean, so each case above
 // fails for the reason it names rather than for a defect baked into the
 // fixture.
 func TestPolicyM0282_CompleteFixturePasses(t *testing.T) {
 	t.Parallel()
-	root := writeFixtureADR(t, completeFixtureBody)
-	vs, err := PolicyM0282ADRWriteScopeDecisions(root)
+	vs, err := PolicyM0282ADRWriteScopeDecisions(writeFixtureADR(t, completeFixtureBody, "accepted"))
 	if err != nil {
 		t.Fatalf("policy returned error: %v", err)
 	}
@@ -211,13 +187,59 @@ func TestPolicyM0282_CompleteFixturePasses(t *testing.T) {
 // ADR-0038 in the tree at all.
 func TestPolicyM0282_MissingADRFires(t *testing.T) {
 	t.Parallel()
-	root := t.TempDir()
-	vs, err := PolicyM0282ADRWriteScopeDecisions(root)
+	vs, err := PolicyM0282ADRWriteScopeDecisions(t.TempDir())
 	if err != nil {
 		t.Fatalf("policy returned error: %v", err)
 	}
 	if len(vs) != 1 || !strings.Contains(vs[0].Detail, "not found") {
 		t.Errorf("expected a not-found violation, got:\n%s", joinDetails(vs))
+	}
+}
+
+// TestPolicyM0282_DoesNotClaimToDetectADecision records the policy's
+// deliberate limit as a test rather than only as a comment: a document
+// that defers every question has the required shape and passes. The
+// judgement that a real decision was made is a review responsibility,
+// and a future tightening that tries to mechanise it should have to
+// change this test on purpose.
+func TestPolicyM0282_DoesNotClaimToDetectADecision(t *testing.T) {
+	t.Parallel()
+	deferred := `## Context
+
+Fixture.
+
+## Decision
+
+### Seam
+
+Which seam we adopt is deferred.
+
+### Path scope
+
+Which paths are compared is deferred.
+
+### Field scope
+
+Which parts of each file are compared is deferred.
+
+### Verdict
+
+Whether divergence refuses or warns is deferred.
+
+### Escape hatch
+
+Whether any override exists is deferred.
+
+## Consequences
+
+Deferred with the decisions above.
+`
+	vs, err := PolicyM0282ADRWriteScopeDecisions(writeFixtureADR(t, deferred, "accepted"))
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	if len(vs) != 0 {
+		t.Errorf("this policy asserts shape only; a deferring document is expected to pass, got:\n%s", joinDetails(vs))
 	}
 }
 

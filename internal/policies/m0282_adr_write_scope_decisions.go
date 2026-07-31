@@ -12,88 +12,44 @@ import (
 )
 
 // adrWriteScopeID is the ADR whose Decision subsections this policy
-// pins. Resolved through the loader rather than by path literal, so
-// the assertion survives an archive sweep (ADR-0004) and a retitle.
+// pins. Resolved through the loader rather than by path literal, so the
+// assertion survives an archive sweep (ADR-0004) and a retitle.
 const adrWriteScopeID = "ADR-0038"
 
-// writeScopeDecision names one `### ` subsection required under the
-// ADR's `## Decision` heading, together with the substantive marker its
-// prose must carry. The marker is what distinguishes "the heading
-// exists" from "the decision was actually recorded" — a subsection
-// present but silent on its own verdict fails.
-//
-// AnyOf holds alternative spellings of the recorded verdict: the AC
-// requires that a choice be recorded, not which choice, so a later
-// amendment that flips a verdict keeps passing while a subsection that
-// records no verdict at all fails.
-//
-// Requires holds markers that must ALL appear, for the criteria that
-// oblige a decision to carry its reasoning rather than only its verdict.
-// It is also what keeps the assertion from passing vacuously: a marker
-// short enough to have several spellings also matches prose that decides
-// nothing — "does not apply" contains "apply", "nonetheless" contains
-// "none" — so the distinctive term is required rather than offered as
-// one alternative among many.
-type writeScopeDecision struct {
-	AC       string
-	Heading  string
-	AnyOf    []string
-	Requires []string
-	WhatFor  string
+// writeScopeDecisionHeadings names the `### ` subsections that must exist
+// under the ADR's `## Decision` heading, one per acceptance criterion on
+// M-0282. Order matches the ADR's own subsection order.
+var writeScopeDecisionHeadings = []struct {
+	AC      string
+	Heading string
+	WhatFor string
+}{
+	{"AC-1", "Seam", "where the precondition runs relative to the same-state comparison"},
+	{"AC-2", "Path scope", "which paths the guard compares"},
+	{"AC-5", "Field scope", "which parts of each file the guard compares"},
+	{"AC-3", "Verdict", "refuse or warn"},
+	{"AC-4", "Escape hatch", "whether an escape hatch exists and what it costs"},
 }
 
-// writeScopeDecisions is the agenda M-0282's acceptance criteria pin,
-// one entry per AC. Order matches the ADR's own subsection order.
-var writeScopeDecisions = []writeScopeDecision{
-	{
-		AC:       "AC-1",
-		Heading:  "Seam",
-		Requires: []string{"verb.Apply"},
-		WhatFor:  "where the precondition runs relative to the same-state comparison",
-	},
-	{
-		AC:      "AC-2",
-		Heading: "Path scope",
-		AnyOf:   []string{"committed path set", "committed-path"},
-		// The AC obliges the nested case to be addressed in this
-		// decision's own text, not merely listed elsewhere.
-		Requires: []string{"nested"},
-		WhatFor:  "whether the guard is entity-scoped or committed-path-scoped",
-	},
-	{
-		AC:      "AC-5",
-		Heading: "Field scope",
-		AnyOf:   []string{"whole-file", "frontmatter-only"},
-		WhatFor: "whether the guard compares frontmatter only or the whole file",
-	},
-	{
-		AC:      "AC-3",
-		Heading: "Verdict",
-		AnyOf:   []string{"refuses", "refuse"},
-		// The AC obliges the verdict to be weighed against the
-		// illegal-transition escape, not only against misattribution.
-		Requires: []string{"illegal-transition"},
-		WhatFor:  "refuse or warn",
-	},
-	{
-		AC:       "AC-4",
-		Heading:  "Escape hatch",
-		Requires: []string{"--force"},
-		WhatFor:  "whether an escape hatch exists and what it costs",
-	},
-}
-
-// PolicyM0282ADRWriteScopeDecisions asserts that ADR-0038 records each
-// of the five write-scope decisions M-0282 exists to settle, each in
-// its own `### ` subsection under `## Decision`, and that two of them
-// carry their consequence in `## Consequences`.
+// PolicyM0282ADRWriteScopeDecisions asserts that ADR-0038 has the shape
+// M-0282's acceptance criteria require: it is accepted, it carries a
+// named `### ` subsection per decision under `## Decision`, each with
+// prose under it, and it carries a non-empty `## Consequences`.
 //
-// The assertions are structural, not substring greps over the file: a
-// marker is required inside the *named* subsection, so prose that
-// happens to mention "refuse" somewhere else in the document does not
-// satisfy the verdict decision. This is the bar CLAUDE.md sets for
-// doc-shaped acceptance criteria — a grep proves a literal exists
-// somewhere, not that it exists in the right place.
+// What this asserts is placement and presence, and the assertion is
+// structural rather than a substring grep: a heading must sit under
+// `## Decision` specifically, so the same words elsewhere in the document
+// do not satisfy it.
+//
+// What it deliberately does NOT assert is that a subsection records a
+// real decision. That was attempted with keyword matching and does not
+// work, for a reason no amount of tightening fixes: a deferral names
+// every term a decision would name ("whether it refuses or warns is
+// deferred" contains "refuse"). The distinction is meaning, not
+// vocabulary, so it is a review judgment and belongs at the human gate —
+// which is where CLAUDE.md puts judgment classes no check can cover.
+// Overstating this policy's reach is worse than its narrowness: it would
+// be a chokepoint that reads as enforcing and does not.
 //
 // Pins M-0282/AC-1 through AC-5.
 func PolicyM0282ADRWriteScopeDecisions(root string) ([]Violation, error) {
@@ -131,59 +87,30 @@ func PolicyM0282ADRWriteScopeDecisions(root string) ([]Violation, error) {
 		})
 	}
 
-	for _, d := range writeScopeDecisions {
+	// A rejected or superseded ADR does not record a decision in force,
+	// so the criteria it backs would be met by a document the project has
+	// disowned.
+	if e.Status != entity.StatusAccepted {
+		report(fmt.Sprintf(
+			"status is %q; the acceptance criteria require a decision in force, so only %q satisfies them",
+			e.Status, entity.StatusAccepted))
+	}
+
+	for _, d := range writeScopeDecisionHeadings {
 		body, ok := extractMarkdownSubsection(doc, "Decision", d.Heading)
 		if !ok || strings.TrimSpace(body) == "" {
 			report(fmt.Sprintf(
 				"%s: `## Decision` has no non-empty `### %s` subsection recording %s",
 				d.AC, d.Heading, d.WhatFor))
-			continue
-		}
-		if len(d.AnyOf) > 0 && !containsAny(body, d.AnyOf) {
-			report(fmt.Sprintf(
-				"%s: `### %s` records no verdict on %s (expected one of: %s)",
-				d.AC, d.Heading, d.WhatFor, strings.Join(d.AnyOf, ", ")))
-		}
-		for _, req := range d.Requires {
-			if !containsAny(body, []string{req}) {
-				report(fmt.Sprintf(
-					"%s: `### %s` does not carry %q — the criterion obliges the decision to record its reasoning, not only its verdict",
-					d.AC, d.Heading, req))
-			}
 		}
 	}
 
-	// AC-1 and AC-5 additionally require their consequence to be stated,
-	// not just the verdict: which misbehaviors the chosen seam reaches,
-	// and what the chosen field scope does to the bless workflow. A
-	// decision recorded without its cost is the shape the AC bodies
-	// call out as "the cost was not weighed".
 	// ParseBodySections keys by slug, not by display heading — the same
 	// slugification `aiwf show --format=json` exposes as body keys.
 	consequences, ok := entity.ParseBodySections([]byte(doc))[entity.SectionSlug("Consequences")]
-	switch {
-	case !ok || strings.TrimSpace(consequences) == "":
-		report("AC-1/AC-5: `## Consequences` is missing or empty; the seam's reach and the field scope's effect on the bless workflow are both recorded there")
-	default:
-		if !containsAny(consequences, []string{"empty-diff", "false"}) {
-			report("AC-1: `## Consequences` does not state which of the two measured misbehaviors the chosen seam reaches (the false no-change claim, the empty-diff commit)")
-		}
-		if !containsAny(consequences, []string{"bless"}) {
-			report("AC-5: `## Consequences` does not address what the chosen field scope does to the bless workflow")
-		}
+	if !ok || strings.TrimSpace(consequences) == "" {
+		report("`## Consequences` is missing or empty; each decision's cost is recorded there")
 	}
 
 	return vs, nil
-}
-
-// containsAny reports whether hay contains any of the needles,
-// case-insensitively.
-func containsAny(hay string, needles []string) bool {
-	low := strings.ToLower(hay)
-	for _, n := range needles {
-		if strings.Contains(low, strings.ToLower(n)) {
-			return true
-		}
-	}
-	return false
 }
