@@ -25,6 +25,7 @@ acs:
     - id: AC-5
       title: The measured nested laundering through a parent rename no longer succeeds
       status: open
+      tdd_phase: red
     - id: AC-6
       title: edit-body bless mode still commits a working-copy edit
       status: open
