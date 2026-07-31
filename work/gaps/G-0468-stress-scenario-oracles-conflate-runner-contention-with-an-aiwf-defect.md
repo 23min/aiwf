@@ -33,7 +33,9 @@ Dropping it leaves one property unpinned on the every-push path: that a mutating
 
 That pin takes two arms rather than one, because the sharp observation and the realistic one cannot be the same test. The window a wait-assertion depends on is the gap between launching the contender and its lock attempt: on the shared helper that gap is a single function call, while through a real verb it is a whole cobra dispatch, which under CPU starvation stretches far enough that the test passes without exercising the property. So the helper carries the sensitive pin and the verb carries the seam — that a real verb blocks and resumes on the helper's terms, which is where a verb acquiring on its own would surface.
 
-For the observation-window scenarios, either retry the sampling loop until it observes the window, or report a failure to sample as an outcome distinct from a violation.
+For the observation-window scenarios, the clock goes away rather than being retried against or reclassified. Each observation ends when the watched process acts or exits, whichever comes first, so a slow machine delays the verdict instead of falsifying it. What is left on a clock is a backstop for a process that neither acts nor exits, set far above any plausible slowness — a holder that dies is already caught the moment its output closes, so only a genuine wedge reaches it.
+
+That leaves the sampling miss: a promote that completes before the poller sees its temp file. Missing says nothing about aiwf, so it is retried from the same starting state — which requires rewinding the repo, since the unsampled promote committed its own change and the next attempt would otherwise be a same-state NoOp that writes nothing. Only a run where every attempt misses is reported. Reporting the miss as a third outcome distinct from a violation was the alternative, and it is the wrong default here: it would leave the property unchecked precisely on the loaded runs, and silently.
 
 ## Where to fix
 
@@ -50,7 +52,7 @@ Four changes, each landing as its own patch:
 
 1. **Deadline oracles** — `concurrent_id_allocation.go` and `concurrent_move.go`. The replacement oracle is specified above; little is left to decide. Their driver tests return to the untagged lane once the oracle is hermetic, which costs the every-push path a few seconds — the whole untagged package runs in about 16 seconds under `-race` on four cores.
 2. **Restoring the lock-wait pin** — a `cliutil` arm and an `internal/cli/integration` arm asserting a contender waits for a released lock rather than refusing at once, split as described above. Independent of the others, and it closes the hole the first change opens.
-3. **Observation-window oracles** — `mid_write_kill.go` and `lock_kill.go`. Carries the one open decision: retry the sampling loop until it observes the window, or report failure-to-sample as an outcome distinct from a violation.
+3. **Observation-window oracles** — `mid_write_kill.go` and `lock_kill.go`, bounded by the watched process as described above.
 4. **Recovering the stranded decision tests** — the file splits described below.
 
 The order is load-bearing at one point only: the layout chosen in the last change should be settled against the revised oracles rather than fixed first and then disturbed. The others are independent of each other and share a motivation rather than a line of code.
