@@ -19,6 +19,9 @@ acs:
     - id: AC-4
       title: The measured cancel-classifies-terminal defect no longer occurs
       status: open
+    - id: AC-5
+      title: The commit-side guard reads the record, not git's dirty report
+      status: open
 ---
 
 ## Goal
@@ -105,6 +108,8 @@ It earns its own criterion because it shows the defect is not only a dropped
 mutation but a wrong *classification*: the FSM consult itself ran against
 disputed state. That is what makes placement before the comparison load-bearing
 rather than stylistic.
+
+### AC-5 — The commit-side guard reads the record, not git's dirty report
 
 ## Constraints
 
