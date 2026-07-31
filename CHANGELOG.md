@@ -51,8 +51,9 @@ previously confirmed fixes against the changed surface alone and had no
 terminator at all.
 `wf-patch` puts the regression test on the same footing as its mandatory
 CHANGELOG entry, with two named escapes (a change with no logic to pin, and a
-defect stated as unpinnable at the commit gate); a bug fix can no longer land
-documented but unpinned. `aiwfx-plan-milestones` hands the amend-versus-defer
+defect you don't pin, recorded in the project's tracker); a bug fix can no
+longer land documented but unpinned. Both escapes are stated at the commit
+gate, which now asks for the pinning statement alongside the review outcome. `aiwfx-plan-milestones` hands the amend-versus-defer
 scope fork to `aiwfx-record-decision` instead of leaving it uncaptured, and the
 reviewer role card carries the kind constraint.
 

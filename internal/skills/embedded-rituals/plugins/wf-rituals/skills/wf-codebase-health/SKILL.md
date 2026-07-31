@@ -401,9 +401,10 @@ written down, not that every defect earns a test.
 Sort each finding first. An **objective defect** — measurable against a test,
 a type, a spec clause, a gate — goes to the oracle, and each one encoded makes
 the next round smaller than this one. A **judgment disagreement** cannot be
-encoded as it stands: it either becomes a written rule, and stops being
-judgment, or a one-time decision. What it must not do is return next round as
-a fresh opinion.
+encoded as it stands. One you accept becomes a written rule, and stops being
+judgment, or a one-time decision; one you decline is recorded as declined,
+which costs a line rather than a decision record. What none of them may do is
+return next round as a fresh opinion.
 
 **Stop rule.** A review loop is converged when a fresh reviewer, over the
 whole surface, finds no defect that is not already pinned, recorded, or

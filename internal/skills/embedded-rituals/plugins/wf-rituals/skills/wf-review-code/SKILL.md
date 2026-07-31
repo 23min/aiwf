@@ -124,7 +124,7 @@ Then give an overall:
 
 ## Non-issues / acknowledged
 - [judgment] <a preference raised and declined — this line is the record>
-- [defect] <thing the reviewer noticed but the author already addressed in the change>
+- <something you checked and found sound; not a defect, since you verified it>
 
 ## Overall
 <one-paragraph assessment>
@@ -138,7 +138,7 @@ Then give an overall:
 - *Approving with unread tests.* A diff with new tests gets the tests reviewed, not just the implementation.
 - *Vague findings.* "This could be cleaner" without a specific suggestion is a complaint, not a review item. Either propose a concrete change or move it to "non-issue."
 - *Fixing a defect without pinning it.* The fix closes this round; the check is what stops the same class arriving in the next one. A corrective commit with no test, no rule, and no recorded reason leaves the project's checks exactly as thin as they were.
-- *Re-raising a disposed judgment finding.* Once a preference has been argued and settled — as a written rule or a recorded decision — it is closed. Re-litigating it in a later round is the churn that makes review feel endless.
+- *Re-raising a disposed judgment finding.* Once a preference has been argued and settled — as a written rule, a recorded decision, or a recorded decline — it is closed. Re-litigating it in a later round is the churn that makes review feel endless.
 - *Reporting a defect you didn't verify.* "This looks like it would break" is a hypothesis. Run it, or file it as a question.
 
 ## Constraints
