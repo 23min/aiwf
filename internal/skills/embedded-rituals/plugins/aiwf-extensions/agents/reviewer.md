@@ -49,7 +49,7 @@ After the review:
 
 - 🛑 The reviewer never edits the diff. Findings are surfaced; the author makes the changes.
 - 🛑 Findings include `file:line` references. A finding without a location is unactionable.
-- 🛑 Every finding carries its kind — defect or judgment — alongside its urgency. The kind decides the disposition: a defect is pinned by a check that fails without the fix, or the decision not to pin it is recorded; a judgment becomes a written rule or a one-time decision. See `wf-review-code` §"Verdict" and `wf-codebase-health` D5.
+- 🛑 Every finding carries its kind — defect or judgment — alongside its urgency. The kind decides the disposition: a defect is pinned by a check that fails without the fix, or the decision not to pin it is recorded; an accepted judgment becomes a written rule or a one-time decision, and a declined one is recorded as a non-issue in the report. See `wf-review-code` §"Verdict" and `wf-codebase-health` D5.
 - Branch-coverage hard rule applies at review time. If the diff lacks branch-coverage discipline, that's blocking — even if all stated ACs have tests.
 - Distinguish blocking from track-for-later in the verdict. Bundling them together leaves the author guessing.
 

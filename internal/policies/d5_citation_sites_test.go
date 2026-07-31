@@ -24,8 +24,22 @@ import (
 // nothing, and still reds under a whole-block revert, which hides the hole.
 // "over the milestone's full change-set" is the live example: it reads like the
 // terminator's core claim and already appears in the step's opening dispatch.
-// Verify a candidate literal is absent from the file at HEAD before asserting
-// it, and prefer a contiguous phrase long enough to be unambiguous.
+//
+// Two invariants, and the second is the one that actually holds:
+//
+//  1. The asserted literal is absent from the file before the change. Necessary,
+//     not sufficient — a brand-new literal can still pin nothing.
+//  2. The asserted literal carries the prescription's POLARITY. Assert the
+//     object of a negation and the rule inverts under a one-word edit with the
+//     test green: "never one narrowed to what the last fix touched" becomes "or
+//     one narrowed to what the last fix touched", flipping a prohibition into a
+//     permission while "narrowed to what the last fix touched" still matches.
+//     A short generic phrase fails the same way, since flattening lets it match
+//     a sentence a paragraph away while the rule itself is narrowed.
+//
+// So: assert the contiguous phrase that would have to change for the rule to
+// mean something else, and confirm it by inverting the prescription — not only
+// by deleting it.
 //
 // Path literals for the three SKILL.md files are the shared consts declared by
 // sibling policy tests, reused rather than redeclared; those declarations also
@@ -76,6 +90,9 @@ func TestWrapMilestone_RoutesBothFindingKindsToADurableSink(t *testing.T) {
 	if !strings.Contains(step, "aiwfx-record-decision") {
 		t.Error("an accepted judgment finding must route to a recorded decision — D5's judgment half, not only its defect half")
 	}
+	if !strings.Contains(step, "one you decline is recorded as a non-issue") {
+		t.Error("a declined judgment finding must be recorded, or the next round's fresh reviewer meets a blank and re-raises it")
+	}
 }
 
 // TestWrapMilestone_ReviewLoopEndsOnAFullSurfacePass pins the terminator on the
@@ -94,8 +111,11 @@ func TestWrapMilestone_ReviewLoopEndsOnAFullSurfacePass(t *testing.T) {
 	if !strings.Contains(step, `§"When the loop ends"`) {
 		t.Fatal("the wrap must cite wf-review-code §\"When the loop ends\" for its terminator rather than restate the stop rule")
 	}
-	if !strings.Contains(step, "narrowed to what the last fix touched") {
-		t.Error("the terminator must exclude a pass narrowed to the last fix's footprint — the shape the wrap previously stopped at")
+	// The literal carries the negation. Asserting only its object —
+	// "narrowed to what the last fix touched" — passes when `never` becomes
+	// `or`, which permits exactly the pass the rule forbids.
+	if !strings.Contains(step, "never one narrowed to what the last fix touched") {
+		t.Error("the terminator must forbid a pass narrowed to the last fix's footprint; without the negation the assertion passes on the inverted rule")
 	}
 	if !strings.Contains(step, "provided the slices together cover") {
 		t.Error("the terminator must reconcile with this step's slice-for-depth instruction, or the two read as contradictory")
@@ -129,16 +149,19 @@ func TestWfPatch_DefectFixLandsWithItsPinningCheck(t *testing.T) {
 // the defect be fixed silently after all.
 func TestWfPatch_PinningConstraintNamesItsTwoEscapes(t *testing.T) {
 	t.Parallel()
-	section := normalizeProse(readWfPatchSection(t, 2, "Constraints"))
-
-	if !strings.Contains(section, "lands the check that pins it") {
-		t.Error("wf-patch's constraints must bind the defect-fix pinning requirement")
+	// Scoped to the constraint's own bullet: a section-wide match passes with
+	// the escapes relocated onto an unrelated constraint.
+	line := strings.ToLower(normalizeProse(lineContaining(readWfPatchSection(t, 2, "Constraints"), "lands the check that pins it")))
+	if line == "" {
+		t.Fatal("wf-patch's constraints must bind the defect-fix pinning requirement")
 	}
-	low := strings.ToLower(section)
-	if !strings.Contains(low, "no logic to pin") {
+	if !strings.Contains(line, "no logic to pin") {
 		t.Error("the pinning constraint must except a change with no logic to pin")
 	}
-	if !strings.Contains(low, "recorded in the project's tracker") {
+	if !strings.Contains(line, "not worth the test") {
+		t.Error("the pinning constraint must carry the settled discretionary bar, not only the can't-be-pinned case")
+	}
+	if !strings.Contains(line, "recorded in the project's tracker") {
 		t.Error("the unpinned-defect escape must name a real sink, or the escape's second half evaporates and the fix is silent")
 	}
 }
@@ -214,15 +237,20 @@ func TestReviewerAgentCard_CarriesTheKindConstraint(t *testing.T) {
 	if section == "" {
 		t.Fatal("the reviewer agent card must have a `## Constraints` section")
 	}
-	flat := normalizeProse(section)
-	low := strings.ToLower(flat)
-	if !strings.Contains(low, "every finding carries its kind") {
-		t.Error("the reviewer card must require every finding to carry its kind — defect or judgment")
+	// Scoped to the kind constraint's own bullet, so a clause relocated onto a
+	// sibling constraint does not satisfy it.
+	line := normalizeProse(lineContaining(section, "Every finding carries its kind"))
+	if line == "" {
+		t.Fatal("the reviewer card must require every finding to carry its kind — defect or judgment")
 	}
+	low := strings.ToLower(line)
 	if !strings.Contains(low, "the decision not to pin it is recorded") {
-		t.Error("the reviewer card's kind constraint must preserve the unpinnable-defect escape")
+		t.Error("the reviewer card's kind constraint must preserve the unpinned-defect escape")
 	}
-	if !strings.Contains(flat, `§"Verdict"`) {
+	if !strings.Contains(low, "declined one is recorded as a non-issue") {
+		t.Error("the reviewer card must give a declined judgment finding a legal disposition, matching wf-review-code")
+	}
+	if !strings.Contains(line, `§"Verdict"`) {
 		t.Error("the reviewer card must cite wf-review-code by section name; a numeric step reference rots when a step is inserted")
 	}
 }

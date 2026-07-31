@@ -393,9 +393,10 @@ better feedback per second.
 ### D5. Findings become checks
 
 A confirmed defect leaves behind a check that fails without the fix — a test,
-a lint rule, an entry in the project's gate. When it genuinely can't be
-pinned, it becomes a recorded decision or a tracked issue. Never a silent
-correction.
+a lint rule, an entry in the project's gate. When it can't be pinned, or is
+judged not worth pinning, it becomes a recorded decision or a tracked issue.
+Never a silent correction. The bar is that the disposition is spoken and
+written down, not that every defect earns a test.
 
 Sort each finding first. An **objective defect** — measurable against a test,
 a type, a spec clause, a gate — goes to the oracle, and each one encoded makes
@@ -405,7 +406,9 @@ judgment, or a one-time decision. What it must not do is return next round as
 a fresh opinion.
 
 **Stop rule.** A review loop is converged when a fresh reviewer, over the
-whole surface, finds no defect that is not already fixed, pinned, or tracked.
+whole surface, finds no defect that is not already pinned, recorded, or
+tracked. Those are the three dispositions above; a defect merely *fixed*
+satisfies none of them, which is the silent correction this force forbids.
 Not "no findings ever" — judgment findings are unbounded, and chasing them to
 zero is the failure mode this rule exists to prevent. A defect deliberately
 deferred does not block convergence once it is tracked; an undisposed one

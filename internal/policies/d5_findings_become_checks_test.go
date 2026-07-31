@@ -75,8 +75,15 @@ func TestWfCodebaseHealth_D5NamesTheUnpinnableEscape(t *testing.T) {
 	t.Parallel()
 	d5 := readD5Force(t)
 
-	if !strings.Contains(strings.ToLower(d5), "becomes a recorded decision or a tracked issue") {
-		t.Error("D5 must state that an unpinnable defect becomes a recorded decision or a tracked issue")
+	low := strings.ToLower(d5)
+	if !strings.Contains(low, "becomes a recorded decision or a tracked issue") {
+		t.Error("D5 must state that an unpinned defect becomes a recorded decision or a tracked issue")
+	}
+	if !strings.Contains(low, "or is judged not worth pinning") {
+		t.Error("the escape must admit a defect judged not worth pinning, not only one that cannot be pinned — the bar every citing surface inherits")
+	}
+	if !strings.Contains(low, "the disposition is spoken and written down") {
+		t.Error("D5 must state that the bar is an explicit disposition, or the widened escape reads as permission to skip silently")
 	}
 }
 
@@ -112,14 +119,14 @@ func TestWfCodebaseHealth_D5CarriesLabelledStopRule(t *testing.T) {
 	}
 
 	d5 := strings.ToLower(readD5Force(t))
-	if !strings.Contains(d5, "whole surface") {
-		t.Error("the stop rule must require a whole-surface pass, not a re-scan narrowed to what changed")
+	if !strings.Contains(d5, "a fresh reviewer, over the whole surface, finds no defect") {
+		t.Error("the stop rule must require a whole-surface pass; a bare `whole surface` grep passes with the rule narrowed and the phrase drifting one sentence away")
 	}
 	if !strings.Contains(d5, `"no findings ever"`) {
 		t.Error("the stop rule must reject the zero-findings reading — judgment findings are unbounded")
 	}
-	if !strings.Contains(d5, "already fixed, pinned, or tracked") {
-		t.Error("the stop rule must bound its defect set by disposition, or a deliberately deferred defect blocks convergence forever")
+	if !strings.Contains(d5, "not already pinned, recorded, or tracked") {
+		t.Error("the stop rule must bound its defect set by the three dispositions; admitting a merely-fixed defect readmits the silent correction D5 forbids")
 	}
 }
 
@@ -171,8 +178,8 @@ func TestWfReviewCode_VerdictCarriesFullSurfaceLoopTerminator(t *testing.T) {
 	}
 
 	verdict := strings.ToLower(readReviewVerdict(t))
-	if !strings.Contains(verdict, "whole surface") {
-		t.Error("the loop terminator must require a whole-surface deciding pass")
+	if !strings.Contains(verdict, "over the whole surface, never only the slice a fix touched") {
+		t.Error("the loop terminator must both require the whole surface and exclude the narrowed pass; the bare phrase passes with the polarity reversed")
 	}
 	if !strings.Contains(verdict, "stop rule") {
 		t.Error("the loop terminator must route the stop/continue decision through D5's stop rule")
@@ -211,12 +218,68 @@ func TestWfReviewCode_ConstraintBindsKindToDisposition(t *testing.T) {
 	if section == "" {
 		t.Fatal("wf-review-code must have a `## Constraints` section")
 	}
-	flat := strings.ToLower(flattenMarkdownProse(section))
-	if !strings.Contains(flat, "every finding carries its kind") {
-		t.Error("the constraints must require every finding to carry its kind — defect or judgment")
+	line := strings.ToLower(normalizeProse(lineContaining(section, "Every finding carries its kind")))
+	if line == "" {
+		t.Fatal("the constraints must require every finding to carry its kind — defect or judgment")
 	}
-	if !strings.Contains(flat, "the decision not to pin it is recorded") {
-		t.Error("the kind constraint must preserve the unpinnable-defect escape the body grants, or it contradicts its own file")
+	if !strings.Contains(line, "the decision not to pin it is recorded") {
+		t.Error("the kind constraint must preserve the unpinned-defect escape the body grants, or it contradicts its own file")
+	}
+	if !strings.Contains(line, "declined one is recorded as a non-issue") {
+		t.Error("the kind constraint must give a declined judgment finding a legal disposition, or it forbids the non-issue bucket §8 itself defines")
+	}
+}
+
+// TestWfReviewCode_VerdictGivesEveryFindingALegalDisposition pins the seam the
+// classification would otherwise forbid. The verdict defines a Non-issue bucket
+// — "acknowledged, no action" — so a disposition rule reading "every judgment
+// finding becomes a decision or a tracked issue" outlaws the bucket the same
+// section defines. Accepted and declined judgment findings need separate,
+// stated routes, and the declined one must land somewhere a later reviewer
+// meets it: the next reviewer is fresh by design, so an unrecorded decline is
+// exactly what returns as a fresh opinion.
+func TestWfReviewCode_VerdictGivesEveryFindingALegalDisposition(t *testing.T) {
+	t.Parallel()
+	verdict := strings.ToLower(readReviewVerdict(t))
+
+	if !strings.Contains(verdict, "you **accept** becomes a written rule or a recorded decision") &&
+		!strings.Contains(verdict, "you accept becomes a written rule or a recorded decision") {
+		t.Error("the verdict must route an accepted judgment finding to a written rule or a recorded decision")
+	}
+	if !strings.Contains(verdict, "is a non-issue") {
+		t.Error("the verdict must give a declined judgment finding the non-issue disposition it already defines")
+	}
+	if !strings.Contains(verdict, "which is itself the record") {
+		t.Error("a declined judgment finding must be recorded in the report, or a fresh reviewer re-raises it next round")
+	}
+}
+
+// TestWfReviewCode_AntiPatternsRejectTheThreeD5Evasions pins the reader-facing
+// form of the force. The verdict block states the rule; these bullets are where
+// a reader recognizes their own intent — fixing without pinning, re-raising a
+// settled preference, reporting an unverified defect. Without a check they were
+// revertible with the whole suite green, which is the failure D5 names.
+func TestWfReviewCode_AntiPatternsRejectTheThreeD5Evasions(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, wfReviewCodeFixturePath)
+
+	section := extractMarkdownSection(body, 2, "Anti-patterns")
+	if section == "" {
+		t.Fatal("wf-review-code must have an `## Anti-patterns` section")
+	}
+	for anchor, want := range map[string]string{
+		"Fixing a defect without pinning it":   "leaves the project's checks exactly as thin",
+		"Re-raising a disposed judgment":       "is closed",
+		"Reporting a defect you didn't verify": "run it, or file it as a question",
+	} {
+		line := lineContaining(section, anchor)
+		if line == "" {
+			t.Errorf("wf-review-code's anti-patterns must reject %q", anchor)
+			continue
+		}
+		if !strings.Contains(strings.ToLower(normalizeProse(line)), want) {
+			t.Errorf("the %q bullet must state its corrective consequence, not only name the smell", anchor)
+		}
 	}
 }
 
@@ -232,7 +295,7 @@ func TestEmbeddedGuidance_PrimingCarriesFindingsBecomeChecks(t *testing.T) {
 	if priming == "" {
 		t.Fatal("aiwf-guidance.md must have a `## Code-health priming` section")
 	}
-	low := strings.ToLower(flattenMarkdownProse(priming))
+	low := strings.ToLower(normalizeProse(priming))
 	if !strings.Contains(low, "findings become checks") {
 		t.Error("the always-on priming subset must carry the findings-become-checks force")
 	}
