@@ -488,6 +488,14 @@ func TestEmptyTreeOID_MatchesGit(t *testing.T) {
 		if !strings.HasSuffix(ln, ".go") {
 			continue
 		}
+		// A file HEAD carries but the working tree no longer has is a pending
+		// deletion. changedLines diffs the empty tree against the working
+		// tree, so a deleted file yields no hunk and is legitimately
+		// unscannable — the commit that removes it is exactly when HEAD and
+		// the working tree disagree, and flagging it here blocks that commit.
+		if _, statErr := os.Stat(filepath.Join(root, ln)); os.IsNotExist(statErr) {
+			continue
+		}
 		tracked++
 		if changed[ln] == nil {
 			t.Errorf("%s is in HEAD but absent from the empty-tree diff — the whole-tree scan would skip it", ln)

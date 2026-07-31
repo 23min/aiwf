@@ -93,7 +93,7 @@ func TestEmbeddedGuidance_PrimingCarriesReuseForce(t *testing.T) {
 	if priming == "" {
 		t.Fatal("aiwf-guidance.md must have a `## Code-health priming` section")
 	}
-	low := strings.ToLower(flattenMarkdownProse(priming))
+	low := strings.ToLower(priming)
 	if !strings.Contains(low, "reuse over duplication") {
 		t.Error("the always-on priming subset must carry the reuse-over-duplication force")
 	}
