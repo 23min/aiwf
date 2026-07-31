@@ -40,7 +40,7 @@ Reach for `--body-file` only when the body content is produced *outside* the wor
 ### Bless mode rules
 
 - **No diff**: refuses with "no changes to commit" rather than producing an empty commit.
-- **Frontmatter changed**: refuses and points at `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Bless mode is body-only by design; structured-state edits go through their own verbs.
+- **Frontmatter changed**: refuses and points at `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Both modes are body-only by design; structured-state edits go through their own verbs.
 - **New entity (no HEAD version)**: refuses with a pointer to `aiwf add --body-file` for create-time body content.
 - **YAML formatting preserved**: bless mode commits the working-copy bytes verbatim — key order, comments, and whitespace from the user's edit are not re-canonicalized through the loader. (Explicit mode does re-serialize through `entity.Serialize`, which canonicalizes.)
 
@@ -66,7 +66,15 @@ Editing the prose under a single `### AC-N — title` heading inside a milestone
 
 The two modes answer a repeat differently, and the difference is deliberate. Explicit mode is handed a target, so it can check that target against reality and truthfully say it is already met. Bless mode is handed no target — its input *is* the working copy — so it cannot tell "I meant to change nothing" from "my editor never saved"; refusing is the only honest answer there.
 
-Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Bless mode enforces that: it refuses when the working copy's frontmatter differs from the committed one. Explicit mode re-serializes the entity as loaded, so a frontmatter edit already sitting in the working copy rides into the commit — do not use `--body-file` to land one, and check `git status` first if the tree may be dirty.
+Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate`. Both modes enforce that: each refuses when the working copy's frontmatter differs from the committed one, so a hand-edited field cannot ride into a body-edit commit by either route.
+
+## When another verb refuses instead
+
+A structured-state verb (`aiwf promote` / `rename` / `retitle` / `set-priority` / …) refuses when a
+path it would commit carries uncommitted changes, because it commits whatever is on disk at that
+path and would record your edit as its own work. The message names the path. Commit the body edit on
+its own with `aiwf edit-body <id>` — the verb this skill covers, and the reason it is exempt from
+that refusal — then re-run the verb. Unrelated uncommitted paths survive untouched.
 
 ## Composite ids (M-NNNN/AC-N)
 

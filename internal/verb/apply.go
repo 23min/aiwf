@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/pathutil"
 )
@@ -69,6 +70,24 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	}
 	if conflictErr := checkStagedConflict(staged, p.Ops); conflictErr != nil {
 		return "", conflictErr
+	}
+	// An unborn HEAD has nothing to diverge from, and a verb's own
+	// commit is routinely a repo's first, so the guard is skipped rather
+	// than erroring on `git diff HEAD`.
+	hasHEAD, headErr := gitops.HasHEAD(ctx, root)
+	if headErr != nil { //coverage:ignore defensive: HasHEAD errors only when the directory is no git repo, which StagedPaths above already refused
+		return "", fmt.Errorf("checking for uncommitted changes: %w", headErr)
+	}
+	if hasHEAD {
+		modified, untracked, dirtyErr := gitops.SplitDirtyPaths(ctx, root)
+		if dirtyErr != nil { //coverage:ignore defensive: same non-repo condition StagedPaths and HasHEAD have both already passed
+			return "", fmt.Errorf("checking for uncommitted changes: %w", dirtyErr)
+		}
+		conflictErr := checkUncommittedConflict(ctx, root,
+			uncommittedPaths{modified: modified, untracked: untracked}, p.Ops)
+		if conflictErr != nil {
+			return "", conflictErr
+		}
 	}
 
 	tx := &applyTx{root: root, ctx: ctx}
@@ -272,7 +291,7 @@ func checkStagedConflict(staged []string, ops []FileOp) error {
 	}
 	var conflicts []string
 	for _, s := range staged {
-		if stagedPathConflicts(s, ops) {
+		if _, covered := planOpForPath(s, ops); covered {
 			conflicts = append(conflicts, s)
 		}
 	}
@@ -289,27 +308,235 @@ func checkStagedConflict(staged []string, ops []FileOp) error {
 	)
 }
 
-// stagedPathConflicts reports whether a staged path overlaps with one
-// of the plan's ops: an OpWrite conflicts only on an exact match; an
-// OpMove also conflicts on any path nested under its source or
-// destination directory, matching the nested writes gatherCommitOps
-// discovers by walking a moved directory.
-func stagedPathConflicts(staged string, ops []FileOp) bool {
+// planOpForPath returns the op whose write set covers path, and whether
+// any does. An OpWrite covers only its exact Path; an OpMove also covers
+// anything nested under its source or destination directory, matching
+// the nested writes gatherCommitOps discovers by walking a moved
+// directory. Prefix-matching the op's path strings is equivalent to that
+// walk and needs no filesystem access, so the answer is available before
+// Phase 1 has moved anything.
+//
+// Both working-tree guards resolve a path through this one rule, so the
+// staged and uncommitted checks cannot drift apart on which paths a plan
+// is considered to touch.
+func planOpForPath(path string, ops []FileOp) (FileOp, bool) {
 	for _, op := range ops {
 		switch op.Type {
 		case OpWrite:
-			if staged == op.Path {
-				return true
+			if path == op.Path {
+				return op, true
 			}
 		case OpMove:
-			if staged == op.Path || staged == op.NewPath ||
-				strings.HasPrefix(staged, op.Path+"/") ||
-				strings.HasPrefix(staged, op.NewPath+"/") {
-				return true
+			if path == op.Path || path == op.NewPath ||
+				strings.HasPrefix(path, op.Path+"/") ||
+				strings.HasPrefix(path, op.NewPath+"/") {
+				return op, true
 			}
 		}
 	}
-	return false
+	return FileOp{}, false
+}
+
+// UncommittedConflictError reports that a verb was refused because a
+// path it was about to commit carries changes the verb did not compute.
+// Callers map it to a usage-level exit: the operator can resolve it, and
+// nothing in aiwf's own machinery is broken.
+type UncommittedConflictError struct {
+	// Paths names every blocking path, in the order encountered.
+	Paths []string
+}
+
+func (e *UncommittedConflictError) Error() string {
+	joined := strings.Join(e.Paths, ", ")
+	return fmt.Sprintf(
+		"uncommitted changes overlap with this verb's writes: %s\n"+
+			"  the verb commits whatever is on disk at the paths it touches, so it would\n"+
+			"  record your edits as its own work, under its own trailer\n"+
+			"  commit a body edit on its own with `aiwf edit-body <id>`, or discard it with\n"+
+			"  `git restore %s`, then re-run the verb\n"+
+			"  unrelated uncommitted paths survive the verb's commit untouched",
+		joined, strings.Join(e.Paths, " "),
+	)
+}
+
+// checkUncommittedConflict refuses Apply when a path the plan would
+// commit holds content the verb did not compute — an unblessed body
+// edit, a hand-edited field, an untracked file that happens to sit
+// inside a directory being moved. Without it a verb commits those bytes
+// verbatim under its own trailer, so `aiwf history` attributes a change
+// to an act that did not make it (ADR-0038).
+//
+// The check runs before Phase 1, which is the only point where the
+// operator's working copy is still readable: by the time commit
+// construction reads the tree back, the verb's own moves and writes have
+// replaced it.
+//
+// Two path roles are treated differently, and both readings are
+// load-bearing:
+//
+//   - A path the plan names as an OpWrite destination and git has never
+//     tracked is left alone. There is no committed version for the write
+//     to contradict, so it creates the record rather than laundering one.
+//     `aiwf.yaml` in a freshly-initialised repo is the case that matters:
+//     `aiwf init` leaves it uncommitted by design, and the verbs that
+//     rewrite it would otherwise be unreachable until it was committed.
+//   - A path that is merely nested under a move is refused whether
+//     tracked or not, because no verb named it and its bytes are carried
+//     into the commit sight-unseen.
+//
+// A write may declare it adopts the working copy (AdoptsWorkingCopy).
+// The claim is verified rather than trusted (adoptionPreservesFrontmatter):
+// the working copy's own frontmatter must still match HEAD's, so the
+// exemption carries a changed body — which is the point — and can never
+// carry a field the operator edited by hand; and the write's own content
+// must carry nothing beyond a legitimate re-serialization of that working
+// copy, so the exemption cannot be claimed for content the plan computed
+// on its own.
+func checkUncommittedConflict(ctx context.Context, root string, u uncommittedPaths, ops []FileOp) error {
+	if len(ops) == 0 || (len(u.modified) == 0 && len(u.untracked) == 0) {
+		return nil
+	}
+	var conflicts []string
+	consider := func(path string, tracked bool) error {
+		op, covered := planOpForPath(path, ops)
+		if !covered {
+			return nil
+		}
+		named := op.Type == OpWrite && path == op.Path
+		if !tracked && named {
+			return nil
+		}
+		if named && op.AdoptsWorkingCopy {
+			adopted, err := adoptionPreservesFrontmatter(ctx, root, path, op.Content)
+			if err != nil { //coverage:ignore defensive: propagates only the IO/parse faults adoptionPreservesFrontmatter and reconstructedFrontmatterMatches annotate as unreachable
+				return err
+			}
+			if adopted {
+				return nil
+			}
+		}
+		conflicts = append(conflicts, path)
+		return nil
+	}
+	for _, path := range u.modified {
+		if err := consider(path, true); err != nil { //coverage:ignore defensive: consider only errors on the unreachable IO faults above
+			return err
+		}
+	}
+	for _, path := range u.untracked {
+		if err := consider(path, false); err != nil { //coverage:ignore defensive: consider only errors on the unreachable IO faults above
+			return err
+		}
+	}
+	if len(conflicts) == 0 {
+		return nil
+	}
+	return &UncommittedConflictError{Paths: conflicts}
+}
+
+// uncommittedPaths carries the working tree's two kinds of divergence
+// from HEAD as one value, so the guard's caller cannot transpose them.
+type uncommittedPaths struct {
+	// modified names tracked paths whose disk content differs from HEAD.
+	modified []string
+	// untracked names non-ignored paths git has never recorded.
+	untracked []string
+}
+
+// adoptionPreservesFrontmatter reports whether an adopting write at path
+// may proceed. Two conditions both have to hold, and each closes a
+// different gap:
+//
+//   - The working copy's frontmatter still equals HEAD's, so the body is
+//     the only thing the operator changed. This is what makes
+//     `aiwf edit-body` workable without opening a hole: that verb exists
+//     to commit a divergent body, so refusing on divergence would block
+//     the one route out of every other refusal this guard raises.
+//   - The write's own content carries nothing beyond the working copy
+//     itself. `edit-body` has two ways of building an adopting write, and
+//     both must be recognized: bless mode commits the working copy's
+//     bytes verbatim, so content matches the working copy's frontmatter
+//     exactly; explicit mode re-serializes it through the loaded entity
+//     model, which normalizes fields the loader always normalizes (a
+//     milestone's stray `area`, e.g.) — so content may instead match a
+//     reconstruction of the working copy through that same normalization
+//     (reconstructedFrontmatterMatches). Either is a legitimate way to
+//     reflect the working copy; a write matching neither is content the
+//     plan computed on its own, which the first condition alone cannot
+//     see, since it never looks at the write's own bytes at all.
+//
+// Comparisons are field-based rather than byte-based throughout, because
+// a verb legitimately re-canonicalizes frontmatter it did not change: a
+// committed non-canonical field order would otherwise read as divergence.
+// What the exemption guarantees is therefore specific: no field the
+// operator hand-edited rides in, and no field the write's content adds
+// beyond what the working copy — read one of the two ways a verb
+// legitimately reads it — already declares. It is not a claim that the
+// verb changed no field, which is the verb's own body-only contract to
+// keep.
+//
+// A path with no committed version is not adopted. It cannot be reached
+// in that state anyway — an untracked named write returns earlier — and
+// treating a missing HEAD version as a match would grant the exemption
+// on the strength of a comparison that never happened.
+func adoptionPreservesFrontmatter(ctx context.Context, root, path string, content []byte) (bool, error) {
+	headBytes, err := gitops.ReadFromHEAD(ctx, root, filepath.ToSlash(path))
+	if err != nil { //coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir
+		return false, fmt.Errorf("reading HEAD version of %s: %w", path, err)
+	}
+	if headBytes == nil { //coverage:ignore unreachable: a path with no HEAD version is untracked, and an untracked named write returns before this call
+		return false, nil
+	}
+	diskBytes, err := os.ReadFile(filepath.Join(root, path))
+	if err != nil { //coverage:ignore defensive: the path was reported dirty by git moments earlier, so it exists and is readable
+		return false, fmt.Errorf("reading working copy of %s: %w", path, err)
+	}
+	if !entity.SameFrontmatterFields(headBytes, diskBytes) {
+		return false, nil
+	}
+	if entity.SameFrontmatterFields(diskBytes, content) {
+		return true, nil
+	}
+	return reconstructedFrontmatterMatches(path, diskBytes, content)
+}
+
+// reconstructedFrontmatterMatches reports whether content's frontmatter
+// equals a fresh parse-normalize-reserialize pass over diskBytes — the
+// same pipeline tree.Load and every serializing verb run to build the
+// entity a write's content is derived from. A write reflecting nothing
+// but that pipeline's own output compares equal; a write carrying a
+// field the pipeline would not have produced from diskBytes — fabricated,
+// or copied from somewhere other than this path's own working copy —
+// does not.
+//
+// Called only once adoptionPreservesFrontmatter's direct comparison
+// against diskBytes has already failed, so diskBytes is trusted to parse:
+// it already round-tripped through entity.SameFrontmatterFields's own
+// YAML decode twice over.
+func reconstructedFrontmatterMatches(path string, diskBytes, content []byte) (bool, error) {
+	// A path the loader would not recognize as any entity kind has no
+	// tree-load pipeline to reconstruct through — refused rather than
+	// waved through for want of a comparison.
+	kind, ok := entity.PathKind(path)
+	if !ok {
+		return false, nil
+	}
+	// diskBytes already parsed as a YAML mapping for the frontmatter-
+	// fields comparison in adoptionPreservesFrontmatter, which tolerates
+	// any key; the typed decode here does not. A field neither Entity
+	// nor any verb ever declared makes no legitimate re-serialization
+	// producible, so refuse rather than compare against nothing.
+	parsed, err := entity.Parse(path, diskBytes)
+	if err != nil {
+		return false, nil
+	}
+	parsed.Kind = kind
+	entity.NormalizeForKind(parsed, kind)
+	reconstructed, err := entity.Serialize(parsed, nil)
+	if err != nil { //coverage:ignore defensive: marshaling a freshly-parsed Entity back to YAML fails only for a shape Serialize itself cannot represent, which the successful entity.Parse above already ruled out
+		return false, fmt.Errorf("reconstructing %s for comparison: %w", path, err)
+	}
+	return entity.SameFrontmatterFields(reconstructed, content), nil
 }
 
 // checkNoGitOperationInProgress refuses Apply when a merge,

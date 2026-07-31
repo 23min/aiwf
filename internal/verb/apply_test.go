@@ -1194,6 +1194,12 @@ func TestApply_RollsBackOnDirectoryMoveRenameFailure(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(destDir, "occupied.md"), []byte("occupied"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// Committed, not merely present: an untracked file inside a move's
+	// destination is refused by the uncommitted-change guard before the
+	// rename is attempted, which would leave this test asserting that
+	// guard rather than the rollback it exists to cover.
+	commitFixture(t, r.root, "fixture: occupied move destination")
+	r.preCommit = headSHA(t, r.root)
 
 	plan := &verb.Plan{
 		Subject:  "test directory-move rename failure",

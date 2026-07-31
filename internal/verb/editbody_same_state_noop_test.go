@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
-	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -19,18 +18,6 @@ import (
 // BOTH HEAD and the working copy; and never when there is no committed version
 // at all. The tests below pin each of those four choices with a case that fails
 // if the comparison is narrowed.
-
-// commitAllForEditBody stages every change in root and commits it, so a test can
-// establish a HEAD version that differs from what the verb would serialize.
-func commitAllForEditBody(t *testing.T, root, subject string) {
-	t.Helper()
-	if err := gitops.Add(t.Context(), root, "."); err != nil {
-		t.Fatalf("git add: %v", err)
-	}
-	if err := gitops.Commit(t.Context(), root, subject, "", nil); err != nil {
-		t.Fatalf("git commit: %v", err)
-	}
-}
 
 // writeLooseEpicOnly plants an epic on disk without committing it, bypassing the
 // verb layer the way a hand-authored or imported tree does. The loader keys on
@@ -215,7 +202,7 @@ func TestEditBody_ExplicitIdenticalBodyOverNonCanonicalFrontmatter_StillCommits(
 	if err = os.WriteFile(path, noncanon, 0o600); err != nil {
 		t.Fatalf("writing non-canonical frontmatter: %v", err)
 	}
-	commitAllForEditBody(t, r.root, "hand-ordered frontmatter")
+	commitFixture(t, r.root, "hand-ordered frontmatter")
 	if err = os.WriteFile(path, canonical, 0o600); err != nil {
 		t.Fatalf("restoring the canonical epic: %v", err)
 	}

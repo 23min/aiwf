@@ -158,19 +158,14 @@ func StagedPaths(ctx context.Context, workdir string) ([]string, error) {
 // `-z` null-delimits both listings so paths containing spaces, newlines, or
 // other shell-hostile bytes round-trip safely.
 func DirtyPaths(ctx context.Context, workdir string) ([]string, error) {
-	set := make(map[string]struct{})
-	for _, args := range [][]string{
-		{"diff", "--name-only", "HEAD", "-z"},
-		{"ls-files", "--others", "--exclude-standard", "-z"},
-	} {
-		out, err := output(ctx, workdir, args...)
-		if err != nil {
-			return nil, err
-		}
-		for _, p := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
-			if p != "" {
-				set[p] = struct{}{}
-			}
+	modified, untracked, err := SplitDirtyPaths(ctx, workdir)
+	if err != nil {
+		return nil, err
+	}
+	set := make(map[string]struct{}, len(modified)+len(untracked))
+	for _, group := range [][]string{modified, untracked} {
+		for _, p := range group {
+			set[p] = struct{}{}
 		}
 	}
 	if len(set) == 0 {
@@ -182,6 +177,66 @@ func DirtyPaths(ctx context.Context, workdir string) ([]string, error) {
 	}
 	sort.Strings(paths)
 	return paths, nil
+}
+
+// SplitDirtyPaths returns the two halves DirtyPaths unions, kept apart:
+// modified names tracked paths whose working-tree content differs from
+// HEAD, untracked names non-ignored paths git has never recorded. Both
+// are '/'-separated, repo-relative, and sorted.
+//
+// The split exists because the two halves answer different questions
+// about a path a verb is about to commit. A modified path has a
+// committed version the verb's write would contradict; an untracked one
+// has none, so a write that names it creates the record rather than
+// overwriting a record that disagrees. The commit-side write guard
+// (ADR-0038) treats those cases differently, while DirtyPaths' other
+// consumer wants the union.
+func SplitDirtyPaths(ctx context.Context, workdir string) (modified, untracked []string, err error) {
+	collect := func(args ...string) ([]string, error) {
+		out, cmdErr := output(ctx, workdir, args...)
+		if cmdErr != nil {
+			return nil, cmdErr
+		}
+		var paths []string
+		for _, p := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+			if p != "" {
+				paths = append(paths, p)
+			}
+		}
+		sort.Strings(paths)
+		return paths, nil
+	}
+	if modified, err = collect("diff", "--name-only", "HEAD", "-z"); err != nil {
+		return nil, nil, err
+	}
+	if untracked, err = collect("ls-files", "--others", "--exclude-standard", "-z"); err != nil { //coverage:ignore defensive: reaching here needs ls-files to fail where diff HEAD just succeeded, so the repo broke mid-call
+		return nil, nil, err
+	}
+	return modified, untracked, nil
+}
+
+// HasHEAD reports whether workdir's repo has a resolvable HEAD commit.
+// It is false in a repo whose first commit has not landed yet, where
+// `git diff HEAD` is an error rather than an empty result.
+//
+// Every aiwf verb can run in that state: a verb's own commit is
+// routinely a repo's first. Callers that compare the working tree
+// against HEAD consult this before asking, so an unborn HEAD reads as
+// "nothing committed to compare against" rather than a git failure.
+func HasHEAD(ctx context.Context, workdir string) (bool, error) {
+	probe := exec.CommandContext(ctx, "git", "rev-parse", "--verify", "--quiet", "HEAD")
+	probe.Dir = workdir
+	probe.Env = gitEnv()
+	if err := probe.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			// --quiet turns "no such ref" into a bare exit 1, which is
+			// the unborn-HEAD answer rather than a fault.
+			return false, nil
+		}
+		return false, fmt.Errorf("git rev-parse --verify HEAD: %w", err)
+	}
+	return true, nil
 }
 
 // IsRepo reports whether workdir is inside a git working tree.
