@@ -320,9 +320,7 @@ func Load(ctx context.Context, root string) (*Tree, []LoadError, error) {
 			// unrepresentable. Read the resolved value via Tree.ResolvedArea;
 			// omitempty drops the cleared key on the next write-verb,
 			// auto-stripping the invalid value.
-			if !entity.CarriesOwnArea(kind) {
-				e.Area = ""
-			}
+			entity.NormalizeForKind(e, kind)
 			tree.Entities = append(tree.Entities, e)
 			return nil
 		})

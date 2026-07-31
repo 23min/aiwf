@@ -9,22 +9,28 @@ tdd: required
 acs:
     - id: AC-1
       title: Unstaged HEAD-divergent content is never committed silently
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-2
       title: The measured priority-through-retitle laundering no longer succeeds
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-3
       title: A verb over a dirty disk never commits a tree identical to its parent
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-4
       title: Every verb entry point has a stated guard decision or a reasoned exemption
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-5
       title: The measured nested laundering through a parent rename no longer succeeds
-      status: open
+      status: met
+      tdd_phase: done
     - id: AC-6
       title: edit-body bless mode still commits a working-copy edit
-      status: open
+      status: met
+      tdd_phase: done
 ---
 
 ## Goal
@@ -201,10 +207,84 @@ Bless mode's precondition is that the working copy diverges from HEAD, so a guar
 refusing divergence would block the one verb whose job is to commit it — and
 would make the recovery ADR-0038 recommends unreachable.
 
-The exemption is verified, not merely declared: the guard asserts the exempted
-write's content equals the bytes on disk, so it can smuggle nothing else. Bless
-mode already refuses any frontmatter divergence of its own accord, which is what
-keeps the exemption from becoming a laundering route.
+The exemption is verified, not merely declared, and it covers both of the verb's
+modes — explicit mode needs it for the same reason bless mode does, since the
+write-then-route and declarative-revert flows both hand the verb a working copy
+that diverges from HEAD.
+
+Two conditions carry the verification. The working copy's own frontmatter must
+still equal HEAD's, so no hand-edited field rides in. And the write's content must
+carry nothing beyond that working copy: equal to it outright, as bless mode's
+verbatim bytes are, or equal to it re-serialized through the loaded entity model,
+as explicit mode's are. Both comparisons are field-based, because re-serializing
+canonicalizes field order without changing what is declared.
+
+An adopting write may still change the body freely — that is the exemption's
+entire purpose, and the declarative revert depends on it.
+
+## Decisions made during implementation
+
+**The four questions ADR-0038 deferred, answered from the prototype.**
+
+- *How the compared path set is derived.* From the plan's ops, using the match
+  rule `stagedPathConflicts` already applied to its staged twin: an `OpWrite`
+  matches its path exactly, an `OpMove` matches its source, its destination, and
+  anything nested under either. Both guards now resolve a path through one shared
+  function, so they cannot drift on which paths a plan is considered to touch.
+- *How per-path verdicts compose.* Refuse if any compared path is dirty. Driven
+  across the role grid, no scenario needed a finer rule.
+- *Whether carry-along substitution is adopted.* No. The rule above closes every
+  measured vector without it, and its costs were already measured: duplicated
+  subtrees under `retitle` / `move` / `reallocate`, a milestone dropped from a
+  `rewidth --apply` commit, flat-file destinations uncovered.
+- *What the `ExitUsage` change costs.* One typed error and one `errors.As` arm in
+  `internal/cli/cliutil`. The refusal exits 2; the staged twin still exits 3,
+  which is an asymmetry this milestone leaves standing rather than widening its
+  scope to the pre-existing guard.
+
+**One carve-out the measurements forced.** An untracked path the plan names as an
+`OpWrite` destination is not compared. It has no committed version to contradict,
+so the write creates the record rather than laundering one. Without it every verb
+writing `aiwf.yaml` is refused in a freshly-initialised repo, where `aiwf init`
+itself leaves that file uncommitted by design. Untracked paths nested under a move
+still refuse, which is what keeps the untracked-scratch-file vector closed.
+
+**An unasked-for discovery.** `git diff HEAD` exits 128 on an unborn HEAD, and a
+verb's own commit is routinely a repo's first. Unguarded, that accounted for 735
+of the prototype's 842 failing tests.
+
+**A fourth carried-file vector, found at review.** Both halves of the dirty set
+omit ignored paths by construction, while a directory move carries whatever sits
+beneath it — so a `.gitignore`d file inside an epic directory was committed by
+`aiwf rename` with git reporting a clean tree throughout, and became tracked from
+that commit onward. The guard now collects ignored paths beneath a move's own
+prefixes as a third source. It is scoped to those prefixes rather than the
+repository, because only the files a plan is about to carry are relevant and
+ignored files are otherwise numerous.
+
+That vector is worth stating alongside the three limits above for what it says
+about the instrument: the guard asks git what the operator changed, while the
+commit carries what the filesystem holds, and those are not the same set. G-0487
+is the same shape reached by a different route. A comparison against HEAD's blobs
+for every path a plan would carry would close both as one class; it is not what
+this milestone built.
+
+**The exemption's verification was corrected mid-milestone.** ADR-0038 specified
+that the guard assert the exempted write's content equals the bytes on disk.
+Measured, that test is unsound in both directions: it refuses a declarative revert,
+and it accepts a write over hand-edited frontmatter — the laundering the epic
+exists to stop. The shipped verification is the two-condition form recorded under
+AC-6, and ADR-0038's *Escape hatch* subsection was amended to match rather than
+left contradicting the code.
+
+**AC-4's phase ladder is not ordering evidence.** The policy and its tests were
+authored together, so no moment existed in which the test was written and the
+implementation was not. The recorded `red` was produced afterwards by emptying the
+ledger and observing the live assertion fail with one violation per entry point.
+That demonstrates the assertion can fire — which this repo already pins
+permanently through `firing_fixture_presence` — but it is not the test-first
+ordering `aiwf history` is read as showing. Recorded here because re-staging the
+ladder now would be the actual back-stamp.
 
 ## Constraints
 
@@ -252,6 +332,92 @@ keeps the exemption from becoming a laundering route.
 
 - M-0282 — ADR-0038, which settles the decisions this milestone implements and
   names the questions it answers.
+
+## Work log
+
+### AC-1 — Unstaged HEAD-divergent content is never committed silently
+Guard landed at the top of `verb.Apply`, before Phase 1 · commit 51d04c88 · the
+refusal reports exit 2 through a typed error rather than the internal-failure class.
+
+### AC-2 — The measured priority-through-retitle laundering no longer succeeds
+Closed by the same guard; `retitle` builds both an `OpMove` and an `OpWrite`, so it
+exercises the overlap between the two mechanisms · commit 51d04c88.
+
+### AC-3 — A verb over a dirty disk never commits a tree identical to its parent
+Closed by the same guard, and the operator's edit survives the refusal · commit
+51d04c88.
+
+### AC-4 — Every verb entry point has a stated guard decision or a reasoned exemption
+`internal/policies/verb_write_guard_coverage.go`: 28 entry points derived by AST
+scan, each with a recorded treatment; fail-closed on an empty scan; stale entries
+detected · commit 51d04c88. Extended at review to pin `AdoptsWorkingCopy`'s sole
+setter, which the ledger could not see · commit dfeea4ee.
+
+### AC-5 — The measured nested laundering through a parent rename no longer succeeds
+Closed for hand-edited, untracked, and — after review measured a third route —
+ignored files beneath a moved directory · commits 51d04c88, dfeea4ee.
+
+### AC-6 — edit-body bless mode still commits a working-copy edit
+Exemption extended to both modes, verified two ways rather than declared ·
+commits 51d04c88, dfeea4ee. Explicit mode gained the frontmatter refusal bless
+mode already had, which closes G-0463.
+
+## Validation
+
+`make ci` exit 0 on the implementation commit: `go vet` across the untagged,
+`stress` and `testpins` tag sets, the full `golangci-lint` set, `go test -race`
+over 72 packages with zero failures, `aiwf doctor --self-check` passing 29 steps,
+and `govulncheck` clean.
+
+After the corrective commit: `make check-fast` exit 0, the diff-scoped coverage
+gate and firing-fixture meta-gate both exit 0 against this milestone's base, and
+`aiwf check --since origin/main` reports no findings.
+
+Each guard behaviour was additionally measured end-to-end against a real binary
+in disposable repositories, not only through the Go tests.
+
+## Reviewer notes
+
+Two independent review rounds each found a live defect in the fix itself, and
+both were invisible to reading — they took a running reproduction.
+
+The first found that the `AdoptsWorkingCopy` exemption was itself a laundering
+route: the guard verified the working copy but never the write's own content, so
+a plan could commit fabricated frontmatter under any verb's trailer. The second
+found that ignored files beneath a moved directory were committed while git
+reported a clean tree, and that the refusal's own advice — `git restore` — errors
+on an untracked path and destroys work irrecoverably on a tracked one.
+
+Two limits are deliberate and stated where they are met rather than only here.
+The exemption constrains frontmatter and says nothing about the body, because
+changing the body is the exemption's purpose and the declarative revert depends
+on it. And the guard is bounded by git's own reporting of the working tree, which
+G-0492 records as a class rather than a list of instances.
+
+One design alternative was considered and not taken: having explicit-mode
+`edit-body` compose HEAD's frontmatter with the requested body, which would make
+the exemption unforgeable by construction and delete the verification entirely.
+It would also stop explicit mode re-canonicalising frontmatter, which a shipped
+test pins deliberately. Recorded so the next reader need not re-derive it.
+
+ADR-0038 was amended in place rather than superseded. Four of its five decisions
+are untouched; only the escape hatch's verification mechanism was measured
+unsound, and the amendment names the superseded statement rather than replacing
+it silently.
+
+## Deferrals
+
+- G-0492 — the guard reads git's dirty report rather than the bytes a plan would
+  carry; subsumes G-0487 and the ignored-file route closed here.
+- G-0493 — `edit-body`'s two modes judge frontmatter divergence by different
+  rules while sharing one message.
+- G-0494 — refusals reach machine callers as prose, and the staged twin still
+  exits 3 where this one exits 2.
+- The duplicated entry-point AST scan shared with `verb_result_noop_invariant.go`
+  belongs to E-0077's convergent-duplication sweep.
+- G-0486's permanent-dirty interaction is now reachable: a directory move that
+  flattens a mode leaves paths reading modified forever, and every later
+  move-shaped verb on that directory refuses. Non-move verbs still work.
 
 ## References
 

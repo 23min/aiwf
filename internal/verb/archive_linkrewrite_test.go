@@ -146,6 +146,7 @@ func TestArchive_MultiEntitySweep_RecomputesAgainstFinalLayout(t *testing.T) {
 	if writeErr := os.WriteFile(epicFull, []byte(epicUpdated), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
+	commitFixture(t, r.root, "fixture: epic body linking to the milestone")
 
 	// Cascade order: terminal-ize the milestone before the epic
 	// (D-0003 guard refuses an epic cancel with non-terminal children).

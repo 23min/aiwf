@@ -3,6 +3,7 @@ package entity
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -45,6 +46,46 @@ func Split(content []byte) (frontmatter, body []byte, ok bool) {
 		}
 		fm.WriteByte('\n')
 	}
+}
+
+// SameFrontmatterFields reports whether two entity files declare the
+// same frontmatter keys with the same values, independent of key order
+// and YAML formatting. It answers "did a field change", which is a
+// different question from "are these bytes equal": Serialize emits a
+// canonical field order, so a file committed with hand-ordered
+// frontmatter differs byte-for-byte from its own re-serialization while
+// declaring exactly the same state.
+//
+// It reports false when either side lacks a frontmatter delimiter or
+// does not parse as a YAML mapping. Callers use this to decide whether
+// to refuse, so an unreadable side answers "not known to be the same"
+// rather than being waved through.
+func SameFrontmatterFields(a, b []byte) bool {
+	aFields, ok := frontmatterFields(a)
+	if !ok {
+		return false
+	}
+	bFields, ok := frontmatterFields(b)
+	if !ok {
+		return false
+	}
+	return reflect.DeepEqual(aFields, bFields)
+}
+
+// frontmatterFields decodes an entity file's frontmatter into a generic
+// mapping. Generic rather than typed on purpose: the comparison must
+// notice a key no Entity field claims, which unmarshalling into Entity
+// would silently discard.
+func frontmatterFields(content []byte) (map[string]any, bool) {
+	fm, _, ok := Split(content)
+	if !ok {
+		return nil, false
+	}
+	var fields map[string]any
+	if err := yaml.Unmarshal(fm, &fields); err != nil {
+		return nil, false
+	}
+	return fields, true
 }
 
 // Serialize composes an entity file's bytes: the opening "---" line,
