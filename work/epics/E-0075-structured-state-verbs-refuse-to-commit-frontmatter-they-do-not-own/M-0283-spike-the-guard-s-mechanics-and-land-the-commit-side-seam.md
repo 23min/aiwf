@@ -29,7 +29,7 @@ acs:
       tdd_phase: done
     - id: AC-6
       title: edit-body bless mode still commits a working-copy edit
-      status: open
+      status: met
       tdd_phase: done
 ---
 
