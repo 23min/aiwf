@@ -1,6 +1,6 @@
 ---
 id: M-0284
-title: Cover the nested-path vector and call each multi-entity sweep in or out
+title: Land the claim-side precondition and record each sweep's call
 status: draft
 parent: E-0075
 depends_on:
