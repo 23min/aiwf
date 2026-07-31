@@ -18,7 +18,7 @@ acs:
     - id: AC-3
       title: A verb over a dirty disk never commits a tree identical to its parent
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: Every verb entry point has a stated guard decision or a reasoned exemption
       status: open
