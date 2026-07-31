@@ -86,7 +86,7 @@ func TestGuidance_WithinLineBudget(t *testing.T) {
 }
 
 // TestGuidance_ContainsCodeHealthDigest pins the every-turn code-health priming
-// digest (G-0265 / ADR-0019): the fragment carries the five highest-leverage
+// digest (G-0265 / ADR-0019): the fragment carries the highest-leverage
 // forces inline so they prime code-writing without reaching for the full
 // wf-codebase-health skill. Drift in the digest fails the build.
 func TestGuidance_ContainsCodeHealthDigest(t *testing.T) {

@@ -81,17 +81,28 @@ This skill is the **per-diff gate**. For whole-codebase structural and operation
 
 ### 8. Verdict
 
-For each finding, classify:
+Classify each finding on **two** axes. They answer different questions, and both decide what happens next.
 
-- **Blocking** — must be fixed before the change merges. Correctness, constraint violations, missing tests for AC, security issues.
+**Kind — what sort of claim is this?**
+
+- **Defect** — measurable against something fixed: a test, a type, a spec clause, a gate. Verify it before reporting (see §"Independence"). An unverified defect costs the author a fix and can introduce a real one.
+- **Judgment** — a design or style preference no oracle decides. Legitimate to raise, but it may not return as a fresh opinion once disposed of.
+
+**Urgency — when does it get handled?**
+
+- **Blocking** — must be fixed before the change merges. Correctness, constraint violations, missing tests for AC, security issues. A judgment finding blocks only when it violates a rule the project has written down; otherwise it is track-for-later or non-issue.
 - **Track for later** — worth recording somewhere durable (the project's gap log, an issue, a ticket), not this change's scope. Note rough sizing if useful.
 - **Non-issue** — acknowledged, no action.
+
+**A blocking defect is fixed *and pinned*.** The corrective change carries a check that fails without it — a test, a lint rule, a gate entry (`wf-codebase-health` D5). A defect that genuinely can't be pinned, and every judgment finding you dispose of, becomes a recorded decision or a tracked issue instead. Neither leaves as a silent correction: pinning is what makes the next round smaller than this one, and recording is what stops the same argument recurring.
 
 Then give an overall:
 
 - **Approve** — no blocking findings; non-blocking findings noted.
 - **Request changes** — blocking findings exist; list them with file:line.
 - **Questions** — review can't proceed without clarification; list the questions.
+
+**When the loop ends.** A verdict closes one pass, not the review. After fixes land, confirm them — mechanically for mechanical findings, by a fresh reviewer for judgment-level ones — then re-review. Whether to stop is D5's stop rule, applied here: the deciding pass runs a fresh reviewer over the **whole** surface, never only the slice a fix touched, or it certifies a fraction of the change while the rest goes unsampled.
 
 ## Output format
 
@@ -101,10 +112,13 @@ Then give an overall:
 **Verdict:** approve | request-changes | questions
 
 ## Blocking findings
-- `path/to/file.ts:42` — <what's wrong; what to do about it>
+- `path/to/file.ts:42` — [defect] <what's wrong; what to do about it>
+  · pin: <the check that will fail without the fix>
+- `path/to/file.ts:88` — [judgment] <the preference and its argument>
+  · dispose: <the rule it becomes, or the decision to record>
 
 ## Track for later
-- `path/to/file.go:101` — <observation; sizing if non-trivial>
+- `path/to/file.go:101` — [defect|judgment] <observation; sizing if non-trivial>
 
 ## Non-issues / acknowledged
 - <thing the reviewer noticed but the author already addressed in the change>
@@ -120,9 +134,13 @@ Then give an overall:
 - *Bundling blocking and non-blocking together.* The author needs to know what to fix before the change merges vs. what to consider afterwards. Keep them separate.
 - *Approving with unread tests.* A diff with new tests gets the tests reviewed, not just the implementation.
 - *Vague findings.* "This could be cleaner" without a specific suggestion is a complaint, not a review item. Either propose a concrete change or move it to "non-issue."
+- *Fixing a defect without pinning it.* The fix closes this round; the check is what stops the same class arriving in the next one. A corrective commit with no test, no rule, and no recorded reason leaves the project's checks exactly as thin as they were.
+- *Re-raising a disposed judgment finding.* Once a preference has been argued and settled — as a written rule or a recorded decision — it is closed. Re-litigating it in a later round is the churn that makes review feel endless.
+- *Reporting a defect you didn't verify.* "This looks like it would break" is a hypothesis. Run it, or file it as a question.
 
 ## Constraints
 
 - 🛑 Findings include `file:line` references. A finding without a location is unactionable.
+- 🛑 Every finding carries its kind — defect or judgment. The kind decides the disposition: a defect is pinned, or the decision not to pin it is recorded; a judgment is written down as a rule or a decision. A finding disposed of as none of these is the leak this classification exists to close.
 - Branch-coverage hard rule applies even at review time. If the diff is missing branch-coverage discipline, that's blocking.
 - The reviewer never edits the diff. The skill emits the report; the author makes the changes.

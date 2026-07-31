@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — G-0489: review findings now ratchet into checks, and a review loop has a defined end
+
+The `wf-codebase-health` rubric gains a **D5 — Findings become checks** force: a
+confirmed defect leaves behind a check that fails without the fix, and a defect
+that genuinely cannot be pinned becomes a recorded decision or a tracked issue
+rather than a silent correction. D5 also splits findings into objective defects
+(which go to the oracle and can never be rediscovered) and judgment
+disagreements (which become a written rule or a one-time decision, and may not
+return as fresh opinion), and carries a labelled **stop rule**: a review loop is
+converged when a fresh reviewer over the whole surface finds no new defects —
+not when findings reach zero.
+
+`wf-review-code` applies the force at the point findings are disposed of. Its
+verdict step now classifies on two axes — kind (defect / judgment) alongside the
+existing urgency (blocking / track-for-later / non-issue) — requires a blocking
+defect's fix to carry a pinning check, and states when the review loop ends: a
+verdict closes one pass, and only a full-surface pass can declare convergence.
+The always-on guidance fragment primes D5 alongside the existing code-health
+forces.
+
 ### Fixed — G-0485: the gpg-signing test fixture no longer leaks a daemon per test run
 
 Nothing user-facing changed. Internal test hygiene: `internal/gitops`'s
