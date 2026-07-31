@@ -14,14 +14,15 @@ import (
 )
 
 // run_stress_test.go — run.go's `stress`-lane tests. The
-// whole-catalog tests execute every registered scenario, which
-// includes the concurrency and observation-window ones, and the
-// lock-kill test drives a scenario that waits up to five seconds to
-// observe its holder report ready. Both assert properties of the
-// machine they run on, so they own the runner here rather than
-// sharing it with `go test ./...`. `resolveScenarios`'s own selection
-// claim — that "all" names every registered entry, in catalog order —
-// is pinned untagged in run_test.go and runs on every push.
+// whole-catalog tests execute every registered scenario, including
+// the ones that drive real concurrent subprocesses, and the lock-kill
+// test drives a real lock-holding subprocess of its own. Running that
+// many processes alongside `go test ./...` roughly doubles their wall
+// time, and `concurrent-milestone-race` still judges the machine, so
+// they own the runner here rather than sharing it.
+// `resolveScenarios`'s own selection claim — that "all" names every
+// registered entry, in catalog order — is pinned untagged in
+// run_test.go and runs on every push.
 
 // TestRunRun_ScenarioAll_RunsWholeCatalogIntoOneReport pins AC-2's own
 // acceptance text: --scenario all runs every registered scenario, all

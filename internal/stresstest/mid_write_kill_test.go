@@ -3,6 +3,7 @@
 package stresstest
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -104,44 +105,6 @@ func TestMidWriteKillScenario_RealBinary_SetupSurfacesASeedingRefusal(t *testing
 	}
 }
 
-// TestWaitForTempFile_RealBinary pins waitForTempFile's two direct
-// outcomes: it finds a temp file that already exists, and it times
-// out when none ever appears.
-func TestWaitForTempFile_RealBinary(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-
-	found, err := waitForTempFile(dir, timeoutForTest)
-	if err != nil {
-		t.Fatalf("waitForTempFile on an empty dir: %v", err)
-	}
-	if found {
-		t.Fatal("expected not to find a temp file in an empty dir")
-	}
-
-	if writeErr := os.WriteFile(filepath.Join(dir, "entity.md.aiwf-tmp-12345"), []byte("x"), 0o644); writeErr != nil {
-		t.Fatalf("seeding a temp file: %v", writeErr)
-	}
-	found, err = waitForTempFile(dir, timeoutForTest)
-	if err != nil {
-		t.Fatalf("waitForTempFile with a temp file present: %v", err)
-	}
-	if !found {
-		t.Fatal("expected to find the seeded temp file")
-	}
-}
-
-// TestWaitForTempFile_ErrorsOnUnreadableDir pins the os.ReadDir error
-// branch via a nonexistent directory.
-func TestWaitForTempFile_ErrorsOnUnreadableDir(t *testing.T) {
-	t.Parallel()
-	missing := filepath.Join(t.TempDir(), "does-not-exist")
-
-	if _, err := waitForTempFile(missing, timeoutForTest); err == nil {
-		t.Fatal("expected waitForTempFile to error on a nonexistent directory")
-	}
-}
-
 // TestReadGapFile_ErrorsWhenNoneOrMultipleMatch pins readGapFile's
 // count-mismatch branch (zero matches; more than one match).
 func TestReadGapFile_ErrorsWhenNoneOrMultipleMatch(t *testing.T) {
@@ -173,8 +136,6 @@ func TestReadGapFile_ErrorsWhenNoneOrMultipleMatch(t *testing.T) {
 		})
 	}
 }
-
-const timeoutForTest = 50 * time.Millisecond
 
 // TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLockBusyRefusal
 // holds the control repo's repolock via the AC-1 lockholder helper
@@ -266,12 +227,12 @@ func TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteFSMRefusal(t 
 	}
 }
 
-// TestMidWriteKillScenario_RealBinary_ErrorsOnReadyTimeout forces
-// Run's own "never observed the temp file" branch with a near-zero
-// readyTimeout — the target promote's write can't possibly land
-// within it, so Run kills the (probably not-yet-writing) subprocess
-// and reports the timeout, rather than hanging or silently passing.
-func TestMidWriteKillScenario_RealBinary_ErrorsOnReadyTimeout(t *testing.T) {
+// TestMidWriteKillScenario_RealBinary_ErrorsWhenTheHangGuardFires
+// forces Run's guard branch with a near-zero hangGuard: the target
+// promote can neither write nor exit within it, so Run kills the
+// subprocess and reports the wedge rather than hanging or silently
+// passing.
+func TestMidWriteKillScenario_RealBinary_ErrorsWhenTheHangGuardFires(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	bin := sharedTestBinary(t)
@@ -281,11 +242,9 @@ func TestMidWriteKillScenario_RealBinary_ErrorsOnReadyTimeout(t *testing.T) {
 	if err := s.Setup(dir); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
-	s.readyTimeout = time.Nanosecond
+	s.hangGuard = time.Nanosecond
 
-	if err := s.Run(dir); err == nil {
-		t.Fatal("expected Run to time out waiting to observe the sibling temp file")
-	} else if !strings.Contains(err.Error(), "timed out waiting") {
-		t.Fatalf("expected a timeout error, got: %v", err)
+	if err := s.Run(dir); !errors.Is(err, errMidWriteHangGuard) {
+		t.Fatalf("expected errMidWriteHangGuard, got: %v", err)
 	}
 }

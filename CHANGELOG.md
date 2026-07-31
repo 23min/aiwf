@@ -68,6 +68,25 @@ Each keeps its own subject-matter assertion besides: that no id was allocated
 twice, and that every milestone reported moved really landed under the target
 epic. How many actors get through is no longer asserted anywhere.
 
+### Changed — G-0468: the kill-and-observe stress scenarios are bounded by the process they watch, not by a clock
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. `mid-write-kill` gave a promote five seconds to reach its write before
+reporting *"never caught the write in flight"*, and `lock-kill` gave its
+lock-holder five seconds to report ready. Both deadlines measured the machine:
+on a loaded runner the work had not failed, it had merely not finished, and the
+scenario reported an aiwf defect either way. Measured at 16x CPU
+oversubscription, `mid-write-kill` failed on its first attempt every time.
+
+Both now end their observation when the watched process acts or exits, whichever
+comes first, so slowness delays the verdict instead of falsifying it. A promote
+that runs to completion before the poller samples it is a failure to observe
+rather than evidence about aiwf, so it is retried from the same starting state
+and reported only if every attempt misses. What remains on a clock in each is a
+backstop for a process that neither acts nor exits, set far above any plausible
+slowness, since a holder that dies is already caught the moment its output
+closes.
+
 ### Added — G-0468: the lock-wait property is pinned on the every-push path
 
 Nothing user-facing changed; this is test coverage for behavior that already
