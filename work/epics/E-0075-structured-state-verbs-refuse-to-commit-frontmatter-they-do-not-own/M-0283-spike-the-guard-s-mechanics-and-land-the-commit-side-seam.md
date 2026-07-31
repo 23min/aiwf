@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: Unstaged HEAD-divergent frontmatter is never committed silently
+      title: Unstaged HEAD-divergent content is never committed silently
       status: open
     - id: AC-2
       title: The measured priority-through-retitle laundering no longer succeeds
@@ -55,7 +55,7 @@ route that compiles onto the seam without ever being exercised through it.
 
 ## Acceptance criteria
 
-### AC-1 — Unstaged HEAD-divergent frontmatter is never committed silently
+### AC-1 — Unstaged HEAD-divergent content is never committed silently
 
 A structured-state verb run against an entity whose frontmatter differs from HEAD
 in the unstaged working copy does not commit that difference without saying so.
