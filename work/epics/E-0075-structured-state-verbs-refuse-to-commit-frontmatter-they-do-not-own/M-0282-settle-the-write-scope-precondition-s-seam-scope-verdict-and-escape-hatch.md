@@ -118,10 +118,12 @@ misattribution case.
 
 ### AC-4 — ADR records whether an escape hatch exists and what it costs
 
-Not a question of reusing an existing lever: of the routes in this epic's scope,
-only `promote` and `cancel` expose `--force`. Extending it is a surface
-expansion carrying a completion-drift obligation, and the flag already means
-several distinct things across the CLI.
+Not a question of reusing a consistent lever. Measured, `--force` already appears
+on `promote`, `cancel`, `contract bind` and `contract recipe install` among the
+routes in scope, and on `authorize` and `add` elsewhere — carrying *sovereign
+act* in one place and *born-complete-body bypass* in another. Extending it would
+overload an already ambiguous flag and carry a completion-drift obligation on
+every route that gained it.
 
 Evidence: a structural assertion that `## Decision` records whether a hatch
 exists; where one does, that the same section names the flag and the
@@ -185,6 +187,11 @@ workflow — silence there would mean the cost was not weighed.
 ## Out of scope
 
 - Implementing the precondition. This milestone produces a decision record.
+- The guard's remaining mechanics — how the compared path set is finally derived,
+  whether carry-along substitution is adopted, the `ExitUsage` change's blast
+  radius, and which tests break. Each was reached for here and each turned out to
+  need a prototype, so ADR-0038 records them as deferred and M-0283 settles them
+  against measurement.
 - The per-sweep in-or-out calls, which belong to M-0284.
 - The FSM history walker's rename-plus-status blind spot (G-0475).
 - The after-the-fact detection rule (G-0480), which is a companion to the
@@ -246,3 +253,40 @@ The escape-hatch decision also shed a proposed `aiwf repair` verb: measured,
 every mutating verb refuses cleanly on an unparseable entity, and the recovery
 the `load-error` hint already names (hand-fix, hand-commit, then
 `aiwf acknowledge illegal`) is complete. No new surface was needed.
+
+## Reviewer notes
+
+**Two independent review rounds, four reviewers, and the ADR changed
+substantially in both.** Round one attacked the first draft: it found that a
+comparison sited where `gatherCommitOps` runs reads the verb's own
+freshly-written bytes, that `edit-body` bless mode would refuse itself under the
+guard it recommends as the escape, and that frontmatter-only scope at the
+claim-side seam contradicts five sites that already compare a second surface.
+Round two attacked the amendment: a refinement adopted from round one —
+substituting HEAD's blob for paths no verb named — was prototyped and found to
+duplicate subtrees under `retitle` / `move` / `reallocate`, drop a milestone from
+a `rewidth --apply` commit while reporting success, and leave flat-file moves
+uncovered. A separate fact-check found four claims that were false about the
+code, three of them inherited from a reviewer rather than measured here.
+
+**Every defect in both rounds was an implementation discovery, not a reading
+one.** That is the durable lesson and it reshaped the epic: M-0283 now leads with
+a throwaway prototype and a scenario matrix, and this ADR records as *deferred*
+the questions that a prototype has to answer. The alternative — continuing to
+settle mechanics in prose — was measurably producing a new defect per round.
+
+**AC-2 and AC-3 were promoted to `met` before their evidence existed.** Their
+bodies each state a two-part obligation (path scope *and* the nested case;
+refuse *and* the illegal-transition weighing) and the policy asserted only the
+first half of each; stripping either reasoning sentence from the ADR produced
+zero violations. The policy now requires both conjuncts, and a purpose-built
+"decides nothing" ADR no longer passes. The premature promote itself is not
+reversible: the AC FSM allows `met → deferred | cancelled` only, both
+removal-class, so demoting would claim the criteria are off the contract rather
+than that their evidence arrived late. They stay `met` with the gap recorded
+here instead.
+
+**The mechanical evidence pins recording, not implementability.** An ADR can
+satisfy all five criteria while deciding something that cannot be built — which
+is exactly what round one found. M-0283/AC-4 is where implementability becomes
+the evidence, because that is where a prototype exists to test it against.
