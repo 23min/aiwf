@@ -44,7 +44,7 @@ the primitive `edit-body` already uses for exactly this comparison, and
 `gitops.BlobReader` is a batched cat-file reader exposing blob SHAs, so
 comparing many paths does not cost one subprocess per path.
 
-`planEntityWrite` covers seven call sites across six files, while `promote`,
+`planEntityWrite` covers seven call sites across five files, while `promote`,
 `move`, `rename`, `reallocate`, `set-priority`, `set-area` and `edit-body` build
 their plans directly — so there is no existing single-entity seam to simply
 extend, and "put it at the shared seam" names a seam that has yet to be created.
@@ -74,6 +74,21 @@ its prefix-matching treatment of paths nested under a directory move.
 
 ## Acceptance criteria
 
+The mechanical evidence for all five is one structural assertion,
+`PolicyM0282ADRWriteScopeDecisions`: each named `### ` subsection exists under
+`## Decision` with prose beneath it, `## Consequences` is non-empty, and the ADR
+is `accepted`. Placement is the substance — a heading carrying the same words
+elsewhere in the document does not satisfy it.
+
+It asserts shape, not that a subsection records a real decision. That was
+attempted with keyword matching and does not work at any tightening, because a
+deferral names every term a decision would name: "whether it refuses or warns is
+deferred" contains "refuse". The distinction is meaning rather than vocabulary,
+so it is a review judgment and sits at the human gate, where CLAUDE.md puts
+judgment classes no check can cover. The policy's own test pins that limit, so a
+later attempt to mechanise it has to change the test deliberately rather than
+drift into overstating what the criteria are backed by.
+
 ### AC-1 — ADR records where the precondition runs relative to the same-state check
 
 The ADR names the seam and states why. The choice is consequential rather than
@@ -83,9 +98,9 @@ returns from the verb body before any plan exists. A prelude seam reaches both,
 at the cost of having to be reached by every route — which is what the epic's
 last milestone makes mechanical.
 
-Evidence: a structural assertion that the ADR's `## Decision` section names a
-seam, and that `## Consequences` states which of the two misbehaviors — a false
-"already set" NoOp, an empty-diff commit — the chosen seam reaches.
+Evidence: the `### Seam` subsection exists under `## Decision` with prose
+beneath it. Which seam it names, and whether that seam reaches both measured
+misbehaviors, is read at review.
 
 ### AC-2 — ADR records whether the guard is entity-scoped or committed-path-scoped
 
@@ -97,9 +112,8 @@ The nested case forces this one: a guard comparing only the verb's named entity
 misses a nested milestone's frontmatter riding along inside a parent epic's
 directory move, and no verb names those entities.
 
-Evidence: a structural assertion that `## Decision` records one of the two path
-scopes and that the nested-path case is addressed in that decision's own text,
-not merely listed elsewhere in the document.
+Evidence: the `### Path scope` subsection exists under `## Decision` with prose
+beneath it. Whether it addresses the nested case is read at review.
 
 ### AC-3 — ADR records refuse-or-warn, weighed against the illegal-transition escape
 
@@ -112,9 +126,9 @@ guard fires during the ordinary bless workflow, so "refuse" is a far larger
 behavioral change than it is under a frontmatter-only scope. The two are decided
 together or not at all.
 
-Evidence: a structural assertion that `## Decision` records refuse or warn, and
-that its reasoning cites the illegal-transition escape rather than only the
-misattribution case.
+Evidence: the `### Verdict` subsection exists under `## Decision` with prose
+beneath it. Whether its reasoning weighs the illegal-transition escape rather
+than only misattribution is read at review.
 
 ### AC-4 — ADR records whether an escape hatch exists and what it costs
 
@@ -125,9 +139,9 @@ act* in one place and *born-complete-body bypass* in another. Extending it would
 overload an already ambiguous flag and carry a completion-drift obligation on
 every route that gained it.
 
-Evidence: a structural assertion that `## Decision` records whether a hatch
-exists; where one does, that the same section names the flag and the
-completion-wiring obligation it incurs.
+Evidence: the `### Escape hatch` subsection exists under `## Decision` with
+prose beneath it. Whether it settles the question, and at what stated cost, is
+read at review.
 
 ### AC-5 — ADR records whether the guard compares frontmatter only or the whole file
 
@@ -150,9 +164,9 @@ under `aiwf-verb: promote`. But it makes the guard fire during a workflow the
 project actively teaches, which is a different proposition from catching a rare
 mistake, and it is the input the verdict decision in AC-3 has to weigh.
 
-Evidence: a structural assertion that `## Decision` records a field scope, and
-that `## Consequences` addresses what the chosen scope does to the bless
-workflow — silence there would mean the cost was not weighed.
+Evidence: the `### Field scope` subsection exists under `## Decision` with prose
+beneath it, and `## Consequences` is non-empty. Whether the cost to the
+review-before-commit window is actually weighed there is read at review.
 
 ## Constraints
 
@@ -223,15 +237,17 @@ document and the policy reads all five of its subsections in one pass.
 ### AC-1..AC-5 — ADR-0038 and its structural assertion
 
 ADR-0038 accepted, five decisions recorded · commits 644cf9fe1 (add),
-f642b502e (accept), 53d6abd50 (canonical subsection anchors) · tests 10/10
+f642b502e (accept), 53d6abd50 (canonical subsection anchors), ff946fce5
+(narrowed after review) · every test in the package green
 
-`PolicyM0282ADRWriteScopeDecisions` (commit c612e5e65) asserts each decision
-appears in its own `### ` subsection under `## Decision` carrying a recorded
-verdict, plus the seam's reach and the field scope's bless-workflow effect in
-`## Consequences`. Structural rather than substring: the marker must sit
-inside the named subsection, so prose mentioning "refuse" elsewhere in the
-document does not satisfy the verdict decision. Eight firing fixtures, one per
-failure mode, plus a clean-fixture negative case and the loader-miss arm.
+`PolicyM0282ADRWriteScopeDecisions` (commits c612e5e65, 56688438d, and the
+narrowing that followed) asserts that each decision has its own `### `
+subsection under `## Decision` with prose beneath it, that `## Consequences` is
+non-empty, and that the ADR is `accepted`. Structural rather than substring: a
+heading must sit under `## Decision` specifically, so the same words elsewhere
+in the document do not satisfy it. One firing fixture per failure mode —
+including the present-but-empty arms and both non-`accepted` statuses — plus a
+clean-fixture negative control and the loader-miss arm.
 
 The ADR resolves through `tree.Load` + `ByID` + `entity.Path` rather than a
 path literal, so the assertion survives an archive sweep and a retitle.
@@ -250,9 +266,10 @@ from the milestone spec:
   epic's field-axis open question came from that measurement.
 
 The escape-hatch decision also shed a proposed `aiwf repair` verb: measured,
-every mutating verb refuses cleanly on an unparseable entity, and the recovery
-the `load-error` hint already names (hand-fix, hand-commit, then
-`aiwf acknowledge illegal`) is complete. No new surface was needed.
+every mutating verb refuses cleanly on an unparseable entity, and the recovery is
+complete already: the `load-error` hint names the hand-fix, and the
+`provenance-untrailered-entity-commit` hint names acknowledging the hand-commit
+that lands it. No new surface was needed.
 
 ## Reviewer notes
 
@@ -290,3 +307,22 @@ here instead.
 satisfy all five criteria while deciding something that cannot be built — which
 is exactly what round one found. M-0283/AC-4 is where implementability becomes
 the evidence, because that is where a prototype exists to test it against.
+
+**A third round found the strengthened assertion still inadequate, and the fix
+was to narrow the claim rather than tighten the match.** Measured: a document
+deferring every question passed with zero violations, in the same voice this ADR
+uses for what it defers. Keyword matching cannot separate a decision from a
+deferral at any tightening, because a deferral names every term a decision would
+name. The policy now asserts shape, placement and status only, its documentation
+says so, and a test pins the limit by asserting that a deferring document
+*passes* — so a later attempt to mechanise the judgment has to change that test
+deliberately.
+
+The general lesson is worth more than the instance: the acceptance criteria
+reached for mechanical evidence of something inherently non-mechanical. The
+repo's own rule asks for "a structural assertion scoped to a named markdown
+section", which is what now exists; the bar of proving a decision was *made* was
+invented here and could not be cleared. Where mechanical evidence genuinely fits
+this epic is M-0283, whose matrix crosses an enumerable path-state space with
+verb class — completeness of that table is assertable in a way a document's
+meaning is not.
