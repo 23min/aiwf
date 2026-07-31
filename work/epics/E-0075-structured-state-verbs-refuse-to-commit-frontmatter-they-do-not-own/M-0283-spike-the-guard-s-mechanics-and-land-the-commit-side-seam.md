@@ -14,7 +14,7 @@ acs:
       title: The measured priority-through-retitle laundering no longer succeeds
       status: open
     - id: AC-3
-      title: HEAD-divergent frontmatter yields no false NoOp and no empty-diff commit
+      title: A verb over a dirty disk never commits a tree identical to its parent
       status: open
     - id: AC-4
       title: Every single-entity route in the epic's scope list passes the precondition
@@ -77,7 +77,7 @@ in both mechanisms at once — it builds an `OpMove` and an `OpWrite`, so it is
 both a serializing route and a move-shaped one. A guard that covers it covers the
 overlap.
 
-### AC-3 — HEAD-divergent frontmatter yields no false NoOp and no empty-diff commit
+### AC-3 — A verb over a dirty disk never commits a tree identical to its parent
 
 The two failure directions of a loaded-only comparison, both of which E-0075
 measures and neither of which its success criteria currently assert:
