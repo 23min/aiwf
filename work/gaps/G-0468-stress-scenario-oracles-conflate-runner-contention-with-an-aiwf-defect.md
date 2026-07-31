@@ -1,8 +1,10 @@
 ---
 id: G-0468
 title: Stress scenario oracles conflate runner contention with an aiwf defect
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - ac4ce1955
 ---
 ## What's missing
 
