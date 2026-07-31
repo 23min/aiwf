@@ -17,7 +17,7 @@ acs:
       title: A verb over a dirty disk never commits a tree identical to its parent
       status: open
     - id: AC-4
-      title: The spike matrix answers every question ADR-0038 defers
+      title: Every verb entry point has a stated guard decision or a reasoned exemption
       status: open
     - id: AC-5
       title: The measured nested laundering through a parent rename no longer succeeds
@@ -50,23 +50,68 @@ committed; only the matrix, the answers, and the final implementation land.
 
 ## Approach
 
-Build the guard in a scratch copy at the top of `verb.Apply` — before Phase 1,
-where disk still holds the operator's state — deriving the compared path set
-from `p.Ops` by prefix and the dirty set from `gitops.DirtyPaths`. Both
-primitives already exist, and `DirtyPaths` is already called from
-`internal/verb`.
+**The prototype leads.** Every defect found while settling this design was
+visible only by running code, and none was found by classifying it. The
+classification below exists to drive the prototype — a checklist of what to try —
+not to discover anything on its own.
 
-Drive a scenario matrix over that prototype: each verb class against each tree
-state, every cell a measurement. Verb classes: serializing (`set-priority`,
-`promote`), move-plus-write (`retitle`), pure move (`rename`), file move
-(`move`), `reallocate`, sweep (`archive`, `rewidth --apply`), config
-(`rename-area`, `contract bind`), `edit-body` in both modes, and the empty-plan
-verbs (`authorize`, `--audit-only`, `acknowledge`). Tree states: clean, dirty
-target, dirty nested, dirty `aiwf.yaml`, untracked stray, gitignored stray,
-staged, and HEAD-missing.
+Build the guard in a scratch copy at the top of `verb.Apply`, before Phase 1,
+where disk still holds the operator's state. Two inputs decide each path.
 
-The matrix answers the deferred questions as data rather than argument. Then the
-implementation lands test-first, and the prototype is discarded.
+**One bit, because that is all the instrument yields.** The guard's dirty set
+comes from `gitops.DirtyPaths` — `git diff --name-only HEAD` unioned with
+`git ls-files --others --exclude-standard` — and staged paths are already refused
+by `checkStagedConflict` earlier in the same function. Between them those two
+queries distinguish three classes of path, not the eight a HEAD/index/disk
+tri-state would suggest, so the decidable question per path is simply: *is it
+dirty?* Anything finer is a distinction the tooling erases.
+
+**Five roles, because that is what actually discriminates.** What separates the
+measured defects is not a path's git state but its role in the plan:
+
+| role | derived from | the decision |
+|---|---|---|
+| named write | `OpWrite.Path` | refuse if dirty, unless the op declares it adopts the working copy |
+| move source | `OpMove.Path` | refuse if dirty |
+| move destination | `OpMove.NewPath` | absent by construction, except a flat-file move onto an existing path |
+| nested under a move | prefix of `OpMove.Path` / `NewPath` | the open question — no verb named it |
+| not in the plan | — | nothing; `Apply` never touches it |
+
+Roles crossed with one bit is five to eight real decisions, all reachable. The
+two-axis alternative was measured at roughly one part in seven load-bearing, and
+it could not express the nested-milestone defect as a decision distinct from the
+hand-edited-body one, because both land in the same cell with different answers.
+
+**Then the second layer, which is where the unsettled questions live.** Per-path
+verdicts have to compose into one plan-level outcome — refuse if any path is
+dirty, or only for paths whose content the verb computed. That is a rule, not a
+table, and carry-along substitution is one candidate answer to it.
+
+Drive the prototype across the role/bit grid for each verb class, record what
+happens, decide from the results, then implement test-first and discard it.
+
+**Three limits are known before the prototype starts, and the guard must state
+them rather than imply completeness.**
+
+- **A dirty path can be invisible.** `assume-unchanged`, `skip-worktree` and
+  sparse checkout make both of `DirtyPaths`' queries answer "clean" for a path
+  whose disk content differs. Measured, a nested milestone's `tdd:` laundered
+  through an epic rename that way. G-0487.
+- **A clean path can already be corrupt, and the guard then makes it worse.** A
+  directory move flattens symlinks and forces mode `100644`, after which those
+  paths read as modified forever — so this guard would refuse every later verb on
+  that directory with no aiwf-side recovery, while a bare `chmod +x` would be
+  refused although it can launder nothing. G-0486.
+- **Some unowned writes involve no divergence at all.** The loader normalizes as
+  it reads, and the next write-verb commits that normalization under its own
+  trailer with disk and HEAD in agreement throughout. G-0488.
+
+Those three also correct the framing this milestone inherited. The root cause is
+not that verbs compare against a projection of disk; it is that a verb rewrites a
+**whole file re-serialized from a lossy in-memory model** rather than editing the
+fields it owns. HEAD-divergence is one way that goes wrong. The guard addresses
+that one, and the surgical-commit approach ADR-0038 defers is the shape that
+would address the rest.
 
 ## Acceptance criteria
 
@@ -99,16 +144,28 @@ The other direction — a false "already set; nothing to change" that drops the
 operator's mutation — is claim-side and belongs to M-0284. Both are real; they
 are separated because they are caught at different seams.
 
-### AC-4 — The spike matrix answers every question ADR-0038 defers
+### AC-4 — Every verb entry point has a stated guard decision or a reasoned exemption
 
-Each question the ADR records as deferred has an answer backed by a matrix cell
-rather than by argument: how the compared path set is derived, whether
-carry-along substitution is adopted and under what corrections, what the
-`ExitUsage` change costs across `cliutil`, and which existing tests break.
+The matrix is complete, not a sample: every path state crossed with every verb
+class has a defined answer, and a cell left blank is a failure of this criterion
+rather than an omission nobody notices. Completeness is the property worth
+asserting, because it is the one a later invariant can keep — add a verb class or
+a path state and the table has a hole, and the hole is detectable.
 
-The matrix itself is the deliverable — every verb class against every tree state,
-with the observed behaviour recorded. A question answered without a cell behind
-it does not satisfy this criterion.
+Each question the ADR records as deferred is then answered by cells rather than
+by argument: how the compared path set is derived, whether a path no verb named
+takes HEAD's content or refuses, how per-path verdicts compose into one plan-level
+outcome, what the `ExitUsage` change costs across `cliutil`, and which existing
+tests break. An answer with no cell behind it does not satisfy this criterion.
+
+Two answers the model is expected to produce, flagged so they are not mistaken
+for new scope. The sweeps' claim scope: `archive` and `rewidth` return their NoOp
+precisely when the selected set is *empty*, so scoping their guard to the
+selection would give it nothing to look at — the scope has to be the paths whose
+state the claim actually reads, which for a sweep is the candidate set. And
+`import`: its NoOp is constructed outside `internal/verb` on a different type, so
+it is in no site inventory, but it is in E-0075's scope and has cells like any
+other verb class.
 
 Where an answer contradicts an ADR-0038 decision rather than refining it, the ADR
 is superseded rather than quietly rewritten.
