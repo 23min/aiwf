@@ -11,7 +11,7 @@ acs:
       title: A no-change claim is never made against HEAD-divergent state
       status: open
     - id: AC-2
-      title: Every directory-OpMove verb covers the nested-path vector, not just rename
+      title: Every NoOp site compares at the scope its own claim asserts
       status: open
     - id: AC-3
       title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
@@ -72,7 +72,7 @@ to it. And the FSM history walker deliberately skips a commit that both renames
 and changes status, on the stated reasoning that pure renames don't change
 status — a premise this defect falsifies.
 
-### AC-2 — Every directory-OpMove verb covers the nested-path vector, not just rename
+### AC-2 — Every NoOp site compares at the scope its own claim asserts
 
 The vector belongs to any `OpMove` whose source is a directory — that is, any
 epic or contract entity moved by `rename`, `retitle`, `reallocate`, `archive` or
