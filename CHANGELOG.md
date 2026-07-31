@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0485: the gpg-signing test fixture no longer leaks a daemon per test run
+
+Nothing user-facing changed. Internal test hygiene: `internal/gitops`'s
+gpg-signing fixture created a throwaway `GNUPGHOME` and never removed it, so
+every `go test` run of that package left behind a directory and the
+`gpg-agent` daemon rooted in it. On a long-lived development machine these
+accumulated without bound — a devcontainer up for a day held 215 idle agents
+and 753 MB of resident memory. The fixture now shuts the agent down and
+removes the directory once the test binary's tests have finished. CI was
+never affected, since its runners are discarded after each job.
+
 ### Added — G-0467: the repo-lock refusals carry a machine-readable code
 
 Every mutating verb takes a per-repo lock before doing any work. Both ways
