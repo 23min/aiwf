@@ -1056,7 +1056,7 @@ Addresses G-0466 and G-0463.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0282 | Settle the write-scope precondition's seam, scope, verdict and escape hatch | in_progress |
+| M-0282 | Settle the write-scope precondition's seam, scope, verdict and escape hatch | done |
 | M-0283 | Spike the guard's mechanics and land the commit-side seam | draft |
 | M-0284 | Land the claim-side precondition and record each sweep's call | draft |
 | M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | draft |
