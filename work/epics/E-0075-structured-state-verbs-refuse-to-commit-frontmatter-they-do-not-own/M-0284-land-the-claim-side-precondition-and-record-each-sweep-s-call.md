@@ -8,7 +8,7 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: The measured tdd-through-parent-rename laundering no longer succeeds
+      title: A no-change claim is never made against HEAD-divergent state
       status: open
     - id: AC-2
       title: Every directory-OpMove verb covers the nested-path vector, not just rename
@@ -58,7 +58,7 @@ either way.
 
 ## Acceptance criteria
 
-### AC-1 — The measured tdd-through-parent-rename laundering no longer succeeds
+### AC-1 — A no-change claim is never made against HEAD-divergent state
 
 The reproduction E-0075 records no longer succeeds silently: `tdd:` hand-edited
 on a milestone, then `aiwf rename` on the parent epic, no longer produces a
