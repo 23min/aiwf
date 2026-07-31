@@ -146,26 +146,36 @@ are separated because they are caught at different seams.
 
 ### AC-4 — Every verb entry point has a stated guard decision or a reasoned exemption
 
-The matrix is complete, not a sample: every path state crossed with every verb
-class has a defined answer, and a cell left blank is a failure of this criterion
-rather than an omission nobody notices. Completeness is the property worth
-asserting, because it is the one a later invariant can keep — add a verb class or
-a path state and the table has a hole, and the hole is detectable.
+The mechanical half is coverage of the axis that drifts. Every exported
+`(*Result, error)` entry point under `internal/verb`, plus the unexported
+composite branches an AST scan of exported functions cannot see, either has a
+recorded decision about how the guard treats it or a reviewed allowlist entry
+giving its specific reason. The assertion is derived from the source rather than
+from a hand-authored list, in the shape `verb_result_noop_invariant.go` already
+uses — so adding a verb without deciding its treatment fails, which is the only
+drift a policy can actually catch.
 
-Each question the ADR records as deferred is then answered by cells rather than
-by argument: how the compared path set is derived, whether a path no verb named
-takes HEAD's content or refuses, how per-path verdicts compose into one plan-level
-outcome, what the `ExitUsage` change costs across `cliutil`, and which existing
-tests break. An answer with no cell behind it does not satisfy this criterion.
+State its reach honestly: it proves every route is *named*. It cannot prove an
+answer is correct, or that it was measured rather than reasoned. Those are read
+at the wrap review, which is where this project puts judgment a check cannot
+carry. Claiming more would repeat the mistake M-0282 recorded — a chokepoint that
+reads as enforcing and does not.
 
-Two answers the model is expected to produce, flagged so they are not mistaken
-for new scope. The sweeps' claim scope: `archive` and `rewidth` return their NoOp
-precisely when the selected set is *empty*, so scoping their guard to the
-selection would give it nothing to look at — the scope has to be the paths whose
-state the claim actually reads, which for a sweep is the candidate set. And
-`import`: its NoOp is constructed outside `internal/verb` on a different type, so
-it is in no site inventory, but it is in E-0075's scope and has cells like any
-other verb class.
+The non-mechanical half is the milestone's actual output: each question ADR-0038
+defers is answered from the prototype rather than by argument — how the compared
+path set is derived, how per-path verdicts compose into a plan-level outcome,
+whether carry-along substitution is adopted and under what corrections, what the
+`ExitUsage` change costs across `cliutil`, and which existing tests break. An
+answer with no measurement behind it is not an answer, and the wrap review is
+where that is judged.
+
+Two answers the prototype is expected to produce, flagged so they are not
+mistaken for new scope. The sweeps' claim scope: `archive` and `rewidth` return
+their NoOp precisely when the selected set is *empty*, so scoping their guard to
+that selection would give it nothing to look at. And `import`: its NoOp is
+constructed outside `internal/verb` on a different type, so no site inventory
+contains it, yet it is in E-0075's scope and needs a decision like any other
+route.
 
 Where an answer contradicts an ADR-0038 decision rather than refining it, the ADR
 is superseded rather than quietly rewritten.
