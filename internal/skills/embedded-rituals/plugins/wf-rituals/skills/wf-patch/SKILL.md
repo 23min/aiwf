@@ -61,7 +61,7 @@ Keep the slug short and conventional. Branch lifetime is the duration of the pat
 
 Touch only what's needed. Resist refactoring along the way — that's what a milestone is for, not a patch.
 
-If the patch fixes a **defect**, it lands with the check that pins it — a regression test that fails without the fix, or a lint or gate rule (`wf-codebase-health` D5). This sits on the same footing as the CHANGELOG entry in step 4: required, and not deferred to a follow-up. Two escapes, both explicit: a change with no logic to pin (a typo, whitespace, a dependency bump, a pure-config nudge — the same carve-out step 6 names) has nothing to add; and a defect you don't pin is stated at the commit gate and recorded where the project tracks such things — its issue tracker, or the tracked item this patch already closes — never fixed silently. A patch that ships a fix, a changelog line, and no check leaves the project's checks exactly as thin as they were, which is how the same defect class comes back.
+If the patch fixes a **defect**, it lands with the check that pins it — a regression test that fails without the fix, or a lint or gate rule (`wf-codebase-health` D5). This sits on the same footing as the CHANGELOG entry in step 4: required, and not deferred to a follow-up. Two escapes, each *stated* at the commit gate so the human can veto it rather than discovering it later. First, a change with no logic to pin — a typo, whitespace, a dependency bump, a pure-config nudge — where you say "no logic to pin". That is the same *change class* step 6's review carve-out names, but a separate statement: one licenses skipping the review, this one licenses skipping the pin, and the gate expects both when both apply. Second, a defect you don't pin, because you can't or because you judge it not worth the test, where you say which and record why in the project's tracker. Neither escape is automatic: an unspoken skip is the silent correction this rule exists to stop. A patch that ships a fix, a changelog line, and no check leaves the project's checks exactly as thin as they were, which is how the same defect class comes back.
 
 ### 4. Add a CHANGELOG entry
 
@@ -93,7 +93,7 @@ One-line subject, optional body explaining *why*.
 
 Immediately before showing the diff below, re-run `git diff --cached` and confirm it is byte-identical to the fingerprint captured before dispatching the reviewer in step 6 — never trust staging state carried across a subagent dispatch. A bare non-empty check is not sufficient: a reviewer that mutated shared git state can leave the index non-empty while missing the actual fix (the commit that lands would be a broken intermediate, passing only its own pinning test). If the diff has changed, stop — do not proceed to the commit message below — and re-stage and re-review before continuing. (Under the one carve-out in step 6 — no reviewer dispatched, no fingerprint captured — this re-check has nothing to compare against and is a no-op; the exemption travels with the carve-out.)
 
-Show the user the staged diff, the independent-review outcome (or the named carve-out from step 6), the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
+Show the user the staged diff, the independent-review outcome (or the named carve-out from step 6), the pinning statement from step 3 (the check that landed, or the named escape and where it is recorded), the green-gate evidence, and the proposed commit message. **Stop and wait for explicit "commit" approval.** Never commit unprompted, even on what looks like a trivial change.
 
 ### 9. After commit approval
 
@@ -188,7 +188,7 @@ If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, re
 - *"While I was in there I also fixed X"* — split into two patches.
 - *"It's just one line, no need for a separate branch"* — every patch goes through a branch and an explicit `--no-ff` merge. That pairing is the audit trail.
 - *"It's internal, no need for a CHANGELOG entry"* — every patch adds one, even if it's a single line stating nothing user-facing changed. A patch has no parent epic to roll the change into later.
-- *"I'll add the regression test in a follow-up"* — the follow-up is where pinning goes to die, and the fix is cheapest to pin while you still hold why it broke. Land the check with the fix, or state at the commit gate that it can't be pinned and why.
+- *"I'll add the regression test in a follow-up"* — the follow-up is where pinning goes to die, and the fix is cheapest to pin while you still hold why it broke. Land the check with the fix, or state at the commit gate that you are not pinning it, why, and where that is recorded.
 - *"The wrap was approved, so I'll push too"* — the wrap gate never covers the push. Outward actions stand alone.
 - *"I reviewed it myself, it looks fine"* — self-review is not the gate. Step 6 dispatches a fresh-context reviewer; the author cannot see their own blind spots. The only exception is the explicitly-stated no-logic carve-out.
 - *"I'll update the roadmap from this patch"* — never.
@@ -198,5 +198,5 @@ If the patch surfaced a pattern, pitfall, or implicit decision worth keeping, re
 - 🛑 Never commit, merge, promote, push, or delete a branch without explicit human approval. Three gates: commit (step 8), wrap (step 10, declared sequence), push (step 15).
 - The full local CI gate must be green before the commit gate.
 - Every patch adds a `CHANGELOG.md` entry under `## [Unreleased]` (step 4) — always, with a minimal one-line form for internal-only patches. No skip.
-- 🛑 A patch that fixes a defect lands the check that pins it (step 3) — a regression test that fails without the fix, a lint rule, or a gate entry. Two named escapes only: a change with no logic to pin, and a defect stated as unpinned at the commit gate and recorded in the project's tracker. Both are the human's to veto, never a silent default.
+- 🛑 A patch that fixes a defect lands the check that pins it (step 3) — a regression test that fails without the fix, a lint rule, or a gate entry. Two named escapes only: a change with no logic to pin, and a defect you don't pin — because you can't, or because you judge it not worth the test — stated at the commit gate and recorded in the project's tracker. Both are stated explicitly so the human can veto them; neither is a silent default.
 - Branch is `patch/G-NNNN-<short-slug>` when the patch closes a gap, else `patch/<short-slug>`. The single `patch/` prefix is the convention for this skill; the gap id, when present, is what the statusline's session-entity HUD reads.

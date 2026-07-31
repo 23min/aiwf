@@ -20,14 +20,17 @@ section in this file.
 
 The `wf-codebase-health` rubric gains a **D5 — Findings become checks** force: a
 confirmed defect leaves behind a check that fails without the fix, and a defect
-that genuinely cannot be pinned becomes a recorded decision or a tracked issue
-rather than a silent correction. D5 also splits findings into objective defects
-(which go to the project's checks, each one encoded making the next review round
-smaller) and judgment disagreements (which become a written rule or a one-time
-decision, and may not return as fresh opinion), and carries a labelled **stop
-rule**: a review loop is converged when a fresh reviewer over the whole surface
-finds no defect that is not already fixed, pinned, or tracked — not when
-findings reach zero.
+you cannot pin — or judge not worth pinning — becomes a recorded decision or a
+tracked issue rather than a silent correction. The bar is that the disposition
+is spoken and written down, not that every defect earns a test. D5 also splits
+findings into objective defects (which go to the project's checks, each one
+encoded making the next review round smaller) and judgment disagreements: an
+accepted one becomes a written rule or a decision, a declined one is recorded
+as a non-issue, and neither may return as fresh opinion. It carries a labelled
+**stop rule**: a review loop is converged when a fresh reviewer over the whole
+surface finds no defect that is not already pinned, recorded, or tracked — a
+merely *fixed* defect satisfies none of those, which is the silent correction
+the force forbids — and not when findings reach zero.
 
 `wf-review-code` applies the force at the point findings are disposed of. Its
 verdict step now classifies on two axes — kind (defect / judgment) alongside the
@@ -48,8 +51,9 @@ previously confirmed fixes against the changed surface alone and had no
 terminator at all.
 `wf-patch` puts the regression test on the same footing as its mandatory
 CHANGELOG entry, with two named escapes (a change with no logic to pin, and a
-defect stated as unpinnable at the commit gate); a bug fix can no longer land
-documented but unpinned. `aiwfx-plan-milestones` hands the amend-versus-defer
+defect you don't pin, recorded in the project's tracker); a bug fix can no
+longer land documented but unpinned. Both escapes are stated at the commit
+gate, which now asks for the pinning statement alongside the review outcome. `aiwfx-plan-milestones` hands the amend-versus-defer
 scope fork to `aiwfx-record-decision` instead of leaving it uncaptured, and the
 reviewer role card carries the kind constraint.
 

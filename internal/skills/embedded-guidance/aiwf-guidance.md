@@ -77,7 +77,7 @@ Hold these highest-leverage forces *while writing code*; reach for the full
 `wf-codebase-health` skill when designing a module or reviewing a non-trivial diff:
 
 - **D1 — pin behavior, not implementation.** Tests assert what the code does for given inputs, not which internals ran.
-- **D5 — findings become checks.** A confirmed defect leaves behind a check that fails without the fix; what can't be pinned becomes a recorded decision or a tracked gap, never a silent correction. Sort defect from judgment before spending a fix, and end a review loop when a fresh full-surface pass finds no defect that isn't already fixed, pinned, or tracked — not when findings reach zero.
+- **D5 — findings become checks.** A confirmed defect leaves behind a check that fails without the fix; what you can't pin, or judge not worth pinning, becomes a recorded decision or a tracked gap — never a silent correction. Sort defect from judgment before spending a fix, and end a review loop when a fresh full-surface pass finds no defect that isn't already pinned, recorded, or tracked — not when findings reach zero.
 - **C1 — single source of truth.** Each fact lives in one place; derive the rest with pure functions.
 - **C3 — atomic writes.** A crash leaves persisted state fully-old or fully-new, never half-written.
 - **B1/B2 — typed interfaces and validated schemas at boundaries**, not loose maps or unchecked shapes.
