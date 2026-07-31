@@ -30,7 +30,8 @@ The precondition runs at verb.Apply and at a shared NoOp constructor.
 
 ### Path scope
 
-At Apply the comparison covers the full committed path set.
+At Apply the comparison covers the full committed path set, which is what covers
+every nested path under a directory move.
 
 ### Field scope
 
@@ -38,7 +39,8 @@ Whole-file at Apply; frontmatter at the NoOp seam.
 
 ### Verdict
 
-Divergence refuses. It does not warn.
+Divergence refuses. It does not warn: a laundered status would otherwise bypass
+the illegal-transition check.
 
 ### Escape hatch
 
@@ -83,8 +85,11 @@ func TestPolicyM0282_FiringFixtures(t *testing.T) {
 			wantsAC: "AC-1",
 		},
 		{
+			// Drops the verdict marker while keeping the nested-case
+			// marker, so this case isolates the AnyOf arm from the
+			// Requires arm exercised further down.
 			name:    "AC-2 path scope records no verdict",
-			body:    strings.Replace(completeFixtureBody, "At Apply the comparison covers the full committed path set.", "We thought about it.", 1),
+			body:    strings.Replace(completeFixtureBody, "At Apply the comparison covers the full committed path set, which is what covers", "We thought about it, and about", 1),
 			wantsAC: "AC-2",
 		},
 		{
@@ -110,6 +115,50 @@ func TestPolicyM0282_FiringFixtures(t *testing.T) {
 		{
 			name:    "AC-1 consequences omit the seam's reach",
 			body:    strings.Replace(completeFixtureBody, "Both misbehaviors are reached: the false no-change claim and the\nempty-diff commit.", "Things follow.", 1),
+			wantsAC: "AC-1",
+		},
+		{
+			name:    "AC-2 path scope omits the nested case",
+			body:    strings.Replace(completeFixtureBody, ", which is what covers\nevery nested path under a directory move", "", 1),
+			wantsAC: "AC-2",
+		},
+		{
+			name:    "AC-3 verdict omits the illegal-transition weighing",
+			body:    strings.Replace(completeFixtureBody, ": a laundered status would otherwise bypass\nthe illegal-transition check", "", 1),
+			wantsAC: "AC-3",
+		},
+		{
+			name: "an ADR that decides nothing does not pass",
+			body: `## Context
+
+x
+
+## Decision
+
+### Seam
+
+The seam question does not apply here. Deferred.
+
+### Path scope
+
+No agreement on whether a committed path set is the right unit. Open.
+
+### Field scope
+
+Whether whole-file or frontmatter-only is right is unresolved.
+
+### Verdict
+
+The team refuses to settle refuse-vs-warn today.
+
+### Escape hatch
+
+Nonetheless: undecided.
+
+## Consequences
+
+A falsely optimistic reading would be unblessed by the authors.
+`,
 			wantsAC: "AC-1",
 		},
 		{

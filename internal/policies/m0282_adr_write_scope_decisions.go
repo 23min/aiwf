@@ -22,31 +22,43 @@ const adrWriteScopeID = "ADR-0038"
 // exists" from "the decision was actually recorded" — a subsection
 // present but silent on its own verdict fails.
 //
-// anyOf holds alternative spellings of the recorded verdict: the AC
+// AnyOf holds alternative spellings of the recorded verdict: the AC
 // requires that a choice be recorded, not which choice, so a later
 // amendment that flips a verdict keeps passing while a subsection that
 // records no verdict at all fails.
+//
+// Requires holds markers that must ALL appear, for the criteria that
+// oblige a decision to carry its reasoning rather than only its verdict.
+// It is also what keeps the assertion from passing vacuously: a marker
+// short enough to have several spellings also matches prose that decides
+// nothing — "does not apply" contains "apply", "nonetheless" contains
+// "none" — so the distinctive term is required rather than offered as
+// one alternative among many.
 type writeScopeDecision struct {
-	AC      string
-	Heading string
-	AnyOf   []string
-	WhatFor string
+	AC       string
+	Heading  string
+	AnyOf    []string
+	Requires []string
+	WhatFor  string
 }
 
 // writeScopeDecisions is the agenda M-0282's acceptance criteria pin,
 // one entry per AC. Order matches the ADR's own subsection order.
 var writeScopeDecisions = []writeScopeDecision{
 	{
-		AC:      "AC-1",
-		Heading: "Seam",
-		AnyOf:   []string{"verb.Apply", "Apply"},
-		WhatFor: "where the precondition runs relative to the same-state comparison",
+		AC:       "AC-1",
+		Heading:  "Seam",
+		Requires: []string{"verb.Apply"},
+		WhatFor:  "where the precondition runs relative to the same-state comparison",
 	},
 	{
 		AC:      "AC-2",
 		Heading: "Path scope",
 		AnyOf:   []string{"committed path set", "committed-path"},
-		WhatFor: "whether the guard is entity-scoped or committed-path-scoped",
+		// The AC obliges the nested case to be addressed in this
+		// decision's own text, not merely listed elsewhere.
+		Requires: []string{"nested"},
+		WhatFor:  "whether the guard is entity-scoped or committed-path-scoped",
 	},
 	{
 		AC:      "AC-5",
@@ -58,13 +70,16 @@ var writeScopeDecisions = []writeScopeDecision{
 		AC:      "AC-3",
 		Heading: "Verdict",
 		AnyOf:   []string{"refuses", "refuse"},
-		WhatFor: "refuse or warn",
+		// The AC obliges the verdict to be weighed against the
+		// illegal-transition escape, not only against misattribution.
+		Requires: []string{"illegal-transition"},
+		WhatFor:  "refuse or warn",
 	},
 	{
-		AC:      "AC-4",
-		Heading: "Escape hatch",
-		AnyOf:   []string{"No `--force`", "no escape hatch", "none"},
-		WhatFor: "whether an escape hatch exists and what it costs",
+		AC:       "AC-4",
+		Heading:  "Escape hatch",
+		Requires: []string{"--force"},
+		WhatFor:  "whether an escape hatch exists and what it costs",
 	},
 }
 
@@ -124,10 +139,17 @@ func PolicyM0282ADRWriteScopeDecisions(root string) ([]Violation, error) {
 				d.AC, d.Heading, d.WhatFor))
 			continue
 		}
-		if !containsAny(body, d.AnyOf) {
+		if len(d.AnyOf) > 0 && !containsAny(body, d.AnyOf) {
 			report(fmt.Sprintf(
 				"%s: `### %s` records no verdict on %s (expected one of: %s)",
 				d.AC, d.Heading, d.WhatFor, strings.Join(d.AnyOf, ", ")))
+		}
+		for _, req := range d.Requires {
+			if !containsAny(body, []string{req}) {
+				report(fmt.Sprintf(
+					"%s: `### %s` does not carry %q — the criterion obliges the decision to record its reasoning, not only its verdict",
+					d.AC, d.Heading, req))
+			}
 		}
 	}
 
