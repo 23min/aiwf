@@ -271,6 +271,58 @@ complete already: the `load-error` hint names the hand-fix, and the
 `provenance-untrailered-entity-commit` hint names acknowledging the hand-commit
 that lands it. No new surface was needed.
 
+## Decisions made during implementation
+
+- **ADR-0038** — the milestone's deliverable, recording the seam, path scope,
+  field scope, verdict and escape hatch. Accepted, then narrowed twice under
+  review: carry-along substitution was removed to M-0283 after prototyping
+  broke it, and the `ExitUsage` correction was demoted from decision to open
+  question once it turned out to need a change in `internal/cli/cliutil`.
+- **The mechanical evidence was narrowed rather than tightened.** Recorded in
+  `## Reviewer notes` below, and in the policy's own doc comment. No separate
+  decision entity: it settles how one policy is written, not a project-wide
+  convention.
+- **The epic's milestone split changed** — M-0283 absorbs the spike and the
+  nested-path vector; M-0284 becomes the claim-side seam plus the sweeps'
+  recorded calls. Recorded in E-0075's *Milestones* section.
+
+## Validation
+
+`make ci` green — race suite, lint, the profile-driven gates and
+`aiwf doctor --self-check` (29 steps). `make coverage-gate` green, including the
+diff-scoped branch-coverage audit and the firing-fixture meta-gate.
+`aiwf check --since origin/main` reports no findings.
+
+`internal/policies` passes in full. The M-0282 policy's own tests cover the live
+ADR, a clean negative control, one firing fixture per failure mode — including
+both present-but-empty arms and both non-`accepted` statuses — the loader-miss
+arm, and the test pinning that a deferring document passes.
+
+One flake seen and diagnosed, not caused here:
+`TestRun_FixtureRejected_OneFailingValid` in `internal/contractverify` failed one
+`make ci` run and passed in isolation on this branch and on trunk. The test
+writes a `#!/bin/sh` validator at mode `0o755` and execs it, which races to
+`ETXTBSY` under parallel load — G-0462's first mechanism, tracked and scheduled
+in E-0077.
+
+## Deferrals
+
+Four questions ADR-0038 records as deferred, all assigned to M-0283 and answered
+there from a prototype rather than by argument: how the compared path set is
+derived; whether carry-along substitution is adopted and under what corrections;
+what the `ExitUsage` change costs across `internal/cli/cliutil`; and which
+existing tests break.
+
+Three defects surfaced by this milestone's reviews, each pre-existing, none in
+this epic's scope, all filed rather than absorbed:
+
+- **G-0486** — directory moves dereference symlinks and force mode `100644`.
+  Measured on a clean tree, durable in a fresh clone, `aiwf check` 0 errors.
+- **G-0487** — `assume-unchanged` / `skip-worktree` / sparse checkout hide a
+  dirty path from both of `DirtyPaths`' queries. Bounds M-0283's guard directly.
+- **G-0488** — the loader's `area` normalization rides into the next verb's
+  commit, with no divergence anywhere.
+
 ## Reviewer notes
 
 **Two independent review rounds, four reviewers, and the ADR changed
