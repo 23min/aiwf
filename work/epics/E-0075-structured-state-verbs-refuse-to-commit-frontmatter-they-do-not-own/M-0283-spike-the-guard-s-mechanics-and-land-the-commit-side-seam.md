@@ -29,132 +29,170 @@ acs:
 
 ## Goal
 
-Build the write-scope precondition at the seam M-0282 chose, and route every
-single-entity frontmatter-writing verb through it, so a hand-edited field can no
-longer ride into another verb's commit unreported.
+Settle the guard's remaining mechanics by building a throwaway prototype, then
+land the commit-side guard at `verb.Apply` on what the prototype proved.
 
 ## Context
 
-M-0282 settled where the precondition runs, what it compares, whether it refuses
-or reports, and whether an escape hatch exists. This milestone is the first that
-writes code against those answers.
+ADR-0038 settles the decisions answerable by reading the code: two seams both
+inside `internal/verb`, refuse rather than warn, whole-file scope at both, no
+`--force` and no repair verb, and a structural exemption for `edit-body` bless
+mode. It deliberately defers the mechanics, because every defect found while
+drafting it was an implementation discovery rather than a reading one — that a
+comparison at `gatherCommitOps` reads the verb's own freshly-written bytes, that
+a carry-along substitution duplicates subtrees and drops a milestone from a
+`rewidth` commit, that a flat-file move's destination falls outside a
+nested-only taxonomy. None of those is visible in prose.
 
-The routing is not a one-line insertion. `planEntityWrite` is the nearest thing
-to a shared single-entity write seam, and it covers seven call sites across six
-files — `ac.go`, `cancel.go`, `milestone_depends_on.go`, `milestone_tdd.go` and
-`retitle.go`. The rest of the routes in the epic's scope list build their plans
-directly. Roughly half the work is bringing those routes to a seam that does not
-yet cover them, which is why this milestone is sized above the ADR that precedes
-it.
+So this milestone inverts the usual order: prototype first, decide from
+measurement, then implement under TDD. The prototype is throwaway and never
+committed; only the matrix, the answers, and the final implementation land.
 
 ## Approach
 
-Build the guard once, at the chosen seam, with `checkStagedConflict`'s message
-shape — it already refuses this exact operator sequence for the *staged* case,
-naming the overlapping path and pointing at `git restore --staged` or
-`git stash`. The unstaged case is the open hole, so the operator meets one
-message for one condition rather than two differently-shaped refusals.
+Build the guard in a scratch copy at the top of `verb.Apply` — before Phase 1,
+where disk still holds the operator's state — deriving the compared path set
+from `p.Ops` by prefix and the dirty set from `gitops.DirtyPaths`. Both
+primitives already exist, and `DirtyPaths` is already called from
+`internal/verb`.
 
-Routes then move onto the seam one at a time, each with its own test, rather than
-in one sweep — the route list is long and the failure mode of a bulk move is a
-route that compiles onto the seam without ever being exercised through it.
+Drive a scenario matrix over that prototype: each verb class against each tree
+state, every cell a measurement. Verb classes: serializing (`set-priority`,
+`promote`), move-plus-write (`retitle`), pure move (`rename`), file move
+(`move`), `reallocate`, sweep (`archive`, `rewidth --apply`), config
+(`rename-area`, `contract bind`), `edit-body` in both modes, and the empty-plan
+verbs (`authorize`, `--audit-only`, `acknowledge`). Tree states: clean, dirty
+target, dirty nested, dirty `aiwf.yaml`, untracked stray, gitignored stray,
+staged, and HEAD-missing.
+
+The matrix answers the deferred questions as data rather than argument. Then the
+implementation lands test-first, and the prototype is discarded.
 
 ## Acceptance criteria
 
 ### AC-1 — Unstaged HEAD-divergent content is never committed silently
 
-A structured-state verb run against an entity whose frontmatter differs from HEAD
-in the unstaged working copy does not commit that difference without saying so.
-Whether the outcome is a refusal or a report is M-0282's third decision; what
-this AC pins is that the silence is gone.
+A verb run against a path whose working-copy content differs from HEAD does not
+commit that difference without saying so. Whole-file, not frontmatter-only: the
+measured defect covers an unblessed body edit as well as a hand-edited field.
 
-The reproduction E-0075 records is the shape to test: a gap's priority set to
-`high` through `aiwf set-priority`, hand-edited to `low`, then a different verb
-run — after which `aiwf history` still names `set-priority high` as the last
-priority act while the file reads `low`.
+The reproduction to pin: a gap's body rewritten in the working tree, then
+`aiwf set-priority` run, after which the commit carries both the priority change
+and the body rewrite while `aiwf history` shows no `edit-body` event.
 
 ### AC-2 — The measured priority-through-retitle laundering no longer succeeds
 
-The specific route E-0075 measured: `aiwf retitle` no longer carries
-`-priority: high / +priority: low` into a commit trailered `aiwf-verb: retitle`.
+`aiwf retitle` no longer carries `-priority: high / +priority: low` into a commit
+trailered `aiwf-verb: retitle`.
 
-`retitle` is worth its own AC rather than being folded into AC-4 because it sits
-in both mechanisms at once — it builds an `OpMove` and an `OpWrite`, so it is
-both a serializing route and a move-shaped one. A guard that covers it covers the
-overlap.
+`retitle` earns its own criterion because it sits in both mechanisms at once — it
+builds an `OpMove` and an `OpWrite`, so it is a serializing route and a
+move-shaped one. A guard that covers it covers the overlap.
 
 ### AC-3 — A verb over a dirty disk never commits a tree identical to its parent
 
-The two failure directions of a loaded-only comparison, both of which E-0075
-measures and neither of which its success criteria currently assert:
+The empty-diff direction of a loaded-only comparison: asking for HEAD's value
+while the working copy diverges commits a tree byte-identical to its parent — the
+class M-0281 existed to eliminate.
 
-- Asking for the value already on the dirty disk reports "already set; nothing to
-  change" while HEAD says otherwise — false about the record, and the operator's
-  requested mutation is dropped.
-- Asking for HEAD's value commits a tree byte-identical to its parent — an
-  empty-diff commit of exactly the class M-0281 existed to eliminate.
-
-This AC is what makes M-0282's first decision consequential rather than academic:
-a guard sited at `verb.Apply` reaches the second case but not the first, because
-the same-state guard returns from the verb body before any plan exists. If the
-ADR chose that seam, this AC is where the consequence has to be recorded rather
-than discovered.
+The other direction — a false "already set; nothing to change" that drops the
+operator's mutation — is claim-side and belongs to M-0284. Both are real; they
+are separated because they are caught at different seams.
 
 ### AC-4 — The spike matrix answers every question ADR-0038 defers
 
-Every route named in E-0075's *Scope* section under single-entity field writes
-either passes through the precondition or carries a recorded reason for being
-exempt. Stated as a reference to the epic's list rather than reproduced here, so
-the two cannot drift.
+Each question the ADR records as deferred has an answer backed by a matrix cell
+rather than by argument: how the compared path set is derived, whether
+carry-along substitution is adopted and under what corrections, what the
+`ExitUsage` change costs across `cliutil`, and which existing tests break.
 
-The routes deliberately excluded there — `authorize`, `acknowledge illegal`,
-`acknowledge mistag`, and `promote` / `cancel --audit-only` — write no files at
-all, so there is nothing for a write-scope guard to compare. They are out by
-construction, not by exemption.
+The matrix itself is the deliverable — every verb class against every tree state,
+with the observed behaviour recorded. A question answered without a cell behind
+it does not satisfy this criterion.
+
+Where an answer contradicts an ADR-0038 decision rather than refining it, the ADR
+is superseded rather than quietly rewritten.
 
 ### AC-5 — The measured nested laundering through a parent rename no longer succeeds
 
+`tdd:` hand-edited on a milestone, then `aiwf rename` on the parent epic, no
+longer produces a commit that attributes the change to the epic while
+`aiwf history` on the milestone shows no event for it.
+
+The nested vector is commit-side, which is why it sits here rather than with the
+claim-side work. It is also the vector that defeats a blocking check, since the
+FSM history walker skips a commit that both renames and changes status.
+
+Coverage follows the code rather than any prose route list: the vector belongs to
+every `OpMove` whose source is a directory, and to a file move's own destination.
+A taxonomy scoped to "nested under a move" was measured to leave flat-file
+renames laundering freely.
+
 ### AC-6 — edit-body bless mode still commits a working-copy edit
+
+Bless mode's precondition is that the working copy diverges from HEAD, so a guard
+refusing divergence would block the one verb whose job is to commit it — and
+would make the recovery ADR-0038 recommends unreachable.
+
+The exemption is verified, not merely declared: the guard asserts the exempted
+write's content equals the bytes on disk, so it can smuggle nothing else. Bless
+mode already refuses any frontmatter divergence of its own accord, which is what
+keeps the exemption from becoming a laundering route.
 
 ## Constraints
 
-- `checkStagedConflict` is the precedent for the message, not just the position.
-  A second, differently-shaped refusal for the unstaged case leaves the operator
-  with two messages for one condition.
-- The comparison degrades when there is no HEAD version. `edit-body` already
-  holds both answers — bless mode refuses a never-committed entity, explicit mode
-  proceeds — so the raw material sits in one file.
+- The prototype is throwaway. It is never committed, and no implementation commit
+  may depend on it existing.
+- The matrix is measured, not predicted. A cell filled by reasoning is not a
+  measurement, and the numbers this milestone reports are its own.
+- `checkStagedConflict` is the precedent for the message and the position, so the
+  operator meets one message shape for one condition rather than two.
+- Every route the guard covers is exercised *through* the guard by a test.
+  Compiling onto a shared helper is not evidence that a route reaches it.
 - Nothing here may be read as fixing the FSM walker's rename-plus-status blind
-  spot. The precondition incidentally masks it; the rule stays wrong for any
-  other route to such a commit, and G-0475 stays open.
-- Every route moved onto the seam is exercised *through* the seam by a test.
-  Compiling onto a shared helper is not evidence that the route reaches it.
+  spot. The precondition incidentally masks it; G-0475 stays open on its own
+  terms.
 
 ## Design notes
 
-- M-0282's four decisions are pre-locked inputs. If implementation surfaces a
-  reason one of them is wrong, that is an ADR amendment, not a local judgment
-  call made inside this milestone.
-- The nested-path vector is explicitly *not* this milestone's problem. It belongs
-  to M-0284, and the split exists so a long single-entity route list does not
-  bury the vector that defeats a blocking check.
+- The comparison must name the *pre-mutation* working copy. By the time
+  `gatherCommitOps` runs, Phase 1 moves and Phase 2 writes have already mutated
+  disk, so a comparison there reads the verb's own bytes — measured to refuse
+  every content-writing verb on a clean tree while skipping every move-shaped
+  one.
+- A pre-mutation guard prefix-matches rather than predicts. `stagedPathConflicts`
+  already derives the nested set that way for the staged twin, with a comment
+  recording why it is equivalent to walking the filesystem.
+- Carry-along substitution — taking HEAD's blob for a path no verb named — is a
+  candidate refinement, not a settled decision. Prototyped, it duplicated
+  subtrees under `retitle` / `move` / `reallocate`, dropped a milestone from a
+  `rewidth --apply` commit, and left flat-file renames uncovered; it also
+  interacts with link-rewrite `OpWrite`s in a way that makes two sibling
+  milestones behave oppositely. Adopt it only with those resolved, and record the
+  reasoning either way.
+- `ExitUsage` for the precondition needs a change in `internal/cli/cliutil`,
+  which maps every `Apply` error to `ExitInternal`. That sits outside
+  `internal/verb` and has to be scoped rather than assumed.
 
 ## Out of scope
 
-- Multi-entity sweeps and the nested-path case — M-0284.
-- The `internal/policies/` invariant that keeps new routes on the seam — M-0285.
+- The claim-side precondition and the 22 NoOp sites — M-0284.
+- Each multi-entity sweep's recorded in-or-out call — M-0284.
+- The `internal/policies/` invariant keeping new routes on the seam — M-0285.
 - After-the-fact detection of laundering already in history (G-0480).
 
 ## Dependencies
 
-- M-0282 — the ADR settling the seam, scope, verdict and escape hatch.
+- M-0282 — ADR-0038, which settles the decisions this milestone implements and
+  names the questions it answers.
 
 ## References
 
-- E-0075 — the parent epic, whose *Scope* section AC-4 references
+- E-0075 — the parent epic
+- ADR-0038 — the decisions settled, and the mechanics deferred here
 - G-0466 — a verb commits frontmatter it does not own
 - G-0463 — the `edit-body --body-file` instance
+- G-0475 — the FSM walker blind spot this must not be read as fixing
 - M-0281 — the same-state convergence work whose empty-diff class AC-3 protects
-- `internal/verb/apply.go` — `checkStagedConflict`, the precedent
-- `internal/verb/common.go` — `planEntityWrite`, the partial existing seam
-
+- `internal/verb/apply.go` — `checkStagedConflict` and `stagedPathConflicts`
+- `internal/gitops/gitops.go` — `DirtyPaths`, the dirty-set primitive
