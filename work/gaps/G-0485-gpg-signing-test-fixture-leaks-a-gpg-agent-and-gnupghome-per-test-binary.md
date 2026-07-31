@@ -1,8 +1,10 @@
 ---
 id: G-0485
 title: Gpg-signing test fixture leaks a gpg-agent and GNUPGHOME per test binary
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 3690153703f9930f1c8f3eb8a9458cdba016a5cf
 ---
 ## What's missing
 
