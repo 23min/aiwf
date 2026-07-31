@@ -47,6 +47,14 @@ wrong instant — by then the verb has already compared and classified against
 dirty bytes, and suppressing the message does not undo the classification. The
 precondition therefore runs *before* the comparison.
 
+The two seams share one comparison. ADR-0038 records that, but M-0283 had no
+second seam to share with, so the commit-side guard got a private input — git's
+report of what the operator changed, patched once for ignored files. Building the
+second seam here is what turns the shared comparison from a recorded intent into
+the code both seams call, and it is the last cheap moment to do so: M-0285 makes
+the seam mechanical, and a chokepoint around an input that asks the wrong
+question is harder to move than the input itself.
+
 ## Approach
 
 One precondition, called from each verb's prelude between resolution and the
@@ -60,6 +68,12 @@ milestone's file); three are scoped to `aiwf.yaml`; two are whole-tree sweeps
 whose claim derives from every entity's status or id width, so their scope is the
 selection, computed after selection; and one compares against git history rather
 than the working copy and needs no guard at all.
+
+The comparison those preludes call asks one question — does HEAD's blob for a
+path equal what is on disk. The two seams differ only in which paths they hand
+it: at the claim side the set is small and known, usually the one entity file the
+claim asserts about; at the commit side it is the plan's own paths under the
+prefix rule M-0283 established. One primitive, two path sets.
 
 ## Acceptance criteria
 
@@ -111,6 +125,22 @@ rather than stylistic.
 
 ### AC-5 — The commit-side guard reads the record, not git's dirty report
 
+`verb.Apply`'s guard derives its divergence set by comparing HEAD's blobs against
+disk for the paths a plan would carry, rather than by intersecting those paths
+with git's report of what the operator changed.
+
+A path git declines to report is still a path the commit carries, and the dirty
+set has no way to say so. Two instances were measured separately, each initially
+read as its own limit: an ignored file beneath a moved directory, which M-0283
+closed by adding a third query, and an `assume-unchanged` milestone under a
+parent-epic rename, which stayed reachable after that fix shipped. The blob
+comparison closes both as one property — `.gitignore` never enters it, and the
+index bits live on a side neither half of it reads.
+
+This is a re-point, not a second implementation: the primitive is the one AC-1
+introduces, and the ignored-path query retires with the dirty set it was
+patching.
+
 ## Constraints
 
 - The precondition runs before the same-state comparison, not inside the NoOp
@@ -124,6 +154,10 @@ rather than stylistic.
   ordered this way rather than merged.
 - Whatever lands must not be read as fixing the FSM walker's rename-plus-status
   blind spot. G-0475 stays open on its own terms.
+- ADR-0038's *Seam* section names `gitops.DirtyPaths` as the guard's input, "two
+  subprocesses, no per-path blob reads". AC-5 supersedes that, so the ADR takes an
+  in-place amendment naming the superseded statement — the shape its escape-hatch
+  subsection already uses, since the `accepted` text is in other clones.
 
 ## Design notes
 
@@ -136,10 +170,20 @@ rather than stylistic.
 - The existing NoOp policy scans *exported* entry points only, so the unexported
   composite branches (`promoteAC`, `cancelAC`, `renameAC`, `retitleAC`) are
   invisible to it and need their own tests here rather than relying on M-0285.
+- The blob comparison is index-independent by construction: HEAD's side is read
+  from the object database and the working copy's from disk, so the bits that hid
+  a path from the dirty set — `assume-unchanged`, `skip-worktree` — are on neither
+  side of it, and `.gitignore` governs neither. That is why AC-5 closes G-0492 as
+  a class rather than closing its third instance.
+- Whether AC-5 also closes G-0487 turns on what the guard does with a path present
+  in HEAD and absent from disk, which is the sparse-checkout shape. That call is
+  AC-5's to make and measure; the promotion is a wrap-time question, not an
+  assumption to carry in.
 
 ## Out of scope
 
-- The commit-side guard and the nested-path vector — M-0283.
+- The commit-side guard's seam, verdict, and the nested-path vector — M-0283.
+  Only its input is in scope here, as AC-5.
 - The `internal/policies/` chokepoint forbidding literal `Result{NoOp: true}`
   construction — M-0285.
 - After-the-fact detection of laundering already in history (G-0480).
@@ -156,5 +200,7 @@ rather than stylistic.
 - G-0466 — a verb commits frontmatter it does not own
 - G-0475 — the FSM walker blind spot this must not be read as fixing
 - G-0480 — after-the-fact detection; the backstop this does not replace
+- G-0492 — the guard reads git's dirty report, not the bytes a plan would carry
+- G-0487 — git's hidden-state bits make a dirty path invisible to a dirty-set guard
 - `internal/policies/verb_result_noop_invariant.go` — the exported-only scan
 - CLAUDE.md — "Same-state convergence — resolve, then converge"
