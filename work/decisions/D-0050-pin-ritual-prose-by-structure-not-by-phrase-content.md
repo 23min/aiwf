@@ -1,7 +1,7 @@
 ---
 id: D-0050
 title: Pin ritual prose by structure, not by phrase content
-status: proposed
+status: accepted
 relates_to:
     - G-0489
 ---
