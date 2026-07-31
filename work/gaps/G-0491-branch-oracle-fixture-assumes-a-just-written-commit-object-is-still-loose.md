@@ -1,0 +1,44 @@
+---
+id: G-0491
+title: Branch-oracle fixture assumes a just-written commit object is still loose
+status: open
+priority: medium
+---
+## What's missing
+
+`corruptUnusedRitualRef` (`internal/cli/integration/isolation_escape_oracle_scenarios_test.go:285`) builds its fixture by committing a file, then overwriting the commit's object *file* in place to make a per-ref first-parent walk fail while `for-each-ref` still emits the ref name. It computes the path arithmetically — `.git/objects/<sha[:2]>/<sha[2:]>` — and fatals if the chmod ahead of the overwrite fails.
+
+That path exists only while the object is loose. Nothing in the fixture establishes that it is, so when the object is not at that path the scenario reports a fixture error rather than the oracle verdict it exists to check:
+
+```
+--- FAIL: TestBranchOracle_AC3_SovereignOverride_StaysClean/AC-3_sovereign_(paired):_acknowledged_escape_+_unrelated_corrupt_ref_→_oracle-failure_fires
+    branch_scenarios_helpers_test.go:169: chmod object .../.git/objects/17/541d2e20deffd58097c298ae26f12391c6b612: no such file or directory
+```
+
+Observed once in five full `make ci` runs on 2026-07-30 and 2026-07-31. It does not reproduce in isolation: `go test -count=20` on the same test is green 20 out of 20, so the trigger is whole-suite load rather than anything in the scenario's own sequence.
+
+**Background auto-gc is ruled out**, which is the first explanation to reach for and the one G-0251 already closed for a different flake. `testsupport.HardenGitTestEnv` forces `gc.auto=0` and `gc.autoDetach=false` onto every child git via `GIT_CONFIG_COUNT`; `internal/cli/integration`'s `TestMain` calls it; and `testutil.RunGit` builds its environment from `os.Environ()`, so the config reaches the git processes this fixture runs. What does move the object is therefore still unidentified.
+
+## Why it matters
+
+The failure is a fixture defect reported as a product defect. The scenario's subject — whether the branch oracle stays clean under a sovereign override — is never evaluated on the run that fails, so the red says nothing about the code under test while looking exactly like it does.
+
+It lands in a package whose full run takes around 170 seconds, so the cost of a spurious red is a re-run of the slowest package plus the attention spent ruling out the change in flight. That is the same economics G-0457 records for the chronic red gate, at lower frequency.
+
+It is also the defect class G-0468 exists to remove, one layer down: an assertion whose outcome depends on machine state that the property under test does not depend on. G-0468 addresses it in the stress oracles; this is the same shape in a fixture.
+
+## Resolution shape
+
+Stop depending on where git chose to store the object. Two directions, neither settled:
+
+- **Corrupt the ref rather than the object.** The fixture's stated goal is a ref whose walk fails while `for-each-ref` still lists it. Writing a well-formed but unresolvable object id into the ref file produces exactly that, and touches no object storage at all.
+- **Locate the object rather than compute its path.** Ask git where the object lives before writing to it, and fail with a message naming the packed case if it is not loose.
+
+Either way the fixture should report "this fixture cannot construct its precondition" distinctly from the oracle verdict, so a future occurrence is unambiguous at a glance.
+
+Identifying what actually relocates the object is worth doing first if it is cheap, since the answer may apply to other fixtures that reach into `.git/objects`. It is not a prerequisite for the fix: both directions above are correct regardless of the cause.
+
+## Where to fix
+
+- `internal/cli/integration/isolation_escape_oracle_scenarios_test.go` — `corruptUnusedRitualRef`, the path arithmetic and the chmod/overwrite pair.
+- Any sibling fixture that reaches into `.git/objects` by computed path carries the same assumption and should be checked alongside it.
