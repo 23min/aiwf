@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: The measured priority-through-retitle laundering no longer succeeds
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-3
       title: A verb over a dirty disk never commits a tree identical to its parent
       status: open
