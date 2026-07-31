@@ -1,5 +1,3 @@
-//go:build stress
-
 package stresstest
 
 import (
@@ -15,10 +13,11 @@ import (
 // (classifyConcurrentMove) is pinned exhaustively in
 // concurrent_move_classify_test.go against fabricated outcomes; these
 // tests confirm real, concurrently-launched `aiwf move` subprocesses
-// racing repolock actually all land under the target epic with
-// exactly one commit each, repeated via M-0240's RunRepeated for
-// statistical coverage — mirroring
-// concurrent_id_allocation_test.go's own shape.
+// racing repolock land every milestone they report moving under the
+// target epic, with the commit count advancing by exactly the number
+// that succeeded, repeated via M-0240's RunRepeated for statistical
+// coverage — mirroring concurrent_id_allocation_test.go's own shape,
+// including why it is untagged.
 
 // TestConcurrentMoveScenario_RealBinary_ErrorsWhenBinaryMissing runs a
 // real Setup (so the repo has real commits and gitHeadCommitCount's
