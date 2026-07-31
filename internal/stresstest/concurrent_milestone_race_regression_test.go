@@ -4,7 +4,6 @@ package stresstest
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -64,26 +63,6 @@ const checkRuleAnchor = "func milestoneCancelledIncompleteACs(t *tree.Tree) []Fi
 // always return no findings.
 const checkRuleReplacement = checkRuleAnchor +
 	"\treturn nil // AC-3 regression probe (M-0258): check-rule backstop deliberately stubbed out\n"
-
-// patchExactlyOnce returns content with old replaced by new, but only
-// when old occurs in content EXACTLY once. Split out of
-// patchFileExactlyOnce as a pure function so both of its failure
-// modes — the anchor missing entirely, and the anchor matching more
-// than once — are directly unit-testable (TestPatchExactlyOnce)
-// without any filesystem or git machinery: the sanity check this
-// AC's own design calls for, proving a future refactor of the patched
-// source can't silently make this regression-probe patch a no-op (or
-// land on the wrong spot) without this test noticing.
-func patchExactlyOnce(content, old, newText string) (string, error) {
-	switch n := strings.Count(content, old); n {
-	case 0:
-		return "", fmt.Errorf("patch anchor not found (want exactly 1 occurrence, got 0): %q", old)
-	case 1:
-		return strings.Replace(content, old, newText, 1), nil
-	default:
-		return "", fmt.Errorf("patch anchor is ambiguous (want exactly 1 occurrence, got %d): %q", n, old)
-	}
-}
 
 // patchFileExactlyOnce reads path, replaces old with newText via
 // patchExactlyOnce (failing loudly if old isn't found exactly once),
@@ -231,57 +210,5 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_DetectsAReintroducedG0335Reg
 
 	if statusAfter := gitCaptureOutput(t, thisWorktreeDir, "status", "--short"); statusAfter != statusBefore {
 		t.Fatalf("this worktree's own tracked source was modified by this test — status before:\n%s\nstatus after:\n%s", statusBefore, statusAfter)
-	}
-}
-
-// TestPatchExactlyOnce pins patchExactlyOnce's three outcomes — the
-// anchor missing entirely, matching exactly once, and matching more
-// than once — proving the sanity check fails loudly rather than
-// silently patching the wrong spot (or nothing at all).
-func TestPatchExactlyOnce(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name    string
-		content string
-		old     string
-		newText string
-		want    string
-		wantErr bool
-	}{
-		{
-			name:    "anchor missing entirely errors",
-			content: "alpha\nbeta\ngamma\n",
-			old:     "delta",
-			newText: "epsilon",
-			wantErr: true,
-		},
-		{
-			name:    "anchor matching exactly once replaces cleanly",
-			content: "alpha\nbeta\ngamma\n",
-			old:     "beta",
-			newText: "BETA",
-			want:    "alpha\nBETA\ngamma\n",
-			wantErr: false,
-		},
-		{
-			name:    "anchor matching more than once errors, leaving content untouched",
-			content: "alpha\nbeta\nalpha\n",
-			old:     "alpha",
-			newText: "ALPHA",
-			wantErr: true,
-		},
-	}
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := patchExactlyOnce(tc.content, tc.old, tc.newText)
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("patchExactlyOnce error = %v, wantErr %v", err, tc.wantErr)
-			}
-			if !tc.wantErr && got != tc.want {
-				t.Errorf("patchExactlyOnce = %q, want %q", got, tc.want)
-			}
-		})
 	}
 }

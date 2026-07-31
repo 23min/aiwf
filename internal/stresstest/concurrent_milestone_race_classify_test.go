@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/entity"
 	"github.com/23min/aiwf/internal/verb"
 )
@@ -285,6 +286,11 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 	// winner carries one, the NoOp does not — which is what lets the oracle
 	// reconcile actor reports against the commits git actually recorded.
 	cancelNoOp := raceActorOutcome{operation: raceOpCancel, status: "ok"}
+	// The refusal an actor takes when another holds the repo lock. It is
+	// excused rather than judged: which actors lose the lock is the
+	// runner's throughput, not aiwf's behavior.
+	promoteBusy := raceActorOutcome{operation: raceOpPromote, status: "error", errorCode: cliutil.CodeRepoLockBusy}
+	cancelBusy := raceActorOutcome{operation: raceOpCancel, status: "error", errorCode: cliutil.CodeRepoLockBusy}
 
 	promoteCommit := raceCommit{verb: raceOpPromote, entity: acEntity}
 	cancelCommit := raceCommit{verb: raceOpCancel, entity: milestoneID}
@@ -317,14 +323,64 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			wantSubstrings: nil,
 		},
 		{
-			name: "no promote commit lands — the AC's own open -> met never happened at all",
+			name: "no actor got through — every one was refused by a guard",
 			outcomes: []raceActorOutcome{
 				promoteRefused, promoteRefused, promoteRefused, promoteRefused,
 				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
 			},
+			order:       nil,
+			commitDelta: 0,
+			// No promote landing is legitimate on its own — contention can
+			// refuse every promote — so what is left to catch is nothing
+			// landing at all.
+			wantSubstrings: []string{"none of the 8 racing actors succeeded"},
+		},
+		{
+			name: "every actor loses the lock and none gets through — a deadlock, not contention",
+			outcomes: []raceActorOutcome{
+				promoteBusy, promoteBusy, promoteBusy, promoteBusy,
+				cancelBusy, cancelBusy, cancelBusy, cancelBusy,
+			},
+			// Each refusal is individually excused, so only the floor is
+			// left to notice that the lock never became reachable.
 			order:          nil,
 			commitDelta:    0,
-			wantSubstrings: []string{"0 promote commits landed"},
+			wantSubstrings: []string{"none of the 8 racing actors succeeded"},
+		},
+		{
+			name: "a promote reported ok but its transition is nowhere in the history",
+			outcomes: []raceActorOutcome{
+				promoteNoOp, promoteBusy, promoteBusy, promoteBusy,
+				cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC, cancelRefusedOpenAC,
+			},
+			// An actor that held the lock either committed open -> met or
+			// converged on an AC already met — which needs that commit to
+			// exist. Neither happened, so a mutation was lost. Contention
+			// cannot produce this: a busy refusal carries status "error".
+			order:          nil,
+			commitDelta:    0,
+			wantSubstrings: []string{"had nothing to converge on"},
+		},
+		{
+			name:           "no actors ran at all — trivially zero violations, not a false success claim",
+			outcomes:       nil,
+			order:          nil,
+			commitDelta:    0,
+			wantSubstrings: nil,
+		},
+		{
+			name: "every actor loses the repo lock — contention, not a defect",
+			outcomes: []raceActorOutcome{
+				promoteOK, promoteBusy, promoteBusy, promoteBusy,
+				cancelBusy, cancelBusy, cancelBusy, cancelBusy,
+			},
+			// The busy refusal is the verb honoring its own contention
+			// contract. One actor got through, the AC's transition landed
+			// once, and nothing about aiwf is in question — the tail actors
+			// merely met a machine that was busy.
+			order:          []raceCommit{promoteCommit},
+			commitDelta:    1,
+			wantSubstrings: nil,
 		},
 		{
 			name: "two promote commits land — a mutually-exclusive-transition violation",
@@ -397,11 +453,12 @@ func TestClassifyMilestoneRaceOutcomes(t *testing.T) {
 			commitDelta: 1,
 			// The promote actor claims a commit that is nowhere in the order,
 			// so the cross-check fires beside the missing-commit finding.
-			// Three findings, all true of this input: the promote-commit bound,
-			// the actor-vs-git cross-check, and the causality check inside the
+			// Three findings, all true of this input: a promote reported ok
+			// with nothing in the history to have converged on, the
+			// actor-vs-git cross-check, and the causality check inside the
 			// cancel-landed block.
 			wantSubstrings: []string{
-				"0 promote commits landed",
+				"had nothing to converge on",
 				"no " + raceOpPromote + " commit",
 				"the repo gained 1",
 			},

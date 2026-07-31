@@ -18,8 +18,7 @@ import (
 // the ones that drive real concurrent subprocesses, and the lock-kill
 // test drives a real lock-holding subprocess of its own. Running that
 // many processes alongside `go test ./...` roughly doubles their wall
-// time, and `concurrent-milestone-race` still judges the machine, so
-// they own the runner here rather than sharing it.
+// time, so they own the runner here rather than sharing it.
 // `resolveScenarios`'s own selection claim — that "all" names every
 // registered entry, in catalog order — is pinned untagged in
 // run_test.go and runs on every push.

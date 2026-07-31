@@ -16,6 +16,40 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0468: no stress oracle measures the machine any more, and the decision tests run on every push again
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. Three pure-decision tests — an anchor-patching helper's, a fixture
+reader's, and a reconcile guard's — sat inside `stress`-tagged driver files only
+because a real-subprocess scenario shared the file, so they left the every-push
+lane as collateral of the earlier tagging split. Each now lives in an untagged
+sibling named for the subject it covers rather than the scenario that first
+needed it. One helper moved along with its test, having itself been defined in a
+tagged file; an untagged file compiles into the tagged build too, so the
+scenario that uses it is unaffected. Three `//coverage:ignore` escapes elsewhere
+in the package justify themselves by naming one of those tests as the pin for a
+branch — claims that were false on the every-push path while it sat behind the
+tag, and are true again now.
+
+`concurrent-milestone-race` gets the same oracle treatment its two siblings got
+earlier: a `repo-lock-busy` refusal is the verb honoring its own contention
+contract, so it is excused rather than reported; the bound on the acceptance
+criterion's transition drops from exactly-one to at-most-one, since contention
+can legitimately prevent any promote from landing; and a floor requiring some
+actor through keeps a genuine deadlock a violation. The old exactly-one bound
+was also asserting that a promote reporting success had done something, which
+the floor does not recover — a converged promote reports success too — so that
+property gets an arm of its own: a promote that reports success while no
+transition commit exists anywhere is a lost mutation, and load cannot produce
+that shape.
+
+That completes G-0468. The concurrent-contention oracles judge correctness
+rather than throughput, the lock-wait property they used to cover by accident is
+pinned directly, the kill-and-observe scenarios are bounded by the process they
+watch rather than by a clock, and the decision tests are back on the every-push
+path. Which lane a scenario runs in is now a cost decision rather than a
+correctness one.
+
 ### Added — G-0489: review findings now ratchet into checks, and a review loop has a defined end
 
 The `wf-codebase-health` rubric gains a **D5 — Findings become checks** force: a
