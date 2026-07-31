@@ -68,6 +68,21 @@ Each keeps its own subject-matter assertion besides: that no id was allocated
 twice, and that every milestone reported moved really landed under the target
 epic. How many actors get through is no longer asserted anywhere.
 
+### Added — G-0468: the lock-wait property is pinned on the every-push path
+
+Nothing user-facing changed; this is test coverage for behavior that already
+worked. Dropping the throughput assertion above left one property covered
+nowhere on the every-push path: that a mutating verb *waits* for a contended
+repo lock rather than refusing the moment it finds one held. Before this change,
+reducing that wait to zero passed every test CI ran, because the tests closest
+to the property hold the lock for a whole invocation and so cannot tell a verb
+that waited from one that never did. Two arms now pin it — one in
+`internal/cli/cliutil` on the shared lock helper, one in
+`internal/cli/integration` on a real verb, so both the wait and the wiring to it
+are covered. Each holds a lock, starts a single contender, and requires it to
+still be running when the holder releases and to succeed once it does; neither
+claims anything about how many contenders get through or how fast.
+
 ### Fixed — G-0485: the gpg-signing test fixture no longer leaks a daemon per test run
 
 Nothing user-facing changed. Internal test hygiene: `internal/gitops`'s

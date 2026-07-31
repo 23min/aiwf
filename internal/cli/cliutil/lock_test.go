@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/23min/aiwf/internal/cli/cliutil"
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
@@ -16,6 +17,8 @@ import (
 // plain-text stderr line (G-0391), and each stamps that envelope with
 // its own error code so a machine consumer separates contention from
 // failure by identity rather than by matching message text (G-0467).
+// It also pins the path that is not a refusal at all: contention is
+// waited out rather than reported, up to the timeout.
 
 // envelopeError is the subset of the JSON error envelope these tests
 // assert on.
@@ -165,4 +168,67 @@ func TestAcquireRepoLock_Succeeds(t *testing.T) {
 		t.Fatalf("expected a non-nil release func, rc=%d", rc)
 	}
 	release()
+}
+
+// TestAcquireRepoLock_WaitsForAReleasedLock pins what the two
+// busy-refusal arms above cannot: a held lock is waited for, not
+// refused on sight. Both of those hold the lock for the whole call, so
+// they are satisfied by a wait of any length including none — reduce
+// the wait to zero and every other test on the every-push path stays
+// green.
+//
+// The wait is bounded from below rather than measured: the lock is held
+// for a fixed window after the contender starts, and a contender that
+// returns inside that window did not wait long enough. That direction
+// is the safe one, since load can only delay the contender, never hurry
+// it. The other direction has lockTimeout minus the window to absorb —
+// the holder's own timer must fire before the contender's budget runs
+// out. How long the wait actually is, and how many contenders get
+// through, are properties of the machine and are asserted nowhere
+// (G-0468).
+func TestAcquireRepoLock_WaitsForAReleasedLock(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	const heldFor = 500 * time.Millisecond
+
+	release := testutil.HoldRepoLock(t, dir)
+	// The release func is idempotent, so this frees the lock on every
+	// early exit and is a no-op after the deliberate release below.
+	defer release()
+
+	type acquisition struct {
+		release func()
+		rc      int
+	}
+	started := make(chan struct{})
+	done := make(chan acquisition, 1)
+	go func() {
+		close(started)
+		rel, rc := cliutil.AcquireRepoLock(dir, "aiwf test", cliutil.OutputFormat{})
+		done <- acquisition{rel, rc}
+	}()
+	<-started
+
+	select {
+	case got := <-done:
+		if got.release != nil {
+			got.release()
+			t.Fatal("AcquireRepoLock took the lock while another holder had it")
+		}
+		t.Fatalf("AcquireRepoLock refused with rc=%d while the lock was held; a contended lock must be waited for, not refused on sight — this also fires if lockTimeout has dropped below the %v this test holds for", got.rc, heldFor)
+	case <-time.After(heldFor):
+	}
+
+	release()
+
+	select {
+	case got := <-done:
+		if got.release == nil {
+			t.Fatalf("AcquireRepoLock refused with rc=%d after the holder released; it should have taken the lock", got.rc)
+		}
+		got.release()
+	case <-time.After(15 * time.Second):
+		t.Fatal("AcquireRepoLock did not return within 15s of the lock being released")
+	}
 }
