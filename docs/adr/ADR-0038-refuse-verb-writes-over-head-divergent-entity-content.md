@@ -219,12 +219,28 @@ A `--force` would also not fix what it appears to fix. The commit would still
 carry the wrong verb's name; the misattribution this decision exists to remove
 would be re-authorized rather than corrected.
 
-The bless-mode exemption recorded under *Verdict* is not an escape hatch and does
+The `edit-body` exemption recorded under *Verdict* is not an escape hatch and does
 not weaken this. An escape hatch lets an operator commit content the verb did not
 compute; the exemption declares that a specific write *is* the working copy, and
-is refused unless that is literally true. The distinction is the same one that
-separates a repair verb from `--force`: what the commit's trailer ends up
-claiming.
+is refused unless that holds. The distinction is the same one that separates a
+repair verb from `--force`: what the commit's trailer ends up claiming.
+
+The exemption covers both of `edit-body`'s modes, and "is the working copy" is
+verified two ways because a verb has two legitimate ways to read one. The working
+copy's own frontmatter must still match the committed frontmatter, so no field the
+operator hand-edited can ride in. And the write's content must carry nothing
+beyond that working copy: equal to it outright, as bless mode's verbatim bytes
+are, or equal to it re-serialized through the loaded entity model, as explicit
+mode's are. Comparison is field-based rather than byte-based, since re-serializing
+canonicalizes field order without changing what is declared.
+
+A byte-equality test against the working copy is the one shape this must not take.
+Measured, it refuses a declarative revert — where the requested content is the
+committed body and the disk holds the edit being discarded — and it accepts a
+write over hand-edited frontmatter, which is the laundering this decision exists
+to stop. The earlier statement of this subsection specified that test; it shipped
+in the `accepted` ADR other clones already carry, so it is named here rather than
+replaced silently.
 
 ## Consequences
 
