@@ -187,3 +187,68 @@ func TestVerbGuardTreatments_AreWellFormed(t *testing.T) {
 		}
 	}
 }
+
+// TestCheckAdoptsFlagOwnership_FiresOutsideTheOwningFile pins the guard's
+// one bypass lever. A verb that starts setting AdoptsWorkingCopy moves
+// itself into the exempt class, where the uncommitted-change guard stops
+// comparing what it writes — a behaviour change the treatment ledger
+// cannot detect, because the ledger records names.
+func TestCheckAdoptsFlagOwnership_FiresOutsideTheOwningFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal", "verb")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	src := `package verb
+
+type FileOp struct{ AdoptsWorkingCopy bool }
+
+func newlyExemptVerb() FileOp { return FileOp{AdoptsWorkingCopy: true} }
+`
+	if err := os.WriteFile(filepath.Join(dir, "greedy.go"), []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	files, err := WalkGoFiles(root, true)
+	if err != nil {
+		t.Fatalf("walk: %v", err)
+	}
+	vs := checkAdoptsFlagOwnership(files)
+	var matched bool
+	for _, v := range vs {
+		if strings.Contains(v.Detail, "sets AdoptsWorkingCopy: true outside") {
+			matched = true
+		}
+	}
+	if !matched {
+		t.Errorf("no violation names the unauthorized setter; got:\n%s", joinDetails(vs))
+	}
+}
+
+// TestCheckAdoptsFlagOwnership_AllowsTheOwningFile is the negative
+// control: the real setter must not trip its own rule.
+func TestCheckAdoptsFlagOwnership_AllowsTheOwningFile(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal", "verb")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	src := `package verb
+
+type FileOp struct{ AdoptsWorkingCopy bool }
+
+func blessMode() FileOp { return FileOp{AdoptsWorkingCopy: true} }
+`
+	if err := os.WriteFile(filepath.Join(dir, "editbody.go"), []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	files, err := WalkGoFiles(root, true)
+	if err != nil {
+		t.Fatalf("walk: %v", err)
+	}
+	if vs := checkAdoptsFlagOwnership(files); len(vs) != 0 {
+		t.Errorf("the owning file must not trip its own rule, got:\n%s", joinDetails(vs))
+	}
+}

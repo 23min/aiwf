@@ -83,8 +83,14 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 		if dirtyErr != nil { //coverage:ignore defensive: same non-repo condition StagedPaths and HasHEAD have both already passed
 			return "", fmt.Errorf("checking for uncommitted changes: %w", dirtyErr)
 		}
+		// A move carries whatever sits beneath it, including files git
+		// ignores — which neither half of the dirty set reports.
+		ignored, ignoredErr := gitops.IgnoredPathsUnder(ctx, root, movePrefixes(p.Ops))
+		if ignoredErr != nil { //coverage:ignore defensive: same non-repo condition the two queries above have already passed
+			return "", fmt.Errorf("checking for uncommitted changes: %w", ignoredErr)
+		}
 		conflictErr := checkUncommittedConflict(ctx, root,
-			uncommittedPaths{modified: modified, untracked: untracked}, p.Ops)
+			uncommittedPaths{modified: modified, untracked: append(untracked, ignored...)}, p.Ops)
 		if conflictErr != nil {
 			return "", conflictErr
 		}
@@ -308,6 +314,20 @@ func checkStagedConflict(staged []string, ops []FileOp) error {
 	)
 }
 
+// movePrefixes returns the source and destination paths of every OpMove
+// in ops — the roots beneath which Apply commits files no verb named.
+// Empty when the plan moves nothing, which is the common case and costs
+// the ignored-path query nothing.
+func movePrefixes(ops []FileOp) []string {
+	var prefixes []string
+	for _, op := range ops {
+		if op.Type == OpMove {
+			prefixes = append(prefixes, op.Path, op.NewPath)
+		}
+	}
+	return prefixes
+}
+
 // planOpForPath returns the op whose write set covers path, and whether
 // any does. An OpWrite covers only its exact Path; an OpMove also covers
 // anything nested under its source or destination directory, matching
@@ -341,22 +361,42 @@ func planOpForPath(path string, ops []FileOp) (FileOp, bool) {
 // path it was about to commit carries changes the verb did not compute.
 // Callers map it to a usage-level exit: the operator can resolve it, and
 // nothing in aiwf's own machinery is broken.
+//
+// Tracked and untracked paths are kept apart because they have different
+// remedies, and offering the wrong one is worse than offering none:
+// `git restore` errors on a path git has never recorded, and discards
+// work irrecoverably on one it has.
 type UncommittedConflictError struct {
-	// Paths names every blocking path, in the order encountered.
-	Paths []string
+	// Tracked names blocking paths that have a committed version.
+	Tracked []string
+	// Untracked names blocking paths git has never recorded, including
+	// ignored files a move would carry.
+	Untracked []string
+}
+
+// Paths returns every blocking path, tracked first.
+func (e *UncommittedConflictError) Paths() []string {
+	return append(append([]string{}, e.Tracked...), e.Untracked...)
 }
 
 func (e *UncommittedConflictError) Error() string {
-	joined := strings.Join(e.Paths, ", ")
-	return fmt.Sprintf(
-		"uncommitted changes overlap with this verb's writes: %s\n"+
-			"  the verb commits whatever is on disk at the paths it touches, so it would\n"+
-			"  record your edits as its own work, under its own trailer\n"+
-			"  commit a body edit on its own with `aiwf edit-body <id>`, or discard it with\n"+
-			"  `git restore %s`, then re-run the verb\n"+
-			"  unrelated uncommitted paths survive the verb's commit untouched",
-		joined, strings.Join(e.Paths, " "),
-	)
+	var b strings.Builder
+	fmt.Fprintf(&b, "uncommitted changes overlap with this verb's writes: %s\n",
+		strings.Join(e.Paths(), ", "))
+	b.WriteString("  the verb commits whatever is on disk at the paths it touches, so it would\n")
+	b.WriteString("  record your changes as its own work, under its own trailer\n")
+	if len(e.Tracked) > 0 {
+		fmt.Fprintf(&b, "  commit a body edit on its own with `aiwf edit-body <id>`, or set it aside with\n"+
+			"  `git stash -u` (`git restore %s` discards it outright)\n",
+			strings.Join(e.Tracked, " "))
+	}
+	if len(e.Untracked) > 0 {
+		fmt.Fprintf(&b, "  untracked here, so there is nothing to restore: commit it, move it out of the\n"+
+			"  way, or set it aside with `git stash -u` — %s\n",
+			strings.Join(e.Untracked, " "))
+	}
+	b.WriteString("  then re-run the verb; unrelated uncommitted paths survive the verb's commit untouched")
+	return b.String()
 }
 
 // checkUncommittedConflict refuses Apply when a path the plan would
@@ -381,8 +421,17 @@ func (e *UncommittedConflictError) Error() string {
 //     `aiwf init` leaves it uncommitted by design, and the verbs that
 //     rewrite it would otherwise be unreachable until it was committed.
 //   - A path that is merely nested under a move is refused whether
-//     tracked or not, because no verb named it and its bytes are carried
-//     into the commit sight-unseen.
+//     tracked, untracked, or ignored, because no verb named it and its
+//     bytes are carried into the commit sight-unseen. Ignored paths are
+//     collected separately (gitops.IgnoredPathsUnder), since neither half
+//     of the dirty set reports them and a move carries them regardless.
+//
+// What bounds this guard is git's own reporting of the working tree. A
+// path git has been told to stop reporting — `assume-unchanged`,
+// `skip-worktree`, or absent under a sparse checkout — reads as clean
+// here while differing on disk, and is carried into the commit unexamined
+// (G-0487). The guard is as truthful as the queries beneath it, and does
+// not claim more.
 //
 // A write may declare it adopts the working copy (AdoptsWorkingCopy).
 // The claim is verified rather than trusted (adoptionPreservesFrontmatter):
@@ -396,7 +445,7 @@ func checkUncommittedConflict(ctx context.Context, root string, u uncommittedPat
 	if len(ops) == 0 || (len(u.modified) == 0 && len(u.untracked) == 0) {
 		return nil
 	}
-	var conflicts []string
+	conflict := &UncommittedConflictError{}
 	consider := func(path string, tracked bool) error {
 		op, covered := planOpForPath(path, ops)
 		if !covered {
@@ -415,7 +464,11 @@ func checkUncommittedConflict(ctx context.Context, root string, u uncommittedPat
 				return nil
 			}
 		}
-		conflicts = append(conflicts, path)
+		if tracked {
+			conflict.Tracked = append(conflict.Tracked, path)
+		} else {
+			conflict.Untracked = append(conflict.Untracked, path)
+		}
 		return nil
 	}
 	for _, path := range u.modified {
@@ -428,10 +481,10 @@ func checkUncommittedConflict(ctx context.Context, root string, u uncommittedPat
 			return err
 		}
 	}
-	if len(conflicts) == 0 {
+	if len(conflict.Tracked) == 0 && len(conflict.Untracked) == 0 {
 		return nil
 	}
-	return &UncommittedConflictError{Paths: conflicts}
+	return conflict
 }
 
 // uncommittedPaths carries the working tree's two kinds of divergence
@@ -488,7 +541,7 @@ func adoptionPreservesFrontmatter(ctx context.Context, root, path string, conten
 		return false, nil
 	}
 	diskBytes, err := os.ReadFile(filepath.Join(root, path))
-	if err != nil { //coverage:ignore defensive: the path was reported dirty by git moments earlier, so it exists and is readable
+	if err != nil { //coverage:ignore defensive: only edit-body sets the adoption flag, and it resolved this entity from this path through tree.Load moments earlier; a dirty report alone would not imply the file exists, since git reports a deletion as dirty too
 		return false, fmt.Errorf("reading working copy of %s: %w", path, err)
 	}
 	if !entity.SameFrontmatterFields(headBytes, diskBytes) {

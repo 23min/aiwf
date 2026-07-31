@@ -383,3 +383,77 @@ func showHEADFile(t *testing.T, root, relPath string) string {
 	}
 	return string(out)
 }
+
+// TestApply_IgnoredNestedFileNotCommittedByParentRename covers the third
+// way a file reaches a move's commit without any verb naming it. A
+// directory move carries whatever is beneath it, and `.gitignore` does
+// not keep a file out of a tree git is told to build — while both halves
+// of the dirty set omit ignored paths by construction, so a guard reading
+// only those reports a clean tree and commits the file anyway.
+//
+// The consequence is worse than the untracked case it neighbours: the
+// path becomes tracked from that commit onward, so a file the operator
+// deliberately kept out of the repository is now in its history.
+func TestApply_IgnoredNestedFileNotCommittedByParentRename(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Alpha epic", testActor, verb.AddOptions{}))
+
+	if err := os.WriteFile(filepath.Join(r.root, ".gitignore"), []byte("*.log\n"), 0o600); err != nil {
+		t.Fatalf("writing .gitignore: %v", err)
+	}
+	commitFixture(t, r.root, "fixture: ignore log files")
+
+	e := r.tree().ByID("E-0001")
+	ignored := filepath.Join(filepath.Dir(e.Path), "debug.log")
+	if err := os.WriteFile(filepath.Join(r.root, ignored), []byte("ignored scratch\n"), 0o600); err != nil {
+		t.Fatalf("writing the ignored file: %v", err)
+	}
+	// git considers the tree clean, which is exactly what makes this
+	// vector invisible to a guard built on the dirty set alone.
+	if out := gitPorcelain(t, r.root); out != "" {
+		t.Fatalf("fixture should leave git reporting a clean tree, got:\n%s", out)
+	}
+
+	res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "renamed-epic-slug", testActor, 0)
+	if err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+	assertRefusedAndUncommitted(t, r, res.Plan, filepath.ToSlash(ignored))
+}
+
+// TestUncommittedConflictError_RemedyMatchesTrackedness pins that the
+// refusal offers a remedy that works. `git restore` errors on a path git
+// has never recorded and discards work irrecoverably on one it has, so
+// naming it for the wrong class is worse than naming nothing.
+func TestUncommittedConflictError_RemedyMatchesTrackedness(t *testing.T) {
+	t.Parallel()
+
+	tracked := (&verb.UncommittedConflictError{Tracked: []string{"work/gaps/G-0001-x.md"}}).Error()
+	if !strings.Contains(tracked, "aiwf edit-body") {
+		t.Errorf("a tracked path's remedy should offer the verb that commits a body edit:\n%s", tracked)
+	}
+	if !strings.Contains(tracked, "discards it outright") {
+		t.Errorf("a tracked path's remedy should say what `git restore` costs:\n%s", tracked)
+	}
+
+	untracked := (&verb.UncommittedConflictError{Untracked: []string{"work/epics/E-0001-x/scratch.md"}}).Error()
+	if strings.Contains(untracked, "git restore") {
+		t.Errorf("an untracked path has nothing to restore; `git restore` errors on it:\n%s", untracked)
+	}
+	if !strings.Contains(untracked, "git stash -u") {
+		t.Errorf("an untracked path's remedy should offer the flag that covers it:\n%s", untracked)
+	}
+}
+
+// gitPorcelain returns `git status --porcelain` output for root.
+func gitPorcelain(t *testing.T, root string) string {
+	t.Helper()
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git status: %v", err)
+	}
+	return strings.TrimSpace(string(out))
+}

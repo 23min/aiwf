@@ -126,6 +126,54 @@ var routesOutsideTheEntryPointScan = []struct {
 	},
 }
 
+// adoptsFlagOwner is the one file permitted to set AdoptsWorkingCopy.
+// The flag is the guard's single bypass lever, and the ledger's `adopts`
+// row is the only row that grants one — so which verb holds it is a fact
+// worth pinning rather than a claim worth writing down.
+const adoptsFlagOwner = "internal/verb/editbody.go"
+
+// checkAdoptsFlagOwnership reports every file outside adoptsFlagOwner
+// that sets AdoptsWorkingCopy to true in a composite literal. A verb that
+// starts setting it moves itself into the exempt class, where the guard
+// stops comparing the paths it writes against HEAD — a change the ledger
+// cannot see, because the ledger records names and this is a behaviour.
+func checkAdoptsFlagOwnership(files []FileEntry) []Violation {
+	fset := token.NewFileSet()
+	var out []Violation
+	for _, f := range files {
+		if !strings.HasPrefix(f.Path, "internal/verb/") ||
+			strings.HasSuffix(f.Path, "_test.go") ||
+			f.Path == adoptsFlagOwner {
+			continue
+		}
+		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
+		if perr != nil { //coverage:ignore defensive: the tree under scan compiles, so a parse failure needs a file edited mid-run
+			continue
+		}
+		ast.Inspect(astFile, func(n ast.Node) bool {
+			kv, ok := n.(*ast.KeyValueExpr)
+			if !ok {
+				return true
+			}
+			key, ok := kv.Key.(*ast.Ident)
+			if !ok || key.Name != "AdoptsWorkingCopy" {
+				return true
+			}
+			if lit, ok := kv.Value.(*ast.Ident); ok && lit.Name == "true" {
+				out = append(out, Violation{
+					Policy: "verb-write-guard-coverage",
+					File:   f.Path,
+					Line:   fset.Position(kv.Pos()).Line,
+					Detail: "sets AdoptsWorkingCopy: true outside " + adoptsFlagOwner +
+						" — that flag exempts a write from the uncommitted-change guard, so a verb taking it on is a design change (ADR-0038): move the write, or widen adoptsFlagOwner deliberately",
+				})
+			}
+			return true
+		})
+	}
+	return out
+}
+
 // PolicyVerbWriteGuardCoverage asserts that every exported
 // internal/verb entry point — a function returning (*Result, error) —
 // has a recorded decision about how the commit-side write guard treats
@@ -187,6 +235,7 @@ func PolicyVerbWriteGuardCoverage(root string) ([]Violation, error) {
 	}
 
 	recorded, out := validateGuardTreatments(verbGuardTreatments)
+	out = append(out, checkAdoptsFlagOwnership(files)...)
 
 	present := make(map[string]bool, len(entries))
 	for _, e := range entries {

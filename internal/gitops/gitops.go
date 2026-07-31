@@ -215,6 +215,40 @@ func SplitDirtyPaths(ctx context.Context, workdir string) (modified, untracked [
 	return modified, untracked, nil
 }
 
+// IgnoredPathsUnder returns non-ignored-rule-exempt paths git is
+// deliberately not tracking — the `.gitignore`d files — beneath the given
+// repo-relative prefixes. Empty prefixes return no paths rather than
+// scanning the repo.
+//
+// SplitDirtyPaths cannot see these: `git ls-files --others` excludes them
+// by construction, and `git diff HEAD` never knew them. That is the right
+// answer for a caller asking "what has the operator changed", and the
+// wrong one for a caller asking "what will a directory move carry into
+// the commit" — a move copies whatever is on disk beneath it, and git's
+// opinion that a file is uninteresting does not keep it out of the tree.
+//
+// Scoped to prefixes rather than repo-wide because ignored files are
+// numerous and almost all of them are irrelevant: only the ones a plan is
+// about to carry matter.
+func IgnoredPathsUnder(ctx context.Context, workdir string, prefixes []string) ([]string, error) {
+	if len(prefixes) == 0 {
+		return nil, nil
+	}
+	args := append([]string{"ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--"}, prefixes...)
+	out, err := output(ctx, workdir, args...)
+	if err != nil {
+		return nil, err
+	}
+	var paths []string
+	for _, p := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+		if p != "" {
+			paths = append(paths, p)
+		}
+	}
+	sort.Strings(paths)
+	return paths, nil
+}
+
 // HasHEAD reports whether workdir's repo has a resolvable HEAD commit.
 // It is false in a repo whose first commit has not landed yet, where
 // `git diff HEAD` is an error rather than an empty result.
