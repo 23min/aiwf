@@ -29,23 +29,30 @@ Separate the hermetic assertion from the timing assertion in each classifier. Th
 
 The throughput assertion — all N succeed within the lock timeout — is dropped rather than relocated to the on-demand lane. It measures the machine in every lane, not only under CI contention, so a controlled lane would preserve an unsound signal rather than rescue a sound one; and `make stress` is on-demand and never scheduled, so nothing watches what it would preserve. Total deadlock, the property worth keeping from it, is covered by requiring at least one actor to succeed. Pinning lock throughput, should that ever be wanted, belongs in a purpose-built benchmark rather than in a correctness classifier.
 
+Dropping it leaves one property unpinned on the every-push path: that a mutating verb *waits* for a contended lock rather than refusing at once. Setting `AcquireRepoLock`'s timeout to zero passes every test CI runs, and is caught only by `make stress-tests`, which is on-demand. The property belongs to repolock's own contract rather than to a contention classifier, so it is pinned separately — one contender taking the lock after its holder releases it, asserting the contender waited and succeeded, which claims nothing about how many actors get through or how fast.
+
 For the observation-window scenarios, either retry the sampling loop until it observes the window, or report a failure to sample as an outcome distinct from a violation.
 
 ## Where to fix
 
 - `internal/stresstest/concurrent_id_allocation.go`, `internal/stresstest/concurrent_move.go` — the deadline arm of each classifier.
+- `internal/stresstest/concurrent_milestone_race.go` — the same deadline conflation, in a scenario that stays tagged. Setting the lock timeout to zero makes it flag `repo-lock-busy` refusals as violations exactly as the other two once did.
 - `internal/stresstest/mid_write_kill.go`, `internal/stresstest/lock_kill.go` — the observation-window failures.
+- `internal/cli/integration/lock_test.go` — where the lock-wait property is pinned, since no contention classifier should carry it.
 - The paired `*_classify_test.go` files, which pin each classifier against fabricated outcomes and are where the revised oracle is specified. Each of the four scenarios above already has one in the untagged lane, so the revised oracle has a home without new scaffolding.
 
 ## Sequencing
 
-Three changes, each landing as its own patch:
+Four changes, each landing as its own patch:
 
-1. **Deadline oracles** — `concurrent_id_allocation.go` and `concurrent_move.go`. The replacement oracle is specified above; little is left to decide.
-2. **Observation-window oracles** — `mid_write_kill.go` and `lock_kill.go`. Carries the one open decision: retry the sampling loop until it observes the window, or report failure-to-sample as an outcome distinct from a violation.
-3. **Recovering the stranded decision tests** — the file splits described below.
+1. **Deadline oracles** — `concurrent_id_allocation.go` and `concurrent_move.go`. The replacement oracle is specified above; little is left to decide. Their driver tests return to the untagged lane once the oracle is hermetic, which costs the every-push path a few seconds — the whole untagged package runs in about 16 seconds under `-race` on four cores.
+2. **Restoring the lock-wait pin** — an `internal/cli/integration` arm asserting a contender waits for a released lock rather than refusing at once. Independent of the others, and it closes the hole the first change opens.
+3. **Observation-window oracles** — `mid_write_kill.go` and `lock_kill.go`. Carries the one open decision: retry the sampling loop until it observes the window, or report failure-to-sample as an outcome distinct from a violation.
+4. **Recovering the stranded decision tests** — the file splits described below.
 
-The order is load-bearing at one point only: the layout chosen in the third change should be settled against the revised oracles rather than fixed first and then disturbed. The first two are independent of each other and share a motivation rather than a line of code.
+The order is load-bearing at one point only: the layout chosen in the last change should be settled against the revised oracles rather than fixed first and then disturbed. The others are independent of each other and share a motivation rather than a line of code.
+
+`concurrent_milestone_race.go` carries the same conflation but stays tagged for its own reasons, so making its oracle hermetic is worth doing alongside whichever change reaches it, not as a fifth patch of its own.
 
 ## Stranded hermetic unit tests
 
