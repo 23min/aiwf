@@ -40,7 +40,7 @@ That leaves the sampling miss: a promote that completes before the poller sees i
 ## Where to fix
 
 - `internal/stresstest/concurrent_id_allocation.go`, `internal/stresstest/concurrent_move.go` — the deadline arm of each classifier.
-- `internal/stresstest/concurrent_milestone_race.go` — the same deadline conflation, in a scenario that stays tagged. Setting the lock timeout to zero makes it flag `repo-lock-busy` refusals as violations exactly as the other two once did.
+- `internal/stresstest/concurrent_milestone_race.go` — the same conflation in a scenario that stays tagged for cost, in both its refusal-code arms and in a bound requiring the AC's transition to land exactly once, which contention can prevent.
 - `internal/stresstest/mid_write_kill.go`, `internal/stresstest/lock_kill.go` — the observation-window failures.
 - `internal/cli/cliutil/lock_test.go` — where the lock-wait property itself is pinned, since no contention classifier should carry it.
 - `internal/cli/integration/lock_test.go` — the seam arm of the same property, and the ceiling on the wait its existing busy-refusal test already bounds.
@@ -57,16 +57,19 @@ Four changes, each landing as its own patch:
 
 The order is load-bearing at one point only: the layout chosen in the last change should be settled against the revised oracles rather than fixed first and then disturbed. The others are independent of each other and share a motivation rather than a line of code.
 
-`concurrent_milestone_race.go` carries the same conflation but stays tagged for its own reasons, so making its oracle hermetic is worth doing alongside whichever change reaches it, not as a fifth patch of its own.
+`concurrent_milestone_race.go` carries the same conflation but stays tagged for its own reasons, so making its oracle hermetic rides along with the last change rather than being a fifth patch of its own. Its refusal-code arms excuse the busy refusal, and its promote-commit bound drops from exactly-one to at-most-one, since contention can legitimately leave no promote landing.
+
+Relaxing that bound needs care, because it was carrying a second property besides mutual exclusion: that a promote reporting success actually did something. A floor requiring some actor through does not recover it — a promote that converges to a NoOp reports `ok` — so the two are separated. The floor catches a race where nothing got through; a distinct arm catches a promote that reported `ok` while no `open -> met` commit exists anywhere, which is a lost mutation rather than a slow machine. Its driver test needs the same treatment: what it asserts about the AC's final status and the commit count becomes conditional on some promote having reported `ok`, rather than assumed.
 
 ## Stranded hermetic unit tests
 
-Four pure-decision tests sit inside `stress`-tagged driver files and left the every-push lane as collateral of G-0457's split, because every tagged file holds at least one real-subprocess driver alongside them:
+Four pure-decision tests sat inside `stress`-tagged driver files and left the every-push lane as collateral of G-0457's split, because every tagged file holds at least one real-subprocess driver alongside them. None of them touches a subprocess, a clock, or a goroutine; each is a fabricated-input decision test of exactly the kind the untagged lane is for. Each moves to an untagged sibling named for the subject it covers rather than for the scenario that first needed it:
 
-- `TestPatchExactlyOnce` — `concurrent_milestone_race_regression_test.go`
-- `TestReadGapFile_ErrorsWhenNoneOrMultipleMatch`, `TestWaitForTempFile_ErrorsOnUnreadableDir` — `mid_write_kill_test.go`
-- `TestCrossWorktreeIDRaceScenario_ReconcileErrorsWhenAnActorDidNotSucceed` — `cross_worktree_id_race_test.go`
+- `patchExactlyOnce` and its test — `concurrent_milestone_race_patch_test.go`. The helper moves with the test, because it was itself defined in a tagged test file; an untagged file compiles into the `stress` build too, so the tagged regression probe still reaches it.
+- `TestReadGapFile_ErrorsWhenNoneOrMultipleMatch` — `gitrepo_test.go`, beside the shared fixture helper it covers.
+- `TestCrossWorktreeIDRaceScenario_ReconcileErrorsWhenAnActorDidNotSucceed` — `cross_worktree_id_race_reconcile_test.go`.
+- `TestWaitForTempFile_ErrorsOnUnreadableDir` — recovered as `TestTempFilePresent_ErrorsOnUnreadableDir` in `mid_write_kill_observe_test.go`, alongside the observation helpers the third change introduced.
 
-None of them touches a subprocess, a clock, or a goroutine; each is a fabricated-input decision test of exactly the kind the untagged lane is for. Recovering them means splitting each driver file so the decision tests live in an untagged sibling.
+The census is worth re-deriving rather than trusting: a file is a candidate only if no test in it references a real binary, a subprocess, a git invocation, a sleep, or a goroutine, and that is a mechanical check over the tagged files rather than a list to maintain.
 
-That split belongs here rather than in its own change: this gap rewrites what those same classifiers assert, so the file layout should be chosen once, against the revised oracles, rather than settled first and then disturbed.
+That split belongs here rather than in its own change: this gap rewrites what those same classifiers assert, so the file layout is chosen once, against the revised oracles, rather than settled first and then disturbed.

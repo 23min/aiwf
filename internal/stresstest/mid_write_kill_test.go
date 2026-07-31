@@ -105,38 +105,6 @@ func TestMidWriteKillScenario_RealBinary_SetupSurfacesASeedingRefusal(t *testing
 	}
 }
 
-// TestReadGapFile_ErrorsWhenNoneOrMultipleMatch pins readGapFile's
-// count-mismatch branch (zero matches; more than one match).
-func TestReadGapFile_ErrorsWhenNoneOrMultipleMatch(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		files []string
-	}{
-		{name: "zero matches", files: nil},
-		{name: "two matches", files: []string{"G-0001-a.md", "G-0001-b.md"}},
-	}
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			root := t.TempDir()
-			gapsDir := filepath.Join(root, "work", "gaps")
-			if err := os.MkdirAll(gapsDir, 0o755); err != nil {
-				t.Fatalf("mkdir gapsDir: %v", err)
-			}
-			for _, f := range tc.files {
-				if err := os.WriteFile(filepath.Join(gapsDir, f), []byte("x"), 0o644); err != nil {
-					t.Fatalf("seeding %s: %v", f, err)
-				}
-			}
-			if _, err := readGapFile(root, "G-0001"); err == nil {
-				t.Fatalf("expected readGapFile to error for %s", tc.name)
-			}
-		})
-	}
-}
-
 // TestMidWriteKillScenario_RealBinary_RunSurfacesAControlPromoteLockBusyRefusal
 // holds the control repo's repolock via the AC-1 lockholder helper
 // before calling Run: `aiwf promote`'s lock-busy refusal

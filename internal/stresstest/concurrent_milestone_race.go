@@ -308,16 +308,18 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 	var violations []Violation
 	acEntity := milestoneID + "/AC-1"
 
-	// A promote actor that lost the race no longer refuses: since
+	// A promote actor that lost the race does not refuse: since
 	// M-0281/AC-9 a composite promote to the status already recorded is a
 	// NoOp, so every loser reports "ok" with zero commits. The bound that
 	// still holds is on commits — the AC's own open -> met transition can
-	// land exactly once — so it is counted from the git order, the same
+	// land at most once — so it is counted from the git order, the same
 	// move AC-2 made for the cancel group below when entity-level cancel
-	// converged. A refusal is now unexpected rather than routine, but if
-	// one occurs its reason must still agree with the FSM's verdict.
+	// converged. Refusals are therefore rare, and the two kinds are
+	// judged differently: a busy refusal is the verb honoring its own
+	// contention contract and says nothing about aiwf, while any other
+	// reason must agree with the FSM's verdict.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpPromote || oc.status == "ok" {
+		if oc.operation != raceOpPromote || oc.status == "ok" || isBusyRefusal(oc.errorCode) {
 			continue
 		}
 		if oc.errorCode != entity.CodeFSMTransitionIllegal.ID {
@@ -333,10 +335,35 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 			promoteCommits++
 		}
 	}
-	if promoteCommits != 1 {
+	// At most one: the AC's open -> met transition cannot land twice.
+	// How many land at all is the runner's throughput rather than
+	// aiwf's correctness, since every actor that loses the repo lock
+	// takes the documented busy refusal instead of retrying, and a
+	// loaded machine can refuse them all.
+	if promoteCommits > 1 {
 		violations = append(violations, Violation{Message: fmt.Sprintf(
-			"%d promote commits landed for %s (open -> met), want exactly 1",
+			"%d promote commits landed for %s (open -> met), want at most 1",
 			promoteCommits, acEntity,
+		)})
+	}
+
+	// What the at-most-one bound cannot see on its own: a promote that
+	// held the lock, reported success, and landed nothing. An actor
+	// reporting ok either committed the transition or converged on an
+	// AC already met — which requires that commit to exist — so an ok
+	// with no commit anywhere is a mutation the operator lost. Load
+	// cannot produce this shape: contention yields busy refusals, which
+	// carry status "error".
+	promoteOKs := 0
+	for _, oc := range outcomes {
+		if oc.operation == raceOpPromote && oc.status == "ok" {
+			promoteOKs++
+		}
+	}
+	if promoteOKs > 0 && promoteCommits == 0 {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"%d promote actors reported ok but no open -> met commit for %s is in the history — a promote that converged had nothing to converge on",
+			promoteOKs, acEntity,
 		)})
 	}
 
@@ -346,7 +373,7 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 	// (ADR-0036) — reported "ok" with no commit — so it needs no allowed
 	// error code here.
 	for _, oc := range outcomes {
-		if oc.operation != raceOpCancel || oc.status == "ok" {
+		if oc.operation != raceOpCancel || oc.status == "ok" || isBusyRefusal(oc.errorCode) {
 			continue
 		}
 		if oc.errorCode != verb.CodeMilestoneCancelNonTerminalACs.ID {
@@ -355,6 +382,29 @@ func classifyMilestoneRaceOutcomes(outcomes []raceActorOutcome, order []raceComm
 				oc.errorCode, verb.CodeMilestoneCancelNonTerminalACs.ID,
 			)})
 		}
+	}
+
+	// A busy refusal is excused individually, so a race where every
+	// actor was refused would otherwise pass silently. Requiring one
+	// through keeps a genuine deadlock — every actor blocked until the
+	// lock timeout — a violation, without asserting how many get
+	// through, which is the machine's business.
+	//
+	// The floor is scoped by what a lock-holder can legitimately do
+	// here: a cancel can fail while holding the lock, refused by the
+	// open-AC guard, so in practice this asks that some promote got
+	// through rather than that the lock is reachable at all.
+	succeeded := 0
+	for _, oc := range outcomes {
+		if oc.status == "ok" {
+			succeeded++
+		}
+	}
+	if len(outcomes) > 0 && succeeded == 0 {
+		violations = append(violations, Violation{Message: fmt.Sprintf(
+			"none of the %d racing actors succeeded — at least one must get through, or the lock is not being released",
+			len(outcomes),
+		)})
 	}
 
 	// At most one cancel can land the draft->cancelled transition; any other
