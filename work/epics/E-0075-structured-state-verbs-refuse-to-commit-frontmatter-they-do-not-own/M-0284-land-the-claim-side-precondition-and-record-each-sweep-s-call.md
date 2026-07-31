@@ -1,0 +1,155 @@
+---
+id: M-0284
+title: Land the claim-side precondition and record each sweep's call
+status: draft
+parent: E-0075
+depends_on:
+    - M-0283
+tdd: required
+acs:
+    - id: AC-1
+      title: A no-change claim is never made against HEAD-divergent state
+      status: open
+    - id: AC-2
+      title: Every NoOp site compares at the scope its own claim asserts
+      status: open
+    - id: AC-3
+      title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
+      status: open
+    - id: AC-4
+      title: The measured cancel-classifies-terminal defect no longer occurs
+      status: open
+---
+
+## Goal
+
+Put the precondition ahead of every same-state comparison, so no verb classifies
+against disputed bytes, and give each multi-entity sweep an explicit recorded
+call.
+
+## Context
+
+M-0283 lands the commit-side guard. This milestone covers the window that guard
+structurally cannot see: a same-state comparison returns from the verb body
+before any plan exists, so `verb.Apply` is never reached.
+
+The failure there is worse than laundering rather than milder. Laundering
+commits bytes under a wrong trailer; a false no-change claim reports success at
+exit 0 and silently drops the mutation the operator asked for. Measured: with a
+gap at `status: open` in HEAD and `wontfix` hand-edited onto disk,
+`aiwf cancel` reports the entity already terminal and exits 0.
+
+Placement matters as much as presence. A check inside the NoOp return guards the
+wrong instant — by then the verb has already compared and classified against
+dirty bytes, and suppressing the message does not undo the classification. The
+precondition therefore runs *before* the comparison.
+
+## Approach
+
+One precondition, called from each verb's prelude between resolution and the
+same-state comparison, scoped to whatever that verb's claim actually asserts
+about. Then the literal `Result{NoOp: true}` constructions collapse into a shared
+constructor, which is what M-0285 later makes mechanical.
+
+The 22 sites are not one shape, so the scoping is per-claim rather than uniform:
+sixteen are target-scoped to an entity file (an AC-level claim reads its parent
+milestone's file); three are scoped to `aiwf.yaml`; two are whole-tree sweeps
+whose claim derives from every entity's status or id width, so their scope is the
+selection, computed after selection; and one compares against git history rather
+than the working copy and needs no guard at all.
+
+## Acceptance criteria
+
+### AC-1 — A no-change claim is never made against HEAD-divergent state
+
+A verb no longer reports "already set; nothing to change" while HEAD disagrees
+with the working copy, silently discarding the operator's requested mutation.
+
+Whole-file, not frontmatter-only. Five sites already compare a second surface and
+say so in their own comments: `retitle` compares the stored title *and* the body
+H1; the AC-level `retitle` and `rename` compare the `### AC-N — <title>` heading;
+`move`'s claim spans the `parent:` field *and* the file's location;
+`promote --superseded-by` consults a second entity's reciprocal link. A
+frontmatter-only comparison would pass an entity whose H1 the operator had
+hand-repaired, and the verb would converge — dropping the repair a drifted
+heading is supposed to receive.
+
+### AC-2 — Every NoOp site compares at the scope its own claim asserts
+
+Each site's guard is scoped to what that site claims about, and a site needing no
+guard carries a recorded reason rather than an omission.
+
+The four scopes are distinguishable and none is a silent pass-through: target
+entity file, `aiwf.yaml`, the sweep's selected set, and none. Scoping everything
+to "the target entity" was measured to make the guard inert at exactly the three
+sites that splice a working-copy `aiwf.yaml`.
+
+### AC-3 — Each multi-entity sweep carries a recorded in-or-out call the guard matches
+
+`rename-area`, `rewidth --apply`, `import --on-collision update` and `archive`
+each carry an explicit recorded decision about whether the precondition applies,
+and the guard's behaviour matches that decision.
+
+What this forbids is a sweep whose treatment is accidental — covered because it
+happened to route through a seam, or exempt because nobody looked. `archive` is
+the one most likely to be exempt and the one whose exemption most needs writing
+down, since it moves files without rewriting their content.
+
+### AC-4 — The measured cancel-classifies-terminal defect no longer occurs
+
+The specific reproduction: a gap at `status: open` in HEAD, hand-edited to
+`wontfix` on disk, then `aiwf cancel` — which today reports the entity already at
+a terminal status and exits 0, having classified against bytes no verb committed.
+
+It earns its own criterion because it shows the defect is not only a dropped
+mutation but a wrong *classification*: the FSM consult itself ran against
+disputed state. That is what makes placement before the comparison load-bearing
+rather than stylistic.
+
+## Constraints
+
+- The precondition runs before the same-state comparison, not inside the NoOp
+  return. A guard that only suppresses the message leaves the classification
+  already made.
+- No site is scoped by convenience. A pass-through needs a recorded reason, and
+  "the target entity" is not a default.
+- The shared constructor is introduced here; the chokepoint that forbids the
+  literal form elsewhere is M-0285's. Landing the constructor without that rule
+  leaves a convention a new verb can forget — which is why the two milestones are
+  ordered this way rather than merged.
+- Whatever lands must not be read as fixing the FSM walker's rename-plus-status
+  blind spot. G-0475 stays open on its own terms.
+
+## Design notes
+
+- `acknowledge illegal` needs no guard: `ackAlreadyRecorded` walks git history,
+  so its baseline is already the record rather than the working copy. Recording
+  that as a reasoned exemption is part of AC-2, not an omission from it.
+- `archive` and `rewidth` have no target entity by construction — their claims are
+  derived from the whole tree. A tree-wide refusal would be disproportionate, so
+  their scope is the set the sweep selected, computed after selection.
+- The existing NoOp policy scans *exported* entry points only, so the unexported
+  composite branches (`promoteAC`, `cancelAC`, `renameAC`, `retitleAC`) are
+  invisible to it and need their own tests here rather than relying on M-0285.
+
+## Out of scope
+
+- The commit-side guard and the nested-path vector — M-0283.
+- The `internal/policies/` chokepoint forbidding literal `Result{NoOp: true}`
+  construction — M-0285.
+- After-the-fact detection of laundering already in history (G-0480).
+
+## Dependencies
+
+- M-0283 — the shared comparison and the mechanics its spike settles.
+- M-0282 — ADR-0038, which decides that the precondition precedes the comparison.
+
+## References
+
+- E-0075 — the parent epic
+- ADR-0038 — the claim-side seam and its scope
+- G-0466 — a verb commits frontmatter it does not own
+- G-0475 — the FSM walker blind spot this must not be read as fixing
+- G-0480 — after-the-fact detection; the backstop this does not replace
+- `internal/policies/verb_result_noop_invariant.go` — the exported-only scan
+- CLAUDE.md — "Same-state convergence — resolve, then converge"
