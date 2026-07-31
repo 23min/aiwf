@@ -17,7 +17,7 @@ acs:
       title: A verb over a dirty disk never commits a tree identical to its parent
       status: open
     - id: AC-4
-      title: Every single-entity route in the epic's scope list passes the precondition
+      title: The spike matrix answers every question ADR-0038 defers
       status: open
 ---
 
@@ -94,7 +94,7 @@ the same-state guard returns from the verb body before any plan exists. If the
 ADR chose that seam, this AC is where the consequence has to be recorded rather
 than discovered.
 
-### AC-4 — Every single-entity route in the epic's scope list passes the precondition
+### AC-4 — The spike matrix answers every question ADR-0038 defers
 
 Every route named in E-0075's *Scope* section under single-entity field writes
 either passes through the precondition or carries a recorded reason for being
