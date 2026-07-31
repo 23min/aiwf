@@ -86,12 +86,18 @@ func TestApply_DirtyBodyNotCommittedBySerializingVerb(t *testing.T) {
 	t.Parallel()
 	r := newGapRunner(t)
 
-	path := dirtyEntity(t, r, "G-0001", "## Why it matters", "## Why it matters\n\nUNBLESSED BODY EDIT.\n")
-
+	// The plan is computed against the committed tree and the body edit
+	// planted afterwards, which reaches Apply's guard in isolation. The
+	// same edit planted first is refused earlier, by the claim-side guard
+	// — see claim_divergence_guard_test.go. Both seams are load-bearing:
+	// this one covers every path a plan carries, including the nested
+	// entities no claim names.
 	res, err := verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor)
 	if err != nil {
 		t.Fatalf("SetPriority: %v", err)
 	}
+	path := dirtyEntity(t, r, "G-0001", "## Why it matters", "## Why it matters\n\nUNBLESSED BODY EDIT.\n")
+
 	assertRefusedAndUncommitted(t, r, res.Plan, path)
 }
 
@@ -106,38 +112,51 @@ func TestApply_DirtyPriorityNotCommittedByRetitle(t *testing.T) {
 	// Commit a priority through its own verb, so the record says `high`
 	// and only the working copy says `low`.
 	r.must(verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor))
-	path := dirtyEntity(t, r, "G-0001", "priority: high", "priority: low")
 
 	res, err := verb.Retitle(r.ctx, r.tree(), "G-0001", "Renamed gap title", testActor, "", 0)
 	if err != nil {
 		t.Fatalf("Retitle: %v", err)
 	}
+	// Planted after the plan, so the refusal under test is Apply's. retitle
+	// sits in both mechanisms at once — an OpMove and an OpWrite — so this
+	// covers the overlap between the serializing and move-shaped routes.
+	path := dirtyEntity(t, r, "G-0001", "priority: high", "priority: low")
+
 	assertRefusedAndUncommitted(t, r, res.Plan, path)
 }
 
-// TestApply_DirtyDiskNeverYieldsTreeIdenticalToParent pins M-0283/AC-3.
+// TestDirtyDiskNeverYieldsTreeIdenticalToParent pins M-0283/AC-3.
 // A same-state comparison against the loaded tree reads the dirty disk,
 // so asking for HEAD's own value looks like a real change: the verb
 // writes, and commits a tree byte-identical to its parent — the class
 // M-0281 existed to eliminate. Measured to also destroy the operator's
 // edit, since the verb's re-serialization overwrites it.
-func TestApply_DirtyDiskNeverYieldsTreeIdenticalToParent(t *testing.T) {
+//
+// The property is what is pinned, not the seam that delivers it. The
+// claim-side guard refuses this sequence before a plan exists, so the
+// empty-diff commit is unreachable rather than caught at Apply — which
+// is why the assertion is on the verb's own return.
+func TestDirtyDiskNeverYieldsTreeIdenticalToParent(t *testing.T) {
 	t.Parallel()
 	r := newGapRunner(t)
 
 	r.must(verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor))
 	path := dirtyEntity(t, r, "G-0001", "priority: high", "priority: low")
+	before := headSHA(t, r.root)
 
-	// Ask for the value HEAD already carries. The loaded tree says `low`,
-	// so the verb sees low -> high and plans a write.
+	// Ask for the value HEAD already carries. The loaded tree reads the
+	// dirty disk, so the request reads as low -> high: a real change whose
+	// write would land a tree byte-identical to its parent.
 	res, err := verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor)
-	if err != nil {
-		t.Fatalf("SetPriority: %v", err)
+	if err == nil {
+		t.Fatalf("SetPriority returned res=%+v, want a refusal — writing here commits an empty diff", res)
 	}
-	if res.NoOp {
-		t.Fatal("SetPriority converged to a NoOp; this test needs the plan-producing path")
+	if !strings.Contains(err.Error(), path) {
+		t.Errorf("error does not name the blocking path %q:\n%v", path, err)
 	}
-	assertRefusedAndUncommitted(t, r, res.Plan, path)
+	if after := headSHA(t, r.root); after != before {
+		t.Errorf("HEAD advanced to %s on a refusal; want it parked at %s", after, before)
+	}
 
 	// The operator's edit survives the refusal — a guard that refused but
 	// still overwrote the working copy would lose the same work silently.

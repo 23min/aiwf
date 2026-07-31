@@ -64,8 +64,6 @@ func SetArea(
 	clearTag bool,
 	actor string,
 ) (*Result, error) {
-	_ = ctx
-
 	// Composite/AC ids resolve to their parent milestone; both a
 	// composite id and a bare milestone derive their area from the parent
 	// epic and so are refused with a remediation pointer at the epic.
@@ -107,6 +105,10 @@ func SetArea(
 		if !entity.IsValidAreaValue(member, members) {
 			return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", member, declaredList(members))
 		}
+	}
+
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 
 	// Same-state convergence (M-0281/AC-7): the tag already reads as

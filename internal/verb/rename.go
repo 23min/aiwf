@@ -42,9 +42,8 @@ import (
 // frontmatter titles stay in sync. Pass 0 from tests that don't care
 // about cap policy.
 func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMaxLength int) (*Result, error) {
-	_ = ctx
 	if entity.IsCompositeID(id) {
-		return renameAC(t, id, newSlug, actor, slugMaxLength)
+		return renameAC(ctx, t, id, newSlug, actor, slugMaxLength)
 	}
 	e := t.ByID(id)
 	if e == nil {
@@ -65,6 +64,15 @@ func Rename(ctx context.Context, t *tree.Tree, id, newSlug, actor string, slugMa
 	source, dest, err := renamePaths(e, cleanSlug)
 	if err != nil {
 		return nil, err
+	}
+	// Scoped to the entity's own file, not `source` — for epic and
+	// contract that is a directory, and the claim below reads none of what
+	// is inside it. It compares two derived paths, so the working-copy
+	// state it rests on is the entity file the loader read them from.
+	// Nested files ride into the commit and are the commit-side guard's,
+	// which covers them by prefix.
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-5): the entity already lives at the
 	// requested slug, so there is nothing to move or rewrite — a re-run
