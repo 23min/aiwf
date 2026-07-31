@@ -22,7 +22,7 @@ acs:
     - id: AC-4
       title: Every verb entry point has a stated guard decision or a reasoned exemption
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-5
       title: The measured nested laundering through a parent rename no longer succeeds
       status: open
