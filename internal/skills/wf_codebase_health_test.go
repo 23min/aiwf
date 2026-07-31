@@ -51,7 +51,7 @@ func TestWfCodebaseHealth_ShipsFullRubricStructurally(t *testing.T) {
 		{"A", "## A. Module boundaries", []string{"A1", "A2", "A3"}},
 		{"B", "## B. Contracts", []string{"B1", "B2", "B3"}},
 		{"C", "## C. Data discipline", []string{"C1", "C2", "C3", "C4"}},
-		{"D", "## D. Tests that pin behavior, not implementation", []string{"D1", "D2", "D3", "D4"}},
+		{"D", "## D. Tests that pin behavior, not implementation", []string{"D1", "D2", "D3", "D4", "D5"}},
 		{"E", "## E. Errors, logs, audit trail", []string{"E1", "E2", "E3", "E4"}},
 		{"F", "## F. Reasoning aids", []string{"F1", "F2", "F3"}},
 		{"G", "## G. Operational properties", []string{"G1", "G2", "G3"}},

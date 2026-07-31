@@ -30,10 +30,10 @@ This rubric is used at **two ends** of the lifecycle, and the *priming* end is
 primary:
 
 - **Prime ("do it this way")** — consult it *while designing and writing* code,
-  so the structure comes out right the first time. This is the main use. The five
-  highest-leverage forces (D1, C1, C3, B1/B2, E1) are also primed every turn via
-  aiwf's guidance fragment; this skill is the full set, reached when you are
-  shaping a module or a boundary.
+  so the structure comes out right the first time. This is the main use. The
+  highest-leverage forces are also primed every turn via aiwf's guidance
+  fragment; this skill is the full set, reached when you are shaping a module
+  or a boundary.
 - **Score ("did we do it this way")** — use it *after*, as a review checklist or
   a Strong / Weak / Missing scorecard (see *Scoring a codebase against this*). Useful, but catching a
   structural problem at review or wrap is far more expensive than not introducing
@@ -390,6 +390,46 @@ integration-test cheaply.
 algorithmic correctness with easy-to-construct inputs, unit tests give
 better feedback per second.
 
+### D5. Findings become checks
+
+A confirmed defect leaves behind a check that fails without the fix — a test,
+a lint rule, an entry in the project's gate. When it genuinely can't be
+pinned, it becomes a recorded decision or a tracked issue. Never a silent
+correction.
+
+Sort each finding first. An **objective defect** — measurable against a test,
+a type, a spec clause, a gate — goes to the oracle, and each one encoded makes
+the next round smaller than this one. A **judgment disagreement** cannot be
+encoded as it stands: it either becomes a written rule, and stops being
+judgment, or a one-time decision. What it must not do is return next round as
+a fresh opinion.
+
+**Stop rule.** A review loop is converged when a fresh reviewer, over the
+whole surface, finds no defect that is not already fixed, pinned, or tracked.
+Not "no findings ever" — judgment findings are unbounded, and chasing them to
+zero is the failure mode this rule exists to prevent. A defect deliberately
+deferred does not block convergence once it is tracked; an undisposed one
+does. Confirming an individual fix may be scoped to what changed; the pass
+that decides convergence may not.
+
+**Smells:**
+- The same class of defect is found again by a different reviewer.
+- Review rounds keep producing new findings and nobody can say when it ends.
+- A fix lands with a changelog entry and no test.
+- The same finding is argued twice because the first outcome went unrecorded.
+- A run of review-driven commits, not one of them touching a test file.
+
+**Moves:**
+- Fix and pin in one change — the check is part of the fix, not a follow-up.
+- Label each finding defect or judgment before spending a fix on it.
+- Route what can't be pinned to a decision record or a tracked issue.
+- End the loop on an empty full-surface pass, not on exhaustion.
+
+**Tradeoff:** pinning costs more than fixing, and a check per nit is its own
+rot. For a low-cost defect that genuinely won't recur, record the decision
+not to pin it — what matters is that the disposition is explicit, not that
+everything earns a test.
+
 ---
 
 ## E. Errors, logs, audit trail
@@ -726,6 +766,7 @@ maybe-code is not.
 | Behavior pinning | Refactor-resistant tests that hide real regressions |
 | Equivalence tests | Conformance tests for implementations sharing no contract |
 | Branch coverage | 95% coverage of nothing meaningful |
+| Findings become checks | A regression test per nit; rule sprawl nobody reads |
 | Structured logs | Event soup nobody queries |
 | Designed failure modes | Speculative recovery for failures that never happen |
 | Audit trail | Auditing everything; storage explodes |
