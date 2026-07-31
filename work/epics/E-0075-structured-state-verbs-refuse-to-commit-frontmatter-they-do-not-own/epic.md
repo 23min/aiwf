@@ -206,20 +206,29 @@ substance, not scheduling detail.
 
 ## Milestones
 
-In execution order. The chain is linear rather than partly parallel: the seam has
-to exist before routes reach it, and the invariant would fail against unrouted
-sweeps if it landed first.
+In execution order. The chain is linear rather than partly parallel: the guard
+has to exist before routes reach it, and the invariant would fail against
+unrouted sweeps if it landed first.
 
-- **M-0282** — settle the seam, scope, verdict and escape hatch in one ADR.
-  Nothing else starts first, and E-0074 waits on the first of its decisions.
-  `tdd: none`.
-- **M-0283** — the shared precondition at the chosen seam, covering the
-  single-entity routes. Depends on M-0282. `tdd: required`.
-- **M-0284** — the nested-path vector and the multi-entity sweeps, each with its
-  explicit in-or-out call. Depends on M-0283. `tdd: required`.
+- **M-0282** — settle the seam, path scope, field scope, verdict and escape hatch
+  in one ADR. Nothing else starts first, and E-0074 waits on the first of its
+  decisions. `tdd: none`.
+- **M-0283** — spike the guard's remaining mechanics against a throwaway
+  prototype, then land the commit-side guard at `verb.Apply`, including the
+  nested-path vector. Depends on M-0282. `tdd: required`.
+- **M-0284** — the claim-side precondition ahead of every same-state comparison,
+  across the NoOp sites, plus each multi-entity sweep's recorded in-or-out call.
+  Depends on M-0283. `tdd: required`.
 - **M-0285** — an `internal/policies/` invariant so a newly-added write route
-  cannot bypass the seam, mirroring what M-0281 did for same-state convergence.
+  cannot bypass the guard, mirroring what M-0281 did for same-state convergence.
   Depends on M-0284. `tdd: required`.
+
+M-0283 leads with a prototype rather than an implementation because the
+questions ADR-0038 defers are not answerable on paper: every defect found while
+settling them was visible only by running code, and none was found by reasoning
+about it. The prototype is driven across a small grid — each path's role in the
+plan, crossed with whether it is dirty — which is what the available primitives
+can actually measure and what distinguishes the defects from one another.
 
 ## References
 
