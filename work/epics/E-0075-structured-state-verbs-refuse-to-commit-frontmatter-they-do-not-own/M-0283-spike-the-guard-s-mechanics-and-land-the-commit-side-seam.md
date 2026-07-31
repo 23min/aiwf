@@ -207,10 +207,68 @@ Bless mode's precondition is that the working copy diverges from HEAD, so a guar
 refusing divergence would block the one verb whose job is to commit it — and
 would make the recovery ADR-0038 recommends unreachable.
 
-The exemption is verified, not merely declared: the guard asserts the exempted
-write's content equals the bytes on disk, so it can smuggle nothing else. Bless
-mode already refuses any frontmatter divergence of its own accord, which is what
-keeps the exemption from becoming a laundering route.
+The exemption is verified, not merely declared, and it covers both of the verb's
+modes — explicit mode needs it for the same reason bless mode does, since the
+write-then-route and declarative-revert flows both hand the verb a working copy
+that diverges from HEAD.
+
+Two conditions carry the verification. The working copy's own frontmatter must
+still equal HEAD's, so no hand-edited field rides in. And the write's content must
+carry nothing beyond that working copy: equal to it outright, as bless mode's
+verbatim bytes are, or equal to it re-serialized through the loaded entity model,
+as explicit mode's are. Both comparisons are field-based, because re-serializing
+canonicalizes field order without changing what is declared.
+
+An adopting write may still change the body freely — that is the exemption's
+entire purpose, and the declarative revert depends on it.
+
+## Decisions made during implementation
+
+**The four questions ADR-0038 deferred, answered from the prototype.**
+
+- *How the compared path set is derived.* From the plan's ops, using the match
+  rule `stagedPathConflicts` already applied to its staged twin: an `OpWrite`
+  matches its path exactly, an `OpMove` matches its source, its destination, and
+  anything nested under either. Both guards now resolve a path through one shared
+  function, so they cannot drift on which paths a plan is considered to touch.
+- *How per-path verdicts compose.* Refuse if any compared path is dirty. Driven
+  across the role grid, no scenario needed a finer rule.
+- *Whether carry-along substitution is adopted.* No. The rule above closes every
+  measured vector without it, and its costs were already measured: duplicated
+  subtrees under `retitle` / `move` / `reallocate`, a milestone dropped from a
+  `rewidth --apply` commit, flat-file destinations uncovered.
+- *What the `ExitUsage` change costs.* One typed error and one `errors.As` arm in
+  `internal/cli/cliutil`. The refusal exits 2; the staged twin still exits 3,
+  which is an asymmetry this milestone leaves standing rather than widening its
+  scope to the pre-existing guard.
+
+**One carve-out the measurements forced.** An untracked path the plan names as an
+`OpWrite` destination is not compared. It has no committed version to contradict,
+so the write creates the record rather than laundering one. Without it every verb
+writing `aiwf.yaml` is refused in a freshly-initialised repo, where `aiwf init`
+itself leaves that file uncommitted by design. Untracked paths nested under a move
+still refuse, which is what keeps the untracked-scratch-file vector closed.
+
+**An unasked-for discovery.** `git diff HEAD` exits 128 on an unborn HEAD, and a
+verb's own commit is routinely a repo's first. Unguarded, that accounted for 735
+of the prototype's 842 failing tests.
+
+**The exemption's verification was corrected mid-milestone.** ADR-0038 specified
+that the guard assert the exempted write's content equals the bytes on disk.
+Measured, that test is unsound in both directions: it refuses a declarative revert,
+and it accepts a write over hand-edited frontmatter — the laundering the epic
+exists to stop. The shipped verification is the two-condition form recorded under
+AC-6, and ADR-0038's *Escape hatch* subsection was amended to match rather than
+left contradicting the code.
+
+**AC-4's phase ladder is not ordering evidence.** The policy and its tests were
+authored together, so no moment existed in which the test was written and the
+implementation was not. The recorded `red` was produced afterwards by emptying the
+ledger and observing the live assertion fail with one violation per entry point.
+That demonstrates the assertion can fire — which this repo already pins
+permanently through `firing_fixture_presence` — but it is not the test-first
+ordering `aiwf history` is read as showing. Recorded here because re-staging the
+ladder now would be the actual back-stamp.
 
 ## Constraints
 
