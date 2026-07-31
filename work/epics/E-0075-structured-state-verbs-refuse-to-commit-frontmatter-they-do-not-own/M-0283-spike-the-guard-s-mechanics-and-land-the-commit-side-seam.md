@@ -1,7 +1,7 @@
 ---
 id: M-0283
 title: Spike the guard's mechanics and land the commit-side seam
-status: draft
+status: in_progress
 parent: E-0075
 depends_on:
     - M-0282
