@@ -1,8 +1,10 @@
 ---
 id: G-0489
 title: Ratchet confirmed review findings into checks and define a review stop rule
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - e001c3593
 ---
 ## What's missing
 

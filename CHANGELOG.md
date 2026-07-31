@@ -37,6 +37,22 @@ verdict closes one pass, and only a full-surface pass can declare convergence.
 The always-on guidance fragment primes D5 alongside the existing code-health
 forces.
 
+The rituals that dispose of findings now cite the force rather than each
+carrying its own wording. `aiwfx-wrap-milestone`'s review loop requires a
+corrective commit for a defect to carry the check that pins it, routes a
+deliberately-unpinned defect or a finding that reveals a requirement no
+acceptance criterion covers to a gap mirrored under the spec's deferrals,
+routes an accepted judgment finding to a written rule or a recorded decision,
+and ends on the full-surface deciding pass `wf-review-code` defines — it
+previously confirmed fixes against the changed surface alone and had no
+terminator at all.
+`wf-patch` puts the regression test on the same footing as its mandatory
+CHANGELOG entry, with two named escapes (a change with no logic to pin, and a
+defect stated as unpinnable at the commit gate); a bug fix can no longer land
+documented but unpinned. `aiwfx-plan-milestones` hands the amend-versus-defer
+scope fork to `aiwfx-record-decision` instead of leaving it uncaptured, and the
+reviewer role card carries the kind constraint.
+
 ### Changed — G-0468: the concurrent-contention stress oracles judge correctness, not throughput
 
 Nothing user-facing changed; this is the stress harness, which is dev-only
