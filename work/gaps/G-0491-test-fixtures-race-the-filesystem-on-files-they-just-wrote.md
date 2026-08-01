@@ -8,6 +8,8 @@ priority: medium
 
 Two test fixtures reach for a file they just wrote and assume the filesystem still presents it the way they left it. Both fail as an unexplained red naming a fixture step rather than the property under test, and both surface only under whole-suite parallelism, so neither reproduces when someone runs the failing test alone.
 
+The exec race is fixed; the object-storage assumption is what remains open.
+
 ### A commit object assumed to still be loose
 
 `corruptUnusedRitualRef` (`internal/cli/integration/isolation_escape_oracle_scenarios_test.go:285`) builds its fixture by committing a file, then overwriting the commit's object *file* in place to make a per-ref first-parent walk fail while `for-each-ref` still emits the ref name. It computes the path arithmetically — `.git/objects/<sha[:2]>/<sha[2:]>` — and fatals if the chmod ahead of the overwrite fails.
@@ -34,7 +36,21 @@ Observed once in five full `make ci` runs on 2026-07-30 and 2026-07-31. It does 
 
 The package runs its tests in parallel and several of them spawn subprocesses, so the forks that collide with the write are the suite's own. Measured at roughly one full `stress`-tagged package run in four, on trees both with and without the G-0468 patches — so it predates them and none of them aggravated it. A focused `-run` of the failing test does not reproduce it, since the collision needs the rest of the package running alongside.
 
-The same write-then-exec shape has since spread: the stand-ins at `internal/stresstest/mid_write_kill_retry_test.go` follow it, and every one is a fresh site for the same race.
+**Fixed.** Every executable stand-in in the affected packages now goes through `testsupport.WriteExecutable`, which holds `syscall.ForkLock` for reading across the write; `syscall`'s own `forkExec` takes that lock for writing, so no fork the process starts can overlap the descriptor's lifetime. Ten sites in `internal/stresstest` and four in `internal/contractverify` are routed, and the diff-scoped `test-executable-write` policy flags a bare executable write newly added to any test.
+
+`internal/contractverify` was not on the original list. It failed during the fix's own verification run, reporting `validator-error` where the test wanted `fixture-rejected` and an empty `FixturePath` — which is exactly what `runValidator` produces when the exec fails for every valid fixture and the reclassification step collapses the rejections. Same write-then-exec shape, same non-reproduction in isolation. The race is therefore not a property of the package it was first measured in.
+
+The measurement that settled it, over 3,200 write-then-exec cycles per run under deliberate fork pressure:
+
+| write | ETXTBSY |
+| --- | --- |
+| `os.WriteFile`, then exec | 391 / 383 / 390 |
+| temp name + `os.Rename`, then exec | 391 / 399 / 452 |
+| `ForkLock.RLock` held across the write | 0 / 0 / 0 |
+
+At four times the fork pressure the guarded write stayed at 0 across 19,200 execs while the plain one rose to 17%.
+
+Worth keeping, because it is the trap anyone reaching for an atomic-write habit will fall into: **temp-name-plus-rename does not fix this.** `ETXTBSY` is enforced against the inode's writer count, and a rename carries the same inode to the new path — leaked descriptor and all — so the exec sees a file still held open for writing no matter which name it arrives under.
 
 ## Why it matters
 
@@ -42,13 +58,11 @@ Each is a fixture defect reported as a product defect. The subject under test �
 
 Both land in packages whose full runs take minutes, so the cost of a spurious red is a re-run of a slow package plus the attention spent ruling out the change in flight. That is the same economics G-0457 records for the chronic red gate, at lower frequency.
 
-It is also the defect class G-0468 removed, one layer down: an assertion whose outcome depends on machine state that the property under test does not depend on. G-0468 addressed it in the stress oracles; this is the same shape in the fixtures those oracles run on, and the exec race is actively spreading as new stand-ins copy the pattern.
+It is also the defect class G-0468 removed, one layer down: an assertion whose outcome depends on machine state that the property under test does not depend on. G-0468 addressed it in the stress oracles; this is the same shape in the fixtures those oracles run on.
 
 ## Resolution shape
 
-The exec race has a settled fix, and it is one helper rather than a change per site: write the stand-in to a sibling temp name and `os.Rename` it into place. Rename is atomic and the final path is never the target of a writable descriptor, so no concurrent fork can hold one. Route every fixture that writes an executable through it, which also stops the shape spreading further by copy.
-
-The object-storage assumption is less settled. Stop depending on where git chose to store the object; two directions, neither picked:
+What remains is the object-storage assumption. Stop depending on where git chose to store the object; two directions, neither picked:
 
 - **Corrupt the ref rather than the object.** The fixture's stated goal is a ref whose walk fails while `for-each-ref` still lists it. Writing a well-formed but unresolvable object id into the ref file produces exactly that, and touches no object storage at all.
 - **Locate the object rather than compute its path.** Ask git where the object lives before writing to it, and fail with a message naming the packed case if it is not loose.
@@ -61,5 +75,4 @@ Identifying what actually relocates the object is worth doing first if it is che
 
 - `internal/cli/integration/isolation_escape_oracle_scenarios_test.go` — `corruptUnusedRitualRef`, the path arithmetic and the chmod/overwrite pair.
 - Any sibling fixture that reaches into `.git/objects` by computed path carries the same assumption and should be checked alongside it.
-- `internal/stresstest/verb_sequence_list_invariant_real_test.go` — `writeFakeAiwfList`, where the write-then-exec race is measured.
-- `internal/stresstest/mid_write_kill_retry_test.go` — the stand-ins carrying the same shape, which want the shared helper rather than three copies of the fix.
+- The roughly ninety bare executable writes still in tests elsewhere — `internal/initrepo` (35), `internal/cli/integration` (17) and `internal/cli/doctor` (9) are the concentrations. Left deliberately for a separate sweep; the diff-scoped policy stops the count growing but does not shrink it. `internal/contractverify` is the reason not to assume the remainder are safe: it was on this list until it failed, and nothing distinguished it beforehand.
