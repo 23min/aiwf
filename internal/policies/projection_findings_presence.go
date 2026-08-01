@@ -49,12 +49,12 @@ var projectionFindingsExemptVerbs = []struct {
 // for one of the allowlist's documented reasons) fails CI instead of
 // surfacing only at the next verb-layer audit.
 //
-// Reachability is a same-package call-graph walk over raw call
-// text, not a type-checked analysis — the same shallow, deliberate
-// scope PolicyVerbsValidateThenWrite already uses for its own
-// substring scan. A verb entry point that only calls projectionFindings
-// through an unexported helper (e.g. EditBody -> editBodyExplicit)
-// is still recognized as compliant.
+// Reachability is a same-package call-graph walk over bare-identifier
+// call expressions, not a type-checked analysis. A verb entry point
+// that only calls projectionFindings through an unexported helper
+// (e.g. EditBody -> editBodyExplicit) is still recognized as compliant.
+// PolicyVerbsValidateThenWrite answers its own question with a
+// substring scan; these two no longer share a mechanism.
 func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -168,13 +168,18 @@ func calledIdents(fn *ast.FuncDecl) map[string]bool {
 // reachable set. visited guards against infinite recursion on a call
 // cycle.
 //
-// The walk is sound in one direction only, which decides what a caller
-// may read into it. A function outside graph — declared in another
-// package, or reached through a value rather than a name — ends the walk,
-// so the reachable set is an under-approximation: a reported reach is
-// real, an unreported one may still exist. A caller that fires on a
-// missing reach therefore errs loud, and one that fires on a present
-// reach errs quiet. Neither may be read as proof of an absence.
+// An edge is a name in call position, which is weaker than a call that
+// runs. A call inside a branch no input selects is an edge; so is a call
+// to a local variable that shadows the package function of that name.
+// And a function outside graph — declared in another package, or reached
+// through a value rather than a name — ends the walk, so a real call can
+// also be missed.
+//
+// So the walk answers "is there a call-shaped edge to this name", and a
+// caller may read neither presence nor absence as proof about what
+// executes. What it is good for is the question both consumers ask: does
+// this function's source connect to a named seam at all, or has it been
+// written as if that seam did not exist.
 func reachesCall(name, target string, graph callGraph, visited map[string]bool) bool {
 	if visited[name] {
 		return false

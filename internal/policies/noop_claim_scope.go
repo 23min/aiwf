@@ -107,6 +107,43 @@ var noOpClaimScopes = []claimScope{
 	{"editBodyExplicit", claimScopeNone, "explicitBodySettled already compares the requested content against HEAD, and the verb exists to commit a divergent working copy — a guard refusing divergence would block the route every other refusal recommends"},
 }
 
+// noOpResultPositions returns the position of every Result{NoOp: true}
+// composite literal in fn's body, in source order.
+//
+// It is the one place that decides what a same-state NoOp construction
+// looks like. The ledger's key set below is derived from it, and
+// PolicyClaimGuardPresence measures guard placement against it, so the
+// two cannot disagree about which sites converge — a disagreement would
+// let a site be required to carry a guard by one policy and be invisible
+// to the other.
+func noOpResultPositions(fn *ast.FuncDecl) []token.Pos {
+	var out []token.Pos
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		lit, ok := n.(*ast.CompositeLit)
+		if !ok {
+			return true
+		}
+		if name, ok := lit.Type.(*ast.Ident); !ok || name.Name != "Result" {
+			return true
+		}
+		for _, elt := range lit.Elts {
+			kv, ok := elt.(*ast.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			key, ok := kv.Key.(*ast.Ident)
+			if !ok || key.Name != "NoOp" {
+				continue
+			}
+			if v, ok := kv.Value.(*ast.Ident); ok && v.Name == "true" {
+				out = append(out, lit.Pos())
+			}
+		}
+		return true
+	})
+	return out
+}
+
 // validateClaimScopes checks the ledger's own shape and returns the
 // recorded scope per function. Split out so the malformed-entry arms are
 // testable without a filesystem: the real ledger is well-formed, and a
@@ -176,33 +213,22 @@ func PolicyNoOpClaimScope(root string) ([]Violation, error) {
 		}
 		for _, decl := range astFile.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
+			// Methods are in scope here and out of scope in
+			// PolicyClaimGuardPresence, and the asymmetry is load-bearing
+			// rather than an oversight: a converging method gets a
+			// required ledger row from this scan, and that row is what
+			// the sibling policy reports as unvouchable. Filtering
+			// fn.Recv here for consistency with the neighbouring scans
+			// would delete the interlock and leave both policies green
+			// over an unguarded method. Pinned by
+			// TestPolicyNoOpClaimScope_ConvergingMethodDemandsARow.
 			if !ok || fn.Body == nil {
 				continue
 			}
-			ast.Inspect(fn.Body, func(n ast.Node) bool {
-				lit, ok := n.(*ast.CompositeLit)
-				if !ok {
-					return true
-				}
-				if name, ok := lit.Type.(*ast.Ident); !ok || name.Name != "Result" {
-					return true
-				}
-				for _, elt := range lit.Elts {
-					kv, ok := elt.(*ast.KeyValueExpr)
-					if !ok {
-						continue
-					}
-					key, ok := kv.Key.(*ast.Ident)
-					if !ok || key.Name != "NoOp" {
-						continue
-					}
-					if v, ok := kv.Value.(*ast.Ident); ok && v.Name == "true" {
-						sites = append(sites, site{fn: fn.Name.Name, file: f.Path, line: fset.Position(lit.Pos()).Line})
-						converging[fn.Name.Name] = true
-					}
-				}
-				return true
-			})
+			for _, pos := range noOpResultPositions(fn) {
+				sites = append(sites, site{fn: fn.Name.Name, file: f.Path, line: fset.Position(pos).Line})
+				converging[fn.Name.Name] = true
+			}
 		}
 	}
 
