@@ -1,8 +1,10 @@
 ---
 id: G-0491
 title: Test fixtures race the filesystem on files they just wrote
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - f84f32d06
 ---
 ## What's missing
 
