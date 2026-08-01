@@ -245,6 +245,20 @@ red-to-green transition: 3/3 caught, and the converge-point guard this milestone
 rejected passes the first arm while failing the second. Four new test functions ·
 commit `61912a311`
 
+### AC-5 — The commit-side guard reads the record, not git's dirty report
+
+`verb.Apply` derives its divergence set from `planCarriedPaths` +
+`gitops.DivergentPaths` — HEAD's blobs against disk, for the paths the plan
+carries, at both ends of a move. Both vectors were measured on a real binary
+first: an `assume-unchanged` milestone rode into a parent epic's rename commit
+under that rename's trailer, and a `skip-worktree` path absent from disk split
+the epic directory, stranding one milestone at the old path while its siblings
+moved. `gitops.IgnoredPathsUnder` retires with the dirty set it patched.
+`UncommittedConflictError` carries a third bucket for a path the record holds
+and the working tree lacks, whose remedy is `git restore` rather than a
+destructive one. Ten new test functions; mutation probe 8/8 caught, no survivors
+· commit `9c6ebe566`
+
 ## Decisions made during implementation
 
 ### The sweeps are scoped per candidate, not per verb
@@ -292,6 +306,39 @@ solicited on a false premise.
 
 Both are pinned by regression tests. What holds is ADR-0038's own statement:
 the guard runs before the comparison.
+
+### A move's carried set is enumerated from the record as well as from disk
+
+`gatherCommitOps` builds a move's writes by walking disk, so a path the record
+carries and the working tree lacks is never re-written at the destination — and
+never removed from the source either. The commit lands a split directory: the
+epic and its other children at the new path, that one stranded at the old.
+Measured, `aiwf check` reports zero errors on the result, so the guard is the
+only place it is caught. That is what decided the milestone's open question in
+favour of comparing both sides rather than the disk walk alone.
+
+The destination is enumerated for the same reason the source is: `os.Rename`
+onto an existing file replaces it, so a plan landing on an occupied path would
+destroy content no verb named.
+
+### The comparison reads blobs through one batch pump
+
+Per-path `git show` costs two subprocesses per carried file, which is a plan's
+count rather than a constant — measured at 319ms for 51 paths. Routing
+`DivergentPaths` through the existing `gitops.BlobReader` (`git cat-file
+--batch`) makes it one subprocess for the set: 15.8ms for the same 51, cheaper
+than the dirty-set queries it replaces. Without this the guard would have traded
+a correctness fix for a cost that scales with epic size.
+
+### The archive sweep's per-candidate decision moved to the same input
+
+AC-3's `dirtyPathsUnderMoves` asked git what the operator changed, so a candidate
+whose file is ignored, `assume-unchanged`, or omitted by a sparse checkout read
+as clean and was swept. The commit-side guard refuses that, so nothing is
+laundered — but a partial sweep degrades into a whole-verb refusal that names no
+candidate, which is the behaviour AC-3 exists to avoid. Both seams now route
+through one enumeration (`addCarriedUnder`), so they cannot drift on what a move
+is considered to carry.
 
 ## References
 
