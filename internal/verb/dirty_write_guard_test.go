@@ -463,6 +463,18 @@ func TestUncommittedConflictError_RemedyMatchesTrackedness(t *testing.T) {
 	if !strings.Contains(untracked, "git stash -u") {
 		t.Errorf("an untracked path's remedy should offer the flag that covers it:\n%s", untracked)
 	}
+
+	// A path recorded at HEAD and absent from the working tree is most
+	// often hidden by skip-worktree, which is how a sparse checkout omits
+	// one — and `git restore` refuses such a path outright, so a remedy
+	// that names it alone sends the operator into a loop.
+	missing := (&verb.UncommittedConflictError{Missing: []string{"work/epics/E-0001-x/M-0002-y.md"}}).Error()
+	if !strings.Contains(missing, "--no-skip-worktree") {
+		t.Errorf("a missing path's remedy must clear the bit that hides it, or `git restore` refuses:\n%s", missing)
+	}
+	if !strings.Contains(missing, "git restore") {
+		t.Errorf("a missing path's remedy should still bring the file back:\n%s", missing)
+	}
 }
 
 // gitPorcelain returns `git status --porcelain` output for root.

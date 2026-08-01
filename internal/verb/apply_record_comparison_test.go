@@ -1,9 +1,11 @@
 package verb_test
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -108,6 +110,46 @@ func TestApply_HEADPathAbsentFromDiskUnderMove_Refused(t *testing.T) {
 		t.Fatalf("Rename: %v", err)
 	}
 	assertRefusedAndUncommitted(t, r, res.Plan, path)
+}
+
+// TestApply_MissingPathIsClassifiedApart pins the three-bucket split
+// itself, not merely that a blocking path is named.
+//
+// The buckets exist because their remedies differ and offering the wrong
+// one is worse than offering none: `git restore` discards work on a
+// tracked path, errors on one git never recorded, and is the entire fix
+// for one recorded but absent from the working tree. Asserting only that
+// the path appears in the message is satisfied by any bucket, so the
+// classification would be free to drift.
+func TestApply_MissingPathIsClassifiedApart(t *testing.T) {
+	t.Parallel()
+	r := nestedEpicRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindMilestone, "Second milestone", testActor, verb.AddOptions{
+		EpicID: "E-0001",
+		TDD:    "none",
+	}))
+	second := filepath.ToSlash(r.tree().ByID("M-0002").Path)
+	hideFromGitReporting(t, r.root, "--skip-worktree", second)
+	if err := os.Remove(filepath.Join(r.root, filepath.FromSlash(second))); err != nil {
+		t.Fatalf("removing %s: %v", second, err)
+	}
+
+	res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "renamed-epic-slug", testActor, 0)
+	if err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+	_, applyErr := verb.Apply(r.ctx, r.root, res.Plan)
+	var conflictErr *verb.UncommittedConflictError
+	if !errors.As(applyErr, &conflictErr) {
+		t.Fatalf("error is not a *verb.UncommittedConflictError: %v", applyErr)
+	}
+	if !slices.Contains(conflictErr.Missing, second) {
+		t.Errorf("%s is not in Missing; Tracked=%v Untracked=%v Missing=%v",
+			second, conflictErr.Tracked, conflictErr.Untracked, conflictErr.Missing)
+	}
+	if slices.Contains(conflictErr.Tracked, second) || slices.Contains(conflictErr.Untracked, second) {
+		t.Errorf("%s was also bucketed as tracked or untracked, so its remedy is ambiguous", second)
+	}
 }
 
 // TestApply_CleanNestedMove_StillCommits is the negative control both

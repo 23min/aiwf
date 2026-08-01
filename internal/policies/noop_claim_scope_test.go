@@ -238,3 +238,51 @@ func explicitlyNotConverging() *Result { return &Result{NoOp: false, NoOpMessage
 		}
 	}
 }
+
+// TestPolicyNoOpClaimScope_RemediationNamesOnlyValidScopes closes the
+// loop the message is for: an operator who follows it verbatim must end
+// up with a ledger entry the same policy accepts. Naming a scope outside
+// the closed set sends them into a second violation.
+func TestPolicyNoOpClaimScope_RemediationNamesOnlyValidScopes(t *testing.T) {
+	t.Parallel()
+	src := `package verb
+
+type Result struct {
+	NoOp        bool
+	NoOpMessage string
+}
+
+func BrandNewVerb(id string) (*Result, error) {
+	return &Result{NoOp: true, NoOpMessage: "already there"}, nil
+}
+`
+	vs, err := PolicyNoOpClaimScope(claimScopeFixture(t, src))
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	valid := map[string]bool{
+		claimScopeTargetEntity:  true,
+		claimScopeConfigFile:    true,
+		claimScopeSweepDeciders: true,
+		claimScopeNone:          true,
+	}
+	var checked bool
+	for _, v := range vs {
+		if !strings.Contains(v.Detail, "converges with no recorded claim scope") {
+			continue
+		}
+		checked = true
+		// Every parenthesised name the message offers must be one the
+		// ledger's own validation accepts.
+		for _, offered := range strings.FieldsFunc(v.Detail, func(r rune) bool {
+			return r == '(' || r == ')' || r == ',' || r == ' '
+		}) {
+			if strings.Contains(offered, "-") && !valid[offered] {
+				t.Errorf("remediation offers scope %q, which validateClaimScopes rejects:\n%s", offered, v.Detail)
+			}
+		}
+	}
+	if !checked {
+		t.Fatal("no unrecorded-site violation was produced; the fixture is wrong")
+	}
+}

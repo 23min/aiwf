@@ -80,7 +80,7 @@ func RenameArea(
 	// The declared set this claim rests on is spliced out of aiwf.yaml,
 	// so that file is the scope — placed after the membership check, which
 	// is the resolution the claim presupposes.
-	if claimErr := guardClaim(ctx, t.Root, oldName, config.FileName); claimErr != nil {
+	if claimErr := guardClaimConfig(ctx, t.Root, oldName, config.FileName); claimErr != nil {
 		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-7): the member already carries the

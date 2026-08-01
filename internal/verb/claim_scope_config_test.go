@@ -172,3 +172,65 @@ func TestRenameArea_CleanConfig_StillConverges(t *testing.T) {
 		t.Errorf("same-name rename on a clean tree did not converge: %+v", res)
 	}
 }
+
+// TestGuardClaimVariants_DifferOnlyOnAPathAbsentFromHEAD pins the split
+// between the two guard variants, which is the whole of their
+// difference.
+//
+// The entity variant refuses a path HEAD does not record, because a
+// claim is about an entity and an entity's file can move without any
+// verb — after a plain `mv` the working copy is the only thing saying
+// where the id lives, which is where the record most needs consulting.
+//
+// The config variant exempts it, because `aiwf init` leaves aiwf.yaml
+// uncommitted by design and every verb that rewrites it would otherwise
+// be unreachable until someone committed it. aiwf.yaml is not an entity
+// and cannot move out from under an id, so the entity reasoning does not
+// reach it.
+func TestGuardClaimVariants_DifferOnlyOnAPathAbsentFromHEAD(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	if err := gitops.Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "committed.md"), []byte("recorded\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Add(ctx, root, "committed.md"); err != nil {
+		t.Fatal(err)
+	}
+	if err := gitops.Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	// Present on disk, absent from the record.
+	if err := os.WriteFile(filepath.Join(root, "unrecorded.md"), []byte("never committed\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := guardClaim(ctx, root, "subject", "unrecorded.md"); err == nil {
+		t.Error("the entity variant accepted a path the record does not hold")
+	} else {
+		var claimErr *ClaimDivergenceError
+		if !errors.As(err, &claimErr) {
+			t.Errorf("entity variant returned %v, want a *ClaimDivergenceError", err)
+		}
+	}
+
+	if err := guardClaimConfig(ctx, root, "subject", "unrecorded.md"); err != nil {
+		t.Errorf("the config variant refused an uncommitted aiwf.yaml: %v", err)
+	}
+
+	// Neither variant exempts a path whose recorded content disagrees.
+	if err := os.WriteFile(filepath.Join(root, "committed.md"), []byte("hand-edited\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for name, guard := range map[string]func(context.Context, string, string, ...string) error{
+		"entity": guardClaim,
+		"config": guardClaimConfig,
+	} {
+		if err := guard(ctx, root, "subject", "committed.md"); err == nil {
+			t.Errorf("%s variant accepted a hand-edited tracked path", name)
+		}
+	}
+}

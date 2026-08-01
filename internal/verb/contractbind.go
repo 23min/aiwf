@@ -64,7 +64,7 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	// The claim is about aiwf.yaml, not the contract entity: "unchanged"
 	// is decided by comparing the binding this verb would write against the
 	// entries spliced out of that file.
-	if claimErr := guardClaim(ctx, repoRoot, id, config.FileName); claimErr != nil {
+	if claimErr := guardClaimConfig(ctx, repoRoot, id, config.FileName); claimErr != nil {
 		return nil, claimErr
 	}
 

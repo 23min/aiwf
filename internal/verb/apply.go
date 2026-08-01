@@ -354,6 +354,13 @@ func planCarriedPaths(ctx context.Context, root string, ops []FileOp) ([]string,
 					return nil, err
 				}
 			}
+		default:
+			// A new op type contributes no paths here, so the guard would
+			// not see whatever it carries. Refusing is the conservative
+			// reading: an op this function cannot enumerate is one whose
+			// commit contents it cannot vouch for.
+			//coverage:ignore unreachable: OpType is a closed set of two, both handled above; a third is a source change that lands here first
+			return nil, fmt.Errorf("cannot determine what op type %d carries", op.Type)
 		}
 	}
 	sort.Strings(out)
@@ -486,10 +493,15 @@ func (e *UncommittedConflictError) Error() string {
 			strings.Join(e.Untracked, " "))
 	}
 	if len(e.Missing) > 0 {
+		// `git restore` alone refuses a path carrying skip-worktree —
+		// which is how a sparse checkout omits one, and so is the likeliest
+		// way to arrive here. Clearing the bit first is a no-op on a path
+		// that does not carry it, so one form serves both.
 		fmt.Fprintf(&b, "  recorded but absent from your working tree, so a move would strand it where it is\n"+
-			"  instead of carrying it: restore it with `git restore %s` (a sparse checkout or\n"+
-			"  `skip-worktree` can hide a path from every other check)\n",
-			strings.Join(e.Missing, " "))
+			"  instead of carrying it: bring it back with\n"+
+			"  `git update-index --no-skip-worktree -- %s && git restore %s`\n"+
+			"  (a sparse checkout or `skip-worktree` hides a path from every other check)\n",
+			strings.Join(e.Missing, " "), strings.Join(e.Missing, " "))
 	}
 	b.WriteString("  then re-run the verb; unrelated uncommitted paths survive the verb's commit untouched")
 	return b.String()

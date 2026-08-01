@@ -91,20 +91,34 @@ func (e *ClaimDivergenceError) Error() string {
 // the rest carry a recorded reason for needing no comparison. The full
 // inventory is internal/policies/noop_claim_scope.go.
 //
-// A path absent from HEAD is not divergence. There is no record for the
-// verb's reading to contradict, so it creates one rather than
-// overwriting one that disagrees — the same call Apply makes for a write
-// it names (see checkUncommittedConflict), and the same reason: `aiwf
-// init` leaves aiwf.yaml uncommitted by design, and the verbs that
-// rewrite it would otherwise be unreachable until it was committed.
-// Keeping the two seams on one answer is what stops a single untracked
-// file being judged one way by this guard and the opposite way by that
-// one.
+// An entity's claim is refused whether or not HEAD records the path the
+// entity currently occupies. The claim is about the entity, and an
+// entity's file can move without any verb: after a plain `mv`, the
+// working copy is the only thing that says where G-NNNN lives, so a
+// path-absent-from-HEAD exemption would let the verb read a status HEAD
+// contradicts and answer "already set; nothing to change" — the exact
+// reproduction this guard exists to refuse — and let a write land beside
+// HEAD's untouched copy, putting one id at two paths in the record.
 //
 // An unborn HEAD carries no record at all, so the guard stands down —
 // the reading Apply's commit-side guard already takes, and one every
 // verb meets, since a verb's own commit is routinely a repo's first.
 func guardClaim(ctx context.Context, root, subject string, paths ...string) error {
+	return guardClaimPaths(ctx, root, subject, false, paths)
+}
+
+// guardClaimConfig is the aiwf.yaml variant, and the exemption is the
+// whole difference: `aiwf init` leaves that file uncommitted by design,
+// so a config-scoped claim refusing a path absent from HEAD would make
+// every verb that rewrites it unreachable until someone committed it.
+// The file is not an entity and cannot move out from under an id, so the
+// reasoning that forbids the exemption for a target entity does not
+// reach it.
+func guardClaimConfig(ctx context.Context, root, subject string, paths ...string) error {
+	return guardClaimPaths(ctx, root, subject, true, paths)
+}
+
+func guardClaimPaths(ctx context.Context, root, subject string, exemptAbsentFromHEAD bool, paths []string) error {
 	hasHEAD, headErr := gitops.HasHEAD(ctx, root)
 	if headErr != nil {
 		return fmt.Errorf("checking %s against HEAD: %w", subject, headErr)
@@ -118,7 +132,7 @@ func guardClaim(ctx context.Context, root, subject string, paths ...string) erro
 	}
 	blocking := make([]gitops.Divergence, 0, len(diverged))
 	for _, d := range diverged {
-		if d.Kind == gitops.DivergenceAbsentFromHEAD {
+		if exemptAbsentFromHEAD && d.Kind == gitops.DivergenceAbsentFromHEAD {
 			continue
 		}
 		blocking = append(blocking, d)

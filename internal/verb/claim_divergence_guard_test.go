@@ -3,7 +3,6 @@ package verb_test
 import (
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -168,42 +167,42 @@ func TestPromote_SupersededByDivergentReciprocal_Refuses(t *testing.T) {
 	}
 }
 
-// TestSetPriority_UntrackedEntityFile_StillConverges pins the carve-out
-// this guard shares with Apply's: a path absent from HEAD carries no
-// record for the verb's reading to contradict.
+// TestSetPriority_EntityFileAbsentFromHEAD_Refuses pins that an
+// entity's claim is refused whether or not HEAD records the path the
+// entity currently occupies.
 //
-// Without it the two seams would answer one condition differently — Apply
-// exempts an untracked path a plan names as its write destination, so the
-// real-work half would proceed while the same-state half refused. It is
-// also what keeps a freshly-initialised repo usable, where `aiwf init`
-// leaves aiwf.yaml uncommitted by design.
-func TestSetPriority_UntrackedEntityFile_StillConverges(t *testing.T) {
+// A claim is about the entity, not about the path holding it, and an
+// entity's file can move without passing a verb — a plain `mv` is
+// enough. In that state the record still sits at the original path, so
+// exempting a path HEAD does not record would exempt the entity whose
+// record most needs consulting, not one with no record to contradict.
+//
+// Both halves of the exemption lose work. The reading half answers
+// "already set; nothing to change" against a status HEAD contradicts,
+// which is this guard's own reproduction; the writing half lands a
+// commit beside HEAD's untouched copy, putting one id at two paths in
+// the record while a local `aiwf check` stays clean.
+func TestSetPriority_EntityFileAbsentFromHEAD_Refuses(t *testing.T) {
 	t.Parallel()
 	r := newGapRunner(t)
 	r.must(verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor))
 
-	// Remove the gap from the record while leaving it on disk, so its
-	// path is untracked rather than modified.
 	e := r.tree().ByID("G-0001")
 	if e == nil {
 		t.Fatal("G-0001 missing from the fixture tree")
 	}
-	if out, rmErr := exec.Command("git", "-C", r.root, "rm", "--cached", "-q", e.Path).CombinedOutput(); rmErr != nil {
-		t.Fatalf("git rm --cached: %v\n%s", rmErr, out)
+	// Move the file the way an operator would, leaving HEAD's copy where
+	// it was: the path on disk is now absent from the record.
+	moved := filepath.Join(filepath.Dir(e.Path), "G-0001-moved-by-hand.md")
+	if err := os.Rename(filepath.Join(r.root, e.Path), filepath.Join(r.root, moved)); err != nil {
+		t.Fatalf("moving the entity file: %v", err)
 	}
-	// Commit the staged removal without re-adding: the file must end up
-	// present on disk and absent from HEAD, which is the state under test.
-	if out, cErr := exec.Command("git", "-C", r.root, "commit", "-q",
-		"-m", "fixture: drop the gap from the record").CombinedOutput(); cErr != nil {
-		t.Fatalf("git commit: %v\n%s", cErr, out)
-	}
+	before := headSHA(t, r.root)
 
 	res, err := verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor)
-	if err != nil {
-		t.Fatalf("SetPriority over an untracked entity file: %v", err)
-	}
-	if !res.NoOp {
-		t.Errorf("an untracked entity file blocked convergence: %+v", res)
+	assertClaimRefused(t, res, err, filepath.ToSlash(moved))
+	if after := headSHA(t, r.root); after != before {
+		t.Errorf("HEAD advanced to %s; the write landed beside the record's own copy", after)
 	}
 }
 

@@ -67,7 +67,7 @@ another package would not be caught by it — the single-caller property is
 current fact plus a partial guard, not a total one.
 
 Prefix matching over `p.Ops` decides which op covers a given path — the same
-rule `stagedPathConflicts` applies for the staged twin, for the reason its own
+rule `checkStagedConflict` applies for the staged twin, for the reason its own
 comment records. That is what the carve-outs consult: whether a path is an
 `OpWrite`'s own destination, and which op to read `AdoptsWorkingCopy` from.
 

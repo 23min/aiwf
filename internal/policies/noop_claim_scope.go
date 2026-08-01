@@ -223,7 +223,8 @@ func PolicyNoOpClaimScope(root string) ([]Violation, error) {
 				Policy: "noop-claim-scope",
 				File:   s.file,
 				Line:   s.line,
-				Detail: fmt.Sprintf("%s converges with no recorded claim scope — add it to noOpClaimScopes naming what the claim reads (target-entity, aiwf-yaml, sweep-selection) or why nothing can contradict it (none)", s.fn),
+				Detail: fmt.Sprintf("%s converges with no recorded claim scope — add it to noOpClaimScopes naming what the claim reads (%s, %s, %s) or why nothing can contradict it (%s)",
+					s.fn, claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepDeciders, claimScopeNone),
 			})
 		}
 	}
