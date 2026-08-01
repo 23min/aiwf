@@ -16,6 +16,35 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0491: test stand-ins no longer race the exec they are written for
+
+Nothing user-facing changed; this is repo test tooling. A fixture that wrote an
+executable stand-in with a plain `os.WriteFile` held a writable descriptor on it
+for the duration of the write. A fork anywhere else in the process during that
+window handed the child a copy, and `execve` on a file any descriptor holds open
+for writing fails with `ETXTBSY` — so in a package whose tests spawn subprocesses
+in parallel, one test's stand-in could be rejected when another test ran it. The
+failure named the fixture step, not the property under test, and did not
+reproduce under a focused `-run`, because the colliding forks were the rest of
+the suite.
+
+Executable stand-ins now go through `testsupport.WriteExecutable`, which holds
+`syscall.ForkLock` across the write so no fork the process starts can overlap the
+descriptor's lifetime. Measured over 19,200 write-then-exec cycles under
+deliberate fork pressure, this reports zero `ETXTBSY` where the plain write
+reports 12–17%. Writing to a temp name and renaming into place — the fix this gap
+originally recorded — is measurably no better than the plain write, because
+`ETXTBSY` is enforced against the inode and the rename carries the same inode,
+leaked descriptor and all.
+
+All ten sites in `internal/stresstest` are routed, along with the four in
+`internal/contractverify` — that package failed this change's own verification
+run with the exact symptom an exec failure produces there, so the race is not
+confined to the package it was first measured in. A new diff-scoped policy
+(`test-executable-write`) flags any newly added or edited bare executable write
+in a test, so the shape cannot spread further by copy. The roughly ninety
+remaining sites elsewhere in the tree are left for a separate sweep.
+
 ### Added — a check that stops decision tests being stranded off the every-push path
 
 Nothing user-facing changed; this is repo tooling. The `stress` build tag moves

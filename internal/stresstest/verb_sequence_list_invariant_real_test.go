@@ -1,9 +1,10 @@
 package stresstest
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // verb_sequence_list_invariant_real_test.go — M-0250/AC-3: confirms
@@ -86,7 +87,7 @@ func writeFakeAiwfList(t *testing.T, stdout string) string {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "aiwf")
 	script := "#!/bin/sh\ncat <<'EOF'\n" + stdout + "\nEOF\n"
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // deliberately executable; a test-local stand-in binary, not attacker-controlled input
+	if err := testsupport.WriteExecutable(path, []byte(script)); err != nil {
 		t.Fatalf("writing fake aiwf binary: %v", err)
 	}
 	return path

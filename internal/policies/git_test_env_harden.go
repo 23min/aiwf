@@ -44,6 +44,10 @@ import (
 // rare package that execs a non-git binary, so the broad signal costs
 // nothing and closes the detection gap.
 //
+// The call is matched as `testsupport.HardenGitTestEnv()`, except in
+// package testsupport itself, where the helper is declared and the call
+// is therefore unqualified.
+//
 // Accepted detection limits (no occurrence today): the scan keys on
 // the unaliased import name `exec`, so an aliased `os/exec` import
 // would evade it; and a package that shells git only through a helper
@@ -188,6 +192,9 @@ func testMainCallsHarden(path string) (bool, error) {
 		if !ok || fn.Recv != nil || fn.Name == nil || fn.Name.Name != "TestMain" || fn.Body == nil {
 			continue
 		}
+		// testsupport is the package that defines the helper, so its own
+		// TestMain calls it unqualified — there is no selector to match.
+		inHomePackage := file.Name != nil && file.Name.Name == "testsupport"
 		found := false
 		ast.Inspect(fn.Body, func(n ast.Node) bool {
 			if found {
@@ -195,6 +202,13 @@ func testMainCallsHarden(path string) (bool, error) {
 			}
 			call, ok := n.(*ast.CallExpr)
 			if !ok {
+				return true
+			}
+			if ident, isIdent := call.Fun.(*ast.Ident); isIdent {
+				if inHomePackage && ident.Name == "HardenGitTestEnv" {
+					found = true
+					return false
+				}
 				return true
 			}
 			sel, ok := call.Fun.(*ast.SelectorExpr)
