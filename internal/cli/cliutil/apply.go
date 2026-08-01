@@ -191,6 +191,10 @@ func FinishVerbOutcome(ctx context.Context, root, label string, outcome *Outcome
 			if errors.As(applyErr, &conflictErr) {
 				return ExitUsage, ""
 			}
+			var symlinkErr *verb.CarriedSymlinkError
+			if errors.As(applyErr, &symlinkErr) {
+				return ExitUsage, ""
+			}
 			return ExitInternal, ""
 		}
 		sha = planSHA

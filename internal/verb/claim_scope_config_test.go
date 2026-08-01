@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
@@ -232,5 +233,39 @@ func TestGuardClaimVariants_DifferOnlyOnAPathAbsentFromHEAD(t *testing.T) {
 		if err := guard(ctx, root, "subject", "committed.md"); err == nil {
 			t.Errorf("%s variant accepted a hand-edited tracked path", name)
 		}
+	}
+}
+
+// TestClaimDivergenceError_RemedyMatchesTheKind pins that each blocking
+// kind gets a diagnosis that fits it. The entity guard refuses a path
+// with no version at HEAD, so "uncommitted changes" would be the wrong
+// words for the one case it now refuses most often — nothing is
+// uncommitted, the file is somewhere the record does not know about, and
+// re-running changes nothing.
+func TestClaimDivergenceError_RemedyMatchesTheKind(t *testing.T) {
+	t.Parallel()
+
+	unrecorded := (&ClaimDivergenceError{
+		Subject:  "G-0001",
+		Diverged: []gitops.Divergence{{Path: "work/gaps/G-0001-moved.md", Kind: gitops.DivergenceAbsentFromHEAD}},
+	}).Error()
+	if strings.Contains(unrecorded, "uncommitted changes at") {
+		t.Errorf("a path with no version at HEAD is not an uncommitted change:\n%s", unrecorded)
+	}
+	for _, want := range []string{"holds no version", "aiwf rename", "two paths"} {
+		if !strings.Contains(unrecorded, want) {
+			t.Errorf("diagnosis does not mention %q:\n%s", want, unrecorded)
+		}
+	}
+
+	edited := (&ClaimDivergenceError{
+		Subject:  "G-0001",
+		Diverged: []gitops.Divergence{{Path: "work/gaps/G-0001-x.md", Kind: gitops.DivergenceModified}},
+	}).Error()
+	if !strings.Contains(edited, "uncommitted changes at") {
+		t.Errorf("an edited path should still read as an uncommitted change:\n%s", edited)
+	}
+	if strings.Contains(edited, "holds no version") {
+		t.Errorf("an edited path picked up the unrecorded diagnosis:\n%s", edited)
 	}
 }

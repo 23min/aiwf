@@ -49,9 +49,25 @@ func (e *ClaimDivergenceError) pathsOfKind(k gitops.DivergenceKind) []string {
 
 func (e *ClaimDivergenceError) Error() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s: uncommitted changes at %s\n", e.Subject, strings.Join(e.Paths(), ", "))
+	// A path with no version at HEAD is a different diagnosis from an
+	// edited one, so it gets its own opening rather than being described
+	// as an uncommitted change to a file the record holds.
+	unrecorded := e.pathsOfKind(gitops.DivergenceAbsentFromHEAD)
+	if len(unrecorded) == len(e.Diverged) {
+		fmt.Fprintf(&b, "%s: the record holds no version of %s\n",
+			e.Subject, strings.Join(unrecorded, ", "))
+	} else {
+		fmt.Fprintf(&b, "%s: uncommitted changes at %s\n", e.Subject, strings.Join(e.Paths(), ", "))
+	}
 	b.WriteString("  this verb reads that file to decide what to do and commits what it finds\n")
 	b.WriteString("  there, so both the decision and the record would rest on bytes no verb wrote\n")
+	if len(unrecorded) > 0 {
+		fmt.Fprintf(&b, "  the entity's file is at a path HEAD does not record, so its committed copy is\n"+
+			"  somewhere else — most often because the file was moved without a verb. Put it back\n"+
+			"  (`git status` names the deletion), or rename it properly with `aiwf rename <id> <slug>`;\n"+
+			"  committing %s as it stands would leave the same id at two paths\n",
+			strings.Join(unrecorded, " "))
+	}
 	if modified := e.pathsOfKind(gitops.DivergenceModified); len(modified) > 0 {
 		fmt.Fprintf(&b, "  commit a body edit on its own with `aiwf edit-body <id>`, or set it aside with\n"+
 			"  `git stash -u` (`git restore %s` discards it outright)\n",
@@ -99,6 +115,14 @@ func (e *ClaimDivergenceError) Error() string {
 // contradicts and answer "already set; nothing to change" — the exact
 // reproduction this guard exists to refuse — and let a write land beside
 // HEAD's untouched copy, putting one id at two paths in the record.
+//
+// That outcome is closed for the verbs this guard runs in, not for aiwf
+// as a whole. `edit-body` reaches it by a route no guard here can take:
+// an entity file absent from HEAD is its sanctioned input — explicit
+// mode is how a never-committed entity gets committed, and bless mode
+// redirects there — so refusing that shape would block the route every
+// other refusal recommends. Separating "no record anywhere" from "record
+// at another path" needs a lookup by id rather than by path (G-0500).
 //
 // An unborn HEAD carries no record at all, so the guard stands down —
 // the reading Apply's commit-side guard already takes, and one every

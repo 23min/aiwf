@@ -280,3 +280,108 @@ func TestApply_HiddenEditOutsideThePlan_DoesNotBlock(t *testing.T) {
 		t.Fatalf("an edit outside the plan's paths blocked the verb: %v", applyErr)
 	}
 }
+
+// TestApply_CarriedSymlink_RefusedRegardlessOfShape pins that a symbolic
+// link the plan would carry is refused, whatever it points at and whether
+// or not its target string still matches the record.
+//
+// Divergence is the wrong question for a link. `gatherCommitOps` reads
+// each carried path with os.ReadFile, which follows the link, and
+// CommitTree stores every write at mode 100644 — so a link whose target
+// string is untouched, and which every git query calls clean, is still
+// replaced in the record by a copy of whatever it points at. Measured
+// before this guard: an epic rename turned a 120000 link into a 100644
+// blob holding the linked file's body under `aiwf-verb: rename`, and a
+// link pointing outside the repo carried that file's content into git
+// history. Both left the working tree reporting a type change with no
+// remedy that clears it.
+func TestApply_CarriedSymlink_RefusedRegardlessOfShape(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		target func(t *testing.T, root string) string
+	}{
+		{"a link to a file in the tree", func(t *testing.T, root string) string {
+			t.Helper()
+			return "M-0001-first-milestone.md"
+		}},
+		{"a link pointing outside the repo", func(t *testing.T, root string) string {
+			t.Helper()
+			outside := filepath.Join(t.TempDir(), "creds.env")
+			if err := os.WriteFile(outside, []byte("API_KEY=fixture\n"), 0o600); err != nil {
+				t.Fatalf("writing the outside file: %v", err)
+			}
+			return outside
+		}},
+		{"a dangling link", func(t *testing.T, root string) string {
+			t.Helper()
+			return "no-such-file.md"
+		}},
+		{"a link to a directory", func(t *testing.T, root string) string {
+			t.Helper()
+			return "."
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := nestedEpicRunner(t)
+			epicDir := filepath.Dir(r.tree().ByID("E-0001").Path)
+			link := filepath.Join(r.root, epicDir, "latest.md")
+			if err := os.Symlink(tc.target(t, r.root), link); err != nil {
+				t.Skipf("symlinks unavailable on this platform: %v", err)
+			}
+			commitFixture(t, r.root, "fixture: a tracked symlink")
+			before := headSHA(t, r.root)
+
+			res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "renamed-epic-slug", testActor, 0)
+			if err != nil {
+				t.Fatalf("Rename: %v", err)
+			}
+			_, applyErr := verb.Apply(r.ctx, r.root, res.Plan)
+			var linkErr *verb.CarriedSymlinkError
+			if !errors.As(applyErr, &linkErr) {
+				t.Fatalf("error is not a *verb.CarriedSymlinkError: %v", applyErr)
+			}
+			rel := filepath.ToSlash(filepath.Join(epicDir, "latest.md"))
+			if !slices.Contains(linkErr.Paths, rel) {
+				t.Errorf("refusal does not name the link; names %v", linkErr.Paths)
+			}
+			// The message is the operator's whole diagnosis here: nothing
+			// in `git status` explains why a clean tree was refused.
+			msg := linkErr.Error()
+			if !strings.Contains(msg, rel) {
+				t.Errorf("message does not name the link:\n%s", msg)
+			}
+			for _, want := range []string{"symbolic link", "regular", "points at"} {
+				if !strings.Contains(msg, want) {
+					t.Errorf("message does not explain %q:\n%s", want, msg)
+				}
+			}
+			if after := headSHA(t, r.root); after != before {
+				t.Errorf("HEAD advanced to %s; the link was rewritten into the record", after)
+			}
+		})
+	}
+}
+
+// TestApply_NoSymlink_StillCommits is the negative control: the refusal
+// is about links specifically, not about directory moves.
+func TestApply_NoSymlink_StillCommits(t *testing.T) {
+	t.Parallel()
+	r := nestedEpicRunner(t)
+	before := headSHA(t, r.root)
+
+	res, err := verb.Rename(r.ctx, r.tree(), "E-0001", "renamed-epic-slug", testActor, 0)
+	if err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
+		t.Fatalf("Apply refused a link-free directory move: %v", applyErr)
+	}
+	if after := headSHA(t, r.root); after == before {
+		t.Error("HEAD did not advance")
+	}
+}

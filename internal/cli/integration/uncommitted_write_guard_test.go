@@ -95,3 +95,31 @@ func TestUncommittedWriteGuard_NestedPathReportsUsageNotInternal(t *testing.T) {
 		t.Error("the refusal destroyed the operator's edit")
 	}
 }
+
+// TestCarriedSymlinkGuard_ReportsUsageNotInternal pins the same
+// distinction for the symlink refusal. It reaches the shared handler by
+// its own error type, so the mapping is a second arm rather than a reuse
+// of the first, and a script branching on the exit code would see an
+// internal failure if it were dropped.
+func TestCarriedSymlinkGuard_ReportsUsageNotInternal(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "epic", "--root", root, "--actor", "human/test",
+		"--title", "Alpha epic",
+		"--body", "## Goal\n\nFixture.\n\n## Scope\n\nFixture.\n\n## Out of scope\n\nFixture.\n")
+	mustRun(t, "add", "milestone", "--root", root, "--actor", "human/test",
+		"--epic", "E-0001", "--tdd", "none", "--title", "First milestone",
+		"--body", "## Goal\n\nFixture.\n\n## Acceptance criteria\n\nFixture.\n")
+
+	epicDir := filepath.Join(root, "work", "epics", "E-0001-alpha-epic")
+	if err := os.Symlink("M-0001-first-milestone.md", filepath.Join(epicDir, "latest.md")); err != nil {
+		t.Skipf("symlinks unavailable on this platform: %v", err)
+	}
+	commitAll(t, root)
+
+	rc := cli.Execute([]string{"rename", "E-0001", "renamed-slug", "--root", root, "--actor", "human/test"})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage (%d) — a carried symlink is the operator's to resolve",
+			rc, cliutil.ExitUsage)
+	}
+}

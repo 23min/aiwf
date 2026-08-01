@@ -84,6 +84,9 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 		if carriedErr != nil {
 			return "", fmt.Errorf("checking for uncommitted changes: %w", carriedErr)
 		}
+		if linkErr := checkCarriedSymlinks(root, carried); linkErr != nil {
+			return "", linkErr
+		}
 		diverged, divErr := gitops.DivergentPaths(ctx, root, carried)
 		if divErr != nil {
 			return "", fmt.Errorf("checking for uncommitted changes: %w", divErr)
@@ -443,6 +446,62 @@ func planOpForPath(path string, ops []FileOp) (FileOp, bool) {
 		}
 	}
 	return FileOp{}, false
+}
+
+// CarriedSymlinkError reports that a verb was refused because a path it
+// would carry is a symbolic link, which the commit path cannot record as
+// one. Callers map it to a usage-level exit: the operator can resolve it.
+type CarriedSymlinkError struct {
+	// Paths names the symbolic links the plan would carry.
+	Paths []string
+}
+
+func (e *CarriedSymlinkError) Error() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "this verb would carry a symbolic link it cannot record as one: %s\n",
+		strings.Join(e.Paths, ", "))
+	b.WriteString("  the commit reads each carried path's content and stores it as a regular\n")
+	b.WriteString("  file, so the link would be replaced by a copy of whatever it points at —\n")
+	b.WriteString("  content no verb computed, under this verb's own trailer, and for a link\n")
+	b.WriteString("  pointing outside the repo, content from outside it\n")
+	fmt.Fprintf(&b, "  move it out of the way, or replace it with a real file: %s\n",
+		strings.Join(e.Paths, " "))
+	b.WriteString("  then re-run the verb")
+	return b.String()
+}
+
+// checkCarriedSymlinks refuses when any path the plan would carry is a
+// symbolic link.
+//
+// The refusal is unconditional rather than keyed on divergence, because
+// divergence is the wrong question here. A link whose target string still
+// equals the record is unchanged by every measure git offers — and the
+// commit path would still dereference it (gatherCommitOps reads content
+// with os.ReadFile) and store the result at mode 100644 (CommitTree's
+// cacheInfo), replacing the link with a copy of its target and leaving
+// the working tree reporting a type change nothing can clear.
+//
+// Recording links faithfully is the fix this defers to; until then a
+// refusal is the honest answer, since the alternative silently rewrites
+// the record.
+func checkCarriedSymlinks(root string, carried []string) error {
+	var links []string
+	for _, p := range carried {
+		info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(p)))
+		if err != nil {
+			// Absent or uninspectable paths are the divergence
+			// comparison's to report, with remedies of their own.
+			continue
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			links = append(links, p)
+		}
+	}
+	if len(links) == 0 {
+		return nil
+	}
+	sort.Strings(links)
+	return &CarriedSymlinkError{Paths: links}
 }
 
 // UncommittedConflictError reports that a verb was refused because a
