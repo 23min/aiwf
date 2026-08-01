@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: Archive entries never fire and archived-entity cross-references resolve
       status: open
+    - id: AC-4
+      title: No shipped or normative surface tells an operator to run the verb
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ acs:
 ### AC-2 — A narrow id in an active tree fires at error severity, mixed or not
 
 ### AC-3 — Archive entries never fire and archived-entity cross-references resolve
+
+### AC-4 — No shipped or normative surface tells an operator to run the verb
 
