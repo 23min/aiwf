@@ -10,6 +10,9 @@ acs:
     - id: AC-1
       title: No embedded surface carries a narrow id or placeholder outside the keep-list
       status: open
+    - id: AC-2
+      title: Shipped entity templates seed no id shape that body-prose-id rejects
+      status: open
 ---
 
 ## Goal
@@ -17,4 +20,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — No embedded surface carries a narrow id or placeholder outside the keep-list
+
+### AC-2 — Shipped entity templates seed no id shape that body-prose-id rejects
 
