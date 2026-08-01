@@ -270,14 +270,29 @@ moved. `gitops.IgnoredPathsUnder` retires with the dirty set it patched.
 and the working tree lacks, whose remedy is `git restore` rather than a
 destructive one. Ten new test functions · commit `9c6ebe566`
 
-Corrected after review, which measured five defects in this surface: a content
-filter locked out every verb, a space or newline in a carried path broke or
-silently desynchronised the comparison, a path existing nowhere produced a
-phantom verdict, and a tracked symlink permanently blocked every directory move
-on a clean tree. The comparison now reads unfiltered object ids over the argument
-vector, with links compared as links, and the entity-scoped carve-out corrected
-alongside (AC-1). Eleven further test functions; mutation probes 8 run, 7 caught,
-the survivor investigated and pinned · commit `d65cffcb0`
+Corrected across two review rounds. The first measured four defects here — a
+space or a newline in a carried path broke or silently desynchronised the
+comparison, a path existing nowhere produced a phantom verdict, and a tracked
+symlink blocked every directory move on a clean tree — and one in AC-1's
+carve-out. The comparison reads unfiltered object ids over the argument vector,
+paths are inspected before they are read, and the entity-scoped carve-out is
+scoped apart from the config one · commit `d65cffcb0`
+
+A fifth defect in that round, `core.autocrlf` locking out every verb, is
+diagnosed rather than corrected: the lockout is accurate, because the verb commit
+path stores bytes verbatim and would rewrite every line ending. Its cause is that
+commit path, and G-0498 carries the decision.
+
+The second round measured a regression the first correction introduced: comparing
+a symlink by its target string is right about git and wrong about this commit
+path, which dereferences the link and stores the result at mode 100644. A clean
+tree therefore lost the refusal that had been holding — measured, an epic rename
+replaced a `120000` link with the linked file's body, and a link pointing outside
+the repo carried that file's contents into git history. Carried links are now
+refused outright · commit `d61565e6e`
+
+Twenty-one test functions across the two rounds; mutation probes 8 run, 7 caught,
+the survivor investigated and pinned, plus 6 against the symlink guard
 
 ## Decisions made during implementation
 
@@ -436,6 +451,28 @@ attribution — paying real cost to weaken a check that already works.
 The literal form is therefore the house style at all 23 sites. What the ADR
 decides about this seam is placement: the precondition runs in the prelude, ahead
 of the comparison, and never at the point where the NoOp is built.
+
+### A carried symlink is refused, not compared
+
+The comparison primitive answers whether a link's target still matches the
+record, and does so exactly. That answer is not the one the guard needs, because
+this commit path cannot store a link at all: `gatherCommitOps` reads every
+carried path with `os.ReadFile`, which follows links, and `CommitTree` writes
+each blob at mode `100644`. A link whose target is untouched — clean by every
+measure git offers — is still replaced in the record by a copy of what it points
+at.
+
+So the refusal is unconditional rather than keyed on divergence. Measured, the
+alternative is not a missed refusal but an active rewrite: an epic rename turned
+a `120000` entry into an `100644` blob holding the linked milestone's body under
+`aiwf-verb: rename`, and a link pointing outside the repository carried that
+file's contents into git history. Both left the working tree reporting a type
+change with no remedy that clears it.
+
+Recording links faithfully is the fix this defers to, and it belongs with the
+commit path rather than with the guard. Until then a refusal is the honest
+answer, since the guard's only other options are to permit a silent rewrite or to
+claim a prediction it does not make.
 
 ## Validation
 
