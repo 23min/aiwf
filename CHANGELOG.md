@@ -16,6 +16,266 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0496: the `//history:ok` escape opens only on the directive itself
+
+Nothing user-facing changed; this is a repo-development gate. The escape hatch of
+the `comment-history-attrition` push gate matched its marker anywhere in a comment
+and accepted whatever followed as the reason, so two comments that are not the
+directive silenced it: prose merely naming the escape, and any longer word opening
+with the marker's letters (`//history:okay`, read as the directive with "ay" for a
+reason). Both suppressed findings on *every* line of the comment group, and both
+are reachable by accident — documenting the marker is exactly the kind of comment
+that names it, and one such doc comment in this repo's own source was a six-line
+blind spot.
+
+The marker must now open the comment and be separated from its reason by
+whitespace, and a marker on an interior line of a `/* */` block is text rather
+than a directive — the reading Go itself gives `//go:build`. The sibling
+`//exec:ok` already required all of this; the two markers were divergent
+implementations of one convention, which is why only one of them carried the
+bug. They now share a single matcher, exercised by a table that runs every case
+against both.
+
+The exemption stays scoped to the comment group, which is the unit a
+legacy-format note occupies, and covers a touched line even when the diff left
+the directive itself alone. That group scope is the one place the two markers
+deliberately differ: `//exec:ok` annotates a call following the comment, so it
+reaches no further than that call, while `//history:ok` annotates the prose it
+sits in. The blocked-push message and the policy's own finding now state the
+placement rule, which an operator who appends the marker to an existing comment
+would otherwise get silently wrong.
+
+### Fixed — G-0491: test fixtures no longer depend on where git stores an object
+
+Nothing user-facing changed; this is repo test tooling. Two fixtures reached into
+git's loose-object storage and assumed a layout nothing established.
+
+The branch-oracle fixture built a ref whose walk fails by overwriting the commit's
+loose object file at a path it computed arithmetically, and failed outright when
+the object was not there. It now points the ref at an object id nothing resolves,
+which is what the oracle actually needs — `for-each-ref` still lists the ref, the
+first-parent walk still fails — and touches no object storage at all.
+
+The two `internal/gitops` tests that assert a write fails against a read-only
+object database made only the top-level `objects/` directory read-only. That
+blocks *creating* a fanout directory, not writing into one that already exists, so
+the assertion broke whenever the repo's own commit happened to share the fanout of
+the blob under test — about one seed in 256. The commit id is a function of the
+commit timestamp, which has one-second resolution, so within any one second the
+outcome is fixed rather than intermittent, and a rerun lands in a later second and
+draws a fresh one. That is why it read as unreproducible: a rerun is a new draw,
+not a repeat, and pinning the timestamp reproduces it exactly. Every fanout
+directory present is now locked alongside `objects/` itself, and the condition is
+pinned by a test that creates the colliding directory outright instead of waiting
+for it.
+
+### Fixed — G-0491: test stand-ins no longer race the exec they are written for
+
+Nothing user-facing changed; this is repo test tooling. A fixture that wrote an
+executable stand-in with a plain `os.WriteFile` held a writable descriptor on it
+for the duration of the write. A fork anywhere else in the process during that
+window handed the child a copy, and `execve` on a file any descriptor holds open
+for writing fails with `ETXTBSY` — so in a package whose tests spawn subprocesses
+in parallel, one test's stand-in could be rejected when another test ran it. The
+failure named the fixture step, not the property under test, and did not
+reproduce under a focused `-run`, because the colliding forks were the rest of
+the suite.
+
+Executable stand-ins now go through `testsupport.WriteExecutable`, which holds
+`syscall.ForkLock` across the write so no fork the process starts can overlap the
+descriptor's lifetime. Measured over 19,200 write-then-exec cycles under
+deliberate fork pressure, this reports zero `ETXTBSY` where the plain write
+reports 12–17%. Writing to a temp name and renaming into place — the fix this gap
+originally recorded — is measurably no better than the plain write, because
+`ETXTBSY` is enforced against the inode and the rename carries the same inode,
+leaked descriptor and all.
+
+All ten sites in `internal/stresstest` are routed, along with the four in
+`internal/contractverify` — that package failed this change's own verification
+run with the exact symptom an exec failure produces there, so the race is not
+confined to the package it was first measured in. A new diff-scoped policy
+(`test-executable-write`) flags any newly added or edited bare executable write
+in a test, so the shape cannot spread further by copy. The roughly ninety
+remaining sites elsewhere in the tree are left for a separate sweep.
+
+### Added — a check that stops decision tests being stranded off the every-push path
+
+Nothing user-facing changed; this is repo tooling. The `stress` build tag moves
+a test onto the on-demand `make stress-tests` path, and it applies per file
+rather than per test — so a small fabricated-input decision test sharing a file
+with a real-subprocess scenario driver leaves the every-push path along with it.
+Nothing reports the loss: the test still passes whenever anyone runs it, it
+simply stops running the rest of the time. Four tests sat that way until a
+manual audit found them, and the file split that recovered them fixed the
+instance rather than the mechanism.
+
+`PolicyStressLaneCensus` closes it. A `stress`-tagged test in either stress
+package that starts no process, waits on no clock and runs no goroutine now
+fails the policy suite, naming the test to move. Run against the commit that
+first applied the tag it reports eight stranded tests, the four later recovered
+by hand among them; run against the tree just before that recovery it reports
+exactly the three still stranded then.
+
+### Changed — G-0468: no stress oracle measures the machine any more, and the decision tests run on every push again
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. Three pure-decision tests — an anchor-patching helper's, a fixture
+reader's, and a reconcile guard's — sat inside `stress`-tagged driver files only
+because a real-subprocess scenario shared the file, so they left the every-push
+lane as collateral of the earlier tagging split. Each now lives in an untagged
+sibling named for the subject it covers rather than the scenario that first
+needed it. One helper moved along with its test, having itself been defined in a
+tagged file; an untagged file compiles into the tagged build too, so the
+scenario that uses it is unaffected. Three `//coverage:ignore` escapes elsewhere
+in the package justify themselves by naming one of those tests as the pin for a
+branch — claims that were false on the every-push path while it sat behind the
+tag, and are true again now.
+
+`concurrent-milestone-race` gets the same oracle treatment its two siblings got
+earlier: a `repo-lock-busy` refusal is the verb honoring its own contention
+contract, so it is excused rather than reported; the bound on the acceptance
+criterion's transition drops from exactly-one to at-most-one, since contention
+can legitimately prevent any promote from landing; and a floor requiring some
+actor through keeps a genuine deadlock a violation. The old exactly-one bound
+was also asserting that a promote reporting success had done something, which
+the floor does not recover — a converged promote reports success too — so that
+property gets an arm of its own: a promote that reports success while no
+transition commit exists anywhere is a lost mutation, and load cannot produce
+that shape.
+
+That completes G-0468. The concurrent-contention oracles judge correctness
+rather than throughput, the lock-wait property they used to cover by accident is
+pinned directly, the kill-and-observe scenarios are bounded by the process they
+watch rather than by a clock, and the decision tests are back on the every-push
+path. Which lane a scenario runs in is now a cost decision rather than a
+correctness one.
+
+### Added — G-0489: review findings now ratchet into checks, and a review loop has a defined end
+
+The `wf-codebase-health` rubric gains a **D5 — Findings become checks** force: a
+confirmed defect leaves behind a check that fails without the fix, and a defect
+you cannot pin — or judge not worth pinning — becomes a recorded decision or a
+tracked issue rather than a silent correction. The bar is that the disposition
+is spoken and written down, not that every defect earns a test. D5 also splits
+findings into objective defects (which go to the project's checks, each one
+encoded making the next review round smaller) and judgment disagreements: an
+accepted one becomes a written rule or a decision, a declined one is recorded
+as a non-issue, and neither may return as fresh opinion. It carries a labelled
+**stop rule**: a review loop is converged when a fresh reviewer over the whole
+surface finds no defect that is not already pinned, recorded, or tracked — a
+merely *fixed* defect satisfies none of those, which is the silent correction
+the force forbids — and not when findings reach zero.
+
+`wf-review-code` applies the force at the point findings are disposed of. Its
+verdict step now classifies on two axes — kind (defect / judgment) alongside the
+existing urgency (blocking / track-for-later / non-issue) — requires a blocking
+defect's fix to carry a pinning check, and states when the review loop ends: a
+verdict closes one pass, and only a full-surface pass can declare convergence.
+The always-on guidance fragment primes D5 alongside the existing code-health
+forces.
+
+The rituals that dispose of findings now cite the force rather than each
+carrying its own wording. `aiwfx-wrap-milestone`'s review loop requires a
+corrective commit for a defect to carry the check that pins it, routes a
+deliberately-unpinned defect or a finding that reveals a requirement no
+acceptance criterion covers to a gap mirrored under the spec's deferrals,
+routes an accepted judgment finding to a written rule or a recorded decision,
+and ends on the full-surface deciding pass `wf-review-code` defines — it
+previously confirmed fixes against the changed surface alone and had no
+terminator at all.
+`wf-patch` puts the regression test on the same footing as its mandatory
+CHANGELOG entry, with two named escapes (a change with no logic to pin, and a
+defect you don't pin, recorded in the project's tracker); a bug fix can no
+longer land documented but unpinned. Both escapes are stated at the commit
+gate, which now asks for the pinning statement alongside the review outcome. `aiwfx-plan-milestones` hands the amend-versus-defer
+scope fork to `aiwfx-record-decision` instead of leaving it uncaptured, and the
+reviewer role card carries the kind constraint.
+
+### Changed — G-0468: the concurrent-contention stress oracles judge correctness, not throughput
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. The `concurrent-id-allocation` and `concurrent-move` scenarios
+required every racing actor to succeed within repolock's two-second timeout,
+so on a loaded machine the tail actors received the documented `repo-lock-busy`
+refusal — the verb honoring its specification — and the scenario reported it as
+an aiwf defect. Both classifiers now judge only what holds regardless of load:
+no failure outside that busy refusal, a commit count matching exactly the
+actors that succeeded — so a refusal that nonetheless wrote something is still
+caught — and at least one actor through, so a genuine deadlock still fails.
+Each keeps its own subject-matter assertion besides: that no id was allocated
+twice, and that every milestone reported moved really landed under the target
+epic. How many actors get through is no longer asserted anywhere.
+
+### Changed — G-0468: the kill-and-observe stress scenarios are bounded by the process they watch, not by a clock
+
+Nothing user-facing changed; this is the stress harness, which is dev-only
+tooling. `mid-write-kill` gave a promote five seconds to reach its write before
+reporting *"never caught the write in flight"*, and `lock-kill` gave its
+lock-holder five seconds to report ready. Both deadlines measured the machine:
+on a loaded runner the work had not failed, it had merely not finished, and the
+scenario reported an aiwf defect either way. Measured at 16x CPU
+oversubscription, `mid-write-kill` failed on its first attempt every time.
+
+Both now end their observation when the watched process acts or exits, whichever
+comes first, so slowness delays the verdict instead of falsifying it. A promote
+that runs to completion before the poller samples it is a failure to observe
+rather than evidence about aiwf, so it is retried from the same starting state
+and reported only if every attempt misses. What remains on a clock in each is a
+backstop for a process that neither acts nor exits, set far above any plausible
+slowness, since a holder that dies is already caught the moment its output
+closes.
+
+### Added — G-0468: the lock-wait property is pinned on the every-push path
+
+Nothing user-facing changed; this is test coverage for behavior that already
+worked. Dropping the throughput assertion above left one property covered
+nowhere on the every-push path: that a mutating verb *waits* for a contended
+repo lock rather than refusing the moment it finds one held. Before this change,
+reducing that wait to zero passed every test CI ran, because the tests closest
+to the property hold the lock for a whole invocation and so cannot tell a verb
+that waited from one that never did. Two arms now pin it — one in
+`internal/cli/cliutil` on the shared lock helper, one in
+`internal/cli/integration` on a real verb, so both the wait and the wiring to it
+are covered. Each holds a lock, starts a single contender, and requires it to
+still be running when the holder releases and to succeed once it does; neither
+claims anything about how many contenders get through or how fast.
+
+### Fixed — G-0485: the gpg-signing test fixture no longer leaks a daemon per test run
+
+Nothing user-facing changed. Internal test hygiene: `internal/gitops`'s
+gpg-signing fixture created a throwaway `GNUPGHOME` and never removed it, so
+every `go test` run of that package left behind a directory and the
+`gpg-agent` daemon rooted in it. On a long-lived development machine these
+accumulated without bound — a devcontainer up for a day held 215 idle agents
+and 753 MB of resident memory. The fixture now shuts the agent down and
+removes the directory once the test binary's tests have finished. CI was
+never affected, since its runners are discarded after each job.
+
+### Added — G-0467: the repo-lock refusals carry a machine-readable code
+
+Every mutating verb takes a per-repo lock before doing any work. Both ways
+that can fail now stamp the `--format=json` error envelope's `code` field,
+which was empty on either path:
+
+- `repo-lock-busy` — another aiwf process holds the lock. Exit 2, as before;
+  the caller should back off and retry.
+- `repo-lock-acquire-failed` — the lock could not be taken at all (an I/O or
+  permission failure under the repo's git dir). Exit 3, as before; retrying
+  will not help.
+
+A consumer scripting `--format=json` can now express "retry on contention,
+fail on everything else" against the envelope, instead of matching a
+substring of the human-readable message — the only discriminator the two
+outcomes previously had. Message text and exit codes are unchanged, so a
+consumer reading either keeps working. `aiwf --help` documents both codes
+under a new *Concurrency* heading, and a test pins them there — the codes
+are a published contract, so neither the strings nor their documentation
+can drift without failing.
+
+What an *uncoded* error should exit with is a separate question, filed as
+G-0483 rather than settled here: it is a wire-contract change spanning every
+verb, not a property of the lock.
+
 ### Changed — G-0469: the diff-scoped coverage gate runs locally, before the push
 
 Nothing user-facing in the `aiwf` binary changes. Development-side, the

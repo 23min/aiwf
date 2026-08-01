@@ -94,6 +94,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 `
+	// The helper's own package calls it unqualified, so there is no
+	// selector to match.
+	const setupHomePackageHarden = `package testsupport
+
+func TestMain(m *testing.M) {
+	HardenGitTestEnv()
+	os.Exit(m.Run())
+}
+`
+	// The same unqualified call anywhere else names some local function,
+	// not the helper.
+	const setupBareHardenElsewhere = `package foo
+
+func TestMain(m *testing.M) {
+	HardenGitTestEnv()
+	os.Exit(m.Run())
+}
+`
 	const malformedGo = `package foo
 
 func {{{ this does not parse
@@ -185,6 +203,27 @@ func {{{ this does not parse
 			files: map[string]string{
 				"internal/foo/foo_test.go":   execTestCommand,
 				"internal/foo/setup_test.go": setupOtherCalls,
+			},
+			wantCount:  1,
+			wantPolicy: "git-test-env-harden",
+		},
+		{
+			// The helper's home package satisfies the rule with an
+			// unqualified call — it cannot spell the selector form.
+			name: "exec with unqualified harden in package testsupport passes",
+			files: map[string]string{
+				"internal/testsupport/foo_test.go":   execTestCommand,
+				"internal/testsupport/setup_test.go": setupHomePackageHarden,
+			},
+			wantCount: 0,
+		},
+		{
+			// The bare-identifier arm is scoped to the home package, so
+			// an identically-named local function elsewhere is no escape.
+			name: "exec with an unqualified harden call outside testsupport violates",
+			files: map[string]string{
+				"internal/foo/foo_test.go":   execTestCommand,
+				"internal/foo/setup_test.go": setupBareHardenElsewhere,
 			},
 			wantCount:  1,
 			wantPolicy: "git-test-env-harden",

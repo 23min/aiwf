@@ -3,6 +3,7 @@
 package stresstest
 
 import (
+	"errors"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -89,12 +90,14 @@ func TestLockKillScenario_RealBinary_ErrorsWhenHolderCannotAcquire(t *testing.T)
 	}
 }
 
-// TestLockKillScenario_RealBinary_ErrorsOnReadyTimeout holds the lock
-// with a first holder, then points a second scenario (with a short
-// readyTimeout) at the same dir — the second holder blocks retrying
-// Acquire against the still-held lock, so Run's timeout branch fires
-// well before the first holder is ever killed.
-func TestLockKillScenario_RealBinary_ErrorsOnReadyTimeout(t *testing.T) {
+// TestLockKillScenario_RealBinary_ErrorsWhenAHolderHasNotResolved
+// holds the lock with a first holder, then points a second scenario at
+// the same dir. The second holder is still inside its own Acquire,
+// having neither reported ACQUIRED nor given up, and the scenario's
+// guard is set short enough to sample it in that state — the holder
+// bounds its own acquire, so left alone it would resolve and be caught
+// by its stdout closing instead.
+func TestLockKillScenario_RealBinary_ErrorsWhenAHolderHasNotResolved(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)
 	lockHolderBin := sharedLockHolderBinary(t)
@@ -123,12 +126,10 @@ func TestLockKillScenario_RealBinary_ErrorsOnReadyTimeout(t *testing.T) {
 		t.Fatalf("waiting for first holder to acquire: %v", readyErr)
 	}
 
-	second := &LockKillScenario{lockHolderBin: lockHolderBin, readyTimeout: 100 * time.Millisecond}
+	second := &LockKillScenario{lockHolderBin: lockHolderBin, hangGuard: 100 * time.Millisecond}
 	err = second.Run(dir)
-	if err == nil {
-		t.Fatal("expected Run to time out while the first holder still holds the lock")
-	} else if !strings.Contains(err.Error(), "timed out") {
-		t.Fatalf("expected a timeout error, got: %v", err)
+	if !errors.Is(err, errHolderWedged) {
+		t.Fatalf("expected errHolderWedged while the first holder still holds the lock, got: %v", err)
 	}
 
 	_ = firstStdin.Close()

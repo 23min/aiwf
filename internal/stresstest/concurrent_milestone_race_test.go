@@ -4,10 +4,11 @@ package stresstest
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // concurrent_milestone_race_test.go — real-subprocess coverage for
@@ -150,23 +151,30 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 		if promoteCount != n/2 || cancelCount != n-n/2 {
 			t.Fatalf("attempt %d: promoteCount=%d cancelCount=%d, want %d/%d", attempt, promoteCount, cancelCount, n/2, n-n/2)
 		}
-		// promoteOKCount is no longer bounded at 1 for the same reason
-		// cancelOKCount is not: one promote lands the AC's open->met
-		// transition and every promote that raced after it is a NoOp on the
-		// already-met AC — also "ok", but zero commits (M-0281/AC-9). At least
-		// the winner must report ok; the commit-count assertion below is what
-		// pins "exactly one promote actually committed".
-		if promoteOKCount < 1 {
-			t.Fatalf("attempt %d: promoteOKCount = %d, want at least 1 (some actor must land open -> met)", attempt, promoteOKCount)
-		}
+		// promoteOKCount is bounded neither below nor above. Not above,
+		// for the reason cancelOKCount is not: one promote lands the AC's
+		// open->met transition and every promote that raced after it is a
+		// NoOp on the already-met AC — also "ok", but zero commits
+		// (M-0281/AC-9). Not below, because every actor that loses the repo
+		// lock takes the documented busy refusal rather than retrying, so a
+		// loaded machine can refuse them all. What holds either way is the
+		// pairing asserted below: the AC ends met exactly when some promote
+		// reported ok, and the commit count matches. A race where nothing
+		// at all got through is Verify's floor to catch, and Verify already
+		// ran above.
+		acMet := promoteOKCount >= 1
 		// cancelOKCount is no longer bounded at 1: exactly one cancel lands
 		// the draft->cancelled transition, and every cancel that raced after
 		// it is a NoOp on the already-cancelled milestone — also "ok", but
 		// zero commits (ADR-0036, M-0281/AC-2). The commit-count assertion
 		// below is what pins "at most one cancel actually committed".
 
-		if s.finalACStatus != "met" {
-			t.Fatalf("attempt %d: finalACStatus = %q, want %q", attempt, s.finalACStatus, "met")
+		wantACStatus := "open"
+		if acMet {
+			wantACStatus = "met"
+		}
+		if s.finalACStatus != wantACStatus {
+			t.Fatalf("attempt %d: finalACStatus = %q, want %q (promoteOKCount = %d)", attempt, s.finalACStatus, wantACStatus, promoteOKCount)
 		}
 		if s.finalMilestoneStatus != "draft" && s.finalMilestoneStatus != "cancelled" {
 			t.Fatalf("attempt %d: finalMilestoneStatus = %q, want draft or cancelled", attempt, s.finalMilestoneStatus)
@@ -182,16 +190,19 @@ func TestConcurrentMilestoneRaceScenario_RealBinary_OutcomeShapeAndCommitAccount
 			t.Fatalf("attempt %d: no cancel actor reported ok but finalMilestoneStatus = %q, want draft", attempt, s.finalMilestoneStatus)
 		}
 
-		// Commit accounting: exactly one promote commit (open -> met) always
-		// lands, plus one cancel commit iff the milestone ended cancelled.
-		// NoOp cancels report ok but add no commit, so the total is not
-		// before+okCount (ADR-0036).
-		wantCommits := 1
+		// Commit accounting: one promote commit (open -> met) iff some
+		// promote got through, plus one cancel commit iff the milestone
+		// ended cancelled. NoOp cancels report ok but add no commit, so the
+		// total is not before+okCount (ADR-0036).
+		wantCommits := 0
+		if acMet {
+			wantCommits++
+		}
 		if s.finalMilestoneStatus == "cancelled" {
 			wantCommits++
 		}
 		if s.after != s.before+wantCommits {
-			t.Fatalf("attempt %d: commit count %d -> %d, want exactly +%d (1 promote + %d cancel)", attempt, s.before, s.after, wantCommits, wantCommits-1)
+			t.Fatalf("attempt %d: commit count %d -> %d, want exactly +%d (acMet=%v, milestone %q)", attempt, s.before, s.after, wantCommits, acMet, s.finalMilestoneStatus)
 		}
 	}
 }
@@ -249,7 +260,7 @@ if [ "$1" = "check" ]; then
 fi
 exec %q "$@"
 `, realBin)
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // deliberately executable; a test-local stand-in binary, not attacker-controlled input
+	if err := testsupport.WriteExecutable(path, []byte(script)); err != nil {
 		t.Fatalf("writing fake aiwf binary: %v", err)
 	}
 	return path

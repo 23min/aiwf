@@ -1,8 +1,10 @@
 ---
 id: G-0467
-title: Lock-busy refusal emits an empty error code; exit 2 is the uncoded-error bucket
-status: open
+title: Lock-busy refusal emits an empty error code
+status: addressed
 priority: high
+addressed_by_commit:
+    - 568e5c8b6
 ---
 ## What's missing
 

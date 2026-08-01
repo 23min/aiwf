@@ -12,8 +12,10 @@ import (
 // t.Parallel; the values are immutable for the lifetime of the
 // test binary, so once-setup is correct.
 //
-// Replaces the prior `gitTestEnv(t)` and `initTestRepo` t.Setenv
-// blocks — both incompatible with t.Parallel adoption per M-0091.
+// It also tears the gpg-signing fixture down once every test has
+// finished. That teardown belongs here rather than in a t.Cleanup
+// because the fixture is shared across the whole binary, and it sits
+// between m.Run and os.Exit because os.Exit runs no deferred calls.
 //
 // Serial tests:
 //   - TestCurrentBranch_GitAbsentFromPATH (refs_test.go) — uses
@@ -28,5 +30,7 @@ func TestMain(m *testing.M) {
 	os.Setenv("GIT_COMMITTER_NAME", "aiwf-test")
 	os.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	testsupport.HardenGitTestEnv()
-	os.Exit(m.Run())
+	code := m.Run()
+	cleanupGPGSignFixture()
+	os.Exit(code)
 }

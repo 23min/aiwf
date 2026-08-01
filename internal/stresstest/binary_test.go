@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // TestBuildBinary_UsesFreshAbsolutePathNotPATH builds the aiwf binary
@@ -44,7 +46,7 @@ func TestBuildBinary_UsesFreshAbsolutePathNotPATH(t *testing.T) {
 
 	decoyDir := t.TempDir()
 	decoy := filepath.Join(decoyDir, "aiwf")
-	if writeErr := os.WriteFile(decoy, []byte("#!/bin/sh\necho DECOY\n"), 0o755); writeErr != nil {
+	if writeErr := testsupport.WriteExecutable(decoy, []byte("#!/bin/sh\necho DECOY\n")); writeErr != nil {
 		t.Fatalf("write decoy: %v", writeErr)
 	}
 

@@ -1,13 +1,12 @@
-//go:build stress
-
 package stresstest
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // concurrent_move_test.go — real-subprocess coverage for
@@ -15,10 +14,11 @@ import (
 // (classifyConcurrentMove) is pinned exhaustively in
 // concurrent_move_classify_test.go against fabricated outcomes; these
 // tests confirm real, concurrently-launched `aiwf move` subprocesses
-// racing repolock actually all land under the target epic with
-// exactly one commit each, repeated via M-0240's RunRepeated for
-// statistical coverage — mirroring
-// concurrent_id_allocation_test.go's own shape.
+// racing repolock land every milestone they report moving under the
+// target epic, with the commit count advancing by exactly the number
+// that succeeded, repeated via M-0240's RunRepeated for statistical
+// coverage — mirroring concurrent_id_allocation_test.go's own shape,
+// including why it is untagged.
 
 // TestConcurrentMoveScenario_RealBinary_ErrorsWhenBinaryMissing runs a
 // real Setup (so the repo has real commits and gitHeadCommitCount's
@@ -149,7 +149,7 @@ if [ "$1" = "move" ]; then
 fi
 exec %q "$@"
 `, realBin)
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // deliberately executable; a test-local stand-in binary, not attacker-controlled input
+	if err := testsupport.WriteExecutable(path, []byte(script)); err != nil {
 		t.Fatalf("writing fake aiwf binary: %v", err)
 	}
 	return path

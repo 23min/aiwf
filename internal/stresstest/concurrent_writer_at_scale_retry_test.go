@@ -3,198 +3,22 @@
 package stresstest
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
-
-	"github.com/23min/aiwf/internal/repolock"
 )
 
 // concurrent_writer_at_scale_retry_test.go — G-0424. Pins the lock-busy
 // retry logic ConcurrentWriterAtScaleScenario uses so a concurrent
 // `aiwf cancel` that loses the repo-lock race (repolock.ErrBusy →
 // ExitUsage) is retried to completion instead of aborting the whole run.
-// The pure decision helpers are unit-tested against fabricated envelopes
-// here; the real-binary retry seam is pinned by the held-lock integration
-// test at the bottom.
-
-// completedEnvelope / busyEnvelope / errorEnvelope build the three
-// --format=json cancel envelope shapes the retry classifier must
-// distinguish. busyEnvelope's message is sourced from repolock.ErrBusy so
-// the fixture can't drift from the sentinel parseBusyEnvelope matches on.
-func completedEnvelope(correlationID string) []byte {
-	return []byte(fmt.Sprintf(
-		`{"status":"ok","result":{"status":"cancelled"},"metadata":{"correlation_id":%q}}`, correlationID))
-}
-
-func busyEnvelope(correlationID string) []byte {
-	return []byte(fmt.Sprintf(
-		`{"status":"error","error":{"message":%q},"metadata":{"correlation_id":%q}}`,
-		repolock.ErrBusy.Error()+"; retry in a moment", correlationID))
-}
-
-func errorEnvelope(message, correlationID string) []byte {
-	return []byte(fmt.Sprintf(
-		`{"status":"error","error":{"message":%q},"metadata":{"correlation_id":%q}}`, message, correlationID))
-}
-
-func TestParseBusyEnvelope(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name      string
-		out       []byte
-		wantBusy  bool
-		wantCorro string
-	}{
-		{"lock-busy error envelope", busyEnvelope("c2"), true, "c2"},
-		{"ok envelope is not busy", completedEnvelope("c1"), false, ""},
-		{"error envelope with a different message is not busy", errorEnvelope("entity not found", "c3"), false, ""},
-		{"error envelope with no error field is not busy", []byte(`{"status":"error","metadata":{"correlation_id":"c4"}}`), false, ""},
-		{"unparseable stdout is not busy", []byte("not json"), false, ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			env, busy := parseBusyEnvelope(tt.out)
-			if busy != tt.wantBusy {
-				t.Fatalf("parseBusyEnvelope busy = %v, want %v", busy, tt.wantBusy)
-			}
-			if tt.wantBusy && env.Metadata.CorrelationID != tt.wantCorro {
-				t.Fatalf("parseBusyEnvelope correlation id = %q, want %q", env.Metadata.CorrelationID, tt.wantCorro)
-			}
-		})
-	}
-}
-
-func TestClassifyCancelOutcome(t *testing.T) {
-	t.Parallel()
-	exit2 := errors.New("exit status 2")
-	tests := []struct {
-		name            string
-		out             []byte
-		runErr          error
-		wantID          string
-		wantBusy        bool
-		wantErrContains string
-	}{
-		{"success", completedEnvelope("c1"), nil, "c1", false, ""},
-		{"lock-busy loss is retryable, not an error", busyEnvelope("c2"), exit2, "c2", true, ""},
-		{"non-busy usage exit is a real error", errorEnvelope("entity not found", "c3"), exit2, "", false, "running aiwf cancel"},
-		{"unparseable stdout on a failing exit is a real error", []byte("not json"), exit2, "", false, "running aiwf cancel"},
-		{"unparseable stdout on a clean exit is a parse error", []byte("not json"), nil, "", false, "parsing aiwf"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			id, busy, err := classifyCancelOutcome("G-NNNN", tt.out, tt.runErr)
-			if id != tt.wantID {
-				t.Errorf("correlation id = %q, want %q", id, tt.wantID)
-			}
-			if busy != tt.wantBusy {
-				t.Errorf("busy = %v, want %v", busy, tt.wantBusy)
-			}
-			switch {
-			case tt.wantErrContains == "" && err != nil:
-				t.Errorf("unexpected error: %v", err)
-			case tt.wantErrContains != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErrContains)):
-				t.Errorf("error = %v, want it to contain %q", err, tt.wantErrContains)
-			}
-		})
-	}
-}
-
-// attemptStep scripts one retryWhileBusy attempt outcome.
-type attemptStep struct {
-	id   string
-	busy bool
-	err  error
-}
-
-func TestRetryWhileBusy(t *testing.T) {
-	t.Parallel()
-	errBoom := errors.New("boom")
-	tests := []struct {
-		name       string
-		steps      []attemptStep
-		alwaysBusy bool // ignore steps; every attempt reports busy (budget-exhaustion case)
-		budget     int
-		wantIDs    []string
-		wantErr    string
-	}{
-		{
-			name:    "success on first attempt",
-			steps:   []attemptStep{{"s", false, nil}},
-			budget:  busyRetryBudget,
-			wantIDs: []string{"s"},
-		},
-		{
-			name:    "busy attempts retried until success, all ids retained",
-			steps:   []attemptStep{{"b1", true, nil}, {"b2", true, nil}, {"s", false, nil}},
-			budget:  busyRetryBudget,
-			wantIDs: []string{"b1", "b2", "s"},
-		},
-		{
-			name:       "budget exhausted by persistent contention is a real error",
-			alwaysBusy: true,
-			budget:     3,
-			wantErr:    "after 3 attempts",
-		},
-		{
-			name:    "attempt error on the first try aborts immediately",
-			steps:   []attemptStep{{"", false, errBoom}},
-			budget:  busyRetryBudget,
-			wantErr: "boom",
-		},
-		{
-			name:    "attempt error mid-sequence discards accumulated ids",
-			steps:   []attemptStep{{"b1", true, nil}, {"", false, errBoom}},
-			budget:  busyRetryBudget,
-			wantErr: "boom",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			calls := 0
-			attempt := func() (string, bool, error) {
-				calls++
-				if tt.alwaysBusy {
-					return fmt.Sprintf("b%d", calls), true, nil
-				}
-				step := tt.steps[calls-1]
-				return step.id, step.busy, step.err
-			}
-			ids, err := retryWhileBusy(attempt, tt.budget)
-			if tt.wantErr != "" {
-				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-					t.Fatalf("err = %v, want it to contain %q", err, tt.wantErr)
-				}
-				if ids != nil {
-					t.Fatalf("ids = %v, want nil on error", ids)
-				}
-				// Budget exhaustion must call attempt exactly budget times —
-				// pins the loop bound against an off-by-one.
-				if tt.alwaysBusy && calls != tt.budget {
-					t.Fatalf("attempt called %d times, want budget=%d", calls, tt.budget)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantIDs, ids); diff != "" {
-				t.Fatalf("ids mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+// This file carries the real-binary seam, which holds the repo lock from
+// an independent process and so owns its own runner; the pure decision
+// helpers it exercises are unit-tested hermetically (and untagged) in
+// concurrent_writer_at_scale_retry_hermetic_test.go.
 
 // TestConcurrentWriterAtScaleScenario_RealBinary_RunRetriesPastLockBusy is
 // the real-binary seam for G-0424: an independently-held repo lock forces

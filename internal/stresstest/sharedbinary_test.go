@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"sync"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // prebuiltBinaryEnvVar/-LockHolderEnvVar name env vars mutate-hunt.yml
@@ -142,7 +144,7 @@ func TestResolvePrebuiltBinary(t *testing.T) {
 			if tt.setEnv {
 				if tt.exists {
 					wantPath = filepath.Join(t.TempDir(), "fake-binary")
-					if err := os.WriteFile(wantPath, []byte("fake"), 0o755); err != nil {
+					if err := testsupport.WriteExecutable(wantPath, []byte("fake")); err != nil {
 						t.Fatalf("writing fake binary: %v", err)
 					}
 				} else {
@@ -182,7 +184,7 @@ func TestSharedBinaryHelpers_PrebuiltEnvVar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bin := filepath.Join(t.TempDir(), "fake-binary")
-			if err := os.WriteFile(bin, []byte("fake"), 0o755); err != nil {
+			if err := testsupport.WriteExecutable(bin, []byte("fake")); err != nil {
 				t.Fatalf("writing fake binary: %v", err)
 			}
 			t.Setenv(tt.envVar, bin)

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // verbenvelope.go — shared subprocess/verb-outcome helpers every
@@ -55,6 +57,32 @@ type verbEnvelope struct {
 type verbEnvelopeError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// envelopeErrorCode returns the envelope's error code. "" means the
+// code is absent, which covers both an envelope carrying no error and
+// an error whose code field is empty — the two are indistinguishable
+// here by design, since a refusal a caller cannot name is one it
+// cannot excuse either.
+func envelopeErrorCode(env verbEnvelope) string {
+	if env.Error == nil {
+		return ""
+	}
+	return env.Error.Code
+}
+
+// isBusyRefusal reports whether an actor's error code is repolock's
+// documented busy refusal.
+//
+// A contention scenario's actors race for one lock, so some of them
+// being refused is the verb honoring its specification rather than
+// breaching it. Telling that apart from any other failure is what
+// keeps a contention oracle a statement about aiwf instead of about
+// the machine's throughput, and it reads the envelope's code rather
+// than its prose so a reworded message cannot silently reclassify a
+// refusal.
+func isBusyRefusal(errorCode string) bool {
+	return errorCode == cliutil.CodeRepoLockBusy
 }
 
 type verbEnvelopeFinding struct {
@@ -139,12 +167,18 @@ func parseListVerbEnvelope(args []string, out []byte) (listVerbEnvelope, error) 
 }
 
 // gitHeadCommitCount returns the number of commits reachable from
-// HEAD in dir.
+// HEAD in dir. A repository whose HEAD is still unborn — `git init`
+// with nothing committed yet, which is the state a scenario's Setup
+// leaves when it seeds no entities — counts zero rather than failing,
+// since `git rev-list HEAD` rejects the unborn ref as a bad argument.
 func gitHeadCommitCount(dir string) (int, error) {
+	if err := runGit(dir, "rev-parse", "--verify", "--quiet", "HEAD"); err != nil {
+		return 0, nil
+	}
 	cmd := exec.Command("git", "rev-list", "--count", "HEAD")
 	cmd.Dir = dir
 	out, err := cmd.Output()
-	if err != nil { //coverage:ignore defensive: git rev-list on a repo this scenario itself just created has no realistic failure mode
+	if err != nil { //coverage:ignore defensive: git rev-list on a repo whose HEAD this function just verified has no realistic failure mode
 		return 0, fmt.Errorf("counting commits in %s: %w", dir, err)
 	}
 	return parseCommitCount(out)

@@ -2,6 +2,7 @@
 id: G-0453
 title: Unify shortHash/short SHA-abbreviation helpers in check (width decision)
 status: open
+priority: low
 ---
 ## What's missing
 

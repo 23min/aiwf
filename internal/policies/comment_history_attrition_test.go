@@ -88,8 +88,13 @@ func TestDetectHistoryAttrition(t *testing.T) {
 				if v.File != "internal/example/seam.go" {
 					t.Errorf("violation carries file %q, want the path passed in", v.File)
 				}
-				if !strings.Contains(v.Detail, historyOKMarker) {
-					t.Errorf("detail must name the escape marker so the fix is self-explaining; got %q", v.Detail)
+				// Naming the marker is not enough: the placement rule is
+				// what an operator gets wrong, and a message that leaves
+				// them blocked after following it invites --no-verify.
+				for _, want := range []string{historyOKMarker, "must open"} {
+					if !strings.Contains(v.Detail, want) {
+						t.Errorf("detail must name %q so the fix is self-explaining; got %q", want, v.Detail)
+					}
 				}
 			}
 			if diff := cmp.Diff(tt.wantLines, got); diff != "" {
@@ -99,28 +104,139 @@ func TestDetectHistoryAttrition(t *testing.T) {
 	}
 }
 
-// TestHasHistoryOK pins the escape's contract: the reason is mandatory, so a
-// bare marker cannot silence the gate.
-func TestHasHistoryOK(t *testing.T) {
+// TestAddedCommentLines_EscapeScope pins which comments the escape opens, at
+// the layer that applies it. The matcher's own contract is TestHasDirectiveComment;
+// what is pinned here is the group scope it feeds — one directive line covers
+// the paragraph it sits in, and nothing else does.
+func TestAddedCommentLines_EscapeScope(t *testing.T) {
 	t.Parallel()
+
+	// offender is appended below every group and is the line whose exemption
+	// each case turns on. It carries a phrase from the trigger set, which the
+	// control below re-establishes per case rather than assuming.
+	const offender = "// used to be a third arm"
 
 	tests := []struct {
 		name string
-		raw  string
-		want bool
+		// group is a comment block placed above a func; offender follows it,
+		// joining the same comment group unless the group ends in a blank line.
+		group string
+		// changed is the diff's changed-line set, nil meaning every line. A
+		// case naming specific lines is testing what the escape covers when
+		// the diff did not touch the directive itself.
+		changed    []int
+		wantExempt bool
 	}{
-		{"absent", "// a plain comment", false},
-		{"marker with reason", "//history:ok legacy on-disk format still in the wild", true},
-		{"bare marker is not an escape", "//history:ok", false},
-		{"marker with only spaces after it", "//history:ok   ", false},
-		{"marker mid-line with reason", "// see below //history:ok supported older release", true},
+		{
+			name:       "a directive line exempts the whole group",
+			group:      "//history:ok legacy on-disk format, still parsed on read\n// a second line of the same note",
+			wantExempt: true,
+		},
+		{
+			name:       "a directive line below the offender still exempts the group",
+			group:      "// a note that opens the group\n//history:ok legacy on-disk format, still parsed on read",
+			wantExempt: true,
+		},
+		{
+			// gofmt reflows a doc comment carrying a directive into this
+			// shape, moving the directive below a bare `//` separator. Since
+			// no directive exists in the tree today, every one that lands
+			// will be in it.
+			name:       "a bare // separator does not split the group",
+			group:      "// a note that opens the group\n//\n//history:ok legacy on-disk format, still parsed on read",
+			wantExempt: true,
+		},
+		{
+			// The everyday case: editing the prose of an already-escaped note.
+			// Scoping the exemption scan to changed lines would block the push
+			// unless the operator retyped the directive line.
+			name:       "an untouched directive still exempts a line the diff touched",
+			group:      "//history:ok legacy on-disk format, still parsed on read",
+			changed:    []int{4},
+			wantExempt: true,
+		},
+		{
+			name:       "prose naming the escape does not exempt",
+			group:      "// F is documented; see the history:ok escape in CLAUDE.md.",
+			wantExempt: false,
+		},
+		{
+			name:       "a longer word opening with the marker does not exempt",
+			group:      "//history:okay",
+			wantExempt: false,
+		},
+		{
+			// A marker on an interior line of a block comment is text, not a
+			// directive — the same reading Go gives //go:build. A block
+			// comment demonstrating the escape must not silence the gate.
+			name:       "a marker inside a block comment does not exempt",
+			group:      "/*\n//history:ok legacy on-disk format\n*/",
+			wantExempt: false,
+		},
+		{
+			name:       "a neighbouring group's directive does not reach across",
+			group:      "//history:ok legacy on-disk format, still parsed on read\n\n// an unrelated note",
+			wantExempt: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := hasHistoryOK(tt.raw); got != tt.want {
-				t.Errorf("hasHistoryOK(%q) = %v, want %v", tt.raw, got, tt.want)
+
+			path := filepath.Join(t.TempDir(), "seam.go")
+			src := "package p\n\n" + tt.group + "\n" + offender + "\nfunc F() {}\n"
+			if err := os.WriteFile(path, []byte(src), 0o600); err != nil {
+				t.Fatalf("writing fixture: %v", err)
+			}
+
+			changed := map[int]bool{}
+			if tt.changed == nil {
+				for i := 1; i <= strings.Count(src, "\n")+1; i++ {
+					changed[i] = true
+				}
+			} else {
+				for _, ln := range tt.changed {
+					changed[ln] = true
+				}
+			}
+
+			lines, err := addedCommentLines(path, changed)
+			if err != nil {
+				t.Fatalf("addedCommentLines: %v", err)
+			}
+
+			// Locate the offending line rather than inferring from silence.
+			// Absent, the assertions below would be satisfied by a fixture the
+			// scan never reached — which is what "no findings" alone means.
+			var off *commentLine
+			for i := range lines {
+				if lines[i].text == offender {
+					off = &lines[i]
+					break
+				}
+			}
+			if off == nil {
+				t.Fatalf("the offending line never reached the scan; scanned %+v\nsource:\n%s", lines, src)
+			}
+
+			// Control: the offending line must be one the detector fires on
+			// when unexempted. Without this, an offender that stopped
+			// triggering would make every wantExempt case pass vacuously.
+			if got := detectHistoryAttrition("seam.go", []commentLine{{line: off.line, text: off.text}}); len(got) != 1 {
+				t.Fatalf("fixture control: %q produced %d findings unexempted, want 1", off.text, len(got))
+			}
+
+			if off.exempt != tt.wantExempt {
+				t.Errorf("offending line exempt = %v, want %v; source:\n%s", off.exempt, tt.wantExempt, src)
+			}
+
+			wantFindings := 1
+			if tt.wantExempt {
+				wantFindings = 0
+			}
+			if got := detectHistoryAttrition("seam.go", lines); len(got) != wantFindings {
+				t.Errorf("end to end: %d findings, want %d; got %+v\nsource:\n%s", len(got), wantFindings, got, src)
 			}
 		})
 	}
@@ -486,6 +602,14 @@ func TestEmptyTreeOID_MatchesGit(t *testing.T) {
 	var tracked int
 	for _, ln := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if !strings.HasSuffix(ln, ".go") {
+			continue
+		}
+		// A file HEAD carries but the working tree no longer has is a pending
+		// deletion. changedLines diffs the empty tree against the working
+		// tree, so a deleted file yields no hunk and is legitimately
+		// unscannable — the commit that removes it is exactly when HEAD and
+		// the working tree disagree, and flagging it here blocks that commit.
+		if _, statErr := os.Stat(filepath.Join(root, ln)); os.IsNotExist(statErr) {
 			continue
 		}
 		tracked++

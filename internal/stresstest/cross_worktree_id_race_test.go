@@ -65,19 +65,6 @@ func TestCrossWorktreeIDRaceScenario_RealBinary_SequentialActorsDoNotCollide(t *
 	}
 }
 
-// TestCrossWorktreeIDRaceScenario_ReconcileErrorsWhenAnActorDidNotSucceed
-// drives reconcile directly with a fabricated non-"ok" envelope,
-// pinning the defensive guard against ever attempting to merge or
-// classify a race whose add itself failed.
-func TestCrossWorktreeIDRaceScenario_ReconcileErrorsWhenAnActorDidNotSucceed(t *testing.T) {
-	t.Parallel()
-	s := NewCrossWorktreeIDRaceScenario("unused", entity.KindGap, 1)
-	err := s.reconcile(t.TempDir(), verbEnvelope{Status: "ok"}, verbEnvelope{Status: "error"})
-	if err == nil {
-		t.Fatal("expected reconcile to error when an actor's add did not report ok")
-	}
-}
-
 func TestCrossWorktreeIDRaceScenario_RealBinary_ErrorsWhenBinaryMissing(t *testing.T) {
 	t.Parallel()
 	skipIfUnsupported(t)

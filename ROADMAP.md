@@ -1086,3 +1086,18 @@ G-0454, G-0455.
 
 _No milestones yet._
 
+## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (proposed)
+
+### Goal
+
+Make the canonical placeholder form the only id shape aiwf's shipped surfaces
+carry, behind a guard that keeps it that way, and delete the migration verb whose
+work is finished.
+
+| Milestone | Title | Status |
+|---|---|---|
+| M-0287 | Detect real ids in code spans and below-width placeholders in shipped surfaces | draft |
+| M-0288 | Sweep shipped surfaces to canonical placeholders and enforce at error severity | draft |
+| M-0289 | Lint and sweep narrow ids from README and the workflows guide | draft |
+| M-0290 | Retire the rewidth verb and fire the drift check on any narrow active id | draft |
+

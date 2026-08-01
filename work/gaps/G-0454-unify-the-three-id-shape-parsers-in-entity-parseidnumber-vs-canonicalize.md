@@ -2,6 +2,7 @@
 id: G-0454
 title: Unify the three id-shape parsers in entity (parseIDNumber vs canonicalize)
 status: open
+priority: low
 ---
 ## What's missing
 

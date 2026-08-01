@@ -87,9 +87,16 @@ func emptyTreeOID(root string) (string, error) {
 
 // historyOKMarker is the deliberate-exception escape, mirroring
 // //coverage:ignore. It is directive-shaped (no space after the slashes) so
-// gofmt leaves it alone, and it exempts the whole comment group it appears
-// in — a legacy-format note is usually a paragraph, not one line. A bare
-// marker is not an escape: the reason is the point.
+// gofmt leaves it alone, and hasDirectiveComment requires it to open the
+// comment it escapes.
+//
+// It exempts the whole comment group it appears in — a legacy-format note is
+// usually a paragraph, not one line. That is where it parts company with the
+// sibling //exec:ok, which reaches no further than the line it annotates and,
+// where it stands on its own line, the call below it: //exec:ok annotates a
+// call that follows the comment, so extending it further would cover an
+// unannotated second call, while //history:ok annotates the prose it sits in,
+// whose unit is the paragraph.
 const historyOKMarker = "history:ok"
 
 // historyAttritionPhrases are the lower-cased trigger substrings, calibrated
@@ -187,7 +194,7 @@ func detectHistoryAttrition(rel string, lines []commentLine) []Violation {
 				Policy: "comment-history-attrition",
 				File:   rel,
 				Line:   cl.line,
-				Detail: fmt.Sprintf("comment narrates history (%q): a guard is documented by what it guarantees, not by the defect that motivated it — git blame and the tracked entity already own that, and the comment is the copy nothing checks. If the past state is one a reader can still encounter (a legacy on-disk format, a supported older release, an external contract), state it in the present tense as current truth about the input space; otherwise drop the clause. Deliberate exception: add `//%s <reason>` to the comment.", phrase, historyOKMarker),
+				Detail: fmt.Sprintf("comment narrates history (%q): a guard is documented by what it guarantees, not by the defect that motivated it — git blame and the tracked entity already own that, and the comment is the copy nothing checks. If the past state is one a reader can still encounter (a legacy on-disk format, a supported older release, an external contract), state it in the present tense as current truth about the input space; otherwise drop the clause. Deliberate exception: `//%s <reason>`, which exempts the whole comment group it sits in. The marker must open the comment it escapes, so write it as its own line in the group, or open a trailing comment with it — appending it to the end of an existing comment does nothing.", phrase, historyOKMarker),
 			})
 			break
 		}
@@ -208,9 +215,14 @@ func addedCommentLines(path string, changed map[int]bool) ([]commentLine, error)
 	var out []commentLine
 	for _, grp := range f.Comments {
 		lines := commentGroupLines(fset, grp)
+		// The escape is looked for on whole comments rather than on the
+		// flattened source lines, so a marker on an interior line of a /* */
+		// block is text rather than a directive. Scanning every comment in
+		// the group, not just the changed ones, is what lets an untouched
+		// directive keep covering a line the diff edits.
 		exempt := false
-		for _, cl := range lines {
-			if hasHistoryOK(cl.text) {
+		for _, c := range grp.List {
+			if hasDirectiveComment(c.Text, historyOKMarker) {
 				exempt = true
 				break
 			}
@@ -239,14 +251,4 @@ func commentGroupLines(fset *token.FileSet, grp *ast.CommentGroup) []commentLine
 		}
 	}
 	return out
-}
-
-// hasHistoryOK reports whether a raw comment line carries the escape marker
-// with a non-empty reason after it.
-func hasHistoryOK(raw string) bool {
-	_, reason, found := strings.Cut(raw, historyOKMarker)
-	if !found {
-		return false
-	}
-	return strings.TrimSpace(reason) != ""
 }
