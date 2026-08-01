@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: The keep-list files retain their teaching tokens unchanged
       status: open
+    - id: AC-4
+      title: The rule runs at error severity and this repo passes it
+      status: open
 ---
 
 ## Goal
@@ -27,4 +30,6 @@ acs:
 ### AC-2 — Shipped entity templates seed no id shape that body-prose-id rejects
 
 ### AC-3 — The keep-list files retain their teaching tokens unchanged
+
+### AC-4 — The rule runs at error severity and this repo passes it
 
