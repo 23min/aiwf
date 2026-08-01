@@ -68,7 +68,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 	}
 
 	fset := token.NewFileSet()
-	bodies := map[string]string{}
+	graph := callGraph{}
 	var entries []entryPoint
 
 	for _, f := range files {
@@ -84,13 +84,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 			if !ok || fn.Body == nil || fn.Recv != nil {
 				continue
 			}
-			start := fset.Position(fn.Body.Lbrace).Offset
-			end := fset.Position(fn.Body.Rbrace).Offset
-			if start < 0 || end <= start || end > len(f.Contents) {
-				continue
-			}
-			body := string(f.Contents[start:end])
-			bodies[fn.Name.Name] = body
+			graph[fn.Name.Name] = calledIdents(fn)
 			if isCapitalized(fn.Name.Name) && returnsResultAndError(fn.Type) {
 				entries = append(entries, entryPoint{
 					name: fn.Name.Name,
@@ -111,7 +105,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 		if exempt[e.name] {
 			continue
 		}
-		if !reachesProjectionFindings(e.name, bodies, map[string]bool{}) {
+		if !reachesCall(e.name, "projectionFindings", graph, map[string]bool{}) {
 			out = append(out, Violation{
 				Policy: "projection-findings-presence",
 				File:   e.file,
@@ -141,27 +135,60 @@ func returnsResultAndError(t *ast.FuncType) bool {
 	return ok && errIdent.Name == "error"
 }
 
-// reachesProjectionFindings walks the same-package call graph
-// starting at the function named name, returning true if
-// projectionFindings is called anywhere in the reachable set. visited
-// guards against infinite recursion on a call cycle.
-func reachesProjectionFindings(name string, bodies map[string]string, visited map[string]bool) bool {
+// callGraph maps a same-package function name to the set of unqualified
+// function names its body calls.
+type callGraph map[string]map[string]bool
+
+// calledIdents returns the unqualified function names fn calls.
+//
+// Only a bare identifier in call position counts, which is what confines
+// the result to same-package functions: a qualified call (gitops.Rename)
+// and a method call (e.Paths) reach code this walk does not model, and a
+// name appearing in a comment or a string is not a call at all. Matching
+// on source text instead would answer a different question — a body
+// containing applyDirRename would read as calling Rename, so a verb that
+// consults nothing would read as reaching whatever Rename reaches.
+func calledIdents(fn *ast.FuncDecl) map[string]bool {
+	out := map[string]bool{}
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if ident, ok := call.Fun.(*ast.Ident); ok {
+			out[ident.Name] = true
+		}
+		return true
+	})
+	return out
+}
+
+// reachesCall walks the same-package call graph starting at the function
+// named name, returning true if target is called anywhere in the
+// reachable set. visited guards against infinite recursion on a call
+// cycle.
+//
+// The walk is sound in one direction only, which decides what a caller
+// may read into it. A function outside graph — declared in another
+// package, or reached through a value rather than a name — ends the walk,
+// so the reachable set is an under-approximation: a reported reach is
+// real, an unreported one may still exist. A caller that fires on a
+// missing reach therefore errs loud, and one that fires on a present
+// reach errs quiet. Neither may be read as proof of an absence.
+func reachesCall(name, target string, graph callGraph, visited map[string]bool) bool {
 	if visited[name] {
 		return false
 	}
 	visited[name] = true
-	body, ok := bodies[name]
+	calls, ok := graph[name]
 	if !ok {
 		return false
 	}
-	if strings.Contains(body, "projectionFindings(") {
+	if calls[target] {
 		return true
 	}
-	for callee := range bodies {
-		if callee == name || visited[callee] {
-			continue
-		}
-		if strings.Contains(body, callee+"(") && reachesProjectionFindings(callee, bodies, visited) {
+	for callee := range calls {
+		if reachesCall(callee, target, graph, visited) {
 			return true
 		}
 	}
