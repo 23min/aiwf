@@ -13,6 +13,9 @@ acs:
     - id: AC-2
       title: Shipped entity templates seed no id shape that body-prose-id rejects
       status: open
+    - id: AC-3
+      title: The keep-list files retain their teaching tokens unchanged
+      status: open
 ---
 
 ## Goal
@@ -22,4 +25,6 @@ acs:
 ### AC-1 — No embedded surface carries a narrow id or placeholder outside the keep-list
 
 ### AC-2 — Shipped entity templates seed no id shape that body-prose-id rejects
+
+### AC-3 — The keep-list files retain their teaching tokens unchanged
 
