@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: An archived referrer mid-edit does not block an unrelated candidate
       status: open
+    - id: AC-3
+      title: Both ends of a move are enumerated
+      status: open
 ---
 ## Goal
 
@@ -38,6 +41,8 @@ Created via `aiwf add ac` at plan time.
 ### AC-1 — A referrer absent from the loaded tree but present at HEAD declines the move
 
 ### AC-2 — An archived referrer mid-edit does not block an unrelated candidate
+
+### AC-3 — Both ends of a move are enumerated
 
 ## Constraints
 
