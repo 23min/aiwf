@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: No shipped or normative surface tells an operator to run the verb
       status: open
+    - id: AC-5
+      title: An ADR records which clauses the retirement supersedes
+      status: open
 ---
 
 ## Goal
@@ -30,4 +33,6 @@ acs:
 ### AC-3 — Archive entries never fire and archived-entity cross-references resolve
 
 ### AC-4 — No shipped or normative surface tells an operator to run the verb
+
+### AC-5 — An ADR records which clauses the retirement supersedes
 
