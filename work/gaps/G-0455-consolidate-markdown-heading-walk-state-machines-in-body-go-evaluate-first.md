@@ -2,6 +2,7 @@
 id: G-0455
 title: Consolidate markdown heading-walk state machines in body.go (evaluate first)
 status: open
+priority: low
 ---
 ## What's missing
 
