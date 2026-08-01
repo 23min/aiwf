@@ -88,9 +88,20 @@ the price of not asking git what changed; `gatherCommitOps` walks the
 destination after the move, this walks the source before it, and `os.Rename`
 preserving a directory's internal structure is what makes the two sets the same.
 
-The divergence set comes from comparing HEAD's blob against the file on disk,
-for each path the plan would carry (`gitops.DivergentPaths`) — one
-`git cat-file --batch` pump for the whole set, plus one read per path.
+The divergence set comes from comparing what the record holds against what the
+working copy would store, for each path the plan would carry
+(`gitops.DivergentPaths`): `git ls-tree HEAD` object ids against
+`git hash-object --no-filters` ones, batched over the argument vector.
+
+Three properties of that shape are load-bearing rather than incidental.
+Comparing object ids rather than raw bytes is what makes an untouched path in a
+repo with content filters compare equal. Computing the working copy's id
+*unfiltered* is what keeps the comparison honest about this codebase: the verb
+commit path stores content verbatim, so a filtered id measures against a
+convention these commits do not follow. And passing paths on the argument vector
+rather than through a line-oriented batch protocol is what lets a path containing
+a space or a newline be compared at all — measured, the second desynchronises
+such a protocol and answers for the wrong path with no error at all.
 
 An earlier statement of this subsection sourced that set from
 `gitops.DirtyPaths` — "tracked-modified plus untracked-not-ignored, two
@@ -315,23 +326,35 @@ silently. `archive` instead declines the individual moves whose verdict rests on
 a mid-edit file and sweeps the rest, per the per-candidate scoping recorded
 under *Path scope*.
 
-**A NoOp constructor still becomes a chokepoint, but it is not where the check
-runs.** Literal `Result{NoOp: true}` construction is confined to a shared
-constructor, enforced by an `internal/policies/` rule in the shape
-`atomic_write_chokepoint` and `logging_chokepoint` already use — that is what
-stops a new verb forgetting the convention. The precondition itself runs earlier,
-in the verb's prelude, because a check inside the constructor guards the wrong
-instant: by then the verb has already compared and classified against disputed
-bytes, and the constructor only suppresses the resulting message. Measured, that
-is not hypothetical — `cancel` classified an entity as terminal whose status at
-HEAD was `open`.
+**The precondition runs in the verb's prelude, not where the NoOp is built.** A
+check at the construction point guards the wrong instant: by then the verb has
+already compared and classified against disputed bytes, and suppressing the
+resulting message does not undo the classification. Measured, that is not
+hypothetical — `cancel` classified an entity as terminal whose status at HEAD was
+`open`.
 
-Two limits on that chokepoint are worth stating rather than discovering. The
-existing NoOp policy scans *exported* entry points only, so the unexported
-composite branches (`promoteAC`, `cancelAC`, `renameAC`, `retitleAC`) are
-invisible to it and need their own tests. And a same-shaped NoOp construction
-exists outside `internal/verb` on a different type, so the rule's scope has to be
-decided rather than assumed.
+This subsection originally added that literal `Result{NoOp: true}` construction
+"is confined to a shared constructor, enforced by an `internal/policies/` rule in
+the shape `atomic_write_chokepoint` and `logging_chokepoint` already use — that
+is what stops a new verb forgetting the convention". It shipped in the `accepted`
+ADR other clones carry, so it is named here rather than replaced silently. That
+constructor is not built, and the convention it was to protect is already
+mechanical from a different direction: `PolicyNoOpClaimScope` fails a converging
+verb with no recorded claim scope, so a new verb that forgets is caught. It
+derives its function set by matching the literal composite the constructor would
+remove, so introducing one would break the check currently providing the
+guarantee unless the re-key preserved per-function attribution. The literal form
+is the house style; the placement argument above is what this subsection
+decides.
+
+Two limits on any rule derived from the NoOp construction are worth stating
+rather than discovering. `verb_result_noop_invariant.go` scans *exported* entry
+points only, so the unexported composite branches (`promoteAC`, `cancelAC`,
+`renameAC`, `retitleAC`) are invisible to it and need their own tests. And a
+same-shaped NoOp construction exists outside `internal/verb` on a different type,
+so such a rule's scope has to be decided rather than assumed — which is why
+`PolicyNoOpClaimScope` bounds itself to `internal/verb` and records the outside
+site in a companion list its scan cannot derive.
 
 **Existing verb tests will fail, and mostly should.** Fixtures that write an
 entity file and then run a verb without committing it first are exercising
