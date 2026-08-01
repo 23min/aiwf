@@ -194,6 +194,43 @@ patching.
 - M-0283 — the shared comparison and the mechanics its spike settles.
 - M-0282 — ADR-0038, which decides that the precondition precedes the comparison.
 
+## Work log
+
+### AC-1 — A no-change claim is never made against HEAD-divergent state
+
+`guardClaim` refuses in each verb's prelude, over `gitops.DivergentPaths`'
+HEAD-blob-against-disk comparison, wired at the fifteen target-scoped sites
+including the four unexported composite branches. Twenty new test functions
+across `internal/verb` and `internal/gitops`; mutation probe 7/7 caught, no
+survivors · commit `5704f2493`
+
+## Decisions made during implementation
+
+### The refusal is emitted in the prelude, not at the converge point
+
+`guardClaim` refuses as soon as it observes divergence, rather than recording
+the observation and acting on it only where a same-state claim is made. The
+narrower placement is unsafe at `promote`, the one guarded site where anything
+consequential runs between those two points.
+
+`--superseded-by` reads the superseding ADR to decide whether the reciprocal
+back-link is already stored. With that link hand-edited onto disk the read
+concludes it is, no op is emitted for that file, and the plan therefore never
+names it — so the commit-side guard, keyed on the plan's paths, cannot see it
+either. Measured: a one-sided supersession committed at exit 0 with
+`aiwf check` silent, because the working copy that caused it also satisfies
+`adr-supersession-mutual`.
+
+The resolver re-point refusal fires before any plan exists, so no plan-aware
+guard can reach it. Measured: with a gap at `open` and no resolver in HEAD,
+and `addressed` plus a resolver hand-edited onto disk,
+`aiwf promote <gap> addressed --by <adr>` reports the gap already addressed
+and already carrying a resolver, and recommends `--force` — a sovereign act
+solicited on a false premise.
+
+Both are pinned by regression tests. What holds is ADR-0038's own statement:
+the guard runs before the comparison.
+
 ## References
 
 - E-0075 — the parent epic
