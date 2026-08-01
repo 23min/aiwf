@@ -4,8 +4,15 @@ title: Detect real ids in code spans and below-width placeholders in shipped sur
 status: draft
 parent: E-0078
 tdd: required
+acs:
+    - id: AC-1
+      title: A real entity id inside a code span or fenced block produces a finding
+      status: open
 ---
 
 ## Goal
 
 ## Acceptance criteria
+
+### AC-1 — A real entity id inside a code span or fenced block produces a finding
+
