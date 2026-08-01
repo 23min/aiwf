@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: Neither README nor the workflows guide carries a narrow id
       status: open
+    - id: AC-3
+      title: The deferred doc-residue gap exists naming its three paths and reason
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — A narrow id in README or the workflows guide fails a gate
 
 ### AC-2 — Neither README nor the workflows guide carries a narrow id
+
+### AC-3 — The deferred doc-residue gap exists naming its three paths and reason
 
