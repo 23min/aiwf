@@ -205,6 +205,15 @@ including the four unexported composite branches. Twenty new test functions
 across `internal/verb` and `internal/gitops`; mutation probe 7/7 caught, no
 survivors · commit `5704f2493`
 
+### AC-2 — Every NoOp site compares at the scope its own claim asserts
+
+The three `aiwf.yaml`-scoped claims — `contract bind`, `recipe install`,
+`rename-area` — now guard on that file rather than on a target entity they do
+not have. `PolicyNoOpClaimScope` derives every converging function from the
+source and requires each to carry one of four recorded scopes, with a reason,
+failing closed when the scan finds nothing. Twelve new test functions;
+mutation probe 8/8 caught, no survivors · commit `88f949150`
+
 ## Decisions made during implementation
 
 ### The refusal is emitted in the prelude, not at the converge point
