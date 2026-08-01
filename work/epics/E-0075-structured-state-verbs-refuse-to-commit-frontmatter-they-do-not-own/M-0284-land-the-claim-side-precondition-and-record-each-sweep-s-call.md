@@ -13,7 +13,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: Every NoOp site compares at the scope its own claim asserts
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-3
       title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
