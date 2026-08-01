@@ -16,6 +16,47 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0481: `aiwf import` stores a manifest's explicit id at canonical width
+
+A manifest declaring a below-canonical-width id for a **new** entity had that
+width written straight through to disk — into the entity's `id:` frontmatter and
+into the filename or directory that names it. Canonicalization was applied when
+matching the id against the existing tree, but not when storing it, so `import`
+was the one route by which a verb could still put a narrow id into a repo. Every
+other creation path already emitted canonical width.
+
+Ids below a kind's grammar minimum were, and remain, refused by the manifest
+parser, so the affected range was exactly the grammar-valid widths narrower than
+canonical.
+
+A child entity's directory and its `parent:` field now both derive from the
+parent's **resolved** id rather than from the spelling the manifest used, so all
+three surfaces an epic's id occupies stay in agreement. Two ways they could
+otherwise diverge, both reachable from an ordinary legacy manifest:
+
+- A milestone filed beside its epic instead of inside it, in a directory holding
+  no `epic.md`. The tree loader resolves such a milestone by frontmatter and
+  `aiwf check` reports nothing, so nothing would have surfaced it.
+- A `parent:` disagreeing with the epic's stored id. The guards that walk an
+  epic's children compare that field literally, so the child becomes invisible to
+  them — including the guard refusing to cancel an epic that still owns live
+  milestones.
+
+The resolved id is the target rather than the canonical form of the declared one:
+an epic already resident at legacy width keeps that width, and canonicalizing a
+child's pointer would desync it from the entity it names.
+
+Per-entity commit subjects for an explicit narrow id now read at canonical width
+(`aiwf import epic E-0011 …`), matching the trailer that always did.
+
+The `--on-collision=update` path is unchanged: it deliberately keeps the existing
+entity's on-disk id, because that is the file it has to write to.
+
+The remaining id-reference fields — `depends_on`, `superseded_by`,
+`discovered_in`, `addressed_by` — still store whatever spelling the manifest
+declared, and are tracked as G-0505. Each is consumed through a canonicalizing
+lookup, so they resolve correctly.
+
 ### Fixed — G-0496: the `//history:ok` escape opens only on the directive itself
 
 Nothing user-facing changed; this is a repo-development gate. The escape hatch of
