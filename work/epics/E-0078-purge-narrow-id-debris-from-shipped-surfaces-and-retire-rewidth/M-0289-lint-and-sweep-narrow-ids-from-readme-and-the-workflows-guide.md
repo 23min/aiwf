@@ -4,8 +4,15 @@ title: Lint and sweep narrow ids from README and the workflows guide
 status: draft
 parent: E-0078
 tdd: required
+acs:
+    - id: AC-1
+      title: A narrow id in README or the workflows guide fails a gate
+      status: open
 ---
 
 ## Goal
 
 ## Acceptance criteria
+
+### AC-1 — A narrow id in README or the workflows guide fails a gate
+
