@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: A narrow id in README or the workflows guide fails a gate
       status: open
+    - id: AC-2
+      title: Neither README nor the workflows guide carries a narrow id
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — A narrow id in README or the workflows guide fails a gate
+
+### AC-2 — Neither README nor the workflows guide carries a narrow id
 
