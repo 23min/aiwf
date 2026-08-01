@@ -14,6 +14,9 @@ acs:
     - id: AC-3
       title: proseMask is unchanged and body-prose-id still exempts code constructs
       status: open
+    - id: AC-4
+      title: The three keep-list teaching files produce no finding
+      status: open
 ---
 
 ## Goal
@@ -25,4 +28,6 @@ acs:
 ### AC-2 — A below-canonical-width letter-N placeholder fails; canonical width passes
 
 ### AC-3 — proseMask is unchanged and body-prose-id still exempts code constructs
+
+### AC-4 — The three keep-list teaching files produce no finding
 
