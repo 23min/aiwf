@@ -48,7 +48,6 @@ type ContractBindOptions struct {
 // fixtures paths for the existence check. The CLI dispatcher passes
 // the same value it uses to load the tree.
 func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, id, actor, repoRoot string, opts ContractBindOptions) (*Result, error) {
-	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
@@ -61,6 +60,12 @@ func ContractBind(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current 
 	}
 	if e.Kind != entity.KindContract {
 		return nil, fmt.Errorf("%s is not a contract (it's a %s)", id, e.Kind)
+	}
+	// The claim is about aiwf.yaml, not the contract entity: "unchanged"
+	// is decided by comparing the binding this verb would write against the
+	// entries spliced out of that file.
+	if claimErr := guardClaim(ctx, repoRoot, id, config.FileName); claimErr != nil {
+		return nil, claimErr
 	}
 
 	next := cloneContracts(current)

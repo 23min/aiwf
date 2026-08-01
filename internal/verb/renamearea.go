@@ -51,7 +51,6 @@ func RenameArea(
 	members []config.Member,
 	oldName, newName, actor string,
 ) (*Result, error) {
-	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
@@ -77,6 +76,12 @@ func RenameArea(
 	}
 	if !declared[oldName] {
 		return nil, fmt.Errorf("area %q is not a declared member; declared areas: %s", oldName, declaredList(names))
+	}
+	// The declared set this claim rests on is spliced out of aiwf.yaml,
+	// so that file is the scope — placed after the membership check, which
+	// is the resolution the claim presupposes.
+	if claimErr := guardClaim(ctx, t.Root, oldName, config.FileName); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-7): the member already carries the
 	// requested name, so there is no aiwf.yaml edit and no entity retag to
