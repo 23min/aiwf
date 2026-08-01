@@ -231,6 +231,19 @@ outside `internal/verb`, so it is recorded in a companion list the scan cannot
 derive. Fifteen new test functions; mutation probe 8/8 caught, no survivors ·
 commit `6f476ec73`
 
+### AC-4 — The measured cancel-classifies-terminal defect no longer occurs
+
+A regression pin; AC-1's prelude guard already refuses the reproduction, so no
+implementation changed and the phase ladder's red is vacuous by construction.
+Two arms, each with its committed-state control: `wontfix` hand-edited onto a gap
+at `open` in HEAD, which absent the guard converges at exit 0 before any plan
+exists for the commit-side guard to see; and an unrecognized status, which falls
+past the terminal check into the FSM consult, whose refusal names bytes no verb
+wrote. The discriminating evidence is the mutation probe rather than a
+red-to-green transition: 3/3 caught, and the converge-point guard this milestone
+rejected passes the first arm while failing the second. Four new test functions ·
+commit `61912a311`
+
 ## Decisions made during implementation
 
 ### The sweeps are scoped per candidate, not per verb
