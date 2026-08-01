@@ -134,20 +134,22 @@ holes, and the retirement blast radius.
 
 ## Milestones
 
-Not yet allocated; ids are assigned when `aiwfx-plan-milestones` runs. Candidate
-deliverables, in execution order:
+In execution order, though only one edge is real: the sweep needs the guard to
+exist, because the guard's output is the worklist it sweeps. The other two are
+independent of everything and of each other, so their position here is
+convenience rather than sequence.
 
-- Close the two guard holes — the non-code-masking scan and the placeholder-width
-  check — landing at warning severity. First, because everything after it works
-  from this rule's worklist rather than from a grep.
-- Sweep the shipped surfaces to canonical placeholder form, remove the two
-  real-entity citations, repair the templates, and flip the rule to error.
-  Depends on the guard milestone.
-- The repo-facing doc lint and its sweep, and filing the deferred-residue gap.
-  Independent of the two above.
-- Retire the migration verb: the deletions, the collapsed drift rule at error
-  severity, the superseding ADR, and the kernel-commitment edit. Independent of
-  the three above.
+- **M-0287** — close the two guard holes: a scan that does not blank code
+  constructs, and the placeholder-width check the rule already claims is policed
+  elsewhere. Lands at warning severity. `tdd: required`.
+- **M-0288** — sweep the shipped surfaces to canonical placeholder form, remove
+  the two real-entity citations, repair the entity templates, and flip the rule
+  to error as the milestone's last act. Depends on M-0287. `tdd: required`.
+- **M-0289** — the width-shaped lint over the two workflow-teaching docs and its
+  sweep, plus filing the deferred doc-residue gap. Independent. `tdd: required`.
+- **M-0290** — retire the migration verb: the deletions, the collapsed drift rule
+  at error severity, the superseding ADR, and the kernel-commitment edit.
+  Independent. `tdd: required`.
 
 ## References
 
