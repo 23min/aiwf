@@ -1,9 +1,11 @@
 ---
 id: G-0487
 title: Git's hidden-state bits make a dirty path invisible to a dirty-set guard
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0282
+addressed_by_commit:
+    - 9c6ebe566
 ---
 ## What's missing
 
