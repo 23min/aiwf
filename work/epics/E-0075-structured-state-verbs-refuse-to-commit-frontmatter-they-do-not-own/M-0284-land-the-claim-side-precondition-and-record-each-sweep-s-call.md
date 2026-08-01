@@ -25,7 +25,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The commit-side guard reads the record, not git's dirty report
-      status: open
+      status: met
       tdd_phase: done
 ---
 
