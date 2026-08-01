@@ -608,7 +608,10 @@ func TestPrepushCommentScanHook_BlockNamesTheEscape(t *testing.T) {
 	if exitCode != 1 {
 		t.Fatalf("exit code = %d, want 1\nstderr: %s", exitCode, stderr)
 	}
-	for _, want := range []string{"history:ok", "--no-verify"} {
+	// "must open" is the placement rule. Naming the marker without it sends
+	// an operator to append the escape to an existing comment, where it does
+	// nothing — a message that leaves them blocked is one that gets bypassed.
+	for _, want := range []string{"history:ok", "--no-verify", "must open"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("block message must name %q; got: %s", want, stderr)
 		}

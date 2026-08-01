@@ -16,6 +16,35 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0496: the `//history:ok` escape opens only on the directive itself
+
+Nothing user-facing changed; this is a repo-development gate. The escape hatch of
+the `comment-history-attrition` push gate matched its marker anywhere in a comment
+and accepted whatever followed as the reason, so two comments that are not the
+directive silenced it: prose merely naming the escape, and any longer word opening
+with the marker's letters (`//history:okay`, read as the directive with "ay" for a
+reason). Both suppressed findings on *every* line of the comment group, and both
+are reachable by accident — documenting the marker is exactly the kind of comment
+that names it, and one such doc comment in this repo's own source was a six-line
+blind spot.
+
+The marker must now open the comment and be separated from its reason by
+whitespace, and a marker on an interior line of a `/* */` block is text rather
+than a directive — the reading Go itself gives `//go:build`. The sibling
+`//exec:ok` already required all of this; the two markers were divergent
+implementations of one convention, which is why only one of them carried the
+bug. They now share a single matcher, exercised by a table that runs every case
+against both.
+
+The exemption stays scoped to the comment group, which is the unit a
+legacy-format note occupies, and covers a touched line even when the diff left
+the directive itself alone. That group scope is the one place the two markers
+deliberately differ: `//exec:ok` annotates a call following the comment, so it
+reaches no further than that call, while `//history:ok` annotates the prose it
+sits in. The blocked-push message and the policy's own finding now state the
+placement rule, which an operator who appends the marker to an existing comment
+would otherwise get silently wrong.
+
 ### Fixed — G-0491: test fixtures no longer depend on where git stores an object
 
 Nothing user-facing changed; this is repo test tooling. Two fixtures reached into

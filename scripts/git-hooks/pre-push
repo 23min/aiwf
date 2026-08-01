@@ -221,7 +221,10 @@ if [ "$needs_comment_scan" -eq 1 ]; then
             echo "                defect that motivated it; git blame and the tracked entity" >&2
             echo "                already own that. If the past state is one a reader can" >&2
             echo "                still encounter, state it in the present tense. Deliberate" >&2
-            echo "                exception: add '//history:ok <reason>' to the comment." >&2
+            echo "                exception: '//history:ok <reason>', which exempts the" >&2
+            echo "                whole comment group it sits in. The marker must open" >&2
+            echo "                the comment it escapes — write it as its own line in" >&2
+            echo "                the group, or open a trailing comment with it." >&2
             echo "                For a deliberate push: git push --no-verify" >&2
             exit 1
         fi

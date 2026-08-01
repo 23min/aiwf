@@ -56,9 +56,9 @@ func PolicyTestExecutableWrite(root string) ([]Violation, error) {
 
 // execOKMarker is the deliberate-exception escape, mirroring
 // //coverage:ignore and //history:ok. It is directive-shaped (no space
-// after the slashes) so gofmt leaves it alone, and a bare marker is not
-// an escape — the reason is the point. The case it exists for is a test
-// whose subject *is* the mode, which WriteExecutable's fixed 0755 cannot
+// after the slashes) so gofmt leaves it alone; hasDirectiveComment owns
+// the rest of its contract. The case it exists for is a test whose
+// subject *is* the mode, which WriteExecutable's fixed 0755 cannot
 // express.
 const execOKMarker = "exec:ok"
 
@@ -193,7 +193,7 @@ func exemptLines(fset *token.FileSet, file *ast.File, src []byte) map[int]bool {
 	exempt := map[int]bool{}
 	for _, group := range file.Comments {
 		for _, c := range group.List {
-			if !hasExecOK(c.Text) {
+			if !hasDirectiveComment(c.Text, execOKMarker) {
 				continue
 			}
 			pos := fset.Position(c.Pos())
@@ -217,32 +217,6 @@ func ownLine(lines []string, line, column int) bool {
 		return false
 	}
 	return strings.TrimSpace(text[:column-1]) == ""
-}
-
-// hasExecOK reports whether a raw comment is the escape directive with a
-// non-empty reason after it.
-//
-// The marker must open the comment, directive-style (`//exec:ok why`).
-// Matching it anywhere in the text would let prose that merely mentions
-// the escape — including this file's own doc comments — silently exempt
-// a neighbouring call.
-//
-// Whitespace must separate the marker from the reason, so that a longer
-// word opening with the marker's letters (`//exec:okay`) reads as a
-// different comment rather than as the directive with "ay" for a reason.
-func hasExecOK(raw string) bool {
-	rest, found := strings.CutPrefix(raw, "//"+execOKMarker)
-	if !found {
-		return false
-	}
-	reason := strings.TrimLeft(rest, " \t")
-	if len(reason) == len(rest) {
-		// Nothing separates the marker from what follows: either the
-		// comment is the bare marker, or the marker is a prefix of a
-		// longer word. Neither is an escape.
-		return false
-	}
-	return strings.TrimSpace(reason) != ""
 }
 
 // anyLine reports whether any line in [start,end] is in the set.
