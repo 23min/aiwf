@@ -17,7 +17,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The measured cancel-classifies-terminal defect no longer occurs
