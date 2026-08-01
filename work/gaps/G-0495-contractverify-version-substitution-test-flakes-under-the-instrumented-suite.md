@@ -1,7 +1,7 @@
 ---
 id: G-0495
 title: contractverify version-substitution test flakes under the instrumented suite
-status: open
+status: wontfix
 discovered_in: M-0284
 ---
 ## What's missing
