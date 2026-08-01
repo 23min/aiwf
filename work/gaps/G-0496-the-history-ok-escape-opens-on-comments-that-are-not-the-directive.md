@@ -2,6 +2,7 @@
 id: G-0496
 title: The history:ok escape opens on comments that are not the directive
 status: open
+priority: high
 ---
 ## What's missing
 
