@@ -11,6 +11,9 @@ acs:
     - id: AC-2
       title: A below-canonical-width letter-N placeholder fails; canonical width passes
       status: open
+    - id: AC-3
+      title: proseMask is unchanged and body-prose-id still exempts code constructs
+      status: open
 ---
 
 ## Goal
@@ -20,4 +23,6 @@ acs:
 ### AC-1 — A real entity id inside a code span or fenced block produces a finding
 
 ### AC-2 — A below-canonical-width letter-N placeholder fails; canonical width passes
+
+### AC-3 — proseMask is unchanged and body-prose-id still exempts code constructs
 
