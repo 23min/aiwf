@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: A referrer absent from the loaded tree but present at HEAD declines the move
       status: open
+    - id: AC-2
+      title: An archived referrer mid-edit does not block an unrelated candidate
+      status: open
 ---
 ## Goal
 
@@ -33,6 +36,8 @@ G-0499 carries the measurement and the neighbouring defects that share its root 
 Created via `aiwf add ac` at plan time.
 
 ### AC-1 — A referrer absent from the loaded tree but present at HEAD declines the move
+
+### AC-2 — An archived referrer mid-edit does not block an unrelated candidate
 
 ## Constraints
 
