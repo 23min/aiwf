@@ -68,9 +68,8 @@ constructor, which is what M-0285 later makes mechanical.
 The 22 sites are not one shape, so the scoping is per-claim rather than uniform:
 sixteen are target-scoped to an entity file (an AC-level claim reads its parent
 milestone's file); three are scoped to `aiwf.yaml`; two are whole-tree sweeps
-whose claim derives from every entity's status or id width, so their scope is the
-selection, computed after selection; and one compares against git history rather
-than the working copy and needs no guard at all.
+with no target, scoped per candidate rather than per verb; and one compares
+against git history rather than the working copy and needs no guard at all.
 
 The comparison those preludes call asks one question — does HEAD's blob for a
 path equal what is on disk. The two seams differ only in which paths they hand
@@ -99,8 +98,9 @@ heading is supposed to receive.
 Each site's guard is scoped to what that site claims about, and a site needing no
 guard carries a recorded reason rather than an omission.
 
-The four scopes are distinguishable and none is a silent pass-through: target
-entity file, `aiwf.yaml`, the sweep's selected set, and none. Scoping everything
+The three scopes are distinguishable and none is a silent pass-through: target
+entity file, `aiwf.yaml`, and none — with the sweeps scoped per candidate inside
+their own planner rather than by a scope name. Scoping everything
 to "the target entity" was measured to make the guard inert at exactly the three
 sites that splice a working-copy `aiwf.yaml`.
 
@@ -168,8 +168,11 @@ patching.
   so its baseline is already the record rather than the working copy. Recording
   that as a reasoned exemption is part of AC-2, not an omission from it.
 - `archive` and `rewidth` have no target entity by construction — their claims are
-  derived from the whole tree. A tree-wide refusal would be disproportionate, so
-  their scope is the set the sweep selected, computed after selection.
+  derived from the whole tree, and a selected set is empty exactly when their NoOp
+  fires, so a selection-scoped guard has nothing to look at. `archive` compares per
+  candidate move instead, declining the ones whose verdict rests on a mid-edit
+  file; `rewidth` needs none, because its body scan is independent of the rename
+  set and re-emits a masked rewrite on the next run.
 - The existing NoOp policy scans *exported* entry points only, so the unexported
   composite branches (`promoteAC`, `cancelAC`, `renameAC`, `retitleAC`) are
   invisible to it and need their own tests here rather than relying on M-0285.
@@ -211,11 +214,44 @@ survivors · commit `5704f2493`
 The three `aiwf.yaml`-scoped claims — `contract bind`, `recipe install`,
 `rename-area` — now guard on that file rather than on a target entity they do
 not have. `PolicyNoOpClaimScope` derives every converging function from the
-source and requires each to carry one of four recorded scopes, with a reason,
+source and requires each to carry one of the recorded scopes, with a reason,
 failing closed when the scan finds nothing. Twelve new test functions;
 mutation probe 8/8 caught, no survivors · commit `88f949150`
 
+### AC-3 — Each multi-entity sweep carries a recorded in-or-out call the guard matches
+
+`rename-area` is in, scoped to `aiwf.yaml` (AC-2). `archive` is in per candidate
+move: each is declined when a file its verdict rests on is mid-edit — the
+entity's own file, anything a directory move carries beneath it, or an entity
+whose committed body links into the move — and each declined move is reported
+through the channel skipped epics already use. `rewidth` is out, on measured
+self-healing. `import`'s zero-plan NoOp is not a same-state claim and sits
+outside `internal/verb`, so it is recorded in a companion list the scan cannot
+derive. Fifteen new test functions; mutation probe 8/8 caught, no survivors ·
+commit `6f476ec73`
+
 ## Decisions made during implementation
+
+### The sweeps are scoped per candidate, not per verb
+
+`archive` and `rewidth` have no target entity, and the set a sweep selects is
+empty exactly when its NoOp fires — so a guard scoped to that selection guards
+nothing at the only moment the claim is made. Refusing the whole verb instead
+would block a sweep, `--dry-run` included, on any unrelated draft.
+
+`archive` therefore compares per candidate move. Measured, the alternative is
+not merely inert: with a referrer part-way through a reword, the move lands
+without its link rewrite and HEAD carries a link to a path that does not exist,
+which no later run repairs because an archived target leaves the scan for good.
+The referrer comparison reads HEAD's body rather than the working copy's, since
+a draft that dropped the link is precisely what a working-copy scan cannot see.
+
+`rewidth` needs no comparison: `planRewidthRewrites` rescans every active
+markdown independently of the rename set, so a masked rewrite is re-emitted by
+the next run — the cost is a rewrite deferred, not lost.
+
+The scope name `sweep-selection` went with that reasoning. A closed-set value
+with no member is a decision nothing in the code implements.
 
 ### The refusal is emitted in the prelude, not at the converge point
 
