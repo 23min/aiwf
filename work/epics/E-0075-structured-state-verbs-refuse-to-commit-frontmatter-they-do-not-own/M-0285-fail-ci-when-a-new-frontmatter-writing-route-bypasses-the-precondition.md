@@ -10,6 +10,7 @@ acs:
     - id: AC-1
       title: A new frontmatter-writing route that bypasses the seam fails CI by name
       status: open
+      tdd_phase: red
     - id: AC-2
       title: The invariant's exemption list carries one reasoned entry per exempt route
       status: open
