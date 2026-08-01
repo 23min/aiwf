@@ -1,7 +1,7 @@
 ---
 id: M-0285
 title: Fail CI when a new frontmatter-writing route bypasses the precondition
-status: draft
+status: in_progress
 parent: E-0075
 depends_on:
     - M-0284
