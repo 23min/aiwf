@@ -1,7 +1,7 @@
 ---
 id: M-0284
 title: Land the claim-side precondition and record each sweep's call
-status: in_progress
+status: done
 parent: E-0075
 depends_on:
     - M-0283
