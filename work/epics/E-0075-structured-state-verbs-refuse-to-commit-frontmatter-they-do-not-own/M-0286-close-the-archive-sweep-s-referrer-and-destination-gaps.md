@@ -4,6 +4,10 @@ title: Close the archive sweep's referrer and destination gaps
 status: draft
 parent: E-0075
 tdd: required
+acs:
+    - id: AC-1
+      title: A referrer absent from the loaded tree but present at HEAD declines the move
+      status: open
 ---
 ## Goal
 
@@ -27,6 +31,8 @@ G-0499 carries the measurement and the neighbouring defects that share its root 
 ## Acceptance criteria
 
 Created via `aiwf add ac` at plan time.
+
+### AC-1 — A referrer absent from the loaded tree but present at HEAD declines the move
 
 ## Constraints
 
