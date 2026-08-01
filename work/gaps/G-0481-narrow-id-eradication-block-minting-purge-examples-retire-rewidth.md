@@ -74,13 +74,15 @@ Deferred to a separate gap (71 hits): `docs/design/**` (56, 5 files), `docs/over
 
 A polarity trap for whoever implements it: `body-prose-id` rejects `` `M-NNNN` `` as a leak in entity bodies while `skill-body-id` *requires* it in shipped surfaces. Opposite rules for opposite domains, both currently correct.
 
+The `:65` case is an instance of E-0076's pattern — a rule stated in an authoritative surface with no detector behind it, which reads as enforced and so stops the next reader from looking. That epic addresses three unrelated instances and does not cover this one; the shared shape is worth seeing from both sides.
+
 Two lesser blind spots: `narrow_id_sweep_test.go` matches only quote-adjacent literals and exempts `testdata/` outright; active docs have no narrow-id shape check at all (Tier B needs one, and it is genuinely width-shaped — a different rule over a different corpus, where real ids are legitimate).
 
 ## `rewidth` retirement is a net deletion
 
 Every tree the verb existed to migrate has been migrated, so a narrow id in an active tree is a defect rather than an unfinished migration. That collapses the drift check rather than complicating it: `entityIDNarrowWidth`'s mixed/uniform classifier exists only to stay silent on a uniform-narrow tree — the pre-migration state — which no longer occurs. The rule becomes "any narrow id in the active tree fires," at error severity, remediated by undoing the hand-edit or `git mv` that produced it (`reallocate` would assign a different number, not widen the same one).
 
-Retirement deletes `internal/verb/rewidth.go`, `internal/cli/rewidth/`, their tests, the three registration sites in `internal/cli/root.go` (`:44`, `:185`, `:259`), and `padToCanonical` — which is one of the three id-shape parsers G-0454 wants unified, so that gap shrinks for free. Its `mint_ids_via_allocate` allowlist entry goes with the file. What it adds is a superseding ADR over the ADR-0008 clauses that specify the verb, plus an edit to CLAUDE.md's commitment #2 and the `aiwf-check` skill's mention. `this_repo_drift_check_clean_test.go` keeps passing against a stronger assertion.
+Retirement deletes `internal/verb/rewidth.go`, `internal/cli/rewidth/`, their tests, the three registration sites in `internal/cli/root.go` (`:44`, `:185`, `:259`), and `padToCanonical` — a fourth independent id-shape parser, outside the three in `internal/entity` that G-0454 tracks, so it is one fewer site an id-grammar change must touch without altering that gap's scope. Its `mint_ids_via_allocate` allowlist entry goes with the file. What it adds is a superseding ADR over the ADR-0008 clauses that specify the verb, plus an edit to CLAUDE.md's commitment #2 and the `aiwf-check` skill's mention. `this_repo_drift_check_clean_test.go` keeps passing against a stronger assertion.
 
 ## Narrow read tolerance is permanent
 
