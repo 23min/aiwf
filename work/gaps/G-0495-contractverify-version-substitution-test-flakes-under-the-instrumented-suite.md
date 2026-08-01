@@ -23,6 +23,19 @@ It discards the runner's return value, so when the exec itself fails there
 is no assertion on the findings that would say so — the only symptom is the
 absent log, and the message points at reading rather than at launching.
 
+A second test flakes with the same fixture shape:
+`TestCheckListInvariant_RealBinary_DetectsAGenuineDivergence` in
+`internal/stresstest`. Measured: one failure across full-suite runs, and no
+failure running it standalone, running its whole package, or running either
+under coverage instrumentation. Its `writeFakeAiwfList` helper writes an
+executable shell script and immediately execs it, exactly as the validator
+fixture above does.
+
+Whether the two share a cause is a hypothesis, not a finding. The failure
+message for the stresstest instance was not captured, so the link rests on
+the shared fixture shape and the shared "only under the full parallel suite"
+condition.
+
 ## Why it matters
 
 The failure surfaces at the gate that decides whether a change can land, on
@@ -35,9 +48,9 @@ distinguish "substitution was wrong" from "the validator never executed".
 
 ## Scope
 
-The test's own robustness and what it asserts. Out of scope: the version
-substitution behaviour it covers, which is correct — every non-flaking run
-passes.
+The write-then-exec fixture pattern where it appears, and what those tests
+assert when the exec fails. Out of scope: the behaviours they cover, which
+are correct — every non-flaking run passes.
 
 ## Resolution options
 
