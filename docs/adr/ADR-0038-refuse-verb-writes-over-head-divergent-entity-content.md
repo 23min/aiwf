@@ -95,11 +95,23 @@ At the NoOp seam the comparison covers what the claim actually asserts about,
 which is usually the target entity's file — but not always. Three claims are
 scoped to `aiwf.yaml` rather than an entity (`contract bind`, `contract recipe`,
 `rename-area`); two are whole-tree sweeps whose claim is derived from every
-entity's status or id width (`archive`, `rewidth`), so their scope is the set the
-sweep selected, computed after selection; and one (`acknowledge illegal`) already
+entity's status or id width (`archive`, `rewidth`), and are scoped per candidate
+rather than per verb — `archive` declines the individual moves whose verdict
+rests on a mid-edit file and reports them, while `rewidth` carries a reasoned
+exemption because a masked rewrite is re-emitted by its next run; and one
+(`acknowledge illegal`) already
 compares against git history rather than the working copy, so it needs no guard
 at all. Scoping these to "the target entity" would make the guard a silent
 pass-through exactly where three of them splice a working-copy `aiwf.yaml`.
+
+An earlier statement of this subsection scoped both sweeps to "the set the
+sweep selected, computed after selection". It shipped in the `accepted` ADR
+other clones already carry, so it is named here rather than replaced silently.
+That set is empty exactly when a sweep's NoOp fires, so it gave the guard
+nothing to look at at the one moment the claim is made — and for `archive` the
+gap is not merely inert: a move made alongside a mid-edit referrer commits a
+link to a path absent at HEAD, which no later run can repair once the target
+leaves the scan.
 
 ### Field scope
 
