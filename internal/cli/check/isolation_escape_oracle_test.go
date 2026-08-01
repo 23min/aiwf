@@ -147,12 +147,11 @@ func TestNewGitBranchOracle_AC3_AllHealthy_NoErrors(t *testing.T) {
 // per-SHA index; the corrupt ref surfaces as one OracleErr
 // entry naming the ref and wrapping the underlying error.
 //
-// Fixture: corrupt the tip object file of the stale ref so
-//   - `git for-each-ref refs/heads/` still emits the ref (the
-//     ref file on disk is valid; for-each-ref reads ref files,
-//     not the pointed-to object)
-//   - `git rev-list --first-parent <stale ref>` fails because
-//     the object file is unreadable
+// Fixture: point the stale ref at an object id nothing resolves, so
+//   - the oracle's `for-each-ref --format=%(refname:short)…` still
+//     emits the ref, because that format needs no object lookup
+//   - `git rev-list --first-parent <stale ref>` fails, because the id
+//     names no object
 //
 // Pre-AC-3 the per-ref failure aborts the entire indexing loop
 // at internal/cli/check/isolation_escape_oracle.go:64-67 and
@@ -218,17 +217,15 @@ func setupAC3RepoAllHealthy(t *testing.T) string {
 	return root
 }
 
-// setupAC3RepoWithCorruptRef builds a repo with main + a
-// healthy ritual ref (epic/E-0001-engine) + a corrupt ritual
-// ref (epic/E-9999-stale) whose tip object file is unreadable.
-// Returns root, the healthy ref's HEAD SHA, and the corrupt
-// ref's name.
+// setupAC3RepoWithCorruptRef builds a repo with main + a healthy
+// ritual ref (epic/E-0001-engine) + a corrupt ritual ref
+// (epic/E-9999-stale) that names an object nothing resolves. Returns
+// root, the healthy ref's HEAD SHA, and the corrupt ref's name.
 //
-// Fixture mechanic: after committing on the stale ref, overwrite
-// the loose object file at .git/objects/<aa>/<bb...> with
-// random bytes. for-each-ref still emits the ref (ref files are
-// untouched); rev-list --first-parent fails when it tries to
-// decode the zlib-compressed object.
+// Fixture mechanic: after committing on the stale ref, write an
+// unresolvable object id into its loose ref file. The oracle's
+// for-each-ref format still emits the ref (it needs no object lookup);
+// rev-list --first-parent fails, because the id names no object.
 func setupAC3RepoWithCorruptRef(t *testing.T) (root, healthyHeadSHA, corruptRef string) {
 	t.Helper()
 	ctx := context.Background()
@@ -252,22 +249,21 @@ func setupAC3RepoWithCorruptRef(t *testing.T) (root, healthyHeadSHA, corruptRef 
 	writeFile(t, root, "stale.md", "stale\n")
 	gitRun(t, root, "add", ".")
 	gitRun(t, root, "commit", "-m", "stale work")
-	staleHead := gitOutput(t, root, "rev-parse", "HEAD")
-
-	// Corrupt the stale ref's tip object so rev-list --first-parent
-	// fails while for-each-ref still emits the ref. The loose
-	// object lives at .git/objects/<sha[:2]>/<sha[2:]>; overwriting
-	// with raw bytes breaks zlib decoding. Git writes loose
-	// objects mode 0o444 (read-only) so chmod is required first.
-	objPath := filepath.Join(root, ".git", "objects", staleHead[:2], staleHead[2:])
-	if err := os.Chmod(objPath, 0o644); err != nil {
-		t.Fatalf("chmod object %s: %v", objPath, err)
-	}
-	if err := os.WriteFile(objPath, []byte("garbage-not-zlib\n"), 0o644); err != nil {
-		t.Fatalf("corrupt object %s: %v", objPath, err)
-	}
 
 	gitRun(t, root, "checkout", "main")
+
+	// Point the stale ref at an object id nothing resolves, so
+	// rev-list --first-parent fails on it while for-each-ref still
+	// emits the ref. `git update-ref` refuses an id whose object is
+	// missing — which is the state being built — so the id goes into
+	// the loose ref file, which takes precedence over any packed-refs
+	// entry. Nothing here names an object, so where git stores any
+	// particular one is not a precondition (G-0491).
+	refPath := filepath.Join(root, ".git", filepath.FromSlash("refs/heads/epic/E-9999-stale"))
+	if err := os.WriteFile(refPath, []byte(unresolvableOID+"\n"), 0o644); err != nil {
+		t.Fatalf("fixture cannot construct its precondition: pointing epic/E-9999-stale at an unresolvable id: %v", err)
+	}
+
 	corruptRef = "epic/E-9999-stale"
 	return root, healthyHeadSHA, corruptRef
 }
@@ -425,3 +421,9 @@ func setupAC4ShallowRepo(t *testing.T) string {
 	}
 	return root
 }
+
+// unresolvableOID is a well-formed object id that no object in a test
+// repo hashes to, so a ref carrying it lists but does not resolve. Its
+// width matches the repository's sha1 object format, which is what
+// `git init` produces here.
+const unresolvableOID = "0000000000000000000000000000000000000001"
