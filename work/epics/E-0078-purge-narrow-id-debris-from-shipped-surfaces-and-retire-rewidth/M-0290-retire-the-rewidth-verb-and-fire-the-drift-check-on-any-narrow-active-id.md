@@ -8,6 +8,9 @@ acs:
     - id: AC-1
       title: No rewidth command is registered and its verb and CLI packages are absent
       status: open
+    - id: AC-2
+      title: A narrow id in an active tree fires at error severity, mixed or not
+      status: open
 ---
 
 ## Goal
@@ -15,4 +18,6 @@ acs:
 ## Acceptance criteria
 
 ### AC-1 — No rewidth command is registered and its verb and CLI packages are absent
+
+### AC-2 — A narrow id in an active tree fires at error severity, mixed or not
 
