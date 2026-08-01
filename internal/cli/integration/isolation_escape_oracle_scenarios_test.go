@@ -269,47 +269,54 @@ func TestBranchOracle_AC3_SovereignOverride_StaysClean(t *testing.T) {
 	})
 }
 
-// corruptUnusedRitualRef creates a fresh ritual-shape ref at
-// the current main tip with a real commit, then overwrites the
-// loose object file for the commit's tip so the per-ref
-// first-parent walk fails while for-each-ref still emits the
-// ref name.
+// corruptUnusedRitualRef creates a fresh ritual-shape ref at the
+// current main tip with a real commit, then points that ref at an
+// object id nothing resolves, so the per-ref first-parent walk fails
+// while the oracle's for-each-ref format, which needs no object lookup,
+// still emits the ref name.
 //
-// The ref is "unused" in the sense that no aiwf-scope or
-// AI-commit fixture references it; its only role is to be a
-// failed-walk candidate during oracle construction.
+// The ref is "unused" in the sense that no aiwf-scope or AI-commit
+// fixture references it; its only role is to be a failed-walk
+// candidate during oracle construction.
 //
-// Git stores loose objects mode 0o444; the chmod is required
-// before the overwrite. Stale.md is removed from the worktree
-// so subsequent fixture commits don't pick it up.
+// The unresolvable id goes into the loose ref file directly. `git
+// update-ref` will not write an id whose object is missing, which is
+// exactly the state being constructed; a loose ref takes precedence
+// over any packed-refs entry, so writing the file is correct whether
+// or not the ref was packed. What the oracle needs is a ref that lists
+// and does not walk, and nothing here names an object, so where git
+// stores any particular one is not a precondition (G-0491).
+//
+// The stale file is removed from the worktree so subsequent fixture
+// commits don't pick it up.
 func corruptUnusedRitualRef(t *testing.T, env *ScenarioEnv, ref string) {
 	t.Helper()
 	env.MustRunGit("checkout", "-b", ref, "main")
 	staleRel := "stale-" + sanitizeRefForFilename(ref) + ".md"
-	if err := os.WriteFile(filepath.Join(env.Root, staleRel), []byte("stale tip; will be corrupted\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(env.Root, staleRel), []byte("stale tip; the ref is repointed below\n"), 0o644); err != nil {
 		t.Fatalf("write %s: %v", staleRel, err)
 	}
 	env.MustRunGit("add", staleRel)
-	env.MustRunGit("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "stale tip; will be corrupted")
-	tip := strings.TrimSpace(env.MustRunGit("rev-parse", "HEAD"))
+	env.MustRunGit("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "stale tip; the ref is repointed below")
 
-	// Switch off the stale ref BEFORE corrupting so HEAD doesn't
-	// point at the broken object (subsequent git invocations
-	// would otherwise fail on HEAD resolution).
+	// Switch off the stale ref before repointing it, so HEAD doesn't
+	// name the broken ref (subsequent git invocations would otherwise
+	// fail on HEAD resolution). The checkout also takes the stale file
+	// back out of the worktree, so later fixture commits don't pick
+	// it up.
 	env.MustRunGit("checkout", "main")
 
-	objPath := filepath.Join(env.Root, ".git", "objects", tip[:2], tip[2:])
-	// Git writes loose objects mode 0o444 (read-only). The chmod
-	// is required for the test to overwrite the object file in
-	// place; without it os.WriteFile fails with EACCES.
-	if err := os.Chmod(objPath, 0o644); err != nil {
-		t.Fatalf("chmod object %s: %v", objPath, err)
+	refPath := filepath.Join(env.Root, ".git", filepath.FromSlash("refs/heads/"+ref))
+	if err := os.WriteFile(refPath, []byte(unresolvableOID+"\n"), 0o644); err != nil {
+		t.Fatalf("fixture cannot construct its precondition: pointing %s at an unresolvable id: %v", ref, err)
 	}
-	if err := os.WriteFile(objPath, []byte("garbage-not-zlib\n"), 0o644); err != nil {
-		t.Fatalf("corrupt object %s: %v", objPath, err)
-	}
-	_ = os.Remove(filepath.Join(env.Root, staleRel))
 }
+
+// unresolvableOID is a well-formed object id that no object in a test
+// repo hashes to, so a ref carrying it lists but does not resolve. Its
+// width matches the repository's sha1 object format, which is what
+// `git init` produces here.
+const unresolvableOID = "0000000000000000000000000000000000000001"
 
 // sanitizeRefForFilename replaces ref characters that are not
 // valid in filenames (notably '/') with '-' so multi-ref test

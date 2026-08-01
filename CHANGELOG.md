@@ -16,6 +16,30 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0491: test fixtures no longer depend on where git stores an object
+
+Nothing user-facing changed; this is repo test tooling. Two fixtures reached into
+git's loose-object storage and assumed a layout nothing established.
+
+The branch-oracle fixture built a ref whose walk fails by overwriting the commit's
+loose object file at a path it computed arithmetically, and failed outright when
+the object was not there. It now points the ref at an object id nothing resolves,
+which is what the oracle actually needs — `for-each-ref` still lists the ref, the
+first-parent walk still fails — and touches no object storage at all.
+
+The two `internal/gitops` tests that assert a write fails against a read-only
+object database made only the top-level `objects/` directory read-only. That
+blocks *creating* a fanout directory, not writing into one that already exists, so
+the assertion broke whenever the repo's own commit happened to share the fanout of
+the blob under test — about one seed in 256. The commit id is a function of the
+commit timestamp, which has one-second resolution, so within any one second the
+outcome is fixed rather than intermittent, and a rerun lands in a later second and
+draws a fresh one. That is why it read as unreproducible: a rerun is a new draw,
+not a repeat, and pinning the timestamp reproduces it exactly. Every fanout
+directory present is now locked alongside `objects/` itself, and the condition is
+pinned by a test that creates the colliding directory outright instead of waiting
+for it.
+
 ### Fixed — G-0491: test stand-ins no longer race the exec they are written for
 
 Nothing user-facing changed; this is repo test tooling. A fixture that wrote an

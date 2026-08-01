@@ -93,16 +93,46 @@ func TestReconcilePaths_HashObjectFails_ObjectsDirReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GitDir: %v", err)
 	}
-	objectsDir := filepath.Join(gitDir, "objects")
-	err = os.Chmod(objectsDir, 0o500)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(objectsDir, 0o755) })
+	lockObjectStore(t, filepath.Join(gitDir, "objects"))
 
-	err = ReconcilePaths(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}})
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte(blobContent)}})
 	if err == nil {
 		t.Fatal("want error with a read-only objects dir, got nil")
+	}
+	if !strings.Contains(err.Error(), "hashing blob") {
+		t.Errorf("error %q should mention hashing blob", err.Error())
+	}
+}
+
+// TestReconcilePaths_HashObjectFails_FanoutDirectoryAlreadyExists is the
+// test above with its one load-bearing precondition made explicit rather
+// than left to chance: the fanout directory the blob needs is already
+// present, so creating it — the only step wanting write permission on
+// objects/ itself — never happens, and a lock that covered only the top
+// level would let the write straight through.
+//
+// A seed lands there on its own about once in 256, deterministically
+// within any one second (see lockObjectStore). Creating the directory
+// outright turns that into a fixed condition, so the guarantee is pinned
+// rather than sampled (G-0491).
+func TestReconcilePaths_HashObjectFails_FanoutDirectoryAlreadyExists(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := seedRepo(t, ctx)
+
+	gitDir, err := GitDir(ctx, root)
+	if err != nil {
+		t.Fatalf("GitDir: %v", err)
+	}
+	objectsDir := filepath.Join(gitDir, "objects")
+	if mkErr := os.MkdirAll(filepath.Join(objectsDir, blobFanoutIn(t, ctx, root)), 0o755); mkErr != nil {
+		t.Fatalf("pre-creating the fanout directory: %v", mkErr)
+	}
+	lockObjectStore(t, objectsDir)
+
+	err = ReconcilePaths(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte(blobContent)}})
+	if err == nil {
+		t.Fatal("want error with a locked object store, got nil — the write found a writable fanout directory")
 	}
 	if !strings.Contains(err.Error(), "hashing blob") {
 		t.Errorf("error %q should mention hashing blob", err.Error())

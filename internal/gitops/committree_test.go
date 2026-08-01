@@ -336,14 +336,9 @@ func TestCommitTree_HashObjectFails_ObjectsDirReadOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GitDir: %v", err)
 	}
-	objectsDir := filepath.Join(gitDir, "objects")
-	err = os.Chmod(objectsDir, 0o500)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chmod(objectsDir, 0o755) })
+	lockObjectStore(t, filepath.Join(gitDir, "objects"))
 
-	_, err = CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte("a\n")}}, "subject", "", nil)
+	_, err = CommitTree(ctx, root, nil, []PathWrite{{Path: "a.md", Content: []byte(blobContent)}}, "subject", "", nil)
 	if err == nil {
 		t.Fatal("want error with a read-only objects dir, got nil")
 	}
@@ -407,6 +402,74 @@ func TestCommitTreeFromParent_RefusesStaleParent_ConcurrentHEADMove(t *testing.T
 	if subj != "concurrent commit" {
 		t.Errorf("HEAD subject = %q, want %q (refused commit must not have landed)", subj, "concurrent commit")
 	}
+}
+
+// blobContent is the payload the object-store-locking tests write, named
+// because one of them has to know which fanout directory its blob lands
+// in. Other tests in this package write the same bytes incidentally and
+// have no reason to reference it.
+const blobContent = "a\n"
+
+// blobFanoutIn returns the fanout directory blobContent's blob lands in,
+// asking git rather than restating a precomputed answer. A hardcoded
+// value drifts silently the moment blobContent changes: the test that
+// pre-creates the fanout would create the wrong one, the write would be
+// stopped by the top-level lock instead, and the test would keep passing
+// while pinning nothing.
+func blobFanoutIn(t *testing.T, ctx context.Context, root string) string {
+	t.Helper()
+	probe := filepath.Join(t.TempDir(), "probe")
+	if err := os.WriteFile(probe, []byte(blobContent), 0o600); err != nil {
+		t.Fatalf("writing the hash probe: %v", err)
+	}
+	sha, err := output(ctx, root, "hash-object", probe)
+	if err != nil {
+		t.Fatalf("hashing %q: %v", blobContent, err)
+	}
+	sha = strings.TrimSpace(sha)
+	if len(sha) < 2 {
+		t.Fatalf("hash-object returned %q, want an object id", sha)
+	}
+	return sha[:2]
+}
+
+// lockObjectStore makes the loose-object store reject new writes for
+// the rest of the test, restoring it afterwards.
+//
+// Locking the objects directory alone does not do it. A loose object is
+// written to objects/<fanout>/<rest>, and creating <fanout> is the only
+// step needing write permission on objects/ itself; when <fanout>
+// already exists the write lands inside it and is not stopped. Every
+// fanout directory present is therefore locked too, so no loose write
+// has anywhere to land.
+//
+// A repo's own commit id shares the fanout of the object under test on
+// about one seed in 256. The id is a function of the commit timestamp,
+// which has one-second resolution: within a second the id is fixed, so
+// the outcome is all-or-nothing rather than intermittent, and a run in
+// a later second draws a fresh id. A failure of this shape therefore
+// cannot be confirmed or dismissed by rerunning — a rerun is a new
+// draw, not a repeat — only by pinning the timestamp (G-0491).
+func lockObjectStore(t *testing.T, objectsDir string) {
+	t.Helper()
+	entries, err := os.ReadDir(objectsDir)
+	if err != nil {
+		t.Fatalf("reading %s: %v", objectsDir, err)
+	}
+	for _, e := range entries {
+		if !e.IsDir() || len(e.Name()) != 2 {
+			continue
+		}
+		fanout := filepath.Join(objectsDir, e.Name())
+		if chmodErr := os.Chmod(fanout, 0o500); chmodErr != nil {
+			t.Fatalf("chmod %s: %v", fanout, chmodErr)
+		}
+		t.Cleanup(func() { _ = os.Chmod(fanout, 0o755) })
+	}
+	if err := os.Chmod(objectsDir, 0o500); err != nil {
+		t.Fatalf("chmod %s: %v", objectsDir, err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(objectsDir, 0o755) })
 }
 
 // seedRepo initializes a repo at a fresh t.TempDir with one commit, and
