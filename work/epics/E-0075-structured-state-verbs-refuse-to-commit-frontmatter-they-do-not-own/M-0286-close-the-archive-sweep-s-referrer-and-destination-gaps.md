@@ -17,6 +17,9 @@ acs:
     - id: AC-4
       title: A working-copy-only link declines that candidate, and --dry-run predicts --apply
       status: open
+    - id: AC-5
+      title: The decline predicate and the rewrite predicate derive from one enumeration
+      status: open
 ---
 ## Goal
 
@@ -48,6 +51,8 @@ Created via `aiwf add ac` at plan time.
 ### AC-3 — Both ends of a move are enumerated
 
 ### AC-4 — A working-copy-only link declines that candidate, and --dry-run predicts --apply
+
+### AC-5 — The decline predicate and the rewrite predicate derive from one enumeration
 
 ## Constraints
 
