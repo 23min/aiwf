@@ -1039,7 +1039,7 @@ Addresses G-0458, G-0459, G-0460 and G-0461.
 
 _No milestones yet._
 
-## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (proposed)
+## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (active)
 
 ### Goal
 
@@ -1077,6 +1077,16 @@ inventory back under an owner, and repair the instrument that measures both.
 
 Addresses G-0472, G-0473 and G-0462, and clears the G-0447 remainder — G-0453,
 G-0454, G-0455.
+
+_No milestones yet._
+
+## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (proposed)
+
+### Goal
+
+Make the canonical placeholder form the only id shape aiwf's shipped surfaces
+carry, behind a guard that keeps it that way, and delete the migration verb whose
+work is finished.
 
 _No milestones yet._
 
