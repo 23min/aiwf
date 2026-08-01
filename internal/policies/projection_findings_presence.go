@@ -49,12 +49,12 @@ var projectionFindingsExemptVerbs = []struct {
 // for one of the allowlist's documented reasons) fails CI instead of
 // surfacing only at the next verb-layer audit.
 //
-// Reachability is a same-package call-graph walk over raw call
-// text, not a type-checked analysis — the same shallow, deliberate
-// scope PolicyVerbsValidateThenWrite already uses for its own
-// substring scan. A verb entry point that only calls projectionFindings
-// through an unexported helper (e.g. EditBody -> editBodyExplicit)
-// is still recognized as compliant.
+// Reachability is a same-package call-graph walk over bare-identifier
+// call expressions, not a type-checked analysis. A verb entry point
+// that only calls projectionFindings through an unexported helper
+// (e.g. EditBody -> editBodyExplicit) is still recognized as compliant.
+// PolicyVerbsValidateThenWrite answers its own question with a
+// substring scan; these two no longer share a mechanism.
 func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 	files, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -68,7 +68,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 	}
 
 	fset := token.NewFileSet()
-	bodies := map[string]string{}
+	graph := callGraph{}
 	var entries []entryPoint
 
 	for _, f := range files {
@@ -84,13 +84,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 			if !ok || fn.Body == nil || fn.Recv != nil {
 				continue
 			}
-			start := fset.Position(fn.Body.Lbrace).Offset
-			end := fset.Position(fn.Body.Rbrace).Offset
-			if start < 0 || end <= start || end > len(f.Contents) {
-				continue
-			}
-			body := string(f.Contents[start:end])
-			bodies[fn.Name.Name] = body
+			graph[fn.Name.Name] = calledIdents(fn)
 			if isCapitalized(fn.Name.Name) && returnsResultAndError(fn.Type) {
 				entries = append(entries, entryPoint{
 					name: fn.Name.Name,
@@ -111,7 +105,7 @@ func PolicyVerbsProjectionFindingsPresence(root string) ([]Violation, error) {
 		if exempt[e.name] {
 			continue
 		}
-		if !reachesProjectionFindings(e.name, bodies, map[string]bool{}) {
+		if !reachesCall(e.name, "projectionFindings", graph, map[string]bool{}) {
 			out = append(out, Violation{
 				Policy: "projection-findings-presence",
 				File:   e.file,
@@ -141,27 +135,65 @@ func returnsResultAndError(t *ast.FuncType) bool {
 	return ok && errIdent.Name == "error"
 }
 
-// reachesProjectionFindings walks the same-package call graph
-// starting at the function named name, returning true if
-// projectionFindings is called anywhere in the reachable set. visited
-// guards against infinite recursion on a call cycle.
-func reachesProjectionFindings(name string, bodies map[string]string, visited map[string]bool) bool {
+// callGraph maps a same-package function name to the set of unqualified
+// function names its body calls.
+type callGraph map[string]map[string]bool
+
+// calledIdents returns the unqualified function names fn calls.
+//
+// Only a bare identifier in call position counts, which is what confines
+// the result to same-package functions: a qualified call (gitops.Rename)
+// and a method call (e.Paths) reach code this walk does not model, and a
+// name appearing in a comment or a string is not a call at all. Matching
+// on source text instead would answer a different question — a body
+// containing applyDirRename would read as calling Rename, so a verb that
+// consults nothing would read as reaching whatever Rename reaches.
+func calledIdents(fn *ast.FuncDecl) map[string]bool {
+	out := map[string]bool{}
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if ident, ok := call.Fun.(*ast.Ident); ok {
+			out[ident.Name] = true
+		}
+		return true
+	})
+	return out
+}
+
+// reachesCall walks the same-package call graph starting at the function
+// named name, returning true if target is called anywhere in the
+// reachable set. visited guards against infinite recursion on a call
+// cycle.
+//
+// An edge is a name in call position, which is weaker than a call that
+// runs. A call inside a branch no input selects is an edge; so is a call
+// to a local variable that shadows the package function of that name.
+// And a function outside graph — declared in another package, or reached
+// through a value rather than a name — ends the walk, so a real call can
+// also be missed.
+//
+// So the walk answers "is there a call-shaped edge to this name", and a
+// caller may read neither presence nor absence as proof about what
+// executes. What it is good for is the question both consumers ask: does
+// this function's source connect to a named seam at all, or has it been
+// written as if that seam did not exist.
+func reachesCall(name, target string, graph callGraph, visited map[string]bool) bool {
 	if visited[name] {
 		return false
 	}
 	visited[name] = true
-	body, ok := bodies[name]
+	calls, ok := graph[name]
 	if !ok {
 		return false
 	}
-	if strings.Contains(body, "projectionFindings(") {
+	if calls[target] {
 		return true
 	}
-	for callee := range bodies {
-		if callee == name || visited[callee] {
-			continue
-		}
-		if strings.Contains(body, callee+"(") && reachesProjectionFindings(callee, bodies, visited) {
+	for callee := range calls {
+		if reachesCall(callee, target, graph, visited) {
 			return true
 		}
 	}

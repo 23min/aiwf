@@ -286,3 +286,40 @@ func BrandNewVerb(id string) (*Result, error) {
 		t.Fatal("no unrecorded-site violation was produced; the fixture is wrong")
 	}
 }
+
+// TestPolicyNoOpClaimScope_ConvergingMethodDemandsARow pins the interlock
+// PolicyClaimGuardPresence leans on. That policy scans package-level
+// functions only, and states that a converging method is reported as
+// unvouchable rather than passed over — which holds only because this
+// scan does see methods and demands a ledger row for one. Adding an
+// fn.Recv filter here, for consistency with the neighbouring scans, would
+// leave both policies green over an unguarded converging method.
+func TestPolicyNoOpClaimScope_ConvergingMethodDemandsARow(t *testing.T) {
+	t.Parallel()
+	src := `package verb
+
+type Result struct {
+	NoOp        bool
+	NoOpMessage string
+}
+
+type planner struct{}
+
+func (p *planner) BrandNewMethod(id string) (*Result, error) {
+	return &Result{NoOp: true, NoOpMessage: "already there"}, nil
+}
+`
+	vs, err := PolicyNoOpClaimScope(claimScopeFixture(t, src))
+	if err != nil {
+		t.Fatalf("policy returned error: %v", err)
+	}
+	var matched bool
+	for _, v := range vs {
+		if strings.Contains(v.Detail, "BrandNewMethod converges with no recorded claim scope") {
+			matched = true
+		}
+	}
+	if !matched {
+		t.Errorf("a converging method drew no required ledger row; got:\n%s", joinDetails(vs))
+	}
+}
