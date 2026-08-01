@@ -291,8 +291,23 @@ replaced a `120000` link with the linked file's body, and a link pointing outsid
 the repo carried that file's contents into git history. Carried links are now
 refused outright · commit `d61565e6e`
 
-Twenty-one test functions across the two rounds; mutation probes 8 run, 7 caught,
-the survivor investigated and pinned, plus 6 against the symlink guard
+A third round measured four more, two of them the same class again. The symlink
+guard was nested inside the HEAD-present branch it did not need, so on an unborn
+HEAD — a copied tree, a restored backup — a carried link was dereferenced and its
+target's contents committed at exit 0; the check now runs whether or not a record
+exists. Its message was also false for half the paths it fires on: a link a verb
+writes to directly receives that verb's own content, because the write replaces
+the link before the commit reads the path, so the refusal now separates a
+move-carried link from a named one and gives each its own remedy. The
+`AbsentFromHEAD` advice pointed at `aiwf rename`, which carries the same guard and
+refuses identically, and asserted a committed copy elsewhere for a path that may
+never have been committed at all; it now names both possibilities rather than one.
+The untracked remedy named `git stash -u`, which skips exactly the ignored paths
+this comparison was built to catch · commit `5adfa0365`
+
+Thirty test functions across the three rounds; mutation probes 8 run, 7 caught,
+the survivor investigated and pinned, plus 6 against the symlink guard and 3
+against its correction
 
 ## Decisions made during implementation
 
@@ -475,6 +490,12 @@ answer, since the guard's only other options are to permit a silent rewrite or t
 claim a prediction it does not make.
 
 ## Validation
+
+Six independent review rounds ran against this milestone, every one of which found
+confirmed defects. Rounds four through six each found a defect introduced by the
+previous round's correction — all in the comparison primitive and its guard, none
+in the fifteen claim-side call sites, the claim-scope ledger, or the archive
+decline. Every finding was reproduced independently before being acted on.
 
 `make ci` green — race suite, both coverage gates, the profile-driven policies,
 and the 29-step self-check. `make lint` 0 issues. `aiwf check` 0 errors.
