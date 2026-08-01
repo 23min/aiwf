@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/23min/aiwf/internal/aiwfyaml"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // fakeValidatorScript writes a small shell script to dir that exits
@@ -33,7 +34,7 @@ case "$(head -c 4 "$fixture")" in
   *) echo "rejected: $fixture" >&2; exit 1 ;;
 esac
 `
-	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(path, []byte(body)); err != nil {
 		t.Fatalf("writing fake validator: %v", err)
 	}
 	return path
@@ -509,7 +510,7 @@ func TestRun_VersionSubstitutionFlowsThrough(t *testing.T) {
 echo "$1 $2" >> ` + logFile + `
 exit 0
 `
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(script, []byte(body)); err != nil {
 		t.Fatal(err)
 	}
 	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
@@ -564,7 +565,7 @@ func TestRun_ContextCancellation(t *testing.T) {
 	body := `#!/bin/sh
 sleep 5
 `
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(script, []byte(body)); err != nil {
 		t.Fatal(err)
 	}
 	writeFixture(t, repo, "fixtures", "v1", "valid", "a.json", "PASS")
@@ -601,7 +602,7 @@ func markerValidatorScript(t *testing.T, dir, markerPath string) string {
 	body := "#!/bin/sh\n" +
 		"echo invoked >> " + markerPath + "\n" +
 		"exit 0\n"
-	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+	if err := testsupport.WriteExecutable(path, []byte(body)); err != nil {
 		t.Fatal(err)
 	}
 	return path

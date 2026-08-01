@@ -4,10 +4,11 @@ package stresstest
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // concurrent_milestone_race_test.go — real-subprocess coverage for
@@ -259,7 +260,7 @@ if [ "$1" = "check" ]; then
 fi
 exec %q "$@"
 `, realBin)
-	if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // deliberately executable; a test-local stand-in binary, not attacker-controlled input
+	if err := testsupport.WriteExecutable(path, []byte(script)); err != nil {
 		t.Fatalf("writing fake aiwf binary: %v", err)
 	}
 	return path

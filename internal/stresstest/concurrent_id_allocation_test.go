@@ -2,12 +2,12 @@ package stresstest
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // concurrent_id_allocation_test.go — real-subprocess coverage for
@@ -97,6 +97,10 @@ func TestConcurrentIDAllocationScenario_RealBinary_DetectsAGenuineDivergence(t *
 // `aiwf`: every `add` reports ok carrying one constant entity id, and
 // every other subcommand delegates to realBin — so the scenario's own
 // post-run `aiwf check` still reads real, unchanged on-disk state.
+//
+// WriteExecutable's fixed 0755 is wider than this stand-in needs, and
+// harmless: it lives in the test's own 0700 t.TempDir, which withholds
+// the access the mode nominally grants.
 func writeFakeAiwfAdd(t *testing.T, realBin string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -108,7 +112,7 @@ if [ "$1" = "add" ]; then
 fi
 exec %q "$@"
 `, realBin)
-	if err := os.WriteFile(path, []byte(script), 0o700); err != nil { //nolint:gosec // an executable stand-in binary under the test's own temp dir
+	if err := testsupport.WriteExecutable(path, []byte(script)); err != nil {
 		t.Fatalf("writing fake aiwf: %v", err)
 	}
 	return path

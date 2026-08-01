@@ -83,6 +83,14 @@ func PolicyAtomicWriteChokepoint(root string) ([]Violation, error) {
 		// os.MkdirTemp dir, fed to `aiwf add ac --body-file` — never a
 		// persisted entity file itself.
 		"internal/stresstest/archive_during_active_scope.go": "writes confined to the scenario's own disposable temp dir; scratch AC-body fixture data, never a persisted entity file",
+		// WriteExecutable writes a test stand-in into the caller's own
+		// t.TempDir, never persisted state — and atomic-replace is the
+		// wrong shape here twice over: the write is guarded by
+		// syscall.ForkLock, across which AtomicWriteFile's fsync would
+		// stall every fork in the process, and the rename would not buy
+		// the property the helper exists for, since ETXTBSY is enforced
+		// against the inode the rename carries along (G-0491).
+		"internal/testsupport/execfile.go": "writes a test stand-in into the caller's t.TempDir; atomic-replace would hold ForkLock across an fsync and would not address ETXTBSY anyway — see G-0491",
 	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil {

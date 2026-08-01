@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/23min/aiwf/internal/testsupport"
 )
 
 // mid_write_kill_retry_test.go — how MidWriteKillScenario.Run disposes
@@ -53,7 +55,7 @@ case "$1" in
     ;;
 esac
 `
-	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil { //nolint:gosec // an executable stand-in is the point, and it lives in this test's own t.TempDir
+	if err := testsupport.WriteExecutable(bin, []byte(script)); err != nil {
 		t.Fatalf("writing the aiwf stand-in: %v", err)
 	}
 	return bin, countFile
@@ -150,7 +152,7 @@ func TestMidWriteKillSetup_SurfacesASeedingRefusal(t *testing.T) {
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "refusing-aiwf")
 	script := "#!/bin/sh\necho '{\"tool\":\"aiwf\",\"status\":\"error\",\"error\":{\"code\":\"refused\",\"message\":\"no\"}}'\n"
-	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil { //nolint:gosec // an executable stand-in is the point, and it lives in this test's own t.TempDir
+	if err := testsupport.WriteExecutable(bin, []byte(script)); err != nil {
 		t.Fatalf("writing the refusing stand-in: %v", err)
 	}
 
@@ -214,7 +216,7 @@ func TestLockKillRun_HangGuardFiresOnASilentHolder(t *testing.T) {
 	holder := filepath.Join(dir, "silent-holder")
 	// Never prints, never exits — and holds no lock, which it does not
 	// need to: the guard fires before any probe.
-	if err := os.WriteFile(holder, []byte("#!/bin/sh\nexec sleep 30\n"), 0o755); err != nil { //nolint:gosec // an executable stand-in is the point, and it lives in this test's own t.TempDir
+	if err := testsupport.WriteExecutable(holder, []byte("#!/bin/sh\nexec sleep 30\n")); err != nil {
 		t.Fatalf("writing the silent holder: %v", err)
 	}
 
