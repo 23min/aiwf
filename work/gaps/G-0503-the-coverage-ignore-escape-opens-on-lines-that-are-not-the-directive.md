@@ -2,6 +2,7 @@
 id: G-0503
 title: The coverage:ignore escape opens on lines that are not the directive
 status: open
+priority: medium
 ---
 ## What's missing
 
