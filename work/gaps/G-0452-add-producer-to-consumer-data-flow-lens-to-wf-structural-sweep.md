@@ -2,6 +2,7 @@
 id: G-0452
 title: Add producer to consumer data-flow lens to wf-structural-sweep
 status: open
+priority: low
 ---
 ## What's missing
 
