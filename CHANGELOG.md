@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — a check that stops decision tests being stranded off the every-push path
+
+Nothing user-facing changed; this is repo tooling. The `stress` build tag moves
+a test onto the on-demand `make stress-tests` path, and it applies per file
+rather than per test — so a small fabricated-input decision test sharing a file
+with a real-subprocess scenario driver leaves the every-push path along with it.
+Nothing reports the loss: the test still passes whenever anyone runs it, it
+simply stops running the rest of the time. Four tests sat that way until a
+manual audit found them, and the file split that recovered them fixed the
+instance rather than the mechanism.
+
+`PolicyStressLaneCensus` closes it. A `stress`-tagged test in either stress
+package that starts no process, waits on no clock and runs no goroutine now
+fails the policy suite, naming the test to move. Run against the commit that
+first applied the tag it reports eight stranded tests, the four later recovered
+by hand among them; run against the tree just before that recovery it reports
+exactly the three still stranded then.
+
 ### Changed — G-0468: no stress oracle measures the machine any more, and the decision tests run on every push again
 
 Nothing user-facing changed; this is the stress harness, which is dev-only
