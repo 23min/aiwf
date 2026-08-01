@@ -18,6 +18,7 @@ acs:
     - id: AC-3
       title: Each multi-entity sweep carries a recorded in-or-out call the guard matches
       status: open
+      tdd_phase: red
     - id: AC-4
       title: The measured cancel-classifies-terminal defect no longer occurs
       status: open
