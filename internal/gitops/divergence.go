@@ -57,21 +57,44 @@ type Divergence struct {
 // Callers consult HasHEAD first: with an unborn HEAD there is no record
 // to compare against, and every path on disk would read as absent from
 // it.
-func DivergentPaths(ctx context.Context, workdir string, paths []string) ([]Divergence, error) {
+//
+// A file that exists but cannot be read is an error rather than a silent
+// pass, since the comparison genuinely cannot be made — except where
+// HEAD holds no version of it, which settles the verdict without the
+// bytes.
+func DivergentPaths(ctx context.Context, workdir string, paths []string) (_ []Divergence, err error) {
 	if len(paths) == 0 {
 		return nil, nil
 	}
+	// One `git cat-file --batch` pump for the whole set. The path count
+	// is a plan's, not a constant: a directory move carries every file
+	// beneath it, so a per-path `git show` would spawn two subprocesses
+	// per carried file.
+	br, brErr := NewBlobReader(ctx, workdir)
+	if brErr != nil {
+		return nil, fmt.Errorf("reading HEAD blobs under %s: %w", workdir, brErr)
+	}
+	defer func() {
+		if closeErr := br.Close(); closeErr != nil && err == nil {
+			//coverage:ignore defensive: Close reports a cat-file subprocess that exited badly, which every read above has just transacted with successfully
+			err = closeErr
+		}
+	}()
+
 	var out []Divergence
 	for _, p := range paths {
-		head, headErr := ReadFromHEAD(ctx, workdir, p)
-		if headErr != nil {
+		head, headErr := br.Read("HEAD", p)
+		switch {
+		case errors.Is(headErr, ErrBlobMissing):
+			// No blob at HEAD for this path — the record holds nothing
+			// to compare against.
+			head = nil
+		case headErr != nil: //coverage:ignore defensive: a batch read fails apart from "no such blob" only when the pump breaks mid-protocol; a workdir that is no repo is refused at NewBlobReader above
 			return nil, fmt.Errorf("reading %s at HEAD: %w", p, headErr)
 		}
 		disk, diskErr := os.ReadFile(filepath.Join(workdir, filepath.FromSlash(p))) //nolint:gosec // repo-relative path supplied by the caller's own plan or loaded tree
 		switch {
-		case diskErr != nil && !errors.Is(diskErr, fs.ErrNotExist):
-			return nil, fmt.Errorf("reading %s: %w", p, diskErr)
-		case diskErr != nil:
+		case errors.Is(diskErr, fs.ErrNotExist):
 			// Absent from disk. Divergent only if HEAD recorded it —
 			// a path in neither place is not a disagreement, it is a
 			// caller asking about something that does not exist.
@@ -79,7 +102,13 @@ func DivergentPaths(ctx context.Context, workdir string, paths []string) ([]Dive
 				out = append(out, Divergence{Path: p, Kind: DivergenceAbsentFromDisk})
 			}
 		case head == nil:
+			// The path exists on disk and the record has no version of
+			// it. That verdict is already settled, so an unreadable file
+			// is not an obstacle here: no bytes could contradict a
+			// record that holds nothing.
 			out = append(out, Divergence{Path: p, Kind: DivergenceAbsentFromHEAD})
+		case diskErr != nil:
+			return nil, fmt.Errorf("reading %s: %w", p, diskErr)
 		case !bytes.Equal(head, disk):
 			out = append(out, Divergence{Path: p, Kind: DivergenceModified})
 		}

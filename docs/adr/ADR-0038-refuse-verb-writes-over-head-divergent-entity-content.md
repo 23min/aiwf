@@ -66,15 +66,45 @@ covers `internal/verb` and `internal/gitops`, so a second caller appearing in
 another package would not be caught by it — the single-caller property is
 current fact plus a partial guard, not a total one.
 
-The pre-mutation path set is derived from `p.Ops` by **prefix matching**, not by
-walking the filesystem. A directory `OpMove` covers every nested path by prefix,
-which is precisely what `stagedPathConflicts` already does for the staged twin,
-for the reason its own comment records. So a pre-mutation guard needs no
-prediction and no second implementation of `gatherCommitOps`' recursive walk.
+Prefix matching over `p.Ops` decides which op covers a given path — the same
+rule `stagedPathConflicts` applies for the staged twin, for the reason its own
+comment records. That is what the carve-outs consult: whether a path is an
+`OpWrite`'s own destination, and which op to read `AdoptsWorkingCopy` from.
 
-The dirty set comes from `gitops.DirtyPaths` — tracked-modified plus
-untracked-not-ignored, two subprocesses, no per-path blob reads. It already
-exists and is already called from `internal/verb`.
+Enumerating the paths themselves is a separate question, and prefix matching
+cannot answer it: a rule for *filtering* a list of paths needs a list to filter,
+which is exactly what the guard no longer takes from git. A directory `OpMove`
+therefore contributes the files found beneath it on disk, plus the paths HEAD
+records beneath it — the second because a path the record carries and the
+working tree lacks is one the commit strands at its old location rather than
+moving.
+
+An earlier statement of this subsection said the set "is derived from `p.Ops` by
+**prefix matching**, not by walking the filesystem", concluding that "a
+pre-mutation guard needs no prediction and no second implementation of
+`gatherCommitOps`' recursive walk". It shipped in the `accepted` ADR other clones
+carry, so it is named here rather than replaced silently. The walk it avoided is
+the price of not asking git what changed; `gatherCommitOps` walks the
+destination after the move, this walks the source before it, and `os.Rename`
+preserving a directory's internal structure is what makes the two sets the same.
+
+The divergence set comes from comparing HEAD's blob against the file on disk,
+for each path the plan would carry (`gitops.DivergentPaths`) — one
+`git cat-file --batch` pump for the whole set, plus one read per path.
+
+An earlier statement of this subsection sourced that set from
+`gitops.DirtyPaths` — "tracked-modified plus untracked-not-ignored, two
+subprocesses, no per-path blob reads". It shipped in the `accepted` ADR other
+clones already carry, so it is named here rather than replaced silently. It
+asks git what the operator changed, which is a different question from what the
+commit records, and git declines to report a path that is `.gitignore`d, carries
+`assume-unchanged` or `skip-worktree`, or is omitted by a sparse checkout — while
+the commit carries each regardless. Each such class was first met as its own
+limit (an ignored file under a moved directory, then an `assume-unchanged`
+milestone under a parent-epic rename that survived the fix for it); the blob
+comparison closes them as one property, since the index bits sit on neither side
+of it and `.gitignore` governs neither. The ignored-path query added to patch the
+first instance retires with the dirty set it was patching.
 
 A CLI-layer seam was rejected on the layering grounds above.
 
@@ -272,12 +302,18 @@ a behavioural change operators will meet routinely, not a rare-mistake guard.
 **Multi-entity routes are blocked by any one dirty participant.** The refusal is
 scoped to the paths a plan touches, so an unblessed edit to an unrelated entity
 never interferes. But `rename-area` writes every tagged entity, `rewidth --apply`
-rewrites tree-wide, `archive` writes every linking entity, and `rename` /
-`retitle` / `reallocate` emit link-rewrite writes for referencing entities — so
-for those, one dirty participant refuses the whole operation. A stray untracked file inside a moved
-directory has the same effect and the weakest recovery, since it cannot be
-blessed — which is why carry-along substitution is worth settling in M-0283
-rather than dropped.
+rewrites tree-wide, and `rename` / `retitle` / `reallocate` emit link-rewrite
+writes for referencing entities — so for those, one dirty participant refuses the
+whole operation. A stray untracked file inside a moved directory has the same
+effect and the weakest recovery, since it cannot be blessed — which is why
+carry-along substitution is worth settling in M-0283 rather than dropped.
+
+This paragraph originally counted `archive` among them, as a verb that "writes
+every linking entity" and is therefore refused wholesale. It shipped in the
+`accepted` ADR other clones carry, so it is named here rather than replaced
+silently. `archive` instead declines the individual moves whose verdict rests on
+a mid-edit file and sweeps the rest, per the per-candidate scoping recorded
+under *Path scope*.
 
 **A NoOp constructor still becomes a chokepoint, but it is not where the check
 runs.** Literal `Result{NoOp: true}` construction is confined to a shared

@@ -481,7 +481,8 @@ func archiveCommitSubject(moves []archiveMove) string {
 			parts = append(parts, fmt.Sprintf("%d %s", n, k))
 		}
 	}
-	return fmt.Sprintf("aiwf archive: sweep %d entit%s into archive/ (%s)",
+	return fmt.Sprintf(
+		"aiwf archive: sweep %d entit%s into archive/ (%s)",
 		len(moves),
 		pluralize(len(moves), "y", "ies"),
 		strings.Join(parts, ", "),
@@ -814,17 +815,19 @@ func dirtyEntityPaths(ctx context.Context, root string, tr *tree.Tree) (map[stri
 	return out, nil
 }
 
-// dirtyPathsUnderMoves returns every uncommitted path sitting beneath one
-// of the candidate directory moves — tracked-modified, untracked, and
-// ignored alike. A move carries whatever is under it regardless of what
-// git chooses to report, which is why the ignored half is asked for
-// separately: neither dirty-set query reports it.
+// dirtyPathsUnderMoves returns every path beneath one of the candidate
+// moves whose working copy disagrees with the record — edited, never
+// committed, or recorded and missing from disk alike.
+//
+// A move carries whatever sits under it regardless of what git chooses
+// to report, so the comparison is HEAD's blobs against the paths the
+// move would carry rather than git's dirty set. Without that, a
+// candidate whose file is ignored, `assume-unchanged`, or omitted by a
+// sparse checkout reads as clean here and the sweep proceeds — leaving
+// the commit-side guard to refuse the whole verb where a per-candidate
+// decline was the point.
 func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove) (map[string]bool, error) {
-	prefixes := make([]string, 0, len(moves))
-	for _, m := range moves {
-		prefixes = append(prefixes, m.from)
-	}
-	if len(prefixes) == 0 {
+	if len(moves) == 0 {
 		return nil, nil
 	}
 	hasHEAD, err := gitops.HasHEAD(ctx, root)
@@ -834,24 +837,27 @@ func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove)
 	if !hasHEAD {
 		return nil, nil
 	}
-	modified, untracked, err := gitops.SplitDirtyPaths(ctx, root)
-	if err != nil { //coverage:ignore defensive: same non-repo condition HasHEAD just passed
-		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
-	}
-	ignored, err := gitops.IgnoredPathsUnder(ctx, root, prefixes)
-	if err != nil { //coverage:ignore defensive: the same non-repo condition SplitDirtyPaths just passed
-		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
-	}
-	out := map[string]bool{}
-	for _, group := range [][]string{modified, untracked, ignored} {
-		for _, p := range group {
-			for _, prefix := range prefixes {
-				if p == prefix || strings.HasPrefix(p, prefix+"/") {
-					out[p] = true
-					break
-				}
-			}
+	seen := map[string]bool{}
+	var carried []string
+	add := func(p string) {
+		if seen[p] {
+			return
 		}
+		seen[p] = true
+		carried = append(carried, p)
+	}
+	for _, m := range moves {
+		if carriedErr := addCarriedUnder(ctx, root, m.from, add); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
+			return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
+		}
+	}
+	diverged, err := gitops.DivergentPaths(ctx, root, carried)
+	if err != nil {
+		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
+	}
+	out := make(map[string]bool, len(diverged))
+	for _, d := range diverged {
+		out[d.Path] = true
 	}
 	return out, nil
 }

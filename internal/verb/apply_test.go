@@ -1223,14 +1223,18 @@ func TestApply_RollsBackOnDirectoryMoveRenameFailure(t *testing.T) {
 	}
 }
 
-// TestApply_RollsBackOnGatherCommitOpsFailure drives a real end-to-end
-// Apply() failure in gatherCommitOps: an OpMove of a directory whose
-// destination (after the real os.Rename) contains a permission-denied
-// subdirectory fails the post-move recursive walk. Phase 1 itself
-// succeeds (the rename doesn't need to read the subdirectory's
-// contents); the failure surfaces only when gatherCommitOps walks the
-// moved tree to build the commit's write set.
-func TestApply_RollsBackOnGatherCommitOpsFailure(t *testing.T) {
+// TestApply_UnenumerableSubtreeUnderMove_FailsWithoutMutating drives a
+// real end-to-end Apply() failure on an OpMove of a directory holding a
+// permission-denied subdirectory. Apply cannot establish what the commit
+// would carry there, and a subtree it cannot enumerate is a refusal
+// rather than a subtree assumed empty.
+//
+// The refusal lands before Phase 1, so the rename never happens and
+// there is nothing to undo — which is why this asserts the source is
+// where it started rather than that a rollback put it back.
+// gatherCommitOps' own walk failure is pinned directly, without an
+// Apply around it, by TestGatherCommitOps_MoveDirectoryWalkPermissionDenied.
+func TestApply_UnenumerableSubtreeUnderMove_FailsWithoutMutating(t *testing.T) {
 	t.Parallel()
 	if os.Geteuid() == 0 {
 		t.Skip("root bypasses permission checks")
@@ -1262,11 +1266,12 @@ func TestApply_RollsBackOnGatherCommitOpsFailure(t *testing.T) {
 		t.Errorf("error %q should mention walking", err.Error())
 	}
 	if headSHA(t, r.root) != r.preCommit {
-		t.Error("HEAD must not advance on gatherCommitOps failure")
+		t.Error("HEAD must not advance when the carried set cannot be established")
 	}
-	// Rollback restores the moved directory to its original location —
-	// the move itself (Phase 1) succeeded and must be undone.
 	if _, statErr := os.Stat(filepath.Join(r.root, "work", "epics", "E-9999-blocked")); statErr != nil {
-		t.Errorf("original directory not restored after rollback: %v", statErr)
+		t.Errorf("the source directory did not survive the refusal: %v", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(r.root, "work", "epics", "E-9998-blocked-moved")); !os.IsNotExist(statErr) {
+		t.Error("the destination exists; the refusal did not precede the move")
 	}
 }

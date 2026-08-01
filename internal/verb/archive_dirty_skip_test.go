@@ -42,7 +42,8 @@ func linkingGapRunner(t *testing.T) (r *runner, targetPath, linkerPath string) {
 	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Linking gap", testActor,
 		verb.AddOptions{BodyOverride: []byte(
 			"## What's missing\n\nSee [the target](" + targetPath + ") for context.\n\n" +
-				"## Why it matters\n\nFixture prose.\n")}))
+				"## Why it matters\n\nFixture prose.\n",
+		)}))
 	linker := r.tree().ByID("G-0002")
 	if linker == nil {
 		t.Fatal("G-0002 missing from the fixture tree")
@@ -419,6 +420,103 @@ func TestArchive_IgnoredFileInsideAMovedDir_DeclinesThatMove(t *testing.T) {
 		if src == epicDir {
 			t.Errorf("archive planned to move %s, carrying an ignored file into its commit and tracking it", epicDir)
 		}
+	}
+}
+
+// TestArchive_HiddenEditOnACandidate_DeclinesThatMove pins that the
+// sweep's per-candidate decision reads the record rather than git's
+// report of the working tree (M-0284/AC-5).
+//
+// `assume-unchanged` is the operator's way of telling git to stop
+// reporting a path. The sweep would then see a clean candidate and move
+// it — and the commit-side guard would refuse the whole verb, turning a
+// partial sweep into a total refusal for a reason it declines to
+// attribute to any one candidate.
+func TestArchive_HiddenEditOnACandidate_DeclinesThatMove(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Hidden edit gap", testActor, verb.AddOptions{
+		BodyOverride: bornCompleteFixtureBody(entity.KindGap),
+	}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Clean gap", testActor, verb.AddOptions{
+		BodyOverride: bornCompleteFixtureBody(entity.KindGap),
+	}))
+	writeEntityStatus(t, r, "G-0001", "wontfix")
+	writeEntityStatus(t, r, "G-0002", "wontfix")
+
+	hidden := dirtyEntity(t, r, "G-0001", "## Why it matters", "## Why it matters\n\nHIDDEN EDIT.\n")
+	hideFromGitReporting(t, r.root, "--assume-unchanged", hidden)
+
+	res, err := verb.Archive(r.ctx, r.root, testActor, "")
+	if err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	var movedHidden, movedClean bool
+	for _, src := range archiveMovesFor(res) {
+		switch src {
+		case hidden:
+			movedHidden = true
+		case filepath.ToSlash(r.tree().ByID("G-0002").Path):
+			movedClean = true
+		}
+	}
+	if movedHidden {
+		t.Errorf("archive planned to move %s, carrying an edit no verb computed into its commit", hidden)
+	}
+	if !movedClean {
+		t.Error("the unaffected candidate did not sweep; one mid-edit entity must not block the rest")
+	}
+	if !strings.Contains(skipReport(res), "G-0001") {
+		t.Errorf("the declined candidate is not reported:\n%s", skipReport(res))
+	}
+}
+
+// terminalEpicWithDir builds an epic that qualifies for the sweep and
+// returns its directory, so a test can put something awkward inside the
+// subtree the move would carry.
+func terminalEpicWithDir(t *testing.T) (r *runner, epicDir string) {
+	t.Helper()
+	r = newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindEpic, "Platform", testActor, verb.AddOptions{}))
+	writeEntityStatus(t, r, "E-0001", "done")
+	epic := r.tree().ByID("E-0001")
+	if epic == nil {
+		t.Fatal("E-0001 missing from the fixture tree")
+	}
+	return r, filepath.ToSlash(filepath.Dir(epic.Path))
+}
+
+// TestArchive_UnreadableFileUnderACandidate_FailsLoud pins the fail-loud
+// direction for the sweep's own comparison. A committed file the sweep
+// cannot read is a verdict it cannot reach, and reading that as "clean"
+// would move the directory carrying it.
+//
+// The file has to be committed for this to bite: a path absent from the
+// record needs no bytes to classify, so an unreadable untracked file is
+// answered without a read.
+func TestArchive_UnreadableFileUnderACandidate_FailsLoud(t *testing.T) {
+	t.Parallel()
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses permission checks")
+	}
+	r, epicDir := terminalEpicWithDir(t)
+	rel := epicDir + "/notes.md"
+	abs := filepath.Join(r.root, filepath.FromSlash(rel))
+	if err := os.WriteFile(abs, []byte("committed notes\n"), 0o600); err != nil {
+		t.Fatalf("writing the nested file: %v", err)
+	}
+	commitFixture(t, r.root, "fixture: a committed file inside the epic dir")
+	if err := os.Chmod(abs, 0o000); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(abs, 0o644) })
+
+	_, err := verb.Archive(r.ctx, r.root, testActor, "")
+	if err == nil {
+		t.Fatal("Archive succeeded over a file it could not compare against the record")
+	}
+	if !strings.Contains(err.Error(), "notes.md") {
+		t.Errorf("error does not name the unreadable path:\n%v", err)
 	}
 }
 

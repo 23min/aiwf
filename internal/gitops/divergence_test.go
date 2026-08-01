@@ -146,14 +146,55 @@ func TestDivergentPaths_EmptyRequestReportsNothing(t *testing.T) {
 
 // TestDivergentPaths_NonRepoErrors pins the fail-loud direction: a
 // comparison that cannot be made must not read as "nothing diverges".
+//
+// The record's side is read through one batch pump for the whole set, so
+// a directory that is no repo fails before any individual path is
+// reached — and the error names the directory, which is what is actually
+// wrong. A per-path failure still names its path
+// (TestDivergentPaths_UnreadablePathErrors).
 func TestDivergentPaths_NonRepoErrors(t *testing.T) {
 	t.Parallel()
-	_, err := DivergentPaths(context.Background(), t.TempDir(), []string{"any.md"})
+	root := t.TempDir()
+	_, err := DivergentPaths(context.Background(), root, []string{"any.md"})
 	if err == nil {
 		t.Fatal("DivergentPaths on a non-repo dir: want error, got nil")
 	}
-	if !strings.Contains(err.Error(), "any.md") {
-		t.Errorf("error does not name the path it failed on:\n%v", err)
+	if !strings.Contains(err.Error(), root) {
+		t.Errorf("error does not name the root it failed on:\n%v", err)
+	}
+	if !strings.Contains(err.Error(), "not a git repo") {
+		t.Errorf("error does not say what is wrong with it:\n%v", err)
+	}
+}
+
+// TestDivergentPaths_ByteExactAcrossFraming pins that the record's side
+// is the file's bytes and nothing else. The comparison is byte equality
+// and the blobs arrive over git's batch protocol, whose framing is
+// length-prefixed with a trailing newline of its own — so content that
+// ends without a newline, or has none at all, is where a framing byte
+// would leak in and report an untouched file as modified.
+func TestDivergentPaths_ByteExactAcrossFraming(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	files := map[string]string{
+		"empty.md":      "",
+		"no-newline.md": "no trailing newline",
+		"two-blanks.md": "text\n\n\n",
+		"binary-ish.md": "\x00\x01\x02 not really text\n",
+		"normal.md":     "ordinary content\n",
+	}
+	root := seedCommittedFiles(t, files)
+
+	paths := make([]string, 0, len(files))
+	for p := range files {
+		paths = append(paths, p)
+	}
+	got, err := DivergentPaths(ctx, root, paths)
+	if err != nil {
+		t.Fatalf("DivergentPaths: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("committed files reported as divergent from their own record: %+v", got)
 	}
 }
 
