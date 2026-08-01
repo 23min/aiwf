@@ -2,6 +2,7 @@
 id: G-0448
 title: check rule list split across two dispatch surfaces, no single source
 status: open
+priority: medium
 ---
 ## What's missing
 
