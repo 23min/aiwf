@@ -14,6 +14,7 @@ acs:
     - id: AC-2
       title: The invariant's exemption list carries one reasoned entry per exempt route
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
