@@ -36,6 +36,23 @@ message for the stresstest instance was not captured, so the link rests on
 the shared fixture shape and the shared "only under the full parallel suite"
 condition.
 
+`G-0491` tracks this class and identifies the mechanism: a stand-in binary
+written with `os.WriteFile(path, …, 0o755)` and exec'd immediately, where a
+`fork` elsewhere in the process inherits the writable descriptor and `execve`
+fails on a file another process holds open for writing. It names the
+`internal/stresstest` fixture directly and rules out background auto-gc.
+
+Two sightings recorded here are not named there:
+
+- `TestRun_VersionSubstitutionFlowsThrough` (`internal/contractverify`), whose
+  validator script has the identical write-then-exec shape. Failed 2 of 3
+  instrumented full-suite runs — the highest rate observed — and never in
+  isolation, under package load, or under instrumentation alone.
+- `TestReconcilePaths_HashObjectFails_ObjectsDirReadOnly` and its `CommitTree`
+  sibling (`internal/gitops`), seen once under the full gate and green
+  standalone, per-package, and at `-count=4`. These are chmod-based rather than
+  write-then-exec, so whether they share a cause is unestablished.
+
 ## Why it matters
 
 The failure surfaces at the gate that decides whether a change can land, on
