@@ -1,8 +1,10 @@
 ---
 id: G-0496
 title: The history:ok escape opens on comments that are not the directive
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - 8e8115c0c
 ---
 ## What's missing
 
