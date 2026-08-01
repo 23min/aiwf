@@ -510,17 +510,28 @@ passed.
 
 ## Reviewer notes
 
-An independent five-lens review ran before closure — four code-quality slices
-(the `Apply` seam, the `gitops` primitive, the claim-guard wiring, the archive
-sweep plus the claim-scope ledger) and one design pass over the two-seam
-architecture. Every reviewer was briefed adversarially and instructed to verify
-by measuring; every finding below was then reproduced independently before being
-acted on.
+Six independent review rounds ran before closure: five slices over the whole
+change-set (the `Apply` seam, the `gitops` primitive, the claim-guard wiring, the
+archive sweep with the claim-scope ledger, and a design pass over the two-seam
+architecture), then a round on each correction, then a hunt for one named defect
+pattern. Every reviewer was briefed adversarially and told to verify by measuring;
+every finding was reproduced independently before being acted on.
 
-Nine defects were confirmed by measurement. Eight are fixed here; the ninth is
-the archive referrer defect, split to M-0286 with G-0499, because it needs a
-different fix in a different subsystem and bundling it is what made this
-milestone hard to review.
+Each round found confirmed defects, and rounds four through six each found one
+introduced by the previous round's correction. All of those were in the
+comparison primitive or its guard; none was in the fifteen claim-side call sites,
+the claim-scope ledger, or the archive decline. Two were silent record
+corruption — a carried symlink dereferenced into the record, and the same on an
+unborn HEAD — and both reached a commit before a reviewer driving a real binary
+caught them, while the local gates reported green.
+
+The pattern behind them is worth stating, because it outlived every individual
+fix: the comparison kept being written against what *git* would do rather than
+what this commit path does. `CommitTree` hashes without `--path` (no clean
+filter), forces mode `100644` (no exec bit, no links), and takes content from an
+`os.ReadFile` that follows links. Code that assumed git's conventions was correct
+in the abstract and wrong here, three separate times. The sixth round hunted that
+pattern specifically and found two further live instances, both filed.
 
 Two things the review established that are worth keeping:
 
@@ -555,9 +566,20 @@ already pinned by a named test, which a fourth enum value could not do. And
 M-0286 rewrites, so tuning it here would be work discarded there.
 
 Carried forward, unfixed and tracked: G-0498 (commit-path filter blindness),
-G-0499 and M-0286 (the archive referrer class), plus a pre-existing `no-silent-
-fallback` policy defect that keys on a switch's field name rather than its type,
-leaving `switch op.Type` unenforced repo-wide.
+G-0499 with M-0286 (the archive referrer class), G-0500 (duplicate id via
+`edit-body`, where a guard was written and reverted because it broke that verb's
+sanctioned route), G-0501 (`aiwf init` replacing a symlinked `CLAUDE.md`, the same
+defect class reached through a writer that does not use the commit seam), and
+G-0502 (a stranded gitlink). G-0486 gained the measurement it asked for: the guard
+has shipped, and the exec-bit interaction with it is a refusal loop. Plus a
+pre-existing `no-silent-fallback` policy defect that keys on a switch's field name
+rather than its type, leaving `switch op.Type` unenforced repo-wide.
+
+Where this milestone stops is a judgement rather than a natural boundary. The
+input space has more corners — modes, gitlinks, content filters — and each is
+filed rather than closed. What is verified is the property the ACs claim: no verb
+classifies against disputed bytes, and no verb commits content the record does not
+hold, for every vector measured across six rounds.
 
 ## Deferrals
 
@@ -565,6 +587,15 @@ leaving `switch op.Type` unenforced repo-wide.
   elsewhere: it is about which convention aiwf stores blobs under, and the
   comparison follows that decision rather than leading it.
 - G-0499 / M-0286 — the archive sweep's referrer and destination gaps.
+- G-0500 — duplicate id via `edit-body` over a moved entity file. A guard for it
+  was written and reverted: an entity file absent from HEAD is that verb's
+  sanctioned input, so separating "never committed" from "committed elsewhere"
+  needs a lookup by id rather than by path.
+- G-0501 — `aiwf init` / `update` replace a symlinked `CLAUDE.md` with a copy.
+  Same class as the symlink defect closed here, reached through a writer that does
+  not go through `verb.Apply`, so the commit-seam guard cannot see it.
+- G-0502 — a gitlink under a moved directory is stranded and invisible to the
+  guard, falsifying a claim `planCarriedPaths`' own comment makes.
 - E-0075 owes a `CHANGELOG.md` entry at epic wrap. Every structured-state verb
   now refuses over a HEAD-divergent working copy with a new error class and new
   remedy text; neither M-0283 nor M-0284 has an `## [Unreleased]` subsection.
