@@ -153,10 +153,14 @@ patching.
   already made.
 - No site is scoped by convenience. A pass-through needs a recorded reason, and
   "the target entity" is not a default.
-- The shared constructor is introduced here; the chokepoint that forbids the
-  literal form elsewhere is M-0285's. Landing the constructor without that rule
-  leaves a convention a new verb can forget — which is why the two milestones are
-  ordered this way rather than merged.
+- The shared NoOp constructor does not land here after all. The literal form
+  remains at every converging site, and both the constructor and the chokepoint
+  that forbids the literal are M-0285's — which is coherent, since a constructor
+  introduced a milestone ahead of its rule is a convention a new verb can forget.
+  M-0285 inherits one constraint from that: `PolicyNoOpClaimScope` derives its
+  converging-function set from the literal `Result{NoOp: true}` composite it is
+  about to forbid, and a naive re-key to "calls the constructor" loses the
+  per-function attribution the ledger rests on.
 - Whatever lands must not be read as fixing the FSM walker's rename-plus-status
   blind spot. G-0475 stays open on its own terms.
 - ADR-0038's *Seam* section names `gitops.DirtyPaths` as the guard's input, "two
@@ -226,7 +230,17 @@ mutation probe 8/8 caught, no survivors · commit `88f949150`
 move: each is declined when a file its verdict rests on is mid-edit — the
 entity's own file, anything a directory move carries beneath it, or an entity
 whose committed body links into the move — and each declined move is reported
-through the channel skipped epics already use. `rewidth` is out, on measured
+through the channel skipped epics already use.
+
+The link half of that decline is narrower than this entry first claimed. The
+referrer *bodies* are compared against HEAD, but the referrer *candidate list* is
+drawn from the loaded tree, so a referrer present at HEAD and absent from that
+list — deleted on disk, hand-renamed, or carrying momentarily unparseable
+frontmatter — is never consulted, and its move lands without the link rewrite.
+Measured after this milestone shipped; the dangling reference is permanent and
+`aiwf check` reports no error on it. G-0499 carries the measurement and its three
+neighbours, M-0286 closes them. What holds here is the decline machinery, its
+reporting channel, and the record-derived comparison feeding it. `rewidth` is out, on measured
 self-healing. `import`'s zero-plan NoOp is not a same-state claim and sits
 outside `internal/verb`, so it is recorded in a companion list the scan cannot
 derive. Fifteen new test functions; mutation probe 8/8 caught, no survivors ·
@@ -248,16 +262,24 @@ commit `61912a311`
 ### AC-5 — The commit-side guard reads the record, not git's dirty report
 
 `verb.Apply` derives its divergence set from `planCarriedPaths` +
-`gitops.DivergentPaths` — HEAD's blobs against disk, for the paths the plan
-carries, at both ends of a move. Both vectors were measured on a real binary
+`gitops.DivergentPaths` — the record's object id against the working copy's, for
+the paths the plan carries, at both ends of a move. Both vectors were measured on a real binary
 first: an `assume-unchanged` milestone rode into a parent epic's rename commit
 under that rename's trailer, and a `skip-worktree` path absent from disk split
 the epic directory, stranding one milestone at the old path while its siblings
 moved. `gitops.IgnoredPathsUnder` retires with the dirty set it patched.
 `UncommittedConflictError` carries a third bucket for a path the record holds
 and the working tree lacks, whose remedy is `git restore` rather than a
-destructive one. Ten new test functions; mutation probe 8/8 caught, no survivors
-· commit `9c6ebe566`
+destructive one. Ten new test functions · commit `9c6ebe566`
+
+Corrected after review, which measured five defects in this surface: a content
+filter locked out every verb, a space or newline in a carried path broke or
+silently desynchronised the comparison, a path existing nowhere produced a
+phantom verdict, and a tracked symlink permanently blocked every directory move
+on a clean tree. The comparison now reads unfiltered object ids over the argument
+vector, with links compared as links, and the entity-scoped carve-out corrected
+alongside (AC-1). Eleven further test functions; mutation probes 8 run, 7 caught,
+the survivor investigated and pinned · commit `d65cffcb0`
 
 ## Decisions made during implementation
 
@@ -321,14 +343,19 @@ The destination is enumerated for the same reason the source is: `os.Rename`
 onto an existing file replaces it, so a plan landing on an occupied path would
 destroy content no verb named.
 
-### The comparison reads blobs through one batch pump
+### The comparison is batched over the argument vector, not over stdin
 
-Per-path `git show` costs two subprocesses per carried file, which is a plan's
-count rather than a constant — measured at 319ms for 51 paths. Routing
-`DivergentPaths` through the existing `gitops.BlobReader` (`git cat-file
---batch`) makes it one subprocess for the set: 15.8ms for the same 51, cheaper
-than the dirty-set queries it replaces. Without this the guard would have traded
-a correctness fix for a cost that scales with epic size.
+A per-path query costs two subprocesses per carried file, which is a plan's count
+rather than a constant — measured at 319ms for 51 paths, and a directory move
+carries every file beneath it. So the comparison is batched.
+
+*How* it batches is the load-bearing part. A batch fed over stdin is delimited,
+and a path is not a token: measured, a space truncated a whitespace-split
+response into a malformed-header failure, and a newline split one request into
+two, shifting every later answer onto the wrong path with a nil error. Batching
+over the argument vector has no delimiter to break, so any byte a filesystem
+permits in a name survives. Chunking keeps the command line bounded while the
+subprocess count stays proportional to the set rather than to each path.
 
 ### The archive sweep's per-candidate decision moved to the same input
 
@@ -340,6 +367,130 @@ candidate, which is the behaviour AC-3 exists to avoid. Both seams now route
 through one enumeration (`addCarriedUnder`), so they cannot drift on what a move
 is considered to carry.
 
+### The comparison is unfiltered object ids, matching what the commit path stores
+
+The primitive compares object ids computed over raw bytes, not the bytes
+themselves and not filtered ids. Each half of that is forced by a measurement.
+
+Raw bytes alone are not comparable across a path git materialised: under
+`core.autocrlf` — the Git-for-Windows installer default — a checkout smudges the
+working copy away from its blob, and a byte comparison then reports every path in
+the repo as divergent. Measured, every mutating verb refuses on a tree `git
+status` calls clean, with a false message and three remedies that do nothing.
+
+Applying git's clean filter to the working-copy side is equally wrong, and less
+obviously so. The verb commit path stores content verbatim, so a filtered
+comparison measures against a convention these commits do not follow: measured, a
+path whose bytes HEAD already held was reported divergent because the disk side
+had been normalised and the record had not. `--no-filters` reproduces HEAD's
+recorded id exactly.
+
+What remains is a real incompatibility rather than a comparison bug, and it is
+the commit path's: a repo whose blobs came from `git add` and whose working copy
+was smudged on checkout genuinely would be rewritten by any verb. The guard is
+the surface that makes that visible; G-0498 carries the decision about which
+convention aiwf adopts.
+
+Paths ride on git's argument vector for the same reason the ids are compared at
+all. A line-oriented batch protocol cannot carry a path containing a space
+(measured: a malformed-header failure at exit 3 where a refusal was due) or a
+newline (measured: one request became two, every later answer landed on the wrong
+path, and untouched committed files were reported as absent from HEAD — with a
+nil error, and into the one divergence kind the claim guard skips).
+
+### The untracked exemption is the config scope's, not the entity scope's
+
+A path absent from HEAD carries no record to contradict, so both seams exempt it.
+Applied to a target entity that reasoning is wrong, because an entity's file can
+move without passing a verb: after a plain `mv` the record still sits at the
+original path, so the exemption fires exactly where the record most needs
+consulting.
+
+Measured, both halves lost work. `aiwf cancel` over a moved file reported the
+entity already terminal at exit 0 while HEAD said `open` — this milestone's own
+AC-4 reproduction, reachable through a path its pin did not cover. And a write
+landed beside HEAD's untouched copy, putting one id at two paths in the record
+while a local `aiwf check` stayed clean, so the pre-push hook passed it.
+
+`guardClaimConfig` keeps the exemption for `aiwf.yaml`, which needs it: `aiwf
+init` leaves that file uncommitted by design, and a config-scoped claim refusing
+it would make every verb that rewrites it unreachable until someone committed it.
+aiwf.yaml is not an entity and cannot move out from under an id.
+
+## Validation
+
+`make ci` green — race suite, both coverage gates, the profile-driven policies,
+and the 29-step self-check. `make lint` 0 issues. `aiwf check` 0 errors.
+
+The diff-scoped coverage gate is clean against HEAD and against the merge-base
+with `main`, so the epic to mainline merge is not blocked.
+
+Every fixed defect was re-measured end-to-end on a real binary against a
+disposable repo, not asserted from the test suite. The `--no-filters` correction
+was found by that final re-measurement after the isolated check had already
+passed.
+
+## Reviewer notes
+
+An independent five-lens review ran before closure — four code-quality slices
+(the `Apply` seam, the `gitops` primitive, the claim-guard wiring, the archive
+sweep plus the claim-scope ledger) and one design pass over the two-seam
+architecture. Every reviewer was briefed adversarially and instructed to verify
+by measuring; every finding below was then reproduced independently before being
+acted on.
+
+Nine defects were confirmed by measurement. Eight are fixed here; the ninth is
+the archive referrer defect, split to M-0286 with G-0499, because it needs a
+different fix in a different subsystem and bundling it is what made this
+milestone hard to review.
+
+Two things the review established that are worth keeping:
+
+- The architecture is sound. The two-seam factoring was independently judged
+  forced rather than chosen — the claim seam reaches vectors no plan-keyed guard
+  can see, and the commit seam reaches nested paths no verb named. The carried
+  set was instrumented against `gatherCommitOps` across three packages with zero
+  misses in `internal/verb`.
+- The defects clustered in the new comparison surface's handling of inputs the
+  fixtures never produced: content filters, spaces and newlines in paths,
+  symlinks, and moved paths. The mutation probes run before review returned 8/8
+  because every fixture committed its files first, used ordinary names, and never
+  moved a path — three whole input classes were invisible to the entire suite.
+  Probe design, not probe count, was the gap.
+
+AC-1, AC-4 and AC-5 stayed `met` rather than being re-opened. Their claims hold at
+the corrective commit — more robustly than before — and the AC FSM offers `met`
+only `deferred` and `cancelled`, both meaning "off the contract", which would
+assert work remains where none does. The correction lives here and in
+`aiwf history`; `--force` is sovereign and was not reached for.
+
+AC-3's phase ladder ran once, before the per-candidate rework, and was not
+re-opened afterwards. AC-4's `red` was vacuous by construction, since AC-1 had
+already shipped the behaviour it pins.
+
+Two reported findings were judged and deliberately not acted on. The `none` claim
+scope carries two obligations — "nothing could contradict this" and "something
+could, but recoverably" — and both reviewers independently recommended against
+splitting it: the only contingent entry is `Rewidth`, and its contingency is
+already pinned by a named test, which a fourth enum value could not do. And
+`archive --dry-run` measured slower on a large tree; the cost sits in a function
+M-0286 rewrites, so tuning it here would be work discarded there.
+
+Carried forward, unfixed and tracked: G-0498 (commit-path filter blindness),
+G-0499 and M-0286 (the archive referrer class), plus a pre-existing `no-silent-
+fallback` policy defect that keys on a switch's field name rather than its type,
+leaving `switch op.Type` unenforced repo-wide.
+
+## Deferrals
+
+- G-0498 — verb commits bypass git's content filters. Discovered here, decided
+  elsewhere: it is about which convention aiwf stores blobs under, and the
+  comparison follows that decision rather than leading it.
+- G-0499 / M-0286 — the archive sweep's referrer and destination gaps.
+- E-0075 owes a `CHANGELOG.md` entry at epic wrap. Every structured-state verb
+  now refuses over a HEAD-divergent working copy with a new error class and new
+  remedy text; neither M-0283 nor M-0284 has an `## [Unreleased]` subsection.
+
 ## References
 
 - E-0075 — the parent epic
@@ -349,5 +500,8 @@ is considered to carry.
 - G-0480 — after-the-fact detection; the backstop this does not replace
 - G-0492 — the guard reads git's dirty report, not the bytes a plan would carry
 - G-0487 — git's hidden-state bits make a dirty path invisible to a dirty-set guard
+- G-0498 — verb commits bypass git's content filters, discovered here
+- G-0499 — the archive referrer class this milestone recorded as closed
+- M-0286 — the milestone that closes it
 - `internal/policies/verb_result_noop_invariant.go` — the exported-only scan
 - CLAUDE.md — "Same-state convergence — resolve, then converge"
