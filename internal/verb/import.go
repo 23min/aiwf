@@ -128,9 +128,14 @@ func Import(ctx context.Context, t *tree.Tree, m *manifest.Manifest, actor strin
 		}
 		reserved[k][canonE] = true
 
-		ex, hit := existing[entity.Canonicalize(e.ID)]
+		ex, hit := existing[canonE]
 		if !hit {
-			plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: e.ID})
+			// A new entity carries the canonical form, not the width the
+			// manifest happened to spell: this id is about to become
+			// frontmatter and a filename, and every allocator emits at
+			// canonical width. The manifest's own width is honored only
+			// for matching (canonE above), never for storage.
+			plannedEntries = append(plannedEntries, plannedEntry{idx: i, entry: e, kind: k, id: canonE})
 			continue
 		}
 		switch opts.OnCollision {
@@ -295,10 +300,22 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 		if parent == "" {
 			return nil, fmt.Errorf("milestone requires `parent`")
 		}
-		parentDir, perr := lookupEpicDir(parent, t, plannedByID, titleMaxLength)
+		parentDir, parentID, perr := lookupEpicDir(parent, t, plannedByID, titleMaxLength)
 		if perr != nil {
 			return nil, perr
 		}
+		// Point `parent:` at the id the resolved epic actually carries,
+		// which is not always the spelling the manifest used. Guards that
+		// walk an epic's children compare this field literally, so a child
+		// whose parent field disagrees with its parent's stored id is
+		// invisible to them — including the guard that refuses to cancel an
+		// epic still owning live milestones.
+		//
+		// The resolved id is the right target rather than the canonical
+		// form of the declared one: a resident epic stored at legacy width
+		// keeps that width, and canonicalizing the child's pointer would
+		// desync it from the very entity it names.
+		ent.Parent = parentID
 		ent.Path = filepath.Join(parentDir, pe.id+"-"+slug+".md")
 	case entity.KindADR:
 		ent.Path = filepath.Join("docs", "adr", pe.id+"-"+slug+".md")
@@ -317,29 +334,34 @@ func buildEntityFromEntry(pe *plannedEntry, t *tree.Tree, plannedByID map[string
 // lookupEpicDir resolves a parent epic id to its directory. The epic
 // may already exist in the tree, or it may be declared earlier in the
 // same manifest. The returned path is repo-relative.
-func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedEntry, titleMaxLength int) (string, error) {
+func lookupEpicDir(epicID string, t *tree.Tree, plannedByID map[string]*plannedEntry, titleMaxLength int) (dir, resolvedID string, err error) {
 	if ex := t.ByID(epicID); ex != nil {
 		if ex.Kind != entity.KindEpic {
-			return "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, ex.Kind)
+			return "", "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, ex.Kind)
 		}
-		return filepath.Dir(ex.Path), nil
+		return filepath.Dir(ex.Path), ex.ID, nil
 	}
 	pe, ok := plannedByID[entity.Canonicalize(epicID)]
 	if !ok {
-		return "", fmt.Errorf("parent %q does not exist in tree or manifest", epicID)
+		return "", "", fmt.Errorf("parent %q does not exist in tree or manifest", epicID)
 	}
 	if pe.kind != entity.KindEpic {
-		return "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, pe.kind)
+		return "", "", fmt.Errorf("parent %q is not an epic (it's a %s)", epicID, pe.kind)
 	}
 	title := asString(pe.entry.Frontmatter["title"])
 	if err := entity.ValidateTitle(title, titleMaxLength); err != nil {
-		return "", fmt.Errorf("manifest entry %q (parent epic): %w", epicID, err)
+		return "", "", fmt.Errorf("manifest entry %q (parent epic): %w", epicID, err)
 	}
 	slug := entity.Slugify(title)
 	if slug == "" {
-		return "", fmt.Errorf("parent %q has empty title; cannot derive directory", epicID)
+		return "", "", fmt.Errorf("parent %q has empty title; cannot derive directory", epicID)
 	}
-	return filepath.Join("work", "epics", epicID+"-"+slug), nil
+	// Derive from the parent's resolved id, not the width the child's
+	// `parent:` field happened to spell. The epic builds its own
+	// directory from the same resolved id, so anything else puts the
+	// child in a sibling directory that holds no epic.md — a split the
+	// tree loader and `aiwf check` both accept in silence.
+	return filepath.Join("work", "epics", pe.id+"-"+slug), pe.id, nil
 }
 
 func asString(v any) string {
