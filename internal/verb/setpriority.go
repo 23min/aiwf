@@ -53,8 +53,6 @@ func SetPriority(
 	clearTag bool,
 	actor string,
 ) (*Result, error) {
-	_ = ctx
-
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("unknown id %q", id)
@@ -74,6 +72,10 @@ func SetPriority(
 		if !entity.IsAllowedPriorityLevel(level) {
 			return nil, fmt.Errorf("priority %q is not a recognized priority level; allowed: %s", level, strings.Join(entity.AllowedPriorityLevels(), ", "))
 		}
+	}
+
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 
 	// Same-state convergence (M-0281/AC-7): the priority already reads as

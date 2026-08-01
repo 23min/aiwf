@@ -26,7 +26,6 @@ import (
 // depends_on cycle introduced by the new neighborhood) are returned in
 // Result.Findings.
 func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Result, error) {
-	_ = ctx
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
@@ -54,6 +53,10 @@ func Move(ctx context.Context, t *tree.Tree, id, newEpicID, actor string) (*Resu
 
 	source := filepath.ToSlash(e.Path)
 	dest := filepath.ToSlash(filepath.Join(filepath.Dir(target.Path), filepath.Base(e.Path)))
+
+	if claimErr := guardClaim(ctx, t.Root, id, source); claimErr != nil {
+		return nil, claimErr
+	}
 
 	// Same-state convergence (M-0281/AC-3). A move's effect spans two surfaces
 	// — the `parent:` field and the file's location under the epic's directory

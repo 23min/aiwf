@@ -66,15 +66,56 @@ covers `internal/verb` and `internal/gitops`, so a second caller appearing in
 another package would not be caught by it — the single-caller property is
 current fact plus a partial guard, not a total one.
 
-The pre-mutation path set is derived from `p.Ops` by **prefix matching**, not by
-walking the filesystem. A directory `OpMove` covers every nested path by prefix,
-which is precisely what `stagedPathConflicts` already does for the staged twin,
-for the reason its own comment records. So a pre-mutation guard needs no
-prediction and no second implementation of `gatherCommitOps`' recursive walk.
+Prefix matching over `p.Ops` decides which op covers a given path — the same
+rule `checkStagedConflict` applies for the staged twin, for the reason its own
+comment records. That is what the carve-outs consult: whether a path is an
+`OpWrite`'s own destination, and which op to read `AdoptsWorkingCopy` from.
 
-The dirty set comes from `gitops.DirtyPaths` — tracked-modified plus
-untracked-not-ignored, two subprocesses, no per-path blob reads. It already
-exists and is already called from `internal/verb`.
+Enumerating the paths themselves is a separate question, and prefix matching
+cannot answer it: a rule for *filtering* a list of paths needs a list to filter,
+which is exactly what the guard no longer takes from git. A directory `OpMove`
+therefore contributes the files found beneath it on disk, plus the paths HEAD
+records beneath it — the second because a path the record carries and the
+working tree lacks is one the commit strands at its old location rather than
+moving.
+
+An earlier statement of this subsection said the set "is derived from `p.Ops` by
+**prefix matching**, not by walking the filesystem", concluding that "a
+pre-mutation guard needs no prediction and no second implementation of
+`gatherCommitOps`' recursive walk". It shipped in the `accepted` ADR other clones
+carry, so it is named here rather than replaced silently. The walk it avoided is
+the price of not asking git what changed; `gatherCommitOps` walks the
+destination after the move, this walks the source before it, and `os.Rename`
+preserving a directory's internal structure is what makes the two sets the same.
+
+The divergence set comes from comparing what the record holds against what the
+working copy would store, for each path the plan would carry
+(`gitops.DivergentPaths`): `git ls-tree HEAD` object ids against
+`git hash-object --no-filters` ones, batched over the argument vector.
+
+Three properties of that shape are load-bearing rather than incidental.
+Comparing object ids rather than raw bytes is what makes an untouched path in a
+repo with content filters compare equal. Computing the working copy's id
+*unfiltered* is what keeps the comparison honest about this codebase: the verb
+commit path stores content verbatim, so a filtered id measures against a
+convention these commits do not follow. And passing paths on the argument vector
+rather than through a line-oriented batch protocol is what lets a path containing
+a space or a newline be compared at all — measured, the second desynchronises
+such a protocol and answers for the wrong path with no error at all.
+
+An earlier statement of this subsection sourced that set from
+`gitops.DirtyPaths` — "tracked-modified plus untracked-not-ignored, two
+subprocesses, no per-path blob reads". It shipped in the `accepted` ADR other
+clones already carry, so it is named here rather than replaced silently. It
+asks git what the operator changed, which is a different question from what the
+commit records, and git declines to report a path that is `.gitignore`d, carries
+`assume-unchanged` or `skip-worktree`, or is omitted by a sparse checkout — while
+the commit carries each regardless. Each such class was first met as its own
+limit (an ignored file under a moved directory, then an `assume-unchanged`
+milestone under a parent-epic rename that survived the fix for it); the blob
+comparison closes them as one property, since the index bits sit on neither side
+of it and `.gitignore` governs neither. The ignored-path query added to patch the
+first instance retires with the dirty set it was patching.
 
 A CLI-layer seam was rejected on the layering grounds above.
 
@@ -95,11 +136,23 @@ At the NoOp seam the comparison covers what the claim actually asserts about,
 which is usually the target entity's file — but not always. Three claims are
 scoped to `aiwf.yaml` rather than an entity (`contract bind`, `contract recipe`,
 `rename-area`); two are whole-tree sweeps whose claim is derived from every
-entity's status or id width (`archive`, `rewidth`), so their scope is the set the
-sweep selected, computed after selection; and one (`acknowledge illegal`) already
+entity's status or id width (`archive`, `rewidth`), and are scoped per candidate
+rather than per verb — `archive` declines the individual moves whose verdict
+rests on a mid-edit file and reports them, while `rewidth` carries a reasoned
+exemption because a masked rewrite is re-emitted by its next run; and one
+(`acknowledge illegal`) already
 compares against git history rather than the working copy, so it needs no guard
 at all. Scoping these to "the target entity" would make the guard a silent
 pass-through exactly where three of them splice a working-copy `aiwf.yaml`.
+
+An earlier statement of this subsection scoped both sweeps to "the set the
+sweep selected, computed after selection". It shipped in the `accepted` ADR
+other clones already carry, so it is named here rather than replaced silently.
+That set is empty exactly when a sweep's NoOp fires, so it gave the guard
+nothing to look at at the one moment the claim is made — and for `archive` the
+gap is not merely inert: a move made alongside a mid-edit referrer commits a
+link to a path absent at HEAD, which no later run can repair once the target
+leaves the scan.
 
 ### Field scope
 
@@ -260,30 +313,48 @@ a behavioural change operators will meet routinely, not a rare-mistake guard.
 **Multi-entity routes are blocked by any one dirty participant.** The refusal is
 scoped to the paths a plan touches, so an unblessed edit to an unrelated entity
 never interferes. But `rename-area` writes every tagged entity, `rewidth --apply`
-rewrites tree-wide, `archive` writes every linking entity, and `rename` /
-`retitle` / `reallocate` emit link-rewrite writes for referencing entities — so
-for those, one dirty participant refuses the whole operation. A stray untracked file inside a moved
-directory has the same effect and the weakest recovery, since it cannot be
-blessed — which is why carry-along substitution is worth settling in M-0283
-rather than dropped.
+rewrites tree-wide, and `rename` / `retitle` / `reallocate` emit link-rewrite
+writes for referencing entities — so for those, one dirty participant refuses the
+whole operation. A stray untracked file inside a moved directory has the same
+effect and the weakest recovery, since it cannot be blessed — which is why
+carry-along substitution is worth settling in M-0283 rather than dropped.
 
-**A NoOp constructor still becomes a chokepoint, but it is not where the check
-runs.** Literal `Result{NoOp: true}` construction is confined to a shared
-constructor, enforced by an `internal/policies/` rule in the shape
-`atomic_write_chokepoint` and `logging_chokepoint` already use — that is what
-stops a new verb forgetting the convention. The precondition itself runs earlier,
-in the verb's prelude, because a check inside the constructor guards the wrong
-instant: by then the verb has already compared and classified against disputed
-bytes, and the constructor only suppresses the resulting message. Measured, that
-is not hypothetical — `cancel` classified an entity as terminal whose status at
-HEAD was `open`.
+This paragraph originally counted `archive` among them, as a verb that "writes
+every linking entity" and is therefore refused wholesale. It shipped in the
+`accepted` ADR other clones carry, so it is named here rather than replaced
+silently. `archive` instead declines the individual moves whose verdict rests on
+a mid-edit file and sweeps the rest, per the per-candidate scoping recorded
+under *Path scope*.
 
-Two limits on that chokepoint are worth stating rather than discovering. The
-existing NoOp policy scans *exported* entry points only, so the unexported
-composite branches (`promoteAC`, `cancelAC`, `renameAC`, `retitleAC`) are
-invisible to it and need their own tests. And a same-shaped NoOp construction
-exists outside `internal/verb` on a different type, so the rule's scope has to be
-decided rather than assumed.
+**The precondition runs in the verb's prelude, not where the NoOp is built.** A
+check at the construction point guards the wrong instant: by then the verb has
+already compared and classified against disputed bytes, and suppressing the
+resulting message does not undo the classification. Measured, that is not
+hypothetical — `cancel` classified an entity as terminal whose status at HEAD was
+`open`.
+
+This subsection originally added that literal `Result{NoOp: true}` construction
+"is confined to a shared constructor, enforced by an `internal/policies/` rule in
+the shape `atomic_write_chokepoint` and `logging_chokepoint` already use — that
+is what stops a new verb forgetting the convention". It shipped in the `accepted`
+ADR other clones carry, so it is named here rather than replaced silently. That
+constructor is not built, and the convention it was to protect is already
+mechanical from a different direction: `PolicyNoOpClaimScope` fails a converging
+verb with no recorded claim scope, so a new verb that forgets is caught. It
+derives its function set by matching the literal composite the constructor would
+remove, so introducing one would break the check currently providing the
+guarantee unless the re-key preserved per-function attribution. The literal form
+is the house style; the placement argument above is what this subsection
+decides.
+
+Two limits on any rule derived from the NoOp construction are worth stating
+rather than discovering. `verb_result_noop_invariant.go` scans *exported* entry
+points only, so the unexported composite branches (`promoteAC`, `cancelAC`,
+`renameAC`, `retitleAC`) are invisible to it and need their own tests. And a
+same-shaped NoOp construction exists outside `internal/verb` on a different type,
+so such a rule's scope has to be decided rather than assumed — which is why
+`PolicyNoOpClaimScope` bounds itself to `internal/verb` and records the outside
+site in a companion list its scan cannot derive.
 
 **Existing verb tests will fail, and mostly should.** Fixtures that write an
 entity file and then run a verb without committing it first are exercising

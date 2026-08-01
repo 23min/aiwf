@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -78,20 +79,25 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	if headErr != nil { //coverage:ignore defensive: HasHEAD errors only when the directory is no git repo, which StagedPaths above already refused
 		return "", fmt.Errorf("checking for uncommitted changes: %w", headErr)
 	}
+	// The carried set is enumerated whether or not HEAD resolves, because
+	// the two checks below need different halves of it. Only the record's
+	// side needs HEAD; what is a symbolic link on disk is answerable
+	// without one.
+	carried, carriedErr := planCarriedPaths(ctx, root, p.Ops, hasHEAD)
+	if carriedErr != nil {
+		return "", fmt.Errorf("checking for uncommitted changes: %w", carriedErr)
+	}
+	// Unconditional: a link the commit path would dereference corrupts the
+	// record just as thoroughly in a repo whose first commit this is.
+	if linkErr := checkCarriedSymlinks(root, carried, p.Ops); linkErr != nil {
+		return "", linkErr
+	}
 	if hasHEAD {
-		modified, untracked, dirtyErr := gitops.SplitDirtyPaths(ctx, root)
-		if dirtyErr != nil { //coverage:ignore defensive: same non-repo condition StagedPaths and HasHEAD have both already passed
-			return "", fmt.Errorf("checking for uncommitted changes: %w", dirtyErr)
+		diverged, divErr := gitops.DivergentPaths(ctx, root, carried)
+		if divErr != nil {
+			return "", fmt.Errorf("checking for uncommitted changes: %w", divErr)
 		}
-		// A move carries whatever sits beneath it, including files git
-		// ignores — which neither half of the dirty set reports.
-		ignored, ignoredErr := gitops.IgnoredPathsUnder(ctx, root, movePrefixes(p.Ops))
-		if ignoredErr != nil { //coverage:ignore defensive: same non-repo condition the two queries above have already passed
-			return "", fmt.Errorf("checking for uncommitted changes: %w", ignoredErr)
-		}
-		conflictErr := checkUncommittedConflict(ctx, root,
-			uncommittedPaths{modified: modified, untracked: append(untracked, ignored...)}, p.Ops)
-		if conflictErr != nil {
+		if conflictErr := checkUncommittedConflict(ctx, root, diverged, p.Ops); conflictErr != nil {
 			return "", conflictErr
 		}
 	}
@@ -314,18 +320,114 @@ func checkStagedConflict(staged []string, ops []FileOp) error {
 	)
 }
 
-// movePrefixes returns the source and destination paths of every OpMove
-// in ops — the roots beneath which Apply commits files no verb named.
-// Empty when the plan moves nothing, which is the common case and costs
-// the ignored-path query nothing.
-func movePrefixes(ops []FileOp) []string {
-	var prefixes []string
+// planCarriedPaths returns every repo-relative path this plan's commit
+// would carry, gathered from the two sides the guard compares.
+//
+// A move's carried set is wider than the paths the verb named: os.Rename
+// takes a directory's whole contents, and gatherCommitOps rebuilds the
+// commit by walking what it finds at the destination. The disk under a
+// move's source is therefore one side, and it reaches paths no git query
+// reports — an ignored file, one carrying `assume-unchanged`, one a
+// sparse checkout omits.
+//
+// HEAD's tree under that same prefix is the other side, and it is not
+// redundant. A path the record carries and the working tree lacks is
+// never re-written at the destination and never removed from the source,
+// so the commit strands it at the old location while its siblings move —
+// a split directory `aiwf check` reports no error on.
+//
+// An OpWrite contributes its own destination. Paths are deduped and
+// sorted, so a refusal names them the same way twice.
+func planCarriedPaths(ctx context.Context, root string, ops []FileOp, consultHEAD bool) ([]string, error) {
+	seen := make(map[string]bool, len(ops))
+	var out []string
+	add := func(p string) {
+		if seen[p] {
+			return
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+
 	for _, op := range ops {
-		if op.Type == OpMove {
-			prefixes = append(prefixes, op.Path, op.NewPath)
+		switch op.Type {
+		case OpWrite:
+			add(op.Path)
+		case OpMove:
+			// Both ends: the source is what the move carries, and the
+			// destination is what it would land on — an untracked file
+			// already sitting there is content the commit would replace
+			// without anyone naming it.
+			for _, end := range []string{op.Path, op.NewPath} {
+				if err := addCarriedUnder(ctx, root, end, add, consultHEAD); err != nil {
+					return nil, err
+				}
+			}
+		default:
+			// A new op type contributes no paths here, so the guard would
+			// not see whatever it carries. Refusing is the conservative
+			// reading: an op this function cannot enumerate is one whose
+			// commit contents it cannot vouch for.
+			//coverage:ignore unreachable: OpType is a closed set of two, both handled above; a third is a source change that lands here first
+			return nil, fmt.Errorf("cannot determine what op type %d carries", op.Type)
 		}
 	}
-	return prefixes
+	sort.Strings(out)
+	return out, nil
+}
+
+// addCarriedUnder reports every path a move of src would carry, from
+// both sides: the working tree beneath it, and the record beneath it.
+// A directory contributes its contents; anything else is the single path
+// it is — including a source missing from disk, which is named here
+// rather than left to surface as an os.Rename failure in Phase 1.
+//
+// Shared by the commit-side guard and the archive sweep's per-candidate
+// decline, so the two cannot drift on what a move is considered to
+// carry.
+func addCarriedUnder(ctx context.Context, root, src string, add func(string), consultHEAD bool) error {
+	info, statErr := os.Lstat(filepath.Join(root, src))
+	if statErr == nil && info.IsDir() {
+		if walkErr := addFilesUnder(root, src, add); walkErr != nil {
+			return fmt.Errorf("walking %s to determine what the commit carries: %w", src, walkErr)
+		}
+	} else {
+		add(src)
+	}
+	if !consultHEAD {
+		// An unborn HEAD records nothing, so the working tree is the whole
+		// carried set.
+		return nil
+	}
+	headPaths, lsErr := gitops.LsTreePaths(ctx, root, "HEAD", src+"/")
+	if lsErr != nil { //coverage:ignore defensive: HEAD resolves — both callers consult HasHEAD first, and the same repo has already answered a git query
+		return fmt.Errorf("listing %s at HEAD: %w", src, lsErr)
+	}
+	for _, p := range headPaths {
+		add(p)
+	}
+	return nil
+}
+
+// addFilesUnder reports every file beneath prefix on disk, as a
+// repo-relative slash path, mirroring the walk gatherCommitOps performs
+// at the destination once the move has happened.
+func addFilesUnder(root, prefix string, add func(string)) error {
+	base := filepath.Join(root, prefix)
+	return filepath.WalkDir(base, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil { //coverage:ignore defensive: the root was just stat'd as a directory, and WalkDir surfaces per-entry errors only for unreadable subdirectories
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, relErr := filepath.Rel(base, path)
+		if relErr != nil { //coverage:ignore WalkDir always yields paths rooted at base; Rel can only fail for a path outside base's tree
+			return relErr
+		}
+		add(prefix + "/" + filepath.ToSlash(rel))
+		return nil
+	})
 }
 
 // planOpForPath returns the op whose write set covers path, and whether
@@ -357,26 +459,116 @@ func planOpForPath(path string, ops []FileOp) (FileOp, bool) {
 	return FileOp{}, false
 }
 
+// CarriedSymlinkError reports that a verb was refused because a path it
+// would carry is a symbolic link, which the commit path cannot record as
+// one. Callers map it to a usage-level exit: the operator can resolve it.
+type CarriedSymlinkError struct {
+	// Carried names links the plan would sweep up under a move. The
+	// commit stores a copy of each link's target at that path.
+	Carried []string
+	// Named names links a verb writes to directly. The verb's own content
+	// lands there, so nothing unowned is recorded — but the link is still
+	// replaced by a regular file.
+	Named []string
+}
+
+// Paths returns every blocking link, carried first.
+func (e *CarriedSymlinkError) Paths() []string {
+	return append(append([]string{}, e.Carried...), e.Named...)
+}
+
+func (e *CarriedSymlinkError) Error() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "this verb would replace a symbolic link it cannot record as one: %s\n",
+		strings.Join(e.Paths(), ", "))
+	b.WriteString("  the commit stores every path it touches as a regular file, so the link\n")
+	b.WriteString("  itself is not preserved\n")
+	if len(e.Carried) > 0 {
+		fmt.Fprintf(&b, "  swept up under a move, so the commit would record a copy of whatever the\n"+
+			"  link points at — content no verb computed, under this verb's own trailer, and\n"+
+			"  for a link pointing outside the repo, content from outside it: %s\n"+
+			"  move it out of the way, or replace it with a real file\n",
+			strings.Join(e.Carried, " "))
+	}
+	if len(e.Named) > 0 {
+		fmt.Fprintf(&b, "  written by this verb, so its own content would land there — but at a path\n"+
+			"  the operator set up as a link, silently converted: %s\n"+
+			"  replace the link with a real file if that is what it should be\n",
+			strings.Join(e.Named, " "))
+	}
+	b.WriteString("  then re-run the verb")
+	return b.String()
+}
+
+// checkCarriedSymlinks refuses when any path the plan would carry is a
+// symbolic link.
+//
+// The refusal is unconditional rather than keyed on divergence, because
+// divergence is the wrong question here. A link whose target string still
+// equals the record is unchanged by every measure git offers — and the
+// commit path would still dereference it (gatherCommitOps reads content
+// with os.ReadFile) and store the result at mode 100644 (CommitTree's
+// cacheInfo), replacing the link with a copy of its target and leaving
+// the working tree reporting a type change nothing can clear.
+//
+// Recording links faithfully is the fix this defers to; until then a
+// refusal is the honest answer, since the alternative silently rewrites
+// the record.
+func checkCarriedSymlinks(root string, carried []string, ops []FileOp) error {
+	err := &CarriedSymlinkError{}
+	for _, p := range carried {
+		info, statErr := os.Lstat(filepath.Join(root, filepath.FromSlash(p)))
+		if statErr != nil {
+			// Absent or uninspectable paths are the divergence
+			// comparison's to report, with remedies of their own.
+			continue
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			continue
+		}
+		if op, ok := planOpForPath(p, ops); ok && op.Type == OpWrite && p == op.Path {
+			err.Named = append(err.Named, p)
+			continue
+		}
+		err.Carried = append(err.Carried, p)
+	}
+	if len(err.Paths()) == 0 {
+		return nil
+	}
+	sort.Strings(err.Carried)
+	sort.Strings(err.Named)
+	return err
+}
+
 // UncommittedConflictError reports that a verb was refused because a
 // path it was about to commit carries changes the verb did not compute.
 // Callers map it to a usage-level exit: the operator can resolve it, and
 // nothing in aiwf's own machinery is broken.
 //
-// Tracked and untracked paths are kept apart because they have different
+// The three path roles are kept apart because they have different
 // remedies, and offering the wrong one is worse than offering none:
-// `git restore` errors on a path git has never recorded, and discards
-// work irrecoverably on one it has.
+// `git restore` errors on a path git has never recorded, discards work
+// irrecoverably on one it has, and is the whole fix for one missing from
+// the working tree.
 type UncommittedConflictError struct {
-	// Tracked names blocking paths that have a committed version.
+	// Tracked names blocking paths that have a committed version whose
+	// bytes the working copy no longer matches.
 	Tracked []string
-	// Untracked names blocking paths git has never recorded, including
+	// Untracked names blocking paths HEAD has no version of, including
 	// ignored files a move would carry.
 	Untracked []string
+	// Missing names blocking paths HEAD records and the working tree
+	// lacks. A move would strand each at its old location rather than
+	// carrying it, since the commit's writes come from what is on disk.
+	Missing []string
 }
 
-// Paths returns every blocking path, tracked first.
+// Paths returns every blocking path: tracked, then untracked, then
+// missing.
 func (e *UncommittedConflictError) Paths() []string {
-	return append(append([]string{}, e.Tracked...), e.Untracked...)
+	out := append([]string{}, e.Tracked...)
+	out = append(out, e.Untracked...)
+	return append(out, e.Missing...)
 }
 
 func (e *UncommittedConflictError) Error() string {
@@ -391,9 +583,26 @@ func (e *UncommittedConflictError) Error() string {
 			strings.Join(e.Tracked, " "))
 	}
 	if len(e.Untracked) > 0 {
+		// `-u` covers untracked paths but not ignored ones, and this
+		// bucket holds both: the comparison finds a path regardless of
+		// `.gitignore`, so the remedy has to reach as far as the
+		// detection does. `-a` covers each, which is why it is named
+		// rather than left to whichever case the operator happens to hit.
 		fmt.Fprintf(&b, "  untracked here, so there is nothing to restore: commit it, move it out of the\n"+
-			"  way, or set it aside with `git stash -u` — %s\n",
+			"  way, or set it aside with `git stash -a` (`-u` alone skips a path `.gitignore`\n"+
+			"  matches, and this refusal reaches those too) — %s\n",
 			strings.Join(e.Untracked, " "))
+	}
+	if len(e.Missing) > 0 {
+		// `git restore` alone refuses a path carrying skip-worktree —
+		// which is how a sparse checkout omits one, and so is the likeliest
+		// way to arrive here. Clearing the bit first is a no-op on a path
+		// that does not carry it, so one form serves both.
+		fmt.Fprintf(&b, "  recorded but absent from your working tree, so a move would strand it where it is\n"+
+			"  instead of carrying it: bring it back with\n"+
+			"  `git update-index --no-skip-worktree -- %s && git restore %s`\n"+
+			"  (a sparse checkout or `skip-worktree` hides a path from every other check)\n",
+			strings.Join(e.Missing, " "), strings.Join(e.Missing, " "))
 	}
 	b.WriteString("  then re-run the verb; unrelated uncommitted paths survive the verb's commit untouched")
 	return b.String()
@@ -420,18 +629,18 @@ func (e *UncommittedConflictError) Error() string {
 //     `aiwf.yaml` in a freshly-initialised repo is the case that matters:
 //     `aiwf init` leaves it uncommitted by design, and the verbs that
 //     rewrite it would otherwise be unreachable until it was committed.
-//   - A path that is merely nested under a move is refused whether
-//     tracked, untracked, or ignored, because no verb named it and its
-//     bytes are carried into the commit sight-unseen. Ignored paths are
-//     collected separately (gitops.IgnoredPathsUnder), since neither half
-//     of the dirty set reports them and a move carries them regardless.
+//   - A path that is merely nested under a move is refused whether it
+//     has a committed version or not, because no verb named it and its
+//     bytes are carried into the commit sight-unseen.
 //
-// What bounds this guard is git's own reporting of the working tree. A
-// path git has been told to stop reporting — `assume-unchanged`,
-// `skip-worktree`, or absent under a sparse checkout — reads as clean
-// here while differing on disk, and is carried into the commit unexamined
-// (G-0487). The guard is as truthful as the queries beneath it, and does
-// not claim more.
+// The divergence set is computed by comparing HEAD's blobs against disk
+// for the paths the plan would carry (planCarriedPaths, then
+// gitops.DivergentPaths), not by intersecting those paths with git's
+// report of what the operator changed. The two answer different
+// questions, and only the first is about what the commit records: an
+// ignored file, one carrying `assume-unchanged` or `skip-worktree`, and
+// one a sparse checkout omits are all paths git declines to report while
+// the commit carries them regardless (G-0492, G-0487).
 //
 // A write may declare it adopts the working copy (AdoptsWorkingCopy).
 // The claim is verified rather than trusted (adoptionPreservesFrontmatter):
@@ -441,59 +650,47 @@ func (e *UncommittedConflictError) Error() string {
 // must carry nothing beyond a legitimate re-serialization of that working
 // copy, so the exemption cannot be claimed for content the plan computed
 // on its own.
-func checkUncommittedConflict(ctx context.Context, root string, u uncommittedPaths, ops []FileOp) error {
-	if len(ops) == 0 || (len(u.modified) == 0 && len(u.untracked) == 0) {
+func checkUncommittedConflict(ctx context.Context, root string, diverged []gitops.Divergence, ops []FileOp) error {
+	if len(ops) == 0 || len(diverged) == 0 {
 		return nil
 	}
 	conflict := &UncommittedConflictError{}
-	consider := func(path string, tracked bool) error {
-		op, covered := planOpForPath(path, ops)
-		if !covered {
-			return nil
+	for _, d := range diverged {
+		// Every path here came from ops, so the lookup resolves; what it
+		// is consulted for is which op covers the path, and whether the
+		// path is that op's own named destination.
+		op, _ := planOpForPath(d.Path, ops)
+		named := op.Type == OpWrite && d.Path == op.Path
+		if named && d.Kind == gitops.DivergenceAbsentFromHEAD {
+			continue
 		}
-		named := op.Type == OpWrite && path == op.Path
-		if !tracked && named {
-			return nil
-		}
-		if named && op.AdoptsWorkingCopy {
-			adopted, err := adoptionPreservesFrontmatter(ctx, root, path, op.Content)
+		if named && d.Kind == gitops.DivergenceModified && op.AdoptsWorkingCopy {
+			adopted, err := adoptionPreservesFrontmatter(ctx, root, d.Path, op.Content)
 			if err != nil { //coverage:ignore defensive: propagates only the IO/parse faults adoptionPreservesFrontmatter and reconstructedFrontmatterMatches annotate as unreachable
 				return err
 			}
 			if adopted {
-				return nil
+				continue
 			}
 		}
-		if tracked {
-			conflict.Tracked = append(conflict.Tracked, path)
-		} else {
-			conflict.Untracked = append(conflict.Untracked, path)
-		}
-		return nil
-	}
-	for _, path := range u.modified {
-		if err := consider(path, true); err != nil { //coverage:ignore defensive: consider only errors on the unreachable IO faults above
-			return err
-		}
-	}
-	for _, path := range u.untracked {
-		if err := consider(path, false); err != nil { //coverage:ignore defensive: consider only errors on the unreachable IO faults above
-			return err
+		switch d.Kind {
+		case gitops.DivergenceModified:
+			conflict.Tracked = append(conflict.Tracked, d.Path)
+		case gitops.DivergenceAbsentFromHEAD:
+			conflict.Untracked = append(conflict.Untracked, d.Path)
+		case gitops.DivergenceAbsentFromDisk:
+			conflict.Missing = append(conflict.Missing, d.Path)
+		default: //coverage:ignore unreachable: DivergenceKind is a closed set of three, each handled above; a fourth is a source change that would land here first
+			// A fourth way for a working copy to disagree with the record
+			// would need a remedy of its own. Refusing without one at
+			// least keeps the commit from carrying it unexamined.
+			conflict.Tracked = append(conflict.Tracked, d.Path)
 		}
 	}
-	if len(conflict.Tracked) == 0 && len(conflict.Untracked) == 0 {
+	if len(conflict.Paths()) == 0 {
 		return nil
 	}
 	return conflict
-}
-
-// uncommittedPaths carries the working tree's two kinds of divergence
-// from HEAD as one value, so the guard's caller cannot transpose them.
-type uncommittedPaths struct {
-	// modified names tracked paths whose disk content differs from HEAD.
-	modified []string
-	// untracked names non-ignored paths git has never recorded.
-	untracked []string
 }
 
 // adoptionPreservesFrontmatter reports whether an adopting write at path

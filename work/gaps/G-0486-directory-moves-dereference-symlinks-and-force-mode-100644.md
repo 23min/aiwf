@@ -76,3 +76,40 @@ Option 1 is the lean: it is the only one that does not change which files a move
 carries, and the defect is a representation bug rather than a policy question.
 Whichever lands, the permanent-dirty interaction above should be checked against
 E-0075's guard before that guard ships.
+
+## Measured against E-0075's guard
+
+The guard has shipped, and the check this gap asked for has been run.
+
+**The symlink half is refused rather than fixed.** `checkCarriedSymlinks` refuses
+any carried symlink outright, because the commit path cannot record one and a link
+whose target is unchanged would still be replaced by a copy of its target. That
+closes the corruption route; the dereference itself is untouched, so option 1
+remains the fix that makes a symlink carryable at all.
+
+**The exec-bit half is unguarded, and the interaction is a refusal loop.** The mode
+is not part of the comparison — `DivergentPaths` reads the mode but tests it only
+for `120000` — so a dropped bit leaves the object id unchanged and the guard sees
+nothing.
+
+Measured on a contract directory, where extra files are exempt from tree
+discipline, so `aiwf check` reports `ok — no findings` before and after:
+
+    before:  100755 blob …  work/contracts/C-0001-probe/validate.sh
+    aiwf promote C-0001 rejected && aiwf archive --apply    ->  exit 0, no warning
+    after:   100644 blob …  work/contracts/archive/C-0001-probe/validate.sh
+
+`git status` then reports `old mode 100644 / new mode 100755` permanently: further
+verbs do not clear it, because the blob is unchanged. The operator's fix,
+`git add --chmod=+x`, makes every subsequent verb refuse at the staged-conflict
+guard, whose own remedy (`git restore --staged`) reverts the fix. The only exit is
+a plain `git commit` of the mode change — after which the next directory move drops
+it again.
+
+`git checkout -- <path>` resets the disk bit to match the record, so the last copy
+of the truth is lost and a fresh clone yields a non-executable file.
+
+Nothing shipped by `aiwf init` is reachable this way — hooks, scripts and the
+statusline are written outside `verb.Apply` and never committed by it — so the
+exposure is operator files inside an entity directory, contract fixtures most
+plausibly.

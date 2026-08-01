@@ -185,12 +185,15 @@ func DirtyPaths(ctx context.Context, workdir string) ([]string, error) {
 // are '/'-separated, repo-relative, and sorted.
 //
 // The split exists because the two halves answer different questions
-// about a path a verb is about to commit. A modified path has a
-// committed version the verb's write would contradict; an untracked one
-// has none, so a write that names it creates the record rather than
-// overwriting a record that disagrees. The commit-side write guard
-// (ADR-0038) treats those cases differently, while DirtyPaths' other
-// consumer wants the union.
+// about a path: a modified path has a committed version its content
+// contradicts, an untracked one has none.
+//
+// Both report what the operator changed, as git sees it — which is not
+// what a commit carries. A caller asking the second question compares
+// HEAD's blobs against disk instead (DivergentPaths), since git declines
+// to report an ignored path, one carrying `assume-unchanged` or
+// `skip-worktree`, and one a sparse checkout omits, while a commit
+// carries each regardless.
 func SplitDirtyPaths(ctx context.Context, workdir string) (modified, untracked []string, err error) {
 	collect := func(args ...string) ([]string, error) {
 		out, cmdErr := output(ctx, workdir, args...)
@@ -213,40 +216,6 @@ func SplitDirtyPaths(ctx context.Context, workdir string) (modified, untracked [
 		return nil, nil, err
 	}
 	return modified, untracked, nil
-}
-
-// IgnoredPathsUnder returns non-ignored-rule-exempt paths git is
-// deliberately not tracking — the `.gitignore`d files — beneath the given
-// repo-relative prefixes. Empty prefixes return no paths rather than
-// scanning the repo.
-//
-// SplitDirtyPaths cannot see these: `git ls-files --others` excludes them
-// by construction, and `git diff HEAD` never knew them. That is the right
-// answer for a caller asking "what has the operator changed", and the
-// wrong one for a caller asking "what will a directory move carry into
-// the commit" — a move copies whatever is on disk beneath it, and git's
-// opinion that a file is uninteresting does not keep it out of the tree.
-//
-// Scoped to prefixes rather than repo-wide because ignored files are
-// numerous and almost all of them are irrelevant: only the ones a plan is
-// about to carry matter.
-func IgnoredPathsUnder(ctx context.Context, workdir string, prefixes []string) ([]string, error) {
-	if len(prefixes) == 0 {
-		return nil, nil
-	}
-	args := append([]string{"ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--"}, prefixes...)
-	out, err := output(ctx, workdir, args...)
-	if err != nil {
-		return nil, err
-	}
-	var paths []string
-	for _, p := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
-		if p != "" {
-			paths = append(paths, p)
-		}
-	}
-	sort.Strings(paths)
-	return paths, nil
 }
 
 // HasHEAD reports whether workdir's repo has a resolvable HEAD commit.

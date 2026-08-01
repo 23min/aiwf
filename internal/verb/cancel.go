@@ -31,13 +31,15 @@ import (
 // override to re-apply. Force requires a non-empty reason; the caller is
 // responsible for enforcing that.
 func Cancel(ctx context.Context, t *tree.Tree, id, actor, reason string, force bool) (*Result, error) {
-	_ = ctx
 	if entity.IsCompositeID(id) {
-		return cancelAC(t, id, actor, reason, force)
+		return cancelAC(ctx, t, id, actor, reason, force)
 	}
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
+	}
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-2, ADR-0036): an entity already at
 	// a terminal status is already disposed — cancel has nothing to project

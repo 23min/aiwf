@@ -12,6 +12,7 @@ import (
 	"github.com/23min/aiwf/internal/aiwfyaml"
 	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -25,6 +26,12 @@ import (
 func bindRepo(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
+	// A real repo, left with no commits: the claim-side guard consults
+	// HEAD, and an unborn HEAD carries no record to contradict — so the
+	// guard stands down and these cases stay about their own subject.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	for _, file := range []string{"schema.cue", "new.cue"} {
 		if err := os.WriteFile(filepath.Join(root, file), []byte(""), 0o644); err != nil {
 			t.Fatal(err)
@@ -576,7 +583,13 @@ func TestContractBind_G18_MissingSchemaCaughtAtVerb(t *testing.T) {
 	t.Parallel()
 	tr := contractTree("C-0001", "proposed")
 	d, c := mustReadDoc(t, baseAiwfYAML)
-	root := t.TempDir() // no schema.cue, no fixtures/
+	// A repo with neither schema.cue nor fixtures/ — the subject here is
+	// the missing-path findings, not the working-copy guard, so the repo
+	// is left with no commits and the guard stands down.
+	root := t.TempDir()
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 
 	res, err := ContractBind(context.Background(), tr, d, c, "C-0001", "human/test", root, ContractBindOptions{
 		Validator: "cue", Schema: "schema.cue", Fixtures: "fixtures",

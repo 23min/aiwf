@@ -1,8 +1,10 @@
 ---
 id: G-0492
 title: The write guard reads git's dirty report, not the bytes a plan would carry
-status: open
+status: addressed
 discovered_in: M-0283
+addressed_by_commit:
+    - 9c6ebe566
 ---
 ## What's missing
 
