@@ -2,6 +2,7 @@
 id: G-0456
 title: Verb prelude resolution errors don't honor --format=json uniformly
 status: open
+priority: medium
 discovered_in: M-0279
 ---
 ## What's missing
