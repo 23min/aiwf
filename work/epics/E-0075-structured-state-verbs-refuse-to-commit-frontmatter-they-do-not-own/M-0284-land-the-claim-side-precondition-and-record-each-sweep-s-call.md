@@ -64,20 +64,24 @@ question is harder to move than the input itself.
 
 One precondition, called from each verb's prelude between resolution and the
 same-state comparison, scoped to whatever that verb's claim actually asserts
-about. Then the literal `Result{NoOp: true}` constructions collapse into a shared
-constructor, which is what M-0285 later makes mechanical.
+about. The literal `Result{NoOp: true}` construction stays as it is at every
+site; see the Constraints below.
 
-The 22 sites are not one shape, so the scoping is per-claim rather than uniform:
-sixteen are target-scoped to an entity file (an AC-level claim reads its parent
-milestone's file); three are scoped to `aiwf.yaml`; two are whole-tree sweeps
-with no target, scoped per candidate rather than per verb; and one compares
-against git history rather than the working copy and needs no guard at all.
+The converging sites are not one shape, so the scoping is per-claim rather than
+uniform. Twenty functions in `internal/verb` converge, each carrying a recorded
+scope: 13 target-scoped to an entity file (an AC-level claim reads its parent
+milestone's file), 3 scoped to `aiwf.yaml`, 1 sweep scoped per candidate rather
+than per verb, and 3 needing no comparison for a recorded reason. They hold 22
+literal sites between them, since `set-area` and `set-priority` each converge on
+two branches. One further site sits outside `internal/verb` altogether, where the
+scan cannot derive it, so a companion list records it.
 
-The comparison those preludes call asks one question — does HEAD's blob for a
-path equal what is on disk. The two seams differ only in which paths they hand
-it: at the claim side the set is small and known, usually the one entity file the
-claim asserts about; at the commit side it is the plan's own paths under the
-prefix rule M-0283 established. One primitive, two path sets.
+The comparison those preludes call asks one question — would the working copy at
+this path store as what the record holds. The two seams differ only in which
+paths they hand it: at the claim side the set is small and known, usually the one
+entity file the claim asserts about; at the commit side it is every path the plan
+would carry, enumerated from both the working tree and the record. One primitive,
+two path sets.
 
 ## Acceptance criteria
 
@@ -153,14 +157,8 @@ patching.
   already made.
 - No site is scoped by convenience. A pass-through needs a recorded reason, and
   "the target entity" is not a default.
-- The shared NoOp constructor does not land here after all. The literal form
-  remains at every converging site, and both the constructor and the chokepoint
-  that forbids the literal are M-0285's — which is coherent, since a constructor
-  introduced a milestone ahead of its rule is a convention a new verb can forget.
-  M-0285 inherits one constraint from that: `PolicyNoOpClaimScope` derives its
-  converging-function set from the literal `Result{NoOp: true}` composite it is
-  about to forbid, and a naive re-key to "calls the constructor" loses the
-  per-function attribution the ledger rests on.
+- No shared NoOp constructor is introduced, here or later. The literal form is
+  the house style at all 23 sites; see the decision below.
 - Whatever lands must not be read as fixing the FSM walker's rename-plus-status
   blind spot. G-0475 stays open on its own terms.
 - ADR-0038's *Seam* section names `gitops.DirtyPaths` as the guard's input, "two
@@ -416,6 +414,28 @@ while a local `aiwf check` stayed clean, so the pre-push hook passed it.
 init` leaves that file uncommitted by design, and a config-scoped claim refusing
 it would make every verb that rewrites it unreachable until someone committed it.
 aiwf.yaml is not an entity and cannot move out from under an id.
+
+### The shared NoOp constructor is dropped, not deferred
+
+The plan carried a shared constructor for `Result{NoOp: true}` plus a chokepoint
+forbidding the literal, on the argument that together they stop a new verb
+forgetting the convention. Neither is built, and the direction is closed rather
+than handed on.
+
+The convention is already mechanical from a different direction.
+`PolicyNoOpClaimScope` fails a converging verb that carries no recorded claim
+scope, so a verb that forgets is caught today — which was the whole benefit the
+constructor was to provide.
+
+Worse, the two work against each other. That policy derives its set of converging
+functions by matching the literal `Result{NoOp: true}` composite in the source.
+A constructor removes exactly the syntax the check keys on, so adopting one
+breaks the guarantee currently in place unless the re-key preserves per-function
+attribution — paying real cost to weaken a check that already works.
+
+The literal form is therefore the house style at all 23 sites. What the ADR
+decides about this seam is placement: the precondition runs in the prelude, ahead
+of the comparison, and never at the point where the NoOp is built.
 
 ## Validation
 
