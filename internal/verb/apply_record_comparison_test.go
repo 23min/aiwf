@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/verb"
 )
 
@@ -288,13 +289,11 @@ func TestApply_HiddenEditOutsideThePlan_DoesNotBlock(t *testing.T) {
 // Divergence is the wrong question for a link. `gatherCommitOps` reads
 // each carried path with os.ReadFile, which follows the link, and
 // CommitTree stores every write at mode 100644 — so a link whose target
-// string is untouched, and which every git query calls clean, is still
-// replaced in the record by a copy of whatever it points at. Measured
-// before this guard: an epic rename turned a 120000 link into a 100644
-// blob holding the linked file's body under `aiwf-verb: rename`, and a
-// link pointing outside the repo carried that file's content into git
-// history. Both left the working tree reporting a type change with no
-// remedy that clears it.
+// string is untouched, and which every git query calls clean, would
+// still be replaced in the record by a copy of whatever it points at. A
+// link pointing outside the repository puts that file's content into git
+// history, and the working tree is left reporting a type change no
+// remedy clears.
 func TestApply_CarriedSymlink_RefusedRegardlessOfShape(t *testing.T) {
 	t.Parallel()
 
@@ -346,8 +345,9 @@ func TestApply_CarriedSymlink_RefusedRegardlessOfShape(t *testing.T) {
 				t.Fatalf("error is not a *verb.CarriedSymlinkError: %v", applyErr)
 			}
 			rel := filepath.ToSlash(filepath.Join(epicDir, "latest.md"))
-			if !slices.Contains(linkErr.Paths, rel) {
-				t.Errorf("refusal does not name the link; names %v", linkErr.Paths)
+			if !slices.Contains(linkErr.Carried, rel) {
+				t.Errorf("a move-carried link should be in Carried; got Carried=%v Named=%v",
+					linkErr.Carried, linkErr.Named)
 			}
 			// The message is the operator's whole diagnosis here: nothing
 			// in `git status` explains why a clean tree was refused.
@@ -383,5 +383,137 @@ func TestApply_NoSymlink_StillCommits(t *testing.T) {
 	}
 	if after := headSHA(t, r.root); after == before {
 		t.Error("HEAD did not advance")
+	}
+}
+
+// TestApply_SymlinkedEntityFile_DiagnosedAsANamedWrite pins that the two
+// ways a link reaches the guard get different diagnoses, because what
+// the commit would do differs.
+//
+// A link swept up under a move has its target's content copied into the
+// record — content no verb computed. A link the verb writes to directly
+// receives the verb's own content, because Phase 2 replaces the link
+// before the commit reads the path; nothing unowned is recorded, but the
+// operator's link is silently converted to a regular file: mode 100644
+// carrying the verb's own body and its requested field, not the link
+// target's bytes.
+//
+// Telling the operator their content came from the link target would be
+// false here, and "move it out of the way" would remove the entity.
+func TestApply_SymlinkedEntityFile_DiagnosedAsANamedWrite(t *testing.T) {
+	t.Parallel()
+	r := newGapRunner(t)
+	e := r.tree().ByID("G-0001")
+	if e == nil {
+		t.Fatal("G-0001 missing from the fixture tree")
+	}
+	target := filepath.Join(filepath.Dir(e.Path), "real.md")
+	if err := os.Rename(filepath.Join(r.root, e.Path), filepath.Join(r.root, target)); err != nil {
+		t.Fatalf("moving the entity file aside: %v", err)
+	}
+	if err := os.Symlink("real.md", filepath.Join(r.root, e.Path)); err != nil {
+		t.Skipf("symlinks unavailable on this platform: %v", err)
+	}
+	commitFixture(t, r.root, "fixture: the entity file is a symlink")
+
+	res, err := verb.SetPriority(r.ctx, r.tree(), "G-0001", "high", false, testActor)
+	if err != nil {
+		t.Fatalf("SetPriority: %v", err)
+	}
+	_, applyErr := verb.Apply(r.ctx, r.root, res.Plan)
+	var linkErr *verb.CarriedSymlinkError
+	if !errors.As(applyErr, &linkErr) {
+		t.Fatalf("error is not a *verb.CarriedSymlinkError: %v", applyErr)
+	}
+	if !slices.Contains(linkErr.Named, filepath.ToSlash(e.Path)) {
+		t.Errorf("a verb's own write target should be in Named; got Carried=%v Named=%v",
+			linkErr.Carried, linkErr.Named)
+	}
+	msg := linkErr.Error()
+	if strings.Contains(msg, "points at") {
+		t.Errorf("a named write does not copy the link target; the diagnosis says it does:\n%s", msg)
+	}
+	if strings.Contains(msg, "move it out of the way") {
+		t.Errorf("that remedy would remove the entity from the tree:\n%s", msg)
+	}
+}
+
+// TestApply_CarriedSymlinkOnUnbornHEAD_StillRefused pins that the link
+// refusal does not depend on HEAD resolving.
+//
+// The divergence comparison needs a record to compare against and stands
+// down without one. Whether a path is a symbolic link is a filesystem
+// question, and the commit that dereferences it is just as destructive
+// when it is the repo's first: without this, a verb over an unborn HEAD
+// commits the contents of a file outside the repository, at exit 0,
+// under its own trailer.
+func TestApply_CarriedSymlinkOnUnbornHEAD_StillRefused(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	dir := filepath.Join(root, "work", "epics", "E-0001-alpha")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "epic.md"), []byte("---\nid: E-0001\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(t.TempDir(), "secret.txt")
+	if err := os.WriteFile(outside, []byte("content from outside the repo\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dir, "link.md")); err != nil {
+		t.Skipf("symlinks unavailable on this platform: %v", err)
+	}
+
+	plan := &verb.Plan{
+		Subject:  "test unborn-HEAD symlink refusal",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{{
+			Type: verb.OpMove, Path: "work/epics/E-0001-alpha", NewPath: "work/epics/E-0001-renamed",
+		}},
+	}
+	_, applyErr := verb.Apply(t.Context(), root, plan)
+	var linkErr *verb.CarriedSymlinkError
+	if !errors.As(applyErr, &linkErr) {
+		t.Fatalf("error is not a *verb.CarriedSymlinkError: %v", applyErr)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git", "refs", "heads")); err != nil {
+		t.Fatalf("stat refs: %v", err)
+	}
+	if out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "HEAD").Output(); err == nil {
+		t.Errorf("a commit landed on what should have been a refusal: %s", out)
+	}
+}
+
+// TestApply_UnbornHEADWithoutASymlink_StillCommits is the control: the
+// carried-set enumeration must still work with no record to consult, or
+// the refusal above would be indistinguishable from a verb that simply
+// cannot run before the first commit.
+func TestApply_UnbornHEADWithoutASymlink_StillCommits(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := gitops.Init(t.Context(), root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	dir := filepath.Join(root, "work", "epics", "E-0001-alpha")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "epic.md"), []byte("---\nid: E-0001\n---\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := &verb.Plan{
+		Subject:  "test unborn-HEAD move",
+		Trailers: []gitops.Trailer{{Key: "aiwf-verb", Value: "test"}},
+		Ops: []verb.FileOp{{
+			Type: verb.OpMove, Path: "work/epics/E-0001-alpha", NewPath: "work/epics/E-0001-renamed",
+		}},
+	}
+	if _, err := verb.Apply(t.Context(), root, plan); err != nil {
+		t.Fatalf("Apply on an unborn HEAD without a link: %v", err)
 	}
 }

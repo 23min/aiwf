@@ -460,8 +460,15 @@ func TestUncommittedConflictError_RemedyMatchesTrackedness(t *testing.T) {
 	if strings.Contains(untracked, "git restore") {
 		t.Errorf("an untracked path has nothing to restore; `git restore` errors on it:\n%s", untracked)
 	}
-	if !strings.Contains(untracked, "git stash -u") {
-		t.Errorf("an untracked path's remedy should offer the flag that covers it:\n%s", untracked)
+	// The bucket holds ignored paths too — the comparison finds a path
+	// whether or not `.gitignore` matches it — and `git stash -u` skips
+	// exactly those, so it is a remedy that returns the operator to the
+	// same refusal.
+	if !strings.Contains(untracked, "git stash -a") {
+		t.Errorf("an untracked path's remedy must offer the flag that also covers ignored paths:\n%s", untracked)
+	}
+	if strings.Contains(untracked, "git stash -u") {
+		t.Errorf("`git stash -u` does not clear an ignored path; the remedy loops:\n%s", untracked)
 	}
 
 	// A path recorded at HEAD and absent from the working tree is most

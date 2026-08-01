@@ -79,14 +79,20 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	if headErr != nil { //coverage:ignore defensive: HasHEAD errors only when the directory is no git repo, which StagedPaths above already refused
 		return "", fmt.Errorf("checking for uncommitted changes: %w", headErr)
 	}
+	// The carried set is enumerated whether or not HEAD resolves, because
+	// the two checks below need different halves of it. Only the record's
+	// side needs HEAD; what is a symbolic link on disk is answerable
+	// without one.
+	carried, carriedErr := planCarriedPaths(ctx, root, p.Ops, hasHEAD)
+	if carriedErr != nil {
+		return "", fmt.Errorf("checking for uncommitted changes: %w", carriedErr)
+	}
+	// Unconditional: a link the commit path would dereference corrupts the
+	// record just as thoroughly in a repo whose first commit this is.
+	if linkErr := checkCarriedSymlinks(root, carried, p.Ops); linkErr != nil {
+		return "", linkErr
+	}
 	if hasHEAD {
-		carried, carriedErr := planCarriedPaths(ctx, root, p.Ops)
-		if carriedErr != nil {
-			return "", fmt.Errorf("checking for uncommitted changes: %w", carriedErr)
-		}
-		if linkErr := checkCarriedSymlinks(root, carried); linkErr != nil {
-			return "", linkErr
-		}
 		diverged, divErr := gitops.DivergentPaths(ctx, root, carried)
 		if divErr != nil {
 			return "", fmt.Errorf("checking for uncommitted changes: %w", divErr)
@@ -332,7 +338,7 @@ func checkStagedConflict(staged []string, ops []FileOp) error {
 //
 // An OpWrite contributes its own destination. Paths are deduped and
 // sorted, so a refusal names them the same way twice.
-func planCarriedPaths(ctx context.Context, root string, ops []FileOp) ([]string, error) {
+func planCarriedPaths(ctx context.Context, root string, ops []FileOp, consultHEAD bool) ([]string, error) {
 	seen := make(map[string]bool, len(ops))
 	var out []string
 	add := func(p string) {
@@ -353,7 +359,7 @@ func planCarriedPaths(ctx context.Context, root string, ops []FileOp) ([]string,
 			// already sitting there is content the commit would replace
 			// without anyone naming it.
 			for _, end := range []string{op.Path, op.NewPath} {
-				if err := addCarriedUnder(ctx, root, end, add); err != nil {
+				if err := addCarriedUnder(ctx, root, end, add, consultHEAD); err != nil {
 					return nil, err
 				}
 			}
@@ -379,7 +385,7 @@ func planCarriedPaths(ctx context.Context, root string, ops []FileOp) ([]string,
 // Shared by the commit-side guard and the archive sweep's per-candidate
 // decline, so the two cannot drift on what a move is considered to
 // carry.
-func addCarriedUnder(ctx context.Context, root, src string, add func(string)) error {
+func addCarriedUnder(ctx context.Context, root, src string, add func(string), consultHEAD bool) error {
 	info, statErr := os.Lstat(filepath.Join(root, src))
 	if statErr == nil && info.IsDir() {
 		if walkErr := addFilesUnder(root, src, add); walkErr != nil {
@@ -387,6 +393,11 @@ func addCarriedUnder(ctx context.Context, root, src string, add func(string)) er
 		}
 	} else {
 		add(src)
+	}
+	if !consultHEAD {
+		// An unborn HEAD records nothing, so the working tree is the whole
+		// carried set.
+		return nil
 	}
 	headPaths, lsErr := gitops.LsTreePaths(ctx, root, "HEAD", src+"/")
 	if lsErr != nil { //coverage:ignore defensive: HEAD resolves — both callers consult HasHEAD first, and the same repo has already answered a git query
@@ -452,20 +463,39 @@ func planOpForPath(path string, ops []FileOp) (FileOp, bool) {
 // would carry is a symbolic link, which the commit path cannot record as
 // one. Callers map it to a usage-level exit: the operator can resolve it.
 type CarriedSymlinkError struct {
-	// Paths names the symbolic links the plan would carry.
-	Paths []string
+	// Carried names links the plan would sweep up under a move. The
+	// commit stores a copy of each link's target at that path.
+	Carried []string
+	// Named names links a verb writes to directly. The verb's own content
+	// lands there, so nothing unowned is recorded — but the link is still
+	// replaced by a regular file.
+	Named []string
+}
+
+// Paths returns every blocking link, carried first.
+func (e *CarriedSymlinkError) Paths() []string {
+	return append(append([]string{}, e.Carried...), e.Named...)
 }
 
 func (e *CarriedSymlinkError) Error() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "this verb would carry a symbolic link it cannot record as one: %s\n",
-		strings.Join(e.Paths, ", "))
-	b.WriteString("  the commit reads each carried path's content and stores it as a regular\n")
-	b.WriteString("  file, so the link would be replaced by a copy of whatever it points at —\n")
-	b.WriteString("  content no verb computed, under this verb's own trailer, and for a link\n")
-	b.WriteString("  pointing outside the repo, content from outside it\n")
-	fmt.Fprintf(&b, "  move it out of the way, or replace it with a real file: %s\n",
-		strings.Join(e.Paths, " "))
+	fmt.Fprintf(&b, "this verb would replace a symbolic link it cannot record as one: %s\n",
+		strings.Join(e.Paths(), ", "))
+	b.WriteString("  the commit stores every path it touches as a regular file, so the link\n")
+	b.WriteString("  itself is not preserved\n")
+	if len(e.Carried) > 0 {
+		fmt.Fprintf(&b, "  swept up under a move, so the commit would record a copy of whatever the\n"+
+			"  link points at — content no verb computed, under this verb's own trailer, and\n"+
+			"  for a link pointing outside the repo, content from outside it: %s\n"+
+			"  move it out of the way, or replace it with a real file\n",
+			strings.Join(e.Carried, " "))
+	}
+	if len(e.Named) > 0 {
+		fmt.Fprintf(&b, "  written by this verb, so its own content would land there — but at a path\n"+
+			"  the operator set up as a link, silently converted: %s\n"+
+			"  replace the link with a real file if that is what it should be\n",
+			strings.Join(e.Named, " "))
+	}
 	b.WriteString("  then re-run the verb")
 	return b.String()
 }
@@ -484,24 +514,30 @@ func (e *CarriedSymlinkError) Error() string {
 // Recording links faithfully is the fix this defers to; until then a
 // refusal is the honest answer, since the alternative silently rewrites
 // the record.
-func checkCarriedSymlinks(root string, carried []string) error {
-	var links []string
+func checkCarriedSymlinks(root string, carried []string, ops []FileOp) error {
+	err := &CarriedSymlinkError{}
 	for _, p := range carried {
-		info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(p)))
-		if err != nil {
+		info, statErr := os.Lstat(filepath.Join(root, filepath.FromSlash(p)))
+		if statErr != nil {
 			// Absent or uninspectable paths are the divergence
 			// comparison's to report, with remedies of their own.
 			continue
 		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			links = append(links, p)
+		if info.Mode()&os.ModeSymlink == 0 {
+			continue
 		}
+		if op, ok := planOpForPath(p, ops); ok && op.Type == OpWrite && p == op.Path {
+			err.Named = append(err.Named, p)
+			continue
+		}
+		err.Carried = append(err.Carried, p)
 	}
-	if len(links) == 0 {
+	if len(err.Paths()) == 0 {
 		return nil
 	}
-	sort.Strings(links)
-	return &CarriedSymlinkError{Paths: links}
+	sort.Strings(err.Carried)
+	sort.Strings(err.Named)
+	return err
 }
 
 // UncommittedConflictError reports that a verb was refused because a
@@ -547,8 +583,14 @@ func (e *UncommittedConflictError) Error() string {
 			strings.Join(e.Tracked, " "))
 	}
 	if len(e.Untracked) > 0 {
+		// `-u` covers untracked paths but not ignored ones, and this
+		// bucket holds both: the comparison finds a path regardless of
+		// `.gitignore`, so the remedy has to reach as far as the
+		// detection does. `-a` covers each, which is why it is named
+		// rather than left to whichever case the operator happens to hit.
 		fmt.Fprintf(&b, "  untracked here, so there is nothing to restore: commit it, move it out of the\n"+
-			"  way, or set it aside with `git stash -u` — %s\n",
+			"  way, or set it aside with `git stash -a` (`-u` alone skips a path `.gitignore`\n"+
+			"  matches, and this refusal reaches those too) — %s\n",
 			strings.Join(e.Untracked, " "))
 	}
 	if len(e.Missing) > 0 {

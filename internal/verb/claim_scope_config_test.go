@@ -252,7 +252,12 @@ func TestClaimDivergenceError_RemedyMatchesTheKind(t *testing.T) {
 	if strings.Contains(unrecorded, "uncommitted changes at") {
 		t.Errorf("a path with no version at HEAD is not an uncommitted change:\n%s", unrecorded)
 	}
-	for _, want := range []string{"holds no version", "aiwf rename", "two paths"} {
+	// `aiwf rename` carries this same guard and refuses identically, so
+	// offering it sends the operator round a loop.
+	if strings.Contains(unrecorded, "aiwf rename") {
+		t.Errorf("the advice offers a verb this same guard refuses:\n%s", unrecorded)
+	}
+	for _, want := range []string{"holds no version", "same id lands at two", "never been committed"} {
 		if !strings.Contains(unrecorded, want) {
 			t.Errorf("diagnosis does not mention %q:\n%s", want, unrecorded)
 		}
@@ -267,5 +272,40 @@ func TestClaimDivergenceError_RemedyMatchesTheKind(t *testing.T) {
 	}
 	if strings.Contains(edited, "holds no version") {
 		t.Errorf("an edited path picked up the unrecorded diagnosis:\n%s", edited)
+	}
+}
+
+// TestClaimDivergenceError_MixedKinds pins the heading when a refusal
+// carries more than one kind at once — reachable at `promote
+// --superseded-by`, whose claim spans the target and the superseding
+// entity.
+//
+// The heading is chosen by whether *every* diverging path lacks a
+// record. A mixed refusal has at least one genuinely edited path, so
+// "uncommitted changes" is the accurate opening, and the unrecorded path
+// still gets its own paragraph. Both mutants of that condition produce a
+// message that contradicts one of its own halves.
+func TestClaimDivergenceError_MixedKinds(t *testing.T) {
+	t.Parallel()
+	msg := (&ClaimDivergenceError{
+		Subject: "ADR-0001",
+		Diverged: []gitops.Divergence{
+			{Path: "docs/adr/ADR-0001-a.md", Kind: gitops.DivergenceModified},
+			{Path: "docs/adr/ADR-0002-b.md", Kind: gitops.DivergenceAbsentFromHEAD},
+		},
+	}).Error()
+
+	if !strings.Contains(msg, "uncommitted changes at") {
+		t.Errorf("a refusal carrying an edited path should open with it:\n%s", msg)
+	}
+	if strings.Contains(msg, "the record holds no version of") {
+		t.Errorf("the no-record heading claims every path lacks one; here only some do:\n%s", msg)
+	}
+	// Each kind still gets the paragraph that fits it.
+	if !strings.Contains(msg, "docs/adr/ADR-0002-b.md is at a path the record does not hold") {
+		t.Errorf("the unrecorded path lost its own diagnosis:\n%s", msg)
+	}
+	if !strings.Contains(msg, "aiwf edit-body") {
+		t.Errorf("the edited path lost its remedy:\n%s", msg)
 	}
 }

@@ -62,10 +62,15 @@ func (e *ClaimDivergenceError) Error() string {
 	b.WriteString("  this verb reads that file to decide what to do and commits what it finds\n")
 	b.WriteString("  there, so both the decision and the record would rest on bytes no verb wrote\n")
 	if len(unrecorded) > 0 {
-		fmt.Fprintf(&b, "  the entity's file is at a path HEAD does not record, so its committed copy is\n"+
-			"  somewhere else — most often because the file was moved without a verb. Put it back\n"+
-			"  (`git status` names the deletion), or rename it properly with `aiwf rename <id> <slug>`;\n"+
-			"  committing %s as it stands would leave the same id at two paths\n",
+		// Which of the two causes applies cannot be told from the path
+		// alone — that needs a lookup by id rather than by path (G-0500) —
+		// so both are named rather than one asserted. `aiwf rename` is not
+		// offered: it carries this same guard and refuses identically.
+		fmt.Fprintf(&b, "  %s is at a path the record does not hold. If the file was moved without a\n"+
+			"  verb, its committed copy is still at the old path — `git status` shows that\n"+
+			"  path as deleted; restore it and remove this one, or the same id lands at two\n"+
+			"  paths. If the entity has never been committed, commit it first with\n"+
+			"  `aiwf edit-body <id> --body-file <path>`\n",
 			strings.Join(unrecorded, " "))
 	}
 	if modified := e.pathsOfKind(gitops.DivergenceModified); len(modified) > 0 {

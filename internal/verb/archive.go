@@ -847,7 +847,7 @@ func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove)
 		carried = append(carried, p)
 	}
 	for _, m := range moves {
-		if carriedErr := addCarriedUnder(ctx, root, m.from, add); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
+		if carriedErr := addCarriedUnder(ctx, root, m.from, add, true); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
 			return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
 		}
 	}
