@@ -85,9 +85,11 @@ func (e *ClaimDivergenceError) Error() string {
 // whether or not it would have produced a plan (ADR-0038).
 //
 // paths is what the verb's decision rests on, which is its own to
-// determine and is not always its target's file — three claims rest on
-// aiwf.yaml, two on the set a sweep selected, and one on git history
-// rather than the working copy at all.
+// determine and is not always its target's file: three claims rest on
+// aiwf.yaml rather than on any entity, and the sweeps have no target at
+// all — archive compares per candidate move inside its own planner, and
+// the rest carry a recorded reason for needing no comparison. The full
+// inventory is internal/policies/noop_claim_scope.go.
 //
 // A path absent from HEAD is not divergence. There is no record for the
 // verb's reading to contradict, so it creates one rather than

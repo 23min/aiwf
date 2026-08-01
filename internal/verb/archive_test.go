@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -436,6 +437,12 @@ func TestArchiveCommitBody_ListsBothMovesAndSkipped(t *testing.T) {
 func TestArchive_NoOpResultOnConvergedTree(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
+	// A real repo, left with no commits: the sweep now compares entity
+	// files against the record, and an unborn HEAD carries none — so the
+	// comparison stands down and these cases stay about their own subject.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	// An empty tempdir has no entities to load; planArchive returns
 	// (nil, nil) and Archive's NoOp branch fires.
 	res, err := Archive(context.Background(), root, "human/test", "")
@@ -462,6 +469,12 @@ func TestArchive_NoOpResultOnConvergedTree(t *testing.T) {
 func TestArchive_NoOpMessageMentionsSkippedEpics(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
+	// A real repo, left with no commits: the sweep now compares entity
+	// files against the record, and an unborn HEAD carries none — so the
+	// comparison stands down and these cases stay about their own subject.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	mustWrite := func(rel, body string) {
 		t.Helper()
 		full := filepath.Join(root, rel)
@@ -497,6 +510,12 @@ func TestArchive_NoOpMessageMentionsSkippedEpics(t *testing.T) {
 func TestPlanArchive_SortsBySameKindThenFrom(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
+	// A real repo with no commits: the sweep compares entity files against
+	// the record, and an unborn HEAD carries none, so the comparison
+	// stands down and this case stays about move ordering.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	// Stage three terminal-status gaps (same kind), in non-alphabetical
 	// id order, so the sort comparator must fire and order them.
 	mustWrite := func(rel, body string) {

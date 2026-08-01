@@ -52,3 +52,46 @@ func TestUncommittedWriteGuard_ReportsUsageNotInternal(t *testing.T) {
 		t.Errorf("the refusal discarded the working-copy edit:\n%s", after)
 	}
 }
+
+// TestUncommittedWriteGuard_NestedPathReportsUsageNotInternal reaches the
+// commit-side guard through a route the claim-side one does not cover.
+//
+// A verb whose own target is mid-edit is refused in its prelude, so that
+// refusal travels as an ordinary verb error. The nested case cannot be:
+// renaming an epic moves a directory, carrying every entity beneath it,
+// and no verb names those — so the refusal comes from verb.Apply and has
+// to survive the seam into the CLI as a usage exit rather than joining
+// the internal-failure class every other Apply error reports as.
+func TestUncommittedWriteGuard_NestedPathReportsUsageNotInternal(t *testing.T) {
+	root := setupCLITestRepo(t)
+	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
+	mustRun(t, "add", "epic", "--root", root, "--actor", "human/test", "--title", "Platform")
+	mustRun(t, "add", "milestone", "--root", root, "--actor", "human/test",
+		"--epic", "E-0001", "--tdd", "none", "--title", "Cache")
+
+	nested := filepath.Join(root, "work", "epics", "E-0001-platform", "M-0001-cache.md")
+	raw, err := os.ReadFile(nested) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("reading the milestone: %v", err)
+	}
+	dirty := string(raw) + "\nAn unblessed body edit on a nested entity.\n"
+	if writeErr := os.WriteFile(nested, []byte(dirty), 0o600); writeErr != nil {
+		t.Fatalf("dirtying the milestone: %v", writeErr)
+	}
+
+	// The epic's own file is clean, so the claim-side guard has nothing to
+	// refuse; the directory move is what carries the nested edit.
+	rc := cli.Execute([]string{"rename", "E-0001", "renamed-platform", "--root", root, "--actor", "human/test"})
+	if rc != cliutil.ExitUsage {
+		t.Errorf("rc = %d, want ExitUsage (%d) — a nested working-copy refusal is not an internal failure",
+			rc, cliutil.ExitUsage)
+	}
+
+	after, err := os.ReadFile(nested) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatalf("re-reading the milestone: %v", err)
+	}
+	if !strings.Contains(string(after), "An unblessed body edit on a nested entity.") {
+		t.Error("the refusal destroyed the operator's edit")
+	}
+}

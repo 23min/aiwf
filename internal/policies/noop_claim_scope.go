@@ -30,18 +30,25 @@ const (
 	// so the guard compares that file rather than any entity.
 	claimScopeConfigFile = "aiwf-yaml"
 
-	// claimScopeSweepSelection means the verb has no target by
-	// construction: its claim is derived from scanning the whole tree,
-	// and the paths worth comparing are the ones the sweep selected. A
-	// tree-wide refusal would be disproportionate to a claim about a
-	// subset.
-	claimScopeSweepSelection = "sweep-selection"
+	// claimScopeSweepDeciders means the verb has no target by
+	// construction — its claim is derived from scanning the tree — and
+	// the comparison is per candidate rather than per verb: a candidate
+	// whose verdict rests on a mid-edit file is declined and reported,
+	// while the rest of the sweep proceeds. Refusing the whole verb
+	// instead would block unrelated work on any in-progress edit, and
+	// exempting it would commit verdicts the record contradicts.
+	claimScopeSweepDeciders = "sweep-deciders"
 
-	// claimScopeNone means the verb's convergence rests on something the
-	// working copy cannot contradict. The reason field carries the whole
-	// content of such an entry: there is no guard to inspect, so the
-	// justification is the only thing distinguishing a reasoned exemption
-	// from an omission.
+	// claimScopeNone means no comparison is wired, for one of two
+	// reasons the entry has to state: the working copy cannot contradict
+	// the claim at all (the baseline is git history, or the verb already
+	// compares against HEAD itself), or it can and the divergence costs
+	// nothing recoverable. The two are not interchangeable — the first
+	// never needs revisiting, the second needs revisiting whenever its
+	// cost changes — so the reason field carries the whole content of
+	// such an entry: there is no guard to inspect, and the justification
+	// is the only thing distinguishing a reasoned exemption from an
+	// omission.
 	claimScopeNone = "none"
 )
 
@@ -89,12 +96,13 @@ var noOpClaimScopes = []claimScope{
 	{"RecipeInstall", claimScopeConfigFile, "converges on the validator already declared in aiwf.yaml"},
 	{"RenameArea", claimScopeConfigFile, "converges on the area vocabulary declared in aiwf.yaml; the entity retags follow from it rather than deciding it"},
 
-	// Sweep selection: no target, and the claim is a property of a scan.
-	{"Archive", claimScopeSweepSelection, "converges on an empty sweep selection derived from every entity's status; scope is what the sweep selected"},
-	{"Rewidth", claimScopeSweepSelection, "converges on an empty rewrite selection derived from every entity's id width; scope is what the sweep selected"},
+	// Sweep deciders: no target entity, and the comparison is per
+	// candidate move rather than per verb.
+	{"Archive", claimScopeSweepDeciders, "each candidate move is declined when a file its verdict rests on is mid-edit — the entity's own file, anything beneath it for a directory-shaped kind, or an entity whose committed body links into the move. The link case is why the comparison reads HEAD rather than the working copy: a draft that dropped the link is invisible to a working-copy scan, and the resulting move commits a reference to a path absent at HEAD that no later run can repair, since an archived target leaves the scan for good. An entity terminal at HEAD but not on disk never becomes a candidate, so it is reported rather than passed over in silence"},
 
 	// None: convergence rests on something a working copy cannot
 	// contradict, or on a comparison the verb already makes itself.
+	{"Rewidth", claimScopeNone, "the converging path writes nothing, and a masked rewrite is re-emitted by the next run because planRewidthRewrites rescans every active markdown independently of the rename set — so the cost is a rewrite deferred, not lost. The direction that would launder is carried by a move Apply guards"},
 	{"AcknowledgeIllegal", claimScopeNone, "ackAlreadyRecorded walks git history, so its baseline is already the record rather than the working copy"},
 	{"editBodyExplicit", claimScopeNone, "explicitBodySettled already compares the requested content against HEAD, and the verb exists to commit a divergent working copy — a guard refusing divergence would block the route every other refusal recommends"},
 }
@@ -109,7 +117,7 @@ func validateClaimScopes(ledger []claimScope) (map[string]string, []Violation) {
 	var out []Violation
 	for _, entry := range ledger {
 		switch entry.Scope {
-		case claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepSelection, claimScopeNone:
+		case claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepDeciders, claimScopeNone:
 		default:
 			out = append(out, Violation{
 				Policy: "noop-claim-scope",

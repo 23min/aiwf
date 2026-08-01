@@ -176,7 +176,7 @@ func TestNoOpClaimScopes_AreWellFormed(t *testing.T) {
 	populated := map[string]bool{}
 	for _, entry := range noOpClaimScopes {
 		switch entry.Scope {
-		case claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepSelection, claimScopeNone:
+		case claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepDeciders, claimScopeNone:
 		default:
 			t.Errorf("%s: scope %q is outside the closed set", entry.Func, entry.Scope)
 		}
@@ -190,7 +190,7 @@ func TestNoOpClaimScopes_AreWellFormed(t *testing.T) {
 		populated[entry.Scope] = true
 	}
 	for _, scope := range []string{
-		claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepSelection, claimScopeNone,
+		claimScopeTargetEntity, claimScopeConfigFile, claimScopeSweepDeciders, claimScopeNone,
 	} {
 		if !populated[scope] {
 			t.Errorf("no ledger entry carries scope %q; the four scopes must stay distinguishable", scope)
