@@ -21,7 +21,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The measured cancel-classifies-terminal defect no longer occurs
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-5
       title: The commit-side guard reads the record, not git's dirty report
