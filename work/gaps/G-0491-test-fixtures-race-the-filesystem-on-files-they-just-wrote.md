@@ -1,6 +1,6 @@
 ---
 id: G-0491
-title: Branch-oracle fixture assumes a just-written commit object is still loose
+title: Test fixtures race the filesystem on files they just wrote
 status: open
 priority: medium
 ---
