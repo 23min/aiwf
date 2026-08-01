@@ -2,6 +2,7 @@
 id: G-0497
 title: Sweep the remaining bare executable writes in tests onto WriteExecutable
 status: open
+priority: low
 ---
 ## What's missing
 
