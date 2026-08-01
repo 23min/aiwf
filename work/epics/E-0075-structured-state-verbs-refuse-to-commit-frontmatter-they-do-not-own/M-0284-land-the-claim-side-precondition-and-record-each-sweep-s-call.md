@@ -9,7 +9,7 @@ tdd: required
 acs:
     - id: AC-1
       title: A no-change claim is never made against HEAD-divergent state
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-2
       title: Every NoOp site compares at the scope its own claim asserts
