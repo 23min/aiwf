@@ -722,3 +722,106 @@ func TestRunPostCommitHook_ToleratesHookFailure(t *testing.T) {
 		t.Errorf("RunPostCommitHook with a failing hook = %v, want nil (exit status is informational only)", err)
 	}
 }
+
+// TestHasHEAD covers the three answers callers branch on: a repo whose
+// first commit has not landed, one that has, and a directory that is no
+// repo at all. The first is the case that motivates the function — every
+// aiwf verb can run there, and `git diff HEAD` is an error rather than an
+// empty result until a commit exists.
+func TestHasHEAD(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	t.Run("unborn HEAD reports false without an error", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		got, err := HasHEAD(ctx, root)
+		if err != nil {
+			t.Fatalf("HasHEAD on an unborn HEAD returned an error: %v", err)
+		}
+		if got {
+			t.Error("HasHEAD = true, want false — the repo has no commits yet")
+		}
+	})
+
+	t.Run("a landed commit reports true", func(t *testing.T) {
+		t.Parallel()
+		root := t.TempDir()
+		if err := Init(ctx, root); err != nil {
+			t.Fatalf("init: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "seed.md"), []byte("seed\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := Add(ctx, root, "seed.md"); err != nil {
+			t.Fatalf("add: %v", err)
+		}
+		if err := Commit(ctx, root, "seed", "", nil); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		got, err := HasHEAD(ctx, root)
+		if err != nil {
+			t.Fatalf("HasHEAD: %v", err)
+		}
+		if !got {
+			t.Error("HasHEAD = false, want true — the repo has a commit")
+		}
+	})
+
+	t.Run("a non-repo directory is an error, not a false", func(t *testing.T) {
+		t.Parallel()
+		if _, err := HasHEAD(ctx, t.TempDir()); err == nil {
+			t.Fatal("HasHEAD on a non-repo dir: want an error, got nil — reporting false there would read as an unborn HEAD")
+		}
+	})
+}
+
+// TestSplitDirtyPaths_SeparatesTrackedFromUntracked pins the distinction
+// DirtyPaths' union erases. A caller deciding whether a write would
+// contradict a committed version needs to know which side a path is on.
+func TestSplitDirtyPaths_SeparatesTrackedFromUntracked(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+
+	if err := Init(ctx, root); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "tracked.md"), []byte("original\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(ctx, root, "tracked.md"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if err := Commit(ctx, root, "seed", "", nil); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "tracked.md"), []byte("edited\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "fresh.md"), []byte("new\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	modified, untracked, err := SplitDirtyPaths(ctx, root)
+	if err != nil {
+		t.Fatalf("SplitDirtyPaths: %v", err)
+	}
+	if diff := cmp.Diff([]string{"tracked.md"}, modified); diff != "" {
+		t.Errorf("modified mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff([]string{"fresh.md"}, untracked); diff != "" {
+		t.Errorf("untracked mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestSplitDirtyPaths_NonRepoErrors covers the failing-git arm.
+func TestSplitDirtyPaths_NonRepoErrors(t *testing.T) {
+	t.Parallel()
+	if _, _, err := SplitDirtyPaths(context.Background(), t.TempDir()); err == nil {
+		t.Fatal("SplitDirtyPaths on a non-repo dir: want error, got nil")
+	}
+}

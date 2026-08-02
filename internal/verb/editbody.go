@@ -68,6 +68,19 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 		return nil, fmt.Errorf("--body-file: %w", err)
 	}
 
+	// The frontmatter this write carries is re-serialized from a tree
+	// loaded off disk, so a hand-edited field would ride into the commit
+	// under `aiwf-verb: edit-body` and be attributed to a body edit
+	// (G-0463). Both modes are body-only; both refuse the same way.
+	diverged, err := workingFrontmatterDiverged(ctx, t.Root, e.Path)
+	if err != nil {
+		//coverage:ignore defensive: the loader read this same path moments ago to build e, so a failure here needs the file to vanish or git to break mid-verb
+		return nil, err
+	}
+	if diverged {
+		return nil, errFrontmatterChangedInWorkingCopy(e.ID)
+	}
+
 	// Re-serialize the existing entity (no frontmatter mutation) with
 	// the new body. Same atomic-write shape as promote/cancel: one
 	// OpWrite on the entity file produces one git commit, so the
@@ -112,10 +125,37 @@ func editBodyExplicit(ctx context.Context, t *tree.Tree, e *entity.Entity, body 
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
 		Trailers: standardTrailers("edit-body", e.ID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content}},
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: content, AdoptsWorkingCopy: true}},
 	})
 	result.Metadata = map[string]any{"entity_id": e.ID}
 	return result, nil
+}
+
+// errFrontmatterChangedInWorkingCopy is the refusal both edit-body modes
+// raise when the working copy's frontmatter no longer matches HEAD's. It
+// names the verbs that own structured state, so the operator's next step
+// is in the message rather than in the docs.
+func errFrontmatterChangedInWorkingCopy(id string) error {
+	return fmt.Errorf("%s: frontmatter changed in the working copy — `aiwf edit-body` is body-only by design; use `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate` for structured-state edits", id)
+}
+
+// workingFrontmatterDiverged reports whether the working copy at relPath
+// carries frontmatter differing from HEAD's. An entity with no committed
+// version has nothing to diverge from, so it reports false and explicit
+// mode keeps working for a file that exists only in the working tree.
+func workingFrontmatterDiverged(ctx context.Context, root, relPath string) (bool, error) {
+	headBytes, err := gitops.ReadFromHEAD(ctx, root, filepath.ToSlash(relPath))
+	if err != nil { //coverage:ignore defensive: ReadFromHEAD maps a missing path to (nil, nil); a non-nil error needs git absent or a broken workdir, matching the same arm in editBodyBless
+		return false, fmt.Errorf("reading HEAD version of %s: %w", relPath, err)
+	}
+	if headBytes == nil {
+		return false, nil
+	}
+	diskBytes, err := os.ReadFile(filepath.Join(root, relPath))
+	if err != nil { //coverage:ignore defensive: the loader read this same path to build the entity moments earlier
+		return false, fmt.Errorf("reading working copy of %s: %w", relPath, err)
+	}
+	return !entity.SameFrontmatterFields(headBytes, diskBytes), nil
 }
 
 // explicitBodySettled reports whether writing content would change nothing an
@@ -194,7 +234,7 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 		return nil, fmt.Errorf("%s HEAD version lacks a frontmatter delimiter; the file was committed without one — fix the HEAD version with a structured-state verb first", e.Path)
 	}
 	if !bytes.Equal(workingFM, headFM) {
-		return nil, fmt.Errorf("%s: frontmatter changed in the working copy — `aiwf edit-body` is body-only by design; use `aiwf promote` / `aiwf rename` / `aiwf cancel` / `aiwf reallocate` for structured-state edits", e.ID)
+		return nil, errFrontmatterChangedInWorkingCopy(e.ID)
 	}
 	if err := validateUserBodyBytes(workingBody); err != nil {
 		return nil, fmt.Errorf("on-disk body of %s: %w", e.Path, err)
@@ -224,7 +264,7 @@ func editBodyBless(ctx context.Context, t *tree.Tree, e *entity.Entity, actor, r
 		Subject:  fmt.Sprintf("aiwf edit-body %s", e.ID),
 		Body:     reason,
 		Trailers: standardTrailers("edit-body", e.ID, actor),
-		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: workingBytes}},
+		Ops:      []FileOp{{Type: OpWrite, Path: e.Path, Content: workingBytes, AdoptsWorkingCopy: true}},
 	})
 	result.Metadata = map[string]any{"entity_id": e.ID}
 	return result, nil

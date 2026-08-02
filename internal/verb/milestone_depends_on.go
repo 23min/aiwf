@@ -37,7 +37,6 @@ import (
 // reason is optional free-form prose; when non-empty it lands in the
 // commit body so the rationale surfaces in `aiwf history`.
 func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []string, clearList bool, actor, reason string) (*Result, error) {
-	_ = ctx
 	if entity.IsCompositeID(id) {
 		return nil, fmt.Errorf("milestone depends-on does not accept composite ids; pass a milestone id (M-NNN)")
 	}
@@ -82,6 +81,10 @@ func MilestoneDependsOn(ctx context.Context, t *tree.Tree, id string, deps []str
 		// for this same field. Width normalization across the tree is
 		// `aiwf rewidth`'s job, not a side effect of an edge declaration.
 		modified.DependsOn = append([]string(nil), deps...)
+	}
+
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 
 	// Same-state convergence (M-0281/AC-7): the list already reads exactly as

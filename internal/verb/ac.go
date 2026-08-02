@@ -176,10 +176,13 @@ func batchACTrailers(compositeIDs []string, actor string) []gitops.Trailer {
 // the parent milestone file with the AC's new status, run projection
 // findings, plan the commit. Trailers carry the composite id and
 // aiwf-to: <newStatus>.
-func promoteAC(t *tree.Tree, compositeID string, newStatus entity.Status, actor, reason string, force bool) (*Result, error) {
+func promoteAC(ctx context.Context, t *tree.Tree, compositeID string, newStatus entity.Status, actor, reason string, force bool) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
+	}
+	if claimErr := guardClaim(ctx, t.Root, compositeID, parent.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-9): the AC already holds the
 	// requested status, so there is nothing to change — converge instead of
@@ -262,10 +265,13 @@ func PromoteACPhase(ctx context.Context, t *tree.Tree, compositeID, newPhase, ac
 // status is not terminal (IsTerminalACStatus answers false for unknown
 // input by design), so it reaches this consult and is refused;
 // `--force` remains the sanctioned repair path.
-func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Result, error) {
+func cancelAC(ctx context.Context, t *tree.Tree, compositeID, actor, reason string, force bool) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
+	}
+	if claimErr := guardClaim(ctx, t.Root, compositeID, parent.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	if entity.IsTerminalACStatus(ac.Status) {
 		return &Result{
@@ -295,7 +301,7 @@ func cancelAC(t *tree.Tree, compositeID, actor, reason string, force bool) (*Res
 // renameAC handles `aiwf rename M-NNN/AC-N "<new-title>"`. Updates
 // the AC's title in the milestone's frontmatter and rewrites the
 // matching `### AC-<N>` body heading. One commit, no path change.
-func renameAC(t *tree.Tree, compositeID, newTitle, actor string, maxLength int) (*Result, error) {
+func renameAC(ctx context.Context, t *tree.Tree, compositeID, newTitle, actor string, maxLength int) (*Result, error) {
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("rename: new title is empty")
 	}
@@ -314,6 +320,9 @@ func renameAC(t *tree.Tree, compositeID, newTitle, actor string, maxLength int) 
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
+	}
+	if claimErr := guardClaim(ctx, t.Root, compositeID, parent.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-5): an AC carries a title but no slug,
 	// so `rename` on a composite id operates on that title. The entity-level

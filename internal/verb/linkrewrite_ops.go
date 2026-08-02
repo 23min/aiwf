@@ -20,9 +20,9 @@ import (
 // candidates, mirroring `aiwf archive`'s own forget-by-default
 // exclusion (ADR-0004).
 //
-// moves is always non-empty at both call sites — Rename always
-// produces at least its own entity's move, and Retitle only calls
-// this helper inside its own `len(moves) > 0` branch — so there is no
+// moves is always non-empty at every call site — Rename always produces
+// at least its own entity's move, and Retitle and Archive each call this
+// helper only inside their own non-empty check — so there is no
 // empty-moves guard here.
 func planLinkRewriteWrites(tr *tree.Tree, moves []EntityMove, exclude map[string]bool) ([]FileOp, error) {
 	postMovePath := make(map[string]string, len(moves))

@@ -70,11 +70,14 @@ func Promote(ctx context.Context, t *tree.Tree, id string, newStatus entity.Stat
 		if opts.hasResolverFlag() {
 			return nil, fmt.Errorf("resolver flags (--by/--by-commit/--superseded-by) are not valid for AC promotions")
 		}
-		return promoteAC(t, id, newStatus, actor, reason, force)
+		return promoteAC(ctx, t, id, newStatus, actor, reason, force)
 	}
 	e := t.ByID(id)
 	if e == nil {
 		return nil, fmt.Errorf("entity %q not found", id)
+	}
+	if claimErr := guardClaim(ctx, t.Root, id, promoteClaimPaths(t, e, opts)...); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-1, ADR-0036): a promote whose target
 	// status already equals the current status AND whose resolver flags would
@@ -387,6 +390,32 @@ func validateResolverFlags(k entity.Kind, newStatus entity.Status, opts PromoteO
 func isResolutionClassStatus(k entity.Kind, status entity.Status) bool {
 	return (k == entity.KindGap && status == entity.StatusAddressed) ||
 		(k == entity.KindADR && status == entity.StatusSuperseded)
+}
+
+// promoteClaimPaths returns the files promote reads to decide what to
+// do. Usually just the target's, but --superseded-by makes the decision
+// span two entities: promoteWouldWrite consults the superseding ADR's
+// reciprocal back-link from the loaded tree, and reciprocalSupersedesOp
+// decides from those same bytes whether to emit a write for it at all.
+//
+// That second consult is why the guard has to refuse rather than merely
+// record. Measured: with the back-link hand-edited onto disk, promote
+// read it, concluded the reciprocal was already stored, emitted no op for
+// that file — so the plan never named it, the commit-side guard never saw
+// it, and a one-sided supersession landed at exit 0 with no local finding,
+// since the working copy that caused it also satisfies
+// adr-supersession-mutual.
+//
+// An unresolvable --superseded-by contributes no path rather than
+// refusing here; the resolver validation downstream owns that message.
+func promoteClaimPaths(t *tree.Tree, e *entity.Entity, opts PromoteOptions) []string {
+	paths := []string{e.Path}
+	if opts.SupersededBy != "" {
+		if other := t.ByID(opts.SupersededBy); other != nil && other.Path != e.Path {
+			paths = append(paths, other.Path)
+		}
+	}
+	return paths
 }
 
 // promoteWouldWrite reports whether the resolver flags in opts would change

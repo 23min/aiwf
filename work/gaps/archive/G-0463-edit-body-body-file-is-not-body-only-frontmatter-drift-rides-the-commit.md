@@ -1,9 +1,11 @@
 ---
 id: G-0463
 title: 'edit-body --body-file is not body-only: frontmatter drift rides the commit'
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0281
+addressed_by_commit:
+    - 51d04c88
 ---
 ## What's missing
 

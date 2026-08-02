@@ -156,3 +156,23 @@ func TestCarriesOwnArea(t *testing.T) {
 		}
 	}
 }
+
+// TestNormalizeForKind pins the single implementation of the one
+// normalization rule the tree loader applies at read time: blank Area for
+// a kind that does not carry its own, leave every other kind's Area
+// untouched. A second caller (internal/verb's adopting-write guard)
+// reconstructs an entity's canonical frontmatter outside the loader and
+// calls this same function, so the two cannot drift apart.
+func TestNormalizeForKind(t *testing.T) {
+	t.Parallel()
+	milestone := &Entity{ID: "M-0001", Area: "some-area"}
+	NormalizeForKind(milestone, KindMilestone)
+	if milestone.Area != "" {
+		t.Errorf("NormalizeForKind(milestone) left Area = %q, want blanked", milestone.Area)
+	}
+	gap := &Entity{ID: "G-0001", Area: "platform"}
+	NormalizeForKind(gap, KindGap)
+	if gap.Area != "platform" {
+		t.Errorf("NormalizeForKind(gap) changed Area to %q, want untouched", gap.Area)
+	}
+}

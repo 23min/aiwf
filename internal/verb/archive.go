@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -61,8 +62,8 @@ func Archive(ctx context.Context, root, actor, kindFilter string) (*Result, erro
 			// epic is actually stranded on a non-terminal child — that
 			// would silently hide the exact problem this guard exists
 			// to surface.
-			msg = fmt.Sprintf("aiwf archive: no entities swept; %d epic(s) skipped (non-terminal children): %s",
-				len(skipped), formatArchiveSkips(skipped))
+			msg = fmt.Sprintf("aiwf archive: no entities swept; %d %s skipped: %s",
+				len(skipped), pluralize(len(skipped), "entity", "entities"), formatArchiveSkips(skipped))
 		}
 		return &Result{NoOp: true, NoOpMessage: msg}, nil
 	}
@@ -104,6 +105,13 @@ type archiveMove struct {
 type archiveSkip struct {
 	epic     string
 	children []string
+
+	// id and blockedBy record the other reason a move is declined: a
+	// file the sweep's verdict about that entity rests on is mid-edit,
+	// so the verdict is unavailable rather than negative. Exactly one of
+	// the two shapes is populated per skip.
+	id        string
+	blockedBy []string
 }
 
 // formatArchiveSkips renders skipped epics and their offending
@@ -112,7 +120,11 @@ type archiveSkip struct {
 func formatArchiveSkips(skipped []archiveSkip) string {
 	parts := make([]string, 0, len(skipped))
 	for _, s := range skipped {
-		parts = append(parts, fmt.Sprintf("%s (non-terminal: %s)", s.epic, strings.Join(s.children, ", ")))
+		if s.epic != "" {
+			parts = append(parts, fmt.Sprintf("%s (non-terminal: %s)", s.epic, strings.Join(s.children, ", ")))
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s (uncommitted changes in %s)", s.id, strings.Join(s.blockedBy, ", ")))
 	}
 	return strings.Join(parts, "; ")
 }
@@ -133,6 +145,10 @@ func planArchive(ctx context.Context, root, kindFilter string) (*Plan, []archive
 
 	moves, skipped, err := computeArchiveMoves(tr, kindFilter)
 	if err != nil {
+		return nil, nil, err
+	}
+	moves, skipped, err = declineUndecidableMoves(ctx, root, tr, moves, skipped)
+	if err != nil { //coverage:ignore defensive: every error inside declineUndecidableMoves is itself an annotated git-unusable arm, reachable only if the repo breaks between the tree load and here
 		return nil, nil, err
 	}
 	if len(moves) == 0 {
@@ -217,36 +233,7 @@ func planArchiveRewrites(tr *tree.Tree, moves []archiveMove) ([]FileOp, error) {
 	if len(entityMoves) == 0 {
 		return nil, nil //coverage:ignore unreachable: planArchive only calls this when moves is non-empty, and every archiveMove (gap/decision/adr direct, or epic/contract via its own dir-shape entity) yields at least one EntityMove
 	}
-	postMovePath := make(map[string]string, len(entityMoves))
-	for _, m := range entityMoves {
-		postMovePath[m.From] = m.To
-	}
-
-	var ops []FileOp
-	for _, e := range tr.Entities {
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
-		linkingPath := e.Path
-		if to, ok := postMovePath[e.Path]; ok {
-			linkingPath = to
-		}
-		body, err := readBody(tr.Root, e.Path)
-		if err != nil { //coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
-			return nil, err
-		}
-		newBody := RewriteLinkDestinations(body, linkingPath, entityMoves)
-		if bytes.Equal(newBody, body) {
-			continue
-		}
-		content, err := entity.Serialize(e, newBody)
-		if err != nil { //coverage:ignore defensive: Serialize fails only on a malformed entity; e already round-tripped through the loader
-			return nil, fmt.Errorf("serializing %s after archive link rewrite: %w", e.ID, err)
-		}
-		ops = append(ops, FileOp{Type: OpWrite, Path: linkingPath, Content: content})
-	}
-	sort.Slice(ops, func(i, j int) bool { return ops[i].Path < ops[j].Path })
-	return ops, nil
+	return planLinkRewriteWrites(tr, entityMoves, nil)
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
@@ -466,7 +453,8 @@ func archiveCommitSubject(moves []archiveMove) string {
 			parts = append(parts, fmt.Sprintf("%d %s", n, k))
 		}
 	}
-	return fmt.Sprintf("aiwf archive: sweep %d entit%s into archive/ (%s)",
+	return fmt.Sprintf(
+		"aiwf archive: sweep %d entit%s into archive/ (%s)",
 		len(moves),
 		pluralize(len(moves), "y", "ies"),
 		strings.Join(parts, ", "),
@@ -502,7 +490,7 @@ func pluralize(n int, singularSuffix, pluralSuffix string) string {
 //	Affected ids:
 //	  E-0010, E-0017, C-0010, G-0010, G-0011, ..., D-0007, ADR-0001
 //
-//	Skipped (non-terminal children; G-0394):
+//	Skipped:
 //	  E-0020: M-0030, M-0031
 //
 // rewriteCount is the number of entity-body link-destination rewrites
@@ -550,9 +538,13 @@ func archiveCommitBody(moves []archiveMove, skipped []archiveSkip, rewriteCount 
 		if sb.Len() > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString("Skipped (non-terminal children; G-0394):\n")
+		sb.WriteString("Skipped:\n")
 		for _, s := range skipped {
-			fmt.Fprintf(&sb, "  %s: %s\n", s.epic, strings.Join(s.children, ", "))
+			if s.epic != "" {
+				fmt.Fprintf(&sb, "  %s: non-terminal children (G-0394): %s\n", s.epic, strings.Join(s.children, ", "))
+				continue
+			}
+			fmt.Fprintf(&sb, "  %s: uncommitted changes in %s\n", s.id, strings.Join(s.blockedBy, ", "))
 		}
 	}
 
@@ -564,4 +556,442 @@ func archiveCommitBody(moves []archiveMove, skipped []archiveSkip, rewriteCount 
 	}
 
 	return sb.String()
+}
+
+// declineUndecidableMoves drops the candidate moves whose verdict rests
+// on a file the operator is part-way through editing, and reports each
+// one instead of sweeping it.
+//
+// A sweep decides three things by reading the working copy, and each can
+// be contradicted by the record:
+//
+//   - whether the entity is terminal at all, read from its own file;
+//   - whether a referring entity needs its link rewritten, read from
+//     that referrer's body. planArchiveRewrites emits nothing when the
+//     working copy does not carry the committed link, so a move made
+//     alongside a mid-edit referrer lands without its rewrite, leaving a
+//     link to a path absent at HEAD. Such a link is unrepairable: an
+//     archived target is excluded from every later scan by
+//     IsArchivedPath, so no re-run reaches it;
+//   - whether an epic owns a non-terminal child, read from the
+//     children's files. A mid-edit child reads as non-terminal, which
+//     the commit body would assert against a record that says otherwise.
+//
+// Declining the affected move rather than refusing the whole sweep is
+// what keeps an unrelated draft from blocking unrelated work: every move
+// that survives has a verdict resting entirely on committed bytes.
+//
+// Referrers are matched against HEAD's body, not the working copy's.
+// The working copy is precisely what cannot be trusted here — a draft
+// that dropped the link is invisible to a working-copy scan, which is
+// the defect. Cost is one HEAD read per mid-edit entity file, so it
+// scales with what the operator is editing rather than with the tree.
+func declineUndecidableMoves(
+	ctx context.Context,
+	root string,
+	tr *tree.Tree,
+	moves []archiveMove,
+	skipped []archiveSkip,
+) ([]archiveMove, []archiveSkip, error) {
+	dirty, err := dirtyEntityPaths(ctx, root, tr)
+	if err != nil { //coverage:ignore defensive: dirtyEntityPaths errors only when git is unusable, which the tree load from this same root already ruled out
+		return nil, nil, err
+	}
+	// Everything a directory move would carry, entity or not: a stray
+	// file beneath a swept epic rides into the commit and becomes tracked
+	// from it, so it decides that move as surely as a status does.
+	carried, err := dirtyPathsUnderMoves(ctx, root, moves)
+	if err != nil { //coverage:ignore defensive: same non-repo condition dirtyEntityPaths just passed
+		return nil, nil, err
+	}
+	if len(dirty) == 0 && len(carried) == 0 {
+		return moves, skipped, nil
+	}
+
+	// An epic declined for a non-terminal child it may not actually own:
+	// the child is mid-edit, so the verdict is unavailable. Report the
+	// uncommitted change rather than an accusation HEAD contradicts.
+	for i := range skipped {
+		var blocked []string
+		for _, childID := range skipped[i].children {
+			child := tr.ByID(childID)
+			if child == nil { //coverage:ignore defensive: children come from the loaded tree's own parent index
+				continue
+			}
+			if dirty[filepath.ToSlash(child.Path)] {
+				blocked = append(blocked, filepath.ToSlash(child.Path))
+			}
+		}
+		if len(blocked) > 0 {
+			skipped[i] = archiveSkip{id: skipped[i].epic, blockedBy: blocked}
+		}
+	}
+
+	headBodies := make(map[string][]byte, len(dirty))
+	candidate := make(map[string]bool, len(moves))
+	for _, m := range moves {
+		candidate[m.from] = true
+	}
+	kept := moves[:0:0]
+	for _, m := range moves {
+		blockers, blockErr := moveBlockers(ctx, root, tr, m, dirty, carried, headBodies)
+		if blockErr != nil { //coverage:ignore defensive: moveBlockers errors only on a HEAD read for a path the dirty set just resolved
+			return nil, nil, blockErr
+		}
+		if len(blockers) == 0 {
+			kept = append(kept, m)
+			continue
+		}
+		sort.Strings(blockers)
+		skipped = append(skipped, archiveSkip{id: m.id, blockedBy: blockers})
+	}
+
+	// An entity terminal at HEAD but not in the working copy never became
+	// a candidate at all, so nothing above declined it. Reporting it is
+	// what keeps the sweep from calling the tree converged while the
+	// record says a sweep is due.
+	masked, err := maskedTerminalSkips(ctx, root, tr, dirty, candidate, headBodies)
+	if err != nil { //coverage:ignore defensive: the tree loaded from this root moments earlier, so a git failure here needs the repo to break mid-verb
+		return nil, nil, err
+	}
+	skipped = append(skipped, masked...)
+	return kept, skipped, nil
+}
+
+// maskedTerminalSkips reports entities whose committed status is terminal
+// while their mid-edit working copy is not. The sweep reads the working
+// copy, so these are invisible to it: measured, a gap at `wontfix` in
+// HEAD and `open` on disk made `aiwf archive` answer "tree is converged"
+// at exit 0 with a sweep genuinely due against the record.
+//
+// Nothing is written either way — the entity simply stays put — so this
+// changes what the operator is told rather than what happens.
+func maskedTerminalSkips(
+	ctx context.Context,
+	root string,
+	tr *tree.Tree,
+	dirty, candidate map[string]bool,
+	headBodies map[string][]byte,
+) ([]archiveSkip, error) {
+	var out []archiveSkip
+	for _, e := range tr.Entities {
+		path := filepath.ToSlash(e.Path)
+		if !dirty[path] || candidate[path] || entity.IsArchivedPath(path) {
+			continue
+		}
+		if entity.IsTerminal(e.Kind, e.Status) {
+			continue // terminal on disk too; it was declined above or swept
+		}
+		content, ok := headBodies[path]
+		if !ok {
+			raw, err := gitops.ReadFromHEAD(ctx, root, path)
+			if err != nil { //coverage:ignore defensive: the path is in the dirty set, so it resolved at HEAD moments earlier
+				return nil, fmt.Errorf("reading %s at HEAD: %w", path, err)
+			}
+			content = raw
+			headBodies[path] = raw
+		}
+		if len(content) == 0 {
+			continue
+		}
+		committed, err := entity.Parse(path, content)
+		if err != nil {
+			continue //coverage:ignore defensive: HEAD carries a committed entity, which parsed when it landed
+		}
+		// Parse decodes frontmatter only; kind is derived from the path,
+		// which the working copy has not moved.
+		if entity.IsTerminal(e.Kind, committed.Status) {
+			out = append(out, archiveSkip{id: e.ID, blockedBy: []string{path}})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].id < out[j].id })
+	return out, nil
+}
+
+// moveEnds returns the paths a move touches: the source it carries and
+// the destination it lands on.
+//
+// Both of the decline's own reach computations reach through this one
+// function, and the commit-side guard enumerates the same pair by its own
+// means (planCarriedPaths walks op.Path and op.NewPath alike). A
+// destination missing from either enumeration is content the commit
+// replaces without anyone naming it — and, where the guard sees it and
+// the decline does not, a whole-verb refusal for a single participant.
+func moveEnds(m archiveMove) []string {
+	return []string{m.from, m.to}
+}
+
+// moveBlockers returns the mid-edit files that make one move's verdict
+// undecidable: the moved path itself, anything beneath it for a
+// directory-shaped kind, and any entity whose committed body links into
+// the move.
+func moveBlockers(
+	ctx context.Context,
+	root string,
+	tr *tree.Tree,
+	m archiveMove,
+	dirty, carried map[string]bool,
+	headBodies map[string][]byte,
+) ([]string, error) {
+	entityMoves := archiveEntityMoves(tr, []archiveMove{m})
+	seen := map[string]bool{}
+	var blockers []string
+	ends := moveEnds(m)
+	for path := range carried {
+		for _, end := range ends {
+			if !pathInside(path, end) {
+				continue
+			}
+			blockers = append(blockers, path)
+			seen[path] = true
+			break
+		}
+	}
+	// Everything the move physically carries is already accounted for
+	// above; what remains is the entity whose committed body links into
+	// the move from outside it.
+	for path := range dirty {
+		if seen[path] {
+			continue
+		}
+		// Archived entities are not referrers. planArchiveRewrites skips
+		// them as linking-file candidates under ADR-0004's forget-by-default
+		// rule, so no sweep rewrites an archived body and none can lose a
+		// link. Counting one here would decline a candidate on the state of
+		// a file the sweep would never have touched.
+		if entity.IsArchivedPath(path) {
+			continue
+		}
+		body, ok := headBodies[path]
+		if !ok {
+			raw, err := gitops.ReadFromHEAD(ctx, root, path)
+			if err != nil { //coverage:ignore defensive: the path is in the dirty set, so it resolved against HEAD in the same call chain
+				return nil, fmt.Errorf("reading %s at HEAD: %w", path, err)
+			}
+			body = raw
+			headBodies[path] = raw
+		}
+		if len(body) == 0 {
+			// Absent from the record. A referrer's rewrite is an OpWrite to
+			// that referrer's own path, and the commit-side guard exempts an
+			// absent-from-HEAD divergence at exactly that shape — a file git
+			// never recorded has no committed content the write could
+			// overwrite — so the write lands and the two seams agree by both
+			// letting it through. Blocking here would decline a candidate the
+			// commit would have accepted.
+			//
+			// The exemption is that narrow: an untracked file merely carried
+			// along by a directory move is not an OpWrite's own destination
+			// and is not exempt, which is why the carried set is judged
+			// above rather than here.
+			continue
+		}
+		// A link in either copy is a link the sweep's verdict rests on. The
+		// rewrite pass reads the working copy and emits its op from that;
+		// the record is what a lost link is lost from. Consulting one side
+		// only lets the two disagree, and every such disagreement ends the
+		// same way — a move nothing declined carrying a write the guard
+		// then refuses for the whole verb.
+		if linksIntoMove(entityBody(body), path, entityMoves) || linksIntoMove(workingBodyAt(root, path), path, entityMoves) {
+			blockers = append(blockers, path)
+		}
+	}
+	return blockers, nil
+}
+
+// entityBody returns the markdown body of a serialized entity file.
+//
+// Both link scans and the rewrite pass operate on the body alone, and
+// they have to operate on the same slice: the scan tracks fenced regions
+// by counting ```-leading lines, so frontmatter carrying one — a YAML
+// block scalar will — flips the parity and hides every link in the body
+// behind it. Handing one side the whole file is therefore not a
+// conservative approximation of handing it the body; it can miss a link
+// the other side sees.
+//
+// A file that does not split has no frontmatter to exclude, so it is
+// scanned whole.
+func entityBody(raw []byte) []byte {
+	if _, body, ok := entity.Split(raw); ok {
+		return body
+	}
+	return raw
+}
+
+// linksIntoMove reports whether body carries a link that one of the moves
+// would rewrite. An empty body carries nothing.
+func linksIntoMove(body []byte, linkingPath string, moves []EntityMove) bool {
+	if len(body) == 0 {
+		return false
+	}
+	return !bytes.Equal(RewriteLinkDestinations(body, linkingPath, moves), body)
+}
+
+// workingBodyAt returns the working copy's bytes for path, or nil when it
+// cannot be read. Unreadable is the same answer as absent here: a file the
+// sweep cannot read carries no link it can act on, and the paths that
+// reach this point are already known to differ from the record — a
+// deleted referrer among them, which is exactly the unreadable case.
+func workingBodyAt(root, path string) []byte {
+	raw, err := readBody(root, path)
+	if err != nil {
+		return nil
+	}
+	return raw
+}
+
+// recordedEntityPaths returns the entity files HEAD records, as
+// repo-relative slash paths.
+//
+// Classification is entity.PathKind, the same predicate the loader
+// applies while walking the working tree, so the record's view of what
+// counts as an entity file cannot drift from the working copy's. Every
+// path in HEAD's tree is offered to it rather than pre-filtered by
+// directory, which would fork the loader's walk roots into a second
+// copy that no test compares against the first.
+func recordedEntityPaths(ctx context.Context, root string) ([]string, error) {
+	paths, err := gitops.LsTreePaths(ctx, root, "HEAD")
+	if err != nil { //coverage:ignore defensive: HEAD resolves (callers consult HasHEAD first), leaving only a git ls-tree subprocess failure, which needs the repo to break mid-verb
+		return nil, fmt.Errorf("listing the entity files recorded at HEAD: %w", err)
+	}
+	var out []string
+	for _, p := range paths {
+		if _, ok := entity.PathKind(p); ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+// dirtyEntityPaths returns the entity files that differ from the record,
+// as a set of repo-relative paths — including files git has never
+// recorded, which differ from it maximally, and files the record carries
+// that the working copy no longer resolves as entities. An unborn HEAD
+// has no record to differ from at all, so the set is empty.
+//
+// The candidate set is the union of both views precisely because a
+// disagreement between them is the condition worth reporting: an entity
+// enumerated from the working tree alone drops out of the comparison at
+// the moment it stops parsing, which is the moment it most needs to be
+// in it.
+//
+// Callers that need "has a committed version" ask for HEAD's content and
+// find it empty; keeping that judgement at the one place it is used stops
+// the two answers drifting apart.
+func dirtyEntityPaths(ctx context.Context, root string, tr *tree.Tree) (map[string]bool, error) {
+	hasHEAD, err := gitops.HasHEAD(ctx, root)
+	if err != nil { //coverage:ignore defensive: HasHEAD errors only outside a repo, which the tree load already required
+		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
+	}
+	if !hasHEAD {
+		return nil, nil
+	}
+	seen := make(map[string]bool, len(tr.Entities))
+	paths := make([]string, 0, len(tr.Entities))
+	add := func(p string) {
+		if seen[p] {
+			return
+		}
+		seen[p] = true
+		paths = append(paths, p)
+	}
+	for _, e := range tr.Entities {
+		add(filepath.ToSlash(e.Path))
+	}
+	// The record's entity files as well as the loaded tree's. An entity
+	// the loader dropped — deleted, hand-renamed, or carrying momentarily
+	// unparseable frontmatter — is absent from tr.Entities while the
+	// record still carries it and whatever links it holds. Enumerating
+	// only the loaded tree makes precisely the files most likely to be
+	// mid-edit invisible to every comparison built on this set.
+	recorded, err := recordedEntityPaths(ctx, root)
+	if err != nil { //coverage:ignore defensive: recordedEntityPaths fails only on an unusable git — HEAD resolves by the HasHEAD check above
+		return nil, err
+	}
+	for _, p := range recorded {
+		add(p)
+	}
+	files, dirs := splitDirectoryPaths(root, paths)
+	diverged, err := gitops.DivergentPaths(ctx, root, files)
+	if err != nil { //coverage:ignore defensive: same non-repo condition HasHEAD just passed
+		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
+	}
+	out := make(map[string]bool, len(diverged)+len(dirs))
+	for _, d := range diverged {
+		out[d.Path] = true
+	}
+	// A path the record carries as a file and the working tree holds as a
+	// directory disagrees with the record as surely as an edit does, and
+	// more so. It cannot be compared byte-wise, so it is named divergent
+	// here instead: DivergentPaths refuses a directory outright, and a
+	// refusal there would take the whole sweep down over one participant —
+	// the outcome the per-candidate decline exists to replace.
+	for _, p := range dirs {
+		out[p] = true
+	}
+	return out, nil
+}
+
+// splitDirectoryPaths partitions paths into the files a byte-wise
+// comparison can handle and the paths the working tree holds as a
+// directory.
+func splitDirectoryPaths(root string, paths []string) (files, dirs []string) {
+	files = make([]string, 0, len(paths))
+	for _, p := range paths {
+		if info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(p))); err == nil && info.IsDir() {
+			dirs = append(dirs, p)
+			continue
+		}
+		files = append(files, p)
+	}
+	return files, dirs
+}
+
+// dirtyPathsUnderMoves returns every path beneath one of the candidate
+// moves whose working copy disagrees with the record — edited, never
+// committed, or recorded and missing from disk alike.
+//
+// A move carries whatever sits under it regardless of what git chooses
+// to report, so the comparison is HEAD's blobs against the paths the
+// move would carry rather than git's dirty set. Without that, a
+// candidate whose file is ignored, `assume-unchanged`, or omitted by a
+// sparse checkout reads as clean here and the sweep proceeds — leaving
+// the commit-side guard to refuse the whole verb where a per-candidate
+// decline was the point.
+func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove) (map[string]bool, error) {
+	if len(moves) == 0 {
+		return nil, nil
+	}
+	hasHEAD, err := gitops.HasHEAD(ctx, root)
+	if err != nil { //coverage:ignore defensive: HasHEAD errors only outside a repo, which the tree load already required
+		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
+	}
+	if !hasHEAD {
+		return nil, nil
+	}
+	seen := map[string]bool{}
+	var carried []string
+	add := func(p string) {
+		if seen[p] {
+			return
+		}
+		seen[p] = true
+		carried = append(carried, p)
+	}
+	for _, m := range moves {
+		for _, end := range moveEnds(m) {
+			if carriedErr := addCarriedUnder(ctx, root, end, add, true); carriedErr != nil { //coverage:ignore unreachable here: tree.Load walks work/ including archive/, so an unreadable subtree under either end of a move fails the load before this runs, and HEAD resolves by the check above
+				return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
+			}
+		}
+	}
+	diverged, err := gitops.DivergentPaths(ctx, root, carried)
+	if err != nil {
+		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
+	}
+	out := make(map[string]bool, len(diverged))
+	for _, d := range diverged {
+		out[d.Path] = true
+	}
+	return out, nil
 }
