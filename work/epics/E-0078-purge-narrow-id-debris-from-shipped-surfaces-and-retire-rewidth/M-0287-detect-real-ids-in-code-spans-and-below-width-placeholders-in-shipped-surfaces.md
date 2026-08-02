@@ -14,7 +14,7 @@ acs:
       status: met
       tdd_phase: done
     - id: AC-3
-      title: proseMask is unchanged and body-prose-id still exempts code constructs
+      title: body-prose-id's view of a body does not move
       status: met
       tdd_phase: done
     - id: AC-4
@@ -204,7 +204,7 @@ does not confuse a legacy width with a malformed shape.
 
 · commits ff6d186b0, fd97f0ee4 · `make check-fast` exit 0
 
-### AC-3 — proseMask invariance
+### AC-3 — body-prose-id's view of a body does not move
 
 A differential test asserts the two masks directly rather than inferring them
 from downstream findings: they agree on prose, on raw HTML, and on all four
