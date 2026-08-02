@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: An archived referrer mid-edit does not block an unrelated candidate
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Both ends of a move are enumerated
       status: open
