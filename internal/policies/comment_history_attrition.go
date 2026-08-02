@@ -86,9 +86,10 @@ func emptyTreeOID(root string) (string, error) {
 }
 
 // historyOKMarker is the deliberate-exception escape, mirroring
-// //coverage:ignore. It is directive-shaped (no space after the slashes) so
-// gofmt leaves it alone, and hasDirectiveComment requires it to open the
-// comment it escapes.
+// //coverage:ignore. It is directive-shaped (no space after the slashes),
+// which is the spelling gofmt preserves verbatim rather than reflowing into
+// `// history:ok`, and hasDirectiveComment requires it to open the comment
+// it escapes.
 //
 // It exempts the whole comment group it appears in — a legacy-format note is
 // usually a paragraph, not one line. That is where it parts company with the

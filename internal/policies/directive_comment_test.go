@@ -52,7 +52,7 @@ func TestHasDirectiveComment(t *testing.T) {
 		{"a comment opening with a block marker is not a directive", "/* MARKER legacy on-disk format */", false},
 	}
 
-	for _, marker := range []string{historyOKMarker, execOKMarker} {
+	for _, marker := range []string{historyOKMarker, execOKMarker, coverageIgnoreMarker} {
 		for _, tt := range tests {
 			t.Run(marker+"/"+tt.name, func(t *testing.T) {
 				t.Parallel()
@@ -66,15 +66,30 @@ func TestHasDirectiveComment(t *testing.T) {
 }
 
 // TestHasDirectiveComment_MarkersDoNotCrossMatch pins that each policy's
-// escape is inert against the other's marker, so annotating an exec-mode
-// call cannot silence a history finding or the reverse.
+// escape is inert against every other marker in the family, so annotating an
+// exec-mode call cannot silence a history finding or a coverage one.
+//
+// Each marker annotates a different property, and the three gates fire on
+// different evidence; one directive standing in for another would exempt a
+// block nobody examined.
 func TestHasDirectiveComment_MarkersDoNotCrossMatch(t *testing.T) {
 	t.Parallel()
 
-	if hasDirectiveComment("//"+execOKMarker+" the mode is the subject", historyOKMarker) {
-		t.Errorf("an //%s directive must not satisfy the %s escape", execOKMarker, historyOKMarker)
+	family := map[string]string{
+		historyOKMarker:      "legacy on-disk format",
+		execOKMarker:         "the mode is the subject",
+		coverageIgnoreMarker: "unreachable in fixtures",
 	}
-	if hasDirectiveComment("//"+historyOKMarker+" legacy on-disk format", execOKMarker) {
-		t.Errorf("a //%s directive must not satisfy the %s escape", historyOKMarker, execOKMarker)
+
+	for written, reason := range family {
+		raw := "//" + written + " " + reason
+		for asked := range family {
+			if asked == written {
+				continue
+			}
+			if hasDirectiveComment(raw, asked) {
+				t.Errorf("a //%s directive must not satisfy the %s escape; %q matched", written, asked, raw)
+			}
+		}
 	}
 }

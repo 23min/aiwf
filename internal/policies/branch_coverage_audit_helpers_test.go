@@ -99,7 +99,7 @@ func TestBranchCoverageViolations_Errors(t *testing.T) {
 		}
 	})
 
-	t.Run("readSourceLines error when a changed file is unreadable", func(t *testing.T) {
+	t.Run("coverageIgnoreLines error when a changed file is unreadable", func(t *testing.T) {
 		t.Parallel()
 		const headSrc = "package foo\n\nfunc Add(a, b int) int {\n\tif a < 0 {\n\t\treturn 0\n\t}\n\treturn a + b\n}\n"
 		profile := "mode: atomic\n" + fixtureModule + "/internal/foo/bar.go:4.12,6.3 1 0\n"
@@ -570,16 +570,25 @@ func TestSortedKeys(t *testing.T) {
 
 func TestBlockHasCoverageIgnore(t *testing.T) {
 	t.Parallel()
-	src := []string{"line1", "line2 //coverage:ignore reason", "line3"}
+	ignored := map[int]bool{2: true}
 
-	if !blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 3}, src) {
+	if !blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 3}, ignored) {
 		t.Error("expected ignore directive within span to be found")
 	}
-	if blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 1}, src) {
+	if blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 1}, ignored) {
 		t.Error("unexpected match outside the annotated line")
 	}
-	// Out-of-range span must not panic and must report no match.
-	if blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 99}, []string{"only"}) {
-		t.Error("out-of-range span should not match")
+	// A span reaching past every annotated line must report no match.
+	if blockHasCoverageIgnore(coverBlock{StartLine: 3, EndLine: 99}, ignored) {
+		t.Error("span holding no annotated line should not match")
+	}
+	// Both ends of the span are inclusive. The profile emits single-line
+	// blocks (StartLine == EndLine), so an exclusive end would drop the
+	// annotation on exactly the statement it was written for.
+	if !blockHasCoverageIgnore(coverBlock{StartLine: 1, EndLine: 2}, ignored) {
+		t.Error("a directive on the span's last line must exempt the block")
+	}
+	if !blockHasCoverageIgnore(coverBlock{StartLine: 2, EndLine: 2}, ignored) {
+		t.Error("a directive on a single-line block must exempt it")
 	}
 }
