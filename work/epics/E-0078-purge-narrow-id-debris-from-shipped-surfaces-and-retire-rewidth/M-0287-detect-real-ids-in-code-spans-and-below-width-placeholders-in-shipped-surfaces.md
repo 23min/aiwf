@@ -107,13 +107,18 @@ than as silent loss of coverage.
 
 ## Design notes
 
-- The width check extends `skill-body-id` and distinguishes the two behaviors by
-  subcode — `real-id` and `narrow-placeholder` — rather than shipping as a
-  sibling rule (D-0051). One corpus walk and one severity flip; the remediation
-  text, the only axis that differs, varies through the hint table. Severity
-  follows the detected class rather than the rule: a real id in prose keeps error
-  severity, since it has no outstanding sites and so blocks no push, while the
-  two newly-detected classes land at warning.
+- The width check extends `skill-body-id` as one un-subcoded finding code rather
+  than shipping as a sibling rule or splitting by subcode (D-0051). Both shapes
+  share a remediation — write the canonical letter-N placeholder — so one hint
+  states the fix for both, and the taxonomy gains nothing a consumer could act on
+  in a repo where this rule is structurally inert. Severity follows the detected
+  class rather than the rule: a real id in prose keeps error severity, since it
+  has no outstanding sites and so blocks no push, while the newly-reachable
+  classes land at warning.
+- The severity split is scaffolding with a defined lifetime. Once the sweep
+  completes and severity flips, the prose/code distinction stops meaning
+  anything, so the machinery implementing it is deleted alongside the flip rather
+  than left standing.
 - The width detector subsumes the partial one in
   `TestSkillBodyID_PlaceholdersAreCanonical`, which reads `SKILL.md`
   post-frontmatter bodies through the shared mask. That test keeps its real-tree
@@ -139,3 +144,31 @@ than as silent loss of coverage.
 
 - G-0481 — the audit: per-tier counts, both guard holes, the keep-list rationale.
 - E-0076 — the same missing-detector pattern across three unrelated instances.
+
+## Work log
+
+### AC-1 — Real ids in code constructs
+
+`ScanSkillBodyID` scans through `proseAndCodeMask`, a second entry point onto
+`proseMask`'s walker parameterized by whether code constructs are content, so
+`body-prose-id`'s narrower view is unchanged by construction rather than by
+convention. Severity follows the detected class. On this tree: 34 warnings, 0
+errors — the worklist the sweep milestone consumes, blocking no push.
+
+Measured before building: all 50 real-id citations in the shipped trees sit
+inside code constructs and none in plain prose, so the mask alone accounted for
+the rule's complete silence.
+
+Two contract changes ride along. The code-construct exemption was pinned as a
+deliberate carve-out in three places; those now assert the reverse, with the
+doc-link destination kept as the one surviving carve-out. And the two real-tree
+assertions filter to error severity for the sweep window — a real, temporary
+reduction that ends when the flip lands, at which point they become whole-tree
+zero gates again with no edit.
+
+· commit 08c6489f9 · check package green, `make check-fast` exit 0
+
+## Decisions made during implementation
+
+- D-0051 — extend `skill-body-id` as one un-subcoded rule rather than a sibling
+  or a subcode split.
