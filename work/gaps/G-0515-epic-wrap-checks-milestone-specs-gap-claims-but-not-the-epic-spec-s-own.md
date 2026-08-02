@@ -43,16 +43,23 @@ closing something that is still real. The rule is a disposition, not a status:
 either close it, or correct the spec's claim to say what actually landed and
 what remains. Silence is the only forbidden outcome.
 
-Precondition 6 is pinned by nothing today, so the evidence is one structural
-assertion that the ritual's Precondition section names the epic's own spec —
-`extractMarkdownSection(body, 2, "Precondition")`, the shape the neighbouring
-reconcile-before-merge assertion already uses.
+Precondition 6 already has an assertion, which pins its closure command and its
+follow-up warning but says nothing about whose claim it covers. The evidence is
+that assertion extended rather than a new one: the numbered item must name the
+epic's own spec, and the disposition must offer correcting the claim alongside
+closing the gap.
+
+The milestone half of the widened precondition is deliberately unpinned.
+`aiwfx-wrap-milestone` closes a milestone's claimed gaps at its own wrap, so the
+epic-level check is already a backstop there; an assertion guarding it would
+guard a backstop of a backstop against an edit nobody has made.
 
 ## Cost and retirement
 
 This is +1 rule, so it answers to H3 (*additions carry*). It costs once rather
-than per subject: one assertion over one section, not a mandate every future
-epic must satisfy with a new artifact.
+than per subject — a widened precondition and three checks inside an assertion
+that already runs, not a mandate every future epic satisfies with a new
+artifact. The test count does not move.
 
 **Owner:** the `aiwfx-wrap-epic` ritual — the precondition and its assertion
 live and die together.
