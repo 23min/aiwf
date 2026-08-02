@@ -8,6 +8,7 @@ acs:
     - id: AC-1
       title: A referrer absent from the loaded tree but present at HEAD declines the move
       status: open
+      tdd_phase: red
     - id: AC-2
       title: An archived referrer mid-edit does not block an unrelated candidate
       status: open
