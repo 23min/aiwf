@@ -1039,7 +1039,7 @@ Addresses G-0458, G-0459, G-0460 and G-0461.
 
 _No milestones yet._
 
-## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (active)
+## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (done)
 
 ### Goal
 
@@ -1086,7 +1086,7 @@ G-0454, G-0455.
 
 _No milestones yet._
 
-## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (proposed)
+## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (active)
 
 ### Goal
 
