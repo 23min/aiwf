@@ -1,14 +1,14 @@
 ---
-id: M-NNN
+id: M-NNNN
 title: <imperative title>
-parent: E-NN              # required: the parent epic id
+parent: E-NNNN            # required: the parent epic id
 status: draft             # aiwf milestone statuses: draft | in_progress | done | cancelled
 depends_on: []            # optional: prior milestone ids the DAG depends on
 tdd: none                 # optional: required | advisory | none (default none)
-acs: []                   # optional: filled by `aiwf add ac <M-id> --title "..."`
+acs: []                   # optional: filled by `aiwf add ac <milestone id> --title "..."`
 ---
 
-# M-NNN — <Milestone Title>
+# <milestone id> — <Milestone Title>
 
 ## Goal
 
@@ -25,7 +25,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 ## Acceptance criteria
 
 <!-- ACs are first-class kernel state under aiwf I2. Add each via:
-       aiwf add ac M-NNN --title "<observable behavior>"
+       aiwf add ac <milestone id> --title "<observable behavior>"
      The verb appends the AC to frontmatter `acs:` (seeded at the pre-cycle
      empty phase regardless of tdd policy — the live red promote records the
      failing test later) and scaffolds a `### AC-<N> — <title>`
@@ -38,7 +38,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 
 ### AC-1 — <observable behavior>
 
-<Prose: examples, edge cases, references to ADR-NNNN / D-NNN / surfaces touched.>
+<Prose: examples, edge cases, references to `ADR-NNNN` / `D-NNNN` / surfaces touched.>
 
 ### AC-2 — <observable behavior>
 
@@ -50,7 +50,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 
 ## Design notes
 
-- <Locked decisions approved before implementation. Reference ADRs by id (ADR-NNNN) or aiwf decisions (D-NNN)>
+- <Locked decisions approved before implementation. Reference ADRs by id (`ADR-NNNN`) or aiwf decisions (`D-NNNN`)>
 
 ## Surfaces touched (optional)
 
@@ -78,7 +78,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 
 ## References
 
-- <ADRs (ADR-NNNN), aiwf decisions (D-NNN), related specs, external docs>
+- <ADRs (`ADR-NNNN`), aiwf decisions (`D-NNNN`), related specs, external docs>
 
 ---
 
@@ -96,7 +96,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
      Optional prose paragraph for non-obvious context: what changed, file:line
      references, why a detour was needed. Phase transitions for `tdd: required`
      milestones should be visible here too (red/green/refactor/done) — but the
-     authoritative record is `aiwf history M-NNN/AC-<N>` via the kernel's
+     authoritative record is `aiwf history <milestone id>/AC-<N>` via the kernel's
      trailers, so don't duplicate the timeline here. -->
 
 ### AC-1 — <short title>
@@ -106,7 +106,7 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 ## Decisions made during implementation
 
 <!-- Decisions that came up mid-work that were NOT pre-locked above in `## Design
-     notes`. For each: what was decided, why, and a link to the ADR or D-NNN id
+     notes`. For each: what was decided, why, and a link to the ADR or decision id
      that captures the durable reasoning (use `aiwfx-record-decision`).
      If no new decisions arose, say "None — all decisions are pre-locked above." -->
 
@@ -120,8 +120,8 @@ acs: []                   # optional: filled by `aiwf add ac <M-id> --title "...
 ## Deferrals
 
 <!-- Work this milestone deliberately punted. Each must be opened as a gap entity
-     (`aiwf add gap --title "..." --discovered-in M-NNN`) and the resulting
-     G-NNN id mirrored here, so the deferral survives. -->
+     (`aiwf add gap --title "..." --discovered-in <milestone id>`) and the
+     resulting gap id mirrored here, so the deferral survives. -->
 
 - (none)
 

@@ -1,17 +1,17 @@
 ---
-id: D-NNN
+id: D-NNNN
 title: <imperative, ≤ 60 chars>
 status: proposed         # aiwf decision statuses: proposed | accepted | superseded | rejected
-relates_to: []           # optional: list of E-NN, M-NNN, ADR-NNNN this decision touches
-supersedes: []           # optional: list of D-NNN this replaces
-superseded_by:           # optional: D-NNN that replaces this
+relates_to: []           # optional: list of E-NNNN, M-NNNN, ADR-NNNN this decision touches
+supersedes: []           # optional: list of D-NNNN this replaces
+superseded_by:           # optional: D-NNNN that replaces this
 ---
 
-# D-NNN — <Decision Title>
+# <decision id> — <Decision Title>
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
-aiwf decisions (`D-NNN`) capture project-scoped choices — typically tied to an epic or a milestone — that don't rise to the architectural weight of an ADR. Use this template for: scope cuts, sequencing decisions, mid-implementation pivots, deliberate trade-offs that the team should be able to find later.
+aiwf decisions (`D-NNNN`) capture project-scoped choices — typically tied to an epic or a milestone — that don't rise to the architectural weight of an ADR. Use this template for: scope cuts, sequencing decisions, mid-implementation pivots, deliberate trade-offs that the team should be able to find later.
 
 If the decision is architectural, durable, and crosses multiple epics — author it as an ADR (`ADR-NNNN`) instead.
 

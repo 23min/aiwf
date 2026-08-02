@@ -6,7 +6,7 @@ supersedes: []           # optional: list of ADR ids this replaces
 superseded_by:           # optional: ADR id that replaces this one
 ---
 
-# ADR-NNNN — <imperative title>
+# <ADR id> — <imperative title>
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 
@@ -44,6 +44,6 @@ How will we know this decision still holds? A measurable signal, a periodic revi
 ## References (optional)
 
 - Related ADRs: `ADR-NNNN`
-- aiwf decisions: `D-NNN`
-- Linked epics or milestones: `E-NN`, `M-NNN`
+- aiwf decisions: `D-NNNN`
+- Linked epics or milestones: `E-NNNN`, `M-NNNN`
 - External: docs, specs, RFCs
