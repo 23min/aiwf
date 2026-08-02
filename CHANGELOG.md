@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'
+
+The `aiwfx-wrap-epic` ritual's backstop for a spec that left a gap open it
+claims to fix covered each milestone's spec but not the epic's own — which no
+other step reads, so that claim was verified nowhere. The precondition now
+covers both, and its disposition admits the partial case: a gap the work
+advanced without finishing stays open on its own terms, and the spec's claim is
+corrected to say what landed and what remains rather than the gap being closed
+to satisfy the check.
+
 ### Changed — additions carry: a code-health force, and the change's shape at milestone review
 
 KISS and YAGNI both judge an addition against its own justification, so an
