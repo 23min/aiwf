@@ -1,8 +1,10 @@
 ---
 id: G-0509
 title: E-0075's user-visible refusal is absent from CHANGELOG
-status: open
+status: addressed
 discovered_in: M-0285
+addressed_by_commit:
+    - 6249148e21f6ae2caa5967d3f24c991df33094f9
 ---
 ## What's missing
 
