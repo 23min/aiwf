@@ -14,7 +14,7 @@ acs:
       title: Shipped entity templates seed no id shape that body-prose-id rejects
       status: open
     - id: AC-3
-      title: The keep-list files retain their teaching tokens unchanged
+      title: The documenting passages describe rejected shapes rather than exhibit them
       status: open
     - id: AC-4
       title: The rule runs at error severity and this repo passes it
