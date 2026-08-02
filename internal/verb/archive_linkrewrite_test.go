@@ -245,6 +245,9 @@ func TestArchive_SkipsAlreadyArchivedEntityAsLinkingFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if res.Plan == nil {
+		t.Fatalf("no plan produced; the sweep should still move the terminal entity:\n%s", res.NoOpMessage)
+	}
 	for _, op := range res.Plan.Ops {
 		if op.Type == verb.OpWrite {
 			t.Errorf("unexpected OpWrite %+v — an already-archived entity must never be treated as a linking-file candidate", op)

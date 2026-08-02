@@ -1060,7 +1060,7 @@ Addresses G-0466 and G-0463.
 | M-0283 | Spike the guard's mechanics and land the commit-side seam | done |
 | M-0284 | Land the claim-side precondition and record each sweep's call | done |
 | M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | done |
-| M-0286 | Close the archive sweep's referrer and destination gaps | draft |
+| M-0286 | Close the archive sweep's referrer and destination gaps | in_progress |
 
 ## E-0076 — Chokepoints for three documented rules that have no detector (proposed)
 
