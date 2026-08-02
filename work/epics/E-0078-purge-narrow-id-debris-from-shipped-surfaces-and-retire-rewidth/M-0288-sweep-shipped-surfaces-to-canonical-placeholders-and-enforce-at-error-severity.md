@@ -8,13 +8,13 @@ depends_on:
 tdd: required
 acs:
     - id: AC-1
-      title: No embedded surface carries a narrow id or placeholder outside the keep-list
+      title: No embedded surface carries a narrow id or placeholder
       status: open
     - id: AC-2
       title: Shipped entity templates seed no id shape that body-prose-id rejects
       status: open
     - id: AC-3
-      title: The keep-list files retain their teaching tokens unchanged
+      title: The documenting passages describe rejected shapes rather than exhibit them
       status: open
     - id: AC-4
       title: The rule runs at error severity and this repo passes it
@@ -42,10 +42,10 @@ trees, which is the collision the placeholder convention exists to prevent.
 
 ## Acceptance criteria
 
-### AC-1 — No embedded surface carries a narrow id or placeholder outside the keep-list
+### AC-1 — No embedded surface carries a narrow id or placeholder
 
 Every file under the three embedded trees is free of narrow ids and
-below-canonical-width placeholders, except the three keep-list files.
+below-canonical-width placeholders. No file is exempted (D-0052).
 
 This subsumes the two real-entity citations — a real milestone id in an
 `aiwf-edit-body` fenced comment and a real epic id in an `aiwf-acknowledge`
@@ -69,16 +69,22 @@ Evidence: `ScanBodyProseID` run over each shipped template's body reports zero
 findings — the shipped check applied to the shipped template, so the two surfaces
 cannot contradict each other again.
 
-### AC-3 — The keep-list files retain their teaching tokens unchanged
+### AC-3 — The documenting passages describe rejected shapes rather than exhibit them
 
-Two of the three keep-list files need surgical edits rather than exemption: the
-planning rituals keep their narrow *numerics*, which teach the
-conversational-shorthand rule, while their narrow *placeholders* must go. A
-mechanical find-and-replace across the corpus would destroy the teaching cases.
+Three passages document rules that reject malformed and narrow shapes: the
+`aiwf-check` skill's findings table, and the two planning rituals' anti-pattern
+bullets. Each is rewritten to name the rejected shape — a letter suffix, a
+numeric form narrower than canonical width — instead of spelling an instance of
+it. That is what removes the last thing an exemption would have been for.
 
-Evidence: a positive assertion that each keep-list file still contains the
-specific tokens its rule depends on, so a sweep that flattens them fails rather
-than passing silently.
+These three need rewriting rather than sweeping: a mechanical replacement would
+turn an instruction about a bad shape into an instruction about a good one, which
+reads as nonsense.
+
+Evidence: the three files produce zero findings, plus a structural assertion that
+each passage still teaches its rule — the findings-table row still names its
+subcode, each anti-pattern bullet still sits under its heading — so a rewrite
+that clears the tokens by deleting the instruction fails rather than passing.
 
 ### AC-4 — The rule runs at error severity and this repo passes it
 
@@ -95,7 +101,9 @@ Evidence: an assertion on the emitted finding's severity, plus this repo's own
   fictional id.**
 - **The severity flip lands last.** No commit in this milestone leaves the tree
   with an incomplete sweep and an error-severity rule.
-- **The keep-list files are edited surgically**, never swept mechanically.
+- **The three documenting passages are rewritten, never swept mechanically.** A
+  find-and-replace over a passage whose subject is a bad shape inverts its
+  meaning.
 - **Worked-example transcripts lose distinct ids and keep their titles.** The
   fictional scenario in the status and list skills renders every milestone as the
   same placeholder; the titles carry the distinctions. A guard with no transcript

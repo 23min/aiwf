@@ -92,6 +92,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// disk. Tests fixture narrow inputs to exercise that contract.
 		"internal/entity/allocate_test.go": "allocator parser-tolerance: narrow on-disk ids → canonical next allocation",
 
+		// The skill-body-id rule sorts an id-shaped token into "real id" or
+		// "placeholder defect", and the boundary between them is exactly a
+		// narrow NUMERIC id: read tolerance makes E-01 a real id at legacy
+		// width, not a malformed placeholder. The narrow literal IS the
+		// input that proves the classifier does not confuse the two.
+		"internal/check/skill_body_id_placeholder_width_test.go": "placeholder-width classifier: narrow numeric ids must classify as real-id citations, not width defects",
+
 		// Contractbind's unbind preserves the on-disk yaml entry
 		// verbatim (body-prose canonicalization is M-082's job).
 		"internal/verb/contractbind_test.go": "yaml-entry round-trip preserves narrow legacy widths verbatim (deferred to M-082)",

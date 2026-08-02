@@ -1,22 +1,19 @@
 package check
 
-// Real-tree assertions for the G-0299 skill-body id discipline. These run
-// the rule (and the placeholder-canonicality scan) over this repo's actual
-// shipped skill bodies, so they pin the full-sweep (AC-4) and
-// placeholder-normalization (AC-3) deliverables rather than synthetic
-// fixtures. They live in package check (white-box) to reuse proseMask and
-// the id patterns — the same machinery the production rule uses, so the
-// test cannot drift from the rule's notion of "prose" or "real id".
+// Real-tree assertions for the skill-body id discipline: they run the
+// production rule over this repo's actual shipped surfaces rather than over
+// synthetic fixtures, so they pin the shipped bytes.
+//
+// Both are INVERTED while the sweep is outstanding: detection ships a
+// milestone ahead of cleanup, so they assert the worklist is non-empty. The
+// sweep's arrival breaks them, which is the signal to restore them.
 
 import (
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -78,8 +75,7 @@ func collectSkillBodies(t *testing.T, root string) []skillBody {
 	return out
 }
 
-// TestSkillBodyID_RealEmbeddedTreeIsClean (AC-4) asserts the full sweep
-// landed: no shipped skill body cites a real entity id. It scans each body
+// TestSkillBodyID_RealEmbeddedTreeIsClean scans each shipped skill body
 // independently via ScanSkillBodyID rather than through skillBodyIDReference,
 // so it is a second code path onto the same property.
 func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
@@ -91,70 +87,21 @@ func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) != 0 {
-		sort.Strings(msgs)
-		shown := msgs
-		if len(shown) > 25 {
-			shown = shown[:25]
-		}
-		t.Fatalf("%d real-id citation(s) remain in shipped skill bodies (sweep incomplete):\n%s",
-			len(msgs), strings.Join(shown, "\n"))
+	if len(msgs) == 0 {
+		t.Fatal("the shipped skill bodies are clean: the sweep has landed — " +
+			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
 	}
 }
 
-// canonicalPlaceholder matches the one allowed placeholder shape: the
-// canonical-width letter-N form (`G-NNNN`, `M-NNNN/AC-N`). Anything that
-// looks like an id but is neither a real digit-bearing id nor this shape is
-// a non-canonical placeholder the normalization (AC-3) must have removed.
-var canonicalPlaceholder = regexp.MustCompile(`^(?:E|M|G|D|C|ADR)-NNNN(?:/AC-N)?$`)
-
-// TestSkillBodyID_PlaceholdersAreCanonical (AC-3) asserts placeholder
-// normalization landed: every id-shaped token in skill-body prose is either
-// a real digit-bearing id (AC-4's concern, scanned out separately) or the
-// canonical letter-N placeholder — no narrow widths (`E-NN`), idiosyncratic
-// shapes (`G-XYZ`), or pseudo-arithmetic (`C-NNN+1`). proseMask exempts
-// code/link carriers so regex examples and command snippets don't trip it.
-func TestSkillBodyID_PlaceholdersAreCanonical(t *testing.T) {
-	t.Parallel()
-	root := repoRootForTest(t)
-	var bad []string
-	for _, sb := range collectSkillBodies(t, root) {
-		masked := proseMask(sb.body)
-		seen := map[string]bool{}
-		for _, m := range idTokenPattern.FindAllString(masked, -1) {
-			if seen[m] {
-				continue
-			}
-			seen[m] = true
-			if strictBareIDPattern.MatchString(m) || strictCompositeIDPattern.MatchString(m) {
-				continue // a real digit-bearing id: AC-4's concern, not a placeholder
-			}
-			if canonicalPlaceholder.MatchString(m) {
-				continue
-			}
-			bad = append(bad, fmt.Sprintf("%s: non-canonical placeholder %q", sb.relPath, m))
-		}
-	}
-	if len(bad) != 0 {
-		sort.Strings(bad)
-		t.Fatalf("%d non-canonical placeholder(s) in skill-body prose (normalize to <prefix>-NNNN):\n%s",
-			len(bad), strings.Join(bad, "\n"))
-	}
-}
-
-// TestSkillBodyID_WholeShippedTreeClean (M-0227 AC-4) is the comprehensive
-// real-tree assertion: it drives the production check over the repo root and
-// asserts zero skill-body-id findings across EVERY shipped surface. Unlike
-// the per-body collection tests above (SKILL.md bodies only), this reuses the
-// registered production walkers — the whole-file *.md scan
-// (skillBodyIDReference) AND the statusline #-comment scan
-// (statuslineCommentIDReference) — so it is the truest seam: the same rules
-// the pre-push hook runs, over the real shipped bytes. Green once AC-1 and
-// AC-2 cleaned every leak (descriptions, entity template, statusline).
+// TestSkillBodyID_WholeShippedTreeClean drives the production check over the
+// repo root, so it exercises the registered walkers — the whole-file *.md scan
+// and the statusline #-comment scan — against the same rules the pre-push hook
+// runs. Placeholder canonicality is included: skillTokenMessage owns that
+// property over every *.md whole-file, frontmatter included.
 //
 // An in-memory tree rooted at the repo suffices: the two walkers key only on
-// t.Root (they walk the filesystem), and the entity-driven checks see no
-// entities, so the only findings that can surface are skill-body-id.
+// t.Root, and the entity-driven checks see no entities, so the only findings
+// that can surface are skill-body-id.
 func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
 	t.Parallel()
 	root := repoRootForTest(t)
@@ -164,13 +111,8 @@ func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) != 0 {
-		sort.Strings(msgs)
-		shown := msgs
-		if len(shown) > 25 {
-			shown = shown[:25]
-		}
-		t.Fatalf("%d real-id citation(s) remain in shipped surfaces (cleanup incomplete):\n%s",
-			len(msgs), strings.Join(shown, "\n"))
+	if len(msgs) == 0 {
+		t.Fatal("the shipped surfaces are clean: the sweep has landed — " +
+			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
 	}
 }

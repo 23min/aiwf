@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -195,4 +196,34 @@ func violationMentions(vs []Violation, sub string) bool {
 		}
 	}
 	return false
+}
+
+// TestPolicy_SkillBodyIDRowMatchesEmittedSeverity pins the aiwf-check skill's
+// two Findings tables as a severity contract rather than a layout preference:
+// an operator reads the errors table as "this blocks my push". The rule emits
+// warning while its sweep is outstanding, so its row belongs in the warnings
+// table — and when the sweep lands and severity flips, this test fails until
+// the row moves back, which is the point.
+func TestPolicy_SkillBodyIDRowMatchesEmittedSeverity(t *testing.T) {
+	t.Parallel()
+	root, err := repoRootFromTest(t)
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	body, err := os.ReadFile(filepath.Join(root, skillCheckPath))
+	if err != nil {
+		t.Fatalf("read aiwf-check skill: %v", err)
+	}
+	const row = "| `skill-body-id` |"
+	warnings := markdownSection(string(body), "## Findings (warnings)")
+	errors := markdownSection(string(body), "## Findings (errors)")
+	if warnings == "" || errors == "" {
+		t.Fatal("aiwf-check skill is missing one of its Findings sections")
+	}
+	if strings.Contains(errors, row) {
+		t.Error("skill-body-id is documented in the errors table but the rule emits warning; move the row to `## Findings (warnings)`")
+	}
+	if !strings.Contains(warnings, row) {
+		t.Error("skill-body-id is not documented in the warnings table; the rule emits warning, so that is where its row belongs")
+	}
 }
