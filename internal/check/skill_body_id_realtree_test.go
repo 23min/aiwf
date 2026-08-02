@@ -4,14 +4,9 @@ package check
 // production rule over this repo's actual shipped surfaces rather than over
 // synthetic fixtures, so they pin the shipped bytes.
 //
-// Both are INVERTED while the sweep is outstanding. Detection ships a
-// milestone ahead of cleanup, so "no shipped surface carries a bad id shape"
-// is deliberately false, and the honest assertion is that the worklist is
-// non-empty. That choice is load-bearing rather than cosmetic: a plain skip
-// would never un-skip itself, and a filter on a severity the rule does not
-// emit would pass against an empty set while reading like a gate. Inverting
-// makes the sweep's arrival break these tests, which is the signal to restore
-// them.
+// Both are INVERTED while the sweep is outstanding: detection ships a
+// milestone ahead of cleanup, so they assert the worklist is non-empty. The
+// sweep's arrival breaks them, which is the signal to restore them.
 
 import (
 	"fmt"
@@ -101,7 +96,7 @@ func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
 // TestSkillBodyID_WholeShippedTreeClean drives the production check over the
 // repo root, so it exercises the registered walkers — the whole-file *.md scan
 // and the statusline #-comment scan — against the same rules the pre-push hook
-// runs. Placeholder canonicality is included: classifySkillToken owns that
+// runs. Placeholder canonicality is included: skillTokenMessage owns that
 // property over every *.md whole-file, frontmatter included.
 //
 // An in-memory tree rooted at the repo suffices: the two walkers key only on

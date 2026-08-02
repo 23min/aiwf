@@ -182,10 +182,12 @@ pin, so its red is that the test catches the defect it guards: four drift modes
 probed by mutation (code spans, fenced blocks, indented blocks, newline
 preservation), all four caught.
 
-The AC's other named fixture — a real id inside a code span in an entity body
-staying silent — already exists in the `body-prose-id` suite, so it is not
-duplicated here. The "existing fixtures pass unchanged" half is met by that
-suite's eleven-case CommonMark table continuing to pass.
+The AC names a second fixture — a *real* id inside a code span in an entity body
+staying silent — which would assert nothing: `body-prose-id` is silent on any
+id that resolves, mask or no mask. The fixtures that do exercise the mask are the
+malformed and unresolved shapes, and those already exist in that suite. The
+"existing fixtures pass unchanged" half is met by its eleven-case CommonMark
+table continuing to pass.
 
 · commit e656ed5d4 · `make check-fast` exit 0
 

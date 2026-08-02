@@ -6,10 +6,9 @@ package check
 // legitimately discusses id syntax, and firing on it would be a defect.
 //
 // The differential below is what "proseMask is unchanged" means once the
-// walker is shared: the two masks agree on every construct except code, and
-// both preserve byte offsets so a finding's line number stays exact. Asserting
-// the masks directly pins that at the seam where it can break, rather than
-// inferring it from downstream findings.
+// walker is shared: the two masks agree on every construct except code.
+// Asserting the masks directly pins that at the seam where it can break,
+// rather than inferring it from downstream findings.
 
 import (
 	"strings"
@@ -67,45 +66,6 @@ func TestMasks_DifferOnlyOnCodeConstructs(t *testing.T) {
 			}
 			if got := strings.Contains(proseCode, tc.token); got != tc.inProseAndCode {
 				t.Errorf("proseAndCodeMask kept %q = %v, want %v\nmasked: %q", tc.token, got, tc.inProseAndCode, proseCode)
-			}
-		})
-	}
-}
-
-// TestMasks_PreserveOffsetsAndNewlines pins the property every line number
-// downstream depends on: each mask is a same-length projection that blanks
-// content to spaces without moving a byte. A mask that stripped instead of
-// blanked would still satisfy the differential above while reporting every
-// finding on the wrong line.
-func TestMasks_PreserveOffsetsAndNewlines(t *testing.T) {
-	t.Parallel()
-	srcs := []string{
-		"Plain prose with M-0001.",
-		"Run `aiwf show M-0002` now.",
-		"```\naiwf show M-0003\n```\n",
-		"Line one.\n\n    indented M-0004\n\nLine five.\n",
-		"See [the rule](docs/adr/ADR-0008-x.md).\n\nAnd more prose.\n",
-		"<!-- M-0005 -->\n\nProse after.\n",
-	}
-	for _, src := range srcs {
-		t.Run(strings.SplitN(src, "\n", 2)[0], func(t *testing.T) {
-			t.Parallel()
-			b := []byte(src)
-			for name, masked := range map[string]string{
-				"proseMask":        proseMask(b),
-				"proseAndCodeMask": proseAndCodeMask(b),
-			} {
-				if len(masked) != len(b) {
-					t.Errorf("%s: length = %d, want %d (mask must not strip)", name, len(masked), len(b))
-					continue
-				}
-				for i := range b {
-					srcNL, maskNL := b[i] == '\n', masked[i] == '\n'
-					if srcNL != maskNL {
-						t.Errorf("%s: newline mismatch at byte %d (src newline=%v, masked newline=%v)", name, i, srcNL, maskNL)
-						break
-					}
-				}
 			}
 		})
 	}

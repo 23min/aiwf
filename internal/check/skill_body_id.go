@@ -102,34 +102,6 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 // names a shape that cannot exist.
 var canonicalPlaceholderPattern = regexp.MustCompile(`^(?:E|G|D|C|ADR)-NNNN$|^M-NNNN(?:/AC-N)?$`)
 
-// skillTokenClass names how an id-shaped token in a shipped surface reads.
-type skillTokenClass int
-
-const (
-	// tokenOK is a canonical placeholder: the shape these surfaces exist to
-	// teach.
-	tokenOK skillTokenClass = iota
-	// tokenRealID is a digit-bearing id — meaningless in a consumer repo and
-	// stale-prone in this one.
-	tokenRealID
-	// tokenBadPlaceholder is an id-shaped token that is neither.
-	tokenBadPlaceholder
-)
-
-// classifySkillToken sorts one id-shaped token into the classes above. A
-// narrow NUMERIC id (`E-01`) is a real id at a legacy width, not a
-// placeholder: read tolerance keeps it resolving, so it classifies as a
-// citation rather than a width defect.
-func classifySkillToken(tok string) skillTokenClass {
-	if strictBareIDPattern.MatchString(tok) || strictCompositeIDPattern.MatchString(tok) {
-		return tokenRealID
-	}
-	if canonicalPlaceholderPattern.MatchString(tok) {
-		return tokenOK
-	}
-	return tokenBadPlaceholder
-}
-
 // scanMaskedForSkillIDs classifies every id-shaped token in masked — the
 // same-length, exempt-content-blanked projection of a source produced by
 // proseAndCodeMask (Markdown) or shellCommentMask (shell comments) — and
@@ -141,8 +113,8 @@ func scanMaskedForSkillIDs(masked, path string) []Finding {
 	seen := map[string]bool{}
 	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
 		tok := masked[m[0]:m[1]]
-		cls := classifySkillToken(tok)
-		if cls == tokenOK {
+		msg := skillTokenMessage(tok)
+		if msg == "" {
 			continue
 		}
 		if seen[tok] {
@@ -153,7 +125,7 @@ func scanMaskedForSkillIDs(masked, path string) []Finding {
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
 			Severity: SeverityWarning,
-			Message:  skillTokenMessage(cls, tok),
+			Message:  msg,
 			Path:     path,
 			Line:     line,
 			Field:    "body",
@@ -162,12 +134,24 @@ func scanMaskedForSkillIDs(masked, path string) []Finding {
 	return findings
 }
 
-// skillTokenMessage states what is wrong with tok. Both classes share a
-// remediation — write the canonical letter-N placeholder — so the two
-// messages differ in the defect they name, not in the fix they ask for.
-func skillTokenMessage(cls skillTokenClass, tok string) string {
-	if cls == tokenRealID {
+// skillTokenMessage classifies one id-shaped token and returns the finding
+// message for it, or "" when the token is the canonical letter-N placeholder —
+// the one shape these surfaces may carry. Empty-means-clean mirrors
+// classifyBodyToken in the sibling rule.
+//
+// A narrow NUMERIC id is a real id at a legacy width, not a placeholder: read
+// tolerance keeps it resolving, so it reads as a citation rather than a width
+// defect. That boundary is what the two patterns below are ordered to get
+// right.
+//
+// Both shapes share a remediation — write the canonical letter-N placeholder —
+// so the messages differ in the defect they name, not in the fix they ask for.
+func skillTokenMessage(tok string) string {
+	if strictBareIDPattern.MatchString(tok) || strictCompositeIDPattern.MatchString(tok) {
 		return fmt.Sprintf("shipped surface cites real entity id %q — shipped surfaces use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok)
+	}
+	if canonicalPlaceholderPattern.MatchString(tok) {
+		return ""
 	}
 	return fmt.Sprintf("shipped surface uses non-canonical placeholder %q — shipped surfaces use the canonical letter-N form (e.g. G-NNNN, M-NNNN/AC-N), which is the id shape a reader should learn", tok)
 }

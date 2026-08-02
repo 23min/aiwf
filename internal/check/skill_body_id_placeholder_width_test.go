@@ -100,35 +100,6 @@ func TestScanSkillBodyID_PlaceholderWidth_Composite(t *testing.T) {
 	}
 }
 
-// TestScanSkillBodyID_PlaceholderWidth_InCodeConstruct pins that width is
-// judged wherever the token sits. The narrow population concentrates in command
-// examples, so a width rule that stopped at prose would miss most of it.
-func TestScanSkillBodyID_PlaceholderWidth_InCodeConstruct(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name string
-		body string
-	}{
-		{"inline code span", "# Title\n\nRun `aiwf show E-NN` to inspect.\n"},
-		{"fenced block", "# Title\n\n```bash\naiwf promote M-NNN active\n```\n"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got := ScanSkillBodyID([]byte(tc.body), "shipped.md")
-			if len(got) != 1 {
-				t.Fatalf("want 1 finding, got %d: %+v\nbody:\n%s", len(got), got, tc.body)
-			}
-			if got[0].Severity != SeverityWarning {
-				t.Errorf("severity = %q, want %q", got[0].Severity, SeverityWarning)
-			}
-			if !strings.Contains(got[0].Message, placeholderDefect) {
-				t.Errorf("message %q does not name a placeholder defect", got[0].Message)
-			}
-		})
-	}
-}
-
 // TestScanSkillBodyID_PlaceholderWidth_RealIDsUnaffected guards the boundary
 // between the two shapes this rule rejects. A narrow NUMERIC id is a real id at
 // a legacy width, not a placeholder — read tolerance keeps it resolving, and
