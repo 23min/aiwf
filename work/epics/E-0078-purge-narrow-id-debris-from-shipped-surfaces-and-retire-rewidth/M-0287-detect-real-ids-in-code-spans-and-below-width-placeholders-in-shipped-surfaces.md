@@ -128,11 +128,12 @@ content it edits.
 - The two shapes are therefore distinguishable only by the defect the message
   names. A test that asserts classification asserts on the message; one that
   checks only that something fired cannot tell them apart.
-- The width detector subsumes the partial one in
-  `TestSkillBodyID_PlaceholdersAreCanonical`, which reads `SKILL.md`
-  post-frontmatter bodies through the shared mask. That test keeps its real-tree
-  assertion but reads the rule's output instead of re-deriving the property, so
-  the two cannot drift.
+- The width detector subsumes the partial one that lived in
+  `TestSkillBodyID_PlaceholdersAreCanonical`, which is deleted rather than
+  rewired: rewiring it to read the rule's output would have duplicated the
+  per-body real-tree assertion, which already scans that corpus. The production
+  rule owns the property over a strictly larger one — every `*.md` whole-file,
+  frontmatter included, with code constructs in scope.
 - The `:65` comment claiming external policing is itself the defect class E-0076
   is built around: a rule stated in an authoritative surface with no detector
   behind it reads as enforced, so the next reader stops looking. Whichever shape
