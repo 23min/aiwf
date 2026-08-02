@@ -84,6 +84,26 @@ func (r *runner) must(res *verb.Result, err error) *verb.Result {
 	return res
 }
 
+// commitFixture commits everything a fixture has just hand-written, so
+// the working tree is clean when the verb under test runs.
+//
+// Fixtures that plant an entity file directly are staging committed
+// state — a body carrying template placeholders, a heading that has
+// drifted from its title, a link left pointing at an old path. An
+// uncommitted version of that file is a different situation entirely:
+// it is an operator's unsaved edit, which Apply's uncommitted-change
+// guard refuses rather than folding into the verb's commit. Committing
+// here is what makes the fixture describe the state it means to.
+func commitFixture(t *testing.T, root, subject string) {
+	t.Helper()
+	if err := gitops.Add(t.Context(), root, "."); err != nil {
+		t.Fatalf("git add: %v", err)
+	}
+	if err := gitops.Commit(t.Context(), root, subject, "", nil); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+}
+
 // tree reloads the on-disk tree.
 func (r *runner) tree() *tree.Tree {
 	r.t.Helper()
@@ -369,6 +389,7 @@ func TestReallocate_RewritesReferences(t *testing.T) {
 	if err := os.WriteFile(m2Path, []byte(updated), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commitFixture(t, r.root, "fixture: depends_on edge at a narrow legacy width")
 
 	r.must(verb.Reallocate(r.ctx, r.tree(), "M-0001", testActor))
 
@@ -560,6 +581,7 @@ func TestReallocate_RewritesProseReferences(t *testing.T) {
 	), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commitFixture(t, r.root, "fixture: prose references at a narrow legacy width")
 
 	res, err := verb.Reallocate(r.ctx, r.tree(), "M-0001", testActor)
 	if err != nil {
@@ -626,6 +648,7 @@ func TestReallocate_RewritesProseAcrossMultipleEntities(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	commitFixture(t, r.root, "fixture: prose references across sibling milestones")
 
 	res, err := verb.Reallocate(r.ctx, r.tree(), "M-0001", testActor)
 	if err != nil {
@@ -668,6 +691,7 @@ func TestReallocate_RewritesSelfReferenceInTargetBody(t *testing.T) {
 	if werr := os.WriteFile(targetPath, []byte(updated), 0o644); werr != nil {
 		t.Fatal(werr)
 	}
+	commitFixture(t, r.root, "fixture: self-reference in the target body")
 
 	res, err := verb.Reallocate(r.ctx, r.tree(), "M-0001", testActor)
 	if err != nil {

@@ -20,6 +20,12 @@ import (
 func setPriorityTree(t *testing.T, gapPriority string) *tree.Tree {
 	t.Helper()
 	root := t.TempDir()
+	// The claim-side guard consults HEAD, so the fixture root is a real
+	// repo. Left with no commits on purpose: HEAD is unborn, the guard
+	// stands down, and these cases stay about the Plan's shape.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	var ents []*entity.Entity
 
 	write := func(e *entity.Entity, body string) {

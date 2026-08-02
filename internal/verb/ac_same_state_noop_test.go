@@ -225,6 +225,10 @@ func writeACStatus(t *testing.T, r *runner, status string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing the patched milestone: %v", writeErr)
 	}
+	// The state under test is drift the record already carries, not an
+	// operator's unsaved edit — which the claim-side guard refuses before
+	// any verb reads it (ADR-0038).
+	commitFixture(t, r.root, "fixture: plant milestone drift")
 }
 
 // TestPromoteAC_UnrecognizedStatus_RefusedNotConverged is the AC analogue of the
@@ -363,4 +367,8 @@ func writeACHeading(t *testing.T, r *runner, heading string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing the patched milestone: %v", writeErr)
 	}
+	// The state under test is drift the record already carries, not an
+	// operator's unsaved edit — which the claim-side guard refuses before
+	// any verb reads it (ADR-0038).
+	commitFixture(t, r.root, "fixture: plant milestone drift")
 }

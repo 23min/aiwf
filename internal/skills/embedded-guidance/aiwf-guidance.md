@@ -47,9 +47,9 @@ lives in the `wf-codebase-health` skill.
   with pros/cons and risks, your plain lean *with its argument*, a numbered
   pick-list. The reasoning is the deliverable; the container serves it — a
   card's terseness must not drop the pros/cons, the lean, or the argument.
-- **Fix closely-related issues in place.** A small adjacent correction is part of
-  the work, not a new entity; file a separate gap only when the issue is
-  architecturally distinct.
+- **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
+  this work already touches, covered by a test you're already writing? Make it now.
+  File a gap only when it needs its own branch, its own review, or a real decision.
 - **State the conclusion, not the drafting history — in entity bodies, docs,
   and code comments alike.** ADR / gap / decision bodies, milestone specs,
   and any doc you author record the current design, not how the text got
@@ -67,6 +67,11 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
+- **Reference-phrase counts; never hand-write a scalar the tree can move.**
+  "Every criterion listed below is met" survives; "all 16 are met" doesn't.
+  Comments and docs too: keep the reasoning, drop the arithmetic. A measurement
+  that *is* the point is a dated observation; a number belongs in an assertion
+  only where it is an invariant the code must hold to.
 - **Never write a fake id-shaped token in committed prose** (`M-alpha`, a number
   for an entity that doesn't exist); wrap an id-shape in backticks when discussing
   syntax. `aiwf check`'s `body-prose-id` rule enforces this.

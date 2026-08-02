@@ -146,6 +146,7 @@ func TestArchive_MultiEntitySweep_RecomputesAgainstFinalLayout(t *testing.T) {
 	if writeErr := os.WriteFile(epicFull, []byte(epicUpdated), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
+	commitFixture(t, r.root, "fixture: epic body linking to the milestone")
 
 	// Cascade order: terminal-ize the milestone before the epic
 	// (D-0003 guard refuses an epic cancel with non-terminal children).
@@ -243,6 +244,9 @@ func TestArchive_SkipsAlreadyArchivedEntityAsLinkingFile(t *testing.T) {
 	res, err := verb.Archive(r.ctx, r.root, testActor, "")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if res.Plan == nil {
+		t.Fatalf("no plan produced; the sweep should still move the terminal entity:\n%s", res.NoOpMessage)
 	}
 	for _, op := range res.Plan.Ops {
 		if op.Type == verb.OpWrite {

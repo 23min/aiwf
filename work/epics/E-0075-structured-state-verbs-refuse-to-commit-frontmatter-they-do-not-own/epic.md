@@ -1,13 +1,18 @@
 ---
 id: E-0075
 title: Structured-state verbs refuse to commit frontmatter they do not own
-status: active
+status: done
 ---
 ## Goal
 
-Stop a mutating verb from committing frontmatter it does not own, so a
-hand-edited field can no longer land under another verb's trailer and be
-attributed to an act that did not make it.
+Stop a mutating verb from committing entity content it does not own, so neither
+a hand-edited field nor an unblessed body edit can land under another verb's
+trailer and be attributed to an act that did not make it.
+
+The title says frontmatter; the defect is whole-file. A serializing verb reads
+the body off disk and re-serializes it around the frontmatter it computed, so
+both travel together into the same commit. The frontmatter case is the one that
+defeats a blocking check and remains the sharper half.
 
 Addresses G-0466 and G-0463.
 
@@ -167,20 +172,25 @@ direction for someone already running one, and it names four of the routes above
       longer reports "already set; nothing to change" while HEAD disagrees, and
       no longer commits a tree byte-identical to its parent when HEAD's value is
       the one requested.
-- [ ] An ADR records the four decisions listed in *Open questions*.
+- [ ] An unblessed body edit no longer rides into another verb's commit either —
+      the guard's field scope is decided rather than inherited, and whichever
+      way it lands, `aiwf history` stops attributing a body rewrite to a verb
+      that did not make it.
+- [ ] An ADR records the five decisions listed in *Open questions*.
 - [ ] The after-the-fact laundering check rule exists as its own entity — G-0480.
 - [ ] G-0466 and G-0463 are promoted to `addressed`.
 
 ## Open questions
 
-The first four are the decisions to land before any code. They are the epic's
+The first five are the decisions to land before any code. They are the epic's
 substance, not scheduling detail.
 
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Where the precondition runs, relative to the same-state NoOp comparison. In the verb prelude, before the same-state check, a NoOp guard can never be reached with HEAD-divergent frontmatter. At `verb.Apply` — the seam covering every route above — it catches the empty-diff case, which does produce a plan, but not the false NoOp: that guard returns from the verb body before any plan exists, so `Apply` is never reached | yes | ADR, first. Shared with E-0074, which waits on it |
-| Entity-scoped or committed-path-scoped. The nested case forces this — a guard comparing only the named entity's frontmatter misses a nested milestone's | yes | ADR |
-| Refuse or warn. Weigh against the illegal-FSM-transition escape, not against a laundered `priority`: refusing blocks a workflow that currently succeeds, permitting one lets a blocking check be bypassed | yes | ADR |
+| Entity-scoped or committed-path-scoped — the *path* axis. The nested case forces this: a guard comparing only the named entity's frontmatter misses a nested milestone's | yes | ADR |
+| Frontmatter-only or whole-file — the *field* axis, orthogonal to the path axis. The laundering is whole-file: a serializing verb reads the body off disk and re-serializes it around the frontmatter it computed, so an unblessed body edit lands under the verb's trailer with no `edit-body` event in `aiwf history`. Reproduced through `set-priority`. The cost is asymmetric — a hand-edited field is rare, an uncommitted body edit is the ordinary mid-state of the bless workflow — so this decision sets how often the guard fires at all | yes | ADR, together with refuse-or-warn |
+| Refuse or warn. Weigh against the illegal-FSM-transition escape, not against a laundered `priority`: refusing blocks a workflow that currently succeeds, permitting one lets a blocking check be bypassed. Coupled to the field axis above — under whole-file scope, refusing fires during the bless workflow rather than only on a rare mistake | yes | ADR, together with the field axis |
 | Whether an escape hatch exists, and what it costs. Not a question of reusing an existing lever — of the routes above, only `promote` and `cancel` expose `--force`. Adding it to the rest is a surface expansion with a completion-drift obligation, and the flag already carries several distinct meanings across the CLI | yes | ADR |
 | Whether each multi-entity sweep — `rename-area`, `rewidth --apply`, `import --on-collision update`, `archive` — is in or out | yes | explicit per-sweep call at milestone-planning; does not inherit the single-entity answer |
 
@@ -196,20 +206,29 @@ substance, not scheduling detail.
 
 ## Milestones
 
-In execution order. The chain is linear rather than partly parallel: the seam has
-to exist before routes reach it, and the invariant would fail against unrouted
-sweeps if it landed first.
+In execution order. The chain is linear rather than partly parallel: the guard
+has to exist before routes reach it, and the invariant would fail against
+unrouted sweeps if it landed first.
 
-- **M-0282** — settle the seam, scope, verdict and escape hatch in one ADR.
-  Nothing else starts first, and E-0074 waits on the first of its decisions.
-  `tdd: none`.
-- **M-0283** — the shared precondition at the chosen seam, covering the
-  single-entity routes. Depends on M-0282. `tdd: required`.
-- **M-0284** — the nested-path vector and the multi-entity sweeps, each with its
-  explicit in-or-out call. Depends on M-0283. `tdd: required`.
+- **M-0282** — settle the seam, path scope, field scope, verdict and escape hatch
+  in one ADR. Nothing else starts first, and E-0074 waits on the first of its
+  decisions. `tdd: none`.
+- **M-0283** — spike the guard's remaining mechanics against a throwaway
+  prototype, then land the commit-side guard at `verb.Apply`, including the
+  nested-path vector. Depends on M-0282. `tdd: required`.
+- **M-0284** — the claim-side precondition ahead of every same-state comparison,
+  across the NoOp sites, plus each multi-entity sweep's recorded in-or-out call.
+  Depends on M-0283. `tdd: required`.
 - **M-0285** — an `internal/policies/` invariant so a newly-added write route
-  cannot bypass the seam, mirroring what M-0281 did for same-state convergence.
+  cannot bypass the guard, mirroring what M-0281 did for same-state convergence.
   Depends on M-0284. `tdd: required`.
+
+M-0283 leads with a prototype rather than an implementation because the
+questions ADR-0038 defers are not answerable on paper: every defect found while
+settling them was visible only by running code, and none was found by reasoning
+about it. The prototype is driven across a small grid — each path's role in the
+plan, crossed with whether it is dirty — which is what the available primitives
+can actually measure and what distinguishes the defects from one another.
 
 ## References
 

@@ -52,7 +52,6 @@ import (
 // whose pre-cap titles are over the cap (the operator picks the
 // shorter form). Pass 0 from tests that don't care about cap policy.
 func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason string, titleMaxLength int) (*Result, error) {
-	_ = ctx
 	if strings.TrimSpace(newTitle) == "" {
 		return nil, fmt.Errorf("retitle: new title is empty")
 	}
@@ -60,7 +59,7 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		return nil, err
 	}
 	if entity.IsCompositeID(id) {
-		return retitleAC(t, id, newTitle, actor, reason)
+		return retitleAC(ctx, t, id, newTitle, actor, reason)
 	}
 	e := t.ByID(id)
 	if e == nil {
@@ -99,6 +98,13 @@ func Retitle(ctx context.Context, t *tree.Tree, id, newTitle, actor, reason stri
 		}
 	} else {
 		dest = source
+	}
+
+	// The entity's own file, not `source`: for epic and contract that is a
+	// directory, and the two surfaces this claim reads — the stored title
+	// and the body H1 — both live in the file.
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 
 	// Same-state convergence (M-0281/AC-5). Two surfaces must already read as
@@ -253,10 +259,13 @@ func rewriteEntityH1(body []byte, id, newTitle string) []byte {
 // renameAC) — both edit frontmatter title and body heading — but emits
 // a `retitle` trailer so `aiwf history` distinguishes the two
 // invocation paths.
-func retitleAC(t *tree.Tree, compositeID, newTitle, actor, reason string) (*Result, error) {
+func retitleAC(ctx context.Context, t *tree.Tree, compositeID, newTitle, actor, reason string) (*Result, error) {
 	parent, ac, err := lookupAC(t, compositeID)
 	if err != nil {
 		return nil, err
+	}
+	if claimErr := guardClaim(ctx, t.Root, compositeID, parent.Path); claimErr != nil {
+		return nil, claimErr
 	}
 	// Same-state convergence (M-0281/AC-5), matching the entity-level path
 	// above — and, like it, spanning both surfaces the verb writes: the

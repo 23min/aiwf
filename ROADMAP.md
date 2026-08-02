@@ -1039,22 +1039,28 @@ Addresses G-0458, G-0459, G-0460 and G-0461.
 
 _No milestones yet._
 
-## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (active)
+## E-0075 — Structured-state verbs refuse to commit frontmatter they do not own (done)
 
 ### Goal
 
-Stop a mutating verb from committing frontmatter it does not own, so a
-hand-edited field can no longer land under another verb's trailer and be
-attributed to an act that did not make it.
+Stop a mutating verb from committing entity content it does not own, so neither
+a hand-edited field nor an unblessed body edit can land under another verb's
+trailer and be attributed to an act that did not make it.
+
+The title says frontmatter; the defect is whole-file. A serializing verb reads
+the body off disk and re-serializes it around the frontmatter it computed, so
+both travel together into the same commit. The frontmatter case is the one that
+defeats a blocking check and remains the sharper half.
 
 Addresses G-0466 and G-0463.
 
 | Milestone | Title | Status |
 |---|---|---|
-| M-0282 | Settle the write-scope precondition's seam, scope, verdict and escape hatch | draft |
-| M-0283 | Add the shared write-scope precondition and route the single-entity verbs | draft |
-| M-0284 | Cover the nested-path vector and call each multi-entity sweep in or out | draft |
-| M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | draft |
+| M-0282 | Settle the write-scope precondition's seam, scope, verdict and escape hatch | done |
+| M-0283 | Spike the guard's mechanics and land the commit-side seam | done |
+| M-0284 | Land the claim-side precondition and record each sweep's call | done |
+| M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | done |
+| M-0286 | Close the archive sweep's referrer and destination gaps | done |
 
 ## E-0076 — Chokepoints for three documented rules that have no detector (proposed)
 
@@ -1080,7 +1086,7 @@ G-0454, G-0455.
 
 _No milestones yet._
 
-## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (proposed)
+## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (active)
 
 ### Goal
 

@@ -27,7 +27,6 @@ import (
 // free-form prose; when non-empty it lands in the commit body so the
 // rationale surfaces in `aiwf history`.
 func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason string) (*Result, error) {
-	_ = ctx
 	if entity.IsCompositeID(id) {
 		return nil, fmt.Errorf("milestone tdd does not accept composite ids; pass a milestone id (M-NNNN)")
 	}
@@ -41,6 +40,10 @@ func MilestoneTDD(ctx context.Context, t *tree.Tree, id, policy, actor, reason s
 	}
 	if e.Kind != entity.KindMilestone {
 		return nil, fmt.Errorf("%q is of kind %s, not milestone", id, e.Kind)
+	}
+
+	if claimErr := guardClaim(ctx, t.Root, id, e.Path); claimErr != nil {
+		return nil, claimErr
 	}
 
 	// Same-state convergence (M-0281/AC-7): the policy already reads as
