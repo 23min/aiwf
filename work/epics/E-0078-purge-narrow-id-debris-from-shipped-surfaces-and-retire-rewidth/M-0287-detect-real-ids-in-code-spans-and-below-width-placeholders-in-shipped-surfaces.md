@@ -88,15 +88,11 @@ finding.
 ### AC-4 — The three keep-list teaching files produce no finding
 
 Cancelled: the keep-list this criterion exists to prove is not built (D-0052).
+Measuring the three files showed an exemption keyed by path would have laundered
+real debris out of the sweep's own worklist, and that the teaching citations it
+would protect are avoidable. The rewrite that replaces it belongs to the sweep
+milestone.
 
-Measuring the three files showed they carry roughly twice as much ordinary debris
-as teaching citation — including a narrow placeholder in one of their shipped
-`description:` frontmatter lines — so an exemption keyed by path would
-have laundered real defects out of the sweep's worklist permanently. The teaching
-citations that remain are avoidable: the rule's contract already accepts a
-shape-description in place of an exhibited shape, which leaves nothing to exempt.
-Rewriting those passages belongs to the sweep milestone, with the rest of the
-content it edits.
 
 ## Constraints
 
@@ -121,24 +117,6 @@ content it edits.
   share a remediation — write the canonical letter-N placeholder — so one hint
   states the fix for both, and the taxonomy gains nothing a consumer could act on
   in a repo where this rule is structurally inert.
-- Every finding is a warning until the sweep flips severity. The rule draws no
-  distinction between its two shapes or between prose and code placement: a rule
-  that held error severity for the one shape with no outstanding sites would buy
-  a one-milestone guarantee and pay a per-token severity function, a byte-range
-  helper, and a second parse of every file for it.
-- The two shapes are therefore distinguishable only by the defect the message
-  names. A test that asserts classification asserts on the message; one that
-  checks only that something fired cannot tell them apart.
-- The width detector subsumes the partial one that lived in
-  `TestSkillBodyID_PlaceholdersAreCanonical`, which is deleted rather than
-  rewired: rewiring it to read the rule's output would have duplicated the
-  per-body real-tree assertion, which already scans that corpus. The production
-  rule owns the property over a strictly larger one — every `*.md` whole-file,
-  frontmatter included, with code constructs in scope.
-- The `:65` comment claiming external policing is itself the defect class E-0076
-  is built around: a rule stated in an authoritative surface with no detector
-  behind it reads as enforced, so the next reader stops looking. Whichever shape
-  the check takes, that comment stops making a claim nothing backs.
 
 ## Out of scope
 
@@ -180,23 +158,12 @@ non-empty, so the sweep's arrival breaks them and forces their restoration.
 
 ### AC-2 — Non-canonical placeholders
 
-`classifySkillToken` sorts each id-shaped token into real id, canonical
-placeholder, or placeholder defect, and anything but the canonical letter-N form
-fires. The boundary that decides the classifier: a narrow NUMERIC id is a real id
-at a legacy width, not a malformed placeholder, because read tolerance keeps it
-resolving. On this tree: 115 findings — 81 placeholder, 34 real-id — all
+`skillTokenMessage` classifies each id-shaped token and returns the finding text
+for it, or empty when the token is the canonical letter-N form — the sibling
+rule's empty-means-clean idiom. The boundary that decides it: a narrow NUMERIC id
+is a real id at a legacy width, not a malformed placeholder, because read
+tolerance keeps it resolving. On this tree: 115 findings — 81 placeholder, 34 real-id — all
 warnings, 0 errors.
-
-The partial width test is deleted rather than rewired. Rewiring it to read the
-rule's output would have produced a duplicate of the per-body real-tree
-assertion, which already scans that corpus; the production rule now owns the
-property over every `*.md` whole-file with code constructs in scope.
-
-The severity staging collapsed to a uniform warning in the same milestone, which
-removed a per-token severity function, a byte-range helper, and the second parse
-of every file that fed it — a net deletion. That collapse also removed what had
-been distinguishing the rule's two shapes incidentally, so the classification
-assertions moved onto the message, where the distinction actually lives.
 
 `internal/policies/narrow_id_sweep_test.go` gains an allowlist entry: the narrow
 numeric literals in the width test are the input space proving the classifier
@@ -208,15 +175,12 @@ does not confuse a legacy width with a malformed shape.
 
 A differential test asserts the two masks directly rather than inferring them
 from downstream findings: they agree on prose, on raw HTML, and on all four
-non-prose link carriers, and diverge only on code constructs. A second test pins
-that both are same-length projections preserving newline positions, so a mask
-that stripped rather than blanked would be caught even though the differential
-alone would not notice.
+non-prose link carriers, and diverge only on code constructs.
 
 No production change — the behaviour already held. The AC is a characterization
 pin, so its red is that the test catches the defect it guards: four drift modes
 probed by mutation (code spans, fenced blocks, indented blocks, newline
-preservation), all four caught, scoped to this test so the kill is its own.
+preservation), all four caught.
 
 The AC's other named fixture — a real id inside a code span in an entity body
 staying silent — already exists in the `body-prose-id` suite, so it is not
@@ -224,6 +188,19 @@ duplicated here. The "existing fixtures pass unchanged" half is met by that
 suite's eleven-case CommonMark table continuing to pass.
 
 · commit e656ed5d4 · `make check-fast` exit 0
+
+### Review round
+
+Three sliced reviewers found twelve blocking issues; a fourth reviewed the fixes
+for bloat. The fixes corrected the shipped severity documentation, tightened the
+composite placeholder arm to milestones, named both defect classes in the hint
+and the skill table, and replaced two skipped real-tree assertions with
+inversions that break when the sweep lands. The bloat pass then folded a
+three-value enum into the message function, deleted a test pinning an
+implementation detail no behaviour depends on, and removed prose stating the
+same four facts across three entities.
+
+· commits 94d28133a, plus the trim commit carrying this entry
 
 ## Decisions made during implementation
 
@@ -255,25 +232,11 @@ carry `//coverage:ignore` for TOCTOU.
 
 ## Reviewer notes
 
-Three independent fresh-context reviewers over the full change-set, sliced by
-concern (production code / test changes / entity prose). All three returned
-request-changes; every blocking finding was fixed on the branch before wrap.
-
-What the review retired, by measurement rather than argument: the riskiest claim in
-the milestone — that editing `proseMask` into a delegation left `body-prose-id`
-untouched — was verified across 50 hostile CommonMark inputs, all 1,141 `.md` files
-in the repo, and 7.4M fuzz executions, with zero divergence. A second reviewer
-killed all 18 mutations it invented against the new tests, including rewording
-either message and pointing `body-prose-id` at the wide mask.
-
-What it caught that mattered most: the deleted width test plus two skipped real-tree
-assertions left no executing real-tree gate, and `t.Skip` never un-skips itself — a
-pattern this repo had already rejected and mechanized against in
-`internal/policies/m0125_coverage_meta_test.go`. Both assertions are now inverted
-rather than skipped, so the sweep's arrival breaks them and forces their
-restoration. The deleted test was not restored: it asserted the same property
-through a second implementation over a strictly smaller corpus, and its green status
-came from that corpus being clean rather than from the debris being absent.
+Three fresh-context reviewers over the full change-set, sliced by concern
+(production code / test changes / entity prose). All returned request-changes;
+every blocking finding was fixed on the branch before wrap. A fourth pass
+reviewed the fixes for bloat and cut 94 lines the first three had not
+questioned.
 
 Declined, with reasons, so a later reviewer meets a decision rather than a blank:
 
