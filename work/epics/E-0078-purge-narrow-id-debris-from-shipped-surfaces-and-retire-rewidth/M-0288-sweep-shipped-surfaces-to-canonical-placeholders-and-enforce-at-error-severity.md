@@ -1,7 +1,7 @@
 ---
 id: M-0288
 title: Sweep shipped surfaces to canonical placeholders and enforce at error severity
-status: draft
+status: in_progress
 parent: E-0078
 depends_on:
     - M-0287
