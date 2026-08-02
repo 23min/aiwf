@@ -65,13 +65,13 @@ The milestone spec itself carries the wrap-side sections; finalize them in place
 - `## Work log` — confirm one entry per AC with the final outcome and commit SHA. The phase timeline is in `aiwf history M-NNNN/AC-<N>`; don't duplicate dates here.
 - `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNN` from `aiwfx-record-decision` invocations during work).
 - `## Validation` — paste the test-suite and build results.
-- `## Deferrals` — list any work this milestone deliberately punted; for each, **open a gap entity** so it survives:
+- `## Deferrals` — list any work this milestone deliberately punted. Before opening a gap for one, apply the **cheap-fix test**: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, **make it now as a corrective commit on the milestone branch** — the same route step 2's review fixes take, so it lands before the wrap commit rather than dirtying it — then record it under `## Reviewer notes`. If it touched source or tests, re-run step 1's gates and re-enter step 2's scoped confirmation — a fix landing after the deciding review is still code no reviewer has seen. A gap is for work that needs its own branch, its own review, or a decision you are not ready to make. For each deferral that survives the test, **open a gap entity** so it survives:
 
   ```bash
   aiwf add gap --title "<deferred-work>" --discovered-in M-NNNN
   ```
 
-  Then mirror the resulting `G-NNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
+  Then mirror the resulting `G-NNNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
 - `## Reviewer notes` — trade-offs, deliberate omissions, places where the obvious approach was rejected. The reviewer agent reads this first.
 
 For ACs that were `cancelled` mid-implementation, link to the `D-NNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
@@ -243,14 +243,15 @@ After the declared-sequence gate, finish up. The origin-branch delete is an **ou
 - 🛑 **The terminal local sequence — local merge, promote-done (including any gap tracker closure it triggers), roadmap regen, local cleanup — runs under one declared-sequence gate (step 10)**, enumerated verbatim and subset-approvable. Push and any origin-branch delete are outward and excluded; they keep their own gates.
 - All ACs must be green before wrap proceeds. Wrap does not bury failure.
 - Branch-coverage hard rule applies — re-run the audit if any code changed since `aiwfx-start-milestone`'s readiness check.
-- Deferrals must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at.
+- Deferrals that survive the cheap-fix test must be captured as gaps. Don't leave deferred work as a `## Deferrals` bullet that nothing else points at — and don't file a gap for a change you could have made inline while you were already in the file.
 - A gap this milestone's own body claims to fix must be closed at wrap (step 13) — `aiwf promote G-NNNN addressed --by-commit <sha>`, before the milestone's own promote-done. Don't leave the tracker silently overstating what's still open.
 
 ## Anti-patterns
 
 - *Wrapping with red tests.* Either fix the tests, escalate the AC failure, or cancel the milestone (`aiwf cancel M-NNNN`). Don't wrap broken work as done.
 - *Wrapping with open ACs.* The kernel's `milestone-done-incomplete-acs` finding will fire — `--force` lands the verb but leaves the standing check red. Resolve every AC to a terminal state (`met`/`deferred`/`cancelled`) before wrap.
-- *Silent deferrals.* Every "we'll do that later" gets a gap entity.
+- *Silent deferrals.* Every "we'll do that later" that survives the cheap-fix test gets a gap entity.
+- *Ledger padding.* A gap opened and closed inside the same wrap is a fix that should have been made inline. Filing it costs a title, a body, and a reader's attention that the fix itself would not have.
 - *Skipping doc-lint.* Doc drift compounds; the milestone wrap is the cheap moment to catch it.
 - *Slipping unrelated code into the wrap commit.* If the change isn't part of this milestone, it's a separate `wf-patch`.
 - *Wrapping without checking whether the milestone's own prose claims to fix a gap.* A milestone whose own body names a gap as what it fixes, wrapped without closing that gap, leaves the tracker silently overstating what's still open.
