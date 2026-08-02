@@ -92,12 +92,15 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 }
 
 // canonicalPlaceholderPattern matches the one placeholder shape a shipped
-// surface may carry: the canonical-width letter-N form, bare or composite.
-// Anything id-shaped that is neither a real id nor this is a placeholder
-// defect — a narrow width (`E-NN`), an idiosyncratic shape (`G-XYZ`), or a
-// pseudo-arithmetic form (`C-NNN+1`) all model an id shape that no allocator
-// emits and no parser accepts.
-var canonicalPlaceholderPattern = regexp.MustCompile(`^(?:E|M|G|D|C|ADR)-NNNN(?:/AC-N)?$`)
+// surface may carry: the canonical-width letter-N form. Anything id-shaped
+// that is neither a real id nor this is a placeholder defect — a narrow width
+// (`E-NN`), an idiosyncratic shape (`G-XYZ`), or a pseudo-arithmetic form all
+// model an id shape that no allocator emits and no parser accepts.
+//
+// The composite arm is milestone-only, mirroring the id grammar: acceptance
+// criteria hang off milestones, so a composite placeholder on any other kind
+// names a shape that cannot exist.
+var canonicalPlaceholderPattern = regexp.MustCompile(`^(?:E|G|D|C|ADR)-NNNN$|^M-NNNN(?:/AC-N)?$`)
 
 // skillTokenClass names how an id-shaped token in a shipped surface reads.
 type skillTokenClass int

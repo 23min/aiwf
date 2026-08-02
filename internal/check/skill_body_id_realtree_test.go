@@ -1,12 +1,17 @@
 package check
 
-// Real-tree assertions for the G-0299 skill-body id discipline. These run
-// the rule (and the placeholder-canonicality scan) over this repo's actual
-// shipped skill bodies, so they pin the full-sweep (AC-4) and
-// placeholder-normalization (AC-3) deliverables rather than synthetic
-// fixtures. They live in package check (white-box) to reuse proseMask and
-// the id patterns — the same machinery the production rule uses, so the
-// test cannot drift from the rule's notion of "prose" or "real id".
+// Real-tree assertions for the skill-body id discipline: they run the
+// production rule over this repo's actual shipped surfaces rather than over
+// synthetic fixtures, so they pin the shipped bytes.
+//
+// Both are INVERTED while the sweep is outstanding. Detection ships a
+// milestone ahead of cleanup, so "no shipped surface carries a bad id shape"
+// is deliberately false, and the honest assertion is that the worklist is
+// non-empty. That choice is load-bearing rather than cosmetic: a plain skip
+// would never un-skip itself, and a filter on a severity the rule does not
+// emit would pass against an empty set while reading like a gate. Inverting
+// makes the sweep's arrival break these tests, which is the signal to restore
+// them.
 
 import (
 	"fmt"
@@ -14,8 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -77,19 +80,11 @@ func collectSkillBodies(t *testing.T, root string) []skillBody {
 	return out
 }
 
-// TestSkillBodyID_RealEmbeddedTreeIsClean asserts no shipped skill body cites
-// a real entity id or a non-canonical placeholder. It scans each body
+// TestSkillBodyID_RealEmbeddedTreeIsClean scans each shipped skill body
 // independently via ScanSkillBodyID rather than through skillBodyIDReference,
 // so it is a second code path onto the same property.
-//
-// Skipped until the sweep lands. The property is deliberately false right now:
-// this milestone delivers detection, and the rule's own output is the worklist
-// the sweep milestone consumes. Skipping states that plainly. The alternative —
-// filtering to a severity the rule does not currently emit — would pass against
-// an empty set and read like a gate while asserting nothing.
 func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
 	t.Parallel()
-	t.Skip("detection-only milestone: the shipped tree still carries the debris this rule reports; the sweep milestone clears it and removes this skip")
 	root := repoRootForTest(t)
 	var msgs []string
 	for _, sb := range collectSkillBodies(t, root) {
@@ -97,44 +92,23 @@ func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) != 0 {
-		sort.Strings(msgs)
-		shown := msgs
-		if len(shown) > 25 {
-			shown = shown[:25]
-		}
-		t.Fatalf("%d real-id citation(s) remain in shipped skill bodies (sweep incomplete):\n%s",
-			len(msgs), strings.Join(shown, "\n"))
+	if len(msgs) == 0 {
+		t.Fatal("the shipped skill bodies are clean: the sweep has landed — " +
+			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
 	}
 }
 
-// Placeholder canonicality was once asserted here by a second implementation
-// of the property — its own width regex over SKILL.md prose. The production
-// rule now classifies placeholder shape directly (classifySkillToken), over a
-// strictly larger corpus: every *.md whole-file, frontmatter included, with
-// code constructs in scope. The real-tree assertions above therefore cover it,
-// and a separate copy would be the drift risk rather than the safety net.
-
-// TestSkillBodyID_WholeShippedTreeClean (M-0227 AC-4) is the comprehensive
-// real-tree assertion: it drives the production check over the repo root and
-// asserts zero skill-body-id findings across EVERY shipped surface. Unlike
-// the per-body collection tests above (SKILL.md bodies only), this reuses the
-// registered production walkers — the whole-file *.md scan
-// (skillBodyIDReference) AND the statusline #-comment scan
-// (statuslineCommentIDReference) — so it is the truest seam: the same rules
-// the pre-push hook runs, over the real shipped bytes. Green once AC-1 and
-// AC-2 cleaned every leak (descriptions, entity template, statusline).
+// TestSkillBodyID_WholeShippedTreeClean drives the production check over the
+// repo root, so it exercises the registered walkers — the whole-file *.md scan
+// and the statusline #-comment scan — against the same rules the pre-push hook
+// runs. Placeholder canonicality is included: classifySkillToken owns that
+// property over every *.md whole-file, frontmatter included.
 //
 // An in-memory tree rooted at the repo suffices: the two walkers key only on
-// t.Root (they walk the filesystem), and the entity-driven checks see no
-// entities, so the only findings that can surface are skill-body-id.
-//
-// Skipped until the sweep lands, for the same reason as the per-body test
-// above: this milestone delivers detection, and the property is deliberately
-// false until the sweep clears the tree.
+// t.Root, and the entity-driven checks see no entities, so the only findings
+// that can surface are skill-body-id.
 func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
 	t.Parallel()
-	t.Skip("detection-only milestone: the shipped tree still carries the debris this rule reports; the sweep milestone clears it and removes this skip")
 	root := repoRootForTest(t)
 	var msgs []string
 	for _, f := range Run(&tree.Tree{Root: root}, nil) {
@@ -142,13 +116,8 @@ func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) != 0 {
-		sort.Strings(msgs)
-		shown := msgs
-		if len(shown) > 25 {
-			shown = shown[:25]
-		}
-		t.Fatalf("%d real-id citation(s) remain in shipped surfaces (cleanup incomplete):\n%s",
-			len(msgs), strings.Join(shown, "\n"))
+	if len(msgs) == 0 {
+		t.Fatal("the shipped surfaces are clean: the sweep has landed — " +
+			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
 	}
 }

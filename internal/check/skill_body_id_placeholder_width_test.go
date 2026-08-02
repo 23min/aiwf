@@ -75,6 +75,12 @@ func TestScanSkillBodyID_PlaceholderWidth_Composite(t *testing.T) {
 		{"M-NN/AC-N", true},
 		{"M-NNN/AC-N", true},
 		{"M-NNNN/AC-N", false},
+		// Acceptance criteria hang off milestones, so a composite placeholder
+		// on any other kind names a shape the grammar cannot produce — even at
+		// canonical width. A rule teaching id shape must not bless it.
+		{"E-NNNN/AC-N", true},
+		{"G-NNNN/AC-N", true},
+		{"ADR-NNNN/AC-N", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.tok, func(t *testing.T) {
