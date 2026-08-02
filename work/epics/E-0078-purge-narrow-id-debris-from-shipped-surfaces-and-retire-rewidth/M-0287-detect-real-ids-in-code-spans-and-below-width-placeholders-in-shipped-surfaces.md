@@ -231,3 +231,58 @@ suite's eleven-case CommonMark table continuing to pass.
   or a subcode split.
 - D-0052 — dissolve the shipped-surface keep-list rather than mechanizing it;
   cancels AC-4 and moves the passage rewrite to the sweep milestone.
+
+## Validation
+
+`make ci` exit 0 — 72 packages green, diff-scoped coverage gate clean, firing-fixture
+meta-gate clean, `aiwf doctor --self-check` 29 steps. `aiwf check` on this tree: 0
+errors, 116 warnings (115 `skill-body-id` + one `provenance-untrailered-scope-undefined`,
+which is the branch having no upstream, not a property of the work).
+
+Branch coverage: no changed statement is uncovered. The five uncovered blocks in the
+two changed files all predate this milestone and sit outside every changed hunk; two
+carry `//coverage:ignore` for TOCTOU.
+
+## Deferrals
+
+- G-0514 — `skill-body-id` classifies CLI metavariables (`M-id`, `E-id`, `C-id`),
+  distinct-placeholder conventions (`M-PPPP`/`M-QQQQ`), and non-id acronyms
+  (`ADR-NEW`, `ADR-OPSPEC`) as placeholder defects, and hands each a remediation
+  that would corrupt a correct command synopsis. The classification is defensible;
+  the instruction is not. Deferred deliberately: the sweep milestone enumerates the
+  population, and its per-token judgments are the evidence for which of the three
+  resolution shapes is right.
+
+## Reviewer notes
+
+Three independent fresh-context reviewers over the full change-set, sliced by
+concern (production code / test changes / entity prose). All three returned
+request-changes; every blocking finding was fixed on the branch before wrap.
+
+What the review retired, by measurement rather than argument: the riskiest claim in
+the milestone — that editing `proseMask` into a delegation left `body-prose-id`
+untouched — was verified across 50 hostile CommonMark inputs, all 1,141 `.md` files
+in the repo, and 7.4M fuzz executions, with zero divergence. A second reviewer
+killed all 18 mutations it invented against the new tests, including rewording
+either message and pointing `body-prose-id` at the wide mask.
+
+What it caught that mattered most: the deleted width test plus two skipped real-tree
+assertions left no executing real-tree gate, and `t.Skip` never un-skips itself — a
+pattern this repo had already rejected and mechanized against in
+`internal/policies/m0125_coverage_meta_test.go`. Both assertions are now inverted
+rather than skipped, so the sweep's arrival breaks them and forces their
+restoration. The deleted test was not restored: it asserted the same property
+through a second implementation over a strictly smaller corpus, and its green status
+came from that corpus being clean rather than from the debris being absent.
+
+Declined, with reasons, so a later reviewer meets a decision rather than a blank:
+
+- **Restoring the deleted placeholder test.** Reintroduces the duplicate width
+  implementation D-0051 exists to remove. The inversion fixes the defect that
+  actually bit — a removal trigger living only in prose.
+- **A whole-tree gate during the detection window.** Deliberately absent. Detection
+  ships a milestone ahead of cleanup; that is the epic's warning-first constraint,
+  and the exposure is recorded in D-0051's Consequences.
+- **Narrowing `idTokenPattern` to kill the false-positive class.** The grammar is
+  shared with `body-prose-id`, so narrowing it is not a local change. Tracked as
+  G-0514 and decided against the sweep's real worklist.
