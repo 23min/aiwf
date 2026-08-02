@@ -87,10 +87,13 @@ holes, and the retirement blast radius.
 - **Placeholder form is the canonical letter-N shape, never a canonical-width
   fictional id.** A fabricated `` `E-0001` `` is a real entity in most consumer
   trees, which is the collision the placeholder convention exists to prevent.
-- **Three files keep their narrow ids**, each citing them as the subject of a
-  rule rather than as an example of current shape: the `aiwf-check` skill's
-  grammar table, and the two planning rituals that sanction narrow numerics as
-  conversational shorthand for not-yet-allocated milestones.
+- **No surface is exempted.** Three files document the rules that reject
+  malformed and narrow shapes — the `aiwf-check` skill's findings table and the
+  two planning rituals' anti-pattern bullets. They describe the rejected shape
+  rather than exhibit it, so the epic ships no keep-list and no id survives by
+  carve-out (D-0052). An exemption is added only if a passage proves
+  inexpressible without exhibiting a shape, narrowed to the token and justified
+  by the rewrite having failed.
 - **Opposite polarities stay opposite.** `body-prose-id` rejects the letter-N
   placeholder in entity bodies; `skill-body-id` requires it in shipped surfaces.
   Both are currently correct and neither moves.
@@ -98,8 +101,8 @@ holes, and the retirement blast radius.
 ## Success criteria
 
 - [ ] No surface under `internal/skills/embedded{,-rituals,-guidance}/` carries a
-      narrow id or a below-canonical-width placeholder, except the three files
-      named in the Constraints allowlist — and a gate fails when one returns.
+      narrow id or a below-canonical-width placeholder — no exceptions — and a
+      gate fails when one returns.
 - [ ] The width claim `skill_body_id.go` makes about placeholder normalization is
       true: a letter-N placeholder below canonical width fails a gate.
 - [ ] A real entity id written inside a code span or a fenced block in a shipped
