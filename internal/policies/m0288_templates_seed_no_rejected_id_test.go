@@ -23,8 +23,8 @@ import (
 )
 
 // shippedTemplates is every template `aiwf init` / `aiwf update` materializes
-// into a consumer's .claude/templates/. Held as a class rather than as the
-// subset carrying debris today, so a clean one cannot regress unnoticed.
+// into a consumer's .claude/templates/. Held as a class, so a template that
+// grows an id-shaped token later is caught the same way as one that had it.
 var shippedTemplates = []string{
 	"adr.md",
 	"decision.md",

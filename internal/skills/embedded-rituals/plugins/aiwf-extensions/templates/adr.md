@@ -6,7 +6,7 @@ supersedes: []           # optional: list of ADR ids this replaces
 superseded_by:           # optional: ADR id that replaces this one
 ---
 
-# <ADR id> — <imperative title>
+# <id> — <imperative title>
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 

@@ -14,9 +14,9 @@ The user says something is "ready", "done", "in progress", "accepted", "deprecat
 ## What to run
 
 ```bash
-aiwf promote <id> <new-status>                  # top-level entity
-aiwf promote <M-NNNN>/AC-N <new-status>           # AC status (composite id)
-aiwf promote <M-NNNN>/AC-N --phase <p>            # AC tdd_phase (mutex with positional state)
+aiwf promote <id> <new-status>           # top-level entity
+aiwf promote <M-NNNN>/AC-N <new-status>  # AC status (composite id)
+aiwf promote <M-NNNN>/AC-N --phase <p>   # AC tdd_phase (mutex with positional state)
 ```
 
 ## Allowed status sets
@@ -51,9 +51,9 @@ For milestones with open ACs, `--force` lets the milestone reach `done` but the 
 Two transitions require a pointer to *what addressed the entity* before the kernel considers the tree clean: gap → addressed (resolver-or-commit) and adr → superseded (replacement ADR). Pass the resolver via flag at promote time so the status flip and the resolver write land in one commit:
 
 ```bash
-aiwf promote G-NNNN addressed --by M-NNNN                # gap closed by milestone (single id)
-aiwf promote G-NNNN addressed --by M-NNNN,E-NNNN           # gap closed by multiple entities
-aiwf promote G-NNNN addressed --by-commit abcdef1234    # gap closed by a specific commit (sha goes into addressed_by_commit)
+aiwf promote G-NNNN addressed --by M-NNNN             # gap closed by milestone (single id)
+aiwf promote G-NNNN addressed --by M-NNNN,E-NNNN      # gap closed by multiple entities
+aiwf promote G-NNNN addressed --by-commit abcdef1234  # gap closed by a specific commit (sha goes into addressed_by_commit)
 aiwf promote ADR-NNNN superseded --superseded-by ADR-NNNN
 ```
 

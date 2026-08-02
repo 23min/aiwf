@@ -16,12 +16,12 @@ If the user asks "what happened to" or wants a timeline → reach for `aiwf-hist
 ## What to run
 
 ```bash
-aiwf show <id>                              # text view: frontmatter + acs + history + findings
-aiwf show <M-NNNN>/AC-N                       # composite id: just that AC's record
-aiwf show <id> --format=json --pretty       # JSON envelope; carries body sections too
-aiwf show <id> --history=0                  # suppress the history section
-aiwf show <id> --history=-1                 # render the full timeline (no cap)
-aiwf show <id> --area <A>                    # predicate: shown only if effective area matches, else a one-line note (exit 0)
+aiwf show <id>                         # text view: frontmatter + acs + history + findings
+aiwf show <M-NNNN>/AC-N                # composite id: just that AC's record
+aiwf show <id> --format=json --pretty  # JSON envelope; carries body sections too
+aiwf show <id> --history=0             # suppress the history section
+aiwf show <id> --history=-1            # render the full timeline (no cap)
+aiwf show <id> --area <A>              # predicate: shown only if effective area matches, else a one-line note (exit 0)
 ```
 
 The composite-id pattern `M-NNNN/AC-N` is not obvious from `--help`. Use it whenever the user names a specific AC — the JSON output for a composite id carries just that AC's slice (id, title, status, tdd_phase, body description, tests).

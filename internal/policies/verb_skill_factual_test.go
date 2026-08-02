@@ -197,7 +197,7 @@ func TestAiwfAuthorizeSkill_ProvenanceModesSelfContained(t *testing.T) {
 	}
 }
 
-// TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites pins AC-5: the
+// TestAiwfAddSkill_DiscoveredInIsUnvalidatedAndSectionCites pins AC-5: the
 // aiwf-add worked gap body teaches that `--discovered-in` is unvalidated and
 // surfaces only downstream, and the skill cites doc sections rather than
 // pinned line numbers.
@@ -207,7 +207,7 @@ func TestAiwfAuthorizeSkill_ProvenanceModesSelfContained(t *testing.T) {
 // placeholders are not a canonical shape either, so a worked typo naming both
 // a wrong id and a right one cannot be written here at all (M-0288/AC-1) —
 // what the example owes the reader is the behavior, which it states directly.
-func TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites(t *testing.T) {
+func TestAiwfAddSkill_DiscoveredInIsUnvalidatedAndSectionCites(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, aiwfAddSkillPath)
 

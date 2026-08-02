@@ -5,7 +5,7 @@ status: proposed         # aiwf epic statuses: proposed | active | done | cancel
 depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 ---
 
-# <epic id> — <Epic Title>
+# <id> — <Epic Title>
 
 ## Goal
 

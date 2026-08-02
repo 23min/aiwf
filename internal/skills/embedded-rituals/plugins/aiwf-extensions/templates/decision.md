@@ -7,7 +7,7 @@ supersedes: []           # optional: list of D-NNNN this replaces
 superseded_by:           # optional: D-NNNN that replaces this
 ---
 
-# <decision id> — <Decision Title>
+# <id> — <Decision Title>
 
 > **Date:** YYYY-MM-DD · **Decided by:** <role or name>
 

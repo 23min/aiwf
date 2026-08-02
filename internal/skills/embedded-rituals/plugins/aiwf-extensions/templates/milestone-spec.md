@@ -5,10 +5,10 @@ parent: E-NNNN            # required: the parent epic id
 status: draft             # aiwf milestone statuses: draft | in_progress | done | cancelled
 depends_on: []            # optional: prior milestone ids the DAG depends on
 tdd: none                 # optional: required | advisory | none (default none)
-acs: []                   # optional: filled by `aiwf add ac <milestone id> --title "..."`
+acs: []                   # optional: filled by `aiwf add ac <milestone-id> --title "..."`
 ---
 
-# <milestone id> — <Milestone Title>
+# <id> — <Milestone Title>
 
 ## Goal
 
@@ -25,7 +25,7 @@ acs: []                   # optional: filled by `aiwf add ac <milestone id> --ti
 ## Acceptance criteria
 
 <!-- ACs are first-class kernel state under aiwf I2. Add each via:
-       aiwf add ac <milestone id> --title "<observable behavior>"
+       aiwf add ac <milestone-id> --title "<observable behavior>"
      The verb appends the AC to frontmatter `acs:` (seeded at the pre-cycle
      empty phase regardless of tdd policy — the live red promote records the
      failing test later) and scaffolds a `### AC-<N> — <title>`
@@ -96,7 +96,7 @@ acs: []                   # optional: filled by `aiwf add ac <milestone id> --ti
      Optional prose paragraph for non-obvious context: what changed, file:line
      references, why a detour was needed. Phase transitions for `tdd: required`
      milestones should be visible here too (red/green/refactor/done) — but the
-     authoritative record is `aiwf history <milestone id>/AC-<N>` via the kernel's
+     authoritative record is `aiwf history <milestone-id>/AC-<N>` via the kernel's
      trailers, so don't duplicate the timeline here. -->
 
 ### AC-1 — <short title>
@@ -120,7 +120,7 @@ acs: []                   # optional: filled by `aiwf add ac <milestone id> --ti
 ## Deferrals
 
 <!-- Work this milestone deliberately punted. Each must be opened as a gap entity
-     (`aiwf add gap --title "..." --discovered-in <milestone id>`) and the
+     (`aiwf add gap --title "..." --discovered-in <milestone-id>`) and the
      resulting gap id mirrored here, so the deferral survives. -->
 
 - (none)

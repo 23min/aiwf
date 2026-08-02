@@ -39,6 +39,11 @@ type documentingPassage struct {
 	// mustTeach are the phrases the instruction is made of. They are the
 	// semantic core rather than incidental wording, so a faithful rewrite
 	// keeps them and a deletion cannot.
+	//
+	// Each phrase must be UNIQUE within its section. A phrase that also
+	// appears in a neighbouring row or summary line is satisfied by that
+	// neighbour, so deleting the passage under test leaves the assertion
+	// green — which is the failure this pair exists to prevent.
 	mustTeach []string
 }
 
@@ -48,10 +53,10 @@ var m0288DocumentingPassages = []documentingPassage{
 		level:   2,
 		heading: "Findings (errors)",
 		mustTeach: []string{
-			"body-prose-id/malformed-shape",
-			"body-prose-id/unresolved",
-			"letter suffix",
-			"backticks",
+			"a spelled-out word suffix",
+			"fewer digits than the kind's minimum",
+			"A prefix and a single digit is conversational shorthand",
+			"references a well-formed id that resolves to no entity",
 		},
 	},
 	{
@@ -128,6 +133,13 @@ func TestM0288_AC3_DocumentingPassagesDescribeRatherThanExhibit(t *testing.T) {
 
 			section := extractMarkdownSection(string(raw), p.level, p.heading)
 			if p.stopBefore != "" {
+				// strings.SplitN returns its input unchanged when the
+				// separator is absent, so a missing anchor would silently
+				// widen the scope to the whole section — here, the whole
+				// file. Fail loud instead, mirroring the heading guard below.
+				if !strings.Contains(section, p.stopBefore) {
+					t.Fatalf("stopBefore anchor %q is missing — the section scope would silently widen to the whole file", p.stopBefore)
+				}
 				section = strings.SplitN(section, p.stopBefore, 2)[0]
 			}
 			if strings.TrimSpace(section) == "" {

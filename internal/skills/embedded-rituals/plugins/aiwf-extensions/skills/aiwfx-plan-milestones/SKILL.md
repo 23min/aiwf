@@ -70,10 +70,10 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    ```bash
    # At allocation time: pass --depends-on on aiwf add milestone
    aiwf add milestone --epic E-NNNN --tdd <policy> \
-     --title "..." --depends-on <id>[,<id>]
+     --title "..." --depends-on M-NNNN,M-NNNN
 
    # Post-allocation (the edge surfaced after the milestone was allocated):
-   aiwf milestone depends-on M-NNNN --on <id>[,<id>]
+   aiwf milestone depends-on M-NNNN --on M-NNNN,M-NNNN
 
    # Empty an existing list:
    aiwf milestone depends-on M-NNNN --clear

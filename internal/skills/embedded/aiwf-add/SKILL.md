@@ -143,10 +143,10 @@ Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array.
 ```bash
 # At allocation time: pass --depends-on
 aiwf add milestone --epic E-NNNN --tdd required \
-  --title "Bootstrap" --depends-on <id>[,<id>]
+  --title "Bootstrap" --depends-on M-NNNN,M-NNNN
 
 # Post-allocation: dedicated verb
-aiwf milestone depends-on M-NNNN --on <id>[,<id>]
+aiwf milestone depends-on M-NNNN --on M-NNNN,M-NNNN
 
 # Empty the list
 aiwf milestone depends-on M-NNNN --clear
