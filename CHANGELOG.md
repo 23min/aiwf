@@ -16,6 +16,29 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — E-0075: verbs refuse to commit entity content they did not compute
+
+A mutating verb re-serialized the whole entity file around the field it
+computed, so an uncommitted hand-edit anywhere in that file — frontmatter or
+body — rode into the verb's commit wearing the verb's own provenance. A
+`promote` could land a hand-changed `priority:`; a directory-moving verb could
+land the on-disk bytes of nested entities nobody named.
+
+Verbs now refuse rather than launder. The refusal names the diverging paths and
+leaves the working copy untouched, so the edit survives and can be committed
+deliberately — with `aiwf edit-body` for body prose, or the matching structured
+verb for a field. Two seams enforce it: one covering every path a plan carries,
+and one for the same-state case that converges before a plan exists.
+
+`aiwf archive` and the other multi-entity sweeps decline **per candidate**
+rather than refusing outright: an entity whose placement depends on a mid-edit
+file is left in place and reported under `Skipped:`, while every unaffected
+entity sweeps. `aiwf archive --help` and the `aiwf-archive` skill describe what
+a skip means and how to clear it.
+
+`aiwf edit-body --body-file` is body-only again — frontmatter differences in the
+supplied file are refused rather than silently committed.
+
 ### Changed — a cheap-fix test on the deferral mandate, and reference-phrasing for counts
 
 Two shipped guidance rules that manufactured artifacts are narrowed.

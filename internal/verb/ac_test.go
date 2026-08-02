@@ -80,6 +80,7 @@ func TestAddAC_RewritesPlaceholderHeadingInPlace(t *testing.T) {
 	if err = os.WriteFile(abs, []byte(withPlaceholder), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commitFixture(t, r.root, "fixture: template placeholders in the milestone body")
 
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor))
 
@@ -150,6 +151,7 @@ func TestAddAC_InsertsHeadingInsideAcceptanceCriteriaSection_WhenLaterSectionsEx
 	if writeErr := os.WriteFile(abs, []byte(richened), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
+	commitFixture(t, r.root, "fixture: milestone body sections")
 
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor))
 
@@ -194,6 +196,7 @@ func TestAddACBatch_MultipleNewHeadingsInsertInOrder(t *testing.T) {
 	if writeErr := os.WriteFile(abs, []byte(richened), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
+	commitFixture(t, r.root, "fixture: milestone body sections")
 
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001",
 		[]string{"First new", "Second new"}, nil, testActor))
@@ -232,6 +235,7 @@ func TestAddAC_FallsBackToBodyEndWhenNoAcceptanceCriteriaHeading(t *testing.T) {
 	if err := os.WriteFile(abs, []byte("---\nid: M-0001\ntitle: First\nstatus: draft\nparent: E-0001\ntdd: none\n---\n\n## Goal\n\nship it\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commitFixture(t, r.root, "fixture: milestone body without an acceptance-criteria heading")
 
 	r.must(verb.AddAC(r.ctx, r.tree(), "M-0001", "Real criterion", testActor))
 
@@ -289,6 +293,7 @@ func TestAddAC_PlaceholderHeadingCoLocatesBodyContent(t *testing.T) {
 	if err = os.WriteFile(abs, []byte(withPlaceholder), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commitFixture(t, r.root, "fixture: template placeholders in the milestone body")
 
 	r.must(verb.AddACBatch(r.ctx, r.tree(), "M-0001",
 		[]string{"Real criterion"}, [][]byte{[]byte("The contract prose.")}, testActor))

@@ -112,6 +112,20 @@ type FileOp struct {
 	Path    string // source path (relative to repo root)
 	NewPath string // destination path (only for OpMove)
 	Content []byte // file contents (only for OpWrite)
+
+	// AdoptsWorkingCopy marks an OpWrite whose whole purpose is to
+	// commit the operator's uncommitted edit at Path — `aiwf edit-body`,
+	// in both its modes. Apply's uncommitted-change guard would
+	// otherwise refuse exactly the verb that exists to resolve such a
+	// refusal.
+	//
+	// The flag opens the gate; it does not decide what fits through it.
+	// Apply verifies two things before honouring it: that the working
+	// copy's frontmatter still matches HEAD's, and that this write's
+	// content carries nothing beyond that working copy read the way a
+	// verb legitimately reads it. So an adopting write changes the body
+	// freely and cannot introduce a field (ADR-0038).
+	AdoptsWorkingCopy bool
 }
 
 // findings is a tiny constructor used by verbs that fail validation.

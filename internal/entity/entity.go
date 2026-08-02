@@ -45,6 +45,19 @@ func CarriesOwnArea(k Kind) bool {
 	return k != KindMilestone
 }
 
+// NormalizeForKind clears frontmatter fields kind does not carry — today,
+// Area on every kind CarriesOwnArea excludes. This is the
+// single implementation of that rule: the tree loader calls it on every
+// entity it reads, and a caller that reconstructs an entity's canonical
+// form outside the loader (a guard verifying a write reflects nothing
+// more than a legitimate re-serialization) calls it too, so the two stay
+// incapable of drifting apart.
+func NormalizeForKind(e *Entity, k Kind) {
+	if !CarriesOwnArea(k) {
+		e.Area = ""
+	}
+}
+
 // IsBornComplete reports whether a kind has no draft phase — the
 // entity is live and referenceable from the moment its create commit
 // lands, with no intermediate status in which an empty body is by
