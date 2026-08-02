@@ -1,8 +1,10 @@
 ---
 id: G-0515
 title: epic wrap checks milestone specs' gap claims but not the epic spec's own
-status: open
+status: addressed
 discovered_in: E-0075
+addressed_by_commit:
+    - 1b32f847a
 ---
 ## What's missing
 
