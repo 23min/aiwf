@@ -173,3 +173,78 @@ is load-bearing: a rule relocated into a neighbouring section passes without it.
 On this tree: 115 findings → 88, six files clean.
 
 · commit a0fe2d90c · `make check-fast` exit 0
+
+### AC-2 — Entity templates
+
+A template is the one artifact both id rules scan, and they disagree by design:
+a shipped surface wants the canonical letter-N placeholder, an entity body
+rejects it. Width alone therefore cannot satisfy this criterion — the epic
+template was already fully canonical, passed `skill-body-id`, and `body-prose-id`
+rejected it anyway. The fix is placement-shaped: frontmatter keeps canonical
+placeholders (outside `body-prose-id`'s scope), prose carries them inside
+backticks (a code span is masked by one rule and accepted by the other), and
+text inside HTML comments — where backticks do not parse — is rephrased to name
+the kind instead of the id.
+
+The H1 headings are not inert. The rituals direct an author to replace an
+entity's body with the template wholesale, which overwrites the real heading
+`aiwf add` wrote; a bracket placeholder now reads as unfilled rather than as a
+plausible id.
+
+The test scans against an empty resolution index, since a consumer's tree
+resolves none of aiwf's ids and a template clean only against aiwf's own tree is
+not clean where it ships. All four templates are held, not just the three
+carrying debris, so a clean one cannot regress unnoticed. Six mutations — two
+restored H1 tokens, two un-backticked prose placeholders, a re-narrowed
+placeholder, and a real id smuggled into a body — were all killed.
+
+On this tree: 88 findings → 77.
+
+· commit 17bc2c8b0 · `make check-fast` exit 0
+
+### AC-1 — The sweep
+
+Three passes cleared the remaining 77: width normalization of every narrow
+letter-N placeholder, real ids collapsed to one placeholder per kind with the
+worked examples' titles carrying the distinctions, and the residual
+metavariables resolved to canonical or to the `<id>[,<id>]` list form the same
+tables already use for other multi-id flags. Two sites carried aiwf development
+history rather than only an id and lost it: a milestone id annotating
+`edit-body`'s explicit-content mode, and an era reference in an `acknowledge`
+`--reason` example.
+
+Five policy tests pinned the old spellings. Four pinned a narrow id as
+incidental spelling inside a search string and were widened with their subject
+unchanged. The fifth pinned that the `aiwf-add` typo example *uses two distinct
+ids* — a guard against exactly this collapse, protecting a form this epic
+removes: a shipped surface carries no real id, and two distinct placeholders are
+not canonical either. The example now states the failure instead of staging it,
+and the test pins the behavior it owes the reader — unvalidated flag, no
+verb-time signal, named downstream finding — scoped to its section rather than
+grepping the file.
+
+Seven mutations across seven distinct shipped-surface classes were all killed:
+skill body, narrow placeholder, metavariable, role-agent card, `description:`
+frontmatter, statusline shell comment, entity template.
+
+On this tree: 77 findings → 0.
+
+· commit 3ca397918 · `make check-fast` exit 0
+
+### AC-4 — Error severity
+
+The flip is one line; the rest is what it makes true or false. The documented
+row moved back to the errors table — which is also the only one of the two with
+a `Typical fix` column, so the remediation it had been carrying invisibly
+renders again. Two CLAUDE.md claims about the rule not blocking a push were
+corrected. D-0051 is left as written: it records the staging plan as decided,
+and the plan executed as described.
+
+The probe found a defect in the severity pin itself. It called itself a contract
+between rule and doc but named the expected table as a literal, so reverting the
+rule to warning left it green — it caught the doc drifting and never the rule.
+It now derives the expected table from a live scan. Re-verified from four
+directions: rule-alone and doc-alone each fail, and both-moved-together passes,
+which is what distinguishes a contract from a layout assertion.
+
+· commit 705a3cc72 · `make check-fast` exit 0 · `aiwf check` 0 errors
