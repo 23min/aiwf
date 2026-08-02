@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: The decline predicate and the rewrite predicate derive from one enumeration
-      status: open
+      status: met
       tdd_phase: done
 ---
 ## Goal
