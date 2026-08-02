@@ -4,7 +4,7 @@
 **Closed by:** human/peter
 **Integration target:** main
 **Epic branch:** epic/E-0075-structured-state-verbs-refuse-to-commit-frontmatter-they-do-not-own
-**Merge commit:** <SHA — filled at merge>
+**Merge commit:** 7d2c5792a
 
 ## Milestones delivered
 
@@ -42,6 +42,18 @@ tree — one reading the working copy, the other the record — and made them ag
   implementation` section carries its own, and ADR-0038 carries the epic-level
   ones (seam placement, verdict shape, the escape hatch, per-candidate scoping)
 
+## Gaps closed
+
+- G-0466 — structured-state verbs commit a hand-edited frontmatter field as
+  their own; the epic's headline gap, closed by the two guards
+- G-0463 — `edit-body --body-file` is not body-only, so frontmatter drift rides
+  the commit
+- G-0492 — the write guard read git's dirty report rather than the bytes a
+  commit would store
+- G-0487 — git's hidden-state bits made a dirty path invisible to that report
+- G-0499 — archive's referrer scan missed referrers absent from the loaded tree
+- G-0509 — this epic's user-visible refusal was absent from CHANGELOG
+
 ## Follow-ups carried forward
 
 - G-0475 — the FSM history walker's rename-plus-status blind spot, which this
@@ -59,8 +71,6 @@ tree — one reading the working copy, the other the record — and made them ag
 - G-0506 — `PromoteACPhase` computes its refusal from working-copy bytes
 - G-0507 — claim-guard effectiveness is pinned only by a hand-maintained table
 - G-0508 — three near-copies of the `internal/verb` AST scan
-- G-0509 — this epic's user-visible refusal is absent from CHANGELOG; closed by
-  the wrap entry itself
 - G-0511 — `LsTreePaths` filters in Go instead of passing a pathspec to git
 - G-0512 — a directory at a move's destination is invisible to archive's decline
 - G-0513 — masked-terminal report misses a candidate unparseable on disk
