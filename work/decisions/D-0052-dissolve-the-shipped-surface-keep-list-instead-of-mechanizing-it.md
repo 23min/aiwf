@@ -38,12 +38,15 @@ rewrite having been attempted and failed.
 
 ## Reasoning
 
-Measuring the three files decided this. Of the findings they carry, roughly twice
-as many are ordinary debris as are teaching citations: narrow composite
-placeholders in a findings table, narrow epic and contract placeholders in
-command examples, and — in two of the three — a narrow placeholder in the shipped
-`description:` frontmatter itself. A by-path exemption, which is what the epic
-specified, would have laundered all of it permanently, and the sweep works from
+Measuring the three files decided this. Counting a teaching citation as the
+narrow-numeric shorthand the epic's carve-out was written to protect, they carry
+roughly twice as much ordinary debris as teaching: narrow composite placeholders
+in a findings table, narrow epic and contract placeholders in command examples,
+and — in one of the three — a narrow placeholder in the shipped `description:`
+frontmatter itself. Counted the other way, with every exhibited rejected shape
+treated as teaching, the ratio is near even. The basis moves the number but not
+the conclusion: on either count a by-path exemption, which is what the epic
+specified, would have laundered real debris permanently, and the sweep works from
 this rule's output, so anything exempted here becomes invisible to the cleanup.
 
 The audit that proposed the keep-list assumed these files cite narrow ids only as
