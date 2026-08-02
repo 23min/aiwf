@@ -19,11 +19,11 @@ about its signal, this doc asks about its rate of increase).
    the policy corpus grew 7.6× and now stands at 57% of the size of all
    production code. Nothing here is individually unreasonable; the compound
    effect is.
-2. **The mechanism is an asymmetry, not a lapse in discipline.** Of 73
-   chokepoints, 39 are satisfied only by *adding* an artifact and none can
-   retire a test. There is exactly one attrition mechanism in the repo, and it
-   regulates an exemption list rather than an artifact population. A rule set
-   that can only mandate has one stable direction.
+2. **The mechanism is an asymmetry, not a lapse in discipline.** A majority of
+   the chokepoints classified below are satisfied only by *adding* an artifact,
+   and none can retire a test. There is exactly one attrition mechanism in the
+   repo, and it regulates an exemption list rather than an artifact population.
+   A rule set that can only mandate has one stable direction.
 3. **Prose creep is count-driven, not length-driven, at roughly 4:1.** Acceptance
    criteria, milestone specs and gap bodies show *no* length trend across the
    whole history. Entity *count* rose 4.4× while words-per-entity rose 31%. A
@@ -78,7 +78,10 @@ same milestone's epic minted 4 new policies, 2,073 lines.
 ## The growth model
 
 Every chokepoint under `internal/policies/` falls into one of four shapes,
-classified by what *satisfying* it does to the artifact population:
+classified by what *satisfying* it does to the artifact population. The script
+counts the corpus; this split is a judgment about each rule and is re-derived by
+hand, so it carries its own date rather than regenerating — **classified
+2026-08-02, over the 73 chokepoints of that day**:
 
 | shape | n | satisfied by | effect on population |
 |---|---|---|---|
@@ -89,15 +92,16 @@ classified by what *satisfying* it does to the artifact population:
 
 Three properties of that distribution drive everything above:
 
-- **The 10 chokepoints that can force a deletion are all single-seam pins on
-  production code.** Not one concerns tests, which are 69% of the corpus.
+- **The chokepoints that can force a deletion — the uniqueness and exactness
+  rows — are all single-seam pins on production code.** Not one concerns tests,
+  which are the larger part of the corpus.
 - **Exactly one chokepoint can say a test does not earn its place**
   (`stress-lane-census`), and its remedy is to *move* the test to another lane,
   not to delete it.
 - **The repo's only true attrition mechanism** — the stale-allowlist test that
   forces `firing-fixture-presence`'s grandfather ledger to shrink — regulates an
-  *exemption list*, not an artifact population. It worked: that ledger is down to
-  one entry. Nothing plays the same role for tests, prose, or gaps.
+  *exemption list*, not an artifact population. It worked — that ledger has all
+  but burned down. Nothing plays the same role for tests, prose, or gaps.
 
 Mandates compose, which is where the multiplier comes from. One new finding code
 obligates four artifacts (a test, a hint, a skill entry, a discoverability
@@ -136,7 +140,7 @@ Cost measured, not estimated. None of these is currently shipped.
 | lever | what it moves | measured cost | obligation |
 |---|---|---|---|
 | a cheap-fix escape in the wrap ritual's deferral rule | gap rate, same-day share | text edit to three shipped surfaces | **removes** |
-| `dupl` reporting over the test corpus | test duplication | free as a metric; 207 findings to triage as a gate | adds, as a gate |
+| `dupl` reporting over the test corpus | test duplication | free as a metric; as a gate, the whole backlog measured above to triage | adds, as a gate |
 | on-demand marginal-detection audit | test count | ~9 min per file; 100% recall, **11% precision** | adds |
 | a retirement mechanism for mandates | policy count | unbuilt | adds |
 
