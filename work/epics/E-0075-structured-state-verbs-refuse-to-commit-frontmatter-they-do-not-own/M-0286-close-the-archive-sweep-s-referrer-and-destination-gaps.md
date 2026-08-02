@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Both ends of a move are enumerated
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: A working-copy-only link declines that candidate, and --dry-run predicts --apply
