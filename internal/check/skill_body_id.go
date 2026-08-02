@@ -65,17 +65,51 @@ var skillScanDirs = []string{
 // placeholders and malformed shapes are not this rule's concern
 // (placeholder normalization is policed separately).
 //
-// Non-prose content is masked (not stripped) via proseMask before
-// scanning, so byte offsets stay stable and tokens inside code constructs
-// or non-prose link carriers are exempt by construction. Finding.Line is
-// 1-based within the given content; when the caller passes the whole file
-// (skillBodyIDReference does), that line is already file-relative.
+// Non-prose content is masked (not stripped) via proseAndCodeMask before
+// scanning, so byte offsets stay stable. Code constructs ARE in scope — a
+// real id in a command example ships and rots exactly as one in prose
+// does — while non-prose link carriers stay exempt, preserving the
+// doc-link carve-out. Finding.Line is 1-based within the given content;
+// when the caller passes the whole file (skillBodyIDReference does), that
+// line is already file-relative.
+//
+// Severity follows the detected class. A token the narrower prose mask
+// also preserves is one this rule already caught, and keeps error
+// severity. A token only the wider mask reaches is newly detected and
+// lands at warning until the sweep clearing the shipped tree completes,
+// so an incomplete sweep never blocks a push.
 //
 // Path populates the finding locator only; the scanner is otherwise
 // stateless, so it runs against on-disk content (skillBodyIDReference) or
 // against literal test bytes.
 func ScanSkillBodyID(body []byte, path string) []Finding {
-	return scanMaskedForRealIDs(proseMask(body), path)
+	prose := proseMask(body)
+	return scanMaskedForRealIDs(proseAndCodeMask(body), path, func(lo, hi int) Severity {
+		if maskPreserved(prose, body, lo, hi) {
+			return SeverityError
+		}
+		return SeverityWarning
+	})
+}
+
+// maskPreserved reports whether masked kept src's bytes over [lo,hi)
+// verbatim — i.e. that range was in scope for the mask that produced it.
+// Both masks are same-length projections, so the ranges are comparable
+// without any offset arithmetic.
+func maskPreserved(masked string, src []byte, lo, hi int) bool {
+	for i := lo; i < hi; i++ {
+		if masked[i] != src[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// alwaysSeverity is the severity decider for scans with no prose/code
+// distinction to draw — the statusline's shell-comment scan, where
+// comment text is the only content in scope at all.
+func alwaysSeverity(s Severity) func(lo, hi int) Severity {
+	return func(int, int) Severity { return s }
 }
 
 // scanMaskedForRealIDs classifies every id-shaped token in masked — the
@@ -86,7 +120,7 @@ func ScanSkillBodyID(body []byte, path string) []Finding {
 // pattern (bare or composite); canonical letter-N placeholders and
 // malformed shapes are not this rule's concern. Both masks preserve
 // newline positions, so the line counted in masked is the source line.
-func scanMaskedForRealIDs(masked, path string) []Finding {
+func scanMaskedForRealIDs(masked, path string, sevAt func(lo, hi int) Severity) []Finding {
 	var findings []Finding
 	seen := map[string]bool{}
 	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
@@ -101,7 +135,7 @@ func scanMaskedForRealIDs(masked, path string) []Finding {
 		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
-			Severity: SeverityError,
+			Severity: sevAt(m[0], m[1]),
 			Message:  fmt.Sprintf("shipped surface cites real entity id %q — shipped surfaces use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok),
 			Path:     path,
 			Line:     line,
@@ -240,7 +274,7 @@ func statuslineCommentIDReference(t *tree.Tree) []Finding {
 			return nil
 		}
 		rel := filepath.Join(statuslineScanDir, p)
-		findings = append(findings, scanMaskedForRealIDs(shellCommentMask(raw), rel)...)
+		findings = append(findings, scanMaskedForRealIDs(shellCommentMask(raw), rel, alwaysSeverity(SeverityError))...)
 		return nil
 	})
 	return findings

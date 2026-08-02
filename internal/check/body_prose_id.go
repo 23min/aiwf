@@ -264,7 +264,24 @@ func ScanBodyProseID(body []byte, entityID, path string, idx BodyProseIndex) []F
 // exempt. That matches what a rendered page shows — the masking
 // failure mode is "the body LOOKS wrong when rendered", not a silent
 // divergence between the masker and CommonMark semantics.
-func proseMask(body []byte) string {
+func proseMask(body []byte) string { return maskFor(body, false) }
+
+// proseAndCodeMask is proseMask widened to also copy code constructs —
+// inline code spans and fenced/indented code blocks. Non-prose link
+// carriers stay blanked, so the doc-link carve-out is unaffected.
+//
+// The shipped-surface rule uses this wider mask because a real entity id
+// in a command example is a citation like any other: it ships to consumer
+// repos and rots there exactly as one in prose does. body-prose-id keeps
+// the narrower mask, where a backticked id-shape is how an entity body
+// legitimately discusses id syntax. The two masks are opposite answers to
+// "is code content in scope", which is why they are distinct entry points
+// onto one walker rather than one mask serving both.
+func proseAndCodeMask(body []byte) string { return maskFor(body, true) }
+
+// maskFor implements both masks. includeCode selects whether code
+// constructs are copied through as scannable content or blanked.
+func maskFor(body []byte, includeCode bool) string {
 	masked := make([]byte, len(body))
 	for i, b := range body {
 		if b == '\n' {
@@ -288,12 +305,31 @@ func proseMask(body []byte) string {
 		}
 		switch v := n.(type) {
 		case *ast.CodeSpan:
-			// Children are Text nodes carrying the span's content —
-			// code, not prose. Skip so they stay masked. Fenced and
-			// indented code blocks need no case of their own: their
-			// content lives in block Lines(), never in Text children,
-			// so it stays masked by default.
-			return ast.WalkSkipChildren, nil
+			// Children are Text nodes carrying the span's content. When
+			// code is out of scope, skipping them leaves the span masked;
+			// when it is in scope, the walk continues and the *ast.Text
+			// case below copies them like any prose text.
+			if !includeCode {
+				return ast.WalkSkipChildren, nil
+			}
+		case *ast.FencedCodeBlock:
+			// Block content lives in Lines(), never in Text children, so
+			// it stays masked by default and needs an explicit copy to
+			// come into scope. Lines() spans the content only — the fence
+			// markers and info string are outside it.
+			if includeCode {
+				for i := 0; i < v.Lines().Len(); i++ {
+					copySeg(v.Lines().At(i))
+				}
+			}
+		case *ast.CodeBlock:
+			// Indented code block — a distinct goldmark type from
+			// FencedCodeBlock, so it needs its own arm.
+			if includeCode {
+				for i := 0; i < v.Lines().Len(); i++ {
+					copySeg(v.Lines().At(i))
+				}
+			}
 		case *ast.Text:
 			copySeg(v.Segment)
 		case *ast.HTMLBlock:

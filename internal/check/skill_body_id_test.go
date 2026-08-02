@@ -26,6 +26,11 @@ func TestScanSkillBodyID(t *testing.T) {
 		name     string
 		body     string
 		wantFire bool
+		// wantSev is the severity the finding must carry. The zero value
+		// means error — a citation in prose, the class this rule has always
+		// caught. A code-construct citation is newly detected and carries
+		// warning until its sweep completes, so those cases say so.
+		wantSev check.Severity
 	}{
 		// AC-1 — fires on a real digit-bearing id in prose.
 		{name: "bare real bare id in prose", body: "See M-0001 for the worked example.", wantFire: true},
@@ -40,12 +45,16 @@ func TestScanSkillBodyID(t *testing.T) {
 		{name: "canonical bare placeholder", body: "Use the canonical G-NNNN placeholder shape.", wantFire: false},
 		{name: "canonical composite placeholder", body: "Address it as M-NNNN/AC-N in prose.", wantFire: false},
 
-		// AC-2 — silent on code-masked id-shapes.
-		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: false},
+		// M-0287 AC-1 — code constructs are in scope. A real id in a
+		// command example ships to consumer repos and rots there exactly
+		// as one in prose does, so the citation is the defect wherever it
+		// sits. Only non-prose link carriers stay exempt (below).
+		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: true, wantSev: check.SeverityWarning},
 		{
 			name:     "real id in a fenced code block",
 			body:     "Example:\n\n```\naiwf show M-0001\n```\n",
-			wantFire: false,
+			wantFire: true,
+			wantSev:  check.SeverityWarning,
 		},
 
 		// AC-2 — the ADR/design doc-link carve-out: the id rides in the
@@ -62,6 +71,10 @@ func TestScanSkillBodyID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := check.ScanSkillBodyID([]byte(tc.body), "internal/skills/embedded/aiwf-demo/SKILL.md")
+			wantSev := tc.wantSev
+			if wantSev == "" {
+				wantSev = check.SeverityError
+			}
 			if tc.wantFire {
 				if len(got) == 0 {
 					t.Fatalf("expected a skill-body-id finding, got none\nbody: %q", tc.body)
@@ -70,8 +83,8 @@ func TestScanSkillBodyID(t *testing.T) {
 					if f.Code != check.CodeSkillBodyID {
 						t.Errorf("finding code = %q, want %q", f.Code, check.CodeSkillBodyID)
 					}
-					if f.Severity != check.SeverityError {
-						t.Errorf("finding severity = %q, want %q", f.Severity, check.SeverityError)
+					if f.Severity != wantSev {
+						t.Errorf("finding severity = %q, want %q", f.Severity, wantSev)
 					}
 				}
 			} else if len(got) != 0 {

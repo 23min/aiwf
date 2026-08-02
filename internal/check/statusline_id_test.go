@@ -47,7 +47,7 @@ func TestShellCommentMask(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			masked := shellCommentMask([]byte(tc.src))
-			got := scanMaskedForRealIDs(masked, "internal/skills/embedded-statusline/x.sh")
+			got := scanMaskedForRealIDs(masked, "internal/skills/embedded-statusline/x.sh", alwaysSeverity(SeverityError))
 			if tc.wantFire && len(got) == 0 {
 				t.Fatalf("expected a finding, got none\nsrc=%q\nmasked=%q", tc.src, masked)
 			}
