@@ -1,6 +1,6 @@
 ---
 name: aiwfx-plan-epic
-description: Scopes, refines, and documents a new aiwf epic. Allocates the next E-NN id via `aiwf add epic`, scaffolds an epic spec from its template, fills in goal/context/scope/constraints/success criteria, and stages the spec for the user's review. Use when the user says "plan feature X", "design the system for Y", or "I need to build Z". Calls aiwf — requires the aiwf binary.
+description: Scopes, refines, and documents a new aiwf epic. Allocates the next E-NNNN id via `aiwf add epic`, scaffolds an epic spec from its template, fills in goal/context/scope/constraints/success criteria, and stages the spec for the user's review. Use when the user says "plan feature X", "design the system for Y", or "I need to build Z". Calls aiwf — requires the aiwf binary.
 ---
 
 # aiwfx-plan-epic
@@ -35,7 +35,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
    aiwf add epic --title "<imperative title>"
    ```
 
-   `aiwf` allocates the next free `E-NN`, creates `work/epics/E-NN-<slug>/epic.md` with the minimal body skeleton (`## Goal / ## Scope / ## Out of scope`), and produces one commit with `aiwf-verb: add` trailers.
+   `aiwf` allocates the next free `E-NNNN`, creates `work/epics/E-NNNN-<slug>/epic.md` with the minimal body skeleton (`## Goal / ## Scope / ## Out of scope`), and produces one commit with `aiwf-verb: add` trailers.
 
 5. **Replace the body with the rich template** at `.claude/templates/epic-spec.md` (materialized by `aiwf update`; if it's missing, run `aiwf update` rather than copying an existing epic spec). Fill in:
    - **Goal** — 1–2 sentences, value-shaped.
@@ -52,7 +52,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
    Land the filled-in body through the trailered verb, not a plain `git commit`:
 
    ```bash
-   aiwf edit-body E-NN     # bless mode: commits the in-place body edit with aiwf-verb / -entity / -actor trailers
+   aiwf edit-body E-NNNN     # bless mode: commits the in-place body edit with aiwf-verb / -entity / -actor trailers
    ```
 
    `aiwf edit-body <id>` commits the working-copy body bytes with provenance trailers in one atomic operation; a plain `git commit` against the spec would trip the kernel's `provenance-untrailered-entity-commit` finding. See the `aiwf-edit-body` skill for the `--body-file` and `--reason` variants.
@@ -69,9 +69,9 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
    ```bash
    git add ROADMAP.md
-   git commit -m "docs(roadmap): regenerate after planning E-NN" \
+   git commit -m "docs(roadmap): regenerate after planning E-NNNN" \
      --trailer "aiwf-verb: plan-epic" \
-     --trailer "aiwf-entity: E-NN" \
+     --trailer "aiwf-entity: E-NNNN" \
      --trailer "aiwf-actor: human/<id>"
    ```
 
@@ -81,7 +81,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 
 ## What this skill does NOT do
 
-- Does not promote the epic to `active`. The epic stays `proposed` until milestones are planned and work begins. Use `aiwf promote E-NN active` when ready.
+- Does not promote the epic to `active`. The epic stays `proposed` until milestones are planned and work begins. Use `aiwf promote E-NNNN active` when ready.
 - Does not break the epic into milestones. That's `aiwfx-plan-milestones`.
 - Does not merge the planning commits to main — the body fill lands via `aiwf edit-body` as one trailered commit on the ritual branch (step 5); merging those commits to main is the separate *Closing the planning session* step.
 
@@ -90,7 +90,7 @@ If the work fits in one milestone, skip this skill and use `aiwfx-plan-milestone
 - *Planning the epic and immediately starting work.* Don't skip review. The epic spec is the place where scope changes are cheap; once milestones are running, scope changes are expensive.
 - *Hand-writing scalar counts.* "5 milestones" rots; "every milestone listed below" doesn't.
 - *Treating "Open questions" as scratch.* If a question is blocking, state how it gets resolved.
-- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write an id-shaped label no verb allocated — a letter suffix, a spelled-out word suffix, an all-caps letter placeholder, or a pseudo-formal sequence label ("Phase 1", "alpha/beta") — anywhere, committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies; the discipline above keeps the conversation clean. **In conversation**, when sequencing several not-yet-allocated milestones, a milestone prefix with a single digit is acceptable shorthand — distinguishable from a canonical id by its narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Closing the planning session
 
@@ -116,4 +116,4 @@ When the operator declines, capture the one-line reason in the conversation tran
 
 ## Next step
 
-→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main if planning is complete for now. Once milestones are planned, `aiwfx-start-epic E-NN` performs the sovereign `proposed → active` promote and cuts the epic branch; `aiwfx-start-milestone <M-NNNN>` runs after that, only once the planning commits have landed on main.
+→ `aiwfx-plan-milestones` to break the epic into sequenced milestones, or merge to main if planning is complete for now. Once milestones are planned, `aiwfx-start-epic E-NNNN` performs the sovereign `proposed → active` promote and cuts the epic branch; `aiwfx-start-milestone <M-NNNN>` runs after that, only once the planning commits have landed on main.

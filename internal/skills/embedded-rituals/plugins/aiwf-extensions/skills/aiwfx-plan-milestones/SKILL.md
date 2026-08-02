@@ -70,10 +70,10 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
    ```bash
    # At allocation time: pass --depends-on on aiwf add milestone
    aiwf add milestone --epic E-NNNN --tdd <policy> \
-     --title "..." --depends-on M-PPPP[,M-QQQQ]
+     --title "..." --depends-on M-NNNN,M-NNNN
 
    # Post-allocation (the edge surfaced after the milestone was allocated):
-   aiwf milestone depends-on M-NNNN --on M-PPPP[,M-QQQQ]
+   aiwf milestone depends-on M-NNNN --on M-NNNN,M-NNNN
 
    # Empty an existing list:
    aiwf milestone depends-on M-NNNN --clear
@@ -95,9 +95,9 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 
    ```bash
    git add ROADMAP.md
-   git commit -m "docs(roadmap): regenerate after planning E-NN milestones" \
+   git commit -m "docs(roadmap): regenerate after planning E-NNNN milestones" \
      --trailer "aiwf-verb: plan-milestones" \
-     --trailer "aiwf-entity: E-NN" \
+     --trailer "aiwf-entity: E-NNNN" \
      --trailer "aiwf-actor: human/<id>"
    ```
 
@@ -132,7 +132,7 @@ If the epic doesn't exist yet, use `aiwfx-plan-epic` first.
 - *Front-loading detail.* Don't write 10 fully-specced milestones up front. Spec details rot fast; AC definitions written 6 weeks before the work starts are usually wrong.
 - *Inventing global ordering when only local matters.* If two milestones don't depend on each other, leave their order soft.
 - *Scope creep mid-decomposition.* If decomposition surfaces work that wasn't in the epic, decide: amend the epic spec (and re-confirm with the user) or capture as a gap (`aiwf add gap`) for later. Either branch is a decision worth keeping — invoke `aiwfx-record-decision` to capture it, so the next reader finds the reasoning instead of re-deriving it, and so the question doesn't resurface as a review finding once implementation is under way.
-- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write `M-a`, `M-alpha`, `M-NNNN`, "Phase 1", "alpha/beta" anywhere — committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies. **In conversation**, when sequencing several not-yet-allocated milestones, short numeric labels (`M-1`, `M-2`, `M-3`) are acceptable as conversational shorthand — distinguishable from canonical ids by their narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
+- *Inventing id-shaped labels for not-yet-allocated milestones.* Per CLAUDE.md: don't write an id-shaped label no verb allocated — a letter suffix, a spelled-out word suffix, an all-caps letter placeholder, or a pseudo-formal sequence label ("Phase 1", "alpha/beta") — anywhere, committed prose **or** conversation. The mechanical chokepoint `body-prose-id` catches malformed shapes that leak into committed bodies. **In conversation**, when sequencing several not-yet-allocated milestones, a milestone prefix with a single digit is acceptable shorthand — distinguishable from a canonical id by its narrow width. Once `aiwf add milestone` runs, the verb assigns the canonical id and the deliverable name becomes the slug; replace the casual labels with the real ids in any prose that lands in entity bodies.
 
 ## Next step
 

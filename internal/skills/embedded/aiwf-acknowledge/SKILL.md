@@ -33,11 +33,11 @@ The `aiwf acknowledge illegal <sha>` verb is the retroactive sovereign-override 
 ```bash
 # Acknowledge a historical illegal commit with a written rationale.
 aiwf acknowledge illegal f4ea7329 \
-  --reason "pre-AC-2 era squash-merge from epic/E-21; intermediate FSM progression existed on the feature branch but was lost to the squash"
+  --reason "squash-merge from epic/E-NNNN; the intermediate FSM progression existed on the feature branch but was lost to the squash"
 
 # An untrailered entity-edit commit (per-(SHA, entity) ack) needs --for-entity.
-aiwf acknowledge illegal 6a1e70cc --for-entity ADR-0007 \
-  --reason "post-E-0038 terminology refresh landed inline; should have used aiwf edit-body"
+aiwf acknowledge illegal 6a1e70cc --for-entity ADR-NNNN \
+  --reason "terminology refresh landed inline; should have used aiwf edit-body"
 ```
 
 The verb refuses with a typed error when `--reason` is empty, `--actor` is not `human/...`, `<sha>` doesn't match the 7-40-hex shape, or `<sha>` is **neither** reachable from HEAD **nor** present in the local object database (the typo guard).
@@ -72,7 +72,7 @@ The `aiwf acknowledge mistag <id>` verb records a sovereign acceptance that an e
 ### What to run
 
 ```bash
-aiwf acknowledge mistag G-0301 \
+aiwf acknowledge mistag G-NNNN \
   --reason "moving billing's auth into the shared platform lib; cross-cutting by design"
 ```
 

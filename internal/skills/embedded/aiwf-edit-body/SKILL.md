@@ -21,7 +21,7 @@ The verb has two modes. Bless mode is the default and matches the natural human 
 aiwf edit-body <id>
 aiwf edit-body <id> --reason "<why>"
 
-# Explicit-content mode (M-058 — body comes from a file or stdin).
+# Explicit-content mode — body comes from a file or stdin.
 # Useful when an LLM session, script, or pipeline produces the
 # body content and you want to apply it without an editor round-trip:
 aiwf edit-body <id> --body-file <path>
@@ -46,7 +46,7 @@ Reach for `--body-file` only when the body content is produced *outside* the wor
 
 ### AC body sub-sections
 
-Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNNN/AC-N` are still refused to keep the verb's seam simple.)
+Editing the prose under a single `### AC-N — title` heading inside a milestone body works through bless mode on the parent milestone — edit the section in $EDITOR, run `aiwf edit-body M-NNNN`. The verb commits whatever changed; no composite-id resolver needed. (Composite ids `M-NNNN/AC-N` are still refused to keep the verb's seam simple.)
 
 ## What aiwf does
 
@@ -70,7 +70,7 @@ Structured-state edits go through `aiwf promote` / `aiwf rename` / `aiwf cancel`
 
 ## Composite ids (M-NNNN/AC-N)
 
-Not directly supported. To update an AC body section, edit the prose under the `### AC-N — title` heading in the parent milestone file in your editor, then run `aiwf edit-body M-NNN` (bless mode commits whatever changed). Composite-id support is deliberately deferred — bless mode covers the AC sub-section workflow without needing a sub-section resolver.
+Not directly supported. To update an AC body section, edit the prose under the `### AC-N — title` heading in the parent milestone file in your editor, then run `aiwf edit-body M-NNNN` (bless mode commits whatever changed). Composite-id support is deliberately deferred — bless mode covers the AC sub-section workflow without needing a sub-section resolver.
 
 ## Provenance flags
 

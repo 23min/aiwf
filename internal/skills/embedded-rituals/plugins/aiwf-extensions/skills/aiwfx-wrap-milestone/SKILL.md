@@ -63,7 +63,7 @@ If the report is clean, note "doc-lint: clean" and continue. If findings:
 The milestone spec itself carries the wrap-side sections; finalize them in place:
 
 - `## Work log` — confirm one entry per AC with the final outcome and commit SHA. The phase timeline is in `aiwf history M-NNNN/AC-<N>`; don't duplicate dates here.
-- `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNN` from `aiwfx-record-decision` invocations during work).
+- `## Decisions made during implementation` — confirm every mid-flight decision is captured (each should already have an `ADR-NNNN` or `D-NNNN` from `aiwfx-record-decision` invocations during work).
 - `## Validation` — paste the test-suite and build results.
 - `## Deferrals` — list any work this milestone deliberately punted; for each, **open a gap entity** so it survives:
 
@@ -71,10 +71,10 @@ The milestone spec itself carries the wrap-side sections; finalize them in place
   aiwf add gap --title "<deferred-work>" --discovered-in M-NNNN
   ```
 
-  Then mirror the resulting `G-NNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
+  Then mirror the resulting `G-NNNN` id here. Deferred ACs (status `deferred`) get a one-line note pointing at the receiving milestone or gap.
 - `## Reviewer notes` — trade-offs, deliberate omissions, places where the obvious approach was rejected. The reviewer agent reads this first.
 
-For ACs that were `cancelled` mid-implementation, link to the `D-NNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
+For ACs that were `cancelled` mid-implementation, link to the `D-NNNN` decision (or the conversation context) explaining why under the cancelled AC's body section. The kernel only guards the structural state (`status: cancelled`, position-stable in `acs[]`); the why is the human's narrative.
 
 ### 5. Update the roadmap
 

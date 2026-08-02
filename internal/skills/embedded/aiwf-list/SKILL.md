@@ -49,9 +49,9 @@ A filtered listing (any invocation past the no-args per-kind count) also surface
 ## Recipes
 
 - **Per-kind summary** — `aiwf list` (no args). Prints `5 epics · 47 milestones · 12 ADRs · 14 gaps · 3 decisions · 1 contract` style line. Excludes terminal-status entities; that's the active surface only.
-- **All milestones under an epic** — `aiwf list --kind milestone --parent E-13`. Drops `--status` to see every status; add `--status in_progress` to narrow.
+- **All milestones under an epic** — `aiwf list --kind milestone --parent E-NNNN`. Drops `--status` to see every status; add `--status in_progress` to narrow.
 - **Every open gap** — `aiwf list --kind gap --status open`. Same data the *Open gaps* slice in `aiwf status` shows; both routes share one filter helper.
-- **Every contract entity** — `aiwf list --kind contract`. Pair with `aiwf show <C-id>` for the full record.
+- **Every contract entity** — `aiwf list --kind contract`. Pair with `aiwf show <C-NNNN>` for the full record.
 - **One workstream** — `aiwf list --area platform`. Filters to entities whose effective area is `platform`; combine with `--kind` / `--status` to narrow further. Untagged entities are excluded; an undeclared `--area` value prints a one-line note to stderr and matches nothing (reads never reject — only the `aiwf add --area` write path does).
 - **One priority level** — `aiwf list --priority urgent`. Filters to gaps/decisions tagged `urgent`; combine with `--kind gap` to narrow to one kind. Unlike `--area`, priority is a closed, hardcoded set — an out-of-range level (e.g. `--priority critical`) is a usage error naming the allowed levels, not a silent empty result.
 - **All terminal-status entities** — `aiwf list --archived`. Walks archive directories transparently — terminal entities archived by `aiwf archive` remain visible under `--archived` without any list-side change.
@@ -63,8 +63,8 @@ Default text: one tab-aligned row per entity with header.
 
 ```
 ID      STATUS       TITLE                              PARENT
-M-001   draft        prep and schema                    E-01
-M-002   in_progress  auth wiring                        E-01
+M-NNNN  draft        prep and schema                    E-NNNN
+M-NNNN  in_progress  auth wiring                        E-NNNN
 ```
 
 Empty result is printed as nothing — no empty header. Grep- and pipe-friendly.
@@ -78,7 +78,7 @@ JSON envelope:
   "status": "ok",
   "findings": [],
   "result": [
-    {"id": "M-001", "kind": "milestone", "status": "draft", "title": "prep and schema", "parent": "E-01", "path": "work/epics/E-01-.../M-001-....md"}
+    {"id": "M-NNNN", "kind": "milestone", "status": "draft", "title": "prep and schema", "parent": "E-NNNN", "path": "work/epics/E-NNNN-.../M-NNNN-....md"}
   ],
   "metadata": {"root": "<abs path>", "count": 1}
 }

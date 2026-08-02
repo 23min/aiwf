@@ -79,10 +79,7 @@ var skillScanDirs = []string{
 // when the caller passes the whole file (skillBodyIDReference does), that
 // line is already file-relative.
 //
-// Findings are warnings while the shipped tree still carries the debris
-// this rule now detects: at error severity an incomplete sweep would block
-// every push. The sweep milestone clears the tree and raises the severity
-// as its last act.
+// Findings are errors: an id shape in a shipped surface blocks the push.
 //
 // Path populates the finding locator only; the scanner is otherwise
 // stateless, so it runs against on-disk content (skillBodyIDReference) or
@@ -124,7 +121,7 @@ func scanMaskedForSkillIDs(masked, path string) []Finding {
 		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
-			Severity: SeverityWarning,
+			Severity: SeverityError,
 			Message:  msg,
 			Path:     path,
 			Line:     line,

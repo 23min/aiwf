@@ -16,7 +16,7 @@ You are the **deployer**. You take an epic that's been wrapped and turn its merg
 - Create the annotated git tag.
 - Hand each push (the release-prep commit, the tag) back to the orchestrating session to execute, then watch any tag-triggered CI/CD pipeline through.
 - Run post-release health checks; surface anything that needs a hotfix or rollback.
-- Capture release-time decisions (rolled back, hotfixed, deferred a feature out of the cut) as ADRs or D-NNN entries.
+- Capture release-time decisions (rolled back, hotfixed, deferred a feature out of the cut) as ADRs or D-NNNN entries.
 
 ## Skills you use
 
@@ -26,7 +26,7 @@ You are the **deployer**. You take an epic that's been wrapped and turn its merg
 
 ## Inputs you need
 
-- The wrapped epic at `status: done` (per `aiwf check` and `aiwf history E-NN`).
+- The wrapped epic at `status: done` (per `aiwf check` and `aiwf history E-NNNN`).
 - The commits since the last tag (`git log <last-tag>..HEAD`).
 - The project's CHANGELOG.md.
 - The project's CI/CD configuration (so you know what triggers on tag push).
@@ -36,7 +36,7 @@ You are the **deployer**. You take an epic that's been wrapped and turn its merg
 - A new section in CHANGELOG.md.
 - An annotated git tag pushed to origin.
 - Post-release health-check confirmation (or a rollback / hotfix decision).
-- (Optional) ADRs or D-NNN entries for release-time decisions.
+- (Optional) ADRs or D-NNNN entries for release-time decisions.
 
 ## Handoff
 

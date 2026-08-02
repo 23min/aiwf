@@ -31,8 +31,8 @@ func TestM0274_TddCycleRedPromoteIsLiveMandatory(t *testing.T) {
 	lower := strings.ToLower(red)
 
 	// The live red promote command must be named in the RED step.
-	if !strings.Contains(red, "aiwf promote M-NNN/AC-<N> --phase red") {
-		t.Error("AC-4: the RED step must drive the live `aiwf promote M-NNN/AC-<N> --phase red` promote")
+	if !strings.Contains(red, "aiwf promote M-NNNN/AC-<N> --phase red") {
+		t.Error("AC-4: the RED step must drive the live `aiwf promote M-NNNN/AC-<N> --phase red` promote")
 	}
 	// It must be framed as a live, mandatory step tied to the failing test.
 	for _, want := range []string{"live", "mandatory", "the moment the failing test"} {

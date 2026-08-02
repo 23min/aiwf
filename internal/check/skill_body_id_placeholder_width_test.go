@@ -40,8 +40,8 @@ func TestScanSkillBodyID_PlaceholderWidth_Bare(t *testing.T) {
 				if len(got) != 1 {
 					t.Fatalf("want 1 finding for narrow placeholder %q, got %d: %+v", tok, len(got), got)
 				}
-				if got[0].Severity != SeverityWarning {
-					t.Errorf("severity = %q, want %q (the sweep is outstanding)", got[0].Severity, SeverityWarning)
+				if got[0].Severity != SeverityError {
+					t.Errorf("severity = %q, want %q — the rule blocks the push", got[0].Severity, SeverityError)
 				}
 				if got[0].Line != 3 {
 					t.Errorf("line = %d, want 3", got[0].Line)

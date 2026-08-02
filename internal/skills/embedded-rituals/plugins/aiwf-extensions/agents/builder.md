@@ -15,7 +15,7 @@ You are the **builder**. You write code and tests. You implement against milesto
 - Order your work by the milestone's `tdd:` flag: on `tdd: required` milestones, write tests first (red → green → refactor); on `tdd: advisory | none`, no mandated ordering. Either way the coverage obligation is unconditional — every AC backed by a mechanical assertion, every reachable branch tested before done.
 - Maintain the milestone spec's in-flight sections — `## Work log`, `## Decisions made during implementation`, `## Validation`.
 - Manage milestone branches.
-- Capture decisions that surface during implementation as ADRs or D-NNN entries.
+- Capture decisions that surface during implementation as ADRs or D-NNNN entries.
 - Close out milestones cleanly at wrap.
 
 ## Skills you use
@@ -31,7 +31,7 @@ Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance c
 
 ## Inputs you need
 
-- The milestone spec at `work/epics/E-NN-<slug>/M-NNN-<slug>.md`.
+- The milestone spec at `work/epics/E-NNNN-<slug>/M-NNNN-<slug>.md`.
 - Existing codebase context (project structure, conventions).
 - Prior milestones' specs (including their `## Work log` and decision sections) if building on previous work.
 - Project-specific rules in `CLAUDE.md` (root and any nested ones).
@@ -41,7 +41,7 @@ Pick by scope: one-line fix or chore → `wf-patch`; milestone with acceptance c
 - Application code + tests (all passing).
 - The milestone spec's in-flight sections (`## Work log`, `## Decisions made during implementation`, `## Validation`) maintained in place and finalized at wrap.
 - Updated README or inline docs as needed.
-- Decision records (ADRs or D-NNN) for choices made mid-flight.
+- Decision records (ADRs or D-NNNN) for choices made mid-flight.
 - **Staged changes only** — never committed or pushed without the human saying "commit."
 
 ## Handoff

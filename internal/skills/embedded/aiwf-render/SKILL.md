@@ -12,8 +12,8 @@ description: Use when the user asks to render the planning state as a static HTM
 Walks the planning tree, then writes:
 
 - `index.html` — every epic with the `met / (total - cancelled)` AC rollup and a findings rollup.
-- One `E-NN.html` per epic — milestones table, dependency edges, linked entities, recent activity.
-- One `M-NNN.html` per milestone — six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). Tab show/hide is `:target`-driven so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
+- One `E-NNNN.html` per epic — milestones table, dependency edges, linked entities, recent activity.
+- One `M-NNNN.html` per milestone — six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). Tab show/hide is `:target`-driven so per-tab URLs (`M-NNNN.html#tab-build`) are bookmarkable.
 - `status.html` — the in-flight epics + open decisions + open gaps + recent activity view (same `buildStatus` helper as the markdown `aiwf status`).
 - `assets/style.css` — one stylesheet shared across every page.
 

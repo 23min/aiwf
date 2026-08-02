@@ -1,6 +1,6 @@
 ---
 name: aiwf-status
-description: Use for narrative-shaped state questions — "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?", "give me a summary", "what's urgent right now?", "any high-priority gaps?". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNN), open gaps, the last 5 events from git history, and tree-health counts. Curated for human readers, not for programmatic filter queries — for those, use `aiwf list`. Read-only; no commit.
+description: Use for narrative-shaped state questions — "what's next?", "where are we?", "what are we working on?", "current status?", "what's in flight?", "give me a summary", "what's urgent right now?", "any high-priority gaps?". Runs `aiwf status`, which prints a one-screen snapshot of in-flight epics + their milestones, open decisions (proposed ADRs and D-NNNN), open gaps, the last 5 events from git history, and tree-health counts. Curated for human readers, not for programmatic filter queries — for those, use `aiwf list`. Read-only; no commit.
 ---
 
 # aiwf-status
@@ -54,21 +54,21 @@ Default text:
 aiwf status — 2026-04-28
 
 In flight
-  E-01 — Migrate notes from git to R2    [active]
-     ✓ M-001 — prep and schema      [done]
-      → M-002 — auth wiring          [in_progress]    · ACs 2/3 met (1 open)    · tdd: required
-        M-003 — content migration    [draft]
-        M-004 — cutover              [draft]
+  E-NNNN — Migrate notes from git to R2    [active]
+     ✓ M-NNNN — prep and schema      [done]
+      → M-NNNN — auth wiring          [in_progress]    · ACs 2/3 met (1 open)    · tdd: required
+        M-NNNN — content migration    [draft]
+        M-NNNN — cutover              [draft]
 
 Open decisions
-  ADR-0001 — Adopt OpenAPI 3.1    [proposed]
+  ADR-NNNN — Adopt OpenAPI 3.1    [proposed]
 
 Open gaps
-  G-001 — needs error handling    (discovered in M-001)
+  G-NNNN — needs error handling    (discovered in M-NNNN)
 
 Recent activity
-  2026-04-28  human/peter        promote     aiwf promote M-002 in_progress
-  2026-04-27  human/peter        add         aiwf add milestone M-004 "cutover"
+  2026-04-28  human/peter        promote     aiwf promote M-NNNN in_progress
+  2026-04-27  human/peter        add         aiwf add milestone M-NNNN "cutover"
 
 Health
   9 entities · 0 errors · 1 warnings · run `aiwf check` for details

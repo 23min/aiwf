@@ -28,7 +28,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - If the project uses aiwf and the milestone is `tdd: required`, advance the AC's TDD phase to `red` — a live, mandatory step, run the moment the failing test is written and shown to fail, **before you touch the implementation**:
 
   ```bash
-  aiwf promote M-NNN/AC-<N> --phase red
+  aiwf promote M-NNNN/AC-<N> --phase red
   ```
 
   This `"" → red` promote is the event that records "a failing test now exists," so it must fire live, as it happens — the `aiwf history` timeline is what shows the test came before the code. A freshly-added AC rests at the pre-cycle empty phase, so the transition is always available; never skip it, defer it, or back-stamp it later.
@@ -42,7 +42,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - If the project uses aiwf and the milestone is `tdd: required`:
 
   ```bash
-  aiwf promote M-NNN/AC-<N> --phase green
+  aiwf promote M-NNNN/AC-<N> --phase green
   ```
 
 ### REFACTOR — Clean up
@@ -55,7 +55,7 @@ If you find yourself running `wf-tdd-cycle` for a config nudge, you don't need i
 - If the project uses aiwf and the milestone is `tdd: required` and the refactor was non-trivial:
 
   ```bash
-  aiwf promote M-NNN/AC-<N> --phase refactor
+  aiwf promote M-NNNN/AC-<N> --phase refactor
   ```
 
   This step is optional — `green → done` is legal under the FSM. Use it when the refactor pass meaningfully reshaped the code.
@@ -110,12 +110,12 @@ The AC is promoted to `met` only *after* the branch-coverage audit and the vacui
     - Advance the AC's `tdd_phase` to `done`:
 
       ```bash
-      aiwf promote M-NNN/AC-<N> --phase done
+      aiwf promote M-NNNN/AC-<N> --phase done
       ```
 
       Under `tdd: required`, the kernel's `acs-tdd-audit` refuses `met` while `tdd_phase` is not `done` — and **`--force` does not get you around it.** Force relaxes only the status/phase FSM *transition* check; the audit runs as a projection finding **regardless of `--force`**, so there is no `--force met` shortcut. `--force` itself is a **sovereign, human-only** act (the kernel refuses a non-human `--force` actor) — if you think an exception genuinely needs it, the honest lever is fixing the *phase* (or reconsidering the milestone's `tdd:` setting), not forcing the *status*; surface that to the human rather than reaching for `--force met` yourself.
     - Stop here — this cycle's job ends at `phase: done`. Promoting the AC to `met`, committing the implementation, and appending the Work log entry belong to the *calling* milestone ritual (e.g. `aiwfx-start-milestone` step 6), never to this cycle: the Work log's `commit <SHA>` citation needs the implementation commit's SHA, which does not exist until this cycle returns control and that commit lands. Doing `met` + Work log here, before that commit exists, is the exact "SHA doesn't exist yet" ordering bug the milestone-level commit-per-AC model exists to avoid.
-    - The kernel records the phase + status timeline via `aiwf history M-NNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
+    - The kernel records the phase + status timeline via `aiwf history M-NNNN/AC-<N>` automatically — no need to duplicate dates and SHAs in the work log.
 - If the project doesn't use aiwf:
     - Mark the acceptance criterion done in whatever the project uses to track AC progress (an issue, a checklist).
     - Note any decisions or deviations made mid-cycle.

@@ -166,7 +166,7 @@ func TestFindSovereignPromotionSection_BranchCoverage(t *testing.T) {
 
 // TestAiwfxStartEpic_AC3_SovereignPromotionStep pins M-0096/AC-3: the
 // sovereign-promotion step (step 8 in E-0028's scope) names the
-// `aiwf promote E-NN active` verb, references the M-0095 rule's
+// `aiwf promote E-NNNN active` verb, references the M-0095 rule's
 // substance (the `human/` actor requirement), and points at the
 // `--force --reason "..."` override path. Heading-scoped per CLAUDE.md
 // §"Substring assertions are not structural assertions"; the rule
@@ -191,7 +191,7 @@ func TestAiwfxStartEpic_AC3_SovereignPromotionStep(t *testing.T) {
 		name   string
 		marker string
 	}{
-		{"the activation verb", "aiwf promote E-NN active"},
+		{"the activation verb", "aiwf promote E-NNNN active"},
 		{"the human/ actor requirement", "human/"},
 		{"the --force --reason override path", "--force --reason"},
 	}
@@ -432,7 +432,7 @@ func TestFindWorktreePromptSection_BranchCoverage(t *testing.T) {
 
 // TestAiwfxStartEpic_D0032_SovereignPromotionIsGatedNotHandedOff pins
 // D-0032 (G-0381): the sovereign-promotion step presents the exact
-// `aiwf promote E-NN active` command as an explicit approve/deny gate
+// `aiwf promote E-NNNN active` command as an explicit approve/deny gate
 // and has the AI assistant run it directly on approval, rather than
 // handing the verb off to the operator to type themselves. The prior
 // wording ("an AI assistant orchestrating the conversation does not
@@ -481,7 +481,7 @@ func TestAiwfxStartEpic_D0032_SovereignPromotionIsGatedNotHandedOff(t *testing.T
 	if antiPatterns == "" {
 		t.Fatal("D-0032: body must contain an `## Anti-patterns` section")
 	}
-	if strings.Contains(antiPatterns, "Letting an AI assistant run `aiwf promote E-NN active` directly") {
+	if strings.Contains(antiPatterns, "Letting an AI assistant run `aiwf promote E-NNNN active` directly") {
 		t.Error("D-0032: `## Anti-patterns` must not list an AI running the verb directly as an anti-pattern — that is now the sanctioned post-approval behavior")
 	}
 	if !strings.Contains(strings.ToLower(antiPatterns), "without the operator's explicit") {
