@@ -67,6 +67,14 @@ The reverse path is intentionally not implemented (ADR-0004 §"Reversal");
 file a new entity that references the archived one if a closed entity
 needs revisiting.
 
+Over a tree with uncommitted work, a sweep reports some entities as
+skipped and sweeps the rest — this is normal, and the exit code is
+unchanged. A candidate is skipped when a file its placement depends on
+has uncommitted changes: its own file, an entity whose body links to it,
+or whatever already sits at the destination. Commit or revert the named
+file and re-run. Skipping one candidate rather than refusing the whole
+sweep is what keeps one draft from stalling unrelated moves.
+
 The same verb covers both the bulk first-run sweep against a pre-
 ADR-0004 tree and the routine ongoing sweeps that follow.`,
 		Example: `  # Preview the sweep (dry-run is the default)

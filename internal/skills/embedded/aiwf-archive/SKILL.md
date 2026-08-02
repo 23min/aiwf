@@ -39,6 +39,43 @@ aiwf archive --apply --kind gap
 
 **Idempotent.** Re-running on a clean tree produces no commit and exits 0. There is no "force a sweep" mode; if the tree is already converged, there is nothing to do.
 
+## When a sweep skips a candidate
+
+A sweep over a tree with uncommitted work reports some entities as skipped
+and sweeps the rest. The skipped ones appear under `Skipped:` alongside the
+planned moves:
+
+```
+Skipped:
+  G-NNNN: uncommitted changes in work/gaps/G-NNNN-<slug>.md
+```
+
+When *every* candidate is skipped there is nothing to commit, so the verb
+says so instead and exits 0:
+
+```
+aiwf archive: no entities swept; 1 entity skipped: G-NNNN (uncommitted changes in work/gaps/G-NNNN-<slug>.md)
+```
+
+**Neither is an error.** The exit code is unchanged, and any entity not
+named has swept.
+
+**Why a candidate is skipped.** The sweep decides where an entity belongs
+from what is committed. When a file that decision rests on has uncommitted
+changes, the answer is unavailable rather than negative, so that one
+candidate is left in place and named. Three files can do it: the entity's
+own, whose status decides whether it is terminal at all; an entity whose
+body links to it, whose link the sweep would rewrite; and anything already
+sitting at the destination the move lands on.
+
+**What to do.** Commit or revert the named file, then re-run. Nothing was
+half-done — a sweep is one commit, and a skipped candidate contributes
+nothing to it.
+
+**Why skip rather than refuse.** One draft would otherwise stall every
+unrelated move. Skipping keeps an uncommitted entity from blocking work
+that has nothing to do with it, so the sweep stays usable mid-edit.
+
 ## Reversal — there is none
 
 **You don't reverse the sweep, deliberately.** Per the archive convention §"Reversal — what verb undoes archive?", the FSM is one-directional and archive is the structural projection of FSM-terminality. The kernel does not provide an "aiwf reactivate" verb, an "un-archive" verb, or any reverse-sweep mode.

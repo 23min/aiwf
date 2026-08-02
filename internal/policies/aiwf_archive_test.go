@@ -402,3 +402,38 @@ func TestAiwfArchive_AC4_AllowlistEntryRemoved(t *testing.T) {
 			rationale)
 	}
 }
+
+// TestAiwfArchive_SkipReportSection pins that the per-candidate skip is
+// documented where an operator meeting it will look.
+//
+// A sweep over a tree with uncommitted work leaves some candidates in
+// place and names them. Without this section the behaviour is reachable
+// only by reading the verb's source, which is the condition the
+// AI-discoverability rule exists to prevent: an operator — human or
+// assistant — who sees a skip line has to be told it is normal, what
+// causes it, and what to do next.
+//
+// Scoped to the named section rather than grepped across the file, so
+// the prose cannot drift into an unrelated one and still pass.
+func TestAiwfArchive_SkipReportSection(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfArchiveSkill(t)
+	section := extractMarkdownSection(body, 2, "When a sweep skips a candidate")
+	if section == "" {
+		t.Fatal("SKILL.md must have a `## When a sweep skips a candidate` section: " +
+			"the sweep's per-candidate skip is operator-visible and is otherwise documented nowhere")
+	}
+	// The four things an operator meeting a skip line needs: that it is
+	// not a failure, what causes it, what to do, and that the rest swept.
+	required := []string{
+		"skipped",
+		"uncommitted",
+		"re-run",
+		"links",
+	}
+	for _, want := range required {
+		if !strings.Contains(section, want) {
+			t.Errorf("§When a sweep skips a candidate must reference %q", want)
+		}
+	}
+}

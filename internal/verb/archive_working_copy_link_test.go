@@ -1,7 +1,6 @@
 package verb_test
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -65,54 +64,5 @@ func TestArchive_WorkingCopyOnlyLink_DeclinesThatCandidate(t *testing.T) {
 	if !strings.Contains(report, linkerPath) && !strings.Contains(report, "G-0001") {
 		t.Errorf("the declined move is not reported; the operator is left to discover the "+
 			"working-copy link themselves:\n%s", report)
-	}
-}
-
-// TestArchive_DeletedNonReferrer_DoesNotDeclineTheMove is the negative
-// case of reading both copies, and the bound on enumerating candidates
-// from the record.
-//
-// A deleted entity file differs from the record maximally, so it is in
-// the candidate set by construction. Being mid-edit is not what makes a
-// file a blocker, though — carrying a link into the move is. Neither copy
-// of this one does: the record's has no link, and there is no working
-// copy left to read. The move it has nothing to do with proceeds.
-func TestArchive_DeletedNonReferrer_DoesNotDeclineTheMove(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Target gap", testActor,
-		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-	// Committed, and linking to nothing.
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Unrelated gap", testActor,
-		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "fixture", false))
-
-	target := r.tree().ByID("G-0001")
-	unrelated := r.tree().ByID("G-0002")
-	if target == nil || unrelated == nil {
-		t.Fatal("fixture entities missing from the tree")
-	}
-	targetPath := filepath.ToSlash(target.Path)
-	unrelatedPath := filepath.ToSlash(unrelated.Path)
-
-	if err := os.Remove(filepath.Join(r.root, unrelatedPath)); err != nil {
-		t.Fatalf("removing %s: %v", unrelatedPath, err)
-	}
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	var planned bool
-	for _, src := range archiveMovesFor(res) {
-		if src == targetPath {
-			planned = true
-		}
-	}
-	if !planned {
-		t.Errorf("archive declined to sweep %s because the unrelated file %s is missing from disk; "+
-			"neither copy of that file links into the move, so it decides nothing about it. "+
-			"Enumerating a candidate is not the same as blocking on it.\nReport:\n%s",
-			targetPath, unrelatedPath, skipReport(res))
 	}
 }

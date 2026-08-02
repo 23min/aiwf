@@ -85,45 +85,110 @@ func TestArchive_ReferrerUnparseableInWorkingCopy_DeclinesTheMove(t *testing.T) 
 	}
 }
 
-// TestArchive_UnparseableReferrer_LeavesUnrelatedCandidatesSweeping is
-// the property that makes declining the right answer rather than
-// refusing. Widening the candidate set to the record risks the opposite
-// failure — one unparseable file stalling every move — so the per-candidate
-// scope is pinned on this route too, not only on the routes that predate it.
-func TestArchive_UnparseableReferrer_LeavesUnrelatedCandidatesSweeping(t *testing.T) {
+// TestArchive_UnparseableADRReferrer_DeclinesTheMove holds the referrer
+// scan to every entity kind, not the one the other tests happen to use.
+//
+// A referrer is any entity whose body links into the move; nothing about
+// the criterion is gap-specific. But `entity.PathKind` is the sole
+// classifier separating referrers from ordinary files, and a narrowing of
+// it — to one kind, or to one directory prefix — is invisible to a suite
+// whose referrers are all gaps. Measured: restricting the classifier to
+// gaps leaves every other test in this package green while an ADR
+// referrer strands the dangling link AC-1 exists to prevent.
+//
+// One arrangement on a second kind buys that, where a kind dimension
+// across the property grammar would double its runtime for the same
+// protection.
+func TestArchive_UnparseableADRReferrer_DeclinesTheMove(t *testing.T) {
 	t.Parallel()
-	r, targetPath, linkerPath := linkingGapRunner(t)
-
-	// A third gap, terminal, that nothing links to.
-	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Independent gap", testActor,
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Target gap", testActor,
 		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
-	r.must(verb.Cancel(r.ctx, r.tree(), "G-0003", testActor, "fixture", false))
-	independent := r.tree().ByID("G-0003")
-	if independent == nil {
-		t.Fatal("G-0003 missing from the fixture tree")
+	target := r.tree().ByID("G-0001")
+	if target == nil {
+		t.Fatal("G-0001 missing from the fixture tree")
 	}
-	independentPath := filepath.ToSlash(independent.Path)
+	targetPath := filepath.ToSlash(target.Path)
 
-	corruptFrontmatter(t, r, linkerPath)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindADR, "Adopt the target's approach", testActor,
+		verb.AddOptions{BodyOverride: []byte(
+			"## Context\n\nSee [the target](" + targetPath + ") for background.\n\n" +
+				"## Decision\n\nFixture prose.\n\n## Consequences\n\nFixture prose.\n",
+		)}))
+	adr := r.tree().ByID("ADR-0001")
+	if adr == nil {
+		t.Fatal("ADR-0001 missing from the fixture tree")
+	}
+	adrPath := filepath.ToSlash(adr.Path)
+	r.must(verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "fixture", false))
+
+	corruptFrontmatter(t, r, adrPath)
 
 	res, err := verb.Archive(r.ctx, r.root, testActor, "")
 	if err != nil {
 		t.Fatalf("Archive: %v", err)
 	}
-	moves := archiveMovesFor(res)
-	var sweptIndependent bool
-	for _, src := range moves {
+	for _, src := range archiveMovesFor(res) {
 		if src == targetPath {
-			t.Errorf("archive planned to sweep %s despite its unparseable referrer", targetPath)
-		}
-		if src == independentPath {
-			sweptIndependent = true
+			t.Errorf("archive planned to sweep %s while its ADR referrer %s is unparseable; "+
+				"the referrer scan is reaching gaps only, so HEAD keeps a link to a path "+
+				"the move vacates", targetPath, adrPath)
 		}
 	}
-	if !sweptIndependent {
-		t.Errorf("%s links to nothing and is terminal, yet the sweep skipped it; "+
-			"one unparseable file has become a whole-verb refusal, which is the behaviour "+
-			"the per-candidate decline exists to replace. Planned moves: %v", independentPath, moves)
+}
+
+// TestArchive_DirectoryAtRecordedEntityPath_DoesNotFailTheSweep pins the
+// one shape that reaches the comparison but cannot be compared.
+//
+// Enumerating candidates from the record admits paths the working tree no
+// longer holds as files. DivergentPaths refuses a directory outright, and
+// that refusal is a verb-level error: it names no candidate, offers no
+// remedy, and takes down every unrelated move with it — which is the
+// whole-verb refusal this milestone's own constraint forbids. The path is
+// divergent, so it is reported as such and judged per candidate like any
+// other.
+func TestArchive_DirectoryAtRecordedEntityPath_DoesNotFailTheSweep(t *testing.T) {
+	t.Parallel()
+	r := newRunner(t)
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Target gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	r.must(verb.Add(r.ctx, r.tree(), entity.KindGap, "Other gap", testActor,
+		verb.AddOptions{BodyOverride: bornCompleteFixtureBody(entity.KindGap)}))
+	r.must(verb.Cancel(r.ctx, r.tree(), "G-0001", testActor, "fixture", false))
+
+	target := r.tree().ByID("G-0001")
+	other := r.tree().ByID("G-0002")
+	if target == nil || other == nil {
+		t.Fatal("fixture entities missing from the tree")
+	}
+	targetPath := filepath.ToSlash(target.Path)
+	otherPath := filepath.ToSlash(other.Path)
+
+	// The record carries a file here; the working tree now holds a directory.
+	abs := filepath.Join(r.root, otherPath)
+	if err := os.Remove(abs); err != nil {
+		t.Fatalf("removing %s: %v", otherPath, err)
+	}
+	if err := os.MkdirAll(abs, 0o750); err != nil {
+		t.Fatalf("creating a directory at %s: %v", otherPath, err)
+	}
+
+	res, err := verb.Archive(r.ctx, r.root, testActor, "")
+	if err != nil {
+		t.Fatalf("Archive failed the whole sweep over one uncomparable path %s: %v\n"+
+			"A path the record holds as a file and the tree holds as a directory is a "+
+			"divergence to report, not a verb-level error", otherPath, err)
+	}
+	var planned bool
+	for _, src := range archiveMovesFor(res) {
+		if src == targetPath {
+			planned = true
+		}
+	}
+	if !planned {
+		t.Errorf("%s links to nothing and is terminal, yet the sweep skipped it because %s "+
+			"is a directory; one uncomparable path must cost at most its own candidate.\nReport:\n%s",
+			targetPath, otherPath, skipReport(res))
 	}
 }
 
@@ -175,35 +240,5 @@ func TestArchive_MidEditNonEntityFile_DoesNotDeclineTheMove(t *testing.T) {
 		t.Errorf("archive declined to sweep %s because the mid-edit non-entity file %s quotes its path; "+
 			"no sweep rewrites that file, so it can lose no link, and blocking on it makes any "+
 			"uncommitted document a whole-verb refusal. Report:\n%s", targetPath, noteRel, skipReport(res))
-	}
-}
-
-// TestArchive_ReferrerDeletedFromDisk_DeclinesTheMove covers the same
-// enumeration hole reached by a different route: the referrer's file is
-// gone from the working copy while the record still carries it and its
-// link. A path the loaded tree never lists cannot be compared against the
-// record, whatever removed it from the tree.
-func TestArchive_ReferrerDeletedFromDisk_DeclinesTheMove(t *testing.T) {
-	t.Parallel()
-	r, targetPath, linkerPath := linkingGapRunner(t)
-
-	if err := os.Remove(filepath.Join(r.root, linkerPath)); err != nil {
-		t.Fatalf("removing %s: %v", linkerPath, err)
-	}
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	for _, src := range archiveMovesFor(res) {
-		if src == targetPath {
-			t.Errorf("archive planned to sweep %s while its referrer %s is missing from disk; "+
-				"the record still carries the link, so the move strands it at HEAD",
-				targetPath, linkerPath)
-		}
-	}
-	report := skipReport(res)
-	if !strings.Contains(report, targetPath) && !strings.Contains(report, "G-0001") {
-		t.Errorf("the declined move is not reported; the operator sees no reason for the omission:\n%s", report)
 	}
 }

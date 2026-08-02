@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -232,36 +233,7 @@ func planArchiveRewrites(tr *tree.Tree, moves []archiveMove) ([]FileOp, error) {
 	if len(entityMoves) == 0 {
 		return nil, nil //coverage:ignore unreachable: planArchive only calls this when moves is non-empty, and every archiveMove (gap/decision/adr direct, or epic/contract via its own dir-shape entity) yields at least one EntityMove
 	}
-	postMovePath := make(map[string]string, len(entityMoves))
-	for _, m := range entityMoves {
-		postMovePath[m.From] = m.To
-	}
-
-	var ops []FileOp
-	for _, e := range tr.Entities {
-		if entity.IsArchivedPath(e.Path) {
-			continue
-		}
-		linkingPath := e.Path
-		if to, ok := postMovePath[e.Path]; ok {
-			linkingPath = to
-		}
-		body, err := readBody(tr.Root, e.Path)
-		if err != nil { //coverage:ignore defensive: e.Path comes from the loaded tree, so the file is present; a read error needs the file to vanish mid-verb
-			return nil, err
-		}
-		newBody := RewriteLinkDestinations(body, linkingPath, entityMoves)
-		if bytes.Equal(newBody, body) {
-			continue
-		}
-		content, err := entity.Serialize(e, newBody)
-		if err != nil { //coverage:ignore defensive: Serialize fails only on a malformed entity; e already round-tripped through the loader
-			return nil, fmt.Errorf("serializing %s after archive link rewrite: %w", e.ID, err)
-		}
-		ops = append(ops, FileOp{Type: OpWrite, Path: linkingPath, Content: content})
-	}
-	sort.Slice(ops, func(i, j int) bool { return ops[i].Path < ops[j].Path })
-	return ops, nil
+	return planLinkRewriteWrites(tr, entityMoves, nil)
 }
 
 // computeArchiveMoves walks the loaded tree and produces one move per
@@ -739,12 +711,12 @@ func maskedTerminalSkips(
 // moveEnds returns the paths a move touches: the source it carries and
 // the destination it lands on.
 //
-// Both sides of the sweep derive their reach from this one function, and
-// the commit-side guard enumerates the same pair (planCarriedPaths walks
-// op.Path and op.NewPath alike). A destination missing from either
-// enumeration is content the commit replaces without anyone naming it —
-// and, where the guard sees it and the decline does not, a whole-verb
-// refusal for a single participant.
+// Both of the decline's own reach computations reach through this one
+// function, and the commit-side guard enumerates the same pair by its own
+// means (planCarriedPaths walks op.Path and op.NewPath alike). A
+// destination missing from either enumeration is content the commit
+// replaces without anyone naming it — and, where the guard sees it and
+// the decline does not, a whole-verb refusal for a single participant.
 func moveEnds(m archiveMove) []string {
 	return []string{m.from, m.to}
 }
@@ -764,8 +736,9 @@ func moveBlockers(
 	entityMoves := archiveEntityMoves(tr, []archiveMove{m})
 	seen := map[string]bool{}
 	var blockers []string
+	ends := moveEnds(m)
 	for path := range carried {
-		for _, end := range moveEnds(m) {
+		for _, end := range ends {
 			if !pathInside(path, end) {
 				continue
 			}
@@ -799,11 +772,18 @@ func moveBlockers(
 			headBodies[path] = raw
 		}
 		if len(body) == 0 {
-			// Absent from the record. The commit-side guard exempts such a
-			// path — a file git never recorded has no committed content the
-			// sweep could overwrite — so its write lands and the two seams
-			// agree by both letting it through. Blocking here would decline
-			// a candidate the commit would have accepted.
+			// Absent from the record. A referrer's rewrite is an OpWrite to
+			// that referrer's own path, and the commit-side guard exempts an
+			// absent-from-HEAD divergence at exactly that shape — a file git
+			// never recorded has no committed content the write could
+			// overwrite — so the write lands and the two seams agree by both
+			// letting it through. Blocking here would decline a candidate the
+			// commit would have accepted.
+			//
+			// The exemption is that narrow: an untracked file merely carried
+			// along by a directory move is not an OpWrite's own destination
+			// and is not exempt, which is why the carried set is judged
+			// above rather than here.
 			continue
 		}
 		// A link in either copy is a link the sweep's verdict rests on. The
@@ -852,7 +832,7 @@ func workingBodyAt(root, path string) []byte {
 // copy that no test compares against the first.
 func recordedEntityPaths(ctx context.Context, root string) ([]string, error) {
 	paths, err := gitops.LsTreePaths(ctx, root, "HEAD")
-	if err != nil { //coverage:ignore defensive: every caller consults HasHEAD first, so HEAD resolves
+	if err != nil { //coverage:ignore defensive: HEAD resolves (callers consult HasHEAD first), leaving only a git ls-tree subprocess failure, which needs the repo to break mid-verb
 		return nil, fmt.Errorf("listing the entity files recorded at HEAD: %w", err)
 	}
 	var out []string
@@ -906,21 +886,46 @@ func dirtyEntityPaths(ctx context.Context, root string, tr *tree.Tree) (map[stri
 	// only the loaded tree makes precisely the files most likely to be
 	// mid-edit invisible to every comparison built on this set.
 	recorded, err := recordedEntityPaths(ctx, root)
-	if err != nil { //coverage:ignore defensive: recordedEntityPaths fails only when HEAD does not resolve, which the HasHEAD check above just ruled out
+	if err != nil { //coverage:ignore defensive: recordedEntityPaths fails only on an unusable git — HEAD resolves by the HasHEAD check above
 		return nil, err
 	}
 	for _, p := range recorded {
 		add(p)
 	}
-	diverged, err := gitops.DivergentPaths(ctx, root, paths)
+	files, dirs := splitDirectoryPaths(root, paths)
+	diverged, err := gitops.DivergentPaths(ctx, root, files)
 	if err != nil { //coverage:ignore defensive: same non-repo condition HasHEAD just passed
 		return nil, fmt.Errorf("checking the working tree against HEAD: %w", err)
 	}
-	out := make(map[string]bool, len(diverged))
+	out := make(map[string]bool, len(diverged)+len(dirs))
 	for _, d := range diverged {
 		out[d.Path] = true
 	}
+	// A path the record carries as a file and the working tree holds as a
+	// directory disagrees with the record as surely as an edit does, and
+	// more so. It cannot be compared byte-wise, so it is named divergent
+	// here instead: DivergentPaths refuses a directory outright, and a
+	// refusal there would take the whole sweep down over one participant —
+	// the outcome the per-candidate decline exists to replace.
+	for _, p := range dirs {
+		out[p] = true
+	}
 	return out, nil
+}
+
+// splitDirectoryPaths partitions paths into the files a byte-wise
+// comparison can handle and the paths the working tree holds as a
+// directory.
+func splitDirectoryPaths(root string, paths []string) (files, dirs []string) {
+	files = make([]string, 0, len(paths))
+	for _, p := range paths {
+		if info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(p))); err == nil && info.IsDir() {
+			dirs = append(dirs, p)
+			continue
+		}
+		files = append(files, p)
+	}
+	return files, dirs
 }
 
 // dirtyPathsUnderMoves returns every path beneath one of the candidate
@@ -956,7 +961,7 @@ func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove)
 	}
 	for _, m := range moves {
 		for _, end := range moveEnds(m) {
-			if carriedErr := addCarriedUnder(ctx, root, end, add, true); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
+			if carriedErr := addCarriedUnder(ctx, root, end, add, true); carriedErr != nil { //coverage:ignore unreachable here: tree.Load walks work/ including archive/, so an unreadable subtree under either end of a move fails the load before this runs, and HEAD resolves by the check above
 				return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
 			}
 		}
