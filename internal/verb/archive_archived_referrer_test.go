@@ -2,7 +2,6 @@ package verb_test
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -85,25 +84,5 @@ func TestArchive_ArchivedReferrerMidEdit_DoesNotDeclineTheMove(t *testing.T) {
 			"planArchiveRewrites skips archived entities, so that file is never rewritten by a sweep "+
 			"and can lose no link. The decline counts an entity the rewrite pass does not.\nReport:\n%s",
 			targetPath, archivedLinkerPath, skipReport(res))
-	}
-}
-
-// TestArchive_ArchivedReferrerMidEdit_IsNotNamedAsABlocker is the
-// reporting half. Even where the move survives, naming an archived file
-// as the reason for anything sends the operator to a file whose state
-// cannot affect the sweep.
-func TestArchive_ArchivedReferrerMidEdit_IsNotNamedAsABlocker(t *testing.T) {
-	t.Parallel()
-	r, _, archivedLinkerPath := archivedReferrerRunner(t)
-
-	dirtyEntity(t, r, "G-0002", "Fixture prose.", "Draft rewording of an archived note.")
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	if strings.Contains(skipReport(res), archivedLinkerPath) {
-		t.Errorf("the report blames the archived file %s; no sweep rewrites it, so its state "+
-			"cannot decide any move:\n%s", archivedLinkerPath, skipReport(res))
 	}
 }

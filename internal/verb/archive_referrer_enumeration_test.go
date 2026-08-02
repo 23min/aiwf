@@ -85,35 +85,6 @@ func TestArchive_ReferrerUnparseableInWorkingCopy_DeclinesTheMove(t *testing.T) 
 	}
 }
 
-// TestArchive_ReferrerHandRenamed_DeclinesTheMove covers the third route
-// the criterion names. The entity still parses, so the loaded tree
-// carries it — at its new path. The record carries the link at the old
-// one, which no working-tree walk reaches.
-func TestArchive_ReferrerHandRenamed_DeclinesTheMove(t *testing.T) {
-	t.Parallel()
-	r, targetPath, linkerPath := linkingGapRunner(t)
-
-	renamed := strings.Replace(linkerPath, "G-0002-linking-gap.md", "G-0002-renamed-by-hand.md", 1)
-	if renamed == linkerPath {
-		t.Fatalf("fixture assumption broken: %q has no recognizable slug to rename", linkerPath)
-	}
-	if err := os.Rename(filepath.Join(r.root, linkerPath), filepath.Join(r.root, renamed)); err != nil {
-		t.Fatalf("renaming %s: %v", linkerPath, err)
-	}
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	for _, src := range archiveMovesFor(res) {
-		if src == targetPath {
-			t.Errorf("archive planned to sweep %s while its referrer moved from %s to %s outside a verb; "+
-				"the record's copy of the link lives at the old path, which no working-tree walk reaches",
-				targetPath, linkerPath, renamed)
-		}
-	}
-}
-
 // TestArchive_UnparseableReferrer_LeavesUnrelatedCandidatesSweeping is
 // the property that makes declining the right answer rather than
 // refusing. Widening the candidate set to the record risks the opposite

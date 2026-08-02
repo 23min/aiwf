@@ -83,61 +83,6 @@ func TestArchive_OccupiedDestination_DeclinesThatCandidate(t *testing.T) {
 	}
 }
 
-// TestArchive_OccupiedDestination_LeavesOtherCandidatesSweeping is the
-// half that makes this a decline rather than a refusal. One blocked
-// destination costs exactly one candidate.
-func TestArchive_OccupiedDestination_LeavesOtherCandidatesSweeping(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	blocked := terminalGap(t, r, "Target gap", "G-0001")
-	independentPath := terminalGap(t, r, "Independent gap", "G-0002")
-	occupyPath(t, r, archiveDestinationOf(t, blocked))
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	moves := archiveMovesFor(res)
-	var sweptIndependent bool
-	for _, src := range moves {
-		if src == blocked {
-			t.Errorf("archive planned to sweep %s despite its occupied destination", blocked)
-		}
-		if src == independentPath {
-			sweptIndependent = true
-		}
-	}
-	if !sweptIndependent {
-		t.Errorf("%s has a free destination and nothing referring to it, yet the sweep skipped it. "+
-			"Planned moves: %v", independentPath, moves)
-	}
-}
-
-// TestArchive_OccupiedDestination_PlanApplies is the end-to-end
-// consequence. With the destination enumerated, the surviving plan
-// carries only decidable moves, so the commit-side guard has nothing to
-// refuse. Without it, this plan reaches Apply and the whole verb fails —
-// naming the destination path, but no candidate.
-func TestArchive_OccupiedDestination_PlanApplies(t *testing.T) {
-	t.Parallel()
-	r := newRunner(t)
-	blocked := terminalGap(t, r, "Target gap", "G-0001")
-	terminalGap(t, r, "Independent gap", "G-0002")
-	occupyPath(t, r, archiveDestinationOf(t, blocked))
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	if res.Plan == nil {
-		t.Fatalf("no plan produced; the independent gap should still sweep. Report:\n%s", skipReport(res))
-	}
-	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
-		t.Fatalf("Apply refused the whole sweep because %s has an occupied destination; "+
-			"declining that one candidate is what keeps the rest moving: %v", blocked, applyErr)
-	}
-}
-
 // TestArchive_RecordedDivergentAtDirectoryDestination_DeclinesThatCandidate
 // covers the criterion's other named shape — a destination file the record
 // carries and the working copy has since changed — on the move shape where

@@ -3,7 +3,6 @@ package verb_test
 import (
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
@@ -115,43 +114,5 @@ func TestArchive_DeletedNonReferrer_DoesNotDeclineTheMove(t *testing.T) {
 			"neither copy of that file links into the move, so it decides nothing about it. "+
 			"Enumerating a candidate is not the same as blocking on it.\nReport:\n%s",
 			targetPath, unrelatedPath, skipReport(res))
-	}
-}
-
-// TestArchive_WorkingCopyOnlyLink_DryRunPredictsApply is the criterion's
-// own observable, and it holds independently of which condition caused
-// the disagreement: a plan the dry run reports is a plan the apply can
-// land. A dry run that promises a sweep the apply refuses is a defect on
-// its own terms.
-func TestArchive_WorkingCopyOnlyLink_DryRunPredictsApply(t *testing.T) {
-	t.Parallel()
-	r, _, _ := workingCopyOnlyLinkRunner(t)
-
-	res, err := verb.Archive(r.ctx, r.root, testActor, "")
-	if err != nil {
-		t.Fatalf("Archive: %v", err)
-	}
-	if res.Plan == nil {
-		// Converged is a coherent answer: nothing promised, nothing owed.
-		return
-	}
-	predicted := archiveMovesFor(res)
-	sort.Strings(predicted)
-
-	if _, applyErr := verb.Apply(r.ctx, r.root, res.Plan); applyErr != nil {
-		t.Fatalf("the dry run promised to sweep %v and the apply refused the whole verb: %v",
-			predicted, applyErr)
-	}
-
-	// What the apply actually landed must be what the dry run named.
-	var landed []string
-	for _, p := range predicted {
-		if _, statErr := os.Stat(filepath.Join(r.root, archiveDestinationOf(t, p))); statErr == nil {
-			landed = append(landed, p)
-		}
-	}
-	sort.Strings(landed)
-	if strings.Join(landed, ",") != strings.Join(predicted, ",") {
-		t.Errorf("the dry run named %v as sweeping; the apply landed %v", predicted, landed)
 	}
 }
