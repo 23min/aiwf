@@ -13,6 +13,7 @@ acs:
     - id: AC-2
       title: Shipped entity templates seed no id shape that body-prose-id rejects
       status: open
+      tdd_phase: red
     - id: AC-3
       title: The documenting passages describe rejected shapes rather than exhibit them
       status: met
