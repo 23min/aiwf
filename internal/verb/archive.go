@@ -799,14 +799,46 @@ func moveBlockers(
 			headBodies[path] = raw
 		}
 		if len(body) == 0 {
-			// Never committed, so no committed link can be lost.
+			// Absent from the record. The commit-side guard exempts such a
+			// path — a file git never recorded has no committed content the
+			// sweep could overwrite — so its write lands and the two seams
+			// agree by both letting it through. Blocking here would decline
+			// a candidate the commit would have accepted.
 			continue
 		}
-		if !bytes.Equal(RewriteLinkDestinations(body, path, entityMoves), body) {
+		// A link in either copy is a link the sweep's verdict rests on. The
+		// rewrite pass reads the working copy and emits its op from that;
+		// the record is what a lost link is lost from. Consulting one side
+		// only lets the two disagree, and every such disagreement ends the
+		// same way — a move nothing declined carrying a write the guard
+		// then refuses for the whole verb.
+		if linksIntoMove(body, path, entityMoves) || linksIntoMove(workingBodyAt(root, path), path, entityMoves) {
 			blockers = append(blockers, path)
 		}
 	}
 	return blockers, nil
+}
+
+// linksIntoMove reports whether body carries a link that one of the moves
+// would rewrite. An empty body carries nothing.
+func linksIntoMove(body []byte, linkingPath string, moves []EntityMove) bool {
+	if len(body) == 0 {
+		return false
+	}
+	return !bytes.Equal(RewriteLinkDestinations(body, linkingPath, moves), body)
+}
+
+// workingBodyAt returns the working copy's bytes for path, or nil when it
+// cannot be read. Unreadable is the same answer as absent here: a file the
+// sweep cannot read carries no link it can act on, and the paths that
+// reach this point are already known to differ from the record — a
+// deleted referrer among them, which is exactly the unreadable case.
+func workingBodyAt(root, path string) []byte {
+	raw, err := readBody(root, path)
+	if err != nil {
+		return nil
+	}
+	return raw
 }
 
 // recordedEntityPaths returns the entity files HEAD records, as
