@@ -736,6 +736,19 @@ func maskedTerminalSkips(
 	return out, nil
 }
 
+// moveEnds returns the paths a move touches: the source it carries and
+// the destination it lands on.
+//
+// Both sides of the sweep derive their reach from this one function, and
+// the commit-side guard enumerates the same pair (planCarriedPaths walks
+// op.Path and op.NewPath alike). A destination missing from either
+// enumeration is content the commit replaces without anyone naming it —
+// and, where the guard sees it and the decline does not, a whole-verb
+// refusal for a single participant.
+func moveEnds(m archiveMove) []string {
+	return []string{m.from, m.to}
+}
+
 // moveBlockers returns the mid-edit files that make one move's verdict
 // undecidable: the moved path itself, anything beneath it for a
 // directory-shaped kind, and any entity whose committed body links into
@@ -752,9 +765,13 @@ func moveBlockers(
 	seen := map[string]bool{}
 	var blockers []string
 	for path := range carried {
-		if path == m.from || strings.HasPrefix(path, m.from+"/") {
+		for _, end := range moveEnds(m) {
+			if !pathInside(path, end) {
+				continue
+			}
 			blockers = append(blockers, path)
 			seen[path] = true
+			break
 		}
 	}
 	// Everything the move physically carries is already accounted for
@@ -906,8 +923,10 @@ func dirtyPathsUnderMoves(ctx context.Context, root string, moves []archiveMove)
 		carried = append(carried, p)
 	}
 	for _, m := range moves {
-		if carriedErr := addCarriedUnder(ctx, root, m.from, add, true); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
-			return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
+		for _, end := range moveEnds(m) {
+			if carriedErr := addCarriedUnder(ctx, root, end, add, true); carriedErr != nil { //coverage:ignore unreachable here: a candidate directory has already been walked by the tree load that produced it, which fails first on a subtree it cannot enumerate, and HEAD resolves by the check above
+				return nil, fmt.Errorf("checking the working tree against HEAD: %w", carriedErr)
+			}
 		}
 	}
 	diverged, err := gitops.DivergentPaths(ctx, root, carried)
