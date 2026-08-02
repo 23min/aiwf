@@ -1,7 +1,7 @@
 ---
 id: D-0052
 title: Dissolve the shipped-surface keep-list instead of mechanizing it
-status: proposed
+status: accepted
 relates_to:
     - M-0287
     - M-0288
