@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: A real entity id inside a code span or fenced block produces a finding
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: A below-canonical-width letter-N placeholder fails; canonical width passes
       status: open
