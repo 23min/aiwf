@@ -15,7 +15,7 @@ acs:
       status: open
     - id: AC-3
       title: The documenting passages describe rejected shapes rather than exhibit them
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: The rule runs at error severity and this repo passes it
