@@ -16,6 +16,72 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0503: the `//coverage:ignore` escape opens only on the directive itself
+
+Nothing user-facing changed; this is a repo-development gate. The coverage
+audit decided a block was exempt by testing whether any raw source line in its
+span contained the marker's characters, so anything wearing them suppressed a
+finding: a bare marker with no reason, a string literal, a longer word
+(`//coverage:ignoreable`), the marker inside a block comment, and prose merely
+naming the escape. An untested branch stayed untested and the gate reported
+clean.
+
+The escape is now read off parsed comments through the same
+`hasDirectiveComment` its two siblings use, so all three of `//coverage:ignore`,
+`//history:ok` and `//exec:ok` obey one contract: the marker opens a comment and
+carries a reason. Exemption scope is unchanged — the directive still exempts the
+coverage block whose span holds its line.
+
+An AST census over the tree separates the annotations that were doing work from
+the ones that only looked like it. Of 635 lines wearing the marker, 590 are
+well-formed directives and keep working; 45 stop matching. Forty-four of those
+are prose, doc comments, or test fixtures holding the marker in a string, and
+were suppressing nothing. The forty-fifth was a live bare marker on a real
+error return, which this change repairs by moving onto the directive the reason
+already written in the comment above it — so, measured whole-tree against a
+real profile, the gate's verdict changes in exactly that one place.
+
+### Fixed — G-0481: `aiwf import` stores a manifest's explicit id at canonical width
+
+A manifest declaring a below-canonical-width id for a **new** entity had that
+width written straight through to disk — into the entity's `id:` frontmatter and
+into the filename or directory that names it. Canonicalization was applied when
+matching the id against the existing tree, but not when storing it, so `import`
+was the one route by which a verb could still put a narrow id into a repo. Every
+other creation path already emitted canonical width.
+
+Ids below a kind's grammar minimum were, and remain, refused by the manifest
+parser, so the affected range was exactly the grammar-valid widths narrower than
+canonical.
+
+A child entity's directory and its `parent:` field now both derive from the
+parent's **resolved** id rather than from the spelling the manifest used, so all
+three surfaces an epic's id occupies stay in agreement. Two ways they could
+otherwise diverge, both reachable from an ordinary legacy manifest:
+
+- A milestone filed beside its epic instead of inside it, in a directory holding
+  no `epic.md`. The tree loader resolves such a milestone by frontmatter and
+  `aiwf check` reports nothing, so nothing would have surfaced it.
+- A `parent:` disagreeing with the epic's stored id. The guards that walk an
+  epic's children compare that field literally, so the child becomes invisible to
+  them — including the guard refusing to cancel an epic that still owns live
+  milestones.
+
+The resolved id is the target rather than the canonical form of the declared one:
+an epic already resident at legacy width keeps that width, and canonicalizing a
+child's pointer would desync it from the entity it names.
+
+Per-entity commit subjects for an explicit narrow id now read at canonical width
+(`aiwf import epic E-0011 …`), matching the trailer that always did.
+
+The `--on-collision=update` path is unchanged: it deliberately keeps the existing
+entity's on-disk id, because that is the file it has to write to.
+
+The remaining id-reference fields — `depends_on`, `superseded_by`,
+`discovered_in`, `addressed_by` — still store whatever spelling the manifest
+declared, and are tracked as G-0505. Each is consumed through a canonicalizing
+lookup, so they resolve correctly.
+
 ### Fixed — G-0496: the `//history:ok` escape opens only on the directive itself
 
 Nothing user-facing changed; this is a repo-development gate. The escape hatch of

@@ -1,8 +1,10 @@
 ---
 id: G-0503
 title: The coverage:ignore escape opens on lines that are not the directive
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 187f69437
 ---
 ## What's missing
 

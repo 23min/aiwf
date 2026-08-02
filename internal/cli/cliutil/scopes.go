@@ -320,7 +320,7 @@ func readAuthorizeOpenerCommits(ctx context.Context, root string) ([]CommitTrail
 		// fails only on a corrupt / partial clone between the two calls — a
 		// tempdir-based test can't reproduce it. The show caller surfaces
 		// this error; the history caller swallows it and renders "?" chips.
-		return nil, fmt.Errorf("git log authorize-openers in %s: %w", root, err) //coverage:ignore
+		return nil, fmt.Errorf("git log authorize-openers in %s: %w", root, err) //coverage:ignore reachable only on a corrupt clone arriving between the two git calls, per the note above
 	}
 	var commits []CommitTrailers
 	for _, rec := range strings.Split(string(out), recSep) {
