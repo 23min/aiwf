@@ -75,7 +75,7 @@ Add a new release section. Group entries by Added / Changed / Fixed / Removed. R
 ## [vX.Y.Z] — YYYY-MM-DD
 
 ### Added
-- <user-observable feature> (E-NN, M-NNN)
+- <user-observable feature> (E-NNNN, M-NNNN)
 
 ### Changed
 - <observable change>

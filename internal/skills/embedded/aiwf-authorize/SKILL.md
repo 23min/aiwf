@@ -43,7 +43,7 @@ A scope's state machine has three states: `active`, `paused`, `ended`.
 - **`--to`** opens a new scope in state `active`. The commit's SHA is the scope id; subsequent verbs inside the scope reference it via `aiwf-authorized-by:`.
 - **`--pause "<reason>"`** flips the most-recently-opened active scope on `<id>` to `paused`. While paused, agent verbs targeting the scope refuse with `provenance-no-active-scope` until the scope is resumed.
 - **`--resume "<reason>"`** flips the most-recently-paused scope back to `active`.
-- A `promote <id> <terminal-state>` on the scope-entity (e.g., `aiwf promote E-03 done`) **auto-ends** every active scope on that entity by writing one `aiwf-scope-ends: <auth-sha>` trailer per scope. Ended is terminal — un-cancelling a scope-entity does not resurrect a previously-ended scope. Issue a fresh `aiwf authorize` instead.
+- A `promote <id> <terminal-state>` on the scope-entity (e.g., `aiwf promote E-NNNN done`) **auto-ends** every active scope on that entity by writing one `aiwf-scope-ends: <auth-sha>` trailer per scope. Ended is terminal — un-cancelling a scope-entity does not resurrect a previously-ended scope. Issue a fresh `aiwf authorize` instead.
 
 ## Common refusals
 

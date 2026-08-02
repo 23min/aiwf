@@ -198,17 +198,31 @@ func TestAiwfAuthorizeSkill_ProvenanceModesSelfContained(t *testing.T) {
 }
 
 // TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites pins AC-5: the
-// aiwf-add typo example uses two distinct ids and cites doc sections, not
+// aiwf-add worked gap body teaches that `--discovered-in` is unvalidated and
+// surfaces only downstream, and the skill cites doc sections rather than
 // pinned line numbers.
+//
+// The example states the failure rather than staging it with a pair of
+// concrete ids. A shipped surface carries no real id, and two distinct
+// placeholders are not a canonical shape either, so a worked typo naming both
+// a wrong id and a right one cannot be written here at all (M-0288/AC-1) —
+// what the example owes the reader is the behavior, which it states directly.
 func TestAiwfAddSkill_ExampleSelfConsistentAndSectionCites(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, aiwfAddSkillPath)
 
-	typo := regexp.MustCompile("A typo \\(`(M-\\d+)` for `(M-\\d+)`\\)")
-	if m := typo.FindStringSubmatch(body); m == nil {
-		t.Error("aiwf-add skill has no recognizable typo example of the form \"A typo (`M-NNN` for `M-NNN`)\"")
-	} else if m[1] == m[2] {
-		t.Errorf("aiwf-add typo example uses the same id twice (%q for %q); it must be self-contradictory to make sense", m[1], m[2])
+	section := extractMarkdownSection(body, 3, "What to write per kind")
+	if section == "" {
+		t.Fatal("aiwf-add must carry a `### What to write per kind` section holding the worked gap body")
+	}
+	for _, want := range []struct{ phrase, why string }{
+		{"does not validate", "the verb accepts the flag without resolving it"},
+		{"lands silently", "the mistake produces no verb-time signal"},
+		{"refs-resolve/unresolved", "names the downstream finding that does catch it"},
+	} {
+		if !strings.Contains(section, want.phrase) {
+			t.Errorf("worked gap body no longer teaches the unvalidated --discovered-in failure: missing %q (%s)", want.phrase, want.why)
+		}
 	}
 
 	pinned := regexp.MustCompile(`docs/[^\s` + "`" + `)]+\.md:\d+`)

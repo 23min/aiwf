@@ -22,20 +22,20 @@ The six kinds and their required flags:
 
 | Kind | Required flags | Notes |
 |---|---|---|
-| epic | `--title` | Allocates `E-NN`. |
-| milestone | `--title`, `--epic <E-id>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on M-PPP[,M-QQQ]` declares prerequisite milestones at allocation time; each id must already exist as a milestone. |
+| epic | `--title` | Allocates `E-NNNN`. |
+| milestone | `--title`, `--epic <E-NNNN>`, `--tdd <required\|advisory\|none>` | Lives under the epic's directory. Optional `--depends-on <id>[,<id>]` declares prerequisite milestones at allocation time; each id must already exist as a milestone. |
 | adr | `--title` | Allocates `ADR-NNNN` under `docs/adr/`. |
 | gap | `--title` | Optional `--discovered-in <id>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) sets the triage priority at creation — see the `aiwf-set-priority` skill to change or clear it later. |
 | decision | `--title` | Optional `--relates-to <id,id,...>`. Optional `--priority <level>` (`urgent`\|`high`\|`medium`\|`low`) — same as gap. |
-| contract | `--title` | Allocates `C-NNN` and creates `work/contracts/C-NNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
+| contract | `--title` | Allocates `C-NNNN` and creates `work/contracts/C-NNNN-<slug>/contract.md`. Optional `--linked-adr <id,id,...>` records the motivating ADRs. Pass `--validator <name> --schema <path> --fixtures <path>` together to also bind the contract in aiwf.yaml within the same commit. |
 | ac | `--title`, positional milestone id | Allocates `AC-N` per-milestone (max+1 across the full `acs[]` including cancelled). Appends to the milestone's frontmatter `acs[]` and scaffolds a `### AC-N — <title>` body heading. The milestone file is rewritten in place — no separate AC file. |
 
 ## Repeated --title for batched AC creation
 
-`aiwf add ac M-NNN` accepts repeated `--title` flags to create N acceptance criteria in one atomic commit. Each title gets a consecutive AC id (`AC-X..AC-Y`); the commit's `aiwf-entity:` trailer set carries every created composite id, so `aiwf history M-NNN/AC-X` finds the batch commit for any AC in the batch.
+`aiwf add ac M-NNNN` accepts repeated `--title` flags to create N acceptance criteria in one atomic commit. Each title gets a consecutive AC id (`AC-X..AC-Y`); the commit's `aiwf-entity:` trailer set carries every created composite id, so `aiwf history M-NNNN/AC-N` finds the batch commit for any AC in the batch.
 
 ```bash
-aiwf add ac M-001 \
+aiwf add ac M-NNNN \
   --title "first criterion" \
   --title "second criterion" \
   --title "third criterion"
@@ -67,19 +67,19 @@ and kills it by hand."
 
 ## --body-file for AC body scaffolding (positional pairing)
 
-`aiwf add ac M-NNN` accepts `--body-file <path>` (repeatable) so each AC's body content lands in the same atomic create commit as its frontmatter and `### AC-N — <title>` heading. Pairing is positional: the Nth `--body-file` populates the body of the Nth `--title`.
+`aiwf add ac M-NNNN` accepts `--body-file <path>` (repeatable) so each AC's body content lands in the same atomic create commit as its frontmatter and `### AC-N — <title>` heading. Pairing is positional: the Nth `--body-file` populates the body of the Nth `--title`.
 
 ```bash
 # Single AC with body content from a file
-aiwf add ac M-001 --title "Rejects malformed YAML" --body-file ac1-body.md
+aiwf add ac M-NNNN --title "Rejects malformed YAML" --body-file ac1-body.md
 
 # Multi-AC, positional pairing — one --body-file per --title, equal counts required
-aiwf add ac M-001 \
+aiwf add ac M-NNNN \
   --title "Rejects malformed YAML"   --body-file ac1-body.md \
   --title "Reports the offending line" --body-file ac2-body.md
 
 # Stdin shorthand — only valid with exactly one --title
-echo "Concrete pass criteria..." | aiwf add ac M-001 --title "Matches semver" --body-file -
+echo "Concrete pass criteria..." | aiwf add ac M-NNNN --title "Matches semver" --body-file -
 ```
 
 Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
@@ -94,7 +94,7 @@ Same leading-`---` rejection as the whole-entity flag. AC-specific rules:
 2. Writes the new entity file with proper frontmatter (`id`, `title`, `status` set to the kind's initial status). For ACs, appends to the parent milestone's `acs[]` and scaffolds the body heading.
 3. A new AC is seeded at the pre-cycle empty phase (`tdd_phase` absent) regardless of the parent's tdd policy — `red` means "a failing test exists," which a just-created AC has not written. The live red promote (`aiwf promote <milestone-id>/AC-N --phase red`) records the failing test.
 4. Validates the projected tree before touching disk; if a finding would be introduced, aborts with no changes.
-5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
+5. Creates one commit carrying `aiwf-verb: add`, `aiwf-entity: <id>` (composite `M-NNNN/AC-N` for ACs), `aiwf-actor: <actor>` trailers. When the operator is non-human (`ai/<id>`, `bot/<id>`), the kernel additionally requires a `--principal human/<id>` flag and stamps `aiwf-principal:` on the commit. If an active authorization scope (see `aiwf-authorize`) covers the new entity's parent / references, `aiwf-on-behalf-of:` and `aiwf-authorized-by:` are added too.
 6. **Refuses an empty body for born-complete kinds; scaffolds a placeholder for the rest.** `gap`, `decision`, `adr`, and `contract` have no draft phase — they're live and referenceable the instant this commit lands — so `aiwf add` refuses to create one whose load-bearing `## <Section>` content is empty, unless `--force --reason "<text>"` overrides it (see *"Empty-body gate for born-complete kinds"* below). Epic, milestone, and AC bodies keep the placeholder-then-fill workflow: `aiwf check` reports `entity-body-empty` for any of those sections that ships empty (warning by default; error under `aiwf.yaml: tdd.strict: true`). Fill the body before declaring the entity complete — see *"After `aiwf add <kind>`: fill in the body"* below.
 
 ## Empty-body gate for born-complete kinds (`gap`, `decision`, `adr`, `contract`)
@@ -142,29 +142,29 @@ Milestone-to-milestone dependencies live in the `depends_on:` frontmatter array.
 
 ```bash
 # At allocation time: pass --depends-on
-aiwf add milestone --epic E-01 --tdd required \
-  --title "Bootstrap" --depends-on M-001,M-002
+aiwf add milestone --epic E-NNNN --tdd required \
+  --title "Bootstrap" --depends-on <id>[,<id>]
 
 # Post-allocation: dedicated verb
-aiwf milestone depends-on M-NNN --on M-PPP[,M-QQQ]
+aiwf milestone depends-on M-NNNN --on <id>[,<id>]
 
 # Empty the list
-aiwf milestone depends-on M-NNN --clear
+aiwf milestone depends-on M-NNNN --clear
 ```
 
 Replace-not-append semantics: a second `--on` invocation replaces the list, it does not extend. To add a single dependency to an existing list, the operator passes the full updated list. `--on` and `--clear` are mutually exclusive.
 
 Each id passed to `--depends-on` or `--on` must resolve to an existing milestone before the verb commits — typos and pre-allocation references are refused with an error naming the unresolvable id. Cycle detection happens at the next `aiwf check` (and pre-push hook); the writers don't pre-check global DAG validity. Cross-kind dependencies (e.g. milestone depends on ADR) are out of scope today; a gap captures the generalization if the friction earns it.
 
-Don't hand-edit `depends_on:` directly — bless-mode `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNN` can render whenever they change the list.
+Don't hand-edit `depends_on:` directly — bless-mode `aiwf edit-body` refuses frontmatter changes, and a plain `git commit` against the milestone file triggers `provenance-untrailered-entity-commit`. Both writer verbs above leave a trailered commit `aiwf history M-NNNN` can render whenever they change the list.
 
 ### Changing a milestone's TDD policy after creation
 
 The `--tdd` flag sets the policy at allocation time. To change it afterwards, use the dedicated post-creation verb — never hand-edit the `tdd:` frontmatter:
 
 ```bash
-aiwf milestone tdd M-NNN --policy advisory
-aiwf milestone tdd M-NNN --policy required --reason "AC list stabilized"
+aiwf milestone tdd M-NNNN --policy advisory
+aiwf milestone tdd M-NNNN --policy required --reason "AC list stabilized"
 ```
 
 `--policy` takes one of `none | advisory | required`. Gating is uniform-ordinary: any actor may flip the policy in either direction (weakening or strengthening) with no `--force`, and `--reason` is optional. One refusal guards data integrity — a flip to `required` that would leave an already-`met` AC without `tdd_phase: done` is refused with an error naming the offending ACs, so re-requiring TDD never back-stamps a phase onto passed work. An invocation that changes the policy leaves one trailered commit; setting the policy already in force converges to exit 0 with no commit.
@@ -227,8 +227,8 @@ in `cmd/aiwf/add_cmd_test.go`.
 ## What's missing
 
 `aiwf add gap` accepts `--discovered-in <id>` but does not validate
-that the referenced entity exists. A typo (`M-008` for `M-007`) lands
-silently; only `aiwf check` catches it later, and only as a
+that the referenced entity exists. A mistyped id lands silently;
+only `aiwf check` catches it later, and only as a
 `refs-resolve/unresolved` warning rather than at the point of intent.
 
 ## Why it matters
@@ -274,7 +274,7 @@ Plain `git commit` against an entity file triggers `provenance-untrailered-entit
 What `aiwf check` reports as `unexpected-tree-file`:
 
 - Any file under `work/*` whose path is not one of the six recognized shapes (epic, milestone, gap, decision, contract, ADR — see `docs/design/tree-discipline.md`). Severity: warning by default; **error** when `aiwf.yaml: tree.strict: true`.
-- Files inside a contract's directory (`work/contracts/C-NNN-*/`) are auto-exempt — schemas and fixtures live there legitimately.
+- Files inside a contract's directory (`work/contracts/C-NNNN-*/`) are auto-exempt — schemas and fixtures live there legitimately.
 - Globs in `aiwf.yaml: tree.allow_paths` are exempt for project-specific carve-outs.
 
 If the user asks to "add a note about X" or similar prose work, edit the relevant entity's body — don't create a stray file. If the prose doesn't fit any existing entity, the right answer is usually a new entity (`aiwf add gap "..."` for a defect, `aiwf add decision "..."` for a directional choice) — not a free-floating file under `work/`.

@@ -14,7 +14,7 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - Review a milestone's diff for correctness, AC coverage, and convention compliance.
 - Verify the branch-coverage hard rule was followed.
 - Check that the milestone spec's wrap-side sections, its frontmatter `acs[]`, and the roadmap agree.
-- Surface decisions made mid-flight that aren't yet captured as ADRs or D-NNN entries.
+- Surface decisions made mid-flight that aren't yet captured as ADRs or D-NNNN entries.
 - Emit a clear verdict: approve, request-changes, or questions.
 
 ## Skills you use
@@ -29,13 +29,13 @@ You are the **reviewer**. You assess code and the surrounding artefacts (milesto
 - The diff (`git diff <base>..HEAD`, or the PR diff in the host).
 - The milestone spec — for AC coverage.
 - The spec's `## Work log` and `## Decisions made during implementation` sections — for the work record and any mid-flight decisions.
-- Relevant ADRs / D-NNN — for constraints the diff must respect.
+- Relevant ADRs / D-NNNN — for constraints the diff must respect.
 
 ## Outputs you produce
 
 - A review report following `wf-review-code`'s output format: verdict, blocking findings (with `file:line`), track-for-later, non-issues, overall assessment.
 - For each blocking finding: a concrete suggestion or question.
-- (Optional) a new ADR or D-NNN if the review surfaces a decision worth keeping that isn't captured.
+- (Optional) a new ADR or D-NNNN if the review surfaces a decision worth keeping that isn't captured.
 
 ## Handoff
 

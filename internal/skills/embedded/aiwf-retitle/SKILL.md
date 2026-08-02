@@ -25,10 +25,10 @@ Triggers:
 aiwf retitle <id> "<new-title>" [--reason "..."]
 
 # AC inside a milestone (composite id)
-aiwf retitle M-NNN/AC-N "<new-title>" [--reason "..."]
+aiwf retitle M-NNNN/AC-N "<new-title>" [--reason "..."]
 ```
 
-Two positional arguments matching `aiwf rename`'s shape: id (or `M-NNN/AC-N`), new-title. The optional `--reason` flag lands in the commit body and surfaces in `aiwf history`, matching the pattern from `aiwf promote`/`cancel`/`authorize`/`edit-body`.
+Two positional arguments matching `aiwf rename`'s shape: id (or `M-NNNN/AC-N`), new-title. The optional `--reason` flag lands in the commit body and surfaces in `aiwf history`, matching the pattern from `aiwf promote`/`cancel`/`authorize`/`edit-body`.
 
 ## What aiwf does
 
@@ -45,7 +45,7 @@ The body prose under `## Goal`, `## Scope`, etc. and the id are unchanged. To ch
 - Empty new title (after trimming whitespace) is rejected with a usage error.
 - Same-as-current title reports "nothing to retitle" at exit 0 and commits nothing, provided the canonical body H1 already matches it. When the H1 has drifted, the same command rewrites it and commits — the title is not the only surface being compared.
 - Unknown entity id is rejected.
-- Unknown AC id (e.g. `M-001/AC-99` when the milestone has fewer ACs) is rejected.
+- Unknown AC id — a composite id whose AC number exceeds the milestone's AC count — is rejected.
 
 ## Don't
 

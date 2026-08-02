@@ -151,7 +151,7 @@ func TestG0293_TddCycleDefersMetAndWorkLogToCaller(t *testing.T) {
 	}
 
 	// Phase promotion to `done` is still RECORD's own job.
-	if !strings.Contains(record, "aiwf promote M-NNN/AC-<N> --phase done") {
+	if !strings.Contains(record, "aiwf promote M-NNNN/AC-<N> --phase done") {
 		t.Error("AC: RECORD must still advance the AC's tdd_phase to done — only the met/commit/work-log handoff changed")
 	}
 }

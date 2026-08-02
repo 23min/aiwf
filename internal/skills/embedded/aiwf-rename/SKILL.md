@@ -13,7 +13,7 @@ A slug set this way is durable. It no longer matches the one the title would der
 
 ## When to use
 
-The user wants the file or directory name to read better but the entity itself isn't changing identity. Examples: a milestone was named `M-003-things` and they want it to be `M-003-acceptance-criteria`.
+The user wants the file or directory name to read better but the entity itself isn't changing identity. Examples: a milestone was named `M-NNNN-things` and they want it to be `M-NNNN-acceptance-criteria`.
 
 ## What to run
 

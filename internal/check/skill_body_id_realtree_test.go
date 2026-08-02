@@ -3,10 +3,6 @@ package check
 // Real-tree assertions for the skill-body id discipline: they run the
 // production rule over this repo's actual shipped surfaces rather than over
 // synthetic fixtures, so they pin the shipped bytes.
-//
-// Both are INVERTED while the sweep is outstanding: detection ships a
-// milestone ahead of cleanup, so they assert the worklist is non-empty. The
-// sweep's arrival breaks them, which is the signal to restore them.
 
 import (
 	"fmt"
@@ -14,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
@@ -87,9 +84,9 @@ func TestSkillBodyID_RealEmbeddedTreeIsClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) == 0 {
-		t.Fatal("the shipped skill bodies are clean: the sweep has landed — " +
-			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
+	if len(msgs) != 0 {
+		t.Fatalf("shipped skill bodies carry %d id-shaped defects:\n  %s",
+			len(msgs), strings.Join(msgs, "\n  "))
 	}
 }
 
@@ -111,8 +108,8 @@ func TestSkillBodyID_WholeShippedTreeClean(t *testing.T) {
 			msgs = append(msgs, fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message))
 		}
 	}
-	if len(msgs) == 0 {
-		t.Fatal("the shipped surfaces are clean: the sweep has landed — " +
-			"replace this inversion with `if len(msgs) != 0 { t.Fatalf(...) }` so it gates again")
+	if len(msgs) != 0 {
+		t.Fatalf("shipped surfaces carry %d id-shaped defects:\n  %s",
+			len(msgs), strings.Join(msgs, "\n  "))
 	}
 }
