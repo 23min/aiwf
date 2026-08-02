@@ -22,6 +22,7 @@ acs:
     - id: AC-4
       title: The rule runs at error severity and this repo passes it
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
