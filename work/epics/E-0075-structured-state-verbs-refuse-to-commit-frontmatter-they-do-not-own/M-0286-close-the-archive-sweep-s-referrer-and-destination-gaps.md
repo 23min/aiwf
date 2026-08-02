@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: The decline predicate and the rewrite predicate derive from one enumeration
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 ## Goal
 
