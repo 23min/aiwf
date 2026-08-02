@@ -138,3 +138,126 @@ names rather than behaviour already demonstrated in this epic.
 - G-0499 — the measured defect and its three neighbours
 - ADR-0038 — the per-candidate scoping
 - M-0284 — where the class was recorded as closed
+## Work log
+
+### AC-1 — A referrer absent from the loaded tree but present at HEAD declines the move
+
+`dirtyEntityPaths` unions the loaded tree's entity paths with HEAD's, classified
+by `entity.PathKind` · commit f8b80cf8a, extended by bd9cc14e0
+
+### AC-2 — An archived referrer mid-edit does not block an unrelated candidate
+
+`moveBlockers` applies the archived-path filter the rewrite pass already
+applied · commit 8af98880f
+
+### AC-3 — Both ends of a move are enumerated
+
+`moveEnds` supplies source and destination to the carried walk and the blocker
+match alike · commit c5124c9ed
+
+### AC-4 — A working-copy-only link declines that candidate, and --dry-run predicts --apply
+
+A link in either copy blocks, with the absent-from-HEAD exemption kept so the
+decline and the commit-side guard accept the same set · commit ce05fa725
+
+### AC-5 — The decline predicate and the rewrite predicate derive from one enumeration
+
+Three properties over 32 enumerated arrangements, plus a non-gap arrangement
+holding the scan to every kind · commits 0ae83e98f, bd9cc14e0
+
+## Decisions made during implementation
+
+- **The absent-from-HEAD exemption is kept, not removed.** Measured: the
+  commit-side guard exempts an absent-from-HEAD divergence at an `OpWrite`'s own
+  destination, which is exactly a referrer's rewrite, so that write lands.
+  Blocking here would decline a candidate the commit accepts — a disagreement in
+  the opposite direction.
+- **A non-gap arrangement, not a kind dimension.** Adding referrer kind to the
+  property grammar doubles it for the same protection. One ADR referrer detects
+  both narrowings that left the suite green.
+- **A directory at a recorded entity path is a divergence, not an error.** The
+  byte-wise comparison refuses a directory outright, which fails the verb over
+  one participant. Reporting it keeps the decline per-candidate.
+
+## Validation
+
+- `make ci` — exit 0
+- `AIWF_COVERAGE_BASE=645d482d4 make coverage-gate` — exit 0
+- `aiwf check` — 0 errors
+- Mutation matrix, eight reversions of production behaviour, all detected.
+  Four tests were deleted after measuring each was never a unique detector;
+  the matrix stayed 8/8 and coverage stayed green.
+
+## Deferrals
+
+- G-0511 — `LsTreePaths` filters in Go rather than passing a pathspec to git.
+  Throughput, not correctness. Filed rather than fixed here because the helper
+  is shared with callers outside the sweep.
+- G-0512 — a directory occupying a move's destination is invisible to the
+  decline, so the sweep offers a plan that cannot land. The decline judges
+  destination *divergence*, and a directory is neither untracked nor modified;
+  "something already occupies this path" is a filesystem question the
+  comparison does not ask.
+- G-0513 — a candidate terminal in the record and unparseable on disk is
+  neither swept nor reported as masked. The masked-terminal report still walks
+  the loaded tree only, so the two halves of one decision disagree about which
+  entities exist.
+
+## Reviewer notes
+
+**Two independent lenses ran before closure, then a deciding pass.** The design
+lens reconstructed the sweep from intent before reading the implementation and
+arrived at the same two predicates, which is the evidence that the shape is
+essential rather than residue: the decline must read a strict superset of the
+rewrite's domain and both versions of each body, because it answers whether the
+working copy is trustworthy enough for the rewrite's answer to be right. A single
+shared enumerator would need two knobs whose only two call sites set them to
+opposite values.
+
+**The round's blocking finding was an insufficient pin, not a wrong fix.**
+Narrowing `entity.PathKind` to one kind, or the HEAD listing to one directory
+prefix, left every test green while ADR and milestone referrers stranded the
+dangling link AC-1 exists to prevent. The evidence covered one of six kinds
+while the criterion's text is kind-agnostic.
+
+**AC-5's text asserts more than its evidence establishes.** "No arrangement of
+the tree makes one predicate count an entity the other does not" is a universal
+over an unbounded space; what the properties check is that every plan the sweep
+offers is one it can land, and that no active entity is left linking to a path
+nothing occupies, across the referrer states an operator reaches. The narrower
+claim is the one that holds.
+
+**The two sides now read the same slice of a file.** The record side compared
+whole-file bytes while the working side and the rewrite pass compared
+body-only. That was taken for a harmless over-block until it was measured:
+the link scan tracks fenced regions by counting ```-leading lines, so
+frontmatter carrying one opens a region before the body and hides every link
+behind it. With the working copy mid-edit and its link dropped, neither
+predicate counts the referrer and the move lands with the record still
+pointing at a path it vacated — AC-1's damage class, reached by an entity
+that parses. Both sides now scan the body alone.
+
+**AC-1's phase ladder is compressed and AC-5's `met` precedes its evidence
+commit.** AC-1's `green` and `done` were stamped together after the audit rather
+than at first pass; AC-5 was promoted `met` before the commit carrying its
+property file. Both read oddly in `aiwf history`.
+
+**The per-candidate skip was operator-visible and documented nowhere.** Fixed
+here rather than deferred: `--help` and the verb skill now state that a skip is
+normal, what causes it, and what to do next.
+
+**One review finding is declined.** The deciding pass proposed deleting the
+attributability property, having measured it as never the unique detector
+across thirteen mutants. That argument generalizes to any property test: a
+property earns its place against the cases nobody enumerated, and the two
+properties the same pass kept are non-unique by the identical measure. This
+one carries the "only if" half of AC-5 — that a candidate is declined *only*
+when a file its verdict rests on is mid-edit — which no other test states in
+general form. Deleting it would narrow a met criterion's evidence after the
+fact.
+
+**A mutation probe reported a survivor twice, and both were compile failures.**
+Replacing a loop's range expression left a variable unused, so the package did
+not build and a scan for failing tests found none. A probe that cannot build
+is not evidence of a surviving mutant; the build is checked before the verdict
+is read.
