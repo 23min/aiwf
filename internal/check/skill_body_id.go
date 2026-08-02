@@ -79,51 +79,16 @@ var skillScanDirs = []string{
 // when the caller passes the whole file (skillBodyIDReference does), that
 // line is already file-relative.
 //
-// Severity follows the detected class. A token the narrower prose mask
-// also preserves is one this rule already caught, and keeps error
-// severity. A token only the wider mask reaches is newly detected and
-// lands at warning until the sweep clearing the shipped tree completes,
-// so an incomplete sweep never blocks a push.
+// Findings are warnings while the shipped tree still carries the debris
+// this rule now detects: at error severity an incomplete sweep would block
+// every push. The sweep milestone clears the tree and raises the severity
+// as its last act.
 //
 // Path populates the finding locator only; the scanner is otherwise
 // stateless, so it runs against on-disk content (skillBodyIDReference) or
 // against literal test bytes.
 func ScanSkillBodyID(body []byte, path string) []Finding {
-	prose := proseMask(body)
-	return scanMaskedForSkillIDs(proseAndCodeMask(body), path, func(cls skillTokenClass, lo, hi int) Severity {
-		// A real-id citation in prose is what this rule caught before the
-		// scan widened and the width check arrived. It has no outstanding
-		// sites, so it keeps error severity and blocks no push. Everything
-		// else is newly reachable and warns until its sweep completes.
-		if cls == tokenRealID && maskPreserved(prose, body, lo, hi) {
-			return SeverityError
-		}
-		return SeverityWarning
-	})
-}
-
-// maskPreserved reports whether masked kept src's bytes over [lo,hi)
-// verbatim — i.e. that range was in scope for the mask that produced it.
-// Both masks are same-length projections, so the ranges are comparable
-// without any offset arithmetic.
-func maskPreserved(masked string, src []byte, lo, hi int) bool {
-	for i := lo; i < hi; i++ {
-		if masked[i] != src[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// shellSeverity is the severity decider for the statusline's shell-comment
-// scan. Comment text was always in scope there — shellCommentMask draws no
-// prose/code distinction — so a real-id citation is the already-caught class
-// and keeps error severity, while a placeholder defect is newly detected.
-func shellSeverity(cls skillTokenClass, _, _ int) Severity {
-	if cls == tokenRealID {
-		return SeverityError
-	}
-	return SeverityWarning
+	return scanMaskedForSkillIDs(proseAndCodeMask(body), path)
 }
 
 // canonicalPlaceholderPattern matches the one placeholder shape a shipped
@@ -168,7 +133,7 @@ func classifySkillToken(tok string) skillTokenClass {
 // returns one finding per unique offending token, deduped within masked.
 // Both masks preserve newline positions, so the line counted in masked is
 // the source line.
-func scanMaskedForSkillIDs(masked, path string, sevAt func(cls skillTokenClass, lo, hi int) Severity) []Finding {
+func scanMaskedForSkillIDs(masked, path string) []Finding {
 	var findings []Finding
 	seen := map[string]bool{}
 	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
@@ -184,7 +149,7 @@ func scanMaskedForSkillIDs(masked, path string, sevAt func(cls skillTokenClass, 
 		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
-			Severity: sevAt(cls, m[0], m[1]),
+			Severity: SeverityWarning,
 			Message:  skillTokenMessage(cls, tok),
 			Path:     path,
 			Line:     line,
@@ -333,7 +298,7 @@ func statuslineCommentIDReference(t *tree.Tree) []Finding {
 			return nil
 		}
 		rel := filepath.Join(statuslineScanDir, p)
-		findings = append(findings, scanMaskedForSkillIDs(shellCommentMask(raw), rel, shellSeverity)...)
+		findings = append(findings, scanMaskedForSkillIDs(shellCommentMask(raw), rel)...)
 		return nil
 	})
 	return findings

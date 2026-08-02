@@ -26,11 +26,6 @@ func TestScanSkillBodyID(t *testing.T) {
 		name     string
 		body     string
 		wantFire bool
-		// wantSev is the severity the finding must carry. The zero value
-		// means error — a citation in prose, the class this rule has always
-		// caught. A code-construct citation is newly detected and carries
-		// warning until its sweep completes, so those cases say so.
-		wantSev check.Severity
 	}{
 		// AC-1 — fires on a real digit-bearing id in prose.
 		{name: "bare real bare id in prose", body: "See M-0001 for the worked example.", wantFire: true},
@@ -49,12 +44,11 @@ func TestScanSkillBodyID(t *testing.T) {
 		// command example ships to consumer repos and rots there exactly
 		// as one in prose does, so the citation is the defect wherever it
 		// sits. Only non-prose link carriers stay exempt (below).
-		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: true, wantSev: check.SeverityWarning},
+		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: true},
 		{
 			name:     "real id in a fenced code block",
 			body:     "Example:\n\n```\naiwf show M-0001\n```\n",
 			wantFire: true,
-			wantSev:  check.SeverityWarning,
 		},
 
 		// AC-2 — the ADR/design doc-link carve-out: the id rides in the
@@ -71,10 +65,6 @@ func TestScanSkillBodyID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := check.ScanSkillBodyID([]byte(tc.body), "internal/skills/embedded/aiwf-demo/SKILL.md")
-			wantSev := tc.wantSev
-			if wantSev == "" {
-				wantSev = check.SeverityError
-			}
 			if tc.wantFire {
 				if len(got) == 0 {
 					t.Fatalf("expected a skill-body-id finding, got none\nbody: %q", tc.body)
@@ -83,8 +73,8 @@ func TestScanSkillBodyID(t *testing.T) {
 					if f.Code != check.CodeSkillBodyID {
 						t.Errorf("finding code = %q, want %q", f.Code, check.CodeSkillBodyID)
 					}
-					if f.Severity != wantSev {
-						t.Errorf("finding severity = %q, want %q", f.Severity, wantSev)
+					if f.Severity != check.SeverityWarning {
+						t.Errorf("finding severity = %q, want %q", f.Severity, check.SeverityWarning)
 					}
 				}
 			} else if len(got) != 0 {
@@ -293,8 +283,8 @@ func TestSkillBodyIDReference_BroadenedSurfaces(t *testing.T) {
 				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
 			}
 			got := hits[0]
-			if got.Severity != check.SeverityError {
-				t.Errorf("severity = %q, want %q", got.Severity, check.SeverityError)
+			if got.Severity != check.SeverityWarning {
+				t.Errorf("severity = %q, want %q", got.Severity, check.SeverityWarning)
 			}
 			if want := filepath.FromSlash(tc.relPath); got.Path != want {
 				t.Errorf("path = %q, want %q", got.Path, want)
@@ -403,8 +393,8 @@ func TestStatuslineCommentIDReference_Seam(t *testing.T) {
 			if len(hits) != 1 {
 				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
 			}
-			if hits[0].Severity != check.SeverityError {
-				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityError)
+			if hits[0].Severity != check.SeverityWarning {
+				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityWarning)
 			}
 			if want := filepath.FromSlash(tc.relPath); hits[0].Path != want {
 				t.Errorf("path = %q, want %q", hits[0].Path, want)

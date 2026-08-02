@@ -10,7 +10,17 @@ package check
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+)
+
+// The two shapes this rule rejects are distinguishable only by the defect the
+// message names — they share a code, a severity, and a remediation. These
+// substrings are therefore the assertion surface for classification, and a
+// test that checks only "something fired" cannot tell the classes apart.
+const (
+	realIDDefect      = "cites real entity id"
+	placeholderDefect = "non-canonical placeholder"
 )
 
 // kindPrefixes is every kind prefix the id grammar admits. Driving the table
@@ -35,6 +45,9 @@ func TestScanSkillBodyID_PlaceholderWidth_Bare(t *testing.T) {
 				}
 				if got[0].Line != 3 {
 					t.Errorf("line = %d, want 3", got[0].Line)
+				}
+				if !strings.Contains(got[0].Message, placeholderDefect) {
+					t.Errorf("message %q does not name a placeholder defect", got[0].Message)
 				}
 			})
 		}
@@ -71,6 +84,9 @@ func TestScanSkillBodyID_PlaceholderWidth_Composite(t *testing.T) {
 			if tc.wantFires && len(got) != 1 {
 				t.Fatalf("want 1 finding for %q, got %d: %+v", tc.tok, len(got), got)
 			}
+			if tc.wantFires && !strings.Contains(got[0].Message, placeholderDefect) {
+				t.Errorf("message %q does not name a placeholder defect", got[0].Message)
+			}
 			if !tc.wantFires && len(got) != 0 {
 				t.Fatalf("canonical composite %q must be silent, got %d: %+v", tc.tok, len(got), got)
 			}
@@ -100,6 +116,9 @@ func TestScanSkillBodyID_PlaceholderWidth_InCodeConstruct(t *testing.T) {
 			if got[0].Severity != SeverityWarning {
 				t.Errorf("severity = %q, want %q", got[0].Severity, SeverityWarning)
 			}
+			if !strings.Contains(got[0].Message, placeholderDefect) {
+				t.Errorf("message %q does not name a placeholder defect", got[0].Message)
+			}
 		})
 	}
 }
@@ -118,10 +137,11 @@ func TestScanSkillBodyID_PlaceholderWidth_RealIDsUnaffected(t *testing.T) {
 			if len(got) != 1 {
 				t.Fatalf("want 1 finding for real id %q, got %d: %+v", tok, len(got), got)
 			}
-			// In prose, a real-id citation is the class this rule already
-			// caught, so it keeps error severity.
-			if got[0].Severity != SeverityError {
-				t.Errorf("severity = %q, want %q for a real id in prose", got[0].Severity, SeverityError)
+			if !strings.Contains(got[0].Message, realIDDefect) {
+				t.Errorf("message %q classifies %q as a placeholder defect; a narrow numeric id is a real id at a legacy width", got[0].Message, tok)
+			}
+			if strings.Contains(got[0].Message, placeholderDefect) {
+				t.Errorf("message %q misclassifies real id %q as a placeholder defect", got[0].Message, tok)
 			}
 		})
 	}
