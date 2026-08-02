@@ -73,8 +73,8 @@ func TestScanSkillBodyID(t *testing.T) {
 					if f.Code != check.CodeSkillBodyID {
 						t.Errorf("finding code = %q, want %q", f.Code, check.CodeSkillBodyID)
 					}
-					if f.Severity != check.SeverityWarning {
-						t.Errorf("finding severity = %q, want %q", f.Severity, check.SeverityWarning)
+					if f.Severity != check.SeverityError {
+						t.Errorf("finding severity = %q, want %q", f.Severity, check.SeverityError)
 					}
 				}
 			} else if len(got) != 0 {
@@ -283,8 +283,8 @@ func TestSkillBodyIDReference_BroadenedSurfaces(t *testing.T) {
 				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
 			}
 			got := hits[0]
-			if got.Severity != check.SeverityWarning {
-				t.Errorf("severity = %q, want %q", got.Severity, check.SeverityWarning)
+			if got.Severity != check.SeverityError {
+				t.Errorf("severity = %q, want %q", got.Severity, check.SeverityError)
 			}
 			if want := filepath.FromSlash(tc.relPath); got.Path != want {
 				t.Errorf("path = %q, want %q", got.Path, want)
@@ -393,8 +393,8 @@ func TestStatuslineCommentIDReference_Seam(t *testing.T) {
 			if len(hits) != 1 {
 				t.Fatalf("expected exactly one skill-body-id finding, got %d:\n%+v\ncontent:\n%s", len(hits), hits, tc.content)
 			}
-			if hits[0].Severity != check.SeverityWarning {
-				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityWarning)
+			if hits[0].Severity != check.SeverityError {
+				t.Errorf("severity = %q, want %q", hits[0].Severity, check.SeverityError)
 			}
 			if want := filepath.FromSlash(tc.relPath); hits[0].Path != want {
 				t.Errorf("path = %q, want %q", hits[0].Path, want)

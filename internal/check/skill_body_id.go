@@ -124,7 +124,7 @@ func scanMaskedForSkillIDs(masked, path string) []Finding {
 		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
-			Severity: SeverityWarning,
+			Severity: SeverityError,
 			Message:  msg,
 			Path:     path,
 			Line:     line,
