@@ -112,14 +112,15 @@ than as silent loss of coverage.
   than shipping as a sibling rule or splitting by subcode (D-0051). Both shapes
   share a remediation — write the canonical letter-N placeholder — so one hint
   states the fix for both, and the taxonomy gains nothing a consumer could act on
-  in a repo where this rule is structurally inert. Severity follows the detected
-  class rather than the rule: a real id in prose keeps error severity, since it
-  has no outstanding sites and so blocks no push, while the newly-reachable
-  classes land at warning.
-- The severity split is scaffolding with a defined lifetime. Once the sweep
-  completes and severity flips, the prose/code distinction stops meaning
-  anything, so the machinery implementing it is deleted alongside the flip rather
-  than left standing.
+  in a repo where this rule is structurally inert.
+- Every finding is a warning until the sweep flips severity. The rule draws no
+  distinction between its two shapes or between prose and code placement: a rule
+  that held error severity for the one shape with no outstanding sites would buy
+  a one-milestone guarantee and pay a per-token severity function, a byte-range
+  helper, and a second parse of every file for it.
+- The two shapes are therefore distinguishable only by the defect the message
+  names. A test that asserts classification asserts on the message; one that
+  checks only that something fired cannot tell them apart.
 - The width detector subsumes the partial one in
   `TestSkillBodyID_PlaceholdersAreCanonical`, which reads `SKILL.md`
   post-frontmatter bodies through the shared mask. That test keeps its real-tree
@@ -168,6 +169,32 @@ reduction that ends when the flip lands, at which point they become whole-tree
 zero gates again with no edit.
 
 · commit 08c6489f9 · check package green, `make check-fast` exit 0
+
+### AC-2 — Non-canonical placeholders
+
+`classifySkillToken` sorts each id-shaped token into real id, canonical
+placeholder, or placeholder defect, and anything but the canonical letter-N form
+fires. The boundary that decides the classifier: a narrow NUMERIC id is a real id
+at a legacy width, not a malformed placeholder, because read tolerance keeps it
+resolving. On this tree: 115 findings — 81 placeholder, 34 real-id — all
+warnings, 0 errors.
+
+The partial width test is deleted rather than rewired. Rewiring it to read the
+rule's output would have produced a duplicate of the per-body real-tree
+assertion, which already scans that corpus; the production rule now owns the
+property over every `*.md` whole-file with code constructs in scope.
+
+The severity staging collapsed to a uniform warning in the same milestone, which
+removed a per-token severity function, a byte-range helper, and the second parse
+of every file that fed it — a net deletion. That collapse also removed what had
+been distinguishing the rule's two shapes incidentally, so the classification
+assertions moved onto the message, where the distinction actually lives.
+
+`internal/policies/narrow_id_sweep_test.go` gains an allowlist entry: the narrow
+numeric literals in the width test are the input space proving the classifier
+does not confuse a legacy width with a malformed shape.
+
+· commits ff6d186b0, fd97f0ee4 · `make check-fast` exit 0
 
 ## Decisions made during implementation
 
