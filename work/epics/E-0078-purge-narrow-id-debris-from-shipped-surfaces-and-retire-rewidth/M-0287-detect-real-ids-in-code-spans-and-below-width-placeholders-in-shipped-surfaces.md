@@ -35,9 +35,13 @@ the defect and a canonical letter-N placeholder is correct.
 
 Every one of the 203 sites survives it for two specific reasons. It masks code
 constructs, so an id inside a command example or a fenced transcript is exempt by
-construction. And it declines to check placeholder width, under a comment
-asserting that placeholder normalization is policed elsewhere — nothing anywhere
-polices it.
+construction — which alone accounts for every real-id citation in the tree, none
+of which sits in prose. And it declines to check placeholder width, under a
+comment asserting that placeholder normalization is policed elsewhere. What
+polices it is one test over a strictly smaller corpus: `SKILL.md` files only,
+post-frontmatter only, and through the same mask — so it sees none of the
+code-construct cases, none of the role-agent cards or entity templates, and none
+of the `description:` frontmatter. The comment's claim is narrower than it reads.
 
 This milestone lands detection only. No shipped surface changes here; the rule's
 own output becomes the worklist the next milestone sweeps.
@@ -102,10 +106,18 @@ than as silent loss of coverage.
 
 ## Design notes
 
-- The epic leaves open whether the width check extends `skill-body-id` or ships
-  as a sibling rule with its own finding code. Decided here. Same corpus and same
-  polarity argue for extending; a distinct remediation message — "widen the
-  placeholder" reads nothing like "stop citing a real id" — argues for a sibling.
+- The width check extends `skill-body-id` and distinguishes the two behaviors by
+  subcode — `real-id` and `narrow-placeholder` — rather than shipping as a
+  sibling rule (D-0051). One corpus walk and one severity flip; the remediation
+  text, the only axis that differs, varies through the hint table. Severity
+  follows the detected class rather than the rule: a real id in prose keeps error
+  severity, since it has no outstanding sites and so blocks no push, while the
+  two newly-detected classes land at warning.
+- The width detector subsumes the partial one in
+  `TestSkillBodyID_PlaceholdersAreCanonical`, which reads `SKILL.md`
+  post-frontmatter bodies through the shared mask. That test keeps its real-tree
+  assertion but reads the rule's output instead of re-deriving the property, so
+  the two cannot drift.
 - The `:65` comment claiming external policing is itself the defect class E-0076
   is built around: a rule stated in an authoritative surface with no detector
   behind it reads as enforced, so the next reader stops looking. Whichever shape
