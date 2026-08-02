@@ -72,20 +72,24 @@ cannot contradict each other again.
 
 ### AC-3 — The documenting passages describe rejected shapes rather than exhibit them
 
-Three passages document rules that reject malformed and narrow shapes: the
-`aiwf-check` skill's findings table, and the two planning rituals' anti-pattern
-bullets. Each is rewritten to name the rejected shape — a letter suffix, a
-numeric form narrower than canonical width — instead of spelling an instance of
-it. That is what removes the last thing an exemption would have been for.
+Six passages teach a rule by naming an id shape the kernel rejects: the
+`aiwf-check` skill's findings table, both planning rituals' anti-pattern bullets,
+the always-on guidance fragment's `body-prose-id` rule, the `aiwf-reallocate`
+skill's no-suffix sentence, and the `aiwf-history` skill's prefix-match sentence.
+Each is rewritten to name the rejected shape — a letter suffix, a spelled-out
+word suffix, an all-caps letter placeholder, a numeric form narrower than
+canonical width — instead of spelling an instance of it. That is what removes the
+last thing an exemption would have been for.
 
-These three need rewriting rather than sweeping: a mechanical replacement would
-turn an instruction about a bad shape into an instruction about a good one, which
-reads as nonsense.
+These need rewriting rather than sweeping: a mechanical replacement would turn an
+instruction about a bad shape into an instruction about a good one, which reads as
+nonsense.
 
-Evidence: the three files produce zero findings, plus a structural assertion that
-each passage still teaches its rule — the findings-table row still names its
-subcode, each anti-pattern bullet still sits under its heading — so a rewrite
-that clears the tokens by deleting the instruction fails rather than passing.
+Evidence: the six files produce zero findings, paired with a structural assertion
+— scoped to the passage's own section rather than the file — that each still
+teaches its rule. Neither half suffices alone: a rewrite can clear the tokens by
+deleting the instruction, and an instruction can survive alongside the token it
+forbids.
 
 ### AC-4 — The rule runs at error severity and this repo passes it
 
@@ -134,3 +138,35 @@ Evidence: an assertion on the emitted finding's severity, plus this repo's own
 ## References
 
 - G-0481 — per-tier counts, the two real-entity citations, the template vector.
+
+## Work log
+
+### AC-3 — Documenting passages
+
+Six shipped passages teach a rule by naming an id shape the kernel rejects; each
+now describes the shape instead of spelling an instance. The criterion that
+selects them — a mechanical replacement would invert the instruction — reaches
+past the `aiwf-check` findings table and the two planning rituals to the always-on
+guidance fragment, `aiwf-reallocate`'s no-suffix sentence, and `aiwf-history`'s
+prefix-match sentence.
+
+The two ritual bullets carried a second defect, fixed in the same pass: both
+forbade the canonical letter-N placeholder outright. That is correct for an entity
+body, where `body-prose-id` rejects it, and wrong for a shipped surface, where the
+rule requires it — so the rewrite names the surface it means rather than only
+dropping the token.
+
+The metavariable and distinct-placeholder sites in these files needed no
+exemption either. A CLI synopsis metavariable canonicalizes without loss, and the
+two-different-milestones convention resolves to the `<id>[,<id>]` list form the
+same tables already use for other multi-id flags. That is the measured answer to
+the class G-0514 records, over the sites that actually exist.
+
+Five mutations probed both halves of the evidence — deleting an instruction,
+reintroducing a rejected shape, renaming a section heading, dropping two
+remediation phrases — and all were killed. A sixth confirmed the section scoping
+is load-bearing: a rule relocated into a neighbouring section passes without it.
+
+On this tree: 115 findings → 88, six files clean.
+
+· commit a0fe2d90c · `make check-fast` exit 0
