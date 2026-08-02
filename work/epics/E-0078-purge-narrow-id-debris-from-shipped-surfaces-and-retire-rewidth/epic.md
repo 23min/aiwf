@@ -78,9 +78,9 @@ holes, and the retirement blast radius.
   and after retirement nothing can ever widen them. Read tolerance is what keeps
   live cross-references into those entities resolving; it is a standing property
   of the input space, not a legacy concession.
-- **`proseMask` stays unchanged.** `body-prose-id` shares it and legitimately
-  needs code constructs exempt. The new behavior is a distinct mask, not an edit
-  to the shared one.
+- **`body-prose-id`'s view of a body does not move.** It needs code constructs
+  exempt; the shipped surfaces need the opposite. The invariant is behavioural —
+  identical findings before and after — not a ban on touching shared code.
 - **The guard lands at warning severity and flips to error only once its own
   worklist is empty.** No milestone leaves the tree in a state where the sweep is
   incomplete and the push is blocked.
@@ -133,7 +133,7 @@ holes, and the retirement blast radius.
 |---|---|---|
 | Flipping the guard to error strands an unswept site and blocks pushes. | med | Warning-first ordering is the mitigation: the sweep works from the rule's own worklist rather than from a grep, and the flip to error is the last act of that milestone. |
 | A tree still unmigrated at upgrade time meets an error-severity drift finding with no verb able to fix it. | low | Every known tree is migrated. The release carrying the deletion names the prior version as the migration path in `CHANGELOG.md`. |
-| The sweep's scale invites mechanical find-and-replace across the allowlisted teaching cases. | low | The three allowlisted files are named in Constraints, and the guard must pass over them unchanged — a sweep that damages them fails the gate it was run against. |
+| The sweep's scale invites mechanical find-and-replace across the passages whose subject IS a rejected shape. | low | Those passages are rewritten rather than swept (D-0052), and the sweep milestone pairs zero-findings with a structural assertion that each still teaches its rule — so a replacement that inverts an instruction fails the gate it was run against. |
 
 ## Milestones
 
