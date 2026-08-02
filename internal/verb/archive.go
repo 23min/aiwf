@@ -792,11 +792,30 @@ func moveBlockers(
 		// only lets the two disagree, and every such disagreement ends the
 		// same way — a move nothing declined carrying a write the guard
 		// then refuses for the whole verb.
-		if linksIntoMove(body, path, entityMoves) || linksIntoMove(workingBodyAt(root, path), path, entityMoves) {
+		if linksIntoMove(entityBody(body), path, entityMoves) || linksIntoMove(workingBodyAt(root, path), path, entityMoves) {
 			blockers = append(blockers, path)
 		}
 	}
 	return blockers, nil
+}
+
+// entityBody returns the markdown body of a serialized entity file.
+//
+// Both link scans and the rewrite pass operate on the body alone, and
+// they have to operate on the same slice: the scan tracks fenced regions
+// by counting ```-leading lines, so frontmatter carrying one — a YAML
+// block scalar will — flips the parity and hides every link in the body
+// behind it. Handing one side the whole file is therefore not a
+// conservative approximation of handing it the body; it can miss a link
+// the other side sees.
+//
+// A file that does not split has no frontmatter to exclude, so it is
+// scanned whole.
+func entityBody(raw []byte) []byte {
+	if _, body, ok := entity.Split(raw); ok {
+		return body
+	}
+	return raw
 }
 
 // linksIntoMove reports whether body carries a link that one of the moves

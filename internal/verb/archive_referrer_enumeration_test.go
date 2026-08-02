@@ -242,3 +242,93 @@ func TestArchive_MidEditNonEntityFile_DoesNotDeclineTheMove(t *testing.T) {
 			"uncommitted document a whole-verb refusal. Report:\n%s", targetPath, noteRel, skipReport(res))
 	}
 }
+
+// TestArchive_FencedScalarInReferrerFrontmatter_DeclinesTheMove pins that
+// the record's side of the link scan reads the same slice the rewrite
+// pass does.
+//
+// The scan tracks fenced regions by counting ```-leading lines. Frontmatter
+// carrying one — a YAML block scalar holding a fence — opens a region
+// before the body starts, so a whole-file scan sees every link in that body
+// as fenced prose and finds none. The working-copy side and the rewrite
+// pass both read the body alone and are unaffected, which is exactly the
+// disagreement: with the working copy mid-edit and its link dropped,
+// neither predicate counts the referrer, the move lands, and the record
+// keeps a link to a path nothing occupies.
+func TestArchive_FencedScalarInReferrerFrontmatter_DeclinesTheMove(t *testing.T) {
+	t.Parallel()
+	r, targetPath, linkerPath := linkingGapRunner(t)
+
+	// A committed referrer whose frontmatter carries a fence-shaped scalar.
+	// aiwf's own serializer will not emit this; a hand-written, hand-committed
+	// entity file will, which is the input class this epic exists to police.
+	abs := filepath.Join(r.root, linkerPath)
+	raw, err := os.ReadFile(abs) //nolint:gosec // fixture path inside the test's own temp root
+	if err != nil {
+		t.Fatal(err)
+	}
+	fenced := strings.Replace(string(raw), "title: Linking gap", "title: |\n  ```", 1)
+	if fenced == string(raw) {
+		t.Fatalf("fixture assumption broken: no title line in\n%s", raw)
+	}
+	if writeErr := os.WriteFile(abs, []byte(fenced), 0o600); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	if commitErr := exec.Command("git", "-C", r.root, "commit", "-aqm", "hand-written frontmatter").Run(); commitErr != nil {
+		t.Fatal(commitErr)
+	}
+	// Now mid-edit, with the link dropped from the working copy.
+	dirtyEntity(t, r, "G-0002", "See [the target]("+targetPath+") for context.",
+		"Draft rewording, link not yet re-added.")
+
+	res, err := verb.Archive(r.ctx, r.root, testActor, "")
+	if err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	for _, src := range archiveMovesFor(res) {
+		if src == targetPath {
+			t.Errorf("archive planned to sweep %s while %s carries the committed link; "+
+				"a fence-shaped scalar in its frontmatter hid the link from the record's scan, "+
+				"so the move lands and HEAD keeps a link to a path it vacates", targetPath, linkerPath)
+		}
+	}
+}
+
+// TestArchive_FrontmatterlessReferrerAtEntityPath_DeclinesTheMove covers
+// the record carrying something at an entity path that is not a
+// serialized entity.
+//
+// Recorded paths are classified by shape, not by content, so a
+// hand-committed file with no frontmatter reaches the link scan. There is
+// no frontmatter to exclude, so it is scanned whole — which still finds
+// the link, and declining is the conservative direction: the move stays
+// put rather than landing while a committed link into it goes unrewritten.
+func TestArchive_FrontmatterlessReferrerAtEntityPath_DeclinesTheMove(t *testing.T) {
+	t.Parallel()
+	r, targetPath, linkerPath := linkingGapRunner(t)
+
+	abs := filepath.Join(r.root, linkerPath)
+	plain := "Notes with no frontmatter at all.\n\nSee [the target](" + targetPath + ") for context.\n"
+	if err := os.WriteFile(abs, []byte(plain), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", r.root, "commit", "-aqm", "hand-written file at an entity path").Run(); err != nil {
+		t.Fatal(err)
+	}
+	// Mid-edit, with the link gone from the working copy.
+	if err := os.WriteFile(abs, []byte("Draft rewording.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := verb.Archive(r.ctx, r.root, testActor, "")
+	if err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	for _, src := range archiveMovesFor(res) {
+		if src == targetPath {
+			t.Errorf("archive planned to sweep %s while %s carries the committed link; "+
+				"the file has no frontmatter to split off, so the whole file is the body "+
+				"and the link is in it", targetPath, linkerPath)
+		}
+	}
+}

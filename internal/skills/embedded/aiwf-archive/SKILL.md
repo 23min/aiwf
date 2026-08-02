@@ -42,8 +42,9 @@ aiwf archive --apply --kind gap
 ## When a sweep skips a candidate
 
 A sweep over a tree with uncommitted work reports some entities as skipped
-and sweeps the rest. The skipped ones appear under `Skipped:` alongside the
-planned moves:
+and sweeps the rest. The dry run lists the skipped ones under `Skipped:`
+alongside the planned moves; under `--apply` the same list rides into the
+commit body rather than the terminal, so run the dry run first to read it:
 
 ```
 Skipped:
@@ -57,7 +58,7 @@ says so instead and exits 0:
 aiwf archive: no entities swept; 1 entity skipped: G-NNNN (uncommitted changes in work/gaps/G-NNNN-<slug>.md)
 ```
 
-**Neither is an error.** The exit code is unchanged, and any entity not
+**Neither is an error.** The exit code is unchanged, and every candidate not
 named has swept.
 
 **Why a candidate is skipped.** The sweep decides where an entity belongs
@@ -72,9 +73,14 @@ sitting at the destination the move lands on.
 half-done — a sweep is one commit, and a skipped candidate contributes
 nothing to it.
 
-**Why skip rather than refuse.** One draft would otherwise stall every
-unrelated move. Skipping keeps an uncommitted entity from blocking work
-that has nothing to do with it, so the sweep stays usable mid-edit.
+An epic is skipped for a second reason, reported as
+`E-NNNN: non-terminal children (M-NNNN)` rather than as a file. Its subtree
+still holds a milestone that has not closed, and it sweeps once that
+milestone reaches a terminal status; no file needs committing.
+
+**A skip costs one candidate, never the sweep.** Uncommitted work in one
+entity does not block moves that do not depend on it, so the verb stays
+usable mid-edit.
 
 ## Reversal — there is none
 

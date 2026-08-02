@@ -158,12 +158,16 @@ func buildArrangement(t *testing.T, a arrangement) (r *runner, targetPath string
 
 // TestArchive_DeclineAndRewriteAgree_Property is M-0286/AC-5.
 //
-// Every disagreement between the two predicates ends the same way: a move
-// nothing declined carries a write against a file the commit-side guard
-// then refuses, taking the whole verb down with it. So "the two
-// predicates count the same entities" and "every plan the sweep offers is
-// a plan it can land" are the same claim, and the second is observable
-// without reaching inside either predicate.
+// A disagreement between the two predicates surfaces as a move nothing
+// declined carrying a write against a file the commit-side guard then
+// refuses, taking the whole verb down with it. So an unlandable plan is
+// evidence of a disagreement, and it is observable without reaching
+// inside either predicate.
+//
+// The converse does not hold: a plan can fail to apply for a reason
+// neither predicate is about — a destination the decline does not
+// enumerate at all, say — so this asserts applicability, not that the
+// two predicates are in agreement about every tree.
 func TestArchive_DeclineAndRewriteAgree_Property(t *testing.T) {
 	t.Parallel()
 	for _, a := range arrangements() {
