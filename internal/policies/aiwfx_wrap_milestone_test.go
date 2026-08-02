@@ -83,7 +83,7 @@ func TestAiwfxWrapMilestone_StructuralMergeStepDriftCheck(t *testing.T) {
 
 	// Step 2: the merge-step subsection is reachable via a `### `
 	// heading whose text references the merge action.
-	merge := findWrapMilestoneMergeStepSection(body)
+	merge := findWorkflowSubsection(body, "merge")
 	if merge == "" {
 		t.Fatal("`## Workflow` must contain a `### …merge…` subsection that documents the epic-integration merge")
 	}
@@ -123,36 +123,6 @@ func TestAiwfxWrapMilestone_StructuralMergeStepDriftCheck(t *testing.T) {
 	if !regexp.MustCompile(`chore\(milestone\):\s+wrap\s+M-NNNN`).MatchString(merge) {
 		t.Error("merge-step subsection must use a Conventional Commits subject template `chore(milestone): wrap M-NNNN — <title>`")
 	}
-}
-
-// findWrapMilestoneMergeStepSection returns the body of the
-// merge-step subsection inside `## Workflow`. The subsection's
-// `### ` heading is identified by a case-insensitive substring match
-// on "merge". Returns "" if no matching subsection is found.
-//
-// A single-substring "merge" match is sufficient: the declared-
-// sequence gate step's own heading ("Declared-sequence gate — close
-// the milestone") deliberately avoids the word "merge" so it can't be
-// confused with the merge-action step ("Merge the milestone branch
-// into the epic branch with a trailered merge commit") — the
-// wrap-milestone skill's only `###` heading containing "merge" IS the
-// relevant one.
-func findWrapMilestoneMergeStepSection(body string) string {
-	workflow := extractMarkdownSection(body, 2, "Workflow")
-	if workflow == "" {
-		return ""
-	}
-	lines := strings.Split(workflow, "\n")
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "### ") {
-			continue
-		}
-		text := strings.TrimPrefix(line, "### ")
-		if strings.Contains(strings.ToLower(text), "merge") {
-			return extractMarkdownSection(body, 3, text)
-		}
-	}
-	return ""
 }
 
 // TestAiwfxWrapMilestone_ReconcileEpicBranchBeforeMerge pins the

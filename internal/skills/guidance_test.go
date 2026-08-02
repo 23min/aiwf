@@ -78,7 +78,7 @@ func TestMaterializeGuidance_DeclaresBinaryVersion(t *testing.T) {
 // than the rule being compressed to fit the ceiling (G-0356).
 func TestGuidance_WithinLineBudget(t *testing.T) {
 	t.Parallel()
-	const budget = 90
+	const budget = 91
 	lines := bytes.Count(GuidanceBytes(), []byte("\n"))
 	if lines > budget {
 		t.Errorf("AC-4: guidance fragment is %d lines, over the %d-line per-turn budget", lines, budget)
@@ -92,17 +92,28 @@ func TestGuidance_WithinLineBudget(t *testing.T) {
 func TestGuidance_ContainsCodeHealthDigest(t *testing.T) {
 	t.Parallel()
 	got := string(GuidanceBytes())
+	// Scoped to the digest section: a force that drifted into the operating-rule
+	// list above would satisfy a file-wide match while ceasing to be priming for
+	// the code an assistant is about to write.
+	_, digest, found := strings.Cut(got, "## Code-health priming")
+	if !found {
+		t.Fatal("guidance fragment has no `## Code-health priming` section")
+	}
+	if !strings.Contains(digest, "wf-codebase-health") {
+		t.Error("the code-health digest no longer points at the full rubric it summarizes")
+	}
 	for _, anchor := range []string{
-		"## Code-health priming",
-		"wf-codebase-health",
 		"D1 — pin behavior, not implementation",
+		"D5 — findings become checks",
 		"C1 — single source of truth",
 		"C3 — atomic writes",
 		"B1/B2 — typed interfaces and validated schemas",
 		"E1 — structured logs",
+		"H1 — reuse over duplication",
+		"H3 — additions carry",
 	} {
-		if !strings.Contains(got, anchor) {
-			t.Errorf("guidance fragment missing code-health digest anchor %q", anchor)
+		if !strings.Contains(digest, anchor) {
+			t.Errorf("code-health digest missing anchor %q", anchor)
 		}
 	}
 }

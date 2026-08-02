@@ -737,6 +737,32 @@ caller can land just ahead of it — but "near-term and committed," not "maybe
 someday." When in doubt, delete; re-adding is cheap, and a graveyard of
 maybe-code is not.
 
+### H3. Additions carry
+
+An addition is paid for once and carried forever — read, kept true, run. H1 and
+H2 catch what is duplicated and what is unused; this catches what is live,
+unique, individually justified, and collectively too much.
+
+**Smells:**
+- A rule satisfied only by *adding* an artifact, once per subject — its cost
+  scales with the codebase, not with the decision to add it.
+- A rule set where every member can mandate and none can retire.
+- Prose asserting a fact nothing re-derives.
+- Apparatus outgrowing what it governs, with no release where the ratio falls.
+
+**Moves:**
+- Prefer the addition that costs once (a ban — "don't write X") to the one that
+  costs per subject (a mandate — "every X needs a Y").
+- Land a mandate with a named owner and what retires it; without one it is a
+  permanent tax.
+- Before adding a rule, count what already enforces the same class — and when
+  nothing in a rule set can retire an artifact, build the retirement path
+  rather than another rule.
+
+**Tradeoff:** not licence to skip a check that earns its place — spending once
+to cut a recurring cost is the trade this approves. The question is not "is
+this good?" but "does its cost recur, and who pays it?"
+
 ---
 
 # Scoring a codebase against this

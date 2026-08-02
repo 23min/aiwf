@@ -16,6 +16,33 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — additions carry: a code-health force, and the change's shape at milestone review
+
+KISS and YAGNI both judge an addition against its own justification, so an
+addition that is individually reasonable passes both however much already
+exists. Nothing asked the other question. The always-on guidance gains **H3 —
+additions carry**: prefer an addition that costs once (a ban) to one that costs
+per subject (a mandate), and land a mandate with a named owner and what retires
+it, or it is a permanent tax. The full force joins the `wf-codebase-health`
+rubric's Economy section beside reuse-over-duplication and no-dead-weight, which
+catch what is duplicated and what is unused; H3 catches what is live, unique,
+individually justified, and collectively too much.
+
+The milestone wrap's checks were all floors — ACs terminal, check clean, suite
+green, lint clean — each asking whether something is missing, none asking
+whether something is unnecessary. Its independent-review step now briefs the
+reviewer to measure the change's shape before judging it, in the project's own
+terms and naming the command used: bucket the diffstat by role, count the rules
+the milestone added, and group the new tests by the outcome their names claim.
+Three answers are required alongside the verdict — whether a recurring obligation
+was added (not answerable as "none" when the rules count says otherwise), what
+the milestone considered retiring, and whether same-outcome tests fail for
+distinct reasons. The reviewer derives the numbers and decides the last
+question; the author does neither.
+
+No new ritual step and no new gate: the numbers ride the review that already
+runs, and the judgment stays with the human it already fed.
+
 ### Changed — E-0075: verbs refuse to commit entity content they did not compute
 
 A mutating verb re-serialized the whole entity file around the field it

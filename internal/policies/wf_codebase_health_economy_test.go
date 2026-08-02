@@ -15,10 +15,12 @@ import (
 // section-local content — never a flat body grep, per CLAUDE.md
 // §"Substring assertions are not structural assertions".
 
-// TestWfCodebaseHealth_EconomySectionHasTwoForces pins the shape of the new
-// section: a `## H. Economy` carrying exactly two `###` principles — reuse
-// over duplication and no dead weight. Dropping either force fails here.
-func TestWfCodebaseHealth_EconomySectionHasTwoForces(t *testing.T) {
+// TestWfCodebaseHealth_EconomySectionHasThreeForces pins the section's shape:
+// a `## H. Economy` carrying exactly three `###` principles — reuse over
+// duplication, no dead weight, and additions carry. Dropping any of them fails
+// here, as does an id cited by the shipped guidance digest that resolves to no
+// heading in this rubric.
+func TestWfCodebaseHealth_EconomySectionHasThreeForces(t *testing.T) {
 	t.Parallel()
 	body := readVerbSkill(t, wfCodebaseHealthFixturePath)
 
@@ -26,10 +28,10 @@ func TestWfCodebaseHealth_EconomySectionHasTwoForces(t *testing.T) {
 	if econ == "" {
 		t.Fatal("wf-codebase-health must have a `## H. Economy` section")
 	}
-	if got := countSubHeadings(econ, 3); got != 2 {
-		t.Errorf("`## H. Economy` has %d `###` principles; want exactly 2 (H1 reuse, H2 dead weight)", got)
+	if got := countSubHeadings(econ, 3); got != 3 {
+		t.Errorf("`## H. Economy` has %d `###` principles; want exactly 3 (H1 reuse, H2 dead weight, H3 additions carry)", got)
 	}
-	for _, want := range []string{"Reuse over duplication", "No dead weight"} {
+	for _, want := range []string{"Reuse over duplication", "No dead weight", "Additions carry"} {
 		if !strings.Contains(econ, want) {
 			t.Errorf("section H is missing a principle named %q", want)
 		}
