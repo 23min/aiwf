@@ -39,6 +39,33 @@ a skip means and how to clear it.
 `aiwf edit-body --body-file` is body-only again — frontmatter differences in the
 supplied file are refused rather than silently committed.
 
+### Changed — a cheap-fix test on the deferral mandate, and reference-phrasing for counts
+
+Two shipped guidance rules that manufactured artifacts are narrowed.
+
+The milestone rituals told you to open a gap entity for *every* deferral, with
+no size test, so work that was cheaper to finish than to file got filed anyway.
+`aiwfx-start-milestone`, `aiwfx-wrap-milestone`, the milestone-spec template and
+the always-on guidance fragment now apply a **cheap-fix test** first: a change
+that is small, lands in a file
+the milestone already touches, and is covered by a test you are already writing
+gets made now rather than filed. Mid-implementation it rides the AC's own
+commit; at wrap it lands as a corrective commit on the milestone branch and is
+recorded under `## Reviewer notes`, so the wrap commit still carries only spec
+prose. A gap is for work needing its own branch, its own review, or a decision
+you are not ready to make. Deferrals that survive the test still become gaps —
+the mandate is narrowed, not lifted — and a new *Ledger padding* anti-pattern
+names the failure it prevents.
+
+The always-on guidance fragment also gains the matching rule for prose:
+**reference-phrase counts** rather than hand-writing a scalar the tree can move. "Every
+criterion listed below is met" survives; "all 16 are met" is wrong the next time
+one lands. It applies to code comments and design docs as much as to entity
+bodies — keep the reasoning, drop the arithmetic — and it says where a number
+does belong: a dated observation when the measurement is the point, an assertion
+only when the number is an invariant the code must hold to. aiwf already shipped
+this rule for epic specs; it now reaches every surface an assistant writes.
+
 ### Fixed — G-0503: the `//coverage:ignore` escape opens only on the directive itself
 
 Nothing user-facing changed; this is a repo-development gate. The coverage
