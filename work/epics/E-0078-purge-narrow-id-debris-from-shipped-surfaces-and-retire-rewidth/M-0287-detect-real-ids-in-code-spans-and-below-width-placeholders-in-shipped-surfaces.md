@@ -1,7 +1,7 @@
 ---
 id: M-0287
 title: Detect real ids in code spans and below-width placeholders in shipped surfaces
-status: draft
+status: in_progress
 parent: E-0078
 tdd: required
 acs:
