@@ -198,6 +198,21 @@ func findWorkflowSubsection(body, needle string) string {
 	return ""
 }
 
+// TestFindWorkflowSubsection_BranchCoverage covers the defensive return arms
+// the fixture-driven callers never reach. Every caller guards on `== ""` and
+// fatals, so an unexercised no-match arm would leave each of those guards
+// resting on a path nothing had ever traversed.
+func TestFindWorkflowSubsection_BranchCoverage(t *testing.T) {
+	t.Parallel()
+
+	if got := findWorkflowSubsection("# No workflow heading here\n", "merge"); got != "" {
+		t.Errorf("absent Workflow section: want empty, got %q", got)
+	}
+	if got := findWorkflowSubsection("## Workflow\n\n### 1. Something else\n\nbody\n", "merge"); got != "" {
+		t.Errorf("Workflow without a matching heading: want empty, got %q", got)
+	}
+}
+
 // TestM0209_AC3_WrapMilestoneDeclaredSequenceGate asserts M-0209/AC-3: the
 // `aiwfx-wrap-milestone` ritual governs its terminal local sequence
 // (promote-done + local merge + local cleanup) under one declared-sequence

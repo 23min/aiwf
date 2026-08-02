@@ -88,3 +88,4 @@ Hold these highest-leverage forces *while writing code*; reach for the full
 - **B1/B2 — typed interfaces and validated schemas at boundaries**, not loose maps or unchecked shapes.
 - **E1 — structured logs.** Events with a name and fields, not interpolated strings.
 - **H1 — reuse over duplication.** Before writing a routine block, search for the unit that already does it; a second copy is the trigger to extract; if a helper exists, route through it — never re-inline. Duplicated logic drifts one plausible line at a time.
+- **H3 — additions carry.** An addition is paid for once and carried forever. Prefer one that costs once (a ban — "don't write X") to one that costs per subject (a mandate — "every X needs a Y"); a mandate lands with a named owner and what retires it, or it is a permanent tax. An individually-justified addition can still be wrong because of what already exists.
