@@ -1,8 +1,10 @@
 ---
 id: G-0499
 title: Archive's referrer scan misses referrers absent from the loaded tree
-status: open
+status: addressed
 discovered_in: M-0284
+addressed_by_commit:
+    - f8b80cf8a
 ---
 ## What's missing
 
