@@ -10,7 +10,7 @@
 # already fans out internally via `go test -parallel 8`.
 .NOTPARALLEL:
 
-.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
+.PHONY: help build install diag-aiwf test check-fast test-race test-pins lint fmt vet coverage test-cov coverage-gate coverage-gate-only comment-history-audit growth-report mutate-diff selfcheck ci clean install-hooks e2e e2e-install stress stress-tests
 
 # Version embedded into the binary via -ldflags. Format: <branch>@<short-sha>[-dirty].
 # Empty (so version.Current falls back to buildinfo) when not in a git checkout
@@ -40,6 +40,7 @@ help:
 	@echo "  coverage-gate - diff-scoped coverage audit vs origin/main (G-0067); builds its own profile"
 	@echo "  coverage-gate-only - the same gates against an existing coverage.out (what 'ci' uses)"
 	@echo "  comment-history-audit - whole-tree scan for comments narrating a superseded state"
+	@echo "  growth-report - snapshot the growth metrics docs/design/growth.md tracks (read-only; GROWTH_BASELINE=<rev> for a delta)"
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + coverage-gate-only + selfcheck); run once before pushing, not per commit"
@@ -216,6 +217,18 @@ coverage-gate-only:
 comment-history-audit:
 	@echo "Scanning every tracked Go file for comments narrating a superseded state..."
 	go test -exec=$(TEST_EXEC) -run '^TestPolicy_CommentHistoryAttritionTree$$' -count=1 ./internal/policies/
+
+# growth-report snapshots the apparatus-growth metrics that
+# docs/design/growth.md interprets: test-to-production ratio, policy-corpus
+# share, entity and gap counts, and the same-day gap-closure share.
+#
+# Read-only and advisory by design. It reports a rate of increase, which is a
+# judgment call about what the project is spending its effort on — gating on a
+# growth budget would add a chokepoint to the problem the doc measures. Every
+# metric derives from git history, so GROWTH_BASELINE=<rev> reconstructs any
+# earlier point for comparison.
+growth-report:
+	@scripts/growth-report.py $(if $(GROWTH_BASELINE),--baseline $(GROWTH_BASELINE),)
 
 # mutate-diff runs diff-scoped mutation testing (G-0267): gremlins on
 # just the internal/ packages changed since the merge-base with
