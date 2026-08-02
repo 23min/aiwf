@@ -12,26 +12,26 @@ relates_to:
 
 M-0287 closes two holes in the `skill-body-id` rule: a scan that exempts code
 constructs, and an unenforced placeholder-width claim. The second hole needs a
-detector, and its remediation reads nothing like the first's — "widen the
-placeholder" and "stop citing a real id" are different instructions to a
-different reader.
+detector, and the question is what shape it takes — a sibling rule with its own
+finding code, or an extension of the rule already walking that corpus.
 
-So: does the width detector extend the existing rule, or ship as a sibling with
-its own finding code? M-0287 posed this as a binary, and the answer turns on a
-third shape neither arm named.
+A finding code is not free. Every code and subcode this rule emits is documented
+in a shipped surface that materializes into consumer repos, where this rule is
+structurally inert because the trees it scans do not exist there. Growth in the
+taxonomy is therefore growth in documentation a consumer reads and can never act
+on.
 
 ## Decision
 
-Extend `skill-body-id`, and distinguish the two behaviors by **subcode**:
-`real-id` for a digit-bearing entity id, `narrow-placeholder` for a letter-N
-placeholder below canonical width. One finding code, one corpus walk, one
-severity flip when the sweep completes; the remediation text varies per subcode
-through the hint table, which is the axis that actually differs.
+Extend `skill-body-id` as a **single, un-subcoded** finding code covering both
+shapes: a digit-bearing entity id, and a letter-N placeholder below canonical
+width. One rule, one corpus walk, one hint, one severity flip when the sweep
+completes, and no new row in any shipped surface.
 
 Severity follows the detected class rather than the rule as a whole. A real id
-in **prose** keeps error severity — it has no outstanding sites, so preserving
-it blocks no push. The two newly-detected classes land at **warning** and flip
-to error as the last act of the sweep milestone.
+in **prose** keeps error severity — it has no outstanding sites, so preserving it
+blocks no push. The classes newly reachable once code constructs are in scope
+land at **warning** and flip to error as the last act of the sweep milestone.
 
 The width detector **subsumes** the partial one already living in
 `TestSkillBodyID_PlaceholdersAreCanonical`. That test keeps its real-tree
@@ -40,23 +40,26 @@ property.
 
 ## Reasoning
 
-The two behaviors share everything expensive about a rule — corpus, walk,
-polarity, inertness in a consumer repo, and the severity flip the sweep
-milestone schedules — and differ only in remediation text. Subcodes exist to
-vary exactly that axis, and the convention is already dominant in this codebase:
-`body-prose-id` carries seven, `refs-resolve` six, `acs-shape` five. Both
-discoverability policies resolve `code/subcode` natively, so the shape costs two
-hint rows and two skill table rows.
+The two shapes share everything expensive about a rule — corpus, walk, polarity,
+inertness in a consumer repo, and the severity flip the sweep milestone
+schedules. They also share their remediation, which is the point that decides
+the shape: a real id becomes `<prefix>-NNNN` and a narrow placeholder becomes
+`<prefix>-NNNN`. Both instructions are *write the canonical letter-N
+placeholder*. The doc-link carve-out is an additional option on one shape, not a
+different instruction, so one hint states the fix for both without hedging.
+
+Subcodes were the obvious move given how common they are here — `body-prose-id`
+carries seven, `refs-resolve` six — and they were rejected because the argument
+for them turned out to be thinner than it first appeared. What they would buy is
+diagnostic separation between the two shapes. What they cost is a row in the
+`aiwf-check` skill's Findings table for a finding no consumer can ever see. The
+message already names the offending token, so the reader can tell the shapes
+apart without the taxonomy carrying that weight.
 
 A sibling rule loses on cost without buying separation anywhere that matters. It
 would add a constant to the closed set, walk the same twenty-nine files a second
-time, need its own real-tree test, and — the deciding cost — split the sweep
-milestone's single severity flip into two edits that must land together. The
-epic's constraint is written assuming one flip.
-
-Extending without subcodes was rejected for the reason the milestone anticipated:
-a single hint would have to instruct two unrelated repairs, which is how a hint
-stops being read.
+time, need its own real-tree test, and split the sweep milestone's single
+severity flip into two edits that must land together.
 
 The severity split is not a hedge. Applying the "lands at warning" constraint
 bluntly would demote a live error-severity guarantee for the length of a
@@ -72,11 +75,17 @@ same mask that hides the code-construct cases.
 
 ## Consequences
 
-- The existing bare-code `skill-body-id` findings gain a subcode, which changes
-  the JSON envelope's `subcode` field from absent to populated. No consumer
-  contract pins its absence.
-- The sweep milestone's flip is a severity change on two subcodes in one place,
-  not a rule rewrite.
+- The severity split is scaffolding with a defined lifetime, not a permanent
+  feature. Its only job is to let detection land before the sweep that clears
+  the tree. When the sweep completes and severity flips, the prose/code
+  distinction stops meaning anything and the machinery implementing it should be
+  deleted rather than left standing — that deletion belongs to the sweep
+  milestone, alongside the flip.
 - `TestSkillBodyID_PlaceholdersAreCanonical` stops carrying its own width regex;
   losing that duplicate is the point, and the real-tree property it asserts
   survives unchanged.
+- The rule's two real-tree assertions filter to error severity while the sweep is
+  outstanding. That is a real, temporary reduction in strictness: a newly
+  introduced code-construct citation warns rather than failing the suite. It ends
+  when the flip lands, at which point the same assertions become whole-tree zero
+  gates again with no edit.
