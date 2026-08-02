@@ -1,7 +1,7 @@
 ---
 id: D-0051
 title: Extend skill-body-id as one un-subcoded rule, not a sibling
-status: proposed
+status: accepted
 relates_to:
     - M-0287
     - E-0078
