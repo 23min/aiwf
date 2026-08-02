@@ -784,10 +784,40 @@ func moveBlockers(
 	return blockers, nil
 }
 
-// dirtyEntityPaths returns the loaded tree's entity files that differ
-// from the record, as a set of repo-relative paths — including files git
-// has never recorded, which differ from it maximally. An unborn HEAD has
-// no record to differ from at all, so the set is empty.
+// recordedEntityPaths returns the entity files HEAD records, as
+// repo-relative slash paths.
+//
+// Classification is entity.PathKind, the same predicate the loader
+// applies while walking the working tree, so the record's view of what
+// counts as an entity file cannot drift from the working copy's. Every
+// path in HEAD's tree is offered to it rather than pre-filtered by
+// directory, which would fork the loader's walk roots into a second
+// copy that no test compares against the first.
+func recordedEntityPaths(ctx context.Context, root string) ([]string, error) {
+	paths, err := gitops.LsTreePaths(ctx, root, "HEAD")
+	if err != nil { //coverage:ignore defensive: every caller consults HasHEAD first, so HEAD resolves
+		return nil, fmt.Errorf("listing the entity files recorded at HEAD: %w", err)
+	}
+	var out []string
+	for _, p := range paths {
+		if _, ok := entity.PathKind(p); ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+// dirtyEntityPaths returns the entity files that differ from the record,
+// as a set of repo-relative paths — including files git has never
+// recorded, which differ from it maximally, and files the record carries
+// that the working copy no longer resolves as entities. An unborn HEAD
+// has no record to differ from at all, so the set is empty.
+//
+// The candidate set is the union of both views precisely because a
+// disagreement between them is the condition worth reporting: an entity
+// enumerated from the working tree alone drops out of the comparison at
+// the moment it stops parsing, which is the moment it most needs to be
+// in it.
 //
 // Callers that need "has a committed version" ask for HEAD's content and
 // find it empty; keeping that judgement at the one place it is used stops
@@ -800,9 +830,30 @@ func dirtyEntityPaths(ctx context.Context, root string, tr *tree.Tree) (map[stri
 	if !hasHEAD {
 		return nil, nil
 	}
+	seen := make(map[string]bool, len(tr.Entities))
 	paths := make([]string, 0, len(tr.Entities))
+	add := func(p string) {
+		if seen[p] {
+			return
+		}
+		seen[p] = true
+		paths = append(paths, p)
+	}
 	for _, e := range tr.Entities {
-		paths = append(paths, filepath.ToSlash(e.Path))
+		add(filepath.ToSlash(e.Path))
+	}
+	// The record's entity files as well as the loaded tree's. An entity
+	// the loader dropped — deleted, hand-renamed, or carrying momentarily
+	// unparseable frontmatter — is absent from tr.Entities while the
+	// record still carries it and whatever links it holds. Enumerating
+	// only the loaded tree makes precisely the files most likely to be
+	// mid-edit invisible to every comparison built on this set.
+	recorded, err := recordedEntityPaths(ctx, root)
+	if err != nil { //coverage:ignore defensive: recordedEntityPaths fails only when HEAD does not resolve, which the HasHEAD check above just ruled out
+		return nil, err
+	}
+	for _, p := range recorded {
+		add(p)
 	}
 	diverged, err := gitops.DivergentPaths(ctx, root, paths)
 	if err != nil { //coverage:ignore defensive: same non-repo condition HasHEAD just passed
