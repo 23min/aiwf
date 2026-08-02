@@ -2,6 +2,7 @@
 id: G-0510
 title: The enums:ignore escape accepts three shapes that are not the directive
 status: open
+priority: low
 ---
 ## What's missing
 
