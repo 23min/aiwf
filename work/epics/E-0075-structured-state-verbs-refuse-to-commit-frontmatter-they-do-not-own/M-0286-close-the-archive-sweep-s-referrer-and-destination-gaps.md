@@ -1,7 +1,7 @@
 ---
 id: M-0286
 title: Close the archive sweep's referrer and destination gaps
-status: draft
+status: in_progress
 parent: E-0075
 tdd: required
 acs:
