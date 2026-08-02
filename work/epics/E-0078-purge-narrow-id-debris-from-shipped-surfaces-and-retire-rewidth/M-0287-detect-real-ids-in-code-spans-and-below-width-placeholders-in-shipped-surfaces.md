@@ -16,7 +16,7 @@ acs:
     - id: AC-3
       title: proseMask is unchanged and body-prose-id still exempts code constructs
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-4
       title: The three keep-list teaching files produce no finding
       status: open
