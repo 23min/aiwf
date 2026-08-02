@@ -24,19 +24,19 @@ on.
 ## Decision
 
 Extend `skill-body-id` as a **single, un-subcoded** finding code covering both
-shapes: a digit-bearing entity id, and a letter-N placeholder below canonical
-width. One rule, one corpus walk, one hint, one severity flip when the sweep
-completes, and no new row in any shipped surface.
+shapes: a digit-bearing entity id, and a placeholder at any shape other than the
+canonical letter-N form. One rule, one corpus walk, one hint, and no new row in
+any shipped surface.
 
-Severity follows the detected class rather than the rule as a whole. A real id
-in **prose** keeps error severity — it has no outstanding sites, so preserving it
-blocks no push. The classes newly reachable once code constructs are in scope
-land at **warning** and flip to error as the last act of the sweep milestone.
+Every finding the rule reports is a **warning** until the shipped tree is swept;
+the sweep milestone clears the tree and raises the severity as its last act. The
+rule draws no severity distinction between its two shapes or between prose and
+code placement.
 
-The width detector **subsumes** the partial one already living in
-`TestSkillBodyID_PlaceholdersAreCanonical`. That test keeps its real-tree
-assertion but reads the production rule's output instead of re-deriving the
-property.
+The width detector **subsumes** the partial one that lived in
+`TestSkillBodyID_PlaceholdersAreCanonical`, which is deleted. The production rule
+now owns placeholder canonicality over a strictly larger corpus: every `*.md`
+whole-file, frontmatter included, with code constructs in scope.
 
 ## Reasoning
 
@@ -53,39 +53,37 @@ carries seven, `refs-resolve` six — and they were rejected because the argumen
 for them turned out to be thinner than it first appeared. What they would buy is
 diagnostic separation between the two shapes. What they cost is a row in the
 `aiwf-check` skill's Findings table for a finding no consumer can ever see. The
-message already names the offending token, so the reader can tell the shapes
-apart without the taxonomy carrying that weight.
+message already names the offending token and the defect, so the reader can tell
+the shapes apart without the taxonomy carrying that weight.
 
 A sibling rule loses on cost without buying separation anywhere that matters. It
 would add a constant to the closed set, walk the same twenty-nine files a second
 time, need its own real-tree test, and split the sweep milestone's single
 severity flip into two edits that must land together.
 
-The severity split is not a hedge. Applying the "lands at warning" constraint
-bluntly would demote a live error-severity guarantee for the length of a
-milestone in exchange for nothing — the class it protects has zero outstanding
-sites. The constraint exists so an incomplete sweep cannot block a push, and
-preserving error on an already-clean class blocks none.
+Uniform warning severity is the same economy applied to the staging window. A
+rule that kept error severity for the one shape with no outstanding sites would
+buy a narrow guarantee — a stray real id in prose still blocking a push before
+the sweep — and pay for it with a per-token severity function, a byte-range
+comparison helper, and a second parse of every file to produce the narrower mask
+that comparison needs. The guarantee is worth less than the machinery: the
+window is one milestone, and the sweep is what makes the property true anyway.
 
 Subsuming the existing width test rather than adding beside it follows the
 single-source-of-truth force: two implementations of "is this placeholder
-canonical" over overlapping corpora drift, and the narrower one is already wrong
-in three ways — it reads only `SKILL.md`, only post-frontmatter, and through the
-same mask that hides the code-construct cases.
+canonical" over overlapping corpora drift, and the narrower one was already
+wrong in three ways — it read only `SKILL.md`, only post-frontmatter, and
+through the mask that hides the code-construct cases.
 
 ## Consequences
 
-- The severity split is scaffolding with a defined lifetime, not a permanent
-  feature. Its only job is to let detection land before the sweep that clears
-  the tree. When the sweep completes and severity flips, the prose/code
-  distinction stops meaning anything and the machinery implementing it should be
-  deleted rather than left standing — that deletion belongs to the sweep
-  milestone, alongside the flip.
-- `TestSkillBodyID_PlaceholdersAreCanonical` stops carrying its own width regex;
-  losing that duplicate is the point, and the real-tree property it asserts
-  survives unchanged.
-- The rule's two real-tree assertions filter to error severity while the sweep is
-  outstanding. That is a real, temporary reduction in strictness: a newly
-  introduced code-construct citation warns rather than failing the suite. It ends
-  when the flip lands, at which point the same assertions become whole-tree zero
-  gates again with no edit.
+- The rule's two shapes are distinguishable only by the defect its message
+  names, since they share a code, a severity, and a remediation. Any test that
+  asserts classification must assert on the message; asserting that "something
+  fired" cannot tell them apart.
+- The two whole-tree real-tree assertions skip until the sweep lands. The
+  property they state is deliberately false while detection ships ahead of
+  cleanup, and a skip says so where a severity filter would have passed against
+  an empty set while reading like a gate.
+- Nothing guards the shipped surfaces whole-tree during that window. A narrower
+  real-tree assertion over the keep-list files is the exception.
