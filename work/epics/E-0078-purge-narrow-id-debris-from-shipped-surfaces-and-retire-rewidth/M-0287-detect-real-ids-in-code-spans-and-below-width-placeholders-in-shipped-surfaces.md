@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: The three keep-list teaching files produce no finding
-      status: open
+      status: cancelled
 ---
 
 ## Goal
@@ -86,26 +86,32 @@ finding.
 
 ### AC-4 — The three keep-list teaching files produce no finding
 
-Three shipped files cite narrow ids as the subject of a rule rather than as
-examples of current shape: the `aiwf-check` skill's grammar table, and the two
-planning rituals that sanction narrow numerics as conversational shorthand for
-not-yet-allocated milestones. All three must stay silent under both new
-behaviors.
+Cancelled: the keep-list this criterion exists to prove is not built (D-0052).
 
-Evidence: an assertion against the real files — not synthetic copies — that each
-produces zero findings, keyed by path so a rename surfaces as a failure rather
-than as silent loss of coverage.
+Measuring the three files showed they carry roughly twice as much ordinary debris
+as teaching citation — including a narrow placeholder in the shipped
+`description:` frontmatter of two of them — so an exemption keyed by path would
+have laundered real defects out of the sweep's worklist permanently. The teaching
+citations that remain are avoidable: the rule's contract already accepts a
+shape-description in place of an exhibited shape, which leaves nothing to exempt.
+Rewriting those passages belongs to the sweep milestone, with the rest of the
+content it edits.
 
 ## Constraints
 
-- **`proseMask` is not edited.** `body-prose-id` shares it and needs its current
-  behavior. The new scan uses a distinct mask.
+- **`body-prose-id`'s view of a body does not move.** It needs code constructs
+  exempt, since a backticked id-shape is how an entity body legitimately
+  discusses id syntax. The two masks are one walker under two settings rather
+  than two copies, so the invariant is held mechanically: a differential test
+  fixes the single axis they may differ on, and every way the shared walker
+  could drift `body-prose-id` fails it.
 - **This milestone lands at warning severity.** At error it would fail
-  `aiwf check` on this repo with 203 findings and block every push before the
-  sweep that clears them exists. The flip to error is the last act of the
-  following milestone.
-- **The keep-list is by path**, and each entry carries a one-line rationale in
-  the same shape the repo's other allowlists use.
+  `aiwf check` on this repo and block every push before the sweep that clears
+  the tree exists. The flip to error is the last act of the following milestone,
+  and severity is uniform until then — the rule draws no distinction between its
+  two shapes or between prose and code placement.
+- **No exemption mechanism.** The rule carries no keep-list; passages that
+  document a rejected shape describe it rather than exhibit it (D-0052).
 
 ## Design notes
 
