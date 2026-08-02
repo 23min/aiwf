@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A below-canonical-width letter-N placeholder fails; canonical width passes
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: proseMask is unchanged and body-prose-id still exempts code constructs
       status: open
