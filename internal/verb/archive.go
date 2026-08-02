@@ -764,6 +764,14 @@ func moveBlockers(
 		if seen[path] {
 			continue
 		}
+		// Archived entities are not referrers. planArchiveRewrites skips
+		// them as linking-file candidates under ADR-0004's forget-by-default
+		// rule, so no sweep rewrites an archived body and none can lose a
+		// link. Counting one here would decline a candidate on the state of
+		// a file the sweep would never have touched.
+		if entity.IsArchivedPath(path) {
+			continue
+		}
 		body, ok := headBodies[path]
 		if !ok {
 			raw, err := gitops.ReadFromHEAD(ctx, root, path)
