@@ -16,6 +16,31 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0503: the `//coverage:ignore` escape opens only on the directive itself
+
+Nothing user-facing changed; this is a repo-development gate. The coverage
+audit decided a block was exempt by testing whether any raw source line in its
+span contained the marker's characters, so anything wearing them suppressed a
+finding: a bare marker with no reason, a string literal, a longer word
+(`//coverage:ignoreable`), the marker inside a block comment, and prose merely
+naming the escape. An untested branch stayed untested and the gate reported
+clean.
+
+The escape is now read off parsed comments through the same
+`hasDirectiveComment` its two siblings use, so all three of `//coverage:ignore`,
+`//history:ok` and `//exec:ok` obey one contract: the marker opens a comment and
+carries a reason. Exemption scope is unchanged — the directive still exempts the
+coverage block whose span holds its line.
+
+An AST census over the tree separates the annotations that were doing work from
+the ones that only looked like it. Of 635 lines wearing the marker, 590 are
+well-formed directives and keep working; 45 stop matching. Forty-four of those
+are prose, doc comments, or test fixtures holding the marker in a string, and
+were suppressing nothing. The forty-fifth was a live bare marker on a real
+error return, which this change repairs by moving onto the directive the reason
+already written in the comment above it — so, measured whole-tree against a
+real profile, the gate's verdict changes in exactly that one place.
+
 ### Fixed — G-0481: `aiwf import` stores a manifest's explicit id at canonical width
 
 A manifest declaring a below-canonical-width id for a **new** entity had that

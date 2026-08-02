@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,6 +68,16 @@ type coverBlock struct {
 
 const zeroSHA = "0000000000000000000000000000000000000000"
 
+// coverageIgnoreMarker is the deliberate-exception escape, the third of the
+// family alongside //history:ok and //exec:ok. It is directive-shaped (no
+// space after the slashes), which is the spelling gofmt preserves verbatim
+// rather than reflowing into `// coverage:ignore`; hasDirectiveComment owns
+// the rest of its contract, including that a reason is mandatory.
+//
+// It exempts the coverage block whose span contains the directive's line,
+// which is the unit the profile reports and the unit a violation names.
+const coverageIgnoreMarker = "coverage:ignore"
+
 // branchCoverageViolations is the testable core of the audit. It
 // intersects the uncovered blocks in profilePath with the lines changed
 // between baseRef and root's working tree, and reports each uncovered
@@ -105,11 +117,11 @@ func branchCoverageViolations(root, profilePath, baseRef string) ([]Violation, e
 		if !ok {
 			continue
 		}
-		src, srcErr := readSourceLines(filepath.Join(root, filepath.FromSlash(rel)))
-		if srcErr != nil {
-			return nil, srcErr
+		ignored, dirErr := coverageIgnoreLines(filepath.Join(root, filepath.FromSlash(rel)))
+		if dirErr != nil {
+			return nil, dirErr
 		}
-		out = appendFileViolations(out, rel, blocks[rel], lines, src)
+		out = appendFileViolations(out, rel, blocks[rel], lines, ignored)
 	}
 	return out, nil
 }
@@ -119,7 +131,7 @@ func branchCoverageViolations(root, profilePath, baseRef string) ([]Violation, e
 // out of branchCoverageViolations so the only loop touching git stays
 // elsewhere (the no-retry-loops-on-git policy keys on for-loops with
 // git in the body).
-func appendFileViolations(out []Violation, rel string, fileBlocks []coverBlock, changedInFile map[int]bool, src []string) []Violation {
+func appendFileViolations(out []Violation, rel string, fileBlocks []coverBlock, changedInFile, ignored map[int]bool) []Violation {
 	for _, b := range fileBlocks {
 		if b.Count > 0 {
 			continue
@@ -127,14 +139,14 @@ func appendFileViolations(out []Violation, rel string, fileBlocks []coverBlock, 
 		if !blockOverlapsChange(b, changedInFile) {
 			continue
 		}
-		if blockHasCoverageIgnore(b, src) {
+		if blockHasCoverageIgnore(b, ignored) {
 			continue
 		}
 		out = append(out, Violation{
 			Policy: "branch-coverage-audit",
 			File:   rel,
 			Line:   b.StartLine,
-			Detail: "changed code on this line is not exercised by any test. Add a test that reaches it, or annotate the line `//coverage:ignore <reason>` if it is genuinely unreachable (diff-scoped statement coverage; G-0067).",
+			Detail: "changed code on this line is not exercised by any test. Add a test that reaches it, or annotate the line `//coverage:ignore <reason>` if it is genuinely unreachable — the marker must open a comment and carry a reason (diff-scoped statement coverage; G-0067).",
 		})
 	}
 	return out
@@ -151,19 +163,51 @@ func blockOverlapsChange(b coverBlock, changedInFile map[int]bool) bool {
 	return false
 }
 
-// blockHasCoverageIgnore reports whether any source line in the block's
-// span carries a `//coverage:ignore` directive. src is 1-indexed via
-// src[line-1].
-func blockHasCoverageIgnore(b coverBlock, src []string) bool {
-	for ln := b.StartLine; ln <= b.EndLine; ln++ {
-		if ln < 1 || ln > len(src) {
-			continue
-		}
-		if strings.Contains(src[ln-1], "//coverage:ignore") {
-			return true
+// blockHasCoverageIgnore reports whether any line in the block's span
+// carries a `//coverage:ignore` directive, given the set coverageIgnoreLines
+// computed for the file.
+func blockHasCoverageIgnore(b coverBlock, ignored map[int]bool) bool {
+	return anyLine(ignored, b.StartLine, b.EndLine)
+}
+
+// coverageIgnoreLines returns the lines of path carrying a
+// `//coverage:ignore <reason>` directive.
+//
+// The file is parsed and the marker matched against whole comments, so a
+// mention of the escape in prose, a bare marker with no reason, a longer
+// word opening with the marker's letters, and the marker inside a string
+// literal are all what they look like rather than suppressions. This is the
+// same contract //history:ok and //exec:ok obey; hasDirectiveComment is the
+// shared matcher.
+//
+// A parse failure is reported rather than swallowed. Every file reaching
+// here has a coverage profile, which it can only have by compiling, so
+// unparseable source means the tree moved out from under the profile the
+// audit is reading — the wrong condition to absorb into "nothing is
+// annotated".
+func coverageIgnoreLines(path string) (map[int]bool, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading source %s: %w", path, err)
+	}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, src, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		return nil, fmt.Errorf("parsing %s for coverage directives: %w", path, err)
+	}
+	ignored := map[int]bool{}
+	for _, group := range file.Comments {
+		for _, c := range group.List {
+			if hasDirectiveComment(c.Text, coverageIgnoreMarker) {
+				// Position, not PositionFor(…, false): the only thing this
+				// set is compared against is a coverage-profile block span,
+				// and the profile numbers its blocks the way a //line
+				// directive remaps them — which is what Position reports.
+				ignored[fset.Position(c.Pos()).Line] = true
+			}
 		}
 	}
-	return false
+	return ignored, nil
 }
 
 // modulePath reads the `module` directive from root/go.mod.

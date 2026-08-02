@@ -56,8 +56,9 @@ func PolicyTestExecutableWrite(root string) ([]Violation, error) {
 
 // execOKMarker is the deliberate-exception escape, mirroring
 // //coverage:ignore and //history:ok. It is directive-shaped (no space
-// after the slashes) so gofmt leaves it alone; hasDirectiveComment owns
-// the rest of its contract. The case it exists for is a test whose
+// after the slashes), which is the spelling gofmt preserves verbatim
+// rather than reflowing into `// exec:ok`; hasDirectiveComment owns the
+// rest of its contract. The case it exists for is a test whose
 // subject *is* the mode, which WriteExecutable's fixed 0755 cannot
 // express.
 const execOKMarker = "exec:ok"
