@@ -64,10 +64,11 @@ zero findings.
 
 The shipped milestone, decision, and ADR templates carry narrow placeholders
 today, and `body-prose-id` names exactly that shape as a leak it rejects in entity
-bodies. The frontmatter and heading occurrences are inert, since `aiwf add` stamps
-the real id over them; the prose-guidance lines are author-facing text that can
-survive into a committed body, where the shipped check then fires on a consumer's
-own entity.
+bodies. The frontmatter occurrences are inert, since `aiwf add` stamps the real id over
+them. The heading and prose-guidance lines are not: the rituals direct an author
+to replace an entity's body with the template wholesale, which overwrites the
+real heading `aiwf add` wrote, and author-facing guidance text survives into a
+committed body — where the shipped check then fires on a consumer's own entity.
 
 Evidence: `ScanBodyProseID` run over each shipped template's body reports zero
 findings — the shipped check applied to the shipped template, so the two surfaces
@@ -109,7 +110,7 @@ Evidence: an assertion on the emitted finding's severity, plus this repo's own
   fictional id.**
 - **The severity flip lands last.** No commit in this milestone leaves the tree
   with an incomplete sweep and an error-severity rule.
-- **The three documenting passages are rewritten, never swept mechanically.** A
+- **The documenting passages are rewritten, never swept mechanically.** A
   find-and-replace over a passage whose subject is a bad shape inverts its
   meaning.
 - **Worked-example transcripts lose distinct ids and keep their titles.** The
@@ -153,11 +154,11 @@ past the `aiwf-check` findings table and the two planning rituals to the always-
 guidance fragment, `aiwf-reallocate`'s no-suffix sentence, and `aiwf-history`'s
 prefix-match sentence.
 
-The two ritual bullets carried a second defect, fixed in the same pass: both
-forbade the canonical letter-N placeholder outright. That is correct for an entity
-body, where `body-prose-id` rejects it, and wrong for a shipped surface, where the
-rule requires it — so the rewrite names the surface it means rather than only
-dropping the token.
+The two ritual bullets forbid the canonical letter-N placeholder outright, which
+reads oddly beside a shipped-surface rule that requires that exact shape. It is
+correct as written: both bullets address an author writing an entity body, where
+`body-prose-id` does reject it. The rewrite describes the shape rather than
+spelling one, and leaves that polarity intact.
 
 The metavariable and distinct-placeholder sites in these files needed no
 exemption either. A CLI synopsis metavariable canonicalizes without loss, and the
@@ -193,8 +194,7 @@ plausible id.
 
 The test scans against an empty resolution index, since a consumer's tree
 resolves none of aiwf's ids and a template clean only against aiwf's own tree is
-not clean where it ships. All four templates are held, not just the three
-carrying debris, so a clean one cannot regress unnoticed. Six mutations — two
+not clean where it ships. All four templates are held as a class. Six mutations — two
 restored H1 tokens, two un-backticked prose placeholders, a re-narrowed
 placeholder, and a real id smuggled into a body — were all killed.
 
@@ -248,3 +248,92 @@ directions: rule-alone and doc-alone each fail, and both-moved-together passes,
 which is what distinguishes a contract from a layout assertion.
 
 · commit 705a3cc72 · `make check-fast` exit 0 · `aiwf check` 0 errors
+
+### Review round
+
+Three fresh-context reviewers over the full change-set, sliced by concern
+(production code / tests / prose). All three returned request-changes; ten
+findings, every one real and fixed on the branch before wrap.
+
+Two were false statements introduced by this milestone, both in surfaces a
+reader trusts rather than verifies. The `aiwf-check` findings table described
+`body-prose-id/malformed-shape` as firing on a number narrower than canonical
+width; the kind patterns admit two digits for an epic and three for the rest, so
+a narrow numeric is strict-form and resolves, and never reaches that subcode.
+`ScanSkillBodyID`'s contract comment still said findings were warnings and named
+the severity flip as future work, 45 lines above the line that had already made
+it an error.
+
+Two were vacuities in this milestone's own AC-3 test, both invisible without
+mutation. Its phrases each recurred elsewhere inside the same section — one of
+them as a prefix of two neighbouring row keys — so deleting the passage under
+test left the assertion green; the phrases are now pinned on strings occurring
+exactly once, verified by count. And the section-narrowing anchor failed open,
+because splitting on an absent separator returns the input unchanged, so
+renaming the anchoring heading widened the scope to the whole file with no
+signal. It now refuses a missing anchor the same way a missing heading is
+refused.
+
+The rest: two `--reason` examples kept a development war-story after losing the
+id that made it concrete, a bracket-synopsis metavariable inside a `bash` fence
+was neither shell-safe nor still demonstrating the comma-separated list it
+existed for, a spaced metavariable in command position read as two positional
+arguments, three fenced blocks lost their comment column, a test name described
+a property deliberately removed from it, and a comment claimed some templates
+were clean when all four carried findings.
+
+· commit 3e9a45f1f · `make ci` exit 0
+
+## Validation
+
+`make ci` exit 0 — race suite, lint, diff-scoped coverage audit, firing-fixture
+meta-gate, `aiwf doctor --self-check` 29 steps. `aiwf check` on this tree: 0
+errors, 1 warning (`provenance-untrailered-scope-undefined` — the branch has no
+upstream, which is a property of the branch rather than of the work).
+
+`skill-body-id` findings over the shipped trees: 115 → 0, at error severity.
+
+Branch coverage: the only production change is one line, on a statement already
+covered; no new branches. `AIWF_COVERAGE_BASE` against the milestone base passes.
+
+## Deferrals
+
+- G-0516 — neither comment-history rule catches a comment that goes stale
+  because of a change elsewhere in the same file: the pre-push scan is
+  diff-scoped to changed lines, and the whole-tree policy matches a fixed
+  past-tense phrase set that present-tense narration evades. Found because this
+  milestone shipped exactly that shape and both gates were green.
+
+## Reviewer notes
+
+- **A prior milestone's pin was deliberately weakened.** The `aiwf-add` skill
+  test asserted its worked typo example "uses two distinct ids" — a guard
+  against precisely the collapse this milestone performs. The form it protected
+  cannot survive the shipped-surface rule: a real id is banned outright, and two
+  distinct placeholders are not canonical either. The example now states the
+  failure rather than staging it, and the test pins the behaviour it owes a
+  reader — unvalidated flag, no verb-time signal, named downstream finding —
+  scoped to its section. Measured: relocating the passage still fails the test,
+  so the scoping is stronger than the regex it replaced.
+- **The two id rules disagree about templates, and that is not a defect.** A
+  shipped surface requires the canonical letter-N placeholder; an entity body
+  rejects it. A template is scanned by both. It satisfies them only by placement
+  — canonical in frontmatter, backticked in prose, rephrased inside HTML
+  comments where a code span does not parse.
+- **The metavariable convention has one forced exception.** `<ADR-id>` trips
+  `skill-body-id`, because `ADR` is a kind prefix; the hyphenated form is
+  therefore unavailable for that one kind. Template headings use the generic
+  `<id>` and command positions the specific hyphenated form.
+- **Worked-example transcripts render several distinct entities as one
+  placeholder**, which is output the tool cannot produce. Accepted per this
+  milestone's constraint — the titles carry the distinctions — and nothing pins
+  that they continue to.
+- **AC-3's zero-findings half is redundant** with the whole-tree assertion: any
+  finding in those six files fails both. It is AC-scoped evidence, not
+  independent coverage.
+- **G-0514's premise did not survive the worklist.** It anticipated that
+  metavariables and deliberately-exhibited bad shapes would need an exemption.
+  Measured against every site that exists, all of them rewrote cleanly and no
+  surface needed exempting. What remains is narrower and consumer-facing: the
+  finding message prescribes canonicalization where rephrasing is the right
+  advice.
