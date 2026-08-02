@@ -197,6 +197,27 @@ does not confuse a legacy width with a malformed shape.
 
 · commits ff6d186b0, fd97f0ee4 · `make check-fast` exit 0
 
+### AC-3 — proseMask invariance
+
+A differential test asserts the two masks directly rather than inferring them
+from downstream findings: they agree on prose, on raw HTML, and on all four
+non-prose link carriers, and diverge only on code constructs. A second test pins
+that both are same-length projections preserving newline positions, so a mask
+that stripped rather than blanked would be caught even though the differential
+alone would not notice.
+
+No production change — the behaviour already held. The AC is a characterization
+pin, so its red is that the test catches the defect it guards: four drift modes
+probed by mutation (code spans, fenced blocks, indented blocks, newline
+preservation), all four caught, scoped to this test so the kill is its own.
+
+The AC's other named fixture — a real id inside a code span in an entity body
+staying silent — already exists in the `body-prose-id` suite, so it is not
+duplicated here. The "existing fixtures pass unchanged" half is met by that
+suite's eleven-case CommonMark table continuing to pass.
+
+· commit e656ed5d4 · `make check-fast` exit 0
+
 ## Decisions made during implementation
 
 - D-0051 — extend `skill-body-id` as one un-subcoded rule rather than a sibling
