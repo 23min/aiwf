@@ -81,9 +81,11 @@ through the mask that hides the code-construct cases.
   names, since they share a code, a severity, and a remediation. Any test that
   asserts classification must assert on the message; asserting that "something
   fired" cannot tell them apart.
-- The two whole-tree real-tree assertions skip until the sweep lands. The
-  property they state is deliberately false while detection ships ahead of
-  cleanup, and a skip says so where a severity filter would have passed against
-  an empty set while reading like a gate.
-- Nothing guards the shipped surfaces whole-tree during that window. A narrower
-  real-tree assertion over the keep-list files is the exception.
+- The two whole-tree real-tree assertions are inverted until the sweep lands:
+  they assert the worklist is non-empty. The property they normally state is
+  deliberately false while detection ships ahead of cleanup, and inverting makes
+  the sweep's arrival break them — a skip would never un-skip itself, and a
+  severity filter would pass against an empty set while reading like a gate.
+- Nothing guards the shipped surfaces whole-tree during that window. The
+  synthetic fixtures and the mask differential still gate the rule's behaviour;
+  what lapses is only the assertion over this repo's own shipped bytes.
