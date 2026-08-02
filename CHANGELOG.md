@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-08-02
+
 ### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'
 
 The `aiwfx-wrap-epic` ritual's backstop for a spec that left a gap open it
