@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: No embedded surface carries a narrow id or placeholder
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Shipped entity templates seed no id shape that body-prose-id rejects
       status: met
