@@ -24,19 +24,26 @@ package check
 // the earliest in-context tier for aiwf's own development) rather than a
 // CI-only policy test — and why it costs consumers nothing.
 //
-// Carve-out for free: the scan reuses body-prose-id's proseMask, which
-// exempts code constructs AND non-prose link carriers (destinations,
-// titles, reference definitions, autolinks). So a doc-link whose
-// destination is `docs/.../ADR-NNNN-*.md` is silent automatically — the id
-// rides in the destination, the visible link text is descriptive prose.
-// Citing the id as the visible link TEXT is an inline citation, not a
-// carve-out, and fires.
+// Two shapes offend here: a real id, and a placeholder at any shape other
+// than the canonical letter-N form. They share a remediation — write
+// `<prefix>-NNNN` — which is why one finding code covers both.
+//
+// The doc-link carve-out: the scan masks non-prose link carriers
+// (destinations, titles, reference definitions, autolinks), so a doc-link
+// whose destination is `docs/.../ADR-NNNN-*.md` is silent automatically —
+// the id rides in the destination, the visible link text is descriptive
+// prose. Citing the id as the visible link TEXT is an inline citation, not
+// a carve-out, and fires. Code constructs are NOT a carve-out: a command
+// example ships to a consumer exactly as prose does. That is the one point
+// where this scan parts company with body-prose-id, which shares the
+// walker but keeps code exempt.
 
 import (
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/23min/aiwf/internal/tree"
@@ -59,11 +66,10 @@ var skillScanDirs = []string{
 
 // ScanSkillBodyID classifies every id-shaped token in the given content
 // (a whole shipped *.md file, frontmatter included, or a bare body) and
-// returns one finding per unique real-id token, deduped within this
-// content. A token fires only when it matches a kind's strict,
-// digit-bearing id pattern (bare or composite); canonical letter-N
-// placeholders and malformed shapes are not this rule's concern
-// (placeholder normalization is policed separately).
+// returns one finding per unique offending token, deduped within this
+// content. Two shapes offend: a strict, digit-bearing id (bare or
+// composite), and any placeholder that is not the canonical letter-N form.
+// A canonical placeholder is the one shape that passes.
 //
 // Non-prose content is masked (not stripped) via proseAndCodeMask before
 // scanning, so byte offsets stay stable. Code constructs ARE in scope — a
@@ -84,8 +90,12 @@ var skillScanDirs = []string{
 // against literal test bytes.
 func ScanSkillBodyID(body []byte, path string) []Finding {
 	prose := proseMask(body)
-	return scanMaskedForRealIDs(proseAndCodeMask(body), path, func(lo, hi int) Severity {
-		if maskPreserved(prose, body, lo, hi) {
+	return scanMaskedForSkillIDs(proseAndCodeMask(body), path, func(cls skillTokenClass, lo, hi int) Severity {
+		// A real-id citation in prose is what this rule caught before the
+		// scan widened and the width check arrived. It has no outstanding
+		// sites, so it keeps error severity and blocks no push. Everything
+		// else is newly reachable and warns until its sweep completes.
+		if cls == tokenRealID && maskPreserved(prose, body, lo, hi) {
 			return SeverityError
 		}
 		return SeverityWarning
@@ -105,27 +115,66 @@ func maskPreserved(masked string, src []byte, lo, hi int) bool {
 	return true
 }
 
-// alwaysSeverity is the severity decider for scans with no prose/code
-// distinction to draw — the statusline's shell-comment scan, where
-// comment text is the only content in scope at all.
-func alwaysSeverity(s Severity) func(lo, hi int) Severity {
-	return func(int, int) Severity { return s }
+// shellSeverity is the severity decider for the statusline's shell-comment
+// scan. Comment text was always in scope there — shellCommentMask draws no
+// prose/code distinction — so a real-id citation is the already-caught class
+// and keeps error severity, while a placeholder defect is newly detected.
+func shellSeverity(cls skillTokenClass, _, _ int) Severity {
+	if cls == tokenRealID {
+		return SeverityError
+	}
+	return SeverityWarning
 }
 
-// scanMaskedForRealIDs classifies every id-shaped token in masked — the
+// canonicalPlaceholderPattern matches the one placeholder shape a shipped
+// surface may carry: the canonical-width letter-N form, bare or composite.
+// Anything id-shaped that is neither a real id nor this is a placeholder
+// defect — a narrow width (`E-NN`), an idiosyncratic shape (`G-XYZ`), or a
+// pseudo-arithmetic form (`C-NNN+1`) all model an id shape that no allocator
+// emits and no parser accepts.
+var canonicalPlaceholderPattern = regexp.MustCompile(`^(?:E|M|G|D|C|ADR)-NNNN(?:/AC-N)?$`)
+
+// skillTokenClass names how an id-shaped token in a shipped surface reads.
+type skillTokenClass int
+
+const (
+	// tokenOK is a canonical placeholder: the shape these surfaces exist to
+	// teach.
+	tokenOK skillTokenClass = iota
+	// tokenRealID is a digit-bearing id — meaningless in a consumer repo and
+	// stale-prone in this one.
+	tokenRealID
+	// tokenBadPlaceholder is an id-shaped token that is neither.
+	tokenBadPlaceholder
+)
+
+// classifySkillToken sorts one id-shaped token into the classes above. A
+// narrow NUMERIC id (`E-01`) is a real id at a legacy width, not a
+// placeholder: read tolerance keeps it resolving, so it classifies as a
+// citation rather than a width defect.
+func classifySkillToken(tok string) skillTokenClass {
+	if strictBareIDPattern.MatchString(tok) || strictCompositeIDPattern.MatchString(tok) {
+		return tokenRealID
+	}
+	if canonicalPlaceholderPattern.MatchString(tok) {
+		return tokenOK
+	}
+	return tokenBadPlaceholder
+}
+
+// scanMaskedForSkillIDs classifies every id-shaped token in masked — the
 // same-length, exempt-content-blanked projection of a source produced by
-// proseMask (Markdown prose) or shellCommentMask (shell comments) — and
-// returns one finding per unique real-id token, deduped within masked. A
-// token fires only when it matches a kind's strict, digit-bearing id
-// pattern (bare or composite); canonical letter-N placeholders and
-// malformed shapes are not this rule's concern. Both masks preserve
-// newline positions, so the line counted in masked is the source line.
-func scanMaskedForRealIDs(masked, path string, sevAt func(lo, hi int) Severity) []Finding {
+// proseAndCodeMask (Markdown) or shellCommentMask (shell comments) — and
+// returns one finding per unique offending token, deduped within masked.
+// Both masks preserve newline positions, so the line counted in masked is
+// the source line.
+func scanMaskedForSkillIDs(masked, path string, sevAt func(cls skillTokenClass, lo, hi int) Severity) []Finding {
 	var findings []Finding
 	seen := map[string]bool{}
 	for _, m := range idTokenPattern.FindAllStringIndex(masked, -1) {
 		tok := masked[m[0]:m[1]]
-		if !strictBareIDPattern.MatchString(tok) && !strictCompositeIDPattern.MatchString(tok) {
+		cls := classifySkillToken(tok)
+		if cls == tokenOK {
 			continue
 		}
 		if seen[tok] {
@@ -135,14 +184,24 @@ func scanMaskedForRealIDs(masked, path string, sevAt func(lo, hi int) Severity) 
 		line := 1 + strings.Count(masked[:m[0]], "\n")
 		findings = append(findings, Finding{
 			Code:     CodeSkillBodyID,
-			Severity: sevAt(m[0], m[1]),
-			Message:  fmt.Sprintf("shipped surface cites real entity id %q — shipped surfaces use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok),
+			Severity: sevAt(cls, m[0], m[1]),
+			Message:  skillTokenMessage(cls, tok),
 			Path:     path,
 			Line:     line,
 			Field:    "body",
 		})
 	}
 	return findings
+}
+
+// skillTokenMessage states what is wrong with tok. Both classes share a
+// remediation — write the canonical letter-N placeholder — so the two
+// messages differ in the defect they name, not in the fix they ask for.
+func skillTokenMessage(cls skillTokenClass, tok string) string {
+	if cls == tokenRealID {
+		return fmt.Sprintf("shipped surface cites real entity id %q — shipped surfaces use a canonical placeholder (e.g. G-NNNN) or a design/ADR doc-link, not a real id", tok)
+	}
+	return fmt.Sprintf("shipped surface uses non-canonical placeholder %q — shipped surfaces use the canonical letter-N form (e.g. G-NNNN, M-NNNN/AC-N), which is the id shape a reader should learn", tok)
 }
 
 // skillBodyIDReference walks the authoring-source skill trees under the
@@ -274,7 +333,7 @@ func statuslineCommentIDReference(t *tree.Tree) []Finding {
 			return nil
 		}
 		rel := filepath.Join(statuslineScanDir, p)
-		findings = append(findings, scanMaskedForRealIDs(shellCommentMask(raw), rel, alwaysSeverity(SeverityError))...)
+		findings = append(findings, scanMaskedForSkillIDs(shellCommentMask(raw), rel, shellSeverity)...)
 		return nil
 	})
 	return findings
