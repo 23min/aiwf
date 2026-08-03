@@ -4,15 +4,13 @@ package policies
 //
 // The block is fenced as `text` and introduced as what the tool prints, so a
 // reader greps their real output for it and a contributor "fixes" the code to
-// match. It has now shipped non-emittable text through three review rounds —
-// abbreviated hints, a fabricated hint, a wrong line number, and a warning
-// rendered in a shape the default output never uses. Each round corrected the
-// instance and left nothing that would catch the next one.
+// match. Text in it the binary cannot produce is therefore a defect the block
+// itself gives no signal of.
 //
-// This pins the half that is exactly checkable: every `— hint:` in the block
-// must be the hint the kernel actually carries for that code. The message text
-// and line numbers still rest on transcription, but the hints were where every
-// drift landed.
+// This pins the part with an exact source: every `— hint:` must be the hint the
+// kernel carries for that code. Message text, line numbers, the severity word,
+// the warning-summary line (which has no `path:line:` prefix and so matches
+// nothing here) and the footer counts rest on transcription alone.
 
 import (
 	"os"

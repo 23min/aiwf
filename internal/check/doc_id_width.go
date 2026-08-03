@@ -19,6 +19,11 @@ package check
 // and the opposite of body-prose-id, where backticks are the sanctioned way to
 // discuss id syntax without citing an entity.
 //
+// A markdown link's destination is masked along with the rest of the
+// non-prose link carriers, so an id there is silent. That carve-out is
+// inherited from the shared mask rather than chosen here; the corpus
+// carries no id-bearing destinations today.
+//
 // Severity is advisory by default and escalated by config, never the reverse.
 // A repo whose entities were migrated to canonical width still carries narrow
 // ids throughout its prose — the migration verb never touched docs — so an

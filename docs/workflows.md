@@ -96,6 +96,7 @@ aiwf history E-NNNN
 # 2026-04-28T..  human/peter  promote    active → done  ghi9abc
 
 aiwf render roadmap
+# (each E-NNNN / M-NNNN below stands for a different allocated id)
 # # Roadmap
 #
 # ## E-NNNN — Auth rewrite (done)
@@ -183,12 +184,20 @@ aiwf history G-NNNN
 # add        "user_sessions table has no soft-delete"
 
 aiwf render roadmap
-# (ids elided — each row carries its own, and they are all distinct)
-# ## Auth rewrite (done)
-# | Schema migration    | done |
-# | OIDC integration    | done |
-# ## Front-end auth widgets (proposed)
-# | Login form refactor | draft |
+# # Roadmap
+#
+# ## E-NNNN — Auth rewrite (done)
+#
+# | Milestone | Title | Status |
+# |---|---|---|
+# | M-NNNN | Schema migration | done |
+# | M-NNNN | OIDC integration | done |
+#
+# ## E-NNNN — Front-end auth widgets (proposed)
+#
+# | Milestone | Title | Status |
+# |---|---|---|
+# | M-NNNN | Login form refactor | draft |
 ```
 
 ADRs, gaps, and decisions don't appear in the roadmap by design — the roadmap is a delivery view, not an everything view. Their lifecycle is still queryable via `aiwf history`.

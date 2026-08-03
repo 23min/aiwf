@@ -59,20 +59,22 @@ func TestM0289_AC5_GuidanceScopesTheIDBullet(t *testing.T) {
 	if bullet == "" {
 		t.Fatalf("the id-shape bullet is gone from the shipped guidance entirely")
 	}
-	// Collapse the fragment's hard wrapping, so the phrases below assert
-	// content rather than where a line happens to break.
-	bullet = strings.Join(strings.Fields(bullet), " ")
+	// Collapse the fragment's hard wrapping and case, so the phrases below
+	// assert content rather than where a line breaks or whether a word opens
+	// a sentence.
+	bullet = strings.ToLower(strings.Join(strings.Fields(bullet), " "))
 
 	// Both corpora and both rules, named inside the one bullet a consumer
 	// reads when deciding what to write.
 	//
-	// Kept to four phrases on purpose. ADR-0018 admits this bullet as the
-	// sanctioned one-line-pointer exception to the fragment's inclusion
-	// rule and requires the carve-out not widen, so pinning config keys or
-	// the second rule name here would cement growth the ADR forbids —
-	// operator configuration is not per-turn agent behavior. The check
-	// skill carries that detail.
-	for _, phrase := range []string{"body-prose-id", "doc-id-width", "entity file", "documentation"} {
+	// The bullet names ONE chokepoint and hands documentation to the skill.
+	// ADR-0018 admits it as the lone exception to the fragment's inclusion
+	// rule, on the reasoning that a per-turn pointer spares the agent a
+	// predictable failed push. The doc rules are advisory at the shipped
+	// default, so there is no failed push for them to spare — naming them
+	// here would widen the exception without earning it. Pinning the
+	// pointer keeps the reader directed somewhere real.
+	for _, phrase := range []string{"body-prose-id", "entity file", "documentation", "aiwf-check"} {
 		if !strings.Contains(bullet, phrase) {
 			t.Errorf("the id-shape bullet does not name %q — without it the instruction "+
 				"reads across every committed file, and a consumer strips the very "+

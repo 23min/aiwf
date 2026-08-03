@@ -19,6 +19,11 @@ package check
 //     carrying the cross-branch and archived-id questions body-prose-id had to
 //     settle; it is tracked on its own rather than smuggled in here.
 //
+// A markdown link's destination is masked along with the rest of the
+// non-prose link carriers, so an id there is silent. That carve-out is
+// inherited from the shared mask rather than chosen here; the corpus
+// carries no id-bearing destinations today.
+//
 // What remains is exact: the entity's slug is known, so a written slug either
 // equals it or does not. No heuristic, and nothing to tune.
 

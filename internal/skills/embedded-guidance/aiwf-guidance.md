@@ -70,9 +70,7 @@ lives in the `wf-codebase-health` skill.
 - **Never write a fake id-shaped token in committed prose** — in an **entity
   file**, cite the real id; a placeholder, letter suffix, or number for a
   nonexistent entity fails `body-prose-id`, and backticks mean "discussing the
-  syntax". In **documentation** a real id and a four-wide `<prefix>-NNNN`
-  placeholder are both fine, narrower is not, and backticks do not exempt
-  (`doc-id-width`).
+  syntax". Documentation follows a different rule — see the `aiwf-check` skill.
 
 ## Code-health priming — for the code you write here
 
