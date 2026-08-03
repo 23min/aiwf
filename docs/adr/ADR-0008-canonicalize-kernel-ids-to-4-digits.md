@@ -3,6 +3,14 @@ id: ADR-0008
 title: Canonicalize kernel IDs to 4 digits; parsers tolerate narrower legacy widths on input
 status: accepted
 ---
+> **Partly superseded by ADR-0039.** The migration verb this ADR
+> introduced is retired, and with it §"Migration — `aiwf rewidth` verb",
+> §"Reversal — what verb undoes rewidth?", and the tree-state
+> classifier and warning severity described under §"Drift control". The
+> runtime decision stands in full: parser tolerance, allocator emit,
+> renderer canonicalization, and the existence of a width-drift finding
+> are all current. ADR-0039 enumerates both halves.
+
 ## Context
 
 Kernel principle #2 says ids are stable primary keys: *"`E-NN`, `M-NNN`, `ADR-NNNN`, `G-NNN`, `D-NNN`, `C-NNN`. The id is the primary key; the slug is just display."* The widths are mixed by kind — 2-digit for epic, 3-digit for milestone/gap/decision/contract, 4-digit for ADR — encoded in `internal/verb/import.go::canonicalPadFor`. There is no declared policy; the function is the de facto authority.
