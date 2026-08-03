@@ -1,7 +1,7 @@
 ---
 id: G-0505
 title: import copies id-reference frontmatter verbatim; narrow references reach disk
-status: open
+status: wontfix
 ---
 ## What's missing
 
