@@ -47,13 +47,17 @@ tell which parts of the original still bind.
 - **§"Drift control"**, in part: the uniform-narrow-is-silent rule, the
   mixed-state classifier, warning severity, and the remediation that
   named the verb. The finding itself stands, restated below.
-- Four consequences: the tested, distributed migration path shipped to
+- Five consequences: the tested, distributed migration path shipped to
   every consumer via `go install`; the transient window in which
   filenames stay narrow until the consumer runs the verb; the permanent
   CLI surface accepted for a one-shot ritual, whose stated sunset this
-  ADR executes; and **"No nagging on pre-migration trees"**, which
-  promised uniform-narrow consumers silence until they chose to migrate.
-  That silence is exactly what the collapsed rule removes.
+  ADR executes; **"No nagging on pre-migration trees"**, which promised
+  uniform-narrow consumers silence until they chose to migrate, which is
+  exactly what the collapsed rule removes; and the claim under
+  **"Path-form refs in archived bodies…"** that active-tree refs point
+  only at active-tree files "which all migrate at once". Nothing
+  migrates, and an active entity referencing a narrow archived one is a
+  supported case this milestone pins rather than an excluded one.
 
 ### Clauses that stand, unchanged
 
