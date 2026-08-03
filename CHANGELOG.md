@@ -16,6 +16,24 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — decisions are offered in plain language, not in the vocabulary that produced them
+
+The one-decision-at-a-time rule specified a decision's *structure* — context,
+pros and cons, risks, an argued lean, a numbered pick-list — and said nothing
+about the language it is written in. Options therefore arrived carrying the
+vocabulary of whatever analysis produced them, so the reader had to translate
+the framing before they could answer.
+
+The rule now also governs register: write it in the plainest language that
+carries the trade, name the thing rather than its category, say what breaks
+rather than the class of failure, and keep a specialist term only where it is
+the subject of the decision. A card's question stays one short line, with the
+detail in its options — a question field carrying the whole decision renders as
+an unreadable block.
+
+The per-turn guidance budget rises to fit the rule rather than the rule being
+compressed to fit the budget.
+
 ### Changed — the whiteboard reconciles an ordering you already keep, instead of replacing it
 
 The whiteboard ritual re-derived its recommended sequence from the tree on every

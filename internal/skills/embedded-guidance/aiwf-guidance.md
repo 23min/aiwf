@@ -47,6 +47,10 @@ lives in the `wf-codebase-health` skill.
   with pros/cons and risks, your plain lean *with its argument*, a numbered
   pick-list. The reasoning is the deliverable; the container serves it — a
   card's terseness must not drop the pros/cons, the lean, or the argument.
+  Write it all in the plainest language that carries the trade: name the thing,
+  not its category; say what breaks, not the class of failure; keep a
+  specialist term only where it is the subject of the decision. A card's
+  question stays one short line, with the detail in its options.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
   this work already touches, covered by a test you're already writing? Make it now.
   File a gap only when it needs its own branch, its own review, or a real decision.
