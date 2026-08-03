@@ -1,6 +1,6 @@
 ---
 id: G-0439
-title: Doc-relocation sweeps (e.g. E-0034) skip CHANGELOG.md cross-references
+title: Relocation and archive sweeps skip cross-references outside their own scope
 status: open
 discovered_in: E-0034
 ---
