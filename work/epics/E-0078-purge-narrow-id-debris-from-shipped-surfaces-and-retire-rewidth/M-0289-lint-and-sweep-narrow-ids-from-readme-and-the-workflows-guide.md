@@ -1,7 +1,7 @@
 ---
 id: M-0289
 title: Lint and sweep narrow ids from README and the workflows guide
-status: in_progress
+status: done
 parent: E-0078
 tdd: required
 acs:
