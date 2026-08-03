@@ -1,7 +1,7 @@
 ---
 id: G-0511
 title: LsTreePaths filters in Go instead of passing a pathspec to git
-status: open
+status: wontfix
 discovered_in: M-0286
 ---
 ## What's missing
