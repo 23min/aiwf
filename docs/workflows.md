@@ -128,7 +128,7 @@ flowchart TB
     F["aiwf add milestone M-NNNN 'OIDC integration'<br/>aiwf promote M-NNNN in_progress"]
     G["aiwf add decision D-NNNN<br/>'Support legacy basic auth for 6 months'<br/>--relates-to E-NNNN,M-NNNN"]
     H["mid-stream: aiwf add epic E-NNNN<br/>'Front-end auth widgets'<br/>aiwf add milestone M-NNNN --epic E-NNNN"]
-    I["aiwf promote M-NNNN done<br/>aiwf promote E-NNNN done"]
+    I["aiwf promote the OIDC milestone done<br/>aiwf promote the auth-rewrite epic done"]
 
     A --> B --> C --> D --> E --> F --> G --> H --> I
 ```
@@ -183,11 +183,12 @@ aiwf history G-NNNN
 # add        "user_sessions table has no soft-delete"
 
 aiwf render roadmap
-# ## E-NNNN — Auth rewrite (done)
-# | M-NNNN | Schema migration  | done |
-# | M-NNNN | OIDC integration  | done |
-# ## E-NNNN — Front-end auth widgets (proposed)
-# | M-NNNN | Login form refactor | draft |
+# (ids elided — each row carries its own, and they are all distinct)
+# ## Auth rewrite (done)
+# | Schema migration    | done |
+# | OIDC integration    | done |
+# ## Front-end auth widgets (proposed)
+# | Login form refactor | draft |
 ```
 
 ADRs, gaps, and decisions don't appear in the roadmap by design — the roadmap is a delivery view, not an everything view. Their lifecycle is still queryable via `aiwf history`.
@@ -208,9 +209,9 @@ These are concrete examples of what to say. The AI's response is the verb sequen
 | "Record an ADR for using OAuth 2.1 with passkey support." | `aiwf add adr --title "Use OAuth 2.1 with passkey support"` then optionally `aiwf promote ADR-NNNN accepted` |
 | "I noticed the user_sessions table has no soft-delete — that's not in scope here, just track it." | `aiwf add gap --title "user_sessions has no soft-delete" --discovered-in <current milestone>` |
 | "Decide: we'll support legacy basic auth for 6 months. Relate it to E-NNNN and M-NNNN." | `aiwf add decision --title "Support legacy basic auth for 6 months" --relates-to E-NNNN,M-NNNN` then `aiwf promote D-NNNN accepted` |
-| "M-NNNN is wrapped, start M-NNNN." | `aiwf promote M-NNNN done`, then `aiwf promote M-NNNN in_progress` |
+| "Schema migration is wrapped, start OIDC integration." | `aiwf promote <the wrapped milestone> done`, then `aiwf promote <the next one> in_progress` |
 | "Wrap up E-NNNN." | `aiwf promote E-NNNN done` |
-| "Cancel D-NNNN, we changed our mind." | `aiwf cancel D-NNNN` |
+| "Cancel the basic-auth decision, we changed our mind." | `aiwf cancel <that decision>` |
 | "Show me what happened to E-NNNN over time." | `aiwf history E-NNNN` |
 | "Print the roadmap." | `aiwf render roadmap` (or `aiwf render roadmap --write` if you want it committed to `ROADMAP.md`) |
 | "Renumber M-NNNN — we hit a merge collision." | `aiwf reallocate work/epics/<dir>/M-NNNN-<slug>.md` (path form disambiguates the duplicate) |

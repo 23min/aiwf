@@ -110,6 +110,43 @@ func TestScanDocIDSlug_MismatchFires(t *testing.T) {
 	}
 }
 
+// TestScanDocIDSlug_RequiresAWordBoundary guards against a longer word
+// donating its tail. Without a leading \b, any word ending in a kind letter
+// reads as an id — and the finding then quotes a token that appears nowhere in
+// the file, so the operator has nothing to search for.
+func TestScanDocIDSlug_RequiresAWordBoundary(t *testing.T) {
+	t.Parallel()
+	for _, body := range []string{
+		"# Doc\n\nSee RFC-0001-some-other-thing.md for details.\n",
+		"# Doc\n\nSee XM-0007-a-different-thing.md for details.\n",
+	} {
+		if got := ScanDocIDSlug([]byte(body), "docs/workflows.md", DocSlugIndex(docSlugFixture())); len(got) != 0 {
+			t.Fatalf("a longer word must not donate its tail, got %d: %+v", len(got), got)
+		}
+	}
+}
+
+// TestScanDocIDSlug_NamesTheEntityCanonically pins the remediation against a
+// path that can actually exist. Building it from the doc's spelling of the id
+// yields one when the doc also wrote the id narrow — an operator who obeys
+// writes a second wrong path and stays blocked.
+func TestScanDocIDSlug_NamesTheEntityCanonically(t *testing.T) {
+	t.Parallel()
+	idx := DocSlugIndex(&tree.Tree{Entities: []*entity.Entity{
+		{ID: "M-0007", Path: "work/epics/E-0002-auth/M-0007-schema-migration.md"},
+	}})
+	got := ScanDocIDSlug([]byte("# Doc\n\nSee M-007-wrong-slug.md.\n"), "README.md", idx)
+	if len(got) != 1 {
+		t.Fatalf("a narrow id with a wrong slug must fire, got %d: %+v", len(got), got)
+	}
+	if !strings.Contains(got[0].Message, "M-0007-schema-migration") {
+		t.Errorf("message %q does not name the entity's real, canonical path form", got[0].Message)
+	}
+	if strings.Contains(got[0].Message, "M-007-schema-migration") {
+		t.Errorf("message %q names a path built from the doc's spelling, which exists nowhere", got[0].Message)
+	}
+}
+
 // TestScanDocIDSlug_TrueSlugSilent is the arm that keeps the corpus writable:
 // citing a real entity by its real path is exactly what these docs are for.
 func TestScanDocIDSlug_TrueSlugSilent(t *testing.T) {

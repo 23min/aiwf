@@ -200,7 +200,7 @@ Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts material
 When validation finds something, output is one finding per line in linter form: `path:line: severity code: message — hint: <action>`.
 
 ```text
-work/epics/E-NNNN-foo/M-NNNN-bad.md:5: error refs-resolve/unresolved: milestone field "parent" references an id that resolves to no entity — hint: check the spelling, or remove the reference if the target was deleted
+work/epics/E-NNNN-foo/M-NNNN-bad.md:4: error frontmatter-shape: milestone missing required field: parent — hint: add the missing frontmatter field by hand and re-run `aiwf check`
 work/epics/E-NNNN-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: use one of the allowed statuses listed above
 work/epics/E-NNNN-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter
 
@@ -323,12 +323,12 @@ Verb-specific flags for `add`:
 
 ```
 <consumer-repo>/
-├── aiwf.yaml                              # tiny config (~10 lines)
+├── aiwf.yaml                              # framework config
 ├── work/
 │   ├── epics/
 │   │   └── E-NNNN-<slug>/
 │   │       ├── epic.md
-│   │       └── M-NNNN-<slug>.md            # milestones live inside their epic
+│   │       └── M-NNNN-<slug>.md           # milestones live inside their epic
 │   ├── gaps/
 │   │   └── G-NNNN-<slug>.md
 │   ├── decisions/

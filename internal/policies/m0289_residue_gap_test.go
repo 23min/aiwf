@@ -36,21 +36,31 @@ func TestM0289_AC3_ResidueGapNamesItsPathsAndReason(t *testing.T) {
 	}
 	body := string(raw)
 
+	// Scoped per section, not whole-file. Grepping the whole body lets an
+	// inverted `## Resolution` ("these are correct as written — closing")
+	// ship while the pins still match on the untouched `## Problem` prose.
+	problem := extractMarkdownSection(body, 2, "Problem")
+	resolution := extractMarkdownSection(body, 2, "Resolution")
+	if strings.TrimSpace(problem) == "" || strings.TrimSpace(resolution) == "" {
+		t.Fatalf("%s is missing a `## Problem` or `## Resolution` section — the "+
+			"assertions below would silently widen to the whole body", m0289ResidueGap)
+	}
+
 	// The three paths the sweep declined. A gap naming only some of them
 	// leaves the rest looking like an oversight.
 	for _, p := range []string{"docs/design", "docs/overview.md", "docs/architecture.md"} {
-		if !strings.Contains(body, p) {
-			t.Errorf("%s does not name the deferred path %q", m0289ResidueGap, p)
+		if !strings.Contains(problem, p) {
+			t.Errorf("%s's Problem section does not name the deferred path %q", m0289ResidueGap, p)
 		}
 	}
 
-	// The reason, not just the list. "Widen rather than placeholder" is what
-	// distinguishes this residue from the corpus that was swept, and it is
-	// the part a reader cannot reconstruct from the paths alone.
-	for _, phrase := range []string{"widening", "canonical id"} {
-		if !strings.Contains(body, phrase) {
-			t.Errorf("%s does not explain the fix shape (%q) — without it the "+
-				"deferral reads as an oversight rather than a scoping decision",
+	// The reason, in the section that states what to do. "Widen rather than
+	// placeholder" is what distinguishes this residue from the corpus that was
+	// swept, and a reader cannot reconstruct it from the paths alone.
+	for _, phrase := range []string{"Widen", "canonical id"} {
+		if !strings.Contains(resolution, phrase) {
+			t.Errorf("%s's Resolution does not state the fix shape (%q) — without it "+
+				"the deferral reads as an oversight rather than a scoping decision",
 				m0289ResidueGap, phrase)
 		}
 	}

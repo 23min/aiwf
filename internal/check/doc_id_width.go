@@ -39,7 +39,7 @@ import (
 
 // DocIDWidthReference scans each configured documentation path under the tree
 // root and returns its id-width findings. Paths are repo-relative and come
-// from `docs.id_width.paths`, defaulting to README.md.
+// from `docs.paths`, defaulting to README.md.
 //
 // A path that does not resolve to a readable file is skipped rather than
 // reported. The default names README.md, which not every repo carries, and a
@@ -66,8 +66,15 @@ func DocIDWidthReference(t *tree.Tree, paths []string) []Finding {
 // their corpus through here so the containment guard cannot be honored by one
 // and forgotten by the other.
 func readDocUnderRoot(root, rel string) ([]byte, bool) {
-	full := filepath.Join(root, filepath.FromSlash(rel))
-	if !pathutil.Inside(root, full) {
+	// Resolve before Inside: the check must hold against the path the OS will
+	// actually open, not its lexical form. An actor who can commit aiwf.yaml
+	// can commit a symlink too, so a purely lexical guard does not constrain
+	// the actor it names — the scan would follow the link out of the repo and
+	// quote what it found back in the finding. Resolve returns the lexical
+	// form for a path that does not exist, so the missing-file skip below is
+	// unaffected. Same order as internal/contractconfig.
+	full, err := pathutil.Resolve(filepath.Join(root, filepath.FromSlash(rel)))
+	if err != nil || !pathutil.Inside(root, full) {
 		return nil, false
 	}
 	raw, err := os.ReadFile(full)
@@ -81,9 +88,9 @@ func readDocUnderRoot(root, rel string) ([]byte, bool) {
 // in content, deduped within it. Both populations fire: a real id at a legacy
 // numeric width, and a letter-N placeholder narrower than the canonical form.
 //
-// Findings are warnings. ApplyDocIDWidthStrict is the only thing that raises
-// them, so the rule itself stays config-agnostic and independently testable —
-// the seam ApplyTDDStrict and ApplyAreaRequiredStrict already establish.
+// Findings are warnings. ApplyDocsStrict is the only thing that raises them,
+// so the rule itself stays config-agnostic and independently testable — the
+// seam ApplyTDDStrict and ApplyAreaRequiredStrict already establish.
 //
 // Non-prose content is masked (not stripped) via proseAndCodeMask so byte
 // offsets stay stable; Line is 1-based within content.
@@ -118,10 +125,11 @@ func ScanDocIDWidth(content []byte, path string) []Finding {
 // is a single digit by grammar, so `M-0001/AC-1` is canonical despite its
 // one-digit tail.
 //
-// Anything that is neither all-digits nor all-N is silent here. A malformed
-// shape is a real defect, but it is body-prose-id's to name — this rule owns
-// width, and reporting the same token twice under two codes would leave an
-// operator guessing which fix applies.
+// Anything that is neither all-digits nor all-N is silent here, and nothing
+// else catches it either: body-prose-id walks entities, and a document is not
+// one. So a malformed shape in a doc goes unreported — a deliberate scope
+// limit, not a hand-off, and worth stating as such so the gap stays visible
+// rather than looking covered.
 func docIDWidthMessage(tok string) string {
 	parent, tail := tok, ""
 	if i := strings.Index(tok, "/"); i >= 0 {

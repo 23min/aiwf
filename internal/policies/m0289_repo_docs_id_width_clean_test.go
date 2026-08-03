@@ -16,6 +16,8 @@ package policies
 // silent way to make this test green.
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
@@ -48,19 +50,33 @@ func TestM0289_AC2_RepoDocsCarryNoNarrowIDWidth(t *testing.T) {
 		}
 	}
 
+	// A declared path that no longer resolves is skipped by the scanner, so
+	// without this the document silently leaves the corpus forever: rename it
+	// or move it under a new directory and both this test and `aiwf check`
+	// stay green while guarding nothing.
+	for _, rel := range paths {
+		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
+			t.Errorf("aiwf.yaml declares %q but it does not resolve (%v) — the doc "+
+				"has left the corpus and nothing else would say so", rel, err)
+		}
+	}
+
 	for _, f := range check.DocIDWidthReference(tr, paths) {
+		t.Errorf("%s:%d: %s", f.Path, f.Line, f.Message)
+	}
+	// The slug rule shares this corpus; running only its sibling would leave a
+	// drift after `aiwf retitle` with no CI backstop.
+	for _, f := range check.DocIDSlugReference(tr, paths) {
 		t.Errorf("%s:%d: %s", f.Path, f.Line, f.Message)
 	}
 }
 
 // TestM0289_AC2_RepoDocsIDWidthIsBlocking pins the severity this repo holds
-// itself to. The rule ships advisory so that upgrading aiwf cannot block a
-// consumer's push over prose they never wrote; that reasoning does not apply
-// to the repo that authored the rule and has already swept its own docs.
+// itself to. The shipped default is advisory (internal/check/doc_id_width.go
+// says why); this repo has swept its docs, so it takes the blocking bar.
 //
-// Without this, `docs.strict` could quietly revert to the shipped
-// default and the sweep above would keep passing while nothing enforced it at
-// the push.
+// Without this, `docs.strict` could quietly revert to the shipped default and
+// the sweep above would keep passing while nothing enforced it at the push.
 func TestM0289_AC2_RepoDocsIDWidthIsBlocking(t *testing.T) {
 	t.Parallel()
 	root, _ := sharedRepoTree(t)

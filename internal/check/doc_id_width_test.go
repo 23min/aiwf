@@ -19,10 +19,11 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// TestScanDocIDWidth_NonNumericSuffixSilent pins the boundary against the
-// sibling rules. A suffix that is neither digits nor N's is a malformed id
-// shape — a real defect, but body-prose-id's to name. Reporting it here too
-// would hand an operator two codes for one token with different remedies.
+// TestScanDocIDWidth_NonNumericSuffixSilent pins this rule's scope limit. A
+// suffix that is neither digits nor N's is a malformed id shape, and in a
+// document nothing reports it — body-prose-id walks entities, which documents
+// are not. The silence is deliberate and this test is where it is recorded, so
+// that widening the rule later is a decision rather than a surprise.
 func TestScanDocIDWidth_NonNumericSuffixSilent(t *testing.T) {
 	t.Parallel()
 	for _, tok := range []string{"M-abc", "G-XYZ", "E-a1"} {
@@ -83,6 +84,31 @@ func TestDocIDWidthReference_RejectsPathEscapingRoot(t *testing.T) {
 	got := DocIDWidthReference(&tree.Tree{Root: root}, []string{"../secret.md"})
 	if len(got) != 0 {
 		t.Fatalf("a path escaping the root must be skipped, got %d: %+v", len(got), got)
+	}
+}
+
+// TestDocIDWidthReference_RejectsSymlinkEscapingRoot is the other half of the
+// containment guard. The threat the guard names is a checked-in aiwf.yaml
+// aiming the scan at arbitrary files — and an actor who can commit that can
+// commit a symlink, so a lexical check alone does not constrain them. The
+// finding quotes what it reads, which is what makes the escape worth blocking.
+func TestDocIDWidthReference_RejectsSymlinkEscapingRoot(t *testing.T) {
+	t.Parallel()
+	tmp := t.TempDir()
+	root := filepath.Join(tmp, "repo")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatalf("making root: %v", err)
+	}
+	outside := filepath.Join(tmp, "secret.md")
+	if err := os.WriteFile(outside, []byte("# S\n\nSee E-01.\n"), 0o644); err != nil {
+		t.Fatalf("seeding outside file: %v", err)
+	}
+	link := filepath.Join(root, "inside-link.md")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if got := DocIDWidthReference(&tree.Tree{Root: root}, []string{"inside-link.md"}); len(got) != 0 {
+		t.Fatalf("a symlink leaving the root must be skipped, got %d: %+v", len(got), got)
 	}
 }
 

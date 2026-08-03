@@ -70,8 +70,8 @@ const (
 	// CodeDocIDWidth is the M-0289 doc id-width rule: a repo-facing doc must
 	// not write an id shape below canonical width. Real ids are legitimate
 	// here — only the width is the defect, which is what separates it from
-	// skill-body-id. Advisory by default; `docs.id_width.strict` escalates it
-	// via ApplyDocIDWidthStrict. See internal/check/doc_id_width.go.
+	// skill-body-id. Advisory by default; `docs.strict` escalates it via
+	// ApplyDocsStrict. See internal/check/doc_id_width.go.
 	CodeDocIDWidth = "doc-id-width"
 	// CodeDocIDSlug is the M-0289 doc id-slug rule: a repo-facing doc that
 	// writes an id together with a slug must write the slug that entity

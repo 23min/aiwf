@@ -18,13 +18,10 @@ tree:
     - work/epics/*/wrap.md
     - work/epics/*/TRIAGE.md
 
-# M-0289: the two docs that teach the workflow are the corpus for
-# `doc-id-width`. README.md is the shipped default; docs/workflows.md is
-# this repo's own addition, since a consumer has no such file.
-#
-# strict is on because these docs are swept. The shipped default is off,
-# so that upgrading aiwf never blocks a push over prose an operator did
-# not write — a repo earns the block by cleaning its own docs first.
+# The corpus for the doc id rules. README.md is the shipped default;
+# docs/workflows.md is this repo's own addition. strict is on because
+# these docs are swept — see internal/check/doc_id_width.go for why the
+# shipped default is advisory.
 docs:
   paths:
     - README.md

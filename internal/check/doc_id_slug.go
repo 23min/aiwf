@@ -41,9 +41,14 @@ import (
 // skipped. Both paths lead to silence, so no test can tell them apart — the
 // index lookup is what a reader should trust here.
 //
+// The leading `\b` is load-bearing, matching idTokenPattern's. Without it any
+// word ending in a kind letter donates its tail: `RFC-0001-some-thing` reads as
+// a citation of `C-0001`, and the finding then quotes a token that appears
+// nowhere in the file, leaving the operator nothing to search for.
+//
 // The slug run stops at any character a slug cannot contain, so a trailing
 // `.md`, a closing parenthesis, or sentence punctuation is not swallowed.
-var idSlugTokenPattern = regexp.MustCompile(`(?:E|M|G|D|C|ADR)-\d+-[a-z0-9]+(?:-[a-z0-9]+)*`)
+var idSlugTokenPattern = regexp.MustCompile(`\b(?:E|M|G|D|C|ADR)-\d+-[a-z0-9]+(?:-[a-z0-9]+)*`)
 
 // DocSlugIndex maps canonical entity id to the slug the entity's own path
 // carries. Built once per check run and handed to the scanner, mirroring
@@ -77,8 +82,7 @@ func slugFromEntityPath(relPath, id string) (string, bool) {
 // whose slug contradicts the slug its entity carries, deduped within content.
 //
 // Findings are warnings, escalated with the rest of the doc corpus by
-// ApplyDocIDWidthStrict — the two rules share a corpus and a remediation
-// posture, so splitting their severity would leave a repo half-blocked.
+// ApplyDocsStrict (see doc_id_width.go for why the default is advisory).
 func ScanDocIDSlug(content []byte, docPath string, idx map[string]string) []Finding {
 	masked := proseAndCodeMask(content)
 	var findings []Finding
@@ -90,7 +94,13 @@ func ScanDocIDSlug(content []byte, docPath string, idx map[string]string) []Find
 			//coverage:ignore unreachable: idSlugTokenPattern only matches tokens carrying both halves.
 			continue
 		}
-		want, known := idx[entity.Canonicalize(id)]
+		// The entity is named by its canonical id, not by the doc's spelling
+		// of it. Building the remediation from the doc's spelling produces a
+		// path that exists nowhere when the doc also wrote the id narrow —
+		// an operator who obeys it writes a second wrong path and stays
+		// blocked.
+		canonical := entity.Canonicalize(id)
+		want, known := idx[canonical]
 		if !known || want == slug || seen[tok] {
 			continue
 		}
@@ -99,7 +109,7 @@ func ScanDocIDSlug(content []byte, docPath string, idx map[string]string) []Find
 			Code:     CodeDocIDSlug,
 			Severity: SeverityWarning,
 			Message: fmt.Sprintf("doc writes %q, but %s is %q — cite the entity by its real slug, or use the canonical placeholder if the example is invented",
-				tok, id, id+"-"+want),
+				tok, canonical, canonical+"-"+want),
 			Path:  docPath,
 			Line:  1 + strings.Count(masked[:m[0]], "\n"),
 			Field: "body",

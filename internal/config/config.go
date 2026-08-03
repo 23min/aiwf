@@ -407,22 +407,52 @@ type Tree struct {
 // documentation — prose that lives outside the entity tree and so is reached
 // by no other id-shape rule.
 //
-// Paths names the documentation scanned, relative to the repo root;
-// DefaultDocsPath applies when none is declared. Strict raises the doc rules'
-// findings from warning to error, so the pre-push hook blocks them. Both
-// apply to every doc rule rather than one: the rules share a corpus, and a
-// repo that has swept its docs has swept them for all of them, so splitting
-// the knobs would only allow a half-guarded tree.
+// Paths names the documentation scanned, relative to the repo root, replacing
+// (not extending) DefaultDocsPath when declared. Strict raises every doc rule's
+// findings from warning to error, so the pre-push hook blocks them.
 //
-// Strict defaults off because the rules ship into repos whose docs predate
-// them: an entity tree migrated to canonical width leaves narrow ids
-// throughout its prose, which no verb rewrites and no acknowledgement
-// silences. Blocking those pushes on upgrade would penalize an operator for
-// a file they never touched, so the block is opted into once a repo has
-// swept its own docs.
+// internal/check/doc_id_width.go states why the default is advisory.
 type Docs struct {
 	Paths  []string `yaml:"paths,omitempty"`
 	Strict bool     `yaml:"strict,omitempty"`
+}
+
+var knownDocsKeys = map[string]bool{
+	"paths":  true,
+	"strict": true,
+}
+
+// unknownDocsKey returns the first unrecognized key in the docs mapping node,
+// or "" when every key is known. The block-level analogue of unknownAreasKey.
+func unknownDocsKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownDocsKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
+// UnmarshalYAML decodes the docs block, rejecting unknown keys.
+//
+// The guard matters more here than the shape suggests: yaml.v3's Decode is
+// non-strict, so `pathz:` would vanish silently while `strict: true` still
+// parsed — leaving an operator who believes they are guarding several
+// documents at blocking severity guarding only the default one. Same failure
+// mode, and same remedy, as the areas-block guard.
+func (d *Docs) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.MappingNode {
+		if bad := unknownDocsKey(value); bad != "" {
+			return fmt.Errorf("docs: unknown key %q (allowed: paths, strict)", bad)
+		}
+	}
+	type plain Docs // shed the method so Decode does not recurse
+	var raw plain
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	*d = Docs(raw)
+	return nil
 }
 
 // DefaultDocsPath is the one document scanned when a consumer declares no
