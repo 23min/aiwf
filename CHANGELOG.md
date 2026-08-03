@@ -16,6 +16,120 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-08-02
+
+### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'
+
+The `aiwfx-wrap-epic` ritual's backstop for a spec that left a gap open it
+claims to fix covered each milestone's spec but not the epic's own — which no
+other step reads, so that claim was verified nowhere. The precondition now
+covers both, and its disposition admits the partial case: a gap the work
+advanced without finishing stays open on its own terms, and the spec's claim is
+corrected to say what landed and what remains rather than the gap being closed
+to satisfy the check.
+
+### Changed — additions carry: a code-health force, and the change's shape at milestone review
+
+KISS and YAGNI both judge an addition against its own justification, so an
+addition that is individually reasonable passes both however much already
+exists. Nothing asked the other question. The always-on guidance gains **H3 —
+additions carry**: prefer an addition that costs once (a ban) to one that costs
+per subject (a mandate), and land a mandate with a named owner and what retires
+it, or it is a permanent tax. The full force joins the `wf-codebase-health`
+rubric's Economy section beside reuse-over-duplication and no-dead-weight, which
+catch what is duplicated and what is unused; H3 catches what is live, unique,
+individually justified, and collectively too much.
+
+The milestone wrap's checks were all floors — ACs terminal, check clean, suite
+green, lint clean — each asking whether something is missing, none asking
+whether something is unnecessary. Its independent-review step now briefs the
+reviewer to measure the change's shape before judging it, in the project's own
+terms and naming the command used: bucket the diffstat by role, count the rules
+the milestone added, and group the new tests by the outcome their names claim.
+Three answers are required alongside the verdict — whether a recurring obligation
+was added (not answerable as "none" when the rules count says otherwise), what
+the milestone considered retiring, and whether same-outcome tests fail for
+distinct reasons. The reviewer derives the numbers and decides the last
+question; the author does neither.
+
+No new ritual step and no new gate: the numbers ride the review that already
+runs, and the judgment stays with the human it already fed.
+
+### Changed — E-0075: verbs refuse to commit entity content they did not compute
+
+A mutating verb re-serialized the whole entity file around the field it
+computed, so an uncommitted hand-edit anywhere in that file — frontmatter or
+body — rode into the verb's commit wearing the verb's own provenance. A
+`promote` could land a hand-changed `priority:`; a directory-moving verb could
+land the on-disk bytes of nested entities nobody named.
+
+Verbs now refuse rather than launder. The refusal names the diverging paths and
+leaves the working copy untouched, so the edit survives and can be committed
+deliberately — with `aiwf edit-body` for body prose, or the matching structured
+verb for a field. Two seams enforce it: one covering every path a plan carries,
+and one for the same-state case that converges before a plan exists.
+
+`aiwf archive` and the other multi-entity sweeps decline **per candidate**
+rather than refusing outright: an entity whose placement depends on a mid-edit
+file is left in place and reported under `Skipped:`, while every unaffected
+entity sweeps. `aiwf archive --help` and the `aiwf-archive` skill describe what
+a skip means and how to clear it.
+
+`aiwf edit-body --body-file` is body-only again — frontmatter differences in the
+supplied file are refused rather than silently committed.
+
+### Changed — a cheap-fix test on the deferral mandate, and reference-phrasing for counts
+
+Two shipped guidance rules that manufactured artifacts are narrowed.
+
+The milestone rituals told you to open a gap entity for *every* deferral, with
+no size test, so work that was cheaper to finish than to file got filed anyway.
+`aiwfx-start-milestone`, `aiwfx-wrap-milestone`, the milestone-spec template and
+the always-on guidance fragment now apply a **cheap-fix test** first: a change
+that is small, lands in a file
+the milestone already touches, and is covered by a test you are already writing
+gets made now rather than filed. Mid-implementation it rides the AC's own
+commit; at wrap it lands as a corrective commit on the milestone branch and is
+recorded under `## Reviewer notes`, so the wrap commit still carries only spec
+prose. A gap is for work needing its own branch, its own review, or a decision
+you are not ready to make. Deferrals that survive the test still become gaps —
+the mandate is narrowed, not lifted — and a new *Ledger padding* anti-pattern
+names the failure it prevents.
+
+The always-on guidance fragment also gains the matching rule for prose:
+**reference-phrase counts** rather than hand-writing a scalar the tree can move. "Every
+criterion listed below is met" survives; "all 16 are met" is wrong the next time
+one lands. It applies to code comments and design docs as much as to entity
+bodies — keep the reasoning, drop the arithmetic — and it says where a number
+does belong: a dated observation when the measurement is the point, an assertion
+only when the number is an invariant the code must hold to. aiwf already shipped
+this rule for epic specs; it now reaches every surface an assistant writes.
+
+### Fixed — G-0503: the `//coverage:ignore` escape opens only on the directive itself
+
+Nothing user-facing changed; this is a repo-development gate. The coverage
+audit decided a block was exempt by testing whether any raw source line in its
+span contained the marker's characters, so anything wearing them suppressed a
+finding: a bare marker with no reason, a string literal, a longer word
+(`//coverage:ignoreable`), the marker inside a block comment, and prose merely
+naming the escape. An untested branch stayed untested and the gate reported
+clean.
+
+The escape is now read off parsed comments through the same
+`hasDirectiveComment` its two siblings use, so all three of `//coverage:ignore`,
+`//history:ok` and `//exec:ok` obey one contract: the marker opens a comment and
+carries a reason. Exemption scope is unchanged — the directive still exempts the
+coverage block whose span holds its line.
+
+An AST census over the tree separates the annotations that were doing work from
+the ones that only looked like it. Of 635 lines wearing the marker, 590 are
+well-formed directives and keep working; 45 stop matching. Forty-four of those
+are prose, doc comments, or test fixtures holding the marker in a string, and
+were suppressing nothing. The forty-fifth was a live bare marker on a real
+error return, which this change repairs by moving onto the directive the reason
+already written in the comment above it — so, measured whole-tree against a
+real profile, the gate's verdict changes in exactly that one place.
+
 ### Fixed — G-0481: `aiwf import` stores a manifest's explicit id at canonical width
 
 A manifest declaring a below-canonical-width id for a **new** entity had that
