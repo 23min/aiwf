@@ -175,6 +175,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// under the same key as a canonical-width hit (`G-0500`) for
 		// the same entity. Same canonicalization-equivalence shape as
 		// the AC-2 parser-tolerance tests above.
+		// M-0290/AC-3: the archived side of the tree keeps narrow ids
+		// permanently, because no verb widens an id in place. The
+		// fixtures below must therefore BE narrow — a canonical one
+		// would assert nothing about the archive exclusion or about
+		// live cross-references resolving into the archive.
+		"internal/check/archive_scoping_test.go": "M-0290/AC-3 permanent narrow archive: exclusion + live cross-reference resolution",
+
 		"internal/check/cross_branch_test.go": "M-0259/AC-2 crossBranchIndex canonicalization input space: narrow-legacy hit grouped with canonical-width hit",
 
 		// G-0277 status cross-worktree divergence: the sibling worktree's

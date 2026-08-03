@@ -687,3 +687,191 @@ func TestArchiveScoping_UnexpectedTreeFile(t *testing.T) {
 		t.Errorf("expected unexpected-tree-file on active stray (positive control); got: %+v", got)
 	}
 }
+
+// TestArchiveScoping_NarrowArchiveAlongsideCanonicalActiveIsClean is
+// M-0290/AC-3's aggregate assertion. The per-rule tests above each
+// pin one rule's archive scoping; this one pins the sum: a tree whose
+// archive holds narrow-width ids and whose active side is wholly
+// canonical is clean, with no finding of any code.
+//
+// The state is permanent rather than transitional. No verb widens an
+// id in place, so a repo that archived entities before adopting
+// canonical width keeps those narrow ids under `<kind>/archive/` for
+// good — and a rule that fired on them would be unsatisfiable.
+func TestArchiveScoping_NarrowArchiveAlongsideCanonicalActiveIsClean(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWrite(t, root, "work/epics/E-0001-current/epic.md", `---
+id: E-0001
+title: Current epic
+status: active
+---
+
+## Goal
+
+Prose.
+
+## Scope
+
+Prose.
+
+## Out of scope
+
+Prose.
+`)
+	mustWrite(t, root, "work/epics/E-0001-current/M-0001-current.md", `---
+id: M-0001
+title: Current milestone
+status: draft
+parent: E-0001
+tdd: none
+acs:
+  - id: AC-1
+    title: The current milestone ships something observable
+    status: open
+---
+
+## Goal
+
+Prose.
+
+## Acceptance criteria
+
+### AC-1 — The current milestone ships something observable
+
+Prose.
+`)
+	// Archive side, every kind that has one, all at narrow width.
+	mustWrite(t, root, "work/epics/archive/E-002-old/epic.md", `---
+id: E-002
+title: Old epic
+status: done
+---
+`)
+	mustWrite(t, root, "work/epics/archive/E-002-old/M-007-old.md", `---
+id: M-007
+title: Old milestone
+status: done
+parent: E-002
+---
+`)
+	mustWrite(t, root, "work/gaps/archive/G-093-old.md", `---
+id: G-093
+title: Old gap
+status: wontfix
+---
+`)
+	mustWrite(t, root, "work/decisions/archive/D-005-old.md", `---
+id: D-005
+title: Old decision
+status: superseded
+---
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	for _, f := range Run(tr, loadErrs) {
+		t.Errorf("narrow-archive/canonical-active tree is not clean: %s %s on %s — %s",
+			f.Severity, f.Code, f.Path, f.Message)
+	}
+}
+
+// TestArchiveScoping_ActiveReferenceIntoNarrowArchivedEntityResolves
+// is M-0290/AC-3's other half, and the reason narrow read tolerance
+// outlives the migration that introduced it.
+//
+// Retiring the width-migration verb means nothing can ever widen the
+// narrow ids sitting under `<kind>/archive/`. An active entity may
+// still legitimately point at one — a milestone depending on an
+// archived milestone, a gap discovered in an archived epic. If the
+// canonicalizing resolver stopped accepting narrow ids, those live
+// references would break with no remedy available, so this pins that
+// they resolve: through the loader's own index, and through the
+// reference check that reads it.
+func TestArchiveScoping_ActiveReferenceIntoNarrowArchivedEntityResolves(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWrite(t, root, "work/epics/archive/E-002-old/epic.md", `---
+id: E-002
+title: Old epic
+status: done
+---
+`)
+	mustWrite(t, root, "work/epics/archive/E-002-old/M-007-old.md", `---
+id: M-007
+title: Old milestone
+status: done
+parent: E-002
+---
+`)
+	// Active, canonical, and pointing into the narrow archive: the
+	// milestone depends on the archived one, the gap was discovered
+	// in the archived epic.
+	mustWrite(t, root, "work/epics/E-0001-current/epic.md", `---
+id: E-0001
+title: Current epic
+status: active
+---
+
+## Goal
+
+Prose.
+
+## Scope
+
+Prose.
+
+## Out of scope
+
+Prose.
+`)
+	mustWrite(t, root, "work/epics/E-0001-current/M-0001-current.md", `---
+id: M-0001
+title: Current milestone
+status: draft
+parent: E-0001
+tdd: none
+depends_on:
+  - M-007
+---
+
+## Goal
+
+Prose.
+`)
+	mustWrite(t, root, "work/gaps/G-0050-current.md", `---
+id: G-0050
+title: Current gap
+status: open
+discovered_in: E-002
+---
+
+## What's missing
+
+Prose.
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	// The loader's index resolves a narrow archived id under both the
+	// spelling on disk and its canonical form — the two name one entity.
+	for _, id := range []string{"M-007", "M-0007", "E-002", "E-0002"} {
+		if tr.ByID(id) == nil {
+			t.Errorf("loader does not resolve archived narrow id %q; a live cross-reference to it would dangle with no verb able to widen it", id)
+		}
+	}
+
+	// And the reference check, which reads that index, reports nothing.
+	for _, f := range Run(tr, loadErrs) {
+		if f.Code == CodeRefsResolve {
+			t.Errorf("refs-resolve fired on a live reference into the narrow archive: %s on %s — %s", f.Code, f.Path, f.Message)
+		}
+	}
+}

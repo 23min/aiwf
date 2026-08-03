@@ -103,7 +103,7 @@ func TestM083_AC2_ADR0003IDStorageSection(t *testing.T) {
 // CLAUDE.md "What aiwf commits to" §2 reads as a single uniform rule
 // (every kernel id is 4 digits) rather than the previous per-kind
 // list of widths. The amended commitment mentions parser tolerance
-// for legacy narrow widths and `aiwf rewidth` for migration; the
+// for legacy narrow widths, names no migration verb, and the
 // per-kind enumeration `E-NN, M-NNN, ADR-NNNN, G-NNN, D-NNN, C-NNN`
 // is gone.
 //
@@ -163,9 +163,11 @@ func TestM083_AC2_CLAUDEMdCommitment2(t *testing.T) {
 		t.Error("AC-2(b): commitment §2 must mention that parsers tolerate narrower legacy widths on input")
 	}
 
-	// `aiwf rewidth` migration mention: the verb name must appear so
-	// readers can find the migration path from the principle alone.
-	if !regexp.MustCompile(`\baiwf rewidth\b`).MatchString(commitment) {
-		t.Error("AC-2(b): commitment §2 must reference `aiwf rewidth` as the migration verb for legacy trees")
+	// No migration verb is named. Canonical width is the only legal
+	// width for an active entity, so there is no migration to point a
+	// reader at — the commitment states the rule and the tolerance,
+	// and M-0290/AC-4 asserts the retired verb appears nowhere here.
+	if regexp.MustCompile(`\baiwf rewidth\b`).MatchString(commitment) {
+		t.Error("AC-2(b): commitment §2 names a retired migration verb; state the canonical-width rule without it")
 	}
 }
