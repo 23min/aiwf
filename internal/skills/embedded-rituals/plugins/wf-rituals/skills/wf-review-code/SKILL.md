@@ -94,7 +94,7 @@ Classify each finding on **two** axes. They answer different questions, and both
 - **Track for later** — worth recording somewhere durable (the project's gap log, an issue, a ticket), not this change's scope. Note rough sizing if useful.
 - **Non-issue** — acknowledged, no action.
 
-**A blocking defect is fixed *and pinned*.** The corrective change carries a check that fails without it — a test, a lint rule, a gate entry (`wf-codebase-health` D5). A defect that can't be pinned, or that you judge not worth pinning, becomes a recorded decision or a tracked issue instead; the bar is that you say so and write down why, not that every defect earns a test. A judgment finding you **accept** becomes a written rule or a recorded decision. One you **decline** is a non-issue — say so in the report, which is itself the record. What none of them may be is silently dropped: pinning is what makes the next round smaller than this one, and recording is what stops the same argument returning to a reviewer who is fresh by design.
+**A blocking defect is fixed *and pinned*.** The corrective change carries a check that fails without it — a test, a lint rule, a gate entry (`wf-codebase-health` D5). A defect that can't be pinned, or that you judge not worth pinning, becomes a recorded decision or a tracked issue instead; the bar is that you say so and write down why, not that every defect earns a test. **A defect already fixed and pinned needs no further record** — the check and the commit that carries it hold the fact, and a tracked issue filed for finished work records an event rather than an obligation, duplicating what already has an owner. A judgment finding you **accept** becomes a written rule or a recorded decision. One you **decline** is a non-issue — say so in the report, which is itself the record. What none of them may be is silently dropped: pinning is what makes the next round smaller than this one, and recording is what stops the same argument returning to a reviewer who is fresh by design.
 
 Then give an overall:
 
@@ -144,6 +144,6 @@ Then give an overall:
 ## Constraints
 
 - 🛑 Findings include `file:line` references. A finding without a location is unactionable.
-- 🛑 Every finding carries its kind — defect or judgment. The kind decides the disposition: a defect is pinned, or the decision not to pin it is recorded; an accepted judgment becomes a written rule or a decision, and a declined one is recorded as a non-issue in the report. A finding that leaves as none of these is the leak this classification exists to close.
+- 🛑 Every finding carries its kind — defect or judgment. The kind decides the disposition: a defect is pinned — and one whose fix lands with that check needs no further record, since the check is the record — or the decision not to pin it is recorded; an accepted judgment becomes a written rule or a decision, and a declined one is recorded as a non-issue in the report. A finding that leaves as none of these is the leak this classification exists to close.
 - Branch-coverage hard rule applies even at review time. If the diff is missing branch-coverage discipline, that's blocking.
 - The reviewer never edits the diff. The skill emits the report; the author makes the changes.

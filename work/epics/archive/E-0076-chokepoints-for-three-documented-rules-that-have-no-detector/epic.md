@@ -1,7 +1,7 @@
 ---
 id: E-0076
 title: Chokepoints for three documented rules that have no detector
-status: proposed
+status: cancelled
 ---
 ## Goal
 

@@ -69,6 +69,94 @@ rewritten text.
 
 The check stays inert in a consumer repo, whose tree carries no aiwf source.
 
+### Changed — a defect already fixed and pinned needs no further record
+
+The review classification routed unpinned defects to a tracked record and said
+that no finding may be silently dropped, without ever saying that a defect
+*already* fixed and pinned by the check landing with it is finished. That
+silence read as an obligation, so review thoroughness converted into entities to
+read later. The dispositions now name the exit explicitly: where the check
+exists it is the better record — it fails when the fact stops being true, which
+prose about the same defect does not — and a gap opened for finished work is
+named as recording an event rather than an obligation.
+
+The guidance rule that stopped hand-written counts now covers facts generally:
+before writing a fact into prose, ask whether a check, a field, or a git trailer
+already holds it. Counts remain the worked example. What no check or field can
+carry — a judgment, a rejected alternative, why the obvious approach fails — is
+unchanged and stays worth its words.
+
+One clause was dropped rather than reworded: the rule that a number belongs in
+an assertion only where it is an invariant the code must hold to. It governed
+numeric literals in test assertions, a narrower surface than the prose rule that
+now surrounds it, and the always-on fragment is the one surface paid for on
+every turn. Removed deliberately, and recorded here because a rule that leaves
+without being named is the failure this same entry ships a guard against.
+
+### Changed — a decision is offered as prose by default, and a card only where a card helps
+
+The one-decision-at-a-time rule described how to *fill* an interactive
+decision card — never batch several into one, never let its terseness drop the
+pros and cons or the argued lean, keep its question to one short line — without
+saying when to open one at all. The choice between a card and prose was
+therefore made by taste, per turn.
+
+The rule now names the default and its two exceptions: write prose, and reach
+for a card only for a trivial either/or or a side-by-side of concrete options.
+Those are the shapes a card renders better than prose; everywhere else it
+costs the reasoning a human decides on.
+
+### Changed — decisions are offered in plain language, not in the vocabulary that produced them
+
+The one-decision-at-a-time rule specified a decision's *structure* — context,
+pros and cons, risks, an argued lean, a numbered pick-list — and said nothing
+about the language it is written in. Options therefore arrived carrying the
+vocabulary of whatever analysis produced them, so the reader had to translate
+the framing before they could answer.
+
+The rule now also governs register: write it in the plainest language that
+carries the trade, name the thing rather than its category, say what breaks
+rather than the class of failure, and keep a specialist term only where it is
+the subject of the decision. A card's question stays one short line, with the
+detail in its options — a question field carrying the whole decision renders as
+an unreadable block.
+
+The per-turn guidance budget rises to fit the rule rather than the rule being
+compressed to fit the budget.
+
+### Changed — the whiteboard reconciles an ordering you already keep, instead of replacing it
+
+The whiteboard ritual re-derived its recommended sequence from the tree on every
+run, so an ordering you had considered and agreed to was replaced by one that
+merely resembled it. Re-deriving from scratch is confidently wrong exactly where
+prior judgement lives.
+
+When you keep an ordering of your own — commonly a `TODO.md` — the recommended
+sequence now renders as a **delta against it**: entries whose entities went
+terminal are dropped, entities new since it was written get a proposed
+placement, and a move is proposed only where something changed that justifies
+it. A cluster's thesis is the stable part and stays put unless you move it;
+splitting, merging or inventing one is raised on its own. A from-scratch pass is
+correct only when no ordering exists.
+
+The delta is a proposed edit, not a second decision gate — the one-at-a-time
+rule still governs pending decisions, and nothing is written that you have not
+accepted. aiwf manages no such file: no verb writes it, no check validates it,
+and it is not an entity kind.
+
+### Fixed — G-0520: the `aiwf-show` skill said `referenced_by` indexes body-prose cross-references
+
+It doesn't index prose. The reverse-reference index is built only from a kind's
+typed frontmatter reference fields, so an id mentioned only in prose creates no edge —
+prose ids are resolved by the `body-prose-id` check rules, which is a different
+mechanism. The skill now names those fields as the index's only input (pointing at
+`aiwf schema` for the per-kind set rather than restating it) and states the
+consequence the old text left out: because the reverse direction is derived at tree
+load, it is read from `aiwf show`, never hand-authored. An agent reading the old
+text could reasonably conclude that a relation's back-reference had to be written
+into the target's body as prose, which duplicates a fact the kernel already
+computes.
+
 ## [0.31.0] — 2026-08-02
 
 ### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'

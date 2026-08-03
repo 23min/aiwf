@@ -83,3 +83,66 @@ func TestG0343_OneDecisionGuidanceCarriesFullContent(t *testing.T) {
 		t.Error("the clause must forbid batching several decisions into one card")
 	}
 }
+
+// TestOneDecisionGuidanceRequiresPlainLanguage pins the register requirement
+// on the shipped one-decision rule. The rule specified the decision's
+// *structure* — context, pros/cons, risks, an argued lean, a pick-list — and
+// said nothing about the language it is written in, so options could arrive
+// carrying the vocabulary of whatever analysis produced them. A decision the
+// human has to translate before answering is not one they can make.
+//
+// Scoped to the one-decision bullet per CLAUDE.md *Substring assertions are
+// not structural assertions*, and matched on distinctive terms rather than
+// whole clauses so a reword that preserves the rule does not turn this red.
+func TestOneDecisionGuidanceRequiresPlainLanguage(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), g0343GuidanceFixturePath))
+	if err != nil {
+		t.Fatalf("reading %s: %v", g0343GuidanceFixturePath, err)
+	}
+	bullet := oneDecisionBullet(t, string(data))
+	lower := strings.ToLower(bullet)
+
+	if !strings.Contains(lower, "plainest language") {
+		t.Error("the one-decision bullet must require the plainest language that still carries the trade")
+	}
+	// The carve-out is what keeps the rule usable: a specialist term is
+	// allowed exactly where the decision is about that term.
+	if !strings.Contains(lower, "subject of the decision") {
+		t.Error("the register clause must permit a specialist term where it is the subject of the decision")
+	}
+	// The container half: a card's question is the field that renders as an
+	// unreadable block when it carries the whole decision.
+	if !strings.Contains(lower, "one short line") {
+		t.Error("the register clause must hold a card's question to one short line, with detail in its options")
+	}
+}
+
+// TestOneDecisionGuidanceChoosesTheContainer pins the container-choice half of
+// the one-decision rule. The rule described how to fill an interactive card —
+// never batch several decisions into one, never let its terseness drop the
+// argument, keep its question short — without saying when to open one at all,
+// so the choice between a card and prose was made by taste per turn.
+//
+// Scoped to the one-decision bullet per CLAUDE.md *Substring assertions are
+// not structural assertions*, on distinctive terms rather than whole clauses.
+func TestOneDecisionGuidanceChoosesTheContainer(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), g0343GuidanceFixturePath))
+	if err != nil {
+		t.Fatalf("reading %s: %v", g0343GuidanceFixturePath, err)
+	}
+	bullet := oneDecisionBullet(t, string(data))
+	lower := strings.ToLower(bullet)
+
+	if !strings.Contains(lower, "prose by default") {
+		t.Error("the one-decision bullet must make prose the default container for a decision")
+	}
+	// The carve-out: the two shapes a card genuinely serves better than prose.
+	if !strings.Contains(lower, "side-by-side") {
+		t.Error("the container clause must name the side-by-side comparison as a case a card serves")
+	}
+	if !strings.Contains(lower, "either/or") {
+		t.Error("the container clause must name the trivial either/or as a case a card serves")
+	}
+}

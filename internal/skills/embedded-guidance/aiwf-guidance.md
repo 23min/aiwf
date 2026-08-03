@@ -45,8 +45,14 @@ lives in the `wf-codebase-health` skill.
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered
-  pick-list. The reasoning is the deliverable; the container serves it — a
-  card's terseness must not drop the pros/cons, the lean, or the argument.
+  pick-list. The reasoning is the deliverable; the container serves it — write
+  prose by default, and reach for a card only for a trivial either/or or a
+  side-by-side of concrete options. A card's terseness must not drop the
+  pros/cons, the lean, or the argument.
+  Write it all in the plainest language that carries the trade: name the thing,
+  not its category; say what breaks, not the class of failure; keep a
+  specialist term only where it is the subject of the decision. A card's
+  question stays one short line, with the detail in its options.
 - **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
   this work already touches, covered by a test you're already writing? Make it now.
   File a gap only when it needs its own branch, its own review, or a real decision.
@@ -67,11 +73,14 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
-- **Reference-phrase counts; never hand-write a scalar the tree can move.**
-  "Every criterion listed below is met" survives; "all 16 are met" doesn't.
-  Comments and docs too: keep the reasoning, drop the arithmetic. A measurement
-  that *is* the point is a dated observation; a number belongs in an assertion
-  only where it is an invariant the code must hold to.
+- **Keep the reasoning; derive the facts.** Before writing a fact into prose,
+  ask whether a check, a field, or a git trailer already holds it — if one
+  does, the prose is a second copy, and the copy nothing re-derives.
+  Reference-phrase counts, the common case: "every criterion listed below is
+  met" survives, "all 16 are met" doesn't; in comments and docs too, keep the
+  reasoning and drop the arithmetic. A measurement that *is* the point is a
+  dated observation. What no check can carry — a judgment, a rejected
+  alternative, why the obvious approach fails — is worth its words.
 - **Never write a fake id-shaped token in committed prose** — in an **entity
   file**, cite the real id; a placeholder, letter suffix, or number for a
   nonexistent entity fails `body-prose-id`, and backticks mean "discussing the

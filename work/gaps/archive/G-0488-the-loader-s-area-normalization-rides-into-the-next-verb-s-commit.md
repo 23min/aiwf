@@ -1,7 +1,7 @@
 ---
 id: G-0488
 title: The loader's area normalization rides into the next verb's commit
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0282
 ---

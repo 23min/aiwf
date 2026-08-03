@@ -39,9 +39,11 @@ Text default carries these blocks, in order:
 3. **ACs** (milestones only): one line per AC — `AC-N [status] · phase: <tdd_phase> · "<title>"`. Cancelled ACs stay position-stable; their slot remains.
 4. **Recent history (N)**: one event per line in reverse chronological order. Default cap = 10; `--history=N` overrides; `--history=-1` removes the cap. Each line: `<date> <verb> <→ to> <detail>`.
 5. **Findings**: active findings against this entity (or `(none)`).
-6. **Referenced by**: every other entity citing this one (typically `parent:` links from milestones to their epic; `depends_on:` links; cross-references in body prose).
+6. **Referenced by**: every other entity in the loaded tree whose **frontmatter** names this one, via that kind's typed reference fields — `aiwf schema [kind]` prints them. A referrer naming an AC (`M-NNNN/AC-N`) is listed under both that AC and its parent milestone.
 
-JSON envelope (`--format=json --pretty`) carries the same data plus a `body` map: section-heading slug → prose. Body slugs vary by kind:
+Those frontmatter fields are the reverse index's only input. An id that appears only in body prose creates no edge here — the `body-prose-id/*` check rules do resolve prose ids, but resolving is not indexing. And because the reverse direction is *derived* at tree load, it is read rather than authored: writing `relates_to` on one decision is already what makes the referenced entity list that decision under "Referenced by". A prose "see also" back-reference on the target adds no edge and forks a fact the kernel computes.
+
+JSON envelope (`--format=json --pretty`) carries the same blocks plus a `body` map: section-heading slug → prose. Body slugs vary by kind:
 
 | Kind | Body keys |
 |---|---|

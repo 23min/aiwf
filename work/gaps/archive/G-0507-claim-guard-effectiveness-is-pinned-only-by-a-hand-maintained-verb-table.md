@@ -1,7 +1,7 @@
 ---
 id: G-0507
 title: Claim-guard effectiveness is pinned only by a hand-maintained verb table
-status: open
+status: wontfix
 discovered_in: M-0285
 ---
 ## What's missing
