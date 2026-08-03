@@ -113,6 +113,62 @@ The one duplication detector the repo already owns, `dupl`, is **switched off
 across the test corpus** by three exclusions in `.golangci.yml` (G-0473 tracks
 that catalogue being unowned). That is the single largest disabled lever.
 
+### The shipped surfaces
+
+The split above covers `internal/policies/` only — the apparatus this repo runs
+on itself. The rules that *ship* were classified separately, by the same by-hand
+method — **classified 2026-08-03**, and so carrying its own date for the same
+reason. Two of the four shapes differ, which is itself a finding and is taken up
+below: `attrition` replaces `uniqueness` (the kernel rules that shrink a
+population do it by removing or archiving an entry, not only by collapsing to
+one site), and `neutral` replaces `exactness` (a shape absent here, displaced by
+a class the internal corpus does not produce).
+
+The finding-code population is the distinct values of the `Code*` constants
+declared in `internal/check/*.go`, which is narrower than the set `aiwf check`
+surfaces (subcodes are folded into their parent, and codes emitted from other
+layers are out of scope):
+
+```bash
+grep -rhoP '\bCode[A-Za-z0-9]+\s*=\s*"\K[^"]+' internal/check/*.go | sort -u | wc -l
+```
+
+| surface | mandate | ban | attrition | neutral |
+|---|---|---|---|---|
+| `internal/check` finding codes (57 per the command above) | 16 (28%) | 27 (47%) | 6 (11%) | 8 (14%) |
+| always-on guidance fragment (top-level rules) | 2 | 8 | 0 | 1 |
+
+**The shipped kernel does not carry the internal corpus's mandate bias** — 28%
+against the 53% above, with a ban majority its finding codes and the always-on
+fragment both share. Five of the sixteen kernel mandates are gated by three
+`aiwf.yaml` knobs (the `areas` block, `areas.required`, `coverage_roots`) and are
+inert until a consumer opts in. Six codes force removal or collapse outright,
+and they shrink an *artifact* population — where the policy corpus' one true
+attrition mechanism regulates an exemption list, as noted above.
+
+Two findings the internal classification could not have surfaced:
+
+- **`entity-body-empty` is the highest-cost mandate in the shipped surface.** It
+  hardcodes required prose sections per kind, always on, no knob. It is what
+  sets the per-unit price of every entity in every consumer repo, and it pairs
+  with the ritual-side filing mandate: one decides *that* an entity is opened,
+  this decides what it costs once opened. Narrowing the first leaves the second
+  intact.
+- **The ritual corpus is where the mandates concentrate.** Every review finding
+  produces an artifact on every disposition — pinned defect, unpinned defect,
+  uncovered requirement, accepted judgment, declined judgment — and the review's
+  three attrition questions are the only counterweight anywhere in the ritual
+  surface. That asymmetry is the subject of D-0054, whose "record obligations,
+  not events" rule names the exit that needs no *further* record: a defect
+  already fixed and pinned by the check landing with it, where the check the
+  disposition already required is the record.
+
+The shape misfit noted above is itself informative. Cost-per-subject and
+grows-the-population are two axes that coincide in the policy corpus — a policy
+needs a test file — and come apart here: `acs-tdd-audit` costs four promotes per
+acceptance criterion and adds nothing to the tree. The eight "neutral" codes are
+that class, and it is the class `exactness` had no room for.
+
 ## What is *not* the mechanism
 
 Measured across all 289 milestones and 491 gaps, per-unit prose length shows **no
@@ -173,3 +229,4 @@ a chokepoint would be the same mistake one level up.
 | date | what changed | headline metric after |
 |---|---|---|
 | 2026-08-02 | baseline recorded; no lever shipped | test:prod 2.26, policy share 57.3%, same-day gap share 49% |
+| 2026-08-03 | shipped surfaces classified; first lever shipped — the review disposition that needs no further record when a defect is already fixed and pinned (D-0054) | kernel finding codes 28% mandate, against the policy corpus' 53% |

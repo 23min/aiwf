@@ -73,11 +73,14 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
-- **Reference-phrase counts; never hand-write a scalar the tree can move.**
-  "Every criterion listed below is met" survives; "all 16 are met" doesn't.
-  Comments and docs too: keep the reasoning, drop the arithmetic. A measurement
-  that *is* the point is a dated observation; a number belongs in an assertion
-  only where it is an invariant the code must hold to.
+- **Keep the reasoning; derive the facts.** Before writing a fact into prose,
+  ask whether a check, a field, or a git trailer already holds it — if one
+  does, the prose is a second copy, and the copy nothing re-derives.
+  Reference-phrase counts, the common case: "every criterion listed below is
+  met" survives, "all 16 are met" doesn't; in comments and docs too, keep the
+  reasoning and drop the arithmetic. A measurement that *is* the point is a
+  dated observation. What no check can carry — a judgment, a rejected
+  alternative, why the obvious approach fails — is worth its words.
 - **Never write a fake id-shaped token in committed prose** (`M-alpha`, a number
   for an entity that doesn't exist); wrap an id-shape in backticks when discussing
   syntax. `aiwf check`'s `body-prose-id` rule enforces this.
