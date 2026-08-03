@@ -205,6 +205,38 @@ drift back out.
 - G-0481 — the tier split and the reason the residue is deferred rather than
   swept.
 
+## Deferrals
+
+- **G-0517** — the three doc paths this milestone declined, and why their fix
+  is widening rather than placeholdering. AC-3's deliverable.
+- **G-0518** — an entity body citing a real entity at a legacy width passes
+  `body-prose-id`, because it canonicalizes before resolving. Discovered while
+  building the doc rule; the same defect class in the surface that matters
+  most, and not covered by anything this milestone shipped.
+- **G-0519** — documentation is not reference-checked, so an id that names
+  nothing goes unnoticed. AC-4 closed the exact half of this (a written slug
+  that contradicts its entity); the rest carries the cross-branch and
+  archived-id questions and wants its own design.
+
+## Reviewer notes
+
+- **The sweep loses distinctions the ids used to carry.** The workflows guide's
+  extended example distinguished two epics and three milestones by id alone;
+  all now read `E-NNNN` / `M-NNNN`. G-0481 decided this trade for exactly this
+  content — the titles carry the distinctions — and it was executed rather than
+  re-litigated. It is the sweep's real cost and the thing most worth a second
+  opinion.
+- **Four id-shape rules now exist across three polarities**, and entity
+  templates are read by two of them with opposite stances. AC-5 states the
+  mapping for the corpora a consumer can hit; the rationale for why they differ
+  has no single home yet.
+- **`aiwf.yaml` config renamed before release.** `docs.id_width.{paths,strict}`
+  became `docs.{paths,strict}` once the knobs governed two rules. Free on an
+  unpushed branch, a breaking change after.
+- **The always-on guidance is at its 90-line ceiling.** Space for AC-5's
+  scoping came from moving rationale into the check skill. The next always-on
+  rule displaces something.
+
 ## Work log
 
 ### AC-1 — the width rule
@@ -219,3 +251,32 @@ by default with `docs.id_width.strict` escalating it at the same seam
 fictional uses of a real ADR's id, a self-contradicting sample finding, and
 the quickstart transcript's alignment; `strict` enabled once clean · commit
 ece70f010 · tests 2/2
+
+### AC-3 — the residue gap
+
+G-0517 files the three deferred doc paths and the widen-rather-than-
+placeholder reason, pinned by a loader-resolved structural assertion · commit
+7350f91f3 · tests 1/1
+
+The phase ladder here does not carry its usual meaning. The gap was filed
+before the test that pins it, so no failing test preceded the deliverable and
+the `red` stamp records an ordering that did not happen; `aiwf history
+M-0289/AC-3` shows it landing after G-0517's own add commit. Recorded rather
+than repaired, on the judgment that a cancelled entity in the permanent tree
+is a worse artifact than a phase stamp whose timeline is self-evident. The
+assertion itself is sound — it fails when either a deferred path or the reason
+is removed.
+
+### AC-4 — the slug rule
+
+`doc-id-slug` compares a written slug against the one its entity carries;
+exact, with no heuristic. Shares the doc corpus and `docs.strict` with the
+width rule, which is why `docs.id_width.*` became `docs.*` · commit f34e26337
+· tests 8/8
+
+### AC-5 — scoping the shipped instruction
+
+The always-on guidance stated the entity-body rule over all committed prose,
+which contradicted the doc rule this milestone shipped; scoped, with a
+corpus-to-rule table added to the check skill and an entry in the curated
+guidance-anchor set · commit ac72292e4 · tests 2/2
