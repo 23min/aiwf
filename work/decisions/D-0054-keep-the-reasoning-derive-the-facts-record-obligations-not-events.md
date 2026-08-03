@@ -1,7 +1,7 @@
 ---
 id: D-0054
 title: Keep the reasoning, derive the facts; record obligations, not events
-status: proposed
+status: accepted
 relates_to:
     - G-0526
     - D-0053
