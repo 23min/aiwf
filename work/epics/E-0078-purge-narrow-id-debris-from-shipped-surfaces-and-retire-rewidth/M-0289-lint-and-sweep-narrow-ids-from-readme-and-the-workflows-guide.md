@@ -23,7 +23,7 @@ acs:
       tdd_phase: done
     - id: AC-5
       title: Shipped guidance and skill docs state which id rule applies where
-      status: open
+      status: met
       tdd_phase: done
 ---
 
