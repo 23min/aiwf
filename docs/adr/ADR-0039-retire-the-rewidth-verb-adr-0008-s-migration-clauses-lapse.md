@@ -1,7 +1,7 @@
 ---
 id: ADR-0039
 title: Retire the rewidth verb; ADR-0008's migration clauses lapse
-status: proposed
+status: accepted
 ---
 ## Context
 
