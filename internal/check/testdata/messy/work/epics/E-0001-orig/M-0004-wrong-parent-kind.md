@@ -1,8 +1,8 @@
 ---
-id: M-004
+id: M-0004
 title: Parent points to a decision, not an epic
 status: draft
-parent: D-001
+parent: D-0001
 tdd: none
 ---
 

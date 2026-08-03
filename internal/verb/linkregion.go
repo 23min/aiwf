@@ -4,9 +4,8 @@ import "strings"
 
 // walkBodyLines splits body into lines, leaves fenced code blocks
 // (```...```) untouched, and passes every non-fenced line through
-// rewriteLine. Shared by rewidth's width-rewrite and the move-based
-// link-destination rewrite (M-0245) — fence detection is identical
-// for both.
+// rewriteLine. Fence detection for the move-based link-destination
+// rewrite (M-0245).
 func walkBodyLines(body []byte, rewriteLine func(line string) string) []byte {
 	src := string(body)
 	var out strings.Builder
@@ -41,8 +40,8 @@ func walkBodyLines(body []byte, rewriteLine func(line string) string) []byte {
 
 // maskCodeSpans walks line honoring inline-code-span (`text`)
 // boundaries: content between backticks passes through verbatim,
-// content outside is handed to rewriteChunk. Shared by rewidth's
-// width-rewrite and the move-based link-destination rewrite.
+// content outside is handed to rewriteChunk. Serves the move-based
+// link-destination rewrite.
 //
 // An unterminated span on a line (an unmatched opening backtick) is
 // treated as in-span (verbatim) per markdown convention: an unmatched

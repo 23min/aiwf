@@ -1,5 +1,5 @@
 ---
-id: E-01
+id: E-0001
 title: Set the foundations
 status: active
 ---

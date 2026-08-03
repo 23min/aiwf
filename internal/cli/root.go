@@ -41,7 +41,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/renamearea"
 	"github.com/23min/aiwf/internal/cli/render"
 	"github.com/23min/aiwf/internal/cli/retitle"
-	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/schema"
 	"github.com/23min/aiwf/internal/cli/setarea"
 	"github.com/23min/aiwf/internal/cli/setpriority"
@@ -182,7 +181,6 @@ func NewRootCmd(correlationID string) *cobra.Command {
 	cmd.AddCommand(editbody.NewCmd(correlationID))
 	cmd.AddCommand(move.NewCmd(correlationID))
 	cmd.AddCommand(reallocate.NewCmd(correlationID))
-	cmd.AddCommand(rewidth.NewCmd(correlationID))
 	cmd.AddCommand(archive.NewCmd(correlationID))
 	cmd.AddCommand(initcmd.NewCmd())
 	cmd.AddCommand(update.NewCmd())
@@ -256,7 +254,6 @@ Verbs:
   milestone depends-on <M-id> --on <id,id,...> | --clear   declare or clear a milestone's depends_on edges after creation; --on is replace-not-append
   milestone tdd <M-id> --policy <none|advisory|required>   set a milestone's TDD policy after creation; either direction, no --force (optional --reason "...")
   reallocate <id-or-path>        renumber the entity; rewrite refs in others
-  rewidth [--apply]              canonicalize legacy narrow-width ids to canonical width, tree-wide; dry-run by default, --apply commits (one idempotent commit)
   set-area <id> <member>         tag one entity to a declared area (aiwf.yaml areas.members); --clear removes the tag
   set-priority <id> <level>      set a gap or decision's priority (urgent|high|medium|low); --clear removes it
   rename-area <old> <new>        rename a declared area (aiwf.yaml areas.members) and rewrite every entity tagged with it, in one commit

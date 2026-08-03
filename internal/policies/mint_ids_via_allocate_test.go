@@ -11,8 +11,7 @@ import (
 // call under internal/verb/ fires; a plain entity.AllocateID call, an
 // unrelated zero-pad Sprintf outside internal/verb/, a non-zero-pad
 // Sprintf (e.g. AC-sub-id minting, `%d` not `%0*d`), and an
-// unparsable file do not fire; an allowlisted file (rewidth.go's
-// legitimate re-display of an already-existing id) is exempt.
+// unparsable file do not fire.
 func TestPolicyMintIDsViaAllocate_Synthetic(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -116,20 +115,6 @@ import "fmt"
 
 func badID(n int) error {
 	return fmt.Errorf("id %s%0*d is invalid", "E-", 4, n)
-}
-`,
-			wantFire: false,
-		},
-		{
-			name:    "allowlisted rewidth.go is exempt",
-			relPath: "internal/verb/rewidth.go",
-			body: `package verb
-
-import "fmt"
-
-func padToCanonical(prefix, digits string) string {
-	n := 0
-	return fmt.Sprintf("%s-%0*d", prefix, 4, n)
 }
 `,
 			wantFire: false,

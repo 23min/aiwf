@@ -155,10 +155,9 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	// G-0268: defense-in-depth backstop for the hard --tdd creation
 	// requirement — fires on non-archived milestones lacking tdd:.
 	findings = append(findings, milestoneTDDUndeclared(t)...)
-	// M-083 AC-1: drift-check rule for narrow-width ids in a mixed-
-	// state active tree. Per ADR-0008 §"Drift control", uniform trees
-	// (either all-narrow or all-canonical) are silent; only the mixed
-	// state fires.
+	// Any narrow-width id in an active entity's filename, at error
+	// severity, whatever its neighbours look like (ADR-0039). Archive
+	// entries never fire, permanently — no verb widens an id in place.
 	findings = append(findings, entityIDNarrowWidth(t)...)
 	// M-0086: archive-aware findings per ADR-0004 §"Check shape rules".
 	// archivedEntityNotTerminal fires (blocking) on hand-edit drift.
@@ -444,12 +443,12 @@ func roadmapCaseCollision(t *tree.Tree) []Finding {
 func frontmatterShape(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		// frontmatter-shape is a shape-and-health rule; archived
-		// entities are out of scope for active linting (forget-by-
-		// default). The M-0084 rewidth-archive seam discovery
-		// (narrow-width archive id) was the proximate trigger for
-		// landing this scoping.
+		// Archive scoping per ADR-0004 §"Check shape rules":
+		// frontmatter-shape is a shape-and-health rule, and archived
+		// entities are out of scope for active linting
+		// (forget-by-default). An archived entity may legitimately
+		// carry shapes the active tree rejects — a narrow-width id
+		// among them, permanently, since no verb widens one in place.
 		if entity.IsArchivedPath(e.Path) {
 			continue
 		}
@@ -524,9 +523,10 @@ func idPathConsistent(t *tree.Tree) []Finding {
 		// Compare canonical forms so a tree mid-migration (path-name
 		// at narrow legacy width while frontmatter id lives at
 		// canonical width, or vice versa) is not flagged as a
-		// mismatch — per AC-2 in M-081 the parser tolerates both
-		// widths. M-082's `aiwf rewidth` realigns paths and ids
-		// once the consumer migrates.
+		// mismatch — the parser tolerates both widths, permanently.
+		// Nothing realigns the two sides: no verb widens an id in
+		// place, so a narrow filename is reported by
+		// entity-id-narrow-width rather than as a mismatch here.
 		if entity.Canonicalize(pathID) == entity.Canonicalize(e.ID) {
 			continue
 		}

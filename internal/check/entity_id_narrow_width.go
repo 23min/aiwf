@@ -13,96 +13,66 @@ import (
 // Typed per G-0129.
 const CodeEntityIDNarrowWidth = "entity-id-narrow-width"
 
-// entityIDNarrowWidth implements the M-083 AC-1 drift-check rule.
+// entityIDNarrowWidth reports a narrow-width id in an active entity's
+// on-disk filename — entities outside any `<kind>/archive/` subtree —
+// as an error. Canonical width is the only legal width for an active
+// entity, so a narrow one is a defect regardless of what its
+// neighbours look like.
 //
-// The rule classifies the active tree (entities outside any
-// `<kind>/archive/` subtree) as uniform-narrow, uniform-canonical,
-// or mixed:
+// Scope is the *filename*, not the frontmatter. A frontmatter `id:`
+// narrower than its own canonical-width filename is not reported here
+// and is not reported by idPathConsistent either, which compares the
+// two sides canonicalized and so treats a width-only divergence as a
+// match. Widening this rule to read both axes is a live question
+// tracked in G-0532.
 //
-//   - Uniform narrow active tree → consumer hasn't run `aiwf rewidth`
-//     yet → silent.
-//   - Uniform canonical active tree → consumer has migrated cleanly →
-//     silent.
-//   - Mixed active tree (some canonical alongside some narrow) →
-//     warning fires on each narrow file. Effective message: "narrow-
-//     width id detected in mixed-state active tree; run `aiwf rewidth`
-//     to complete the migration."
+// Archive entries are excluded per ADR-0008's "Drift control"
+// subsection, and the exclusion is permanent: no verb widens an id
+// in place, so a repo that archived before adopting canonical width
+// holds narrow ids under `<kind>/archive/` forever. That is why
+// narrow read tolerance (entity.Canonicalize, the grep alternation,
+// prior_ids resolution) is load-bearing for live cross-references
+// into archived entities rather than a legacy concession. Stubs are
+// excluded too — their ids are path-derived and a parse failure is
+// already its own finding.
 //
-// Archive entries are excluded from the mixed-state computation
-// entirely per ADR-0008's "Drift control" subsection: their width
-// never participates in the active-tree state assessment, and the
-// rule never fires on them. Stubs are also excluded — their ids are
-// path-derived and a parse failure is already its own finding.
+// ADR needs no exemption: entity.IDFromPath rejects any ADR path below
+// canonical width, so a narrow ADR id never reaches the width test.
 //
-// The width classification uses the on-disk filename's id segment,
-// extracted via entity.IDFromPath. An entity whose path doesn't
-// match the kind's expected shape is skipped (defensive — the loader
-// already rejects such files; idPathConsistent reports the rest).
-//
-// The rule is the chokepoint that ADR-0008 §"Drift control" calls
-// for. Its fixture-based tests live in entity_id_narrow_width_test.go
-// (M-083/AC-1); the active-tree-clean assertion against this repo
-// lives in internal/policies/this_repo_drift_check_clean_test.go
-// (M-083/AC-5).
+// Fixture tests live in entity_id_narrow_width_test.go; the
+// active-tree-clean assertion against this repo lives in
+// internal/policies/this_repo_drift_check_clean_test.go.
 func entityIDNarrowWidth(t *tree.Tree) []Finding {
-	type cls struct {
-		entity *entity.Entity
-		narrow bool
-	}
-	var active []cls
+	var findings []Finding
 	for _, e := range t.Entities {
 		if isArchivePath(e.Path) {
 			continue
 		}
-		// ADR is exempt: its grammar (`ADR-\d{4,}`) was always at
-		// canonical width; it has no narrow-legacy form and does not
-		// participate in the migration. Including it would taint
-		// otherwise uniform-narrow pre-migration trees as "mixed"
-		// (e.g., E-01 + ADR-0001) which is not the signal ADR-0008
-		// asks for. The rule cares about kinds that *had* a narrow
-		// legacy width: E, M, G, D, C (and F when finding lands).
-		if e.Kind == entity.KindADR {
-			continue
-		}
-		// Determine width from the on-disk path segment, not from the
-		// frontmatter id, so a tree mid-migration where one side leads
-		// the other doesn't false-positive: the rule is about
-		// what's-on-disk uniformity, which is what `aiwf rewidth`
-		// changes.
+		// The loader admits filenames this call rejects: PathKind
+		// classifies on `^<prefix>-\d+`, while IDFromPath additionally
+		// applies the kind's grammar floor (two digits for epic, three
+		// for gap, milestone, decision and contract, four for ADR). An id below
+		// that floor loads, lands here, and is reported by
+		// frontmatter-shape instead.
 		pathID, ok := entity.IDFromPath(e.Path, e.Kind)
-		if !ok { //coverage:ignore defensive: every entity in t.Entities passed PathKind classification at load time, so IDFromPath matches by construction; the branch exists so a future loader-policy change doesn't silently classify mismatched entries
+		if !ok {
 			continue
 		}
-		active = append(active, cls{entity: e, narrow: isNarrowID(pathID)})
-	}
-
-	// Classify the active set: count narrow vs canonical.
-	var nNarrow, nCanonical int
-	for _, c := range active {
-		if c.narrow {
-			nNarrow++
-		} else {
-			nCanonical++
-		}
-	}
-	// Uniform (or empty) → silent.
-	if nNarrow == 0 || nCanonical == 0 {
-		return nil
-	}
-	// Mixed → emit a warning for every narrow active entry.
-	var findings []Finding
-	for _, c := range active {
-		if !c.narrow {
+		if !isNarrowID(pathID) {
 			continue
 		}
 		findings = append(findings, Finding{
 			Code:     CodeEntityIDNarrowWidth,
-			Severity: SeverityWarning,
+			Severity: SeverityError,
+			// The path-derived id, not e.ID: the width tested is the
+			// filename's, so quoting frontmatter would print a
+			// canonical id and call it narrow whenever the two diverge
+			// — which is exactly the file move the remediation names.
 			Message: fmt.Sprintf(
-				"narrow-width id %q in mixed-state active tree (canonical width is %d digits per ADR-0008); run `aiwf rewidth` to complete the migration",
-				c.entity.ID, entity.CanonicalPad),
-			Path:     c.entity.Path,
-			EntityID: c.entity.ID,
+				"narrow-width id %q in the active tree (canonical width is %d digits per ADR-0008); undo the hand-edit or file move that produced it",
+				pathID, entity.CanonicalPad),
+			Path:     e.Path,
+			EntityID: e.ID,
 			Field:    "id",
 		})
 	}

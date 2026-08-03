@@ -100,7 +100,6 @@ var verbGuardTreatments = []guardTreatment{
 	{"Rename", guardTreatmentGuarded, "OpMove on a file or directory; a directory move carries every nested entity"},
 	{"RenameArea", guardTreatmentGuarded, "writes aiwf.yaml plus every tagged entity in one commit"},
 	{"Retitle", guardTreatmentGuarded, "sits in both mechanisms: builds an OpMove and an OpWrite, and repairs the body H1"},
-	{"Rewidth", guardTreatmentGuarded, "rewrites ids tree-wide, moving and re-serializing many entities in one commit"},
 	{"SetArea", guardTreatmentGuarded, "re-serializes the entity around an area it computed"},
 	{"SetPriority", guardTreatmentGuarded, "re-serializes the entity around a priority it computed"},
 }

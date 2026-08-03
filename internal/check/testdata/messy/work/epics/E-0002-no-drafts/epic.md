@@ -1,5 +1,5 @@
 ---
-id: E-02
+id: E-0002
 title: Active epic without any drafted milestones
 status: active
 ---

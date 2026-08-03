@@ -1,5 +1,5 @@
 ---
-id: G-001
+id: G-0001
 title: Addressed but no resolver listed
 status: addressed
 ---
