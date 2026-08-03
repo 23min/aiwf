@@ -1,8 +1,10 @@
 ---
 id: G-0490
 title: tdd.require_test_metrics is retroactive over all history and unadoptable
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - dda7ab043
 ---
 ## What's missing
 
