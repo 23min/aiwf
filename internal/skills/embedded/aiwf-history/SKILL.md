@@ -15,7 +15,7 @@ The user wants the lifecycle of one entity. Example phrasings: "when was M-NNNN 
 
 ```bash
 aiwf history <id>                            # one line per event
-aiwf history <M-id>/AC-N                     # composite id — just that AC's events
+aiwf history <M-NNNN>/AC-N                   # composite id — just that AC's events
 aiwf history <id> --show-authorization       # expand the auth-SHA column inline
 aiwf history <id> --format=json              # full trailer set in JSON
 ```
@@ -33,7 +33,7 @@ DATE  ACTOR  VERB  TO  DETAIL  COMMIT  [chips...]
 
 ## Composite ids and prefix matching
 
-- `aiwf history M-NNNN` shows the milestone's own events PLUS every AC's events (`M-NNNN/AC-N`). The match is anchored on the literal `/` boundary so `M-NNNN/` cannot prefix-match `M-MMMM/`.
+- `aiwf history M-NNNN` shows the milestone's own events PLUS every AC's events (`M-NNNN/AC-N`). The match is anchored on the literal `/` boundary, so one milestone's id cannot prefix-match another's.
 - `aiwf history M-NNNN/AC-N` shows only that AC's events.
 
 ## --show-authorization

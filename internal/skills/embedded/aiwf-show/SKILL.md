@@ -16,15 +16,15 @@ If the user asks "what happened to" or wants a timeline → reach for `aiwf-hist
 ## What to run
 
 ```bash
-aiwf show <id>                              # text view: frontmatter + acs + history + findings
-aiwf show <M-id>/AC-N                       # composite id: just that AC's record
-aiwf show <id> --format=json --pretty       # JSON envelope; carries body sections too
-aiwf show <id> --history=0                  # suppress the history section
-aiwf show <id> --history=-1                 # render the full timeline (no cap)
-aiwf show <id> --area <A>                    # predicate: shown only if effective area matches, else a one-line note (exit 0)
+aiwf show <id>                         # text view: frontmatter + acs + history + findings
+aiwf show <M-NNNN>/AC-N                # composite id: just that AC's record
+aiwf show <id> --format=json --pretty  # JSON envelope; carries body sections too
+aiwf show <id> --history=0             # suppress the history section
+aiwf show <id> --history=-1            # render the full timeline (no cap)
+aiwf show <id> --area <A>              # predicate: shown only if effective area matches, else a one-line note (exit 0)
 ```
 
-The composite-id pattern `M-NNN/AC-N` is not obvious from `--help`. Use it whenever the user names a specific AC — the JSON output for a composite id carries just that AC's slice (id, title, status, tdd_phase, body description, tests).
+The composite-id pattern `M-NNNN/AC-N` is not obvious from `--help`. Use it whenever the user names a specific AC — the JSON output for a composite id carries just that AC's slice (id, title, status, tdd_phase, body description, tests).
 
 `--area <A>` makes `show` a single-entity predicate: it renders the entity only when its effective area equals `<A>` (composite AC ids roll up to the parent epic's area); otherwise it prints a one-line `<id> is in area "X", not "<A>"` note and exits 0 (the entity is hidden, like an empty filter — not an error). It exists so a script can apply one `--area` filter uniformly across `list`, `status`, and `show`.
 
@@ -67,19 +67,19 @@ If the id's content diverges across two or more refs (a genuine collision, not j
 
 ```bash
 # Quick "what's this gap about?" — text view, drop history for speed
-aiwf show G-0078 --history=0
+aiwf show G-NNNN --history=0
 
 # Full audit — JSON envelope, no history cap
-aiwf show E-0033 --format=json --pretty --history=-1 | jq '.result.findings'
+aiwf show E-NNNN --format=json --pretty --history=-1 | jq '.result.findings'
 
 # Compare a milestone's AC list against its work_log
-aiwf show M-007 --format=json --pretty | jq '.result.acs[].title, .result.body.work_log'
+aiwf show M-NNNN --format=json --pretty | jq '.result.acs[].title, .result.body.work_log'
 
-# Just the third AC on a milestone — composite id
-aiwf show M-007/AC-3
+# Just one AC on a milestone — composite id
+aiwf show M-NNNN/AC-N
 
 # Pipe AC titles into a planning thread
-aiwf show M-007 --format=json | jq -r '.result.acs[] | "\(.id): \(.title) [\(.status)]"'
+aiwf show M-NNNN --format=json | jq -r '.result.acs[] | "\(.id): \(.title) [\(.status)]"'
 ```
 
 ## Show vs. history vs. status
@@ -94,4 +94,4 @@ The three read verbs have non-overlapping shapes — pick the right one:
 
 - Don't run `aiwf show` against a stale binary expecting new fields — the JSON envelope's body-section keys evolve as the per-kind templates evolve; check the binary's installed-version stamp (via `aiwf doctor`'s `binary:` line) if the JSON output is missing keys you expect.
 - Don't reach for `aiwf show` when listing — use `aiwf list --kind <kind>` for tabular roll-ups. `show` returns one entity per call.
-- Don't pass a composite id to `aiwf history` expecting AC-only events from the same shape; `aiwf history M-NNN/AC-N` is supported but its output is event-stream-shaped, not state-snapshot-shaped. The two verbs answer different questions.
+- Don't pass a composite id to `aiwf history` expecting AC-only events from the same shape; `aiwf history M-NNNN/AC-N` is supported but its output is event-stream-shaped, not state-snapshot-shaped. The two verbs answer different questions.

@@ -31,11 +31,10 @@ var zeroPadDigitVerb = regexp.MustCompile(`%0[0-9*]*d`)
 // the mechanical backstop against that bug class recurring.
 //
 // Detection is a zero-pad-digit-verb Sprintf call — the fmt.Sprintf
-// shape both entity.AllocateID and the deleted helpers used. A file
-// whose only zero-pad Sprintf calls are legitimate re-display of an
-// already-existing id (parsed from on-disk text, not a highest+1
-// scan) is allowlisted by path with a one-line rationale, matching
-// the repo's other AST policies (e.g. atomic_write_chokepoint.go).
+// shape both entity.AllocateID and the deleted helpers used. No file
+// under internal/verb/ is exempt: the one call that re-displayed an
+// already-existing id rather than minting a new one belonged to the
+// retired width-migration verb and went with it.
 //
 // Scope is internal/verb/*.go only — the verb layer's own
 // package, where id allocation logic belongs; internal/entity/ (the
@@ -43,18 +42,6 @@ var zeroPadDigitVerb = regexp.MustCompile(`%0[0-9*]*d`)
 // layer, which never touches id numbering directly) are out of
 // scope by construction, not by exemption.
 func PolicyMintIDsViaAllocate(root string) ([]Violation, error) {
-	// File-path allowlist. Key is the repo-relative forward-slash
-	// path; value is the rationale.
-	allow := map[string]string{
-		// padToCanonical zero-pads the digit tail of an id already
-		// present in on-disk text (regex-captured from an existing
-		// reference), not a highest+1 scan over the tree — re-display
-		// of an existing id, not minting a new one. It exists precisely
-		// because entity.Canonicalize refuses narrow legacy ids below
-		// the per-kind grammar minimum that rewidth is migrating (see
-		// padToCanonical's own doc comment, internal/verb/rewidth.go).
-		"internal/verb/rewidth.go": "padToCanonical re-pads an id already present in on-disk text; not a highest+1 mint",
-	}
 	files, err := WalkGoFiles(root, true)
 	if err != nil { //coverage:ignore WalkGoFiles only errors on a filesystem-level fault (unreadable dir, mid-walk file removal) — not portably triggerable in a unit test; mirrors the identical unexercised guard on every sibling AST policy (e.g. logging_chokepoint.go, no_time_now_in_core.go)
 		return nil, err
@@ -63,9 +50,6 @@ func PolicyMintIDsViaAllocate(root string) ([]Violation, error) {
 	fset := token.NewFileSet()
 	for _, f := range files {
 		if !strings.HasPrefix(f.Path, "internal/verb/") {
-			continue
-		}
-		if _, ok := allow[f.Path]; ok {
 			continue
 		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
@@ -101,7 +85,7 @@ func PolicyMintIDsViaAllocate(root string) ([]Violation, error) {
 				File:   f.Path,
 				Line:   fset.Position(call.Pos()).Line,
 				Detail: "fmt.Sprintf with a zero-pad id-format verb outside entity.AllocateID; " +
-					"route id minting through entity.AllocateID (G-0426) or allowlist the file with a rationale",
+					"route id minting through entity.AllocateID (G-0426)",
 			})
 			return true
 		})

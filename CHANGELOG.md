@@ -16,6 +16,59 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — E-0078: two checks for id shapes in repo-facing documentation
+
+`aiwf check` now reads the documents a repo points it at and reports two id
+defects in them. `doc-id-width` fires on an id written below the canonical four
+digits — a real id carrying fewer, or an illustrative `<prefix>-NNNN`
+placeholder built from fewer N's. `doc-id-slug` fires on an id written together
+with a slug that is not the one that entity actually carries, which catches both
+a citation left behind by an `aiwf retitle` and a worked example that invented an
+id at canonical width and happened to borrow a real one.
+
+Both read prose and code alike — a command example reaches a reader exactly as a
+sentence does — and both are **warnings by default**, so an existing repo
+upgrades without its next push being blocked.
+
+A new `docs:` block in `aiwf.yaml` configures them:
+
+```yaml
+docs:
+  paths:
+    - README.md
+    - docs/workflows.md
+  strict: true
+```
+
+`docs.paths` **replaces** the default rather than extending it, so name
+`README.md` explicitly if you still want it scanned. `docs.strict: true`
+promotes both codes to error severity, where the pre-push hook refuses them.
+
+Neither rule asks an id to resolve. Width is a question about shape, and slug is
+an exact comparison against an entity already known; whether a bare id names
+anything real is a separate question these do not answer.
+
+This project's own `README.md` and workflows guide were swept ahead of the
+checks, so the ids they print are the ones a reader can act on.
+
+### Changed — E-0078: id checks on shipped surfaces read code, not only prose
+
+The rule guarding the surfaces aiwf materializes into a consumer's repo — skill
+bodies and their `description:` frontmatter, entity templates, role-agent cards,
+the always-on guidance fragment, and the statusline's comments — looked only at
+plain prose. A real id inside a code span, a fenced transcript, or an HTML
+comment passed it. Those surfaces reach a consumer exactly as prose does, where
+aiwf's own entity ids mean nothing and go stale as the entities they name change
+status or move into an archive.
+
+The rule now reads code constructs too, and fires at error severity on two
+shapes: a real entity id, and a placeholder written at any width other than
+canonical. Every shipped surface was swept to canonical `<prefix>-NNNN`
+placeholders before the enforcement landed, so `aiwf update` delivers the
+rewritten text.
+
+The check stays inert in a consumer repo, whose tree carries no aiwf source.
+
 ### Changed — a defect already fixed and pinned needs no further record
 
 The review classification routed unpinned defects to a tracked record and said

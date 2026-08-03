@@ -220,7 +220,7 @@ An earlier ad hoc timing (last-1000-commits range: 13.4s, *more* than the
 full 6,213-commit walk's 12.2s) showed the relationship isn't perfectly
 linear — `-M` rename-detection cost tracks how many files a commit touches,
 not just commit count, so a single large commit (an archive sweep touching
-hundreds of files, a rewidth migration) can cost disproportionately
+hundreds of files, a bulk import) can cost disproportionately
 regardless of recency. This doesn't undermine the design: because the cache
 is keyed per-commit-sha with the watermark always advancing past whatever
 was just walked, an expensive one-off commit is paid for **exactly once**

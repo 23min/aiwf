@@ -40,12 +40,15 @@ func TestScanSkillBodyID(t *testing.T) {
 		{name: "canonical bare placeholder", body: "Use the canonical G-NNNN placeholder shape.", wantFire: false},
 		{name: "canonical composite placeholder", body: "Address it as M-NNNN/AC-N in prose.", wantFire: false},
 
-		// AC-2 — silent on code-masked id-shapes.
-		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: false},
+		// M-0287 AC-1 — code constructs are in scope. A real id in a
+		// command example ships to consumer repos and rots there exactly
+		// as one in prose does, so the citation is the defect wherever it
+		// sits. Only non-prose link carriers stay exempt (below).
+		{name: "real id in an inline code span", body: "Reference the canonical id (`M-0001`, not `M-1`).", wantFire: true},
 		{
 			name:     "real id in a fenced code block",
 			body:     "Example:\n\n```\naiwf show M-0001\n```\n",
-			wantFire: false,
+			wantFire: true,
 		},
 
 		// AC-2 — the ADR/design doc-link carve-out: the id rides in the

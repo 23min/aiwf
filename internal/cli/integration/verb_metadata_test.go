@@ -149,33 +149,8 @@ func TestArchiveMetadata_ReportsSweptCountAndSHA(t *testing.T) {
 	}
 }
 
-// TestRewidthMetadata_ReportsRenamedCountAndSHA pins rewidth's AC-2
-// metadata (renamed_count). Like archive, this verb had no
-// --format=json support at all before this AC.
-func TestRewidthMetadata_ReportsRenamedCountAndSHA(t *testing.T) {
-	root := setupCLITestRepo(t)
-	seedNarrowFixture(t, root)
-	commitFixture(t, root, "seed narrow fixture")
-
-	md := envelopeMetadata(t, "rewidth", "--apply", "--root", root, "--actor", "human/test", "--format=json")
-	count, ok := md["renamed_count"].(float64)
-	if !ok || count < 1 {
-		t.Errorf("metadata.renamed_count = %v, want >= 1", md["renamed_count"])
-	}
-	sha, _ := md["commit_sha"].(string)
-	if sha == "" {
-		t.Error("metadata.commit_sha missing or empty")
-	}
-	if headSHA(t, root) != sha {
-		t.Errorf("metadata.commit_sha = %q, want the actual HEAD sha %q", sha, headSHA(t, root))
-	}
-	if id, _ := md["correlation_id"].(string); id == "" {
-		t.Error("metadata.correlation_id missing or empty")
-	}
-}
-
 // TestImportMetadata_ReportsImportedCountEntityIDsAndSHA pins import's
-// AC-2 metadata. Like archive/rewidth, this verb had no
+// AC-2 metadata. Like archive, this verb had no
 // --format=json support at all before this AC. import produces one
 // commit per plan (a deliberate exception to the one-verb-one-commit
 // norm), so commit_sha here is the batch's last commit.
@@ -331,9 +306,8 @@ func TestContractVerbsMetadata_CarryCorrelationIDAndOwnMetadata(t *testing.T) {
 
 // jsonEnvelopeError runs args (expected to fail) through cli.Execute
 // and returns the decoded error envelope. Used to pin the JSON-mode
-// error path of archive/rewidth/import's newly-added failArchive/
-// failRewidth/failImport helpers — none of which any pre-existing
-// text-mode-only test exercises in JSON mode.
+// error path of archive's and import's failArchive/failImport
+// helpers, which the text-mode-only tests leave unexercised.
 func jsonEnvelopeError(t *testing.T, wantCode int, args ...string) (message string) {
 	t.Helper()
 	rc, stdout, stderr := testutil.CaptureRun(t, func() int {
@@ -370,18 +344,6 @@ func TestArchiveMetadata_JSONModeErrorEnvelope(t *testing.T) {
 	msg := jsonEnvelopeError(t, cliutil.ExitUsage, "archive", "--kind", "bogus", "--actor", "human/test", "--root", root, "--format=json")
 	if !strings.Contains(msg, "bogus") {
 		t.Errorf("error message = %q, want it to mention the bad --kind value", msg)
-	}
-}
-
-// TestRewidthMetadata_JSONModeErrorEnvelope pins failRewidth's JSON
-// branch.
-func TestRewidthMetadata_JSONModeErrorEnvelope(t *testing.T) {
-	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-
-	msg := jsonEnvelopeError(t, cliutil.ExitUsage, "rewidth", "--actor", "ai/bot", "--root", root, "--format=json")
-	if !strings.Contains(msg, "--principal") {
-		t.Errorf("error message = %q, want it to mention the missing --principal", msg)
 	}
 }
 

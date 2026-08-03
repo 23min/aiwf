@@ -197,12 +197,12 @@ func findMergeStepSection(body string) string {
 }
 
 // TestAiwfxWrapEpic_G0119_PromoteIsLastCommitInBundle asserts the
-// closing condition for G-0119: the `aiwf promote E-NN done` step
+// closing condition for G-0119: the `aiwf promote E-NNNN done` step
 // must appear *after* every other commit-emitting step in the
 // `## Workflow` section. Specifically: after the merge gate, after
 // the wrap-artefact commit, and before the push gate.
 //
-// Rationale: `aiwf promote E-NN done` ends the authorize scope
+// Rationale: `aiwf promote E-NNNN done` ends the authorize scope
 // opened by `aiwfx-start-epic`. Any commit produced after the
 // promote carries `aiwf-authorized-by:` referencing an ended scope
 // and triggers the kernel's `provenance-authorization-ended`
@@ -504,7 +504,7 @@ func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
 	// session is a divergence `origin/main` would not reflect. The
 	// remote-tracking ref appears only in the fetch/fast-forward
 	// preamble that folds in the origin axis before the check.
-	wantGuard := "git merge-base --is-ancestor main epic/E-NN-<slug>"
+	wantGuard := "git merge-base --is-ancestor main epic/E-NNNN-<slug>"
 	if !strings.Contains(reconcile, wantGuard) {
 		t.Errorf("reconcile step must name the ancestor guard %q (local mainline, not origin/main)", wantGuard)
 	}

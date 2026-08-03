@@ -10,9 +10,9 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
-// remaining_verbs_diag_test.go — M-0249: pins that the last nine
-// mutating verbs (archive, import, rename, rename-area, retitle,
-// rewidth, set-area, worktree add, and contract's five sub-verbs) now
+// remaining_verbs_diag_test.go — M-0249: pins that every mutating
+// verb listed below (archive, import, rename, rename-area, retitle,
+// set-area, worktree add, and contract's five sub-verbs) now
 // emit a "verb.completed" diagnostic-log record when AIWF_LOG is set,
 // completing E-0061's own instrumentation coverage across every
 // mutating verb (see wired_verbs_diag_test.go for the first seven).
@@ -166,38 +166,6 @@ func TestRetitleDiag_EmitsVerbCompletedEvent(t *testing.T) {
 	}
 	if rec.Entity != "G-0001" {
 		t.Errorf("entity = %q, want %q", rec.Entity, "G-0001")
-	}
-	if rec.RunID == "" {
-		t.Error("run_id missing or empty from the diagnostic record")
-	}
-}
-
-// TestRewidthDiag_EmitsVerbCompletedEvent uses a freshly-inited repo
-// (already canonical width — nothing to rewidth), so the verb takes
-// its NoOp path. The diagLog block runs before that outcome is known,
-// so a NoOp still emits verb.completed.
-func TestRewidthDiag_EmitsVerbCompletedEvent(t *testing.T) {
-	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-
-	logPath := filepath.Join(t.TempDir(), "diag.log")
-	t.Setenv("AIWF_LOG", "info")
-	t.Setenv("AIWF_LOG_FORMAT", "json")
-	t.Setenv("AIWF_LOG_FILE", logPath)
-
-	rc, _, stderr := testutil.CaptureRun(t, func() int {
-		return cli.Execute([]string{"rewidth", "--apply", "--actor", "human/test", "--root", root})
-	})
-	if rc != cliutil.ExitOK {
-		t.Fatalf("aiwf rewidth: rc=%d stderr=%s", rc, stderr)
-	}
-
-	rec := readDiagRecord(t, logPath)
-	if rec.Msg != "verb.completed" {
-		t.Errorf("msg = %q, want %q", rec.Msg, "verb.completed")
-	}
-	if rec.Verb != "rewidth" {
-		t.Errorf("verb = %q, want %q", rec.Verb, "rewidth")
 	}
 	if rec.RunID == "" {
 		t.Error("run_id missing or empty from the diagnostic record")

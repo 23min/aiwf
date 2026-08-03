@@ -14,9 +14,9 @@ The user says something is "ready", "done", "in progress", "accepted", "deprecat
 ## What to run
 
 ```bash
-aiwf promote <id> <new-status>                  # top-level entity
-aiwf promote <M-id>/AC-N <new-status>           # AC status (composite id)
-aiwf promote <M-id>/AC-N --phase <p>            # AC tdd_phase (mutex with positional state)
+aiwf promote <id> <new-status>           # top-level entity
+aiwf promote <M-NNNN>/AC-N <new-status>  # AC status (composite id)
+aiwf promote <M-NNNN>/AC-N --phase <p>   # AC tdd_phase (mutex with positional state)
 ```
 
 ## Allowed status sets
@@ -39,7 +39,7 @@ aiwf promote <M-id>/AC-N --phase <p>            # AC tdd_phase (mutex with posit
 When a transition the FSM disallows must happen anyway (rare), pass `--force --reason "<text>"`:
 
 ```bash
-aiwf promote E-01 done --force --reason "shipped without staging review for hotfix"
+aiwf promote E-NNNN done --force --reason "shipped without staging review for hotfix"
 ```
 
 `--reason` is required (non-empty after trim) when `--force` is set. It becomes both the commit body and an `aiwf-force: <reason>` trailer, so the audit trail is queryable. `--force` relaxes only the FSM transition rule — coherence checks (status in closed set, refs resolve, AC body coherence) still run.
@@ -51,9 +51,9 @@ For milestones with open ACs, `--force` lets the milestone reach `done` but the 
 Two transitions require a pointer to *what addressed the entity* before the kernel considers the tree clean: gap → addressed (resolver-or-commit) and adr → superseded (replacement ADR). Pass the resolver via flag at promote time so the status flip and the resolver write land in one commit:
 
 ```bash
-aiwf promote G-NNN addressed --by M-007                # gap closed by milestone (single id)
-aiwf promote G-NNN addressed --by M-007,E-03           # gap closed by multiple entities
-aiwf promote G-NNN addressed --by-commit abcdef1234    # gap closed by a specific commit (sha goes into addressed_by_commit)
+aiwf promote G-NNNN addressed --by M-NNNN             # gap closed by milestone (single id)
+aiwf promote G-NNNN addressed --by M-NNNN,E-NNNN      # gap closed by multiple entities
+aiwf promote G-NNNN addressed --by-commit abcdef1234  # gap closed by a specific commit (sha goes into addressed_by_commit)
 aiwf promote ADR-NNNN superseded --superseded-by ADR-NNNN
 ```
 
@@ -80,7 +80,7 @@ When state was already reached via a manual `git commit` (no aiwf trailers), `ai
 
 For agents acting under an active authorization scope, the kernel matches the scope automatically (no `--scope` flag) and stamps `aiwf-on-behalf-of:` + `aiwf-authorized-by:` on the commit. Open the scope first with `aiwf authorize`. Without an active scope, agent promotions refuse with `provenance-no-active-scope`.
 
-When the scope-entity reaches a **terminal status** via `aiwf promote` (e.g., `aiwf promote E-03 done`), every active scope on that entity auto-ends — the commit carries one `aiwf-scope-ends: <auth-sha>` per ended scope.
+When the scope-entity reaches a **terminal status** via `aiwf promote` (e.g., `aiwf promote E-NNNN done`), every active scope on that entity auto-ends — the commit carries one `aiwf-scope-ends: <auth-sha>` per ended scope.
 
 ## What aiwf does
 

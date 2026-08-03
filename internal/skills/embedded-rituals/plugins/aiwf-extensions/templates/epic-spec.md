@@ -5,7 +5,7 @@ status: proposed         # aiwf epic statuses: proposed | active | done | cancel
 depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 ---
 
-# E-NNNN — <Epic Title>
+# <id> — <Epic Title>
 
 ## Goal
 
@@ -58,7 +58,7 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 
 <!-- Bulleted list, ordered by execution sequence. Status is NOT carried here — it lives
      in each milestone's frontmatter. Update this list when milestones are added, renamed,
-     or re-sequenced. Milestone ids are global (M-NNNN), not epic-scoped. -->
+     or re-sequenced. Milestone ids are global, not epic-scoped. -->
 
 - `M-NNNN` — <one-line description> · depends on: —
 - `M-NNNN` — <one-line description> · depends on: `M-NNNN`
@@ -67,7 +67,7 @@ depends_on: []           # optional: prior epic ids; e.g. [E-NNNN]
 
 <!-- ADRs ratified or written during this epic. Reference by id. -->
 
-- ADR-NNNN — <title>
+- `ADR-NNNN` — <title>
 
 ## References
 

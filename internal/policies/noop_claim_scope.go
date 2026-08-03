@@ -102,7 +102,6 @@ var noOpClaimScopes = []claimScope{
 
 	// None: convergence rests on something a working copy cannot
 	// contradict, or on a comparison the verb already makes itself.
-	{"Rewidth", claimScopeNone, "the converging path writes nothing, and a masked rewrite is re-emitted by the next run because planRewidthRewrites rescans every active markdown independently of the rename set — so the cost is a rewrite deferred, not lost. The direction that would launder is carried by a move Apply guards"},
 	{"AcknowledgeIllegal", claimScopeNone, "ackAlreadyRecorded walks git history, so its baseline is already the record rather than the working copy"},
 	{"editBodyExplicit", claimScopeNone, "explicitBodySettled already compares the requested content against HEAD, and the verb exists to commit a divergent working copy — a guard refusing divergence would block the route every other refusal recommends"},
 }

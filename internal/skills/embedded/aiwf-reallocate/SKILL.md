@@ -25,7 +25,7 @@ When passing an id and two entities share it, `aiwf` runs the trunk-ancestry tie
 
 Sandbox repos with no trunk in scope skip the tiebreaker — operators always pass a path there.
 
-The id format never gets a suffix (no `M-007a`); collision recovery always picks `max + 1` against the working tree ∪ trunk.
+The id format never gets a letter suffix; collision recovery always picks `max + 1` against the working tree ∪ trunk.
 
 ## What aiwf does
 

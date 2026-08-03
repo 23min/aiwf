@@ -75,7 +75,16 @@ var hintTable = map[string]string{
 	// comments) must cite no real entity id (the mirror image of
 	// body-prose-id). The fix is a canonical placeholder or a design/ADR
 	// doc-link, not a real id.
-	"skill-body-id":              "a shipped surface cites a real entity id, which is meaningless in a consumer repo and rots as the entity changes; replace it with a canonical `<prefix>-NNNN` placeholder or a shape-description (or cite a design/ADR doc as a markdown link, so the id rides in the destination while the visible text stays descriptive), then re-run `aiwf check`",
+	// M-0289: doc-id-width chokepoint. The third id-shape rule, and the only
+	// one whose subject is width alone — a repo's own docs may cite real ids
+	// freely, so the hint must not send an operator toward the placeholder
+	// when their prose genuinely names an entity.
+	"doc-id-width": "a repo-facing document writes an id below canonical width. Widen it when it names a real entity, or write the canonical `<prefix>-NNNN` placeholder when it is illustrative — the finding names both forms, since only the author knows which was meant. Code spans and fenced blocks are in scope, so backticks are not an opt-out. Change which docs are scanned with `docs.paths` in aiwf.yaml; once yours are clean, `docs.strict: true` makes the next one block the push. Re-run `aiwf check` to confirm",
+	// M-0289: doc-id-slug chokepoint. The exact half of the fiction problem —
+	// a written slug either matches the entity's own or it does not, so the
+	// hint can state the real slug rather than asking the operator to look.
+	"doc-id-slug":                "a doc writes an id together with a slug that is not the slug that entity carries — either the citation is wrong, or the example is invented and borrowed a real id. Confirm which with `aiwf show <id>`, then correct the slug or replace the id with the canonical `<prefix>-NNNN` placeholder, and re-run `aiwf check`",
+	"skill-body-id":              "a shipped surface carries an id shape that does not belong there — either a real entity id, which is meaningless in a consumer repo and rots as the entity changes, or a non-canonical placeholder, which models a width no allocator emits. Either way write the canonical `<prefix>-NNNN` placeholder or a shape-description (for a real id you may instead cite a design/ADR doc as a markdown link, so the id rides in the destination while the visible text stays descriptive), then re-run `aiwf check`. A command example or fenced transcript is in scope too — it ships to consumers exactly as prose does",
 	"no-cycles/depends_on":       "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it)",
 	"depends-on-cancelled":       "retarget the dependency via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it), or cancel the dependent milestone too if it's no longer needed",
 	"no-cycles/supersedes":       "break the loop in the supersedes/superseded_by chain — inspect it with `aiwf history ADR-NNNN`, correct the errant `supersedes:`/`superseded_by:` frontmatter entry by hand, then re-run `aiwf check`",
@@ -97,10 +106,10 @@ var hintTable = map[string]string{
 	// the epic) clears it.
 	"epic-active-no-drafted-milestones": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd <policy> --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063",
 
-	// M-083 AC-1: tree mid-migration warning. Fires only on the
-	// mixed-active-tree case; uniform-narrow and uniform-canonical
-	// stay silent per ADR-0008's "Drift control" subsection.
-	"entity-id-narrow-width": "the active tree mixes narrow and canonical id widths; run `aiwf rewidth --apply` to complete the canonical-width migration (no commit until you re-invoke with `--apply`)",
+	// Any narrow id in the active tree, at error severity. No verb
+	// widens an id in place, so the fix is to undo the change that
+	// produced it — hence a git command rather than an aiwf one.
+	"entity-id-narrow-width": "an active entity's filename carries an id below canonical width; undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
 
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not

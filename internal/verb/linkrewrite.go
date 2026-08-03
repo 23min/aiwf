@@ -22,8 +22,7 @@ type EntityMove struct {
 // resolve it itself). A relative destination (`../work/…`, any `../`
 // depth) is resolved against linkingFile's own directory; a
 // destination already rooted at a known entity directory (`work/…`,
-// `docs/adr/…`) is treated as root-relative and compared as-is —
-// matching rewidth's existing convention for `work/`-prefixed links.
+// `docs/adr/…`) is treated as root-relative and compared as-is.
 //
 // Everything else is left byte-identical: prose, inline-code spans,
 // fenced code blocks, URL-shaped destinations, and links whose
@@ -32,10 +31,9 @@ type EntityMove struct {
 // From path in the same move set, so a second pass is a no-op.
 //
 // Masking (fence detection, inline-code-span exclusion, link-path
-// region splitting) is shared with rewidth's width-rewrite via
-// walkBodyLines / maskCodeSpans / splitLinkPathRegions in
-// linkregion.go; only the destination-rewrite predicate below is
-// specific to this primitive.
+// region splitting) lives in walkBodyLines / maskCodeSpans /
+// splitLinkPathRegions in linkregion.go; only the destination-rewrite
+// predicate below is specific to this primitive.
 func RewriteLinkDestinations(body []byte, linkingFile string, moves []EntityMove) []byte {
 	moveIndex := make(map[string]string, len(moves))
 	for _, m := range moves {
@@ -135,22 +133,18 @@ func newDestination(to, dir string, rootRelative bool) string {
 	return relativeFromDir(dir, to)
 }
 
-// entityRootPrefixes returns the deduplicated, trailing-slash root
-// directories under which entity files live, derived from
-// activeKindLayouts (rewidth.go) so the root-relative set has a
-// single source of truth shared with the rewidth verb.
+// entityRootPrefixes returns the trailing-slash, repo-relative
+// directories entity files live under. It is the enumerable companion
+// to entity.PathKind, which recognizes the same directories as a
+// switch over path segments and so cannot be iterated.
 func entityRootPrefixes() []string {
-	seen := make(map[string]bool)
-	var out []string
-	for _, l := range activeKindLayouts() {
-		prefix := l.rootDir + "/"
-		if seen[prefix] {
-			continue
-		}
-		seen[prefix] = true
-		out = append(out, prefix)
+	return []string{
+		"work/epics/",
+		"work/gaps/",
+		"work/decisions/",
+		"work/contracts/",
+		"docs/adr/",
 	}
-	return out
 }
 
 // isEntityRootRelative reports whether inner is rooted at one of the

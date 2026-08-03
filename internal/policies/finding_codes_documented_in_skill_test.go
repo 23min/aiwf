@@ -1,9 +1,12 @@
 package policies
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/check"
 )
 
 // writeAt writes content at a slash-separated repo-relative path under
@@ -195,4 +198,55 @@ func violationMentions(vs []Violation, sub string) bool {
 		}
 	}
 	return false
+}
+
+// TestPolicy_SkillBodyIDRowMatchesEmittedSeverity pins the aiwf-check skill's
+// two Findings tables as a severity contract rather than a layout preference:
+// an operator reads the errors table as "this blocks my push".
+//
+// The expected table is DERIVED from the severity the rule actually emits, not
+// named as a literal. A hardcoded expectation only catches the doc drifting
+// away from the rule; deriving it catches drift from either side, which is what
+// makes this a contract between the two rather than an assertion about one.
+func TestPolicy_SkillBodyIDRowMatchesEmittedSeverity(t *testing.T) {
+	t.Parallel()
+	root, err := repoRootFromTest(t)
+	if err != nil {
+		t.Fatalf("locate repo root: %v", err)
+	}
+	body, err := os.ReadFile(filepath.Join(root, skillCheckPath))
+	if err != nil {
+		t.Fatalf("read aiwf-check skill: %v", err)
+	}
+
+	emitted := emittedSkillBodyIDSeverity(t)
+	const row = "| `skill-body-id` |"
+	warnings := markdownSection(string(body), "## Findings (warnings)")
+	errors := markdownSection(string(body), "## Findings (errors)")
+	if warnings == "" || errors == "" {
+		t.Fatal("aiwf-check skill is missing one of its Findings sections")
+	}
+
+	wantIn, wantOut, wantName := errors, warnings, "errors"
+	if emitted == check.SeverityWarning {
+		wantIn, wantOut, wantName = warnings, errors, "warnings"
+	}
+	if strings.Contains(wantOut, row) {
+		t.Errorf("skill-body-id emits %q but its row is in the other Findings table; move it to `## Findings (%s)`", emitted, wantName)
+	}
+	if !strings.Contains(wantIn, row) {
+		t.Errorf("skill-body-id emits %q, so its row belongs in `## Findings (%s)`", emitted, wantName)
+	}
+}
+
+// emittedSkillBodyIDSeverity returns the severity skill-body-id actually emits,
+// read off a minimal firing body rather than from a constant, so the caller
+// compares against behavior instead of restating it.
+func emittedSkillBodyIDSeverity(t *testing.T) check.Severity {
+	t.Helper()
+	got := check.ScanSkillBodyID([]byte("# Title\n\nThis cites E-0001 directly.\n"), "probe.md")
+	if len(got) != 1 {
+		t.Fatalf("severity probe: want exactly 1 skill-body-id finding, got %d: %+v", len(got), got)
+	}
+	return got[0].Severity
 }

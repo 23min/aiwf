@@ -333,11 +333,13 @@ func SetPriority(id string) (*Result, error) {
 }
 
 // TestPolicyClaimGuardPresence_DormantExemptionFiresThroughTheExportedPolicy
-// drives AC-2's dormancy half end to end. Rewidth is a live `none` row.
+// drives AC-2's dormancy half end to end. AcknowledgeIllegal is a live
+// `none` row, so a guard appearing in it is the dormancy the policy
+// reports: the ledger says no comparison is wired, the code says one is.
 func TestPolicyClaimGuardPresence_DormantExemptionFiresThroughTheExportedPolicy(t *testing.T) {
 	t.Parallel()
 	src := guardChainSrc + `
-func Rewidth(id string) (*Result, error) {
+func AcknowledgeIllegal(id string) (*Result, error) {
 	return nil, guardClaim("root", id, "path")
 }
 `
@@ -345,7 +347,7 @@ func Rewidth(id string) (*Result, error) {
 	if err != nil {
 		t.Fatalf("policy returned error: %v", err)
 	}
-	assertDetail(t, vs, "Rewidth is recorded exempt")
+	assertDetail(t, vs, "AcknowledgeIllegal is recorded exempt")
 }
 
 // TestClaimGuardPresence_ExemptReasonCheckIsWiredIntoTheComposition

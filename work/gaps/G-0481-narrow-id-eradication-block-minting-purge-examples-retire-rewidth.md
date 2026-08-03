@@ -1,8 +1,10 @@
 ---
 id: G-0481
 title: 'Narrow-ID eradication: block minting, purge examples, retire rewidth'
-status: open
+status: addressed
 priority: high
+addressed_by_commit:
+    - db307fdc7
 ---
 # Narrow-ID eradication: make minting impossible, purge example debris, retire `rewidth`
 

@@ -9,7 +9,7 @@ This skill is advisory; the binary is authoritative.
 
 A **contract** in aiwf is a bounded surface in the consumer repo whose shape is enforced mechanically — typically a CUE schema, a JSON Schema, a `.proto`, or an OpenAPI document. aiwf provides:
 
-1. A **registry record** (`contract` entity, `C-NNNNN`) tying the surface to ADRs and a status.
+1. A **registry record** (`contract` entity, `C-NNNN`) tying the surface to ADRs and a status.
 2. A **verification engine** (`aiwf contract verify`) that runs the user's chosen validator against fixtures and reports findings.
 3. A **pre-push hook** (`aiwf check`) that runs verification automatically when contracts are configured.
 
@@ -21,17 +21,17 @@ Every mutation of `aiwf.yaml.contracts.*` has a verb. The LLM uses the verb. Alw
 
 | Want to … | Use this verb |
 |---|---|
-| Create a contract entity (and optionally bind it) | `aiwf add contract --title "..." --linked-adr ADR-NNN [--validator <name> --schema <path> --fixtures <path>]` |
-| Add or replace a binding for an existing contract | `aiwf contract bind <C-id> --validator <name> --schema <path> --fixtures <path>` |
-| Remove a binding | `aiwf contract unbind <C-id>` |
+| Create a contract entity (and optionally bind it) | `aiwf add contract --title "..." --linked-adr ADR-NNNN [--validator <name> --schema <path> --fixtures <path>]` |
+| Add or replace a binding for an existing contract | `aiwf contract bind <C-NNNN> --validator <name> --schema <path> --fixtures <path>` |
+| Remove a binding | `aiwf contract unbind <C-NNNN>` |
 | Install a validator from a shipped recipe | `aiwf contract recipe install <name>` |
 | Install a custom validator from a YAML file | `aiwf contract recipe install --from <path>` |
 | Remove a validator declaration | `aiwf contract recipe remove <name>` |
-| Move the entity's status forward | `aiwf promote <C-id> <status> --reason "..."` |
-| Cancel a contract (rejected) | `aiwf cancel <C-id> --reason "..."` |
+| Move the entity's status forward | `aiwf promote <C-NNNN> <status> --reason "..."` |
+| Cancel a contract (rejected) | `aiwf cancel <C-NNNN> --reason "..."` |
 | Run verification | `aiwf contract verify` |
 | List recipes / contracts | `aiwf contract recipes`, `aiwf list --kind contract` |
-| Inspect | `aiwf contract recipe show <name>`, `aiwf show <C-id>`, `aiwf history <C-id>` |
+| Inspect | `aiwf contract recipe show <name>`, `aiwf show <C-NNNN>`, `aiwf history <C-NNNN>` |
 
 If the user asks for something not covered by a verb, the answer is **not** "edit `aiwf.yaml` directly." The answer is "we don't support that mutation; here is the closest verb."
 
@@ -65,7 +65,7 @@ After authoring, register and bind the contract in one verb:
 ```bash
 aiwf add contract \
   --title "Op execution spec" \
-  --linked-adr ADR-OPSPEC-01 \
+  --linked-adr ADR-NNNN \
   --validator cue \
   --schema   docs/schemas/opspec/schema.cue \
   --fixtures docs/schemas/opspec/fixtures
@@ -150,10 +150,10 @@ proposed → accepted → deprecated → retired
 ```
 
 ```bash
-aiwf promote C-NNNN accepted   --reason "ADR-NNN approved 2026-04-30"
+aiwf promote C-NNNN accepted   --reason "ADR-NNNN approved 2026-04-30"
 aiwf promote C-NNNN deprecated --reason "phasing out for C-NNNN+1"
 aiwf promote C-NNNN retired    --reason "no consumers remain"
-aiwf cancel  C-NNNN            --reason "rolled into ADR-NNN-rev2"
+aiwf cancel  C-NNNN            --reason "rolled into ADR-NNNN-rev2"
 ```
 
 `--reason` is optional but appears in `aiwf history C-NNNN`; encourage it for status moves.
@@ -194,7 +194,7 @@ If the user wants to share their pattern, encourage upstreaming a recipe — but
 
 ### "Add a contract without a validator yet"
 
-Allowed and supported. Run `aiwf add contract --title "..." --linked-adr ADR-NNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
+Allowed and supported. Run `aiwf add contract --title "..." --linked-adr ADR-NNNN` **without** the `--validator / --schema / --fixtures` flags. The entity is created; no binding is added. The contract appears as a registry record but has no verification target. When the user is ready to wire validation, run `aiwf contract bind <id> --validator ... --schema ... --fixtures ...`.
 
 This is the right answer when:
 

@@ -88,8 +88,8 @@ The canonical timestamp and actor are also recoverable from git via `aiwf histor
 
 aiwf core only validates these frontmatter fields on ADR / D-NNNN entries: `id`, `title`, `status`, plus the cross-reference fields. Set the cross-references when relevant:
 
-- For an ADR that supersedes another: set `supersedes: [ADR-NNNN]`. **Then edit the superseded ADR** to set `superseded_by: ADR-NEW` and promote it to `superseded` via `aiwf promote`.
-- For a D-NNNN tied to specific work: set `relates_to: [E-NN, M-NNN]` so cross-references resolve. A decision's `relates_to` can alternatively be set at allocation — `aiwf add decision --relates-to <ids>` (step 2) — which lands it in the scaffold commit and keeps step 7 a body-only bless.
+- For an ADR that supersedes another: set `supersedes: [ADR-NNNN]`. **Then edit the superseded ADR** to set `superseded_by:` to the new ADR's id and promote it to `superseded` via `aiwf promote`.
+- For a D-NNNN tied to specific work: set `relates_to: [E-NNNN, M-NNNN]` so cross-references resolve. A decision's `relates_to` can alternatively be set at allocation — `aiwf add decision --relates-to <ids>` (step 2) — which lands it in the scaffold commit and keeps step 7 a body-only bless.
 
 Skip both if no cross-references apply. These are **frontmatter** edits, not body content: `aiwf edit-body` is body-only, so when you set one here, land the body fill with `aiwf edit-body <id> --body-file <draft>` at step 7 (bless mode refuses a working copy with pending frontmatter changes).
 

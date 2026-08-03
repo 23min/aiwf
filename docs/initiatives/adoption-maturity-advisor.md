@@ -178,7 +178,8 @@ which also reveals the engine's shape and its build order.
 - Materialized skills / rituals drift from the embed, or the guidance import is
   missing from `CLAUDE.md` → `aiwf update`.
 - Statusline not installed → `aiwf init --statusline`.
-- Legacy id widths present → `aiwf rewidth --apply` (one idempotent commit).
+- Legacy id widths present in the active tree → `entity-id-narrow-width` already reports each one at error
+  severity; the remedy is undoing the hand-edit or file move that produced it, since no verb widens an id in place.
 
 ### Class 2 — config knobs at default the repo's shape argues against *(mechanical)*
 

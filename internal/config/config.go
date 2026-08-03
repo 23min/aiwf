@@ -81,6 +81,7 @@ type Config struct {
 	HTML              HTML             `yaml:"html,omitempty"`
 	Allocate          Allocate         `yaml:"allocate,omitempty"`
 	Tree              Tree             `yaml:"tree,omitempty"`
+	Docs              Docs             `yaml:"docs,omitempty"`
 	Archive           Archive          `yaml:"archive,omitempty"`
 	Entities          Entities         `yaml:"entities,omitempty"`
 	Guidance          Guidance         `yaml:"guidance,omitempty"`
@@ -400,6 +401,80 @@ func (a Areas) validate() error {
 type Tree struct {
 	AllowPaths []string `yaml:"allow_paths,omitempty"`
 	Strict     bool     `yaml:"strict,omitempty"`
+}
+
+// Docs carries the consumer's policy for checks over repo-facing
+// documentation — prose that lives outside the entity tree and so is reached
+// by no other id-shape rule.
+//
+// Paths names the documentation scanned, relative to the repo root, replacing
+// (not extending) DefaultDocsPath when declared. Strict raises every doc rule's
+// findings from warning to error, so the pre-push hook blocks them.
+//
+// internal/check/doc_id_width.go states why the default is advisory.
+type Docs struct {
+	Paths  []string `yaml:"paths,omitempty"`
+	Strict bool     `yaml:"strict,omitempty"`
+}
+
+var knownDocsKeys = map[string]bool{
+	"paths":  true,
+	"strict": true,
+}
+
+// unknownDocsKey returns the first unrecognized key in the docs mapping node,
+// or "" when every key is known. The block-level analogue of unknownAreasKey.
+func unknownDocsKey(n *yaml.Node) string {
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if !knownDocsKeys[n.Content[i].Value] {
+			return n.Content[i].Value
+		}
+	}
+	return ""
+}
+
+// UnmarshalYAML decodes the docs block, rejecting unknown keys.
+//
+// The guard matters more here than the shape suggests: yaml.v3's Decode is
+// non-strict, so `pathz:` would vanish silently while `strict: true` still
+// parsed — leaving an operator who believes they are guarding several
+// documents at blocking severity guarding only the default one. Same failure
+// mode, and same remedy, as the areas-block guard.
+func (d *Docs) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.MappingNode {
+		if bad := unknownDocsKey(value); bad != "" {
+			return fmt.Errorf("docs: unknown key %q (allowed: paths, strict)", bad)
+		}
+	}
+	type plain Docs // shed the method so Decode does not recurse
+	var raw plain
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	*d = Docs(raw)
+	return nil
+}
+
+// DefaultDocsPath is the one document scanned when a consumer declares no
+// paths. Every repo has a README, and it is the doc most likely to cite
+// entity ids.
+const DefaultDocsPath = "README.md"
+
+// DocsPaths returns the documentation paths the doc rules scan, falling back
+// to DefaultDocsPath when the consumer declares none. Tolerant of a nil
+// receiver so callers can invoke before / without a loaded Config, mirroring
+// ArchiveSweepThreshold.
+func (c *Config) DocsPaths() []string {
+	if c == nil || len(c.Docs.Paths) == 0 {
+		return []string{DefaultDocsPath}
+	}
+	return c.Docs.Paths
+}
+
+// DocsStrict reports whether doc findings escalate to error. Nil-tolerant for
+// the same reason as DocsPaths.
+func (c *Config) DocsStrict() bool {
+	return c != nil && c.Docs.Strict
 }
 
 // Allocate carries the consumer's id-allocator configuration. Trunk

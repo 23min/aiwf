@@ -7,26 +7,20 @@ import (
 	"github.com/23min/aiwf/internal/check"
 )
 
-// TestPolicy_ThisRepoDriftCheckClean is the M-083 AC-5 chokepoint:
-// running `aiwf check` against this repo's active tree (post-M-082
-// uniform-canonical) produces zero findings of code
-// `entity-id-narrow-width`.
+// TestPolicy_ThisRepoDriftCheckClean asserts `aiwf check` against this
+// repo's own active tree produces zero `entity-id-narrow-width`
+// findings.
 //
-// This is the load-bearing assertion for the M-083 milestone outcome:
-// the rule fires only on mixed state; M-082's `aiwf rewidth --apply`
-// made the active tree uniform-canonical; therefore the rule is
-// silent on this repo.
+// The claim is stronger than it was under the rule's earlier
+// tree-state form, which fired only when narrow and canonical widths
+// coexisted: every active id is now required to be canonical outright,
+// so this asserts the whole active tree, not the absence of a mix.
 //
-// If this assertion fails, it indicates either:
-//
-//   - The rule's tree-state computation is wrong (regression in
-//     M-083/AC-1; the table-driven fixture tests in
-//     internal/check/entity_id_narrow_width_test.go should catch it
-//     first).
-//   - M-082's apply step missed an active-tree file (regression in
-//     M-082; the rewidth verb's idempotence test in
-//     internal/verb/rewidth_test.go and M-082 AC-5 should catch it
-//     first).
+// A failure means an active entity's filename carries a narrow id.
+// Since no verb can produce one, the cause is a hand-edit or a file
+// move — the table-driven fixtures in
+// internal/check/entity_id_narrow_width_test.go should catch a
+// regression in the rule itself first.
 //
 // Per CLAUDE.md "framework correctness must not depend on the LLM's
 // behavior," AC-5's discipline lives in this test, not in reviewer

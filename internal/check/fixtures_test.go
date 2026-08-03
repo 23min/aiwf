@@ -112,7 +112,7 @@ func TestFixture_Messy(t *testing.T) {
 // 12 entities referencing it through every reference field type. The
 // loaded tree → check.Run pipeline must produce exactly 1 finding (the
 // load error), not 13. Pre-fix this returned 13 findings; post-fix it
-// returns 1 because the loader registers a path-derived stub for E-01
+// returns 1 because the loader registers a path-derived stub for E-0001
 // and refs-resolve consults it. The fixture is built in a tmpdir
 // (rather than testdata/) so it doubles as documentation: anyone
 // reading this test sees the exact shape of the bug.
@@ -120,46 +120,46 @@ func TestFixture_ProliminalCascadeEndToEnd(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 
-	// E-01 with the unknown `completed:` field — the bug.
-	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
-id: E-01
+	// E-0001 with the unknown `completed:` field — the bug.
+	writeFile(t, root, "work/epics/E-0001-platform/epic.md", `---
+id: E-0001
 title: Platform
 status: done
 completed: 2026-04-30
 ---
 `)
-	// 5 milestones under E-01. Status is non-terminal so the
+	// 5 milestones under E-0001. Status is non-terminal so the
 	// M-0086 terminal-entity-not-archived rule doesn't fire on
 	// them — this fixture's narrative is the refs-resolve cascade,
 	// not archive sweep state. tdd: none keeps milestone-tdd-undeclared
 	// (G-0268) silent so the cascade is the only thing under test.
 	for i := 1; i <= 5; i++ {
-		writeFile(t, root, fmt.Sprintf("work/epics/E-01-platform/M-%03d.md", i), fmt.Sprintf(`---
-id: M-%03d
+		writeFile(t, root, fmt.Sprintf("work/epics/E-0001-platform/M-%04d.md", i), fmt.Sprintf(`---
+id: M-%04d
 title: Milestone %d
 status: in_progress
-parent: E-01
+parent: E-0001
 tdd: none
 ---
 `, i, i))
 	}
-	// 5 gaps discovered_in E-01.
+	// 5 gaps discovered_in E-0001.
 	for i := 1; i <= 5; i++ {
-		writeFile(t, root, fmt.Sprintf("work/gaps/G-%03d.md", i), fmt.Sprintf(`---
-id: G-%03d
+		writeFile(t, root, fmt.Sprintf("work/gaps/G-%04d.md", i), fmt.Sprintf(`---
+id: G-%04d
 title: Gap %d
 status: open
-discovered_in: E-01
+discovered_in: E-0001
 ---
 `, i, i))
 	}
-	// 2 decisions relates_to E-01.
+	// 2 decisions relates_to E-0001.
 	for i := 1; i <= 2; i++ {
-		writeFile(t, root, fmt.Sprintf("work/decisions/D-%03d.md", i), fmt.Sprintf(`---
-id: D-%03d
+		writeFile(t, root, fmt.Sprintf("work/decisions/D-%04d.md", i), fmt.Sprintf(`---
+id: D-%04d
 title: Decision %d
 status: accepted
-relates_to: [E-01]
+relates_to: [E-0001]
 ---
 `, i, i))
 	}
@@ -170,7 +170,7 @@ relates_to: [E-01]
 	}
 	got := check.Run(tr, loadErrs)
 
-	// Exactly one finding: the load error on E-01's epic.md.
+	// Exactly one finding: the load error on E-0001's epic.md.
 	if len(got) != 1 {
 		t.Errorf("expected exactly 1 finding (the load error), got %d:\n%+v", len(got), got)
 	}
@@ -180,8 +180,8 @@ relates_to: [E-01]
 		if f.Code != check.CodeLoadError {
 			t.Errorf("the surviving finding should be the load error; got code=%q", f.Code)
 		}
-		if filepath.ToSlash(f.Path) != "work/epics/E-01-platform/epic.md" {
-			t.Errorf("the load error should be on E-01's epic.md; got path=%q", f.Path)
+		if filepath.ToSlash(f.Path) != "work/epics/E-0001-platform/epic.md" {
+			t.Errorf("the load error should be on E-0001's epic.md; got path=%q", f.Path)
 		}
 	}
 	// And: refs-resolve must have suppressed the 12 cascade findings.
@@ -201,46 +201,46 @@ func TestFixture_MultipleStubsAndCrossLinks(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 
-	// E-01: parse failure (unknown field).
-	writeFile(t, root, "work/epics/E-01-platform/epic.md", `---
-id: E-01
+	// E-0001: parse failure (unknown field).
+	writeFile(t, root, "work/epics/E-0001-platform/epic.md", `---
+id: E-0001
 title: Platform
 status: active
 completed: 2026-04-30
 ---
 `)
-	// M-001: parse failure (also under E-01).
-	writeFile(t, root, "work/epics/E-01-platform/M-001-cache.md", `---
-id: M-001
+	// M-0001: parse failure (also under E-0001).
+	writeFile(t, root, "work/epics/E-0001-platform/M-0001-cache.md", `---
+id: M-0001
 title: Cache
 status: in_progress
-parent: E-01
+parent: E-0001
 notes_field_aiwf_does_not_know: yes
 ---
 `)
-	// M-002: real, depends_on the stubbed M-001.
-	writeFile(t, root, "work/epics/E-01-platform/M-002-bar.md", `---
-id: M-002
+	// M-0002: real, depends_on the stubbed M-0001.
+	writeFile(t, root, "work/epics/E-0001-platform/M-0002-bar.md", `---
+id: M-0002
 title: Bar
 status: in_progress
-parent: E-01
-depends_on: [M-001]
+parent: E-0001
+depends_on: [M-0001]
 ---
 `)
-	// G-001: real, discovered_in the stubbed M-001.
-	writeFile(t, root, "work/gaps/G-001-flake.md", `---
-id: G-001
+	// G-0001: real, discovered_in the stubbed M-0001.
+	writeFile(t, root, "work/gaps/G-0001-flake.md", `---
+id: G-0001
 title: Flake
 status: open
-discovered_in: M-001
+discovered_in: M-0001
 ---
 `)
-	// D-001: real, relates_to both stubbed entities.
-	writeFile(t, root, "work/decisions/D-001-shape.md", `---
-id: D-001
+	// D-0001: real, relates_to both stubbed entities.
+	writeFile(t, root, "work/decisions/D-0001-shape.md", `---
+id: D-0001
 title: Shape
 status: accepted
-relates_to: [E-01, M-001]
+relates_to: [E-0001, M-0001]
 ---
 `)
 
@@ -249,7 +249,7 @@ relates_to: [E-01, M-001]
 		t.Fatalf("Load: %v", err)
 	}
 	if len(tr.Stubs) != 2 {
-		t.Errorf("expected 2 stubs (E-01, M-001); got %+v", tr.Stubs)
+		t.Errorf("expected 2 stubs (E-0001, M-0001); got %+v", tr.Stubs)
 	}
 	got := check.Run(tr, loadErrs)
 
