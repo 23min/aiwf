@@ -16,6 +16,7 @@ acs:
     - id: AC-3
       title: The deferred doc-residue gap exists naming its three paths and reason
       status: open
+      tdd_phase: red
     - id: AC-4
       title: An id written with a slug contradicting the real entity fails a gate
       status: met
