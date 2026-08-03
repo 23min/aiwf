@@ -19,11 +19,11 @@ The shape of a typical project. Linear, no surprises.
 ```mermaid
 flowchart LR
     Setup["aiwf init<br/>(once per repo)"]
-    Plan["aiwf add epic E-01<br/>aiwf add milestone M-001 (–epic E-01)"]
-    Begin["aiwf promote M-001 in_progress"]
-    Wrap1["aiwf promote M-001 done"]
-    WrapEpic["aiwf promote E-01 done"]
-    Inspect["aiwf history E-01<br/>aiwf render roadmap"]
+    Plan["aiwf add epic E-NNNN<br/>aiwf add milestone M-NNNN (–epic E-NNNN)"]
+    Begin["aiwf promote M-NNNN in_progress"]
+    Wrap1["aiwf promote M-NNNN done"]
+    WrapEpic["aiwf promote E-NNNN done"]
+    Inspect["aiwf history E-NNNN<br/>aiwf render roadmap"]
 
     Setup --> Plan --> Begin --> Wrap1 --> WrapEpic --> Inspect
 ```
@@ -44,7 +44,7 @@ After `aiwf init` the repo has the conventional layout, a pre-push hook that run
 
 ```bash
 aiwf add epic --title "Auth rewrite"
-# → E-01-auth-rewrite/epic.md, status: proposed
+# → E-NNNN-auth-rewrite/epic.md, status: proposed
 ```
 
 The epic is `proposed` — the team has acknowledged it as work, but not yet committed to doing it. (`aiwf` doesn't pretend that "we said we'd do it" and "we're actually doing it" are the same thing.)
@@ -52,20 +52,20 @@ The epic is `proposed` — the team has acknowledged it as work, but not yet com
 **2. Plan the first milestone.**
 
 ```bash
-aiwf add milestone --epic E-01 --title "Schema migration"
-# → E-01-auth-rewrite/M-001-schema-migration.md, status: draft
+aiwf add milestone --epic E-NNNN --title "Schema migration"
+# → E-NNNN-auth-rewrite/M-NNNN-schema-migration.md, status: draft
 ```
 
-Milestones live inside their epic's directory. The frontmatter carries `parent: E-01`; `aiwf check` verifies that reference resolves to a real epic.
+Milestones live inside their epic's directory. The frontmatter carries `parent: E-NNNN`; `aiwf check` verifies that reference resolves to a real epic.
 
 **3. Begin work on the epic and the milestone.**
 
 ```bash
-aiwf promote E-01 active
-aiwf promote M-001 in_progress
+aiwf promote E-NNNN active
+aiwf promote M-NNNN in_progress
 ```
 
-Two commits, two trailers — `aiwf history E-01` and `aiwf history M-001` will both pick these up.
+Two commits, two trailers — `aiwf history E-NNNN` and `aiwf history M-NNNN` will both pick these up.
 
 **4. Implement.**
 
@@ -74,7 +74,7 @@ Now the team writes code. `aiwf` is silent during this phase: there is nothing f
 **5. Wrap the milestone.**
 
 ```bash
-aiwf promote M-001 done
+aiwf promote M-NNNN done
 ```
 
 The pre-push hook will block this commit if anything else in the tree is broken (a stale reference, a missing required field), so a green push is a green tree.
@@ -82,7 +82,7 @@ The pre-push hook will block this commit if anything else in the tree is broken 
 **6. Wrap the epic.**
 
 ```bash
-aiwf promote E-01 done
+aiwf promote E-NNNN done
 ```
 
 For `aiwf` an epic can transition to `done` from `active`, regardless of whether every milestone underneath is itself `done`. The framework deliberately does not enforce roll-up — it is descriptive of the team's choice, not prescriptive of when "done" is allowed. (`aiwf check` warns if you cancel an epic with active milestones, but that warning is the only nudge.)
@@ -90,7 +90,7 @@ For `aiwf` an epic can transition to `done` from `active`, regardless of whether
 **7. Inspect.**
 
 ```bash
-aiwf history E-01
+aiwf history E-NNNN
 # 2026-04-28T..  human/peter  add        "Auth rewrite"   abc1234
 # 2026-04-28T..  human/peter  promote    proposed → active  def5678
 # 2026-04-28T..  human/peter  promote    active → done  ghi9abc
@@ -98,11 +98,11 @@ aiwf history E-01
 aiwf render roadmap
 # # Roadmap
 #
-# ## E-01 — Auth rewrite (done)
+# ## E-NNNN — Auth rewrite (done)
 #
 # | Milestone | Title | Status |
 # |---|---|---|
-# | M-001 | Schema migration | done |
+# | M-NNNN | Schema migration | done |
 ```
 
 ---
@@ -120,53 +120,53 @@ Same project — auth rewrite — but with the texture a real one carries.
 
 ```mermaid
 flowchart TB
-    A["aiwf add adr ADR-0001<br/>'Use OAuth 2.1 with passkey support'"]
-    B["aiwf add epic E-01 'Auth rewrite'<br/>aiwf promote E-01 active"]
-    C["aiwf add milestone M-001 'Schema migration'<br/>aiwf promote M-001 in_progress"]
-    D["mid-implementation:<br/>aiwf add gap G-001<br/>'user_sessions has no soft-delete'<br/>--discovered-in M-001"]
-    E["aiwf promote M-001 done"]
-    F["aiwf add milestone M-002 'OIDC integration'<br/>aiwf promote M-002 in_progress"]
-    G["aiwf add decision D-001<br/>'Support legacy basic auth for 6 months'<br/>--relates-to E-01,M-002"]
-    H["mid-stream: aiwf add epic E-02<br/>'Front-end auth widgets'<br/>aiwf add milestone M-003 --epic E-02"]
-    I["aiwf promote M-002 done<br/>aiwf promote E-01 done"]
+    A["aiwf add adr ADR-NNNN<br/>'Use OAuth 2.1 with passkey support'"]
+    B["aiwf add epic E-NNNN 'Auth rewrite'<br/>aiwf promote E-NNNN active"]
+    C["aiwf add milestone M-NNNN 'Schema migration'<br/>aiwf promote M-NNNN in_progress"]
+    D["mid-implementation:<br/>aiwf add gap G-NNNN<br/>'user_sessions has no soft-delete'<br/>--discovered-in M-NNNN"]
+    E["aiwf promote M-NNNN done"]
+    F["aiwf add milestone M-NNNN 'OIDC integration'<br/>aiwf promote M-NNNN in_progress"]
+    G["aiwf add decision D-NNNN<br/>'Support legacy basic auth for 6 months'<br/>--relates-to E-NNNN,M-NNNN"]
+    H["mid-stream: aiwf add epic E-NNNN<br/>'Front-end auth widgets'<br/>aiwf add milestone M-NNNN --epic E-NNNN"]
+    I["aiwf promote M-NNNN done<br/>aiwf promote E-NNNN done"]
 
     A --> B --> C --> D --> E --> F --> G --> H --> I
 ```
 
 ### How each kind earns its place
 
-**ADR (`ADR-0001`).** Architectural choice, durable, reviewed. "We're using OAuth 2.1 with passkeys" is exactly the kind of thing a successor to the team needs to find six months later. ADRs have a `superseded_by:` field so a future architectural reversal still preserves the original record:
+**ADR (`ADR-NNNN`).** Architectural choice, durable, reviewed. "We're using OAuth 2.1 with passkeys" is exactly the kind of thing a successor to the team needs to find six months later. ADRs have a `superseded_by:` field so a future architectural reversal still preserves the original record:
 
 ```bash
 aiwf add adr --title "Use OAuth 2.1 with passkey support"
-# → docs/adr/ADR-0001-use-oauth-21-with-passkey-support.md, status: proposed
-aiwf promote ADR-0001 accepted
+# → docs/adr/ADR-NNNN-use-oauth-21-with-passkey-support.md, status: proposed
+aiwf promote ADR-NNNN accepted
 ```
 
-**Gap (`G-001`).** A noticed shortfall that's *not* this milestone's job. Recording it as a gap keeps it visible without expanding the milestone's scope. The `discovered_in:` field anchors it to the milestone where it was surfaced, so `aiwf history M-001` includes it indirectly via the audit trail.
+**Gap (`G-NNNN`).** A noticed shortfall that's *not* this milestone's job. Recording it as a gap keeps it visible without expanding the milestone's scope. The `discovered_in:` field anchors it to the milestone where it was surfaced, so `aiwf history M-NNNN` includes it indirectly via the audit trail.
 
 ```bash
-aiwf add gap --title "user_sessions table has no soft-delete" --discovered-in M-001
-# → work/gaps/G-001-user-sessions-table-has-no-soft-delete.md, status: open
+aiwf add gap --title "user_sessions table has no soft-delete" --discovered-in M-NNNN
+# → work/gaps/G-NNNN-user-sessions-table-has-no-soft-delete.md, status: open
 ```
 
-Later, when a milestone closes the gap, `aiwf` records the relationship via `addressed_by: [M-007]` on the gap, and `aiwf check` warns if a gap is marked `addressed` without an `addressed_by` set.
+Later, when a milestone closes the gap, `aiwf` records the relationship via `addressed_by: [M-NNNN]` on the gap, and `aiwf check` warns if a gap is marked `addressed` without an `addressed_by` set.
 
-**Decision (`D-001`).** Process/scope choice — not architectural, but worth recording. "We'll support legacy basic auth for 6 months" is the kind of thing that disappears from the team's memory in a quarter and reappears as an angry question.
+**Decision (`D-NNNN`).** Process/scope choice — not architectural, but worth recording. "We'll support legacy basic auth for 6 months" is the kind of thing that disappears from the team's memory in a quarter and reappears as an angry question.
 
 ```bash
-aiwf add decision --title "Support legacy basic auth for 6 months" --relates-to E-01,M-002
-# → work/decisions/D-001-support-legacy-basic-auth-for-6-months.md, status: proposed
-aiwf promote D-001 accepted
+aiwf add decision --title "Support legacy basic auth for 6 months" --relates-to E-NNNN,M-NNNN
+# → work/decisions/D-NNNN-support-legacy-basic-auth-for-6-months.md, status: proposed
+aiwf promote D-NNNN accepted
 ```
 
-**Mid-stream new epic (`E-02`).** The team realised the front-end widgets need their own thread. Adding a second epic mid-flight is mechanically the same as adding the first; the framework doesn't mind:
+**Mid-stream new epic (`E-NNNN`).** The team realised the front-end widgets need their own thread. Adding a second epic mid-flight is mechanically the same as adding the first; the framework doesn't mind:
 
 ```bash
 aiwf add epic --title "Front-end auth widgets"
-# → E-02-front-end-auth-widgets/epic.md, status: proposed
-aiwf add milestone --epic E-02 --title "Login form refactor"
-# → E-02-front-end-auth-widgets/M-003-login-form-refactor.md
+# → E-NNNN-front-end-auth-widgets/epic.md, status: proposed
+aiwf add milestone --epic E-NNNN --title "Login form refactor"
+# → E-NNNN-front-end-auth-widgets/M-NNNN-login-form-refactor.md
 ```
 
 The roadmap surfaces both epics; history queries are scoped per-id.
@@ -174,20 +174,20 @@ The roadmap surfaces both epics; history queries are scoped per-id.
 ### Reading it back
 
 ```bash
-aiwf history M-001
+aiwf history M-NNNN
 # add        "Schema migration"
 # promote    draft → in_progress
 # promote    in_progress → done
 
-aiwf history G-001
+aiwf history G-NNNN
 # add        "user_sessions table has no soft-delete"
 
 aiwf render roadmap
-# ## E-01 — Auth rewrite (done)
-# | M-001 | Schema migration  | done |
-# | M-002 | OIDC integration  | done |
-# ## E-02 — Front-end auth widgets (proposed)
-# | M-003 | Login form refactor | draft |
+# ## E-NNNN — Auth rewrite (done)
+# | M-NNNN | Schema migration  | done |
+# | M-NNNN | OIDC integration  | done |
+# ## E-NNNN — Front-end auth widgets (proposed)
+# | M-NNNN | Login form refactor | draft |
 ```
 
 ADRs, gaps, and decisions don't appear in the roadmap by design — the roadmap is a delivery view, not an everything view. Their lifecycle is still queryable via `aiwf history`.
@@ -203,18 +203,18 @@ These are concrete examples of what to say. The AI's response is the verb sequen
 | You say | AI runs |
 |---|---|
 | "Let's start a new epic for the auth rewrite." | `aiwf add epic --title "Auth rewrite"` |
-| "Plan three milestones under E-01: schema migration, OIDC integration, passkey rollout." | three `aiwf add milestone --epic E-01 --title "..."` calls |
-| "Begin work on M-001." | `aiwf promote M-001 in_progress` (and possibly `aiwf promote E-01 active` if the epic is still `proposed`) |
-| "Record an ADR for using OAuth 2.1 with passkey support." | `aiwf add adr --title "Use OAuth 2.1 with passkey support"` then optionally `aiwf promote ADR-0001 accepted` |
+| "Plan three milestones under E-NNNN: schema migration, OIDC integration, passkey rollout." | three `aiwf add milestone --epic E-NNNN --title "..."` calls |
+| "Begin work on M-NNNN." | `aiwf promote M-NNNN in_progress` (and possibly `aiwf promote E-NNNN active` if the epic is still `proposed`) |
+| "Record an ADR for using OAuth 2.1 with passkey support." | `aiwf add adr --title "Use OAuth 2.1 with passkey support"` then optionally `aiwf promote ADR-NNNN accepted` |
 | "I noticed the user_sessions table has no soft-delete — that's not in scope here, just track it." | `aiwf add gap --title "user_sessions has no soft-delete" --discovered-in <current milestone>` |
-| "Decide: we'll support legacy basic auth for 6 months. Relate it to E-01 and M-002." | `aiwf add decision --title "Support legacy basic auth for 6 months" --relates-to E-01,M-002` then `aiwf promote D-001 accepted` |
-| "M-001 is wrapped, start M-002." | `aiwf promote M-001 done`, then `aiwf promote M-002 in_progress` |
-| "Wrap up E-01." | `aiwf promote E-01 done` |
-| "Cancel D-002, we changed our mind." | `aiwf cancel D-002` |
-| "Show me what happened to E-01 over time." | `aiwf history E-01` |
+| "Decide: we'll support legacy basic auth for 6 months. Relate it to E-NNNN and M-NNNN." | `aiwf add decision --title "Support legacy basic auth for 6 months" --relates-to E-NNNN,M-NNNN` then `aiwf promote D-NNNN accepted` |
+| "M-NNNN is wrapped, start M-NNNN." | `aiwf promote M-NNNN done`, then `aiwf promote M-NNNN in_progress` |
+| "Wrap up E-NNNN." | `aiwf promote E-NNNN done` |
+| "Cancel D-NNNN, we changed our mind." | `aiwf cancel D-NNNN` |
+| "Show me what happened to E-NNNN over time." | `aiwf history E-NNNN` |
 | "Print the roadmap." | `aiwf render roadmap` (or `aiwf render roadmap --write` if you want it committed to `ROADMAP.md`) |
-| "Renumber M-007 — we hit a merge collision." | `aiwf reallocate work/epics/<dir>/M-007-<slug>.md` (path form disambiguates the duplicate) |
-| "Rename E-01's slug to 'auth-platform-rewrite'." | `aiwf rename E-01 auth-platform-rewrite` (id stays E-01) |
+| "Renumber M-NNNN — we hit a merge collision." | `aiwf reallocate work/epics/<dir>/M-NNNN-<slug>.md` (path form disambiguates the duplicate) |
+| "Rename E-NNNN's slug to 'auth-platform-rewrite'." | `aiwf rename E-NNNN auth-platform-rewrite` (id stays E-NNNN) |
 | "Validate the tree before I push." | `aiwf check` (the pre-push hook also does this on `git push`) |
 | "Verify my install actually works." | `aiwf doctor --self-check` |
 

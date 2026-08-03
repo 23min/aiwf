@@ -50,7 +50,7 @@ The full argument, from first principles:
 | Session 4 — Polish for real use | ✅ done | `aiwf render roadmap`, `aiwf doctor --self-check`, polished error output (`file:line` + hints), workflows walk-through. |
 | Session 5 — Adoption surface | ✅ done | `aiwf import` (YAML/JSON manifests), `--dry-run`, `--skip-hook`, brownfield migration guide. |
 | Iteration I1 — Contracts | ✅ done | Contract bindings in `aiwf.yaml`; verify + evolve passes; recipes for CUE / JSON Schema; `aiwf contract bind/unbind/verify`, `aiwf contract recipe …`. |
-| Iteration I2 — ACs + TDD | ✅ done | Acceptance criteria as namespaced milestone sub-elements (`M-NNN/AC-N`); TDD phase tracking; `aiwf show`, AC-related check rules. |
+| Iteration I2 — ACs + TDD | ✅ done | Acceptance criteria as namespaced milestone sub-elements (`M-NNNN/AC-N`); TDD phase tracking; `aiwf show`, AC-related check rules. |
 | Iteration I2.5 — Provenance | ✅ done | Runtime-derived identity, three-layer trailer set, scope FSM, `aiwf authorize` (open/pause/resume), `--audit-only`/`--force` recovery, pre-push trailer audit. |
 | Upgrade flow | ✅ done | `aiwf upgrade` verb, version-skew advisory rows in `aiwf doctor` (`--check-latest`), tagged releases via `go install …@vX.Y.Z`. |
 
@@ -117,7 +117,7 @@ source <(aiwf completion zsh)
 source <(aiwf completion bash)
 ```
 
-After sourcing, `aiwf <TAB>` lists the verb catalog, `aiwf promote E-01 <TAB>` lists the kind's allowed statuses, `aiwf check --format=<TAB>` lists `text|json`, and so on. fish and powershell scripts are emitted by `aiwf completion fish` / `aiwf completion powershell` as well.
+After sourcing, `aiwf <TAB>` lists the verb catalog, `aiwf promote E-NNNN <TAB>` lists the kind's allowed statuses, `aiwf check --format=<TAB>` lists `text|json`, and so on. fish and powershell scripts are emitted by `aiwf completion fish` / `aiwf completion powershell` as well.
 
 ---
 
@@ -137,7 +137,7 @@ The `aiwf upgrade` verb shipped in `v0.1.0`. If your installed binary predates t
 
 ```bash
 go install github.com/23min/aiwf/cmd/aiwf@latest
-aiwf update                                             # in each consumer repo
+aiwf update                                                # in each consumer repo
 ```
 
 After that, every subsequent upgrade is just `aiwf upgrade`. To check what version you're on right now: `aiwf version` (or `aiwf doctor` and look at the `binary:` row).
@@ -163,19 +163,19 @@ In a consumer repository (or a fresh `mkdir + git init`):
 ```bash
 git init -q && git config user.email you@example.com
 
-aiwf init                                                 # writes aiwf.yaml, scaffolds dirs, installs pre-push + pre-commit hooks, materializes skills
-aiwf add epic --title "Discovery and ramp-up"             # → E-01
-aiwf add milestone --epic E-01 --title "Map the system"   # → M-001
-aiwf add ac M-001 --title "Inventory complete"            # → M-001/AC-1
-aiwf promote M-001 in_progress
-aiwf rename M-001 system-survey
-aiwf add adr --title "Adopt OpenAPI 3.1"                  # → ADR-0001
-aiwf check                                                # validates the tree
-aiwf show M-001                                           # frontmatter + ACs + recent history + active findings
-aiwf history E-01                                         # show this entity's lifecycle from git log
-aiwf render roadmap                                       # markdown table of epics + milestones
-aiwf render --format=html                                 # static-site render: site/index.html + one page per epic/milestone (gitignored by default)
-aiwf status                                               # project snapshot (same view STATUS.md carries)
+aiwf init                                                  # writes aiwf.yaml, scaffolds dirs, installs pre-push + pre-commit hooks, materializes skills
+aiwf add epic --title "Discovery and ramp-up"              # → E-NNNN
+aiwf add milestone --epic E-NNNN --title "Map the system"  # → M-NNNN
+aiwf add ac M-NNNN --title "Inventory complete"            # → M-NNNN/AC-1
+aiwf promote M-NNNN in_progress
+aiwf rename M-NNNN system-survey
+aiwf add adr --title "Adopt OpenAPI 3.1"                   # → ADR-NNNN
+aiwf check                                                 # validates the tree
+aiwf show M-NNNN                                           # frontmatter + ACs + recent history + active findings
+aiwf history E-NNNN                                        # show this entity's lifecycle from git log
+aiwf render roadmap                                        # markdown table of epics + milestones
+aiwf render --format=html                                  # static-site render: site/index.html + one page per epic/milestone (gitignored by default)
+aiwf status                                                # project snapshot (same view STATUS.md carries)
 ```
 
 Identity is derived from `git config user.email` (e.g., `you@example.com` becomes actor `human/you`); `--actor` overrides per invocation. Each mutating verb produces a single git commit with structured trailers (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`, plus the I2.5 provenance set when relevant). The pre-push hook installed by `aiwf init` runs `aiwf check` on every push so an inconsistent tree never reaches the remote.
@@ -200,9 +200,9 @@ Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts material
 When validation finds something, output is one finding per line in linter form: `path:line: severity code: message — hint: <action>`.
 
 ```text
-work/epics/E-01-foo/M-001-bad.md:5: error refs-resolve/unresolved: milestone field "parent" references unknown id "E-99" — hint: check the spelling, or remove the reference if the target was deleted
-work/epics/E-01-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: use one of the allowed statuses listed above
-work/epics/E-01-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter
+work/epics/E-NNNN-foo/M-NNNN-bad.md:5: error refs-resolve/unresolved: milestone field "parent" references an id that resolves to no entity — hint: check the spelling, or remove the reference if the target was deleted
+work/epics/E-NNNN-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: use one of the allowed statuses listed above
+work/epics/E-NNNN-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter
 
 3 findings (2 errors, 1 warnings)
 ```
@@ -211,7 +211,7 @@ Pipe through `--format=json` (with optional `--pretty`) when feeding CI. Exit co
 
 ### HTML render
 
-`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven (with `:has()` to handle the default-tab fallback) so per-tab URLs (`M-007.html#tab-build`) are bookmarkable.
+`aiwf render --format=html` produces a self-contained directory of HTML files: `index.html` (epics table with the `met / (total - cancelled)` AC rollup), one page per epic, and one page per milestone with six tabs (Overview, Manifest, Build, Tests, Commits, Provenance). A single embedded stylesheet ships alongside; no JS, no runtime, no external assets. Tab show/hide is `:target`-driven (with `:has()` to handle the default-tab fallback) so per-tab URLs (`M-NNNN.html#tab-build`) are bookmarkable.
 
 The render covers two surfaces: the **governance** view (epics + milestones + ACs + provenance, one page per entity) and the **project status** view (in-flight work, open decisions, open gaps, recent activity). The status view replaces the markdown output of `aiwf status` for browser consumption — same data, same `buildStatus` helper.
 
@@ -247,8 +247,8 @@ The output is a pure function of the planning tree: render twice into separate d
 
 | Verb | Purpose |
 |---|---|
-| `aiwf add <kind>` | Allocate id and create the entity. Kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. Composite-id `aiwf add ac M-NNN` for AC sub-elements. |
-| `aiwf promote <id> <status>` | Transition status; rejected if the transition is illegal for the kind's FSM. Composite ids (`M-NNN/AC-N`) accepted. `--phase` for AC `tdd_phase`. `--reason "…"` records intent; `--force --reason "…"` skips the FSM. |
+| `aiwf add <kind>` | Allocate id and create the entity. Kinds: `epic`, `milestone`, `adr`, `gap`, `decision`, `contract`. Composite-id `aiwf add ac M-NNNN` for AC sub-elements. |
+| `aiwf promote <id> <status>` | Transition status; rejected if the transition is illegal for the kind's FSM. Composite ids (`M-NNNN/AC-N`) accepted. `--phase` for AC `tdd_phase`. `--reason "…"` records intent; `--force --reason "…"` skips the FSM. |
 | `aiwf cancel <id>` | Set status to the kind's terminal-cancel value (`cancelled`/`wontfix`/`rejected`/`retired`). |
 | `aiwf rename <id> <new-slug>` | `git mv` to a new slug; the id is preserved. Composite ids accepted (rewrites the AC body heading). |
 | `aiwf retitle <id> <new-title>` | Update the entity's frontmatter `title:` (the prose label, distinct from the slug). Composite ids accepted (rewrites the AC body heading and `acs[].title` atomically). `--reason "…"` records intent. |
@@ -326,15 +326,15 @@ Verb-specific flags for `add`:
 ├── aiwf.yaml                              # tiny config (~10 lines)
 ├── work/
 │   ├── epics/
-│   │   └── E-NN-<slug>/
+│   │   └── E-NNNN-<slug>/
 │   │       ├── epic.md
-│   │       └── M-NNN-<slug>.md            # milestones live inside their epic
+│   │       └── M-NNNN-<slug>.md            # milestones live inside their epic
 │   ├── gaps/
-│   │   └── G-NNN-<slug>.md
+│   │   └── G-NNNN-<slug>.md
 │   ├── decisions/
-│   │   └── D-NNN-<slug>.md
+│   │   └── D-NNNN-<slug>.md
 │   └── contracts/
-│       └── C-NNN-<slug>/
+│       └── C-NNNN-<slug>/
 │           └── contract.md                # registry record only; schemas + fixtures referenced from aiwf.yaml
 ├── docs/
 │   └── adr/
@@ -407,7 +407,7 @@ Exit codes: `0` no errors (warnings allowed), `1` errors found, `2` usage error,
 
 ## Known limitations
 
-- **Filesystem case-sensitivity.** On case-insensitive volumes (default macOS APFS, Windows NTFS), two paths that differ only in case (`E-01-foo` vs `E-01-Foo`) refer to the same on-disk directory. `aiwf check` reports this as a `case-paths` finding so the issue surfaces at validation time rather than as silent data loss when a Linux-checked-in repo is reviewed on macOS. `aiwf doctor` prints whether the current volume is case-sensitive or case-insensitive.
+- **Filesystem case-sensitivity.** On case-insensitive volumes (default macOS APFS, Windows NTFS), two paths that differ only in case (`E-NNNN-foo` vs `E-NNNN-Foo`) refer to the same on-disk directory. `aiwf check` reports this as a `case-paths` finding so the issue surfaces at validation time rather than as silent data loss when a Linux-checked-in repo is reviewed on macOS. `aiwf doctor` prints whether the current volume is case-sensitive or case-insensitive.
 - **Concurrent invocations.** Two `aiwf` mutations on the same repo serialise via an exclusive POSIX flock on `<root>/.git/aiwf.lock`. The second invocation waits up to 2s, then returns a usage-error finding. Read-only verbs (`check`, `history`, `status`, `render` without `--write`, `doctor`) do not lock and remain free to run concurrently.
 - **Validator availability.** A configured contract validator binary missing from `PATH` is a warning by default, not a hard error — your teammate without `cue` installed shouldn't be blocked from a docs-only push. Set `aiwf.yaml`'s `contracts.strict_validators: true` to upgrade to error.
 - **Unix only.** The pre-push hook is a `#!/bin/sh` script and contract validators are invoked as POSIX subprocess commands. Windows is not in scope (yet).
@@ -420,7 +420,7 @@ aiwf is deliberately self-contained: markdown files in the consumer repo, no ser
 
 The longer-term aspiration is a modular architecture where a *backend adapter* can connect the local entity model to an external PM system — GitHub Issues, Linear, Jira, Azure DevOps, etc. — so a team that lives partly in `aiwf` and partly in their existing tracker can have the two stay in step. The pieces the PoC has already committed to make this plausible without re-architecting:
 
-- **Closed-set entities with stable ids.** A milestone with id `M-007` is the obvious target for a sync adapter to map onto a Linear issue or a GitHub issue number.
+- **Closed-set entities with stable ids.** A milestone with id `M-NNNN` is the obvious target for a sync adapter to map onto a Linear issue or a GitHub issue number.
 - **Structured commit trailers** (`aiwf-verb:`, `aiwf-entity:`, `aiwf-actor:`) on every mutation. An adapter can read `git log` after each push and replay the lifecycle into the external system without scraping the markdown.
 - **Validate-then-write semantics.** The chokepoint is already factored: a backend adapter can hook in at the same boundary that the pre-push hook uses today, so an outbound sync only happens against a tree that already validates.
 
