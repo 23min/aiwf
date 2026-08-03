@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: A narrow id in an active tree fires at error severity, mixed or not
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: Archive entries never fire and archived-entity cross-references resolve
       status: open
