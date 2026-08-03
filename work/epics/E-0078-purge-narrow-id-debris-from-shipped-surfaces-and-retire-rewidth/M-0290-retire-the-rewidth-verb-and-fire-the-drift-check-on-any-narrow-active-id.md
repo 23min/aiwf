@@ -20,6 +20,7 @@ acs:
     - id: AC-4
       title: No shipped or normative surface tells an operator to run the verb
       status: open
+      tdd_phase: red
     - id: AC-5
       title: An ADR records which clauses the retirement supersedes
       status: open
