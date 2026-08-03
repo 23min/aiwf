@@ -47,11 +47,13 @@ tell which parts of the original still bind.
 - **§"Drift control"**, in part: the uniform-narrow-is-silent rule, the
   mixed-state classifier, warning severity, and the remediation that
   named the verb. The finding itself stands, restated below.
-- The consequence claiming a tested, distributed migration path shipped
-  to every consumer via `go install`; the consequence describing the
-  transient window in which filenames stay narrow until the consumer
-  runs the verb; and the consequence accepting permanent CLI surface for
-  a one-shot ritual, whose stated sunset this ADR executes.
+- Four consequences: the tested, distributed migration path shipped to
+  every consumer via `go install`; the transient window in which
+  filenames stay narrow until the consumer runs the verb; the permanent
+  CLI surface accepted for a one-shot ritual, whose stated sunset this
+  ADR executes; and **"No nagging on pre-migration trees"**, which
+  promised uniform-narrow consumers silence until they chose to migrate.
+  That silence is exactly what the collapsed rule removes.
 
 ### Clauses that stand, unchanged
 
@@ -59,7 +61,9 @@ tell which parts of the original still bind.
   input.
 - **§"Allocator behavior"** — allocation emits canonical width.
 - **§"Renderer canonicalization"** — renderers always emit canonical
-  width.
+  width. Its aside that files keep their birth-width filename "until the
+  consumer runs the migration verb" lapses with the verb; the canonical
+  render itself is unaffected, which is what the section decides.
 - **§"Drift control"**, in that a finding polices width drift at all,
   and that archive entries are excluded from it.
 

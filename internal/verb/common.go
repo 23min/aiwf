@@ -139,7 +139,7 @@ func projectionFindings(original, projected *tree.Tree) []check.Finding {
 			// Each body-supplying verb runs its own verb-time
 			// ScanBodyProseID against the planned-write bytes
 			// directly (see add.go / editbody.go / import.go /
-			// reallocate.go / rewidth.go), which IS the gate; the
+			// reallocate.go), which IS the gate; the
 			// projection-time skip here just avoids false-positive
 			// findings against the stale-or-absent on-disk content.
 			continue
@@ -201,7 +201,7 @@ func planEntityWrite(t *tree.Tree, modified *entity.Entity, path string, fileBod
 // rules that read body bytes from disk; verb-time scans of the
 // planned-write content (run inside each body-supplying verb before
 // the Plan is returned — see G-0184's verb-time scan in add.go /
-// editbody.go / import.go / reallocate.go / rewidth.go) are the
+// editbody.go / import.go / reallocate.go) are the
 // authoritative gate for these rules. The projection-time diff stays
 // silent here to avoid noisy false-positive findings on stale on-disk
 // bytes that the verb's planned-write content fixes.

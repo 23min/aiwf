@@ -444,12 +444,12 @@ func roadmapCaseCollision(t *tree.Tree) []Finding {
 func frontmatterShape(t *tree.Tree) []Finding {
 	var findings []Finding
 	for _, e := range t.Entities {
-		// M-0086: archive scoping per ADR-0004 §"Check shape rules".
-		// frontmatter-shape is a shape-and-health rule; archived
-		// entities are out of scope for active linting (forget-by-
-		// default). The M-0084 rewidth-archive seam discovery
-		// (narrow-width archive id) was the proximate trigger for
-		// landing this scoping.
+		// Archive scoping per ADR-0004 §"Check shape rules":
+		// frontmatter-shape is a shape-and-health rule, and archived
+		// entities are out of scope for active linting
+		// (forget-by-default). An archived entity may legitimately
+		// carry shapes the active tree rejects — a narrow-width id
+		// among them, permanently, since no verb widens one in place.
 		if entity.IsArchivedPath(e.Path) {
 			continue
 		}
@@ -524,9 +524,10 @@ func idPathConsistent(t *tree.Tree) []Finding {
 		// Compare canonical forms so a tree mid-migration (path-name
 		// at narrow legacy width while frontmatter id lives at
 		// canonical width, or vice versa) is not flagged as a
-		// mismatch — per AC-2 in M-081 the parser tolerates both
-		// widths. M-082's `aiwf rewidth` realigns paths and ids
-		// once the consumer migrates.
+		// mismatch — the parser tolerates both widths, permanently.
+		// Nothing realigns the two sides: no verb widens an id in
+		// place, so a narrow filename is reported by
+		// entity-id-narrow-width rather than as a mismatch here.
 		if entity.Canonicalize(pathID) == entity.Canonicalize(e.ID) {
 			continue
 		}

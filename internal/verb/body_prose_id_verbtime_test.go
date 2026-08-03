@@ -14,7 +14,7 @@ import (
 
 // G-0184 verb-time scan tests. The body-prose-id rule is enforced at
 // verb time across every verb that ingests operator-supplied body
-// content (add, edit-body, import, reallocate, rewidth). These tests
+// content (add, edit-body, import, reallocate). These tests
 // pin that each verb refuses with body-prose-id findings instead of
 // writing the bad content to disk; positive controls verify clean
 // bodies still flow through.

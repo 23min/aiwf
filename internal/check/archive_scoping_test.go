@@ -25,9 +25,9 @@ import (
 // (the scoping invariant). Per CLAUDE.md "test the seam, not just the
 // layer," the tests drive through tree.Load + check.Run end-to-end.
 
-// TestArchiveScoping_FrontmatterShape — narrow-width id under
-// archive must not trigger frontmatter-shape. Mirrors the M-0084
-// rewidth-archive seam discovery.
+// TestArchiveScoping_FrontmatterShape — a narrow-width id under
+// archive must not trigger frontmatter-shape. Archived entities keep
+// shapes the active tree rejects, permanently.
 func TestArchiveScoping_FrontmatterShape(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

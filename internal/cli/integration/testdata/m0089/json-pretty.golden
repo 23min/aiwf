@@ -1,6 +1,6 @@
 {
   "tool": "aiwf",
-  "version": "milestone/M-0290-retire-the-rewidth-verb-and-fire-the-drift-check-on-any-narrow-active-id@v0.31.0-127-g229cd7555-dirty",
+  "version": "(devel)",
   "status": "findings",
   "findings": [
     {
@@ -242,6 +242,6 @@
     "bindings": 0,
     "entities": 13,
     "findings": 25,
-    "root": "/tmp/tmp.PTPLrJRW2S/messy"
+    "root": "/tmp/messy-regen"
   }
 }

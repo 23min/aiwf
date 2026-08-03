@@ -36,8 +36,7 @@ func TestFormatFlagUniformRollout_AC4(t *testing.T) {
 		// D-0013's A2 scope is the shared FinishVerb/DecorateAndFinish
 		// chokepoint; these don't route through it, so the uniform
 		// rollout doesn't reach them. JSON wiring tracked in G-0169.
-		"aiwf import":  "bespoke multi-entity output; not via FinishVerb — JSON envelope tracked in G-0169",
-		"aiwf rewidth": "migration verb with bespoke multi-commit output; not via FinishVerb — G-0169",
+		"aiwf import": "bespoke multi-entity output; not via FinishVerb — JSON envelope tracked in G-0169",
 
 		// Read / generate commands — JSON wiring is a separate concern
 		// from the mutating-verb (FinishVerb) rollout this AC pins.

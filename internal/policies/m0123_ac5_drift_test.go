@@ -121,7 +121,6 @@ var nonLegalityVerbAllowlist = map[string]string{
 	"rename-area":  "areas.members rename + entity area-tag rewrite (E-0044, M-0177); FSM state is preserved",
 	"set-area":     "single-entity area-tag set/clear (E-0044, M-0183); FSM state is preserved",
 	"set-priority": "single-entity priority-tag set/clear (G-0078, E-0066, M-0262); FSM state is preserved",
-	"rewidth":      "id-width canonicalization (ADR-0008); FSM state is preserved",
 	"archive":      "terminal-state sweep; status is already terminal before the verb runs (ADR-0004)",
 	"init":         "framework bootstrap in consumer repo; no entity state",
 	"update":       "framework artifact refresh in consumer repo; no entity state",

@@ -114,9 +114,9 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		"internal/verb/field_verbs_same_state_noop_test.go":    "same-state guard and self-edge refusal compare canonicalized ids; narrow input proves width-insensitivity",
 		"internal/verb/rename_retitle_same_state_noop_test.go": "retitle's H1 comparison keys on the stored id, not the argument; a narrow spelling proves it still repairs a drifted heading",
 
-		// Skills package asserts on-disk SKILL.md content; doc-prose
-		// canonicalization is M-082's `aiwf rewidth` job.
-		"internal/skills/skills_test.go": "skill SKILL.md prose markers (body-prose canonicalization deferred to M-082)",
+		// Skills package asserts on-disk SKILL.md content; the narrow
+		// ids are prose markers in that content, not ids under test.
+		"internal/skills/skills_test.go": "skill SKILL.md prose markers",
 
 		// Whiteboard policy reads SKILL.md fixtures whose prose carries
 		// narrow legacy ids by design.
@@ -136,13 +136,6 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// when ParseEntityFromBranch moved to its own package.
 		"internal/branchparse/branchparse_test.go": "branch-parser tolerance: narrow vs canonical id widths in ritual branch names",
 
-		// M-082: aiwf rewidth verb's tests fixture narrow inputs by
-		// design — that's the verb's input space (the very migration
-		// from narrow to canonical that the verb performs).
-		"cmd/aiwf/rewidth_cmd_test.go":  "M-082 rewidth verb tests; narrow ids are the verb's input space",
-		"internal/verb/rewidth_test.go": "M-082 rewidth verb unit tests; narrow ids are the input space",
-		"internal/verb/rewidth.go":      "M-082 rewidth verb; narrow ids in regex source documentation are part of the spec citation",
-
 		// M-082 prep: M-080 fixture-validation tests use the M-080
 		// narrow id as the canonical entity-id query (resolved via
 		// tree.ByID's width-tolerant lookup) and the E-21 narrow-form
@@ -153,9 +146,8 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 
 		// M-083 AC-1: drift-check rule's table-driven fixture tests
 		// classify trees by id width — narrow ids are the input space
-		// the rule is built to recognise. Same shape as the M-082
-		// rewidth-verb tests.
-		"internal/check/entity_id_narrow_width_test.go": "M-083 AC-1 drift-check rule: narrow ids are the rule's classification input space",
+		// the rule is built to recognise.
+		"internal/check/entity_id_narrow_width_test.go": "drift-check rule: narrow ids are the rule's input space",
 
 		// G-0184 body-prose-id rule: narrow-numeric ids (`M-1`, `E-1`)
 		// are the rule's malformed-shape input space — the conversational-
@@ -175,14 +167,14 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// under the same key as a canonical-width hit (`G-0500`) for
 		// the same entity. Same canonicalization-equivalence shape as
 		// the AC-2 parser-tolerance tests above.
+		"internal/check/cross_branch_test.go": "M-0259/AC-2 crossBranchIndex canonicalization input space: narrow-legacy hit grouped with canonical-width hit",
+
 		// M-0290/AC-3: the archived side of the tree keeps narrow ids
 		// permanently, because no verb widens an id in place. The
 		// fixtures below must therefore BE narrow — a canonical one
 		// would assert nothing about the archive exclusion or about
 		// live cross-references resolving into the archive.
 		"internal/check/archive_scoping_test.go": "M-0290/AC-3 permanent narrow archive: exclusion + live cross-reference resolution",
-
-		"internal/check/cross_branch_test.go": "M-0259/AC-2 crossBranchIndex canonicalization input space: narrow-legacy hit grouped with canonical-width hit",
 
 		// G-0277 status cross-worktree divergence: the sibling worktree's
 		// driver-entity id may be recorded at legacy narrow width; a

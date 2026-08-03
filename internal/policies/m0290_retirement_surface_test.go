@@ -49,9 +49,14 @@ func TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb(t *testing.T) {
 }
 
 // TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb covers the docs a
-// reader treats as current truth. docs/adr/ is excluded per the file
-// header; docs/archive/, docs/research/ and docs/explorations/ are
-// not normative.
+// reader treats as current truth — the Normative tier as CLAUDE.md's
+// documentation hierarchy defines it, minus docs/adr/ per the file
+// header. docs/archive/, docs/research/ and docs/explorations/ are not
+// normative and are out of scope.
+//
+// docs/initiatives/ is Forward-looking rather than Normative, but is
+// scanned anyway: an initiative proposing that aiwf advise an operator
+// to run a retired verb is the same defect wherever it is tiered.
 func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 	t.Parallel()
 	root := repoRoot(t)
@@ -68,13 +73,30 @@ func TestM0290_AC4_NoNormativeDocOffersTheRetiredVerb(t *testing.T) {
 
 	for _, sub := range []string{
 		filepath.Join("docs", "design"),
+		filepath.Join("docs", "migration"),
 		filepath.Join("docs", "initiatives"),
 	} {
 		dir := filepath.Join(root, sub)
 		if _, err := os.Stat(dir); err != nil {
-			t.Fatalf("AC-4: normative doc root %s is missing — this scan would assert nothing: %v", sub, err)
+			t.Fatalf("AC-4: doc root %s is missing — this scan would assert nothing: %v", sub, err)
 		}
 		walkAndAssertAbsent(t, dir, root)
+	}
+	// The Normative tier's standalone files, which no directory walk
+	// above reaches.
+	for _, rel := range []string{
+		filepath.Join("docs", "architecture.md"),
+		filepath.Join("docs", "overview.md"),
+		filepath.Join("docs", "workflows.md"),
+		filepath.Join("docs", "skill-author-guide.md"),
+	} {
+		raw, err := os.ReadFile(filepath.Join(root, rel))
+		if err != nil {
+			t.Fatalf("AC-4: normative doc %s is missing — this scan would assert nothing: %v", rel, err)
+		}
+		if loc := retiredVerbToken.FindIndex(raw); loc != nil {
+			t.Errorf("AC-4: %s still names the retired width-migration verb;\n  line: %s", rel, lineAround(raw, loc[0]))
+		}
 	}
 }
 

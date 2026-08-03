@@ -106,10 +106,10 @@ var hintTable = map[string]string{
 	// the epic) clears it.
 	"epic-active-no-drafted-milestones": "draft the next milestone with `aiwf add milestone --epic E-NN --tdd <policy> --title \"...\"`, or wrap the epic if all planned work is in flight or done — the rule is the start-epic preflight signal from G-0063",
 
-	// M-083 AC-1: tree mid-migration warning. Fires only on the
-	// mixed-active-tree case; uniform-narrow and uniform-canonical
-	// stay silent per ADR-0008's "Drift control" subsection.
-	"entity-id-narrow-width": "an active entity's id is below canonical width; undo the hand-edit or file move that produced it — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
+	// Any narrow id in the active tree, at error severity. No verb
+	// widens an id in place, so the fix is to undo the change that
+	// produced it — hence a git command rather than an aiwf one.
+	"entity-id-narrow-width": "an active entity's filename carries an id below canonical width; undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
 
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not

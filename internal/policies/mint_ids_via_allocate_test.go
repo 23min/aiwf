@@ -11,8 +11,7 @@ import (
 // call under internal/verb/ fires; a plain entity.AllocateID call, an
 // unrelated zero-pad Sprintf outside internal/verb/, a non-zero-pad
 // Sprintf (e.g. AC-sub-id minting, `%d` not `%0*d`), and an
-// unparsable file do not fire; an allowlisted file (rewidth.go's
-// legitimate re-display of an already-existing id) is exempt.
+// unparsable file do not fire.
 func TestPolicyMintIDsViaAllocate_Synthetic(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

@@ -71,7 +71,7 @@ func TestM0290_AC5_SupersedingADRIsAcceptedAndNamesTheLapsedClauses(t *testing.T
 
 	// Every clause named as lapsed, scoped to that section so a passing
 	// mention elsewhere in the body cannot satisfy it.
-	for _, clause := range []string{"Migration", "Reversal", "Drift control"} {
+	for _, clause := range []string{"Migration", "Reversal", "Drift control", "No nagging on pre-migration trees"} {
 		if !strings.Contains(lapse, clause) {
 			t.Errorf("AC-5: the lapsed-clause section does not name %q", clause)
 		}

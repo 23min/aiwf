@@ -10,8 +10,8 @@ import (
 	"github.com/23min/aiwf/internal/cli/cliutil/testutil"
 )
 
-// remaining_verbs_diag_test.go — M-0249: pins that the last nine
-// mutating verbs (archive, import, rename, rename-area, retitle,
+// remaining_verbs_diag_test.go — M-0249: pins that every mutating
+// verb listed below (archive, import, rename, rename-area, retitle,
 // set-area, worktree add, and contract's five sub-verbs) now
 // emit a "verb.completed" diagnostic-log record when AIWF_LOG is set,
 // completing E-0061's own instrumentation coverage across every

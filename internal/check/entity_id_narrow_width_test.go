@@ -120,6 +120,42 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 			wantNarrows: []string{"G-100"},
 		},
 		{
+			// The file-move case: `git mv` narrows the filename and
+			// leaves frontmatter alone. The width tested is the
+			// filename's, so this must fire — and must not quote the
+			// canonical frontmatter id while calling it narrow.
+			name: "a narrow filename fires even when frontmatter is canonical",
+			tr: makeTree(
+				&entity.Entity{ID: "G-0100", Kind: entity.KindGap, Path: "work/gaps/G-100-diverged.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-0100"},
+		},
+		{
+			// The reverse divergence is out of scope: this rule reads
+			// the filename, and idPathConsistent canonicalizes both
+			// sides so it does not see a width-only difference either.
+			// Tracked in G-0532.
+			name: "a narrow frontmatter id under a canonical filename does not fire here",
+			tr: makeTree(
+				&entity.Entity{ID: "G-200", Kind: entity.KindGap, Path: "work/gaps/G-0200-reverse.md"},
+			),
+			wantCount:   0,
+			wantNarrows: nil,
+		},
+		{
+			// Below the kind's grammar floor, entity.IDFromPath rejects
+			// the path outright. The loader still admits the file, so
+			// this reaches the rule and falls through — frontmatter-shape
+			// is what reports it.
+			name: "an id below the kind's grammar floor is left to frontmatter-shape",
+			tr: makeTree(
+				&entity.Entity{ID: "G-1", Kind: entity.KindGap, Path: "work/gaps/G-1-tiny.md"},
+			),
+			wantCount:   0,
+			wantNarrows: nil,
+		},
+		{
 			name: "a canonical ADR never fires, and the narrow entry beside it still does",
 			tr: makeTree(
 				&entity.Entity{ID: "ADR-0001", Kind: entity.KindADR, Path: "docs/adr/ADR-0001-foo.md"},
@@ -205,6 +241,29 @@ func TestEntityIDNarrowWidth_RemediationNamesNoVerb(t *testing.T) {
 		if !strings.Contains(msg, want) {
 			t.Errorf("remediation does not mention %q — an operator cannot act on it: %s", want, msg)
 		}
+	}
+}
+
+// TestEntityIDNarrowWidth_MessageQuotesThePathID pins which of the two
+// ids the operator is shown. The rule decides on the filename's id, so
+// quoting the frontmatter id would print a canonical value and call it
+// narrow — self-contradicting text at the one seam an operator reads to
+// find the offending file.
+func TestEntityIDNarrowWidth_MessageQuotesThePathID(t *testing.T) {
+	t.Parallel()
+	got := entityIDNarrowWidth(makeTree(
+		&entity.Entity{ID: "G-0100", Kind: entity.KindGap, Path: "work/gaps/G-100-diverged.md"},
+	))
+	if len(got) != 1 {
+		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	}
+	if msg := got[0].Message; !strings.Contains(msg, `"G-100"`) {
+		t.Errorf("message quotes the frontmatter id rather than the narrow filename id it tested: %s", msg)
+	}
+	// EntityID stays the frontmatter id — it is the machine-readable
+	// handle every other finding uses to name the entity.
+	if got[0].EntityID != "G-0100" {
+		t.Errorf("EntityID = %q, want the frontmatter id %q", got[0].EntityID, "G-0100")
 	}
 }
 
