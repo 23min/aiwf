@@ -1,8 +1,10 @@
 ---
 id: G-0525
 title: Guidance says how to fill a decision card, not when to open one
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - b9abe1b36
 ---
 ## What's missing
 
