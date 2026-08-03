@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: Archive entries never fire and archived-entity cross-references resolve
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: No shipped or normative surface tells an operator to run the verb
