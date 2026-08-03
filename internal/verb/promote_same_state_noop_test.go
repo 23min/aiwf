@@ -277,6 +277,11 @@ func TestPromote_SameStatus_MissingBackLink_DoesNotConverge(t *testing.T) {
 	if writeErr := os.WriteFile(path, []byte(stripped), 0o600); writeErr != nil {
 		t.Fatalf("writing the stripped ADR: %v", writeErr)
 	}
+	// Committed, so the missing back-link is a property of the record.
+	// Uncommitted, it is the measured laundering vector rather than this
+	// test's subject: promote would read the stripped bytes, and the
+	// claim-side guard refuses exactly that (ADR-0038).
+	commitFixture(t, r.root, "fixture: strip the reciprocal back-link")
 
 	res, err := verb.Promote(r.ctx, r.tree(), "ADR-0001", "superseded", testActor, "", false,
 		verb.PromoteOptions{SupersededBy: "ADR-0002"})
@@ -332,6 +337,10 @@ func writeEntityStatus(t *testing.T, r *runner, id, status string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing %s: %v", id, writeErr)
 	}
+	// Committed, because the fixture stages a status the record carries.
+	// An uncommitted one is a different situation entirely: the claim-side
+	// guard refuses it before the verb reads anything (ADR-0038).
+	commitFixture(t, r.root, "fixture: plant an entity status")
 }
 
 // TestPromote_UnrecognizedStatus_RefusedNotConverged pins R1 ahead of R2 at the

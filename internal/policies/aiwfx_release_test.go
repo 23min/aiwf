@@ -186,3 +186,29 @@ func TestAiwfxRelease_G0384_DispatchedPushGatesHandOffToOrchestrator(t *testing.
 		t.Error("G-0384: step 7 (push gate, tag) must instruct handing the command back to the orchestrating session when dispatched")
 	}
 }
+
+// TestAiwfxRelease_PostReleaseRegeneratesTagDerivedStatus pins the
+// post-release regen of the status snapshot. STATUS.md's *Since last
+// release* section is computed from the newest tag, while the file is
+// maintained by a post-commit hook — and git fires no hook on tag
+// creation or tag push. Post-release verification is the only step in
+// the sequence that runs after the tag exists, so the regen belongs
+// there or nowhere.
+//
+// Scoped to the step per CLAUDE.md *Substring assertions are not
+// structural assertions*: what matters is that the regen runs after
+// the tag, so a whole-file match would still pass with the line moved
+// into a pre-tag step — where it would snapshot the old tag and fix
+// nothing.
+func TestAiwfxRelease_PostReleaseRegeneratesTagDerivedStatus(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxReleaseFixture(t)
+
+	step := extractMarkdownSection(body, 3, "8. Post-release verification")
+	if step == "" {
+		t.Fatal("SKILL.md must have a `### 8. Post-release verification` step")
+	}
+	if !strings.Contains(step, "aiwf status --format=md") {
+		t.Error("post-release step must name the STATUS.md regen, since no git hook fires on tag creation or tag push")
+	}
+}

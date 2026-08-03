@@ -47,9 +47,9 @@ lives in the `wf-codebase-health` skill.
   with pros/cons and risks, your plain lean *with its argument*, a numbered
   pick-list. The reasoning is the deliverable; the container serves it — a
   card's terseness must not drop the pros/cons, the lean, or the argument.
-- **Fix closely-related issues in place.** A small adjacent correction is part of
-  the work, not a new entity; file a separate gap only when the issue is
-  architecturally distinct.
+- **Fix closely-related issues in place — the cheap-fix test.** Small, in a file
+  this work already touches, covered by a test you're already writing? Make it now.
+  File a gap only when it needs its own branch, its own review, or a real decision.
 - **State the conclusion, not the drafting history — in entity bodies, docs,
   and code comments alike.** ADR / gap / decision bodies, milestone specs,
   and any doc you author record the current design, not how the text got
@@ -67,6 +67,11 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
+- **Reference-phrase counts; never hand-write a scalar the tree can move.**
+  "Every criterion listed below is met" survives; "all 16 are met" doesn't.
+  Comments and docs too: keep the reasoning, drop the arithmetic. A measurement
+  that *is* the point is a dated observation; a number belongs in an assertion
+  only where it is an invariant the code must hold to.
 - **Never write a fake id-shaped token in committed prose** — in an **entity
   file**, cite the real id; a placeholder, letter suffix, or number for a
   nonexistent entity fails `body-prose-id`, and backticks mean "discussing the
@@ -84,3 +89,4 @@ Hold these highest-leverage forces *while writing code*; reach for the full
 - **B1/B2 — typed interfaces and validated schemas at boundaries**, not loose maps or unchecked shapes.
 - **E1 — structured logs.** Events with a name and fields, not interpolated strings.
 - **H1 — reuse over duplication.** Before writing a routine block, search for the unit that already does it; a second copy is the trigger to extract; if a helper exists, route through it — never re-inline. Duplicated logic drifts one plausible line at a time.
+- **H3 — additions carry.** An addition is paid for once and carried forever. Prefer one that costs once (a ban — "don't write X") to one that costs per subject (a mandate — "every X needs a Y"); a mandate lands with a named owner and what retires it, or it is a permanent tax. An individually-justified addition can still be wrong because of what already exists.

@@ -156,6 +156,7 @@ func TestRetitle_DirRename_ComposesH1AndLinkRewriteInOneWrite(t *testing.T) {
 	if writeErr := os.WriteFile(epicFull, []byte(epicUpdated), 0o644); writeErr != nil {
 		t.Fatal(writeErr)
 	}
+	commitFixture(t, r.root, "fixture: epic body linking to the milestone")
 
 	res, err := verb.Retitle(r.ctx, r.tree(), "E-0001", "Renamed Platform", testActor, "", 0)
 	if err != nil {

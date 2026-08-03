@@ -4,7 +4,8 @@ import "strings"
 
 // hasDirectiveComment reports whether a raw comment is the named escape
 // directive carrying a non-empty reason. It is the shared matcher behind
-// //history:ok and //exec:ok, so the two conventions cannot drift apart.
+// //history:ok, //exec:ok and //coverage:ignore, so the three conventions
+// cannot drift apart.
 //
 // The marker must open the comment, directive-style (`//<marker> why`).
 // Matching it anywhere in the text would let prose that merely mentions the

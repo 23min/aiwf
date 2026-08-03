@@ -137,6 +137,7 @@ Push is the irreversible boundary. The tag becomes visible to every downstream c
 
 ### 8. Post-release verification
 
+- Regenerate `STATUS.md` (`aiwf status --format=md > STATUS.md`). Its *Since last release* section is computed from the newest tag, and git fires no hook on tag creation or tag push — so the post-commit regen that maintains the file leaves it naming the previous release until some unrelated commit happens to refresh it.
 - If CI/CD auto-publishes on tag push (npm, PyPI, container registry, GitHub Release), watch the pipeline. On success, confirm the artifact is consumable.
 - Run any project-specific health check (smoke test, canary, rollback drill).
 - If a deployment failed: assess whether to rollback the tag (rare — usually fix-forward is safer). Don't reuse the version number.

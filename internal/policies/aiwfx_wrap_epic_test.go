@@ -536,12 +536,19 @@ func TestAiwfxWrapEpic_ReconcileMainlineBeforeMerge(t *testing.T) {
 
 // TestAiwfxWrapEpic_PreconditionBackstopsClaimedFixedGaps pins the
 // epic-level half of the G-0431 fix: the `## Precondition` section
-// must include a backstop check for a milestone that left a
+// must include a backstop check for a spec that left a
 // self-claimed-fixed gap open. `aiwfx-wrap-milestone`'s own wrap step
-// should already close these; this precondition catches a milestone
-// wrapped under an older ritual version, or one closed by hand
-// outside the ritual, before it silently becomes a "Follow-up carried
-// forward" entry in the wrap artefact instead of a real closure.
+// should already close the milestone-level ones; this precondition
+// catches a milestone wrapped under an older ritual version, or one
+// closed by hand outside the ritual, before it silently becomes a
+// "Follow-up carried forward" entry in the wrap artefact instead of a
+// real closure.
+//
+// The backstop's scope covers the epic's own spec as well. No other
+// step reads that spec, so a gap the epic claims to fix is verified
+// here or nowhere (G-0515). Its disposition is a disposition rather
+// than a closure: an epic can advance a gap without finishing it, and
+// closing one to satisfy the check would lose the open work.
 func TestAiwfxWrapEpic_PreconditionBackstopsClaimedFixedGaps(t *testing.T) {
 	t.Parallel()
 	body := loadAiwfxWrapEpicFixture(t)
@@ -556,5 +563,31 @@ func TestAiwfxWrapEpic_PreconditionBackstopsClaimedFixedGaps(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(precondition), "follow-up") {
 		t.Error("Precondition section must warn against letting a claimed-fixed gap silently become a Follow-up entry instead of a real closure")
+	}
+
+	// Scope the assertion to the numbered item rather than the whole
+	// section: the section carries five other preconditions, and a
+	// match anywhere in it would not show the backstop is the thing
+	// covering the epic's own spec.
+	var item6 string
+	for _, line := range strings.Split(precondition, "\n") {
+		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "6. ") {
+			item6 = trimmed
+			break
+		}
+	}
+	if item6 == "" {
+		t.Fatal("`## Precondition` must carry the claimed-fixed-gap backstop as numbered item 6")
+	}
+	if !strings.Contains(item6, "epic's own") {
+		t.Errorf("precondition 6 must scope the backstop to the epic's own spec, which no other step reads; got %q", item6)
+	}
+
+	// A partly-addressed gap stays open on its own terms, so the
+	// disposition offers correcting the claim alongside closing the
+	// gap. Without this the check pushes toward closing something
+	// still real.
+	if !strings.Contains(strings.ToLower(precondition), "correct the claim") {
+		t.Error("Precondition section must offer correcting an over-strong claim as an alternative to closing the gap, so a partly-addressed gap is not closed to satisfy the check")
 	}
 }

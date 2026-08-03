@@ -183,6 +183,18 @@ func FinishVerbOutcome(ctx context.Context, root, label string, outcome *Outcome
 				msg = fmt.Sprintf("applying plan %d: %v", i, applyErr)
 			}
 			out.emitErrorEnvelope(label, "", msg)
+			// A working-copy refusal is the operator's to resolve and
+			// leaves nothing broken behind it, so it reports as usage
+			// rather than joining the internal-failure class the rest of
+			// this branch covers (ADR-0038).
+			var conflictErr *verb.UncommittedConflictError
+			if errors.As(applyErr, &conflictErr) {
+				return ExitUsage, ""
+			}
+			var symlinkErr *verb.CarriedSymlinkError
+			if errors.As(applyErr, &symlinkErr) {
+				return ExitUsage, ""
+			}
 			return ExitInternal, ""
 		}
 		sha = planSHA

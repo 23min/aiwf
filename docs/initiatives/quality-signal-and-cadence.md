@@ -105,7 +105,7 @@ every push until it lands pays for it. Three independent causes, of different
 character and different lifespans, tracked as
 [G-0457](../../work/gaps/archive/G-0457-ci-gate-is-red-often-enough-to-carry-no-signal-about-the-change.md)
 (placement and the `govulncheck` lanes),
-[G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md)
+[G-0468](../../work/gaps/archive/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md)
 and
 [G-0467](../../work/gaps/archive/G-0467-lock-busy-refusal-emits-an-empty-error-code.md)
 (the oracles and their enabling error-code fix), and
@@ -280,8 +280,8 @@ substantial part of what aiwf sells.
 The cost is not the commit count. It is that `git log`, `git log --grep`, and
 `git bisect` have all quietly stopped being useful for the question "what
 changed in the code," and nothing offers a way past that.
-[E-0073](../../work/epics/E-0073-mutating-verb-ux-uniformity/epic.md) and
-[M-0281](../../work/epics/E-0073-mutating-verb-ux-uniformity/M-0281-same-state-mutating-verb-inputs-return-noop.md)
+[E-0073](../../work/epics/archive/E-0073-mutating-verb-ux-uniformity/epic.md) and
+[M-0281](../../work/epics/archive/E-0073-mutating-verb-ux-uniformity/M-0281-same-state-mutating-verb-inputs-return-noop.md)
 remove the *wasted* promotes (same-state inputs that currently commit a
 no-op) but leave the structural volume untouched, correctly — that is not
 what they are for.
@@ -336,7 +336,7 @@ item 4 down is independently actionable.
 2. **Q1, cure** —
    [G-0467](../../work/gaps/archive/G-0467-lock-busy-refusal-emits-an-empty-error-code.md)
    then
-   [G-0468](../../work/gaps/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md).
+   [G-0468](../../work/gaps/archive/G-0468-stress-scenario-oracles-conflate-runner-contention-with-an-aiwf-defect.md).
    Give the repo-lock-busy refusal a machine-readable code, then split each
    scenario's hermetic correctness assertion from its timing assertion. This
    is what makes the harness trustworthy wherever it runs, and it unblocks

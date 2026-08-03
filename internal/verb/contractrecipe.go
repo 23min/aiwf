@@ -35,7 +35,6 @@ type RecipeInstallOptions struct {
 // it is wired in as a safety net, not because this mutation is
 // expected to trip it.
 func RecipeInstall(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current *aiwfyaml.Contracts, name string, validator aiwfyaml.Validator, actor, repoRoot string, opts RecipeInstallOptions) (*Result, error) {
-	_ = ctx
 	if doc == nil {
 		return nil, fmt.Errorf("aiwf.yaml not found; run 'aiwf init' first")
 	}
@@ -44,6 +43,11 @@ func RecipeInstall(ctx context.Context, t *tree.Tree, doc *aiwfyaml.Doc, current
 	}
 	if validator.Command == "" {
 		return nil, fmt.Errorf("validator command is required")
+	}
+	// Scoped to aiwf.yaml: the "unchanged" verdict below compares the
+	// requested validator against the declaration read out of that file.
+	if claimErr := guardClaimConfig(ctx, repoRoot, name, config.FileName); claimErr != nil {
+		return nil, claimErr
 	}
 
 	next := cloneContracts(current)

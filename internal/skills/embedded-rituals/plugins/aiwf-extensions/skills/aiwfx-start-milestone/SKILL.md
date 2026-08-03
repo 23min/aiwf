@@ -131,7 +131,7 @@ For each AC, in sequence:
 
 If a decision surfaces mid-implementation that wasn't pre-locked in the spec, invoke `aiwfx-record-decision` to capture it. Mirror the decision id under the spec's `## Decisions made during implementation` section.
 
-If a piece of work surfaces that's deferred, open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNNN` id under the spec's `## Deferrals` section.
+If a piece of work surfaces that's deferred, apply the **cheap-fix test** first: if the change is small, lands in a file this milestone already touches, and is covered by a test you are already writing, make it now rather than filing it. Otherwise open a gap (`aiwf add gap --title "..." --discovered-in M-NNNN`) and mirror the resulting `G-NNNN` id under the spec's `## Deferrals` section.
 
 ### 7. Readiness check before handoff
 

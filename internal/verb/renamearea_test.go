@@ -29,6 +29,12 @@ areas:
 func areaTree(t *testing.T, areas map[string]string) *tree.Tree {
 	t.Helper()
 	root := t.TempDir()
+	// A real repo, left with no commits: the claim-side guard consults
+	// HEAD, and an unborn HEAD carries no record to contradict — so the
+	// guard stands down and these cases stay about their own subject.
+	if err := gitops.Init(context.Background(), root); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
 	var ents []*entity.Entity
 	for id, area := range areas {
 		e := &entity.Entity{

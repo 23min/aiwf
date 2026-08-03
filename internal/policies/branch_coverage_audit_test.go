@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -127,6 +128,36 @@ func TestBranchCoverageViolations(t *testing.T) {
 		"\treturn a + b\n" +
 		"}\n"
 
+	// Three shapes that are not the directive. The first two put their
+	// marker exactly where headSrcIgnored's annotation sits, so the block
+	// span is identical and the only difference is whether the escape opens.
+	// The literal needs a statement of its own, which lengthens the guard
+	// body — so it carries its own span, one line longer.
+	const headSrcBareMarker = "package foo\n\n" +
+		"func Add(a, b int) int {\n" +
+		"\tif a < 0 { //coverage:ignore\n" +
+		"\t\treturn 0\n" +
+		"\t}\n" +
+		"\treturn a + b\n" +
+		"}\n"
+
+	const headSrcProse = "package foo\n\n" +
+		"func Add(a, b int) int {\n" +
+		"\tif a < 0 { // see the //coverage:ignore escape in CLAUDE.md\n" +
+		"\t\treturn 0\n" +
+		"\t}\n" +
+		"\treturn a + b\n" +
+		"}\n"
+
+	const headSrcLiteral = "package foo\n\n" +
+		"func Add(a, b int) int {\n" +
+		"\tif a < 0 {\n" +
+		"\t\t_ = \"//coverage:ignore\"\n" +
+		"\t\treturn 0\n" +
+		"\t}\n" +
+		"\treturn a + b\n" +
+		"}\n"
+
 	const prefix = fixtureModule + "/internal/foo/bar.go"
 
 	tests := []struct {
@@ -161,6 +192,35 @@ func TestBranchCoverageViolations(t *testing.T) {
 			wantLines: nil,
 		},
 		{
+			// A reason is what distinguishes an annotation from a shrug, so
+			// a bare marker leaves the block reported.
+			name:    "uncovered changed branch with a bare marker still fires",
+			headSrc: headSrcBareMarker,
+			profile: "mode: atomic\n" +
+				prefix + ":4.12,6.3 1 0\n" +
+				prefix + ":7.2,7.13 1 1\n",
+			wantLines: []int{4},
+		},
+		{
+			// Prose about the escape is documentation. Suppressing on it
+			// would let a comment silence the gate by describing it.
+			name:    "uncovered changed branch beside prose naming the escape still fires",
+			headSrc: headSrcProse,
+			profile: "mode: atomic\n" +
+				prefix + ":4.12,6.3 1 0\n" +
+				prefix + ":7.2,7.13 1 1\n",
+			wantLines: []int{4},
+		},
+		{
+			// The marker inside a string is data, not a comment at all.
+			name:    "uncovered changed branch holding the marker in a literal still fires",
+			headSrc: headSrcLiteral,
+			profile: "mode: atomic\n" +
+				prefix + ":4.12,7.3 1 0\n" +
+				prefix + ":8.2,8.13 1 1\n",
+			wantLines: []int{4},
+		},
+		{
 			name:    "uncovered block on unchanged line is clean",
 			headSrc: headSrc,
 			// Mark only line 7 (return a+b) — which existed in base and
@@ -192,6 +252,17 @@ func TestBranchCoverageViolations(t *testing.T) {
 			got := violationLines(vs)
 			if !equalInts(got, tt.wantLines) {
 				t.Errorf("violation lines = %v, want %v (violations: %+v)", got, tt.wantLines, vs)
+			}
+			// The finding is the only place the escape's contract reaches an
+			// operator, and three of these rows fire precisely because a
+			// marker was written the wrong way. A message naming the marker
+			// but not its placement sends them to repeat the mistake.
+			for _, v := range vs {
+				for _, want := range []string{coverageIgnoreMarker, "must open a comment", "reason"} {
+					if !strings.Contains(v.Detail, want) {
+						t.Errorf("detail must name %q so the fix is self-explaining; got %q", want, v.Detail)
+					}
+				}
 			}
 		})
 	}

@@ -11,9 +11,10 @@ import (
 )
 
 // stripHeading rewrites the file at path, dropping any line starting
-// with "### AC-" — simulating a hand-edit that desyncs the body from
-// frontmatter acs[] (used to test the missing-heading carve-out).
-func stripHeading(t *testing.T, path string) {
+// with "### AC-", then commits it — a milestone whose body has desynced
+// from frontmatter acs[] is committed state, which is what the
+// missing-heading carve-out exists to handle.
+func stripHeading(t *testing.T, root, path string) {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -29,6 +30,7 @@ func stripHeading(t *testing.T, path string) {
 	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0o644); err != nil {
 		t.Fatalf("writing %s: %v", path, err)
 	}
+	commitFixture(t, root, "fixture: milestone body missing its AC headings")
 }
 
 // promote_ac_body_completeness_test.go pins M-0268/AC-2: a milestone
@@ -161,7 +163,7 @@ func TestPromote_MissingACHeadingNotTreatedAsEmptyBody(t *testing.T) {
 	m := r.tree()
 	e := m.ByID("M-0001")
 	bodyPath := r.root + "/" + e.Path
-	stripHeading(t, bodyPath)
+	stripHeading(t, r.root, bodyPath)
 
 	r.must(verb.Promote(r.ctx, r.tree(), "M-0001", "in_progress", testActor, "", false, verb.PromoteOptions{}))
 

@@ -422,6 +422,7 @@ func writeEntityH1(t *testing.T, r *runner, id, heading string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing %s: %v", id, writeErr)
 	}
+	commitFixture(t, r.root, "fixture: drifted H1 for "+id)
 }
 
 // TestRetitleAndRename_LineBreakTitle_Refused pins the verb-level consequence of

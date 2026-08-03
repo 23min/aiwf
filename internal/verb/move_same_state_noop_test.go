@@ -105,4 +105,8 @@ func writeEntityParent(t *testing.T, r *runner, id, parent string) {
 	if writeErr := os.WriteFile(path, []byte(patched), 0o600); writeErr != nil {
 		t.Fatalf("writing %s: %v", id, writeErr)
 	}
+	// Committed: the misplacement under test is one the record carries.
+	// Left uncommitted it is an operator's unsaved edit, which the
+	// claim-side guard refuses before move reads anything (ADR-0038).
+	commitFixture(t, r.root, "fixture: misplace a milestone")
 }

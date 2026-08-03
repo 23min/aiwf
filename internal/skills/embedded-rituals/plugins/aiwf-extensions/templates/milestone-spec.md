@@ -119,7 +119,10 @@ acs: []                   # optional: filled by `aiwf add ac <milestone-id> --ti
 
 ## Deferrals
 
-<!-- Work this milestone deliberately punted. Each must be opened as a gap entity
+<!-- Work this milestone deliberately punted. Apply the cheap-fix test first: a
+     change that is small, lands in a file this milestone already touches, and is
+     covered by a test you are already writing gets made now rather than filed.
+     Each deferral that survives the test must be opened as a gap entity
      (`aiwf add gap --title "..." --discovered-in <milestone-id>`) and the
      resulting gap id mirrored here, so the deferral survives. -->
 

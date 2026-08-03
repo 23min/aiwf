@@ -65,6 +65,11 @@ func PolicyM0211GuidanceOperatingAnchors(root string) ([]Violation, error) {
 // fragments that must all appear for the rule to count as present in the
 // shipped guidance. Fragments are matched against a lower-cased body, so a
 // sentence-position capitalization difference does not defeat the match.
+//
+// The body is hard-wrapped markdown and is matched verbatim, so a fragment must
+// sit within one source line: a phrase that reads as adjacent prose but straddles
+// a wrap never matches, and the anchor then reports a rule as absent while it is
+// present.
 type m0211Anchor struct {
 	name      string
 	fragments []string
@@ -97,4 +102,6 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
 	{"conclusion-not-drafting-history", []string{"not the drafting history", "code comment"}},
+	{"cheap-fix-test-before-filing", []string{"cheap-fix test", "already touches"}},
+	{"reference-phrase-counts", []string{"reference-phrase counts", "drop the arithmetic"}},
 }
