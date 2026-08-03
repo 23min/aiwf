@@ -97,6 +97,23 @@ aiwf check --since HEAD~50   # walk the last 50 commits
 | `git-config-core-worktree-misset` | The repo's `core.worktree` git config points somewhere unexpected, which can misdirect kernel git operations. | Run `git config --local --unset core.worktree` from the repo root (keep an override only if your workflow — e.g. a bare repo — specifically requires it). |
 | `skill-body-id` | A shipped consumer surface carries an id shape that does not belong there — every `*.md` under `internal/skills/embedded{,-rituals,-guidance}/**` (skill bodies AND `description:` frontmatter, entity templates, role-agent cards, the guidance fragment) plus the statusline's `#` comments. Two shapes fire: a **real entity id**, which is meaningless in a consumer repo and rots as the entity changes; and a **non-canonical placeholder**, which models an id width no allocator emits. Command examples and fenced transcripts are in scope — they ship exactly as prose does. The mirror image of `body-prose-id` (there a real id is required; here it is the defect). Inert in a consumer repo, where the source tree is absent. | Write the canonical `<prefix>-NNNN` placeholder — that is the fix for both shapes. For a real id you may instead cite a design/ADR doc as a markdown link (the one carve-out: the id rides in the destination, the visible text stays descriptive). |
 
+## Which id rule applies where
+
+Several rules read id-shaped tokens, and two of them disagree about the same
+token on purpose. The file decides which one is talking:
+
+| Where | Real id | `<prefix>-NNNN` placeholder | Inside backticks / fences | Rule |
+|---|---|---|---|---|
+| Entity files under `work/` | **required** — cite real entities | **rejected** | exempt — the way to discuss id syntax | `body-prose-id` |
+| Docs in `docs.paths` (default `README.md`) | fine — cite freely | fine — for invented examples | **in scope**, no opt-out | `doc-id-width`, `doc-id-slug` |
+
+Two consequences worth stating outright, because they look like contradictions:
+
+- **A placeholder is wrong in an entity body and right in a doc.** An entity body records real work, so an id there refers to something; a doc teaches, so an invented example needs a shape that names nothing. Width is what makes the placeholder safe — no allocator emits four N's.
+- **Backticks silence one and not the other.** In an entity body they mean "I am discussing syntax, not referring to an entity", so they exempt. In a doc the id inside a command block is the one a reader copies, so it is checked exactly like prose.
+
+Doc findings are warnings until `aiwf.yaml: docs.strict: true`. That default exists so upgrading aiwf never blocks a push over prose you did not write — a repo whose entity ids were migrated to canonical width still has narrow ids scattered through its docs, and no verb rewrites those. Sweep first, then opt in.
+
 ## Findings (warnings)
 
 | Code | Meaning |

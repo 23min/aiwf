@@ -67,10 +67,14 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
-- **Never write a fake id-shaped token in committed prose** — a letter or
-  spelled-out word suffix, or a number for an entity that doesn't exist; wrap an
-  id-shape in backticks when discussing syntax. `aiwf check`'s `body-prose-id`
-  rule enforces this.
+- **Never write a fake id-shaped token in committed prose** — the rule for
+  **entity files** under `work/`: cite the real id, never a placeholder, letter
+  suffix, or number for a nonexistent entity (`body-prose-id`); backticks are
+  the escape when you mean the syntax. **Documentation is the opposite.** In
+  `README.md` and anything in `docs.paths`, a real id and a four-wide
+  `<prefix>-NNNN` placeholder are both right, narrower is wrong, and backticks
+  do not exempt (`doc-id-width`, `doc-id-slug`; advisory until
+  `docs.strict: true`).
 
 ## Code-health priming — for the code you write here
 

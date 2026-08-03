@@ -97,4 +97,5 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"bless-mode-body-edits", []string{"bless mode", "review-before-commit"}},
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
 	{"conclusion-not-drafting-history", []string{"not the drafting history", "code comment"}},
+	{"id-shape-depends-on-the-file", []string{"doc-id-width", "entity file", "readme.md"}},
 }
