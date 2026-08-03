@@ -103,5 +103,5 @@ var m0211OperatingAnchors = []m0211Anchor{
 	{"verb-template-managed-entities", []string{"template-managed", "hand-edit frontmatter"}},
 	{"conclusion-not-drafting-history", []string{"not the drafting history", "code comment"}},
 	{"cheap-fix-test-before-filing", []string{"cheap-fix test", "already touches"}},
-	{"reference-phrase-counts", []string{"reference-phrase counts", "drop the arithmetic"}},
+	{"reference-phrase-counts", []string{"reference-phrase counts", "drop the arithmetic", "derive the facts"}},
 }

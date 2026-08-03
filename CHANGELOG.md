@@ -16,6 +16,30 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — a defect already fixed and pinned needs no further record
+
+The review classification routed unpinned defects to a tracked record and said
+that no finding may be silently dropped, without ever saying that a defect
+*already* fixed and pinned by the check landing with it is finished. That
+silence read as an obligation, so review thoroughness converted into entities to
+read later. The dispositions now name the exit explicitly: where the check
+exists it is the better record — it fails when the fact stops being true, which
+prose about the same defect does not — and a gap opened for finished work is
+named as recording an event rather than an obligation.
+
+The guidance rule that stopped hand-written counts now covers facts generally:
+before writing a fact into prose, ask whether a check, a field, or a git trailer
+already holds it. Counts remain the worked example. What no check or field can
+carry — a judgment, a rejected alternative, why the obvious approach fails — is
+unchanged and stays worth its words.
+
+One clause was dropped rather than reworded: the rule that a number belongs in
+an assertion only where it is an invariant the code must hold to. It governed
+numeric literals in test assertions, a narrower surface than the prose rule that
+now surrounds it, and the always-on fragment is the one surface paid for on
+every turn. Removed deliberately, and recorded here because a rule that leaves
+without being named is the failure this same entry ships a guard against.
+
 ### Changed — a decision is offered as prose by default, and a card only where a card helps
 
 The one-decision-at-a-time rule described how to *fill* an interactive
