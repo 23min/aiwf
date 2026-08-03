@@ -21,6 +21,9 @@ acs:
       title: An id written with a slug contradicting the real entity fails a gate
       status: met
       tdd_phase: done
+    - id: AC-5
+      title: Shipped guidance and skill docs state which id rule applies where
+      status: open
 ---
 
 ## Goal
@@ -121,6 +124,8 @@ convention plus review is what covers it.
 Evidence: a fixture pairing a real entity with a doc citing its id under a
 different slug, asserting the mismatch fires and the entity's true slug
 stays silent.
+
+### AC-5 — Shipped guidance and skill docs state which id rule applies where
 
 ## Constraints
 
