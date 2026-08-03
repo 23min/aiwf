@@ -1,7 +1,7 @@
 ---
 id: G-0494
 title: Verb refusals reach machine callers as prose, and exit differently by form
-status: open
+status: wontfix
 discovered_in: M-0283
 ---
 ## What's missing
