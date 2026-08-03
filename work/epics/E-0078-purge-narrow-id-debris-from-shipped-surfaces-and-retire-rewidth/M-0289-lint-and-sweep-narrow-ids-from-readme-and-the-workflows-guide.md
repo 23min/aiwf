@@ -93,6 +93,33 @@ body names all three paths.
 
 ### AC-4 — An id written with a slug contradicting the real entity fails a gate
 
+A doc that writes an id together with a slug — the shape a file path and
+`aiwf add` output both take — produces a finding when that slug is not the
+slug the entity actually carries.
+
+This closes the half of the fiction problem that has an exact test. The width
+rule cannot see a fictional id at canonical width, and the sweep found one
+being used for an invented ADR while that id names a real and entirely
+unrelated entity, with a filename spelled out that contradicts the real one.
+Nothing would have caught its return.
+
+The comparison is a string equality against a path the loader already holds,
+so there is no heuristic and no false-positive surface: either the slug
+matches the entity's own or it does not. It is deliberately narrower than
+"every id in a doc must resolve" — that is a far larger behavioral change,
+carrying the cross-branch and archived-id questions the entity-body rule
+already had to settle, and it is tracked separately rather than folded in
+here.
+
+The residue is a bare canonical-width id used as fiction where no slug is
+written. No mechanical signature distinguishes it from a citation, and any
+prose-proximity heuristic would fire on legitimate text; the placeholder
+convention plus review is what covers it.
+
+Evidence: a fixture pairing a real entity with a doc citing its id under a
+different slug, asserting the mismatch fires and the entity's true slug
+stays silent.
+
 ## Constraints
 
 - **This lint's corpus and polarity are both distinct from the shipped-surface
@@ -143,3 +170,18 @@ body names all three paths.
 
 - G-0481 — the tier split and the reason the residue is deferred rather than
   swept.
+
+## Work log
+
+### AC-1 — the width rule
+
+`doc-id-width` in `internal/check`, width-shaped and code-in-scope, advisory
+by default with `docs.id_width.strict` escalating it at the same seam
+`ApplyTDDStrict` uses · commit 568228c74 · tests 11/11
+
+### AC-2 — the sweep
+
+112 narrow sites to canonical placeholders across both docs, plus five
+fictional uses of a real ADR's id, a self-contradicting sample finding, and
+the quickstart transcript's alignment; `strict` enabled once clean · commit
+ece70f010 · tests 2/2
