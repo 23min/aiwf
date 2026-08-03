@@ -1,8 +1,10 @@
 ---
 id: G-0520
 title: aiwf-show skill claims referenced_by indexes body-prose cross-references
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 08d9d63c4
 ---
 ## What's missing
 
