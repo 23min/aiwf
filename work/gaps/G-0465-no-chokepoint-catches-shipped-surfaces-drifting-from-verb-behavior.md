@@ -1,7 +1,7 @@
 ---
 id: G-0465
 title: No chokepoint catches shipped surfaces drifting from verb behavior
-status: open
+status: wontfix
 priority: high
 discovered_in: M-0281
 ---
