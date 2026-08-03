@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: A narrow id in README or the workflows guide fails a gate
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Neither README nor the workflows guide carries a narrow id
       status: open
