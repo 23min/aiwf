@@ -18,6 +18,16 @@ tree:
     - work/epics/*/wrap.md
     - work/epics/*/TRIAGE.md
 
+# The corpus for the doc id rules. README.md is the shipped default;
+# docs/workflows.md is this repo's own addition. strict is on because
+# these docs are swept — see internal/check/doc_id_width.go for why the
+# shipped default is advisory.
+docs:
+  paths:
+    - README.md
+    - docs/workflows.md
+  strict: true
+
 # Per-agent compute policy (G-0353): model + effort injected into the
 # materialized `.claude/agents/*.md` cards on `aiwf update`. Advisory —
 # a cheaper, independent check (Opus reviews the Sonnet builder's work).

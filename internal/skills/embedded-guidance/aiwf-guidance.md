@@ -67,10 +67,10 @@ lives in the `wf-codebase-health` skill.
   can still *encounter* — a legacy on-disk format, a supported older release,
   an external contract you don't control — which is current truth about the
   input space and is written in the present tense as such.
-- **Never write a fake id-shaped token in committed prose** — a letter or
-  spelled-out word suffix, or a number for an entity that doesn't exist; wrap an
-  id-shape in backticks when discussing syntax. `aiwf check`'s `body-prose-id`
-  rule enforces this.
+- **Never write a fake id-shaped token in committed prose** — in an **entity
+  file**, cite the real id; a placeholder, letter suffix, or number for a
+  nonexistent entity fails `body-prose-id`, and backticks mean "discussing the
+  syntax". Documentation follows a different rule — see the `aiwf-check` skill.
 
 ## Code-health priming — for the code you write here
 

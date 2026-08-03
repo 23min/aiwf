@@ -54,6 +54,10 @@ var fieldDescriptions = map[string]string{
 	"tree.allow_paths": "Repo-relative glob patterns exempted from the tree-discipline check.",
 	"tree.strict":      "Promote unexpected-tree-file from a warning to a blocking error (default false).",
 
+	"docs":        "Checks over repo-facing documentation — prose outside the entity tree.",
+	"docs.paths":  "Repo-relative docs scanned by the doc id rules (default README.md).",
+	"docs.strict": "Promote doc findings from warnings to blocking errors (default false).",
+
 	"archive":                 "Drift-control configuration for the per-kind archive convention.",
 	"archive.sweep_threshold": "Terminal-entity count past which archive-sweep-pending escalates from advisory to a blocking error (unset: always advisory).",
 
