@@ -1,7 +1,7 @@
 ---
 id: M-0290
 title: Retire the rewidth verb and fire the drift check on any narrow active id
-status: in_progress
+status: done
 parent: E-0078
 tdd: required
 acs:
