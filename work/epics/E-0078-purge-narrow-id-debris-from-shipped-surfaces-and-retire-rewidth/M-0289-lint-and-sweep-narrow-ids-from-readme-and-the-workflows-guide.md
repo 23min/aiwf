@@ -26,10 +26,16 @@ that way — and record the residue this milestone deliberately does not sweep.
 
 The shipped-surface work is a real-id problem where width is incidental. This is
 the opposite: `README.md` and `docs/workflows.md` are repo-facing, real ids in
-them are entirely legitimate, and the defect is purely that ~104 of them are
-written at a width no allocator has emitted since the migration. So this needs a
-genuinely width-shaped rule over a different corpus with the opposite stance on
-real ids — a sibling of the shipped-surface guard, not a mode of it.
+them are entirely legitimate, and the defect is purely that they are written at
+a width no allocator has emitted since the migration. So this needs a genuinely
+width-shaped rule over a different corpus with the opposite stance on real ids —
+a sibling of the shipped-surface guard, not a mode of it.
+
+Two properties of the corpus shape the rule. The sites are tutorial fiction —
+invented ids in a walkthrough — so the fix is the placeholder form rather than
+a widened number, and the rule cannot be gated on whether a token resolves. And
+they concentrate in command examples rather than sentences, so a rule that
+exempts code spans and fenced blocks sees almost none of them.
 
 The two files are in scope because they teach the workflow. The rest of the
 active doc tree is not, for a reason worth recording rather than leaving implicit:
@@ -42,12 +48,25 @@ would bloat this lint's allowlist.
 
 ### AC-1 — A narrow id in README or the workflows guide fails a gate
 
-A below-canonical-width entity id introduced into either file produces a finding
-naming the file and line. Real canonical-width ids do not fire — unlike the
-shipped-surface rule, this corpus is where real ids belong.
+A below-canonical-width id shape introduced into a scanned doc produces a finding
+naming the file and line. The claim is about width alone — `E-01` is wrong
+because no allocator emits two digits, not because of what it does or does not
+name. Real canonical-width ids do not fire; unlike the shipped-surface rule,
+this corpus is where real ids belong.
+
+Code spans and fenced blocks are in scope, so backticks are not an opt-out. The
+debris lives in command examples, and a reader copies a command example as
+readily as a sentence.
+
+Severity is a warning by default and an error where `aiwf.yaml` raises it. A
+repo that migrated its entities still carries narrow ids through its docs —
+`rewidth` never touched prose — so an error-by-default rule would block pushes
+in every such repo on upgrade, over files its operator never edited, with
+neither a fixer nor a suppression mechanism available. This repo raises it to
+error; a consumer opts in once their own sweep is done.
 
 Evidence: a fixture asserting fire on a narrow id and no-fire on the canonical
-form of the same id, for each kind prefix.
+form of the same id, for each kind prefix, at both severities.
 
 ### AC-2 — Neither README nor the workflows guide carries a narrow id
 
@@ -73,16 +92,34 @@ body names all three paths.
   guard's.** Real ids are correct here and defective there; only width is at
   issue. Sharing an implementation is fine, conflating the rules is not.
 - **The lint is scoped to the two named files**, not the active doc tree, so its
-  allowlist stays short enough to read.
+  allowlist stays short enough to read. `README.md` is the shipped default,
+  since every repo has one and it is the doc most likely to cite entities;
+  `docs/workflows.md` joins the corpus through this repo's own config.
+- **A rule that ships retroactively constrains its severity, not its
+  existence.** Blocking a push over prose the operator never edited, in a repo
+  with no fixer for it, is the harm the warning default prevents.
+- **Stale-width ids inside entity bodies are a different defect** — there the
+  prose does name a real entity, so the fix is a widened number and the rule is
+  reference-shaped. Out of scope here; AC-3's residue gap is not the place for
+  it either.
 
 ## Design notes
 
 - The epic leaves open whether this fires from `aiwf check` or from
-  `internal/policies`. Decided here. The check tier fires pre-push and catches in
-  context before the work leaves the machine; the policy tier is a CI backstop
-  that lands after a trunk push. The corpus is repo-only either way, so the rule
-  is inert for consumers under both — which makes the earlier-catch argument the
-  deciding one absent a reason to prefer CI.
+  `internal/policies`. Decided here: `aiwf check`, as a rule that genuinely
+  ships. The corpus is not repo-only — every consumer tree has a `README.md` —
+  which rules out the policy tier's usual justification and rules out a marker
+  asking whether the rule is running inside aiwf's own repo. It also makes the
+  rule worth shipping on its merits: a stale-width id in a consumer's own docs
+  is a defect by aiwf's own grammar, so this is a feature rather than
+  dogfooding scaffolding.
+- What shipping costs is the severity default, not the rule. The blocking
+  behavior is what a consumer opts into; `tree.strict` is the precedent for a
+  config raising a rule from advisory to blocking.
+- Width-shaped rather than reference-shaped. A rule gated on whether the token
+  resolves would fire in a densely-allocated tree and stay silent in a young
+  one, for identical prose — the id space's population is not a property
+  anyone can reason about. Width holds either way.
 
 ## Out of scope
 
