@@ -1,8 +1,10 @@
 ---
 id: G-0521
 title: Whiteboard ordering regenerates instead of reconciling against the last one
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - ab4b7d9f9
 ---
 ## What's missing
 
