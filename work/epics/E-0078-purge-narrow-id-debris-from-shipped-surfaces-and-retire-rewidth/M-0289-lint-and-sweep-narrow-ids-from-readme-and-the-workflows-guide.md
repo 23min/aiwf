@@ -149,10 +149,9 @@ not the argument for it. Why code spans are exempt in one corpus and scanned in
 the other, and why entity templates are read by two rules at once, is design
 reasoning and belongs in this repo's docs.
 
-Evidence: structural assertions that the guidance names both corpora and both
-rule families, and that the check skill carries a section comparing them; plus
-an entry in the curated guidance-anchor set, so the scoping cannot silently
-drift back out.
+Evidence: two structural assertions — that the id-shape bullet itself names
+both corpora and both rules, scoped to that bullet so a neighbour cannot
+satisfy it, and that the check skill carries a section comparing them.
 
 ## Constraints
 
@@ -242,21 +241,20 @@ drift back out.
 ### AC-1 — the width rule
 
 `doc-id-width` in `internal/check`, width-shaped and code-in-scope, advisory
-by default with `docs.id_width.strict` escalating it at the same seam
-`ApplyTDDStrict` uses · commit 568228c74 · tests 11/11
+by default, escalated by config at the same seam `ApplyTDDStrict` uses · commit 568228c74
 
 ### AC-2 — the sweep
 
 112 narrow sites to canonical placeholders across both docs, plus five
 fictional uses of a real ADR's id, a self-contradicting sample finding, and
 the quickstart transcript's alignment; `strict` enabled once clean · commit
-ece70f010 · tests 2/2
+ece70f010
 
 ### AC-3 — the residue gap
 
 G-0517 files the three deferred doc paths and the widen-rather-than-
 placeholder reason, pinned by a loader-resolved structural assertion · commit
-7350f91f3 · tests 1/1
+7350f91f3
 
 The phase ladder here does not carry its usual meaning. The gap was filed
 before the test that pins it, so no failing test preceded the deliverable and
@@ -271,12 +269,11 @@ is removed.
 
 `doc-id-slug` compares a written slug against the one its entity carries;
 exact, with no heuristic. Shares the doc corpus and `docs.strict` with the
-width rule, which is why `docs.id_width.*` became `docs.*` · commit f34e26337
-· tests 8/8
+width rule, which is why the config keys were flattened to `docs.*` ·
+commit f34e26337
 
 ### AC-5 — scoping the shipped instruction
 
 The always-on guidance stated the entity-body rule over all committed prose,
 which contradicted the doc rule this milestone shipped; scoped, with a
-corpus-to-rule table added to the check skill and an entry in the curated
-guidance-anchor set · commit ac72292e4 · tests 2/2
+corpus-to-rule table added to the check skill · commit ac72292e4
