@@ -1,7 +1,7 @@
 ---
 id: G-0531
 title: 46 references to the retired width-migration verb survive in live Go comments
-status: open
+status: wontfix
 priority: low
 discovered_in: M-0290
 ---
