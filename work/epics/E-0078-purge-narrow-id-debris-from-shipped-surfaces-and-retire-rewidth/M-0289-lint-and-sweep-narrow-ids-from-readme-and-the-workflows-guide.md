@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Shipped guidance and skill docs state which id rule applies where
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
@@ -127,6 +127,32 @@ different slug, asserting the mismatch fires and the entity's true slug
 stays silent.
 
 ### AC-5 — Shipped guidance and skill docs state which id rule applies where
+
+The surfaces a consumer reads say which rule governs which files, and say it
+in one place rather than leaving it to be assembled from separate finding-code
+entries.
+
+Three of the four id-shape rules are live in a consumer repo: `body-prose-id`
+over their entity files, and both doc rules over their `README.md`. Two of them
+disagree about the same token deliberately — a canonical placeholder is the
+defect in an entity body and the correct form in a doc — and backticks exempt
+in one and not the other. Met without explanation, that reads as the tool
+contradicting itself.
+
+The always-on guidance predates the doc rules and states the entity-body rule
+over "committed prose", which now spans both corpora. Read literally it tells a
+consumer to strip exactly the placeholders the doc rule asks for. Scoping that
+sentence is a correction to what this milestone shipped, not new work.
+
+Rationale stays out of the shipped surfaces: a consumer needs the instruction,
+not the argument for it. Why code spans are exempt in one corpus and scanned in
+the other, and why entity templates are read by two rules at once, is design
+reasoning and belongs in this repo's docs.
+
+Evidence: structural assertions that the guidance names both corpora and both
+rule families, and that the check skill carries a section comparing them; plus
+an entry in the curated guidance-anchor set, so the scoping cannot silently
+drift back out.
 
 ## Constraints
 
