@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0520: the `aiwf-show` skill said `referenced_by` indexes body-prose cross-references
+
+It doesn't index prose. The reverse-reference index is built only from a kind's
+typed frontmatter reference fields, so an id mentioned only in prose creates no edge —
+prose ids are resolved by the `body-prose-id` check rules, which is a different
+mechanism. The skill now names those fields as the index's only input (pointing at
+`aiwf schema` for the per-kind set rather than restating it) and states the
+consequence the old text left out: because the reverse direction is derived at tree
+load, it is read from `aiwf show`, never hand-authored. An agent reading the old
+text could reasonably conclude that a relation's back-reference had to be written
+into the target's body as prose, which duplicates a fact the kernel already
+computes.
+
 ## [0.31.0] — 2026-08-02
 
 ### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'

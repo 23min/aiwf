@@ -19,6 +19,7 @@ const (
 	aiwfContractSkillPath  = "internal/skills/embedded/aiwf-contract/SKILL.md"
 	aiwfAuthorizeSkillPath = "internal/skills/embedded/aiwf-authorize/SKILL.md"
 	aiwfAddSkillPath       = "internal/skills/embedded/aiwf-add/SKILL.md"
+	aiwfShowSkillPath      = "internal/skills/embedded/aiwf-show/SKILL.md"
 )
 
 // readVerbSkill reads a verb skill body relative to the repo root.
@@ -242,6 +243,31 @@ func TestAiwfAddSkill_EmptyBodyGateNamesBornCompleteKinds(t *testing.T) {
 		if !strings.Contains(section, want) {
 			t.Errorf("G-0326: empty-body-gate section omits %q", want)
 		}
+	}
+}
+
+// TestAiwfShowSkill_ReferencedByIsFrontmatterOnly pins G-0520: the
+// aiwf-show skill's `Output shape` section names frontmatter as the
+// reverse-reference index's input and does not present body-prose
+// cross-references as a source of edges. tree.buildReverseRefs inverts
+// entity.ForwardRefs, which reads the typed frontmatter fields only, so
+// an id mentioned only in prose produces no referrer.
+func TestAiwfShowSkill_ReferencedByIsFrontmatterOnly(t *testing.T) {
+	t.Parallel()
+	body := readVerbSkill(t, aiwfShowSkillPath)
+	section := sectionUnder(body, "Output shape")
+	if section == "" {
+		t.Fatal("G-0520: aiwf-show must carry an `Output shape` section describing the Referenced by block")
+	}
+	if !strings.Contains(section, "frontmatter") {
+		t.Error("G-0520: the `Output shape` section must name frontmatter as the reverse index's input")
+	}
+	// "body prose" legitimately appears in the section, which states that
+	// prose ids are check-resolved but not indexed. Guard the claim shape
+	// that was wrong, not the bare phrase.
+	if strings.Contains(section, "cross-references in body prose") {
+		t.Error("G-0520: the `Output shape` section presents body-prose cross-references as referenced_by input; " +
+			"the reverse index inverts entity.ForwardRefs, which reads frontmatter only")
 	}
 }
 
