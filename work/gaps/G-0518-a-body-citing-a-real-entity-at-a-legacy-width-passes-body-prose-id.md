@@ -7,9 +7,9 @@ status: open
 
 `body-prose-id` canonicalizes an id-shaped token before resolving it, so an
 entity body citing a real entity at a legacy width passes silently. Measured
-across this repo's active entity bodies, up to a dozen occurrences do exactly
-that (an upper bound — the count is from an unmasked grep, and tokens already
-inside backticks are exempt).
+across this repo's active entity bodies, a number of citations do exactly that.
+(No figure is recorded here: it moves with every body edit, and backticked
+tokens are exempt, so the worklist is whatever the rule reports once it exists.)
 
 This is the same defect the doc corpus was swept for, in a surface that
 matters more: the entity tree is the planning record, and a body is the
