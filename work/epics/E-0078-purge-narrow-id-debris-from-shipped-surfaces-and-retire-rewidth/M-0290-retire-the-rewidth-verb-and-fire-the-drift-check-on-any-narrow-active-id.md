@@ -24,6 +24,7 @@ acs:
     - id: AC-5
       title: An ADR records which clauses the retirement supersedes
       status: open
+      tdd_phase: red
 ---
 
 ## Goal
