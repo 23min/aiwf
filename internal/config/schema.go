@@ -39,7 +39,7 @@ var fieldDescriptions = map[string]string{
 	"status_md.auto_update": "Whether the STATUS.md auto-update hook is installed (default true).",
 
 	"tdd":                      "Opt-in governance for the acceptance-criteria TDD workflow.",
-	"tdd.require_test_metrics": "Require an aiwf-tests: trailer on every AC promoted to done under tdd: required (default false).",
+	"tdd.require_test_metrics": "Require an aiwf-tests: trailer on every AC promoted to done under tdd: required (default false). Evaluates an AC's whole history with no enable-time boundary, so enable at greenfield — a tree with ACs already at done warns once per such AC, and they cannot acquire a trailer afterwards.",
 	"tdd.strict":               "Promote TDD-related warnings to errors so the pre-push hook blocks the push (default false).",
 	"tdd.test_paths":           "Glob set classifying a path as a test path for the red/green diff-shape gate on --phase red/green promotes.",
 

@@ -506,7 +506,12 @@ func (c *Config) HTMLOutDir() string {
 // milestone must have at least one commit in its history carrying an
 // `aiwf-tests:` trailer or the check warns. Default false — the
 // trailer is informational metadata; consumers who want stricter
-// governance opt in at the project level.
+// governance opt in at the project level. The rule walks an AC's
+// entire history and carries no enable-time boundary, so it is
+// adoptable at greenfield rather than retroactively: a tree whose ACs
+// reached `done` before the trailer convention warns once per such AC,
+// and the trailer is written only as a phase advances, so an
+// already-terminal AC cannot acquire one.
 //
 // Strict promotes a defined set of TDD-related findings from warning
 // to error so the pre-push hook blocks the push. The bumper covers
