@@ -18,7 +18,7 @@ acs:
       status: open
     - id: AC-4
       title: An id written with a slug contradicting the real entity fails a gate
-      status: open
+      status: met
       tdd_phase: done
 ---
 
