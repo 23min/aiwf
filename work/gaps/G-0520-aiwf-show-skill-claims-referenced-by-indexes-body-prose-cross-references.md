@@ -88,7 +88,6 @@ alone would be lopsided. It wants its own gap and its own placement decision.
   `relates_to` specifically.
 - **G-0504** — `aiwf doctor` byte-checks only verb skills, so a drifted skill
   body reads as healthy. This gap is one instance of that class, found by hand.
-- **G-0519** — documentation is not reference-checked.
 
 ## Provenance
 
