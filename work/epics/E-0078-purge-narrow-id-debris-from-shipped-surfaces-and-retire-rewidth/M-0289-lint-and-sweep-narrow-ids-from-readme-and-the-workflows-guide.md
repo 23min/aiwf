@@ -12,6 +12,7 @@ acs:
     - id: AC-2
       title: Neither README nor the workflows guide carries a narrow id
       status: open
+      tdd_phase: red
     - id: AC-3
       title: The deferred doc-residue gap exists naming its three paths and reason
       status: open
