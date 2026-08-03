@@ -38,3 +38,14 @@ func TestDocs_UnmarshalYAML_AcceptsKnownKeys(t *testing.T) {
 		t.Error("DocsStrict() = false, want true")
 	}
 }
+
+// TestDocs_UnmarshalYAML_RejectsNonMapping covers the decode-error arm: a
+// docs: value of the wrong YAML kind must surface an error rather than a zero
+// block, which would look exactly like "no docs configured".
+func TestDocs_UnmarshalYAML_RejectsNonMapping(t *testing.T) {
+	t.Parallel()
+	var c Config
+	if err := yaml.Unmarshal([]byte("docs: [README.md]\n"), &c); err == nil {
+		t.Fatal("a sequence under docs: must be rejected, not decoded as an empty block")
+	}
+}

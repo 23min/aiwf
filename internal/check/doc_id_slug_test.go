@@ -65,6 +65,10 @@ func docSlugFixture() *tree.Tree {
 	return &tree.Tree{Entities: []*entity.Entity{
 		{ID: "ADR-0001", Path: "docs/adr/ADR-0001-mint-entity-ids-at-trunk-integration.md"},
 		{ID: "M-0007", Path: "work/epics/E-0002-auth/M-0007-schema-migration.md"},
+		// Present so the RFC-0001 boundary case below fails for the boundary
+		// reason rather than for an unknown id — without it that row passes
+		// with or without the \b.
+		{ID: "C-0001", Path: "work/contracts/C-0001-real-slug/contract.md"},
 	}}
 }
 

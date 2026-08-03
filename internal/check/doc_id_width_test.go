@@ -31,7 +31,7 @@ func TestScanDocIDWidth_NonNumericSuffixSilent(t *testing.T) {
 			t.Parallel()
 			body := fmt.Sprintf("# Doc\n\nSee %s.\n", tok)
 			if got := ScanDocIDWidth([]byte(body), "README.md"); len(got) != 0 {
-				t.Fatalf("malformed shape %q belongs to body-prose-id, got %d: %+v", tok, len(got), got)
+				t.Fatalf("malformed shape %q is out of this rule's scope; nothing scans documents for it, got %d: %+v", tok, len(got), got)
 			}
 		})
 	}
@@ -257,11 +257,8 @@ func TestScanDocIDWidth_DedupesPerToken(t *testing.T) {
 	}
 }
 
-// TestApplyDocsStrict is the severity contract. The rule ships advisory
-// so that upgrading aiwf cannot block a push over prose the operator never
-// edited — a repo whose entities were migrated still carries narrow ids
-// through its docs, and there is neither a fixer nor a suppression mechanism
-// for them. A repo raises the bar once its own sweep is done.
+// TestApplyDocsStrict is the severity contract: advisory at the source, error
+// only under config. doc_id_width.go's header states why that default.
 func TestApplyDocsStrict(t *testing.T) {
 	t.Parallel()
 	t.Run("strict escalates", func(t *testing.T) {

@@ -197,12 +197,12 @@ Run `aiwf doctor` to confirm: the `rituals:` line reports the artifacts material
 
 ### Sample of `aiwf check` output
 
-When validation finds something, output is one finding per line in linter form: `path:line: severity code: message — hint: <action>`.
+When validation finds something, each error prints on its own line in linter form: `path:line: severity code: message — hint: <action>`. Warnings are summarized per code; `--verbose` expands them to the same per-instance form.
 
 ```text
-work/epics/E-NNNN-foo/M-NNNN-bad.md:4: error frontmatter-shape: milestone missing required field: parent — hint: add the missing frontmatter field by hand and re-run `aiwf check`
-work/epics/E-NNNN-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: use one of the allowed statuses listed above
-work/epics/E-NNNN-foo/epic.md:3: warning titles-nonempty: title is empty or whitespace-only — hint: set a non-empty `title:` in the frontmatter
+work/epics/E-NNNN-foo/M-NNNN-bad.md:1: error frontmatter-shape: milestone missing required field: parent — hint: add the missing frontmatter field by hand and re-run `aiwf check`; if the id itself is malformed, renumber via `aiwf reallocate <path>` so it emits at canonical width
+work/epics/E-NNNN-foo/epic.md:4: error status-valid: status "bogus" is not allowed for kind epic (allowed: proposed, active, done, cancelled) — hint: correct the `status:` field in the frontmatter to one of the kind's allowed states by hand, then re-run `aiwf check`; `aiwf promote` can't move an entity whose current status is unrecognized (it reads that status to compute the transition and refuses)
+titles-nonempty (warning) × 1 — title is empty or whitespace-only
 
 3 findings (2 errors, 1 warnings)
 ```
