@@ -1,7 +1,7 @@
 ---
 id: G-0480
 title: No check rule detects frontmatter laundering already in history
-status: open
+status: wontfix
 priority: medium
 discovered_in: E-0075
 ---
