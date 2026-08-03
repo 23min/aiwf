@@ -45,8 +45,10 @@ lives in the `wf-codebase-health` skill.
 - **Decide one thing at a time.** Three or more queued? Present one at a time,
   never batched into one `AskUserQuestion` card. Each: the context, options
   with pros/cons and risks, your plain lean *with its argument*, a numbered
-  pick-list. The reasoning is the deliverable; the container serves it — a
-  card's terseness must not drop the pros/cons, the lean, or the argument.
+  pick-list. The reasoning is the deliverable; the container serves it — write
+  prose by default, and reach for a card only for a trivial either/or or a
+  side-by-side of concrete options. A card's terseness must not drop the
+  pros/cons, the lean, or the argument.
   Write it all in the plainest language that carries the trade: name the thing,
   not its category; say what breaks, not the class of failure; keep a
   specialist term only where it is the subject of the decision. A card's

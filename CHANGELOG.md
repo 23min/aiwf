@@ -16,6 +16,19 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — a decision is offered as prose by default, and a card only where a card helps
+
+The one-decision-at-a-time rule described how to *fill* an interactive
+decision card — never batch several into one, never let its terseness drop the
+pros and cons or the argued lean, keep its question to one short line — without
+saying when to open one at all. The choice between a card and prose was
+therefore made by taste, per turn.
+
+The rule now names the default and its two exceptions: write prose, and reach
+for a card only for a trivial either/or or a side-by-side of concrete options.
+Those are the shapes a card renders better than prose; everywhere else it
+costs the reasoning a human decides on.
+
 ### Changed — decisions are offered in plain language, not in the vocabulary that produced them
 
 The one-decision-at-a-time rule specified a decision's *structure* — context,
