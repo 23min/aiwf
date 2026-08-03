@@ -6,7 +6,7 @@ status: open
 ## Problem
 
 Three active documentation paths still carry below-canonical-width ids, left
-unswept when the doc corpus was linted: `docs/design/**` (five files),
+unswept when the doc corpus was linted: `docs/design/**`,
 `docs/overview.md`, and `docs/architecture.md`.
 
 They are excluded for a reason rather than by oversight. The swept corpus was
