@@ -16,6 +16,9 @@ acs:
     - id: AC-3
       title: The deferred doc-residue gap exists naming its three paths and reason
       status: open
+    - id: AC-4
+      title: An id written with a slug contradicting the real entity fails a gate
+      status: open
 ---
 
 ## Goal
@@ -87,6 +90,8 @@ mistake the omission for an oversight.
 
 Evidence: a structural assertion that the gap resolves through the loader and its
 body names all three paths.
+
+### AC-4 — An id written with a slug contradicting the real entity fails a gate
 
 ## Constraints
 
