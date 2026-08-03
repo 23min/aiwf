@@ -16,6 +16,8 @@ section in this file.
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-08-03
+
 ### Added — E-0078: two checks for id shapes in repo-facing documentation
 
 `aiwf check` now reads the documents a repo points it at and reports two id
