@@ -155,10 +155,9 @@ func Run(t *tree.Tree, loadErrs []tree.LoadError) []Finding {
 	// G-0268: defense-in-depth backstop for the hard --tdd creation
 	// requirement — fires on non-archived milestones lacking tdd:.
 	findings = append(findings, milestoneTDDUndeclared(t)...)
-	// M-083 AC-1: drift-check rule for narrow-width ids in a mixed-
-	// state active tree. Per ADR-0008 §"Drift control", uniform trees
-	// (either all-narrow or all-canonical) are silent; only the mixed
-	// state fires.
+	// Any narrow-width id in an active entity's filename, at error
+	// severity, whatever its neighbours look like (ADR-0039). Archive
+	// entries never fire, permanently — no verb widens an id in place.
 	findings = append(findings, entityIDNarrowWidth(t)...)
 	// M-0086: archive-aware findings per ADR-0004 §"Check shape rules".
 	// archivedEntityNotTerminal fires (blocking) on hand-edit drift.

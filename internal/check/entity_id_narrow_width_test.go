@@ -298,3 +298,54 @@ func TestIsNarrowID_DefensiveBranches(t *testing.T) {
 		})
 	}
 }
+
+// TestEntityIDNarrowWidth_FiresThroughCheckRun is the seam test. Every
+// other assertion here calls entityIDNarrowWidth directly, which leaves
+// the rule's *registration* in check.Run unpinned: delete that line and
+// the unit tests all still pass while the shipped `aiwf check` — the
+// binary the pre-push hook and CI run — stops reporting narrow ids
+// entirely.
+//
+// That gap matters most for exactly this rule, whose whole point is
+// being an unconditional error-severity gate rather than an advisory
+// warning. So this drives the real path: files on disk, through
+// tree.Load, through check.Run.
+func TestEntityIDNarrowWidth_FiresThroughCheckRun(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWrite(t, root, "work/gaps/G-093-legacy.md", `---
+id: G-093
+title: Legacy-width gap
+status: open
+---
+
+## What's missing
+
+Prose.
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	findings := Run(tr, loadErrs)
+	var got *Finding
+	for i := range findings {
+		if findings[i].Code == CodeEntityIDNarrowWidth {
+			got = &findings[i]
+			break
+		}
+	}
+	if got == nil {
+		t.Fatal("check.Run reported no entity-id-narrow-width finding for an active narrow id — " +
+			"the rule is not registered in Run, so `aiwf check` does not gate narrow ids at all")
+	}
+	if got.Severity != SeverityError {
+		t.Errorf("Severity = %q through check.Run, want error — the gate is advisory, not blocking", got.Severity)
+	}
+	if got.EntityID != "G-093" {
+		t.Errorf("EntityID = %q, want %q", got.EntityID, "G-093")
+	}
+}

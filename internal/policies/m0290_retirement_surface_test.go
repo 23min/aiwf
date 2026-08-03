@@ -38,6 +38,7 @@ func TestM0290_AC4_NoShippedSurfaceOffersTheRetiredVerb(t *testing.T) {
 		filepath.Join("internal", "skills", "embedded-rituals"),
 		filepath.Join("internal", "skills", "embedded-guidance"),
 		filepath.Join("internal", "skills", "embedded-statusline"),
+		filepath.Join("internal", "skills", "embedded-hooks"),
 	}
 	for _, sub := range shipped {
 		dir := filepath.Join(root, sub)

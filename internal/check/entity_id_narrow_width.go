@@ -50,8 +50,8 @@ func entityIDNarrowWidth(t *tree.Tree) []Finding {
 		}
 		// The loader admits filenames this call rejects: PathKind
 		// classifies on `^<prefix>-\d+`, while IDFromPath additionally
-		// applies the kind's grammar floor (three digits for gap,
-		// milestone, decision and contract; four for ADR). An id below
+		// applies the kind's grammar floor (two digits for epic, three
+		// for gap, milestone, decision and contract, four for ADR). An id below
 		// that floor loads, lands here, and is reported by
 		// frontmatter-shape instead.
 		pathID, ok := entity.IDFromPath(e.Path, e.Kind)

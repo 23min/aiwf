@@ -783,7 +783,7 @@ Five rules surfaced by re-opening verb files I'd only read via `--help` during �
 | 10.13 Honest-sweep additions | 5 |
 | **Consolidated total** | **156** |
 
-**Dedup math:** 225 facets → 148 consolidated rules (sections 10.1–10.11; ~34% compression). The 3 revision-2 additions (R-RULE-149/150/151) and the 5 sweep additions (R-RULE-152/153/154/155/156) are *new* rules, not consolidations of existing facets, so they don't enter the dedup ratio. Total catalog: 148 consolidated + 3 revision-2 + 5 sweep = **156 rules**.
+**Dedup math:** 225 facets → 148 consolidated rules (sections 10.1–10.11; ~34% compression). The 3 revision-2 additions (R-RULE-149/150/151) and the 5 sweep additions (R-RULE-152/153/154/155/156) are *new* rules, not consolidations of existing facets, so they don't enter the dedup ratio. The catalog is the set of `R-RULE-*` rows in section 10; retiring a rule leaves its id vacant rather than renumbering the rest.
 
 Most of the compression came from FSM transitions (49 facet rows → 21 consolidated; each (kind, from-state) row now lists all chokepoints) and from cross-source overlaps (e.g., R-RULE-026's milestone-done precondition consolidates 5 facets across transition.go, check rules, verb pre-checks, and design-decisions.md).
 
