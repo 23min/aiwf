@@ -8,7 +8,7 @@ discovered_in: E-0034
 
 Two movers rewrite cross-references only inside the scope each treats as its own, and links outside that scope keep pointing at a vacated path.
 
-**A doc-relocation sweep skips `CHANGELOG.md`.** E-0034's docs/pocv3/ relocation swept cross-references across the docs/ tree and source code, but not `CHANGELOG.md` — a pre-migration `## [X.Y.Z]` entry still linked to `docs/pocv3/archive/gaps-pre-migration.md`, a path that stopped existing once the relocation landed (the correct post-relocation path is `docs/archive/pocv3/gaps-pre-migration.md`). Nothing caught this until a later release cut's pre-release link-check ran.
+**A doc-relocation sweep skips `CHANGELOG.md`.** E-0034 relocated the pre-migration docs tree under `docs/archive/`, sweeping cross-references across the `docs/` tree and source code but not `CHANGELOG.md` — a pre-migration `## [X.Y.Z]` entry still linked to the vacated path for `gaps-pre-migration.md`, which stopped resolving the moment the relocation landed. The file now lives under `docs/archive/pocv3/`. Nothing caught this until a later release cut's pre-release link-check ran.
 
 **`aiwf archive` skips `docs/`.** The sweep rewrites every cross-reference in an entity body, and a doc holds none of those, so a doc linking to an entity keeps the active-tree path once that entity moves under `archive/`. Measured at the v0.31.0 cut: four links in `docs/initiatives/quality-signal-and-cadence.md` still pointed at E-0073, M-0281 and G-0468 under `work/epics/` and `work/gaps/` after earlier sweeps had moved all three. link-check was red for nine consecutive runs before the paths were corrected by hand.
 
