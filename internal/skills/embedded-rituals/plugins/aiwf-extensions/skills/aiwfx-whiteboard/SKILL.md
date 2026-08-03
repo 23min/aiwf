@@ -70,6 +70,8 @@ Numbered list, one entry per concrete next action. Each entry uses **explicit be
 
 Sequence is reproducible across runs given the same tree state; only the lean phrasing varies with LLM judgement.
 
+When the consumer keeps an ordering of their own (see *Keep the ordering*), render this block as a **delta against it** rather than as a fresh sequence: what dropped, what is new and where it lands, what moved and why. An ordering they have already agreed to is the baseline; this block proposes changes to it.
+
 ### (b) First-decision fork — option list
 
 The next concrete sequencing question presented as concrete options, typically A/B/C, each with **pros / cons** and a **lean**:
@@ -105,6 +107,27 @@ After rendering blocks (a)–(d) into the conversation, write the same four bloc
 
 The cache lets the operator re-read the last synthesis without re-invoking the skill — useful when the chat-session context has scrolled past the rendered output. The cache is **not authoritative**: the live tree is the truth, and `WHITEBOARD.md` is a snapshot that drifts from the tree the moment any planning entity changes status. Treat `WHITEBOARD.md` like `STATUS.md`: a regeneratable view, not the source of truth.
 
+## Keep the ordering
+
+`WHITEBOARD.md` is a cache and is rewritten in full on every run. An ordering the consumer keeps for themselves — commonly a `TODO.md` — is not: it carries decisions this run cannot see. Treat what is already there as the baseline and never rewrite it from the synthesis above.
+
+Reconcile against it instead:
+
+- Drop entries whose entities are terminal, and any cluster that has emptied. Mechanical — no need to ask.
+- For each entity new since that ordering was written, propose the cluster it joins, one line each.
+- Propose a move only where something changed that justifies it, and name the change.
+- Build from scratch only when no ordering exists. That is the one run where a fresh pass is right.
+
+A cluster's thesis is the stable part; membership churns beneath it without moving it. Leave a thesis and its position alone unless the consumer changes it, and raise a split, a merge, or a new cluster on its own rather than folding it into the delta.
+
+The delta is a proposed edit, not a decision gate: render it, note in one line that it can be saved, and write only what the consumer accepts. The *Q&A gate*'s one-at-a-time rule governs pending decisions and is unaffected by it.
+
+aiwf does not manage the consumer's file — no verb writes it, no check validates it, and it is not an entity kind. If they keep none and want one, offer this shape:
+
+    ## Don't forget      — append one line; delete when done
+    ## Next, in order    — dated; replace this section wholesale, never append
+    ## Parked            — decided not-now, one line each
+
 ## Q&A gate
 
 After rendering blocks (a)–(d), the skill emits exactly one gate prompt and waits:
@@ -133,7 +156,7 @@ Every verb invocation in the skill body or its rendered output must resolve to a
 
 ### 3. Persisting the synthesis to a checked-in file
 
-**No `whiteboard.md`, `landscape.md`, or any synthesis snapshot committed to the tree.** A checked-in snapshot goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree. **Gitignored local caches are different and OK** — they regenerate on each invocation, don't share team-wide drift, and don't tax git history. The skill writes such a cache to `WHITEBOARD.md` (see *Output cache* above); `STATUS.md` is the precedent (a persisted artefact regenerated on every commit by the pre-commit hook).
+**No `whiteboard.md`, `landscape.md`, or any synthesis snapshot committed to the tree.** A checked-in snapshot goes stale within hours of the next planning act and becomes a second source of truth that disagrees with the live tree. **Gitignored local caches are different and OK** — they regenerate on each invocation, don't share team-wide drift, and don't tax git history. The skill writes such a cache to `WHITEBOARD.md` (see *Output cache* above); `STATUS.md` is the precedent (a persisted artefact regenerated on every commit by the post-commit hook). An ordering the consumer authors is a third case: neither committed nor regenerated, so it is reconciled rather than overwritten (see *Keep the ordering*).
 
 ### 4. Scope creep beyond direction-synthesis
 

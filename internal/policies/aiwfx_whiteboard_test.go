@@ -340,3 +340,54 @@ func TestAiwfxWhiteboard_AC2_DescriptionPhrasings(t *testing.T) {
 		t.Errorf("AC-2: description must carry ≥5 spec-listed phrasings (got %d; missing: %v)", hits, missing)
 	}
 }
+
+// TestAiwfxWhiteboard_ReconcilesAnExistingOrdering asserts the
+// ritual reconciles an ordering the consumer already keeps rather
+// than regenerating one. Five claims are load-bearing and each is
+// scoped to the section that must carry it, per CLAUDE.md *Testing*
+// §"Substring assertions are not structural assertions": the
+// existing ordering is the baseline, a from-scratch pass is correct
+// only when none exists, the delta is not a second decision gate,
+// aiwf manages no such file, and the recommended-sequence block
+// renders as a delta.
+func TestAiwfxWhiteboard_ReconcilesAnExistingOrdering(t *testing.T) {
+	t.Parallel()
+	body := loadAiwfxWhiteboardFixture(t)
+
+	section := extractMarkdownSection(body, 2, "Keep the ordering")
+	if section == "" {
+		t.Fatal("SKILL.md must have a `## Keep the ordering` section")
+	}
+	lower := strings.ToLower(section)
+
+	if !strings.Contains(lower, "baseline") {
+		t.Error("§Keep the ordering must name the consumer's existing ordering as the baseline")
+	}
+	if !regexp.MustCompile(`(?i)never rewrite|not rewrite|rather than (rewriting|regenerating)`).MatchString(section) {
+		t.Error("§Keep the ordering must forbid rewriting the existing ordering from the synthesis")
+	}
+	// Two independent terms rather than the joined clause: the claim is
+	// that a fresh pass is confined to the no-ordering case, and a reword
+	// of the connective tissue must not turn this red.
+	if !strings.Contains(lower, "from scratch") || !strings.Contains(lower, "no ordering exists") {
+		t.Error("§Keep the ordering must confine a from-scratch pass to the case where no ordering exists")
+	}
+	if !regexp.MustCompile(`(?i)not a decision gate`).MatchString(section) {
+		t.Error("§Keep the ordering must state the delta is a proposed edit, not a second gate — the one-at-a-time rule governs pending decisions")
+	}
+	if !regexp.MustCompile(`(?i)no verb writes it`).MatchString(section) ||
+		!regexp.MustCompile(`(?i)not an entity kind`).MatchString(section) {
+		t.Error("§Keep the ordering must state aiwf manages no such file: no verb writes it, and it is not an entity kind")
+	}
+
+	// The recommended-sequence block is where the delta is rendered,
+	// so the instruction belongs there and not only in the section
+	// that describes the discipline.
+	seq := extractMarkdownSection(body, 3, "(a) Recommended sequence — numbered prose")
+	if seq == "" {
+		t.Fatal("SKILL.md must retain the `### (a) Recommended sequence` block")
+	}
+	if !regexp.MustCompile(`(?i)delta against it`).MatchString(seq) {
+		t.Error("block (a) must render as a delta against the consumer's ordering when one exists")
+	}
+}
