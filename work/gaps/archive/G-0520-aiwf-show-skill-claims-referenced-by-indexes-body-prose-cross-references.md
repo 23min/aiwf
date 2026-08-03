@@ -1,8 +1,10 @@
 ---
 id: G-0520
 title: aiwf-show skill claims referenced_by indexes body-prose cross-references
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 08d9d63c4
 ---
 ## What's missing
 
@@ -86,8 +88,23 @@ alone would be lopsided. It wants its own gap and its own placement decision.
   verb. D-0048 settled the verb shape and deferred the code until real friction
   appeared; the downstream report in Provenance is that friction, on
   `relates_to` specifically.
-- **G-0504** — `aiwf doctor` byte-checks only verb skills, so a drifted skill
-  body reads as healthy. This gap is one instance of that class, found by hand.
+- **G-0504** — a different axis, not a parent. That gap is about a *materialized
+  copy* going stale against its embedded source, and verb skills are the one
+  family it says `aiwf doctor` already byte-checks. Here the embedded source is
+  itself wrong about the kernel, and a byte-perfect copy of a wrong source still
+  reports healthy.
+
+## How this class is caught
+
+No chokepoint compares a shipped skill's prose against the kernel behavior it
+describes. `internal/policies/skill_edit_structural_test_backstop.go` requires a
+referencing structural test for every `SKILL.md` edit, but scopes itself to
+`internal/skills/embedded-rituals/**`; the verb-skill tree is excluded by
+construction. What catches this class today is
+`internal/policies/verb_skill_factual_test.go` — per-fact pins, each added when a
+drift is found by hand, section-scoped via `sectionUnder`. This gap's fix lands
+one there. Whether the general chokepoint is worth building is a separate
+question this gap does not settle.
 
 ## Provenance
 
