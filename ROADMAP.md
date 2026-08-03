@@ -1092,6 +1092,6 @@ work is finished.
 |---|---|---|
 | M-0287 | Detect real ids in code spans and below-width placeholders in shipped surfaces | done |
 | M-0288 | Sweep shipped surfaces to canonical placeholders and enforce at error severity | done |
-| M-0289 | Lint and sweep narrow ids from README and the workflows guide | in_progress |
+| M-0289 | Lint and sweep narrow ids from README and the workflows guide | done |
 | M-0290 | Retire the rewidth verb and fire the drift check on any narrow active id | draft |
 
