@@ -1062,7 +1062,7 @@ Addresses G-0466 and G-0463.
 | M-0285 | Fail CI when a new frontmatter-writing route bypasses the precondition | done |
 | M-0286 | Close the archive sweep's referrer and destination gaps | done |
 
-## E-0076 — Chokepoints for three documented rules that have no detector (proposed)
+## E-0076 — Chokepoints for three documented rules that have no detector (cancelled)
 
 ### Goal
 
@@ -1086,7 +1086,7 @@ G-0454, G-0455.
 
 _No milestones yet._
 
-## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (active)
+## E-0078 — Purge narrow-id debris from shipped surfaces and retire rewidth (done)
 
 ### Goal
 
