@@ -109,7 +109,7 @@ var hintTable = map[string]string{
 	// M-083 AC-1: tree mid-migration warning. Fires only on the
 	// mixed-active-tree case; uniform-narrow and uniform-canonical
 	// stay silent per ADR-0008's "Drift control" subsection.
-	"entity-id-narrow-width": "the active tree mixes narrow and canonical id widths; run `aiwf rewidth --apply` to complete the canonical-width migration (no commit until you re-invoke with `--apply`)",
+	"entity-id-narrow-width": "an active entity's id is below canonical width; undo the hand-edit or file move that produced it — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
 
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not

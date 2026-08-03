@@ -1,8 +1,8 @@
 ---
-id: G-001
+id: G-0001
 title: We have no paint supplier
 status: open
-discovered_in: M-001
+discovered_in: M-0001
 ---
 
 ## What's missing

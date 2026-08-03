@@ -177,12 +177,6 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// the AC-2 parser-tolerance tests above.
 		"internal/check/cross_branch_test.go": "M-0259/AC-2 crossBranchIndex canonicalization input space: narrow-legacy hit grouped with canonical-width hit",
 
-		// G-0184 follow-through: widenEntityID's input space is bare-id
-		// shapes at every width including below-grammar narrow forms
-		// (E-1, M-77, G-9, etc.). Same shape as the entity-grammar
-		// tests above.
-		"internal/verb/widen_entity_id_test.go": "G-0184 follow-through: widenEntityID bare-id contract; narrow inputs are the verb's widening input space",
-
 		// G-0277 status cross-worktree divergence: the sibling worktree's
 		// driver-entity id may be recorded at legacy narrow width; a
 		// narrow (E-43) vs canonical (E-0043) fixture pins that the

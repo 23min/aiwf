@@ -1,8 +1,8 @@
 ---
-id: M-003
+id: M-0003
 title: Build the violet widget under TDD
 status: in_progress
-parent: E-01
+parent: E-0001
 tdd: required
 acs:
   - id: AC-1
@@ -39,7 +39,7 @@ Pack target receives an OpResult shaped per ADR-0001.
 
 ### AC-3 — Reviewer notes are exported
 
-Deferred to the next milestone; see body of `M-004` when it lands.
+Deferred to the next milestone; see body of `M-0004` when it lands.
 
 ## Work Log
 
@@ -56,7 +56,7 @@ The pack-receiving path landed; tests pass. Phase advanced to done.
 
 ## Deferrals
 
-- AC-3 deferred; will pick up in `M-004`.
+- AC-3 deferred; will pick up in `M-0004`.
 
 ## Reviewer notes
 

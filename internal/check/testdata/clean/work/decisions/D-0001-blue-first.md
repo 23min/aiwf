@@ -1,10 +1,10 @@
 ---
-id: D-001
+id: D-0001
 title: Ship blue widgets before green ones
 status: accepted
 relates_to:
-  - M-001
-  - M-002
+  - M-0001
+  - M-0002
 ---
 
 ## Question

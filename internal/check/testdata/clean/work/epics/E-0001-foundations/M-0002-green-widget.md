@@ -1,11 +1,11 @@
 ---
-id: M-002
+id: M-0002
 title: Build the green widget
 status: draft
-parent: E-01
+parent: E-0001
 tdd: none
 depends_on:
-  - M-001
+  - M-0001
 acs:
   - id: AC-1
     title: Green widgets pass the color-contrast gate

@@ -14,7 +14,6 @@ import (
 	"github.com/23min/aiwf/internal/cli/rename"
 	"github.com/23min/aiwf/internal/cli/renamearea"
 	"github.com/23min/aiwf/internal/cli/retitle"
-	"github.com/23min/aiwf/internal/cli/rewidth"
 	"github.com/23min/aiwf/internal/cli/setarea"
 	"github.com/23min/aiwf/internal/cli/setpriority"
 	"github.com/23min/aiwf/internal/cli/worktree"
@@ -151,30 +150,6 @@ func TestRetitleDiag_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
 	rc := retitle.Run("G-0001", "New title", "human/test", "", root, "", cliutil.OutputFormat{})
 	if rc != cliutil.ExitOK {
 		t.Fatalf("retitle.Run: rc=%d", rc)
-	}
-	if got := readRunID(t, logPath); got == "" {
-		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")
-	}
-}
-
-// TestRewidthDiag_FallsBackWhenOutputFormatCarriesNone uses a
-// freshly-inited repo (already canonical width — nothing to
-// rewidth), so the verb takes its NoOp path; the diagLog block runs
-// before that outcome is known, so a NoOp still exercises the
-// fallback. Mirrors TestRewidthDiag_EmitsVerbCompletedEvent's own
-// rationale.
-func TestRewidthDiag_FallsBackWhenOutputFormatCarriesNone(t *testing.T) {
-	root := setupCLITestRepo(t)
-	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")
-
-	logPath := filepath.Join(t.TempDir(), "diag.log")
-	t.Setenv("AIWF_LOG", "info")
-	t.Setenv("AIWF_LOG_FORMAT", "json")
-	t.Setenv("AIWF_LOG_FILE", logPath)
-
-	rc := rewidth.Run("human/test", "", root, true, false, cliutil.OutputFormat{})
-	if rc != cliutil.ExitOK {
-		t.Fatalf("rewidth.Run: rc=%d", rc)
 	}
 	if got := readRunID(t, logPath); got == "" {
 		t.Error("run_id empty even though OutputFormat carried no CorrelationID; the fallback mint did not fire")

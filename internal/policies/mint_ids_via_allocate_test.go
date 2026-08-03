@@ -120,20 +120,6 @@ func badID(n int) error {
 `,
 			wantFire: false,
 		},
-		{
-			name:    "allowlisted rewidth.go is exempt",
-			relPath: "internal/verb/rewidth.go",
-			body: `package verb
-
-import "fmt"
-
-func padToCanonical(prefix, digits string) string {
-	n := 0
-	return fmt.Sprintf("%s-%0*d", prefix, 4, n)
-}
-`,
-			wantFire: false,
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

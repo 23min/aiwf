@@ -1,9 +1,9 @@
 ---
-id: M-002
+id: M-0002
 title: Other half of the cycle
 status: draft
-parent: E-01
+parent: E-0001
 depends_on:
-  - M-001
+  - M-0001
 tdd: none
 ---

@@ -36,7 +36,7 @@ import (
 // The fixture is a temp copy of internal/check/testdata/messy so the
 // test runs outside any .git context (provenance audit and
 // trunk-collision checks are skipped accordingly). Goldens live at
-// cmd/aiwf/testdata/m0089/.
+// internal/cli/integration/testdata/m0089/.
 
 // fixtureCheckSource is the source tree that the M-0089 binary tests
 // copy into a tempdir before invoking the binary. messy is rich

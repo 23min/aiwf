@@ -135,22 +135,18 @@ func newDestination(to, dir string, rootRelative bool) string {
 	return relativeFromDir(dir, to)
 }
 
-// entityRootPrefixes returns the deduplicated, trailing-slash root
-// directories under which entity files live, derived from
-// activeKindLayouts (rewidth.go) so the root-relative set has a
-// single source of truth shared with the rewidth verb.
+// entityRootPrefixes returns the trailing-slash, repo-relative
+// directories entity files live under. It is the enumerable companion
+// to entity.PathKind, which recognizes the same directories as a
+// switch over path segments and so cannot be iterated.
 func entityRootPrefixes() []string {
-	seen := make(map[string]bool)
-	var out []string
-	for _, l := range activeKindLayouts() {
-		prefix := l.rootDir + "/"
-		if seen[prefix] {
-			continue
-		}
-		seen[prefix] = true
-		out = append(out, prefix)
+	return []string{
+		"work/epics/",
+		"work/gaps/",
+		"work/decisions/",
+		"work/contracts/",
+		"docs/adr/",
 	}
-	return out
 }
 
 // isEntityRootRelative reports whether inner is rooted at one of the

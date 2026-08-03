@@ -43,6 +43,21 @@ func TestPolicy_HelpBannerCoversVerbs(t *testing.T) {
 	}
 }
 
+// TestPolicy_HelpBannerOmitsTheRetiredWidthMigrationVerb closes the
+// direction TestPolicy_HelpBannerCoversVerbs does not: that test walks
+// registered verbs and asserts each appears in the banner, so a banner
+// line for a verb that no longer exists survives it untouched. The
+// banner is the listing an operator reads to learn what aiwf can do —
+// a line offering a command the binary will reject is worse than no
+// line at all.
+func TestPolicy_HelpBannerOmitsTheRetiredWidthMigrationVerb(t *testing.T) {
+	const retired = "rewidth"
+	if bannerHasVerb(captureHelpBanner(t), retired) {
+		t.Errorf("the printHelp() banner still lists %q, which is no longer a registered verb;\n"+
+			"remove its line under 'Verbs:' in internal/cli/root.go's printHelp().", retired)
+	}
+}
+
 // TestPolicy_HelpBannerCoversFlags mirrors the verb-drift test above
 // for value-taking flags (boolean flags are self-evident from a
 // verb's own --help and aren't worth enumerating in the root

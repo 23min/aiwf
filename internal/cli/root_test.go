@@ -88,7 +88,7 @@ func TestNewRootCmd_HasExpectedVerbs(t *testing.T) {
 	root := NewRootCmd("")
 	expected := []string{
 		"check", "add", "promote", "cancel", "rename", "retitle",
-		"edit-body", "move", "reallocate", "rewidth", "archive",
+		"edit-body", "move", "reallocate", "archive",
 		"rename-area", "set-area", "set-priority", "acknowledge",
 		"init", "update", "upgrade", "history", "doctor", "render",
 		"import", "whoami", "status", "list", "schema", "show",
@@ -141,5 +141,33 @@ func TestNewRootCmd_AnnotationRecordsExplicitVerbs(t *testing.T) {
 		if got[autoAdd] {
 			t.Errorf("annotation contains Cobra auto-add %q; the snapshot must run before Execute", autoAdd)
 		}
+	}
+}
+
+// TestNewRootCmd_WidthMigrationVerbIsRetired pins the retirement of the
+// one-shot width-migration verb. Canonical width is the only legal
+// width for an active entity, which the entity-id-narrow-width rule
+// reports as an error — and that error is itself a refusal condition
+// for any verb running an `aiwf check` preflight, so a migrator could
+// not operate on the very trees it existed to convert.
+//
+// Two surfaces here, because a verb can be absent from one and
+// reachable through the other: the root command's children, and the
+// registered-verbs annotation, which decides whether the name stays a
+// legal `aiwf-verb:` trailer value. The third surface — the printHelp()
+// banner — is asserted in internal/cli/integration, where the banner is
+// captured from the built binary.
+func TestNewRootCmd_WidthMigrationVerbIsRetired(t *testing.T) {
+	t.Parallel()
+	const retired = "rewidth"
+	root := NewRootCmd("")
+
+	for _, c := range root.Commands() {
+		if c.Name() == retired {
+			t.Errorf("%q is still registered as a root command", retired)
+		}
+	}
+	if raw := root.Annotations[cliutil.AnnotationRegisteredVerbs]; strings.Contains(raw, retired) {
+		t.Errorf("%q is still in the registered-verbs annotation, so it stays a legal aiwf-verb trailer value", retired)
 	}
 }

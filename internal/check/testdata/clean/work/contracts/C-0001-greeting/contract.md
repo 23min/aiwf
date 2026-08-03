@@ -1,5 +1,5 @@
 ---
-id: C-001
+id: C-0001
 title: Widget greeting protocol
 status: accepted
 linked_adrs:
