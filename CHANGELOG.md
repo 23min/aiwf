@@ -16,6 +16,26 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — the whiteboard reconciles an ordering you already keep, instead of replacing it
+
+The whiteboard ritual re-derived its recommended sequence from the tree on every
+run, so an ordering you had considered and agreed to was replaced by one that
+merely resembled it. Re-deriving from scratch is confidently wrong exactly where
+prior judgement lives.
+
+When you keep an ordering of your own — commonly a `TODO.md` — the recommended
+sequence now renders as a **delta against it**: entries whose entities went
+terminal are dropped, entities new since it was written get a proposed
+placement, and a move is proposed only where something changed that justifies
+it. A cluster's thesis is the stable part and stays put unless you move it;
+splitting, merging or inventing one is raised on its own. A from-scratch pass is
+correct only when no ordering exists.
+
+The delta is a proposed edit, not a second decision gate — the one-at-a-time
+rule still governs pending decisions, and nothing is written that you have not
+accepted. aiwf manages no such file: no verb writes it, no check validates it,
+and it is not an entity kind.
+
 ## [0.31.0] — 2026-08-02
 
 ### Changed — G-0515: epic wrap checks the epic's own gap claims, not only its milestones'
