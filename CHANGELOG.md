@@ -69,6 +69,29 @@ rewritten text.
 
 The check stays inert in a consumer repo, whose tree carries no aiwf source.
 
+### Changed (breaking) — E-0078: `aiwf rewidth` is retired, and any narrow active id is an error
+
+The one-shot verb that widened legacy narrow-width ids to canonical width is
+gone, along with its CLI package and its `aiwf-verb: rewidth` trailer value.
+Every tree it targeted has been migrated, and canonical width is now the only
+legal width for an active entity.
+
+That makes the drift finding unconditional. `entity-id-narrow-width` previously
+classified the active tree and stayed silent unless narrow and canonical widths
+coexisted — a shape that let a wholly-narrow tree pass unremarked. It now fires
+at **error** severity on any narrow id in an active entity's filename, one
+finding per entity. The remediation names no verb: nothing widens an id in
+place, and `aiwf reallocate` assigns a different number rather than the same one
+at canonical width.
+
+Archive entries never fire, permanently. A repo that archived entities before
+adopting canonical width keeps narrow ids under `<kind>/archive/` for good, so
+narrow read tolerance is what keeps live cross-references into them resolving —
+a standing property of the input space rather than a legacy concession.
+
+ADR-0039 records which of ADR-0008's clauses lapse and which still bind; the
+canonical-width policy itself stands.
+
 ### Changed — a defect already fixed and pinned needs no further record
 
 The review classification routed unpinned defects to a tracked record and said
