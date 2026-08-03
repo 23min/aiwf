@@ -1,8 +1,10 @@
 ---
 id: G-0522
 title: Decision guidance specifies Q&A structure but not plain-language register
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 2a7af9528
 ---
 ## What's missing
 
