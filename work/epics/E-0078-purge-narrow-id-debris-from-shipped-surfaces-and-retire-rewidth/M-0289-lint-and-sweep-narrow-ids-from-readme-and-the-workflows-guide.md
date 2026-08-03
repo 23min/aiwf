@@ -144,14 +144,23 @@ over "committed prose", which now spans both corpora. Read literally it tells a
 consumer to strip exactly the placeholders the doc rule asks for. Scoping that
 sentence is a correction to what this milestone shipped, not new work.
 
+The guidance is scoped and no further. ADR-0018 admits that one bullet as the
+lone exception to the fragment's inclusion rule, on the reasoning that a
+per-turn pointer spares the agent a predictable failed push; the doc rules are
+advisory at the shipped default, so there is no failed push for them to spare
+and naming them there would widen an exception they have not earned. The
+always-on surface says which corpus it governs and hands the rest to the check
+skill.
+
 Rationale stays out of the shipped surfaces: a consumer needs the instruction,
 not the argument for it. Why code spans are exempt in one corpus and scanned in
 the other, and why entity templates are read by two rules at once, is design
 reasoning and belongs in this repo's docs.
 
-Evidence: two structural assertions — that the id-shape bullet itself names
-both corpora and both rules, scoped to that bullet so a neighbour cannot
-satisfy it, and that the check skill carries a section comparing them.
+Evidence: two structural assertions — that the id-shape bullet names both
+corpora, its own chokepoint, and where documentation is covered, scoped to that
+bullet so a neighbour cannot satisfy it; and that the check skill carries a
+section comparing the rules.
 
 ## Constraints
 
@@ -232,6 +241,18 @@ satisfy it, and that the check skill carries a section comparing them.
 - **`aiwf.yaml` config renamed before release.** `docs.id_width.{paths,strict}`
   became `docs.{paths,strict}` once the knobs governed two rules. Free on an
   unpushed branch, a breaking change after.
+- **ADR-0018's exception is left at one chokepoint, so no amendment is due.**
+  The alternative — naming the doc rules in the always-on fragment and
+  recording a second instance in the ADR — was declined: that exception exists
+  to spare a predictable failed push, and the doc rules only warn at the
+  shipped default. The fragment ends this milestone shorter than the sweep
+  found it, which matters with main's own guidance edits still to merge.
+- **Markdown link destinations are silent to both doc rules**, inherited from
+  the shared prose mask rather than chosen. Nil exposure today — no id-bearing
+  destination in either scanned file — and now stated in both rule headers.
+- **`CHANGELOG.md` is untouched across the whole epic branch**, which now ships
+  two consumer-visible finding codes and an `aiwf.yaml docs:` block. The only
+  chokepoint fires on a `v*` tag, so this wants catching at epic wrap.
 - **The always-on guidance is at its 90-line ceiling.** Space for AC-5's
   scoping came from moving rationale into the check skill. The next always-on
   rule displaces something.
@@ -253,8 +274,8 @@ ece70f010
 ### AC-3 — the residue gap
 
 G-0517 files the three deferred doc paths and the widen-rather-than-
-placeholder reason, pinned by a loader-resolved structural assertion · commit
-7350f91f3
+placeholder reason, pinned by a loader-resolved structural assertion ·
+commits fd3202b46, f34e26337
 
 The phase ladder here does not carry its usual meaning. The gap was filed
 before the test that pins it, so no failing test preceded the deliverable and
