@@ -54,6 +54,11 @@ var fieldDescriptions = map[string]string{
 	"tree.allow_paths": "Repo-relative glob patterns exempted from the tree-discipline check.",
 	"tree.strict":      "Promote unexpected-tree-file from a warning to a blocking error (default false).",
 
+	"docs":                 "Checks over repo-facing documentation — prose outside the entity tree.",
+	"docs.id_width":        "The doc-id-width rule: id shapes in documentation must be at canonical width.",
+	"docs.id_width.paths":  "Repo-relative docs scanned for below-canonical-width id shapes (default README.md).",
+	"docs.id_width.strict": "Promote doc-id-width from a warning to a blocking error (default false).",
+
 	"archive":                 "Drift-control configuration for the per-kind archive convention.",
 	"archive.sweep_threshold": "Terminal-entity count past which archive-sweep-pending escalates from advisory to a blocking error (unset: always advisory).",
 

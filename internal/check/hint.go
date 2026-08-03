@@ -75,6 +75,11 @@ var hintTable = map[string]string{
 	// comments) must cite no real entity id (the mirror image of
 	// body-prose-id). The fix is a canonical placeholder or a design/ADR
 	// doc-link, not a real id.
+	// M-0289: doc-id-width chokepoint. The third id-shape rule, and the only
+	// one whose subject is width alone — a repo's own docs may cite real ids
+	// freely, so the hint must not send an operator toward the placeholder
+	// when their prose genuinely names an entity.
+	"doc-id-width":               "a repo-facing document writes an id below canonical width. Widen it when it names a real entity, or write the canonical `<prefix>-NNNN` placeholder when it is illustrative — the finding names both forms, since only the author knows which was meant. Code spans and fenced blocks are in scope, so backticks are not an opt-out. Change which docs are scanned with `docs.id_width.paths` in aiwf.yaml; once yours are clean, `docs.id_width.strict: true` makes the next one block the push. Re-run `aiwf check` to confirm",
 	"skill-body-id":              "a shipped surface carries an id shape that does not belong there — either a real entity id, which is meaningless in a consumer repo and rots as the entity changes, or a non-canonical placeholder, which models a width no allocator emits. Either way write the canonical `<prefix>-NNNN` placeholder or a shape-description (for a real id you may instead cite a design/ADR doc as a markdown link, so the id rides in the destination while the visible text stays descriptive), then re-run `aiwf check`. A command example or fenced transcript is in scope too — it ships to consumers exactly as prose does",
 	"no-cycles/depends_on":       "break the cycle by resetting one milestone's dependencies via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it)",
 	"depends-on-cancelled":       "retarget the dependency via `aiwf milestone depends-on <milestone-id> --on <remaining-ids>` (or `--clear` to empty it), or cancel the dependent milestone too if it's no longer needed",

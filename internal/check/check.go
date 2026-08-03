@@ -67,6 +67,12 @@ const (
 	// image of body-prose-id; inert in a consumer repo (no skill-source
 	// tree). See internal/check/skill_body_id.go.
 	CodeSkillBodyID = "skill-body-id"
+	// CodeDocIDWidth is the M-0289 doc id-width rule: a repo-facing doc must
+	// not write an id shape below canonical width. Real ids are legitimate
+	// here — only the width is the defect, which is what separates it from
+	// skill-body-id. Advisory by default; `docs.id_width.strict` escalates it
+	// via ApplyDocIDWidthStrict. See internal/check/doc_id_width.go.
+	CodeDocIDWidth = "doc-id-width"
 )
 
 // Finding is one structured report from a check. The finder fills in
