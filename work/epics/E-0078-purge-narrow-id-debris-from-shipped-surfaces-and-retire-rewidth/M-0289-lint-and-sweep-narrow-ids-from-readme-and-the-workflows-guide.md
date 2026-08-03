@@ -24,7 +24,7 @@ acs:
     - id: AC-5
       title: Shipped guidance and skill docs state which id rule applies where
       status: open
-      tdd_phase: green
+      tdd_phase: done
 ---
 
 ## Goal
