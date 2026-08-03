@@ -231,17 +231,17 @@ func TestScanDocIDWidth_DedupesPerToken(t *testing.T) {
 	}
 }
 
-// TestApplyDocIDWidthStrict is the severity contract. The rule ships advisory
+// TestApplyDocsStrict is the severity contract. The rule ships advisory
 // so that upgrading aiwf cannot block a push over prose the operator never
 // edited — a repo whose entities were migrated still carries narrow ids
 // through its docs, and there is neither a fixer nor a suppression mechanism
 // for them. A repo raises the bar once its own sweep is done.
-func TestApplyDocIDWidthStrict(t *testing.T) {
+func TestApplyDocsStrict(t *testing.T) {
 	t.Parallel()
 	t.Run("strict escalates", func(t *testing.T) {
 		t.Parallel()
 		f := []Finding{{Code: CodeDocIDWidth, Severity: SeverityWarning}}
-		ApplyDocIDWidthStrict(f, true)
+		ApplyDocsStrict(f, true)
 		if f[0].Severity != SeverityError {
 			t.Errorf("severity = %q, want %q under strict", f[0].Severity, SeverityError)
 		}
@@ -249,17 +249,27 @@ func TestApplyDocIDWidthStrict(t *testing.T) {
 	t.Run("default leaves warning", func(t *testing.T) {
 		t.Parallel()
 		f := []Finding{{Code: CodeDocIDWidth, Severity: SeverityWarning}}
-		ApplyDocIDWidthStrict(f, false)
+		ApplyDocsStrict(f, false)
 		if f[0].Severity != SeverityWarning {
 			t.Errorf("severity = %q, want %q with strict off", f[0].Severity, SeverityWarning)
 		}
 	})
-	t.Run("scoped to this code", func(t *testing.T) {
+	t.Run("scoped to the doc codes", func(t *testing.T) {
 		t.Parallel()
 		f := []Finding{{Code: CodeBodyProseID, Severity: SeverityWarning}}
-		ApplyDocIDWidthStrict(f, true)
+		ApplyDocsStrict(f, true)
 		if f[0].Severity != SeverityWarning {
 			t.Errorf("escalated an unrelated code %q — the bumper must be scoped", f[0].Code)
+		}
+	})
+	// Both doc rules share the corpus and therefore the knob; escalating one
+	// without the other would leave a repo that opted in half-guarded.
+	t.Run("covers doc-id-slug too", func(t *testing.T) {
+		t.Parallel()
+		f := []Finding{{Code: CodeDocIDSlug, Severity: SeverityWarning}}
+		ApplyDocsStrict(f, true)
+		if f[0].Severity != SeverityError {
+			t.Errorf("severity = %q, want %q — docs.strict governs every doc rule", f[0].Severity, SeverityError)
 		}
 	})
 }

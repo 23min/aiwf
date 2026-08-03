@@ -26,11 +26,10 @@ tree:
 # so that upgrading aiwf never blocks a push over prose an operator did
 # not write — a repo earns the block by cleaning its own docs first.
 docs:
-  id_width:
-    paths:
-      - README.md
-      - docs/workflows.md
-    strict: true
+  paths:
+    - README.md
+    - docs/workflows.md
+  strict: true
 
 # Per-agent compute policy (G-0353): model + effort injected into the
 # materialized `.claude/agents/*.md` cards on `aiwf update`. Advisory —

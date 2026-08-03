@@ -404,48 +404,47 @@ type Tree struct {
 }
 
 // Docs carries the consumer's policy for checks over repo-facing
-// documentation — prose that lives outside the entity tree and so is
-// reached by no other id-shape rule.
-type Docs struct {
-	IDWidth DocsIDWidth `yaml:"id_width,omitempty"`
-}
-
-// DocsIDWidth configures the `doc-id-width` rule. Paths names the
-// documentation scanned, relative to the repo root; DefaultDocsIDWidthPath
-// applies when none is declared. Strict raises the rule's findings from
-// warning to error, so the pre-push hook blocks them.
+// documentation — prose that lives outside the entity tree and so is reached
+// by no other id-shape rule.
 //
-// Strict defaults off because the rule ships into repos whose docs predate
-// it: an entity tree migrated to canonical width leaves narrow ids
+// Paths names the documentation scanned, relative to the repo root;
+// DefaultDocsPath applies when none is declared. Strict raises the doc rules'
+// findings from warning to error, so the pre-push hook blocks them. Both
+// apply to every doc rule rather than one: the rules share a corpus, and a
+// repo that has swept its docs has swept them for all of them, so splitting
+// the knobs would only allow a half-guarded tree.
+//
+// Strict defaults off because the rules ship into repos whose docs predate
+// them: an entity tree migrated to canonical width leaves narrow ids
 // throughout its prose, which no verb rewrites and no acknowledgement
 // silences. Blocking those pushes on upgrade would penalize an operator for
 // a file they never touched, so the block is opted into once a repo has
 // swept its own docs.
-type DocsIDWidth struct {
+type Docs struct {
 	Paths  []string `yaml:"paths,omitempty"`
 	Strict bool     `yaml:"strict,omitempty"`
 }
 
-// DefaultDocsIDWidthPath is the one document scanned when a consumer
-// declares no paths. Every repo has a README, and it is the doc most likely
-// to cite entity ids.
-const DefaultDocsIDWidthPath = "README.md"
+// DefaultDocsPath is the one document scanned when a consumer declares no
+// paths. Every repo has a README, and it is the doc most likely to cite
+// entity ids.
+const DefaultDocsPath = "README.md"
 
-// DocsIDWidthPaths returns the documentation paths the id-width rule scans,
-// falling back to DefaultDocsIDWidthPath when the consumer declares none.
-// Tolerant of a nil receiver so callers can invoke before / without a loaded
-// Config, mirroring ArchiveSweepThreshold.
-func (c *Config) DocsIDWidthPaths() []string {
-	if c == nil || len(c.Docs.IDWidth.Paths) == 0 {
-		return []string{DefaultDocsIDWidthPath}
+// DocsPaths returns the documentation paths the doc rules scan, falling back
+// to DefaultDocsPath when the consumer declares none. Tolerant of a nil
+// receiver so callers can invoke before / without a loaded Config, mirroring
+// ArchiveSweepThreshold.
+func (c *Config) DocsPaths() []string {
+	if c == nil || len(c.Docs.Paths) == 0 {
+		return []string{DefaultDocsPath}
 	}
-	return c.Docs.IDWidth.Paths
+	return c.Docs.Paths
 }
 
-// DocsIDWidthStrict reports whether doc-id-width findings escalate to error.
-// Nil-tolerant for the same reason as DocsIDWidthPaths.
-func (c *Config) DocsIDWidthStrict() bool {
-	return c != nil && c.Docs.IDWidth.Strict
+// DocsStrict reports whether doc findings escalate to error. Nil-tolerant for
+// the same reason as DocsPaths.
+func (c *Config) DocsStrict() bool {
+	return c != nil && c.Docs.Strict
 }
 
 // Allocate carries the consumer's id-allocator configuration. Trunk

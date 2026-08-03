@@ -34,7 +34,7 @@ func TestM0289_AC2_RepoDocsCarryNoNarrowIDWidth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loading aiwf.yaml: %v", err)
 	}
-	paths := cfg.DocsIDWidthPaths()
+	paths := cfg.DocsPaths()
 
 	declared := map[string]bool{}
 	for _, p := range paths {
@@ -42,7 +42,7 @@ func TestM0289_AC2_RepoDocsCarryNoNarrowIDWidth(t *testing.T) {
 	}
 	for _, want := range m0289RequiredDocs {
 		if !declared[want] {
-			t.Fatalf("aiwf.yaml docs.id_width.paths no longer declares %q — "+
+			t.Fatalf("aiwf.yaml docs.paths no longer declares %q — "+
 				"the sweep's guarantee is only as wide as the declared corpus, so "+
 				"removing a doc silently retires this assertion rather than satisfying it", want)
 		}
@@ -58,7 +58,7 @@ func TestM0289_AC2_RepoDocsCarryNoNarrowIDWidth(t *testing.T) {
 // consumer's push over prose they never wrote; that reasoning does not apply
 // to the repo that authored the rule and has already swept its own docs.
 //
-// Without this, `docs.id_width.strict` could quietly revert to the shipped
+// Without this, `docs.strict` could quietly revert to the shipped
 // default and the sweep above would keep passing while nothing enforced it at
 // the push.
 func TestM0289_AC2_RepoDocsIDWidthIsBlocking(t *testing.T) {
@@ -68,8 +68,8 @@ func TestM0289_AC2_RepoDocsIDWidthIsBlocking(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loading aiwf.yaml: %v", err)
 	}
-	if !cfg.DocsIDWidthStrict() {
-		t.Error("aiwf.yaml docs.id_width.strict is off — this repo's swept docs " +
+	if !cfg.DocsStrict() {
+		t.Error("aiwf.yaml docs.strict is off — this repo's swept docs " +
 			"should block the push on a regression, not merely warn")
 	}
 }

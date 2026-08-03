@@ -185,12 +185,12 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	var areaPaths []check.AreaPaths
 	var coverageRoots []string
 	areaRequired := false
-	docPaths := []string{config.DefaultDocsIDWidthPath}
+	docPaths := []string{config.DefaultDocsPath}
 	docStrict := false
 	if cfg, cfgErr := config.Load(resolved); cfgErr == nil && cfg != nil {
 		requireMetrics = cfg.TDD.RequireTestMetrics
-		docPaths = cfg.DocsIDWidthPaths()
-		docStrict = cfg.DocsIDWidthStrict()
+		docPaths = cfg.DocsPaths()
+		docStrict = cfg.DocsStrict()
 		treeAllow = cfg.Tree.AllowPaths
 		treeStrict = cfg.Tree.Strict
 		tddStrict = cfg.TDD.Strict
@@ -294,9 +294,10 @@ func Run(root, format string, pretty bool, since string, shapeOnly, fast, verbos
 	// which stays an in-memory pass over the loaded tree; this rule reads
 	// files off disk that the tree never carries.
 	findings = append(findings, check.DocIDWidthReference(tr, docPaths)...)
-	// Advisory by default; `docs.id_width.strict` is how a repo that has
+	findings = append(findings, check.DocIDSlugReference(tr, docPaths)...)
+	// Advisory by default; `docs.strict` is how a repo that has
 	// swept its own docs asks the pre-push hook to block the next one.
-	check.ApplyDocIDWidthStrict(findings, docStrict)
+	check.ApplyDocsStrict(findings, docStrict)
 
 	// M-0088/AC-2: aiwf.yaml: archive.sweep_threshold bumps the
 	// aggregate `archive-sweep-pending` finding from warning to

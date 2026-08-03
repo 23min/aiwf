@@ -73,6 +73,12 @@ const (
 	// skill-body-id. Advisory by default; `docs.id_width.strict` escalates it
 	// via ApplyDocIDWidthStrict. See internal/check/doc_id_width.go.
 	CodeDocIDWidth = "doc-id-width"
+	// CodeDocIDSlug is the M-0289 doc id-slug rule: a repo-facing doc that
+	// writes an id together with a slug must write the slug that entity
+	// actually carries. Catches a fictional example borrowing a real id at
+	// canonical width, which no width rule can see. Shares the doc corpus and
+	// the strict escalation with doc-id-width. See internal/check/doc_id_slug.go.
+	CodeDocIDSlug = "doc-id-slug"
 )
 
 // Finding is one structured report from a check. The finder fills in

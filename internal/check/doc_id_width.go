@@ -52,17 +52,29 @@ import (
 func DocIDWidthReference(t *tree.Tree, paths []string) []Finding {
 	var findings []Finding
 	for _, rel := range paths {
-		full := filepath.Join(t.Root, filepath.FromSlash(rel))
-		if !pathutil.Inside(t.Root, full) {
-			continue
-		}
-		raw, err := os.ReadFile(full)
-		if err != nil {
+		raw, ok := readDocUnderRoot(t.Root, rel)
+		if !ok {
 			continue
 		}
 		findings = append(findings, ScanDocIDWidth(raw, rel)...)
 	}
 	return findings
+}
+
+// readDocUnderRoot reads one repo-relative documentation path, reporting false
+// when it does not resolve to a readable file inside root. Both doc rules read
+// their corpus through here so the containment guard cannot be honored by one
+// and forgotten by the other.
+func readDocUnderRoot(root, rel string) ([]byte, bool) {
+	full := filepath.Join(root, filepath.FromSlash(rel))
+	if !pathutil.Inside(root, full) {
+		return nil, false
+	}
+	raw, err := os.ReadFile(full)
+	if err != nil {
+		return nil, false
+	}
+	return raw, true
 }
 
 // ScanDocIDWidth returns one finding per unique below-canonical-width id shape
@@ -166,18 +178,23 @@ func isAllN(s string) bool {
 	return s != ""
 }
 
-// ApplyDocIDWidthStrict raises doc-id-width findings from warning to error when
-// strict is true, mutating the slice in place. Scoped to this code; every other
-// finding passes through untouched.
+// ApplyDocsStrict raises the doc rules' findings from warning to error when
+// strict is true, mutating the slice in place. Scoped to the doc codes; every
+// other finding passes through untouched.
 //
-// Composed at the CLI layer where `docs.id_width.strict` is in scope, mirroring
+// Both doc rules escalate together because they share a corpus: a repo that
+// swept its docs swept them for both, and a per-rule knob would only let a
+// tree be half-guarded.
+//
+// Composed at the CLI layer where `docs.strict` is in scope, mirroring
 // ApplyTDDStrict and ApplyAreaRequiredStrict.
-func ApplyDocIDWidthStrict(findings []Finding, strict bool) {
+func ApplyDocsStrict(findings []Finding, strict bool) {
 	if !strict {
 		return
 	}
 	for i := range findings {
-		if findings[i].Code == CodeDocIDWidth {
+		switch findings[i].Code {
+		case CodeDocIDWidth, CodeDocIDSlug:
 			findings[i].Severity = SeverityError
 		}
 	}
