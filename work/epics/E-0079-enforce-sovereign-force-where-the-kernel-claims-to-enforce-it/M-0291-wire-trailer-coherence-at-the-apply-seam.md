@@ -1,7 +1,7 @@
 ---
 id: M-0291
 title: Wire trailer coherence at the apply seam
-status: draft
+status: in_progress
 parent: E-0079
 tdd: required
 acs:
