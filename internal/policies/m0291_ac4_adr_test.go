@@ -74,10 +74,20 @@ func TestM0291AC4_ADRRecordsTheTwoRouteStance(t *testing.T) {
 	if consequences == "" {
 		t.Fatal("ADR-0040 has no ## Consequences section")
 	}
-	// The guard enforces the whole rule set, not the force rule alone.
-	// That is the part a reader is most likely to be surprised by, so it
-	// belongs in Consequences rather than being left to be discovered.
-	if !strings.Contains(consequences, "audit-only-with-force") {
-		t.Error("## Consequences does not record that the seam is the first enforcement of audit-only-with-force")
+	// The two things a reader meets by surprise otherwise.
+	//
+	// The seam refuses only the force-predicated rules, which reads as an
+	// arbitrary subset until the reason is stated: a verb outside the
+	// provenance-decoration layer cannot satisfy the others by any
+	// invocation, so enforcing them there is a closed door rather than a
+	// rule. And the refusal exits as a legality refusal rather than an
+	// internal failure, which is what a consumer routing on the exit code
+	// needs to know and what the ADR would otherwise leave them to
+	// discover by running it.
+	if !strings.Contains(consequences, "force trailer") {
+		t.Error("## Consequences does not record that the seam enforces only the force-predicated rules")
+	}
+	if !strings.Contains(consequences, "legality refusal") {
+		t.Error("## Consequences does not record the refusal's exit class")
 	}
 }
