@@ -53,7 +53,7 @@ func TestPolicyCoherenceGuardChokepoint_FiresOnASecondCommitSite(t *testing.T) {
 	t.Parallel()
 
 	root := writeFixtureTree(t,
-		"\tCheckTrailerCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
+		"\tCheckSovereignForceCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
 		map[string]string{
 			filepath.Join("internal", "cli", "shortcut", "shortcut.go"): "package shortcut\n\nfunc Run() {\n\tgitops.CommitVerbChange(ctx)\n}\n",
 		})
@@ -86,7 +86,7 @@ func TestPolicyCoherenceGuardChokepoint_FiresWhenTheGuardIsGone(t *testing.T) {
 	if len(violations) != 1 {
 		t.Fatalf("got %d violations, want 1: %+v", len(violations), violations)
 	}
-	if !strings.Contains(violations[0].Detail, "CheckTrailerCoherence") {
+	if !strings.Contains(violations[0].Detail, "CheckSovereignForceCoherence") {
 		t.Errorf("detail %q does not name the missing guard", violations[0].Detail)
 	}
 }
@@ -121,7 +121,7 @@ func TestPolicyCoherenceGuardChokepoint_FiresOnAnUnparseableCommitSite(t *testin
 	t.Parallel()
 
 	root := writeFixtureTree(t,
-		"\tCheckTrailerCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
+		"\tCheckSovereignForceCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
 		map[string]string{
 			filepath.Join("internal", "cli", "broken", "broken.go"): "package broken\n\nfunc Run( {\n\tgitops.CommitVerbChange(ctx)\n",
 		})

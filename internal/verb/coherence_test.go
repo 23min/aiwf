@@ -3,6 +3,7 @@ package verb
 import (
 	"testing"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -128,10 +129,28 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 			wantRule: CoherenceRuleOnBehalfOfForbiddenForHumanActor,
 		},
 		{
-			name: "force with on-behalf-of",
+			// The shape a real forced act by an agent has: an active
+			// scope is the only way a non-human actor reaches a force
+			// path, and a scope always carries on-behalf-of. The rule
+			// reported is the one naming what the operator did wrong,
+			// not the trailer pair that happens to co-occur.
+			name: "force by an authorized agent names force, not the trailer pair",
 			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerActor, Value: "ai/claude"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
+				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
+				{Key: gitops.TrailerAuthorizedBy, Value: "4b13a0f"},
+				{Key: gitops.TrailerForce, Value: "override"},
+			},
+			wantRule: CoherenceRuleForceNonHuman,
+		},
+		{
+			// force-with-on-behalf-of keeps a reachable case of its own:
+			// with no actor at all, neither the force-non-human rule
+			// ahead of it nor the human-actor rule before the force
+			// block applies.
+			name: "force with on-behalf-of and no actor",
+			trailers: []gitops.Trailer{
 				{Key: gitops.TrailerOnBehalfOf, Value: "human/peter"},
 				{Key: gitops.TrailerAuthorizedBy, Value: "4b13a0f"},
 				{Key: gitops.TrailerForce, Value: "override"},
@@ -232,3 +251,54 @@ func TestAsCoherenceError_NonCoherenceErrorPassesThrough(t *testing.T) {
 type someOtherError struct{ msg string }
 
 func (e *someOtherError) Error() string { return e.msg }
+
+// TestCoherenceError_Code maps each rule to the `aiwf check` finding
+// code for the same violation class.
+//
+// The mapping is what lets one identifier follow a violation across the
+// two moments it can surface — refused at the verb, or found on a
+// commit that already landed — so a consumer routing on the code does
+// not need to know which moment it met. It is also what lands the
+// refusal at the legality exit rather than the internal-failure one,
+// since that branch keys off the error being Coded at all.
+func TestCoherenceError_Code(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		rule string
+		want string
+	}{
+		{
+			// The only rule with a check-side code of its own.
+			name: "force by a non-human actor",
+			rule: CoherenceRuleForceNonHuman,
+			want: check.CodeProvenanceForceNonHuman,
+		},
+		{
+			name: "force alongside on-behalf-of",
+			rule: CoherenceRuleForceWithOnBehalfOf,
+			want: check.CodeProvenanceTrailerIncoherent,
+		},
+		{
+			name: "audit-only alongside force",
+			rule: CoherenceRuleAuditOnlyWithForce,
+			want: check.CodeProvenanceTrailerIncoherent,
+		},
+		{
+			// A rule the seam does not enforce still carries a code: the
+			// error type is shared with the full rule set's callers.
+			name: "a rule outside the seam's subset",
+			rule: CoherenceRulePrincipalMissingForNonHumanActor,
+			want: check.CodeProvenanceTrailerIncoherent,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ce := &CoherenceError{Rule: tt.rule, Message: "irrelevant"}
+			if got := ce.Code(); got != tt.want {
+				t.Errorf("Code() = %q, want %q for rule %q", got, tt.want, tt.rule)
+			}
+		})
+	}
+}

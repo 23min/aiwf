@@ -13,7 +13,7 @@ import (
 const verbCommitCall = "gitops.CommitVerbChange("
 
 // coherenceGuardCall is the guard that must run ahead of it.
-const coherenceGuardCall = "CheckTrailerCoherence("
+const coherenceGuardCall = "CheckSovereignForceCoherence("
 
 // commitSite is one function that builds a verb commit.
 type commitSite struct {
@@ -74,20 +74,27 @@ func verbCommitSites(root string) (sites []commitSite, unparseable []string, err
 	return sites, unparseable, nil
 }
 
-// PolicyCoherenceGuardChokepoint asserts that no production path can
-// reach a verb commit without passing the trailer-coherence guard
-// (M-0291/AC-3).
+// PolicyCoherenceGuardChokepoint holds the sovereign-force guard at the
+// verb-commit seam (M-0291/AC-3).
 //
-// The property is structural rather than policed once the guard sits
-// inside verb.Apply: any caller reaching Apply is covered without being
-// enumerated, including callers outside the CLI dispatcher layer. What
-// remains checkable, and what this policy holds, is that the seam stays
-// singular and stays guarded.
+// The no-bypass property is structural rather than policed once the
+// guard sits inside verb.Apply: any caller reaching Apply is covered
+// without being enumerated, including callers outside the CLI
+// dispatcher layer. What remains checkable, and what this policy holds,
+// is that the seam stays singular and that the guard's name appears in
+// it.
 //
 // Two clauses, because either alone is satisfiable while the property
 // is false. A single commit site proves nothing if the guard has been
 // removed from it; a present guard proves nothing if a second function
 // builds its own commit alongside.
+//
+// Scope worth stating, since the doc above would otherwise read as more
+// than it is: this is a textual scan, so it holds presence, not
+// ordering — a guard placed after the commit call, or one whose error
+// was discarded, would satisfy it. Ordering is pinned behaviorally
+// instead, by the unmoved-HEAD and no-write-landed assertions in
+// internal/verb/apply_coherence_test.go.
 func PolicyCoherenceGuardChokepoint(root string) ([]Violation, error) {
 	sites, unparseable, err := verbCommitSites(root)
 	if err != nil {

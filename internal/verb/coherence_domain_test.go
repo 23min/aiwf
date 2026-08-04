@@ -290,3 +290,64 @@ func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 		}
 	}
 }
+
+// forcePredicatedRules are the rules whose condition requires an
+// aiwf-force trailer. Written out rather than derived from the
+// function under test, so a rule silently added to or dropped from
+// the seam's subset shows up as a failure here.
+var forcePredicatedRules = map[string]bool{
+	CoherenceRuleForceNonHuman:       true,
+	CoherenceRuleForceWithOnBehalfOf: true,
+	CoherenceRuleAuditOnlyWithForce:  true,
+}
+
+// TestCheckSovereignForceCoherence_IsTheForcePredicatedSubset pins what
+// verb.Apply enforces, across the same generated domain the full rule
+// set is pinned over.
+//
+// The seam's scope can be wrong in two directions and only one of them
+// is visible from a refusal. Refusing too little would let a forced act
+// by an agent commit — the defect this milestone exists to close.
+// Refusing too much is the quieter failure: every rule enforced here
+// beyond the force-predicated ones refuses verbs for reasons unrelated
+// to sovereignty, and a verb that never passes through the
+// provenance-decoration layer cannot satisfy those rules by any
+// invocation. So both directions are asserted, and the expectation is
+// derived from the rules' own statements rather than from the function.
+func TestCheckSovereignForceCoherence_IsTheForcePredicatedSubset(t *testing.T) {
+	t.Parallel()
+	for _, tc := range coherenceDomain() {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			actorIsNonHuman := tc.actor != "" && !strings.HasPrefix(tc.actor, "human/")
+			err := CheckSovereignForceCoherence(tc.trailers)
+
+			// Derived from the three rule statements, not from the code:
+			// force is sovereign, so it cannot be wielded by an agent, on
+			// an agent's behalf, or alongside audit-only.
+			wantViolation := tc.present["force"] &&
+				(actorIsNonHuman || tc.present["onbehalfof"] || tc.present["auditonly"])
+
+			ce, rule := AsCoherenceError(err)
+			switch {
+			case wantViolation && ce == nil:
+				t.Fatalf("accepted a sovereign-force violation; the seam would let this act commit")
+			case !wantViolation && ce != nil:
+				t.Fatalf("refused %v, which violates no force-predicated rule; "+
+					"a verb outside the provenance-decoration layer cannot satisfy this by any invocation", err)
+			case ce == nil:
+				return
+			}
+
+			if !forcePredicatedRules[rule] {
+				t.Errorf("reported %q, which is not predicated on a force trailer; "+
+					"the seam refuses only sovereign acts", rule)
+			}
+			// Subset-ness: the seam must never refuse a set the full rule
+			// set considers coherent, or the two disagree about legality.
+			if full := CheckTrailerCoherence(tc.trailers); full == nil {
+				t.Errorf("refused with %q a set the full rule set accepts", rule)
+			}
+		})
+	}
+}

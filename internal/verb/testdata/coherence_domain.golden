@@ -77,7 +77,7 @@ actor=nonhuman+principal+onbehalfof+force => on-behalf-of-missing-authorized-by
 actor=nonhuman+authorizedby+force => authorized-by-missing-on-behalf-of
 actor=nonhuman+principal+authorizedby+force => authorized-by-missing-on-behalf-of
 actor=nonhuman+onbehalfof+authorizedby+force => principal-missing-for-non-human-actor
-actor=nonhuman+principal+onbehalfof+authorizedby+force => force-with-on-behalf-of
+actor=nonhuman+principal+onbehalfof+authorizedby+force => force-non-human
 actor=nonhuman+auditonly => principal-missing-for-non-human-actor
 actor=nonhuman+principal+auditonly => audit-only-non-human
 actor=nonhuman+onbehalfof+auditonly => on-behalf-of-missing-authorized-by
@@ -93,4 +93,4 @@ actor=nonhuman+principal+onbehalfof+force+auditonly => on-behalf-of-missing-auth
 actor=nonhuman+authorizedby+force+auditonly => authorized-by-missing-on-behalf-of
 actor=nonhuman+principal+authorizedby+force+auditonly => authorized-by-missing-on-behalf-of
 actor=nonhuman+onbehalfof+authorizedby+force+auditonly => principal-missing-for-non-human-actor
-actor=nonhuman+principal+onbehalfof+authorizedby+force+auditonly => force-with-on-behalf-of
+actor=nonhuman+principal+onbehalfof+authorizedby+force+auditonly => force-non-human
