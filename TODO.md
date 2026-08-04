@@ -46,8 +46,9 @@ coverage finds a guard and stops looking.
   canonical filename is reported by nothing at all
 - **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
 - **G-0516** — the comment-attrition scan is diff-scoped, so a stale comment
-  outside the changed hunk is never examined
-- **G-0474** — the blank-identifier ban has no detector; one live instance *(cheap)*
+  outside the changed hunk is never examined. Reframe before ranking: the
+  whole-tree sibling's under-inclusiveness is a calibrated precision trade
+  argued in the source, so this asks to reverse a decision, not to fill a hole
 
 ### 2. Oracles — what tells the builder it is wrong *(design first; one cheap member)*
 
