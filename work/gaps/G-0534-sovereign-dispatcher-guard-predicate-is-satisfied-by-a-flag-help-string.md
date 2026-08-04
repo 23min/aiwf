@@ -2,6 +2,7 @@
 id: G-0534
 title: Sovereign-dispatcher guard predicate is satisfied by a flag-help string
 status: open
+priority: medium
 ---
 ## What's missing
 
