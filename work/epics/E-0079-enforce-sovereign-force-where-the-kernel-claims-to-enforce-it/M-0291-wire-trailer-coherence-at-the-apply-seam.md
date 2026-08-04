@@ -172,7 +172,31 @@ whose `aiwf-on-behalf-of` trips `force-with-on-behalf-of` earlier in the rule
 order. The test asserts a force rule refused rather than naming one, since
 naming either would pin the order instead of the behavior.
 
+### AC-2 — Domain pinned, and a rule corrected against the design doc
+
+Verdicts pinned at every point of the generated domain · commit 71e3f8f9c ·
+tests green across the module
+
+The domain is generated from two axes — actor role, and the presence subset of
+the five trailers any rule reads — so a rule added against a new trailer extends
+it by one line rather than by a fresh set of hand-written cases. Three
+assertions sit on it: a golden recording which rule fires where, invariants
+sourced from the provenance design doc rather than from the code, and a
+reachability check that fails when a rule is shadowed into never firing.
+
+The doc-sourced invariants earned their keep immediately by failing: a principal
+with no actor at all was reported coherent, which the doc calls incoherent.
+Recorded as D-0059 and fixed here.
+
+The reachability check exists because the rules return the first violation only,
+so a broadened earlier condition can shadow a later rule entirely — leaving a
+rule that reads as enforced, passes its own unit test through a direct call, and
+never fires for any real trailer set. That is the same claim-without-enforcement
+shape this milestone exists to remove, one layer down.
+
 ## Decisions made during implementation
 
-- (none)
+- D-0059 — widen the principal rule to require a non-human actor, closing the
+  gap between the design doc's required-together statement and a condition that
+  only covered the human half.
 
