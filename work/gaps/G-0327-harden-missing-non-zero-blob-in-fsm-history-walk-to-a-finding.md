@@ -1,9 +1,11 @@
 ---
 id: G-0327
 title: Harden missing non-zero blob in FSM history walk to a finding
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0216
+addressed_by_commit:
+    - a58c447a15472a5220f8f6cd6ffc420cb7c2e721
 ---
 ## Context
 
