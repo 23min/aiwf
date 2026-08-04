@@ -11,8 +11,10 @@ import (
 // PolicyConfigFieldsAreDiscoverable asserts that every yaml-tagged
 // field on a struct in internal/config/config.go appears in at
 // least one channel an AI assistant routinely consults: an embedded
-// skill, the binary's printHelp output (cmd/aiwf/main.go), CLAUDE.md,
-// or any markdown under docs/.
+// skill, the binary's printHelp output, CLAUDE.md, or any markdown
+// under docs/. Shares readDiscoverabilityChannels with
+// PolicyFindingCodesAreDiscoverable, so the banner channel's source
+// path is pinned there.
 //
 // Mirrors PolicyFindingCodesAreDiscoverable for a parallel kernel
 // surface: aiwf.yaml is the consumer-facing knob set, and a knob the

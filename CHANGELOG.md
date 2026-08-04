@@ -26,6 +26,37 @@ matches what `aiwf`, `aiwf add`, and `aiwf render` already report for the same
 incomplete invocation, and means a script or agent branching on the exit code no
 longer reads a typo as a completed operation.
 
+### Fixed — G-0476, G-0484, G-0470: three internal gates that inspected less than they claimed
+
+No user-visible behavior change. All three are repo-development gates that ran
+green while examining the wrong files, or none.
+
+The sovereign-dispatcher policy scoped its walk to `cmd/aiwf/`, which has held
+only `main.go` since the per-verb dispatchers moved to `internal/cli/<verb>/`, so
+it examined nothing and could not fire. It now scans `internal/cli/`, and a test
+asserts against the live tree that the scanned prefix still holds dispatchers and
+that each declared trigger matches one — a relocation can no longer empty the
+scope unnoticed. Rescoping surfaced that the policy's guard predicate is
+satisfied by a flag-help string rather than by a guard in code, which is filed
+separately as G-0534; this change does not restore that assertion.
+
+The finding-code discoverability policy read the help banner from
+`cmd/aiwf/main.go`, where `printHelp` no longer lives, so it searched three of
+the four channels its own error message names — a code documented only in
+`aiwf --help` would be reported as documented nowhere. It now reads
+`internal/cli/root.go`. Two tests hold it there: one asserts against the live
+tree that the path read is the file declaring `printHelp`, so relocating the
+banner fails rather than silently dropping the channel; the other asserts the
+channel is read at all. The same fix reaches `PolicyConfigFieldsAreDiscoverable`,
+which shares the haystack.
+
+`.golangci.yml` did not declare the `testpins` build tag, leaving those sources
+outside `make lint`, the pre-push hook, and the `lint` CI job alike. The tag is
+now declared; the two findings it surfaces are annotated where the flagged
+construct is the assertion itself. Declaring the tag trades one arm for the
+other — `golangci-lint` lints the union of declared tags in a single pass, so
+the two `//go:build !testpins` files are now outside the lint surface instead.
+
 ## [0.32.0] — 2026-08-03
 
 ### Added — E-0078: two checks for id shapes in repo-facing documentation

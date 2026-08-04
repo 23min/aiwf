@@ -19,6 +19,7 @@ import (
 func TestPin_API_TwoStringSignature(t *testing.T) {
 	t.Parallel()
 
+	//nolint:staticcheck // ST1023: the explicit type is the assertion — inferring it from Pin would pin nothing.
 	var f func(string, string) = Pin
 	if reflect.ValueOf(f).IsNil() {
 		t.Fatalf("Pin is nil-valued (function-value assertion impossible)")
@@ -34,6 +35,7 @@ func TestPin_API_TwoStringSignature(t *testing.T) {
 func TestPins_API_MapReturn(t *testing.T) {
 	t.Parallel()
 
+	//nolint:staticcheck // ST1023: the explicit type is the assertion — inferring it from Pins would pin nothing.
 	var f func() map[string][]string = Pins
 	got := f()
 	if got == nil {
