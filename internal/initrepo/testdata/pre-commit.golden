@@ -1,0 +1,38 @@
+#!/bin/sh
+# aiwf:pre-commit
+# Installed by aiwf init/update. Chains to the pre-commit.local
+# sibling in this hook's directory first, so consumer-written hooks
+# compose rather than collide.
+# Tree-discipline gate: stray files under work/ block the commit
+# when aiwf.yaml has tree.strict: true; otherwise they print a
+# warning but proceed.
+# STATUS.md regeneration runs in the post-commit hook.
+# Opt out of the entire hook: set SkipHooks at init time, or
+# remove this file (aiwf update will not re-create it without
+# re-running init).
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+hook_dir="$(dirname "$0")"
+local_hook="$hook_dir/pre-commit.local"
+if [ -e "$local_hook" ]; then
+    if [ ! -x "$local_hook" ]; then
+        echo "aiwf pre-commit: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
+        exit 1
+    fi
+    "$local_hook" "$@" || exit $?
+fi
+
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf pre-commit: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+
+# (1) Tree-discipline. Output goes to stderr so the user sees it
+# during commit. Non-zero exit blocks (only fires under
+# tree.strict: true; warnings still print but exit 0).
+if ! "$AIWF" check --shape-only --root "$repo_root" >&2; then
+    exit 1
+fi
+exit 0

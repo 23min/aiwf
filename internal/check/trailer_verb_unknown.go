@@ -125,7 +125,7 @@ func RunTrailerVerbUnknown(commits []scope.Commit, registeredVerbs, ritualVerbs 
 			hint := ""
 			if postCutoffSHAs[c.SHA] {
 				severity = SeverityError
-				hint = "the commit-msg hook installed by `aiwf init` / `aiwf update` (G-0218) refuses values outside the registered verb set ∪ ritualVerbs allowlist at composition time. This commit descends from the hook-install SHA, so it bypassed the hook via `--no-verify` or git plumbing. Fix the trailer value, or reword without an aiwf-verb trailer if the commit carries no kernel-meaningful intent."
+				hint = "the commit-msg hook installed by `aiwf init` / `aiwf update` refuses values outside the registered verb set ∪ ritualVerbs allowlist at composition time. This commit descends from the hook-install SHA, so it bypassed the hook via `--no-verify` or git plumbing. Fix the trailer value, or reword without an aiwf-verb trailer if the commit carries no kernel-meaningful intent."
 			}
 			out = append(out, Finding{
 				Code:     CodeTrailerVerbUnknown,

@@ -133,7 +133,7 @@ func Run(root, actor string, dryRun, skipHook, statusline bool, scope string, wi
 
 	if res.HookConflict {
 		cliutil.Println()
-		cliutil.Println("aiwf init: hook chain collision (G45).")
+		cliutil.Println("aiwf init: hook chain collision.")
 		cliutil.Println("aiwf wanted to migrate a pre-existing non-aiwf hook to its `.local`")
 		cliutil.Println("sibling, but a `.local` file already exists. To preserve your work,")
 		cliutil.Println("aiwf left both files untouched.")

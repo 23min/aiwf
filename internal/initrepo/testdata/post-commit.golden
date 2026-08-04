@@ -1,0 +1,38 @@
+#!/bin/sh
+# aiwf:post-commit
+# Installed by aiwf init/update. Chains to the post-commit.local
+# sibling first, so consumer-written hooks compose rather than
+# collide.
+#
+# Regenerates STATUS.md after every commit — out of pre-commit to
+# avoid merge conflicts on a derived artifact. STATUS.md is
+# gitignored — this hook never modifies the just-finished commit.
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+hook_dir="$(dirname "$0")"
+local_hook="$hook_dir/post-commit.local"
+if [ -e "$local_hook" ]; then
+    if [ ! -x "$local_hook" ]; then
+        echo "aiwf post-commit: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
+        exit 1
+    fi
+    "$local_hook" "$@" || exit $?
+fi
+
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    # Tolerant: aiwf binary not found on PATH should not disturb a
+    # successful commit. Log to stderr so the operator sees the
+    # skip; exit 0 to leave the commit alone.
+    echo "aiwf post-commit: aiwf binary not found on PATH (skipping STATUS.md regen)" >&2
+    exit 0
+fi
+
+# STATUS.md regen. Tolerant — never disturbs the user's commit.
+tmp="$repo_root/STATUS.md.tmp"
+if "$AIWF" status --root "$repo_root" --format=md >"$tmp" 2>/dev/null; then
+    mv "$tmp" "$repo_root/STATUS.md"
+else
+    rm -f "$tmp"
+fi
+exit 0

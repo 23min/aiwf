@@ -1,8 +1,8 @@
 #!/bin/sh
 # aiwf:pre-push
 # Installed by aiwf init. Chains to the pre-push.local sibling in
-# this hook's directory first (G45) so consumer-written hooks
-# compose rather than collide.
+# this hook's directory first, so consumer-written hooks compose
+# rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
 hook_dir="$(dirname "$0")"
 local_hook="$hook_dir/pre-push.local"

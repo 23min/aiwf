@@ -100,8 +100,8 @@ func preHookScript() string {
 	return `#!/bin/sh
 ` + preHookMarker + `
 # Installed by aiwf init. Chains to the pre-push.local sibling in
-# this hook's directory first (G45) so consumer-written hooks
-# compose rather than collide.
+# this hook's directory first, so consumer-written hooks compose
+# rather than collide.
 [ -f "$(git rev-parse --show-toplevel)/aiwf.yaml" ] || exit 0
 ` + chainPrelude("pre-push") + `
 AIWF="$(command -v aiwf 2>/dev/null)"
@@ -159,12 +159,12 @@ func preCommitHookScript() string {
 	return `#!/bin/sh
 ` + preCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the pre-commit.local
-# sibling in this hook's directory first (G45) so consumer-written
-# hooks compose rather than collide.
-#   (1) Tree-discipline gate: stray files under work/ block the
-#       commit when aiwf.yaml has tree.strict: true; otherwise they
-#       print a warning but proceed. Always present.
-# STATUS.md regeneration runs in the post-commit hook (G-0112).
+# sibling in this hook's directory first, so consumer-written hooks
+# compose rather than collide.
+# Tree-discipline gate: stray files under work/ block the commit
+# when aiwf.yaml has tree.strict: true; otherwise they print a
+# warning but proceed.
+# STATUS.md regeneration runs in the post-commit hook.
 # Opt out of the entire hook: set SkipHooks at init time, or
 # remove this file (aiwf update will not re-create it without
 # re-running init).
@@ -215,11 +215,11 @@ func postCommitHookScript() string {
 	return `#!/bin/sh
 ` + postCommitHookMarker + `
 # Installed by aiwf init/update. Chains to the post-commit.local
-# sibling first (G45) so consumer-written hooks compose rather than
+# sibling first, so consumer-written hooks compose rather than
 # collide.
 #
-# Regenerates STATUS.md after every commit (G-0112: out of pre-commit
-# to avoid merge conflicts on a derived artifact). STATUS.md is
+# Regenerates STATUS.md after every commit — out of pre-commit to
+# avoid merge conflicts on a derived artifact. STATUS.md is
 # gitignored — this hook never modifies the just-finished commit.
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
@@ -265,16 +265,15 @@ func commitMsgHookScript() string {
 	return `#!/bin/sh
 ` + commitMsgHookMarker + `
 # Installed by aiwf init/update. Chains to the commit-msg.local
-# sibling first (G45) so consumer-written hooks compose rather than
+# sibling first, so consumer-written hooks compose rather than
 # collide.
 #
 # Refuses commit messages whose aiwf-verb: trailer carries a value
 # outside the closed sets the kernel knows about: the running
 # binary's Cobra verb tree (e.g. add, promote, edit-body) unioned
 # with the ritualVerbs allowlist (e.g. wrap-milestone, wrap-epic
-# — stamped by aiwfx-wrap-* skills). Forward-looking chokepoint
-# for G-0218; the trailer-verb-unknown rule at push time is the
-# post-hoc safety net.
+# — stamped by aiwfx-wrap-* skills). The trailer-verb-unknown rule
+# at push time is the post-hoc safety net.
 set -e
 repo_root="$(git rev-parse --show-toplevel)"
 [ -f "$repo_root/aiwf.yaml" ] || exit 0
@@ -1131,7 +1130,7 @@ func ensureGitignore(root string, statusMdAutoUpdate, dryRun bool) (StepResult, 
 			if len(missing) > 0 || addHTML {
 				b.WriteString("\n")
 			}
-			b.WriteString("# aiwf: post-commit-regenerated STATUS.md (G-0112)\n")
+			b.WriteString("# aiwf: post-commit-regenerated STATUS.md\n")
 			b.WriteString(statusMdGitignoreLine + "\n")
 		}
 		if addExampleYAML {

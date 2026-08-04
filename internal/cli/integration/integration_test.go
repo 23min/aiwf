@@ -109,13 +109,13 @@ func TestIntegration_FreshRepoLifecycle(t *testing.T) {
 	}
 }
 
-// TestIntegration_HonorsCoreHooksPath (G48): when the consumer has
+// TestIntegration_HonorsCoreHooksPath (G-0048): when the consumer has
 // set `core.hooksPath` (a tracked-hooks pattern via husky/lefthook
 // or a home-grown convention), `aiwf init` lands hooks at the
 // configured path AND git fires them on commits. This is the
 // consumer-parity proof: building a real binary, configuring a
 // real git repo as a consumer would, and observing real hook
-// invocation. Without G48's helper, hooks would land at
+// invocation. Without G-0048's helper, hooks would land at
 // `.git/hooks/` while git looked at the configured path —
 // validation chokepoint silently disabled.
 func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
@@ -179,7 +179,7 @@ func TestIntegration_HonorsCoreHooksPath(t *testing.T) {
 
 	// 3. Run the pre-push hook from the configured path directly to
 	// confirm it actually validates the tree (exit 0 on a clean
-	// tree, the chokepoint G48 was preserving).
+	// tree, the chokepoint G-0048 was preserving).
 	hookPath := filepath.Join(configured, "pre-push")
 	cmd := exec.Command(hookPath)
 	cmd.Dir = root
