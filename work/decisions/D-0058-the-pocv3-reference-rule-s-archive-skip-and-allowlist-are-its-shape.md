@@ -5,7 +5,7 @@ status: proposed
 ---
 ## Question
 
-A policy test forbids references to the retired `docs/pocv3/` tree, so that a
+A policy test forbids references to the retired `pocv3` documentation tree, so that a
 path nothing resolves to cannot keep being cited as though it did. It carries two
 escapes: any directory named `archive` is skipped during the walk, and a small
 allowlist names individual files with a per-entry reason.
@@ -65,3 +65,8 @@ trigger above evaluable.
 **The archive skip is not this rule's own convention.** It follows the archival
 tier's forget-by-default treatment, so it moves if that convention moves, and it
 should not be argued about here in isolation.
+
+**A document explaining this rule cannot spell the path literally** without
+joining the allowlist, which is why this decision names the tree without its
+directory prefix. The rule catching its own explanation is the cheapest
+demonstration available that no predicate separates a mention from a reference.

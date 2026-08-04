@@ -1,11 +1,16 @@
 # TODO
 
-Personal scratchpad. Three sections, two disciplines:
+Personal scratchpad. Two sections, two disciplines:
 
 - **Don't forget** — append one line; delete when done. Never reordered.
 - **Next, in order** — dated, and **replaced wholesale** on each refresh, never
   appended to. An ordering that can only grow stops being an index.
-- **Parked** — decided not-now, one line each, so a closed question isn't reopened.
+
+Nothing here is a record. A decision goes to a `D-NNNN` entity, a declined gap
+to that gap's own disposition, an operating rule to the shipped guidance — each
+queryable, diffable, and reachable by someone who never opens this file. What
+belongs here is ordering and recall: what to do next, and what not to lose
+before it becomes an entity.
 
 Claude may reconcile *Next, in order* against live tree state and propose a
 delta — terminal entries dropped, new entities placed, moves justified — and
@@ -123,6 +128,8 @@ silently goes stale, or it cannot be enforced at all.
 
 - **G-0523** *(high)* — guidance reaches an assistant through one channel that can
   fail unobserved
+- **G-0541** — the guidance tells an assistant to fill a body from a template
+  path that resolves for two of six kinds; gap and contract have none
 - **G-0504** — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0526** — source-discipline rules ship as prose with no seam to enforce them
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
@@ -171,24 +178,3 @@ staleness.
 - **G-0444** — the id-allocation doc cites renamed functions
 - **G-0517** — narrow id citations remain in the design docs, overview and architecture
 - **G-0519** — documentation is not reference-checked; a cited id need not resolve
-
-## Parked
-
-- **E-0076 cancelled** — "give three documented rules the detectors they lack".
-  The audit declined two of its three members; G-0471 moved to cluster 4.
-- **A documented rule may stand without a chokepoint.** Detector-shaped gaps are
-  declined by default. Trigger to revisit: a second instance where the absence
-  actually costs something.
-- **Nine gaps closed `wontfix`** with per-gap reasons in git. The grounds are
-  three, not one — cost-per-subject, detector precision, base rate.
-- **Verb commits fire post-commit but not pre-commit or commit-msg.** Principled,
-  not a defect: post-commit only observes, the other two can refuse or rewrite.
-  Trigger: a consumer reporting their own `pre-commit.local` didn't fire.
-- **The pocv3 dangling-reference policy is not a bug.** It carries an allowlist
-  and skips `archive/`. Trigger: a second file legitimately needing the literal path.
-- **Survey with `aiwf list`, never `aiwf status`** — only `list` resolves
-  cross-branch entities, so `status` and STATUS.md undercount during an epic.
-- **A mechanical chore with no decision in it doesn't get a gap.** G-0531 was
-  filed and cancelled at M-0290's wrap — ~40 comments naming a retired verb, no
-  consumer reach, no judgment in the work. Tracking it costs a reader's attention
-  the fix would not. Trigger: a chore large enough that someone needs to schedule it.
