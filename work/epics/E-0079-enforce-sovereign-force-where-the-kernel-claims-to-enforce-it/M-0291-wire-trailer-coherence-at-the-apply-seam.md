@@ -8,7 +8,7 @@ acs:
     - id: AC-1
       title: Forced transition by a non-human actor is refused before commit
       status: open
-      tdd_phase: red
+      tdd_phase: green
     - id: AC-2
       title: Coherence verdicts pinned across the full actor-and-trailer domain
       status: open
