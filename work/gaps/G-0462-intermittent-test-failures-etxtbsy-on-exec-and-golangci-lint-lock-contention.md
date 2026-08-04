@@ -1,6 +1,6 @@
 ---
 id: G-0462
-title: 'Intermittent test failures: ETXTBSY on exec and golangci-lint cache contention'
+title: 'Intermittent test failures: ETXTBSY on exec and golangci-lint lock contention'
 status: addressed
 priority: high
 discovered_in: M-0281
