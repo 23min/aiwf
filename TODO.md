@@ -24,40 +24,30 @@ line saying what it is.
 - G-0436 and G-0439 still carry no priority
 - G-0375 has a live sighting: a probe wrote user.email into the repo's own
   .git/config and broke TestResolveActor_*; the failures read as environmental
-
-1. Open an epic scoped to the walker, plan G-0475 + G-0327 as its first milestone. ← my lean
-2. Take the real cheap batch first (G-0484 + G-0476 + G-0470) as one wf-patch, to clear the trivia before a milestone.
-3. Take G-0528 as a standalone patch — smallest complete unit, user-visible contract fix.
+- E-0079 is active and owns M-0291..M-0294, all four with empty bodies and no
+  ACs. The ordering below predates it and does not account for it
+- `readStatusAt` and the walker's path-resolving fallback arm are dead in
+  production — reachable only through conditions no BulkRevwalk flag produces.
+  Annotated rather than deleted, deliberately; nothing tracks the choice
 
 ## Next, in order (2026-08-03)
 
-127 open gaps, 15 high. These clusters cover the *defect* surface; roughly 50
-low-priority feature and enhancement gaps fit none and are not listed. Each gap
-sits in exactly one cluster.
+These clusters cover the *defect* surface; the low-priority feature and
+enhancement gaps fit none and are not listed. Each gap sits in exactly one
+cluster.
 
-### 1. Lying gates *(one milestone + a patch; highest leverage)*
+### 1. Lying gates
 
 A gate that reports green while proving nothing is worse than an absent one:
 every commit landing before the fix gets a false pass, and a reader auditing
 coverage finds a guard and stops looking.
 
-- **G-0475** *(high)* — the FSM walker skips a commit that both renames and
-  changes status, so an illegal transition passes a **blocking** check
-- **G-0327** — same walker reads an unreadable blob as "skip", hiding a finding.
-  Pairs with G-0475: one fix rewrites the other's read sites
-- **G-0528** — parent verbs exit 0 on an unknown subverb; the `NoArgs` guard set
-  on each is unreachable
 - **G-0532** — the width check reads only the filename, so a narrow `id:` under a
   canonical filename is reported by nothing at all
 - **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
 - **G-0516** — the comment-attrition scan is diff-scoped, so a stale comment
   outside the changed hunk is never examined
-- **G-0476** — the sovereign-act policy walks a directory that now holds only
-  `main.go`, so it inspects nothing *(cheap)*
-- **G-0484** — the discoverability policy reads the help banner from a file that
-  no longer contains it *(cheap)*
 - **G-0474** — the blank-identifier ban has no detector; one live instance *(cheap)*
-- **G-0470** — `testpins`-gated files are invisible to every lint run *(cheap)*
 
 ### 2. Oracles — what tells the builder it is wrong *(design first; one cheap member)*
 
@@ -137,6 +127,10 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders
 - **G-0530** — milestone specs mandate four sections that duplicate structured data
+- **A shipped skill's severity claims are not tied to the code's constants** — the
+  `aiwf-check` skill documented `manual-edit` as error severity where the rule
+  emits a warning, so an operator reading it misjudges whether a finding blocks a
+  push. Corrected by hand; nothing stops the next drift *(unfiled)*
 
 ### 7. Error contract *(epic, parallel any time)*
 
