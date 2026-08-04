@@ -1,8 +1,10 @@
 ---
 id: G-0484
 title: Discoverability policy reads the help banner from a file that no longer has it
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 5e1d58d80
 ---
 ## What's missing
 
