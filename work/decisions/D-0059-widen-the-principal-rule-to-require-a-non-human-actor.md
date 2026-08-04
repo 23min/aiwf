@@ -1,7 +1,7 @@
 ---
 id: D-0059
 title: Widen the principal rule to require a non-human actor
-status: proposed
+status: accepted
 relates_to:
     - M-0291
 ---
