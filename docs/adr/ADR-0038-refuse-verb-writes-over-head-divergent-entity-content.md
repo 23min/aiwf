@@ -383,8 +383,9 @@ under that verb's trailer.
 because that verb writes frontmatter.
 
 **This does not fix the FSM history walker's blind spot.** The precondition
-incidentally masks it, but the walker stays wrong for any other route to a commit
-that both renames and changes status. G-0475 remains open on its own terms.
+incidentally masks the route it governs; it does not repair the walker, which
+needs its own fix to reach every other route to a commit that both renames and
+changes status.
 
 **After-the-fact detection stays necessary.** This is a precondition; it cannot
 see commits that predate it, hand-commits, or merge commits — which the
