@@ -31,6 +31,52 @@ type walkError struct {
 	Err      error
 }
 
+// blobFrontmatter is what the walk reads out of one entity blob: the
+// status recorded there, and the id saying whose status it is.
+type blobFrontmatter struct {
+	ID     string
+	Status string
+}
+
+// names reports whether this blob's frontmatter id names e.
+//
+// A blob reached by object id has no path to identify it by, so the id
+// it carries is the whole of what ties it to an entity. Widths are
+// canonicalized because a narrower legacy id names the same entity
+// (ADR-0008), and an `aiwf reallocate` is consulted through prior_ids,
+// since it renames the file and rewrites the id in one commit — making
+// the id the pre-image carries one e has since left behind.
+//
+// The prior_ids arm is as precise as prior_ids itself: an id a
+// reallocation freed can be handed to a later entity, and both that
+// entity and the one that vacated it then answer to it. The arm is
+// reached only for a blob a rename already paired with e, and e's own
+// id is consulted first, so the ambiguity costs at most a skipped
+// observation on the entity that moved away.
+//
+// prior_ids is also what a renumbering has to leave behind to stay
+// observable. A file renumbered by hand rather than by the verb
+// records no lineage, so its history before the renumber is no longer
+// attributable to it — which is what the tree already says about it.
+func (fm blobFrontmatter) names(e *entity.Entity) bool {
+	if fm.ID == "" {
+		// Frontmatter without an id, or none at all — a file that the
+		// renaming commit is what turns into an entity. Nothing ties it
+		// to e, so it carries no prior status for e.
+		return false
+	}
+	id := entity.Canonicalize(fm.ID)
+	if id == entity.Canonicalize(e.ID) {
+		return true
+	}
+	for _, prior := range e.PriorIDs {
+		if id == entity.Canonicalize(prior) {
+			return true
+		}
+	}
+	return false
+}
+
 // batchedWalkStatusChanges enumerates DAG-aware status-change
 // observations across every entity in t via the M-0137 batched
 // helpers (gitops.BulkRevwalk + the blobReader dep). Returns:
@@ -53,12 +99,11 @@ type walkError struct {
 // tree's CURRENT paths; when a rename touch (Status="R") is
 // processed, the SrcPath is added to the map (the entity used to
 // live there). Older commits referencing the entity at its
-// pre-rename path then resolve correctly. Same imperfection as the
-// M-0130 walker: a commit that both renames AND changes status is
-// unobserved — the parent has the file at SrcPath, the rule reads
-// parent:t.Path (the new name) which doesn't exist, the pair is
-// skipped. Pure renames don't change status, so no observation is
-// lost on the typical path.
+// pre-rename path then resolve correctly. The renaming commit itself
+// is observed on the same footing: its parent-side status comes from
+// the diff record's pre-image blob, which is the blob at SrcPath, so
+// a commit that renames the file and rewrites its status in one step
+// still reaches the FSM's legality verdict.
 func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br blobReader) ([]statusChange, []walkError, error) {
 	if t == nil || root == "" {
 		return nil, nil, nil
@@ -116,23 +161,32 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 	// the failed fetch kills the cat-file subprocess and the walk
 	// reports that instead. Either way this is history the walk cannot
 	// see, not history that says nothing.
-	shaCache := make(map[string]string)
-	statusBySHA := func(sha string) (string, error) {
+	//
+	// The id rides along with the status because a blob addressed by
+	// object id carries no path, so its frontmatter id is the only
+	// thing that says which entity the status belongs to.
+	shaCache := make(map[string]blobFrontmatter)
+	frontmatterBySHA := func(sha string) (blobFrontmatter, error) {
 		if gitops.BlobAllZero(sha) {
-			return "", nil
+			return blobFrontmatter{}, nil
 		}
-		if s, ok := shaCache[sha]; ok {
-			return s, nil
+		if fm, ok := shaCache[sha]; ok {
+			return fm, nil
 		}
 		content, err := br.ReadObject(sha)
 		if err != nil {
 			// Surface to the caller as a walk error; don't cache a
 			// transient as authoritative.
-			return "", err
+			return blobFrontmatter{}, err
 		}
-		s := parseStatusFromFrontmatter(content)
-		shaCache[sha] = s
-		return s, nil
+		id, status := parseIDAndStatusFromFrontmatter(content)
+		fm := blobFrontmatter{ID: id, Status: status}
+		shaCache[sha] = fm
+		return fm, nil
+	}
+	statusBySHA := func(sha string) (string, error) {
+		fm, err := frontmatterBySHA(sha)
+		return fm.Status, err
 	}
 
 	walkErr := gitops.BulkRevwalk(ctx, root, func(rec gitops.CommitRecord) error {
@@ -198,23 +252,52 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 				//     matched to a specific `parent` from a fan-out record
 				//     that lists all parents, so the path-resolving read
 				//     is the only correct option here.
-				//   - rename/copy ("R"/"C"): PreSHA points at the *source*
-				//     path's blob, not touch.Path's. The dest path is
-				//     normally created by the commit (absent at the
-				//     parent), but a force-rename onto an existing dest
-				//     would have a real parent-side blob there — so keep
-				//     the path-resolving read, which is correct in BOTH
-				//     cases and byte-identical with the pre-refactor walk.
+				//   - rename ("R"): PreSHA is the blob at SrcPath, where
+				//     the parent holds the file this touch renames.
+				//     Resolving `parent:touch.Path` instead finds nothing,
+				//     since this commit is what puts the file there, and
+				//     the dropped pair would let a commit that renames the
+				//     file and rewrites its status in one step escape the
+				//     FSM's legality verdict. Read by object id — but only
+				//     after checking whose file it is, because -M pairs a
+				//     delete with an add by content *similarity*, not by
+				//     identity: retiring one template-shaped entity and
+				//     opening another in a single commit pairs exactly the
+				//     same way, and taking that pre-image would report the
+				//     retired entity's status as the opened one's prior
+				//     state. On a mismatch the pair is skipped, which is
+				//     what the destination's absence at the parent means.
+				//   - copy ("C"): PreSHA is the source file's blob, but
+				//     the source keeps its own life and the entity at
+				//     touch.Path is new here — so its prior status is
+				//     "absent", which only the path-resolving read
+				//     reports. The explicit -M BulkRevwalk passes
+				//     overrides any `diff.renames=copies` the consumer
+				//     configured, so git emits no copy record; this is the
+				//     correct handling if that flag list ever changes.
 				//   - otherwise ("M"/"A"/"T"): touch.Path is unchanged, so
 				//     PreSHA is exactly the parent's blob at touch.Path
 				//     (an add's all-zero PreSHA reads as "", matching the
 				//     parent-has-no-file case). Read by object id.
+				//
+				// All three fallback conditions are unreachable under the
+				// flags BulkRevwalk passes today, so no test drives the
+				// path-resolving arm: a merge carries no Paths without -m,
+				// -M overrides any copy-detection config, and --raw always
+				// fills PreSHA. The arm is what keeps each of them correct
+				// if a flag changes.
 				var priorStatus string
 				var readErr error
-				if touch.PreSHA != "" && !isMerge && touch.Status != "R" && touch.Status != "C" {
+				switch {
+				case touch.PreSHA == "" || isMerge || touch.Status == "C":
+					priorStatus, readErr = readStatusAt(parent, touch.Path, br) //coverage:ignore see the enumeration above — no flag BulkRevwalk passes can produce a touch that reaches this arm
+				case touch.Status == "R":
+					var fm blobFrontmatter
+					if fm, readErr = frontmatterBySHA(touch.PreSHA); readErr == nil && fm.names(e) {
+						priorStatus = fm.Status
+					}
+				default:
 					priorStatus, readErr = statusBySHA(touch.PreSHA)
-				} else {
-					priorStatus, readErr = readStatusAt(parent, touch.Path, br)
 				}
 				if readErr != nil {
 					key := rec.Commit + "\x00" + parent + "\x00" + touch.Path + "\x00parent"
@@ -252,11 +335,18 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 				})
 			}
 
-			// Rename: the entity lived at SrcPath before this commit.
-			// Add to the map so older commits' touches at SrcPath
-			// resolve to this entity.
+			// Rename: the entity lived at SrcPath before this commit, so
+			// older commits' touches there resolve to it — but only once
+			// the pre-image is confirmed to be this entity's own file.
+			// A similarity-paired delete and add names a path that
+			// belonged to a different entity, and seeding it would
+			// attribute that entity's entire earlier history to this
+			// one. The read is the same one the parent-side comparison
+			// above made, served from shaCache.
 			if touch.Status == "R" && touch.SrcPath != "" {
-				pathToEntity[touch.SrcPath] = e
+				if fm, err := frontmatterBySHA(touch.PreSHA); err == nil && fm.names(e) {
+					pathToEntity[touch.SrcPath] = e
+				}
 			}
 		}
 		return nil
