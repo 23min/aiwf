@@ -98,3 +98,21 @@ until that distinction is made.
 ## Scope
 
 Surfaced by a `wf-structural-sweep` pass after E-0073 wrapped.
+
+## Disposition
+
+Declined, and the decision is a standing one rather than a judgement about
+this rule: a documented rule may hold on review alone, so a gap whose whole
+content is "no detector exists" is declined unless its absence has cost
+something twice. The one instance cited above is gone — removed as collateral
+when M-0290 retired the rewidth verb, not by anyone acting on this — and a
+tree-wide scan finds no other, so the cost stands at zero.
+
+What outlives the decline is broader than the ban. `deadcode -test ./...` is
+already on PATH and wired into no gate, and it reports unreachable code
+generally rather than one spelling of a silencer; whoever wants that reach
+should want it for its own sake, not as this rule's enforcement arm.
+
+Revisit on either trigger: a second live instance of the banned form, or a
+reachability sweep landing for reasons of its own — at which point this rule
+comes along free. Reversal is by a new gap referencing this one.
