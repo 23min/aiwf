@@ -173,19 +173,43 @@ beyond this summary.
 
 ## aiwf's oracles
 
-| oracle | class | judges | fires at |
-|---|---|---|---|
-| `aiwf check` finding rules | specified | planning-tree consistency | pre-commit (shape), pre-push (full) |
-| the six kind FSMs | specified | transition legality | verb time |
-| `internal/policies/` chokepoints | specified | repo structural invariants | CI, `make ci` |
-| stress-catalog scenarios | specified | workflow legality, concurrency safety | on demand |
-| golden files under `testdata/` | derived (regression) | render and format drift | test |
-| property tests, fuzz targets | specified, metamorphic | FSM invariants, parser totality | test, fuzz workflow |
-| race detector, `go vet`, panics | implicit | universally-wrong behavior | every race-enabled run |
-| `aiwf contract verify` | specified, user-declared | schema against fixtures | on demand |
-| `aiwf doctor --self-check` | derived (end-to-end) | the built binary behaves | `make ci` |
-| dispatched reviewer subagent | model-judged | correctness, design, prose | milestone wrap, patch |
-| the human gate | human | whether this is the right thing | every mutation |
+| oracle | class | judges | fires at | on failure |
+|---|---|---|---|---|
+| `aiwf check` finding rules | specified | planning-tree consistency | pre-commit (shape), pre-push (full) | blocks at error severity, advises at warning |
+| the six kind FSMs | specified | transition legality | verb time | blocks |
+| `internal/policies/` chokepoints | specified | repo structural invariants | CI, `make ci` | blocks |
+| stress-catalog scenarios | specified | workflow legality, concurrency safety | the hermetic set every push, the subprocess-driving set on demand | blocks where it runs |
+| golden files under `testdata/` | derived (regression) | render and format drift | test | blocks |
+| property tests, fuzz targets | specified, metamorphic | FSM invariants, parser totality | test; fuzz weekly and on demand | blocks |
+| race detector, `go vet`, panics | implicit | universally-wrong behavior | every race-enabled run | blocks |
+| `aiwf contract verify` — verify pass | specified, user-declared | schema against valid and `invalid/` fixtures | on demand | blocks where the consumer wires it |
+| `aiwf contract verify` — evolve pass | derived (regression) | historical fixtures against HEAD's schema | on demand | blocks where the consumer wires it |
+| `aiwf doctor --self-check` | derived (end-to-end) | the built binary behaves | `make ci`, CI | blocks |
+| dispatched reviewer subagent | model-judged | correctness, design, prose | milestone wrap, patch | advises; the human gate decides |
+| the human gate | human | whether this is the right thing | every mutation | blocks |
+
+The two contract passes are separate oracles sharing a verb, and they answer
+different questions. The verify pass asks whether today's schema accepts what it
+should and rejects what it should; the evolve pass asks whether a schema change
+just invalidated a fixture that used to pass, which is the drift a specified
+oracle cannot see about itself.
+
+### Position is per clone for the local rungs
+
+Git hooks are not committable, so the two positions above the test suite are
+opt-in per working copy rather than per repository. `aiwf init` / `aiwf update`
+writes the chain-aware hooks at `.git/hooks/<name>`; `make install-hooks`
+symlinks this repo's kernel-specific `.local` hooks into that chain (policy lint
+at pre-commit, `golangci-lint` and the gitleaks scan at pre-push). In a clone
+where neither has run, every locally-firing oracle in the table is absent, and
+nothing says so.
+
+For most of them CI is the backstop — the linters, the race detector, the policy
+suite, and gitleaks all run again on push. **`aiwf check` is the exception: no
+workflow runs it against this repo's own planning tree.** The kernel's primary
+oracle therefore exists at exactly one position, and that position is the opt-in
+one; `--no-verify` or an uninitialized clone removes it with no second line of
+defense. Tracked as G-0536.
 
 ### Meta-oracles
 
@@ -221,13 +245,25 @@ be mistaken for one.
 
 ## Known gaps
 
-Tracked as entities; this list points at them rather than restating their
+Where an entity tracks one, this list points at it rather than restating its
 content, so the entity stays the single source.
 
 - The duplication detector is enabled on production code and excluded across the
   test corpus. G-0473 covers the production-file exclusion catalogue, including
-  entries that no longer correspond to any clone; the test-corpus exclusion,
-  which is the larger lever, is not covered by it.
+  entries that no longer correspond to any clone; G-0533 covers the test-corpus
+  exclusion, which is the larger lever.
+- **No differential oracle exists here.** Nothing in the table is a second
+  implementation whose disagreement with the first is the verdict — the class
+  the taxonomy above calls very strong, precisely because independent
+  implementations rarely share a defect. A single-implementation kernel cannot
+  obtain one cheaply, so this is closer to a structural limit than a backlog
+  item; it is named so the inventory does not read as full coverage of the
+  classes. The nearest thing, `internal/check/mask_differential_test.go`,
+  compares two configurations of one shared walker — a metamorphic relation over
+  a single implementation, inheriting whatever that walker gets wrong.
+- The contract surface's two passes, and the `invalid/`-fixture meta-oracle they
+  carry, never run against this repo: aiwf declares no contract binding of its
+  own, so both execute only in consumer trees. G-0537.
 - Spec adequacy at authoring time has no oracle. The rule requiring mechanical
   evidence before an acceptance criterion is promoted is real, but it is
   evaluated after implementation rather than while the criterion is written.
