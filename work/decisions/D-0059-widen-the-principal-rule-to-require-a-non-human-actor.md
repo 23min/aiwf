@@ -35,9 +35,16 @@ the CLI layer adds a principal only when the actor is non-human, and every verb
 writes an actor. The widening therefore changes nothing reachable through
 ordinary use.
 
-What it does change is hand-crafted history. A consumer whose repo holds such a
-commit sees a new error — but that commit is malformed by the design doc's own
-definition, so surfacing it is the rule working rather than a regression.
+Nor does it change hand-crafted history, which is the surface it might have been
+expected to reach. The history-walking audit reports nothing at all for a commit
+carrying no actor, so the half this widening adds is unreachable there too. The
+payoff is coherence of record rather than new enforcement: the rule now says
+what the design doc says, so the next reader of either is not left to work out
+which one is authoritative.
+
+That is a smaller gain than new enforcement would be, and it is still worth the
+change. A rule whose condition is narrower than its documented statement is a
+divergence that costs nothing until someone relies on the wrong one.
 
 The alternative was to pin the current behavior and file the divergence for
 later. That was rejected because it would write a verdict into the domain golden
@@ -47,4 +54,8 @@ parent epic's constraints forbid.
 
 ## Follow-ups
 
-- (none)
+- The history-walking audit still expresses this rule in its narrower form,
+  refusing a principal only alongside a human actor. The two are equivalent for
+  every commit that audit can see, since it returns early for a commit with no
+  actor — so this is a textual divergence, not a behavioral one, and it is
+  recorded rather than filed.
