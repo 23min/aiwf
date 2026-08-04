@@ -19,7 +19,7 @@ acs:
       tdd_phase: done
     - id: AC-4
       title: An ADR records that sovereign acts are prevented at the verb route
-      status: open
+      status: met
       tdd_phase: done
 ---
 
