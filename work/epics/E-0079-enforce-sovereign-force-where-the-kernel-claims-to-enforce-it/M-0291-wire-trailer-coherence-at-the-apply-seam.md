@@ -15,7 +15,7 @@ acs:
       tdd_phase: done
     - id: AC-3
       title: No production path commits without passing the coherence guard
-      status: open
+      status: met
       tdd_phase: done
     - id: AC-4
       title: An ADR records that sovereign acts are prevented at the verb route
