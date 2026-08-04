@@ -1,6 +1,6 @@
 ---
 id: G-0333
-title: Force override boundary undocumented; audit finding-hints that cite force
+title: Force override boundary between Tier-1 and Tier-2 is undocumented
 status: open
 priority: medium
 ---
