@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -67,12 +68,14 @@ func sovereignForceRepo(t *testing.T) (root, binDir string) {
 // the record this milestone exists to prevent, and a test asserting only
 // the exit code would not tell the two apart.
 //
-// The refusal is asserted as "a force coherence rule refused", not as one
-// named rule. CheckTrailerCoherence returns its first violation only, and
-// a non-human actor that got past the allow-rule necessarily carries an
-// active scope's aiwf-on-behalf-of — so force-with-on-behalf-of is
-// reached before force-non-human. Pinning either name would assert the
-// order the rules happen to sit in rather than the behavior.
+// The refusal message is pinned, not just the fact of a refusal. Only
+// the first violation is reported, and a non-human actor that got past
+// the allow-rule necessarily carries an active scope's
+// aiwf-on-behalf-of — so the rule order decides which sentence the
+// operator reads. It is ordered to name force itself, rather than the
+// trailer pair that merely co-occurs with it, and pinning the sentence
+// is what keeps a future reorder from quietly degrading it into two
+// trailer keys nobody typed.
 func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 	t.Parallel()
 	testutil.SkipIfShortOrUnsupported(t)
@@ -87,12 +90,19 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 	// the case is about. Asserting only a non-zero exit would let an
 	// unrelated rule — a projection finding, a child-state check — stand
 	// in for the guard and report success for the wrong reason.
+	// wantExit is asserted because "non-zero" does not distinguish a
+	// refusal from a crash. A coherence refusal is a legality refusal, so
+	// it takes ExitFindings (1) — the exit `aiwf check` reports for the
+	// same violation class once the act has landed. Reporting it as
+	// ExitInternal (3) would tell an operator, and any pipeline reading
+	// the code, that aiwf itself broke.
 	cases := []struct {
 		name        string
 		site        string
 		setup       [][]string
 		args        []string
 		wantRefusal string
+		wantExit    int
 	}{
 		{
 			name: "promote entity",
@@ -101,7 +111,8 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 				"promote", "E-0001", "active", "--force", "--reason", "escalation",
 				"--actor", "ai/claude", "--principal", "human/peter",
 			},
-			wantRefusal: "aiwf-force",
+			wantRefusal: "only humans wield --force",
+			wantExit:    1,
 		},
 		{
 			// The milestone, not the epic: cancelling the epic is refused
@@ -114,7 +125,8 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 				"cancel", "M-0001", "--force", "--reason", "escalation",
 				"--actor", "ai/claude", "--principal", "human/peter",
 			},
-			wantRefusal: "aiwf-force",
+			wantRefusal: "only humans wield --force",
+			wantExit:    1,
 		},
 		{
 			// A phase transition, not a status one: promoting an AC to met
@@ -127,7 +139,8 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 				"promote", "M-0001/AC-1", "--phase", "red", "--force", "--reason", "escalation",
 				"--actor", "ai/claude", "--principal", "human/peter",
 			},
-			wantRefusal: "aiwf-force",
+			wantRefusal: "only humans wield --force",
+			wantExit:    1,
 		},
 		{
 			name: "add born-complete entity",
@@ -137,7 +150,8 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 				"--force", "--reason", "escalation",
 				"--actor", "ai/claude", "--principal", "human/peter",
 			},
-			wantRefusal: "aiwf-force",
+			wantRefusal: "only humans wield --force",
+			wantExit:    1,
 		},
 		{
 			name: "authorize on a scope-entity",
@@ -152,6 +166,7 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 			// rather than by coherence. Pinned here so the site stays
 			// refused however the guard below is wired.
 			wantRefusal: "only humans authorize",
+			wantExit:    2,
 		},
 	}
 
@@ -170,6 +185,10 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 
 			if err == nil {
 				t.Errorf("%s: verb succeeded; want refusal (site: %s)\n%s", tc.name, tc.site, out)
+			} else if !testutil.ExitedWithCode(err, tc.wantExit) {
+				t.Errorf("%s: exited %v, want %d; a refusal reported as an internal error tells the operator "+
+					"aiwf broke, and leaves a pipeline unable to tell a denial from a crash (site: %s)\n%s",
+					tc.name, err, tc.wantExit, tc.site, out)
 			}
 			if after := headSHA(t, root); after != before {
 				t.Errorf("%s: HEAD moved %s -> %s; the act committed before the guard refused (site: %s)",
@@ -180,5 +199,93 @@ func TestSovereignForce_NonHumanActor_RefusedBeforeCommit(t *testing.T) {
 					tc.name, tc.wantRefusal, tc.site, out)
 			}
 		})
+	}
+}
+
+// TestForceReplaceVerbs_NonHumanActor_StillWork is the other half of
+// M-0291/AC-1, and it guards the boundary the force refusal must not
+// cross.
+//
+// contract bind, contract unbind and both contract recipe verbs declare
+// a --force that means force-replace: overwrite the binding already
+// there. It is a different word spelled the same, it emits no sovereign
+// trailer, and sweeping these verbs into the sovereign refusal would
+// break legitimate automation.
+//
+// The steps run in sequence against one repo because they are stateful
+// — a binding cannot be replaced before a validator is installed — and
+// because that sequence is how an agent actually drives them. Each step
+// asserts a landed commit rather than only a zero exit: a verb that
+// returns success without committing has been closed just as
+// effectively, only more quietly.
+//
+// None of these verbs passes through the provenance-decoration layer,
+// so none carries an aiwf-principal and none registers a flag that
+// could supply one. That is what makes this the load-bearing case: a
+// seam enforcing any rule beyond the force-predicated ones refuses all
+// four with no invocation that could satisfy it.
+func TestForceReplaceVerbs_NonHumanActor_StillWork(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+
+	bin := testutil.AiwfBinary(t)
+	binDir := filepath.Dir(bin)
+	root := t.TempDir()
+	if out, err := testutil.RunGit(root, "init", "-q", "-b", "main"); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	for _, args := range [][]string{
+		{"config", "user.email", "peter@example.com"},
+		{"config", "user.name", "Peter Test"},
+	} {
+		if out, err := testutil.RunGit(root, args...); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	bodyPath := filepath.Join(root, "contract-body.md")
+	if err := os.WriteFile(bodyPath,
+		[]byte("## Purpose\n\nPin the rendered shape.\n\n## Stability\n\nStable.\n"), 0o644); err != nil {
+		t.Fatalf("writing contract body: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "fixtures", "render"), 0o755); err != nil {
+		t.Fatalf("mkdir fixtures: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "schemas"), 0o755); err != nil {
+		t.Fatalf("mkdir schemas: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "schemas", "render.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatalf("writing schema: %v", err)
+	}
+	for _, args := range [][]string{
+		{"init"},
+		{"add", "contract", "--title", "Render contract", "--body-file", bodyPath},
+	} {
+		if out, err := testutil.RunBin(t, root, binDir, nil, args...); err != nil {
+			t.Fatalf("setup aiwf %v: %v\n%s", args, err, out)
+		}
+	}
+
+	steps := []struct {
+		name string
+		args []string
+	}{
+		{"recipe install", []string{"contract", "recipe", "install", "jsonschema"}},
+		{"bind", []string{
+			"contract", "bind", "C-0001", "--validator", "jsonschema",
+			"--schema", "schemas/render.json", "--fixtures", "fixtures/render",
+		}},
+		{"unbind", []string{"contract", "unbind", "C-0001"}},
+		{"recipe remove", []string{"contract", "recipe", "remove", "jsonschema"}},
+	}
+	for _, step := range steps {
+		before := headSHA(t, root)
+		args := append(append([]string{}, step.args...), "--actor", "ai/claude")
+		out, err := testutil.RunBin(t, root, binDir, nil, args...)
+		if err != nil {
+			t.Fatalf("%s: refused a force-replace verb for a non-human actor: %v\n%s", step.name, err, out)
+		}
+		if after := headSHA(t, root); after == before {
+			t.Fatalf("%s: exited zero but committed nothing; the verb is closed, not working", step.name)
+		}
 	}
 }
