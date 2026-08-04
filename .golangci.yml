@@ -8,15 +8,18 @@ version: "2"
 # someone runs `make stress-tests`. Linting a tagged file costs a compile,
 # never a scenario run.
 #
-# `testpins` is deliberately absent: adding it pulls
-# internal/workflows/spec/branch/branchtest into the lint surface for the
-# first time, which reports pre-existing findings unrelated to any tagged
-# scenario. The compile-level hole is closed for both tags by the `go vet
-# -tags` steps in .github/workflows/go.yml; extending the *lint* surface
-# to testpins is its own change.
+# golangci-lint lints the union of the declared tags in one pass, so a file
+# gated behind `//go:build !testpins` is outside the lint surface while
+# `testpins` is declared. The residue is internal/cli/integration's
+# negated-arm pin files; the untagged `go vet ./...` in
+# .github/workflows/go.yml still compiles them, being the configuration the
+# negated arm builds under. Reaching them with a linter needs a second
+# invocation, which costs a full pass over the module for a little test
+# scaffolding.
 run:
   build-tags:
     - stress
+    - testpins
 linters:
   default: none
   enable:

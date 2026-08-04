@@ -17,14 +17,18 @@ import (
 // Finding{} composite literals across check/ and contractcheck/ —
 // appears verbatim in at least one channel an AI assistant routinely
 // consults: any embedded skill SKILL.md, the binary's printHelp
-// output (cmd/aiwf/main.go), CLAUDE.md, or any
+// output (internal/cli/root.go), CLAUDE.md, or any
 // markdown file under docs/. The CLAUDE.md "kernel
 // functionality must be AI-discoverable" principle: a code that
 // only exists in source is, by definition, undocumented.
 //
-// Closes G21. The policy used to scope to provenance-* codes only;
-// extending to all codes (and to the full four-channel set) is the
-// substantive G21 fix.
+// The banner channel is a fixed path, so it holds only while that path
+// is where printHelp is declared.
+// TestDiscoverabilityHaystack_BannerSourceDeclaresPrintHelp asserts the
+// two agree in the live tree, and
+// TestDiscoverabilityHaystack_CoversBannerChannel asserts the channel is
+// read at all; a channel silently absent from the haystack costs a false
+// positive against every code documented only there.
 func PolicyFindingCodesAreDiscoverable(root string) ([]Violation, error) {
 	prodFiles, err := WalkGoFiles(root, true)
 	if err != nil {
@@ -139,6 +143,13 @@ func stringFieldValue(cl *ast.CompositeLit, name string) string {
 	return ""
 }
 
+// bannerSourceRel is the repo-relative source file whose printHelp text
+// is the binary's help banner. Named rather than inlined so a test can
+// assert it against the file that actually declares printHelp. Written
+// slash-separated to compare against FileEntry.Path, which is
+// slash-normalized; filepath.Join accepts it unchanged.
+const bannerSourceRel = "internal/cli/root.go"
+
 // readDiscoverabilityChannels concatenates the contents of every
 // documentation channel an AI assistant routinely consults. The
 // concatenation is matched as one big haystack — substring presence
@@ -146,7 +157,7 @@ func stringFieldValue(cl *ast.CompositeLit, name string) string {
 func readDiscoverabilityChannels(root string) ([]byte, error) {
 	var out []byte
 	singletons := []string{
-		filepath.Join(root, "cmd", "aiwf", "main.go"),
+		filepath.Join(root, bannerSourceRel),
 		filepath.Join(root, "CLAUDE.md"),
 	}
 	for _, p := range singletons {

@@ -17,15 +17,20 @@ func hasPolicyViolation(vs []Violation, id string) bool {
 
 // discoverabilityScaffold returns the minimal tree the discoverability
 // policies need to run without erroring: readDiscoverabilityChannels reads
-// cmd/aiwf/main.go + CLAUDE.md and walks internal/skills/embedded +
+// internal/cli/root.go + CLAUDE.md and walks internal/skills/embedded +
 // docs, so all four must exist. None of them mention the crafted
 // tag/code, so it stays out of the haystack and the policy fires.
 func discoverabilityScaffold() map[string]string {
 	return map[string]string{
-		"cmd/aiwf/main.go":              "package main\n\nfunc main() {}\n",
+		"internal/cli/root.go":          "package cli\n\nfunc printHelp() {}\n",
 		"CLAUDE.md":                     "# fixture\n\nnothing relevant here\n",
 		"internal/skills/embedded/x.md": "nothing relevant\n",
 		"docs/x.md":                     "nothing relevant\n",
+		// The entry point carries no banner text. Keeping it in the
+		// scaffold means a haystack pointed back at it reads a real but
+		// empty channel, so the banner-channel test fails by reporting
+		// the wrong verdict rather than by failing to open a file.
+		"cmd/aiwf/main.go": "package main\n\nfunc main() {}\n",
 	}
 }
 
@@ -159,7 +164,7 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 		{
 			id:     "sovereign-dispatchers-guard-human-actor",
 			policy: PolicySovereignDispatchersGuardHumanActor,
-			files:  map[string]string{"cmd/aiwf/sv.go": "package main\n\nfunc runThing() {\n\t_ = \"force\"\n\t_ = \"reason\"\n}\n"},
+			files:  map[string]string{"internal/cli/sv/sv.go": "package sv\n\nfunc NewCmd() {\n\t_ = \"force\"\n\t_ = \"reason\"\n}\n"},
 		},
 		{
 			id:     "tests-real-clone-not-update-ref",
