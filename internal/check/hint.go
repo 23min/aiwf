@@ -109,7 +109,7 @@ var hintTable = map[string]string{
 	// Any narrow id in the active tree, at error severity. No verb
 	// widens an id in place, so the fix is to undo the change that
 	// produced it — hence a git command rather than an aiwf one.
-	"entity-id-narrow-width": "an active entity's filename carries an id below canonical width; undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
+	"entity-id-narrow-width": "an active entity carries an id below canonical width, in its filename or its frontmatter `id:` (when only one of the two diverges, the message names which); undo the change that produced it (`git checkout -- <path>` if uncommitted, `git revert <sha>` if it landed) — no verb widens an id in place, and `aiwf reallocate` would assign a different number rather than the same one at canonical width",
 
 	// M-0086: ADR-0004 §"Reversal" forbids relocation as the
 	// remediation. The remediation is to revert the hand-edit, not

@@ -16,7 +16,8 @@ import (
 // coexisted: every active id is now required to be canonical outright,
 // so this asserts the whole active tree, not the absence of a mix.
 //
-// A failure means an active entity's filename carries a narrow id.
+// A failure means an active entity carries a narrow id, in its filename
+// or its frontmatter `id:`.
 // Since no verb can produce one, the cause is a hand-edit or a file
 // move — the table-driven fixtures in
 // internal/check/entity_id_narrow_width_test.go should catch a

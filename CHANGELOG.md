@@ -16,6 +16,31 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — G-0532: `entity-id-narrow-width` now reads the frontmatter id, not just the filename
+
+An entity carries its id twice — in its filename and in its frontmatter `id:` —
+and `aiwf check` tested only the filename for canonical width. An active entity
+whose `id:` was narrower than its own canonical-width filename produced no
+finding of any code: it loaded, `aiwf list` showed it, and `aiwf check` exited
+0. Neither of the other two candidates caught it. `id-path-consistent`
+canonicalizes both sides before comparing, so a width-only divergence reads as a
+match to it; `frontmatter-shape` validates against the kind's minimum digit
+count, which admits narrow ids permanently.
+
+Both axes are now in scope, and each is judged independently — a filename below
+the kind's minimum digit count no longer masks a narrow `id:` sitting under it.
+An entity narrow on either axis fires `entity-id-narrow-width` at error
+severity, and one narrow on both still fires exactly once — the count stays per
+entity, not per axis. The message names
+whichever axis diverges and quotes only the narrow spelling, so it never prints
+a canonical id and calls it narrow. An `id:` below the kind's minimum digit
+count is malformed rather than narrow and remains `frontmatter-shape`'s to
+report, mirroring the filename axis.
+
+If your tree carries such an entity, `aiwf check` will now report it where it
+previously passed. The fix is unchanged: undo the hand-edit or file move that
+produced the narrow id — no verb widens an id in place.
+
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 
 The four hook scripts `aiwf init` writes into your repo — `pre-push`,
