@@ -5,11 +5,11 @@ status: accepted
 ---
 ## Context
 
-The kernel states in five places that `--force` is human-only, and enforced it
-in one verb of four. A non-human actor could force an epic to `active` — the
-canonical sovereign act — at exit 0, and learn of the violation only when the
-pre-push check walked git history. By then the act was in the log, and no verb
-could clear it.
+The kernel states across its guidance, its design docs and its own code
+comments that `--force` is human-only, and enforced it in one verb of four. A
+non-human actor could force an epic to `active` — the canonical sovereign act —
+at exit 0, and learn of the violation only when the pre-push check walked git
+history. By then the act was in the log, and no verb could clear it.
 
 The guard existed. `CheckTrailerCoherence` was reached from two verbs and no
 others. It did not drift there by inattention: a verb's trailer set is
@@ -25,15 +25,14 @@ downstream of both: `verb.Apply`.
 ADR-0038 faced a structurally similar question about verb writes and needed two
 seams — one claim-side, one commit-side — because a converging verb returns
 before a plan exists and so never reaches the commit path. That reasoning does
-not carry here, and the reason is worth stating rather than leaving to be
-re-derived: a converging verb writes no commit, so it emits no trailer, so it
-has no coherence to violate. The case that forced the second seam there cannot
-arise.
+not carry here: a converging verb writes no commit, so it emits no trailer, so
+it has no coherence to violate. The case that forced the second seam there
+cannot arise.
 
 ## Decision
 
-The trailer-coherence guard runs at `verb.Apply`, ahead of any filesystem work,
-and refuses before anything is written.
+The sovereign-force coherence guard runs at `verb.Apply`, ahead of any
+filesystem work, and refuses before anything is written.
 
 Sovereign acts are **prevented at the verb route and ratifiable at the history
 route.** Both halves are load-bearing:
@@ -49,29 +48,44 @@ route.** Both halves are load-bearing:
   reason, in a separate commit that leaves the acknowledged one untouched.
 
 The guard sits in `verb.Apply` rather than in the CLI layer because the
-self-assembling verbs and the cell-coverage fixture reach `Apply` without
-passing through the dispatcher layer. Placing it there also makes no-bypass
-structural rather than policed: any caller reaching `Apply` is covered without
-being enumerated.
+self-assembling verbs reach `Apply` without passing through the dispatcher
+layer, so a CLI-layer placement would leave exactly the paths this closes.
+Placing it there also makes no-bypass structural rather than policed: any
+caller reaching `Apply` is covered without being enumerated.
 
 ## Consequences
 
-The guard enforces the whole coherence rule set, not the force rule alone,
-because the rule set is what the function checks. Most of that costs nothing
-new: the history-walking check already reported every rule but one at error
-severity, so a trailer set that newly fails at the seam is one the push already
-rejected, and only the point at which the operator learns it has moved earlier.
+The guard enforces the rules predicated on a force trailer, not the whole
+coherence rule set. The scope is load-bearing rather than incidental: a verb
+whose trailer set is incomplete for a reason unrelated to force may have no
+invocation that could complete it. The contract verbs are the measured case —
+they never pass through the provenance-decoration layer and register no flag
+that could supply a principal, so a seam enforcing the whole set closed all
+four to non-human actors outright. Sovereignty is what this seam exists to
+enforce, and force is what makes an act sovereign; everything else a trailer
+set can get wrong is the push's business.
 
-The exception is `audit-only-with-force`, which no history-walking rule covers.
-The seam is its first enforcement anywhere outside the audit-only verb's own
-call.
+Two of the three rules in that subset are backstops rather than live paths.
+`audit-only-with-force` sits behind a flag mutex that refuses `--force`
+alongside `--audit-only` as a usage error, before a plan exists to carry
+either. `force-with-on-behalf-of` needs a set carrying force and on-behalf-of
+without a non-human actor, which the decoration layer does not assemble — it
+adds on-behalf-of only for a non-human actor inside a scope. Both stay in the
+subset because the seam also sees trailer sets no dispatcher built.
 
-A non-human actor cannot in practice reach `force-non-human` as the reported
-rule. Getting past the allow-rule at all requires an active scope, whose
-`aiwf-on-behalf-of` trips `force-with-on-behalf-of` earlier in the order, and
-the function returns its first violation only. The act is refused either way;
-what a caller must not do is assert on a specific rule name to prove force is
-enforced, because that pins the rule order rather than the behavior.
+The rule order is chosen, not inherited. A non-human actor reaches this seam
+only through an active scope, and a scope always carries `aiwf-on-behalf-of`,
+so whichever force rule sits first decides the sentence the operator reads.
+`force-non-human` is checked first, so the refusal names what the operator did
+wrong instead of a pair of trailer keys they never typed. A caller proving that
+force is enforced should still assert the refusal rather than the rule name:
+the order is a deliberate choice about the message, and a future rule could
+change which one speaks first without weakening the guarantee.
+
+A refusal here is a legality refusal, not an internal failure. It exits with
+the findings code and carries the same finding identifier `aiwf check` reports
+for the same act once it has landed, so one consumer routes on a denial without
+needing to know which of the two moments produced it.
 
 Refusals move from push time to verb time. Automation that was forcing as a
 non-human actor was already blocked at push, so no working pipeline breaks —
