@@ -26,6 +26,26 @@ negative guard that still examines something, so it is degenerate rather than
 vacuous — it asserts helpers have not appeared in a directory where nothing
 would put them.
 
+The scope is the visible half. Measuring what each policy would examine at the
+location its subject moved to shows the subject did not simply move:
+
+- **`PolicyApplyCallersAcquireLock`** asserts that every `run*` dispatcher
+  calling `verb.Apply` directly also takes the repo lock. Production now holds
+  exactly two `verb.Apply` call sites — `internal/cellcoverage/fixture.go` and
+  `internal/cli/cliutil/apply.go` — so Apply is reached through one shared
+  cliutil seam and the population of per-dispatcher callers no longer exists. A
+  rescope to `internal/cli/` fires one violation, on `FinishVerbOutcome`, which
+  the policy's own doc comment names as an exempt internal helper.
+- **`PolicyIntegrationTestsAssertTrailers`** keys on test functions calling
+  `runBin(`. That identifier appears in one file repo-wide:
+  `internal/policies/firing_fixtures_single_site_test.go`, the policy's own
+  synthetic fixture. The integration tests call `runVerb(`, `runSplit(` and
+  `run(`. The heuristic names an entry point that only its own test creates, so
+  the path prefix is not what makes it vacuous.
+- **`PolicyTestsRealCloneNotUpdateRef`** finds no `update-ref refs/remotes/`
+  under `internal/cli/integration/`. Rescoping yields a clean pass that is
+  indistinguishable from the vacuous one it replaces.
+
 `docs/design/legal-workflows-audit.md` R-AUDIT-0051 carries the matching claim in
 the normative spec: "Every `run*` dispatcher in `cmd/aiwf/` that calls
 `verb.Apply` directly must also call `cliutil.AcquireRepoLock`". Doc and code
@@ -48,24 +68,40 @@ everything and finds nothing wrong.
 
 ## Options
 
-1. **Rescope each to where its subject now lives, then resolve what fires.**
-   `internal/cli/` for the lock policy, `internal/cli/integration/` for the two
-   test-shaped ones. Precedent says budget for what the rescope reveals rather
-   than for the one-line change: rescoping the sovereign policy the same way
-   surfaced a second defect in its guard predicate, filed as G-0534.
-2. **Give each an anti-orphan assertion**, as the sovereign policy now has — a
-   test over the live tree asserting the scanned prefix still holds subjects.
-   This does not fix a scope; it makes the next relocation fail loudly. Cheap,
-   and it is what stops the class from recurring in the policies not yet
-   rescoped.
-3. **Delete the ones whose property is enforced elsewhere.** The repo lock is
-   also held by `cliutil.AcquireRepoLock`'s own call sites and by the concurrency
-   scenarios in `internal/stresstest`; whether that makes the policy redundant is
-   a decision, not an observation.
+This is not one change with three instances. Each policy needs its own answer to
+"what is this policy's subject now, and is the property still worth asserting at
+this layer" before any prefix moves, so the options below are the shapes an
+answer can take rather than a menu to pick one from.
 
-Options 1 and 2 together are the lean, 2 first — an assertion that can fail is
-worth more than a scope that happens to be right today, and it is what would have
-caught all of these.
+1. **Re-aim the policy at the subject's new form.** For the lock policy that
+   means asserting against the one cliutil seam that reaches `verb.Apply`, not
+   against a population of dispatchers; for the trailer policy it means keying on
+   the entry points the integration tests actually use. Restores the property at
+   a real chokepoint, and is the most work, because the assertion has to be
+   redesigned rather than relocated.
+2. **Retire the policy and record why.** Warranted where the property is enforced
+   elsewhere and the original subject has dissolved — `verb.Apply` behind a
+   single seam is the strongest case, since one seam is guarded by reading it,
+   not by a scan. A named provenance-adjacent chokepoint should not disappear
+   silently, so this costs a recorded decision.
+3. **Give each an anti-orphan assertion**, as the sovereign policy now has — a
+   live-tree test asserting the scanned prefix still holds subjects. Orthogonal
+   to 1 and 2 and worth doing under either, because it converts the silent
+   failure into a loud one. It does not, by itself, make any of these three
+   assert anything.
+
+No lean recorded, because option 1 and option 2 are separated by the open
+question below rather than by cost.
+
+## Open question
+
+What does the CLI dispatcher layer assert that `internal/verb` does not already?
+
+The lock policy and G-0534 are the same question wearing different clothes. Both
+ask what a dispatcher-level scan is for once the guarantee it polices is held at
+a seam below it — the repo lock behind one `verb.Apply` caller, the human-actor
+refusal inside `internal/verb`. Answered once, both resolve; answered twice, the
+two answers drift. Settle it before either is worked.
 
 ## Scope
 
