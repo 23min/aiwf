@@ -1,9 +1,11 @@
 ---
 id: G-0476
 title: Sovereign-dispatcher policy scopes to cmd/aiwf and inspects nothing
-status: open
+status: addressed
 priority: medium
 discovered_in: E-0075
+addressed_by_commit:
+    - 5e1d58d80
 ---
 ## What's missing
 
