@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	cli "github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestFormatFlagUniformRollout_AC4 is M-0143/AC-4 (decision A2): every
@@ -51,8 +52,12 @@ func TestFormatFlagUniformRollout_AC4(t *testing.T) {
 	root := cli.NewRootCmd("")
 	var missing []string
 	walkCommands(root, func(cmd *cobra.Command) {
-		if !cmd.Runnable() {
-			return // non-Runnable parent (e.g. contract, milestone, contract recipe)
+		if !cmd.Runnable() || cliutil.IsVerbGroup(cmd) {
+			// A parent that dispatches to children routes no verb
+			// outcome of its own — whether it is non-Runnable or a verb
+			// group, which is Runnable only so its Args constraint can
+			// reject an unrecognized subverb (cliutil.MarkVerbGroup).
+			return
 		}
 		if cmd.Name() == "help" {
 			return // Cobra-generated help command on every parent

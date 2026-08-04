@@ -1,8 +1,10 @@
 ---
 id: G-0528
 title: Parent verbs exit 0 on an unknown subverb; their NoArgs guard cannot fire
-status: open
+status: addressed
 priority: medium
+addressed_by_commit:
+    - 981115515a2004680f82bb897a97bffa65f701b0
 ---
 ## What's missing
 

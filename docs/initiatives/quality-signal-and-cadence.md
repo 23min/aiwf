@@ -231,6 +231,26 @@ the wrong selector when the existing ones have known depth gaps:
   names as insufficient ("substring assertions are not structural
   assertions").
 
+A fifth entry is a different kind of shallowness, and it is about *who
+judges* rather than how deeply:
+
+- **The branch-coverage audit is performed by the agent that wrote the code.**
+  `wf-tdd-cycle` states this plainly — the audit is "agent-performed — a
+  manual branch-walk, not a tool invocation," and the ritual is explicit that
+  "hard rule" means *you must perform this walk*, not that a tool enforces it.
+  The reasoning is sound, since mechanical coverage stops at statements. But
+  the consequence is that the repo's most load-bearing quality claim rests on
+  self-report, with no compensating control. This is orthogonal to G-0253: that
+  gap is about granularity, this is about independence, and fixing either
+  leaves the other standing.
+
+The vocabulary for classifying these lives in
+[`../design/oracles.md`](../design/oracles.md) — what makes a check able to
+decide anything, and which property each of the above loses. G-0253 and G-0328
+lose *depth*; G-0110 loses *reach*; G-0317 loses *specificity*; the audit above
+loses *independence*, which is the property whose absence is hardest to see,
+because a self-judged gate reports exactly as green as a real one.
+
 These are not a list of things to build. They are evidence for a stance:
 **prefer deepening an existing gate to adding a new one**, and make that the
 default tiebreak when a defect class escapes. The counter-argument is real —
@@ -307,6 +327,51 @@ The observation is narrower: 74 is a number that emerged, not one that was
 chosen, and the `priority` field shipped in E-0066 is not currently being
 used to make it mean anything. This is the weakest finding here and is
 recorded as an open question rather than a target.
+
+### Q6 — Nothing judges the specification going in
+
+Q1 through Q5 all concern apparatus that runs over work already done. The
+input to that work — the acceptance criterion, the gap, the milestone spec —
+is judged by nothing mechanical at all.
+
+What exists is presence-shaped: `entity-body-empty` decides that a section is
+non-empty, `acs-body-coherence` that frontmatter and body headings agree.
+Neither decides whether a criterion states an observable condition, whether a
+gap is actionable, or whether a spec names what would falsify it. An
+acceptance criterion reading *"the renderer handles edge cases correctly"*
+satisfies every rule the kernel has.
+
+The rule that acceptance criteria need mechanical evidence is real, but it is
+evaluated at the promote — after implementation, when the criterion has
+already shaped the work and the cost of rewriting it is highest. Per
+[`../design/oracles.md`](../design/oracles.md)'s ladder, the defect is created
+at planning time and caught several rungs down.
+
+The TDD phase cadence is not the gap here and should not be confused with it.
+Requiring a failing test before the code is a genuine during-work oracle with
+real independence: a test that fails before the implementation exists cannot
+have been shaped to fit it. What the cadence cannot do is notice that the test
+and the criterion are about different things, because the criterion's intent
+is not machine-readable. The machinery is sound; its input is unjudged.
+
+Two directions, neither costed:
+
+- **Structural.** Require the criterion to state its own falsification
+  condition, and check that structurally. This reshapes an obligation that
+  already exists — an acceptance criterion body is already required non-empty
+  — rather than adding one, which matters given
+  [`../design/growth.md`](../design/growth.md)'s finding about mandates.
+- **Model-judged.** Apply the `wf-vacuity` move to the specification instead
+  of the test. Vacuity asks whether a test can fail; the analogue asks whether
+  a criterion can be satisfied by work that misses its point. If an adversarial
+  agent easily writes a passing test that violates the intent, the criterion is
+  underspecified — and that is learnable at authoring time for the cost of one
+  agent call.
+
+This thread overlaps [`tdd-cycle-subagent-boundaries.md`](tdd-cycle-subagent-boundaries.md)
+and E-0019, both of which circle the same acceptance-criterion question from
+different sides. Three captures on one question is a signal to reconcile them
+before any of the three is promoted, not to open a fourth.
 
 ## Scoped targets
 
