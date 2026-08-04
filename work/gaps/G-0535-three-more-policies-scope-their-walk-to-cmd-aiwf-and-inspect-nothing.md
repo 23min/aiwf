@@ -2,6 +2,7 @@
 id: G-0535
 title: Three more policies scope their walk to cmd/aiwf and inspect nothing
 status: open
+priority: medium
 ---
 ## What's missing
 
