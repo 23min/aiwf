@@ -1,8 +1,10 @@
 ---
 id: G-0470
 title: testpins-gated sources are absent from the lint surface
-status: open
+status: addressed
 priority: low
+addressed_by_commit:
+    - 5e1d58d80
 ---
 ## What's missing
 
