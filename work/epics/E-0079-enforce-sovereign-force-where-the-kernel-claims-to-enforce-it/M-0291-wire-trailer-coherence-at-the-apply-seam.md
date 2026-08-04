@@ -74,14 +74,22 @@ test generates that cross product rather than enumerating the cases someone
 thought of, so coverage is a property of the test's construction and survives a
 tenth rule being added.
 
-The guard at the seam enforces all nine rules, not the force rule alone, because
-the set is what the function checks. That costs nothing in reach: the
-history-walking check already reports eight of the nine at error severity, so a
-trailer set that newly fails at the seam is one the push already rejected and
-only the timing changes. The ninth, `audit-only-with-force`, has no
-history-walking counterpart — the seam is its first enforcement anywhere outside
-the audit-only verb's own call. Whether the check side should also grow it is
-the epic's open question, and this AC is where it gets answered by measurement.
+The guard at the seam enforces the rules predicated on a force trailer, not the
+whole rule set (D-0060). A refusal has to be satisfiable: a verb outside the
+provenance-decoration layer carries no principal and registers no flag that
+could supply one, so enforcing the rest there is a closed door rather than a
+rule. Sovereignty is what the seam exists to enforce, and force is what makes an
+act sovereign.
+
+The domain test covers the whole rule set regardless, since that is what the
+function still computes for its other callers, and a second property pins the
+seam's subset in both directions — refusing too little would let a forced act
+commit, refusing too much closes verbs no invocation can reopen.
+
+The epic's open question, whether the check side should grow an
+`audit-only-with-force` counterpart, is answered here by measurement: no. A flag
+mutex refuses `--force` alongside `--audit-only` as a usage error before a plan
+exists, so neither the seam nor the check side is that rule's first barrier.
 
 Evidence: a generated table over the full domain, each combination carrying its
 expected verdict.
@@ -91,10 +99,10 @@ expected verdict.
 A policy under `internal/policies/` fails when a path can reach a commit without
 the guard.
 
-The existing apply-callers walker already enumerates every dispatcher reaching
-`verb.Apply` — directly or through the `cliutil` finish helpers — and asserts
-each takes the repo lock. This is a second predicate over that same population,
-so it extends that walker rather than standing up a parallel one.
+The predicate is over commit-construction sites, not over dispatchers reaching
+`verb.Apply`. Once the guard sits inside `Apply`, enumerating callers stops
+being the right question — every caller is covered by construction — and what
+remains checkable is that the seam stays singular and carries the guard.
 
 Placing the guard inside `Apply` is what makes the property structural instead
 of policed: the non-dispatcher caller in the cell-coverage fixture is covered
@@ -138,8 +146,10 @@ its named sections.
 ## Surfaces touched
 
 - `internal/verb/apply.go` — the seam.
-- `internal/verb/coherence.go` — the rule set being called.
-- `internal/policies/apply_callers_lock.go` — the walker AC-3 extends.
+- `internal/verb/coherence.go` — the rule set, and the force-predicated subset
+  the seam enforces.
+- `internal/cli/cliutil/apply.go` — the exit class a seam refusal reports.
+- `internal/policies/coherence_guard_chokepoint.go` — AC-3's policy.
 - `docs/adr/` — AC-4's record.
 
 ## Out of scope
@@ -166,13 +176,13 @@ Measured before the change: `promote`, `cancel`, the AC phase transition, and
 its own human-actor check rather than coherence — pinned in the same table so
 that site stays covered whichever guard holds it.
 
-Two facts the implementation turned up. Enforcing all nine rules at the seam
-broke no existing test, so the blast radius the milestone reasoned about is
-zero rather than merely small. And a non-human actor cannot reach
-`force-non-human` first: getting past the allow-rule requires an active scope,
-whose `aiwf-on-behalf-of` trips `force-with-on-behalf-of` earlier in the rule
-order. The test asserts a force rule refused rather than naming one, since
-naming either would pin the order instead of the behavior.
+Two claims recorded here during implementation were wrong, and the wrap review
+caught both. Enforcing all nine rules at the seam broke no existing test, and
+that was read as a measured blast radius of zero — true about the suite, false
+about the behavior, because the suite never exercised a contract verb under a
+non-human actor. And the rule order that keeps `force-non-human` from being
+reported first was recorded as a fact to accommodate; it was a choice nobody had
+made. Both are corrected below.
 
 The readiness pass added a direct in-process test at the seam (commit 27ffa49e8)
 after the diff-scoped coverage gate reported the guard's own return untested.
@@ -242,9 +252,88 @@ surprise: the seam is the first enforcement anywhere of `audit-only-with-force`,
 and no caller should assert on `force-non-human` by name to prove force is
 enforced, since a non-human actor trips an earlier rule first.
 
+### Wrap review — the seam's scope corrected
+
+Seam narrowed to the force-predicated rules; refusal reclassified · commits
+7ccfb535f, ab95ea1a9, 0559eecf4 · full gate green
+
+The independent two-lens review found the seam closed four verbs it was
+required to leave open. `contract bind`, `contract unbind` and both recipe
+verbs never pass through the provenance-decoration layer, so they carry no
+principal and register no flag that could supply one — a guard enforcing the
+whole rule set refused all four with no invocation that could pass. Measured
+against both binaries, base and head, before anything was changed.
+
+The narrowing is D-0060. Two further defects landed with it: a seam refusal
+exited as an internal error with no code in the envelope, and the rule order
+made the refusal name a trailer pair rather than the force the operator
+wielded.
+
+AC-1's evidence clause named a second half that was never built — a passing
+case per force-replace verb under a non-human actor. That absence is why the
+closure went unnoticed, and the test now exists.
+
 ## Decisions made during implementation
 
 - D-0059 — widen the principal rule to require a non-human actor, closing the
   gap between the design doc's required-together statement and a condition that
   only covered the human half.
+- D-0060 — scope the apply-seam guard to the sovereign-force rules, so that
+  every refusal it raises is one some invocation could satisfy.
+
+## Validation
+
+- `make check-fast` — vet across build tags, `golangci-lint` 0 issues, full
+  suite green.
+- `make ci` — race suite, coverage 90.2%, profile-driven gates,
+  `aiwf doctor --self-check` 29/29.
+- `AIWF_COVERAGE_BASE=epic/E-0079-… make coverage-gate` — diff-scoped statement
+  coverage green, firing-fixture meta-gate green.
+- `aiwf check` — 0 errors. The one warning,
+  `provenance-untrailered-scope-undefined`, reports that the provenance audit
+  was skipped for want of an upstream ref; the branch has never been pushed.
+- Behavioral spot-checks against a real binary: a forced act by an agent exits
+  1 carrying `provenance-force-non-human`, with HEAD unmoved; all four contract
+  verbs exit 0 with a landed commit under `--actor ai/claude`.
+
+## Deferrals
+
+- G-0544 — wire the contract verbs through the provenance decoration layer.
+  The hole the seam surfaced and the narrowing left in place: those four verbs
+  commit an actor with no principal, and the push rejects the result. Deferred
+  because supplying a principal is a provenance-policy change that needs its
+  own branch, not one improvised at a wrap.
+- G-0545 — fold this milestone's seam policy into the existing
+  commit-construction seam policy. Both assert the seam is singular; only the
+  guard-presence clause is new. Deferred as a refactor with its own review.
+- G-0546 — the two-shape trailer assembly. The CLI layer completes a plan the
+  verb layer produced, which is why no verb can validate its own provenance and
+  why a refusal speaks in trailer keys. Deferred as epic-sized.
+
+## Reviewer notes
+
+Two review findings were considered and declined, recorded here so the next
+reader meets a decision rather than a blank.
+
+- **The history-walking audit still states the principal rule in its narrower
+  form.** Equivalent in effect for every commit that audit can see, since it
+  returns early for a commit carrying no actor. A textual divergence, not a
+  behavioral one; noted in D-0059's follow-ups rather than filed.
+- **`import --dry-run` previews a trailer set the guard never validates.** A
+  preview is not a commit, and no dry-run-capable verb builds a force trailer.
+  Filing it would be ledger padding.
+
+Two shapes in the test suite are worth knowing about. The refusal table's five
+cases carry two independent failure reasons, not five — the first three share
+one construction site, and `authorize` is held by its own guard; it is a
+per-verb roster proving each verb reaches its site, not five independent
+proofs. And `TestCheckTrailerCoherence_Rules` was reviewed as a partial-
+retirement candidate, since its rule-firing cases are now a subset of the
+generated domain; it was kept for the by-name tie to the design doc's worked
+examples, which the domain does not carry.
+
+The policy at `coherence_guard_chokepoint.go` pins the guard's presence in the
+seam, not its position: a textual scan cannot see ordering. Ordering is pinned
+behaviorally instead, by the unmoved-HEAD and no-write-landed assertions in
+`apply_coherence_test.go`.
 
