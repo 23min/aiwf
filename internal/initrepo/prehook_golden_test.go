@@ -10,65 +10,68 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// M-069 AC-4 — Pre-push hook byte-golden plus template-equals-installed
+// M-0069 AC-4 — hook byte-goldens plus a template-equals-installed
 // cross-check.
 //
-// The pre-push hook is the chokepoint that makes `aiwf check` mandatory
-// before push. CLAUDE.md design decision §3: "aiwf check runs as a
-// pre-push git hook. Validation is the chokepoint. The hook is what
-// makes the framework's guarantees real; without it, skills are just
-// suggestions." Hook content drift — between what `preHookScript`
-// returns and what `ensurePreHook` writes — silently weakens that
-// chokepoint. A regression where, say, the install path quietly
-// dropped the chain prelude (G45 chaining), or the brownfield guard,
-// or the exec line, would not be caught by any current test:
-//
-//   - TestPreHookScript_HasBrownfieldGuard checks substrings, not
-//     byte content;
-//   - TestInit_MigratesAlienPreHook asserts the marker is present
-//     after migration, not the body shape;
-//   - the existing initrepo_test.go assertions are similar
-//     "contains" checks that pass even with significant drift.
+// Every hook here is installed into a consumer's repository, so each
+// byte is a shipped byte and drift in any of them is invisible to a
+// substring assertion. The pre-push hook additionally carries the
+// chokepoint that makes `aiwf check` mandatory before push (CLAUDE.md
+// design decision §3), so drift between what `preHookScript` returns
+// and what `ensurePreHook` writes weakens a stated guarantee rather
+// than merely changing text.
 //
 // Substring assertions are not structural assertions (CLAUDE.md
-// `Substring assertions are not structural assertions`). The hook is
-// a load-bearing artifact whose every line carries semantic weight
-// (chain prelude, brownfield guard, exec) — pinning it byte-for-byte
-// is the right granularity.
+// `Substring assertions are not structural assertions`): a `contains`
+// check passes through a dropped chain prelude, brownfield guard, or
+// exec line. Byte-for-byte is the right granularity for an artifact
+// whose every line carries semantic weight.
 //
 // This file holds two tests:
 //
-//  1. TestPreHookScript_ByteGolden — renders `preHookScript` with a
-//     sentinel binary path (/AIWF_BIN) and diffs the output against
-//     `testdata/pre-push.golden`. A change to the template body, the
-//     marker, the chain prelude, or the brownfield guard requires an
-//     intentional golden update — drift surfaces as a failing diff.
+//  1. TestHookScripts_ByteGolden — renders each hook template and
+//     diffs it against `testdata/<hook>.golden`. Any change to a
+//     template body, marker, chain prelude, or guard requires an
+//     intentional golden update; drift surfaces as a failing diff.
 //
 //  2. TestPreHookScript_TemplateEqualsInstalled — runs `Init` in a
 //     fresh tempdir, reads the installed `.git/hooks/pre-push` bytes,
-//     re-renders `preHookScript()` with the same path init
-//     used, and asserts byte-equality. This catches a regression
-//     where the install path took a different code branch than the
-//     template function (a parallel source of truth — the failure
-//     mode CLAUDE.md `Test the seam, not just the layer` warns
-//     about).
+//     re-renders `preHookScript()`, and asserts byte-equality. This
+//     catches a regression where the install path took a different
+//     code branch than the template function (a parallel source of
+//     truth — the failure mode CLAUDE.md `Test the seam, not just the
+//     layer` warns about).
 
-// TestPreHookScript_ByteGolden pins the rendered template against
-// the golden file. A failure means the template body changed; either
-// the change is intentional (regenerate the golden by inspecting the
-// new template and updating testdata/pre-push.golden) or accidental
-// (revert the change).
-func TestPreHookScript_ByteGolden(t *testing.T) {
+// TestHookScripts_ByteGolden pins every rendered hook template against
+// its golden file. A failure means that template's body changed; either
+// the change is intentional (regenerate the golden by inspecting the new
+// template and updating testdata/<hook>.golden) or accidental (revert
+// the change).
+//
+// All four hooks are covered because all four are installed into a
+// consumer's repository, where an unreviewed byte is a shipped byte.
+func TestHookScripts_ByteGolden(t *testing.T) {
 	t.Parallel()
-	got := preHookScript()
-
-	want, err := os.ReadFile("testdata/pre-push.golden")
-	if err != nil {
-		t.Fatalf("read golden: %v", err)
-	}
-
-	if diff := cmp.Diff(string(want), got); diff != "" {
-		t.Errorf("preHookScript output differs from testdata/pre-push.golden (-want +got):\n%s", diff)
+	for _, tc := range []struct {
+		hook   string
+		render func() string
+	}{
+		{"pre-push", preHookScript},
+		{"pre-commit", preCommitHookScript},
+		{"post-commit", postCommitHookScript},
+		{"commit-msg", commitMsgHookScript},
+	} {
+		t.Run(tc.hook, func(t *testing.T) {
+			t.Parallel()
+			golden := filepath.Join("testdata", tc.hook+".golden")
+			want, err := os.ReadFile(golden)
+			if err != nil {
+				t.Fatalf("read golden: %v", err)
+			}
+			if diff := cmp.Diff(string(want), tc.render()); diff != "" {
+				t.Errorf("rendered %s hook differs from %s (-want +got):\n%s", tc.hook, golden, diff)
+			}
+		})
 	}
 }
 

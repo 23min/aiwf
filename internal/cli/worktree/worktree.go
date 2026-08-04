@@ -165,7 +165,7 @@ func Run(branch, path, base, root string, printPath bool, out cliutil.OutputForm
 		for _, s := range steps {
 			printStep(s)
 		}
-		cliutil.Errorln("aiwf worktree add: hook chain collision (G45) in the new worktree; " +
+		cliutil.Errorln("aiwf worktree add: hook chain collision in the new worktree; " +
 			"resolve manually (merge the existing hook into its `.local` sibling, delete the original) " +
 			"and re-run `aiwf update` there.")
 		return cliutil.ExitFindings

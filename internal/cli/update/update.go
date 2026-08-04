@@ -152,7 +152,7 @@ func Run(root string, statusline bool, scope string, wireSettings, allowUntagged
 
 	if conflict {
 		cliutil.Println()
-		cliutil.Println("aiwf update: hook chain collision (G45).")
+		cliutil.Println("aiwf update: hook chain collision.")
 		cliutil.Println("A non-aiwf hook would auto-migrate to its `.local` sibling, but a `.local`")
 		cliutil.Println("file already exists at .git/hooks/pre-push.local or .git/hooks/pre-commit.local.")
 		cliutil.Println("Resolve manually: merge the existing hook's content into the `.local` file,")

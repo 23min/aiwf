@@ -130,7 +130,7 @@ func TestRun_InitSkipHook(t *testing.T) {
 	}
 }
 
-// TestRun_InitMigratesAlienHook (G45): when a non-aiwf pre-push hook
+// TestRun_InitMigratesAlienHook (G-0045): when a non-aiwf pre-push hook
 // is in place, init auto-migrates it to pre-push.local, installs
 // aiwf's chain-aware hook, and exits cliutil.ExitOK. The migrated content
 // is preserved byte-for-byte.
@@ -146,12 +146,12 @@ func TestRun_InitMigratesAlienHook(t *testing.T) {
 	}
 
 	captured := testutil.CaptureStdout(t, func() {
-		// No --skip-hook here: this test exercises the G45 hook
+		// No --skip-hook here: this test exercises the G-0045 hook
 		// migration path and needs init to actually install (and
 		// migrate) the hook. The test does not trigger any commits,
 		// so the test binary won't be invoked as a hook.
 		if rc := cli.Execute([]string{"init", "--root", root, "--actor", "human/test"}); rc != cliutil.ExitOK {
-			t.Errorf("got %d, want %d (G45 auto-migrates, no conflict)", rc, cliutil.ExitOK)
+			t.Errorf("got %d, want %d (G-0045 auto-migrates, no conflict)", rc, cliutil.ExitOK)
 		}
 	})
 	out := string(captured)

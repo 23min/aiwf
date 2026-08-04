@@ -44,7 +44,7 @@ help:
 	@echo "  mutate-diff - advisory diff-scoped mutation test: gremlins on internal/ packages changed vs origin/main (G-0267)"
 	@echo "  selfcheck - build and run 'aiwf doctor --self-check' end-to-end"
 	@echo "  ci        - the pre-push/CI gate (vet + lint + test-cov + coverage-gate-only + selfcheck); run once before pushing, not per commit"
-	@echo "  install-hooks - point git at scripts/git-hooks/ via core.hooksPath (one-shot, idempotent)"
+	@echo "  install-hooks - symlink scripts/git-hooks/ into the .local hook chain (one-shot, idempotent)"
 	@echo "  e2e-install - one-shot: install Playwright npm deps + Chromium browser"
 	@echo "  e2e       - run the Playwright HTML-render browser tests (opt-in, requires e2e-install)"
 	@echo "  stress    - run the on-demand correctness stress harness's whole scenario catalog (opt-in, dev-only; override STRESS_REPEAT=N)"
@@ -269,7 +269,7 @@ clean:
 	rm -rf bin coverage.out
 
 # install-hooks symlinks the tracked kernel hooks into their
-# .git/hooks/<name>.local chain targets — the G45 seam invoked by
+# .git/hooks/<name>.local chain targets — the G-0045 seam invoked by
 # aiwf's chain-aware hooks. Idempotent: ln -sfn overwrites any
 # prior symlink and updates to scripts/git-hooks/* propagate
 # immediately (the symlink resolves at hook-fire time).
@@ -283,11 +283,13 @@ clean:
 # are materialized by `aiwf init`/`aiwf update`, which write the
 # chain-aware hooks at .git/hooks/<name>.
 #
-# Pre-G38 this target set `core.hooksPath = scripts/git-hooks`. That
-# overrode git's default hooks dir, which collided with aiwf's own
-# hook installer — see G48. The kernel now treats itself like any
-# consumer: aiwf owns .git/hooks/<name>, kernel-specific logic lives
-# at .git/hooks/<name>.local, both compose via G45's chain.
+# The kernel treats itself like any consumer: aiwf owns
+# .git/hooks/<name>, kernel-specific logic lives at
+# .git/hooks/<name>.local, and the two compose via G-0045's chain.
+# The destination is whatever `git rev-parse --git-path hooks`
+# resolves, so a clone with `core.hooksPath` set installs there
+# instead — the same directory `aiwf init` honors (G-0048), which is
+# what keeps the two halves of the chain in one place.
 install-hooks:
 	@HOOKS_DIR=$$(git rev-parse --git-path hooks); \
 	mkdir -p "$$HOOKS_DIR"; \

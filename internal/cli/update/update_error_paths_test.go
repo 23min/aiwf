@@ -15,11 +15,11 @@ import (
 // signature carries no actor/principal params at all — it never
 // resolves an actor, so M-0252's BrokenGitIdentity fixture doesn't
 // apply to this verb. The one remaining flagged branch is update.go's
-// own hook-chain-collision guard (G45, `if conflict`), reached past a
+// own hook-chain-collision guard (G-0045, `if conflict`), reached past a
 // successful root/lock/config sequence, which gets a real test below.
 
 // TestRun_HookChainCollisionReturnsFindings covers the `if conflict`
-// branch (G45): a non-aiwf pre-push hook AND a pre-existing
+// branch (G-0045): a non-aiwf pre-push hook AND a pre-existing
 // pre-push.local sibling makes RefreshArtifacts refuse to migrate the
 // alien hook (it would clobber the .local file), and Run must surface
 // that as cliutil.ExitFindings rather than silently proceeding.

@@ -1,0 +1,32 @@
+#!/bin/sh
+# aiwf:commit-msg
+# Installed by aiwf init/update. Chains to the commit-msg.local
+# sibling first, so consumer-written hooks compose rather than
+# collide.
+#
+# Refuses commit messages whose aiwf-verb: trailer carries a value
+# outside the closed sets the kernel knows about: the running
+# binary's Cobra verb tree (e.g. add, promote, edit-body) unioned
+# with the ritualVerbs allowlist (e.g. wrap-milestone, wrap-epic
+# — stamped by aiwfx-wrap-* skills). The trailer-verb-unknown rule
+# at push time is the post-hoc safety net.
+set -e
+repo_root="$(git rev-parse --show-toplevel)"
+[ -f "$repo_root/aiwf.yaml" ] || exit 0
+hook_dir="$(dirname "$0")"
+local_hook="$hook_dir/commit-msg.local"
+if [ -e "$local_hook" ]; then
+    if [ ! -x "$local_hook" ]; then
+        echo "aiwf commit-msg: $local_hook exists but is not executable — chmod +x to enable, or remove the file" >&2
+        exit 1
+    fi
+    "$local_hook" "$@" || exit $?
+fi
+
+AIWF="$(command -v aiwf 2>/dev/null)"
+if [ -z "$AIWF" ]; then
+    echo "aiwf commit-msg: aiwf binary not found on PATH" >&2
+    exit 1
+fi
+
+exec "$AIWF" check --commit-msg "$1"

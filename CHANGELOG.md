@@ -16,6 +16,17 @@ section in this file.
 
 ## [Unreleased]
 
+### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
+
+The four hook scripts `aiwf init` writes into your repo — `pre-push`,
+`pre-commit`, `commit-msg`, `post-commit` — carried aiwf-internal gap ids in
+their shell comments, and the hook-chain-collision message printed by
+`aiwf init`, `aiwf update`, and `aiwf worktree add` named one too. Those ids
+identify entities in aiwf's own planning tree; they resolve to nothing in your
+repo and go stale as the entities behind them change status. The comments now
+state what the hook does without them. Running `aiwf update` rewrites the
+installed hooks with the new text; behavior is unchanged.
+
 ### Fixed — G-0535: the repo-lock policy examines dispatchers again
 
 No user-visible behavior change. `PolicyApplyCallersAcquireLock` asserts that a
