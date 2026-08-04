@@ -12,55 +12,60 @@ addressed_by_commit:
 An entity carries its id twice: in the on-disk filename
 (`work/gaps/G-0100-paint.md`) and in frontmatter (`id: G-0100`).
 
-`entity-id-narrow-width` reads only the filename. A narrow frontmatter
-id under a canonical filename produces no finding of any code — the
-entity loads, `aiwf list` shows it, and `aiwf check` exits 0.
+`entity-id-narrow-width` tested only the filename, so a narrow
+frontmatter id under a canonical filename produced no finding of any
+code — the entity loaded, `aiwf list` showed it, and `aiwf check`
+exited 0. Measured: a gap file at `work/gaps/G-0200-reverse.md`
+carrying `id: G-200` yielded zero findings.
 
-The rule that compares the two sides does not close the gap either.
-`idPathConsistent` canonicalizes both before comparing, so `G-200` and
-`G-0200` compare equal and it reports no mismatch. The width-only
-divergence is invisible by construction on both paths.
+No other rule closed it. `idPathConsistent` canonicalizes both sides
+before comparing, so `G-200` and `G-0200` compare equal and it reports
+no mismatch; `frontmatterShape` validates against the kind's grammar
+floor, which admits narrow ids permanently. A width-only divergence
+between the two axes was invisible by construction on every path.
 
-Measured: a gap file at `work/gaps/G-0200-reverse.md` carrying
-`id: G-200` yields zero findings.
+## Resolution
 
-## Why it is not simply a bug to fix
+`entity-id-narrow-width` reads both axes and judges each independently.
+It is the only rule that tests an entity's own id width, so whatever it
+declines to read goes unreported by everything. `idPathConsistent` keeps
+its width-blindness unchanged — that tolerance exists so a tree carrying
+both widths for one entity draws no spurious mismatch, and it stays
+correct once width is owned elsewhere.
 
-Reading both axes forces a decision the current rules avoid.
+Three consequences settle the cases a two-axis rule would otherwise
+leave ambiguous:
 
-When the two spellings disagree in width, it is not obvious whether that
-is one finding or two, nor which spelling the message should quote. The
-filename axis already answers this — it quotes the path-derived id,
-because the path is what a reader greps for.
+- **One finding per narrow entity, not per narrow axis.** One entity is
+  one defect with one fix.
+- **The message quotes only spellings that are actually narrow** — the
+  filename id, the frontmatter id, or both when they are narrow and
+  disagree. Printing a canonical id and calling it narrow would
+  contradict itself at the one seam an operator reads to locate the
+  file. When both axes are narrow at the same spelling, no axis is
+  named, since naming one implies the other is clean.
+- **An `id:` below the kind's grammar floor is malformed, not narrow.**
+  That case routes to `frontmatterShape`, which names the expected
+  format, rather than stacking a second finding on top. It mirrors the
+  filename axis, where `entity.IDFromPath` rejects a sub-floor path
+  before the width test sees it.
 
-More importantly, `idPathConsistent`'s width-blindness is deliberate: it
-exists so that a tree carrying both widths for the same entity does not
-draw a spurious mismatch. Widening the width rule without revisiting
-that decision produces either double-reporting on one file or two rules
-disagreeing about whether the same file is well-formed.
-
-## Direction
-
-Two coherent resolutions, and the choice is the work:
-
-- **Read both axes in `entity-id-narrow-width`**, reporting the narrow
-  spelling and leaving `idPathConsistent` alone. Requires deciding the
-  disagreement case explicitly.
-- **Declare frontmatter width out of scope for this rule** and give the
-  frontmatter axis to whichever rule owns frontmatter shape, stating in
-  both rules' documentation that the split is intentional.
-
-Either way the outcome is a fixture whose `id:` is narrower than its
-path, asserting whichever behavior is chosen.
+The two axes never gate each other. The loader admits filenames
+`IDFromPath` rejects, and a rejected filename yields the empty id, which
+is not narrow — so the path axis drops out on its own and a narrow `id:`
+beneath it is still reported.
 
 ## Not this gap
 
-The filename axis is correct and pinned. So is the message it quotes:
-the rule tests the filename's width, so quoting frontmatter would print
-a canonical id and call it narrow.
+The filename axis is correct and pinned, and its severity is unchanged:
+error, per ADR-0008, for any narrow id in the active tree. Archive
+entries stay excluded on both axes, permanently — no verb widens an id
+in place, so a repo that archived entities before canonical width holds
+narrow ids under `<kind>/archive/` forever, and the loader's narrow read
+tolerance is what keeps live cross-references into them resolving.
 
 ## Provenance
 
 Found 2026-08-03 by two independent reviewers during M-0290's wrap
-review, which retired the width-migration verb. The condition predates
+review, which retired the width-migration verb. The condition predated
 that milestone — the rule read the filename before it and after.
