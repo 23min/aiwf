@@ -35,7 +35,7 @@ line saying what it is.
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
 
-## Next, in order (2026-08-03)
+## Next, in order (2026-08-04)
 
 These clusters cover the *defect* surface; the low-priority feature and
 enhancement gaps fit none and are not listed. Each gap sits in exactly one
@@ -47,9 +47,11 @@ A gate that reports green while proving nothing is worse than an absent one:
 every commit landing before the fix gets a false pass, and a reader auditing
 coverage finds a guard and stops looking.
 
-- **G-0532** — the width check reads only the filename, so a narrow `id:` under a
-  canonical filename is reported by nothing at all
 - **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
+- **G-0543** — the golangci firing harness asserts its isolation against the
+  command constructor, not against the harness that must use it; reverting the
+  call site leaves every test green. The instance form of this cluster's thesis:
+  the gate built to catch a dormant rule has claims nothing checks
 - **G-0516** — the comment-attrition scan is diff-scoped, so a stale comment
   outside the changed hunk is never examined. Reframe before ranking: the
   whole-tree sibling's under-inclusiveness is a calibrated precision trade
@@ -65,7 +67,7 @@ initiative context in `quality-signal-and-cadence.md` Q2 and Q6.
 
 - **G-0533** — `dupl` is off across the test corpus, the larger and
   faster-growing half. Cheap, and the only member with a known fix: diff-scope
-  it. Sequenced after G-0462, per this list's own repair-the-instrument-first rule
+  it. Unblocked — G-0462 repaired the instrument this was waiting on
 - **G-0110** — mutation testing's diff filter excludes new files, which is the
   code most likely to carry an untested mutant. Blocks the idea below it
 - **G-0253** — the coverage gate is statement-scoped, so a defensive arm that
@@ -135,10 +137,9 @@ silently goes stale, or it cannot be enforced at all.
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders
 - **G-0530** — milestone specs mandate four sections that duplicate structured data
-- **A shipped skill's severity claims are not tied to the code's constants** — the
-  `aiwf-check` skill documented `manual-edit` as error severity where the rule
-  emits a warning, so an operator reading it misjudges whether a finding blocks a
-  push. Corrected by hand; nothing stops the next drift *(unfiled)*
+- **G-0542** — a shipped skill's severity claims are not tied to the code's
+  constants, so an operator reading a skill misjudges whether a finding blocks a
+  push. In flight on a patch worktree
 
 ### 7. Error contract *(epic, parallel any time)*
 
@@ -156,10 +157,10 @@ with no decision outstanding first.
 ### 8. E-0077 — duplication and the instrument that measures it *(epic)*
 
 Collapse convergent duplication and put the acknowledged-duplication inventory
-back under an owner. Order is forced: the instrument is repaired first.
+back under an owner. The instrument is repaired — G-0462 closed the two ways the
+gate went red for reasons unrelated to the change — so the members below are
+free to run in any order.
 
-- **G-0462** *(high)* — `ETXTBSY` and lint-cache contention make the gate red for
-  reasons unrelated to the change. Fixed first — it is what measures the rest
 - **G-0472** — four clone families each duplicate one job across two layers
 - **G-0473** — the `dupl` exclusion list is unowned; two entries are stale
 - **G-0508** — three near-copies of the `internal/verb` AST scan drift apart
