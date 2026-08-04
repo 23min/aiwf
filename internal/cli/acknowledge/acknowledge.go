@@ -16,24 +16,23 @@
 // all keep validating without a back-compat shim. The mistag sibling
 // (`aiwf acknowledge mistag`) lands alongside in M-0181/AC-6.
 //
-// The parent is non-Runnable — `aiwf acknowledge` with no subcommand prints
-// help — mirroring the `aiwf contract` topical group.
+// The parent is a verb group, mirroring `aiwf contract`: the subcommands carry
+// the behavior.
 package acknowledge
 
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
-// NewCmd builds the `aiwf acknowledge` parent command. Non-Runnable; the
-// subcommands carry the behavior.
+// NewCmd builds the `aiwf acknowledge` parent command — a verb group over
+// illegal and mistag.
 func NewCmd(correlationID string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "acknowledge",
-		Short:         "Sovereign acknowledgement of a flagged commit or entity",
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-	}
+	cmd := cliutil.MarkVerbGroup(&cobra.Command{
+		Use:   "acknowledge",
+		Short: "Sovereign acknowledgement of a flagged commit or entity",
+	})
 	cmd.AddCommand(newIllegalCmd(correlationID))
 	cmd.AddCommand(newMistagCmd(correlationID))
 	return cmd

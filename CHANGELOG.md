@@ -16,6 +16,16 @@ section in this file.
 
 ## [Unreleased]
 
+### Fixed — verb groups report a usage error instead of success
+
+`aiwf acknowledge`, `aiwf contract`, `aiwf contract recipe`, `aiwf milestone`,
+and `aiwf worktree` now exit `2` when handed a subverb they do not have, and
+when handed no subverb at all. They still print the group's help either way, so
+the route to the available subverbs is unchanged; only the exit code moves. This
+matches what `aiwf`, `aiwf add`, and `aiwf render` already report for the same
+incomplete invocation, and means a script or agent branching on the exit code no
+longer reads a typo as a completed operation.
+
 ## [0.32.0] — 2026-08-03
 
 ### Added — E-0078: two checks for id shapes in repo-facing documentation

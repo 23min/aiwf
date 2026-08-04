@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // M-069 AC-7 — Help-quality drift asserts Example present and no
@@ -43,12 +44,11 @@ import (
 var migrationProsePattern = regexp.MustCompile(`(?i)\bmigrat(e|ed|ing|ion)\b`)
 
 // helpFieldOptOuts names commands intentionally without an Example
-// block. Non-Runnable parents dispatch to children; Cobra-generated
-// commands (completion, help) belong to the framework.
+// block. Cobra-generated commands (completion, help) belong to the
+// framework. Verb groups need no entry — cliutil.IsVerbGroup identifies
+// them structurally below.
 var helpFieldOptOuts = map[string]string{
 	"aiwf":                       "root command; no single-verb Example to ship",
-	"aiwf contract":              "non-Runnable parent; dispatches to children",
-	"aiwf contract recipe":       "non-Runnable parent; dispatches to children",
 	"aiwf contract recipes":      "trivial read-only listing; no Example needed",
 	"aiwf completion":            "Cobra-generated; framework owns the help text",
 	"aiwf completion bash":       "Cobra-generated; framework owns the help text",
@@ -57,8 +57,6 @@ var helpFieldOptOuts = map[string]string{
 	"aiwf completion powershell": "Cobra-generated; framework owns the help text",
 	"aiwf help":                  "Cobra-default help command; framework owns the help text",
 	"aiwf render help":           "hidden help alias; no Example needed",
-	"aiwf render":                "non-Runnable parent in subverb mode (subcommand or --format=html); the html branch has its own Example via cmd.Long",
-	"aiwf add":                   "non-Runnable parent; each kind subcommand carries its own Example",
 }
 
 // TestPolicy_ExamplePresent (M-069 AC-7) walks every Runnable command
@@ -75,12 +73,13 @@ func TestPolicy_ExamplePresent(t *testing.T) {
 		if _, ok := helpFieldOptOuts[path]; ok {
 			return
 		}
-		// Non-Runnable parents (no RunE, has subcommands) opt out by
-		// definition — they dispatch to children. The opt-out map
-		// lists the handful of these explicitly so a regression that
-		// turns a parent into a Runnable verb without an Example
-		// surfaces here.
-		if !cmd.Runnable() {
+		// Parents that dispatch to children opt out by definition —
+		// there is no operation of their own to exemplify. That covers
+		// both a non-Runnable parent and a verb group, which is Runnable
+		// only so its Args constraint can reject an unrecognized subverb
+		// (cliutil.MarkVerbGroup). A regression that turns a parent into
+		// a real verb without an Example still surfaces here.
+		if !cmd.Runnable() || cliutil.IsVerbGroup(cmd) {
 			return
 		}
 		if strings.TrimSpace(cmd.Example) == "" {

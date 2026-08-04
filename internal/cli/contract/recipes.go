@@ -75,16 +75,13 @@ func runRecipes(root string) int {
 	return cliutil.ExitOK
 }
 
-// newRecipeCmd builds `aiwf contract recipe`. Three children: show,
-// install, remove. The parent itself is non-Runnable.
+// newRecipeCmd builds `aiwf contract recipe` — a verb group over three
+// children: show, install, remove.
 func newRecipeCmd(correlationID string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "recipe",
-		Short:         "Manage validators (show / install / remove a recipe)",
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-	}
+	cmd := cliutil.MarkVerbGroup(&cobra.Command{
+		Use:   "recipe",
+		Short: "Manage validators (show / install / remove a recipe)",
+	})
 	cmd.AddCommand(newRecipeShowCmd())
 	cmd.AddCommand(newRecipeInstallCmd(correlationID))
 	cmd.AddCommand(newRecipeRemoveCmd(correlationID))

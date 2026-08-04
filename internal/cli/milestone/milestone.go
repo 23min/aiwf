@@ -1,7 +1,7 @@
 // Package milestone implements the `aiwf milestone` verb namespace.
 // It carries two children today — depends-on (sets or clears a
 // milestone's depends_on list) and tdd (sets a milestone's TDD policy
-// after creation). The parent itself is non-Runnable (the kind-scoped
+// after creation). The parent itself is a verb group (the kind-scoped
 // namespace is forward-compatible with G-073's eventual cross-kind
 // generalisation).
 package milestone
@@ -18,16 +18,13 @@ import (
 	"github.com/23min/aiwf/internal/verb"
 )
 
-// NewCmd builds the `aiwf milestone` parent command. One child today
-// (depends-on). The parent itself is non-Runnable.
+// NewCmd builds the `aiwf milestone` parent command — a verb group over
+// depends-on and tdd.
 func NewCmd(correlationID string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "milestone",
-		Short:         "Milestone-scoped verbs",
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-	}
+	cmd := cliutil.MarkVerbGroup(&cobra.Command{
+		Use:   "milestone",
+		Short: "Milestone-scoped verbs",
+	})
 	cmd.AddCommand(newDependsOnCmd(correlationID))
 	cmd.AddCommand(newTDDCmd(correlationID))
 	return cmd

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/23min/aiwf/internal/cli"
+	"github.com/23min/aiwf/internal/cli/cliutil"
 )
 
 // TestPolicy_FlagsHaveCompletion is the drift-prevention chokepoint
@@ -167,20 +168,20 @@ func TestPolicy_PositionalsHaveCompletion(t *testing.T) {
 		"aiwf completion powershell": "Cobra completion script generator; out of E-14 scope",
 		"aiwf help":                  "Cobra-default help command; positional is the verb name (auto-completed)",
 
-		// `aiwf contract` and `aiwf contract recipe` are non-Runnable
-		// parent commands — they dispatch to children, args don't apply.
-		"aiwf acknowledge":      "non-Runnable parent; dispatches to children (illegal, mistag)",
-		"aiwf contract":         "non-Runnable parent; dispatches to children",
-		"aiwf contract recipe":  "non-Runnable parent; dispatches to children",
+		// Verb groups (acknowledge, contract, contract recipe, milestone,
+		// worktree) need no entry — cliutil.IsVerbGroup identifies them
+		// structurally below.
 		"aiwf contract verify":  "no positional args",
 		"aiwf contract recipes": "no positional args",
 	}
 
 	var failures []string
 	walkCommands(root, func(cmd *cobra.Command) {
-		// Skip if this command has subcommands and no Args validator
-		// — Cobra dispatches to children, args don't apply.
-		if !cmd.Runnable() && cmd.HasSubCommands() {
+		// Skip parents that dispatch to children — args don't apply.
+		// A verb group is Runnable only so its Args constraint can
+		// reject an unrecognized subverb (cliutil.MarkVerbGroup); it
+		// takes no positional of its own.
+		if (!cmd.Runnable() && cmd.HasSubCommands()) || cliutil.IsVerbGroup(cmd) {
 			return
 		}
 		if _, ok := optOutPositional[cmd.CommandPath()]; ok {
