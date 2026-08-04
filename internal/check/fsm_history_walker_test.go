@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/entity"
+	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/tree"
 )
 
@@ -79,6 +81,140 @@ func TestBatchedWalker_RenameChainTracking(t *testing.T) {
 			len(got), got)
 	}
 }
+
+// TestBatchedWalker_MissingNonZeroBlob_EmitsWalkError pins G-0327: a
+// real blob id the local object store cannot produce — a damaged store,
+// or a partial clone that can no longer reach the remote it would fetch
+// the blob from — surfaces as a history-walk-error finding rather than
+// a silent skip that hides whatever transition the pair carried.
+//
+// Injected through the blobReader seam because a repo in that state is
+// not constructible by the fixture's ordinary git commands.
+//
+// The walker reads two blobs per pair and reports each side under its
+// own label, so the subtests fail the older and the newer blob
+// separately to reach both. Failing the older one is the case that
+// matters most: the commit-side read succeeds, so the walk has a status
+// in hand and only the comparison is lost — precisely the pair a silent
+// skip would drop without a trace.
+func TestBatchedWalker_MissingNonZeroBlob_EmitsWalkError(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		// missingIn selects which commit's blob the reader cannot
+		// produce, by a substring unique to that blob's content.
+		missingIn string
+		wantSide  string
+	}{
+		{name: "newer blob unreadable", missingIn: "status: done", wantSide: "commit"},
+		{name: "older blob unreadable", missingIn: "status: proposed", wantSide: "parent"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			r := newRepoFixture(t)
+			r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add E-0001")
+			r.commitEntity("E-0001", entity.KindEpic, entity.StatusDone, "skip-ahead illegal")
+
+			delegate, err := gitops.NewBlobReader(context.Background(), r.root)
+			if err != nil {
+				t.Fatalf("NewBlobReader: %v", err)
+			}
+			defer delegate.Close()
+			// ErrBlobMissing for a blob that genuinely exists in this repo
+			// — the answer a store that cannot produce it gives for a
+			// non-zero id `git log --raw` still names.
+			fake := &fakeBlobReader{
+				delegate:           delegate,
+				errOnContentSubstr: c.missingIn,
+				readErr:            gitops.ErrBlobMissing,
+			}
+
+			got := fsmHistoryConsistentWithDeps(context.Background(), r.root, r.tree(), nil, mustHead(t, r.root), fake)
+
+			var sawSide bool
+			for _, f := range got {
+				if f.Code != CodeFSMHistoryConsistent ||
+					f.Subcode != "history-walk-error" ||
+					f.EntityID != "E-0001" {
+					continue
+				}
+				if f.Severity != SeverityError {
+					t.Errorf("history-walk-error severity = %q, want error", f.Severity)
+				}
+				if strings.Contains(f.Message, "reading "+c.wantSide+" status") {
+					sawSide = true
+				}
+			}
+			if !sawSide {
+				t.Errorf("expected a %s-side history-walk-error for E-0001 (non-zero blob the store cannot produce); got %d finding(s): %+v",
+					c.wantSide, len(got), got)
+			}
+		})
+	}
+}
+
+// TestBatchedWalker_AllZeroBlob_NeverReachesTheReader pins the other
+// half of G-0327: the absent side of an add or a delete keeps its
+// skip. Its all-zero id short-circuits ahead of the read, so hardening
+// the missing-blob case cannot turn an ordinary add or delete into a
+// finding.
+func TestBatchedWalker_AllZeroBlob_NeverReachesTheReader(t *testing.T) {
+	t.Parallel()
+	r := newRepoFixture(t)
+	relPath := canonicalEntityPath("E-0001", entity.KindEpic)
+	r.commitEntity("E-0001", entity.KindEpic, entity.StatusProposed, "add E-0001") // all-zero PreSHA
+	r.run("git", "rm", "-q", relPath)
+	r.gitCommit("delete E-0001") // all-zero PostSHA
+
+	delegate, err := gitops.NewBlobReader(context.Background(), r.root)
+	if err != nil {
+		t.Fatalf("NewBlobReader: %v", err)
+	}
+	defer delegate.Close()
+	rec := &recordingBlobReader{delegate: delegate}
+
+	// The file is gone from the working tree, so build the tree by hand
+	// rather than through the git-ls-files helper.
+	tr := &tree.Tree{
+		Root: r.root,
+		Entities: []*entity.Entity{
+			{ID: "E-0001", Kind: entity.KindEpic, Path: relPath},
+		},
+	}
+
+	got := fsmHistoryConsistentWithDeps(context.Background(), r.root, tr, nil, mustHead(t, r.root), rec)
+
+	if rec.sawAllZero {
+		t.Error("all-zero blob id reached ReadObject; the absent side of an add/delete must short-circuit before the read")
+	}
+	for _, f := range got {
+		if f.Code == CodeFSMHistoryConsistent && f.Subcode == "history-walk-error" {
+			t.Errorf("unexpected history-walk-error for an ordinary add + delete: %+v", f)
+		}
+	}
+}
+
+// recordingBlobReader delegates every read and records whether an
+// all-zero blob id ever reached ReadObject.
+type recordingBlobReader struct {
+	delegate   *gitops.BlobReader
+	sawAllZero bool
+}
+
+func (rb *recordingBlobReader) Read(commit, path string) ([]byte, error) {
+	return rb.delegate.Read(commit, path)
+}
+
+func (rb *recordingBlobReader) ReadObject(sha string) ([]byte, error) {
+	if gitops.BlobAllZero(sha) {
+		rb.sawAllZero = true
+	}
+	return rb.delegate.ReadObject(sha)
+}
+
+// Close is owned by the test, which holds the delegate.
+func (rb *recordingBlobReader) Close() error { return nil }
 
 // TestBatchedWalker_OctopusMerge pins the walker's behavior on a merge
 // commit with three parents. Before G-0372 Fix 1, `git log -m` fanned

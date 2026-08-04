@@ -341,6 +341,95 @@ func TestBulkRevwalk_CallbackErrorHalts(t *testing.T) {
 	}
 }
 
+// TestBlobAllZero covers both object formats git can stamp an id in.
+// A repository created with `--object-format=sha256` writes the absent
+// side of an add or a delete as 64 zeros, so a predicate that knows
+// only the 40-zero SHA-1 spelling reads every one of them as a real
+// blob id and sends it to be looked up.
+//
+// The two widths are the enumerated set: `git init --object-format`
+// takes sha1 or sha256 and nothing else.
+func TestBlobAllZero(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		id   string
+		want bool
+	}{
+		{"empty string", "", true},
+		{"sha1 all-zero", strings.Repeat("0", 40), true},
+		{"sha256 all-zero", strings.Repeat("0", 64), true},
+		{"real sha1 id", "bb41accdf2666775279fec9994f070720b2e22e3", false},
+		{"real sha256 id", "96c18f0297e38d01f4b2dacddea4259aea6b2961eb0822bd2c0c3f6029030045", false},
+		{"sha1 id ending in zeros", "bb41accdf2666775279fec9994f0707200000000", false},
+		{"a lone zero digit", "0", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if got := gitops.BlobAllZero(c.id); got != c.want {
+				t.Errorf("BlobAllZero(%q) = %v, want %v", c.id, got, c.want)
+			}
+		})
+	}
+}
+
+// TestBulkRevwalk_AbsentSideIsAllZero_BothObjectFormats derives the
+// two all-zero spellings from git itself rather than from the same
+// constants the predicate under test uses, so a repository whose
+// object format the predicate does not know fails here rather than
+// silently reporting an absent blob as a real one.
+func TestBulkRevwalk_AbsentSideIsAllZero_BothObjectFormats(t *testing.T) {
+	t.Parallel()
+	for _, format := range []string{"sha1", "sha256"} {
+		t.Run(format, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			root := t.TempDir()
+			mustGit := func(args ...string) {
+				t.Helper()
+				if err := runGit(ctx, root, args...); err != nil {
+					t.Fatalf("git %v: %v", args, err)
+				}
+			}
+			mustGit("init", "-q", "-b", "main", "--object-format="+format, ".")
+			mustGit("config", "user.email", "test@example.com")
+			mustGit("config", "user.name", "aiwf-test")
+			if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("hello\n"), 0o644); err != nil {
+				t.Fatalf("write a.md: %v", err)
+			}
+			mustGit("add", "-A")
+			mustGit("commit", "-q", "-m", "add a.md")
+			mustGit("rm", "-q", "a.md")
+			mustGit("commit", "-q", "-m", "delete a.md")
+
+			var sides []string
+			err := gitops.BulkRevwalk(ctx, root, func(rec gitops.CommitRecord) error {
+				for _, p := range rec.Paths {
+					switch p.Status {
+					case "A":
+						sides = append(sides, p.PreSHA) // add: pre-image absent
+					case "D":
+						sides = append(sides, p.PostSHA) // delete: post-image absent
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("BulkRevwalk: %v", err)
+			}
+			if len(sides) != 2 {
+				t.Fatalf("collected %d absent-side ids, want 2 (one add, one delete): %v", len(sides), sides)
+			}
+			for _, id := range sides {
+				if !gitops.BlobAllZero(id) {
+					t.Errorf("BlobAllZero(%q) = false for the absent side of an %s-format add/delete; it would be sent to the object store as a real id", id, format)
+				}
+			}
+		})
+	}
+}
+
 // --- test helpers ---
 
 type commitSpec struct {

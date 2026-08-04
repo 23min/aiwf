@@ -103,35 +103,36 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 	// tree from the commit root to the blob on every call (~3× slower on
 	// the kernel tree). Object ids dedupe across the walk — a commit's
 	// PostSHA equals its child's PreSHA at the same path — so shaCache
-	// reads each unique blob once. statusBySHA returns ("", nil) for an
-	// all-zero id (the absent side of an add/delete), matching
-	// readStatusAt's ErrBlobMissing skip-this-pair signal.
-	type statusResult struct {
-		status string
-		err    error
-	}
-	shaCache := make(map[string]statusResult)
+	// reads each unique blob once. An all-zero id is the absent side of
+	// an add or a delete and yields ("", nil) without a read; every id
+	// that survives that check names a blob the walk needs, so failing
+	// to read one is an error rather than a skip. gitops.ErrBlobMissing
+	// arrives here for a real blob the local object store cannot produce
+	// and git will not go and fetch — a damaged store, or a partial
+	// clone whose lazy fetch is off or whose promisor remote is no
+	// longer configured. A partial clone that can still fetch never gets
+	// here, since git backfills the blob to answer the read; one whose
+	// promisor is configured but unreachable does not either, because
+	// the failed fetch kills the cat-file subprocess and the walk
+	// reports that instead. Either way this is history the walk cannot
+	// see, not history that says nothing.
+	shaCache := make(map[string]string)
 	statusBySHA := func(sha string) (string, error) {
 		if gitops.BlobAllZero(sha) {
 			return "", nil
 		}
-		if c, ok := shaCache[sha]; ok {
-			return c.status, c.err
+		if s, ok := shaCache[sha]; ok {
+			return s, nil
 		}
 		content, err := br.ReadObject(sha)
-		var s string
-		switch {
-		case errors.Is(err, gitops.ErrBlobMissing):
-			err = nil //coverage:ignore ReadObject gets only real --raw blob ids (all-zero short-circuited via BlobAllZero); ErrBlobMissing fires only for a blob absent locally (partial/blobless clone), not reproducible in a normal test repo
-		case err != nil:
-			// Real failure — surface to the caller; don't cache a
+		if err != nil {
+			// Surface to the caller as a walk error; don't cache a
 			// transient as authoritative.
 			return "", err
-		default:
-			s = parseStatusFromFrontmatter(content)
 		}
-		shaCache[sha] = statusResult{status: s, err: err}
-		return s, err
+		s := parseStatusFromFrontmatter(content)
+		shaCache[sha] = s
+		return s, nil
 	}
 
 	walkErr := gitops.BulkRevwalk(ctx, root, func(rec gitops.CommitRecord) error {
@@ -274,6 +275,17 @@ func batchedWalkStatusChanges(ctx context.Context, root string, t *tree.Tree, br
 //   - ("", err) for real failure modes the walker should surface
 //     (subprocess crash, protocol violation, injected test failure)
 //   - (status, nil) on success
+//
+// The ErrBlobMissing skip here is not the one statusBySHA declines to
+// take, and the difference is what the reader can tell apart.
+// `git cat-file --batch` answers a `<commit>:<path>` request that names
+// no file and one whose blob the object store lacks with the same
+// `missing`, so this route cannot separate "the parent had no such
+// file" — the ordinary reading of an add — from an unreadable store,
+// and reporting the pair would make an error of every add. A request
+// by object id carries no path and so has no absent-file reading at
+// all: an id `git log --raw` printed names a blob that must exist, and
+// only a store that cannot produce it answers missing.
 func readStatusAt(commit, path string, br blobReader) (string, error) {
 	content, err := br.Read(commit, path)
 	if errors.Is(err, gitops.ErrBlobMissing) {
