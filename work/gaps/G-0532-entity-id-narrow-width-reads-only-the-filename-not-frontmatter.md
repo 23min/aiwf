@@ -1,9 +1,11 @@
 ---
 id: G-0532
 title: entity-id-narrow-width reads only the filename, not frontmatter
-status: open
+status: addressed
 priority: medium
 discovered_in: M-0290
+addressed_by_commit:
+    - 3aa8a06
 ---
 ## Problem
 
