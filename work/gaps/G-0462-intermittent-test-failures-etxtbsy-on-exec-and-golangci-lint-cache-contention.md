@@ -1,9 +1,11 @@
 ---
 id: G-0462
 title: 'Intermittent test failures: ETXTBSY on exec and golangci-lint cache contention'
-status: open
+status: addressed
 priority: high
 discovered_in: M-0281
+addressed_by_commit:
+    - d85733910
 ---
 ## What's missing
 
