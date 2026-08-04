@@ -51,6 +51,39 @@ exclusion.
 The other three policies named in G-0535 are untouched and it stays open — their
 subjects need re-deciding rather than re-pointing.
 
+### Fixed — G-0475: a commit that renames an entity and changes its status is checked
+
+`aiwf check` now sees a status change that lands in the same commit as a rename
+of the entity's file. It previously looked for the parent's copy at the file's
+new path, where nothing is yet, and dropped the comparison — so a status change
+riding a rename went unexamined, at exit `0`, while the same edit committed on
+its own was reported. The prior status now comes from the diff record's
+pre-image blob, which is the file as the parent holds it.
+
+Nothing changes for a repo whose history has no such commit. Where one exists,
+every `fsm-history-consistent` verdict applies to it as to any other commit —
+`illegal-transition` and `forced-untrailered` are errors and block a push until
+acknowledged with `aiwf acknowledge illegal <sha>`; `manual-edit` is a warning.
+
+Git pairs a delete with an add by content similarity, not by identity, so
+retiring one entity and creating another in a single commit can look like a
+rename. `aiwf check` now reads such a pair only when the retired file's
+frontmatter id names the same entity — directly, or through `prior_ids` for a
+renumbering. That also clears a report it used to make: a mis-paired commit
+took the retired entity's path for the surviving one's former home, and every
+older status change along that path was reported against the survivor.
+
+### Fixed — G-0327: unreadable history is reported instead of skipped
+
+When `aiwf check` walks history and cannot read a file it needs, it now reports
+`fsm-history-consistent/history-walk-error` naming the entity and commit, rather
+than passing over that point in the history in silence. That happens on a
+damaged object store, and on a partial clone that will not fetch the file —
+lazy fetching turned off, or the remote it would fetch from no longer
+configured. A partial clone that still fetches is unaffected, because git
+retrieves the file to answer the read; so is an ordinary full clone, where
+every file the walk names is already present.
+
 ### Fixed — verb groups report a usage error instead of success
 
 `aiwf acknowledge`, `aiwf contract`, `aiwf contract recipe`, `aiwf milestone`,
