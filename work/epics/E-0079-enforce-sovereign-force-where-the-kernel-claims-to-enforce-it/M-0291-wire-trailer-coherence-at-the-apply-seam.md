@@ -174,6 +174,13 @@ whose `aiwf-on-behalf-of` trips `force-with-on-behalf-of` earlier in the rule
 order. The test asserts a force rule refused rather than naming one, since
 naming either would pin the order instead of the behavior.
 
+The readiness pass added a direct in-process test at the seam (commit 27ffa49e8)
+after the diff-scoped coverage gate reported the guard's own return untested.
+Both statements were true at once: the binary-level table proves the refusal
+reaches an operator, and a subprocess contributes nothing to the coverage
+profile. A behavioral audit cannot substitute for the mechanical one here, which
+is the reusable lesson — the two answer different questions.
+
 ### AC-2 — Domain pinned, and a rule corrected against the design doc
 
 Verdicts pinned at every point of the generated domain · commit 71e3f8f9c ·
