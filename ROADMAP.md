@@ -1106,9 +1106,9 @@ work is finished.
 ### Goal
 
 Make the kernel's "`--force` is human-only" guarantee true at the moment it is
-claimed, and give the finding it produces a way to be cleared. Five surfaces
-state the guarantee as enforced; the verb route enforces it for one verb of four,
-and no verb clears the resulting error.
+claimed, and give the finding it produces a way to be cleared. Every surface
+listed in M-0293's table states the guarantee as enforced; the verb route
+enforces it for one verb of four, and no verb clears the resulting error.
 
 | Milestone | Title | Status |
 |---|---|---|
