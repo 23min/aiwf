@@ -149,3 +149,29 @@ its named sections.
 
 - None. This milestone is the epic's foundation; M-0293 and M-0294 depend on it.
 
+---
+
+## Work log
+
+### AC-1 — Guard at the apply seam
+
+Every force-trailer site now refuses a non-human actor before writing · commit
+293dee60d · tests 5/5 subtests, full suite green
+
+Measured before the change: `promote`, `cancel`, the AC phase transition, and
+`add` each committed the forced act at exit 0. `authorize` alone refused, via
+its own human-actor check rather than coherence — pinned in the same table so
+that site stays covered whichever guard holds it.
+
+Two facts the implementation turned up. Enforcing all nine rules at the seam
+broke no existing test, so the blast radius the milestone reasoned about is
+zero rather than merely small. And a non-human actor cannot reach
+`force-non-human` first: getting past the allow-rule requires an active scope,
+whose `aiwf-on-behalf-of` trips `force-with-on-behalf-of` earlier in the rule
+order. The test asserts a force rule refused rather than naming one, since
+naming either would pin the order instead of the behavior.
+
+## Decisions made during implementation
+
+- (none)
+
