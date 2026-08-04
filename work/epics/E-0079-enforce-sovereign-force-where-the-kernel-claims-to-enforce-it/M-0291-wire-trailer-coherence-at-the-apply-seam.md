@@ -219,6 +219,22 @@ the sibling lock policy skips such a file, which is defensible for a scan that
 asks whether callers take a lock, but not for one whose whole job is finding
 that call.
 
+### AC-4 — The stance recorded and ratified
+
+ADR-0040 accepted, pinned by section · commit 30091160b · tests green across the
+module
+
+The ADR records both halves, because writing only the prevention half would
+state the stance as a closed door rather than a gated one: the verb route is
+closed, and the history route stays open to ratification, since the check rule
+fires on commits no verb produced — an imported repo, a hand-crafted commit,
+history predating the guard — which cannot be prevented retroactively.
+
+Its Consequences section carries the two things a reader would otherwise meet by
+surprise: the seam is the first enforcement anywhere of `audit-only-with-force`,
+and no caller should assert on `force-non-human` by name to prove force is
+enforced, since a non-human actor trips an earlier rule first.
+
 ## Decisions made during implementation
 
 - D-0059 — widen the principal rule to require a non-human actor, closing the
