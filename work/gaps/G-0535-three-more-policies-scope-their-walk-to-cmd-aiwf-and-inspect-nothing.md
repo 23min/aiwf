@@ -30,12 +30,17 @@ The scope is the visible half. Measuring what each policy would examine at the
 location its subject moved to shows the subject did not simply move:
 
 - **`PolicyApplyCallersAcquireLock`** asserts that every `run*` dispatcher
-  calling `verb.Apply` directly also takes the repo lock. Production now holds
-  exactly two `verb.Apply` call sites — `internal/cellcoverage/fixture.go` and
-  `internal/cli/cliutil/apply.go` — so Apply is reached through one shared
-  cliutil seam and the population of per-dispatcher callers no longer exists. A
-  rescope to `internal/cli/` fires one violation, on `FinishVerbOutcome`, which
-  the policy's own doc comment names as an exempt internal helper.
+  calling `verb.Apply` directly also takes the repo lock. Its trigger is dead
+  while its property is intact, and the two must not be confused. Production
+  holds exactly two `verb.Apply` call sites — `internal/cellcoverage/fixture.go`
+  and `internal/cli/cliutil/apply.go` — so "calls Apply directly" now identifies
+  no dispatcher, and a rescope to `internal/cli/` fires once on
+  `FinishVerbOutcome`, which the policy's own doc comment names as an exempt
+  internal helper. But the obligation it polices is alive and is per-dispatcher:
+  23 files under `internal/cli/<verb>/` call `cliutil.AcquireRepoLock`, and
+  `internal/verb` never calls it at all. The lock is held at the dispatcher layer
+  and nowhere else, so a scan over dispatchers is the right instrument; what it
+  lacks is a trigger that identifies them now that reaching Apply is not one.
 - **`PolicyIntegrationTestsAssertTrailers`** keys on test functions calling
   `runBin(`. That identifier appears in one file repo-wide:
   `internal/policies/firing_fixtures_single_site_test.go`, the policy's own
@@ -80,10 +85,12 @@ answer can take rather than a menu to pick one from.
    a real chokepoint, and is the most work, because the assertion has to be
    redesigned rather than relocated.
 2. **Retire the policy and record why.** Warranted where the property is enforced
-   elsewhere and the original subject has dissolved — `verb.Apply` behind a
-   single seam is the strongest case, since one seam is guarded by reading it,
-   not by a scan. A named provenance-adjacent chokepoint should not disappear
-   silently, so this costs a recorded decision.
+   elsewhere, or where the subject has genuinely dissolved rather than moved.
+   The lock policy is the weakest candidate for this, not the strongest: its
+   obligation is held at 23 dispatcher sites and at no other layer, so retiring
+   the scan would leave the only layer that takes the lock unpoliced. A named
+   chokepoint should not disappear silently, so this costs a recorded decision
+   wherever it is chosen.
 3. **Give each an anti-orphan assertion**, as the sovereign policy now has — a
    live-tree test asserting the scanned prefix still holds subjects. Orthogonal
    to 1 and 2 and worth doing under either, because it converts the silent
@@ -93,15 +100,26 @@ answer can take rather than a menu to pick one from.
 No lean recorded, because option 1 and option 2 are separated by the open
 question below rather than by cost.
 
-## Open question
+## Open questions
 
-What does the CLI dispatcher layer assert that `internal/verb` does not already?
+One per policy, and they are not the same question. The lock policy has none:
+the repo lock is taken at the dispatcher layer and at no other, so there is no
+redundancy to weigh — only a trigger to choose. That distinguishes it from
+G-0534, where `internal/verb` really does enforce the guarantee the dispatcher
+scan also claims, and the redundancy question is live.
 
-The lock policy and G-0534 are the same question wearing different clothes. Both
-ask what a dispatcher-level scan is for once the guarantee it polices is held at
-a seam below it — the repo lock behind one `verb.Apply` caller, the human-actor
-refusal inside `internal/verb`. Answered once, both resolve; answered twice, the
-two answers drift. Settle it before either is worked.
+- **Lock policy** — what identifies a mutating-verb dispatcher now that reaching
+  `verb.Apply` does not? Calling `cliutil`'s finish helper and membership in the
+  mutating-verb set are the two candidates. A mechanical choice, no layering
+  question under it.
+- **Trailer policy** — the integration tests call `runVerb(`, `runSplit(` and
+  `run(` rather than the `runBin(` the heuristic names. Whether the property is
+  worth re-keying to those, or whether trailer assertions are better held by the
+  per-verb tests that already make them, is the open part.
+- **Real-clone policy** — with no `update-ref refs/remotes/` under the
+  integration tests, is the property still one this repo can violate? If the
+  shape it forbids cannot occur, retiring it is honest and re-aiming it is
+  invention.
 
 ## Scope
 
