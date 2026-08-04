@@ -195,6 +195,29 @@ rule that reads as enforced, passes its own unit test through a direct call, and
 never fires for any real trailer set. That is the same claim-without-enforcement
 shape this milestone exists to remove, one layer down.
 
+### AC-3 — The seam held singular and guarded
+
+Policy asserts no production path commits off-seam · commit c0b45f3d7 · tests
+green across the module
+
+Placing the guard inside `Apply` made the no-bypass property structural, so the
+policy does not enumerate callers: the cell-coverage fixture reaches `Apply`
+without being a CLI dispatcher and is covered without being named. Measured
+basis for scoping it to one call — `gitops.CommitVerbChange` has exactly one
+production caller, and the other three commit-construction primitives have none
+outside their own package.
+
+Two clauses rather than one, because either alone is satisfiable while the
+property is false: one commit site proves nothing once the guard is deleted from
+it, and a present guard proves nothing if a second function commits alongside.
+
+The scan is fail-closed in both directions it can fail silently. Finding no
+commit site reports an orphaned scope rather than a clean tree. A file that
+carries the commit call but does not parse is reported rather than skipped —
+the sibling lock policy skips such a file, which is defensible for a scan that
+asks whether callers take a lock, but not for one whose whole job is finding
+that call.
+
 ## Decisions made during implementation
 
 - D-0059 — widen the principal rule to require a non-human actor, closing the
