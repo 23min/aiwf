@@ -49,7 +49,7 @@ func TestApply_RefusesAnIncoherentTrailerSet(t *testing.T) {
 	}
 	// The plan's write must not have landed either. A guard that refuses
 	// after touching the worktree leaves the operator to clean up.
-	if _, statErr := os.Stat(filepath.Join(r.root, "work/epics/E-0099-unrelated/epic.md")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(filepath.Join(r.root, "work", "epics", "E-0099-unrelated", "epic.md")); !os.IsNotExist(statErr) {
 		t.Errorf("the plan's write landed despite the refusal; the guard must run before any filesystem work")
 	}
 }
