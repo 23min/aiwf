@@ -64,7 +64,11 @@ func TestFiringFixtures_SingleSite(t *testing.T) {
 		{
 			id:     "apply-callers-acquire-lock",
 			policy: PolicyApplyCallersAcquireLock,
-			files:  map[string]string{"cmd/aiwf/x.go": "package main\n\nfunc runFoo() { verb.Apply() }\n"},
+			// Named Run, not runFoo: the policy selects dispatchers by
+			// package rather than by name, so this fixture would go
+			// unexamined under a name filter matching only one of the
+			// two dispatcher spellings.
+			files: map[string]string{"internal/cli/foo/foo.go": "package foo\n\nfunc Run() { verb.Apply() }\n"},
 		},
 		{
 			id:     "authorized-by-via-allow",
