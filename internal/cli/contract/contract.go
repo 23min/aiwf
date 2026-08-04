@@ -1,7 +1,7 @@
 // Package contract implements the `aiwf contract` verb and its
 // subcommand graph (verify, bind, unbind, recipes, recipe show /
-// install / remove). The parent verb is non-Runnable — `aiwf
-// contract` with no subcommand prints help.
+// install / remove). The parent verb is a verb group — `aiwf contract`
+// with no subcommand prints help and reports a usage error.
 //
 // RunValidation, ApplyHintsLikeRun, BindingCount, and ResultToFinding
 // are exported because the `check` verb (in cmd/aiwf/main.go until
@@ -25,18 +25,14 @@ import (
 	"github.com/23min/aiwf/internal/tree"
 )
 
-// NewCmd builds the `aiwf contract` parent command. Five direct
-// children (verify, bind, unbind, recipes, recipe) plus the recipe
-// sub-tree (show, install, remove). The parent itself is non-Runnable
-// — `aiwf contract` with no subcommand prints help.
+// NewCmd builds the `aiwf contract` parent command — a verb group over
+// five direct children (verify, bind, unbind, recipes, recipe) plus the
+// recipe sub-tree (show, install, remove).
 func NewCmd(correlationID string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "contract",
-		Short:         "Manage contract entities and their validators",
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-	}
+	cmd := cliutil.MarkVerbGroup(&cobra.Command{
+		Use:   "contract",
+		Short: "Manage contract entities and their validators",
+	})
 	cmd.AddCommand(newVerifyCmd(correlationID))
 	cmd.AddCommand(newBindCmd(correlationID))
 	cmd.AddCommand(newUnbindCmd(correlationID))

@@ -20,16 +20,13 @@ import (
 	"github.com/23min/aiwf/internal/render"
 )
 
-// NewCmd builds the `aiwf worktree` parent command. Non-Runnable;
+// NewCmd builds the `aiwf worktree` parent command — a verb group that
 // dispatches to `add`.
 func NewCmd(correlationID string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "worktree",
-		Short:         "Worktree-scoped verbs",
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
-		SilenceUsage:  true,
-	}
+	cmd := cliutil.MarkVerbGroup(&cobra.Command{
+		Use:   "worktree",
+		Short: "Worktree-scoped verbs",
+	})
 	cmd.AddCommand(newAddCmd(correlationID))
 	return cmd
 }

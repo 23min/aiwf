@@ -24,8 +24,8 @@ func findChild(parent *cobra.Command, prefix string) *cobra.Command {
 }
 
 // TestNewCmd_HasParentAndChildren pins the contract parent verb's
-// shape: name, non-Runnable behavior, and the five direct subcommand
-// children (verify, bind, unbind, recipes, recipe). M-0117/AC-1.
+// shape: its name and the five direct subcommand children (verify,
+// bind, unbind, recipes, recipe). M-0117/AC-1.
 func TestNewCmd_HasParentAndChildren(t *testing.T) {
 	t.Parallel()
 	cmd := contract.NewCmd("")
@@ -97,8 +97,7 @@ func TestRecipesCmd_FlagShape(t *testing.T) {
 }
 
 // TestRecipeCmd_HasChildren pins the recipe sub-parent's three
-// children (show, install, remove). The recipe parent itself is
-// non-Runnable. M-0117/AC-2.
+// children (show, install, remove). M-0117/AC-2.
 func TestRecipeCmd_HasChildren(t *testing.T) {
 	t.Parallel()
 	cmd := findChild(contract.NewCmd(""), "recipe")

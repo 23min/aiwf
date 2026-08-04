@@ -301,7 +301,8 @@ var skillCoverageAllowlist = map[string]string{
 	"rename-area": "config-mutation verb; --help + area-member completion cover the surface; the orphan-trap warning lives in --help (E-0044, M-0177)",
 	"set-area":    "single-entity area-tag mutation; --help + entity-id/area-member completion cover the surface; the orphan-trap framing lives in --help (E-0044, M-0183)",
 
-	// Kind-namespace parent commands — non-Runnable; subverbs are documented elsewhere.
+	// Kind-namespace parent commands — verb groups carrying no operation
+	// of their own; subverbs are documented elsewhere.
 	"milestone": "kind-namespace parent (subverb `depends-on` for cross-milestone deps); the surrounding `aiwf-add` and `aiwf-promote` skills cover the flow",
 }
 
