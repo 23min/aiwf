@@ -51,3 +51,26 @@ Needs: a resolution-gated classification branch in
 `internal/check/body_prose_id.go`, tests for both the hit case and the
 coincidence-miss case, a firing-fixture test, and a policy-coverage entry per
 this repo's meta-gate (`internal/policies/firing_fixture_presence.go`).
+
+The classifier must also reach `internal/check/skill_body_id.go`. That rule
+scans the embedded surfaces already, so it is not blind to them the way
+`body-prose-id` is blind to a body — it is blind to the *spelling*, on the same
+hyphen anchor. Embedded skill bodies carry unhyphenated ids today and
+materialize verbatim into a consumer's `.claude/skills/`, so fixing only
+`body_prose_id.go` widens the rule for aiwf's own tree while leaving the shipped
+leak open.
+
+## Scope, and the sibling absence
+
+This gap is width-shaped and scoped to entity bodies. The same hyphen anchor is
+what `doc-id-width` and `skill-body-id` key on, so the unhyphenated form is
+below the detection floor of every id rule at once — which is how `README.md`
+carried the bare form while sitting in the `doc-id-width` corpus at
+`strict: true`.
+
+The surface question is independent of the width one and belongs to G-0538: no
+rule reads Go string literals, so an internal id reaches a consumer through
+printed output or through generated hook text regardless of how it is spelled.
+Implementing this gap's detector would not catch that, and implementing G-0538's
+would not catch a narrow citation in an entity body. Both are needed; neither
+subsumes the other.
