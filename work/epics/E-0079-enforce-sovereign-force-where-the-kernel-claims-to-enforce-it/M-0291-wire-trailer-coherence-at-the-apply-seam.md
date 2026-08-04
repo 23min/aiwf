@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: Coherence verdicts pinned across the full actor-and-trailer domain
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: No production path commits without passing the coherence guard
       status: open
