@@ -41,10 +41,45 @@ over the *tree* before and after. Trailer-shaped rules need git history, so
 `provenance-force-non-human` is structurally invisible to that gate. Coherence on
 the assembled trailer set is the only runtime mechanism available.
 
-The sovereign set is mechanical rather than a judgment: the verbs constructing a
-`TrailerForce` are `add`, `promote`, `cancel` and `authorize`. `contract bind`,
-`contract recipe` and `update --remove` also declare `--force`, emit no trailer,
-and mean force-replace — a different word spelled the same.
+The sovereign set is mechanical rather than a judgment, and it is smaller than the
+verb count suggests. Three sites construct a `TrailerForce`: `transitionTrailers`
+(`internal/verb/promote.go`), which serves `promote`, `cancel` and both
+AC-granularity transitions; an inline site in `add`; and an inline site in
+`authorize`. `contract bind`, `contract recipe` and `update --remove` also declare
+`--force`, emit no trailer, and mean force-replace — a different word spelled the
+same.
+
+The guard did not drift by inattention; it was never copyable. A verb's trailer
+set is incomplete when the verb returns. `gateAndDecorate`
+(`internal/cli/cliutil/provenance.go`) appends `aiwf-principal`,
+`aiwf-on-behalf-of`, `aiwf-authorized-by` and `aiwf-scope-ends` afterwards, so a
+`CheckTrailerCoherence` call placed inside `promote` would see no principal and
+refuse every legitimately-authorized non-human actor under
+`principal-missing-for-non-human-actor`. `authorize` can call the guard at the
+verb layer only because it is absent from the `ProvenanceContext` roster and
+assembles a complete set itself — as do `archive` and `import`. The two shapes
+meet at exactly one point downstream of both: `verb.Apply`, whose single
+production caller is `internal/cli/cliutil/apply.go`.
+
+A guard at that seam enforces the whole coherence rule set, not the force rule
+alone, because the set is what the function checks. That costs nothing in reach:
+`internal/check/provenance.go` already reports every rule but one at error
+severity over git history, so a trailer set that would newly fail at the seam is
+one the push already rejected, and the only change is where the operator learns
+it. The exception is `audit-only-with-force`, which no history-walking rule
+covers; the seam is its first enforcement anywhere outside `audit-only`'s own
+call.
+
+Two code comments are load-bearing and wrong, and one of them is why a second gate
+has a hole. `requireHumanActorForSovereignAct`
+(`internal/verb/promote_sovereign_act.go`) deliberately steps aside for `--force`
+on the stated grounds that the coherence rule "ensures non-human + --force still
+fails at the coherence chokepoint, so the override path is human-only by
+construction." That is a reasoned handoff to a guard `promote` never calls, so the
+sovereign-act gate declines to check precisely where nothing else does. `add`'s
+force branch states the opposite stance — that the check-time audit is "the same
+backstop every other --force path relies on rather than a verb-time human-actor
+gate here" — contradicting `authorize` in the same package.
 
 Three shapes are in play, and conflating them is why this drifted. The entity FSM
 is cell-keyed `(Kind, FromState, Verb)` in `internal/workflows/spec`, with a Pin
@@ -58,18 +93,21 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 
 ### In scope
 
-- **Finish the coherence wiring.** `CheckTrailerCoherence` on the assembled
-  trailer set of every verb that constructs a `TrailerForce`.
+- **Finish the coherence wiring.** `CheckTrailerCoherence` at `verb.Apply`, the
+  one seam downstream of both trailer-assembly shapes, so every commit a verb
+  produces is checked against the complete set rather than the verb's partial one.
 - **Ratification.** Add `provenance-force-non-human` to the `ackedSHAs` consumer
   roster so `aiwf acknowledge illegal` clears it with a human's written reason.
   Needed independently of the wiring: the rule walks git history and fires on
   commits no verb produced.
 - **Correct the surfaces that claim enforcement that does not exist** — the
   chokepoint column of the audit catalogue's force rule, the two claims in
-  `CLAUDE.md`, the claim in `design-decisions.md`, and `promote --help`'s
-  "coherence checks still run".
-- **Re-aim the sovereign dispatcher policy** (G-0534) at a code reference: every
-  verb constructing a `TrailerForce` routes through `CheckTrailerCoherence`.
+  `CLAUDE.md`, the claim in `design-decisions.md`, `promote --help`'s "coherence
+  checks still run", and the two contradicting code comments named in *Context*.
+- **Re-aim the sovereign dispatcher policy** (G-0534) at a code reference. Its
+  subject narrows once the guard sits at `verb.Apply`: routing is then structural
+  rather than policed, and what is left to assert is that no production path
+  reaches a commit bypassing that seam.
 - **A cell registry for rule spaces not keyed `(Kind, FromState, Verb)`**, so a
   rule without an FSM coordinate still gets the Pin-and-bijection discipline.
   Recorded as decided; its placement is an open question below.
@@ -119,9 +157,8 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 | Question | Blocking? | Resolution path |
 |---|---|---|
 | Does the cell registry for non-FSM-keyed rule spaces belong in this epic or its own? | no | Milestone planning. Decided to build it; only placement is open, and it can spawn an epic without blocking the wiring. |
-| Does `cancel` need treatment distinct from `promote`, given both emit the force trailer through the shared `transitionTrailers` helper? | yes | Milestone planning, by reading the shared path. Decides whether the wiring is one change or two. |
-| Where does the coherence call sit in each verb — the verb body, or the shared plan-assembly seam that builds trailers? | yes | Milestone planning. A single seam is preferable if one exists, since per-verb calls are the shape that drifted. |
 | Does adding the rule to the ack roster silence it too broadly, since an acknowledgement is keyed on SHA alone? | no | Accepted for now: an acknowledgement is a judgment about a commit, which is what the existing consumers assume. Revisit if someone needs to accept one rule while another still blocks. |
+| Is the check-time absence of `audit-only-with-force` a gap of its own? | no | Surfaces during the wiring, which covers it at verb time regardless. Decide there whether the history-walking side needs it too. |
 
 ## Risks
 
