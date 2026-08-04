@@ -34,21 +34,22 @@ The `wf-tdd-cycle` skill (and G-0297's premise) wrongly claimed a `--force met`
 hatch bypasses the `acs-tdd-audit`. It does not: under `tdd: required` the audit is
 an error-severity Tier-2 finding, so `aiwf promote <M>/AC-<N> met --force` is
 refused (verified: exit 1, state unchanged). Corrected in the skill under M-0199,
-but the same misconception may live in the kernel's own finding-hints — the
-`milestone-done-incomplete-acs` hint (`internal/check/hint.go:88`) reads "use
-`--force --reason` to override (the standing check still surfaces this)," yet that
-finding is also an error-severity Tier-2 finding gated by the same unconditional
-projection path, so from the code `--force` should not land it either.
+and the same misconception may live in the kernel's own finding-hints. That
+hint audit is carried by E-0079, which corrects the surfaces claiming force
+enforcement the kernel does not perform; the `milestone-done-incomplete-acs` hint
+(`internal/check/hint.go:88`) is one of its subjects. What remains here is the
+boundary itself: a reader who wants to know which rules `--force` overrides has
+no document to consult, and infers it from whichever hint they happen to read.
 
 ## Direction
 
 - Document the Tier-1 / Tier-2 `--force` boundary in CLAUDE.md (the provenance /
   force section) and `docs/design/provenance-model.md`; consider a one-line
   `--force --help` note per the AI-discoverability rule.
-- Audit every finding-hint that mentions `--force` for accuracy against real verb
-  behavior, and reconcile the `milestone-done-incomplete-acs` hint — verify
-  empirically whether `--force` lands a `done` milestone with open ACs (from the
-  code it should not), then fix the hint or the code so they agree.
+
+The finding-hint audit that this gap originally also carried moved to E-0079,
+which is correcting the force-enforcement surfaces as a set; auditing the hints
+separately would have split one sweep across two owners.
 
 ## Provenance
 
