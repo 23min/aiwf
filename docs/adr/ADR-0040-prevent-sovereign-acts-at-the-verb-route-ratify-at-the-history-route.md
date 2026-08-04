@@ -1,7 +1,7 @@
 ---
 id: ADR-0040
 title: Prevent sovereign acts at the verb route, ratify at the history route
-status: proposed
+status: accepted
 ---
 ## Context
 
