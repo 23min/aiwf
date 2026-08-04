@@ -15,10 +15,17 @@ current paths and adds a rename's source path as it processes the touch, so olde
 commits resolve at the pre-rename path — but for the renaming commit itself the
 parent holds the file at the source path while the rule reads the parent at the new
 path. Usually nothing is there, so the pair is skipped and no status observation is
-recorded. When the destination *did* exist at the parent — a force-rename over an
-existing file, which the walker's own comment anticipates — a blob is found and the
-pair is compared against a prior status belonging to whatever was overwritten,
-which is worse than skipping it.
+recorded.
+
+A destination that already held a file at the parent would be worse than a skip —
+the pair would be compared against a status belonging to whatever was overwritten.
+Git does not produce that shape: rename detection pairs a delete with an *add*, so
+`git mv -f` over an existing file emits a delete and a modify, never a rename. The
+reachable form of that hazard is a different one. Git pairs by content similarity
+rather than by identity, so retiring one entity and creating another in a single
+commit is reported as a rename whenever the two files are alike — which
+template-shaped entity files are — and the pre-image is then the retired entity's
+blob. Reading it reports one entity's status as another's.
 
 The code states this and states why it is acceptable: "pure renames don't change
 status, so no observation is lost on the typical path."
@@ -56,8 +63,10 @@ operator sequence is blocked upstream.
    walker documents exactly that, and skips the object-id fast path for `R`/`C`
    only to stay byte-identical with the pre-refactor path-resolving walk. Using it
    for a rename touch makes the pair observable without resolving a path at all,
-   removes the exception rather than documenting it, and fixes the
-   wrong-prior-status case above along with the skipped one.
+   and removes the exception rather than documenting it. It needs a guard the
+   skipped-pair symptom does not suggest: the pre-image must be shown to carry
+   this entity's id before it is read, or the similarity-pairing case above turns
+   a silent skip into a false finding at error severity.
 2. **Emit a finding for the skipped pair** rather than resolving it, so an
    unobservable rename-plus-status commit is reported instead of silently dropped.
    Honest and cheap, but it converts a correctness gap into an operator-visible
