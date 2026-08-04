@@ -13,6 +13,10 @@ import (
 // is a defect, and fires one error-severity finding per narrow file.
 // Whether canonical ids sit alongside it makes no difference.
 //
+// Both id axes are in scope — the filename and the frontmatter `id:` —
+// and an entity narrow on both is still one finding, since the count is
+// per entity rather than per axis.
+//
 // Archive entries never fire: per ADR-0008's "Drift control" subsection
 // they are excluded outright, and per ADR-0004's forget-by-default
 // principle a narrow archived file stays narrow permanently. The
@@ -132,13 +136,47 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 			wantNarrows: []string{"G-0100"},
 		},
 		{
-			// The reverse divergence is out of scope: this rule reads
-			// the filename, and idPathConsistent canonicalizes both
-			// sides so it does not see a width-only difference either.
-			// Tracked in G-0532.
-			name: "a narrow frontmatter id under a canonical filename does not fire here",
+			// The reverse divergence — a hand-edited frontmatter id
+			// under a canonical filename. No other rule sees it:
+			// idPathConsistent canonicalizes both sides, so a
+			// width-only difference reads as a match to it.
+			name: "a narrow frontmatter id fires even when the filename is canonical",
 			tr: makeTree(
 				&entity.Entity{ID: "G-200", Kind: entity.KindGap, Path: "work/gaps/G-0200-reverse.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-200"},
+		},
+		{
+			// Both axes narrow at the same spelling is the uniform
+			// legacy shape, and it stays one finding — one entity is
+			// one defect with one fix.
+			name: "an entity narrow on both axes fires once, not once per axis",
+			tr: makeTree(
+				&entity.Entity{ID: "G-100", Kind: entity.KindGap, Path: "work/gaps/G-100-both.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-100"},
+		},
+		{
+			// Both narrow and disagreeing. idPathConsistent fires too,
+			// on the disagreement; this rule still owes exactly one
+			// width finding.
+			name: "an entity narrow on both axes at different spellings still fires once",
+			tr: makeTree(
+				&entity.Entity{ID: "G-200", Kind: entity.KindGap, Path: "work/gaps/G-100-diverged-narrow.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-200"},
+		},
+		{
+			// Below the kind's grammar floor the frontmatter id is
+			// malformed rather than narrow, and frontmatter-shape names
+			// the expected format. Mirrors the filename axis, where
+			// IDFromPath rejects a sub-floor path before the width test.
+			name: "a frontmatter id below the kind's grammar floor is left to frontmatter-shape",
+			tr: makeTree(
+				&entity.Entity{ID: "G-1", Kind: entity.KindGap, Path: "work/gaps/G-0200-subfloor-frontmatter.md"},
 			),
 			wantCount:   0,
 			wantNarrows: nil,
@@ -154,6 +192,50 @@ func TestEntityIDNarrowWidth(t *testing.T) {
 			),
 			wantCount:   0,
 			wantNarrows: nil,
+		},
+		{
+			// The axes are judged independently. A filename IDFromPath
+			// rejects must not take a readable frontmatter id down with
+			// it: frontmatter-shape sees nothing wrong with `G-200`, so
+			// silence here would leave the narrow id unreported by every
+			// rule in the tree.
+			name: "a narrow frontmatter id fires under a filename below the grammar floor",
+			tr: makeTree(
+				&entity.Entity{ID: "G-200", Kind: entity.KindGap, Path: "work/gaps/G-1-tiny.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-200"},
+		},
+		{
+			// Both axes unreadable for width: the filename is below the
+			// floor and the frontmatter id is too. Nothing to report
+			// here; frontmatter-shape names the malformed id.
+			name: "a sub-floor filename over a sub-floor frontmatter id fires nothing here",
+			tr: makeTree(
+				&entity.Entity{ID: "G-2", Kind: entity.KindGap, Path: "work/gaps/G-1-tiny.md"},
+			),
+			wantCount:   0,
+			wantNarrows: nil,
+		},
+		{
+			// The archive exclusion covers the frontmatter axis too, not
+			// just the filename the other archive fixtures vary.
+			name: "a narrow frontmatter id under an archived canonical filename never fires",
+			tr: makeTree(
+				&entity.Entity{ID: "G-500", Kind: entity.KindGap, Path: "work/gaps/archive/G-0500-narrow-frontmatter.md"},
+			),
+			wantCount:   0,
+			wantNarrows: nil,
+		},
+		{
+			// The exclusion is per path *segment*. A slug that merely
+			// contains the word is an active entity and still fires.
+			name: "a slug containing the word archive is not an archive path",
+			tr: makeTree(
+				&entity.Entity{ID: "G-0600", Kind: entity.KindGap, Path: "work/gaps/G-600-archive-format-notes.md"},
+			),
+			wantCount:   1,
+			wantNarrows: []string{"G-0600"},
 		},
 		{
 			name: "a canonical ADR never fires, and the narrow entry beside it still does",
@@ -244,26 +326,130 @@ func TestEntityIDNarrowWidth_RemediationNamesNoVerb(t *testing.T) {
 	}
 }
 
-// TestEntityIDNarrowWidth_MessageQuotesThePathID pins which of the two
-// ids the operator is shown. The rule decides on the filename's id, so
-// quoting the frontmatter id would print a canonical value and call it
-// narrow — self-contradicting text at the one seam an operator reads to
-// find the offending file.
-func TestEntityIDNarrowWidth_MessageQuotesThePathID(t *testing.T) {
+// TestEntityIDNarrowWidth_MessageQuotesOnlyTheNarrowID pins which of an
+// entity's two ids the operator is shown when the axes diverge. Quoting
+// the canonical side and calling it narrow would be self-contradicting
+// text at the one seam an operator reads to find the offending file —
+// in either direction, so both are pinned here.
+//
+// EntityID stays the frontmatter id throughout: it is the
+// machine-readable handle every other finding uses to name the entity,
+// independent of which axis the message quotes.
+//
+// wantPhrase is what pins the helper to its call site. narrowIDPhrase's
+// own test proves it labels each axis correctly in isolation; only an
+// assertion here catches the rule handing it the two ids the wrong way
+// round, which would name both axes backwards while quoting each id
+// exactly where a quotes-only assertion expects to find it.
+func TestEntityIDNarrowWidth_MessageQuotesOnlyTheNarrowID(t *testing.T) {
 	t.Parallel()
-	got := entityIDNarrowWidth(makeTree(
-		&entity.Entity{ID: "G-0100", Kind: entity.KindGap, Path: "work/gaps/G-100-diverged.md"},
-	))
-	if len(got) != 1 {
-		t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+	cases := []struct {
+		name         string
+		e            *entity.Entity
+		wantPhrase   string
+		wantAbsent   string
+		wantEntityID string
+	}{
+		{
+			name:         "narrow filename under canonical frontmatter",
+			e:            &entity.Entity{ID: "G-0100", Kind: entity.KindGap, Path: "work/gaps/G-100-diverged.md"},
+			wantPhrase:   `filename id "G-100"`,
+			wantAbsent:   `"G-0100"`,
+			wantEntityID: "G-0100",
+		},
+		{
+			name:         "narrow frontmatter under canonical filename",
+			e:            &entity.Entity{ID: "G-200", Kind: entity.KindGap, Path: "work/gaps/G-0200-reverse.md"},
+			wantPhrase:   `frontmatter id "G-200"`,
+			wantAbsent:   `"G-0200"`,
+			wantEntityID: "G-200",
+		},
 	}
-	if msg := got[0].Message; !strings.Contains(msg, `"G-100"`) {
-		t.Errorf("message quotes the frontmatter id rather than the narrow filename id it tested: %s", msg)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := entityIDNarrowWidth(makeTree(tc.e))
+			if len(got) != 1 {
+				t.Fatalf("findings = %d, want 1: %+v", len(got), got)
+			}
+			msg := got[0].Message
+			if !strings.Contains(msg, tc.wantPhrase) {
+				t.Errorf("message does not name the narrow axis and its id (%s): %s", tc.wantPhrase, msg)
+			}
+			if strings.Contains(msg, tc.wantAbsent) {
+				t.Errorf("message quotes the canonical id %s and calls it narrow: %s", tc.wantAbsent, msg)
+			}
+			if !strings.Contains(msg, "4 digits") {
+				t.Errorf("message does not state the canonical width an operator must restore: %s", msg)
+			}
+			if got[0].EntityID != tc.wantEntityID {
+				t.Errorf("EntityID = %q, want the frontmatter id %q", got[0].EntityID, tc.wantEntityID)
+			}
+			if got[0].Path != tc.e.Path {
+				t.Errorf("Path = %q, want %q — the finding must locate the file its message describes",
+					got[0].Path, tc.e.Path)
+			}
+		})
 	}
-	// EntityID stays the frontmatter id — it is the machine-readable
-	// handle every other finding uses to name the entity.
-	if got[0].EntityID != "G-0100" {
-		t.Errorf("EntityID = %q, want the frontmatter id %q", got[0].EntityID, "G-0100")
+}
+
+// TestNarrowIDPhrase covers every shape the message can take, one per
+// reachable arm. The uniform-narrow case names no axis on purpose:
+// both sides are narrow, so naming one would imply the other is clean.
+func TestNarrowIDPhrase(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name          string
+		pathID        string
+		frontmatterID string
+		want          string
+	}{
+		{"neither narrow", "G-0100", "G-0100", ""},
+		{"filename narrow only", "G-100", "G-0100", `filename id "G-100"`},
+		{"frontmatter narrow only", "G-0200", "G-200", `frontmatter id "G-200"`},
+		{"both narrow, same spelling", "G-100", "G-100", `id "G-100"`},
+		{"both narrow, disagreeing", "G-100", "G-200", `filename id "G-100" and frontmatter id "G-200"`},
+		{"frontmatter unreadable for width", "G-100", "", `filename id "G-100"`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := narrowIDPhrase(tc.pathID, tc.frontmatterID); got != tc.want {
+				t.Errorf("narrowIDPhrase(%q, %q) = %q, want %q",
+					tc.pathID, tc.frontmatterID, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestFrontmatterWidthID pins the grammar-floor gate on the frontmatter
+// axis: width is only a meaningful question about an id the kind admits.
+// A sub-floor id is malformed, and frontmatter-shape is the rule that
+// says so with the expected format — this returns "" so the width rule
+// does not stack a second, less informative finding on top.
+func TestFrontmatterWidthID(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		e    *entity.Entity
+		want string
+	}{
+		{"canonical gap id", &entity.Entity{ID: "G-0200", Kind: entity.KindGap}, "G-0200"},
+		{"narrow but well-formed gap id", &entity.Entity{ID: "G-200", Kind: entity.KindGap}, "G-200"},
+		{"gap id below the three-digit floor", &entity.Entity{ID: "G-1", Kind: entity.KindGap}, ""},
+		{"narrow but well-formed epic id", &entity.Entity{ID: "E-22", Kind: entity.KindEpic}, "E-22"},
+		{"epic id below the two-digit floor", &entity.Entity{ID: "E-2", Kind: entity.KindEpic}, ""},
+		{"ADR id below canonical width", &entity.Entity{ID: "ADR-001", Kind: entity.KindADR}, ""},
+		{"missing id", &entity.Entity{ID: "", Kind: entity.KindGap}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := frontmatterWidthID(tc.e); got != tc.want {
+				t.Errorf("frontmatterWidthID(id %q, kind %s) = %q, want %q",
+					tc.e.ID, tc.e.Kind, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -347,5 +533,52 @@ Prose.
 	}
 	if got.EntityID != "G-093" {
 		t.Errorf("EntityID = %q, want %q", got.EntityID, "G-093")
+	}
+}
+
+// TestEntityIDNarrowWidth_FrontmatterAxisFiresThroughCheckRun is the
+// seam test for the frontmatter axis, and it drives real files because
+// that axis is the one nothing else covers: a canonical filename over a
+// narrow `id:` clears frontmatter-shape (the id is within the kind's
+// grammar) and clears idPathConsistent (which canonicalizes both sides
+// before comparing), so if this rule does not fire, the whole tree
+// validates clean with a narrow id in it.
+func TestEntityIDNarrowWidth_FrontmatterAxisFiresThroughCheckRun(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+
+	mustWrite(t, root, "work/gaps/G-0200-reverse.md", `---
+id: G-200
+title: Narrow frontmatter under a canonical filename
+status: open
+---
+
+## What's missing
+
+Prose.
+`)
+
+	tr, loadErrs, err := tree.Load(t.Context(), root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	findings := Run(tr, loadErrs)
+	// Exactly one finding, not merely one of this code: the rationale
+	// above is that no other rule sees this shape, and asserting the
+	// total is what keeps that claim honest if one later does.
+	if len(findings) != 1 {
+		t.Fatalf("check.Run findings = %d, want exactly 1: %+v", len(findings), findings)
+	}
+	got := findings[0]
+	if got.Code != CodeEntityIDNarrowWidth {
+		t.Fatalf("Code = %q, want entity-id-narrow-width — a narrow frontmatter id is unreported: %+v",
+			got.Code, got)
+	}
+	if got.Severity != SeverityError {
+		t.Errorf("Severity = %q through check.Run, want error — the gate is advisory, not blocking", got.Severity)
+	}
+	if !strings.Contains(got.Message, `frontmatter id "G-200"`) {
+		t.Errorf("message does not name the narrow frontmatter id: %s", got.Message)
 	}
 }

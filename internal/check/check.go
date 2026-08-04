@@ -525,7 +525,7 @@ func idPathConsistent(t *tree.Tree) []Finding {
 		// canonical width, or vice versa) is not flagged as a
 		// mismatch — the parser tolerates both widths, permanently.
 		// Nothing realigns the two sides: no verb widens an id in
-		// place, so a narrow filename is reported by
+		// place, so a narrow id on either axis is reported by
 		// entity-id-narrow-width rather than as a mismatch here.
 		if entity.Canonicalize(pathID) == entity.Canonicalize(e.ID) {
 			continue
