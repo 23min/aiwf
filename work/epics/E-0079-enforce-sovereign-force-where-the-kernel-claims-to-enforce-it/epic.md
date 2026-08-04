@@ -9,9 +9,9 @@ status: active
 ## Goal
 
 Make the kernel's "`--force` is human-only" guarantee true at the moment it is
-claimed, and give the finding it produces a way to be cleared. Five surfaces
-state the guarantee as enforced; the verb route enforces it for one verb of four,
-and no verb clears the resulting error.
+claimed, and give the finding it produces a way to be cleared. Every surface
+listed in M-0293's table states the guarantee as enforced; the verb route
+enforces it for one verb of four, and no verb clears the resulting error.
 
 ## Context
 
@@ -100,10 +100,11 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
   roster so `aiwf acknowledge illegal` clears it with a human's written reason.
   Needed independently of the wiring: the rule walks git history and fires on
   commits no verb produced.
-- **Correct the surfaces that claim enforcement that does not exist** — the
-  chokepoint column of the audit catalogue's force rule, the two claims in
-  `CLAUDE.md`, the claim in `design-decisions.md`, `promote --help`'s "coherence
-  checks still run", and the two contradicting code comments named in *Context*.
+- **Correct the surfaces that claim enforcement that does not exist**, so each
+  names the seam that actually refuses rather than a chokepoint that was never
+  built. M-0293's table is the enumeration; it spans the kernel's own
+  documentation, the audit catalogue, a flag's help text, and the two
+  contradicting code comments named in *Context*.
 - **Re-aim the sovereign dispatcher policy** (G-0534) at a code reference. Its
   subject narrows once the guard sits at `verb.Apply`: routing is then structural
   rather than policed, and what is left to assert is that no production path
