@@ -1,7 +1,7 @@
 ---
 id: D-0055
 title: Accept the !testpins lint residue over a second lint pass
-status: proposed
+status: accepted
 ---
 ## Question
 
