@@ -25,13 +25,14 @@ type CoherenceError struct {
 
 func (e *CoherenceError) Error() string { return e.Message }
 
-// Coherence rule names. These are referenced by `aiwf check`'s
-// provenance findings (step 7) — keep them stable.
+// Coherence rule names. AsCoherenceError returns one to callers that
+// switch on the rule rather than on message text, so they are part of
+// this package's surface.
 const (
 	CoherenceRuleOnBehalfOfMissingAuthorizedBy    = "on-behalf-of-missing-authorized-by"
 	CoherenceRuleAuthorizedByMissingOnBehalfOf    = "authorized-by-missing-on-behalf-of"
 	CoherenceRulePrincipalMissingForNonHumanActor = "principal-missing-for-non-human-actor"
-	CoherenceRulePrincipalForbiddenForHumanActor  = "principal-forbidden-for-human-actor"
+	CoherenceRulePrincipalRequiresNonHumanActor   = "principal-requires-non-human-actor"
 	CoherenceRuleOnBehalfOfForbiddenForHumanActor = "on-behalf-of-forbidden-for-human-actor"
 	CoherenceRuleForceWithOnBehalfOf              = "force-with-on-behalf-of"
 	CoherenceRuleForceNonHuman                    = "force-non-human"
@@ -105,11 +106,14 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 		}
 	}
 
-	// Mutually exclusive: principal + human actor.
-	if hasPrincipal && actorIsHuman {
+	// The other half of the required-together pair: a principal names who
+	// a non-human actor acts for, so a principal alongside anything else —
+	// a human actor, or no actor at all — describes an accountability
+	// relationship with no agent in it.
+	if hasPrincipal && !actorIsNonHuman {
 		return &CoherenceError{
-			Rule:    CoherenceRulePrincipalForbiddenForHumanActor,
-			Message: fmt.Sprintf("aiwf-principal is forbidden when aiwf-actor is human/ (got actor=%q)", actor),
+			Rule:    CoherenceRulePrincipalRequiresNonHumanActor,
+			Message: fmt.Sprintf("aiwf-principal requires a non-human aiwf-actor (got actor=%q)", actor),
 		}
 	}
 

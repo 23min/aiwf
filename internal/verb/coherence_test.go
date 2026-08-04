@@ -116,7 +116,7 @@ func TestCheckTrailerCoherence_Rules(t *testing.T) {
 				{Key: gitops.TrailerActor, Value: "human/peter"},
 				{Key: gitops.TrailerPrincipal, Value: "human/peter"},
 			},
-			wantRule: CoherenceRulePrincipalForbiddenForHumanActor,
+			wantRule: CoherenceRulePrincipalRequiresNonHumanActor,
 		},
 		{
 			name: "on-behalf-of with human actor",
