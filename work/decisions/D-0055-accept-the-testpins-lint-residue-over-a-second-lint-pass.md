@@ -3,59 +3,53 @@ id: D-0055
 title: Accept the !testpins lint residue over a second lint pass
 status: proposed
 ---
-## Context
+## Question
 
-`.golangci.yml` declares `run.build-tags`. Adding `testpins` brought the
-`testpins`-gated sources — the branch Pin registry, the CLI integration pin
-tests, and one policy sabotage test — into the lint surface for the first time,
-closing the hole G-0470 reported.
+`golangci-lint` lints the union of the declared build tags in a single pass
+rather than each tag configuration separately. So declaring `testpins` brought
+the tagged sources into the lint surface and pushed the `//go:build !testpins`
+arm out of it, in the same edit. G-0470 reported the first half and left the
+second explicitly open: accept the residue, or add a second invocation that
+lints without the tag.
 
-`golangci-lint` lints the union of the declared tags in a single pass rather than
-lint each tag configuration separately. A file gated behind `//go:build
-!testpins` therefore compiles in no configuration the linter runs, and leaves the
-lint surface as a side effect of the tag being declared. The residue is
-`internal/cli/integration`'s negated-arm pin files.
-
-The untagged `go vet ./...` in `.github/workflows/go.yml` is the configuration the
-negated arm builds under, so the compile-level check still reaches it. What it
-loses is the style and correctness surface `golangci-lint` adds over `go vet`:
-`staticcheck`, `errcheck`, `gocritic`, `revive`, `gosec` and the rest of the
-enabled set.
+What makes it non-obvious is that both sides are cheap to state and priced very
+differently. The residue is real lost coverage, and the fix is one more command
+— but that command costs a full additional pass over the module, on every push,
+against a subject that does not grow.
 
 ## Decision
 
-Accept the negated-arm residue. Do not add a second `golangci-lint` invocation
-configured without `testpins`.
+Accept the residue. Do not add a second `golangci-lint` invocation for the
+negated arm.
 
-Rationale:
+## Reasoning
 
-- The residue is test scaffolding whose whole job is to be referenced by the
-  tagged arm. The linters that would reach it police style and misuse in code
-  that has neither branches nor callers outside its own pin.
-- A second invocation is not a second file's worth of work — `golangci-lint` has
-  no per-tag mode, so reaching the negated arm costs a full additional pass over
-  the module in `make lint`, in the pre-push hook, and in the `lint` CI job
-  alike. That is paid on every push, forever, against a fixed and tiny subject.
-- The asymmetry is deliberate rather than accidental: the tagged arm carries the
-  registry and the assertions, so it is where a lint finding would mean
-  something. Declaring `testpins` puts the linter on the arm that has the
-  content.
+The cost is not proportional to the subject. `golangci-lint` has no per-tag
+mode, so reaching the negated arm means a second whole-module pass in `make
+lint`, in the pre-push hook, and in the `lint` CI job alike. That is paid on
+every push forever, to reach a fixed and tiny surface.
 
-Rejected alternative: leaving `testpins` undeclared, which was the state G-0470
-reported. It trades a large unlinted surface for a small one and is strictly
-worse.
+The subject is scaffolding whose job is to be referenced by the tagged arm — no
+branches, no callers outside its own pin. The linters that would newly reach it
+police style and misuse in code that has neither.
 
-## Revisit trigger
+The asymmetry is the point rather than a side effect: the tagged arm carries the
+registry and the assertions, so it is the arm where a finding would mean
+something, and declaring the tag is what puts the linter there.
 
-Add the second invocation when a **third** `//go:build !testpins` file appears,
-or when the negated arm grows past scaffolding into logic with its own branches.
-Either signals that the unlinted surface has stopped being a fixed, trivial
-constant, which is the only property that makes one lint pass over it a bad
-trade.
+The rejected alternative is not the second invocation but the status quo ante —
+leaving `testpins` undeclared, which is what G-0470 reported. It trades a large
+unlinted surface for a small one and loses on its own terms.
 
-## References
+## Follow-ups
 
-- G-0470 — the gap this closes, which named the negated arm as an open decision
-  rather than deciding it.
-- `.golangci.yml` — the operating fact at the site: why the residue exists and
-  what still compiles it.
+Revisit when a third `//go:build !testpins` file appears, or when the negated
+arm grows past scaffolding into logic with branches of its own. Either signals
+that the unlinted surface has stopped being a fixed, trivial constant — which is
+the only property that makes an extra whole-module pass a bad trade.
+
+No check holds that trigger. A policy counting negated-arm files could, and by
+D-0054's rule a check would be the better record — but a chokepoint whose whole
+subject is a two-file constant is the per-subject mandate this project declines
+by default. The condition stays prose, and the cost of missing it is one lint
+pass nobody scheduled.
