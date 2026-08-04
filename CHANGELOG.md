@@ -27,6 +27,30 @@ repo and go stale as the entities behind them change status. The comments now
 state what the hook does without them. Running `aiwf update` rewrites the
 installed hooks with the new text; behavior is unchanged.
 
+### Fixed — G-0535: the repo-lock policy examines dispatchers again
+
+No user-visible behavior change. `PolicyApplyCallersAcquireLock` asserts that a
+verb dispatcher reaching `verb.Apply` takes the repo lock first, and it scoped
+its walk to `cmd/aiwf/`, which has held only `main.go` since the per-verb
+dispatchers moved to `internal/cli/<verb>/`. It examined nothing.
+
+The obligation it polices was never affected: the repo lock is taken at the
+dispatcher layer and at no other — `internal/verb` never acquires it. Only the
+scan lost sight of the dispatchers. It now walks `internal/cli/`, excluding the
+`cliutil` helper layer by path, since those helpers run inside a dispatcher that
+already holds the lock and requiring them to re-take it would assert the
+opposite of what the lock is for.
+
+Dispatchers are selected by package rather than by name. The old scan also
+filtered on a `run` name prefix, which is case-sensitive: it matched a subverb's
+`run<Sub>` and silently dropped every verb's `Run`, which is most of them. A
+live-tree test now fails if the prefix stops containing dispatchers, and fails
+separately if either naming shape goes unexamined; a second test pins the helper
+exclusion.
+
+The other three policies named in G-0535 are untouched and it stays open — their
+subjects need re-deciding rather than re-pointing.
+
 ### Fixed — verb groups report a usage error instead of success
 
 `aiwf acknowledge`, `aiwf contract`, `aiwf contract recipe`, `aiwf milestone`,
