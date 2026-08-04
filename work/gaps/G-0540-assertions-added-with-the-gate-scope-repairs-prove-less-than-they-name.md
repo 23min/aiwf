@@ -2,6 +2,7 @@
 id: G-0540
 title: Assertions added with the gate-scope repairs prove less than they name
 status: open
+priority: medium
 ---
 ## What's missing
 
