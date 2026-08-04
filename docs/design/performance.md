@@ -229,8 +229,8 @@ Cancelled after measurement (recorded here so they aren't re-litigated):
 
 Deferred levers carried forward (profiled, unstarted): **G-0323** incremental
 `aiwf check` via a validated watermark; **G-0324** branch hygiene; **G-0325**
-parallelize independent history walks + blob reads; **G-0327** harden the fsm-history
-blob read; **G-0328** golden-fixture byte-identity comparator for `aiwf check`.
+parallelize independent history walks + blob reads; **G-0328** golden-fixture
+byte-identity comparator for `aiwf check`.
 
 ---
 

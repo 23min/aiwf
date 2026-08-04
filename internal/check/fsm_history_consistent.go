@@ -275,14 +275,26 @@ func walkStatusChanges(ctx context.Context, root string, t *tree.Tree) ([]status
 }
 
 // parseStatusFromFrontmatter extracts the status field from an
-// entity file's YAML frontmatter (the block between leading `---`
-// and the next `---`). Returns "" for any failure mode: missing
-// frontmatter, unterminated frontmatter, YAML parse error, or
-// absent status field.
+// entity file's YAML frontmatter. Returns "" for any failure mode —
+// see parseIDAndStatusFromFrontmatter, which it delegates to.
+func parseStatusFromFrontmatter(content []byte) string {
+	_, status := parseIDAndStatusFromFrontmatter(content)
+	return status
+}
+
+// parseIDAndStatusFromFrontmatter extracts the id and status fields
+// from an entity file's YAML frontmatter (the block between leading
+// `---` and the next `---`). Returns ("", "") for any failure mode:
+// missing frontmatter, unterminated frontmatter, or YAML parse error;
+// an absent field comes back empty on its own.
+//
+// The id is read alongside the status because a blob read out of
+// history carries no path to identify it by, so the id in its
+// frontmatter is the only thing that says whose status this is.
 //
 // Accepts both `---\n` and `---\r\n` opening sequences so files
 // written on Windows hosts still parse.
-func parseStatusFromFrontmatter(content []byte) string {
+func parseIDAndStatusFromFrontmatter(content []byte) (id, status string) {
 	var rest []byte
 	switch {
 	case bytes.HasPrefix(content, []byte("---\n")):
@@ -290,19 +302,20 @@ func parseStatusFromFrontmatter(content []byte) string {
 	case bytes.HasPrefix(content, []byte("---\r\n")):
 		rest = content[5:]
 	default:
-		return ""
+		return "", ""
 	}
 	end := bytes.Index(rest, []byte("\n---"))
 	if end < 0 {
-		return ""
+		return "", ""
 	}
 	var meta struct {
+		ID     string `yaml:"id"`
 		Status string `yaml:"status"`
 	}
 	if err := yaml.Unmarshal(rest[:end], &meta); err != nil {
-		return ""
+		return "", ""
 	}
-	return meta.Status
+	return meta.ID, meta.Status
 }
 
 // hasGitCommits reports whether root is a git repo with at least one

@@ -68,16 +68,24 @@ type PathTouch struct {
 	PostSHA string
 }
 
-// blobZeroID is git's all-zero object id, emitted by `git log --raw`
-// for the absent side of an add (PreSHA) or delete (PostSHA).
-const blobZeroID = "0000000000000000000000000000000000000000"
+// blobZeroSHA1 and blobZeroSHA256 are git's all-zero object ids,
+// emitted by `git log --raw` for the absent side of an add (PreSHA) or
+// delete (PostSHA). A repository emits one or the other according to
+// its object format (`git init --object-format=`), at the same hex
+// width as a real id in that repository — so both spellings are live
+// input, and a reader that knows only the SHA-1 one takes the absent
+// side of every add and delete in a SHA-256 repository for a real id.
+const (
+	blobZeroSHA1   = "0000000000000000000000000000000000000000"
+	blobZeroSHA256 = "0000000000000000000000000000000000000000000000000000000000000000"
+)
 
 // BlobAllZero reports whether id is git's all-zero blob object id —
 // the "no blob on this side" sentinel `git log --raw` emits for the
 // pre-image of an add or the post-image of a delete. Consumers treat
 // it the same as a missing blob (no content to read).
 func BlobAllZero(id string) bool {
-	return id == "" || id == blobZeroID
+	return id == "" || id == blobZeroSHA1 || id == blobZeroSHA256
 }
 
 // Sentinels used to delimit the `git log` output into per-commit

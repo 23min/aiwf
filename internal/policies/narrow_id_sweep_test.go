@@ -99,6 +99,13 @@ func TestPolicy_NarrowIDLiteralsAllowlisted(t *testing.T) {
 		// input that proves the classifier does not confuse the two.
 		"internal/check/skill_body_id_placeholder_width_test.go": "placeholder-width classifier: narrow numeric ids must classify as real-id citations, not width defects",
 
+		// The FSM history walker decides whether a renamed file's
+		// pre-image belongs to the entity now at that path by comparing
+		// the id in its frontmatter. History holds whatever width was
+		// written at the time, so the narrow literal IS the input that
+		// proves the comparison canonicalizes rather than string-matches.
+		"internal/check/fsm_history_walker_test.go": "rename identity guard compares canonicalized ids; narrow input proves width-insensitivity",
+
 		// Contractbind's unbind preserves the on-disk yaml entry
 		// verbatim (body-prose canonicalization is M-082's job).
 		"internal/verb/contractbind_test.go": "yaml-entry round-trip preserves narrow legacy widths verbatim (deferred to M-082)",
