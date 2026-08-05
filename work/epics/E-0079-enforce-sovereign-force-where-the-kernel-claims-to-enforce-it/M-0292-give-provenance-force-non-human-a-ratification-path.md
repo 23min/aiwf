@@ -11,7 +11,7 @@ acs:
       tdd_phase: done
     - id: AC-2
       title: The acknowledged commit is unchanged and its reason is readable
-      status: open
+      status: met
       tdd_phase: done
 ---
 
