@@ -12,7 +12,7 @@ acs:
     - id: AC-2
       title: The acknowledged commit is unchanged and its reason is readable
       status: open
-      tdd_phase: red
+      tdd_phase: green
 ---
 
 ## Goal
