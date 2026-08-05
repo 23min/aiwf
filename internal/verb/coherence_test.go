@@ -291,6 +291,15 @@ func TestCoherenceError_Code(t *testing.T) {
 			rule: CoherenceRulePrincipalMissingForNonHumanActor,
 			want: check.CodeProvenanceTrailerIncoherent,
 		},
+		{
+			// The second rule with a check-side code of its own. Mapping
+			// it to the generic incoherent-trailer code would break the
+			// one-identifier promise for a violation the audit already
+			// names precisely.
+			name: "audit-only by a non-human actor",
+			rule: CoherenceRuleAuditOnlyNonHuman,
+			want: check.CodeProvenanceAuditOnlyNonHuman,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

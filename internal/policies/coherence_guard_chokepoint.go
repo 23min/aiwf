@@ -7,13 +7,28 @@ import (
 	"strings"
 )
 
-// verbCommitCall is the one call that builds a commit carrying a verb's
-// provenance trailers. Every other commit-construction primitive in
-// gitops is reachable only from inside that package.
-const verbCommitCall = "gitops.CommitVerbChange("
+// gitopsImportPath is the package whose commit-construction primitives
+// this policy tracks.
+const gitopsImportPath = "github.com/23min/aiwf/internal/gitops"
+
+// commitPrimitives are every exported gitops function that builds a
+// commit. Naming only CommitVerbChange would hold the seam against the
+// call a verb is supposed to make while ignoring the three that would
+// bypass it — a caller reaching for a lower-level primitive is exactly
+// the shape this policy exists to catch.
+var commitPrimitives = map[string]bool{
+	"CommitVerbChange": true,
+	"CommitTree":       true,
+	"Commit":           true,
+	"CommitAllowEmpty": true,
+}
+
+// verbCommitCall names the primitive a verb commit is supposed to route
+// through, for the violation messages.
+const verbCommitCall = "gitops.CommitVerbChange"
 
 // coherenceGuardCall is the guard that must run ahead of it.
-const coherenceGuardCall = "CheckSovereignForceCoherence("
+const coherenceGuardCall = "CheckForceTrailerCoherence"
 
 // commitSite is one function that builds a verb commit.
 type commitSite struct {
@@ -40,7 +55,12 @@ func verbCommitSites(root string) (sites []commitSite, unparseable []string, err
 	}
 	fset := token.NewFileSet()
 	for _, f := range files {
-		if !strings.Contains(string(f.Contents), verbCommitCall) {
+		// gitops composes its own primitives; the seam is about who
+		// calls into the package from outside it.
+		if strings.HasPrefix(f.Path, "internal/gitops/") {
+			continue
+		}
+		if !mentionsCommitPrimitive(f.Contents) {
 			continue
 		}
 		astFile, perr := parser.ParseFile(fset, f.AbsPath, f.Contents, parser.AllErrors)
@@ -48,30 +68,91 @@ func verbCommitSites(root string) (sites []commitSite, unparseable []string, err
 			unparseable = append(unparseable, f.Path)
 			continue
 		}
+		// The local name gitops is bound to in this file. An aliased
+		// import renames the selector, so a textual scan for
+		// "gitops.Commit…" would miss the call entirely.
+		local := gitopsLocalName(astFile)
+		if local == "" {
+			continue
+		}
 		for _, decl := range astFile.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if !ok || fn.Body == nil {
 				continue
 			}
-			start := fset.Position(fn.Body.Lbrace).Offset
-			end := fset.Position(fn.Body.Rbrace).Offset
-			if start < 0 || end <= start || end > len(f.Contents) { //coverage:ignore defensive: positions come from the same fset and contents the file was parsed from, so they are in range for any file that parsed
-				continue
-			}
-			body := string(f.Contents[start:end])
-			if !strings.Contains(body, verbCommitCall) {
+			commits, guarded := scanFuncBody(fn.Body, local)
+			if !commits {
 				continue
 			}
 			sites = append(sites, commitSite{
 				File:      f.Path,
 				Line:      fset.Position(fn.Pos()).Line,
 				Func:      fn.Name.Name,
-				HasGuard:  strings.Contains(body, coherenceGuardCall),
+				HasGuard:  guarded,
 				IsTheSeam: fn.Name.Name == "Apply" && strings.HasPrefix(f.Path, "internal/verb/"),
 			})
 		}
 	}
 	return sites, unparseable, nil
+}
+
+// mentionsCommitPrimitive is the cheap pre-filter deciding which files
+// are worth parsing — and, for a file that fails to parse, whether its
+// failure is worth reporting.
+func mentionsCommitPrimitive(contents []byte) bool {
+	s := string(contents)
+	for name := range commitPrimitives {
+		if strings.Contains(s, name) {
+			return true
+		}
+	}
+	return false
+}
+
+// gitopsLocalName returns the identifier gitops is bound to in this
+// file — its alias where one is given, else the package name. Empty
+// when the file does not import it at all.
+func gitopsLocalName(astFile *ast.File) string {
+	for _, imp := range astFile.Imports {
+		if strings.Trim(imp.Path.Value, `"`) != gitopsImportPath {
+			continue
+		}
+		if imp.Name != nil {
+			return imp.Name.Name
+		}
+		return "gitops"
+	}
+	return ""
+}
+
+// scanFuncBody reports whether this function builds a commit through a
+// gitops primitive, and whether it also calls the coherence guard.
+//
+// Both are answered from call expressions rather than from the body's
+// text, so a primitive named in a comment or in a string literal is not
+// mistaken for a call — this package's own policies quote these names
+// as literals, which a textual scan cannot tell apart from the real
+// thing.
+func scanFuncBody(body *ast.BlockStmt, gitopsLocal string) (commits, guarded bool) {
+	ast.Inspect(body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		switch fn := call.Fun.(type) {
+		case *ast.SelectorExpr:
+			pkg, isIdent := fn.X.(*ast.Ident)
+			if isIdent && pkg.Name == gitopsLocal && commitPrimitives[fn.Sel.Name] {
+				commits = true
+			}
+		case *ast.Ident:
+			if fn.Name == coherenceGuardCall {
+				guarded = true
+			}
+		}
+		return true
+	})
+	return commits, guarded
 }
 
 // PolicyCoherenceGuardChokepoint holds the sovereign-force guard at the
@@ -90,10 +171,12 @@ func verbCommitSites(root string) (sites []commitSite, unparseable []string, err
 // builds its own commit alongside.
 //
 // Scope worth stating, since the doc above would otherwise read as more
-// than it is: this is a textual scan, so it holds presence, not
-// ordering — a guard placed after the commit call, or one whose error
-// was discarded, would satisfy it. Ordering is pinned behaviorally
-// instead, by the unmoved-HEAD and no-write-landed assertions in
+// than it is. The scan resolves calls, so an aliased import is caught
+// and a primitive named in a comment or a string literal is not
+// mistaken for one. It still holds presence rather than ordering: a
+// guard placed after the commit call, or one whose error was discarded,
+// would satisfy it. Ordering is pinned behaviorally instead, by the
+// unmoved-HEAD and no-write-landed assertions in
 // internal/verb/apply_coherence_test.go.
 func PolicyCoherenceGuardChokepoint(root string) ([]Violation, error) {
 	sites, unparseable, err := verbCommitSites(root)

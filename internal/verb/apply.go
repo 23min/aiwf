@@ -72,13 +72,13 @@ func Apply(ctx context.Context, root string, p *Plan) (sha string, err error) {
 	// yet.
 	//
 	// The subset is deliberate and its reasoning lives on
-	// CheckSovereignForceCoherence. In short: a verb whose trailer set is
+	// CheckForceTrailerCoherence. In short: a verb whose trailer set is
 	// incomplete for a reason unrelated to force is the push's business,
 	// not this seam's.
 	//
 	// It runs first so a refusal costs no filesystem work and leaves HEAD
 	// where it was.
-	if cohErr := CheckSovereignForceCoherence(p.Trailers); cohErr != nil {
+	if cohErr := CheckForceTrailerCoherence(p.Trailers); cohErr != nil {
 		return "", cohErr
 	}
 	staged, stagedErr := gitops.StagedPaths(ctx, root)

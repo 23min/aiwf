@@ -33,15 +33,18 @@ func (e *CoherenceError) Error() string { return e.Message }
 // than the internal-failure one — see the exit-code contract on
 // cliutil.FinishVerb.
 //
-// Only force-non-human has a finding code of its own; the rest of the
-// rule set is reported check-side under the one incoherent-trailer
-// code, and the refusal follows it rather than inventing a second
-// vocabulary.
+// Two rules have a finding code of their own check-side; the rest are
+// reported there under the one incoherent-trailer code, and the refusal
+// follows that rather than inventing a second vocabulary.
 func (e *CoherenceError) Code() string {
-	if e.Rule == CoherenceRuleForceNonHuman {
+	switch e.Rule {
+	case CoherenceRuleForceNonHuman:
 		return check.CodeProvenanceForceNonHuman
+	case CoherenceRuleAuditOnlyNonHuman:
+		return check.CodeProvenanceAuditOnlyNonHuman
+	default:
+		return check.CodeProvenanceTrailerIncoherent
 	}
-	return check.CodeProvenanceTrailerIncoherent
 }
 
 // Coherence rule names. AsCoherenceError returns one to callers that
@@ -145,7 +148,7 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 
 	// The rules predicated on a force trailer, in their own function
 	// because verb.Apply enforces exactly this subset.
-	if err := CheckSovereignForceCoherence(trailers); err != nil {
+	if err := CheckForceTrailerCoherence(trailers); err != nil {
 		return err
 	}
 
@@ -160,24 +163,31 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 	return nil
 }
 
-// CheckSovereignForceCoherence validates the subset of the coherence
+// CheckForceTrailerCoherence validates the subset of the coherence
 // rules predicated on an aiwf-force trailer: a set carrying no force
 // trailer is always coherent by this function's lights. Returns nil
 // when the set passes; returns a *CoherenceError naming a single rule
 // violation otherwise.
 //
-// This is what verb.Apply enforces, and the scope is deliberate.
-// Enforcing the whole rule set there refuses any verb whose trailer
-// set is incomplete for a reason unrelated to force — which closed
-// every contract verb to non-human actors, since those verbs never
-// pass through the provenance-decoration layer and so carry no
-// aiwf-principal. Sovereignty is what this seam exists to enforce, and
-// force is what makes an act sovereign.
+// This is what verb.Apply enforces, and the criterion for membership is
+// satisfiability: a rule belongs here only if every verb that can reach
+// the seam has some invocation that satisfies it. The force rules pass
+// that test because a verb emitting no force trailer satisfies them
+// vacuously. The principal rules fail it — the contract verbs never
+// pass through the provenance-decoration layer, carry no
+// aiwf-principal, and register no flag that could supply one, so
+// enforcing those here is a closed door rather than a rule.
+//
+// Do not read the subset as "the sovereign rules". Audit-only is
+// sovereign too and is deliberately not here, because it fails the same
+// satisfiability test for the same reason. What retires that exclusion
+// is provenance wiring on the verbs that lack it, not a change of
+// principle.
 //
 // Adding a rule here therefore changes what the CLI refuses live, at
-// the moment a verb is attempted. A rule that belongs to the
-// history-walking audit rather than to the sovereign-act gate goes in
-// CheckTrailerCoherence instead.
+// the moment a verb is attempted. A rule no invocation could satisfy
+// goes in CheckTrailerCoherence instead, where the history-walking
+// audit reports it after the fact.
 //
 // force-non-human is checked before force-with-on-behalf-of because a
 // non-human actor can only reach this seam through an active scope,
@@ -185,7 +195,7 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 // and report two trailer keys the operator never typed. The rule order
 // is the operator's error message, so it is chosen rather than
 // inherited.
-func CheckSovereignForceCoherence(trailers []gitops.Trailer) error {
+func CheckForceTrailerCoherence(trailers []gitops.Trailer) error {
 	idx := indexTrailers(trailers)
 
 	actor := idx[gitops.TrailerActor]

@@ -295,13 +295,18 @@ func TestCheckTrailerCoherence_EveryRuleIsReachable(t *testing.T) {
 // aiwf-force trailer. Written out rather than derived from the
 // function under test, so a rule silently added to or dropped from
 // the seam's subset shows up as a failure here.
+//
+// Hand-maintained, like coherenceRules above, and retired by the same
+// thing: M-0294's rule registry, which makes both derivable. Until
+// then a fourth force-predicated rule must be added here by hand or
+// this test stops covering it.
 var forcePredicatedRules = map[string]bool{
 	CoherenceRuleForceNonHuman:       true,
 	CoherenceRuleForceWithOnBehalfOf: true,
 	CoherenceRuleAuditOnlyWithForce:  true,
 }
 
-// TestCheckSovereignForceCoherence_IsTheForcePredicatedSubset pins what
+// TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset pins what
 // verb.Apply enforces, across the same generated domain the full rule
 // set is pinned over.
 //
@@ -314,13 +319,13 @@ var forcePredicatedRules = map[string]bool{
 // provenance-decoration layer cannot satisfy those rules by any
 // invocation. So both directions are asserted, and the expectation is
 // derived from the rules' own statements rather than from the function.
-func TestCheckSovereignForceCoherence_IsTheForcePredicatedSubset(t *testing.T) {
+func TestCheckForceTrailerCoherence_IsTheForcePredicatedSubset(t *testing.T) {
 	t.Parallel()
 	for _, tc := range coherenceDomain() {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actorIsNonHuman := tc.actor != "" && !strings.HasPrefix(tc.actor, "human/")
-			err := CheckSovereignForceCoherence(tc.trailers)
+			err := CheckForceTrailerCoherence(tc.trailers)
 
 			// Derived from the three rule statements, not from the code:
 			// force is sovereign, so it cannot be wielded by an agent, on
