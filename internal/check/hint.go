@@ -1,5 +1,7 @@
 package check
 
+import "strings"
+
 // hintTable maps a finding's Code+Subcode to a one-line "what to do
 // about it" hint. Render layers append `— hint: <hint>` to the
 // human-readable line; JSON consumers see the same string in the
@@ -337,13 +339,84 @@ var hintTable = map[string]string{
 // Returns "" when no hint is registered. Verb-side findings (e.g.,
 // reallocate-body-reference) call this so the human-facing suggestion
 // stays in one place.
+//
+// A ratifiable code's hint gains the acknowledgment sentence here
+// rather than carrying it in the table — see ratificationSentence.
+//
+// The join supplies a sentence break, since most table hints are
+// written without closing punctuation and a few are not.
 func HintFor(code, subcode string) string {
 	if subcode != "" {
 		if h, ok := hintTable[code+"/"+subcode]; ok {
-			return h
+			return withRatificationHint(code, h)
 		}
 	}
-	return hintTable[code]
+	return withRatificationHint(code, hintTable[code])
+}
+
+// ratifiableByAcknowledgment reports whether `aiwf acknowledge illegal
+// <sha>` clears code. Ratifiable means exactly "RunProvenance emits
+// it": that function skips an acknowledged commit ahead of every rule
+// it runs. The prefix test plus the exclusions below is a cheap stand-in
+// for the emitted set, and
+// TestRatifiableByAcknowledgment_MatchesWhatRunProvenanceEmits holds the
+// two together in both directions by driving the rules over fixtures.
+//
+// Two provenance-prefixed codes come from elsewhere and are excluded.
+// provenance-untrailered-entity-commit is raised by RunUntrailedAudit
+// against per-(commit, entity) pairs and clears only under the
+// `--for-entity` shape, whose binding the verb verifies against the
+// commit's own diff; its own hint names that repair.
+// provenance-untrailered-scope-undefined reports that the audit range
+// could not be determined, which is a property of the invocation rather
+// than of any commit — there is nothing for an acknowledgment to name.
+// Advertising the blanket form on either would send an operator at a
+// command that changes nothing.
+func ratifiableByAcknowledgment(code string) bool {
+	if !strings.HasPrefix(code, "provenance-") {
+		return false
+	}
+	switch code {
+	case CodeProvenanceUntrailedEntityCommit, CodeProvenanceUntrailedScopeUndefined:
+		return false
+	}
+	return true
+}
+
+// ratificationSentence is the one copy of the remedy every ratifiable
+// provenance finding ends with. These rules audit git history, so the
+// commit they name is already written: the fix each hint suggests —
+// re-run the verb, correct a git config, amend the commit — either
+// cannot be performed on a commit that has landed, or performs it by
+// rewriting history. Ratification is the third option, and an operator
+// who is not told about it at the moment of the finding is told only
+// about the two that do not apply.
+//
+// It states the scope as well as the command, because the scope is the
+// part that surprises: the acknowledgment clears the commit, so a
+// reason written about one finding retires every other finding against
+// the same commit too.
+const ratificationSentence = "A commit already in history cannot be re-run or corrected in place — " +
+	"ratify it with `aiwf acknowledge illegal <sha> --reason \"...\"`, which clears every " +
+	"provenance finding against that one commit (and nothing on any other)."
+
+// withRatificationHint appends ratificationSentence when code is
+// ratifiable and hint is non-empty. An empty hint stays empty: a code
+// with no registered hint emits none at all, and a finding whose only
+// advice is "you may ratify this" would not tell the reader what it is
+// they would be ratifying.
+//
+// Most table hints carry no closing punctuation and a few do, so the
+// join supplies the sentence break only where one is missing.
+func withRatificationHint(code, hint string) string {
+	if hint == "" || !ratifiableByAcknowledgment(code) {
+		return hint
+	}
+	sep := ". "
+	if strings.ContainsRune(".!?", rune(hint[len(hint)-1])) {
+		sep = " "
+	}
+	return hint + sep + ratificationSentence
 }
 
 // applyHints fills in Hint on every finding from the hint table.

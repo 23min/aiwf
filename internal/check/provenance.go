@@ -81,9 +81,25 @@ var CodeProvenanceAuthorizationOutOfScope = codespkg.Code{ID: "provenance-author
 // t is the current entity tree, consulted by the
 // authorization-out-of-scope rule for reference reachability.
 //
+// ackedSHAs is the gather-layer-computed set of retroactively
+// acknowledged commits (M-0292). A commit it names reports no
+// provenance finding at all — the same all-or-nothing scoping every
+// other consumer of that map already has.
+//
+// The guard sits here rather than inside the three rule groups because
+// the scoping is per-commit, not per-code. Per-code was considered and
+// rejected: one trailer can raise two codes that say the same thing,
+// so clearing a chosen subset leaves the push blocked by the objection
+// already ratified. docs/design/provenance-model.md §Ratification
+// carries the argument and the worked case.
+//
+// The commit still participates in the cross-commit indexes built
+// below — it can open a scope or end one — since those describe
+// history rather than judge it. Only its findings are skipped.
+//
 // The function is pure (no I/O, no git subprocess); the caller
 // (cmd/aiwf) gathers commits via gitops and hands them in.
-func RunProvenance(commits []scope.Commit, t *tree.Tree) []Finding {
+func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bool) []Finding {
 	authIndex := buildAuthOpenerIndex(commits)
 	chronoIdx := make(map[string]int, len(commits))
 	for i, c := range commits {
@@ -96,6 +112,9 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree) []Finding {
 	var findings []Finding
 	for i := range commits {
 		c := &commits[i]
+		if ackedSHAs[c.SHA] {
+			continue
+		}
 		idx := indexCommitTrailersForProvenance(c.Trailers)
 		findings = append(findings, provenanceShapeFindings(c, idx)...)
 		findings = append(findings, provenanceCoherenceFindings(c, idx)...)
@@ -107,6 +126,10 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree) []Finding {
 // provenanceShapeFindings runs the per-trailer shape rules: actor,
 // principal, on-behalf-of, authorized-by, plus the human-only
 // constraints on aiwf-force / aiwf-audit-only.
+//
+// Acknowledgment is not consulted here, nor in either sibling group —
+// RunProvenance skips an acknowledged commit before reaching any of
+// them.
 func provenanceShapeFindings(c *scope.Commit, idx map[string]string) []Finding {
 	var findings []Finding
 	actor := idx[gitops.TrailerActor]
@@ -550,7 +573,8 @@ func RunUntrailedAudit(commits []UntrailedCommit, ackedSHAEntities map[string]ma
 			// entity); the rule trusts that write-time check by
 			// keying off the ack-commit trailers here. SHA-only
 			// acks (without `aiwf-entity`) do NOT suppress this
-			// rule — they cover only the legacy seven rules.
+			// rule — they cover the SHA-scoped rules, which this one
+			// is not.
 			if isShaEntityAcked(c.SHA, canonID, ackedSHAEntities) {
 				continue
 			}

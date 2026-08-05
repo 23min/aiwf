@@ -24,6 +24,7 @@ var ackedSHAsConsumers = []string{
 	"RunIDRenameUntrailered",
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
+	"RunProvenance",
 }
 
 // ackedSHAsBodyConsumers is the set whose bodies class 4d requires to
@@ -40,6 +41,7 @@ var ackedSHAsBodyConsumers = []string{
 	"RunIDRenameUntrailered",
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
+	"RunProvenance",
 	"illegalTransitionFindings",
 	"forcedUntraileredFindings",
 }
@@ -917,9 +919,12 @@ var identifierTokenPattern = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_]*`)
 
 // ackedSHAsDocRosterPattern recognizes the identifier shapes that name a
 // consumer in WalkAcknowledgedSHAs' doc — the exported `Run*` rules and the
-// two unexported leaf predicates. It keeps direction 1's reverse check from
+// unexported leaf predicates. It keeps direction 1's reverse check from
 // treating ordinary prose words as claimed consumers, which is why the check
 // is a roster comparison and not a scan for arbitrary capitalized words.
+// Each leaf predicate is listed by name: an unexported identifier has no
+// shape the pattern could generalize over, so one dropped from both rosters
+// while left in the doc would otherwise go unreported.
 var ackedSHAsDocRosterPattern = regexp.MustCompile(`^(Run[A-Z]|FSMHistoryConsistent$|illegalTransitionFindings$|forcedUntraileredFindings$)`)
 
 // bodyIndexesAckedSHAs reports whether body contains an `ackedSHAs[...]`

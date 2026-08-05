@@ -16,6 +16,39 @@ section in this file.
 
 ## [Unreleased]
 
+### Added — `aiwf acknowledge illegal` now clears provenance findings
+
+`provenance-force-non-human` and its siblings fire on commit history, so they
+also fire on commits no verb produced — imported history, commits predating the
+verb-time guard, hand-composed trailer sets. Until now nothing cleared them:
+these rules never consulted the set of acknowledged commits, so the only
+remaining exits were rewriting the commit or leaving the push blocked.
+
+`aiwf acknowledge illegal <sha> --reason "<why>"` now clears the provenance
+findings against the named commit. It is human-only, records the reason in a
+separate commit, and leaves the acknowledged commit byte-identical — same
+author, same trailers, same SHA.
+
+The exemption covers every provenance rule against that commit rather than a
+chosen subset, matching how the acknowledgment already works for the rules
+outside this family. Clearing only some would leave the push blocked by a second
+rule restating the first: a forced act by an authorized agent raises both
+`provenance-force-non-human` and a `provenance-trailer-incoherent` whose message
+is "force is human-only".
+
+Two provenance-prefixed findings are outside that set and unchanged.
+`provenance-untrailered-entity-commit` still needs `--for-entity <id>`, because
+its findings are per-(commit, entity) pairs and the verb checks that binding
+against the commit's own diff before recording it.
+`provenance-untrailered-scope-undefined` reports that the audit range could not
+be determined — a property of how you invoked `aiwf check`, not of any commit —
+so it is answered by configuring an upstream or passing `--since`, not by an
+acknowledgment.
+
+If you are silencing a finding you did not intend to silence, the scope to check
+is the commit, not the rule — a reason written about one finding retires the
+commit's others too, and nothing on any other commit.
+
 ### Changed — `--force` by a non-human actor is now refused when the verb runs
 
 A forced act by an `ai/...` or `bot/...` actor used to succeed at the verb and

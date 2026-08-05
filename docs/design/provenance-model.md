@@ -271,6 +271,22 @@ New finding codes added in I2.5. All error severity unless noted; all run as sta
 
 The pairing of write-time-refuse + standing-rule (Q3.6a/b) means each rule is enforced twice: once as the verb's pre-commit check (the chokepoint), once as the standing audit. The standing rule catches commits that bypassed the kernel verb (hand-edited, imported, pre-I2.5 history).
 
+### Ratification
+
+A commit the standing rules flag cannot be repaired by re-running the verb — it is already in history, and the alternatives are rewriting it or leaving the push blocked indefinitely. `aiwf acknowledge illegal <sha> --reason "<why>"` is the third option: a human records a separate, current-day empty commit carrying `aiwf-force-for: <sha>`, and the standing rules stop reporting the named commit.
+
+The exemption covers every rule in this family against that commit, with one exception: `provenance-untrailered-entity-commit` is cleared only by the narrower `--for-entity <id>` shape, whose `(commit, entity)` binding the verb verifies against the commit's own diff before recording it. Everything else in the table above clears on the blanket form.
+
+Three properties make this a ratification rather than a mute switch. It is **human-only** — the verb refuses a non-human actor, so the actor whose act is in question cannot clear it. It **carries a written reason**, recorded in the acknowledging commit's `aiwf-reason:` trailer. And it **appends**: the acknowledged commit keeps its author, its trailers, and its SHA, so the record of what happened and the record of who accepted it both stay in history.
+
+An acknowledgment is a judgment about a commit rather than about one of the rules it trips, which is the same scoping the SHA-keyed rules outside this family already use — and it is why the exemption is not per-code. Per-code was considered and rejected: `aiwf-force` on a non-human actor raises `provenance-force-non-human`, and the same trailer beside the `aiwf-on-behalf-of` an authorized agent's commit carries independently raises `provenance-trailer-incoherent`, whose message restates the same rule. Clearing one without the other leaves the push blocked by the same objection under a second name.
+
+That breadth is the cost side, and it is worth stating plainly: a reason written about one finding retires the commit's others too. An acknowledgment recorded for a stray force trailer also retires an out-of-scope authorization finding on the same commit, if there is one. The bound is that it reaches exactly one commit and no other.
+
+Reading an acknowledgment back is `git log --grep` or `git show` on the acknowledging commit — a blanket acknowledgment carries no `aiwf-entity:` trailer, so `aiwf history <id>` does not render it, and `aiwf history` does not take a SHA. Only the `--for-entity` shape appears in an entity's timeline.
+
+No verb undoes an acknowledgment, deliberately: it is an audit record, and retracting it would rewrite the trail it exists to preserve.
+
 ### Backwards compatibility
 
 Pre-I2.5 commits do not carry the new trailers. The standing rules treat absence as benign for pre-I2.5 commits: a commit with `aiwf-actor: human/peter` and no `aiwf-principal:` is fine (Q3.6b: principal forbidden when actor is human). A commit with `aiwf-actor: ai/claude` and no principal *would* fire `provenance-trailer-incoherent` — but in practice no pre-I2.5 commits had `ai/...` as the actor, so no false positives are expected.
