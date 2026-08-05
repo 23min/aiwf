@@ -2,6 +2,7 @@
 id: G-0549
 title: validator-unavailable has no row and inherits a wrong-table fallback
 status: open
+priority: medium
 ---
 ## What's missing
 
