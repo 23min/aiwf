@@ -250,3 +250,33 @@ func TestPolicyCoherenceGuardChokepoint_IgnoresAPrimitiveNamedInAString(t *testi
 		t.Errorf("%s:%d: %s — a quoted primitive name is not a call site", v.File, v.Line, v.Detail)
 	}
 }
+
+// TestPolicyCoherenceGuardChokepoint_FiresOnAMethodNamedApply pins the
+// seam's identity as the package-level function, not the name.
+//
+// A method named Apply inside internal/verb/ wears the seam's name
+// without being it. Treating it as the seam would exempt from the
+// policy exactly the shape the policy exists to find: a second function
+// building its own commit.
+func TestPolicyCoherenceGuardChokepoint_FiresOnAMethodNamedApply(t *testing.T) {
+	t.Parallel()
+
+	root := writeFixtureTree(t,
+		"\tCheckForceTrailerCoherence(p.Trailers)\n\tgitops.CommitVerbChange(ctx)",
+		map[string]string{
+			filepath.Join("internal", "verb", "sneak.go"): goFixture("verb",
+				"func (p *Plan) Apply() {\n\tgitops.Commit(ctx)\n}\n"),
+		})
+
+	violations, err := PolicyCoherenceGuardChokepoint(root)
+	if err != nil {
+		t.Fatalf("scanning: %v", err)
+	}
+	if len(violations) != 1 {
+		t.Fatalf("got %d violations, want 1: a method named Apply is a second commit site, not the seam: %+v",
+			len(violations), violations)
+	}
+	if !strings.Contains(violations[0].File, "sneak") {
+		t.Errorf("violation names %q, want the method's file", violations[0].File)
+	}
+}

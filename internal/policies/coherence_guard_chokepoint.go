@@ -85,11 +85,16 @@ func verbCommitSites(root string) (sites []commitSite, unparseable []string, err
 				continue
 			}
 			sites = append(sites, commitSite{
-				File:      f.Path,
-				Line:      fset.Position(fn.Pos()).Line,
-				Func:      fn.Name.Name,
-				HasGuard:  guarded,
-				IsTheSeam: fn.Name.Name == "Apply" && strings.HasPrefix(f.Path, "internal/verb/"),
+				File:     f.Path,
+				Line:     fset.Position(fn.Pos()).Line,
+				Func:     fn.Name.Name,
+				HasGuard: guarded,
+				// fn.Recv == nil because the seam is the package-level
+				// verb.Apply. A method that happens to be named Apply is
+				// a second commit site wearing the seam's name, which is
+				// the thing this policy is looking for rather than an
+				// exception to it.
+				IsTheSeam: fn.Recv == nil && fn.Name.Name == "Apply" && strings.HasPrefix(f.Path, "internal/verb/"),
 			})
 		}
 	}
@@ -130,9 +135,9 @@ func gitopsLocalName(astFile *ast.File) string {
 //
 // Both are answered from call expressions rather than from the body's
 // text, so a primitive named in a comment or in a string literal is not
-// mistaken for a call — this package's own policies quote these names
-// as literals, which a textual scan cannot tell apart from the real
-// thing.
+// mistaken for a call — internal/verb/apply.go names CommitTree in
+// comments inside function bodies, which a textual scan cannot tell
+// apart from the real thing.
 func scanFuncBody(body *ast.BlockStmt, gitopsLocal string) (commits, guarded bool) {
 	ast.Inspect(body, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)

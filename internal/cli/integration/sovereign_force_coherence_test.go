@@ -341,3 +341,32 @@ func TestAuditOnly_NonHumanActor_ExitsAsALegalityRefusal(t *testing.T) {
 		t.Errorf("HEAD moved %s -> %s; the refusal must precede the commit", before[:8], after[:8])
 	}
 }
+
+// TestSovereignActRefusal_DoesNotAdviseAForceThatIsRefused pins the
+// remedy a sovereign-act refusal offers.
+//
+// The message is reachable only for a non-human actor — a human/ actor
+// returns before it — and this milestone made --force by a non-human
+// actor refuse. Advising --force there would send the operator at a
+// gate that rejects them, which is CLAUDE.md's self-explaining-error
+// rule inverted: it says what to do next, and that thing now fails.
+func TestSovereignActRefusal_DoesNotAdviseAForceThatIsRefused(t *testing.T) {
+	t.Parallel()
+	testutil.SkipIfShortOrUnsupported(t)
+
+	root, binDir := sovereignForceRepo(t)
+	// A sovereign-act-shape transition without --force: refused by the
+	// sovereign-act gate, which is the message under test.
+	out, err := testutil.RunBin(t, root, binDir, nil,
+		"promote", "E-0001", "active", "--actor", "ai/claude", "--principal", "human/peter")
+	if err == nil {
+		t.Fatalf("sovereign act by a non-human actor succeeded; want refusal\n%s", out)
+	}
+	if !strings.Contains(out, "sovereign act requires a human/ actor") {
+		t.Fatalf("refusal came from some other guard:\n%s", out)
+	}
+	if strings.Contains(out, "--force") {
+		t.Errorf("the refusal advises --force, which this actor cannot use — "+
+			"following it exits 1 at the coherence guard:\n%s", out)
+	}
+}
