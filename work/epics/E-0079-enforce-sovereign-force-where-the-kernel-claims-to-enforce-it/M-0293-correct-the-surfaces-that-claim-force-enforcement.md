@@ -10,7 +10,7 @@ acs:
     - id: AC-1
       title: Every surface in the table states the seam that actually refuses
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-2
       title: Every force finding hint names what the override does not relax
       status: open
