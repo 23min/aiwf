@@ -1,6 +1,6 @@
 ---
 id: G-0472
-title: Four parameterize-by-name clone families duplicate one job across two layers
+title: Four near-identical function families, only one worth collapsing
 status: open
 priority: medium
 ---
