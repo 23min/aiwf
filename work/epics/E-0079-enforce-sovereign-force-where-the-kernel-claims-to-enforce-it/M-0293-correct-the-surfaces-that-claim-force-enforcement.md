@@ -14,7 +14,7 @@ acs:
     - id: AC-2
       title: Every force finding hint names what the override does not relax
       status: open
-      tdd_phase: green
+      tdd_phase: done
     - id: AC-3
       title: The sovereign policy asserts a live code reference or is retired
       status: open
