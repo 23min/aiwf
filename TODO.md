@@ -35,6 +35,8 @@ line saying what it is.
 - `readStatusAt` and the walker's path-resolving fallback arm are dead in
   production — reachable only through conditions no BulkRevwalk flag produces.
   Annotated rather than deleted, deliberately; nothing tracks the choice
+- main is well ahead of origin/main and unpushed; the push fails CI until G-0556
+  is settled, and no local surface says so — the hook passes
 
 ## Next, in order (2026-08-05)
 
@@ -49,6 +51,10 @@ A gate that reports green while proving nothing is worse than an absent one:
 every commit landing before the fix gets a false pass, and a reader auditing
 coverage finds a guard and stops looking.
 
+- **G-0556** — the pre-push hook resolves ids against refs only the author's machine
+  holds, so a reference to an unpushed branch passes green here and is an error in
+  every clone. `aiwf status` already reports it as an error while `aiwf check`
+  reports none, and points the operator at `check` for detail
 - **G-0518** — a body citing a real entity at a legacy width passes `body-prose-id`
 - **G-0543** — the golangci firing harness asserts its isolation against the
   command constructor, not against the harness that must use it; reverting the
@@ -63,14 +69,13 @@ coverage finds a guard and stops looking.
 
 A consumer reads these and acts on them. Unlike a stale citation, a wrong claim
 about behaviour reads as authoritative and stops the reader looking further.
-Nothing mechanical covers the claim itself: G-0542 pinned where a row sits, not
-what it says.
+Nothing mechanical covers the claim itself: G-0542 pinned where a row sits and
+G-0547 pinned its shape; neither reads what it says.
 
-- **G-0547** — a quarter of the `aiwf-check` table duplicates the hint the tool
-  already prints. Decide first (delete / derive / pin); it settles whether the
-  Fix column is touched at all by the entry below
 - **G-0553** *(high)* — six Meaning cells state a trigger the code contradicts; ~18 more
-  omit the guard that decides whether the rule fires. Larger than a patch
+  omit the guard that decides whether the rule fires. Larger than a patch. Re-count
+  first: the table is two-column now, and eight Meaning cells absorbed text folded
+  in from the deleted Fix column
 - **G-0549** — a documented row for a code nothing emits, and a conditional code
   with no row inheriting the wrong table. Two ends of one broken mapping
 
@@ -166,7 +171,9 @@ silently goes stale, or it cannot be enforced at all.
   fail unobserved
 - **G-0536** *(high)* — the same shape for the check itself. Hooks are not
   committable, so both positions are opt-in per clone and a fresh clone carries no
-  `aiwf check` at all. Every other locally-firing gate has a second position on push
+  `aiwf check` at all. Every other locally-firing gate has a second position on push.
+  Blocked on G-0556: the step reports errors on day one, and `fetch-depth` cannot
+  reach a ref absent from the remote
 - **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
   dispatch triggers for all four role agents. The decision landed; the content
@@ -191,17 +198,18 @@ with no decision outstanding first.
 - **G-0432** — `version` / `doctor` and the envelope resolve the version differently
 - **G-0070** — `doctor` has no `--format=json`
 
-### 9. E-0077 — duplication and the instrument that measures it *(epic)*
+### 9. Duplication and the instrument that measures it *(patches, any order)*
 
-Collapse convergent duplication and put the acknowledged-duplication inventory
-back under an owner. The instrument is repaired — G-0462 closed the two ways the
-gate went red for reasons unrelated to the change — so the members below are
-free to run in any order.
+Not an epic, and not one job: most of the collapses do not earn the change, and
+the gate that finds them yields about one finding per 200 commits. What is left
+is patch-shaped and independent — each member decides its own case, and G-0472
+now says outright that only one of its four families is worth collapsing. The
+inventory question is the one that stands on its own.
 
-- **G-0472** — four clone families each duplicate one job across two layers
 - **G-0473** — the `dupl` exclusion list is unowned; two entries are stale
+- **G-0472** — four near-identical function families; only one worth collapsing
 - **G-0508** — three near-copies of the `internal/verb` AST scan drift apart
-- **G-0453 / G-0454 / G-0455** — the remainder, each decide-before-extracting
+- **G-0453 / G-0454 / G-0455** *(low)* — the remainder, each decide-before-extracting
 
 ### 10. What the model can't express *(each gated on a decision)*
 
