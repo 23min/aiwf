@@ -75,11 +75,13 @@ thought of, so coverage is a property of the test's construction and survives a
 tenth rule being added.
 
 The guard at the seam enforces the rules predicated on a force trailer, not the
-whole rule set (D-0060). A refusal has to be satisfiable: a verb outside the
-provenance-decoration layer carries no principal and registers no flag that
-could supply one, so enforcing the rest there is a closed door rather than a
-rule. Sovereignty is what the seam exists to enforce, and force is what makes an
-act sovereign.
+whole rule set (D-0060). Membership is decided by satisfiability: a rule
+belongs at the seam only if every verb reaching it has some invocation that
+satisfies it. A verb outside the provenance-decoration layer carries no
+principal and registers no flag that could supply one, so enforcing the
+principal rules there is a closed door rather than a rule. Audit-only is
+sovereign too and is excluded for that same reason, which is why the criterion
+is satisfiability rather than sovereignty.
 
 The domain test covers the whole rule set regardless, since that is what the
 function still computes for its other callers, and a second property pins the
@@ -108,8 +110,17 @@ Placing the guard inside `Apply` is what makes the property structural instead
 of policed: the non-dispatcher caller in the cell-coverage fixture is covered
 without being named, because it too goes through `Apply`.
 
-Evidence: the policy failing against a fixture that reaches a commit off-seam,
-and passing against the tree.
+The scan resolves calls rather than matching text, and covers every
+commit-construction primitive rather than only the one a verb is meant to use.
+Both matter: an aliased import renames the selector so a name-based search finds
+nothing, and holding only the intended call would watch the front door while
+leaving three side doors open. Resolving calls also stops a primitive named in a
+comment or a string literal from reading as a call site — this repo's own
+policies quote those names.
+
+Evidence: the policy failing against a fixture that reaches a commit off-seam —
+directly, through an alias, and through each lower-level primitive — and passing
+against the tree.
 
 ### AC-4 — An ADR records that sovereign acts are prevented at the verb route
 
@@ -197,7 +208,7 @@ Verdicts pinned at every point of the generated domain · commit 71e3f8f9c ·
 tests green across the module
 
 The domain is generated from two axes — actor role, and the presence subset of
-the five trailers any rule reads — so a rule added against a new trailer extends
+the trailers any rule reads — so a rule added against a new trailer extends
 it by one line rather than by a fresh set of hand-written cases. Three
 assertions sit on it: a golden recording which rule fires where, invariants
 sourced from the provenance design doc rather than from the code, and a
@@ -236,6 +247,14 @@ the sibling lock policy skips such a file, which is defensible for a scan that
 asks whether callers take a lock, but not for one whose whole job is finding
 that call.
 
+The wrap review measured the first version as narrower than the AC claims: an
+aliased import, and any of the three lower-level commit primitives, produced no
+violation from this policy or from either of its neighbours. Rewritten to
+resolve calls against the file's own import block, with a fixture per bypass.
+The rewrite also removed a false-positive class nobody had hit yet — a policy
+source file quoting these primitive names as string literals reads as a call
+site to a textual scan.
+
 ### AC-4 — The stance recorded and ratified
 
 ADR-0040 accepted, pinned by section · commit 30091160b · tests green across the
@@ -247,10 +266,10 @@ closed, and the history route stays open to ratification, since the check rule
 fires on commits no verb produced — an imported repo, a hand-crafted commit,
 history predating the guard — which cannot be prevented retroactively.
 
-Its Consequences section carries the two things a reader would otherwise meet by
-surprise: the seam is the first enforcement anywhere of `audit-only-with-force`,
-and no caller should assert on `force-non-human` by name to prove force is
-enforced, since a non-human actor trips an earlier rule first.
+Its Consequences section carries the things a reader would otherwise meet by
+surprise: that the seam enforces only the force-predicated rules and why, and
+that the refusal exits as a legality refusal rather than an internal failure.
+Both are pinned by section.
 
 ### Wrap review — the seam's scope corrected
 
@@ -311,6 +330,23 @@ closure went unnoticed, and the test now exists.
   why a refusal speaks in trailer keys. Deferred as epic-sized.
 
 ## Reviewer notes
+
+Two review rounds ran, each a fresh two-lens pass over the full change-set. The
+second round's code lens found no surviving mutant across five probes — guard
+deleted, force rules swapped back, seam re-widened, exit routing removed,
+`audit-only-non-human` deleted — with the re-widening caught by a test that did
+not exist before the first round.
+
+The second round corrected one code defect and one framing error, both authored
+in the first round's fix. `CoherenceError.Code()` mapped `audit-only-non-human`
+to the generic incoherent-trailer code although the audit reports it under a
+code of its own, breaking the one-identifier promise for a violation nothing
+else names imprecisely. And the subset's criterion was stated as sovereignty,
+which the kernel contradicts in its own refusal message and audit catalogue:
+audit-only is sovereign and is deliberately *not* at the seam. The criterion is
+satisfiability, which gives the same cut, gives the right answer for the next
+rule, and survives its own repair — G-0544 makes the principal rules satisfiable
+and they could then move without re-deriving the argument.
 
 Two review findings were considered and declined, recorded here so the next
 reader meets a decision rather than a blank.
