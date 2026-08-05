@@ -36,10 +36,24 @@ registers a flag that could supply one. Enforcing the whole rule set closed all
 four to non-human actors with no invocation that could pass, which the
 milestone's own constraints forbid. That is not a refusal, it is a dead end.
 
-The subset is principled rather than convenient. Sovereignty is what this seam
-exists to enforce, and a force trailer is what makes an act sovereign. A
-trailer set incomplete for an unrelated reason is malformed, but it is malformed
-in a way the push already reports and the operator can already act on.
+The subset is principled rather than convenient, and the principle is
+satisfiability: a rule belongs at the seam only if every verb that can reach the
+seam has some invocation that satisfies it. The force rules qualify because a
+verb emitting no force trailer satisfies them vacuously. The principal rules do
+not, for the reason measured above. A trailer set incomplete for a reason no
+invocation could fix is still malformed — but it is malformed in a way the push
+already reports and the operator can already act on.
+
+Satisfiability rather than sovereignty, deliberately. Audit-only is sovereign
+too — the kernel says so in its own refusal message and in its audit
+catalogue — and `audit-only-non-human` is *not* at the seam, because it fails
+the same satisfiability test for the same reason. A criterion of "the sovereign
+rules" would have given the wrong answer for the very next rule, and it would
+have been the author of that rule who discovered it.
+
+The criterion also survives its own repair. Once G-0544 gives the contract
+verbs a way to state a principal, the principal rules become satisfiable and
+could move to the seam without re-deriving any of this.
 
 Three alternatives lost.
 
