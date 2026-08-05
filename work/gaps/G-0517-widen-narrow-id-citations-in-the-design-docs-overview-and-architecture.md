@@ -2,6 +2,7 @@
 id: G-0517
 title: Widen narrow id citations in the design docs, overview, and architecture
 status: open
+priority: low
 ---
 ## Problem
 
