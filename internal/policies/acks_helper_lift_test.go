@@ -343,6 +343,41 @@ func TestPolicyAcksHelperLift_Class4f_FiresWhenDocNamesANonConsumer(t *testing.T
 	}
 }
 
+// TestAckedSHAsDocRosterPattern_RecognizesEveryPolicedConsumer closes a
+// drift the class 4f fixtures cannot reach. Direction 1's reverse check
+// only consults ackedSHAsDocRosterPattern for a doc token absent from
+// both rosters, so a policed name never reaches the pattern in a live
+// tree, and its fixtures cannot remove a name from a package var. The
+// exported rules are covered generically by the `Run[A-Z]` alternative;
+// each unexported leaf predicate has to be listed by name, and one added
+// to a roster without a matching alternative silently drops out of the
+// reverse check — the doc could then keep advertising it forever.
+func TestAckedSHAsDocRosterPattern_RecognizesEveryPolicedConsumer(t *testing.T) {
+	t.Parallel()
+	for _, name := range append(append([]string{}, ackedSHAsConsumers...), ackedSHAsBodyConsumers...) {
+		if !ackedSHAsDocRosterPattern.MatchString(name) {
+			t.Errorf("ackedSHAsDocRosterPattern does not recognize the policed consumer %q; "+
+				"direction 1's reverse check will not fire when the doc keeps naming it after it "+
+				"leaves both rosters — add an alternative for it", name)
+		}
+	}
+}
+
+// TestAckedSHAsDocRosterPattern_IgnoresOrdinaryProse is the other half:
+// the pattern must not turn the reverse check into a scan for arbitrary
+// capitalized words, which would fire on the walker's own doc prose.
+func TestAckedSHAsDocRosterPattern_IgnoresOrdinaryProse(t *testing.T) {
+	t.Parallel()
+	// Words that appear in WalkAcknowledgedSHAs' doc comment today, each
+	// close enough to a roster shape to catch an over-broad pattern.
+	for _, word := range []string{"Returns", "Rules", "Runtime", "Consumers", "findings", "provenance"} {
+		if ackedSHAsDocRosterPattern.MatchString(word) {
+			t.Errorf("ackedSHAsDocRosterPattern matches the ordinary word %q; the reverse check "+
+				"would report it as a doc-named non-consumer", word)
+		}
+	}
+}
+
 func TestPolicyAcksHelperLift_Class4f_FiresOnAReceiverBearingReader(t *testing.T) {
 	t.Parallel()
 	// Direction 2 scans methods, so a receiver-bearing rule cannot slip past.

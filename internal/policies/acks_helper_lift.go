@@ -24,15 +24,17 @@ var ackedSHAsConsumers = []string{
 	"RunIDRenameUntrailered",
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
+	"RunProvenance",
 }
 
 // ackedSHAsBodyConsumers is the set whose bodies class 4d requires to
-// reference the map. It is every name in ackedSHAsConsumers plus the two
-// leaf predicates at the end of FSMHistoryConsistent's forwarding chain,
-// which are where that chain's per-observation lookup actually happens.
+// reference the map. It is every name in ackedSHAsConsumers plus the
+// leaf predicates at the end of a forwarding chain, which are where
+// that chain's per-observation lookup actually happens.
 // FSMHistoryConsistent is here despite not indexing the map itself: 4d
 // accepts forwarding it to a helper as a consuming reference, which is the
-// shape that rule uses.
+// shape that rule uses — and RunProvenance is here for the same reason,
+// forwarding to provenanceShapeFindings.
 var ackedSHAsBodyConsumers = []string{
 	"FSMHistoryConsistent",
 	"RunIsolationEscape",
@@ -40,8 +42,10 @@ var ackedSHAsBodyConsumers = []string{
 	"RunIDRenameUntrailered",
 	"RunOrphanedAICommits",
 	"RunPromoteOnWrongBranch",
+	"RunProvenance",
 	"illegalTransitionFindings",
 	"forcedUntraileredFindings",
+	"provenanceShapeFindings",
 }
 
 // PolicyAcksHelperLift pins M-0159/AC-3's structural claim that the
@@ -917,10 +921,13 @@ var identifierTokenPattern = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_]*`)
 
 // ackedSHAsDocRosterPattern recognizes the identifier shapes that name a
 // consumer in WalkAcknowledgedSHAs' doc — the exported `Run*` rules and the
-// two unexported leaf predicates. It keeps direction 1's reverse check from
+// unexported leaf predicates. It keeps direction 1's reverse check from
 // treating ordinary prose words as claimed consumers, which is why the check
 // is a roster comparison and not a scan for arbitrary capitalized words.
-var ackedSHAsDocRosterPattern = regexp.MustCompile(`^(Run[A-Z]|FSMHistoryConsistent$|illegalTransitionFindings$|forcedUntraileredFindings$)`)
+// Each leaf predicate is listed by name: an unexported identifier has no
+// shape the pattern could generalize over, so one dropped from both rosters
+// while left in the doc would otherwise go unreported.
+var ackedSHAsDocRosterPattern = regexp.MustCompile(`^(Run[A-Z]|FSMHistoryConsistent$|illegalTransitionFindings$|forcedUntraileredFindings$|provenanceShapeFindings$)`)
 
 // bodyIndexesAckedSHAs reports whether body contains an `ackedSHAs[...]`
 // index expression — the per-SHA lookup shape the consuming rules use.

@@ -64,7 +64,7 @@ func RunProvenanceCheck(ctx context.Context, root string, t *tree.Tree, since st
 		return nil, nil
 	}
 	commits := provenanceCommitsFromHead(head)
-	findings := check.RunProvenance(commits, t)
+	findings := check.RunProvenance(commits, t, ackedSHAs)
 	// M-0106: isolation-escape rule. Wire the git-backed BranchOracle
 	// (built once per check invocation across the ritual-branch set)
 	// to the kernel rule. An oracle-construction error is non-fatal —
