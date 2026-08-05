@@ -61,14 +61,16 @@ assembles a complete set itself — as do `archive` and `import`. The two shapes
 meet at exactly one point downstream of both: `verb.Apply`, whose single
 production caller is `internal/cli/cliutil/apply.go`.
 
-A guard at that seam enforces the whole coherence rule set, not the force rule
-alone, because the set is what the function checks. That costs nothing in reach:
-`internal/check/provenance.go` already reports every rule but one at error
-severity over git history, so a trailer set that would newly fail at the seam is
-one the push already rejected, and the only change is where the operator learns
-it. The exception is `audit-only-with-force`, which no history-walking rule
-covers; the seam is its first enforcement anywhere outside `audit-only`'s own
-call.
+A guard at that seam enforces the rules predicated on a force trailer, not the
+whole coherence rule set (D-0060). Membership is decided by satisfiability: a
+rule belongs at the seam only if every verb reaching it has some invocation that
+satisfies it. The force rules qualify, because a verb emitting no force trailer
+satisfies them vacuously. The principal rules do not — the contract verbs never
+pass through the provenance-decoration layer and register no flag that could
+supply a principal, so enforcing those at the seam closes them outright rather
+than constraining them. The history-walking audit keeps reporting the rest
+after the fact — with one exception it has never covered: `audit-only` alongside
+`force` has no history-walking counterpart at all.
 
 Two code comments are load-bearing and wrong, and one of them is why a second gate
 has a hole. `requireHumanActorForSovereignAct`
@@ -93,9 +95,9 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 
 ### In scope
 
-- **Finish the coherence wiring.** `CheckTrailerCoherence` at `verb.Apply`, the
-  one seam downstream of both trailer-assembly shapes, so every commit a verb
-  produces is checked against the complete set rather than the verb's partial one.
+- **Finish the coherence wiring.** The force-predicated rules at `verb.Apply`,
+  the one seam downstream of both trailer-assembly shapes, so a sovereign act is
+  refused where it is attempted rather than reported once it has landed.
 - **Ratification.** Add `provenance-force-non-human` to the `ackedSHAs` consumer
   roster so `aiwf acknowledge illegal` clears it with a human's written reason.
   Needed independently of the wiring: the rule walks git history and fires on
@@ -166,7 +168,7 @@ nothing indexed the rule and nothing noticed the guard reached one verb of four.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | The wiring makes a previously-succeeding command fail, breaking a consumer's automation | med | The ADR records the change; the CHANGELOG states it plainly. Automation legitimately forcing as a non-human actor was already blocked at push, so no working pipeline is broken — only the failure point moves earlier. |
-| A verb's trailer set is assembled in more than one place, so a single coherence call misses a path | med | The bijection check is keyed on trailer construction, not on call sites, so an unrouted construction fails the gate. |
+| A verb's trailer set is assembled in more than one place, so a single coherence call misses a path | med | The guard sits inside `verb.Apply` rather than in its callers, so every path reaching a verb commit passes it by construction; a policy holds that seam singular and guarded. |
 
 ## Milestones
 

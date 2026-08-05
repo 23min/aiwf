@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/23min/aiwf/internal/check"
@@ -428,5 +429,51 @@ func TestFinishVerbOutcome_ApplySuccess_FindingsRenderInTextMode(t *testing.T) {
 	}
 	if out != "add a file\n" {
 		t.Errorf("stdout = %q, want %q", out, "add a file\n")
+	}
+}
+
+// TestFinishVerbOutcome_CodedApplyError_ExitsAsALegalityRefusal pins
+// the exit class of a refusal raised at the commit seam rather than
+// inside the verb.
+//
+// A sovereign-force refusal is the case that matters. Reported as
+// ExitInternal it tells an operator that aiwf broke, and leaves a
+// pipeline unable to tell a denial from a crash — so it takes the same
+// exit as a Coded verb error, which is also the exit `aiwf check`
+// reports for the same violation class once the act has landed. The
+// envelope carries the code for the same reason: a machine consumer
+// needs a discriminator, not prose.
+//
+// SERIAL (do not add t.Parallel): uses captureStdStreams.
+func TestFinishVerbOutcome_CodedApplyError_ExitsAsALegalityRefusal(t *testing.T) {
+	root := seedRepo(t)
+	// A force trailer with a non-human actor: verb.Apply's guard
+	// refuses it. The Ops are real, so a guard that failed to refuse
+	// would commit rather than fall through to "nothing to commit" —
+	// the refusal under test cannot be produced by an empty plan.
+	outcome := &Outcome{Plans: []*verb.Plan{{
+		Subject: "forced by an agent",
+		Trailers: []gitops.Trailer{
+			{Key: gitops.TrailerVerb, Value: "promote"},
+			{Key: gitops.TrailerActor, Value: "ai/claude"},
+			{Key: gitops.TrailerPrincipal, Value: "human/peter"},
+			{Key: gitops.TrailerForce, Value: "escalation"},
+		},
+		Ops: []verb.FileOp{{Type: verb.OpWrite, Path: "forced.md", Content: []byte("x\n")}},
+	}}}
+
+	stdOut, _ := captureStdStreams(t, func() {
+		code, sha := FinishVerbOutcome(context.Background(), root, "aiwf promote", outcome, nil,
+			OutputFormat{Format: "json"})
+		if code != ExitFindings {
+			t.Errorf("code = %d, want ExitFindings (%d): a legality refusal is not an internal failure",
+				code, ExitFindings)
+		}
+		if sha != "" {
+			t.Errorf("sha = %q, want empty: nothing was committed", sha)
+		}
+	})
+	if !strings.Contains(stdOut, `"code":"provenance-force-non-human"`) {
+		t.Errorf("envelope carries no routable error code:\n%s", stdOut)
 	}
 }

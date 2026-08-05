@@ -34,5 +34,10 @@ func requireHumanActorForSovereignAct(kind entity.Kind, from, to entity.Status, 
 	if strings.HasPrefix(actor, "human/") {
 		return nil
 	}
-	return fmt.Errorf("aiwf promote %s %s: sovereign act requires a human/ actor (got %q); have a human run the verb, or use `--force --reason \"...\"` to override", kind, to, actor)
+	// The remedy names only the human-run path. Offering --force here
+	// would send this actor at a gate that refuses it: the coherence
+	// guard at verb.Apply rejects a force trailer from a non-human
+	// actor, and this message is reachable only for a non-human actor,
+	// so that advice would be wrong every time it was shown.
+	return fmt.Errorf("aiwf promote %s %s: sovereign act requires a human/ actor (got %q); have a human run the verb", kind, to, actor)
 }

@@ -90,6 +90,12 @@ The pre-I2.5 trailers (`aiwf-verb`, `aiwf-entity`, `aiwf-actor`, `aiwf-to`, `aiw
 - `aiwf-force:` + `aiwf-on-behalf-of:` — force is human-only (see below); on-behalf-of implies an agent operator. The two cannot coexist.
 - `aiwf-principal:` + `aiwf-actor: human/...` — the human is acting directly; no second-actor split applies.
 - `aiwf-on-behalf-of:` + `aiwf-actor: human/...` — same reason; a direct human act has no on-behalf-of.
+- `aiwf-audit-only:` + `aiwf-force:` — distinct intents. Force makes a transition the FSM refuses; audit-only records one that already happened outside the kernel. A commit claiming both says it is doing and not-doing the same act.
+
+**Sovereign, human-only** (verb refuses a non-`human/` actor):
+
+- `aiwf-force:` — the override is the human's, never an agent's. Reported by `provenance-force-non-human`.
+- `aiwf-audit-only:` — same rationale: recording that an unverbed act happened is an assertion about history that a human owns. Reported by `provenance-audit-only-non-human`.
 
 **Deferred to G22** (sub-agent delegation): `aiwf-verb: authorize` + `aiwf-on-behalf-of:`. Whether an authorize commit may itself be inside a scope (i.e., an agent authorizing a sub-agent) is the policy question G22 reserves; the I2.5 kernel does not enforce a rule either way.
 
@@ -253,6 +259,7 @@ New finding codes added in I2.5. All error severity unless noted; all run as sta
 |---|---|
 | `provenance-trailer-incoherent` | Required-together pair partial, or mutually-exclusive pair both present (per "Required-together and mutually-exclusive rules"). |
 | `provenance-force-non-human` | `aiwf-force:` present and `aiwf-actor:` does not start with `human/`. |
+| `provenance-audit-only-non-human` | `aiwf-audit-only:` present and `aiwf-actor:` does not start with `human/`. |
 | `provenance-actor-malformed` | `aiwf-actor:` does not match `<role>/<id>` regex. |
 | `provenance-principal-non-human` | `aiwf-principal:` present and its role does not start with `human/`. |
 | `provenance-on-behalf-of-non-human` | `aiwf-on-behalf-of:` present and its role does not start with `human/`. |

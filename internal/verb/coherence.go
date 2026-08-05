@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/23min/aiwf/internal/check"
 	"github.com/23min/aiwf/internal/gitops"
 )
 
@@ -25,13 +26,40 @@ type CoherenceError struct {
 
 func (e *CoherenceError) Error() string { return e.Message }
 
-// Coherence rule names. These are referenced by `aiwf check`'s
-// provenance findings (step 7) — keep them stable.
+// Code maps the violated rule to the `aiwf check` finding code that
+// reports the same violation class, so one identifier routes a refusal
+// at the verb and a finding on a commit that already landed. Being
+// Coded is also what lands the refusal at the legality exit rather
+// than the internal-failure one — see the exit-code contract on
+// cliutil.FinishVerb.
+//
+// Two rules have a finding code of their own check-side; the rest map
+// to the one incoherent-trailer code, and the refusal follows that
+// rather than inventing a second vocabulary.
+//
+// The mapping says what the audit calls a violation it reports, not
+// that it reports every one. audit-only-with-force has no
+// history-walking counterpart at all, so its code here names the class
+// the audit would use rather than one it ever emits (G-0551).
+func (e *CoherenceError) Code() string {
+	switch e.Rule {
+	case CoherenceRuleForceNonHuman:
+		return check.CodeProvenanceForceNonHuman
+	case CoherenceRuleAuditOnlyNonHuman:
+		return check.CodeProvenanceAuditOnlyNonHuman
+	default:
+		return check.CodeProvenanceTrailerIncoherent
+	}
+}
+
+// Coherence rule names. AsCoherenceError returns one to callers that
+// switch on the rule rather than on message text, so they are part of
+// this package's surface.
 const (
 	CoherenceRuleOnBehalfOfMissingAuthorizedBy    = "on-behalf-of-missing-authorized-by"
 	CoherenceRuleAuthorizedByMissingOnBehalfOf    = "authorized-by-missing-on-behalf-of"
 	CoherenceRulePrincipalMissingForNonHumanActor = "principal-missing-for-non-human-actor"
-	CoherenceRulePrincipalForbiddenForHumanActor  = "principal-forbidden-for-human-actor"
+	CoherenceRulePrincipalRequiresNonHumanActor   = "principal-requires-non-human-actor"
 	CoherenceRuleOnBehalfOfForbiddenForHumanActor = "on-behalf-of-forbidden-for-human-actor"
 	CoherenceRuleForceWithOnBehalfOf              = "force-with-on-behalf-of"
 	CoherenceRuleForceNonHuman                    = "force-non-human"
@@ -80,7 +108,6 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 	_, hasPrincipal := idx[gitops.TrailerPrincipal]
 	_, hasOnBehalfOf := idx[gitops.TrailerOnBehalfOf]
 	_, hasAuthorizedBy := idx[gitops.TrailerAuthorizedBy]
-	_, hasForce := idx[gitops.TrailerForce]
 	_, hasAuditOnly := idx[gitops.TrailerAuditOnly]
 
 	// Required-together: on-behalf-of ↔ authorized-by.
@@ -105,11 +132,14 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 		}
 	}
 
-	// Mutually exclusive: principal + human actor.
-	if hasPrincipal && actorIsHuman {
+	// The other half of the required-together pair: a principal names who
+	// a non-human actor acts for, so a principal alongside anything else —
+	// a human actor, or no actor at all — describes an accountability
+	// relationship with no agent in it.
+	if hasPrincipal && !actorIsNonHuman {
 		return &CoherenceError{
-			Rule:    CoherenceRulePrincipalForbiddenForHumanActor,
-			Message: fmt.Sprintf("aiwf-principal is forbidden when aiwf-actor is human/ (got actor=%q)", actor),
+			Rule:    CoherenceRulePrincipalRequiresNonHumanActor,
+			Message: fmt.Sprintf("aiwf-principal requires a non-human aiwf-actor (got actor=%q)", actor),
 		}
 	}
 
@@ -121,13 +151,64 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 		}
 	}
 
-	// Mutually exclusive: force + on-behalf-of.
-	if hasForce && hasOnBehalfOf {
+	// The rules predicated on a force trailer, in their own function
+	// because verb.Apply enforces exactly this subset.
+	if err := CheckForceTrailerCoherence(trailers); err != nil {
+		return err
+	}
+
+	// Audit-only human-only.
+	if hasAuditOnly && actorIsNonHuman {
 		return &CoherenceError{
-			Rule:    CoherenceRuleForceWithOnBehalfOf,
-			Message: "aiwf-force and aiwf-on-behalf-of cannot coexist (force is human-only; on-behalf-of implies an agent)",
+			Rule:    CoherenceRuleAuditOnlyNonHuman,
+			Message: fmt.Sprintf("aiwf-audit-only requires a human/ actor (got actor=%q); audit-only is sovereign, like --force", actor),
 		}
 	}
+
+	return nil
+}
+
+// CheckForceTrailerCoherence validates the subset of the coherence
+// rules predicated on an aiwf-force trailer: a set carrying no force
+// trailer is always coherent by this function's lights. Returns nil
+// when the set passes; returns a *CoherenceError naming a single rule
+// violation otherwise.
+//
+// This is what verb.Apply enforces, and the criterion for membership is
+// satisfiability: a rule belongs here only if every verb that can reach
+// the seam has some invocation that satisfies it. The force rules pass
+// that test because a verb emitting no force trailer satisfies them
+// vacuously. The principal rules fail it — the contract verbs never
+// pass through the provenance-decoration layer, carry no
+// aiwf-principal, and register no flag that could supply one, so
+// enforcing those here is a closed door rather than a rule.
+//
+// Do not read the subset as "the sovereign rules". Audit-only is
+// sovereign too and is deliberately not here, because it fails the same
+// satisfiability test for the same reason. What retires that exclusion
+// is provenance wiring on the verbs that lack it, not a change of
+// principle.
+//
+// Adding a rule here therefore changes what the CLI refuses live, at
+// the moment a verb is attempted. A rule no invocation could satisfy
+// goes in CheckTrailerCoherence instead, where the history-walking
+// audit reports it after the fact.
+//
+// force-non-human is checked before force-with-on-behalf-of because a
+// non-human actor can only reach this seam through an active scope,
+// whose aiwf-on-behalf-of would otherwise trip the later rule first
+// and report two trailer keys the operator never typed. The rule order
+// is the operator's error message, so it is chosen rather than
+// inherited.
+func CheckForceTrailerCoherence(trailers []gitops.Trailer) error {
+	idx := indexTrailers(trailers)
+
+	actor := idx[gitops.TrailerActor]
+	actorIsNonHuman := actor != "" && !strings.HasPrefix(actor, "human/")
+
+	_, hasOnBehalfOf := idx[gitops.TrailerOnBehalfOf]
+	_, hasForce := idx[gitops.TrailerForce]
+	_, hasAuditOnly := idx[gitops.TrailerAuditOnly]
 
 	// Force human-only.
 	if hasForce && actorIsNonHuman {
@@ -137,19 +218,19 @@ func CheckTrailerCoherence(trailers []gitops.Trailer) error {
 		}
 	}
 
+	// Mutually exclusive: force + on-behalf-of.
+	if hasForce && hasOnBehalfOf {
+		return &CoherenceError{
+			Rule:    CoherenceRuleForceWithOnBehalfOf,
+			Message: "aiwf-force and aiwf-on-behalf-of cannot coexist (force is human-only; on-behalf-of implies an agent)",
+		}
+	}
+
 	// Mutually exclusive: audit-only + force.
 	if hasAuditOnly && hasForce {
 		return &CoherenceError{
 			Rule:    CoherenceRuleAuditOnlyWithForce,
 			Message: "aiwf-audit-only and aiwf-force cannot coexist (force makes a transition; audit-only records one that already happened)",
-		}
-	}
-
-	// Audit-only human-only.
-	if hasAuditOnly && actorIsNonHuman {
-		return &CoherenceError{
-			Rule:    CoherenceRuleAuditOnlyNonHuman,
-			Message: fmt.Sprintf("aiwf-audit-only requires a human/ actor (got actor=%q); audit-only is sovereign, like --force", actor),
 		}
 	}
 
