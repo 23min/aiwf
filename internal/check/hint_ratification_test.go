@@ -1,8 +1,12 @@
 package check
 
 import (
+	"maps"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/23min/aiwf/internal/scope"
 )
 
 // hint_ratification_test.go pins M-0292's discoverability claim: an
@@ -14,6 +18,72 @@ import (
 // provenance code added later is ratifiable the day it lands; deriving
 // the list means it either carries the remedy or fails this test,
 // rather than depending on whoever adds it noticing.
+
+// TestRatifiableByAcknowledgment_MatchesWhatRunProvenanceEmits is the
+// tie between the predicate and the rules. Without it the predicate is
+// a prefix test plus a hand-kept exclusion list that nothing compares
+// against reality: a provenance-prefixed code no rule emits would
+// silently acquire the advice, and an emitted code added to the
+// exclusion list would silently lose it. Both were measured to pass a
+// green suite before this test existed.
+//
+// Ratifiable means exactly "RunProvenance emits it", because that is
+// the function the acknowledgment short-circuits. The fixtures are the
+// ones the scoping tests already carry, so the emitted set is derived
+// by running the rules rather than restated here.
+func TestRatifiableByAcknowledgment_MatchesWhatRunProvenanceEmits(t *testing.T) {
+	t.Parallel()
+	emitted := map[string]bool{}
+	for _, tc := range offendingTrailerSets {
+		for _, code := range codesFrom(RunProvenance(
+			[]scope.Commit{{SHA: strings.Repeat("1", 40), Trailers: tc.trailers}}, nil, nil)) {
+			emitted[code] = true
+		}
+	}
+	for _, c := range crossCommitOffenders(t) {
+		for _, code := range codesFrom(RunProvenance(c.commits, c.tree, nil)) {
+			emitted[code] = true
+		}
+	}
+	if len(emitted) < 2 {
+		t.Fatalf("fixtures emitted %v; the derivation is broken and this test would pass "+
+			"whatever the predicate said", slices.Sorted(maps.Keys(emitted)))
+	}
+
+	for _, code := range slices.Sorted(maps.Keys(emitted)) {
+		if !ratifiableByAcknowledgment(code) {
+			t.Errorf("RunProvenance emits %s, so an acknowledgment clears it — but "+
+				"ratifiableByAcknowledgment says otherwise, and the operator is never told "+
+				"the remedy exists", code)
+		}
+	}
+	// The exclusions must be codes this function genuinely does not
+	// emit. One that slipped in would be a rule silently stripped of its
+	// remedy — the direction that fails quietly.
+	for _, code := range []string{CodeProvenanceUntrailedEntityCommit, CodeProvenanceUntrailedScopeUndefined} {
+		if emitted[code] {
+			t.Errorf("%s is excluded from ratifiability but RunProvenance emits it; the exclusion "+
+				"list has drifted from the rules", code)
+		}
+	}
+
+	// The converse: nothing is called ratifiable that no rule raises.
+	// A hint on a code nothing emits is never shown, so this direction
+	// costs an operator nothing directly — it is here because the
+	// predicate's meaning is "RunProvenance emits it", and a claim that
+	// holds in one direction only is the kind that gets restated as if
+	// it held in both.
+	for code := range hintTable {
+		if strings.Contains(code, "/") || !ratifiableByAcknowledgment(code) {
+			continue
+		}
+		if !emitted[code] {
+			t.Errorf("%s is treated as ratifiable but no fixture makes RunProvenance emit it. "+
+				"Either a rule emits it and this test needs the fixture, or nothing does and it "+
+				"belongs in the exclusion list", code)
+		}
+	}
+}
 
 // TestHintFor_EveryRatifiableProvenanceCodeAdvertisesTheRemedy walks
 // every provenance code carrying a hint and asserts the ratification
@@ -62,13 +132,15 @@ func TestHintFor_EveryRatifiableProvenanceCodeAdvertisesTheRemedy(t *testing.T) 
 	}
 }
 
-// TestHintFor_PerEntityRuleDoesNotAdvertiseTheBlanketRemedy is the
-// negative half. provenance-untrailered-entity-commit is cleared only
-// by the `--for-entity` shape, whose (SHA, entity) binding the verb
-// verifies against the commit's own diff — a blanket acknowledgment
-// leaves it firing. Advertising the blanket command on it would send an
+// TestHintFor_ExcludedProvenanceCodesDoNotAdvertiseTheBlanketRemedy is
+// the negative half, and it covers both exclusions.
+// provenance-untrailered-entity-commit is cleared only by the
+// `--for-entity` shape, whose (SHA, entity) binding the verb verifies
+// against the commit's own diff. provenance-untrailered-scope-undefined
+// names no commit at all — it reports that the audit range was
+// undetermined. Advertising the blanket command on either would send an
 // operator at an invocation that changes nothing they can see.
-func TestHintFor_PerEntityRuleDoesNotAdvertiseTheBlanketRemedy(t *testing.T) {
+func TestHintFor_ExcludedProvenanceCodesDoNotAdvertiseTheBlanketRemedy(t *testing.T) {
 	t.Parallel()
 	for _, code := range []string{CodeProvenanceUntrailedEntityCommit, CodeProvenanceUntrailedScopeUndefined} {
 		if got := HintFor(code, ""); strings.Contains(got, ratificationSentence) {
@@ -95,10 +167,9 @@ func TestHintFor_NonProvenanceCodesAreUntouched(t *testing.T) {
 }
 
 // TestWithRatificationHint_JoinsOnOneSentenceBreak covers both arms of
-// the separator choice. No hint in the table ends with punctuation
-// today, so the already-punctuated arm is unreachable through HintFor
-// and is exercised here directly — it is what keeps the join correct
-// if a hint is ever written with a closing period.
+// the separator choice. Table hints are written both ways, but no
+// ratifiable one currently ends in punctuation, so that arm is
+// unreachable through HintFor today and is exercised here directly.
 func TestWithRatificationHint_JoinsOnOneSentenceBreak(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -129,15 +200,16 @@ func TestHintFor_EmptyHintStaysEmpty(t *testing.T) {
 	}
 }
 
-// TestHintFor_SubcodeResolutionRespectsRatifiability pins the subcode
-// branch, which resolves through its own map lookup and so has to apply
-// the same predicate the bare-code branch does.
+// TestHintFor_SubcodeResolutionRespectsRatifiability pins that the
+// subcode branch resolves to its own table entry.
 //
-// The one registered provenance subcode belongs to the rule a blanket
-// acknowledgment does not clear, so this asserts the subcode hint
-// resolves and stays free of the sentence. Were a ratifiable subcode
-// registered later, the bare-code sibling would already be carrying it
-// and the mismatch would show here.
+// It does not pin that the branch applies the ratifiability wrap, and
+// cannot: the one registered provenance subcode belongs to an excluded
+// rule, so dropping the wrap from this branch changes nothing
+// observable. The wrap is there for symmetry with the bare-code path
+// rather than because a case needs it today; a ratifiable subcode
+// registered later is what would make it load-bearing, and this test is
+// where that would be asserted.
 func TestHintFor_SubcodeResolutionRespectsRatifiability(t *testing.T) {
 	t.Parallel()
 	const code, subcode = CodeProvenanceUntrailedEntityCommit, "squash-merge"

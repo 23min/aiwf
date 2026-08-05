@@ -23,12 +23,13 @@ import (
 //
 // The fsm-history-consistent rule (M-0136/AC-2) walks HEAD's reachable
 // history for `aiwf-force-for` trailers and exempts illegal-transition
-// findings whose offending commit appears as a target. Six other rules
-// consume the same SHA set via the M-0159/AC-3 lift.
+// findings whose offending commit appears as a target. The other rules
+// consuming the same SHA set via the M-0159/AC-3 lift are enumerated in
+// check.WalkAcknowledgedSHAs' doc, which is the copy the acks-helper-lift
+// policy holds to its rosters.
 //
-// G-0231 item 3: a SEVENTH consumer rule —
-// `provenance-untrailered-entity-commit` — was added with TIGHTER
-// scope. Its findings are per-(commit, entity) pairs, so it requires
+// G-0231 item 3: `provenance-untrailered-entity-commit` consumes a
+// TIGHTER scope. Its findings are per-(commit, entity) pairs, so it requires
 // per-(SHA, entity) acks: the ack commit must carry BOTH `aiwf-force-
 // for: <sha>` AND `aiwf-entity: <id>`, and the verb verifies at write
 // time that <sha>'s diff actually touches <id>'s file. The
@@ -134,7 +135,7 @@ func AcknowledgeIllegal(ctx context.Context, root, sha, forEntity, actor, reason
 // than a second trailer scan here:
 //
 //   - forEntity == "" (blanket per-SHA): matches when any ack commit names
-//     this SHA in `aiwf-force-for`, which is precisely the set the seven
+//     this SHA in `aiwf-force-for`, which is precisely the set the
 //     SHA-scoped rules consult. An entity-bound ack also carries
 //     force-for, so it satisfies the blanket shape too — a later blanket
 //     ack for the same SHA would genuinely be redundant.

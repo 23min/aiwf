@@ -127,8 +127,9 @@ func RunProvenance(commits []scope.Commit, t *tree.Tree, ackedSHAs map[string]bo
 // principal, on-behalf-of, authorized-by, plus the human-only
 // constraints on aiwf-force / aiwf-audit-only.
 //
-// Acknowledgment is not consulted here — RunProvenance skips an
-// acknowledged commit before reaching any of the three rule groups.
+// Acknowledgment is not consulted here, nor in either sibling group —
+// RunProvenance skips an acknowledged commit before reaching any of
+// them.
 func provenanceShapeFindings(c *scope.Commit, idx map[string]string) []Finding {
 	var findings []Finding
 	actor := idx[gitops.TrailerActor]

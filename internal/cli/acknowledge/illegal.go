@@ -49,16 +49,22 @@ aiwf-force-for trailer:
     - promote-on-wrong-branch                         (M-0161/AC-8)
     - id-rename-untrailered                           (M-0160/AC-4)
     - trailer-verb-unknown                            (G-0150 lift)
-    - every provenance-* rule EXCEPT the one below (M-0292) — the
+    - every rule the provenance history audit raises (M-0292) — the
       trailer-shape, coherence and authorization rules alike, since an
       acknowledgment is a judgment about a commit rather than about one
       of the rules it happens to trip
     - provenance-untrailered-entity-commit            (G-0231 item 3; --for-entity required)
 
-Because the provenance family clears as a set, a reason written about one
-finding retires the commit's others too — an acknowledgment recorded for a
-stray force trailer also retires an out-of-scope authorization finding on the
-same commit. It reaches exactly one commit and no other.
+Because that audit's rules clear as a set, a reason written about one finding
+retires the commit's others too — an acknowledgment recorded for a stray force
+trailer also retires an out-of-scope authorization finding on the same commit.
+It reaches exactly one commit and no other.
+
+Two provenance-prefixed findings are outside all of this.
+provenance-untrailered-entity-commit is listed above and needs --for-entity.
+provenance-untrailered-scope-undefined reports that the audit range could not
+be determined, which is a property of the invocation rather than of a commit,
+so no acknowledgment addresses it — configure an upstream or pass --since.
 
 The acknowledgment is a separate, current-day empty commit carrying:
 
@@ -99,9 +105,9 @@ Per-SHA closed-set scoping: an acknowledgment for one SHA exempts only that
 SHA. There is no "exempt everything" knob.
 
 No verb undoes an acknowledgment, deliberately: it is an audit record, and
-retracting it would rewrite the audit trail this verb exists to preserve. To
-withdraw the judgment, restore the finding by fixing what it reports — or
-record the reversal as a new entity referencing the acknowledgment.
+retracting it would rewrite the audit trail this verb exists to preserve. A
+judgment you want to withdraw is recorded the same way it was made — as a new
+entity referencing the acknowledgment.
 
 Both --reason (non-empty after trim) and a human/... actor are required
 — sovereign acts trace to a named human with written rationale.`,

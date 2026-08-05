@@ -104,9 +104,9 @@ func TestAcknowledgeIllegal_ForceNonHuman_ClearsOnlyTheAcknowledgedCommit(t *tes
 
 // TestAcknowledgeIllegal_AuditOnlyNonHuman_ClearsOnlyTheAcknowledgedCommit
 // is the same claim for provenance-audit-only-non-human. The two rules
-// are one shape — a sovereign trailer requires a human actor — emitted
-// eight lines apart, and an operator who meets the second after the
-// first is cleared has the same dead end this milestone removes.
+// are one shape — a sovereign trailer requires a human actor — and an
+// operator who meets the second after the first is cleared has the same
+// dead end this milestone removes.
 func TestAcknowledgeIllegal_AuditOnlyNonHuman_ClearsOnlyTheAcknowledgedCommit(t *testing.T) {
 	// Serial by design — see the sibling above.
 	assertAckClearsOnlyItsOwnCommit(t, "aiwf-audit-only", check.CodeProvenanceAuditOnlyNonHuman)
@@ -183,21 +183,25 @@ func assertNoErrorNames(t *testing.T, root, sha string) {
 	}
 }
 
-// TestAcknowledgeIllegal_UnblocksTheShapeTheVerbsActuallyProduce is the
+// TestAcknowledgeIllegal_UnblocksAFullyDecoratedForcedCommit is the
 // claim the per-code tests above cannot make. A forced promote by an
 // authorized agent does not carry the bare trailer set those tests
-// build: gateAndDecorate adds aiwf-principal, aiwf-on-behalf-of and
-// aiwf-authorized-by after the verb returns, and the resulting commit
-// raises provenance-trailer-incoherent — "aiwf-force: and
-// aiwf-on-behalf-of: are mutually exclusive (force is human-only)" —
+// build: the provenance-decoration layer adds aiwf-principal,
+// aiwf-on-behalf-of and aiwf-authorized-by after the verb returns, and
+// the resulting commit raises provenance-trailer-incoherent — "aiwf-force:
+// and aiwf-on-behalf-of: are mutually exclusive (force is human-only)" —
 // alongside provenance-force-non-human.
+//
+// No verb produces this commit any more; the shape survives in imported
+// history and in anything written before the verb-time guard landed,
+// which is why the fixture hand-rolls it.
 //
 // The two say the same thing about the same trailer. An acknowledgment
 // that cleared only the first would leave the push blocked by a
 // restatement of the rule it had just ratified, which is a ratification
 // path in name only. This test is scoped to the operator's actual
 // question — can I proceed? — rather than to a code.
-func TestAcknowledgeIllegal_UnblocksTheShapeTheVerbsActuallyProduce(t *testing.T) {
+func TestAcknowledgeIllegal_UnblocksAFullyDecoratedForcedCommit(t *testing.T) {
 	// Serial by design — see the skip-list note above.
 	root := setupCLITestRepo(t)
 	mustRun(t, "init", "--root", root, "--actor", "human/test", "--skip-hook")

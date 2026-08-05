@@ -169,7 +169,7 @@ Doc findings are warnings until `aiwf.yaml: docs.strict: true`. Sweep your docs 
 
 These fire on commit history, not tree state. Each names the offending commit's short SHA in its message.
 
-Every fix below assumes you can still shape the commit. Once it has landed, most of them cannot be performed — a verb cannot be re-run into the past, and correcting a git config does not reach a commit already written. For a landed commit the remedy is ratification: `aiwf acknowledge illegal <sha> --reason "<why>"` records a human's acceptance in a new commit and stops every provenance rule reporting that one commit, leaving it and every other commit untouched. It is human-only and the reason is required. The one exception is `provenance-untrailered-entity-commit`, which needs the narrower `--for-entity <id>` form.
+Every fix below assumes you can still shape the commit. Once it has landed, most of them cannot be performed — a verb cannot be re-run into the past, and correcting a git config does not reach a commit already written. For a landed commit the remedy is ratification: `aiwf acknowledge illegal <sha> --reason "<why>"` records a human's acceptance in a new commit and stops every rule in this table reporting that one commit, leaving it and every other commit untouched. It is human-only and the reason is required. `provenance-untrailered-entity-commit`, listed under warnings rather than here, is the exception that needs the narrower `--for-entity <id>` form.
 
 | Code | Meaning | Typical fix |
 |---|---|---|

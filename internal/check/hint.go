@@ -342,6 +342,9 @@ var hintTable = map[string]string{
 //
 // A ratifiable code's hint gains the acknowledgment sentence here
 // rather than carrying it in the table — see ratificationSentence.
+//
+// The join supplies a sentence break, since most table hints are
+// written without closing punctuation and a few are not.
 func HintFor(code, subcode string) string {
 	if subcode != "" {
 		if h, ok := hintTable[code+"/"+subcode]; ok {
@@ -352,19 +355,23 @@ func HintFor(code, subcode string) string {
 }
 
 // ratifiableByAcknowledgment reports whether `aiwf acknowledge illegal
-// <sha>` clears code. It mirrors RunProvenance's scoping — that
-// function skips an acknowledged commit ahead of every rule it runs, so
-// every code it emits is ratifiable — without importing the rule set:
-// the prefix is what both sides agree on, and
-// TestHintFor_EveryRatifiableProvenanceCodeAdvertisesTheRemedy holds the
-// two together by enumerating the codes the rules actually emit.
+// <sha>` clears code. Ratifiable means exactly "RunProvenance emits
+// it": that function skips an acknowledged commit ahead of every rule
+// it runs. The prefix test plus the exclusions below is a cheap stand-in
+// for the emitted set, and
+// TestRatifiableByAcknowledgment_MatchesWhatRunProvenanceEmits holds the
+// two together in both directions by driving the rules over fixtures.
 //
-// provenance-untrailered-entity-commit is the exception, and not a
-// cosmetic one: its findings are per-(commit, entity) pairs cleared only
-// by the `--for-entity` shape, whose binding the verb verifies against
-// the commit's own diff. A blanket acknowledgment does not clear it, so
-// advertising the blanket form on it would send an operator at a command
-// that changes nothing. Its own hint names the repair it does have.
+// Two provenance-prefixed codes come from elsewhere and are excluded.
+// provenance-untrailered-entity-commit is raised by RunUntrailedAudit
+// against per-(commit, entity) pairs and clears only under the
+// `--for-entity` shape, whose binding the verb verifies against the
+// commit's own diff; its own hint names that repair.
+// provenance-untrailered-scope-undefined reports that the audit range
+// could not be determined, which is a property of the invocation rather
+// than of any commit — there is nothing for an acknowledgment to name.
+// Advertising the blanket form on either would send an operator at a
+// command that changes nothing.
 func ratifiableByAcknowledgment(code string) bool {
 	if !strings.HasPrefix(code, "provenance-") {
 		return false
@@ -399,9 +406,8 @@ const ratificationSentence = "A commit already in history cannot be re-run or co
 // advice is "you may ratify this" would not tell the reader what it is
 // they would be ratifying.
 //
-// Table hints are written without trailing punctuation, so the join
-// supplies the sentence break rather than assuming one; a hint that
-// does end in punctuation keeps it.
+// Most table hints carry no closing punctuation and a few do, so the
+// join supplies the sentence break only where one is missing.
 func withRatificationHint(code, hint string) string {
 	if hint == "" || !ratifiableByAcknowledgment(code) {
 		return hint

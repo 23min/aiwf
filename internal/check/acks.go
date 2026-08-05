@@ -38,7 +38,7 @@ import (
 // RunOrphanedAICommits, RunPromoteOnWrongBranch and RunProvenance
 // (M-0292).
 //
-// Those rules, plus the two leaf predicates at the end of
+// Those rules, plus the leaf predicates at the end of
 // FSMHistoryConsistent's forwarding chain —
 // illegalTransitionFindings and forcedUntraileredFindings — make up
 // the roster whose bodies must keep referencing the map, which is what

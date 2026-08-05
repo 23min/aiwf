@@ -8,6 +8,7 @@ import (
 
 	"github.com/23min/aiwf/internal/gitops"
 	"github.com/23min/aiwf/internal/scope"
+	"github.com/23min/aiwf/internal/tree"
 )
 
 // provenance_acked_test.go pins M-0292's scoping claim at the unit
@@ -114,6 +115,50 @@ var offendingTrailerSets = []struct {
 	},
 }
 
+// crossCommitOffender is a fixture for a rule that judges a commit
+// against the history around it, so it needs a companion commit and a
+// tree rather than one commit's trailers.
+type crossCommitOffender struct {
+	code     string
+	offender string
+	commits  []scope.Commit
+	tree     *tree.Tree
+}
+
+// crossCommitOffenders builds the fixtures for the two codes
+// provenanceAuthorizationFindings raises. Shared by the scoping test
+// and by the predicate-to-rules tie in hint_ratification_test.go, so
+// the emitted set is derived from one definition rather than two that
+// can drift.
+func crossCommitOffenders(t *testing.T) []crossCommitOffender {
+	t.Helper()
+	authSHA := strings.Repeat("a", 40)
+	return []crossCommitOffender{
+		{
+			code:     CodeProvenanceAuthorizationEnded,
+			offender: "dddd444",
+			tree:     buildProvenanceTree(t),
+			commits: []scope.Commit{
+				authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
+				agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+				agentCommit("cccc333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
+					{Key: gitops.TrailerScopeEnds, Value: authSHA},
+				}),
+				agentCommit("dddd444", "promote", "M-0002", "ai/claude", "human/peter", authSHA, nil),
+			},
+		},
+		{
+			code:     CodeProvenanceAuthorizationOutOfScope.ID,
+			offender: "bbbb222",
+			tree:     buildProvenanceTree(t),
+			commits: []scope.Commit{
+				authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
+				agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
+			},
+		},
+	}
+}
+
 // codesFrom collapses findings to their sorted, de-duplicated code set.
 func codesFrom(findings []Finding) []string {
 	seen := map[string]bool{}
@@ -172,44 +217,10 @@ func TestRunProvenance_AcknowledgedCommitReportsNothing(t *testing.T) {
 // the offending commit acknowledged.
 func TestRunProvenance_AcknowledgedCommitClearsCrossCommitRules(t *testing.T) {
 	t.Parallel()
-	authSHA := strings.Repeat("a", 40)
-
-	cases := []struct {
-		code     string
-		offender string
-		commits  func() []scope.Commit
-	}{
-		{
-			code:     CodeProvenanceAuthorizationEnded,
-			offender: "dddd444",
-			commits: func() []scope.Commit {
-				return []scope.Commit{
-					authorizeOpenedCommit(authSHA, "E-0001", "human/peter", "ai/claude"),
-					agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
-					agentCommit("cccc333", "promote", "E-0001", "ai/claude", "human/peter", authSHA, []gitops.Trailer{
-						{Key: gitops.TrailerScopeEnds, Value: authSHA},
-					}),
-					agentCommit("dddd444", "promote", "M-0002", "ai/claude", "human/peter", authSHA, nil),
-				}
-			},
-		},
-		{
-			code:     CodeProvenanceAuthorizationOutOfScope.ID,
-			offender: "bbbb222",
-			commits: func() []scope.Commit {
-				return []scope.Commit{
-					authorizeOpenedCommit(authSHA, "E-0009", "human/peter", "ai/claude"),
-					agentCommit("bbbb222", "promote", "M-0001", "ai/claude", "human/peter", authSHA, nil),
-				}
-			},
-		},
-	}
-
-	for _, tc := range cases {
+	for _, tc := range crossCommitOffenders(t) {
 		t.Run(tc.code, func(t *testing.T) {
 			t.Parallel()
-			tr := buildProvenanceTree(t)
-			commits := tc.commits()
+			tr, commits := tc.tree, tc.commits
 
 			if got := RunProvenance(commits, tr, nil); !hasFinding(got, tc.code) {
 				t.Fatalf("fixture raised %v, want it to include %s", findingCodes(got), tc.code)
