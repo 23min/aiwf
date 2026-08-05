@@ -1,7 +1,7 @@
 ---
 id: D-0060
 title: Scope the apply-seam guard to the sovereign-force rules
-status: proposed
+status: accepted
 relates_to:
     - M-0291
 ---
