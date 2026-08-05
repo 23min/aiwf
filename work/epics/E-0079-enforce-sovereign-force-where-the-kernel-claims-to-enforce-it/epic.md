@@ -68,8 +68,9 @@ satisfies it. The force rules qualify, because a verb emitting no force trailer
 satisfies them vacuously. The principal rules do not — the contract verbs never
 pass through the provenance-decoration layer and register no flag that could
 supply a principal, so enforcing those at the seam closes them outright rather
-than constraining them. The history-walking audit keeps reporting the full set
-after the fact.
+than constraining them. The history-walking audit keeps reporting the rest
+after the fact — with one exception it has never covered: `audit-only` alongside
+`force` has no history-walking counterpart at all.
 
 Two code comments are load-bearing and wrong, and one of them is why a second gate
 has a hole. `requireHumanActorForSovereignAct`
