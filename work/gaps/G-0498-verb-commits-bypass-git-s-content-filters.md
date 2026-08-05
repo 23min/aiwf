@@ -2,7 +2,7 @@
 id: G-0498
 title: Verb commits bypass git's content filters
 status: open
-priority: high
+priority: low
 discovered_in: M-0284
 ---
 ## What's missing
