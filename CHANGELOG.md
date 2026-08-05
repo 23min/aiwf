@@ -29,12 +29,12 @@ no working pipeline changes behavior — but a pipeline that treated the verb's
 exit code as success and the push as a separate concern now fails a step
 earlier.
 
-Two exit codes move, in both cases from `2` to `1`. A provenance-coherence
-refusal now reports as a legality refusal, the same exit `aiwf check` uses for
-the same violation once it has landed, and carries a machine-routable
-`error.code` under `--format=json` where it previously carried none. This
-affects the seam refusal above and the coherence refusals already raised by
-`aiwf authorize` and the `--audit-only` paths.
+A provenance-coherence refusal now exits `1` wherever it is raised — the same
+exit `aiwf check` uses for the same violation once it has landed — and carries a
+machine-routable `error.code` under `--format=json` where it previously carried
+none. That is new at the commit seam described above, and a move from `2` for
+the coherence refusals `aiwf authorize` and the `--audit-only` paths already
+raised.
 
 ### Changed — installed hooks and hook-collision messages no longer cite aiwf's own gap ids
 
