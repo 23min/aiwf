@@ -2,6 +2,7 @@
 id: G-0508
 title: Three near-copies of the internal/verb AST scan drift apart
 status: open
+priority: medium
 discovered_in: M-0285
 ---
 ## What's missing

@@ -2,6 +2,7 @@
 id: G-0439
 title: Relocation and archive sweeps skip cross-references outside their own scope
 status: open
+priority: medium
 discovered_in: E-0034
 ---
 ## What's missing

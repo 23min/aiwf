@@ -22,11 +22,9 @@ line saying what it is.
 
 - initatives
 - any more tdd related?
-- G-0073 depends_on restricted to milestone→milestone; cross-kind blocking via body prose
 - Area skill perhaps too big?
 - Do we have anything in CLAUDE.md that really should belong in shipped surfaces?
 - E-0019 and ADR-0001 both still `proposed` — deferred, no forcing function yet
-- G-0436 and G-0439 still carry no priority
 - G-0375 has a live sighting: a probe wrote user.email into the repo's own
   .git/config and broke TestResolveActor_*; the failures read as environmental
 - E-0079 is active and owns M-0291..M-0294, all four with empty bodies and no
@@ -40,9 +38,10 @@ line saying what it is.
 
 ## Next, in order (2026-08-05)
 
-These clusters cover the *defect* surface; the low-priority feature and
-enhancement gaps fit none and are not listed. Each gap sits in exactly one
-cluster.
+Clusters 1–9 cover the *defect* surface. Cluster 10 covers absences in what the
+kernel can express, which are not defects and each need a decision before any
+milestone. Low-priority feature and enhancement gaps fit none and are not
+listed. Each gap sits in exactly one cluster.
 
 ### 1. Lying gates
 
@@ -70,7 +69,7 @@ what it says.
 - **G-0547** — a quarter of the `aiwf-check` table duplicates the hint the tool
   already prints. Decide first (delete / derive / pin); it settles whether the
   Fix column is touched at all by the entry below
-- **G-0553** — six Meaning cells state a trigger the code contradicts; ~18 more
+- **G-0553** *(high)* — six Meaning cells state a trigger the code contradicts; ~18 more
   omit the guard that decides whether the rule fires. Larger than a patch
 - **G-0549** — a documented row for a code nothing emits, and a conditional code
   with no row inheriting the wrong table. Two ends of one broken mapping
@@ -79,13 +78,27 @@ what it says.
 
 Cluster 1 is the acute form of this: a gate that passes bad state. These are the
 milder forms — a gate shallower than its name, a gate that judges its own author,
-and one absence. The apparatus decides *shape* well and decides nothing about
-whether the spec going in is any good. Vocabulary in `docs/design/oracles.md`;
-initiative context in `quality-signal-and-cadence.md` Q2 and Q6.
+a gate whose red says nothing about the change under test, and one absence. The
+apparatus decides *shape* well and decides nothing about whether the spec going
+in is any good. Vocabulary in `docs/design/oracles.md`; initiative context in
+`quality-signal-and-cadence.md` Q2 and Q6.
 
+- **G-0438** *(high)* — flake-hunt is the gate that decides whether a tag is safe
+  to push, and on a stock GitHub runner it cannot separate a real regression from
+  its own resource ceiling. Every release cut redoes the local repro by hand
+- **G-0375** *(high)* — the same shape locally: a contributor whose global config
+  sets `commit.gpgsign` sees 221 failures in `internal/verb` that say nothing
+  about their change. The blanket fix was tried and reverted — actor resolution
+  depends on inheriting global identity, so this is per-key, not one toggle
+- **G-0282** *(high)* — "what verb undoes this?" has no chokepoint; code review is
+  the whole enforcement, and it never audits verbs that already shipped. The
+  filed form of the agent-performed audit two entries below
+- **G-0121** *(high)* — re-read before ranking. Its own Notes record sub-gaps 1–3
+  as substantively covered by E-0033 / M-0130 / E-0062; the residue is an
+  AC-composition invariant fuzz and a multi-host remainder. The level predates that
 - **G-0533** — `dupl` is off across the test corpus, the larger and
-  faster-growing half. Cheap, and the only member with a known fix: diff-scope
-  it. Unblocked — G-0462 repaired the instrument this was waiting on
+  faster-growing half. Cheap, and it has a known fix: diff-scope it.
+  Unblocked — G-0462 repaired the instrument this was waiting on
 - **G-0110** — mutation testing's diff filter excludes new files, which is the
   code most likely to carry an untested mutant. Blocks the idea below it
 - **G-0253** — the coverage gate is statement-scoped, so a defensive arm that
@@ -107,7 +120,6 @@ Small, no design content between them.
 
 - **G-0464** — three check predicates treat a `deferred` AC as still in scope
 - **G-0493** — `edit-body`'s two modes judge frontmatter divergence by different rules
-- **G-0498** — verb commits store raw bytes, bypassing git's clean filters
 - **G-0502** — a submodule under a moved directory is stranded, unseen by the guard
 - **G-0510** — the `enums:ignore` escape accepts three spellings that aren't the directive
 - **G-0513** — the archive sweep reports "converged" when a candidate won't parse
@@ -123,10 +135,14 @@ exists, hand-editing is the only route, and the guard then refuses the result.
 - **G-0168** *(high)* — four set-at-create fields have no mutation verb
 - **G-0276** *(high)* — verb commit isolation rests on `git stash`; leaves orphans
 - **G-0471** *(high)* — nothing catches a verb run by a binary older than the source
+- **G-0498** *(high)* — verb commits store raw bytes, bypassing git's clean filters,
+  so on a repo with `core.autocrlf` set every mutating verb is unusable. Decide
+  the storage convention first: filter on write, or ship a filter-exempt
+  `.gitattributes` for the paths aiwf owns
+- **G-0500** *(high)* — `edit-body` over a hand-moved file lands a duplicate id the local check misses
+- **G-0501** *(high)* — `init` / `update` replace a symlinked `CLAUDE.md` with a frozen copy
 - **G-0442** — `addressed_by` / `superseded_by` have no amend path
 - **G-0486** — a directory move rewrites a symlink as a copy and drops the exec bit
-- **G-0500** — `edit-body` over a hand-moved file lands a duplicate id the local check misses
-- **G-0501** — `init` / `update` replace a symlinked `CLAUDE.md` with a frozen copy
 - **G-0506** — the AC phase promote refuses from working-copy bytes HEAD contradicts
 - **G-0512** — a directory sitting at a move's destination is invisible to the decline
 
@@ -148,16 +164,19 @@ silently goes stale, or it cannot be enforced at all.
 
 - **G-0523** *(high)* — guidance reaches an assistant through one channel that can
   fail unobserved
+- **G-0536** *(high)* — the same shape for the check itself. Hooks are not
+  committable, so both positions are opt-in per clone and a fresh clone carries no
+  `aiwf check` at all. Every other locally-firing gate has a second position on push
+- **G-0504** *(high)* — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
+- **G-0370** *(high)* — ADR-0028 decided the always-on fragment should name
+  dispatch triggers for all four role agents. The decision landed; the content
+  never did, so the one surface in context every turn stays silent on it
 - **G-0541** — the guidance tells an assistant to fill a body from a template
   path that resolves for two of six kinds; gap and contract have none
-- **G-0504** — `doctor` byte-checks verb skills only; ritual and guidance drift read as healthy
 - **G-0526** — source-discipline rules ship as prose with no seam to enforce them
 - **G-0529** — CHANGELOG completeness rests on recall at epic wrap; nothing checks it
 - **G-0514** — `skill-body-id` tells CLI metavariables and non-id acronyms to become placeholders
 - **G-0530** — milestone specs mandate four sections that duplicate structured data
-- **G-0542** — a shipped skill's severity claims are not tied to the code's
-  constants, so an operator reading a skill misjudges whether a finding blocks a
-  push. In flight on a patch worktree
 
 ### 8. Error contract *(epic, parallel any time)*
 
@@ -184,7 +203,30 @@ free to run in any order.
 - **G-0508** — three near-copies of the `internal/verb` AST scan drift apart
 - **G-0453 / G-0454 / G-0455** — the remainder, each decide-before-extracting
 
-### 10. Doc drift *(one wf-patch, whenever)*
+### 10. What the model can't express *(each gated on a decision)*
+
+Not defects — absences in the kernel's closed-set vocabulary. The work either
+gets jammed into a kind that does not fit, or lives outside the kernel and the
+projections go quietly incomplete. These sat outside the ordering entirely
+because every cluster above covers the defect surface and these are not defects.
+Two of them justify themselves by the same kernel rule: correctness must not
+depend on LLM behaviour, and a relationship the kernel cannot read is enforced
+only in someone's head.
+
+- **G-0060** *(high)* — a patch is real, common work with no entity kind, no FSM,
+  no trailer, and no way to record which gap it closed. Four resolution options
+  spanning wontfix to a seventh kind; the choice is open
+- **G-0073** *(high)* — `depends_on` is milestone→milestone only, so every
+  cross-kind blocking edge (epic on ADR, ADR on ADR, epic on epic) lives in body
+  prose. `aiwf promote` cannot see it and render cannot draw it
+- **G-0311** *(high)* — no tier above epic, and since areas landed an epic is an
+  area-atom, so cross-cutting work splits into peer epics with nothing naming the
+  capability. Two sibling projects already hand-rolled the same missing concept
+- **G-0111** *(high)* — the wrap side of the epic ritual: scope-end bundled into
+  `promote done`, no human-only rule on `done`, and no mechanism to land the gap
+  closures the epic's own spec claims. Recommends its own epic
+
+### 11. Doc drift *(one wf-patch, whenever)*
 
 Citations that no longer resolve. Cheap, isolated, no thesis between them beyond
 staleness.

@@ -2,6 +2,7 @@
 id: G-0506
 title: PromoteACPhase refuses from working-copy bytes no verb wrote
 status: open
+priority: medium
 discovered_in: M-0285
 ---
 ## What's missing

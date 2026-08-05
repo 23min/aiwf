@@ -2,6 +2,7 @@
 id: G-0553
 title: The aiwf-check Meaning cells drift from the rules they describe
 status: open
+priority: high
 ---
 ## What's missing
 

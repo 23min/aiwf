@@ -2,6 +2,7 @@
 id: G-0548
 title: Shipped surfaces cite this repo's filesystem paths with no check to catch them
 status: open
+priority: medium
 ---
 ## What's missing
 

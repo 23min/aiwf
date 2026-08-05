@@ -2,6 +2,7 @@
 id: G-0502
 title: A gitlink under a moved directory is stranded, unseen by the guard
 status: open
+priority: low
 discovered_in: M-0284
 ---
 ## What's missing
